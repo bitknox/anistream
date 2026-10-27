@@ -207,7 +207,7 @@ impl App {
             // took over would be answering a question the user is not looking at — and an open
             // "leave" or "remove" would quietly become a "join" under the same Enter.
             InvitePreview::Store(_) if !self.in_stores() || self.nav.has_overlay() => {
-                self.push_toast(Notice::info(
+                self.push_toast(Notice::raw_info(
                     "the invite checked out — paste it again to join",
                 ));
             }
@@ -219,7 +219,7 @@ impl App {
                 self.nav.open_overlay(Overlay::StoreConfirm);
             }
             InvitePreview::Failed { reason } => {
-                self.push_toast(Notice::alert(reason));
+                self.push_toast(Notice::raw_alert(reason));
                 // Back to the prompt with the link still in it, so a link cut short in the
                 // copy can be finished rather than pasted again — when the user is still here.
                 if self.in_stores() && !self.nav.has_overlay() {
@@ -348,7 +348,7 @@ impl App {
             return;
         }
         if plugins.is_empty() {
-            self.push_toast(Notice::info(
+            self.push_toast(Notice::raw_info(
                 "no plugins in the plugin directory to publish — `anistream --plugins` shows where it is",
             ));
             return;
@@ -585,7 +585,7 @@ impl App {
             MemberLine::Member(at) => {
                 let member = self.store_members.get(at)?;
                 if member.you {
-                    self.push_toast(Notice::info(
+                    self.push_toast(Notice::raw_info(
                         "that is you — a store always keeps its owner",
                     ));
                     return None;

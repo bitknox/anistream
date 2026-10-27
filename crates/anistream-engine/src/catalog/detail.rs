@@ -22,7 +22,8 @@ pub async fn load_detail(lent: Lent, id: AnilistId) {
     let (media, fresh) = match meta.media_answered(id).await {
         Ok(answered) => answered,
         Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(format!("could not load title: {e}"))));
+            let _ =
+                tx.send(Event::Toast(Notice::raw_alert(format!("could not load title: {e}"))));
             return;
         }
     };
@@ -67,14 +68,16 @@ pub fn play_trailer(
                 .stderr(std::process::Stdio::null())
                 .spawn()
         {
-            let _ = tx.send(Event::Toast(Notice::info("trailer playing in mpv")));
+            let _ = tx.send(Event::Toast(Notice::raw_info("trailer playing in mpv")));
             // Reaped so a closed trailer never lingers as a zombie.
             let _ = child.wait().await;
             return;
         }
         let update = match host.open_url(&url) {
-            Ok(()) => Event::Toast(Notice::info("trailer opened in your browser")),
-            Err(e) => Event::Toast(Notice::alert(format!("could not open the trailer: {e}"))),
+            Ok(()) => Event::Toast(Notice::raw_info("trailer opened in your browser")),
+            Err(e) => {
+                Event::Toast(Notice::raw_alert(format!("could not open the trailer: {e}")))
+            }
         };
         let _ = tx.send(update);
     });
@@ -99,6 +102,6 @@ fn in_path(names: &[&str]) -> bool {
 /// Open a link in the browser.
 pub fn open_external(url: String, services: &Services, tx: &Outbox) {
     if let Err(e) = services.host.open_url(&url) {
-        let _ = tx.send(Event::Toast(Notice::alert(format!("could not open: {e}"))));
+        let _ = tx.send(Event::Toast(Notice::raw_alert(format!("could not open: {e}"))));
     }
 }

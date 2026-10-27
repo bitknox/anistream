@@ -267,7 +267,7 @@ async fn an_order_that_takes_a_source_away_rebuilds_the_chain() {
     );
     assert!(matches!(&updates[3], Event::Vpn(None)));
     let Event::ProviderNote(note) = &updates[4] else { unreachable!() };
-    assert_eq!(note, "torrents are off — the session was stopped");
+    assert_eq!(note.english(), "torrents are off — the session was stopped");
     // Rebuilt from the config, which describes no source the fixture one could be.
     assert!(provider_ids(&updates[5]).is_empty());
     assert!(h.registry().is_empty());

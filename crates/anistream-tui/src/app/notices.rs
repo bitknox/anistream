@@ -17,7 +17,7 @@ use crate::{
 };
 
 /// A notice on screen, for as long as it stays.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Toast {
     pub notice: Notice,
     /// Frames remaining before it disappears.
@@ -77,7 +77,7 @@ pub fn worded(notice: Notice, keymap: &Keymap) -> Notice {
         Some((head, rest)) => format!("{head} — {said}; {rest}"),
         None => format!("{} — {said}", notice.text),
     };
-    Notice { kind: notice.kind, text, hint: None }
+    Notice { kind: notice.kind, text, hint: None, msg: None }
 }
 
 impl App {
@@ -85,7 +85,7 @@ impl App {
     /// link goes into the log whole, for a terminal that cannot open it, and the browser opens it.
     pub(super) fn report_bug(&mut self) -> Option<Command> {
         let url = issue_url(&self.bug_report());
-        self.push_toast(Notice::info(
+        self.push_toast(Notice::raw_info(
             "opening a bug report in the browser; the link is in the log",
         ));
         self.log(NoticeKind::Info, format!("bug report: {url}"));
@@ -255,7 +255,7 @@ mod tests {
     #[test]
     fn reporting_a_bug_opens_an_issue_with_the_last_alert_and_keeps_the_link() {
         let mut a = app();
-        a.apply(Event::Toast(Notice::alert(
+        a.apply(Event::Toast(Notice::raw_alert(
             "no stream from lantern.example for \"Hidden Title\"",
         )));
         let Some(Command::OpenExternal { url }) = a.handle(Action::ReportBug, 5) else {
@@ -286,28 +286,31 @@ mod tests {
         let stalled = "mpv has not started playing after 20s — the source may have no data, \
                        or check `mpv` plays a file on its own";
         assert_eq!(
-            said(Notice::alert(stalled).with_hint(NoticeHint::StopPlayback)),
+            said(Notice::raw_alert(stalled).with_hint(NoticeHint::StopPlayback)),
             "mpv has not started playing after 20s — press x to stop; the source may have no \
              data, or check `mpv` plays a file on its own"
         );
         assert_eq!(
-            said(Notice::info("plugin update ready: alpha").with_hint(NoticeHint::OpenStores)),
+            said(
+                Notice::raw_info("plugin update ready: alpha")
+                    .with_hint(NoticeHint::OpenStores)
+            ),
             "plugin update ready: alpha — Providers, Enter"
         );
         assert_eq!(
             said(
-                Notice::info("kitsu signs in from the Accounts screen")
+                Notice::raw_info("kitsu signs in from the Accounts screen")
                     .with_hint(NoticeHint::KitsuCredentials)
             ),
             "kitsu signs in from the Accounts screen — enter on its row asks for credentials"
         );
-        assert_eq!(said(Notice::info("no hint — said as sent")), "no hint — said as sent");
+        assert_eq!(said(Notice::raw_info("no hint — said as sent")), "no hint — said as sent");
 
         // The key bound now, not the default.
         let mut keymap = Keymap::new();
         let rebound = [("stop_playback".to_owned(), "s".to_owned())].into_iter().collect();
         assert!(keymap.apply_overrides(&rebound).is_empty());
-        let notice = Notice::alert("stuck — try again").with_hint(NoticeHint::StopPlayback);
+        let notice = Notice::raw_alert("stuck — try again").with_hint(NoticeHint::StopPlayback);
         assert_eq!(worded(notice, &keymap).text, "stuck — press s to stop; try again");
     }
 
@@ -315,7 +318,7 @@ mod tests {
     fn a_hinted_notice_is_shown_and_logged_as_the_terminal_words_it() {
         let mut a = app();
         let notice =
-            Notice::info("plugin update ready: alpha").with_hint(NoticeHint::OpenStores);
+            Notice::raw_info("plugin update ready: alpha").with_hint(NoticeHint::OpenStores);
         a.apply(Event::Toast(notice.clone()));
         a.apply(Event::Toast(notice));
         assert_eq!(a.toasts.len(), 1, "the same notice again is the same line");
@@ -330,7 +333,7 @@ mod tests {
     fn a_toast_already_up_is_refreshed_rather_than_counted_twice() {
         let mut a = app();
         for text in ["saved", "saved", "queued", "saved"] {
-            a.push_toast(Notice::info(text));
+            a.push_toast(Notice::raw_info(text));
         }
         let up: Vec<&str> = a.toasts.iter().map(|t| t.notice.text.as_str()).collect();
         assert_eq!(up, ["queued", "saved"], "one of each, the repeat newest");
@@ -346,7 +349,7 @@ mod tests {
         // fails the *first* error is usually the one that explains the rest.
         let mut a = app();
         for i in 0..5 {
-            a.push_toast(Notice::alert(format!("failure {i}")));
+            a.push_toast(Notice::raw_alert(format!("failure {i}")));
         }
         assert_eq!(a.toasts.len(), 3, "the stack is still capped");
         assert_eq!(a.logs.len(), 5, "but nothing was lost");
@@ -390,7 +393,11 @@ mod tests {
         assert_eq!((a.jobs[0].id, a.jobs[0].label.as_str()), (id, "checking providers"));
         let started = a.jobs[0].started;
         assert!(before <= started && started <= a.clock.now_instant(), "timed from then");
-        a.apply(Event::JobNote { job: id, note: "AniList limit".into(), wait: None });
+        a.apply(Event::JobNote {
+            job: id,
+            note: anistream_model::Msg::verbatim("AniList limit"),
+            wait: None,
+        });
         assert!(a.jobs[0].note.is_some());
         a.apply(Event::JobDone(id));
         assert!(a.jobs.is_empty());
@@ -400,7 +407,11 @@ mod tests {
     fn a_job_runs_until_its_work_says_it_ended() {
         let mut a = app();
         let id = a.begin_job(&Command::CheckProviders).unwrap();
-        a.apply(Event::JobNote { job: id, note: "AniList limit".into(), wait: None });
+        a.apply(Event::JobNote {
+            job: id,
+            note: anistream_model::Msg::verbatim("AniList limit"),
+            wait: None,
+        });
         assert_eq!(a.jobs[0].note.as_ref().map(|(n, _)| n.as_str()), Some("AniList limit"));
 
         a.apply(Event::JobDone(id));
@@ -426,7 +437,7 @@ mod tests {
     fn toasts_expire_and_never_stack_beyond_three() {
         let mut a = app();
         for i in 0..6 {
-            a.push_toast(Notice::info(format!("message {i}")));
+            a.push_toast(Notice::raw_info(format!("message {i}")));
         }
         assert_eq!(a.toasts.len(), 3, "a burst of failures must not cover the screen");
         assert!(a.toasts[0].notice.text.contains('3'), "oldest are dropped first");
@@ -440,8 +451,8 @@ mod tests {
     #[test]
     fn alerts_stay_up_longer_than_info() {
         assert!(
-            Toast::from(Notice::alert("provider down")).ttl
-                > Toast::from(Notice::info("switched")).ttl
+            Toast::from(Notice::raw_alert("provider down")).ttl
+                > Toast::from(Notice::raw_info("switched")).ttl
         );
     }
 
@@ -449,11 +460,11 @@ mod tests {
     fn a_repeated_toast_is_kept_up_rather_than_stacked() {
         let mut a = app();
         for _ in 0..5 {
-            a.push_toast(Notice::info("saved quality"));
+            a.push_toast(Notice::raw_info("saved quality"));
         }
         assert_eq!(a.toasts.len(), 1, "one message, said once");
         assert_eq!(a.logs[0].count, 5, "the log still counts every one");
-        a.push_toast(Notice::info("saved theme"));
+        a.push_toast(Notice::raw_info("saved theme"));
         assert_eq!(a.toasts.len(), 2);
     }
 }

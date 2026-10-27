@@ -25,6 +25,26 @@
     <string name="action_cancel">Cancel</string>
     <!-- Button that puts a question off until later. -->
     <string name="action_not_now">Not now</string>
+    <!-- A span of time in whole days. The unit letter belongs to the language. -->
+    <string name="duration_days">%1$dd</string>
+    <!-- A span of time in hours and minutes. -->
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+    <!-- A span of time in whole hours. -->
+    <string name="duration_hours">%1$dh</string>
+    <!-- A span of time in minutes. -->
+    <string name="duration_minutes">%1$dm</string>
+    <!-- A short wait in minutes and seconds. The seconds come with a leading zero. -->
+    <string name="duration_minutes_seconds">%1$dm %2$ss</string>
+    <!-- A short wait in seconds. -->
+    <string name="duration_seconds">%1$ds</string>
+    <!-- A file size in bytes. The number is already formatted. -->
+    <string name="size_byte">%1$s B</string>
+    <!-- A file size in kilobytes (1,000 bytes). The number is already formatted. -->
+    <string name="size_kilobyte">%1$s kB</string>
+    <!-- A file size in megabytes (1,000,000 bytes). The number is already formatted. -->
+    <string name="size_megabyte">%1$s MB</string>
+    <!-- A file size in gigabytes (1,000,000,000 bytes). The number is already formatted. -->
+    <string name="size_gigabyte">%1$s GB</string>
     <!-- Continue row subtitle. The show's title is cut first when the row is short. -->
     <plurals name="queue_episodes_left">
         <item quantity="one">One episode left in %2$s</item>

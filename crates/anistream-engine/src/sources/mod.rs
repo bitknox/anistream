@@ -10,6 +10,7 @@ pub mod options;
 pub mod torrent;
 pub mod vpn;
 
+use anistream_model::Msg;
 use std::{sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths};
@@ -409,9 +410,9 @@ pub async fn bring_up_torrent(
         match log.observe(&state, std::time::Instant::now()) {
             GuardNote::Failing(reason) => {
                 tracing::warn!(%reason, "vpn guard failing; torrents wait for it");
-                let _ = tx.send(Event::ProviderNote(format!(
+                let _ = tx.send(Event::ProviderNote(Msg::verbatim(format!(
                     "torrents start once the VPN guard passes: {reason}"
-                )));
+                ))));
             }
             GuardNote::StillFailing { reason, minutes, checks } => {
                 tracing::warn!(%reason, minutes, checks, "vpn guard still failing");

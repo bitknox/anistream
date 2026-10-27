@@ -481,13 +481,13 @@ impl App {
             // A watch party: joined, left, and an episode the room plays that no source here
             // has, said as toasts. What the room says comes on the player, where the viewer is;
             // the members and the form are a native app's.
-            Event::PartyJoined(view) => self.push_toast(Notice::info(format!(
+            Event::PartyJoined(view) => self.push_toast(Notice::raw_info(format!(
                 "watch party · room {} on {}",
                 view.room, view.server
             ))),
-            Event::PartyLeft { reason: Some(reason) } => self.push_toast(Notice::alert(reason)),
+            Event::PartyLeft { reason: Some(reason) } => self.push_toast(Notice::raw_alert(reason.english())),
             Event::PartyNoSource { reason, .. } => {
-                self.push_toast(Notice::alert(format!("{reason}; still in the party")))
+                self.push_toast(Notice::raw_alert(format!("{reason}; still in the party")))
             }
             Event::PartyLeft { reason: None }
             | Event::PartyForm(_)
@@ -500,7 +500,7 @@ impl App {
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),
-            Event::Status(status) => self.status = status,
+            Event::Status(status) => self.status = status.map(|m| m.english()).unwrap_or_default(),
             Event::Toast(notice) => self.push_toast(notice),
             // Decoded off the loop, and back through `artwork_decoded`.
             Event::ArtworkReady { .. } => {}
@@ -521,14 +521,14 @@ impl App {
             Event::ShowSettings(_) => {}
             Event::TitleDub { id, dub } => self.apply_dub(id, dub),
             Event::SourcesChanged => self.status = "reloading sources…".into(),
-            Event::ProviderNote(note) => self.provider_note = Some(note),
+            Event::ProviderNote(note) => self.provider_note = Some(note.english()),
             Event::ProviderPreference(choice) => self.provider_preference = choice,
             Event::SourceOptions { id, options } => {
                 if self.title_on_screen() == Some(id) {
                     self.source_options = options;
                 }
             }
-            Event::PinUnavailable { name, .. } => self.push_toast(Notice::info(format!(
+            Event::PinUnavailable { name, .. } => self.push_toast(Notice::raw_info(format!(
                 "{name} is pinned for this title and is not available, so the other sources are used"
             ))),
             Event::Sources { id, episode, candidates } => {
@@ -600,7 +600,7 @@ impl App {
             Event::PlaybackEnded { ending, .. } => self.apply_playback_ended(ending),
             Event::Sync(state) => self.apply_sync(*state),
             Event::JobStarted { job, activity } => self.start_job(job, activity),
-            Event::JobNote { job, note, wait } => self.apply_job_note(job, note, wait),
+            Event::JobNote { job, note, wait } => self.apply_job_note(job, note.english(), wait),
             Event::JobDone(job) => self.jobs.retain(|j| j.id != job),
             Event::ProgressQueued => self.apply_progress_queued(),
             Event::Conflicts(rows) => self.apply_conflicts(rows),

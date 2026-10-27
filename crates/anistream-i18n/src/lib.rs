@@ -41,6 +41,7 @@ pub const PSEUDO_TAG: &str = "en-XA";
 pub enum Arg<'a> {
     Text(&'a str),
     Int(i64),
+    Float(f64),
 }
 
 /// The languages to offer, source first. The pseudo-locale is listed only where it is available.
@@ -128,6 +129,7 @@ impl Localizer {
             match arg {
                 Arg::Text(t) => fluent_args.set(*name, FluentValue::from(*t)),
                 Arg::Int(n) => fluent_args.set(*name, FluentValue::from(*n)),
+                Arg::Float(f) => fluent_args.set(*name, FluentValue::from(*f)),
             }
         }
         for bundle in std::iter::once(&self.primary).chain(self.fallback.as_ref()) {

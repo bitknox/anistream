@@ -180,7 +180,7 @@ impl Run<'_> {
                 // during a legitimate pause — mpv keeps reporting `time-pos` while paused.
                 _ = tokio::time::sleep(FIRST_FRAME_TIMEOUT), if !ever_played && !warned => {
                     // How to stop it is the front end's to say: the terminal's `x`.
-                    let notice = Notice::alert(format!(
+                    let notice = Notice::raw_alert(format!(
                         "mpv has not started playing after {}s — the source may have no data, or check `mpv` plays a file on its own",
                         FIRST_FRAME_TIMEOUT.as_secs()
                     ));

@@ -50,6 +50,56 @@ pub fn action_not_now() -> String {
     text("action-not-now", &[])
 }
 
+/// A span of time in whole days. The unit letter belongs to the language.
+pub fn duration_days(days: i64) -> String {
+    text("duration-days", &[("days", Arg::Int(days))])
+}
+
+/// A span of time in hours and minutes.
+pub fn duration_hours_minutes(hours: i64, minutes: i64) -> String {
+    text("duration-hours-minutes", &[("hours", Arg::Int(hours)), ("minutes", Arg::Int(minutes))])
+}
+
+/// A span of time in whole hours.
+pub fn duration_hours(hours: i64) -> String {
+    text("duration-hours", &[("hours", Arg::Int(hours))])
+}
+
+/// A span of time in minutes.
+pub fn duration_minutes(minutes: i64) -> String {
+    text("duration-minutes", &[("minutes", Arg::Int(minutes))])
+}
+
+/// A short wait in minutes and seconds. The seconds come with a leading zero.
+pub fn duration_minutes_seconds(minutes: i64, seconds: &str) -> String {
+    text("duration-minutes-seconds", &[("minutes", Arg::Int(minutes)), ("seconds", Arg::Text(seconds))])
+}
+
+/// A short wait in seconds.
+pub fn duration_seconds(seconds: i64) -> String {
+    text("duration-seconds", &[("seconds", Arg::Int(seconds))])
+}
+
+/// A file size in bytes. The number is already formatted.
+pub fn size_byte(value: &str) -> String {
+    text("size-byte", &[("value", Arg::Text(value))])
+}
+
+/// A file size in kilobytes (1,000 bytes). The number is already formatted.
+pub fn size_kilobyte(value: &str) -> String {
+    text("size-kilobyte", &[("value", Arg::Text(value))])
+}
+
+/// A file size in megabytes (1,000,000 bytes). The number is already formatted.
+pub fn size_megabyte(value: &str) -> String {
+    text("size-megabyte", &[("value", Arg::Text(value))])
+}
+
+/// A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.
+pub fn size_gigabyte(value: &str) -> String {
+    text("size-gigabyte", &[("value", Arg::Text(value))])
+}
+
 /// Continue row subtitle. The show's title is cut first when the row is short.
 pub fn queue_episodes_left(count: i64, title: &str) -> String {
     text("queue-episodes-left", &[("count", Arg::Int(count)), ("title", Arg::Text(title))])

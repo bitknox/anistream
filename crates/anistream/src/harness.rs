@@ -245,7 +245,7 @@ impl Harness {
         let mut app = App::with_images(settings, palette, keymap, ImageEngine::disabled());
         app.clock = Clock::fixed(options.now, zone());
         for problem in problems {
-            app.push_toast(Notice::alert(format!("keybinding not applied: {problem}")));
+            app.push_toast(Notice::raw_alert(format!("keybinding not applied: {problem}")));
         }
         if let Some(problem) = &problem {
             show_config_problem(&mut app, &paths, problem);

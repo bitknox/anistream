@@ -75,8 +75,9 @@ pub fn hide_from_continue(id: AnilistId, services: &Services, tx: &Outbox) {
     // The reducer has already dropped the row from the screen; failing to persist
     // that would resurrect it on the next reload, so the failure is named.
     if let Err(e) = store.hide_from_continue(id) {
-        let _ = tx
-            .send(Event::Toast(Notice::alert(format!("could not remove from continue: {e}"))));
+        let _ = tx.send(Event::Toast(Notice::raw_alert(format!(
+            "could not remove from continue: {e}"
+        ))));
     }
 }
 

@@ -99,7 +99,7 @@ impl App {
             Action::Detach => {
                 // mpv keeps playing; we just stop looking at it. Progress recording continues,
                 // because the session outlives the screen.
-                self.push_toast(Notice::info("detached — mpv is still playing"));
+                self.push_toast(Notice::raw_info("detached — mpv is still playing"));
                 self.nav.pop();
                 return Some(None);
             }
@@ -110,7 +110,7 @@ impl App {
                     Some((_, to)) => P::SeekTo(to),
                     // Better to say nothing is offered than to seek somewhere arbitrary.
                     None => {
-                        self.push_toast(Notice::info("no skip here"));
+                        self.push_toast(Notice::raw_info("no skip here"));
                         return Some(None);
                     }
                 }
@@ -127,7 +127,7 @@ impl App {
     /// Driven off the watch log rather than a tracker, so this works with no account at all.
     pub(super) fn play_next_unwatched(&mut self) -> Option<Command> {
         let Some(entry) = self.target() else {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(Notice::raw_info("nothing selected"));
             return None;
         };
         let id = entry.id;
@@ -349,7 +349,7 @@ impl App {
             self.nav.pop();
         }
         if matches!(ending, Ending::Complete { .. }) {
-            self.push_toast(Notice::info("episode finished"));
+            self.push_toast(Notice::raw_info("episode finished"));
         }
     }
 
@@ -357,7 +357,10 @@ impl App {
     pub(super) fn apply_resumed(&mut self, position: f64) {
         // Resume happens without asking — mpv is already at the right place by the time
         // this arrives. Saying so is what keeps it from feeling like a glitch.
-        self.push_toast(Notice::info(format!("resumed at {}", NowPlaying::clock(position))));
+        self.push_toast(Notice::raw_info(format!(
+            "resumed at {}",
+            NowPlaying::clock(position)
+        )));
         if let Some(playing) = &mut self.playing {
             playing.position = position;
         }
@@ -406,7 +409,7 @@ mod tests {
         // way to know the stream failed.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Event::Toast(Notice::alert("all providers failed")));
+        a.apply(Event::Toast(Notice::raw_alert("all providers failed")));
         for _ in 0..crate::eyecatch::SWEEP_FRAMES * 3 {
             a.tick_animation();
         }
@@ -479,7 +482,7 @@ mod tests {
         assert_eq!(a.playing.as_ref().unwrap().position, 0.0);
         assert!(a.eyecatch.is_some(), "a report from 4 is not 9 starting");
 
-        a.apply(Event::Toast(Notice::alert("a: timed out")));
+        a.apply(Event::Toast(Notice::raw_alert("a: timed out")));
         a.apply(Event::PlaybackKept);
         let playing = a.playing.as_ref().unwrap();
         assert_eq!((playing.episode.as_str(), playing.position), ("4", 301.0));

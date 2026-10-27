@@ -122,7 +122,7 @@ pub fn set_show_setting(
                 tracing::debug!(?key, ?value, "not a value this setting takes");
                 let refusal =
                     format!("not saved: {} is not a {}", words(value), key.setting().label());
-                let _ = tx.send(Event::Toast(Notice::alert(refusal)));
+                let _ = tx.send(Event::Toast(Notice::raw_alert(refusal)));
                 return;
             }
         },
@@ -135,7 +135,7 @@ pub fn set_show_setting(
         anistream_store::now(),
     );
     if let Err(error) = written {
-        let _ = tx.send(Event::Toast(Notice::alert(format!("not saved: {error}"))));
+        let _ = tx.send(Event::Toast(Notice::raw_alert(format!("not saved: {error}"))));
     }
     load_show_settings(id, engine, services, tx);
     recount(engine, services, tx);
@@ -150,7 +150,7 @@ pub fn reset_show_settings(
     tx: &Outbox,
 ) {
     if let Err(error) = services.store.reset_show(id) {
-        let _ = tx.send(Event::Toast(Notice::alert(format!("not reset: {error}"))));
+        let _ = tx.send(Event::Toast(Notice::raw_alert(format!("not reset: {error}"))));
     }
     load_show_settings(id, engine, services, tx);
     recount(engine, services, tx);
@@ -185,7 +185,7 @@ pub fn set_show_subtitles(
                 Some(choice) => Some(choice),
                 None => {
                     let refusal = "not saved: the show remembers no such subtitles";
-                    let _ = tx.send(Event::Toast(Notice::alert(refusal)));
+                    let _ = tx.send(Event::Toast(Notice::raw_alert(refusal)));
                     load_show_settings(id, engine, services, tx);
                     return;
                 }
@@ -193,7 +193,7 @@ pub fn set_show_subtitles(
         }
     };
     if let Err(error) = store.remember_tracks(id, translation, &kept) {
-        let _ = tx.send(Event::Toast(Notice::alert(format!("not saved: {error}"))));
+        let _ = tx.send(Event::Toast(Notice::raw_alert(format!("not saved: {error}"))));
     }
     load_show_settings(id, engine, services, tx);
 }

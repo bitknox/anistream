@@ -2,6 +2,7 @@
 //! session once the VPN guard passes, and the source chain rebuilt when a setting changes which
 //! sources there are.
 
+use anistream_model::Msg;
 use std::{sync::Arc, time::Duration};
 
 use anistream_core::config::Config;
@@ -144,7 +145,7 @@ impl TorrentTasks {
             Ok(up) => up,
             Err(reason) => {
                 tracing::warn!(%reason, "torrent source not started");
-                let _ = tx.send(Event::ProviderNote(reason));
+                let _ = tx.send(Event::ProviderNote(Msg::verbatim(reason)));
                 return;
             }
         };
@@ -155,7 +156,7 @@ impl TorrentTasks {
         // A source joined the chain: what is on screen was listed without it.
         let _ = tx.internal(crate::outbox::Internal::SourcesReordered);
         if let Some(warning) = up.warning {
-            let _ = tx.send(Event::Toast(Notice::info(warning)));
+            let _ = tx.send(Event::Toast(Notice::raw_info(warning)));
         }
         *vpn_guard = Some((up.guard, up.session));
         let check = Arc::clone(&self.check);
@@ -257,7 +258,7 @@ fn check_alone(
         Ok(guard) => guard,
         Err(reason) => {
             let _ = tx.send(Event::Vpn(Some(GuardView::Unreachable)));
-            let _ = tx.send(Event::Toast(Notice::alert(format!("not checked: {reason}"))));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(format!("not checked: {reason}"))));
             return;
         }
     };
@@ -347,9 +348,9 @@ pub async fn reload_sources(
         let _ = tx.send(Event::Vpn(None));
     }
     let _ = tx.send(Event::ProviderNote(if sources::torrent_wanted(&snapshot) {
-        "sources reloaded — torrents start once the VPN guard passes".into()
+        Msg::verbatim("sources reloaded — torrents start once the VPN guard passes")
     } else {
-        "torrents are off — the session was stopped".into()
+        Msg::verbatim("torrents are off — the session was stopped")
     }));
     let _ = tx.send(Event::Providers(data::provider_rows(registry, &services.stores)));
     tracing::info!(providers = ?registry.ids(), "source chain reloaded");

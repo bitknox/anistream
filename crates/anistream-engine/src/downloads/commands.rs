@@ -13,12 +13,12 @@ use crate::{
 fn refused(id: AnilistId, engine: &EngineState, services: &Services) -> Option<Notice> {
     let registry = &services.registry;
     if registry.is_empty() && !registry.is_arriving() {
-        return Some(Notice::alert(crate::playback::resolve::NO_SOURCES));
+        return Some(Notice::raw_alert(crate::playback::resolve::NO_SOURCES));
     }
     engine
         .ahead
         .unlisted(id)
-        .then(|| Notice::alert("no source could list this show, so it can't be downloaded"))
+        .then(|| Notice::raw_alert("no source could list this show, so it can't be downloaded"))
 }
 
 /// Queue one episode for download.
@@ -45,17 +45,18 @@ pub fn download_episode(
         // same walk playback does, which is the point: a download is "play it, to disk".
         let queued = downloads::enqueue(&store, &registry, &meta, id, &episode, wanted, false);
         let update = match queued.await {
-            Ok((row, downloads::Queued::New)) => {
-                Event::Toast(Notice::info(format!("queued {} ep {}", row.title, row.episode)))
-            }
-            Ok((row, downloads::Queued::Existing)) => Event::Toast(Notice::info(format!(
+            Ok((row, downloads::Queued::New)) => Event::Toast(Notice::raw_info(format!(
+                "queued {} ep {}",
+                row.title, row.episode
+            ))),
+            Ok((row, downloads::Queued::Existing)) => Event::Toast(Notice::raw_info(format!(
                 "{} ep {} is already in downloads",
                 row.title, row.episode
             ))),
-            Err(refusal) => Event::Toast(Notice::alert(refusal.to_string())),
+            Err(refusal) => Event::Toast(Notice::raw_alert(refusal.to_string())),
         };
         let _ = tx.send(update);
-        let _ = tx.send(Event::Status(String::new()));
+        let _ = tx.send(Event::Status(None));
         downloads::publish_now(&store, &tx);
     });
 }
@@ -126,7 +127,7 @@ pub fn download_start_now(id: i64, services: &Services, tx: &Outbox) {
     let moved = store.download_to_front(id, anistream_store::now()).unwrap_or(false);
     downloads::publish_now(store, tx);
     if let (true, Some(row)) = (moved, row) {
-        let _ = tx.send(Event::Toast(Notice::info(format!(
+        let _ = tx.send(Event::Toast(Notice::raw_info(format!(
             "starting {} ep {} now",
             row.title, row.episode
         ))));
@@ -140,7 +141,7 @@ pub fn download_cancel(id: i64, services: &Services, tx: &Outbox) {
     // torrent. Deleting the torrent from here would race with that loop.
     let _ = store.remove_download(id);
     downloads::publish_now(store, tx);
-    let _ = tx.send(Event::Toast(Notice::info("download cancelled")));
+    let _ = tx.send(Event::Toast(Notice::raw_info("download cancelled")));
 }
 
 /// Delete a download and its file.
@@ -157,13 +158,13 @@ pub fn download_delete(id: i64, services: &Services, tx: &Outbox) {
     let _ = store.remove_download(id);
     let note = match path {
         Some(path) => match std::fs::remove_file(&path) {
-            Ok(()) => Notice::info("download and file deleted"),
+            Ok(()) => Notice::raw_info("download and file deleted"),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                Notice::info("download removed — file was already gone")
+                Notice::raw_info("download removed — file was already gone")
             }
-            Err(e) => Notice::alert(format!("removed the entry, not the file: {e}")),
+            Err(e) => Notice::raw_alert(format!("removed the entry, not the file: {e}")),
         },
-        None => Notice::info("download removed"),
+        None => Notice::raw_info("download removed"),
     };
     downloads::publish_now(store, tx);
     let _ = tx.send(Event::Toast(note));
@@ -174,5 +175,5 @@ pub fn download_clear_completed(services: &Services, tx: &Outbox) {
     let Services { store, .. } = services;
     let cleared = store.clear_completed_downloads().unwrap_or(0);
     downloads::publish_now(store, tx);
-    let _ = tx.send(Event::Toast(Notice::info(format!("cleared {cleared} finished"))));
+    let _ = tx.send(Event::Toast(Notice::raw_info(format!("cleared {cleared} finished"))));
 }

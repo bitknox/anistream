@@ -78,7 +78,7 @@ pub async fn run(
     // before anyone reads it, and a refused rebind otherwise looks like a key that does nothing.
     for problem in keybinding_problems {
         tracing::warn!(%problem, "keybinding not applied");
-        app.push_toast(Notice::alert(format!("keybinding not applied: {problem}")));
+        app.push_toast(Notice::raw_alert(format!("keybinding not applied: {problem}")));
     }
 
     if let Some(problem) = &config_problem {

@@ -579,7 +579,7 @@ pub(crate) async fn run(
             let queue = store.downloads().unwrap_or_default();
             if !fits(work.free(&show.config), &queue) {
                 if !said_full.swap(true, Ordering::Relaxed) {
-                    let _ = tx.send(Event::Toast(Notice::info(FULL)));
+                    let _ = tx.send(Event::Toast(Notice::raw_info(FULL)));
                 }
                 return;
             }

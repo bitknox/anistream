@@ -186,7 +186,7 @@ async fn a_load_held_up_by_the_rate_limit_says_so_on_its_job_first() {
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["JobNote", "Content", "JobDone"]);
     let Event::JobNote { job: noted, note, wait } = &updates[0] else { unreachable!() };
-    assert_eq!((Some(*noted), note.as_str()), (job, "AniList limit"));
+    assert_eq!((Some(*noted), note.english().as_str()), (job, "AniList limit"));
     assert!(wait.is_some(), "it counts down to when the wait is over");
     ends(&updates, job);
 }

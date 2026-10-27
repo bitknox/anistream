@@ -123,7 +123,7 @@ pub fn begin(sync: &Sync, clients: &AppClients, tracker: &str, tx: &Outbox) -> b
         ("anilist", Some(client), _) => match auth::implicit_url(client, &state) {
             Ok(url) => (url, None),
             Err(e) => {
-                let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
+                let _ = tx.send(Event::Toast(Notice::raw_alert(e.to_string())));
                 return true;
             }
         },
@@ -154,7 +154,7 @@ pub async fn finish(
     tx: Outbox,
 ) {
     let alert = |text: String| {
-        let _ = tx.send(Event::Toast(Notice::alert(text)));
+        let _ = tx.send(Event::Toast(Notice::raw_alert(text)));
     };
     let Some(pending) = sync.pending.take(&tracker) else {
         return alert(format!("no sign-in to {tracker} is waiting for that"));
@@ -218,7 +218,7 @@ pub async fn finish(
     match kept {
         Ok(_) => {
             let name = if tracker == "mal" { "MyAnimeList" } else { "AniList" };
-            let _ = tx.send(Event::Toast(Notice::info(format!("signed in to {name}"))));
+            let _ = tx.send(Event::Toast(Notice::raw_info(format!("signed in to {name}"))));
             activate(&sync, &tracker, &pair, &tx).await;
         }
         Err(e) => alert(format!("could not store the token: {e}")),

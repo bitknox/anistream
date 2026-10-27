@@ -41,6 +41,56 @@ public enum L {
     /// Button that puts a question off until later.
     public static var actionNotNow: String { string("action-not-now", fallback: "Not now") }
 
+    /// A span of time in whole days. The unit letter belongs to the language.
+    public static func durationDays(days: Int) -> String {
+        format("duration-days", fallback: "%1$lldd", days)
+    }
+
+    /// A span of time in hours and minutes.
+    public static func durationHoursMinutes(hours: Int, minutes: Int) -> String {
+        format("duration-hours-minutes", fallback: "%1$lldh %2$lldm", hours, minutes)
+    }
+
+    /// A span of time in whole hours.
+    public static func durationHours(hours: Int) -> String {
+        format("duration-hours", fallback: "%1$lldh", hours)
+    }
+
+    /// A span of time in minutes.
+    public static func durationMinutes(minutes: Int) -> String {
+        format("duration-minutes", fallback: "%1$lldm", minutes)
+    }
+
+    /// A short wait in minutes and seconds. The seconds come with a leading zero.
+    public static func durationMinutesSeconds(minutes: Int, seconds: String) -> String {
+        format("duration-minutes-seconds", fallback: "%1$lldm %2$@s", minutes, seconds)
+    }
+
+    /// A short wait in seconds.
+    public static func durationSeconds(seconds: Int) -> String {
+        format("duration-seconds", fallback: "%1$llds", seconds)
+    }
+
+    /// A file size in bytes. The number is already formatted.
+    public static func sizeByte(value: String) -> String {
+        format("size-byte", fallback: "%1$@ B", value)
+    }
+
+    /// A file size in kilobytes (1,000 bytes). The number is already formatted.
+    public static func sizeKilobyte(value: String) -> String {
+        format("size-kilobyte", fallback: "%1$@ kB", value)
+    }
+
+    /// A file size in megabytes (1,000,000 bytes). The number is already formatted.
+    public static func sizeMegabyte(value: String) -> String {
+        format("size-megabyte", fallback: "%1$@ MB", value)
+    }
+
+    /// A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.
+    public static func sizeGigabyte(value: String) -> String {
+        format("size-gigabyte", fallback: "%1$@ GB", value)
+    }
+
     /// Continue row subtitle. The show's title is cut first when the row is short.
     public static func queueEpisodesLeft(count: Int, title: String) -> String {
         format("queue-episodes-left", fallback: "%1$lld episodes left in %2$@", count, title)

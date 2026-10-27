@@ -170,7 +170,9 @@ fn spawned(updates: &[Event]) -> bool {
 fn windows(updates: &[Event]) -> usize {
     updates
         .iter()
-        .filter(|u| matches!(u, Event::Status(s) if s.starts_with("starting mpv")))
+        .filter(
+            |u| matches!(u, Event::Status(Some(s)) if s.english().starts_with("starting mpv")),
+        )
         .count()
 }
 
@@ -468,7 +470,8 @@ async fn finish(
 async fn until_loaded(updates: &mut mpsc::UnboundedReceiver<Event>) -> Vec<Event> {
     let mut seen = Vec::new();
     while let Some(update) = updates.recv().await {
-        let loaded = matches!(&update, Event::Status(s) if s.starts_with("playing"));
+        let loaded =
+            matches!(&update, Event::Status(Some(s)) if s.english().starts_with("playing"));
         seen.push(update);
         if loaded {
             break;

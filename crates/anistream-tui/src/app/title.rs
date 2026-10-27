@@ -130,7 +130,7 @@ impl App {
     /// The title here, on AniList in a browser.
     pub(super) fn open_in_browser(&mut self) -> Option<Command> {
         let Some(id) = self.target().map(|e| e.id) else {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(Notice::raw_info("nothing selected"));
             return None;
         };
         Some(Command::OpenExternal { url: format!("https://anilist.co/anime/{}", id.get()) })
@@ -148,13 +148,13 @@ impl App {
             } else {
                 "nothing selected"
             };
-            self.push_toast(Notice::info(hint));
+            self.push_toast(Notice::raw_info(hint));
             return None;
         }
         if self.providers.is_empty() {
             // Plugins register a moment after launch, so "none yet" is a real state
             // rather than a misconfiguration.
-            self.push_toast(Notice::info("no sources registered yet"));
+            self.push_toast(Notice::raw_info("no sources registered yet"));
             return None;
         }
         // Start on the current choice, so the overlay opens showing where you are.
@@ -244,7 +244,7 @@ impl App {
     /// The title's trailer, when its record has one.
     pub(super) fn play_trailer(&mut self) -> Option<Command> {
         let Some(entry) = self.target() else {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(Notice::raw_info("nothing selected"));
             return None;
         };
         let Some(url) = entry.trailer_url.clone() else {
@@ -253,7 +253,7 @@ impl App {
             let why = self
                 .off_the_page("the trailer is found")
                 .unwrap_or_else(|| "no trailer on record for this title".into());
-            self.push_toast(Notice::info(why));
+            self.push_toast(Notice::raw_info(why));
             return None;
         };
         Some(Command::PlayTrailer { url, title: entry.title.clone() })
@@ -262,7 +262,7 @@ impl App {
     /// What AniList recommends after the title here, when its record says.
     pub(super) fn show_recommendations(&mut self) -> Option<Command> {
         let Some(entry) = self.target() else {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(Notice::raw_info("nothing selected"));
             return None;
         };
         if entry.recommended.is_empty() {
@@ -271,7 +271,7 @@ impl App {
             let why = self
                 .off_the_page("recommendations are listed")
                 .unwrap_or_else(|| "no recommendations known for this title".into());
-            self.push_toast(Notice::info(why));
+            self.push_toast(Notice::raw_info(why));
             return None;
         }
         self.cursors.overlay.selected = 0;
@@ -295,7 +295,7 @@ impl App {
     /// The titles connected to the one here, when its record says.
     pub(super) fn show_watch_order(&mut self) -> Option<Command> {
         let Some(entry) = self.target() else {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(Notice::raw_info("nothing selected"));
             return None;
         };
         if watch_order(entry).is_empty() {
@@ -304,7 +304,7 @@ impl App {
             let why = self
                 .off_the_page("connected seasons are listed")
                 .unwrap_or_else(|| "no connected seasons known for this title".into());
-            self.push_toast(Notice::info(why));
+            self.push_toast(Notice::raw_info(why));
             return None;
         }
         self.cursors.overlay.selected = watch_from(entry);
@@ -331,7 +331,7 @@ impl App {
         if self.signed_in_trackers().is_empty() {
             // Nothing keeps a list status but a tracker. Offering the picker anyway
             // ended in "marked watching" for a choice that went nowhere.
-            self.push_toast(Notice::info(
+            self.push_toast(Notice::raw_info(
                 "list status is kept on a tracker, and none is signed in — :accounts",
             ));
         } else if let Some(entry) = self.target() {
@@ -345,14 +345,14 @@ impl App {
                 .unwrap_or(0);
             self.nav.open_overlay(Overlay::ListStatus);
         } else {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(Notice::raw_info("nothing selected"));
         }
     }
 
     /// The rating picker for the title here.
     pub(super) fn pick_rating(&mut self) {
         if self.signed_in_trackers().is_empty() {
-            self.push_toast(Notice::info(
+            self.push_toast(Notice::raw_info(
                 "ratings are kept on a tracker, and none is signed in — :accounts",
             ));
         } else if self.target().is_some() {
@@ -361,7 +361,7 @@ impl App {
             self.cursors.overlay.selected = 0;
             self.nav.open_overlay(Overlay::Rate);
         } else {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(Notice::raw_info("nothing selected"));
         }
     }
 
@@ -371,7 +371,7 @@ impl App {
         let id = entry.id;
         let status = *LibrarySegment::ALL.get(self.cursors.overlay.selected)?;
         self.nav.close_overlay();
-        self.push_toast(Notice::info(format!(
+        self.push_toast(Notice::raw_info(format!(
             "now on your {} list — queued for {}",
             status.label(),
             self.signed_in_trackers().join(", ")
@@ -398,7 +398,7 @@ impl App {
         // Rows run 10 down to 1, so the row index is the distance from 10.
         let score = (10 - self.cursors.overlay.selected.min(9)) as f32;
         self.nav.close_overlay();
-        self.push_toast(Notice::info(format!(
+        self.push_toast(Notice::raw_info(format!(
             "rated {score}/10 — queued for {}",
             self.signed_in_trackers().join(", ")
         )));

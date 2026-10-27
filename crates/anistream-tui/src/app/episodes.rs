@@ -112,7 +112,7 @@ impl App {
         }
         if candidates.is_empty() {
             self.source_context = None;
-            self.push_toast(Notice::info("no selectable sources for this episode"));
+            self.push_toast(Notice::raw_info("no selectable sources for this episode"));
             return;
         }
         self.sources = candidates;
@@ -253,7 +253,7 @@ impl App {
     /// Said for a download asked of a table listed from AniList alone, in place of asking.
     pub(super) fn say_add_a_source(&mut self, to: &str) {
         let providers = self.section_key(crate::nav::Section::Providers);
-        self.push_toast(Notice::info(format!(
+        self.push_toast(Notice::raw_info(format!(
             "add a source to {to}: press {providers} for the Providers screen"
         )));
     }
@@ -339,11 +339,11 @@ impl App {
                     format!("everything before ep {} is already watched", row.number)
                 }
             };
-            self.push_toast(Notice::info(why));
+            self.push_toast(Notice::raw_info(why));
             return None;
         }
         self.marking = Some(id);
-        self.push_toast(Notice::info(format!(
+        self.push_toast(Notice::raw_info(format!(
             "marked {} watched",
             anistream_model::wording::plural(marked.len(), "episode")
         )));
@@ -373,7 +373,7 @@ impl App {
             // Cleared, with the prompt left open for another try. Kept, the retry's
             // keys were appended to the refused text and refused again.
             self.field_mut(Field::Range).clear();
-            self.push_toast(Notice::info("ranges look like 4, 1-12 or 7-"));
+            self.push_toast(Notice::raw_info("ranges look like 4, 1-12 or 7-"));
             return None;
         };
         let episodes: Vec<String> = self
@@ -389,11 +389,11 @@ impl App {
             .collect();
         if episodes.is_empty() {
             self.field_mut(Field::Range).clear();
-            self.push_toast(Notice::info("no episodes in that range"));
+            self.push_toast(Notice::raw_info("no episodes in that range"));
             return None;
         }
         self.nav.close_overlay();
-        self.push_toast(Notice::info(format!(
+        self.push_toast(Notice::raw_info(format!(
             "queueing {}…",
             anistream_model::wording::plural(episodes.len(), "episode")
         )));
@@ -404,7 +404,7 @@ impl App {
     pub(super) fn cycle_episode_filter(&mut self) {
         self.episode_filter = self.episode_filter.next();
         self.apply_episode_filter();
-        self.push_toast(Notice::info(format!("showing {}", self.episode_filter.label())));
+        self.push_toast(Notice::raw_info(format!("showing {}", self.episode_filter.label())));
     }
 
     /// The prompt for a provider's search by hand, for a title it matched wrongly.
@@ -422,7 +422,7 @@ impl App {
             } else {
                 "nothing selected to re-match"
             };
-            self.push_toast(Notice::info(hint));
+            self.push_toast(Notice::raw_info(hint));
             return None;
         };
         self.manual_target = Some(id);
@@ -455,7 +455,7 @@ impl App {
         self.match_candidates.clear();
         self.match_context = None;
         self.episodes_loading = true;
-        self.push_toast(Notice::info(format!("matched to {}", candidate.title)));
+        self.push_toast(Notice::raw_info(format!("matched to {}", candidate.title)));
         Some(Command::FixMatch { id, provider_id, key: candidate.key })
     }
 

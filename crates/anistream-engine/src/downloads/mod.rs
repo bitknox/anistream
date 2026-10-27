@@ -199,7 +199,7 @@ async fn poll_running(
                 }
             }
             let merged = finish(store, config, &row, final_path.clone()).await;
-            let _ = tx.send(Event::Toast(Notice::info(match merged {
+            let _ = tx.send(Event::Toast(Notice::raw_info(match merged {
                 Some(note) => format!("downloaded {} ep {} — {note}", row.title, row.episode),
                 None => format!("downloaded {} ep {}", row.title, row.episode),
             })));
@@ -283,7 +283,7 @@ async fn start_queued(
                 let reason = e.to_string();
                 tracing::warn!(row = row.id, %reason, "download could not start");
                 let _ = store.fail_download(row.id, &reason);
-                let _ = tx.send(Event::Toast(Notice::alert(format!(
+                let _ = tx.send(Event::Toast(Notice::raw_alert(format!(
                     "{} ep {}: {reason}",
                     row.title, row.episode
                 ))));
@@ -519,10 +519,10 @@ impl RangeOutcome {
             text.push_str(&format!(" — {} already in downloads", self.existing));
         }
         match (&self.failed, self.queued, self.existing) {
-            (None, ..) => Notice::info(text),
-            (Some(reason), 0, 0) => Notice::alert(format!("{text}: {reason}")),
-            (Some(reason), 0, _) => Notice::alert(format!("{text}; {reason}")),
-            (Some(reason), ..) => Notice::alert(format!("{text}, then: {reason}")),
+            (None, ..) => Notice::raw_info(text),
+            (Some(reason), 0, 0) => Notice::raw_alert(format!("{text}: {reason}")),
+            (Some(reason), 0, _) => Notice::raw_alert(format!("{text}; {reason}")),
+            (Some(reason), ..) => Notice::raw_alert(format!("{text}, then: {reason}")),
         }
     }
 }

@@ -287,7 +287,7 @@ impl App {
         let at_home_list = self.nav.section() == Section::Home
             && matches!(self.nav.current(), StageView::Section(Section::Home));
         if !at_home_list {
-            self.push_toast(Notice::info("removing works on the Continue list"));
+            self.push_toast(Notice::raw_info("removing works on the Continue list"));
             return None;
         }
         let ContentList::Entries(entries) = &mut self.content else {
@@ -304,7 +304,7 @@ impl App {
         home.offset = home.offset.min(home.selected);
         // Say how to undo, because there is no key for it — the way back is the
         // same thing that put it here.
-        self.push_toast(Notice::info(format!(
+        self.push_toast(Notice::raw_info(format!(
             "{} removed — watching it again brings it back",
             entry.title
         )));
@@ -321,7 +321,7 @@ impl App {
     /// resume. Public for `--preview`, which shows a title page from a list whose Enter plays.
     pub fn open_selected(&mut self) -> Option<Command> {
         let Some(entry) = self.selected_entry().cloned() else {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(Notice::raw_info("nothing selected"));
             return None;
         };
         let id = entry.id;

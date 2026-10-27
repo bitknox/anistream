@@ -158,7 +158,7 @@ async fn apply(
         let _ = tx.send(Event::Vpn(Some(crate::sources::guard_view(&state))));
         if !state.is_protected() {
             let notice = "torrents wait for the connection check to pass again";
-            let _ = tx.send(Event::Toast(Notice::info(notice)));
+            let _ = tx.send(Event::Toast(Notice::raw_info(notice)));
         }
     }
     // Refused while the guard fails: what is held stays held, for the guard's own recovery to

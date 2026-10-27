@@ -220,7 +220,9 @@ pub(crate) fn said(
         // Quietly: the table is there, and a play says what is missing when one is asked for.
         Ok(EpisodeLoad::Unlisted { rows, reason }) => {
             let notice = reason.map(|reason| {
-                Event::Toast(Notice::info(format!("no source could list this show: {reason}")))
+                Event::Toast(Notice::raw_info(format!(
+                    "no source could list this show: {reason}"
+                )))
             });
             std::iter::once(Event::Episodes { id, rows }).chain(notice).collect()
         }
@@ -230,7 +232,10 @@ pub(crate) fn said(
         // The Episodes screen shows its own empty state, so the reason belongs in a toast
         // rather than replacing the whole view.
         Err(reason) => {
-            vec![Event::Episodes { id, rows: Vec::new() }, Event::Toast(Notice::alert(reason))]
+            vec![
+                Event::Episodes { id, rows: Vec::new() },
+                Event::Toast(Notice::raw_alert(reason)),
+            ]
         }
     }
 }

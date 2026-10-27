@@ -100,7 +100,7 @@ fn say(hits: &[(String, u32)], desktop: bool, host: &dyn Host, tx: &Outbox) {
     if desktop {
         host.notify("anistream", &text);
     }
-    let _ = tx.send(Event::Toast(Notice::info(text)));
+    let _ = tx.send(Event::Toast(Notice::raw_info(text)));
     let _ = tx.internal(Internal::TopUp);
 }
 

@@ -42,6 +42,36 @@ public static partial class T
     /// <summary>Button that puts a question off until later.</summary>
     public static string ActionNotNow => Get("ActionNotNow");
 
+    /// <summary>A span of time in whole days. The unit letter belongs to the language.</summary>
+    public static string DurationDays(long days) => Fill(Get("DurationDays"), ("days", days.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A span of time in hours and minutes.</summary>
+    public static string DurationHoursMinutes(long hours, long minutes) => Fill(Get("DurationHoursMinutes"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A span of time in whole hours.</summary>
+    public static string DurationHours(long hours) => Fill(Get("DurationHours"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A span of time in minutes.</summary>
+    public static string DurationMinutes(long minutes) => Fill(Get("DurationMinutes"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A short wait in minutes and seconds. The seconds come with a leading zero.</summary>
+    public static string DurationMinutesSeconds(long minutes, string seconds) => Fill(Get("DurationMinutesSeconds"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("seconds", seconds));
+
+    /// <summary>A short wait in seconds.</summary>
+    public static string DurationSeconds(long seconds) => Fill(Get("DurationSeconds"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A file size in bytes. The number is already formatted.</summary>
+    public static string SizeByte(string value) => Fill(Get("SizeByte"), ("value", value));
+
+    /// <summary>A file size in kilobytes (1,000 bytes). The number is already formatted.</summary>
+    public static string SizeKilobyte(string value) => Fill(Get("SizeKilobyte"), ("value", value));
+
+    /// <summary>A file size in megabytes (1,000,000 bytes). The number is already formatted.</summary>
+    public static string SizeMegabyte(string value) => Fill(Get("SizeMegabyte"), ("value", value));
+
+    /// <summary>A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.</summary>
+    public static string SizeGigabyte(string value) => Fill(Get("SizeGigabyte"), ("value", value));
+
     /// <summary>Continue row subtitle. The show's title is cut first when the row is short.</summary>
     public static string QueueEpisodesLeft(long count, string title) => Fill(GetPlural("QueueEpisodesLeft", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
 
@@ -159,6 +189,16 @@ public static partial class T
         ["ActionTryAgain"] = "Try again",
         ["ActionCancel"] = "Cancel",
         ["ActionNotNow"] = "Not now",
+        ["DurationDays"] = "{days}d",
+        ["DurationHoursMinutes"] = "{hours}h {minutes}m",
+        ["DurationHours"] = "{hours}h",
+        ["DurationMinutes"] = "{minutes}m",
+        ["DurationMinutesSeconds"] = "{minutes}m {seconds}s",
+        ["DurationSeconds"] = "{seconds}s",
+        ["SizeByte"] = "{value} B",
+        ["SizeKilobyte"] = "{value} kB",
+        ["SizeMegabyte"] = "{value} MB",
+        ["SizeGigabyte"] = "{value} GB",
         ["QueueEpisodesLeft_one"] = "One episode left in {title}",
         ["QueueEpisodesLeft_other"] = "{count} episodes left in {title}",
         ["EpisodesCount_one"] = "{count} episode",

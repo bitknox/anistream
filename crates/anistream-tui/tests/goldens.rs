@@ -1309,12 +1309,12 @@ fn activity_and_toasts(s: &mut Screen) {
     let job = s.start(&sync);
     s.apply(Event::JobNote {
         job,
-        note: "AniList asked for a pause".into(),
+        note: anistream_model::Msg::verbatim("AniList asked for a pause"),
         wait: Some(Duration::from_millis(42_600)),
     });
     s.wait(Duration::from_millis(900));
-    s.apply(Event::Toast(Notice::info("saved upscaling")));
-    s.apply(Event::Toast(Notice::alert("tsubame: search timed out after 8 s")));
+    s.apply(Event::Toast(Notice::raw_info("saved upscaling")));
+    s.apply(Event::Toast(Notice::raw_alert("tsubame: search timed out after 8 s")));
 }
 
 // ── Overlays ───────────────────────────────────────────────────────────────────────────────────
@@ -1429,13 +1429,13 @@ fn search_filters(s: &mut Screen) {
 fn logs(s: &mut Screen) {
     continue_watching(s);
     for toast in [
-        Notice::info("saved upscaling"),
-        Notice::alert("cover unavailable"),
-        Notice::alert("cover unavailable"),
-        Notice::alert("cover unavailable"),
-        Notice::alert("tsubame: search timed out after 8 s"),
-        Notice::info("now using dub for this session"),
-        Notice::info("resumed at 13:32"),
+        Notice::raw_info("saved upscaling"),
+        Notice::raw_alert("cover unavailable"),
+        Notice::raw_alert("cover unavailable"),
+        Notice::raw_alert("cover unavailable"),
+        Notice::raw_alert("tsubame: search timed out after 8 s"),
+        Notice::raw_info("now using dub for this session"),
+        Notice::raw_info("resumed at 13:32"),
     ] {
         s.apply(Event::Toast(toast));
     }

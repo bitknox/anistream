@@ -130,11 +130,11 @@ where
             && wait.as_millis() > 400
         {
             match &job {
-                Some(job) => job.note("AniList limit", Some(wait)),
+                Some(job) => job.raw_note("AniList limit", Some(wait)),
                 // No job to note it on. A toast, which goes when it is done: as a status it
                 // stayed, still counting "12s", after the wait was over.
                 None => {
-                    let _ = tx.send(Event::Toast(Notice::info(format!(
+                    let _ = tx.send(Event::Toast(Notice::raw_info(format!(
                         "waiting {}s on the AniList rate limit",
                         wait.as_secs().max(1)
                     ))));
@@ -295,7 +295,7 @@ pub(crate) fn dispatch(
         | Command::PartyJoin { .. }
         | Command::PartyReady { .. }
         | Command::PartyLeave => {
-            let _ = tx.send(Event::Toast(Notice::alert(crate::playback::NO_PARTY)));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(crate::playback::NO_PARTY)));
         }
         Command::PlayLocal { id, episode, title, path } => {
             #[cfg(feature = "party")]
@@ -535,7 +535,7 @@ pub(crate) fn receive(
 /// The actor says it with the events it passes on.
 pub(crate) fn meta_notice(meta: &Meta) -> Vec<Event> {
     let Some(notice) = meta.take_notice() else { return Vec::new() };
-    vec![Event::MetaStatus(data::meta_rows(meta)), Event::Toast(Notice::info(notice))]
+    vec![Event::MetaStatus(data::meta_rows(meta)), Event::Toast(Notice::raw_info(notice))]
 }
 
 /// Do what the engine side left itself to do, and return what it then has to say, for the

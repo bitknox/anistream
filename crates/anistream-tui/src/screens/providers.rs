@@ -392,9 +392,9 @@ mod tests {
         // completely different responses, so the screen must not guess between them.
         let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Providers);
-        app.apply(Event::ProviderNote(
-            "vpn guard: expected one of [Mullvad], but traffic is leaving via Comcast".into(),
-        ));
+        app.apply(Event::ProviderNote(anistream_model::Msg::verbatim(
+            "vpn guard: expected one of [Mullvad], but traffic is leaving via Comcast",
+        )));
 
         let text = text_of(&render_to_buffer(&mut app, 110, 20));
         assert!(text.contains("Comcast"), "the real reason must reach the screen");

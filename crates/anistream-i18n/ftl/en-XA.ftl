@@ -31,6 +31,36 @@ action-cancel = [Çàñçéļ~~]
 # Button that puts a question off until later.
 action-not-now = [Ñöţ ñöŵ~~~]
 
+# A span of time in whole days. The unit letter belongs to the language.
+duration-days = [{ $days }ð~~]
+
+# A span of time in hours and minutes.
+duration-hours-minutes = [{ $hours }ĥ { $minutes }ɱ~~~]
+
+# A span of time in whole hours.
+duration-hours = [{ $hours }ĥ~~]
+
+# A span of time in minutes.
+duration-minutes = [{ $minutes }ɱ~~]
+
+# A short wait in minutes and seconds. The seconds come with a leading zero.
+duration-minutes-seconds = [{ $minutes }ɱ { $seconds }š~~~]
+
+# A short wait in seconds.
+duration-seconds = [{ $seconds }š~~]
+
+# A file size in bytes. The number is already formatted.
+size-byte = [{ $value } Ɓ~~]
+
+# A file size in kilobytes (1,000 bytes). The number is already formatted.
+size-kilobyte = [{ $value } ķƁ~~]
+
+# A file size in megabytes (1,000,000 bytes). The number is already formatted.
+size-megabyte = [{ $value } ṀƁ~~]
+
+# A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.
+size-gigabyte = [{ $value } ĜƁ~~]
+
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
     { $count ->

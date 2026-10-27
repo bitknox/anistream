@@ -3,6 +3,7 @@
 
 use anistream_core::ids::AnilistId;
 use anistream_meta::Meta;
+use anistream_model::Msg;
 use anistream_model::{event::Event, notice::Notice, party::NoSourceWhy};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
@@ -126,9 +127,9 @@ pub async fn resolve_for_playback(
     // The step under way, on the job when there is one; the CLI has no activity row and reads
     // the status channel instead.
     let step = |text: String| match job {
-        Some(job) => job.note(text, None),
+        Some(job) => job.raw_note(text, None),
         None => {
-            let _ = tx.send(Event::Status(text));
+            let _ = tx.send(Event::Status(Some(Msg::verbatim(text))));
         }
     };
     let began = std::time::Instant::now();
@@ -437,7 +438,7 @@ pub fn load_sources(
         let update =
             match source_slate(&meta, &store, &registry, id, &episode, translation).await {
                 Ok(candidates) => Event::Sources { id, episode, candidates },
-                Err(reason) => Event::Toast(Notice::alert(reason)),
+                Err(reason) => Event::Toast(Notice::raw_alert(reason)),
             };
         let _ = tx.send(update);
     });

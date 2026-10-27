@@ -377,7 +377,10 @@ fn staged_episodes(updates: &[Event]) -> Vec<String> {
 
 /// How many player windows were opened.
 fn windows(updates: &[Event]) -> usize {
-    updates.iter().filter(|u| matches!(u, Event::Status(s) if s == "starting mpv…")).count()
+    updates
+        .iter()
+        .filter(|u| matches!(u, Event::Status(Some(s)) if s.english() == "starting mpv…"))
+        .count()
 }
 
 /// [`FINISHED`]'s table with ten episodes watched, to play for real: mpv with no window and no

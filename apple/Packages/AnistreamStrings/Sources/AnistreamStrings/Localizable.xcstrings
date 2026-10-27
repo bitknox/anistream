@@ -61,6 +61,18 @@
         }
       }
     },
+    "duration-days" : {
+      "comment" : "A span of time in whole days. The unit letter belongs to the language. Argument 1: days (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lldd"
+          }
+        }
+      }
+    },
     "duration-days-hours" : {
       "comment" : "A span of time to the next episode, in days and hours. The unit letters belong to the language. Argument 1: days (Int). Argument 2: hours (Int).",
       "extractionState" : "manual",
@@ -69,6 +81,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lldd %2$lldh"
+          }
+        }
+      }
+    },
+    "duration-hours" : {
+      "comment" : "A span of time in whole hours. Argument 1: hours (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lldh"
+          }
+        }
+      }
+    },
+    "duration-hours-minutes" : {
+      "comment" : "A span of time in hours and minutes. Argument 1: hours (Int). Argument 2: minutes (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lldh %2$lldm"
+          }
+        }
+      }
+    },
+    "duration-minutes" : {
+      "comment" : "A span of time in minutes. Argument 1: minutes (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lldm"
+          }
+        }
+      }
+    },
+    "duration-minutes-seconds" : {
+      "comment" : "A short wait in minutes and seconds. The seconds come with a leading zero. Argument 1: minutes (Int). Argument 2: seconds (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lldm %2$@s"
+          }
+        }
+      }
+    },
+    "duration-seconds" : {
+      "comment" : "A short wait in seconds. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$llds"
           }
         }
       }
@@ -421,6 +493,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App language"
+          }
+        }
+      }
+    },
+    "size-byte" : {
+      "comment" : "A file size in bytes. The number is already formatted. Argument 1: value (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ B"
+          }
+        }
+      }
+    },
+    "size-gigabyte" : {
+      "comment" : "A file size in gigabytes (1,000,000,000 bytes). The number is already formatted. Argument 1: value (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ GB"
+          }
+        }
+      }
+    },
+    "size-kilobyte" : {
+      "comment" : "A file size in kilobytes (1,000 bytes). The number is already formatted. Argument 1: value (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kB"
+          }
+        }
+      }
+    },
+    "size-megabyte" : {
+      "comment" : "A file size in megabytes (1,000,000 bytes). The number is already formatted. Argument 1: value (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ MB"
           }
         }
       }

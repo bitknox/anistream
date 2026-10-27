@@ -49,6 +49,46 @@ object Strings {
     fun actionNotNow(context: Context): String =
         context.getString(R.string.action_not_now)
 
+    /** A span of time in whole days. The unit letter belongs to the language. */
+    fun durationDays(context: Context, days: Int): String =
+        context.getString(R.string.duration_days, days)
+
+    /** A span of time in hours and minutes. */
+    fun durationHoursMinutes(context: Context, hours: Int, minutes: Int): String =
+        context.getString(R.string.duration_hours_minutes, hours, minutes)
+
+    /** A span of time in whole hours. */
+    fun durationHours(context: Context, hours: Int): String =
+        context.getString(R.string.duration_hours, hours)
+
+    /** A span of time in minutes. */
+    fun durationMinutes(context: Context, minutes: Int): String =
+        context.getString(R.string.duration_minutes, minutes)
+
+    /** A short wait in minutes and seconds. The seconds come with a leading zero. */
+    fun durationMinutesSeconds(context: Context, minutes: Int, seconds: String): String =
+        context.getString(R.string.duration_minutes_seconds, minutes, seconds)
+
+    /** A short wait in seconds. */
+    fun durationSeconds(context: Context, seconds: Int): String =
+        context.getString(R.string.duration_seconds, seconds)
+
+    /** A file size in bytes. The number is already formatted. */
+    fun sizeByte(context: Context, value: String): String =
+        context.getString(R.string.size_byte, value)
+
+    /** A file size in kilobytes (1,000 bytes). The number is already formatted. */
+    fun sizeKilobyte(context: Context, value: String): String =
+        context.getString(R.string.size_kilobyte, value)
+
+    /** A file size in megabytes (1,000,000 bytes). The number is already formatted. */
+    fun sizeMegabyte(context: Context, value: String): String =
+        context.getString(R.string.size_megabyte, value)
+
+    /** A file size in gigabytes (1,000,000,000 bytes). The number is already formatted. */
+    fun sizeGigabyte(context: Context, value: String): String =
+        context.getString(R.string.size_gigabyte, value)
+
     /** Continue row subtitle. The show's title is cut first when the row is short. */
     fun queueEpisodesLeft(context: Context, count: Int, title: String): String =
         context.resources.getQuantityString(R.plurals.queue_episodes_left, count, count, title)

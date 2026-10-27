@@ -45,11 +45,11 @@ pub fn player(config: &Config, paths: &Paths, theme: &PlayerTheme) -> anistream_
 /// is what the config calls mpv, the name the notice gives it.
 pub async fn launch_notice(mpv: &anistream_player::Mpv, binary: &str) -> Option<Notice> {
     if !mpv.is_available().await {
-        return Some(Notice::alert(format!(
+        return Some(Notice::raw_alert(format!(
             "{binary} not found — install mpv to play anything"
         )));
     }
-    mpv.mpv_version().await.and_then(old_mpv_note).map(Notice::info)
+    mpv.mpv_version().await.and_then(old_mpv_note).map(Notice::raw_info)
 }
 
 /// What an older mpv costs, in a sentence, or `None` when it costs nothing.

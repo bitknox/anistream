@@ -37,7 +37,8 @@ impl Run<'_> {
             (Some(refusal), _) => {
                 // Said where the key was pressed.
                 if from_terminal {
-                    let _ = self.tx.send(Event::Toast(Notice::info(refusal.to_lowercase())));
+                    let _ =
+                        self.tx.send(Event::Toast(Notice::raw_info(refusal.to_lowercase())));
                 } else {
                     let _ = link
                         .overlay(Overlay::Toast {

@@ -75,7 +75,7 @@ impl App {
         // A newly-failing guard is worth interrupting for: torrents have just been
         // paused and the user needs to know why playback stopped.
         if leaking && !self.vpn_leaking {
-            self.push_toast(Notice::alert(format!("{badge} — torrents paused")));
+            self.push_toast(Notice::raw_alert(format!("{badge} — torrents paused")));
         }
         self.vpn_badge = Some(badge);
         self.vpn_leaking = leaking;

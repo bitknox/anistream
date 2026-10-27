@@ -1,6 +1,7 @@
 //! Jobs: the work someone waits on, numbered as it is sent, announced as it starts, and ended
 //! however it ends.
 
+use anistream_model::Msg;
 use std::time::Duration;
 
 use anistream_model::{event::Event, jobs::JobId};
@@ -28,8 +29,13 @@ impl JobGuard {
     }
 
     /// Say what the work is held up on, and for how long if that is known.
-    pub fn note(&self, note: impl Into<String>, wait: Option<Duration>) {
-        let _ = self.tx.send(Event::JobNote { job: self.id, note: note.into(), wait });
+    pub fn note(&self, note: Msg, wait: Option<Duration>) {
+        let _ = self.tx.send(Event::JobNote { job: self.id, note, wait });
+    }
+
+    /// A note whose words are still written in the engine. Being converted to catalogue messages.
+    pub fn raw_note(&self, note: impl Into<String>, wait: Option<Duration>) {
+        self.note(Msg::verbatim(note.into()), wait);
     }
 }
 
@@ -69,7 +75,7 @@ mod tests {
 
         let work = tokio::spawn(async move {
             let job = job;
-            job.note("held up", None);
+            job.raw_note("held up", None);
             panic!("the provider check fell over");
         });
         assert!(work.await.is_err(), "the task did panic");

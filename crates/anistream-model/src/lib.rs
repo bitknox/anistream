@@ -49,6 +49,9 @@ pub mod episodes;
 pub mod event;
 pub mod hosted;
 pub mod jobs;
+#[rustfmt::skip]
+mod msg;
+pub mod msg_text;
 pub mod notice;
 pub mod notifications;
 pub mod party;
@@ -66,6 +69,9 @@ pub mod sync;
 pub mod updates;
 pub mod widgets;
 pub mod wording;
+
+pub use msg::{Cause, Msg};
+pub use msg_text::{Size, SizeUnit, Span};
 
 // What the types' UniFFI derives register with, under the `ffi` feature only. It compiles under the
 // workspace's `unsafe_code = "forbid"`: the lint is not reported inside another crate's macros,

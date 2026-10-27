@@ -6,6 +6,7 @@ pub mod apple;
 pub mod catalogue;
 pub mod codelint;
 pub mod lint;
+pub mod msg;
 pub mod plural;
 pub mod pseudo;
 pub mod rust;
@@ -29,6 +30,7 @@ pub fn generate_all(cat: &Catalogue, mode: Mode) -> Result<Files> {
     files.extend(android::generate(cat, mode)?);
     files.extend(windows::generate(cat, mode)?);
     files.extend(rust::generate(cat, mode)?);
+    files.extend(msg::generate(cat)?);
     Ok(files)
 }
 

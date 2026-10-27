@@ -101,7 +101,7 @@ impl App {
         if value.is_empty() {
             // The writer sets keys; it does not delete them. Refusing beats
             // writing an empty string that half the readers treat as a path.
-            self.push_toast(Notice::info(
+            self.push_toast(Notice::raw_info(
                 "left unchanged — delete the line in config.toml to unset",
             ));
             return None;
@@ -116,7 +116,7 @@ impl App {
     pub(super) fn toggle_translation(&mut self) -> Option<Command> {
         // For this session: the saved choice is the Settings row's to change.
         let translation = self.settings.translation.toggled();
-        self.push_toast(Notice::info(format!("now using {translation} for this session")));
+        self.push_toast(Notice::raw_info(format!("now using {translation} for this session")));
         Some(Command::SetTranslation { translation })
     }
 
@@ -224,13 +224,13 @@ impl App {
             Some(_) if rows.get(row)?.editable => {}
             _ => {
                 let note = rows.get(row).and_then(|r| r.note);
-                self.push_toast(Notice::info(note.unwrap_or("not editable here")));
+                self.push_toast(Notice::raw_info(note.unwrap_or("not editable here")));
                 return None;
             }
         };
         // Text values are typed, not cycled — arrows have nothing to step through.
         if id.typed() {
-            self.push_toast(Notice::info("enter types a value here"));
+            self.push_toast(Notice::raw_info("enter types a value here"));
             return None;
         }
         // The engine steps it, by the rules every front end shares, and says the outcome.

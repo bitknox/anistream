@@ -55,6 +55,6 @@ pub const NO_PLAYER: &str = "playback isn't built into this front end";
 /// can hand one over: see [`link::opener`].
 pub(crate) fn refuse(job: Option<crate::jobs::JobGuard>, tx: &crate::outbox::Outbox) {
     use anistream_model::{event::Event, notice::Notice};
-    let _ = tx.send(Event::Toast(Notice::alert(NO_PLAYER)));
+    let _ = tx.send(Event::Toast(Notice::raw_alert(NO_PLAYER)));
     drop(job);
 }

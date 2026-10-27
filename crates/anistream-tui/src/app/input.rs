@@ -91,7 +91,7 @@ impl App {
                     // row and left the file on disk with no way back to it from here.
                     if row.state == DownloadState::Done {
                         let delete = self.key_for(Action::DeleteDownload);
-                        self.push_toast(Notice::info(format!(
+                        self.push_toast(Notice::raw_info(format!(
                             "already downloaded — {delete} deletes it and its file"
                         )));
                         return None;
@@ -116,7 +116,7 @@ impl App {
             && !matches!(self.nav.current(), StageView::NowPlaying)
             && self.target().is_none()
         {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(Notice::raw_info("nothing selected"));
             return None;
         }
 
@@ -229,7 +229,7 @@ impl App {
             Action::MarkAllPrevious if self.in_episodes() => return self.mark_all_previous(),
             Action::DownloadRange if self.in_episodes() => self.open_download_range(),
             Action::DownloadRange => {
-                self.push_toast(Notice::info("ranges are queued from the episode table"));
+                self.push_toast(Notice::raw_info("ranges are queued from the episode table"));
             }
             Action::Filter if self.in_episodes() => self.cycle_episode_filter(),
             // By the view, not the section: a title opened from the results is a title page,
@@ -237,10 +237,12 @@ impl App {
             Action::Filter if self.on_search_root() => self.open_search_filters(),
             Action::FilterSearch => return self.filter_search(),
             Action::Filter => {
-                self.push_toast(Notice::info("filters live in search and the episode table"));
+                self.push_toast(Notice::raw_info(
+                    "filters live in search and the episode table",
+                ));
             }
             Action::ToggleWatched | Action::MarkAllPrevious => {
-                self.push_toast(Notice::info("watched marks live in the episode table"));
+                self.push_toast(Notice::raw_info("watched marks live in the episode table"));
             }
             Action::OpenInBrowser => return self.open_in_browser(),
             Action::PickProvider => return self.pick_provider(),
@@ -284,7 +286,7 @@ impl App {
                 // written to the status line it stayed there, over the state it shows, for
                 // the rest of the session.
                 let quit = self.key_for(Action::Quit);
-                self.push_toast(Notice::info(format!("at the top — {quit} quits")));
+                self.push_toast(Notice::raw_info(format!("at the top — {quit} quits")));
             }
             crate::nav::BackOutcome::Popped => {
                 if self.nav.focus() == Focus::Rail {
@@ -323,7 +325,7 @@ impl App {
             Some(first) => first.to_lowercase().chain(chars).collect::<String>(),
             None => String::new(),
         };
-        self.push_toast(Notice::info(format!("{label} works {}", action.where_it_works())));
+        self.push_toast(Notice::raw_info(format!("{label} works {}", action.where_it_works())));
     }
 
     fn handle_while_typing(&mut self, action: Action, visible_rows: usize) -> Option<Command> {

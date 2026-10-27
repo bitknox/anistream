@@ -55,7 +55,7 @@ pub fn set_setting(
         let _ = tx
             .send(Event::Settings(settings::SettingsView { refused, ..engine.config.view() }));
         let reason = "not saved: warn only needs your confirmation first";
-        let _ = tx.send(Event::Toast(Notice::alert(reason)));
+        let _ = tx.send(Event::Toast(Notice::raw_alert(reason)));
         return;
     }
     if !settings::put(engine.config.effective_mut(), key, &value) {
@@ -111,7 +111,7 @@ fn write_setting(
             // and it said the file's key — "saved commit_threshold". What has no row
             // there, the remembered speed and volume, is saved without a word.
             if let Some(label) = setting_label(table, key) {
-                let _ = tx.send(Event::Toast(Notice::info(format!("saved · {label}"))));
+                let _ = tx.send(Event::Toast(Notice::raw_info(format!("saved · {label}"))));
             }
             // Republish what the background tasks read, so the next download to
             // finish honours the value that was just written.
@@ -135,7 +135,7 @@ fn write_setting(
                 anistream_core::Error::Config(reason) => reason,
                 other => other.to_string(),
             };
-            let _ = tx.send(Event::Toast(Notice::alert(format!("not saved: {reason}"))));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(format!("not saved: {reason}"))));
             // The Providers rows moved when the key was pressed and the chain did not,
             // so the chain's own rows put them back.
             if (table, key) == (&["providers"][..], "order") {

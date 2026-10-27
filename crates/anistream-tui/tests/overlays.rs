@@ -404,7 +404,7 @@ fn a_wide_help_keeps_each_key_near_its_label() {
 fn logs_scroll_with_the_highlight() {
     let mut a = app();
     for i in 0..40 {
-        a.push_toast(Notice::info(format!("line {i}")));
+        a.push_toast(Notice::raw_info(format!("line {i}")));
     }
     press(&mut a, &["L"]);
     for _ in 0..30 {
@@ -430,9 +430,9 @@ fn logs_scroll_with_the_highlight() {
 fn identical_log_lines_merge_into_one_with_a_count() {
     let mut a = app();
     for _ in 0..25 {
-        a.push_toast(Notice::alert("cover unavailable"));
+        a.push_toast(Notice::raw_alert("cover unavailable"));
     }
-    a.push_toast(Notice::info("something else"));
+    a.push_toast(Notice::raw_info("something else"));
     assert_eq!(a.logs.len(), 2);
     assert_eq!(a.logs[0].count, 25);
     press(&mut a, &["L"]);
@@ -667,7 +667,7 @@ fn an_overlay_keeps_its_hints_legible_above_the_scrim() {
 fn the_palette_opens_on_its_first_row_wherever_the_overlay_before_it_was_left() {
     let mut a = app();
     for i in 0..40 {
-        a.push_toast(Notice::info(format!("line {i}")));
+        a.push_toast(Notice::raw_info(format!("line {i}")));
     }
     // Logs at its oldest line, drawn, so its window has scrolled down to it.
     press(&mut a, &["L", "G"]);

@@ -154,7 +154,7 @@ pub fn follow(
                 let rows = cache.listed(finished.id).unwrap_or_default();
                 let episode = after_filler(rows, next.clone(), skip_filler);
                 if episode != *next {
-                    said.push(Event::Toast(Notice::info(format!(
+                    said.push(Event::Toast(Notice::raw_info(format!(
                         "skipped filler — ep {episode} next"
                     ))));
                 }
@@ -172,7 +172,7 @@ pub fn follow(
             episode_title: title.clone().or_else(|| cache.episode_title(front.id, episode)),
         }),
         Event::PlayerTranslation(translation) => {
-            said.push(Event::Toast(Notice::info(format!("now using {translation}"))));
+            said.push(Event::Toast(Notice::raw_info(format!("now using {translation}"))));
             front.map(|front| Follow {
                 id: front.id,
                 episode: front.episode.clone(),

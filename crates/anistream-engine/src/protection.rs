@@ -44,7 +44,7 @@ pub fn set_torrent_protection(
             let refused = Some(refusal.setting());
             let _ = tx.send(Event::Settings(SettingsView { refused, ..engine.config.view() }));
             let reason = format!("not saved: {}", refusal.reason());
-            let _ = tx.send(Event::Toast(Notice::alert(reason)));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(reason)));
             return;
         }
     };
@@ -55,7 +55,7 @@ pub fn set_torrent_protection(
         Ok(()) => {
             // Before the source is brought back up, which reads it.
             keep_password(mode, proxy.and_then(|proxy| proxy.password), services, tx);
-            let _ = tx.send(Event::Toast(Notice::info("saved · torrent protection")));
+            let _ = tx.send(Event::Toast(Notice::raw_info("saved · torrent protection")));
             let _ = tx.internal(Internal::SettingsSaved);
             if engine.config.effective().providers.torrent.enabled {
                 let _ = tx.internal(Internal::SourcesChanged);
@@ -66,7 +66,7 @@ pub fn set_torrent_protection(
                 anistream_core::Error::Config(reason) => reason,
                 other => other.to_string(),
             };
-            let _ = tx.send(Event::Toast(Notice::alert(format!("not saved: {reason}"))));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(format!("not saved: {reason}"))));
         }
     }
 }
@@ -151,7 +151,7 @@ fn trial(
 /// Settings that cannot be checked at all: `Unreachable`, and why.
 fn not_checked(reason: &str, tx: &Outbox) {
     let _ = tx.send(Event::ProtectionChecked(GuardView::Unreachable));
-    let _ = tx.send(Event::Toast(Notice::alert(format!("not checked: {reason}"))));
+    let _ = tx.send(Event::Toast(Notice::raw_alert(format!("not checked: {reason}"))));
 }
 
 /// The proxy's password the secret store keeps, if any.
@@ -184,7 +184,7 @@ fn keep_password(
     if let Err(error) = kept {
         tracing::warn!(%error, "could not keep the proxy's password");
         let notice = format!("the proxy's password was not kept: {error}");
-        let _ = tx.send(Event::Toast(Notice::alert(notice)));
+        let _ = tx.send(Event::Toast(Notice::raw_alert(notice)));
     }
 }
 

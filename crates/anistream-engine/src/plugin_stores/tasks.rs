@@ -41,7 +41,7 @@ impl StoreTaskContext {
     fn rows(&self) {
         match self.stores.rows() {
             Ok(rows) => self.send(Event::Stores(rows)),
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
@@ -52,7 +52,7 @@ impl StoreTaskContext {
                 true
             }
             Err(e) => {
-                self.toast(Notice::alert(e));
+                self.toast(Notice::raw_alert(e));
                 false
             }
         }
@@ -64,7 +64,7 @@ impl StoreTaskContext {
         self.rows();
         match self.stores.refresh().await {
             Ok(rows) => self.send(Event::Stores(rows)),
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
@@ -83,13 +83,13 @@ impl StoreTaskContext {
             Ok(joined) => {
                 self.rows();
                 self.send(Event::StoreJoined { store: joined.id.clone() });
-                self.toast(Notice::info(if joined.anonymous {
+                self.toast(Notice::raw_info(if joined.anonymous {
                     format!("joined {} without a name", joined.name)
                 } else {
                     format!("joined {} as {}", joined.name, joined.member.name)
                 }));
             }
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
@@ -98,9 +98,11 @@ impl StoreTaskContext {
         match self.stores.leave(&store).await {
             Ok(name) => {
                 self.rows();
-                self.toast(Notice::info(format!("left {name} — its plugins stay installed")));
+                self.toast(Notice::raw_info(format!(
+                    "left {name} — its plugins stay installed"
+                )));
             }
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
@@ -115,7 +117,7 @@ impl StoreTaskContext {
                 // The install refreshed the list on its way, so the screen catches up
                 // with whatever made it refuse.
                 self.rows();
-                self.toast(Notice::alert(format!("{plugin} not installed: {e}")));
+                self.toast(Notice::raw_alert(format!("{plugin} not installed: {e}")));
             }
         }
     }
@@ -129,9 +131,9 @@ impl StoreTaskContext {
                 let _ = self.tx.internal(crate::outbox::Internal::SourcesReordered);
                 self.send(Event::Providers(data::provider_rows(&self.registry, &self.stores)));
                 self.rows();
-                self.toast(Notice::info(format!("removed {plugin}")));
+                self.toast(Notice::raw_info(format!("removed {plugin}")));
             }
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
@@ -139,7 +141,7 @@ impl StoreTaskContext {
     pub async fn create_invite(self, store: String, name: Option<String>) {
         match self.stores.invite(&store, name).await {
             Ok(view) => self.send(Event::InviteLink(view)),
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
@@ -153,15 +155,17 @@ impl StoreTaskContext {
             Ok(Some(view)) => self.send(Event::OpenJoin { store, view }),
             // A server with no open joining: invite-only, with nothing more to show.
             Ok(None) => {}
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
     /// Take a member's access away, and list who is left.
     pub async fn remove_member(self, store: String, member: String) {
         match self.stores.remove_member(&store, &member).await {
-            Ok(()) => self.toast(Notice::info("removed — their devices stopped working here")),
-            Err(e) => self.toast(Notice::alert(e)),
+            Ok(()) => {
+                self.toast(Notice::raw_info("removed — their devices stopped working here"))
+            }
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
         self.members(&store).await;
     }
@@ -169,8 +173,10 @@ impl StoreTaskContext {
     /// Cancel an invite, and list what is left.
     pub async fn cancel_invite(self, store: String, invite: String) {
         match self.stores.cancel_invite(&store, &invite).await {
-            Ok(()) => self.toast(Notice::info("invite cancelled — the link no longer works")),
-            Err(e) => self.toast(Notice::alert(e)),
+            Ok(()) => {
+                self.toast(Notice::raw_info("invite cancelled — the link no longer works"))
+            }
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
         self.members(&store).await;
     }
@@ -182,7 +188,7 @@ impl StoreTaskContext {
                 self.rows();
                 let devices = view.devices;
                 self.send(Event::OpenJoin { store, view });
-                self.toast(Notice::info(match (open, devices) {
+                self.toast(Notice::raw_info(match (open, devices) {
                     (true, _) => {
                         "anyone with the store's link can join now. Copy it from members"
                             .to_owned()
@@ -199,7 +205,7 @@ impl StoreTaskContext {
                     ),
                 }));
             }
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
@@ -208,12 +214,12 @@ impl StoreTaskContext {
         match self.stores.remove_anonymous(&store, device.as_deref()).await {
             Ok(view) => {
                 self.send(Event::OpenJoin { store, view });
-                self.toast(Notice::info(match device {
+                self.toast(Notice::raw_info(match device {
                     Some(_) => "that device no longer works with this store",
                     None => "removed every device that joined with the link",
                 }));
             }
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
@@ -221,7 +227,7 @@ impl StoreTaskContext {
     pub async fn load_local_plugins(self, store: String) {
         match self.stores.local_plugins(&store).await {
             Ok(plugins) => self.send(Event::LocalPlugins { store, plugins }),
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
@@ -230,9 +236,12 @@ impl StoreTaskContext {
         match self.stores.publish(&store, &plugin).await {
             Ok(entry) => {
                 self.rows();
-                self.toast(Notice::info(format!("published {} {}", entry.name, entry.version)));
+                self.toast(Notice::raw_info(format!(
+                    "published {} {}",
+                    entry.name, entry.version
+                )));
             }
-            Err(e) => self.toast(Notice::alert(format!("{plugin} not published: {e}"))),
+            Err(e) => self.toast(Notice::raw_alert(format!("{plugin} not published: {e}"))),
         }
     }
 
@@ -241,9 +250,9 @@ impl StoreTaskContext {
         match self.stores.unpublish(&store, &plugin).await {
             Ok(()) => {
                 self.rows();
-                self.toast(Notice::info(format!("{plugin} is no longer offered")));
+                self.toast(Notice::raw_info(format!("{plugin} is no longer offered")));
             }
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
@@ -251,21 +260,21 @@ impl StoreTaskContext {
     pub async fn open_admin(self, store: String) {
         match self.stores.admin_link(&store).await {
             Ok(link) => match self.host.open_url(&link) {
-                Ok(()) => self.toast(Notice::info(
+                Ok(()) => self.toast(Notice::raw_info(
                     "opened the admin page in your browser — the link works once, for ten minutes",
                 )),
-                Err(e) => self.toast(Notice::alert(format!(
+                Err(e) => self.toast(Notice::raw_alert(format!(
                     "could not open a browser ({e}) — on the store's machine, `anistream store admin` prints a link"
                 ))),
             },
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::raw_alert(e)),
         }
     }
 
     /// Bring a just-installed plugin into the running chain, so it is usable without a restart.
     async fn load_installed(&self, name: &str, version: &str, path: &std::path::Path) {
         if !sources::plugins_enabled(&self.config) {
-            self.toast(Notice::info(format!(
+            self.toast(Notice::raw_info(format!(
                 "installed {name} {version} — \"plugins\" is off in providers.order, so it is not used"
             )));
             return;
@@ -278,7 +287,7 @@ impl StoreTaskContext {
                 if self.registry.get(&id).is_some_and(|existing| {
                     existing.manifest().kind != anistream_core::traits::ProviderKind::Plugin
                 }) {
-                    self.toast(Notice::alert(format!(
+                    self.toast(Notice::raw_alert(format!(
                         "installed {name}, but {id} is a built-in source's name — not loaded"
                     )));
                     return;
@@ -289,10 +298,11 @@ impl StoreTaskContext {
                 sources::arrange(&self.registry, &self.config);
                 let _ = self.tx.internal(crate::outbox::Internal::SourcesReordered);
                 self.send(Event::Providers(data::provider_rows(&self.registry, &self.stores)));
-                self.toast(Notice::info(format!("installed {name} {version}")));
+                self.toast(Notice::raw_info(format!("installed {name} {version}")));
             }
-            Err(e) => self
-                .toast(Notice::alert(format!("installed {name}, but it does not load: {e}"))),
+            Err(e) => self.toast(Notice::raw_alert(format!(
+                "installed {name}, but it does not load: {e}"
+            ))),
         }
     }
 }

@@ -29,14 +29,14 @@ pub(crate) async fn keep_datasets_current(store: Store, http: HttpClient, tx: Ou
         }) else {
             if said {
                 tracing::info!("mapping datasets refreshed after failing");
-                let _ = tx.send(Event::Toast(Notice::info("mapping data refreshed")));
+                let _ = tx.send(Event::Toast(Notice::raw_info("mapping data refreshed")));
             }
             return;
         };
         tracing::warn!(datasets = ?failed, %reason, retry_secs = wait.as_secs(), "mapping refresh failed");
         if !said {
             said = true;
-            let _ = tx.send(Event::Toast(Notice::alert(format!(
+            let _ = tx.send(Event::Toast(Notice::raw_alert(format!(
                 "mapping data could not be refreshed ({}: {}) — trying again in {} min",
                 failed.join(", "),
                 plain_failure(reason),

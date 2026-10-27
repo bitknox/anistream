@@ -70,7 +70,7 @@ pub async fn preview(
     let settings = anistream_model::settings::view(&config, &config);
     let mut app = App::with_images(settings, palette, keymap, image_engine);
     if let Some(note) = note {
-        app.apply(Event::ProviderNote(note));
+        app.apply(Event::ProviderNote(anistream_model::Msg::verbatim(note)));
     }
     // A failed guard included: the interface puts its verdict on the chip and toasts it, and
     // a preview without it showed a machine whose torrents were fine.

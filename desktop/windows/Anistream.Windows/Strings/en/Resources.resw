@@ -75,6 +75,46 @@
     <value>Not now</value>
     <comment>Button that puts a question off until later.</comment>
   </data>
+  <data name="DurationDays" xml:space="preserve">
+    <value>{days}d</value>
+    <comment>A span of time in whole days. The unit letter belongs to the language.</comment>
+  </data>
+  <data name="DurationHoursMinutes" xml:space="preserve">
+    <value>{hours}h {minutes}m</value>
+    <comment>A span of time in hours and minutes.</comment>
+  </data>
+  <data name="DurationHours" xml:space="preserve">
+    <value>{hours}h</value>
+    <comment>A span of time in whole hours.</comment>
+  </data>
+  <data name="DurationMinutes" xml:space="preserve">
+    <value>{minutes}m</value>
+    <comment>A span of time in minutes.</comment>
+  </data>
+  <data name="DurationMinutesSeconds" xml:space="preserve">
+    <value>{minutes}m {seconds}s</value>
+    <comment>A short wait in minutes and seconds. The seconds come with a leading zero.</comment>
+  </data>
+  <data name="DurationSeconds" xml:space="preserve">
+    <value>{seconds}s</value>
+    <comment>A short wait in seconds.</comment>
+  </data>
+  <data name="SizeByte" xml:space="preserve">
+    <value>{value} B</value>
+    <comment>A file size in bytes. The number is already formatted.</comment>
+  </data>
+  <data name="SizeKilobyte" xml:space="preserve">
+    <value>{value} kB</value>
+    <comment>A file size in kilobytes (1,000 bytes). The number is already formatted.</comment>
+  </data>
+  <data name="SizeMegabyte" xml:space="preserve">
+    <value>{value} MB</value>
+    <comment>A file size in megabytes (1,000,000 bytes). The number is already formatted.</comment>
+  </data>
+  <data name="SizeGigabyte" xml:space="preserve">
+    <value>{value} GB</value>
+    <comment>A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.</comment>
+  </data>
   <data name="QueueEpisodesLeft_one" xml:space="preserve">
     <value>One episode left in {title}</value>
     <comment>Continue row subtitle. The show's title is cut first when the row is short.</comment>

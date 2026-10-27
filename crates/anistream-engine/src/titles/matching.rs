@@ -19,7 +19,7 @@ use crate::{
 pub async fn clear_match(lent: Lent, id: AnilistId) {
     let Lent { meta, store, registry, tx, .. } = lent;
     let said = if let Err(e) = store.clear_title_match(id) {
-        vec![Event::Toast(Notice::alert(format!("could not reset the match: {e}")))]
+        vec![Event::Toast(Notice::raw_alert(format!("could not reset the match: {e}")))]
     } else {
         episodes::said(id, load_episodes(&meta, &store, &registry, id).await)
     };
@@ -34,12 +34,12 @@ pub async fn fix_match(lent: Lent, id: AnilistId, provider_id: String, key: Prov
     // Remembered as an override, which the ladder consults before anything else —
     // so the question is asked once, not on every visit.
     let said = if let Err(e) = store.set_override(id, &provider_id, &key, now_epoch()) {
-        vec![Event::Toast(Notice::alert(format!("could not save that match: {e}")))]
+        vec![Event::Toast(Notice::raw_alert(format!("could not save that match: {e}")))]
     } else {
         match load_episodes(&meta, &store, &registry, id).await {
             // The override *is* the answer, so the ladder cannot come back
             // undecided; if it somehow does, say so rather than looping.
-            Ok(EpisodeLoad::Choose { .. }) => vec![Event::Toast(Notice::alert(
+            Ok(EpisodeLoad::Choose { .. }) => vec![Event::Toast(Notice::raw_alert(
                 "that match did not stick — the source may have changed",
             ))],
             load => episodes::said(id, load),
@@ -85,9 +85,9 @@ pub fn manual_search(
                         .collect();
                     Event::MatchChoices { id, provider_id, candidates }
                 }
-                Err(e) => Event::Toast(Notice::alert(e.to_string())),
+                Err(e) => Event::Toast(Notice::raw_alert(e.to_string())),
             },
-            _ => Event::Toast(Notice::alert(format!("nothing found for {query:?}"))),
+            _ => Event::Toast(Notice::raw_alert(format!("nothing found for {query:?}"))),
         };
         let _ = tx.send(update);
     });
@@ -109,12 +109,12 @@ pub fn set_provider_preference(
     };
     let toast = match (written, &provider) {
         (Ok(()), Some(provider)) => {
-            Notice::info(format!("{provider} will be used for this title"))
+            Notice::raw_info(format!("{provider} will be used for this title"))
         }
-        (Ok(()), None) => Notice::info("back to automatic source selection"),
+        (Ok(()), None) => Notice::raw_info("back to automatic source selection"),
         // The overlay has already moved its marker, so a failed write has to be said
         // out loud or the UI would be showing a choice that was never saved.
-        (Err(e), _) => Notice::alert(format!("could not save that choice: {e}")),
+        (Err(e), _) => Notice::raw_alert(format!("could not save that choice: {e}")),
     };
     // The settings first, with the shows that keep a source counted again: Settings says how
     // many keep one of their own under the source order.

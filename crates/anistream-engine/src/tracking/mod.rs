@@ -13,6 +13,7 @@ pub mod commands;
 pub mod device;
 pub mod native;
 
+use anistream_model::Msg;
 use std::sync::Arc;
 
 use anistream_core::{
@@ -732,13 +733,14 @@ pub async fn connect(
     // and dispatches `ConnectKitsu`. This is the fallback for any other path that still
     // says `Connect { "kitsu" }`, and it points at the screen that does it right.
     if tracker_id == "kitsu" {
-        let notice = Notice::info("kitsu signs in from the Accounts screen");
+        let notice = Notice::raw_info("kitsu signs in from the Accounts screen");
         let _ = tx.send(Event::Toast(notice.with_hint(NoticeHint::KitsuCredentials)));
         return;
     }
     if tracker_id != "anilist" {
-        let _ =
-            tx.send(Event::Toast(Notice::alert(format!("{tracker_id}: no sign-in flow yet"))));
+        let _ = tx.send(Event::Toast(Notice::raw_alert(format!(
+            "{tracker_id}: no sign-in flow yet"
+        ))));
         return;
     }
     connect_anilist(sync, host, tx).await;
@@ -761,7 +763,7 @@ async fn connect_mal(_: Sync, _: Arc<dyn Host>, tx: Outbox) {
 
 #[cfg(not(feature = "desktop"))]
 fn refuse_redirect(tracker_id: &str, tx: &Outbox) {
-    let _ = tx.send(Event::Toast(Notice::alert(format!(
+    let _ = tx.send(Event::Toast(Notice::raw_alert(format!(
         "{tracker_id} signs in through a browser redirect, which isn't built into this front end"
     ))));
 }
@@ -774,7 +776,7 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     let auth_config = &sync.config.trackers.anilist;
     // A token arriving in a fragment never reaches a loopback port.
     if auth_config.flow == "implicit" {
-        let _ = tx.send(Event::Toast(Notice::alert(
+        let _ = tx.send(Event::Toast(Notice::raw_alert(
             "the implicit flow signs in from the anistream app — set trackers.anilist.flow = \"loopback\" here",
         )));
         return;
@@ -782,7 +784,7 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     let blank = |field: &Option<String>| field.as_deref().unwrap_or("").trim().is_empty();
     if blank(&auth_config.client_id) || blank(&auth_config.client_secret) {
         // The terminal's grant is the authorization code, which needs both halves.
-        let _ = tx.send(Event::Toast(Notice::alert(
+        let _ = tx.send(Event::Toast(Notice::raw_alert(
             "set trackers.anilist.client_id and client_secret — run: anistream --login-url",
         )));
         return;
@@ -798,7 +800,7 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     let url = match auth::authorize_url(&client_id, flow, port) {
         Ok(url) => url,
         Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(e.to_string())));
             return;
         }
     };
@@ -809,7 +811,8 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
         match auth::listen(port).await {
             Ok(loopback) => Some(tokio::spawn(loopback.wait_for_code("AniList"))),
             Err(e) => {
-                let _ = tx.send(Event::Toast(Notice::alert(format!("sign-in failed: {e}"))));
+                let _ =
+                    tx.send(Event::Toast(Notice::raw_alert(format!("sign-in failed: {e}"))));
                 return;
             }
         }
@@ -818,13 +821,14 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     };
 
     if let Err(e) = host.open_url(&url) {
-        let _ = tx.send(Event::Toast(Notice::alert(format!("could not open a browser: {e}"))));
+        let _ =
+            tx.send(Event::Toast(Notice::raw_alert(format!("could not open a browser: {e}"))));
         tracing::info!(%url, "open this to sign in");
     }
 
     let Some(listening) = listening else {
         // The paste flow needs a terminal to paste into, which the TUI is currently occupying.
-        let _ = tx.send(Event::Toast(Notice::info(
+        let _ = tx.send(Event::Toast(Notice::raw_info(
             "paste flow: quit and run `anistream --login` instead",
         )));
         return;
@@ -833,11 +837,12 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     let code = match listening.await {
         Ok(Ok(code)) => code,
         Ok(Err(e)) => {
-            let _ = tx.send(Event::Toast(Notice::alert(format!("sign-in failed: {e}"))));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(format!("sign-in failed: {e}"))));
             return;
         }
         Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(format!("sign-in task failed: {e}"))));
+            let _ =
+                tx.send(Event::Toast(Notice::raw_alert(format!("sign-in task failed: {e}"))));
             return;
         }
     };
@@ -854,7 +859,8 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     {
         Ok(token) => token,
         Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(format!("token exchange failed: {e}"))));
+            let _ =
+                tx.send(Event::Toast(Notice::raw_alert(format!("token exchange failed: {e}"))));
             return;
         }
     };
@@ -866,7 +872,7 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
                 // Not hidden: someone on a shared machine should know.
                 message.push_str(" — token stored in a 0600 file, no keychain available");
             }
-            let _ = tx.send(Event::Toast(Notice::info(message)));
+            let _ = tx.send(Event::Toast(Notice::raw_info(message)));
             // This used to say "restart to start syncing", which was true and terrible: the token
             // was in the keychain and nothing running could see it. Handing it to the live tracker
             // is the whole fix.
@@ -878,8 +884,9 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
             activate(&sync, tracker_id, &pair, &tx).await;
         }
         Err(e) => {
-            let _ =
-                tx.send(Event::Toast(Notice::alert(format!("could not store the token: {e}"))));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(format!(
+                "could not store the token: {e}"
+            ))));
         }
     }
 }
@@ -900,8 +907,9 @@ pub async fn connect_kitsu(sync: Sync, username: String, password: String, tx: O
     {
         Ok(pair) => pair,
         Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(format!("kitsu sign-in failed: {e}"))));
-            let _ = tx.send(Event::Status(String::new()));
+            let _ =
+                tx.send(Event::Toast(Notice::raw_alert(format!("kitsu sign-in failed: {e}"))));
+            let _ = tx.send(Event::Status(None));
             return;
         }
     };
@@ -914,15 +922,16 @@ pub async fn connect_kitsu(sync: Sync, username: String, password: String, tx: O
                 // Not hidden: someone on a shared machine should know.
                 message.push_str(" — token stored in a 0600 file, no keychain available");
             }
-            let _ = tx.send(Event::Toast(Notice::info(message)));
+            let _ = tx.send(Event::Toast(Notice::raw_info(message)));
             activate(&sync, "kitsu", &pair, &tx).await;
         }
         Err(e) => {
-            let _ =
-                tx.send(Event::Toast(Notice::alert(format!("could not store the token: {e}"))));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(format!(
+                "could not store the token: {e}"
+            ))));
         }
     }
-    let _ = tx.send(Event::Status(String::new()));
+    let _ = tx.send(Event::Status(None));
 }
 
 /// Sign in to MyAnimeList from inside the app.
@@ -936,7 +945,7 @@ async fn connect_mal(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
 
     let auth = &sync.config.trackers.mal;
     let Some(client_id) = auth.client_id.clone().filter(|id| !id.trim().is_empty()) else {
-        let _ = tx.send(Event::Toast(Notice::alert(
+        let _ = tx.send(Event::Toast(Notice::raw_alert(
             "set trackers.mal.client_id — register an app (type: other) at myanimelist.net/apiconfig",
         )));
         return;
@@ -953,27 +962,29 @@ async fn connect_mal(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     let loopback = match auth::listen(auth.redirect_port).await {
         Ok(loopback) => loopback,
         Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(e.to_string())));
             return;
         }
     };
     let waiting = tokio::spawn(loopback.wait_for_code("MyAnimeList"));
     if let Err(e) = host.open_url(&url) {
-        let _ = tx.send(Event::Toast(Notice::alert(format!("could not open a browser: {e}"))));
+        let _ =
+            tx.send(Event::Toast(Notice::raw_alert(format!("could not open a browser: {e}"))));
         tracing::info!(%url, "open this to sign in");
     }
-    let _ = tx.send(Event::Status("waiting for MyAnimeList to redirect back…".into()));
+    let _ = tx
+        .send(Event::Status(Some(Msg::verbatim("waiting for MyAnimeList to redirect back…"))));
 
     let code = match waiting.await {
         Ok(Ok(code)) => code,
         Ok(Err(e)) => {
-            let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
-            let _ = tx.send(Event::Status(String::new()));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(e.to_string())));
+            let _ = tx.send(Event::Status(None));
             return;
         }
         Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(format!("sign-in cancelled: {e}"))));
-            let _ = tx.send(Event::Status(String::new()));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(format!("sign-in cancelled: {e}"))));
+            let _ = tx.send(Event::Status(None));
             return;
         }
     };
@@ -990,33 +1001,35 @@ async fn connect_mal(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     {
         Ok(pair) => pair,
         Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(format!("token exchange failed: {e}"))));
-            let _ = tx.send(Event::Status(String::new()));
+            let _ =
+                tx.send(Event::Toast(Notice::raw_alert(format!("token exchange failed: {e}"))));
+            let _ = tx.send(Event::Status(None));
             return;
         }
     };
 
     match sync.tokens.set_pair("mal", &pair.access, pair.refresh.as_deref(), pair.expires_at) {
         Ok(storage) => {
-            let _ = tx.send(Event::Toast(Notice::info(format!(
+            let _ = tx.send(Event::Toast(Notice::raw_info(format!(
                 "signed in to MyAnimeList — token in the {}",
                 storage.describe()
             ))));
             if pair.refresh.is_none() {
                 // MAL's tokens last 30 days, so no refresh token means sync stops in a month with
                 // nothing but a re-sign-in to fix it. Worth saying at the time.
-                let _ = tx.send(Event::Toast(Notice::alert(
+                let _ = tx.send(Event::Toast(Notice::raw_alert(
                     "no refresh token issued — you will have to sign in again in about a month",
                 )));
             }
             activate(&sync, "mal", &pair, &tx).await;
         }
         Err(e) => {
-            let _ =
-                tx.send(Event::Toast(Notice::alert(format!("could not store the token: {e}"))));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(format!(
+                "could not store the token: {e}"
+            ))));
         }
     }
-    let _ = tx.send(Event::Status(String::new()));
+    let _ = tx.send(Event::Status(None));
 }
 
 /// Make a sign-in take effect immediately, everywhere.
@@ -1078,7 +1091,7 @@ async fn connect_device(
     };
     let (client_id, client_secret) = (auth.client_id.clone(), auth.client_secret.clone());
     let Some(client_id) = client_id.filter(|id| !id.trim().is_empty()) else {
-        let _ = tx.send(Event::Toast(Notice::alert(format!(
+        let _ = tx.send(Event::Toast(Notice::raw_alert(format!(
             "set trackers.{tracker_id}.client_id first"
         ))));
         return;
@@ -1094,7 +1107,7 @@ async fn connect_device(
         Some(Ok(code)) => code,
         // Its own sentence, naming the service and saying what it said: not its JSON.
         Some(Err(e)) => {
-            let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(e.to_string())));
             return;
         }
     };
@@ -1147,11 +1160,11 @@ async fn connect_device(
                     format!("signed in to {tracker_id}, but the token was not saved: {e}")
                 }
             };
-            let _ = tx.send(Event::Toast(Notice::info(message)));
+            let _ = tx.send(Event::Toast(Notice::raw_info(message)));
             activate(&sync, &tracker_id, &pair, &tx).await;
         }
         Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
+            let _ = tx.send(Event::Toast(Notice::raw_alert(e.to_string())));
         }
     }
     // Cleared however the flow ended — approved, refused or expired. A prompt left up after a
@@ -1160,7 +1173,7 @@ async fn connect_device(
     if flow.current() {
         let _ = tx.send(Event::DeviceCode(None));
     }
-    let _ = tx.send(Event::Status(String::new()));
+    let _ = tx.send(Event::Status(None));
 }
 
 /// Forget a tracker's token.
@@ -1168,14 +1181,14 @@ pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &Outbox) {
     let update = match sync.tokens.clear(tracker_id) {
         // The queue is deliberately left alone. Signing out is not "discard my progress", and
         // signing back in should send what accumulated.
-        Ok(()) => Event::Toast(Notice::info(format!(
+        Ok(()) => Event::Toast(Notice::raw_info(format!(
             "signed out of {tracker_id} — {} kept",
             anistream_model::wording::plural(
                 sync.store.outbox_depth(Some(tracker_id)).unwrap_or(0) as usize,
                 "queued change"
             )
         ))),
-        Err(e) => Event::Toast(Notice::alert(format!("could not sign out: {e}"))),
+        Err(e) => Event::Toast(Notice::raw_alert(format!("could not sign out: {e}"))),
     };
     let _ = tx.send(update);
 

@@ -603,7 +603,7 @@ fn finding() -> (App, ProviderRegistry) {
 /// Wait until the play under way says it is waiting for its sources.
 fn waiting(app: &mut App) {
     app.until("the wait, said", |event| match event {
-        Event::JobNote { note, .. } if note == "loading sources" => Some(()),
+        Event::JobNote { note, .. } if note.english() == "loading sources" => Some(()),
         _ => None,
     });
 }
@@ -1438,7 +1438,7 @@ fn a_play_while_sources_are_still_loading_waits_for_them() {
     let mut app = App::start(chain.clone(), "");
     app.play(FINISHED, "1");
     app.until("the wait, said", |event| match event {
-        Event::JobNote { note, .. } if note == "loading sources" => Some(()),
+        Event::JobNote { note, .. } if note.english() == "loading sources" => Some(()),
         _ => None,
     });
 

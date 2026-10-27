@@ -14,6 +14,7 @@
 //!
 //! [`send`]: Engine::send
 
+use anistream_model::Msg;
 use std::{
     collections::VecDeque,
     sync::{
@@ -291,7 +292,7 @@ impl Engine {
                 joined
             }
             Err(e) => {
-                launch.push_back(Event::Toast(Notice::alert(e)));
+                launch.push_back(Event::Toast(Notice::raw_alert(e)));
                 false
             }
         };
@@ -525,7 +526,7 @@ fn say_plugin_load(loading: JoinHandle<Option<String>>, tx: Outbox) {
         if let Ok(outcome) = loading.await {
             match outcome {
                 Some(reason) => {
-                    let _ = tx.send(Event::ProviderNote(reason));
+                    let _ = tx.send(Event::ProviderNote(Msg::verbatim(reason)));
                 }
                 // Ranked again by the order as it stands now, since the user may have moved a
                 // source while these compiled, and the Providers screen refreshed so late
@@ -549,7 +550,7 @@ fn refresh_joined(stores: plugin_stores::Stores, tx: Outbox) {
         let updates = stores.pending_updates();
         // Where to install them is the front end's to say: the terminal's Providers, Enter.
         if !updates.is_empty() {
-            let notice = Notice::info(format!(
+            let notice = Notice::raw_info(format!(
                 "plugin {} ready: {}",
                 if updates.len() == 1 { "update" } else { "updates" },
                 updates.join(", ")
@@ -1860,7 +1861,7 @@ mod tests {
         }) else {
             panic!("{seen:?}")
         };
-        assert!(reason.contains("host and a port"), "{reason}");
+        assert!(reason.english().contains("host and a port"), "{reason}");
     }
 
     /// A party asked of a play with no server chosen: refused, naming the public one and who
@@ -1880,7 +1881,10 @@ mod tests {
             _ => None,
         });
         let reason = reason.unwrap_or_else(|| panic!("{seen:?}"));
-        assert!(reason.contains(SUGGESTED_SERVER) && reason.contains(SUGGESTED_SERVER_RUN_BY));
+        assert!(
+            reason.english().contains(SUGGESTED_SERVER)
+                && reason.english().contains(SUGGESTED_SERVER_RUN_BY)
+        );
         assert!(!seen.iter().any(|e| matches!(e, Event::PlaybackStaged { .. })), "{seen:?}");
     }
 
@@ -1905,7 +1909,7 @@ mod tests {
             // No server is set, so the terminal's play is told to choose one; the app's plays
             // with no word of a party.
             let asked = seen.iter().any(|e| {
-                matches!(e, Event::PartyLeft { reason: Some(reason) } if reason.contains(SUGGESTED_SERVER))
+                matches!(e, Event::PartyLeft { reason: Some(reason) } if reason.english().contains(SUGGESTED_SERVER))
             });
             assert_eq!(asked, terminal, "{seen:?}");
             engine.shutdown().await;

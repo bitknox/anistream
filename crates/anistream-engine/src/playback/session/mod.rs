@@ -18,6 +18,7 @@
 //! viewer's controls, what the companion shows, the picture, what is written down of the watch,
 //! skipping, the subtitles fetched ahead and the Discord presence each have a file of their own.
 
+use anistream_model::Msg;
 use std::sync::Arc;
 
 use anistream_core::{
@@ -237,8 +238,8 @@ pub async fn play(
         slot.release();
         tracing::info!(url = %first.url, "handing off to the system handler");
         let update = match host.open_url(&first.url) {
-            Ok(()) => Event::Toast(Notice::info("opened in your browser")),
-            Err(e) => Event::Toast(Notice::alert(format!("could not open: {e}"))),
+            Ok(()) => Event::Toast(Notice::raw_info("opened in your browser")),
+            Err(e) => Event::Toast(Notice::raw_alert(format!("could not open: {e}"))),
         };
         let _ = tx.send(update);
         // Nothing plays here, so Now Playing comes down rather than waiting on a player that
@@ -376,15 +377,15 @@ pub async fn play(
             run.night_applied = false;
         }
         if player.is_none() {
-            let _ = tx.send(Event::Status("starting mpv…".into()));
+            let _ = tx.send(Event::Status(Some(Msg::verbatim("starting mpv…"))));
             match opener.open(&request).await {
                 Ok((link, events)) => player = Some(Player::new(link, events)),
                 Err(e) if last => {
-                    let _ = tx.send(Event::Toast(Notice::alert(format!("mpv: {e}"))));
+                    let _ = tx.send(Event::Toast(Notice::raw_alert(format!("mpv: {e}"))));
                     // The player never existed, but the UI has Now Playing up and a control
                     // surface pointed at it. Saying so is what takes them down.
                     let _ = tx.send(Event::playback_ended(false, Ending::Failed));
-                    let _ = tx.send(Event::Status(String::new()));
+                    let _ = tx.send(Event::Status(None));
                     return;
                 }
                 Err(e) => {
@@ -418,8 +419,10 @@ pub async fn play(
         if let Err(e) = load(current.link.as_ref(), &stream, &request).await {
             tracing::warn!(error = %e, "could not hand the stream to mpv");
         }
-        let _ =
-            tx.send(Event::Status(format!("playing {} ep {}", context.title, context.episode)));
+        let _ = tx.send(Event::Status(Some(Msg::verbatim(format!(
+            "playing {} ep {}",
+            context.title, context.episode
+        )))));
         // mpv is already at the resume point by now — `start` handled it. Saying so is what
         // keeps it from looking like the episode began in the wrong place.
         if let Some(position) = resume_at {
@@ -496,7 +499,7 @@ pub async fn play(
                         ?reported,
                         "no frames; trying the next stream"
                     );
-                    let _ = tx.send(Event::Toast(Notice::info(format!(
+                    let _ = tx.send(Event::Toast(Notice::raw_info(format!(
                         "no video from that stream — trying {} of {total}",
                         attempt + 1
                     ))));
@@ -559,7 +562,7 @@ pub async fn play(
                         from = %crate::logged::address(&streams[index].url),
                         "playback produced no frames"
                     );
-                    let _ = tx.send(Event::Toast(Notice::alert(message)));
+                    let _ = tx.send(Event::Toast(Notice::raw_alert(message)));
                 }
 
                 // Exactly one ending per playback, sent only now that this attempt is known to
@@ -576,7 +579,7 @@ pub async fn play(
                     Ending::Failed
                 };
                 let _ = tx.send(Event::playback_ended(watched.unwrap_or(false), ending));
-                let _ = tx.send(Event::Status(String::new()));
+                let _ = tx.send(Event::Status(None));
                 return;
             }
         }

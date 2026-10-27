@@ -8,6 +8,7 @@
 //! end the party as it stands. The engine keeps a handle to steer it: ready, and leave.
 
 use anistream_core::ids::AnilistId;
+use anistream_model::Msg;
 use anistream_model::{
     event::Event,
     party::{
@@ -204,7 +205,7 @@ fn not_in_one(tx: &Outbox) {
 /// A party that can't be joined: the reason, as the party's end.
 fn refuse(reason: String, tx: &Outbox) -> bool {
     tracing::info!(%reason, "no watch party");
-    let _ = tx.send(Event::PartyLeft { reason: Some(reason) });
+    let _ = tx.send(Event::PartyLeft { reason: Some(Msg::verbatim(reason)) });
     false
 }
 
@@ -296,6 +297,7 @@ async fn run(
                         tracing::info!(?reason, "the watch party ended");
                         if !quiet {
                             let said = reason.clone().unwrap_or_else(|| "Left the party".into());
+                            let reason = reason.map(Msg::verbatim);
                             cue(&cues, SeatCue::Notice(said));
                             let _ = tx.send(Event::PartyLeft { reason });
                         }

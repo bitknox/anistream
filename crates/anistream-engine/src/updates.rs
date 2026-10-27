@@ -462,7 +462,7 @@ async fn daily(
                 let _ = std::fs::write(&files.told, format!("{now} {tag}"));
                 // The terminal's notice. An app shows its own, from the status.
                 if cfg!(feature = "desktop") {
-                    let _ = tx.send(Event::Toast(Notice::info(notice_text(tag))));
+                    let _ = tx.send(Event::Toast(Notice::raw_info(notice_text(tag))));
                 }
             }
             UpdateStatus::Available { release, notify }

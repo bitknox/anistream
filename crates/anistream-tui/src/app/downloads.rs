@@ -44,12 +44,12 @@ impl App {
             (_, DownloadState::Failed) => {
                 // The reason is on the row; surfacing it is more use than a dead keypress.
                 let reason = row.error.clone().unwrap_or_else(|| "no reason recorded".into());
-                self.push_toast(Notice::alert(reason));
+                self.push_toast(Notice::raw_alert(reason));
             }
             (_, DownloadState::Queued | DownloadState::Paused) => {
                 return Some(Command::DownloadStartNow { id: row.id });
             }
-            _ => self.push_toast(Notice::info("not finished yet")),
+            _ => self.push_toast(Notice::raw_info("not finished yet")),
         }
         None
     }

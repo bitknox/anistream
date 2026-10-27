@@ -355,7 +355,7 @@ mod tests {
         let until = app.clock.now_instant() + std::time::Duration::from_millis(12_400);
         app.apply(Event::JobNote {
             job: id,
-            note: "AniList limit".into(),
+            note: anistream_model::Msg::verbatim("AniList limit"),
             wait: Some(std::time::Duration::from_millis(12_400)),
         });
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
@@ -420,11 +420,11 @@ mod tests {
         let mut app = app_with(ContentList::Entries(vec![entry(1, "An Invented Show")]));
         app.notice =
             Some("config.toml line 5: unknown field `qualty` — running on defaults".into());
-        app.push_toast(anistream_model::notice::Notice::info("saved quality"));
+        app.push_toast(anistream_model::notice::Notice::raw_info("saved quality"));
         for _ in 0..500 {
             app.tick_toasts();
         }
-        app.push_toast(anistream_model::notice::Notice::alert("a passing problem"));
+        app.push_toast(anistream_model::notice::Notice::raw_alert("a passing problem"));
 
         for section in [Section::Home, Section::Settings, Section::Providers] {
             app.go_to_section(section);
@@ -622,7 +622,7 @@ mod tests {
     #[test]
     fn toasts_appear_and_disappear() {
         let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
-        app.push_toast(anistream_model::notice::Notice::alert("provider unreachable"));
+        app.push_toast(anistream_model::notice::Notice::raw_alert("provider unreachable"));
         assert!(text_of(&render_to_buffer(&mut app, 120, 30)).contains("provider unreachable"));
 
         for _ in 0..300 {
@@ -683,7 +683,9 @@ mod tests {
         let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Settings);
         let before = lines_of(&mut app, 80, 24);
-        app.push_toast(anistream_model::notice::Notice::info("saved · counts as watched at"));
+        app.push_toast(anistream_model::notice::Notice::raw_info(
+            "saved · counts as watched at",
+        ));
         let after = lines_of(&mut app, 80, 24);
         let rule = after.len() - 2;
         assert!(after[rule].contains("saved · counts as watched at"), "{after:#?}");
@@ -693,7 +695,7 @@ mod tests {
             }
         }
         // More than one up: the newest, and how many others.
-        app.push_toast(anistream_model::notice::Notice::alert("source unreachable"));
+        app.push_toast(anistream_model::notice::Notice::raw_alert("source unreachable"));
         let rule_line = lines_of(&mut app, 80, 24)[rule].clone();
         assert!(rule_line.contains("source unreachable  +1"), "{rule_line}");
     }

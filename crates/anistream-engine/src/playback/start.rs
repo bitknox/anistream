@@ -1,6 +1,7 @@
 //! Starting a playback: the plays a front end asks for, each with a fresh control channel and the
 //! window handed over, the stream found behind the eyecatch, and the settings it runs under.
 
+use anistream_model::Msg;
 use std::sync::Arc;
 
 use anistream_core::{config::Config, ids::AnilistId};
@@ -415,7 +416,7 @@ fn stopped_unopened(slot: &PlayerSlot, tx: &Outbox) {
     slot.release();
     let _ = tx.send(Event::playback_ended(false, anistream_model::playback::Ending::Stopped));
     // The playback this one took over left its "playing" line up for it to replace.
-    let _ = tx.send(Event::Status(String::new()));
+    let _ = tx.send(Event::Status(None));
 }
 
 /// Resolve a stream and start playing it.
@@ -512,10 +513,10 @@ fn spawn_playback(
                         id,
                         episode: episode.clone(),
                         why: reason.why,
-                        reason: reason.text.clone(),
+                        reason: Msg::verbatim(reason.text.clone()),
                     });
                 } else {
-                    let _ = tx.send(Event::Toast(Notice::alert(reason.text.clone())));
+                    let _ = tx.send(Event::Toast(Notice::raw_alert(reason.text.clone())));
                 }
                 let _ = tx.send(Event::PlaybackKept);
                 handoff.keep(commands, reason.text).await;
@@ -532,10 +533,10 @@ fn spawn_playback(
                         id,
                         episode: episode.clone(),
                         why: reason.why,
-                        reason: reason.text,
+                        reason: Msg::verbatim(reason.text),
                     });
                 } else {
-                    let _ = tx.send(Event::Toast(Notice::alert(reason.text)));
+                    let _ = tx.send(Event::Toast(Notice::raw_alert(reason.text)));
                 }
                 // A window left open for this episode would wait for nothing.
                 slot.release();
@@ -544,7 +545,7 @@ fn spawn_playback(
                     anistream_model::playback::Ending::Failed,
                 ));
                 // The playback this one took over left its "playing" line up for it to replace.
-                let _ = tx.send(Event::Status(String::new()));
+                let _ = tx.send(Event::Status(None));
                 return;
             }
         };
@@ -567,7 +568,7 @@ fn spawn_playback(
         // header is sent from playback itself, per attempt, so failover never credits the
         // stream that just failed.
         if let Some(note) = streams.first().and_then(|s| s.pick_note.clone()) {
-            let _ = tx.send(Event::Toast(Notice::info(note)));
+            let _ = tx.send(Event::Toast(Notice::raw_info(note)));
         }
 
         let settings =

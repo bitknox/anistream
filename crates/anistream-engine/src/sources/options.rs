@@ -47,7 +47,7 @@ pub fn load_source_options(
         let media = match meta.media(id).await {
             Ok(media) => media,
             Err(e) => {
-                ticket.send(&tx, Event::Toast(Notice::alert(e.to_string())));
+                ticket.send(&tx, Event::Toast(Notice::raw_alert(e.to_string())));
                 return;
             }
         };
@@ -164,8 +164,8 @@ pub fn pin_release(
 ) {
     let named = pin.title.clone();
     let toast = match services.store.set_release_preference(id, &pin, now_epoch()) {
-        Ok(()) => Notice::info(format!("{named} will be used for this title")),
-        Err(e) => Notice::alert(format!("could not save that choice: {e}")),
+        Ok(()) => Notice::raw_info(format!("{named} will be used for this title")),
+        Err(e) => Notice::raw_alert(format!("could not save that choice: {e}")),
     };
     let _ = tx.send(Event::Toast(toast));
     crate::show_settings::load_show_settings(id, engine, services, tx);

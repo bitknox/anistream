@@ -114,7 +114,7 @@ impl App {
             && !self.sync.iter().any(|s| s.tracker == state.tracker && s.needs_reauth);
         if announce {
             let accounts = self.section_key(Section::Accounts);
-            self.push_toast(Notice::alert(format!(
+            self.push_toast(Notice::raw_alert(format!(
                 "{} needs signing in again — press {accounts} for Accounts",
                 state.tracker
             )));
@@ -141,7 +141,7 @@ impl App {
         if appeared {
             // Surfaced rather than resolved — the whole point of not guessing.
             let settle = self.key_for(Action::ShowConflicts);
-            self.push_toast(Notice::info(format!(
+            self.push_toast(Notice::raw_info(format!(
                 "{} — {settle} settles them",
                 anistream_model::wording::plural(self.conflicts.len(), "sync disagreement")
             )));
@@ -151,7 +151,7 @@ impl App {
     /// The sync disagreements to settle, or word that there are none.
     pub(super) fn show_conflicts(&mut self) {
         if self.conflicts.is_empty() {
-            self.push_toast(Notice::info("nothing to resolve"));
+            self.push_toast(Notice::raw_info("nothing to resolve"));
         } else {
             self.cursors.overlay.selected = 0;
             self.nav.open_overlay(Overlay::Conflicts);
@@ -162,7 +162,7 @@ impl App {
     pub(super) fn force_resync(&mut self) -> Option<Command> {
         if self.sync.is_empty() {
             let accounts = self.section_key(Section::Accounts);
-            self.push_toast(Notice::info(format!(
+            self.push_toast(Notice::raw_info(format!(
                 "no tracker connected — press {accounts} for Accounts"
             )));
         } else {
