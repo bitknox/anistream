@@ -20,7 +20,7 @@ use super::chrome::mark_selected;
 enum SettingsLine {
     Blank,
     /// Category name at text weight, ruled to the right edge — the calendar's grammar.
-    Heading(&'static str),
+    Heading(String),
     Row(usize),
 }
 
@@ -43,8 +43,8 @@ pub(super) fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
             if !lines.is_empty() {
                 lines.push(SettingsLine::Blank);
             }
-            lines.push(SettingsLine::Heading(row.category));
-            category = row.category;
+            lines.push(SettingsLine::Heading(row.category.clone()));
+            category = &row.category;
         }
         lines.push(SettingsLine::Row(i));
     }
@@ -71,7 +71,7 @@ pub(super) fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
                 // Label at full text weight with the hairline running to the edge — the
                 // dim caps of the first cut sat at the same weight as a read-only value
                 // and disappeared.
-                let label = truncate(&glyph::eyebrow(name), area.width as usize);
+                let label = truncate(name, area.width as usize);
                 buf.set_string(area.left(), y, &label, app.palette.style(Role::Text));
                 let from = area.left() + label.chars().count() as u16 + 2;
                 for x in from..area.right().saturating_sub(1) {
@@ -91,7 +91,7 @@ pub(super) fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
                 buf.set_string(
                     area.left() + 2,
                     y,
-                    truncate(&glyph::eyebrow(row.label), label_room),
+                    truncate(&row.label, label_room),
                     if selected {
                         app.palette.style(Role::Text)
                     } else {
@@ -115,7 +115,8 @@ pub(super) fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
 
     // One note at a time, for the selected row only. Printing every caveat beside every row
     // would turn a twelve-line screen into a wall and bury the values it exists to show.
-    if let Some(note) = rows.get(app.cursors.settings.selected).and_then(|r| r.note) {
+    if let Some(note) = rows.get(app.cursors.settings.selected).and_then(|r| r.note.as_deref())
+    {
         let note_y = area.bottom().saturating_sub(1);
         let drawn = lines.len().saturating_sub(offset).min(visible);
         if reserved > 0 || note_y > area.top() + drawn as u16 + 1 {
@@ -150,12 +151,12 @@ mod tests {
         app.go_to_section(Section::Settings);
         // Tall enough for every group — scrolling has its own test below.
         let text = text_of(&render_to_buffer(&mut app, 120, 48));
-        assert!(text.contains("adaptive"), "theme mode");
+        assert!(text.contains("Adaptive"), "theme mode");
         assert!(text.contains("1080p"));
         assert!(text.contains("85%"), "commit threshold");
-        assert!(text.contains("off"), "torrenting is off by default");
+        assert!(text.contains("Off"), "torrenting is off by default");
         // The list is grouped under category headings, not one undifferentiated run.
-        for heading in ["APPEARANCE", "PLAYBACK", "DOWNLOADS", "SOURCES", "INTEGRATIONS"] {
+        for heading in ["Appearance", "Playback", "Downloads", "Sources", "Integrations"] {
             assert!(text.contains(heading), "missing the {heading} heading:\n{text}");
         }
     }
@@ -168,7 +169,7 @@ mod tests {
         app.go_to_section(Section::Settings);
         app.set_cursor(anistream_model::settings::SettingKey::ROWS.len() - 1);
         let text = text_of(&render_to_buffer(&mut app, 120, 12));
-        assert!(text.contains("TOKEN STORAGE"), "the last row must be visible:\n{text}");
+        assert!(text.contains("Token storage"), "the last row must be visible:\n{text}");
     }
 
     #[test]
@@ -182,7 +183,7 @@ mod tests {
             .unwrap();
         app.set_cursor(night);
         let text = text_of(&render_to_buffer(&mut app, 120, 34));
-        assert!(text.contains("evens out quiet dialogue"), "{text}");
-        assert!(text.contains("NIGHT MODE"), "the row itself is still in view:\n{text}");
+        assert!(text.contains("Evens out quiet dialogue"), "{text}");
+        assert!(text.contains("Night mode"), "the row itself is still in view:\n{text}");
     }
 }

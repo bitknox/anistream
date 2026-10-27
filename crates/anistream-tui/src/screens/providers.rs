@@ -1,6 +1,7 @@
 //! The Providers screen: each source and how it stands, the plugin stores line, and the metadata
 //! ladder's rungs — every place the user looks to find out which source broke and why.
 
+use anistream_i18n::t;
 use anistream_model::stores::{StoreRow, StoreState};
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
@@ -33,13 +34,13 @@ pub(super) fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
     // end of the buffer — a panic at 24×8, which a resize passes through on the way down. Found by
     // the size-matrix test, not by looking.
     if area.height < MIN_TABLE_HEIGHT + 3 {
-        render_placeholder(buf, app, area, "PROVIDERS", "needs a larger terminal");
+        render_placeholder(buf, app, area, &t::sources_title(), &t::sources_too_small());
         return;
     }
     buf.set_string(
         area.left(),
         area.top(),
-        glyph::eyebrow("providers"),
+        t::sources_title(),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
 
@@ -47,16 +48,16 @@ pub(super) fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
         buf.set_string(
             area.left(),
             area.top() + 2,
-            "no sources available",
+            t::sources_none_available(),
             app.palette.style(Role::Alert),
         );
         // The actual reason, when there is one. "You configured nothing" and "your VPN
         // guard failed verification" call for completely different responses.
-        let note = app.provider_note.as_deref().unwrap_or(
-            "torrents are off until providers.torrent.enabled and a VPN mode are set",
-        );
+        let note = app.provider_note.clone().unwrap_or_else(|| {
+            t::sources_torrents_off("providers.torrent.enabled") // i18n-skip
+        });
         let mut y = area.top() + 4;
-        for line in wrap(note, area.width.saturating_sub(2) as usize, 4) {
+        for line in wrap(&note, area.width.saturating_sub(2) as usize, 4) {
             buf.set_string(area.left(), y, line, app.palette.style(Role::TextDim));
             y += 1;
         }
@@ -72,19 +73,20 @@ pub(super) fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
     // A column is shown whole or not at all: started wherever it fell and cut by the screen's
     // edge, it left half words — `STAT`, `read` — at 40 columns.
     let shows = |x: u16, label: &str| x + label.chars().count() as u16 <= area.width;
+    let (source_head, kind_head, state_head, latency_head) = (
+        t::sources_column_source(),
+        t::sources_column_kind(),
+        t::sources_column_state(),
+        t::sources_column_latency(),
+    );
     for (label, x) in [
-        ("provider", COL_PROVIDER),
-        ("kind", COL_PROVIDER_KIND),
-        ("state", COL_PROVIDER_STATE),
-        ("latency", COL_PROVIDER_LATENCY),
+        (&source_head, COL_PROVIDER),
+        (&kind_head, COL_PROVIDER_KIND),
+        (&state_head, COL_PROVIDER_STATE),
+        (&latency_head, COL_PROVIDER_LATENCY),
     ] {
         if shows(x, label) {
-            buf.set_string(
-                area.left() + x,
-                head,
-                glyph::eyebrow(label),
-                app.palette.style(Role::TextDim),
-            );
+            buf.set_string(area.left() + x, head, label, app.palette.style(Role::TextDim));
         }
     }
     Hairline::new(&app.palette).render(Rect { y: head + 1, height: 1, ..area }, buf);
@@ -111,14 +113,14 @@ pub(super) fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
             &provider.id,
             if selected { name.add_modifier(Modifier::BOLD) } else { name },
         );
-        if shows(COL_PROVIDER_KIND, "kind") {
+        if shows(COL_PROVIDER_KIND, &kind_head) {
             table_cell(
                 buf,
                 area,
                 COL_PROVIDER_KIND,
                 COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1,
                 y,
-                &provider.kind,
+                &kind_text(&provider.kind),
                 app.palette.style(Role::TextDim),
             );
         }
@@ -129,20 +131,20 @@ pub(super) fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
             (false, false) => Role::Alert,
             (false, true) => Role::State,
         };
-        if shows(COL_PROVIDER_STATE, "state") {
+        if shows(COL_PROVIDER_STATE, &state_head) {
             table_cell(
                 buf,
                 area,
                 COL_PROVIDER_STATE,
                 COL_PROVIDER_LATENCY - COL_PROVIDER_STATE - 1,
                 y,
-                &provider.state,
+                &state_text(&provider.state),
                 app.palette.style(state_role),
             );
         }
 
         if let Some(ms) = provider.latency_ms
-            && shows(COL_PROVIDER_LATENCY, "latency")
+            && shows(COL_PROVIDER_LATENCY, &latency_head)
         {
             table_cell(
                 buf,
@@ -150,7 +152,7 @@ pub(super) fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
                 COL_PROVIDER_LATENCY,
                 u16::MAX,
                 y,
-                &format!("{ms}ms"),
+                &t::sources_latency(ms as i64),
                 app.palette.style(Role::TextDim),
             );
         }
@@ -162,8 +164,10 @@ pub(super) fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
         && y + 2 < area.bottom()
     {
         Hairline::new(&app.palette).render(Rect { y: y + 1, height: 1, ..area }, buf);
-        let text =
-            format!("{}: {}", problem.id, problem.last_error.as_deref().unwrap_or_default());
+        let text = t::sources_last_error(
+            &problem.id,
+            problem.last_error.as_deref().unwrap_or_default(),
+        );
         buf.set_string(
             area.left() + 2,
             y + 2,
@@ -189,27 +193,26 @@ fn render_store_summary(buf: &mut Buffer, app: &App, area: Rect, top: u16) -> u1
         buf,
         area.left(),
         top,
-        glyph::eyebrow("plugin stores"),
+        t::sources_stores_title(),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
     let updates: usize = app.stores.iter().map(StoreRow::updates).sum();
     let removed = app.stores.iter().filter(|s| s.state == StoreState::Revoked).count();
     let summary = if !app.stores_loaded || app.stores.is_empty() {
-        "plugins shared by people you know — join with an invite link".to_owned()
+        t::sources_stores_invite()
     } else {
-        let joined = format!("{} joined", app.stores.len());
+        let joined = t::sources_stores_joined(app.stores.len() as i64);
         let updates = match updates {
             0 => String::new(),
-            1 => "1 update".to_owned(),
-            n => format!("{n} updates"),
+            n => t::sources_stores_updates(n as i64),
         };
         let removed = match removed {
             0 => String::new(),
-            n => format!("{n} no longer accepting this device"),
+            n => t::sources_stores_removed(n as i64),
         };
         glyph::dotted(&[&joined, &updates, &removed])
     };
-    let hint = "↵ open";
+    let hint = t::sources_stores_open();
     let room = area.width.saturating_sub(hint.chars().count() as u16 + 4) as usize;
     line(
         buf,
@@ -220,7 +223,7 @@ fn render_store_summary(buf: &mut Buffer, app: &App, area: Rect, top: u16) -> u1
     );
     let hint_x = area.right().saturating_sub(hint.chars().count() as u16 + 1);
     if hint_x > area.left() + COL_PROVIDER {
-        line(buf, hint_x, top + 1, hint, app.palette.style(Role::TextDim));
+        line(buf, hint_x, top + 1, &hint, app.palette.style(Role::TextDim));
     }
     top + 3
 }
@@ -236,7 +239,7 @@ fn render_meta_sources(buf: &mut Buffer, app: &App, area: Rect, top: u16) {
     buf.set_string(
         area.left(),
         top,
-        glyph::eyebrow("metadata"),
+        t::sources_metadata_title(),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
 
@@ -261,7 +264,7 @@ fn render_meta_sources(buf: &mut Buffer, app: &App, area: Rect, top: u16) {
             COL_PROVIDER_KIND,
             COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1,
             y,
-            &row.state,
+            &meta_state_text(&row.state),
             app.palette.style(if row.healthy { Role::State } else { Role::Alert }),
         );
         if let Some(detail) = meta_detail(row, &app.clock)
@@ -285,14 +288,52 @@ fn render_meta_sources(buf: &mut Buffer, app: &App, area: Rect, top: u16) {
 /// needs it, so that is what the row says rather than a time already gone.
 fn meta_detail(row: &anistream_model::sources::MetaSourceRow, clock: &Clock) -> Option<String> {
     let Some(at) = row.retry_at else { return row.detail.clone() };
-    let cause = row.detail.as_deref().unwrap_or("failing");
-    let when = match clock.local(at) {
+    let cause = row.detail.clone().unwrap_or_else(t::sources_meta_cause_failing);
+    Some(match clock.local(at) {
         Some(when) if at > clock.now_epoch() => {
-            format!("skipped until {}", when.format("%H:%M"))
+            t::sources_meta_skipped_until(&when.format("%H:%M").to_string(), &cause)
         }
-        _ => "tried again on the next request".into(),
-    };
-    Some(format!("{when} — {cause}"))
+        _ => t::sources_meta_next_request(&cause),
+    })
+}
+
+/// A source's kind as the table says it. A kind the catalogue does not know stays as sent.
+fn kind_text(kind: &str) -> String {
+    match kind {
+        "native" => t::sources_kind_native(),
+        "plugin" => t::sources_kind_plugin(),
+        "remote" => t::sources_kind_remote(),
+        "torrent" => t::sources_kind_torrent(),
+        "licensed" => t::sources_kind_licensed(),
+        other => other.to_owned(),
+    }
+}
+
+/// A source's state as the table says it. A state the catalogue does not know stays as sent.
+fn state_text(state: &str) -> String {
+    match state {
+        "ready" => t::sources_state_ready(),
+        "degraded" => t::sources_state_degraded(),
+        "down" => t::sources_state_down(),
+        "unchecked" => t::sources_state_unchecked(),
+        "held back" => t::sources_state_held_back(),
+        other => other.to_owned(),
+    }
+}
+
+/// A metadata service's state as the table says it. One the catalogue does not know stays as
+/// sent.
+fn meta_state_text(state: &str) -> String {
+    match state {
+        "live" => t::sources_meta_state_live(),
+        "unreachable" => t::sources_meta_state_unreachable(),
+        "backing off" => t::sources_meta_state_backing_off(),
+        "off" => t::sources_meta_state_off(),
+        "serving" => t::sources_meta_state_serving(),
+        "standby" => t::sources_meta_state_standby(),
+        "failing" => t::sources_meta_state_failing(),
+        other => other.to_owned(),
+    }
 }
 
 #[cfg(test)]
@@ -324,13 +365,13 @@ mod tests {
         };
         assert_eq!(
             meta_detail(&row, &clock).as_deref(),
-            Some("skipped until 21:02 — network: timed out")
+            Some("Skipped until 21:02 (network: timed out)")
         );
         // Once the deadline is behind it, a time already gone would read as stale.
         clock.advance(std::time::Duration::from_secs(121));
         assert_eq!(
             meta_detail(&row, &clock).as_deref(),
-            Some("tried again on the next request — network: timed out")
+            Some("Tried again on the next request (network: timed out)")
         );
         row.retry_at = None;
         assert_eq!(meta_detail(&row, &clock).as_deref(), Some("network: timed out"));
@@ -352,7 +393,7 @@ mod tests {
 
         let text = text_of(&render_to_buffer(&mut app, 110, 20));
         assert!(text.contains("torrent"));
-        assert!(text.contains("310ms"), "latency helps judge a slow source");
+        assert!(text.contains("310 ms"), "latency helps judge a slow source");
         assert!(text.contains("cloudflare challenge (403)"), "the reason must be spelled out");
     }
 
@@ -366,10 +407,10 @@ mod tests {
 
         let buf = render_to_buffer(&mut app, 110, 20);
         let text = text_of(&buf);
-        assert!(text.contains("held back"));
+        assert!(text.contains("Held back"));
 
-        let row = text.lines().position(|l| l.contains("held back")).unwrap() as u16;
-        let x = text.lines().nth(row as usize).unwrap().find("held").unwrap() as u16;
+        let row = text.lines().position(|l| l.contains("Held back")).unwrap() as u16;
+        let x = text.lines().nth(row as usize).unwrap().find("Held").unwrap() as u16;
         assert_eq!(
             buf[(x, row)].fg,
             app.palette.color(Role::State),
@@ -382,7 +423,7 @@ mod tests {
         let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Providers);
         let text = text_of(&render_to_buffer(&mut app, 110, 20));
-        assert!(text.contains("no sources available"));
+        assert!(text.contains("No sources available"));
         assert!(text.contains("VPN mode"), "must say what to actually do");
     }
 
@@ -440,9 +481,9 @@ mod tests {
         app.apply(Event::Providers(vec![provider("someplugin", "ready", true, false)]));
         let text = text_of(&render_to_buffer(&mut app, 40, 15));
         assert!(
-            !text.contains("STAT\u{20}")
-                && !text.lines().any(|l| l.trim_end().ends_with("STAT"))
+            !text.contains("Stat\u{20}")
+                && !text.lines().any(|l| l.trim_end().ends_with("Stat"))
         );
-        assert!(!text.lines().any(|l| l.trim_end().ends_with("read")), "{text}");
+        assert!(!text.lines().any(|l| l.trim_end().ends_with("Read")), "{text}");
     }
 }
