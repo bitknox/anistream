@@ -434,6 +434,92 @@
     <string name="notice_open_stores">Open plugin stores</string>
     <!-- Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. -->
     <string name="tv_pair_request_held">%1$s wants to pair. Code %2$s</string>
+    <!-- A countdown that has run out. -->
+    <string name="time_now">now</string>
+    <!-- How long ago, when it was under a minute. -->
+    <string name="time_just_now">just now</string>
+    <!-- The episode in a short form for a title last watched dubbed. -->
+    <string name="episode_short_dubbed">E%1$d · Dubbed</string>
+    <!-- The episode in its long form for a title last watched dubbed. -->
+    <string name="episode_long_dubbed">Episode %1$d · Dubbed</string>
+    <!-- Continue row: a new episode, watched dubbed, with how long ago it came out. -->
+    <string name="continue_row_start_aired_dubbed">Play E%1$d dubbed · out %2$s</string>
+    <!-- Title page button: continue a dubbed episode part-way through. -->
+    <string name="title_button_resume_dubbed">Resume episode %1$d · Dubbed · %2$s</string>
+    <!-- Title page button: play the next dubbed episode. -->
+    <string name="title_button_play_dubbed">Play episode %1$d · Dubbed</string>
+    <!-- Download notification title when several episodes are paused. -->
+    <plurals name="downloads_live_paused">
+        <item quantity="one">One episode paused</item>
+        <item quantity="other">%1$d episodes paused</item>
+    </plurals>
+    <!-- Download notification, several episodes: the one that runs, by show and number. -->
+    <string name="downloads_live_lead">%1$s E%2$d</string>
+    <!-- Download notification, several episodes: how much is left. The size is already formatted. -->
+    <string name="downloads_live_left">%1$s left</string>
+    <!-- Download notification, one episode: how much is down. Both sizes are already formatted. -->
+    <string name="downloads_live_progress">%1$s of %2$s</string>
+    <!-- Download notification, one episode: the download is paused. -->
+    <string name="downloads_live_paused_one">Paused</string>
+    <!-- Download notification, one episode: it waits for a free slot. -->
+    <string name="downloads_live_waiting">Waiting</string>
+    <!-- Setting value: the upscaler tuned for natural-looking pictures. ArtCNN is the model's name. -->
+    <string name="settings_upscaling_natural">Natural · ArtCNN</string>
+    <!-- Setting value: the upscaler tuned for sharp lines. Anime4K is the shader's name. -->
+    <string name="settings_upscaling_sharp">Sharp · Anime4K</string>
+    <!-- Setting value: seed until the upload ratio reaches a number such as 1.5. -->
+    <string name="settings_seed_ratio_until">Until ratio %1$s</string>
+    <!-- Setting value: no upload limit. -->
+    <string name="settings_upload_unlimited">Unlimited</string>
+    <!-- Setting value: an upload limit, in size per second. The size is already formatted. -->
+    <string name="settings_upload_rate">%1$s/s</string>
+    <!-- Setting value: the standard download quality. -->
+    <string name="settings_quality_standard">Standard</string>
+    <!-- Setting value: the higher download quality. -->
+    <string name="settings_quality_higher">Higher</string>
+    <!-- Footer under the week's notifications: shows watched dubbed, which notify when the dub is out. The names are a list of titles. -->
+    <plurals name="settings_coming_up_dubbed">
+        <item quantity="one">%1$s notifies when its dub is out.</item>
+        <item quantity="other">%1$s notify when their dubs are out.</item>
+    </plurals>
+    <!-- Footer under the week's notifications: shows with their own notification switch off. The names are a list of titles. -->
+    <plurals name="settings_coming_up_switched_off">
+        <item quantity="one">%1$s is off in its own settings.</item>
+        <item quantity="other">%1$s are off in their own settings.</item>
+    </plurals>
+    <!-- Footer under the week's notifications: what a row does. -->
+    <string name="settings_coming_up_opens">A show opens its settings.</string>
+    <!-- What the connection check does, said wherever torrents are on. -->
+    <string name="torrents_check_note">anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.</string>
+    <!-- The same note when a failed check only warns. -->
+    <string name="torrents_check_note_warn">anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and warns you if that check fails. Your VPN or proxy is what protects you.</string>
+    <!-- The same note when a failed check stops torrents. -->
+    <string name="torrents_check_note_stop">anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and stops torrents if that check fails. Your VPN or proxy is what protects you.</string>
+    <!-- Notice after the torrent protection was saved. -->
+    <string name="torrents_protection_saved">Torrent protection saved</string>
+    <!-- Name of the proxy protection. -->
+    <string name="torrents_protect_proxy_name">SOCKS5 proxy</string>
+    <!-- Name of the VPN protection. -->
+    <string name="torrents_protect_vpn_name">VPN on this device</string>
+    <!-- Body of the question asked before a failed check only warns. -->
+    <string name="torrents_warn_body">anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.</string>
+    <!-- Part of a proxy's line: the user it lets in. -->
+    <string name="torrents_proxy_as">as %1$s</string>
+    <!-- Title facts: a finished title and when it aired. The dates are already formatted. -->
+    <string name="title_facts_aired">Aired %1$s</string>
+    <!-- Title facts: a title that is airing, and since when. -->
+    <string name="title_facts_airing">Airing since %1$s</string>
+    <!-- Title facts: a title that has not started, and when it does. -->
+    <string name="title_facts_airs">Airs from %1$s</string>
+    <!-- Two dates as a range, such as the first and last broadcast. -->
+    <string name="media_dates_range">%1$s to %2$s</string>
+    <!-- Title facts: where else the title is, by the first place and how many more. -->
+    <plurals name="title_also_on_more">
+        <item quantity="one">%1$s and one more</item>
+        <item quantity="other">%1$s and %2$d more</item>
+    </plurals>
+    <!-- Mark on a title meant for adults. -->
+    <string name="title_adult_mark">18+</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->

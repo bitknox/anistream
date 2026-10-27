@@ -11,11 +11,14 @@ import tv.anistream.engine.model.Notice
 import tv.anistream.engine.model.NoticeKind
 
 /** One notice as the app keeps it: when it came, and a number to tell it from one with the same words. */
-data class NoticeItem(val id: Int, val notice: Notice, val at: Long) {
+data class NoticeItem(val id: Int, val notice: Notice, val at: Long, val words: ((Context) -> String)? = null) {
     val isAlert: Boolean get() = notice.kind == NoticeKind.ALERT
+
+    /** What it says, in the person's language: the app's own words when it made the notice, else the engine's message. */
+    fun text(context: Context): String = words?.invoke(context) ?: notice.text(context)
 }
 
-/** What a notice says, in the person's language. A notice the app made itself has no message and reads as its text. */
+/** What a notice says, in the person's language. */
 fun Notice.text(context: Context): String = msg?.text(context) ?: text
 
 /** The snackbar's current notice, and the log of every notice this session. */
@@ -37,9 +40,9 @@ class NoticesModel(private val clock: () -> Long = System::currentTimeMillis) {
 
     private var count = 0
 
-    internal fun post(notice: Notice) {
+    internal fun post(notice: Notice, words: ((Context) -> String)? = null) {
         count += 1
-        val item = NoticeItem(count, notice, clock())
+        val item = NoticeItem(count, notice, clock(), words)
         _current.value = item
         _log.value = (listOf(item) + _log.value).take(KEPT)
     }

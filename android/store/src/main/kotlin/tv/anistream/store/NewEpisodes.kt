@@ -3,6 +3,7 @@
 
 package tv.anistream.store
 
+import android.content.Context
 import android.graphics.Bitmap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +29,8 @@ import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.NoticeReason
 import tv.anistream.engine.model.UpcomingNotice
+import tv.anistream.i18n.R
+import tv.anistream.i18n.Strings
 import tv.anistream.engine.model.UpcomingNotices
 import tv.anistream.engine.model.WidgetData
 
@@ -247,21 +250,17 @@ class ComingModel {
          * The footer under the week: what notifies later than its broadcast and why, what a switch
          * of its own leaves out, and what a row does, or that nothing airs.
          */
-        fun footer(week: UpcomingNotices): String {
+        fun footer(context: Context, week: UpcomingNotices): String {
             val dubbed = dubbed(week)
             val off = switchedOff(week)
             return listOfNotNull(
-                when (dubbed.size) {
-                    0 -> null
-                    1 -> "${dubbed[0]} notifies when its dub is out."
-                    else -> "${Wording.list(dubbed)} notify when their dubs are out."
+                dubbed.takeIf { it.isNotEmpty() }?.let {
+                    context.resources.getQuantityString(R.plurals.settings_coming_up_dubbed, it.size, Wording.list(it))
                 },
-                when (off.size) {
-                    0 -> null
-                    1 -> "${off[0]} is off in its own settings."
-                    else -> "${Wording.list(off)} are off in their own settings."
+                off.takeIf { it.isNotEmpty() }?.let {
+                    context.resources.getQuantityString(R.plurals.settings_coming_up_switched_off, it.size, Wording.list(it))
                 },
-                if (listed(week).isEmpty()) "Nothing airs this week for the shows followed." else "A show opens its settings.",
+                if (listed(week).isEmpty()) Strings.calendarComingUpEmpty(context) else Strings.settingsComingUpOpens(context),
             ).joinToString(" ")
         }
     }

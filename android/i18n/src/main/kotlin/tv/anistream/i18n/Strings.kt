@@ -801,6 +801,154 @@ object Strings {
     fun tvPairRequestHeld(context: Context, phone: String, code: String): String =
         context.getString(R.string.tv_pair_request_held, phone, code)
 
+    /** A countdown that has run out. */
+    fun timeNow(context: Context): String =
+        context.getString(R.string.time_now)
+
+    /** How long ago, when it was under a minute. */
+    fun timeJustNow(context: Context): String =
+        context.getString(R.string.time_just_now)
+
+    /** The episode in a short form for a title last watched dubbed. */
+    fun episodeShortDubbed(context: Context, episode: Int): String =
+        context.getString(R.string.episode_short_dubbed, episode)
+
+    /** The episode in its long form for a title last watched dubbed. */
+    fun episodeLongDubbed(context: Context, episode: Int): String =
+        context.getString(R.string.episode_long_dubbed, episode)
+
+    /** Continue row: a new episode, watched dubbed, with how long ago it came out. */
+    fun continueRowStartAiredDubbed(context: Context, episode: Int, ago: String): String =
+        context.getString(R.string.continue_row_start_aired_dubbed, episode, ago)
+
+    /** Title page button: continue a dubbed episode part-way through. */
+    fun titleButtonResumeDubbed(context: Context, episode: Int, time: String): String =
+        context.getString(R.string.title_button_resume_dubbed, episode, time)
+
+    /** Title page button: play the next dubbed episode. */
+    fun titleButtonPlayDubbed(context: Context, episode: Int): String =
+        context.getString(R.string.title_button_play_dubbed, episode)
+
+    /** Download notification title when several episodes are paused. */
+    fun downloadsLivePaused(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.downloads_live_paused, count, count)
+
+    /** Download notification, several episodes: the one that runs, by show and number. */
+    fun downloadsLiveLead(context: Context, title: String, episode: Int): String =
+        context.getString(R.string.downloads_live_lead, title, episode)
+
+    /** Download notification, several episodes: how much is left. The size is already formatted. */
+    fun downloadsLiveLeft(context: Context, size: String): String =
+        context.getString(R.string.downloads_live_left, size)
+
+    /** Download notification, one episode: how much is down. Both sizes are already formatted. */
+    fun downloadsLiveProgress(context: Context, done: String, total: String): String =
+        context.getString(R.string.downloads_live_progress, done, total)
+
+    /** Download notification, one episode: the download is paused. */
+    fun downloadsLivePausedOne(context: Context): String =
+        context.getString(R.string.downloads_live_paused_one)
+
+    /** Download notification, one episode: it waits for a free slot. */
+    fun downloadsLiveWaiting(context: Context): String =
+        context.getString(R.string.downloads_live_waiting)
+
+    /** Setting value: the upscaler tuned for natural-looking pictures. ArtCNN is the model's name. */
+    fun settingsUpscalingNatural(context: Context): String =
+        context.getString(R.string.settings_upscaling_natural)
+
+    /** Setting value: the upscaler tuned for sharp lines. Anime4K is the shader's name. */
+    fun settingsUpscalingSharp(context: Context): String =
+        context.getString(R.string.settings_upscaling_sharp)
+
+    /** Setting value: seed until the upload ratio reaches a number such as 1.5. */
+    fun settingsSeedRatioUntil(context: Context, ratio: String): String =
+        context.getString(R.string.settings_seed_ratio_until, ratio)
+
+    /** Setting value: no upload limit. */
+    fun settingsUploadUnlimited(context: Context): String =
+        context.getString(R.string.settings_upload_unlimited)
+
+    /** Setting value: an upload limit, in size per second. The size is already formatted. */
+    fun settingsUploadRate(context: Context, size: String): String =
+        context.getString(R.string.settings_upload_rate, size)
+
+    /** Setting value: the standard download quality. */
+    fun settingsQualityStandard(context: Context): String =
+        context.getString(R.string.settings_quality_standard)
+
+    /** Setting value: the higher download quality. */
+    fun settingsQualityHigher(context: Context): String =
+        context.getString(R.string.settings_quality_higher)
+
+    /** Footer under the week's notifications: shows watched dubbed, which notify when the dub is out. The names are a list of titles. */
+    fun settingsComingUpDubbed(context: Context, names: String, count: Int): String =
+        context.resources.getQuantityString(R.plurals.settings_coming_up_dubbed, count, names, count)
+
+    /** Footer under the week's notifications: shows with their own notification switch off. The names are a list of titles. */
+    fun settingsComingUpSwitchedOff(context: Context, names: String, count: Int): String =
+        context.resources.getQuantityString(R.plurals.settings_coming_up_switched_off, count, names, count)
+
+    /** Footer under the week's notifications: what a row does. */
+    fun settingsComingUpOpens(context: Context): String =
+        context.getString(R.string.settings_coming_up_opens)
+
+    /** What the connection check does, said wherever torrents are on. */
+    fun torrentsCheckNote(context: Context): String =
+        context.getString(R.string.torrents_check_note)
+
+    /** The same note when a failed check only warns. */
+    fun torrentsCheckNoteWarn(context: Context): String =
+        context.getString(R.string.torrents_check_note_warn)
+
+    /** The same note when a failed check stops torrents. */
+    fun torrentsCheckNoteStop(context: Context): String =
+        context.getString(R.string.torrents_check_note_stop)
+
+    /** Notice after the torrent protection was saved. */
+    fun torrentsProtectionSaved(context: Context): String =
+        context.getString(R.string.torrents_protection_saved)
+
+    /** Name of the proxy protection. */
+    fun torrentsProtectProxyName(context: Context): String =
+        context.getString(R.string.torrents_protect_proxy_name)
+
+    /** Name of the VPN protection. */
+    fun torrentsProtectVpnName(context: Context): String =
+        context.getString(R.string.torrents_protect_vpn_name)
+
+    /** Body of the question asked before a failed check only warns. */
+    fun torrentsWarnBody(context: Context): String =
+        context.getString(R.string.torrents_warn_body)
+
+    /** Part of a proxy's line: the user it lets in. */
+    fun torrentsProxyAs(context: Context, user: String): String =
+        context.getString(R.string.torrents_proxy_as, user)
+
+    /** Title facts: a finished title and when it aired. The dates are already formatted. */
+    fun titleFactsAired(context: Context, dates: String): String =
+        context.getString(R.string.title_facts_aired, dates)
+
+    /** Title facts: a title that is airing, and since when. */
+    fun titleFactsAiring(context: Context, date: String): String =
+        context.getString(R.string.title_facts_airing, date)
+
+    /** Title facts: a title that has not started, and when it does. */
+    fun titleFactsAirs(context: Context, date: String): String =
+        context.getString(R.string.title_facts_airs, date)
+
+    /** Two dates as a range, such as the first and last broadcast. */
+    fun mediaDatesRange(context: Context, from: String, to: String): String =
+        context.getString(R.string.media_dates_range, from, to)
+
+    /** Title facts: where else the title is, by the first place and how many more. */
+    fun titleAlsoOnMore(context: Context, first: String, more: Int): String =
+        context.resources.getQuantityString(R.plurals.title_also_on_more, more, first, more)
+
+    /** Mark on a title meant for adults. */
+    fun titleAdultMark(context: Context): String =
+        context.getString(R.string.title_adult_mark)
+
     /** Name of the notification channel for download progress, shown in the system's settings. */
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)
