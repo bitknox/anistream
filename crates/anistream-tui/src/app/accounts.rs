@@ -1,13 +1,14 @@
 //! The trackers: signing in and out, their sync state, and the disagreements to settle.
 
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
-    notice::Notice,
+    present::tracker_name,
     stores::Secret,
     sync::{ConflictRow, SyncState},
 };
 
-use super::{App, Field};
+use super::{App, Field, alert, info};
 use crate::{
     keymap::Action,
     nav::{Focus, Overlay, Section, StageView},
@@ -20,7 +21,7 @@ use crate::{
 /// actually go anywhere?", which is the only sync question anyone asks.
 pub fn sync_badge(state: &SyncState) -> String {
     if state.needs_reauth {
-        return format!("{} {} sign in", state.tracker, glyph::STATE_DOWN);
+        return t::accounts_badge_sign_in(&state.tracker, &glyph::STATE_DOWN.to_string());
     }
     // Hollow, not the interpunct: the header puts `·` between its groups of chips, and a
     // signed-out `kitsu ·` read as a separator with a word in front of it.
@@ -64,7 +65,7 @@ impl App {
             self.nav.open_overlay(Overlay::KitsuUsername);
             return None;
         }
-        self.status = "opening your browser to sign in…".into();
+        self.status = t::accounts_status_opening_browser();
         Some(Command::Connect { tracker: tracker.tracker })
     }
 
@@ -114,9 +115,9 @@ impl App {
             && !self.sync.iter().any(|s| s.tracker == state.tracker && s.needs_reauth);
         if announce {
             let accounts = self.section_key(Section::Accounts);
-            self.push_toast(Notice::raw_alert(format!(
-                "{} needs signing in again — press {accounts} for Accounts",
-                state.tracker
+            self.push_toast(alert(t::accounts_needs_sign_in(
+                &tracker_name(&state.tracker),
+                &accounts,
             )));
         }
         match self.sync.iter_mut().find(|s| s.tracker == state.tracker) {
@@ -141,9 +142,9 @@ impl App {
         if appeared {
             // Surfaced rather than resolved — the whole point of not guessing.
             let settle = self.key_for(Action::ShowConflicts);
-            self.push_toast(Notice::raw_info(format!(
-                "{} — {settle} settles them",
-                anistream_model::wording::plural(self.conflicts.len(), "sync disagreement")
+            self.push_toast(info(t::accounts_conflicts_found(
+                self.conflicts.len() as i64,
+                &settle,
             )));
         }
     }
@@ -151,7 +152,7 @@ impl App {
     /// The sync disagreements to settle, or word that there are none.
     pub(super) fn show_conflicts(&mut self) {
         if self.conflicts.is_empty() {
-            self.push_toast(Notice::raw_info("nothing to resolve"));
+            self.push_toast(info(t::accounts_conflicts_none()));
         } else {
             self.cursors.overlay.selected = 0;
             self.nav.open_overlay(Overlay::Conflicts);
@@ -162,9 +163,7 @@ impl App {
     pub(super) fn force_resync(&mut self) -> Option<Command> {
         if self.sync.is_empty() {
             let accounts = self.section_key(Section::Accounts);
-            self.push_toast(Notice::raw_info(format!(
-                "no tracker connected — press {accounts} for Accounts"
-            )));
+            self.push_toast(info(t::accounts_no_tracker(&accounts)));
         } else {
             return Some(Command::SyncNow);
         }
@@ -396,7 +395,7 @@ mod tests {
     fn a_resync_with_no_tracker_says_so_rather_than_doing_nothing() {
         let mut a = app();
         assert_eq!(a.handle(Action::ForceResync, 20), None);
-        assert!(a.toasts.iter().any(|t| t.notice.text.contains("no tracker")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("No tracker")));
 
         a.apply(Event::Sync(Box::new(connected(0))));
         assert_eq!(a.handle(Action::ForceResync, 20), Some(Command::SyncNow));

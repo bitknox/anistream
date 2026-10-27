@@ -3,7 +3,7 @@
 
 use anistream_model::{catalog::LibrarySegment, command::Command};
 
-use super::{App, Field, SEARCH_FILTER_ROWS, cycle_search_filter};
+use super::{App, Field, cycle_search_filter, search_filter_labels};
 use crate::{
     keymap::{Action, Context},
     nav::{Overlay, StageView},
@@ -227,7 +227,7 @@ impl App {
         match self.nav.overlay() {
             Some(Overlay::ListStatus) => LibrarySegment::ALL.len(),
             Some(Overlay::Rate) => 10,
-            Some(Overlay::SearchFilters) => SEARCH_FILTER_ROWS.len(),
+            Some(Overlay::SearchFilters) => search_filter_labels().len(),
             Some(Overlay::Conflicts) => self.conflicts.len(),
             Some(Overlay::Accounts) => self.sync.len(),
             // The palette was missing from this list, which meant the arrows scrolled the list

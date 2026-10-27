@@ -62,7 +62,7 @@ pub use self::{
     cursor::{Cursor, Cursors},
     episodes::EpisodeFilter,
     lists::{
-        SEARCH_FILTER_ROWS, cycle_search_filter, search_filter_summary, search_filter_value,
+        cycle_search_filter, search_filter_labels, search_filter_summary, search_filter_value,
     },
     notices::{ACTIVITY_DELAY, Job, LOG_CAPACITY, LogRow, Toast, alert, info, say, worded},
     overlays::{FrameReport, PALETTE_ROWS},
