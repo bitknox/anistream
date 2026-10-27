@@ -31,6 +31,11 @@ struct Rules {
     /// is in a place that is not text for a person (`rust_literals`). For a front end that builds
     /// its text in many ways; `patterns` is not used.
     every_literal: bool,
+    /// With `every_literal`, a literal with no space that is not a capitalised word is a name in
+    /// the code, not text: a style class, icon, action, environment variable or D-Bus path
+    /// ("dim-label", "win.play", "XDG_DATA_DIRS"). For a toolkit app, which names its widgets'
+    /// parts in strings.
+    names_are_code: bool,
 }
 
 const COMMON_SKIP: &[&str] = &[
@@ -76,6 +81,7 @@ fn rules(platform: Platform) -> Rules {
             ],
             stop_at_tests: false,
             every_literal: false,
+            names_are_code: false,
         },
         Platform::Android => Rules {
             roots: &["android"],
@@ -88,6 +94,7 @@ fn rules(platform: Platform) -> Rules {
             ],
             stop_at_tests: false,
             every_literal: false,
+            names_are_code: false,
         },
         Platform::Windows => Rules {
             roots: &["desktop/windows/Anistream.Windows"],
@@ -100,19 +107,17 @@ fn rules(platform: Platform) -> Rules {
             ],
             stop_at_tests: false,
             every_literal: false,
+            names_are_code: false,
         },
         Platform::Linux => Rules {
             roots: &["desktop/linux/src"],
             extensions: &["rs"],
-            skip: COMMON_SKIP,
-            patterns: vec![
-                p(r"\b(?:set_label|set_title|set_subtitle|set_tooltip_text|set_placeholder_text|set_description|set_heading|set_body)\(\s*(?:Some\()?\s*LIT"),
-                p(r"\b(?:Label::new|Button::with_label|Button::from_icon_name)\(\s*(?:Some\()?\s*LIT"),
-                p(r"\.(?:title|subtitle|label|tooltip_text|description|heading|body|placeholder_text)\(\s*LIT"),
-                p(r"\badd_response\(\s*[^,]+,\s*LIT"),
-            ],
+            // The screenshot driver and the fixture scene's invented rows, never text the app says.
+            skip: skip(&["shots.rs", "showcase.rs", "fixtures.rs", "fixture.rs"]),
+            patterns: Vec::new(),
             stop_at_tests: true,
-            every_literal: false,
+            every_literal: true,
+            names_are_code: true,
         },
         Platform::Tui => Rules {
             roots: &["crates/anistream-tui/src"],
@@ -121,6 +126,7 @@ fn rules(platform: Platform) -> Rules {
             patterns: Vec::new(),
             stop_at_tests: true,
             every_literal: true,
+            names_are_code: false,
         },
     }
 }
@@ -167,7 +173,7 @@ fn walk(
                 text
             };
             if rules.every_literal {
-                let found = rust_literals(&text);
+                let found = rust_literals(&text, rules.names_are_code);
                 // `I18N_LIST=1` says which: file, line and the literal.
                 if std::env::var_os("I18N_LIST").is_some() {
                     for (line, literal) in &found {
@@ -325,7 +331,7 @@ const NOT_TEXT_CALLS: &[&str] = &[
 /// in a place that is not text (`NOT_TEXT_CALLS`, a pattern, a comparison, an attribute) and not
 /// a token in `TOKENS`. A line that ends in `// i18n-skip` is not counted, which says in the
 /// code that the literal is a token and not text.
-fn rust_literals(src: &str) -> Vec<(usize, String)> {
+fn rust_literals(src: &str, names_are_code: bool) -> Vec<(usize, String)> {
     let bytes: Vec<char> = src.chars().collect();
     let mut code = String::with_capacity(src.len());
     // (start index in `code`, decoded text) of each literal found.
@@ -444,7 +450,10 @@ fn rust_literals(src: &str) -> Vec<(usize, String)> {
     found
         .iter()
         .filter(|(at, _, text, skipped)| {
-            !skipped && reads_as_words(text) && !is_not_text(&code, *at)
+            !skipped
+                && reads_as_words(text)
+                && !(names_are_code && is_code_name(text))
+                && !is_not_text(&code, *at)
         })
         .map(|(at, _, text, _)| (code[..*at].matches('\n').count() + 1, text.clone()))
         .collect()
@@ -491,6 +500,20 @@ fn read_string(b: &[char], start: usize) -> (String, usize) {
         }
     }
     (text, j + 1)
+}
+
+/// A literal that names something in the code: no space, and not a capitalised word ("Sources",
+/// "Downloads"), which is text even alone.
+fn is_code_name(text: &str) -> bool {
+    if text.chars().any(char::is_whitespace) {
+        return false;
+    }
+    let word = text.trim_end_matches(['.', ',', ':', '?', '!', '\u{2026}']);
+    let mut chars = word.chars();
+    let capitalised = chars.next().is_some_and(char::is_uppercase)
+        && word.chars().any(char::is_lowercase)
+        && chars.all(|c| c.is_alphabetic() || c == '\'' || c == '\u{2019}');
+    !capitalised
 }
 
 fn reads_as_words(text: &str) -> bool {
@@ -661,6 +684,28 @@ mod tests {
             ),
         )]);
         let counts = scan(dir.path(), Platform::Tui).unwrap();
+        assert_eq!(counts.values().sum::<usize>(), 3, "{counts:?}");
+    }
+
+    #[test]
+    fn the_linux_scan_counts_words_and_skips_the_names_a_toolkit_uses() {
+        let dir = tree(&[
+            (
+                "desktop/linux/src/a.rs",
+                concat!(
+                    "fn f() {\n",
+                    "    label.add_css_class(\"dim-label\");\n",
+                    "    button.set_icon_name(\"go-previous-symbolic\");\n",
+                    "    menu.append(Some(\"Go to title\"), Some(\"win.open-title\"));\n",
+                    "    std::env::set_var(\"XDG_DATA_DIRS\", dirs);\n",
+                    "    let a = gtk::Label::new(Some(\"Downloads\"));\n",
+                    "    let b = format!(\"{n} left\");\n",
+                    "}\n",
+                ),
+            ),
+            ("desktop/linux/src/shots.rs", "let t = \"Shot driver only\";\n"),
+        ]);
+        let counts = scan(dir.path(), Platform::Linux).unwrap();
         assert_eq!(counts.values().sum::<usize>(), 3, "{counts:?}");
     }
 
