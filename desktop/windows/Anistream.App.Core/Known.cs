@@ -36,6 +36,9 @@ public sealed class Known
     /// <summary>The download queue, by title, with each running download's speed.</summary>
     public DownloadQueue Queue { get; } = new();
 
+    /// <summary>The source picker's listings per title, and which pins have been said to be unavailable.</summary>
+    public SourceChoices SourceChoices { get; } = new();
+
     /// <summary>The sources, as the engine last said them, in the order it lists them.</summary>
     public ProviderRow[] Providers { get; private set; } = [];
     public bool ProvidersLoaded { get; private set; }
@@ -152,6 +155,9 @@ public sealed class Known
                 break;
             case Event.Episodes ep:
                 Episodes[ep.Id] = ep.Rows;
+                break;
+            case Event.SourceOptions:
+                SourceChoices.Take(e);
                 break;
             case Event.TitleDub td:
                 Dubbed[td.Id] = td.Dub is not null;

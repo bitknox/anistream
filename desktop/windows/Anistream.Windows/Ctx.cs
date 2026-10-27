@@ -39,6 +39,18 @@ sealed class Ctx
     public ulong? Send(Command command)
     {
 #if ANISTREAM_TESTING
+        // The source picker's shots: the listing is the one the showcase invented, or none at all.
+        if (command is Command.LoadSourceOptions listing && Options.Show?.StartsWith("source-picker", StringComparison.Ordinal) == true)
+        {
+            if (Options.Show != "source-picker-loading")
+                Window.DispatcherQueue.TryEnqueue(() =>
+                {
+                    var events = new Event[] { new Event.SourceOptions(listing.V1, Showcase.PickerOptions(Options.Show)) };
+                    Session.Known.Take(events[0]);
+                    Heard(events);
+                });
+            return null;
+        }
         // A showcase has no store to ask: the invite preview is the one it invented.
         if (Options.Showcase && command is Command.PreviewStore preview)
         {

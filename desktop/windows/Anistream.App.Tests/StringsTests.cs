@@ -6,6 +6,8 @@ using Xunit;
 
 namespace Anistream.App.Tests;
 
+/// <summary>Tests that read the strings share the static resolver, so they run one at a time.</summary>
+[Collection("Strings")]
 public class StringsTests
 {
     [Fact]

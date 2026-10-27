@@ -863,6 +863,14 @@
     <value>Queued {count} episodes.</value>
     <comment>Toast after episodes are added to the download queue.</comment>
   </data>
+  <data name="SourcePickerSeeders_one" xml:space="preserve">
+    <value>One seeder</value>
+    <comment>Under a release in the source picker: how many people share it right now.</comment>
+  </data>
+  <data name="SourcePickerSeeders_other" xml:space="preserve">
+    <value>{count} seeders</value>
+    <comment>Under a release in the source picker: how many people share it right now.</comment>
+  </data>
   <data name="ActionTryAgain" xml:space="preserve">
     <value>Try again</value>
     <comment>Button that runs a failed action again.</comment>
