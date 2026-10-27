@@ -100,12 +100,18 @@ struct Open {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Phase {
     Loading,
-    Ready { more: bool },
-    RateLimited { seconds: u32 },
+    Ready {
+        more: bool,
+    },
+    RateLimited {
+        seconds: u32,
+    },
     NoThread,
     Failed,
     /// Showing what was read at this moment.
-    Offline { read_at: i64 },
+    Offline {
+        read_at: i64,
+    },
 }
 
 struct Pending {
@@ -115,7 +121,9 @@ struct Pending {
 
 enum PendingKind {
     /// A comment of the viewer's own, not yet on AniList, answering `parent`.
-    New { parent: Option<u32> },
+    New {
+        parent: Option<u32>,
+    },
     /// The viewer's comment with new text.
     Edit,
     Delete,
@@ -197,7 +205,8 @@ impl Discussions {
 /// the show, or the episode at or before their progress, or watched past the point it counts
 /// this session.
 fn allowed(media: AnilistId, episode: u32, engine: &EngineState, services: &Services) -> bool {
-    let config = crate::show_settings::for_show(engine.config.effective(), &services.store, media);
+    let config =
+        crate::show_settings::for_show(engine.config.effective(), &services.store, media);
     if !config.playback.spoiler_protection {
         return true;
     }
@@ -384,7 +393,8 @@ pub(crate) fn more(engine: &EngineState, services: &Services, tx: &Outbox) {
                 lent.update(generation, |open| {
                     // A comment posted since the last page was read may be on this one too.
                     let known: HashSet<u32> = open.comments.iter().map(|c| c.id).collect();
-                    open.comments.extend(found.items.into_iter().filter(|c| !known.contains(&c.id)));
+                    open.comments
+                        .extend(found.items.into_iter().filter(|c| !known.contains(&c.id)));
                     open.pages = page;
                     open.phase = Phase::Ready { more: found.has_next };
                     open.reading = false;
@@ -497,7 +507,13 @@ pub(crate) fn post(
 }
 
 /// [`Command::EditComment`](anistream_model::command::Command::EditComment).
-pub(crate) fn edit(id: u32, text: String, engine: &EngineState, services: &Services, tx: &Outbox) {
+pub(crate) fn edit(
+    id: u32,
+    text: String,
+    engine: &EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
     let text = text.trim().to_owned();
     if text.is_empty() {
         return;
@@ -565,7 +581,8 @@ pub(crate) fn delete(id: u32, engine: &EngineState, services: &Services, tx: &Ou
     let (asked, unposted) = {
         let mut inner = engine.discussion.lock();
         let Some(open) = inner.open.as_mut() else { return };
-        if matches!(open.pending.get(&id), Some(Pending { kind: PendingKind::New { .. }, .. })) {
+        if matches!(open.pending.get(&id), Some(Pending { kind: PendingKind::New { .. }, .. }))
+        {
             remove(&mut open.comments, id);
             open.pending.remove(&id);
             (open.generation, true)
@@ -627,8 +644,11 @@ pub(crate) fn like(id: u32, engine: &EngineState, services: &Services, tx: &Outb
         let Some(comment) = find_mut(&mut open.comments, id) else { return };
         // As it will be, at once; put right by AniList's answer.
         comment.liked = !comment.liked;
-        comment.like_count =
-            if comment.liked { comment.like_count + 1 } else { comment.like_count.saturating_sub(1) };
+        comment.like_count = if comment.liked {
+            comment.like_count + 1
+        } else {
+            comment.like_count.saturating_sub(1)
+        };
         (open.generation, comment.liked, comment.like_count)
     };
     let (generation, liked, count) = asked;
@@ -693,7 +713,11 @@ pub(crate) fn watched(
 }
 
 /// The thread for `episode` of `media`: as kept, while that is fresh, or asked for and kept.
-async fn thread(lent: &Lent, media: AnilistId, episode: u32) -> Result<Option<Thread>, AniListError> {
+async fn thread(
+    lent: &Lent,
+    media: AnilistId,
+    episode: u32,
+) -> Result<Option<Thread>, AniListError> {
     let now = lent.clock.now();
     if let Some((kept, at)) = kept_thread(&lent.store, media, episode) {
         let fresh_for = match &kept {
@@ -744,7 +768,13 @@ fn kept_thread(store: &Store, media: AnilistId, episode: u32) -> Option<(Option<
     Some((kept.thread, kept.at))
 }
 
-fn keep_thread(store: &Store, media: AnilistId, episode: u32, thread: Option<&Thread>, now: i64) {
+fn keep_thread(
+    store: &Store,
+    media: AnilistId,
+    episode: u32,
+    thread: Option<&Thread>,
+    now: i64,
+) {
     let kept = KeptThread { at: now, thread: thread.cloned() };
     if let Ok(text) = serde_json::to_string(&kept)
         && let Err(error) = store.set_meta_text(&thread_key(media, episode), &text)
@@ -833,10 +863,15 @@ fn view(open: &Open, offline: bool, now: i64) -> DiscussionView {
                     let mut deeper = Vec::new();
                     flatten(&reply.replies, &mut deeper);
                     deeper.sort_by_key(|c| (c.created_at, c.id));
-                    let deeper: Vec<CommentView> =
-                        deeper.into_iter().map(|c| comment_view(c, Vec::new(), open, own, now)).collect();
+                    let deeper: Vec<CommentView> = deeper
+                        .into_iter()
+                        .map(|c| comment_view(c, Vec::new(), open, own, now))
+                        .collect();
                     let hidden = u32::try_from(deeper.len()).unwrap_or(u32::MAX);
-                    CommentView { hidden_replies: hidden, ..comment_view(reply, deeper, open, own, now) }
+                    CommentView {
+                        hidden_replies: hidden,
+                        ..comment_view(reply, deeper, open, own, now)
+                    }
                 })
                 .collect();
             comment_view(comment, replies, open, own, now)

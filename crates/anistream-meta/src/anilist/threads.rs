@@ -93,13 +93,18 @@ pub fn names_episode(title: &str, episode: u32) -> bool {
 /// The thread's title as a header shows it: "[Spoilers]" left out, since the episode is one
 /// the viewer has watched.
 pub fn shown_title(title: &str) -> String {
-    let trimmed = title.trim();
     let tag = "[spoilers]";
-    let cut = trimmed
-        .get(..tag.len())
-        .filter(|head| head.eq_ignore_ascii_case(tag))
-        .map_or(trimmed, |_| &trimmed[tag.len()..]);
-    cut.trim().to_owned()
+    let mut shown = title.trim();
+    if shown.get(..tag.len()).is_some_and(|head| head.eq_ignore_ascii_case(tag)) {
+        shown = shown[tag.len()..].trim_start();
+    }
+    let cut = shown.len().checked_sub(tag.len());
+    if let Some(at) =
+        cut.filter(|at| shown.get(*at..).is_some_and(|t| t.eq_ignore_ascii_case(tag)))
+    {
+        shown = shown[..at].trim_end();
+    }
+    shown.to_owned()
 }
 
 /// The episode's thread among the candidates AniList answered: the most replied of those that
@@ -194,7 +199,11 @@ impl AniList {
 
     /// The thread for `episode` of `media`, by the convention's title, or `None` when nobody
     /// opened one. One request.
-    pub async fn episode_thread(&self, media: AnilistId, episode: u32) -> Result<Option<Thread>> {
+    pub async fn episode_thread(
+        &self,
+        media: AnilistId,
+        episode: u32,
+    ) -> Result<Option<Thread>> {
         let data: Value = self
             .execute(
                 query::EPISODE_THREADS,
@@ -297,7 +306,9 @@ mod tests {
             shown_title(" [Spoilers] Lantern Harbour - Episode 5 Discussion"),
             "Lantern Harbour - Episode 5 Discussion"
         );
+        assert_eq!(shown_title("Episode 5 Discussion [SPOILERS] "), "Episode 5 Discussion");
         assert_eq!(shown_title("Episode 5 Discussion"), "Episode 5 Discussion");
+        assert_eq!(shown_title("[Spoilers]"), "");
     }
 
     /// A recorded answer to [`query::EPISODE_THREADS`], names made up.

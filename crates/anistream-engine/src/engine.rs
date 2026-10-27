@@ -868,7 +868,13 @@ impl Actor {
         // An episode counted as watched: its discussion opens from now on, and is looked up.
         if let Some(played) = watched.as_ref() {
             let tx = self.inbox.sender();
-            crate::discussion::watched(played.id, &played.episode, &self.state, &self.services, &tx);
+            crate::discussion::watched(
+                played.id,
+                &played.episode,
+                &self.state,
+                &self.services,
+                &tx,
+            );
         }
         // An episode watched: the episodes after it, kept.
         if moved_on {

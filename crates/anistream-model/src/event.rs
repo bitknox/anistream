@@ -6,8 +6,8 @@ use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 
 use crate::{
     Msg,
-    discussion::DiscussionView,
     catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired, TitleLanguage},
+    discussion::DiscussionView,
     downloads::{DownloadRow, SeedRow},
     episodes::{DubExtent, EpisodeRow},
     hosted::{PlayerOp, PlayerStats, PlayerUi},

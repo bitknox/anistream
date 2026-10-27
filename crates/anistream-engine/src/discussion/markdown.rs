@@ -43,7 +43,8 @@ struct Style {
 impl Reader {
     fn end_block(&mut self) {
         let block = std::mem::take(&mut self.current);
-        let empty = block.spans.iter().all(|span| span.text.trim().is_empty() && span.media.is_none());
+        let empty =
+            block.spans.iter().all(|span| span.text.trim().is_empty() && span.media.is_none());
         if !empty {
             let mut block = block;
             trim_block(&mut block);
@@ -180,8 +181,10 @@ impl Reader {
                     let end = rest.find(char::is_whitespace).unwrap_or(rest.len());
                     let url = rest[..end].trim_end_matches(['.', ',', ')', '!', '?']);
                     self.flush(&mut plain, spoiler);
-                    let span =
-                        CommentSpan { link: Some(url.to_owned()), ..self.span(url.to_owned(), spoiler) };
+                    let span = CommentSpan {
+                        link: Some(url.to_owned()),
+                        ..self.span(url.to_owned(), spoiler)
+                    };
                     self.push(span);
                     Some(url.len())
                 }
@@ -245,8 +248,11 @@ fn link(rest: &str) -> Option<(String, String, usize)> {
 fn tag(rest: &str) -> Option<(String, usize)> {
     let end = rest.find('>')?;
     let inner = rest[1..end].trim_start_matches('/');
-    let name: String =
-        inner.chars().take_while(char::is_ascii_alphanumeric).collect::<String>().to_lowercase();
+    let name: String = inner
+        .chars()
+        .take_while(char::is_ascii_alphanumeric)
+        .collect::<String>()
+        .to_lowercase();
     let first = inner.chars().next()?;
     if !first.is_ascii_alphabetic() || rest[1..end].contains('<') || end > 300 {
         return None;
@@ -442,7 +448,9 @@ mod tests {
     #[test]
     fn images_and_videos_are_lines_that_open_them() {
         assert_eq!(
-            read("look img220(https://img.example/a.png) and webm(https://v.example/b.webm)\nyoutube(abc123)"),
+            read(
+                "look img220(https://img.example/a.png) and webm(https://v.example/b.webm)\nyoutube(abc123)"
+            ),
             [vec![
                 s("look ", ""),
                 s("", "Image@https://img.example/a.png"),
@@ -453,7 +461,10 @@ mod tests {
             ]]
         );
         assert_eq!(read("imgur is a word"), [vec![s("imgur is a word", "")]]);
-        assert_eq!(read("~!img(https://img.example/c.png)!~")[0][0].1, "!Image@https://img.example/c.png");
+        assert_eq!(
+            read("~!img(https://img.example/c.png)!~")[0][0].1,
+            "!Image@https://img.example/c.png"
+        );
     }
 
     #[test]
