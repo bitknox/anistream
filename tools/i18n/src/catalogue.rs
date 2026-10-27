@@ -526,6 +526,8 @@ pub fn parse_file(
     })?;
     let platform_file = group
         .strip_prefix("platform-")
+        // `platform-tui.ftl`, or `platform-tui-stores.ftl` when one platform's strings are split by screen.
+        .map(|p| p.split('-').next().unwrap_or(p))
         .map(|p| Platform::parse(p).ok_or_else(|| anyhow!("{group}.ftl: no platform {p}")))
         .transpose()?;
     for entry in &resource.body {
