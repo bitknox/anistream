@@ -949,6 +949,234 @@ object Strings {
     fun titleAdultMark(context: Context): String =
         context.getString(R.string.title_adult_mark)
 
+    /** Downloads: what the downloads use and what is free. Both sizes are already formatted. */
+    fun downloadsStorageUsedFree(context: Context, used: String, free: String): String =
+        context.getString(R.string.downloads_storage_used_free, used, free)
+
+    /** Downloads: what the downloads use, when the free space is not known. */
+    fun downloadsStorageUsed(context: Context, used: String): String =
+        context.getString(R.string.downloads_storage_used, used)
+
+    /** Downloads row: how long is left. The time is already formatted. */
+    fun downloadsTimeLeft(context: Context, time: String): String =
+        context.getString(R.string.downloads_time_left, time)
+
+    /** Downloads row: the speed, in size per second. The size is already formatted. */
+    fun downloadsRate(context: Context, size: String): String =
+        context.getString(R.string.downloads_rate, size)
+
+    /** Seeding row: how much was sent. The size is already formatted. */
+    fun downloadsUploaded(context: Context, size: String): String =
+        context.getString(R.string.downloads_uploaded, size)
+
+    /** Seeding row: the ratio reached against the ratio asked for. */
+    fun downloadsRatioOf(context: Context, ratio: String, goal: String): String =
+        context.getString(R.string.downloads_ratio_of, ratio, goal)
+
+    /** Group heading on the downloads board: how many episodes a show has, and the space they take. */
+    fun downloadsGroupLine(context: Context, count: Int, size: String): String =
+        context.resources.getQuantityString(R.plurals.downloads_group_line, count, count, size)
+
+    /** Episode menu item that starts a download. */
+    fun episodeMenuDownload(context: Context): String =
+        context.getString(R.string.episode_menu_download)
+
+    /** Episode menu item, shown while the episode's download is paused. */
+    fun episodeMenuDownloadPaused(context: Context): String =
+        context.getString(R.string.episode_menu_download_paused)
+
+    /** A failure in plain words: AniList took too long to answer. */
+    fun reasonTimeoutAnilist(context: Context): String =
+        context.getString(R.string.reason_timeout_anilist)
+
+    /** A failure in plain words: the server took too long to answer. */
+    fun reasonTimeoutServer(context: Context): String =
+        context.getString(R.string.reason_timeout_server)
+
+    /** A failure in plain words: AniList asks for a pause. */
+    fun reasonBusyAnilist(context: Context): String =
+        context.getString(R.string.reason_busy_anilist)
+
+    /** A failure in plain words: the server asks for a pause. */
+    fun reasonBusyServer(context: Context): String =
+        context.getString(R.string.reason_busy_server)
+
+    /** A failure in plain words: AniList had a fault. */
+    fun reasonProblemAnilist(context: Context): String =
+        context.getString(R.string.reason_problem_anilist)
+
+    /** A failure in plain words: the server had a fault. */
+    fun reasonProblemServer(context: Context): String =
+        context.getString(R.string.reason_problem_server)
+
+    /** A failure in plain words: AniList could not be reached. */
+    fun reasonSilentAnilist(context: Context): String =
+        context.getString(R.string.reason_silent_anilist)
+
+    /** A failure in plain words: the server could not be reached. */
+    fun reasonSilentServer(context: Context): String =
+        context.getString(R.string.reason_silent_server)
+
+    /** Update row title while the update goes in. */
+    fun updatesInstallingPlain(context: Context): String =
+        context.getString(R.string.updates_installing_plain)
+
+    /** Update row line while the installer runs: the app is replaced, so it closes. */
+    fun updatesClosesAsInstalls(context: Context): String =
+        context.getString(R.string.updates_closes_as_installs)
+
+    /** Button on the update notice where this build cannot install the update itself: it opens the version's page. */
+    fun updatesOpenRelease(context: Context): String =
+        context.getString(R.string.updates_open_release)
+
+    /** Search sort menu: newest first by premiere. */
+    fun searchSortNewest(context: Context): String =
+        context.getString(R.string.search_sort_newest)
+
+    /** Search sort menu: oldest first by premiere. */
+    fun searchSortOldest(context: Context): String =
+        context.getString(R.string.search_sort_oldest)
+
+    /** Search sort menu: by what is airing now and rising. */
+    fun searchSortTrending(context: Context): String =
+        context.getString(R.string.search_sort_trending)
+
+    /** Search sort menu: by title, from A. */
+    fun searchSortTitle(context: Context): String =
+        context.getString(R.string.search_sort_title)
+
+    /** Search sort menu: by how many people favourited the title. */
+    fun searchSortFavourites(context: Context): String =
+        context.getString(R.string.search_sort_favourites)
+
+    /** Country of origin filter: Japan. */
+    fun countryJapan(context: Context): String =
+        context.getString(R.string.country_japan)
+
+    /** Country of origin filter: China. */
+    fun countryChina(context: Context): String =
+        context.getString(R.string.country_china)
+
+    /** Country of origin filter: South Korea. */
+    fun countryKorea(context: Context): String =
+        context.getString(R.string.country_korea)
+
+    /** Country of origin filter: Taiwan. */
+    fun countryTaiwan(context: Context): String =
+        context.getString(R.string.country_taiwan)
+
+    /** Search chip for several genres picked. */
+    fun searchGenresPicked(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.search_genres_picked, count, count)
+
+    /** Search chip for several formats picked. */
+    fun searchFormatsPicked(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.search_formats_picked, count, count)
+
+    /** Search chip for several statuses picked. */
+    fun searchStatusesPicked(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.search_statuses_picked, count, count)
+
+    /** Search filter: the score slider's value when no minimum is set. */
+    fun filterScoreAny(context: Context): String =
+        context.getString(R.string.filter_score_any)
+
+    /** Search filter: the year range from a year onwards. */
+    fun filterYearsFrom(context: Context, year: String): String =
+        context.getString(R.string.filter_years_from, year)
+
+    /** Search filter: the year range between two years. */
+    fun filterYearsBetween(context: Context, from: String, to: String): String =
+        context.getString(R.string.filter_years_between, from, to)
+
+    /** Search filter name: the tag rank slider, whose value sits beside it. */
+    fun filterTagRankTitle(context: Context): String =
+        context.getString(R.string.filter_tag_rank_title)
+
+    /** Search suggestions: the kind shown beside a tag that matches the typed words. */
+    fun filterTag(context: Context): String =
+        context.getString(R.string.filter_tag)
+
+    /** Accessibility label of a search suggestion: it becomes a filter. */
+    fun searchFilterBy(context: Context, name: String): String =
+        context.getString(R.string.search_filter_by, name)
+
+    /** Disabled item in the genre menu while the genres load. */
+    fun searchLoadingGenres(context: Context): String =
+        context.getString(R.string.search_loading_genres)
+
+    /** Search note: live results wait while AniList's rate limit recovers. */
+    fun searchPausedRateLimit(context: Context): String =
+        context.getString(R.string.search_paused_rate_limit)
+
+    /** Button that takes every active filter off. */
+    fun actionClearAll(context: Context): String =
+        context.getString(R.string.action_clear_all)
+
+    /** Search filter label above the source materials. */
+    fun filterSourceMaterial(context: Context): String =
+        context.getString(R.string.filter_source_material)
+
+    /** Search result detail for a title being watched: its list status, and the episode up next. */
+    fun searchDetailEpisode(context: Context, status: String, episode: Int): String =
+        context.getString(R.string.search_detail_episode, status, episode)
+
+    /** Source switch: use the source. The name is the source's. */
+    fun sourcesUse(context: Context, name: String): String =
+        context.getString(R.string.sources_use, name)
+
+    /** Accessibility label of a source's drag handle while the list is reordered. */
+    fun sourcesMove(context: Context, name: String): String =
+        context.getString(R.string.sources_move, name)
+
+    /** Accessibility label of the button that starts reordering sources. */
+    fun sourcesReorder(context: Context): String =
+        context.getString(R.string.sources_reorder)
+
+    /** Source page: the version of a source and the newer one a store offers. */
+    fun sourcesVersionAvailable(context: Context, version: String): String =
+        context.getString(R.string.sources_version_available, version)
+
+    /** Source page: how long the source took to answer, in milliseconds. */
+    fun sourcesResponseMs(context: Context, ms: Int): String =
+        context.getString(R.string.sources_response_ms, ms)
+
+    /** Update dialog: the version, and the store it comes from, for a source that has no version yet. */
+    fun sourcesUpdateFrom(context: Context, version: String, store: String): String =
+        context.getString(R.string.sources_update_from, version, store)
+
+    /** Source page: the line under a source that is off. */
+    fun sourcesDetailOff(context: Context): String =
+        context.getString(R.string.sources_detail_off)
+
+    /** Fallback title of a source page before the source loads. */
+    fun sourcesFallbackTitle(context: Context): String =
+        context.getString(R.string.sources_fallback_title)
+
+    /** A source's failure in plain words: it took too long to answer. */
+    fun reasonSourceTimeout(context: Context): String =
+        context.getString(R.string.reason_source_timeout)
+
+    /** A source's failure in plain words: it asks for a pause. */
+    fun reasonSourceBusy(context: Context): String =
+        context.getString(R.string.reason_source_busy)
+
+    /** A source's failure in plain words: it had a fault. */
+    fun reasonSourceProblem(context: Context): String =
+        context.getString(R.string.reason_source_problem)
+
+    /** A source's failure in plain words: it refused the request. */
+    fun reasonSourceTurnedAway(context: Context): String =
+        context.getString(R.string.reason_source_turned_away)
+
+    /** A source's failure in plain words: its address is not found. */
+    fun reasonSourceNoAddress(context: Context): String =
+        context.getString(R.string.reason_source_no_address)
+
+    /** A source's failure in plain words: it could not be reached. */
+    fun reasonSourceUnreachable(context: Context): String =
+        context.getString(R.string.reason_source_unreachable)
+
     /** Name of the notification channel for download progress, shown in the system's settings. */
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)

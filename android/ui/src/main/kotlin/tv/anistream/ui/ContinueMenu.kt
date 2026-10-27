@@ -4,6 +4,7 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.padding
@@ -51,7 +52,7 @@ internal fun continueMenuActions(item: ContinueItem, actions: AppActions, from: 
     val haptics = LocalHapticFeedback.current
     return ContinueMenuActions(
         play = if (item.playable) ({ actions.play(item.id, item.episode.toString()) }) else null,
-        playLabel = item.action,
+        playLabel = item.actionText(),
         markWatched = {
             // Marked watched from the queue plays T9's toggle, as from the title page.
             haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)

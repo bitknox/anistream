@@ -5,6 +5,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.plainReason
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -169,7 +170,7 @@ internal fun StoreScreen(id: String) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             when (val state = row.state) {
-                is StoreState.Offline -> if (!offline) SettingsFootnote("${plainReason(state.v1).trimEnd('.')}. The plugins below are the last list that was checked.")
+                is StoreState.Offline -> if (!offline) SettingsFootnote("${plainReason(LocalContext.current, state.v1).trimEnd('.')}. The plugins below are the last list that was checked.")
                 StoreState.Revoked -> SettingsFootnote("This store no longer lets this device in. Its plugins stay installed until you remove them.")
                 StoreState.Ready -> {}
             }
@@ -404,7 +405,7 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
                 ) {
                     Icon(Icons.Problem, contentDescription = "Problem", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                     Text(
-                        if (offline) OFFLINE_LINE else plainReason(shown.reason),
+                        if (offline) OFFLINE_LINE else plainReason(LocalContext.current, shown.reason),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )

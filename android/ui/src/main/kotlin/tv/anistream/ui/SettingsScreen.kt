@@ -5,6 +5,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.plainReason
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -61,6 +62,7 @@ import tv.anistream.store.SettingsCatalog
 import tv.anistream.engine.model.SyncState
 import tv.anistream.store.AccountsModel
 import tv.anistream.store.Wording
+import androidx.compose.ui.platform.LocalContext
 
 /** The panes of Settings, in the list's order. */
 enum class SettingsPane(val route: String, val title: String) {
@@ -399,7 +401,7 @@ internal object AccountWords {
         state ?: return AccountStatus("Not signed in", null)
         if (!state.connected) return AccountStatus("Not signed in", null)
         if (state.needsReauth) return AccountStatus("Sign in again to keep syncing", colors.error)
-        state.pullError?.let { return AccountStatus("Not synced. ${plainReason(it.reason)}", colors.error) }
+        state.pullError?.let { return AccountStatus("Not synced. ${plainReason(LocalContext.current, it.reason)}", colors.error) }
         if ("sync" in working.values) return AccountStatus("Syncing", colors.onSurfaceVariant)
         if (state.outbox > 0u) return AccountStatus("${Wording.plural(state.outbox.toInt(), "change")} waiting to sync", colors.onSurfaceVariant)
         val at = syncedAt[state.tracker]

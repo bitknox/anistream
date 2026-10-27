@@ -60,7 +60,7 @@ import tv.anistream.tv.ui.HeroHeader
 import tv.anistream.tv.ui.OfflineLine
 import tv.anistream.tv.ui.StateBlock
 import tv.anistream.tv.ui.isOffline
-import tv.anistream.tv.ui.plainReason
+import tv.anistream.store.plainReason
 import tv.anistream.tv.ui.swapFade
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.PosterCard
@@ -74,6 +74,7 @@ import tv.anistream.tv.ui.placeholdersAfterWait
 import tv.anistream.tv.ui.planSheet
 import tv.anistream.tv.ui.remembered
 import tv.anistream.tv.ui.settlesAt
+import androidx.compose.ui.platform.LocalContext
 
 /** The y a focused row's header scrolls to. */
 private val RowTop = 48.dp
@@ -145,7 +146,7 @@ fun ContinueScreen(
                     StateBlock(
                         "Couldn't load Watching.",
                         swapFade().padding(start = Canvas.Keyline, end = Canvas.SafeX, top = 64.dp),
-                        detail = plainReason(failed!!.reason),
+                        detail = plainReason(LocalContext.current, failed!!.reason),
                         action = "Try again",
                         onAction = retry,
                         actionModifier = Modifier.firstFocus(memory, "retry-watching"),

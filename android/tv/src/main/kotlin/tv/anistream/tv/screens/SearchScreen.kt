@@ -107,10 +107,11 @@ import tv.anistream.tv.ui.TvTab
 import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.isOffline
 import tv.anistream.tv.ui.placeholdersAfterWait
-import tv.anistream.tv.ui.plainReason
+import tv.anistream.store.plainReason
 import tv.anistream.tv.ui.planSheet
 import tv.anistream.tv.ui.remembered
 import tv.anistream.tv.ui.tryFocus
+import androidx.compose.ui.platform.LocalContext
 
 /** Our keyboard's keys and what each does to the text. */
 object SearchKeys {
@@ -426,7 +427,7 @@ private fun Results(
                         StateBlock(
                             "Search isn't reachable right now.",
                             Modifier.padding(top = 48.dp),
-                            detail = plainReason(results.reason),
+                            detail = plainReason(LocalContext.current, results.reason),
                             action = "Try again",
                             onAction = { store.retrySearch() },
                             actionModifier = Modifier.remembered(memory, "result/retry"),

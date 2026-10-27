@@ -4,6 +4,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.plainReason
 import android.os.StatFs
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -68,6 +69,11 @@ import tv.anistream.store.DownloadGroup
 import tv.anistream.store.DownloadsModel
 import tv.anistream.store.Wording
 import tv.anistream.store.bytesOnDisk
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import tv.anistream.i18n.Strings
+import android.content.Context
 
 internal const val DOWNLOADS_ROUTE = "downloads"
 
@@ -86,8 +92,9 @@ internal fun freeBytes(): Long? {
 }
 
 /** "3.4 GB used · 38 GB free". */
-internal fun storageWords(used: Long, free: Long?): String =
-    listOfNotNull("${Wording.bytes(used)} used", free?.let { "${Wording.bytes(it)} free" }).joinToString(" · ")
+internal fun storageWords(context: Context, used: Long, free: Long?): String =
+    if (free == null) Strings.downloadsStorageUsed(context, Wording.bytes(context, used))
+    else Strings.downloadsStorageUsedFree(context, Wording.bytes(context, used), Wording.bytes(context, free))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,23 +123,23 @@ internal fun DownloadsScreen() {
             TopAppBar(
                 title = {
                     Column(Modifier.padding(start = 4.dp)) {
-                        Text("Downloads", style = MaterialTheme.typography.titleLarge)
+                        Text(stringResource(R.string.downloads_title), style = MaterialTheme.typography.titleLarge)
                         Text(
-                            storageWords(store.downloads.bytes(rows), free),
+                            storageWords(LocalContext.current, store.downloads.bytes(rows), free),
                             style = MaterialTheme.typography.labelMedium.tabular(),
                             color = colors.onSurfaceVariant,
                         )
                     }
                 },
-                navigationIcon = { IconButton(onClick = navigator::back) { Icon(Icons.Back, contentDescription = "Back") } },
+                navigationIcon = { IconButton(onClick = navigator::back) { Icon(Icons.Back, contentDescription = stringResource(R.string.action_back)) } },
                 actions = {
                     if (running) {
-                        IconButton(onClick = store::pauseAllDownloads) { Icon(Icons.Pause, contentDescription = "Pause all downloads") }
+                        IconButton(onClick = store::pauseAllDownloads) { Icon(Icons.Pause, contentDescription = stringResource(R.string.downloads_pause_all_label)) }
                     } else if (paused) {
-                        IconButton(onClick = store::resumeAllDownloads) { Icon(Icons.Resume, contentDescription = "Resume all downloads") }
+                        IconButton(onClick = store::resumeAllDownloads) { Icon(Icons.Resume, contentDescription = stringResource(R.string.downloads_resume_all_label)) }
                     }
                     Box {
-                        IconButton(onClick = { menu = true }) { Icon(Icons.More, contentDescription = "More options") }
+                        IconButton(onClick = { menu = true }) { Icon(Icons.More, contentDescription = stringResource(R.string.action_more)) }
                         DropdownMenu(
                             expanded = menu,
                             onDismissRequest = { menu = false },
@@ -140,7 +147,7 @@ internal fun DownloadsScreen() {
                             containerColor = colors.surfaceContainerHigh,
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Clear finished from the list") },
+                                text = { Text(stringResource(R.string.downloads_clear_finished)) },
                                 enabled = rows.any { it.state == DownloadState.DONE },
                                 onClick = {
                                     menu = false
@@ -148,7 +155,7 @@ internal fun DownloadsScreen() {
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Download settings") },
+                                text = { Text(stringResource(R.string.action_open_settings)) },
                                 onClick = {
                                     menu = false
                                     navigator.openSettings(SettingsPane.Downloads)
@@ -174,8 +181,8 @@ internal fun DownloadsScreen() {
                 verticalArrangement = Arrangement.Center,
             ) {
                 tv.anistream.design.Nagare(cell = 5)
-                Text("No downloads", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
-                SheetText("Downloaded episodes play without a connection.", Modifier.padding(top = 4.dp))
+                Text(stringResource(R.string.downloads_empty_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+                SheetText(stringResource(R.string.downloads_empty_detail), Modifier.padding(top = 4.dp))
             }
             return@Scaffold
         }
@@ -202,12 +209,12 @@ internal fun DownloadsScreen() {
                 item(key = "seeding", contentType = "seeding") {
                     Column(itemMotion()) {
                         if (groups.isNotEmpty()) HorizontalDivider(Modifier.padding(vertical = 8.dp), color = colors.outlineVariant)
-                        SettingsHeader("Seeding after watching", Modifier.padding(start = 0.dp))
+                        SettingsHeader(stringResource(R.string.downloads_seeding_after_watching), Modifier.padding(start = 0.dp))
                     }
                 }
                 items(seeding, key = { "seed-${it.name}" }, contentType = { "seed" }) { Box(itemMotion()) { SeedItem(it) } }
                 item(key = "seeding-note", contentType = "note") {
-                    Box(itemMotion()) { SettingsFootnote("Watched episodes seed while anistream is open, until the ratio or the time limit set in Sources.") }
+                    Box(itemMotion()) { SettingsFootnote(stringResource(R.string.downloads_seeding_note)) }
                 }
             }
         }
@@ -231,7 +238,7 @@ private fun GroupHeader(group: DownloadGroup, entry: Entry?) {
         Column(Modifier.weight(1f)) {
             Text(entry?.showTitle ?: group.title, style = ShowTitle.row, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                "${Wording.plural(group.rows.size, "episode")} · ${Wording.bytes(group.bytesOnDisk)}",
+                pluralStringResource(R.plurals.downloads_group_line, group.rows.size, group.rows.size, Wording.bytes(LocalContext.current, group.bytesOnDisk)),
                 style = MaterialTheme.typography.bodyMedium.tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -253,21 +260,21 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
     var menu by remember { mutableStateOf(false) }
     // Deleting a download and its file asks first, from the menu or a swipe.
     var deleting by remember { mutableStateOf(false) }
-    val name = listOfNotNull("Episode ${row.episode}", episode?.title?.takeIf { it.isNotBlank() }).joinToString(" · ")
+    val name = listOfNotNull(stringResource(R.string.downloads_episode_name, row.episode.toInt()), episode?.title?.takeIf { it.isNotBlank() }).joinToString(" · ")
     val progress = row.state == DownloadState.ACTIVE || row.state == DownloadState.PAUSED
     val hasFile = row.state == DownloadState.DONE || row.path != null
     val remove = { store.cancelDownload(row.id) }
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     // The menu's items, for TalkBack too.
     val talkback = listOfNotNull(
-        if (row.state == DownloadState.QUEUED) androidx.compose.ui.semantics.CustomAccessibilityAction("Start now") { store.startDownloadNow(row.id); true } else null,
-        if (hasFile) androidx.compose.ui.semantics.CustomAccessibilityAction("Delete download") { deleting = true; true } else null,
-        if (row.state != DownloadState.DONE) androidx.compose.ui.semantics.CustomAccessibilityAction("Remove from the list") { remove(); true } else null,
+        if (row.state == DownloadState.QUEUED) androidx.compose.ui.semantics.CustomAccessibilityAction(stringResource(R.string.downloads_start_now)) { store.startDownloadNow(row.id); true } else null,
+        if (hasFile) androidx.compose.ui.semantics.CustomAccessibilityAction(stringResource(R.string.downloads_delete_one_title)) { deleting = true; true } else null,
+        if (row.state != DownloadState.DONE) androidx.compose.ui.semantics.CustomAccessibilityAction(stringResource(R.string.downloads_remove_from_list)) { remove(); true } else null,
     )
     Swipeable(
         start = null,
         // From the end: Delete for a file, which asks first, or Cancel for one not done.
-        end = if (hasFile) SwipeAction("Delete", Icons.Clear) { deleting = true } else SwipeAction("Cancel", Icons.Clear, remove),
+        end = if (hasFile) SwipeAction(stringResource(R.string.action_delete), Icons.Clear) { deleting = true } else SwipeAction(stringResource(R.string.action_cancel), Icons.Clear, remove),
     ) {
     Box(Modifier.background(colors.surface)) {
         Row(
@@ -277,7 +284,7 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
                 .semantics { customActions = talkback }
                 .combinedClickable(
                     onClick = { if (row.state == DownloadState.DONE) store.playDownload(row) },
-                    onLongClickLabel = "More",
+                    onLongClickLabel = stringResource(R.string.action_more),
                     onLongClick = {
                         haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         menu = true
@@ -291,7 +298,7 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
                 Text(name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 // Queued by keep next rather than asked for, and let go of a day after it is watched.
                 if (row.ahead) {
-                    Text("Downloaded ahead · Removed a day after you watch it", style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, maxLines = 2)
+                    Text(stringResource(R.string.downloads_caption_ahead), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, maxLines = 2)
                 }
                 StateLine(row, store.downloads.secondsLeft(row, rates), rates[row.id])
                 if (progress) {
@@ -307,16 +314,16 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
             }
             Box(Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp), contentAlignment = Alignment.Center) {
                 when (row.state) {
-                    DownloadState.DONE -> IconButton(onClick = { store.playDownload(row) }) { Icon(Icons.PlayRow, contentDescription = "Play episode ${row.episode}") }
-                    DownloadState.ACTIVE -> IconButton(onClick = { store.toggleDownload(row.id) }) { Icon(Icons.Pause, contentDescription = "Pause download") }
-                    DownloadState.PAUSED -> IconButton(onClick = { store.toggleDownload(row.id) }) { Icon(Icons.Resume, contentDescription = "Resume download") }
+                    DownloadState.DONE -> IconButton(onClick = { store.playDownload(row) }) { Icon(Icons.PlayRow, contentDescription = stringResource(R.string.downloads_play_episode, row.episode.toInt())) }
+                    DownloadState.ACTIVE -> IconButton(onClick = { store.toggleDownload(row.id) }) { Icon(Icons.Pause, contentDescription = stringResource(R.string.downloads_pause_one)) }
+                    DownloadState.PAUSED -> IconButton(onClick = { store.toggleDownload(row.id) }) { Icon(Icons.Resume, contentDescription = stringResource(R.string.downloads_resume_one)) }
                     DownloadState.QUEUED -> Row(verticalAlignment = Alignment.CenterVertically) {
-                        QuietButton("Start now") { store.startDownloadNow(row.id) }
+                        QuietButton(stringResource(R.string.downloads_start_now)) { store.startDownloadNow(row.id) }
                         IconButton(onClick = { store.cancelDownload(row.id) }) {
-                            Icon(Icons.Clear, contentDescription = "Remove from queue", tint = colors.onSurfaceVariant)
+                            Icon(Icons.Clear, contentDescription = stringResource(R.string.downloads_remove_from_queue), tint = colors.onSurfaceVariant)
                         }
                     }
-                    DownloadState.FAILED -> QuietButton("Retry") { store.downloadEpisode(row.anilistId, row.episode) }
+                    DownloadState.FAILED -> QuietButton(stringResource(R.string.action_try_again)) { store.downloadEpisode(row.anilistId, row.episode) }
                 }
             }
         }
@@ -327,19 +334,19 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
             containerColor = colors.surfaceContainerHigh,
         ) {
             if (row.state == DownloadState.QUEUED) {
-                DropdownMenuItem(text = { Text("Start now") }, onClick = {
+                DropdownMenuItem(text = { Text(stringResource(R.string.downloads_start_now)) }, onClick = {
                     menu = false
                     store.startDownloadNow(row.id)
                 })
             }
             if (hasFile) {
-                DropdownMenuItem(text = { Text("Delete download") }, onClick = {
+                DropdownMenuItem(text = { Text(stringResource(R.string.downloads_delete_one_title)) }, onClick = {
                     menu = false
                     deleting = true
                 })
             }
             if (row.state != DownloadState.DONE) {
-                DropdownMenuItem(text = { Text("Remove from the list") }, onClick = {
+                DropdownMenuItem(text = { Text(stringResource(R.string.downloads_remove_from_list)) }, onClick = {
                     menu = false
                     remove()
                 })
@@ -350,8 +357,8 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
     if (deleting) {
         AlertDialog(
             onDismissRequest = { deleting = false },
-            title = { Text("Delete episode ${row.episode}?") },
-            text = { Text("Its file is removed from this device.") },
+            title = { Text(stringResource(R.string.downloads_delete_title, stringResource(R.string.downloads_episode_name, row.episode.toInt()))) },
+            text = { Text(stringResource(R.string.downloads_delete_detail)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -359,9 +366,9 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
                         store.deleteDownload(row.id)
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = colors.onSurface),
-                ) { Text("Delete") }
+                ) { Text(stringResource(R.string.action_delete)) }
             },
-            dismissButton = { QuietButton("Cancel") { deleting = false } },
+            dismissButton = { QuietButton(stringResource(R.string.action_cancel)) { deleting = false } },
             containerColor = colors.surfaceContainerHigh,
         )
     }
@@ -392,31 +399,32 @@ private fun DownloadPlaceholders() {
 private fun StateLine(row: DownloadRow, secondsLeft: Long?, rate: Double?) {
     val colors = MaterialTheme.colorScheme
     val style = MaterialTheme.typography.bodyMedium.tabular()
-    val sizes = "${Wording.bytes(row.downloaded.toLong())} of ${Wording.bytes(row.total.toLong())}"
+    val context = LocalContext.current
+    val sizes = Strings.downloadsLiveProgress(context, Wording.bytes(context, row.downloaded.toLong()), Wording.bytes(context, row.total.toLong()))
     when (row.state) {
         DownloadState.DONE -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Check, contentDescription = null, tint = colors.secondary, modifier = Modifier.size(18.dp))
-            Text("Downloaded · ${Wording.bytes(row.bytesOnDisk.toLong())}", style = style, color = colors.onSurfaceVariant)
+            Text(stringResource(R.string.downloads_caption_done_size, Wording.bytes(context, row.bytesOnDisk.toLong())), style = style, color = colors.onSurfaceVariant)
         }
         DownloadState.ACTIVE -> Text(
             listOfNotNull(
-                if (row.total > 0u) sizes else Wording.bytes(row.downloaded.toLong()),
-                rate?.takeIf { it >= 1 }?.let { "${Wording.bytes(it.toLong())}/s" },
-                secondsLeft?.let { "${countdownWords(it)} left" },
-            ).joinToString(" · "),
+                if (row.total > 0u) sizes else Wording.bytes(context, row.downloaded.toLong()),
+                rate?.takeIf { it >= 1 }?.let { Strings.downloadsRate(context, Wording.bytes(context, it.toLong())) },
+                secondsLeft?.let { Strings.downloadsTimeLeft(context, Wording.countdown(context, it)) },
+            ).joinToString(" · "), // i18n-skip
             style = style,
             color = colors.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        DownloadState.PAUSED -> Text("Paused at $sizes", style = style, color = colors.onSurfaceVariant)
-        DownloadState.QUEUED -> Text("Queued · waiting for a slot", style = style, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        DownloadState.PAUSED -> Text(stringResource(R.string.downloads_caption_paused, sizes), style = style, color = colors.onSurfaceVariant)
+        DownloadState.QUEUED -> Text(stringResource(R.string.downloads_caption_queued_slot), style = style, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         // The dot is the error's; the words are haze, the first clause in plain words. The whole
         // error goes to the bug report from the notice the engine posted.
         DownloadState.FAILED -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             StateDot(colors.error)
             Text(
-                "Failed" + (row.error?.let { ". ${plainReason(it)}" } ?: ""),
+                row.error?.let { stringResource(R.string.downloads_caption_failed_why, plainReason(LocalContext.current, it)) } ?: stringResource(R.string.downloads_caption_failed),
                 style = style,
                 color = colors.onSurfaceVariant,
                 maxLines = 2,
@@ -424,13 +432,6 @@ private fun StateLine(row: DownloadRow, secondsLeft: Long?, rate: Double?) {
             )
         }
     }
-}
-
-/** "2m 11s", "1h 4m", "40s": how long a download has left. */
-internal fun countdownWords(seconds: Long): String = when {
-    seconds >= 3_600 -> "${seconds / 3_600}h ${(seconds % 3_600) / 60}m"
-    seconds >= 60 -> "${seconds / 60}m ${seconds % 60}s"
-    else -> "${seconds}s"
 }
 
 /**
@@ -441,13 +442,14 @@ internal fun countdownWords(seconds: Long): String = when {
 private fun SeedItem(row: SeedRow) {
     Column(Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.Center) {
         Text(row.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        val context = LocalContext.current
         Text(
             listOfNotNull(
-                row.ratio.takeIf { it >= 0.01 }?.let { Wording.bytes((row.uploadedBytes.toDouble() / it).toLong()) },
-                String.format(Locale.ROOT, "%.1f of %.1f", row.ratio, row.goal),
-                "${countdownWords(row.leftSecs.toLong())} left",
-                "${Wording.bytes(row.uploadedBytes.toLong())} up",
-            ).joinToString(" · "),
+                row.ratio.takeIf { it >= 0.01 }?.let { Wording.bytes(context, (row.uploadedBytes.toDouble() / it).toLong()) },
+                Strings.downloadsRatioOf(context, String.format(Locale.getDefault(), "%.1f", row.ratio), String.format(Locale.getDefault(), "%.1f", row.goal)),
+                Strings.downloadsTimeLeft(context, Wording.countdown(context, row.leftSecs.toLong())),
+                Strings.downloadsUploaded(context, Wording.bytes(context, row.uploadedBytes.toLong())),
+            ).joinToString(" · "), // i18n-skip
             style = MaterialTheme.typography.bodyMedium.tabular(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -467,10 +469,10 @@ internal fun DownloadMenuItem(entry: Entry, episode: String, onDismiss: () -> Un
         text = {
             Text(
                 when (queued?.state) {
-                    DownloadState.DONE -> "Downloaded"
-                    DownloadState.ACTIVE, DownloadState.QUEUED -> "Downloading"
-                    DownloadState.PAUSED -> "Download paused"
-                    else -> "Download"
+                    DownloadState.DONE -> stringResource(R.string.episode_download_done)
+                    DownloadState.ACTIVE, DownloadState.QUEUED -> stringResource(R.string.downloads_caption_running_plain)
+                    DownloadState.PAUSED -> stringResource(R.string.episode_menu_download_paused)
+                    else -> stringResource(R.string.episode_menu_download)
                 },
             )
         },

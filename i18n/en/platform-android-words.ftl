@@ -205,3 +205,289 @@ title-also-on-more = { $more ->
 # @only android
 # @max 8
 title-adult-mark = 18+
+
+# Downloads: what the downloads use and what is free. Both sizes are already formatted.
+# @only android
+# @arg used: text
+# @arg free: text
+downloads-storage-used-free = { $used } used · { $free } free
+
+# Downloads: what the downloads use, when the free space is not known.
+# @only android
+# @arg used: text
+downloads-storage-used = { $used } used
+
+# Downloads row: how long is left. The time is already formatted.
+# @only android
+# @arg time: text
+downloads-time-left = { $time } left
+
+# Downloads row: the speed, in size per second. The size is already formatted.
+# @only android
+# @arg size: text
+downloads-rate = { $size }/s
+
+# Seeding row: how much was sent. The size is already formatted.
+# @only android
+# @arg size: text
+downloads-uploaded = { $size } up
+
+# Seeding row: the ratio reached against the ratio asked for.
+# @only android
+# @arg ratio: text
+# @arg goal: text
+downloads-ratio-of = { $ratio } of { $goal }
+
+# Group heading on the downloads board: how many episodes a show has, and the space they take.
+# @only android
+# @arg count: int
+# @arg size: text
+downloads-group-line = { $count ->
+    [one] One episode · { $size }
+   *[other] { $count } episodes · { $size }
+ }
+
+# Episode menu item that starts a download.
+# @only android
+# @max 24
+episode-menu-download = Download
+
+# Episode menu item, shown while the episode's download is paused.
+# @only android
+# @max 24
+episode-menu-download-paused = Download paused
+
+# A failure in plain words: AniList took too long to answer.
+# @only android
+reason-timeout-anilist = AniList took too long to answer.
+
+# A failure in plain words: the server took too long to answer.
+# @only android
+reason-timeout-server = The server took too long to answer.
+
+# A failure in plain words: AniList asks for a pause.
+# @only android
+reason-busy-anilist = AniList is busy. Try again in a minute.
+
+# A failure in plain words: the server asks for a pause.
+# @only android
+reason-busy-server = The server is busy. Try again in a minute.
+
+# A failure in plain words: AniList had a fault.
+# @only android
+reason-problem-anilist = AniList had a problem.
+
+# A failure in plain words: the server had a fault.
+# @only android
+reason-problem-server = The server had a problem.
+
+# A failure in plain words: AniList could not be reached.
+# @only android
+reason-silent-anilist = AniList didn't answer.
+
+# A failure in plain words: the server could not be reached.
+# @only android
+reason-silent-server = The server didn't answer.
+
+# Update row title while the update goes in.
+# @only android
+# @max 24
+updates-installing-plain = Installing
+
+# Update row line while the installer runs: the app is replaced, so it closes.
+# @only android
+updates-closes-as-installs = { -app-name } closes as it installs
+
+# Button on the update notice where this build cannot install the update itself: it opens the version's page.
+# @only android
+# @max 24
+updates-open-release = Open page
+
+# Search sort menu: newest first by premiere.
+# @only android
+# @max 20
+search-sort-newest = Newest
+
+# Search sort menu: oldest first by premiere.
+# @only android
+# @max 20
+search-sort-oldest = Oldest
+
+# Search sort menu: by what is airing now and rising.
+# @only android
+# @max 20
+search-sort-trending = Trending
+
+# Search sort menu: by title, from A.
+# @only android
+# @max 20
+search-sort-title = Title
+
+# Search sort menu: by how many people favourited the title.
+# @only android
+# @max 20
+search-sort-favourites = Favourites
+
+# Country of origin filter: Japan.
+# @only android
+# @max 20
+country-japan = Japan
+
+# Country of origin filter: China.
+# @only android
+# @max 20
+country-china = China
+
+# Country of origin filter: South Korea.
+# @only android
+# @max 20
+country-korea = Korea
+
+# Country of origin filter: Taiwan.
+# @only android
+# @max 20
+country-taiwan = Taiwan
+
+# Search chip for several genres picked.
+# @only android
+# @arg count: int
+# @max 20
+search-genres-picked = { $count ->
+    [one] One genre
+   *[other] { $count } genres
+ }
+
+# Search chip for several formats picked.
+# @only android
+# @arg count: int
+# @max 20
+search-formats-picked = { $count ->
+    [one] One format
+   *[other] { $count } formats
+ }
+
+# Search chip for several statuses picked.
+# @only android
+# @arg count: int
+# @max 20
+search-statuses-picked = { $count ->
+    [one] One status
+   *[other] { $count } statuses
+ }
+
+# Search filter: the score slider's value when no minimum is set.
+# @only android
+# @max 12
+filter-score-any = Any
+
+# Search filter: the year range from a year onwards.
+# @only android
+# @arg year: text
+filter-years-from = { $year } on
+
+# Search filter: the year range between two years.
+# @only android
+# @arg from: text
+# @arg to: text
+filter-years-between = { $from } to { $to }
+
+# Search filter name: the tag rank slider, whose value sits beside it.
+# @only android
+filter-tag-rank-title = Tag rank at least
+
+# Search suggestions: the kind shown beside a tag that matches the typed words.
+# @only android
+# @max 12
+filter-tag = Tag
+
+# Accessibility label of a search suggestion: it becomes a filter.
+# @only android
+# @arg name: text
+search-filter-by = Filter by { $name }
+
+# Disabled item in the genre menu while the genres load.
+# @only android
+search-loading-genres = Loading genres
+
+# Search note: live results wait while AniList's rate limit recovers.
+# @only android
+search-paused-rate-limit = Results wait for the search key while AniList’s rate limit recovers
+
+# Button that takes every active filter off.
+# @only android
+# @max 16
+action-clear-all = Clear all
+
+# Search filter label above the source materials.
+# @only android
+filter-source-material = { -source-cap } material
+
+# Search result detail for a title being watched: its list status, and the episode up next.
+# @only android
+# @arg status: text
+# @arg episode: int
+search-detail-episode = { $status } · Ep { $episode }
+
+# Source switch: use the source. The name is the source's.
+# @only android
+# @arg name: text
+sources-use = Use { $name }
+
+# Accessibility label of a source's drag handle while the list is reordered.
+# @only android
+# @arg name: text
+sources-move = Move { $name }
+
+# Accessibility label of the button that starts reordering sources.
+# @only android
+# @max 16
+sources-reorder = Reorder
+
+# Source page: the version of a source and the newer one a store offers.
+# @only android
+# @arg version: text
+sources-version-available = { $version } available
+
+# Source page: how long the source took to answer, in milliseconds.
+# @only android
+# @arg ms: int
+sources-response-ms = { $ms } ms
+
+# Update dialog: the version, and the store it comes from, for a source that has no version yet.
+# @only android
+# @arg version: text
+# @arg store: text
+sources-update-from = Version { $version } from { $store }.
+
+# Source page: the line under a source that is off.
+# @only android
+sources-detail-off = Off. It keeps its place and is not tried until it is on again.
+
+# Fallback title of a source page before the source loads.
+# @only android
+# @max 24
+sources-fallback-title = { -source-cap }
+
+# A source's failure in plain words: it took too long to answer.
+# @only android
+reason-source-timeout = It took too long to answer.
+
+# A source's failure in plain words: it asks for a pause.
+# @only android
+reason-source-busy = It is busy. Try again in a minute.
+
+# A source's failure in plain words: it had a fault.
+# @only android
+reason-source-problem = It had a problem.
+
+# A source's failure in plain words: it refused the request.
+# @only android
+reason-source-turned-away = It turned the request away.
+
+# A source's failure in plain words: its address is not found.
+# @only android
+reason-source-no-address = Its address could not be found.
+
+# A source's failure in plain words: it could not be reached.
+# @only android
+reason-source-unreachable = It could not be reached.

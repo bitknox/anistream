@@ -80,6 +80,10 @@ import tv.anistream.tv.ui.KeyRepeat
 import tv.anistream.tv.ui.LocalActions
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.LocalKeyRepeat
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import tv.anistream.i18n.Strings
 
 /** The rail's scrim over the content: black at 32 %. */
 private const val SCRIM = 0.32f

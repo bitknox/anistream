@@ -112,6 +112,7 @@ import tv.anistream.store.HeroArt
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.label
 import tv.anistream.store.TvPlayRequest
+import androidx.compose.ui.platform.LocalContext
 
 /** What a page shows before its title has arrived. */
 private fun placeholderEntry(id: AnilistId) = Entry(

@@ -3,6 +3,7 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -151,10 +152,10 @@ fun LibraryScreen(actions: AppActions) {
             }
             when (val list = state) {
                 is ListState.Failed -> item(span = { GridItemSpan(maxLineSpan) }, key = "quiet", contentType = "quiet") {
-                    Box(itemMotion()) { FailedState("Couldn't load your ${segment.label} list", list.reason, retry = { store.loadLibrary(segment) }) }
+                    Box(itemMotion()) { FailedState("Couldn't load your ${segment.label(LocalContext.current)} list", list.reason, retry = { store.loadLibrary(segment) }) }
                 }
                 ListState.Empty -> item(span = { GridItemSpan(maxLineSpan) }, key = "quiet", contentType = "quiet") {
-                    Box(itemMotion()) { Quiet("Nothing on your ${segment.label} list") }
+                    Box(itemMotion()) { Quiet("Nothing on your ${segment.label(LocalContext.current)} list") }
                 }
                 is ListState.Loaded -> items(entries, key = { it.id.toLong() }, contentType = { "poster" }) { entry ->
                     PosterCell(entry, itemMotion(), from = "library", detail = libraryDetail(entry), fresh = hasNew(entry))
@@ -221,7 +222,7 @@ private fun SegmentChip(segment: LibrarySegment, count: Int, selected: Boolean, 
         ) {
             val content = if (selected) colors.onPrimaryContainer else colors.onSurfaceVariant
             if (selected) Icon(Icons.Check, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
-            Text(segment.label.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelMedium, color = content)
+            Text(segment.label(LocalContext.current).replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelMedium, color = content)
             Text(
                 "$count",
                 style = MaterialTheme.typography.labelMedium.tabular().copy(fontWeight = FontWeight.Normal),

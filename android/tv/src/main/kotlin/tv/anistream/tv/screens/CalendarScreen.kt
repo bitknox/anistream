@@ -82,7 +82,7 @@ import tv.anistream.tv.ui.TextBar
 import tv.anistream.tv.ui.accessibilityActions
 import tv.anistream.tv.ui.isOffline
 import tv.anistream.tv.ui.placeholdersAfterWait
-import tv.anistream.tv.ui.plainReason
+import tv.anistream.store.plainReason
 import tv.anistream.tv.ui.remembered
 import tv.anistream.tv.ui.swapFade
 import tv.anistream.tv.ui.Canvas
@@ -97,6 +97,7 @@ import tv.anistream.tv.ui.TvTitle
 import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.pixels
 import tv.anistream.tv.ui.planSheet
+import androidx.compose.ui.platform.LocalContext
 
 /** One broadcast: a title, its episode, and when it airs. */
 data class Airing(val entry: Entry, val episode: UInt, val at: Instant)
@@ -231,7 +232,7 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
             failed != null && airings.isEmpty() -> StateBlock(
                 "Couldn't load the calendar.",
                 Modifier.padding(top = 48.dp),
-                detail = plainReason(failed.reason),
+                detail = plainReason(LocalContext.current, failed.reason),
                 action = "Try again",
                 onAction = { store.loadCalendar(force = true) },
                 actionModifier = Modifier.firstFocus(memory, "retry"),

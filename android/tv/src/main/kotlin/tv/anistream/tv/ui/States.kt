@@ -110,31 +110,6 @@ fun StateBlock(
     }
 }
 
-/**
- * The first clause of an engine reason, in plain words: raw error chains never reach the screen
- * (copy rule 5). The phone's rule, word for word.
- */
-fun plainReason(raw: String): String {
-    val lower = raw.lowercase(Locale.ROOT)
-    val who = if ("anilist" in lower) "AniList" else "The server"
-    return when {
-        "timed out" in lower || "timeout" in lower -> "$who took too long to answer."
-        "401" in lower || "unauthori" in lower || "expired" in lower && "token" in lower -> "Your sign-in has expired. Sign in again in Accounts."
-        "429" in lower || "rate limit" in lower || "too many requests" in lower -> "$who is busy. Try again in a minute."
-        Regex("\\b5\\d\\d\\b").containsMatchIn(lower) -> "$who had a problem."
-        "error sending request" in lower || "connection" in lower || "dns" in lower || "network" in lower ||
-            "unreachable" in lower || "connect" in lower -> "$who didn't answer."
-        else -> firstClause(raw)
-    }
-}
-
-/** "could not read the list: bad json at line 3" as "Could not read the list." */
-fun firstClause(raw: String): String {
-    val clause = raw.substringBefore(": ").substringBefore(" (").trim().trimEnd('.')
-    if (clause.isEmpty()) return "Something went wrong."
-    return clause.replaceFirstChar { it.titlecase(Locale.UK) } + "."
-}
-
 /** How long a notice stays: 4 s, plus 1 s for every 10 words past 12. */
 fun noticeMillis(text: String): Long {
     val words = text.split(Regex("\\s+")).count { it.isNotBlank() }

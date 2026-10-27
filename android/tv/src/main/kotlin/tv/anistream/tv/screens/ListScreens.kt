@@ -51,13 +51,14 @@ import tv.anistream.tv.ui.OfflineLine
 import tv.anistream.tv.ui.PosterGrid
 import tv.anistream.tv.ui.StateBlock
 import tv.anistream.tv.ui.isOffline
-import tv.anistream.tv.ui.plainReason
+import tv.anistream.store.plainReason
 import tv.anistream.tv.ui.TvTab
 import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.placeholdersAfterWait
 import tv.anistream.tv.ui.planSheet
 import tv.anistream.tv.ui.remembered
 import tv.anistream.tv.ui.statusSheet
+import androidx.compose.ui.platform.LocalContext
 
 /** A season of a year, as Seasonal's tabs name it: "Fall 2026". */
 data class SeasonTab(val season: Season, val year: Int) {
@@ -226,7 +227,7 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
                 StateBlock(
                     "Couldn't load ${tab.label}.",
                     Modifier.padding(top = 48.dp),
-                    detail = plainReason(state.reason),
+                    detail = plainReason(LocalContext.current, state.reason),
                     action = "Try again",
                     onAction = { if (filter == null) store.loadSeasonal(force = true) else store.browse(filter) },
                     actionModifier = Modifier.firstFocus(memory, "retry/${tab.label}"),
@@ -294,7 +295,7 @@ fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> 
                     StateBlock(
                         "Couldn't load $name.",
                         Modifier.padding(top = 48.dp),
-                        detail = plainReason(state.reason),
+                        detail = plainReason(LocalContext.current, state.reason),
                         action = "Try again",
                         onAction = { store.loadLibrary(segment) },
                         actionModifier = Modifier.firstFocus(memory, "retry/${segment.name}"),

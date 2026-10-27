@@ -265,7 +265,7 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (item.isNew) Box(Modifier.size(6.dp).background(colors.secondary, CircleShape))
                 Text(
-                    item.action,
+                    item.actionText(),
                     style = MaterialTheme.typography.bodyMedium.tabular(),
                     color = if (selected) colors.onPrimaryContainer else colors.onSurfaceVariant,
                     maxLines = 1,
@@ -311,8 +311,8 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
         BannerArt(item.entry, Modifier.fillMaxWidth().height(300.dp).clip(ArtShape.banner))
         Text(item.entry.showTitle, style = ShowTitle.page, modifier = Modifier.padding(top = 16.dp))
         item.entry.alternateTitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant) }
-        if (item.entry.metadataLine.isNotEmpty()) {
-            Text(item.entry.metadataLine, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+        if (item.entry.metadataLine(LocalContext.current).isNotEmpty()) {
+            Text(item.entry.metadataLine(LocalContext.current), style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
         }
         Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -340,7 +340,7 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(item.action, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.actionText(), style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             FilledTonalButton(onClick = { navigator.openTitle(item.id, "preview") }, contentPadding = PaddingValues(horizontal = 24.dp)) {
                 Text("Episodes", maxLines = 1, softWrap = false)

@@ -241,7 +241,7 @@ private fun episodeLine(item: ContinueItem): String {
     val store = LocalAppStore.current
     val episodes by store.titles.episodes.collectAsStateWithLifecycle()
     val name = episodes[item.id]?.firstOrNull { it.number == item.episode.toString() }?.title
-    return if (name != null) "${item.longEpisode} · $name" else item.longEpisode
+    return if (name != null) "${item.longEpisode(LocalContext.current)} · $name" else item.longEpisode(LocalContext.current)
 }
 
 /** The next episode: its wide art, the title, the episode, how far into it, and the one amber action. */
@@ -294,7 +294,7 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(item.action, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
+                Text(item.actionText(), style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
             }
         }
         if (stacked) {
@@ -351,7 +351,7 @@ private fun ProgressCard(item: ContinueItem, actions: AppActions) {
             modifier = Modifier.padding(top = 4.dp),
         )
         Text(
-            item.minutesLeft?.let { "${item.shortEpisode} · $it min left" } ?: item.action,
+            item.minutesLeft?.let { "${item.shortEpisode(LocalContext.current)} · $it min left" } ?: item.actionText(),
             style = MaterialTheme.typography.bodyMedium.tabular(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -383,7 +383,7 @@ private fun NewRow(item: ContinueItem, actions: AppActions) {
             Text(item.entry.showTitle, style = ShowTitle.row, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box(Modifier.size(6.dp).background(colors.secondary, CircleShape))
-                Text(item.action, style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant, maxLines = 1)
+                Text(item.actionText(), style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant, maxLines = 1)
             }
         }
     }
@@ -458,7 +458,7 @@ private fun AiringCard(broadcast: Broadcast, now: Instant) {
     val seconds = broadcast.airs.epochSecond - now.epochSecond
     val time = AirTime.clock(broadcast.airs)
     val out = seconds <= 0
-    val line = "E${broadcast.episode} · $time · " + if (out) "out ${Wording.ago(-seconds)}" else "in ${Wording.countdown(seconds)}"
+    val line = "E${broadcast.episode} · $time · " + if (out) "out ${Wording.ago(LocalContext.current, -seconds)}" else "in ${Wording.countdown(LocalContext.current, seconds)}"
     val navigator = LocalNavigator.current
     val id = broadcast.entry.id
     Column(

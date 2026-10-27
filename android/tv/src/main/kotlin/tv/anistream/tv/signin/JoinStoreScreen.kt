@@ -69,7 +69,7 @@ import tv.anistream.tv.player.Spinner
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.entryFocus
 import tv.anistream.tv.ui.focusSoon
-import tv.anistream.tv.ui.plainReason
+import tv.anistream.store.plainReason
 
 /** The line under every Join. */
 const val JOIN_LEGAL_LINE = "anistream hosts no content."
@@ -265,7 +265,7 @@ private fun Failed(reason: String, onAgain: () -> Unit, onCancel: () -> Unit, ca
         Box(Modifier.size(8.dp).background(ObiSilk.Vermilion, CircleShape))
         Text("Couldn't open this link.", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
     }
-    Text(plainReason(reason), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
+    Text(plainReason(LocalContext.current, reason), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
     Row(Modifier.entryFocus(again), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         TonalButton(onClick = onAgain, modifier = Modifier.focusRequester(again)) { ButtonLabel("Try another link") }
         TonalButton(onClick = onCancel) { ButtonLabel(cancelLabel) }

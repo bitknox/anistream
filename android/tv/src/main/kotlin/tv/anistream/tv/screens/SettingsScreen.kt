@@ -71,7 +71,7 @@ import tv.anistream.store.UpdateState
 import tv.anistream.store.Wording
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.model.TitleLanguage
-import tv.anistream.tv.ui.plainReason
+import tv.anistream.store.plainReason
 import tv.anistream.tv.home.LocalWatchNext
 import tv.anistream.tv.remote.ConfirmDialog
 import tv.anistream.tv.remote.LocalRemoteHost
@@ -815,7 +815,7 @@ private fun UpdateRows(nav: TvNavigator, memory: FocusMemory, first: Modifier): 
                 UpdateCheck.Unknown, UpdateCheck.Found -> null
                 UpdateCheck.Checking -> "Checking"
                 UpdateCheck.UpToDate -> "anistream is up to date"
-                is UpdateCheck.Failed -> "Not checked. ${plainReason(now.reason)}"
+                is UpdateCheck.Failed -> "Not checked. ${plainReason(LocalContext.current, now.reason)}"
             },
             modifier = first.remembered(memory, "about/check"),
         )

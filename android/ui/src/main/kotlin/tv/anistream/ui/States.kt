@@ -4,6 +4,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.plainReason
 import tv.anistream.store.text
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -165,7 +166,7 @@ internal fun FailedState(title: String, reason: String, retry: () -> Unit, modif
     StateBlock(
         glyph = { Icon(Icons.Problem, contentDescription = "Problem", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(32.dp)) },
         title = title,
-        line = plainReason(reason),
+        line = plainReason(LocalContext.current, reason),
         modifier = modifier,
     ) {
         FilledTonalButton(onClick = retry) { Text("Try again") }
@@ -263,31 +264,6 @@ private fun StateBlock(
             androidx.compose.runtime.CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) { buttons() }
         }
     }
-}
-
-/**
- * The first clause of an engine reason, in plain words: raw error chains never reach the screen
- * (copy rule 5). They go to Messages and the bug report whole.
- */
-internal fun plainReason(raw: String): String {
-    val lower = raw.lowercase(Locale.ROOT)
-    val who = if ("anilist" in lower) "AniList" else "The server"
-    return when {
-        "timed out" in lower || "timeout" in lower -> "$who took too long to answer."
-        "401" in lower || "unauthori" in lower || "expired" in lower && "token" in lower -> "Your sign-in has expired. Sign in again in Accounts."
-        "429" in lower || "rate limit" in lower || "too many requests" in lower -> "$who is busy. Try again in a minute."
-        Regex("\\b5\\d\\d\\b").containsMatchIn(lower) -> "$who had a problem."
-        "error sending request" in lower || "connection" in lower || "dns" in lower || "network" in lower ||
-            "unreachable" in lower || "connect" in lower -> "$who didn't answer."
-        else -> firstClause(raw)
-    }
-}
-
-/** "could not read the list: bad json at line 3" as "Could not read the list." */
-internal fun firstClause(raw: String): String {
-    val clause = raw.substringBefore(": ").substringBefore(" (").trim().trimEnd('.')
-    if (clause.isEmpty()) return "Something went wrong."
-    return sentence(clause) + "."
 }
 
 /** How long a pull to refresh may spin waiting for its job. */

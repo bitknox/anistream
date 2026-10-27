@@ -110,6 +110,13 @@ import tv.anistream.store.ListState
 import tv.anistream.store.SearchModel
 import tv.anistream.store.label
 import tv.anistream.store.normalized
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import tv.anistream.i18n.Strings
+import android.content.Context
+import tv.anistream.store.percentText
+import tv.anistream.store.SearchWords
 
 // Words
 
@@ -137,12 +144,11 @@ internal val Pick.next: Pick
         Pick.EXCLUDE -> Pick.OFF
     }
 
-private val Pick.words: String?
-    get() = when (this) {
-        Pick.OFF -> null
-        Pick.INCLUDE -> "Included"
-        Pick.EXCLUDE -> "Left out"
-    }
+private fun Pick.words(context: Context): String? = when (this) {
+    Pick.OFF -> null
+    Pick.INCLUDE -> Strings.filterIncluded(context)
+    Pick.EXCLUDE -> Strings.filterLeftOut(context)
+}
 
 private val SEASONS = listOf(Season.WINTER, Season.SPRING, Season.SUMMER, Season.FALL)
 
@@ -159,13 +165,13 @@ private const val FIRST_YEAR = 1970
 private fun AppStore.editSearch(change: (SearchQuery) -> SearchQuery) = searchLive(change(search.status.value.query))
 
 /** "Watching · Ep 7", "Planning", or for a title not on a list, "TV · 2024". */
-private fun searchDetail(entry: Entry): String? {
+private fun searchDetail(context: Context, entry: Entry): String? {
     entry.listStatus?.let { status ->
-        val label = status.label.replaceFirstChar { it.uppercase() }
+        val label = status.label(context).replaceFirstChar { it.uppercase() }
         val next = entry.progress?.next
-        return if (next != null && status == LibrarySegment.WATCHING) "$label · Ep $next" else label
+        return if (next != null && status == LibrarySegment.WATCHING) Strings.searchDetailEpisode(context, label, next.toInt()) else label
     }
-    return listOfNotNull(formatLabel(entry.format), entry.year?.toString()).joinToString(" · ").ifEmpty { null }
+    return listOfNotNull(formatLabel(context, entry.format), entry.year?.toString()).joinToString(" · ").ifEmpty { null } // i18n-skip
 }
 
 // The screen
@@ -217,18 +223,19 @@ fun SearchScreen(
         scope.launch { bar.animateToCollapsed() }
     }
 
+    val clearLabel = stringResource(R.string.search_clear)
     val input = @Composable {
         SearchBarDefaults.InputField(
             textFieldState = text,
             searchBarState = bar,
             onSearch = { submit() },
-            placeholder = { Text("Search titles") },
+            placeholder = { Text(stringResource(R.string.search_placeholder)) },
             leadingIcon = { Icon(Icons.Search, contentDescription = null) },
             trailingIcon = {
                 if (text.text.isNotEmpty()) {
                     IconButton(
                         onClick = { text.clearText() },
-                        modifier = Modifier.semantics { contentDescription = "Clear search" },
+                        modifier = Modifier.semantics { contentDescription = clearLabel },
                     ) { Icon(Icons.Clear, contentDescription = null) }
                 }
             },
@@ -237,7 +244,8 @@ fun SearchScreen(
     val colors = SearchBarDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
 
     // The destination's name for TalkBack; the bar says the rest.
-    Column(Modifier.windowInsetsPadding(WindowInsets.statusBars).semantics { paneTitle = "Search" }) {
+    val searchTitle = stringResource(R.string.nav_search)
+    Column(Modifier.windowInsetsPadding(WindowInsets.statusBars).semantics { paneTitle = searchTitle }) {
         SearchBar(
             state = bar,
             inputField = input,
@@ -276,13 +284,13 @@ private fun Typing(typed: String, onPicked: () -> Unit) {
     val tags = if (words.length >= 2) facets?.tagsMatching(words, 3u).orEmpty() else emptyList()
     Column(Modifier.fillMaxSize()) {
         for (genre in genres) {
-            Suggestion(genre, "Genre") {
+            Suggestion(genre, stringResource(R.string.filter_genre)) {
                 store.searchLive(status.query.copy(text = "").pickingGenre(genre, Pick.INCLUDE))
                 onPicked()
             }
         }
         for (tag in tags) {
-            Suggestion(tag, "Tag") {
+            Suggestion(tag, stringResource(R.string.filter_tag)) {
                 store.searchLive(status.query.copy(text = "").pickingTag(tag, Pick.INCLUDE))
                 onPicked()
             }
@@ -304,7 +312,7 @@ private fun Typing(typed: String, onPicked: () -> Unit) {
 @Composable
 private fun Suggestion(name: String, kind: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(onClickLabel = "Filter by $name", onClick = onClick).padding(horizontal = 16.dp),
+        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(onClickLabel = stringResource(R.string.search_filter_by, name), onClick = onClick).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -329,9 +337,9 @@ private fun FilterRow(query: SearchQuery, onFilters: () -> Unit) {
     ) {
         item(key = "sort") {
             val current = query.sortInEffect()
-            MenuChip(searchSortLabel(current), selected = query.sort != null, describe = "Sort by ${searchSortLabel(current)}") { close ->
+            MenuChip(SearchWords.sort(LocalContext.current, current), selected = query.sort != null, describe = stringResource(R.string.sort_label, SearchWords.sort(LocalContext.current, current))) { close ->
                 for (sort in searchSorts(!query.isBrowse())) {
-                    Choice(searchSortLabel(sort), sort == current) {
+                    Choice(SearchWords.sort(LocalContext.current, sort), sort == current) {
                         close()
                         store.editSearch { it.copy(sort = sort) }
                     }
@@ -341,14 +349,13 @@ private fun FilterRow(query: SearchQuery, onFilters: () -> Unit) {
         item(key = "genres") {
             val set = query.genres.size + query.genresExcluded.size
             val title = when (set) {
-                0 -> "Genres"
-                1 -> query.active().firstOrNull()?.label ?: "1 genre"
-                else -> "$set genres"
+                0 -> stringResource(R.string.filter_genres)
+                else -> pluralStringResource(R.plurals.search_genres_picked, set, set)
             }
             MenuChip(title, selected = set > 0) { _ ->
-                if (set > 0) Choice("Any genre", false) { store.editSearch { it.copy(genres = emptyList(), genresExcluded = emptyList()) } }
+                if (set > 0) Choice(stringResource(R.string.filter_any_genre), false) { store.editSearch { it.copy(genres = emptyList(), genresExcluded = emptyList()) } }
                 val names = status.facets?.genres.orEmpty()
-                if (names.isEmpty()) DropdownMenuItem(text = { Text("Loading genres") }, onClick = {}, enabled = false)
+                if (names.isEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.search_loading_genres)) }, onClick = {}, enabled = false)
                 for (name in names) {
                     Choice(name, query.genrePick(name) == Pick.INCLUDE) {
                         val now = store.search.status.value.query
@@ -359,8 +366,8 @@ private fun FilterRow(query: SearchQuery, onFilters: () -> Unit) {
         }
         item(key = "year") {
             val label = query.label(FilterKey.Years)
-            MenuChip(label ?: "Year", selected = label != null) { close ->
-                Choice("Any year", false) {
+            MenuChip(label ?: stringResource(R.string.filter_year), selected = label != null) { close ->
+                Choice(stringResource(R.string.filter_any_year), false) {
                     close()
                     store.searchLive(query.inYear(null))
                 }
@@ -375,18 +382,18 @@ private fun FilterRow(query: SearchQuery, onFilters: () -> Unit) {
         item(key = "season") {
             val season = query.season
             MenuChip(
-                season?.let { searchSeasonLabel(it) } ?: "Season",
+                season?.let { SearchWords.season(LocalContext.current, it) } ?: stringResource(R.string.filter_season),
                 selected = season != null,
                 // A season is a season of one year.
                 enabled = query.singleYear != null || season != null,
-                describe = if (query.singleYear == null && season == null) "Season, choose a year first" else null,
+                describe = if (query.singleYear == null && season == null) stringResource(R.string.filter_season) + ", " + stringResource(R.string.filter_season_pick_year) else null, // i18n-skip
             ) { close ->
-                Choice("Any season", false) {
+                Choice(stringResource(R.string.filter_any_season), false) {
                     close()
                     store.editSearch { it.copy(season = null) }
                 }
                 for (each in SEASONS) {
-                    Choice(searchSeasonLabel(each), each == season) {
+                    Choice(SearchWords.season(LocalContext.current, each), each == season) {
                         close()
                         store.editSearch { it.copy(season = each) }
                     }
@@ -396,14 +403,13 @@ private fun FilterRow(query: SearchQuery, onFilters: () -> Unit) {
         item(key = "format") {
             val count = query.formats.size
             val title = when {
-                count == 0 -> "Format"
-                count <= 2 -> query.label(FilterKey.Formats) ?: "Format"
-                else -> "$count formats"
+                count == 0 -> stringResource(R.string.filter_format)
+                else -> if (count == 1) SearchWords.format(LocalContext.current, query.formats.first()) else pluralStringResource(R.plurals.search_formats_picked, count, count)
             }
             MenuChip(title, selected = count > 0) { _ ->
-                if (count > 0) Choice("Any format", false) { store.editSearch { it.copy(formats = emptyList()) } }
+                if (count > 0) Choice(stringResource(R.string.filter_any_format), false) { store.editSearch { it.copy(formats = emptyList()) } }
                 for (format in searchFormats()) {
-                    Choice(mediaFormatLabel(format), format in query.formats) {
+                    Choice(SearchWords.format(LocalContext.current, format), format in query.formats) {
                         store.editSearch { it.togglingFormat(format) }
                     }
                 }
@@ -412,14 +418,14 @@ private fun FilterRow(query: SearchQuery, onFilters: () -> Unit) {
         item(key = "status") {
             val count = query.statuses.size
             val title = when (count) {
-                0 -> "Status"
-                1 -> query.label(FilterKey.Statuses) ?: "Status"
-                else -> "$count statuses"
+                0 -> stringResource(R.string.filter_status)
+                1 -> SearchWords.status(LocalContext.current, query.statuses.first())
+                else -> pluralStringResource(R.plurals.search_statuses_picked, count, count)
             }
             MenuChip(title, selected = count > 0) { _ ->
-                if (count > 0) Choice("Any status", false) { store.editSearch { it.copy(statuses = emptyList()) } }
+                if (count > 0) Choice(stringResource(R.string.filter_any_status), false) { store.editSearch { it.copy(statuses = emptyList()) } }
                 for (each in searchStatuses()) {
-                    Choice(searchStatusLabel(each), each in query.statuses) {
+                    Choice(SearchWords.status(LocalContext.current, each), each in query.statuses) {
                         store.editSearch { it.togglingStatus(each) }
                     }
                 }
@@ -428,9 +434,9 @@ private fun FilterRow(query: SearchQuery, onFilters: () -> Unit) {
         item(key = "filters") {
             val count = query.advancedCount()
             SearchChip(
-                if (count == 0u) "All filters" else "All filters · $count",
+                if (count == 0u) stringResource(R.string.filters_button) else stringResource(R.string.filters_button_count, count.toInt()),
                 selected = count > 0u,
-                describe = "All filters" + if (count > 0u) ", $count set" else "",
+                describe = if (count > 0u) stringResource(R.string.filters_button_count, count.toInt()) else stringResource(R.string.filters_button),
                 onClick = onFilters,
             )
         }
@@ -528,11 +534,12 @@ private fun ActiveFilters(query: SearchQuery) {
     val shape = MaterialTheme.shapes.small
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
         for (filter in active) {
+            val removeLabel = stringResource(R.string.filter_remove, filter.label)
             Box(
                 Modifier
                     .heightIn(min = 48.dp)
-                    .clickable(onClickLabel = "Remove") { store.searchLive(store.search.status.value.query.without(filter.key)) }
-                    .semantics { contentDescription = "Remove ${filter.label}" },
+                    .clickable(onClickLabel = stringResource(R.string.action_remove)) { store.searchLive(store.search.status.value.query.without(filter.key)) }
+                    .semantics { contentDescription = removeLabel },
                 contentAlignment = Alignment.Center,
             ) {
                 Row(
@@ -551,7 +558,7 @@ private fun ActiveFilters(query: SearchQuery) {
         }
         if (active.size > 1) {
             Box(Modifier.heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
-                QuietButton("Clear all") { store.searchLive(store.search.status.value.query.cleared()) }
+                QuietButton(stringResource(R.string.action_clear_all)) { store.searchLive(store.search.status.value.query.cleared()) }
             }
         }
     }
@@ -567,7 +574,7 @@ private fun LazyGridScope.resultsHeader(query: SearchQuery, caption: String?, li
     if (livePaused && !query.isBrowse()) {
         item(span = { GridItemSpan(maxLineSpan) }, key = "paused", contentType = "line") {
             Text(
-                "Results wait for the search key while AniList’s rate limit recovers",
+                stringResource(R.string.search_paused_rate_limit),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -640,7 +647,7 @@ private fun SearchResults(query: SearchQuery, overdue: Boolean) {
                 is ListState.Loaded -> {
                     val entries = list.ids.mapNotNull { titles[it] }
                     items(entries, key = { it.id.toLong() }, contentType = { "poster" }) {
-                        PosterCell(it, itemMotion(), from = "search", detail = searchDetail(it), onOpen = store::rememberSearch)
+                        PosterCell(it, itemMotion(), from = "search", detail = searchDetail(LocalContext.current, it), onOpen = store::rememberSearch)
                     }
                     if (status.hasNext) {
                         items(3, key = { "more-$it" }, contentType = { "placeholder" }) { index ->
@@ -653,8 +660,8 @@ private fun SearchResults(query: SearchQuery, overdue: Boolean) {
                     Column {
                         Text(list.reason, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row {
-                            QuietButton("Try again") { store.retrySearch() }
-                            QuietButton("Report") { openBugReport(context, store, BugContext("load", list.reason)) }
+                            QuietButton(stringResource(R.string.action_try_again)) { store.retrySearch() }
+                            QuietButton(stringResource(R.string.action_report)) { openBugReport(context, store, BugContext("load", list.reason)) }
                         }
                     }
                 }
@@ -672,7 +679,7 @@ private fun NothingFound(query: SearchQuery) {
         Text(query.nothingFound(), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (query.hasFilters()) {
             Box(Modifier.padding(top = 8.dp)) {
-                QuietButton("Clear filters") { store.searchLive(store.search.status.value.query.cleared()) }
+                QuietButton(stringResource(R.string.search_clear_filters)) { store.searchLive(store.search.status.value.query.cleared()) }
             }
         }
     }
@@ -703,7 +710,7 @@ private fun SearchStart() {
         if (genres.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }, key = "genres") {
                 Column {
-                    StartHeading("Genres")
+                    StartHeading(stringResource(R.string.search_genres))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (genre in genres) SearchChip(genre, selected = false) { store.search(SearchQuery(genres = listOf(genre))) }
                     }
@@ -720,10 +727,11 @@ private fun LazyGridScope.recentSearches(recents: List<SearchQuery>) {
         val store = LocalAppStore.current
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) { StartHeading("Recent searches") }
-                QuietButton("Clear") { store.clearRecentSearches() }
+                Box(Modifier.weight(1f)) { StartHeading(stringResource(R.string.search_recent)) }
+                QuietButton(stringResource(R.string.action_clear)) { store.clearRecentSearches() }
             }
             for (query in recents.take(5)) {
+                val removeLabel = stringResource(R.string.search_recent_remove, query.recentLine)
                 Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         query.recentLine,
@@ -732,7 +740,7 @@ private fun LazyGridScope.recentSearches(recents: List<SearchQuery>) {
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp).clickable { store.search(query) }.padding(vertical = 12.dp),
                     )
-                    IconButton(onClick = { store.forgetRecentSearch(query) }, modifier = Modifier.semantics { contentDescription = "Remove ${query.recentLine}" }) {
+                    IconButton(onClick = { store.forgetRecentSearch(query) }, modifier = Modifier.semantics { contentDescription = removeLabel }) {
                         Icon(Icons.Clear, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                     }
                 }
@@ -753,7 +761,7 @@ private fun RailRow(rail: BrowseRail, entries: List<Entry>) {
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                 }
             }
-            QuietButton("See all") { store.search(rail.query) }
+            QuietButton(stringResource(R.string.search_see_all)) { store.search(rail.query) }
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(13.dp)) {
             items(entries, key = { it.id.toLong() }) { PosterCell(it, itemMotion().width(104.dp), from = "rail-${rail.title}") }
@@ -794,6 +802,7 @@ private fun FiltersSheet(onDismiss: () -> Unit) {
     val status by store.search.status.collectAsStateWithLifecycle()
     val query = status.query
     val facets = status.facets
+    val scoreAny = stringResource(R.string.filter_score_any)
     val colors = MaterialTheme.colorScheme
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -805,21 +814,21 @@ private fun FiltersSheet(onDismiss: () -> Unit) {
     ) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
             Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Filters", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
-                QuietButton("Reset", enabled = query.hasFilters()) { store.searchLive(query.cleared()) }
+                Text(stringResource(R.string.filters_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
+                QuietButton(stringResource(R.string.action_reset), enabled = query.hasFilters()) { store.searchLive(query.cleared()) }
             }
 
-            FilterHeading("Genres")
+            FilterHeading(stringResource(R.string.filter_genres))
             FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (name in facets?.genres.orEmpty()) {
                     PickChip(name, query.genrePick(name)) { store.editSearch { it.pickingGenre(name, it.genrePick(name).next) } }
                 }
             }
-            FilterNote("Tap once to include, twice to leave out.")
+            FilterNote(stringResource(R.string.filter_hint_touch))
 
             TagsSection(query)
 
-            FilterHeading("Released")
+            FilterHeading(stringResource(R.string.filter_released))
             YearsRange(query.years) { bounds ->
                 store.editSearch { now ->
                     val next = now.copy(years = bounds)
@@ -827,47 +836,47 @@ private fun FiltersSheet(onDismiss: () -> Unit) {
                 }
             }
 
-            FilterHeading("Length")
-            FilterLabel("Episodes")
+            FilterHeading(stringResource(R.string.filter_length))
+            FilterLabel(stringResource(R.string.filter_episodes))
             Presets(
                 listOf(Bounds(1u, 1u), Bounds(null, 12u), Bounds(13u, 26u), Bounds(50u, null)),
                 query.episodes,
                 words = { SearchQuery(episodes = it).label(FilterKey.Episodes) },
             ) { bounds -> store.editSearch { it.copy(episodes = bounds) } }
-            FilterLabel("Episode length")
+            FilterLabel(stringResource(R.string.filter_episode_length))
             Presets(
                 listOf(Bounds(null, 15u), Bounds(20u, 30u), Bounds(60u, null)),
                 query.minutes,
                 words = { SearchQuery(minutes = it).label(FilterKey.Minutes) },
             ) { bounds -> store.editSearch { it.copy(minutes = bounds) } }
 
-            FilterHeading("Reception")
+            FilterHeading(stringResource(R.string.filter_reception))
             StepSlider(
-                "Score at least",
+                stringResource(R.string.filter_score_at_least),
                 value = query.minScore?.toInt() ?: 0,
                 range = 0..95,
                 step = 5,
-                words = { if (it == 0) "Any" else "$it%" },
+                words = { if (it == 0) scoreAny else percentText(it) },
             ) { score -> store.editSearch { it.copy(minScore = score.takeIf { it > 0 }?.toUByte()) } }
-            FilterSwitch("Hide obscure titles", query.minPopularity != null) { on ->
+            FilterSwitch(stringResource(R.string.filter_hide_obscure), query.minPopularity != null) { on ->
                 store.editSearch { it.copy(minPopularity = if (on) OBSCURE_BELOW else null) }
             }
 
-            FilterHeading("Origin")
-            FilterLabel("Source material")
+            FilterHeading(stringResource(R.string.filter_origin))
+            FilterLabel(stringResource(R.string.filter_source_material))
             FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (source in searchSources()) {
                     SearchChip(searchSourceLabel(source), source in query.sources) { store.editSearch { it.togglingSource(source) } }
                 }
             }
-            FilterLabel("Country")
+            FilterLabel(stringResource(R.string.filter_country))
             FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (code in searchCountries()) {
-                    SearchChip(searchCountryLabel(code), code in query.countries) { store.editSearch { it.togglingCountry(code) } }
+                    SearchChip(SearchWords.country(LocalContext.current, code), code in query.countries) { store.editSearch { it.togglingCountry(code) } }
                 }
             }
 
-            FilterHeading("Where to watch")
+            FilterHeading(stringResource(R.string.filter_where_to_watch))
             val sites = facets?.streamingSites.orEmpty()
             if (sites.isNotEmpty()) {
                 FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -876,20 +885,20 @@ private fun FiltersSheet(onDismiss: () -> Unit) {
                     }
                 }
             }
-            FilterSwitch("Licensed only", query.licensedOnly) { on -> store.editSearch { it.copy(licensedOnly = on) } }
+            FilterSwitch(stringResource(R.string.filter_licensed_only), query.licensedOnly) { on -> store.editSearch { it.copy(licensedOnly = on) } }
 
             if (anilistSignedIn()) {
-                FilterHeading("My list")
+                FilterHeading(stringResource(R.string.calendar_filter_mine))
                 val choices = listOf<OnList?>(null, OnList.HIDE, OnList.ONLY)
                 ConnectedChoice(
-                    listOf("Show", "Hide", "Only"),
+                    listOf(stringResource(R.string.filter_show), stringResource(R.string.filter_hide), stringResource(R.string.filter_only)),
                     selected = choices.indexOf(query.onList),
                     onSelect = { index -> store.editSearch { it.copy(onList = choices[index]) } },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
 
-            FilterNote("Results update as you change these.")
+            FilterNote(stringResource(R.string.filter_live_note))
         }
     }
 }
@@ -905,12 +914,12 @@ private fun TagsSection(query: SearchQuery) {
     var opened by rememberSaveable { mutableStateOf<String?>(null) }
     val groups = status.facets?.tagGroups.orEmpty()
 
-    FilterHeading("Tags")
-    Box(Modifier.padding(horizontal = 16.dp)) { SheetField(find, { find = it }, "Find a tag") }
+    FilterHeading(stringResource(R.string.filter_tags))
+    Box(Modifier.padding(horizontal = 16.dp)) { SheetField(find, { find = it }, stringResource(R.string.filter_tag_find)) }
     val words = find.trim().lowercase()
     if (words.isNotEmpty()) {
         val found = groups.flatMap { it.tags }.filter { (spoilers || !it.spoiler) && words in it.name.lowercase() }.take(40)
-        if (found.isEmpty()) FilterNote("No tag has that in its name")
+        if (found.isEmpty()) FilterNote(stringResource(R.string.filter_tag_none))
         FlowRow(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for (tag in found) {
                 PickChip(tag.name, query.tagPick(tag.name)) { store.editSearch { it.pickingTag(tag.name, it.tagPick(tag.name).next) } }
@@ -925,7 +934,7 @@ private fun TagsSection(query: SearchQuery) {
                 Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp)
-                    .clickable(onClickLabel = if (isOpen) "Close" else "Open") { opened = if (isOpen) null else group.category }
+                    .clickable(onClickLabel = stringResource(if (isOpen) R.string.action_close else R.string.action_open)) { opened = if (isOpen) null else group.category }
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -949,15 +958,15 @@ private fun TagsSection(query: SearchQuery) {
             }
         }
     }
-    FilterSwitch("Show spoiler tags", spoilers) { spoilers = it }
+    FilterSwitch(stringResource(R.string.filter_spoiler_tags), spoilers) { spoilers = it }
     val tagged = query.tags.isNotEmpty() || query.tagsExcluded.isNotEmpty()
     StepSlider(
-        "Tag rank at least",
+        stringResource(R.string.filter_tag_rank_title),
         value = query.minTagRank?.toInt() ?: DEFAULT_TAG_RANK,
         range = 0..100,
         step = 10,
         enabled = tagged,
-        words = { "$it%" },
+        words = { percentText(it) },
     ) { rank -> store.editSearch { it.copy(minTagRank = if (rank == DEFAULT_TAG_RANK) null else rank.toUByte()) } }
 }
 
@@ -967,6 +976,7 @@ private fun TagsSection(query: SearchQuery) {
  */
 @Composable
 private fun PickChip(name: String, pick: Pick, onClick: () -> Unit) {
+    val words = pick.words(LocalContext.current)
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.small
     Box(
@@ -974,7 +984,7 @@ private fun PickChip(name: String, pick: Pick, onClick: () -> Unit) {
             .heightIn(min = 48.dp)
             .clickable(onClick = onClick)
             .semantics {
-                pick.words?.let { stateDescription = it }
+                words?.let { stateDescription = it }
                 selected = pick != Pick.OFF
             },
         contentAlignment = Alignment.Center,
@@ -1018,16 +1028,18 @@ private fun YearsRange(years: Bounds, onChange: (Bounds) -> Unit) {
     var shown by remember(low, high) { mutableStateOf(low.toFloat()..high.toFloat()) }
     val from = shown.start.toInt()
     val to = shown.endInclusive.toInt()
+    val yearName = stringResource(R.string.filter_year)
     val words = when {
-        from == FIRST_YEAR && to == last -> "Any year"
+        from == FIRST_YEAR && to == last -> stringResource(R.string.filter_any_year)
         from == to -> "$from"
-        from == FIRST_YEAR -> "Up to $to"
-        to == last -> "$from on"
-        else -> "$from to $to"
+        from == FIRST_YEAR -> stringResource(R.string.filter_years_up_to, "$to")
+        to == last -> stringResource(R.string.filter_years_from, "$from")
+        else -> stringResource(R.string.filter_years_between, "$from", "$to")
     }
+    val described = yearName + ", " + words // i18n-skip
     Column(Modifier.padding(horizontal = 16.dp)) {
         Row(Modifier.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Years", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.filter_year), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             Text(words, style = MaterialTheme.typography.bodyMedium.tabular(), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         RangeSlider(
@@ -1041,7 +1053,7 @@ private fun YearsRange(years: Bounds, onChange: (Bounds) -> Unit) {
             valueRange = FIRST_YEAR.toFloat()..last.toFloat(),
             steps = last - FIRST_YEAR - 1,
             colors = sliderColors(),
-            modifier = Modifier.semantics { contentDescription = "Years, $words" },
+            modifier = Modifier.semantics { contentDescription = described },
         )
     }
 }
@@ -1058,6 +1070,7 @@ private fun StepSlider(
     onChange: (Int) -> Unit,
 ) {
     var shown by remember(value) { mutableStateOf(value.toFloat()) }
+    val described = title + ", " + words(shown.toInt()) // i18n-skip
     val now = shown.toInt()
     Column(Modifier.padding(horizontal = 16.dp)) {
         Row(Modifier.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1077,7 +1090,7 @@ private fun StepSlider(
             steps = (range.last - range.first) / step - 1,
             enabled = enabled,
             colors = sliderColors(),
-            modifier = Modifier.semantics { contentDescription = "$title, ${words(now)}" },
+            modifier = Modifier.semantics { contentDescription = described },
         )
     }
 }

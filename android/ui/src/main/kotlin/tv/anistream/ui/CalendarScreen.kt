@@ -3,6 +3,7 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandHorizontally
@@ -487,8 +488,8 @@ private fun BroadcastRow(broadcast: Broadcast, now: Instant, onOpen: () -> Unit)
     val episode = listOfNotNull("Episode ${broadcast.episode}", calendarMark(entry)).joinToString(" · ")
     val line = when {
         seen -> episode
-        out -> "$episode out ${Wording.ago(-seconds)}"
-        else -> "$episode in ${Wording.countdown(seconds)}"
+        out -> "$episode out ${Wording.ago(LocalContext.current, -seconds)}"
+        else -> "$episode in ${Wording.countdown(LocalContext.current, seconds)}"
     }
     Row(
         Modifier.fillMaxWidth().heightIn(min = 72.dp).shared(Shared.Page, entry.id, "calendar").clickable(onClickLabel = "Open title", onClick = onOpen).padding(start = 16.dp, end = 24.dp, top = 6.dp, bottom = 6.dp),

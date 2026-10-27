@@ -520,6 +520,132 @@
     </plurals>
     <!-- Mark on a title meant for adults. -->
     <string name="title_adult_mark">18+</string>
+    <!-- Downloads: what the downloads use and what is free. Both sizes are already formatted. -->
+    <string name="downloads_storage_used_free">%1$s used · %2$s free</string>
+    <!-- Downloads: what the downloads use, when the free space is not known. -->
+    <string name="downloads_storage_used">%1$s used</string>
+    <!-- Downloads row: how long is left. The time is already formatted. -->
+    <string name="downloads_time_left">%1$s left</string>
+    <!-- Downloads row: the speed, in size per second. The size is already formatted. -->
+    <string name="downloads_rate">%1$s/s</string>
+    <!-- Seeding row: how much was sent. The size is already formatted. -->
+    <string name="downloads_uploaded">%1$s up</string>
+    <!-- Seeding row: the ratio reached against the ratio asked for. -->
+    <string name="downloads_ratio_of">%1$s of %2$s</string>
+    <!-- Group heading on the downloads board: how many episodes a show has, and the space they take. -->
+    <plurals name="downloads_group_line">
+        <item quantity="one">One episode · %2$s</item>
+        <item quantity="other">%1$d episodes · %2$s</item>
+    </plurals>
+    <!-- Episode menu item that starts a download. -->
+    <string name="episode_menu_download">Download</string>
+    <!-- Episode menu item, shown while the episode's download is paused. -->
+    <string name="episode_menu_download_paused">Download paused</string>
+    <!-- A failure in plain words: AniList took too long to answer. -->
+    <string name="reason_timeout_anilist">AniList took too long to answer.</string>
+    <!-- A failure in plain words: the server took too long to answer. -->
+    <string name="reason_timeout_server">The server took too long to answer.</string>
+    <!-- A failure in plain words: AniList asks for a pause. -->
+    <string name="reason_busy_anilist">AniList is busy. Try again in a minute.</string>
+    <!-- A failure in plain words: the server asks for a pause. -->
+    <string name="reason_busy_server">The server is busy. Try again in a minute.</string>
+    <!-- A failure in plain words: AniList had a fault. -->
+    <string name="reason_problem_anilist">AniList had a problem.</string>
+    <!-- A failure in plain words: the server had a fault. -->
+    <string name="reason_problem_server">The server had a problem.</string>
+    <!-- A failure in plain words: AniList could not be reached. -->
+    <string name="reason_silent_anilist">AniList didn\'t answer.</string>
+    <!-- A failure in plain words: the server could not be reached. -->
+    <string name="reason_silent_server">The server didn\'t answer.</string>
+    <!-- Update row title while the update goes in. -->
+    <string name="updates_installing_plain">Installing</string>
+    <!-- Update row line while the installer runs: the app is replaced, so it closes. -->
+    <string name="updates_closes_as_installs">anistream closes as it installs</string>
+    <!-- Button on the update notice where this build cannot install the update itself: it opens the version's page. -->
+    <string name="updates_open_release">Open page</string>
+    <!-- Search sort menu: newest first by premiere. -->
+    <string name="search_sort_newest">Newest</string>
+    <!-- Search sort menu: oldest first by premiere. -->
+    <string name="search_sort_oldest">Oldest</string>
+    <!-- Search sort menu: by what is airing now and rising. -->
+    <string name="search_sort_trending">Trending</string>
+    <!-- Search sort menu: by title, from A. -->
+    <string name="search_sort_title">Title</string>
+    <!-- Search sort menu: by how many people favourited the title. -->
+    <string name="search_sort_favourites">Favourites</string>
+    <!-- Country of origin filter: Japan. -->
+    <string name="country_japan">Japan</string>
+    <!-- Country of origin filter: China. -->
+    <string name="country_china">China</string>
+    <!-- Country of origin filter: South Korea. -->
+    <string name="country_korea">Korea</string>
+    <!-- Country of origin filter: Taiwan. -->
+    <string name="country_taiwan">Taiwan</string>
+    <!-- Search chip for several genres picked. -->
+    <plurals name="search_genres_picked">
+        <item quantity="one">One genre</item>
+        <item quantity="other">%1$d genres</item>
+    </plurals>
+    <!-- Search chip for several formats picked. -->
+    <plurals name="search_formats_picked">
+        <item quantity="one">One format</item>
+        <item quantity="other">%1$d formats</item>
+    </plurals>
+    <!-- Search chip for several statuses picked. -->
+    <plurals name="search_statuses_picked">
+        <item quantity="one">One status</item>
+        <item quantity="other">%1$d statuses</item>
+    </plurals>
+    <!-- Search filter: the score slider's value when no minimum is set. -->
+    <string name="filter_score_any">Any</string>
+    <!-- Search filter: the year range from a year onwards. -->
+    <string name="filter_years_from">%1$s on</string>
+    <!-- Search filter: the year range between two years. -->
+    <string name="filter_years_between">%1$s to %2$s</string>
+    <!-- Search filter name: the tag rank slider, whose value sits beside it. -->
+    <string name="filter_tag_rank_title">Tag rank at least</string>
+    <!-- Search suggestions: the kind shown beside a tag that matches the typed words. -->
+    <string name="filter_tag">Tag</string>
+    <!-- Accessibility label of a search suggestion: it becomes a filter. -->
+    <string name="search_filter_by">Filter by %1$s</string>
+    <!-- Disabled item in the genre menu while the genres load. -->
+    <string name="search_loading_genres">Loading genres</string>
+    <!-- Search note: live results wait while AniList's rate limit recovers. -->
+    <string name="search_paused_rate_limit">Results wait for the search key while AniList’s rate limit recovers</string>
+    <!-- Button that takes every active filter off. -->
+    <string name="action_clear_all">Clear all</string>
+    <!-- Search filter label above the source materials. -->
+    <string name="filter_source_material">Source material</string>
+    <!-- Search result detail for a title being watched: its list status, and the episode up next. -->
+    <string name="search_detail_episode">%1$s · Ep %2$d</string>
+    <!-- Source switch: use the source. The name is the source's. -->
+    <string name="sources_use">Use %1$s</string>
+    <!-- Accessibility label of a source's drag handle while the list is reordered. -->
+    <string name="sources_move">Move %1$s</string>
+    <!-- Accessibility label of the button that starts reordering sources. -->
+    <string name="sources_reorder">Reorder</string>
+    <!-- Source page: the version of a source and the newer one a store offers. -->
+    <string name="sources_version_available">%1$s available</string>
+    <!-- Source page: how long the source took to answer, in milliseconds. -->
+    <string name="sources_response_ms">%1$d ms</string>
+    <!-- Update dialog: the version, and the store it comes from, for a source that has no version yet. -->
+    <string name="sources_update_from">Version %1$s from %2$s.</string>
+    <!-- Source page: the line under a source that is off. -->
+    <string name="sources_detail_off">Off. It keeps its place and is not tried until it is on again.</string>
+    <!-- Fallback title of a source page before the source loads. -->
+    <string name="sources_fallback_title">Source</string>
+    <!-- A source's failure in plain words: it took too long to answer. -->
+    <string name="reason_source_timeout">It took too long to answer.</string>
+    <!-- A source's failure in plain words: it asks for a pause. -->
+    <string name="reason_source_busy">It is busy. Try again in a minute.</string>
+    <!-- A source's failure in plain words: it had a fault. -->
+    <string name="reason_source_problem">It had a problem.</string>
+    <!-- A source's failure in plain words: it refused the request. -->
+    <string name="reason_source_turned_away">It turned the request away.</string>
+    <!-- A source's failure in plain words: its address is not found. -->
+    <string name="reason_source_no_address">Its address could not be found.</string>
+    <!-- A source's failure in plain words: it could not be reached. -->
+    <string name="reason_source_unreachable">It could not be reached.</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->
