@@ -3713,10 +3713,10 @@ continue-widget-connect = Connect AniList to see it here.
 # Line on the widget and the TV when there is nothing left to watch.
 continue-caught-up = You're caught up.
 
-# Main button of the title page: resumes the episode at its stored position.
-title-button-continue = Continue episode { $episode }
+# Main button of the title page when the episode is part-watched. The time is where it stopped, already formatted.
+title-button-resume = Resume episode { $episode } · { $time }
 
-# Main button of the title page: plays the next unwatched episode from the start.
+# Main button of the title page otherwise: plays the next unwatched episode from the start.
 title-button-play = Play episode { $episode }
 
 # Main button of the title page when there is no { -source } to play from.
@@ -4817,7 +4817,7 @@ settings-group-picture = Picture
 settings-group-files = Files
 
 # Group heading.
-settings-group-ahead = Ahead
+settings-group-ahead = Download ahead
 
 # Group heading.
 settings-group-notifications = Notifications
@@ -5103,13 +5103,13 @@ widget-connect-detail = Connect tracker, or play an episode, to see it here.
 widget-connect = Connect
 
 # Accessibility label of a widget row: continue an episode.
-widget-continue-label = Continue episode { $episode } of { $title }
+widget-resume-label = Resume episode { $episode } of { $title }
 
 # Accessibility label of a widget row: start an episode.
 widget-start-label = Play episode { $episode } of { $title }
 
 # Accessibility label of a widget row: continue a dubbed episode.
-widget-continue-dubbed-label = Continue episode { $episode }, dubbed, of { $title }
+widget-resume-dubbed-label = Resume episode { $episode }, dubbed, of { $title }
 
 # Title of the screen or section that lists sources.
 sources-title = Sources

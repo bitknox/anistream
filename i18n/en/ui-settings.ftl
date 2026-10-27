@@ -52,7 +52,7 @@ settings-group-picture = Picture
 settings-group-files = Files
 
 # Group heading.
-settings-group-ahead = Ahead
+settings-group-ahead = Download ahead
 
 # Group heading.
 settings-group-notifications = Notifications
@@ -352,7 +352,7 @@ widget-connect = Connect
 # Accessibility label of a widget row: continue an episode.
 # @arg episode: int
 # @arg title: text
-widget-continue-label = { -continue-cap } episode { $episode } of { $title }
+widget-resume-label = Resume episode { $episode } of { $title }
 
 # Accessibility label of a widget row: start an episode.
 # @arg episode: int
@@ -362,4 +362,4 @@ widget-start-label = Play episode { $episode } of { $title }
 # Accessibility label of a widget row: continue a dubbed episode.
 # @arg episode: int
 # @arg title: text
-widget-continue-dubbed-label = { -continue-cap } episode { $episode }, { -dubbed }, of { $title }
+widget-resume-dubbed-label = Resume episode { $episode }, { -dubbed }, of { $title }

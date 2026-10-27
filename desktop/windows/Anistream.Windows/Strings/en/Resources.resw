@@ -1731,13 +1731,13 @@
     <value>You're caught up.</value>
     <comment>Line on the widget and the TV when there is nothing left to watch.</comment>
   </data>
-  <data name="TitleButtonContinue" xml:space="preserve">
-    <value>Continue episode {episode}</value>
-    <comment>Main button of the title page: resumes the episode at its stored position.</comment>
+  <data name="TitleButtonResume" xml:space="preserve">
+    <value>Resume episode {episode} · {time}</value>
+    <comment>Main button of the title page when the episode is part-watched. The time is where it stopped, already formatted.</comment>
   </data>
   <data name="TitleButtonPlay" xml:space="preserve">
     <value>Play episode {episode}</value>
-    <comment>Main button of the title page: plays the next unwatched episode from the start.</comment>
+    <comment>Main button of the title page otherwise: plays the next unwatched episode from the start.</comment>
   </data>
   <data name="TitleButtonAddSource" xml:space="preserve">
     <value>Add a source to play</value>
@@ -3200,7 +3200,7 @@
     <comment>Group heading.</comment>
   </data>
   <data name="SettingsGroupAhead" xml:space="preserve">
-    <value>Ahead</value>
+    <value>Download ahead</value>
     <comment>Group heading.</comment>
   </data>
   <data name="SettingsGroupNotifications" xml:space="preserve">
@@ -3579,16 +3579,16 @@
     <value>Connect</value>
     <comment>Button on the widget.</comment>
   </data>
-  <data name="WidgetContinueLabel" xml:space="preserve">
-    <value>Continue episode {episode} of {title}</value>
+  <data name="WidgetResumeLabel" xml:space="preserve">
+    <value>Resume episode {episode} of {title}</value>
     <comment>Accessibility label of a widget row: continue an episode.</comment>
   </data>
   <data name="WidgetStartLabel" xml:space="preserve">
     <value>Play episode {episode} of {title}</value>
     <comment>Accessibility label of a widget row: start an episode.</comment>
   </data>
-  <data name="WidgetContinueDubbedLabel" xml:space="preserve">
-    <value>Continue episode {episode}, dubbed, of {title}</value>
+  <data name="WidgetResumeDubbedLabel" xml:space="preserve">
+    <value>Resume episode {episode}, dubbed, of {title}</value>
     <comment>Accessibility label of a widget row: continue a dubbed episode.</comment>
   </data>
   <data name="SourcesTitle" xml:space="preserve">

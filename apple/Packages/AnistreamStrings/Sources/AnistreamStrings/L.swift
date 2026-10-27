@@ -1598,12 +1598,12 @@ public enum L {
     /// Line on the widget and the TV when there is nothing left to watch.
     public static var continueCaughtUp: String { string("continue-caught-up", fallback: "You're caught up.") }
 
-    /// Main button of the title page: resumes the episode at its stored position.
-    public static func titleButtonContinue(episode: Int) -> String {
-        format("title-button-continue", fallback: "Continue episode %1$lld", episode)
+    /// Main button of the title page when the episode is part-watched. The time is where it stopped, already formatted.
+    public static func titleButtonResume(episode: Int, time: String) -> String {
+        format("title-button-resume", fallback: "Resume episode %1$lld · %2$@", episode, time)
     }
 
-    /// Main button of the title page: plays the next unwatched episode from the start.
+    /// Main button of the title page otherwise: plays the next unwatched episode from the start.
     public static func titleButtonPlay(episode: Int) -> String {
         format("title-button-play", fallback: "Play episode %1$lld", episode)
     }
@@ -2816,7 +2816,7 @@ public enum L {
     public static var settingsGroupFiles: String { string("settings-group-files", fallback: "Files") }
 
     /// Group heading.
-    public static var settingsGroupAhead: String { string("settings-group-ahead", fallback: "Ahead") }
+    public static var settingsGroupAhead: String { string("settings-group-ahead", fallback: "Download ahead") }
 
     /// Group heading.
     public static var settingsGroupNotifications: String { string("settings-group-notifications", fallback: "Notifications") }
@@ -3110,8 +3110,8 @@ public enum L {
     public static var widgetConnect: String { string("widget-connect", fallback: "Connect") }
 
     /// Accessibility label of a widget row: continue an episode.
-    public static func widgetContinueLabel(episode: Int, title: String) -> String {
-        format("widget-continue-label", fallback: "Continue episode %1$lld of %2$@", episode, title)
+    public static func widgetResumeLabel(episode: Int, title: String) -> String {
+        format("widget-resume-label", fallback: "Resume episode %1$lld of %2$@", episode, title)
     }
 
     /// Accessibility label of a widget row: start an episode.
@@ -3120,8 +3120,8 @@ public enum L {
     }
 
     /// Accessibility label of a widget row: continue a dubbed episode.
-    public static func widgetContinueDubbedLabel(episode: Int, title: String) -> String {
-        format("widget-continue-dubbed-label", fallback: "Continue episode %1$lld, dubbed, of %2$@", episode, title)
+    public static func widgetResumeDubbedLabel(episode: Int, title: String) -> String {
+        format("widget-resume-dubbed-label", fallback: "Resume episode %1$lld, dubbed, of %2$@", episode, title)
     }
 
     /// Title of the screen or section that lists sources.

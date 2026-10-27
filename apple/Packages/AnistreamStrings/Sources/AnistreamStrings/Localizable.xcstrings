@@ -9978,7 +9978,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ahead"
+            "value" : "Download ahead"
           }
         }
       }
@@ -14155,26 +14155,26 @@
         }
       }
     },
-    "title-button-continue" : {
-      "comment" : "Main button of the title page: resumes the episode at its stored position. Argument 1: episode (Int).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continue episode %1$lld"
-          }
-        }
-      }
-    },
     "title-button-play" : {
-      "comment" : "Main button of the title page: plays the next unwatched episode from the start. Argument 1: episode (Int).",
+      "comment" : "Main button of the title page otherwise: plays the next unwatched episode from the start. Argument 1: episode (Int).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Play episode %1$lld"
+          }
+        }
+      }
+    },
+    "title-button-resume" : {
+      "comment" : "Main button of the title page when the episode is part-watched. The time is where it stopped, already formatted. Argument 1: episode (Int). Argument 2: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume episode %1$lld · %2$@"
           }
         }
       }
@@ -17035,30 +17035,6 @@
         }
       }
     },
-    "widget-continue-dubbed-label" : {
-      "comment" : "Accessibility label of a widget row: continue a dubbed episode. Argument 1: episode (Int). Argument 2: title (Text).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continue episode %1$lld, dubbed, of %2$@"
-          }
-        }
-      }
-    },
-    "widget-continue-label" : {
-      "comment" : "Accessibility label of a widget row: continue an episode. Argument 1: episode (Int). Argument 2: title (Text).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continue episode %1$lld of %2$@"
-          }
-        }
-      }
-    },
     "widget-in-your-list" : {
       "comment" : "Heading of the section that shows what is in the library.",
       "extractionState" : "manual",
@@ -17103,6 +17079,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nothing airing today."
+          }
+        }
+      }
+    },
+    "widget-resume-dubbed-label" : {
+      "comment" : "Accessibility label of a widget row: continue a dubbed episode. Argument 1: episode (Int). Argument 2: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume episode %1$lld, dubbed, of %2$@"
+          }
+        }
+      }
+    },
+    "widget-resume-label" : {
+      "comment" : "Accessibility label of a widget row: continue an episode. Argument 1: episode (Int). Argument 2: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume episode %1$lld of %2$@"
           }
         }
       }

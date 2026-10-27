@@ -1236,10 +1236,10 @@ public static partial class T
     /// <summary>Line on the widget and the TV when there is nothing left to watch.</summary>
     public static string ContinueCaughtUp => Get("ContinueCaughtUp");
 
-    /// <summary>Main button of the title page: resumes the episode at its stored position.</summary>
-    public static string TitleButtonContinue(long episode) => Fill(Get("TitleButtonContinue"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+    /// <summary>Main button of the title page when the episode is part-watched. The time is where it stopped, already formatted.</summary>
+    public static string TitleButtonResume(long episode, string time) => Fill(Get("TitleButtonResume"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("time", time));
 
-    /// <summary>Main button of the title page: plays the next unwatched episode from the start.</summary>
+    /// <summary>Main button of the title page otherwise: plays the next unwatched episode from the start.</summary>
     public static string TitleButtonPlay(long episode) => Fill(Get("TitleButtonPlay"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
     /// <summary>Main button of the title page when there is no { -source } to play from.</summary>
@@ -2614,13 +2614,13 @@ public static partial class T
     public static string WidgetConnect => Get("WidgetConnect");
 
     /// <summary>Accessibility label of a widget row: continue an episode.</summary>
-    public static string WidgetContinueLabel(long episode, string title) => Fill(Get("WidgetContinueLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
+    public static string WidgetResumeLabel(long episode, string title) => Fill(Get("WidgetResumeLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
 
     /// <summary>Accessibility label of a widget row: start an episode.</summary>
     public static string WidgetStartLabel(long episode, string title) => Fill(Get("WidgetStartLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
 
     /// <summary>Accessibility label of a widget row: continue a dubbed episode.</summary>
-    public static string WidgetContinueDubbedLabel(long episode, string title) => Fill(Get("WidgetContinueDubbedLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
+    public static string WidgetResumeDubbedLabel(long episode, string title) => Fill(Get("WidgetResumeDubbedLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
 
     /// <summary>Title of the screen or section that lists sources.</summary>
     public static string SourcesTitle => Get("SourcesTitle");
@@ -4578,7 +4578,7 @@ public static partial class T
         ["ContinueRowCaughtUpPlain"] = "Caught up",
         ["ContinueWidgetConnect"] = "Connect AniList to see it here.",
         ["ContinueCaughtUp"] = "You're caught up.",
-        ["TitleButtonContinue"] = "Continue episode {episode}",
+        ["TitleButtonResume"] = "Resume episode {episode} · {time}",
         ["TitleButtonPlay"] = "Play episode {episode}",
         ["TitleButtonAddSource"] = "Add a source to play",
         ["LibraryStatusWatching"] = "Watching",
@@ -4945,7 +4945,7 @@ public static partial class T
         ["SettingsGroupPlayer"] = "Player",
         ["SettingsGroupPicture"] = "Picture",
         ["SettingsGroupFiles"] = "Files",
-        ["SettingsGroupAhead"] = "Ahead",
+        ["SettingsGroupAhead"] = "Download ahead",
         ["SettingsGroupNotifications"] = "Notifications",
         ["SettingsGroupIntegrations"] = "Integrations",
         ["SettingsGroupAdvanced"] = "Advanced",
@@ -5040,9 +5040,9 @@ public static partial class T
         ["WidgetUpdated"] = "Updated {when}",
         ["WidgetConnectDetail"] = "Connect tracker, or play an episode, to see it here.",
         ["WidgetConnect"] = "Connect",
-        ["WidgetContinueLabel"] = "Continue episode {episode} of {title}",
+        ["WidgetResumeLabel"] = "Resume episode {episode} of {title}",
         ["WidgetStartLabel"] = "Play episode {episode} of {title}",
-        ["WidgetContinueDubbedLabel"] = "Continue episode {episode}, dubbed, of {title}",
+        ["WidgetResumeDubbedLabel"] = "Resume episode {episode}, dubbed, of {title}",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",

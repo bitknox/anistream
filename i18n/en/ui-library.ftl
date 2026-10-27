@@ -109,12 +109,13 @@ continue-caught-up = You're caught up.
 
 ## Title page button
 
-# Main button of the title page: resumes the episode at its stored position.
+# Main button of the title page when the episode is part-watched. The time is where it stopped, already formatted.
 # @arg episode: int
+# @arg time: text
 # @max 40
-title-button-continue = { -continue-cap } episode { $episode }
+title-button-resume = Resume episode { $episode } · { $time }
 
-# Main button of the title page: plays the next unwatched episode from the start.
+# Main button of the title page otherwise: plays the next unwatched episode from the start.
 # @arg episode: int
 # @max 40
 title-button-play = Play episode { $episode }

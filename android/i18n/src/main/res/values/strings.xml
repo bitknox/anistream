@@ -871,9 +871,9 @@
     <string name="continue_widget_connect">Connect AniList to see it here.</string>
     <!-- Line on the widget and the TV when there is nothing left to watch. -->
     <string name="continue_caught_up">You\'re caught up.</string>
-    <!-- Main button of the title page: resumes the episode at its stored position. -->
-    <string name="title_button_continue">Continue episode %1$d</string>
-    <!-- Main button of the title page: plays the next unwatched episode from the start. -->
+    <!-- Main button of the title page when the episode is part-watched. The time is where it stopped, already formatted. -->
+    <string name="title_button_resume">Resume episode %1$d · %2$s</string>
+    <!-- Main button of the title page otherwise: plays the next unwatched episode from the start. -->
     <string name="title_button_play">Play episode %1$d</string>
     <!-- Main button of the title page when there is no { -source } to play from. -->
     <string name="title_button_add_source">Add a source to play</string>
@@ -1608,7 +1608,7 @@
     <!-- Group heading. -->
     <string name="settings_group_files">Files</string>
     <!-- Group heading. -->
-    <string name="settings_group_ahead">Ahead</string>
+    <string name="settings_group_ahead">Download ahead</string>
     <!-- Group heading. -->
     <string name="settings_group_notifications">Notifications</string>
     <!-- Group heading. -->
@@ -1799,11 +1799,11 @@
     <!-- Button on the widget. -->
     <string name="widget_connect">Connect</string>
     <!-- Accessibility label of a widget row: continue an episode. -->
-    <string name="widget_continue_label">Continue episode %1$d of %2$s</string>
+    <string name="widget_resume_label">Resume episode %1$d of %2$s</string>
     <!-- Accessibility label of a widget row: start an episode. -->
     <string name="widget_start_label">Play episode %1$d of %2$s</string>
     <!-- Accessibility label of a widget row: continue a dubbed episode. -->
-    <string name="widget_continue_dubbed_label">Continue episode %1$d, dubbed, of %2$s</string>
+    <string name="widget_resume_dubbed_label">Resume episode %1$d, dubbed, of %2$s</string>
     <!-- Title of the screen or section that lists sources. -->
     <string name="sources_title">Sources</string>
     <!-- Shown on the sources screen when none is installed. -->

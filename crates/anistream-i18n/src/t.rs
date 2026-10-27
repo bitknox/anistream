@@ -5960,12 +5960,12 @@ pub fn continue_caught_up() -> String {
     text("continue-caught-up", &[])
 }
 
-/// Main button of the title page: resumes the episode at its stored position.
-pub fn title_button_continue(episode: i64) -> String {
-    text("title-button-continue", &[("episode", Arg::Int(episode))])
+/// Main button of the title page when the episode is part-watched. The time is where it stopped, already formatted.
+pub fn title_button_resume(episode: i64, time: &str) -> String {
+    text("title-button-resume", &[("episode", Arg::Int(episode)), ("time", Arg::Text(time))])
 }
 
-/// Main button of the title page: plays the next unwatched episode from the start.
+/// Main button of the title page otherwise: plays the next unwatched episode from the start.
 pub fn title_button_play(episode: i64) -> String {
     text("title-button-play", &[("episode", Arg::Int(episode))])
 }
@@ -8256,8 +8256,8 @@ pub fn widget_connect() -> String {
 }
 
 /// Accessibility label of a widget row: continue an episode.
-pub fn widget_continue_label(episode: i64, title: &str) -> String {
-    text("widget-continue-label", &[("episode", Arg::Int(episode)), ("title", Arg::Text(title))])
+pub fn widget_resume_label(episode: i64, title: &str) -> String {
+    text("widget-resume-label", &[("episode", Arg::Int(episode)), ("title", Arg::Text(title))])
 }
 
 /// Accessibility label of a widget row: start an episode.
@@ -8266,8 +8266,8 @@ pub fn widget_start_label(episode: i64, title: &str) -> String {
 }
 
 /// Accessibility label of a widget row: continue a dubbed episode.
-pub fn widget_continue_dubbed_label(episode: i64, title: &str) -> String {
-    text("widget-continue-dubbed-label", &[("episode", Arg::Int(episode)), ("title", Arg::Text(title))])
+pub fn widget_resume_dubbed_label(episode: i64, title: &str) -> String {
+    text("widget-resume-dubbed-label", &[("episode", Arg::Int(episode)), ("title", Arg::Text(title))])
 }
 
 /// Title of the screen or section that lists sources.

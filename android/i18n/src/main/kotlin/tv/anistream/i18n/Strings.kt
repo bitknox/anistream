@@ -1645,11 +1645,11 @@ object Strings {
     fun continueCaughtUp(context: Context): String =
         context.getString(R.string.continue_caught_up)
 
-    /** Main button of the title page: resumes the episode at its stored position. */
-    fun titleButtonContinue(context: Context, episode: Int): String =
-        context.getString(R.string.title_button_continue, episode)
+    /** Main button of the title page when the episode is part-watched. The time is where it stopped, already formatted. */
+    fun titleButtonResume(context: Context, episode: Int, time: String): String =
+        context.getString(R.string.title_button_resume, episode, time)
 
-    /** Main button of the title page: plays the next unwatched episode from the start. */
+    /** Main button of the title page otherwise: plays the next unwatched episode from the start. */
     fun titleButtonPlay(context: Context, episode: Int): String =
         context.getString(R.string.title_button_play, episode)
 
@@ -3482,16 +3482,16 @@ object Strings {
         context.getString(R.string.widget_connect)
 
     /** Accessibility label of a widget row: continue an episode. */
-    fun widgetContinueLabel(context: Context, episode: Int, title: String): String =
-        context.getString(R.string.widget_continue_label, episode, title)
+    fun widgetResumeLabel(context: Context, episode: Int, title: String): String =
+        context.getString(R.string.widget_resume_label, episode, title)
 
     /** Accessibility label of a widget row: start an episode. */
     fun widgetStartLabel(context: Context, episode: Int, title: String): String =
         context.getString(R.string.widget_start_label, episode, title)
 
     /** Accessibility label of a widget row: continue a dubbed episode. */
-    fun widgetContinueDubbedLabel(context: Context, episode: Int, title: String): String =
-        context.getString(R.string.widget_continue_dubbed_label, episode, title)
+    fun widgetResumeDubbedLabel(context: Context, episode: Int, title: String): String =
+        context.getString(R.string.widget_resume_dubbed_label, episode, title)
 
     /** Title of the screen or section that lists sources. */
     fun sourcesTitle(context: Context): String =

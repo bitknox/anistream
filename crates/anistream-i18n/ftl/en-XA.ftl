@@ -3713,10 +3713,10 @@ continue-widget-connect = [Çöññéçţ ÅñîĻîšţ ţö šéé îţ ĥéŕ
 # Line on the widget and the TV when there is nothing left to watch.
 continue-caught-up = [Ýöü'ŕé çàüĝĥţ üþ.~~~~~~]
 
-# Main button of the title page: resumes the episode at its stored position.
-title-button-continue = [Çöñţîñüé éþîšöðé { $episode }~~~~~~]
+# Main button of the title page when the episode is part-watched. The time is where it stopped, already formatted.
+title-button-resume = [Ŕéšüɱé éþîšöðé { $episode } · { $time }~~~~~~~~]
 
-# Main button of the title page: plays the next unwatched episode from the start.
+# Main button of the title page otherwise: plays the next unwatched episode from the start.
 title-button-play = [Þļàý éþîšöðé { $episode }~~~~~]
 
 # Main button of the title page when there is no { -source } to play from.
@@ -4817,7 +4817,7 @@ settings-group-picture = [Þîçţüŕé~~~]
 settings-group-files = [Ƒîļéš~~]
 
 # Group heading.
-settings-group-ahead = [Åĥéàð~~]
+settings-group-ahead = [Ðöŵñļöàð àĥéàð~~~~~]
 
 # Group heading.
 settings-group-notifications = [Ñöţîƒîçàţîöñš~~~~]
@@ -5103,13 +5103,13 @@ widget-connect-detail = [Çöññéçţ ţŕàçķéŕ, öŕ þļàý àñ éþ�
 widget-connect = [Çöññéçţ~~~]
 
 # Accessibility label of a widget row: continue an episode.
-widget-continue-label = [Çöñţîñüé éþîšöðé { $episode } öƒ { $title }~~~~~~~~~]
+widget-resume-label = [Ŕéšüɱé éþîšöðé { $episode } öƒ { $title }~~~~~~~~]
 
 # Accessibility label of a widget row: start an episode.
 widget-start-label = [Þļàý éþîšöðé { $episode } öƒ { $title }~~~~~~~]
 
 # Accessibility label of a widget row: continue a dubbed episode.
-widget-continue-dubbed-label = [Çöñţîñüé éþîšöðé { $episode }, ðüƀƀéð, öƒ { $title }~~~~~~~~~~~]
+widget-resume-dubbed-label = [Ŕéšüɱé éþîšöðé { $episode }, ðüƀƀéð, öƒ { $title }~~~~~~~~~~~]
 
 # Title of the screen or section that lists sources.
 sources-title = [Šöüŕçéš~~~]
