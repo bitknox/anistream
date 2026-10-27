@@ -55,8 +55,8 @@ pub async fn vpn_watch(
         // asked for while the check fails still waits for it: the guard permits none.
         let warn = guard.on_leak() == anistream_core::config::LeakAction::Warn;
         if leaking && !was_leaking && warn {
-            let _ = tx.send(Event::Toast(anistream_model::notice::Notice::raw_alert(
-                "the connection check failed · torrents keep running",
+            let _ = tx.send(Event::Toast(anistream_model::notice::Notice::alert(
+                anistream_model::Msg::TorrentCheckFailedRunning,
             )));
         } else if leaking && !was_leaking {
             // Marking the provider unavailable only stops *new* requests. Without this,

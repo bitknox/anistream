@@ -35,6 +35,282 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="StoreJoined" xml:space="preserve">
+    <value>Joined {store} as {member}.</value>
+    <comment>Toast after joining a plugin store with an invite that names this device's owner.</comment>
+  </data>
+  <data name="StoreJoinedUnnamed" xml:space="preserve">
+    <value>Joined {store} without a name.</value>
+    <comment>Toast after joining a plugin store with its open link, which keeps no name.</comment>
+  </data>
+  <data name="StoreLeft" xml:space="preserve">
+    <value>Left {store}. Its plugins stay installed.</value>
+    <comment>Toast after leaving a plugin store.</comment>
+  </data>
+  <data name="PluginRemoved" xml:space="preserve">
+    <value>Removed {plugin}.</value>
+    <comment>Toast after a plugin is deleted from this device.</comment>
+  </data>
+  <data name="StoreMemberRemoved" xml:space="preserve">
+    <value>Removed. Their devices stopped working with this plugin store.</value>
+    <comment>Toast after a store owner removes a member.</comment>
+  </data>
+  <data name="StoreInviteCancelled" xml:space="preserve">
+    <value>Invite cancelled. The link no longer works.</value>
+    <comment>Toast after a store owner cancels an invite.</comment>
+  </data>
+  <data name="StoreOpenJoinOn" xml:space="preserve">
+    <value>Anyone with the plugin store's link can join now. Copy it from the members screen.</value>
+    <comment>Toast after a store owner lets anyone with the store's link join.</comment>
+  </data>
+  <data name="StoreOpenJoinOff" xml:space="preserve">
+    <value>Only people you invite can join now.</value>
+    <comment>Toast after a store owner turns off joining with the link, when no device joined that way.</comment>
+  </data>
+  <data name="StoreOpenJoinOffDevices_one" xml:space="preserve">
+    <value>Only people you invite can join now. The device that joined with the link keeps working until you remove it.</value>
+    <comment>Toast after a store owner turns off joining with the link, when some devices joined that way.</comment>
+  </data>
+  <data name="StoreOpenJoinOffDevices_other" xml:space="preserve">
+    <value>Only people you invite can join now. The {devices} devices that joined with the link keep working until you remove them.</value>
+    <comment>Toast after a store owner turns off joining with the link, when some devices joined that way.</comment>
+  </data>
+  <data name="StoreDeviceRemoved" xml:space="preserve">
+    <value>That device no longer works with this plugin store.</value>
+    <comment>Toast after one device that joined with the store's link is removed.</comment>
+  </data>
+  <data name="StoreDevicesRemoved" xml:space="preserve">
+    <value>Removed every device that joined with the link.</value>
+    <comment>Toast after every device that joined with the store's link is removed.</comment>
+  </data>
+  <data name="PluginPublished" xml:space="preserve">
+    <value>Published {plugin} {version}.</value>
+    <comment>Toast after a plugin is published to a store.</comment>
+  </data>
+  <data name="PluginUnpublished" xml:space="preserve">
+    <value>{plugin} is no longer offered.</value>
+    <comment>Toast after a plugin stops being offered in a store.</comment>
+  </data>
+  <data name="StoreAdminOpened" xml:space="preserve">
+    <value>Opened the admin page in your browser. The link works once, for ten minutes.</value>
+    <comment>Toast after the store's admin page opens in the browser.</comment>
+  </data>
+  <data name="StoreAdminOpenFailed" xml:space="preserve">
+    <value>Couldn't open a browser ({reason}). On the plugin store's machine, run "anistream store admin" to print a link.</value>
+    <comment>Toast when the browser could not be opened for the store's admin page. The reason comes from the system.</comment>
+  </data>
+  <data name="PluginInstalledUnused" xml:space="preserve">
+    <value>Installed {plugin} {version}, but plugins are switched off in the source order, so it isn't used.</value>
+    <comment>Toast after a plugin is installed while plugins are switched off in the source order.</comment>
+  </data>
+  <data name="PluginInstalledNameClash" xml:space="preserve">
+    <value>Installed {plugin}, but {id} is the name of a built-in source, so it wasn't loaded.</value>
+    <comment>Toast after a plugin is installed under the name of a built-in source, so it was not loaded.</comment>
+  </data>
+  <data name="PluginInstalled" xml:space="preserve">
+    <value>Installed {plugin} {version}.</value>
+    <comment>Toast after a plugin is installed and ready to use.</comment>
+  </data>
+  <data name="PluginInstalledNotLoaded" xml:space="preserve">
+    <value>Installed {plugin}, but it didn't load. {reason}</value>
+    <comment>Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.</comment>
+  </data>
+  <data name="PluginUpdatesReady_one" xml:space="preserve">
+    <value>Plugin update ready: {names}.</value>
+    <comment>Toast at launch when joined plugin stores offer newer versions of installed plugins.</comment>
+  </data>
+  <data name="PluginUpdatesReady_other" xml:space="preserve">
+    <value>Plugin updates ready: {names}.</value>
+    <comment>Toast at launch when joined plugin stores offer newer versions of installed plugins.</comment>
+  </data>
+  <data name="PluginsLoadFailed" xml:space="preserve">
+    <value>Couldn't load plugins. {reason}</value>
+    <comment>Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host.</comment>
+  </data>
+  <data name="StoreTokenMissing" xml:space="preserve">
+    <value>There is no token for {store} on this device. Join it again with a new invite.</value>
+    <comment>Error: the store was joined once, but this device has no saved token for it.</comment>
+  </data>
+  <data name="StoreNotJoined" xml:space="preserve">
+    <value>That plugin store is no longer joined.</value>
+    <comment>Error: the store the record points to is gone from the saved list.</comment>
+  </data>
+  <data name="StoreKeyDamaged" xml:space="preserve">
+    <value>The plugin store's key is damaged.</value>
+    <comment>Error: a store's signing key is unreadable. Shown as the reason a store is offline.</comment>
+  </data>
+  <data name="StoreDeviceRefused" xml:space="preserve">
+    <value>{store} no longer accepts this device. Join it again with a new invite.</value>
+    <comment>Error: a store rejected this device's token.</comment>
+  </data>
+  <data name="StoreUnreachable" xml:space="preserve">
+    <value>Couldn't reach {store}. {reason}</value>
+    <comment>Error: a store could not be reached. The reason comes from the network.</comment>
+  </data>
+  <data name="StoreMoved" xml:space="preserve">
+    <value>{store} is joined at {current}, but this link points to {target}. If the plugin store has moved, leave it first and join again.</value>
+    <comment>Error: an invite link names a store this device already joined, but at another address.</comment>
+  </data>
+  <data name="StoreJoinWouldUnname" xml:space="preserve">
+    <value>You joined {store} as {member}. This link would join it again without your name, so nothing was changed.</value>
+    <comment>Error: an open link would replace the named membership this device already has.</comment>
+  </data>
+  <data name="StoreNotTheInvited" xml:space="preserve">
+    <value>{url} is not the plugin store in the invite ({reason}). Nothing was joined.</value>
+    <comment>Error: the server at a link's address could not prove it is the store the invite named.</comment>
+  </data>
+  <data name="StoreTokenNotKept" xml:space="preserve">
+    <value>Couldn't keep the token for this plugin store. {reason}</value>
+    <comment>Error: the token for a joined store could not be saved on this device. The reason comes from the system.</comment>
+  </data>
+  <data name="StoreInviteUnusable" xml:space="preserve">
+    <value>That invite was already used, was cancelled or has expired. Ask for a new one.</value>
+    <comment>Error: an invite that cannot be used any more.</comment>
+  </data>
+  <data name="StoreOpenLinkUnusable" xml:space="preserve">
+    <value>That link no longer lets anyone join. Ask the plugin store's owner for a new link or an invite.</value>
+    <comment>Error: an open link that no longer lets anyone join.</comment>
+  </data>
+  <data name="PluginReservedName" xml:space="preserve">
+    <value>{plugin} is the name of a built-in source, so it can't be a plugin.</value>
+    <comment>Error: a plugin takes the name of a built-in source.</comment>
+  </data>
+  <data name="StorePluginWithdrawn" xml:space="preserve">
+    <value>{store} no longer offers {plugin}.</value>
+    <comment>Error: a store stopped offering a plugin between listing it and installing it.</comment>
+  </data>
+  <data name="StorePluginChanged" xml:space="preserve">
+    <value>{store} changed {plugin} since it was shown. Look at it again before installing.</value>
+    <comment>Error: a store changed a plugin after the person agreed to what was shown.</comment>
+  </data>
+  <data name="PluginFromOtherStore" xml:space="preserve">
+    <value>{plugin} is installed from {store}, which keeps it updated.</value>
+    <comment>Error: a plugin installed from one store is offered by another.</comment>
+  </data>
+  <data name="PluginDuplicateFile" xml:space="preserve">
+    <value>{path} already declares {plugin}. Remove that file first, or two copies would run.</value>
+    <comment>Error: a plugin file added by hand already declares the same name.</comment>
+  </data>
+  <data name="PluginInstallFailed" xml:space="preserve">
+    <value>Couldn't install {plugin}. {reason}</value>
+    <comment>Error: a plugin could not be downloaded or installed. The reason comes from the store or the system.</comment>
+  </data>
+  <data name="PluginPublishFailed" xml:space="preserve">
+    <value>Couldn't publish {plugin}. {reason}</value>
+    <comment>Error: a plugin could not be published. The reason comes from the store or the system.</comment>
+  </data>
+  <data name="PluginMissingLocally" xml:space="preserve">
+    <value>{plugin} is no longer in the plugin folder.</value>
+    <comment>Error: a plugin to publish is no longer in the plugin folder.</comment>
+  </data>
+  <data name="StoreInviteNeedsLink" xml:space="preserve">
+    <value>This device joined {store} with its link. Paste the same link on the other device.</value>
+    <comment>Error: an invite for another device cannot be made from a device that joined with the open link.</comment>
+  </data>
+  <data name="StoreLinkMalformed" xml:space="preserve">
+    <value>The plugin store made a bad link. {reason}</value>
+    <comment>Error: the store sent an invite link that does not parse. The reason comes from the link parser.</comment>
+  </data>
+  <data name="StoreLinkWrongKey" xml:space="preserve">
+    <value>The plugin store made a link with a different key. Check the address it was started with.</value>
+    <comment>Error: the store sent a link carrying another store's key.</comment>
+  </data>
+  <data name="StoreAdminMissing" xml:space="preserve">
+    <value>{store} has no admin page. Its server may be older.</value>
+    <comment>Error: the store's server has no admin page.</comment>
+  </data>
+  <data name="StoreAdminLinkForeign" xml:space="preserve">
+    <value>{store} sent an admin link for another address.</value>
+    <comment>Error: the store sent an admin link that points somewhere else.</comment>
+  </data>
+  <data name="StoreOpenJoinUnsupported" xml:space="preserve">
+    <value>{store}'s server is older and can't let anyone join with a link. Update it first.</value>
+    <comment>Error: the store's server is too old for joining with a link.</comment>
+  </data>
+  <data name="SourceSwitchedOff" xml:space="preserve">
+    <value>{name} is off. It is skipped when looking for episodes.</value>
+    <comment>Toast after a source (plugin) is switched off. It is skipped when looking for episodes.</comment>
+  </data>
+  <data name="SourceSwitchedOn" xml:space="preserve">
+    <value>{name} is on.</value>
+    <comment>Toast after a source (plugin) is switched on.</comment>
+  </data>
+  <data name="PluginNotLoaded" xml:space="preserve">
+    <value>{id} is not a plugin that is loaded.</value>
+    <comment>Error: a command named a plugin that is not loaded.</comment>
+  </data>
+  <data name="ReleasePinned" xml:space="preserve">
+    <value>{name} will be used for this title.</value>
+    <comment>Toast after a release is chosen for a title. The name is the release's title.</comment>
+  </data>
+  <data name="NoticeChoiceNotSaved" xml:space="preserve">
+    <value>Couldn't save that choice. {reason}</value>
+    <comment>Toast when the chosen source or release for a title could not be saved. The reason comes from the database.</comment>
+  </data>
+  <data name="TorrentCheckFailedRunning" xml:space="preserve">
+    <value>The connection check failed. Torrents keep running.</value>
+    <comment>Toast while torrents are running but the connection check failed, and the settings say to warn only.</comment>
+  </data>
+  <data name="TorrentVpnWaiting" xml:space="preserve">
+    <value>Torrents start once the VPN guard passes. {reason}</value>
+    <comment>Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard.</comment>
+  </data>
+  <data name="TorrentVpnUnverified" xml:space="preserve">
+    <value>Torrents start once the VPN guard passes. The connection hasn't been verified yet.</value>
+    <comment>Note on the sources screen: the VPN guard has no verdict yet.</comment>
+  </data>
+  <data name="TorrentNoIndex" xml:space="preserve">
+    <value>Torrents need a torrent index. anistream ships none, so add your own address in the settings.</value>
+    <comment>Error: torrents are on, but no torrent index is set.</comment>
+  </data>
+  <data name="TorrentInterfaceClosed" xml:space="preserve">
+    <value>The interface closed before torrents started.</value>
+    <comment>Error: the torrent session did not start because the interface closed first.</comment>
+  </data>
+  <data name="TorrentSessionFailed" xml:space="preserve">
+    <value>Couldn't start the torrent session. {reason}</value>
+    <comment>Error: the torrent session could not start. The reason comes from the torrent engine.</comment>
+  </data>
+  <data name="TorrentNoKillSwitch" xml:space="preserve">
+    <value>There is no OS-level kill switch behind the VPN guard. Run "anistream --doctor" for advice.</value>
+    <comment>Toast when torrents are up but no operating-system firewall rule backs the VPN guard.</comment>
+  </data>
+  <data name="TorrentNotChecked" xml:space="preserve">
+    <value>Couldn't check the connection. {reason}</value>
+    <comment>Toast when the connection check could not run. The reason comes from the VPN settings.</comment>
+  </data>
+  <data name="SourcesReloadedTorrentsPending" xml:space="preserve">
+    <value>Sources reloaded. Torrents start once the VPN guard passes.</value>
+    <comment>Note on the sources screen after the source chain is rebuilt with torrents on.</comment>
+  </data>
+  <data name="SourcesReloadedTorrentsOff" xml:space="preserve">
+    <value>Torrents are off. The session was stopped.</value>
+    <comment>Note on the sources screen after the source chain is rebuilt with torrents off.</comment>
+  </data>
+  <data name="JobAnilistLimit" xml:space="preserve">
+    <value>Waiting on the AniList rate limit</value>
+    <comment>Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows.</comment>
+  </data>
+  <data name="NoticeAnilistLimit" xml:space="preserve">
+    <value>Waiting {wait} on the AniList rate limit.</value>
+    <comment>Toast when there is no job to carry the wait for AniList's rate limit.</comment>
+  </data>
+  <data name="NoticeAnilistUnreachable" xml:space="preserve">
+    <value>AniList is unreachable. Using the fallback for fresh data for now.</value>
+    <comment>Toast when the AniList fallback takes over because AniList cannot be reached.</comment>
+  </data>
+  <data name="NoticeMetadataCached" xml:space="preserve">
+    <value>No metadata service answered. Showing what was last cached.</value>
+    <comment>Toast when no metadata service answered and the last cached data is shown.</comment>
+  </data>
+  <data name="NoticeAnilistBack" xml:space="preserve">
+    <value>AniList is back.</value>
+    <comment>Toast when AniList answers again.</comment>
+  </data>
+  <data name="NoticePartyNotBuilt" xml:space="preserve">
+    <value>Watch parties aren't built into this app.</value>
+    <comment>Toast when a command needs watch parties but this app was built without them.</comment>
+  </data>
   <data name="LegalHostsNoContent" xml:space="preserve">
     <value>anistream hosts no content.</value>
     <comment>The legal line. It exists once, so no translation can paraphrase it.</comment>

@@ -215,6 +215,18 @@
         }
       }
     },
+    "job-anilist-limit" : {
+      "comment" : "Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting on the AniList rate limit"
+          }
+        }
+      }
+    },
     "language-draft-label" : {
       "comment" : "Label beside a language whose text a person has not reviewed yet.",
       "extractionState" : "manual",
@@ -287,6 +299,54 @@
         }
       }
     },
+    "notice-anilist-back" : {
+      "comment" : "Toast when AniList answers again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AniList is back."
+          }
+        }
+      }
+    },
+    "notice-anilist-limit" : {
+      "comment" : "Toast when there is no job to carry the wait for AniList's rate limit. Argument 1: wait (Seconds).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting %1$@ on the AniList rate limit."
+          }
+        }
+      }
+    },
+    "notice-anilist-unreachable" : {
+      "comment" : "Toast when the AniList fallback takes over because AniList cannot be reached.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AniList is unreachable. Using the fallback for fresh data for now."
+          }
+        }
+      }
+    },
+    "notice-choice-not-saved" : {
+      "comment" : "Toast when the chosen source or release for a title could not be saved. The reason comes from the database. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save that choice. %1$@"
+          }
+        }
+      }
+    },
     "notice-episodes-queued" : {
       "comment" : "Toast after episodes are added to the download queue. Argument 1: count (Int).",
       "extractionState" : "manual",
@@ -321,6 +381,18 @@
         }
       }
     },
+    "notice-metadata-cached" : {
+      "comment" : "Toast when no metadata service answered and the last cached data is shown.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No metadata service answered. Showing what was last cached."
+          }
+        }
+      }
+    },
     "notice-not-saved" : {
       "comment" : "Toast when a setting could not be stored. The reason comes from the system. Argument 1: reason (Text).",
       "extractionState" : "manual",
@@ -329,6 +401,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't save that setting. %1$@"
+          }
+        }
+      }
+    },
+    "notice-party-not-built" : {
+      "comment" : "Toast when a command needs watch parties but this app was built without them.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch parties aren't built into this app."
           }
         }
       }
@@ -381,6 +465,162 @@
         }
       }
     },
+    "plugin-duplicate-file" : {
+      "comment" : "Error: a plugin file added by hand already declares the same name. Argument 1: path (Text). Argument 2: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ already declares %2$@. Remove that file first, or two copies would run."
+          }
+        }
+      }
+    },
+    "plugin-from-other-store" : {
+      "comment" : "Error: a plugin installed from one store is offered by another. Argument 1: plugin (Text). Argument 2: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is installed from %2$@, which keeps it updated."
+          }
+        }
+      }
+    },
+    "plugin-install-failed" : {
+      "comment" : "Error: a plugin could not be downloaded or installed. The reason comes from the store or the system. Argument 1: plugin (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't install %1$@. %2$@"
+          }
+        }
+      }
+    },
+    "plugin-installed" : {
+      "comment" : "Toast after a plugin is installed and ready to use. Argument 1: plugin (Text). Argument 2: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed %1$@ %2$@."
+          }
+        }
+      }
+    },
+    "plugin-installed-name-clash" : {
+      "comment" : "Toast after a plugin is installed under the name of a built-in source, so it was not loaded. Argument 1: plugin (Text). Argument 2: id (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed %1$@, but %2$@ is the name of a built-in source, so it wasn't loaded."
+          }
+        }
+      }
+    },
+    "plugin-installed-not-loaded" : {
+      "comment" : "Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host. Argument 1: plugin (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed %1$@, but it didn't load. %2$@"
+          }
+        }
+      }
+    },
+    "plugin-installed-unused" : {
+      "comment" : "Toast after a plugin is installed while plugins are switched off in the source order. Argument 1: plugin (Text). Argument 2: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed %1$@ %2$@, but plugins are switched off in the source order, so it isn't used."
+          }
+        }
+      }
+    },
+    "plugin-missing-locally" : {
+      "comment" : "Error: a plugin to publish is no longer in the plugin folder. Argument 1: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is no longer in the plugin folder."
+          }
+        }
+      }
+    },
+    "plugin-not-loaded" : {
+      "comment" : "Error: a command named a plugin that is not loaded. Argument 1: id (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is not a plugin that is loaded."
+          }
+        }
+      }
+    },
+    "plugin-publish-failed" : {
+      "comment" : "Error: a plugin could not be published. The reason comes from the store or the system. Argument 1: plugin (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't publish %1$@. %2$@"
+          }
+        }
+      }
+    },
+    "plugin-published" : {
+      "comment" : "Toast after a plugin is published to a store. Argument 1: plugin (Text). Argument 2: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Published %1$@ %2$@."
+          }
+        }
+      }
+    },
+    "plugin-removed" : {
+      "comment" : "Toast after a plugin is deleted from this device. Argument 1: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed %1$@."
+          }
+        }
+      }
+    },
+    "plugin-reserved-name" : {
+      "comment" : "Error: a plugin takes the name of a built-in source. Argument 1: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is the name of a built-in source, so it can't be a plugin."
+          }
+        }
+      }
+    },
     "plugin-risk-warning" : {
       "comment" : "Warning at install and in onboarding, in the same words in both.",
       "extractionState" : "manual",
@@ -389,6 +629,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plugins are written by other people and run on your device. Install only from people you trust."
+          }
+        }
+      }
+    },
+    "plugin-unpublished" : {
+      "comment" : "Toast after a plugin stops being offered in a store. Argument 1: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is no longer offered."
+          }
+        }
+      }
+    },
+    "plugin-updates-ready" : {
+      "comment" : "Toast at launch when joined plugin stores offer newer versions of installed plugins. Argument 1: count (Int). Argument 2: names (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Plugin update ready: %2$@."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Plugin updates ready: %2$@."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "plugins-load-failed" : {
+      "comment" : "Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load plugins. %1$@"
           }
         }
       }
@@ -457,6 +755,18 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "release-pinned" : {
+      "comment" : "Toast after a release is chosen for a title. The name is the release's title. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ will be used for this title."
           }
         }
       }
@@ -711,6 +1021,30 @@
         }
       }
     },
+    "source-switched-off" : {
+      "comment" : "Toast after a source (plugin) is switched off. It is skipped when looking for episodes. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is off. It is skipped when looking for episodes."
+          }
+        }
+      }
+    },
+    "source-switched-on" : {
+      "comment" : "Toast after a source (plugin) is switched on. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is on."
+          }
+        }
+      }
+    },
     "sources-empty" : {
       "comment" : "Shown on the sources screen when none is installed.",
       "extractionState" : "manual",
@@ -719,6 +1053,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No sources yet. Join a plugin store to add some."
+          }
+        }
+      }
+    },
+    "sources-reloaded-torrents-off" : {
+      "comment" : "Note on the sources screen after the source chain is rebuilt with torrents off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents are off. The session was stopped."
+          }
+        }
+      }
+    },
+    "sources-reloaded-torrents-pending" : {
+      "comment" : "Note on the sources screen after the source chain is rebuilt with torrents on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sources reloaded. Torrents start once the VPN guard passes."
           }
         }
       }
@@ -735,6 +1093,400 @@
         }
       }
     },
+    "store-admin-link-foreign" : {
+      "comment" : "Error: the store sent an admin link that points somewhere else. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ sent an admin link for another address."
+          }
+        }
+      }
+    },
+    "store-admin-missing" : {
+      "comment" : "Error: the store's server has no admin page. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ has no admin page. Its server may be older."
+          }
+        }
+      }
+    },
+    "store-admin-open-failed" : {
+      "comment" : "Toast when the browser could not be opened for the store's admin page. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open a browser (%1$@). On the plugin store's machine, run \"anistream store admin\" to print a link."
+          }
+        }
+      }
+    },
+    "store-admin-opened" : {
+      "comment" : "Toast after the store's admin page opens in the browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opened the admin page in your browser. The link works once, for ten minutes."
+          }
+        }
+      }
+    },
+    "store-device-refused" : {
+      "comment" : "Error: a store rejected this device's token. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ no longer accepts this device. Join it again with a new invite."
+          }
+        }
+      }
+    },
+    "store-device-removed" : {
+      "comment" : "Toast after one device that joined with the store's link is removed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That device no longer works with this plugin store."
+          }
+        }
+      }
+    },
+    "store-devices-removed" : {
+      "comment" : "Toast after every device that joined with the store's link is removed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed every device that joined with the link."
+          }
+        }
+      }
+    },
+    "store-invite-cancelled" : {
+      "comment" : "Toast after a store owner cancels an invite.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite cancelled. The link no longer works."
+          }
+        }
+      }
+    },
+    "store-invite-needs-link" : {
+      "comment" : "Error: an invite for another device cannot be made from a device that joined with the open link. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device joined %1$@ with its link. Paste the same link on the other device."
+          }
+        }
+      }
+    },
+    "store-invite-unusable" : {
+      "comment" : "Error: an invite that cannot be used any more.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That invite was already used, was cancelled or has expired. Ask for a new one."
+          }
+        }
+      }
+    },
+    "store-join-would-unname" : {
+      "comment" : "Error: an open link would replace the named membership this device already has. Argument 1: store (Text). Argument 2: member (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You joined %1$@ as %2$@. This link would join it again without your name, so nothing was changed."
+          }
+        }
+      }
+    },
+    "store-joined" : {
+      "comment" : "Toast after joining a plugin store with an invite that names this device's owner. Argument 1: store (Text). Argument 2: member (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joined %1$@ as %2$@."
+          }
+        }
+      }
+    },
+    "store-joined-unnamed" : {
+      "comment" : "Toast after joining a plugin store with its open link, which keeps no name. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joined %1$@ without a name."
+          }
+        }
+      }
+    },
+    "store-key-damaged" : {
+      "comment" : "Error: a store's signing key is unreadable. Shown as the reason a store is offline.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin store's key is damaged."
+          }
+        }
+      }
+    },
+    "store-left" : {
+      "comment" : "Toast after leaving a plugin store. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left %1$@. Its plugins stay installed."
+          }
+        }
+      }
+    },
+    "store-link-malformed" : {
+      "comment" : "Error: the store sent an invite link that does not parse. The reason comes from the link parser. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin store made a bad link. %1$@"
+          }
+        }
+      }
+    },
+    "store-link-wrong-key" : {
+      "comment" : "Error: the store sent a link carrying another store's key.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin store made a link with a different key. Check the address it was started with."
+          }
+        }
+      }
+    },
+    "store-member-removed" : {
+      "comment" : "Toast after a store owner removes a member.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed. Their devices stopped working with this plugin store."
+          }
+        }
+      }
+    },
+    "store-moved" : {
+      "comment" : "Error: an invite link names a store this device already joined, but at another address. Argument 1: store (Text). Argument 2: current (Text). Argument 3: target (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is joined at %2$@, but this link points to %3$@. If the plugin store has moved, leave it first and join again."
+          }
+        }
+      }
+    },
+    "store-not-joined" : {
+      "comment" : "Error: the store the record points to is gone from the saved list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That plugin store is no longer joined."
+          }
+        }
+      }
+    },
+    "store-not-the-invited" : {
+      "comment" : "Error: the server at a link's address could not prove it is the store the invite named. Argument 1: url (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is not the plugin store in the invite (%2$@). Nothing was joined."
+          }
+        }
+      }
+    },
+    "store-open-join-off" : {
+      "comment" : "Toast after a store owner turns off joining with the link, when no device joined that way.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only people you invite can join now."
+          }
+        }
+      }
+    },
+    "store-open-join-off-devices" : {
+      "comment" : "Toast after a store owner turns off joining with the link, when some devices joined that way. Argument 1: devices (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@devices@"
+          },
+          "substitutions" : {
+            "devices" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Only people you invite can join now. The device that joined with the link keeps working until you remove it."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Only people you invite can join now. The %1$lld devices that joined with the link keep working until you remove them."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "store-open-join-on" : {
+      "comment" : "Toast after a store owner lets anyone with the store's link join.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anyone with the plugin store's link can join now. Copy it from the members screen."
+          }
+        }
+      }
+    },
+    "store-open-join-unsupported" : {
+      "comment" : "Error: the store's server is too old for joining with a link. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@'s server is older and can't let anyone join with a link. Update it first."
+          }
+        }
+      }
+    },
+    "store-open-link-unusable" : {
+      "comment" : "Error: an open link that no longer lets anyone join.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That link no longer lets anyone join. Ask the plugin store's owner for a new link or an invite."
+          }
+        }
+      }
+    },
+    "store-plugin-changed" : {
+      "comment" : "Error: a store changed a plugin after the person agreed to what was shown. Argument 1: store (Text). Argument 2: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ changed %2$@ since it was shown. Look at it again before installing."
+          }
+        }
+      }
+    },
+    "store-plugin-withdrawn" : {
+      "comment" : "Error: a store stopped offering a plugin between listing it and installing it. Argument 1: store (Text). Argument 2: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ no longer offers %2$@."
+          }
+        }
+      }
+    },
+    "store-token-missing" : {
+      "comment" : "Error: the store was joined once, but this device has no saved token for it. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is no token for %1$@ on this device. Join it again with a new invite."
+          }
+        }
+      }
+    },
+    "store-token-not-kept" : {
+      "comment" : "Error: the token for a joined store could not be saved on this device. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't keep the token for this plugin store. %1$@"
+          }
+        }
+      }
+    },
+    "store-unreachable" : {
+      "comment" : "Error: a store could not be reached. The reason comes from the network. Argument 1: store (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't reach %1$@. %2$@"
+          }
+        }
+      }
+    },
     "title-based-on" : {
       "comment" : "Label before the name of the work a show is based on.",
       "extractionState" : "manual",
@@ -743,6 +1495,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Based on"
+          }
+        }
+      }
+    },
+    "torrent-check-failed-running" : {
+      "comment" : "Toast while torrents are running but the connection check failed, and the settings say to warn only.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The connection check failed. Torrents keep running."
+          }
+        }
+      }
+    },
+    "torrent-interface-closed" : {
+      "comment" : "Error: the torrent session did not start because the interface closed first.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The interface closed before torrents started."
+          }
+        }
+      }
+    },
+    "torrent-no-index" : {
+      "comment" : "Error: torrents are on, but no torrent index is set.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents need a torrent index. anistream ships none, so add your own address in the settings."
+          }
+        }
+      }
+    },
+    "torrent-no-kill-switch" : {
+      "comment" : "Toast when torrents are up but no operating-system firewall rule backs the VPN guard.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is no OS-level kill switch behind the VPN guard. Run \"anistream --doctor\" for advice."
+          }
+        }
+      }
+    },
+    "torrent-not-checked" : {
+      "comment" : "Toast when the connection check could not run. The reason comes from the VPN settings. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't check the connection. %1$@"
+          }
+        }
+      }
+    },
+    "torrent-session-failed" : {
+      "comment" : "Error: the torrent session could not start. The reason comes from the torrent engine. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't start the torrent session. %1$@"
+          }
+        }
+      }
+    },
+    "torrent-vpn-unverified" : {
+      "comment" : "Note on the sources screen: the VPN guard has no verdict yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents start once the VPN guard passes. The connection hasn't been verified yet."
+          }
+        }
+      }
+    },
+    "torrent-vpn-waiting" : {
+      "comment" : "Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents start once the VPN guard passes. %1$@"
           }
         }
       }

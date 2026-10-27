@@ -11,6 +11,140 @@ use crate::msg_text::{Size, Span, Value};
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Msg {
+    /// Toast after joining a plugin store with an invite that names this device's owner.
+    StoreJoined { store: String, member: String },
+    /// Toast after joining a plugin store with its open link, which keeps no name.
+    StoreJoinedUnnamed { store: String },
+    /// Toast after leaving a plugin store.
+    StoreLeft { store: String },
+    /// Toast after a plugin is deleted from this device.
+    PluginRemoved { plugin: String },
+    /// Toast after a store owner removes a member.
+    StoreMemberRemoved,
+    /// Toast after a store owner cancels an invite.
+    StoreInviteCancelled,
+    /// Toast after a store owner lets anyone with the store's link join.
+    StoreOpenJoinOn,
+    /// Toast after a store owner turns off joining with the link, when no device joined that way.
+    StoreOpenJoinOff,
+    /// Toast after a store owner turns off joining with the link, when some devices joined that way.
+    StoreOpenJoinOffDevices { devices: i64 },
+    /// Toast after one device that joined with the store's link is removed.
+    StoreDeviceRemoved,
+    /// Toast after every device that joined with the store's link is removed.
+    StoreDevicesRemoved,
+    /// Toast after a plugin is published to a store.
+    PluginPublished { plugin: String, version: String },
+    /// Toast after a plugin stops being offered in a store.
+    PluginUnpublished { plugin: String },
+    /// Toast after the store's admin page opens in the browser.
+    StoreAdminOpened,
+    /// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+    StoreAdminOpenFailed { reason: String },
+    /// Toast after a plugin is installed while plugins are switched off in the source order.
+    PluginInstalledUnused { plugin: String, version: String },
+    /// Toast after a plugin is installed under the name of a built-in source, so it was not loaded.
+    PluginInstalledNameClash { plugin: String, id: String },
+    /// Toast after a plugin is installed and ready to use.
+    PluginInstalled { plugin: String, version: String },
+    /// Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.
+    PluginInstalledNotLoaded { plugin: String, reason: String },
+    /// Toast at launch when joined plugin stores offer newer versions of installed plugins.
+    PluginUpdatesReady { count: i64, names: String },
+    /// Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host.
+    PluginsLoadFailed { reason: String },
+    /// Error: the store was joined once, but this device has no saved token for it.
+    StoreTokenMissing { store: String },
+    /// Error: the store the record points to is gone from the saved list.
+    StoreNotJoined,
+    /// Error: a store's signing key is unreadable. Shown as the reason a store is offline.
+    StoreKeyDamaged,
+    /// Error: a store rejected this device's token.
+    StoreDeviceRefused { store: String },
+    /// Error: a store could not be reached. The reason comes from the network.
+    StoreUnreachable { store: String, reason: String },
+    /// Error: an invite link names a store this device already joined, but at another address.
+    StoreMoved { store: String, current: String, target: String },
+    /// Error: an open link would replace the named membership this device already has.
+    StoreJoinWouldUnname { store: String, member: String },
+    /// Error: the server at a link's address could not prove it is the store the invite named.
+    StoreNotTheInvited { url: String, reason: String },
+    /// Error: the token for a joined store could not be saved on this device. The reason comes from the system.
+    StoreTokenNotKept { reason: String },
+    /// Error: an invite that cannot be used any more.
+    StoreInviteUnusable,
+    /// Error: an open link that no longer lets anyone join.
+    StoreOpenLinkUnusable,
+    /// Error: a plugin takes the name of a built-in source.
+    PluginReservedName { plugin: String },
+    /// Error: a store stopped offering a plugin between listing it and installing it.
+    StorePluginWithdrawn { store: String, plugin: String },
+    /// Error: a store changed a plugin after the person agreed to what was shown.
+    StorePluginChanged { store: String, plugin: String },
+    /// Error: a plugin installed from one store is offered by another.
+    PluginFromOtherStore { plugin: String, store: String },
+    /// Error: a plugin file added by hand already declares the same name.
+    PluginDuplicateFile { path: String, plugin: String },
+    /// Error: a plugin could not be downloaded or installed. The reason comes from the store or the system.
+    PluginInstallFailed { plugin: String, reason: String },
+    /// Error: a plugin could not be published. The reason comes from the store or the system.
+    PluginPublishFailed { plugin: String, reason: String },
+    /// Error: a plugin to publish is no longer in the plugin folder.
+    PluginMissingLocally { plugin: String },
+    /// Error: an invite for another device cannot be made from a device that joined with the open link.
+    StoreInviteNeedsLink { store: String },
+    /// Error: the store sent an invite link that does not parse. The reason comes from the link parser.
+    StoreLinkMalformed { reason: String },
+    /// Error: the store sent a link carrying another store's key.
+    StoreLinkWrongKey,
+    /// Error: the store's server has no admin page.
+    StoreAdminMissing { store: String },
+    /// Error: the store sent an admin link that points somewhere else.
+    StoreAdminLinkForeign { store: String },
+    /// Error: the store's server is too old for joining with a link.
+    StoreOpenJoinUnsupported { store: String },
+    /// Toast after a source (plugin) is switched off. It is skipped when looking for episodes.
+    SourceSwitchedOff { name: String },
+    /// Toast after a source (plugin) is switched on.
+    SourceSwitchedOn { name: String },
+    /// Error: a command named a plugin that is not loaded.
+    PluginNotLoaded { id: String },
+    /// Toast after a release is chosen for a title. The name is the release's title.
+    ReleasePinned { name: String },
+    /// Toast when the chosen source or release for a title could not be saved. The reason comes from the database.
+    NoticeChoiceNotSaved { reason: String },
+    /// Toast while torrents are running but the connection check failed, and the settings say to warn only.
+    TorrentCheckFailedRunning,
+    /// Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard.
+    TorrentVpnWaiting { reason: String },
+    /// Note on the sources screen: the VPN guard has no verdict yet.
+    TorrentVpnUnverified,
+    /// Error: torrents are on, but no torrent index is set.
+    TorrentNoIndex,
+    /// Error: the torrent session did not start because the interface closed first.
+    TorrentInterfaceClosed,
+    /// Error: the torrent session could not start. The reason comes from the torrent engine.
+    TorrentSessionFailed { reason: String },
+    /// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+    TorrentNoKillSwitch,
+    /// Toast when the connection check could not run. The reason comes from the VPN settings.
+    TorrentNotChecked { reason: String },
+    /// Note on the sources screen after the source chain is rebuilt with torrents on.
+    SourcesReloadedTorrentsPending,
+    /// Note on the sources screen after the source chain is rebuilt with torrents off.
+    SourcesReloadedTorrentsOff,
+    /// Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows.
+    JobAnilistLimit,
+    /// Toast when there is no job to carry the wait for AniList's rate limit.
+    NoticeAnilistLimit { wait: Span },
+    /// Toast when the AniList fallback takes over because AniList cannot be reached.
+    NoticeAnilistUnreachable,
+    /// Toast when no metadata service answered and the last cached data is shown.
+    NoticeMetadataCached,
+    /// Toast when AniList answers again.
+    NoticeAnilistBack,
+    /// Toast when a command needs watch parties but this app was built without them.
+    NoticePartyNotBuilt,
     /// The legal line. It exists once, so no translation can paraphrase it.
     LegalHostsNoContent,
     /// Toast after a setting is stored. The label is the setting's name.
@@ -31,6 +165,73 @@ impl Msg {
     /// The catalogue id of the message.
     pub fn id(&self) -> &'static str {
         match self {
+            Self::StoreJoined { .. } => "store-joined",
+            Self::StoreJoinedUnnamed { .. } => "store-joined-unnamed",
+            Self::StoreLeft { .. } => "store-left",
+            Self::PluginRemoved { .. } => "plugin-removed",
+            Self::StoreMemberRemoved => "store-member-removed",
+            Self::StoreInviteCancelled => "store-invite-cancelled",
+            Self::StoreOpenJoinOn => "store-open-join-on",
+            Self::StoreOpenJoinOff => "store-open-join-off",
+            Self::StoreOpenJoinOffDevices { .. } => "store-open-join-off-devices",
+            Self::StoreDeviceRemoved => "store-device-removed",
+            Self::StoreDevicesRemoved => "store-devices-removed",
+            Self::PluginPublished { .. } => "plugin-published",
+            Self::PluginUnpublished { .. } => "plugin-unpublished",
+            Self::StoreAdminOpened => "store-admin-opened",
+            Self::StoreAdminOpenFailed { .. } => "store-admin-open-failed",
+            Self::PluginInstalledUnused { .. } => "plugin-installed-unused",
+            Self::PluginInstalledNameClash { .. } => "plugin-installed-name-clash",
+            Self::PluginInstalled { .. } => "plugin-installed",
+            Self::PluginInstalledNotLoaded { .. } => "plugin-installed-not-loaded",
+            Self::PluginUpdatesReady { .. } => "plugin-updates-ready",
+            Self::PluginsLoadFailed { .. } => "plugins-load-failed",
+            Self::StoreTokenMissing { .. } => "store-token-missing",
+            Self::StoreNotJoined => "store-not-joined",
+            Self::StoreKeyDamaged => "store-key-damaged",
+            Self::StoreDeviceRefused { .. } => "store-device-refused",
+            Self::StoreUnreachable { .. } => "store-unreachable",
+            Self::StoreMoved { .. } => "store-moved",
+            Self::StoreJoinWouldUnname { .. } => "store-join-would-unname",
+            Self::StoreNotTheInvited { .. } => "store-not-the-invited",
+            Self::StoreTokenNotKept { .. } => "store-token-not-kept",
+            Self::StoreInviteUnusable => "store-invite-unusable",
+            Self::StoreOpenLinkUnusable => "store-open-link-unusable",
+            Self::PluginReservedName { .. } => "plugin-reserved-name",
+            Self::StorePluginWithdrawn { .. } => "store-plugin-withdrawn",
+            Self::StorePluginChanged { .. } => "store-plugin-changed",
+            Self::PluginFromOtherStore { .. } => "plugin-from-other-store",
+            Self::PluginDuplicateFile { .. } => "plugin-duplicate-file",
+            Self::PluginInstallFailed { .. } => "plugin-install-failed",
+            Self::PluginPublishFailed { .. } => "plugin-publish-failed",
+            Self::PluginMissingLocally { .. } => "plugin-missing-locally",
+            Self::StoreInviteNeedsLink { .. } => "store-invite-needs-link",
+            Self::StoreLinkMalformed { .. } => "store-link-malformed",
+            Self::StoreLinkWrongKey => "store-link-wrong-key",
+            Self::StoreAdminMissing { .. } => "store-admin-missing",
+            Self::StoreAdminLinkForeign { .. } => "store-admin-link-foreign",
+            Self::StoreOpenJoinUnsupported { .. } => "store-open-join-unsupported",
+            Self::SourceSwitchedOff { .. } => "source-switched-off",
+            Self::SourceSwitchedOn { .. } => "source-switched-on",
+            Self::PluginNotLoaded { .. } => "plugin-not-loaded",
+            Self::ReleasePinned { .. } => "release-pinned",
+            Self::NoticeChoiceNotSaved { .. } => "notice-choice-not-saved",
+            Self::TorrentCheckFailedRunning => "torrent-check-failed-running",
+            Self::TorrentVpnWaiting { .. } => "torrent-vpn-waiting",
+            Self::TorrentVpnUnverified => "torrent-vpn-unverified",
+            Self::TorrentNoIndex => "torrent-no-index",
+            Self::TorrentInterfaceClosed => "torrent-interface-closed",
+            Self::TorrentSessionFailed { .. } => "torrent-session-failed",
+            Self::TorrentNoKillSwitch => "torrent-no-kill-switch",
+            Self::TorrentNotChecked { .. } => "torrent-not-checked",
+            Self::SourcesReloadedTorrentsPending => "sources-reloaded-torrents-pending",
+            Self::SourcesReloadedTorrentsOff => "sources-reloaded-torrents-off",
+            Self::JobAnilistLimit => "job-anilist-limit",
+            Self::NoticeAnilistLimit { .. } => "notice-anilist-limit",
+            Self::NoticeAnilistUnreachable => "notice-anilist-unreachable",
+            Self::NoticeMetadataCached => "notice-metadata-cached",
+            Self::NoticeAnilistBack => "notice-anilist-back",
+            Self::NoticePartyNotBuilt => "notice-party-not-built",
             Self::LegalHostsNoContent => "legal-hosts-no-content",
             Self::NoticeSaved { .. } => "notice-saved",
             Self::NoticeNotSaved { .. } => "notice-not-saved",
@@ -44,6 +245,73 @@ impl Msg {
     /// The message's arguments, by catalogue name.
     pub fn values(&self) -> Vec<(&'static str, Value)> {
         match self {
+            Self::StoreJoined { store, member } => vec![("store", Value::Text(store.clone())), ("member", Value::Text(member.clone()))],
+            Self::StoreJoinedUnnamed { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreLeft { store } => vec![("store", Value::Text(store.clone()))],
+            Self::PluginRemoved { plugin } => vec![("plugin", Value::Text(plugin.clone()))],
+            Self::StoreMemberRemoved => Vec::new(),
+            Self::StoreInviteCancelled => Vec::new(),
+            Self::StoreOpenJoinOn => Vec::new(),
+            Self::StoreOpenJoinOff => Vec::new(),
+            Self::StoreOpenJoinOffDevices { devices } => vec![("devices", Value::Int(*devices))],
+            Self::StoreDeviceRemoved => Vec::new(),
+            Self::StoreDevicesRemoved => Vec::new(),
+            Self::PluginPublished { plugin, version } => vec![("plugin", Value::Text(plugin.clone())), ("version", Value::Text(version.clone()))],
+            Self::PluginUnpublished { plugin } => vec![("plugin", Value::Text(plugin.clone()))],
+            Self::StoreAdminOpened => Vec::new(),
+            Self::StoreAdminOpenFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::PluginInstalledUnused { plugin, version } => vec![("plugin", Value::Text(plugin.clone())), ("version", Value::Text(version.clone()))],
+            Self::PluginInstalledNameClash { plugin, id } => vec![("plugin", Value::Text(plugin.clone())), ("id", Value::Text(id.clone()))],
+            Self::PluginInstalled { plugin, version } => vec![("plugin", Value::Text(plugin.clone())), ("version", Value::Text(version.clone()))],
+            Self::PluginInstalledNotLoaded { plugin, reason } => vec![("plugin", Value::Text(plugin.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::PluginUpdatesReady { count, names } => vec![("count", Value::Int(*count)), ("names", Value::Text(names.clone()))],
+            Self::PluginsLoadFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::StoreTokenMissing { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreNotJoined => Vec::new(),
+            Self::StoreKeyDamaged => Vec::new(),
+            Self::StoreDeviceRefused { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreUnreachable { store, reason } => vec![("store", Value::Text(store.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::StoreMoved { store, current, target } => vec![("store", Value::Text(store.clone())), ("current", Value::Text(current.clone())), ("target", Value::Text(target.clone()))],
+            Self::StoreJoinWouldUnname { store, member } => vec![("store", Value::Text(store.clone())), ("member", Value::Text(member.clone()))],
+            Self::StoreNotTheInvited { url, reason } => vec![("url", Value::Text(url.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::StoreTokenNotKept { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::StoreInviteUnusable => Vec::new(),
+            Self::StoreOpenLinkUnusable => Vec::new(),
+            Self::PluginReservedName { plugin } => vec![("plugin", Value::Text(plugin.clone()))],
+            Self::StorePluginWithdrawn { store, plugin } => vec![("store", Value::Text(store.clone())), ("plugin", Value::Text(plugin.clone()))],
+            Self::StorePluginChanged { store, plugin } => vec![("store", Value::Text(store.clone())), ("plugin", Value::Text(plugin.clone()))],
+            Self::PluginFromOtherStore { plugin, store } => vec![("plugin", Value::Text(plugin.clone())), ("store", Value::Text(store.clone()))],
+            Self::PluginDuplicateFile { path, plugin } => vec![("path", Value::Text(path.clone())), ("plugin", Value::Text(plugin.clone()))],
+            Self::PluginInstallFailed { plugin, reason } => vec![("plugin", Value::Text(plugin.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::PluginPublishFailed { plugin, reason } => vec![("plugin", Value::Text(plugin.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::PluginMissingLocally { plugin } => vec![("plugin", Value::Text(plugin.clone()))],
+            Self::StoreInviteNeedsLink { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreLinkMalformed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::StoreLinkWrongKey => Vec::new(),
+            Self::StoreAdminMissing { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreAdminLinkForeign { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreOpenJoinUnsupported { store } => vec![("store", Value::Text(store.clone()))],
+            Self::SourceSwitchedOff { name } => vec![("name", Value::Text(name.clone()))],
+            Self::SourceSwitchedOn { name } => vec![("name", Value::Text(name.clone()))],
+            Self::PluginNotLoaded { id } => vec![("id", Value::Text(id.clone()))],
+            Self::ReleasePinned { name } => vec![("name", Value::Text(name.clone()))],
+            Self::NoticeChoiceNotSaved { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::TorrentCheckFailedRunning => Vec::new(),
+            Self::TorrentVpnWaiting { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::TorrentVpnUnverified => Vec::new(),
+            Self::TorrentNoIndex => Vec::new(),
+            Self::TorrentInterfaceClosed => Vec::new(),
+            Self::TorrentSessionFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::TorrentNoKillSwitch => Vec::new(),
+            Self::TorrentNotChecked { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::SourcesReloadedTorrentsPending => Vec::new(),
+            Self::SourcesReloadedTorrentsOff => Vec::new(),
+            Self::JobAnilistLimit => Vec::new(),
+            Self::NoticeAnilistLimit { wait } => vec![("wait", Value::Span(*wait))],
+            Self::NoticeAnilistUnreachable => Vec::new(),
+            Self::NoticeMetadataCached => Vec::new(),
+            Self::NoticeAnilistBack => Vec::new(),
+            Self::NoticePartyNotBuilt => Vec::new(),
             Self::LegalHostsNoContent => Vec::new(),
             Self::NoticeSaved { label } => vec![("label", Value::Text(label.clone()))],
             Self::NoticeNotSaved { reason } => vec![("reason", Value::Text(reason.clone()))],

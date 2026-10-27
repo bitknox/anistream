@@ -57,7 +57,7 @@ pub async fn build_registry(
         Ok(up) => {
             // No interface to tell: these paths print to the terminal they were run from.
             if let Some(warning) = &up.warning {
-                eprintln!("warning: {warning}");
+                eprintln!("warning: {}", warning.english());
             }
             place(&registry, up.provider, config);
             (registry, Some((up.guard, up.session)), None, None)
@@ -65,8 +65,8 @@ pub async fn build_registry(
         // A source that cannot start safely is left out rather than registered as
         // permanently failing — and the reason is surfaced, not swallowed.
         Err((reason, held)) => {
-            tracing::warn!(%reason, "torrent source not started");
-            (registry, None, Some(reason), held)
+            tracing::warn!(reason = %reason.english(), "torrent source not started");
+            (registry, None, Some(reason.english()), held)
         }
     }
 }
@@ -307,7 +307,7 @@ pub struct TorrentUp {
     pub guard: VpnGuard,
     pub session: Arc<TorrentSession>,
     /// Said once the source is up, when there is no OS-level kill switch behind the guard.
-    pub warning: Option<String>,
+    pub warning: Option<Msg>,
 }
 
 /// What the torrent source needs before its guard can be checked: an indexer to search, and a
@@ -315,19 +315,16 @@ pub struct TorrentUp {
 fn prepare_torrent(
     config: &Config,
     fixture: Option<&anistream_providers::vpn::Egress>,
-) -> std::result::Result<
-    (anistream_providers::torrent::provider::IndexerSettings, VpnGuard),
-    String,
-> {
+) -> std::result::Result<(anistream_providers::torrent::provider::IndexerSettings, VpnGuard), Msg>
+{
     // No indexer, no source. anistream ships none, so this is the user's to supply and
     // there is nothing to search until they do.
     let settings = anistream_providers::torrent::provider::IndexerSettings::from_config(
         &config.providers.torrent,
     )
-    .ok_or_else(|| {
-        "no providers.torrent.rss_url configured (anistream ships no indexer)".to_owned()
-    })?;
-    let guard = guard_for(config, fixture)?;
+    .ok_or(Msg::TorrentNoIndex)?;
+    let guard =
+        guard_for(config, fixture).map_err(|reason| Msg::TorrentNotChecked { reason })?;
     Ok((settings, guard))
 }
 
@@ -353,12 +350,15 @@ async fn start_torrent_provider(
     http: &HttpClient,
     paths: &Paths,
     store: &anistream_store::Store,
-) -> std::result::Result<TorrentUp, (String, Option<GuardState>)> {
+) -> std::result::Result<TorrentUp, (Msg, Option<GuardState>)> {
     let (settings, guard) = prepare_torrent(config, None).map_err(|reason| (reason, None))?;
 
     let state = guard.verify().await;
     if !state.is_protected() {
-        let reason = format!("vpn guard: {}", state.reason().unwrap_or("egress not verified"));
+        let reason = match state.reason() {
+            Some(reason) => Msg::TorrentVpnWaiting { reason: reason.to_owned() },
+            None => Msg::TorrentVpnUnverified,
+        };
         return Err((reason, Some(state)));
     }
     tracing::info!(badge = %state.badge(), "vpn guard satisfied");
@@ -387,7 +387,7 @@ pub async fn bring_up_torrent(
     tx: crate::outbox::Outbox,
     check: std::sync::Arc<tokio::sync::Notify>,
     fixture: Option<anistream_providers::vpn::Egress>,
-) -> std::result::Result<TorrentUp, String> {
+) -> std::result::Result<TorrentUp, Msg> {
     use anistream_model::event::Event;
     use anistream_providers::vpn::{GuardLog, GuardNote, GuardState};
 
@@ -405,14 +405,14 @@ pub async fn bring_up_torrent(
         let state = guard.verify().await;
         let leaking = !state.is_protected();
         if tx.send(Event::Vpn(Some(guard_view(&state)))).is_err() {
-            return Err("the interface has closed".into());
+            return Err(Msg::TorrentInterfaceClosed);
         }
         match log.observe(&state, std::time::Instant::now()) {
             GuardNote::Failing(reason) => {
                 tracing::warn!(%reason, "vpn guard failing; torrents wait for it");
-                let _ = tx.send(Event::ProviderNote(Msg::verbatim(format!(
-                    "torrents start once the VPN guard passes: {reason}"
-                ))));
+                let _ = tx.send(Event::ProviderNote(Msg::TorrentVpnWaiting {
+                    reason: reason.clone(),
+                }));
             }
             GuardNote::StillFailing { reason, minutes, checks } => {
                 tracing::warn!(%reason, minutes, checks, "vpn guard still failing");
@@ -470,7 +470,7 @@ async fn start_torrent_session(
     paths: &Paths,
     settings: anistream_providers::torrent::provider::IndexerSettings,
     guard: VpnGuard,
-) -> std::result::Result<TorrentUp, String> {
+) -> std::result::Result<TorrentUp, Msg> {
     // Said when there is no OS-level kill switch. The guard is application-level: it stops
     // *anistream* leaking, but cannot stop a bug in anistream, a change in librqbit, or any
     // other process. Only a firewall rule can.
@@ -480,7 +480,7 @@ async fn start_torrent_session(
         None
     } else {
         tracing::warn!(advice = enforcement.advice(), "no os-level kill switch");
-        Some("no OS-level kill switch behind the VPN guard — see anistream --doctor".to_owned())
+        Some(Msg::TorrentNoKillSwitch)
     };
 
     let session = Arc::new(
@@ -491,7 +491,7 @@ async fn start_torrent_session(
             random_token(),
         )
         .await
-        .map_err(|e| e.to_string())?,
+        .map_err(|e| Msg::TorrentSessionFailed { reason: e.to_string() })?,
     );
 
     Ok(TorrentUp {
@@ -621,7 +621,9 @@ mod tests {
         let (registry, guard, note, held) =
             build_registry(&config, &http, &paths, &store).await;
         assert!(guard.is_none() && !registry.ids().iter().any(|id| id == "torrent"));
-        assert!(note.is_some_and(|n| n.starts_with("vpn guard:")));
+        assert!(
+            note.is_some_and(|n| n.starts_with("Torrents start once the VPN guard passes."))
+        );
         let held = held.expect("the verdict that held it back");
         assert!(!held.is_protected(), "{held:?}");
     }

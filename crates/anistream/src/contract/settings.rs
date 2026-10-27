@@ -206,14 +206,17 @@ async fn a_plugin_switched_off_keeps_its_row_and_is_not_tried() {
     let Event::Providers(rows) = &updates[1] else { unreachable!() };
     let row = rows.iter().find(|row| row.id == "archive").expect("its row stays");
     assert!(row.disabled && !row.usable);
-    assert_eq!(toasts(&updates), ["info: archive is off · skipped when looking for episodes"]);
+    assert_eq!(
+        toasts(&updates),
+        ["info: archive is off. It is skipped when looking for episodes."]
+    );
     assert_eq!(on_disk(&h).providers.disabled, ["archive"]);
     assert_eq!(h.registry().ids(), ["archive", "fixture"], "in its place");
     assert_eq!(h.registry().usable_ids(), ["fixture"]);
 
     h.send(Command::DisablePlugin { id: "archive".into(), disabled: false });
     let updates = h.settle().await;
-    assert_eq!(toasts(&updates), ["info: archive is on"]);
+    assert_eq!(toasts(&updates), ["info: archive is on."]);
     assert!(on_disk(&h).providers.disabled.is_empty());
     assert_eq!(h.registry().usable_ids(), ["archive", "fixture"]);
 
@@ -221,7 +224,7 @@ async fn a_plugin_switched_off_keeps_its_row_and_is_not_tried() {
     h.send(Command::DisablePlugin { id: "fixture".into(), disabled: true });
     let updates = h.settle().await;
     assert_eq!(h.trace(), ["Toast"]);
-    assert_eq!(toasts(&updates), ["alert: fixture is not a plugin that is loaded"]);
+    assert_eq!(toasts(&updates), ["alert: fixture is not a plugin that is loaded."]);
 }
 
 #[tokio::test]
@@ -267,7 +270,7 @@ async fn an_order_that_takes_a_source_away_rebuilds_the_chain() {
     );
     assert!(matches!(&updates[3], Event::Vpn(None)));
     let Event::ProviderNote(note) = &updates[4] else { unreachable!() };
-    assert_eq!(note.english(), "torrents are off — the session was stopped");
+    assert_eq!(note.english(), "Torrents are off. The session was stopped.");
     // Rebuilt from the config, which describes no source the fixture one could be.
     assert!(provider_ids(&updates[5]).is_empty());
     assert!(h.registry().is_empty());

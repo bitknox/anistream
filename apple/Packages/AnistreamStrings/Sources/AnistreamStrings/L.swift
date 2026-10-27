@@ -5,6 +5,293 @@ import Foundation
 
 /// Every string the apps show, by catalogue id. A missing translation falls back to English per string.
 public enum L {
+    /// Toast after joining a plugin store with an invite that names this device's owner.
+    public static func storeJoined(store: String, member: String) -> String {
+        format("store-joined", fallback: "Joined %1$@ as %2$@.", store, member)
+    }
+
+    /// Toast after joining a plugin store with its open link, which keeps no name.
+    public static func storeJoinedUnnamed(store: String) -> String {
+        format("store-joined-unnamed", fallback: "Joined %1$@ without a name.", store)
+    }
+
+    /// Toast after leaving a plugin store.
+    public static func storeLeft(store: String) -> String {
+        format("store-left", fallback: "Left %1$@. Its plugins stay installed.", store)
+    }
+
+    /// Toast after a plugin is deleted from this device.
+    public static func pluginRemoved(plugin: String) -> String {
+        format("plugin-removed", fallback: "Removed %1$@.", plugin)
+    }
+
+    /// Toast after a store owner removes a member.
+    public static var storeMemberRemoved: String { string("store-member-removed", fallback: "Removed. Their devices stopped working with this plugin store.") }
+
+    /// Toast after a store owner cancels an invite.
+    public static var storeInviteCancelled: String { string("store-invite-cancelled", fallback: "Invite cancelled. The link no longer works.") }
+
+    /// Toast after a store owner lets anyone with the store's link join.
+    public static var storeOpenJoinOn: String { string("store-open-join-on", fallback: "Anyone with the plugin store's link can join now. Copy it from the members screen.") }
+
+    /// Toast after a store owner turns off joining with the link, when no device joined that way.
+    public static var storeOpenJoinOff: String { string("store-open-join-off", fallback: "Only people you invite can join now.") }
+
+    /// Toast after a store owner turns off joining with the link, when some devices joined that way.
+    public static func storeOpenJoinOffDevices(devices: Int) -> String {
+        format("store-open-join-off-devices", fallback: "Only people you invite can join now. The %1$lld devices that joined with the link keep working until you remove them.", devices)
+    }
+
+    /// Toast after one device that joined with the store's link is removed.
+    public static var storeDeviceRemoved: String { string("store-device-removed", fallback: "That device no longer works with this plugin store.") }
+
+    /// Toast after every device that joined with the store's link is removed.
+    public static var storeDevicesRemoved: String { string("store-devices-removed", fallback: "Removed every device that joined with the link.") }
+
+    /// Toast after a plugin is published to a store.
+    public static func pluginPublished(plugin: String, version: String) -> String {
+        format("plugin-published", fallback: "Published %1$@ %2$@.", plugin, version)
+    }
+
+    /// Toast after a plugin stops being offered in a store.
+    public static func pluginUnpublished(plugin: String) -> String {
+        format("plugin-unpublished", fallback: "%1$@ is no longer offered.", plugin)
+    }
+
+    /// Toast after the store's admin page opens in the browser.
+    public static var storeAdminOpened: String { string("store-admin-opened", fallback: "Opened the admin page in your browser. The link works once, for ten minutes.") }
+
+    /// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+    public static func storeAdminOpenFailed(reason: String) -> String {
+        format("store-admin-open-failed", fallback: "Couldn't open a browser (%1$@). On the plugin store's machine, run \"anistream store admin\" to print a link.", reason)
+    }
+
+    /// Toast after a plugin is installed while plugins are switched off in the source order.
+    public static func pluginInstalledUnused(plugin: String, version: String) -> String {
+        format("plugin-installed-unused", fallback: "Installed %1$@ %2$@, but plugins are switched off in the source order, so it isn't used.", plugin, version)
+    }
+
+    /// Toast after a plugin is installed under the name of a built-in source, so it was not loaded.
+    public static func pluginInstalledNameClash(plugin: String, id: String) -> String {
+        format("plugin-installed-name-clash", fallback: "Installed %1$@, but %2$@ is the name of a built-in source, so it wasn't loaded.", plugin, id)
+    }
+
+    /// Toast after a plugin is installed and ready to use.
+    public static func pluginInstalled(plugin: String, version: String) -> String {
+        format("plugin-installed", fallback: "Installed %1$@ %2$@.", plugin, version)
+    }
+
+    /// Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.
+    public static func pluginInstalledNotLoaded(plugin: String, reason: String) -> String {
+        format("plugin-installed-not-loaded", fallback: "Installed %1$@, but it didn't load. %2$@", plugin, reason)
+    }
+
+    /// Toast at launch when joined plugin stores offer newer versions of installed plugins.
+    public static func pluginUpdatesReady(count: Int, names: String) -> String {
+        format("plugin-updates-ready", fallback: "Plugin updates ready: %2$@.", count, names)
+    }
+
+    /// Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host.
+    public static func pluginsLoadFailed(reason: String) -> String {
+        format("plugins-load-failed", fallback: "Couldn't load plugins. %1$@", reason)
+    }
+
+    /// Error: the store was joined once, but this device has no saved token for it.
+    public static func storeTokenMissing(store: String) -> String {
+        format("store-token-missing", fallback: "There is no token for %1$@ on this device. Join it again with a new invite.", store)
+    }
+
+    /// Error: the store the record points to is gone from the saved list.
+    public static var storeNotJoined: String { string("store-not-joined", fallback: "That plugin store is no longer joined.") }
+
+    /// Error: a store's signing key is unreadable. Shown as the reason a store is offline.
+    public static var storeKeyDamaged: String { string("store-key-damaged", fallback: "The plugin store's key is damaged.") }
+
+    /// Error: a store rejected this device's token.
+    public static func storeDeviceRefused(store: String) -> String {
+        format("store-device-refused", fallback: "%1$@ no longer accepts this device. Join it again with a new invite.", store)
+    }
+
+    /// Error: a store could not be reached. The reason comes from the network.
+    public static func storeUnreachable(store: String, reason: String) -> String {
+        format("store-unreachable", fallback: "Couldn't reach %1$@. %2$@", store, reason)
+    }
+
+    /// Error: an invite link names a store this device already joined, but at another address.
+    public static func storeMoved(store: String, current: String, target: String) -> String {
+        format("store-moved", fallback: "%1$@ is joined at %2$@, but this link points to %3$@. If the plugin store has moved, leave it first and join again.", store, current, target)
+    }
+
+    /// Error: an open link would replace the named membership this device already has.
+    public static func storeJoinWouldUnname(store: String, member: String) -> String {
+        format("store-join-would-unname", fallback: "You joined %1$@ as %2$@. This link would join it again without your name, so nothing was changed.", store, member)
+    }
+
+    /// Error: the server at a link's address could not prove it is the store the invite named.
+    public static func storeNotTheInvited(url: String, reason: String) -> String {
+        format("store-not-the-invited", fallback: "%1$@ is not the plugin store in the invite (%2$@). Nothing was joined.", url, reason)
+    }
+
+    /// Error: the token for a joined store could not be saved on this device. The reason comes from the system.
+    public static func storeTokenNotKept(reason: String) -> String {
+        format("store-token-not-kept", fallback: "Couldn't keep the token for this plugin store. %1$@", reason)
+    }
+
+    /// Error: an invite that cannot be used any more.
+    public static var storeInviteUnusable: String { string("store-invite-unusable", fallback: "That invite was already used, was cancelled or has expired. Ask for a new one.") }
+
+    /// Error: an open link that no longer lets anyone join.
+    public static var storeOpenLinkUnusable: String { string("store-open-link-unusable", fallback: "That link no longer lets anyone join. Ask the plugin store's owner for a new link or an invite.") }
+
+    /// Error: a plugin takes the name of a built-in source.
+    public static func pluginReservedName(plugin: String) -> String {
+        format("plugin-reserved-name", fallback: "%1$@ is the name of a built-in source, so it can't be a plugin.", plugin)
+    }
+
+    /// Error: a store stopped offering a plugin between listing it and installing it.
+    public static func storePluginWithdrawn(store: String, plugin: String) -> String {
+        format("store-plugin-withdrawn", fallback: "%1$@ no longer offers %2$@.", store, plugin)
+    }
+
+    /// Error: a store changed a plugin after the person agreed to what was shown.
+    public static func storePluginChanged(store: String, plugin: String) -> String {
+        format("store-plugin-changed", fallback: "%1$@ changed %2$@ since it was shown. Look at it again before installing.", store, plugin)
+    }
+
+    /// Error: a plugin installed from one store is offered by another.
+    public static func pluginFromOtherStore(plugin: String, store: String) -> String {
+        format("plugin-from-other-store", fallback: "%1$@ is installed from %2$@, which keeps it updated.", plugin, store)
+    }
+
+    /// Error: a plugin file added by hand already declares the same name.
+    public static func pluginDuplicateFile(path: String, plugin: String) -> String {
+        format("plugin-duplicate-file", fallback: "%1$@ already declares %2$@. Remove that file first, or two copies would run.", path, plugin)
+    }
+
+    /// Error: a plugin could not be downloaded or installed. The reason comes from the store or the system.
+    public static func pluginInstallFailed(plugin: String, reason: String) -> String {
+        format("plugin-install-failed", fallback: "Couldn't install %1$@. %2$@", plugin, reason)
+    }
+
+    /// Error: a plugin could not be published. The reason comes from the store or the system.
+    public static func pluginPublishFailed(plugin: String, reason: String) -> String {
+        format("plugin-publish-failed", fallback: "Couldn't publish %1$@. %2$@", plugin, reason)
+    }
+
+    /// Error: a plugin to publish is no longer in the plugin folder.
+    public static func pluginMissingLocally(plugin: String) -> String {
+        format("plugin-missing-locally", fallback: "%1$@ is no longer in the plugin folder.", plugin)
+    }
+
+    /// Error: an invite for another device cannot be made from a device that joined with the open link.
+    public static func storeInviteNeedsLink(store: String) -> String {
+        format("store-invite-needs-link", fallback: "This device joined %1$@ with its link. Paste the same link on the other device.", store)
+    }
+
+    /// Error: the store sent an invite link that does not parse. The reason comes from the link parser.
+    public static func storeLinkMalformed(reason: String) -> String {
+        format("store-link-malformed", fallback: "The plugin store made a bad link. %1$@", reason)
+    }
+
+    /// Error: the store sent a link carrying another store's key.
+    public static var storeLinkWrongKey: String { string("store-link-wrong-key", fallback: "The plugin store made a link with a different key. Check the address it was started with.") }
+
+    /// Error: the store's server has no admin page.
+    public static func storeAdminMissing(store: String) -> String {
+        format("store-admin-missing", fallback: "%1$@ has no admin page. Its server may be older.", store)
+    }
+
+    /// Error: the store sent an admin link that points somewhere else.
+    public static func storeAdminLinkForeign(store: String) -> String {
+        format("store-admin-link-foreign", fallback: "%1$@ sent an admin link for another address.", store)
+    }
+
+    /// Error: the store's server is too old for joining with a link.
+    public static func storeOpenJoinUnsupported(store: String) -> String {
+        format("store-open-join-unsupported", fallback: "%1$@'s server is older and can't let anyone join with a link. Update it first.", store)
+    }
+
+    /// Toast after a source (plugin) is switched off. It is skipped when looking for episodes.
+    public static func sourceSwitchedOff(name: String) -> String {
+        format("source-switched-off", fallback: "%1$@ is off. It is skipped when looking for episodes.", name)
+    }
+
+    /// Toast after a source (plugin) is switched on.
+    public static func sourceSwitchedOn(name: String) -> String {
+        format("source-switched-on", fallback: "%1$@ is on.", name)
+    }
+
+    /// Error: a command named a plugin that is not loaded.
+    public static func pluginNotLoaded(id: String) -> String {
+        format("plugin-not-loaded", fallback: "%1$@ is not a plugin that is loaded.", id)
+    }
+
+    /// Toast after a release is chosen for a title. The name is the release's title.
+    public static func releasePinned(name: String) -> String {
+        format("release-pinned", fallback: "%1$@ will be used for this title.", name)
+    }
+
+    /// Toast when the chosen source or release for a title could not be saved. The reason comes from the database.
+    public static func noticeChoiceNotSaved(reason: String) -> String {
+        format("notice-choice-not-saved", fallback: "Couldn't save that choice. %1$@", reason)
+    }
+
+    /// Toast while torrents are running but the connection check failed, and the settings say to warn only.
+    public static var torrentCheckFailedRunning: String { string("torrent-check-failed-running", fallback: "The connection check failed. Torrents keep running.") }
+
+    /// Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard.
+    public static func torrentVpnWaiting(reason: String) -> String {
+        format("torrent-vpn-waiting", fallback: "Torrents start once the VPN guard passes. %1$@", reason)
+    }
+
+    /// Note on the sources screen: the VPN guard has no verdict yet.
+    public static var torrentVpnUnverified: String { string("torrent-vpn-unverified", fallback: "Torrents start once the VPN guard passes. The connection hasn't been verified yet.") }
+
+    /// Error: torrents are on, but no torrent index is set.
+    public static var torrentNoIndex: String { string("torrent-no-index", fallback: "Torrents need a torrent index. anistream ships none, so add your own address in the settings.") }
+
+    /// Error: the torrent session did not start because the interface closed first.
+    public static var torrentInterfaceClosed: String { string("torrent-interface-closed", fallback: "The interface closed before torrents started.") }
+
+    /// Error: the torrent session could not start. The reason comes from the torrent engine.
+    public static func torrentSessionFailed(reason: String) -> String {
+        format("torrent-session-failed", fallback: "Couldn't start the torrent session. %1$@", reason)
+    }
+
+    /// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+    public static var torrentNoKillSwitch: String { string("torrent-no-kill-switch", fallback: "There is no OS-level kill switch behind the VPN guard. Run \"anistream --doctor\" for advice.") }
+
+    /// Toast when the connection check could not run. The reason comes from the VPN settings.
+    public static func torrentNotChecked(reason: String) -> String {
+        format("torrent-not-checked", fallback: "Couldn't check the connection. %1$@", reason)
+    }
+
+    /// Note on the sources screen after the source chain is rebuilt with torrents on.
+    public static var sourcesReloadedTorrentsPending: String { string("sources-reloaded-torrents-pending", fallback: "Sources reloaded. Torrents start once the VPN guard passes.") }
+
+    /// Note on the sources screen after the source chain is rebuilt with torrents off.
+    public static var sourcesReloadedTorrentsOff: String { string("sources-reloaded-torrents-off", fallback: "Torrents are off. The session was stopped.") }
+
+    /// Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows.
+    public static var jobAnilistLimit: String { string("job-anilist-limit", fallback: "Waiting on the AniList rate limit") }
+
+    /// Toast when there is no job to carry the wait for AniList's rate limit.
+    public static func noticeAnilistLimit(wait: String) -> String {
+        format("notice-anilist-limit", fallback: "Waiting %1$@ on the AniList rate limit.", wait)
+    }
+
+    /// Toast when the AniList fallback takes over because AniList cannot be reached.
+    public static var noticeAnilistUnreachable: String { string("notice-anilist-unreachable", fallback: "AniList is unreachable. Using the fallback for fresh data for now.") }
+
+    /// Toast when no metadata service answered and the last cached data is shown.
+    public static var noticeMetadataCached: String { string("notice-metadata-cached", fallback: "No metadata service answered. Showing what was last cached.") }
+
+    /// Toast when AniList answers again.
+    public static var noticeAnilistBack: String { string("notice-anilist-back", fallback: "AniList is back.") }
+
+    /// Toast when a command needs watch parties but this app was built without them.
+    public static var noticePartyNotBuilt: String { string("notice-party-not-built", fallback: "Watch parties aren't built into this app.") }
+
     /// The legal line. It exists once, so no translation can paraphrase it.
     public static var legalHostsNoContent: String { string("legal-hosts-no-content", fallback: "anistream hosts no content.") }
 

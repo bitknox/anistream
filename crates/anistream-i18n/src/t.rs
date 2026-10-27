@@ -5,6 +5,341 @@
 
 use crate::{Arg, text};
 
+/// Toast after joining a plugin store with an invite that names this device's owner.
+pub fn store_joined(store: &str, member: &str) -> String {
+    text("store-joined", &[("store", Arg::Text(store)), ("member", Arg::Text(member))])
+}
+
+/// Toast after joining a plugin store with its open link, which keeps no name.
+pub fn store_joined_unnamed(store: &str) -> String {
+    text("store-joined-unnamed", &[("store", Arg::Text(store))])
+}
+
+/// Toast after leaving a plugin store.
+pub fn store_left(store: &str) -> String {
+    text("store-left", &[("store", Arg::Text(store))])
+}
+
+/// Toast after a plugin is deleted from this device.
+pub fn plugin_removed(plugin: &str) -> String {
+    text("plugin-removed", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Toast after a store owner removes a member.
+pub fn store_member_removed() -> String {
+    text("store-member-removed", &[])
+}
+
+/// Toast after a store owner cancels an invite.
+pub fn store_invite_cancelled() -> String {
+    text("store-invite-cancelled", &[])
+}
+
+/// Toast after a store owner lets anyone with the store's link join.
+pub fn store_open_join_on() -> String {
+    text("store-open-join-on", &[])
+}
+
+/// Toast after a store owner turns off joining with the link, when no device joined that way.
+pub fn store_open_join_off() -> String {
+    text("store-open-join-off", &[])
+}
+
+/// Toast after a store owner turns off joining with the link, when some devices joined that way.
+pub fn store_open_join_off_devices(devices: i64) -> String {
+    text("store-open-join-off-devices", &[("devices", Arg::Int(devices))])
+}
+
+/// Toast after one device that joined with the store's link is removed.
+pub fn store_device_removed() -> String {
+    text("store-device-removed", &[])
+}
+
+/// Toast after every device that joined with the store's link is removed.
+pub fn store_devices_removed() -> String {
+    text("store-devices-removed", &[])
+}
+
+/// Toast after a plugin is published to a store.
+pub fn plugin_published(plugin: &str, version: &str) -> String {
+    text("plugin-published", &[("plugin", Arg::Text(plugin)), ("version", Arg::Text(version))])
+}
+
+/// Toast after a plugin stops being offered in a store.
+pub fn plugin_unpublished(plugin: &str) -> String {
+    text("plugin-unpublished", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Toast after the store's admin page opens in the browser.
+pub fn store_admin_opened() -> String {
+    text("store-admin-opened", &[])
+}
+
+/// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+pub fn store_admin_open_failed(reason: &str) -> String {
+    text("store-admin-open-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast after a plugin is installed while plugins are switched off in the source order.
+pub fn plugin_installed_unused(plugin: &str, version: &str) -> String {
+    text("plugin-installed-unused", &[("plugin", Arg::Text(plugin)), ("version", Arg::Text(version))])
+}
+
+/// Toast after a plugin is installed under the name of a built-in source, so it was not loaded.
+pub fn plugin_installed_name_clash(plugin: &str, id: &str) -> String {
+    text("plugin-installed-name-clash", &[("plugin", Arg::Text(plugin)), ("id", Arg::Text(id))])
+}
+
+/// Toast after a plugin is installed and ready to use.
+pub fn plugin_installed(plugin: &str, version: &str) -> String {
+    text("plugin-installed", &[("plugin", Arg::Text(plugin)), ("version", Arg::Text(version))])
+}
+
+/// Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.
+pub fn plugin_installed_not_loaded(plugin: &str, reason: &str) -> String {
+    text("plugin-installed-not-loaded", &[("plugin", Arg::Text(plugin)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast at launch when joined plugin stores offer newer versions of installed plugins.
+pub fn plugin_updates_ready(count: i64, names: &str) -> String {
+    text("plugin-updates-ready", &[("count", Arg::Int(count)), ("names", Arg::Text(names))])
+}
+
+/// Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host.
+pub fn plugins_load_failed(reason: &str) -> String {
+    text("plugins-load-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Error: the store was joined once, but this device has no saved token for it.
+pub fn store_token_missing(store: &str) -> String {
+    text("store-token-missing", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store the record points to is gone from the saved list.
+pub fn store_not_joined() -> String {
+    text("store-not-joined", &[])
+}
+
+/// Error: a store's signing key is unreadable. Shown as the reason a store is offline.
+pub fn store_key_damaged() -> String {
+    text("store-key-damaged", &[])
+}
+
+/// Error: a store rejected this device's token.
+pub fn store_device_refused(store: &str) -> String {
+    text("store-device-refused", &[("store", Arg::Text(store))])
+}
+
+/// Error: a store could not be reached. The reason comes from the network.
+pub fn store_unreachable(store: &str, reason: &str) -> String {
+    text("store-unreachable", &[("store", Arg::Text(store)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: an invite link names a store this device already joined, but at another address.
+pub fn store_moved(store: &str, current: &str, target: &str) -> String {
+    text("store-moved", &[("store", Arg::Text(store)), ("current", Arg::Text(current)), ("target", Arg::Text(target))])
+}
+
+/// Error: an open link would replace the named membership this device already has.
+pub fn store_join_would_unname(store: &str, member: &str) -> String {
+    text("store-join-would-unname", &[("store", Arg::Text(store)), ("member", Arg::Text(member))])
+}
+
+/// Error: the server at a link's address could not prove it is the store the invite named.
+pub fn store_not_the_invited(url: &str, reason: &str) -> String {
+    text("store-not-the-invited", &[("url", Arg::Text(url)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: the token for a joined store could not be saved on this device. The reason comes from the system.
+pub fn store_token_not_kept(reason: &str) -> String {
+    text("store-token-not-kept", &[("reason", Arg::Text(reason))])
+}
+
+/// Error: an invite that cannot be used any more.
+pub fn store_invite_unusable() -> String {
+    text("store-invite-unusable", &[])
+}
+
+/// Error: an open link that no longer lets anyone join.
+pub fn store_open_link_unusable() -> String {
+    text("store-open-link-unusable", &[])
+}
+
+/// Error: a plugin takes the name of a built-in source.
+pub fn plugin_reserved_name(plugin: &str) -> String {
+    text("plugin-reserved-name", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a store stopped offering a plugin between listing it and installing it.
+pub fn store_plugin_withdrawn(store: &str, plugin: &str) -> String {
+    text("store-plugin-withdrawn", &[("store", Arg::Text(store)), ("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a store changed a plugin after the person agreed to what was shown.
+pub fn store_plugin_changed(store: &str, plugin: &str) -> String {
+    text("store-plugin-changed", &[("store", Arg::Text(store)), ("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a plugin installed from one store is offered by another.
+pub fn plugin_from_other_store(plugin: &str, store: &str) -> String {
+    text("plugin-from-other-store", &[("plugin", Arg::Text(plugin)), ("store", Arg::Text(store))])
+}
+
+/// Error: a plugin file added by hand already declares the same name.
+pub fn plugin_duplicate_file(path: &str, plugin: &str) -> String {
+    text("plugin-duplicate-file", &[("path", Arg::Text(path)), ("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a plugin could not be downloaded or installed. The reason comes from the store or the system.
+pub fn plugin_install_failed(plugin: &str, reason: &str) -> String {
+    text("plugin-install-failed", &[("plugin", Arg::Text(plugin)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: a plugin could not be published. The reason comes from the store or the system.
+pub fn plugin_publish_failed(plugin: &str, reason: &str) -> String {
+    text("plugin-publish-failed", &[("plugin", Arg::Text(plugin)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: a plugin to publish is no longer in the plugin folder.
+pub fn plugin_missing_locally(plugin: &str) -> String {
+    text("plugin-missing-locally", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Error: an invite for another device cannot be made from a device that joined with the open link.
+pub fn store_invite_needs_link(store: &str) -> String {
+    text("store-invite-needs-link", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store sent an invite link that does not parse. The reason comes from the link parser.
+pub fn store_link_malformed(reason: &str) -> String {
+    text("store-link-malformed", &[("reason", Arg::Text(reason))])
+}
+
+/// Error: the store sent a link carrying another store's key.
+pub fn store_link_wrong_key() -> String {
+    text("store-link-wrong-key", &[])
+}
+
+/// Error: the store's server has no admin page.
+pub fn store_admin_missing(store: &str) -> String {
+    text("store-admin-missing", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store sent an admin link that points somewhere else.
+pub fn store_admin_link_foreign(store: &str) -> String {
+    text("store-admin-link-foreign", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store's server is too old for joining with a link.
+pub fn store_open_join_unsupported(store: &str) -> String {
+    text("store-open-join-unsupported", &[("store", Arg::Text(store))])
+}
+
+/// Toast after a source (plugin) is switched off. It is skipped when looking for episodes.
+pub fn source_switched_off(name: &str) -> String {
+    text("source-switched-off", &[("name", Arg::Text(name))])
+}
+
+/// Toast after a source (plugin) is switched on.
+pub fn source_switched_on(name: &str) -> String {
+    text("source-switched-on", &[("name", Arg::Text(name))])
+}
+
+/// Error: a command named a plugin that is not loaded.
+pub fn plugin_not_loaded(id: &str) -> String {
+    text("plugin-not-loaded", &[("id", Arg::Text(id))])
+}
+
+/// Toast after a release is chosen for a title. The name is the release's title.
+pub fn release_pinned(name: &str) -> String {
+    text("release-pinned", &[("name", Arg::Text(name))])
+}
+
+/// Toast when the chosen source or release for a title could not be saved. The reason comes from the database.
+pub fn notice_choice_not_saved(reason: &str) -> String {
+    text("notice-choice-not-saved", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast while torrents are running but the connection check failed, and the settings say to warn only.
+pub fn torrent_check_failed_running() -> String {
+    text("torrent-check-failed-running", &[])
+}
+
+/// Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard.
+pub fn torrent_vpn_waiting(reason: &str) -> String {
+    text("torrent-vpn-waiting", &[("reason", Arg::Text(reason))])
+}
+
+/// Note on the sources screen: the VPN guard has no verdict yet.
+pub fn torrent_vpn_unverified() -> String {
+    text("torrent-vpn-unverified", &[])
+}
+
+/// Error: torrents are on, but no torrent index is set.
+pub fn torrent_no_index() -> String {
+    text("torrent-no-index", &[])
+}
+
+/// Error: the torrent session did not start because the interface closed first.
+pub fn torrent_interface_closed() -> String {
+    text("torrent-interface-closed", &[])
+}
+
+/// Error: the torrent session could not start. The reason comes from the torrent engine.
+pub fn torrent_session_failed(reason: &str) -> String {
+    text("torrent-session-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+pub fn torrent_no_kill_switch() -> String {
+    text("torrent-no-kill-switch", &[])
+}
+
+/// Toast when the connection check could not run. The reason comes from the VPN settings.
+pub fn torrent_not_checked(reason: &str) -> String {
+    text("torrent-not-checked", &[("reason", Arg::Text(reason))])
+}
+
+/// Note on the sources screen after the source chain is rebuilt with torrents on.
+pub fn sources_reloaded_torrents_pending() -> String {
+    text("sources-reloaded-torrents-pending", &[])
+}
+
+/// Note on the sources screen after the source chain is rebuilt with torrents off.
+pub fn sources_reloaded_torrents_off() -> String {
+    text("sources-reloaded-torrents-off", &[])
+}
+
+/// Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows.
+pub fn job_anilist_limit() -> String {
+    text("job-anilist-limit", &[])
+}
+
+/// Toast when there is no job to carry the wait for AniList's rate limit.
+pub fn notice_anilist_limit(wait: &str) -> String {
+    text("notice-anilist-limit", &[("wait", Arg::Text(wait))])
+}
+
+/// Toast when the AniList fallback takes over because AniList cannot be reached.
+pub fn notice_anilist_unreachable() -> String {
+    text("notice-anilist-unreachable", &[])
+}
+
+/// Toast when no metadata service answered and the last cached data is shown.
+pub fn notice_metadata_cached() -> String {
+    text("notice-metadata-cached", &[])
+}
+
+/// Toast when AniList answers again.
+pub fn notice_anilist_back() -> String {
+    text("notice-anilist-back", &[])
+}
+
+/// Toast when a command needs watch parties but this app was built without them.
+pub fn notice_party_not_built() -> String {
+    text("notice-party-not-built", &[])
+}
+
 /// The legal line. It exists once, so no translation can paraphrase it.
 pub fn legal_hosts_no_content() -> String {
     text("legal-hosts-no-content", &[])

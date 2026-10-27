@@ -15,6 +15,207 @@ public static partial class T
     /// <summary>The language the resolver answers in, which picks plural forms. Set with the resolver.</summary>
     public static string Language { get; set; } = "en";
 
+    /// <summary>Toast after joining a plugin store with an invite that names this device's owner.</summary>
+    public static string StoreJoined(string store, string member) => Fill(Get("StoreJoined"), ("store", store), ("member", member));
+
+    /// <summary>Toast after joining a plugin store with its open link, which keeps no name.</summary>
+    public static string StoreJoinedUnnamed(string store) => Fill(Get("StoreJoinedUnnamed"), ("store", store));
+
+    /// <summary>Toast after leaving a plugin store.</summary>
+    public static string StoreLeft(string store) => Fill(Get("StoreLeft"), ("store", store));
+
+    /// <summary>Toast after a plugin is deleted from this device.</summary>
+    public static string PluginRemoved(string plugin) => Fill(Get("PluginRemoved"), ("plugin", plugin));
+
+    /// <summary>Toast after a store owner removes a member.</summary>
+    public static string StoreMemberRemoved => Get("StoreMemberRemoved");
+
+    /// <summary>Toast after a store owner cancels an invite.</summary>
+    public static string StoreInviteCancelled => Get("StoreInviteCancelled");
+
+    /// <summary>Toast after a store owner lets anyone with the store's link join.</summary>
+    public static string StoreOpenJoinOn => Get("StoreOpenJoinOn");
+
+    /// <summary>Toast after a store owner turns off joining with the link, when no device joined that way.</summary>
+    public static string StoreOpenJoinOff => Get("StoreOpenJoinOff");
+
+    /// <summary>Toast after a store owner turns off joining with the link, when some devices joined that way.</summary>
+    public static string StoreOpenJoinOffDevices(long devices) => Fill(GetPlural("StoreOpenJoinOffDevices", devices), ("devices", devices.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Toast after one device that joined with the store's link is removed.</summary>
+    public static string StoreDeviceRemoved => Get("StoreDeviceRemoved");
+
+    /// <summary>Toast after every device that joined with the store's link is removed.</summary>
+    public static string StoreDevicesRemoved => Get("StoreDevicesRemoved");
+
+    /// <summary>Toast after a plugin is published to a store.</summary>
+    public static string PluginPublished(string plugin, string version) => Fill(Get("PluginPublished"), ("plugin", plugin), ("version", version));
+
+    /// <summary>Toast after a plugin stops being offered in a store.</summary>
+    public static string PluginUnpublished(string plugin) => Fill(Get("PluginUnpublished"), ("plugin", plugin));
+
+    /// <summary>Toast after the store's admin page opens in the browser.</summary>
+    public static string StoreAdminOpened => Get("StoreAdminOpened");
+
+    /// <summary>Toast when the browser could not be opened for the store's admin page. The reason comes from the system.</summary>
+    public static string StoreAdminOpenFailed(string reason) => Fill(Get("StoreAdminOpenFailed"), ("reason", reason));
+
+    /// <summary>Toast after a plugin is installed while plugins are switched off in the source order.</summary>
+    public static string PluginInstalledUnused(string plugin, string version) => Fill(Get("PluginInstalledUnused"), ("plugin", plugin), ("version", version));
+
+    /// <summary>Toast after a plugin is installed under the name of a built-in source, so it was not loaded.</summary>
+    public static string PluginInstalledNameClash(string plugin, string id) => Fill(Get("PluginInstalledNameClash"), ("plugin", plugin), ("id", id));
+
+    /// <summary>Toast after a plugin is installed and ready to use.</summary>
+    public static string PluginInstalled(string plugin, string version) => Fill(Get("PluginInstalled"), ("plugin", plugin), ("version", version));
+
+    /// <summary>Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.</summary>
+    public static string PluginInstalledNotLoaded(string plugin, string reason) => Fill(Get("PluginInstalledNotLoaded"), ("plugin", plugin), ("reason", reason));
+
+    /// <summary>Toast at launch when joined plugin stores offer newer versions of installed plugins.</summary>
+    public static string PluginUpdatesReady(long count, string names) => Fill(GetPlural("PluginUpdatesReady", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("names", names));
+
+    /// <summary>Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host.</summary>
+    public static string PluginsLoadFailed(string reason) => Fill(Get("PluginsLoadFailed"), ("reason", reason));
+
+    /// <summary>Error: the store was joined once, but this device has no saved token for it.</summary>
+    public static string StoreTokenMissing(string store) => Fill(Get("StoreTokenMissing"), ("store", store));
+
+    /// <summary>Error: the store the record points to is gone from the saved list.</summary>
+    public static string StoreNotJoined => Get("StoreNotJoined");
+
+    /// <summary>Error: a store's signing key is unreadable. Shown as the reason a store is offline.</summary>
+    public static string StoreKeyDamaged => Get("StoreKeyDamaged");
+
+    /// <summary>Error: a store rejected this device's token.</summary>
+    public static string StoreDeviceRefused(string store) => Fill(Get("StoreDeviceRefused"), ("store", store));
+
+    /// <summary>Error: a store could not be reached. The reason comes from the network.</summary>
+    public static string StoreUnreachable(string store, string reason) => Fill(Get("StoreUnreachable"), ("store", store), ("reason", reason));
+
+    /// <summary>Error: an invite link names a store this device already joined, but at another address.</summary>
+    public static string StoreMoved(string store, string current, string target) => Fill(Get("StoreMoved"), ("store", store), ("current", current), ("target", target));
+
+    /// <summary>Error: an open link would replace the named membership this device already has.</summary>
+    public static string StoreJoinWouldUnname(string store, string member) => Fill(Get("StoreJoinWouldUnname"), ("store", store), ("member", member));
+
+    /// <summary>Error: the server at a link's address could not prove it is the store the invite named.</summary>
+    public static string StoreNotTheInvited(string url, string reason) => Fill(Get("StoreNotTheInvited"), ("url", url), ("reason", reason));
+
+    /// <summary>Error: the token for a joined store could not be saved on this device. The reason comes from the system.</summary>
+    public static string StoreTokenNotKept(string reason) => Fill(Get("StoreTokenNotKept"), ("reason", reason));
+
+    /// <summary>Error: an invite that cannot be used any more.</summary>
+    public static string StoreInviteUnusable => Get("StoreInviteUnusable");
+
+    /// <summary>Error: an open link that no longer lets anyone join.</summary>
+    public static string StoreOpenLinkUnusable => Get("StoreOpenLinkUnusable");
+
+    /// <summary>Error: a plugin takes the name of a built-in source.</summary>
+    public static string PluginReservedName(string plugin) => Fill(Get("PluginReservedName"), ("plugin", plugin));
+
+    /// <summary>Error: a store stopped offering a plugin between listing it and installing it.</summary>
+    public static string StorePluginWithdrawn(string store, string plugin) => Fill(Get("StorePluginWithdrawn"), ("store", store), ("plugin", plugin));
+
+    /// <summary>Error: a store changed a plugin after the person agreed to what was shown.</summary>
+    public static string StorePluginChanged(string store, string plugin) => Fill(Get("StorePluginChanged"), ("store", store), ("plugin", plugin));
+
+    /// <summary>Error: a plugin installed from one store is offered by another.</summary>
+    public static string PluginFromOtherStore(string plugin, string store) => Fill(Get("PluginFromOtherStore"), ("plugin", plugin), ("store", store));
+
+    /// <summary>Error: a plugin file added by hand already declares the same name.</summary>
+    public static string PluginDuplicateFile(string path, string plugin) => Fill(Get("PluginDuplicateFile"), ("path", path), ("plugin", plugin));
+
+    /// <summary>Error: a plugin could not be downloaded or installed. The reason comes from the store or the system.</summary>
+    public static string PluginInstallFailed(string plugin, string reason) => Fill(Get("PluginInstallFailed"), ("plugin", plugin), ("reason", reason));
+
+    /// <summary>Error: a plugin could not be published. The reason comes from the store or the system.</summary>
+    public static string PluginPublishFailed(string plugin, string reason) => Fill(Get("PluginPublishFailed"), ("plugin", plugin), ("reason", reason));
+
+    /// <summary>Error: a plugin to publish is no longer in the plugin folder.</summary>
+    public static string PluginMissingLocally(string plugin) => Fill(Get("PluginMissingLocally"), ("plugin", plugin));
+
+    /// <summary>Error: an invite for another device cannot be made from a device that joined with the open link.</summary>
+    public static string StoreInviteNeedsLink(string store) => Fill(Get("StoreInviteNeedsLink"), ("store", store));
+
+    /// <summary>Error: the store sent an invite link that does not parse. The reason comes from the link parser.</summary>
+    public static string StoreLinkMalformed(string reason) => Fill(Get("StoreLinkMalformed"), ("reason", reason));
+
+    /// <summary>Error: the store sent a link carrying another store's key.</summary>
+    public static string StoreLinkWrongKey => Get("StoreLinkWrongKey");
+
+    /// <summary>Error: the store's server has no admin page.</summary>
+    public static string StoreAdminMissing(string store) => Fill(Get("StoreAdminMissing"), ("store", store));
+
+    /// <summary>Error: the store sent an admin link that points somewhere else.</summary>
+    public static string StoreAdminLinkForeign(string store) => Fill(Get("StoreAdminLinkForeign"), ("store", store));
+
+    /// <summary>Error: the store's server is too old for joining with a link.</summary>
+    public static string StoreOpenJoinUnsupported(string store) => Fill(Get("StoreOpenJoinUnsupported"), ("store", store));
+
+    /// <summary>Toast after a source (plugin) is switched off. It is skipped when looking for episodes.</summary>
+    public static string SourceSwitchedOff(string name) => Fill(Get("SourceSwitchedOff"), ("name", name));
+
+    /// <summary>Toast after a source (plugin) is switched on.</summary>
+    public static string SourceSwitchedOn(string name) => Fill(Get("SourceSwitchedOn"), ("name", name));
+
+    /// <summary>Error: a command named a plugin that is not loaded.</summary>
+    public static string PluginNotLoaded(string id) => Fill(Get("PluginNotLoaded"), ("id", id));
+
+    /// <summary>Toast after a release is chosen for a title. The name is the release's title.</summary>
+    public static string ReleasePinned(string name) => Fill(Get("ReleasePinned"), ("name", name));
+
+    /// <summary>Toast when the chosen source or release for a title could not be saved. The reason comes from the database.</summary>
+    public static string NoticeChoiceNotSaved(string reason) => Fill(Get("NoticeChoiceNotSaved"), ("reason", reason));
+
+    /// <summary>Toast while torrents are running but the connection check failed, and the settings say to warn only.</summary>
+    public static string TorrentCheckFailedRunning => Get("TorrentCheckFailedRunning");
+
+    /// <summary>Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard.</summary>
+    public static string TorrentVpnWaiting(string reason) => Fill(Get("TorrentVpnWaiting"), ("reason", reason));
+
+    /// <summary>Note on the sources screen: the VPN guard has no verdict yet.</summary>
+    public static string TorrentVpnUnverified => Get("TorrentVpnUnverified");
+
+    /// <summary>Error: torrents are on, but no torrent index is set.</summary>
+    public static string TorrentNoIndex => Get("TorrentNoIndex");
+
+    /// <summary>Error: the torrent session did not start because the interface closed first.</summary>
+    public static string TorrentInterfaceClosed => Get("TorrentInterfaceClosed");
+
+    /// <summary>Error: the torrent session could not start. The reason comes from the torrent engine.</summary>
+    public static string TorrentSessionFailed(string reason) => Fill(Get("TorrentSessionFailed"), ("reason", reason));
+
+    /// <summary>Toast when torrents are up but no operating-system firewall rule backs the VPN guard.</summary>
+    public static string TorrentNoKillSwitch => Get("TorrentNoKillSwitch");
+
+    /// <summary>Toast when the connection check could not run. The reason comes from the VPN settings.</summary>
+    public static string TorrentNotChecked(string reason) => Fill(Get("TorrentNotChecked"), ("reason", reason));
+
+    /// <summary>Note on the sources screen after the source chain is rebuilt with torrents on.</summary>
+    public static string SourcesReloadedTorrentsPending => Get("SourcesReloadedTorrentsPending");
+
+    /// <summary>Note on the sources screen after the source chain is rebuilt with torrents off.</summary>
+    public static string SourcesReloadedTorrentsOff => Get("SourcesReloadedTorrentsOff");
+
+    /// <summary>Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows.</summary>
+    public static string JobAnilistLimit => Get("JobAnilistLimit");
+
+    /// <summary>Toast when there is no job to carry the wait for AniList's rate limit.</summary>
+    public static string NoticeAnilistLimit(string wait) => Fill(Get("NoticeAnilistLimit"), ("wait", wait));
+
+    /// <summary>Toast when the AniList fallback takes over because AniList cannot be reached.</summary>
+    public static string NoticeAnilistUnreachable => Get("NoticeAnilistUnreachable");
+
+    /// <summary>Toast when no metadata service answered and the last cached data is shown.</summary>
+    public static string NoticeMetadataCached => Get("NoticeMetadataCached");
+
+    /// <summary>Toast when AniList answers again.</summary>
+    public static string NoticeAnilistBack => Get("NoticeAnilistBack");
+
+    /// <summary>Toast when a command needs watch parties but this app was built without them.</summary>
+    public static string NoticePartyNotBuilt => Get("NoticePartyNotBuilt");
+
     /// <summary>The legal line. It exists once, so no translation can paraphrase it.</summary>
     public static string LegalHostsNoContent => Get("LegalHostsNoContent");
 
@@ -179,6 +380,75 @@ public static partial class T
 
     static readonly Dictionary<string, string> English = new()
     {
+        ["StoreJoined"] = "Joined {store} as {member}.",
+        ["StoreJoinedUnnamed"] = "Joined {store} without a name.",
+        ["StoreLeft"] = "Left {store}. Its plugins stay installed.",
+        ["PluginRemoved"] = "Removed {plugin}.",
+        ["StoreMemberRemoved"] = "Removed. Their devices stopped working with this plugin store.",
+        ["StoreInviteCancelled"] = "Invite cancelled. The link no longer works.",
+        ["StoreOpenJoinOn"] = "Anyone with the plugin store's link can join now. Copy it from the members screen.",
+        ["StoreOpenJoinOff"] = "Only people you invite can join now.",
+        ["StoreOpenJoinOffDevices_one"] = "Only people you invite can join now. The device that joined with the link keeps working until you remove it.",
+        ["StoreOpenJoinOffDevices_other"] = "Only people you invite can join now. The {devices} devices that joined with the link keep working until you remove them.",
+        ["StoreDeviceRemoved"] = "That device no longer works with this plugin store.",
+        ["StoreDevicesRemoved"] = "Removed every device that joined with the link.",
+        ["PluginPublished"] = "Published {plugin} {version}.",
+        ["PluginUnpublished"] = "{plugin} is no longer offered.",
+        ["StoreAdminOpened"] = "Opened the admin page in your browser. The link works once, for ten minutes.",
+        ["StoreAdminOpenFailed"] = "Couldn't open a browser ({reason}). On the plugin store's machine, run \"anistream store admin\" to print a link.",
+        ["PluginInstalledUnused"] = "Installed {plugin} {version}, but plugins are switched off in the source order, so it isn't used.",
+        ["PluginInstalledNameClash"] = "Installed {plugin}, but {id} is the name of a built-in source, so it wasn't loaded.",
+        ["PluginInstalled"] = "Installed {plugin} {version}.",
+        ["PluginInstalledNotLoaded"] = "Installed {plugin}, but it didn't load. {reason}",
+        ["PluginUpdatesReady_one"] = "Plugin update ready: {names}.",
+        ["PluginUpdatesReady_other"] = "Plugin updates ready: {names}.",
+        ["PluginsLoadFailed"] = "Couldn't load plugins. {reason}",
+        ["StoreTokenMissing"] = "There is no token for {store} on this device. Join it again with a new invite.",
+        ["StoreNotJoined"] = "That plugin store is no longer joined.",
+        ["StoreKeyDamaged"] = "The plugin store's key is damaged.",
+        ["StoreDeviceRefused"] = "{store} no longer accepts this device. Join it again with a new invite.",
+        ["StoreUnreachable"] = "Couldn't reach {store}. {reason}",
+        ["StoreMoved"] = "{store} is joined at {current}, but this link points to {target}. If the plugin store has moved, leave it first and join again.",
+        ["StoreJoinWouldUnname"] = "You joined {store} as {member}. This link would join it again without your name, so nothing was changed.",
+        ["StoreNotTheInvited"] = "{url} is not the plugin store in the invite ({reason}). Nothing was joined.",
+        ["StoreTokenNotKept"] = "Couldn't keep the token for this plugin store. {reason}",
+        ["StoreInviteUnusable"] = "That invite was already used, was cancelled or has expired. Ask for a new one.",
+        ["StoreOpenLinkUnusable"] = "That link no longer lets anyone join. Ask the plugin store's owner for a new link or an invite.",
+        ["PluginReservedName"] = "{plugin} is the name of a built-in source, so it can't be a plugin.",
+        ["StorePluginWithdrawn"] = "{store} no longer offers {plugin}.",
+        ["StorePluginChanged"] = "{store} changed {plugin} since it was shown. Look at it again before installing.",
+        ["PluginFromOtherStore"] = "{plugin} is installed from {store}, which keeps it updated.",
+        ["PluginDuplicateFile"] = "{path} already declares {plugin}. Remove that file first, or two copies would run.",
+        ["PluginInstallFailed"] = "Couldn't install {plugin}. {reason}",
+        ["PluginPublishFailed"] = "Couldn't publish {plugin}. {reason}",
+        ["PluginMissingLocally"] = "{plugin} is no longer in the plugin folder.",
+        ["StoreInviteNeedsLink"] = "This device joined {store} with its link. Paste the same link on the other device.",
+        ["StoreLinkMalformed"] = "The plugin store made a bad link. {reason}",
+        ["StoreLinkWrongKey"] = "The plugin store made a link with a different key. Check the address it was started with.",
+        ["StoreAdminMissing"] = "{store} has no admin page. Its server may be older.",
+        ["StoreAdminLinkForeign"] = "{store} sent an admin link for another address.",
+        ["StoreOpenJoinUnsupported"] = "{store}'s server is older and can't let anyone join with a link. Update it first.",
+        ["SourceSwitchedOff"] = "{name} is off. It is skipped when looking for episodes.",
+        ["SourceSwitchedOn"] = "{name} is on.",
+        ["PluginNotLoaded"] = "{id} is not a plugin that is loaded.",
+        ["ReleasePinned"] = "{name} will be used for this title.",
+        ["NoticeChoiceNotSaved"] = "Couldn't save that choice. {reason}",
+        ["TorrentCheckFailedRunning"] = "The connection check failed. Torrents keep running.",
+        ["TorrentVpnWaiting"] = "Torrents start once the VPN guard passes. {reason}",
+        ["TorrentVpnUnverified"] = "Torrents start once the VPN guard passes. The connection hasn't been verified yet.",
+        ["TorrentNoIndex"] = "Torrents need a torrent index. anistream ships none, so add your own address in the settings.",
+        ["TorrentInterfaceClosed"] = "The interface closed before torrents started.",
+        ["TorrentSessionFailed"] = "Couldn't start the torrent session. {reason}",
+        ["TorrentNoKillSwitch"] = "There is no OS-level kill switch behind the VPN guard. Run \"anistream --doctor\" for advice.",
+        ["TorrentNotChecked"] = "Couldn't check the connection. {reason}",
+        ["SourcesReloadedTorrentsPending"] = "Sources reloaded. Torrents start once the VPN guard passes.",
+        ["SourcesReloadedTorrentsOff"] = "Torrents are off. The session was stopped.",
+        ["JobAnilistLimit"] = "Waiting on the AniList rate limit",
+        ["NoticeAnilistLimit"] = "Waiting {wait} on the AniList rate limit.",
+        ["NoticeAnilistUnreachable"] = "AniList is unreachable. Using the fallback for fresh data for now.",
+        ["NoticeMetadataCached"] = "No metadata service answered. Showing what was last cached.",
+        ["NoticeAnilistBack"] = "AniList is back.",
+        ["NoticePartyNotBuilt"] = "Watch parties aren't built into this app.",
         ["LegalHostsNoContent"] = "anistream hosts no content.",
         ["NoticeSaved"] = "Saved {label}.",
         ["NoticeNotSaved"] = "Couldn't save that setting. {reason}",

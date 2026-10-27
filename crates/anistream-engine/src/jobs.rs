@@ -75,7 +75,7 @@ mod tests {
 
         let work = tokio::spawn(async move {
             let job = job;
-            job.raw_note("held up", None);
+            job.note(Msg::JobAnilistLimit, None);
             panic!("the provider check fell over");
         });
         assert!(work.await.is_err(), "the task did panic");

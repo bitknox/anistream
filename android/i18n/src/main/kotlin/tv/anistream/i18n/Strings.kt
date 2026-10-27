@@ -9,6 +9,274 @@ import android.content.Context
  * `stringResource(R.string.x)` and `pluralStringResource(R.plurals.x, n, ...)` directly.
  */
 object Strings {
+    /** Toast after joining a plugin store with an invite that names this device's owner. */
+    fun storeJoined(context: Context, store: String, member: String): String =
+        context.getString(R.string.store_joined, store, member)
+
+    /** Toast after joining a plugin store with its open link, which keeps no name. */
+    fun storeJoinedUnnamed(context: Context, store: String): String =
+        context.getString(R.string.store_joined_unnamed, store)
+
+    /** Toast after leaving a plugin store. */
+    fun storeLeft(context: Context, store: String): String =
+        context.getString(R.string.store_left, store)
+
+    /** Toast after a plugin is deleted from this device. */
+    fun pluginRemoved(context: Context, plugin: String): String =
+        context.getString(R.string.plugin_removed, plugin)
+
+    /** Toast after a store owner removes a member. */
+    fun storeMemberRemoved(context: Context): String =
+        context.getString(R.string.store_member_removed)
+
+    /** Toast after a store owner cancels an invite. */
+    fun storeInviteCancelled(context: Context): String =
+        context.getString(R.string.store_invite_cancelled)
+
+    /** Toast after a store owner lets anyone with the store's link join. */
+    fun storeOpenJoinOn(context: Context): String =
+        context.getString(R.string.store_open_join_on)
+
+    /** Toast after a store owner turns off joining with the link, when no device joined that way. */
+    fun storeOpenJoinOff(context: Context): String =
+        context.getString(R.string.store_open_join_off)
+
+    /** Toast after a store owner turns off joining with the link, when some devices joined that way. */
+    fun storeOpenJoinOffDevices(context: Context, devices: Int): String =
+        context.resources.getQuantityString(R.plurals.store_open_join_off_devices, devices, devices)
+
+    /** Toast after one device that joined with the store's link is removed. */
+    fun storeDeviceRemoved(context: Context): String =
+        context.getString(R.string.store_device_removed)
+
+    /** Toast after every device that joined with the store's link is removed. */
+    fun storeDevicesRemoved(context: Context): String =
+        context.getString(R.string.store_devices_removed)
+
+    /** Toast after a plugin is published to a store. */
+    fun pluginPublished(context: Context, plugin: String, version: String): String =
+        context.getString(R.string.plugin_published, plugin, version)
+
+    /** Toast after a plugin stops being offered in a store. */
+    fun pluginUnpublished(context: Context, plugin: String): String =
+        context.getString(R.string.plugin_unpublished, plugin)
+
+    /** Toast after the store's admin page opens in the browser. */
+    fun storeAdminOpened(context: Context): String =
+        context.getString(R.string.store_admin_opened)
+
+    /** Toast when the browser could not be opened for the store's admin page. The reason comes from the system. */
+    fun storeAdminOpenFailed(context: Context, reason: String): String =
+        context.getString(R.string.store_admin_open_failed, reason)
+
+    /** Toast after a plugin is installed while plugins are switched off in the source order. */
+    fun pluginInstalledUnused(context: Context, plugin: String, version: String): String =
+        context.getString(R.string.plugin_installed_unused, plugin, version)
+
+    /** Toast after a plugin is installed under the name of a built-in source, so it was not loaded. */
+    fun pluginInstalledNameClash(context: Context, plugin: String, id: String): String =
+        context.getString(R.string.plugin_installed_name_clash, plugin, id)
+
+    /** Toast after a plugin is installed and ready to use. */
+    fun pluginInstalled(context: Context, plugin: String, version: String): String =
+        context.getString(R.string.plugin_installed, plugin, version)
+
+    /** Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host. */
+    fun pluginInstalledNotLoaded(context: Context, plugin: String, reason: String): String =
+        context.getString(R.string.plugin_installed_not_loaded, plugin, reason)
+
+    /** Toast at launch when joined plugin stores offer newer versions of installed plugins. */
+    fun pluginUpdatesReady(context: Context, count: Int, names: String): String =
+        context.resources.getQuantityString(R.plurals.plugin_updates_ready, count, count, names)
+
+    /** Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host. */
+    fun pluginsLoadFailed(context: Context, reason: String): String =
+        context.getString(R.string.plugins_load_failed, reason)
+
+    /** Error: the store was joined once, but this device has no saved token for it. */
+    fun storeTokenMissing(context: Context, store: String): String =
+        context.getString(R.string.store_token_missing, store)
+
+    /** Error: the store the record points to is gone from the saved list. */
+    fun storeNotJoined(context: Context): String =
+        context.getString(R.string.store_not_joined)
+
+    /** Error: a store's signing key is unreadable. Shown as the reason a store is offline. */
+    fun storeKeyDamaged(context: Context): String =
+        context.getString(R.string.store_key_damaged)
+
+    /** Error: a store rejected this device's token. */
+    fun storeDeviceRefused(context: Context, store: String): String =
+        context.getString(R.string.store_device_refused, store)
+
+    /** Error: a store could not be reached. The reason comes from the network. */
+    fun storeUnreachable(context: Context, store: String, reason: String): String =
+        context.getString(R.string.store_unreachable, store, reason)
+
+    /** Error: an invite link names a store this device already joined, but at another address. */
+    fun storeMoved(context: Context, store: String, current: String, target: String): String =
+        context.getString(R.string.store_moved, store, current, target)
+
+    /** Error: an open link would replace the named membership this device already has. */
+    fun storeJoinWouldUnname(context: Context, store: String, member: String): String =
+        context.getString(R.string.store_join_would_unname, store, member)
+
+    /** Error: the server at a link's address could not prove it is the store the invite named. */
+    fun storeNotTheInvited(context: Context, url: String, reason: String): String =
+        context.getString(R.string.store_not_the_invited, url, reason)
+
+    /** Error: the token for a joined store could not be saved on this device. The reason comes from the system. */
+    fun storeTokenNotKept(context: Context, reason: String): String =
+        context.getString(R.string.store_token_not_kept, reason)
+
+    /** Error: an invite that cannot be used any more. */
+    fun storeInviteUnusable(context: Context): String =
+        context.getString(R.string.store_invite_unusable)
+
+    /** Error: an open link that no longer lets anyone join. */
+    fun storeOpenLinkUnusable(context: Context): String =
+        context.getString(R.string.store_open_link_unusable)
+
+    /** Error: a plugin takes the name of a built-in source. */
+    fun pluginReservedName(context: Context, plugin: String): String =
+        context.getString(R.string.plugin_reserved_name, plugin)
+
+    /** Error: a store stopped offering a plugin between listing it and installing it. */
+    fun storePluginWithdrawn(context: Context, store: String, plugin: String): String =
+        context.getString(R.string.store_plugin_withdrawn, store, plugin)
+
+    /** Error: a store changed a plugin after the person agreed to what was shown. */
+    fun storePluginChanged(context: Context, store: String, plugin: String): String =
+        context.getString(R.string.store_plugin_changed, store, plugin)
+
+    /** Error: a plugin installed from one store is offered by another. */
+    fun pluginFromOtherStore(context: Context, plugin: String, store: String): String =
+        context.getString(R.string.plugin_from_other_store, plugin, store)
+
+    /** Error: a plugin file added by hand already declares the same name. */
+    fun pluginDuplicateFile(context: Context, path: String, plugin: String): String =
+        context.getString(R.string.plugin_duplicate_file, path, plugin)
+
+    /** Error: a plugin could not be downloaded or installed. The reason comes from the store or the system. */
+    fun pluginInstallFailed(context: Context, plugin: String, reason: String): String =
+        context.getString(R.string.plugin_install_failed, plugin, reason)
+
+    /** Error: a plugin could not be published. The reason comes from the store or the system. */
+    fun pluginPublishFailed(context: Context, plugin: String, reason: String): String =
+        context.getString(R.string.plugin_publish_failed, plugin, reason)
+
+    /** Error: a plugin to publish is no longer in the plugin folder. */
+    fun pluginMissingLocally(context: Context, plugin: String): String =
+        context.getString(R.string.plugin_missing_locally, plugin)
+
+    /** Error: an invite for another device cannot be made from a device that joined with the open link. */
+    fun storeInviteNeedsLink(context: Context, store: String): String =
+        context.getString(R.string.store_invite_needs_link, store)
+
+    /** Error: the store sent an invite link that does not parse. The reason comes from the link parser. */
+    fun storeLinkMalformed(context: Context, reason: String): String =
+        context.getString(R.string.store_link_malformed, reason)
+
+    /** Error: the store sent a link carrying another store's key. */
+    fun storeLinkWrongKey(context: Context): String =
+        context.getString(R.string.store_link_wrong_key)
+
+    /** Error: the store's server has no admin page. */
+    fun storeAdminMissing(context: Context, store: String): String =
+        context.getString(R.string.store_admin_missing, store)
+
+    /** Error: the store sent an admin link that points somewhere else. */
+    fun storeAdminLinkForeign(context: Context, store: String): String =
+        context.getString(R.string.store_admin_link_foreign, store)
+
+    /** Error: the store's server is too old for joining with a link. */
+    fun storeOpenJoinUnsupported(context: Context, store: String): String =
+        context.getString(R.string.store_open_join_unsupported, store)
+
+    /** Toast after a source (plugin) is switched off. It is skipped when looking for episodes. */
+    fun sourceSwitchedOff(context: Context, name: String): String =
+        context.getString(R.string.source_switched_off, name)
+
+    /** Toast after a source (plugin) is switched on. */
+    fun sourceSwitchedOn(context: Context, name: String): String =
+        context.getString(R.string.source_switched_on, name)
+
+    /** Error: a command named a plugin that is not loaded. */
+    fun pluginNotLoaded(context: Context, id: String): String =
+        context.getString(R.string.plugin_not_loaded, id)
+
+    /** Toast after a release is chosen for a title. The name is the release's title. */
+    fun releasePinned(context: Context, name: String): String =
+        context.getString(R.string.release_pinned, name)
+
+    /** Toast when the chosen source or release for a title could not be saved. The reason comes from the database. */
+    fun noticeChoiceNotSaved(context: Context, reason: String): String =
+        context.getString(R.string.notice_choice_not_saved, reason)
+
+    /** Toast while torrents are running but the connection check failed, and the settings say to warn only. */
+    fun torrentCheckFailedRunning(context: Context): String =
+        context.getString(R.string.torrent_check_failed_running)
+
+    /** Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard. */
+    fun torrentVpnWaiting(context: Context, reason: String): String =
+        context.getString(R.string.torrent_vpn_waiting, reason)
+
+    /** Note on the sources screen: the VPN guard has no verdict yet. */
+    fun torrentVpnUnverified(context: Context): String =
+        context.getString(R.string.torrent_vpn_unverified)
+
+    /** Error: torrents are on, but no torrent index is set. */
+    fun torrentNoIndex(context: Context): String =
+        context.getString(R.string.torrent_no_index)
+
+    /** Error: the torrent session did not start because the interface closed first. */
+    fun torrentInterfaceClosed(context: Context): String =
+        context.getString(R.string.torrent_interface_closed)
+
+    /** Error: the torrent session could not start. The reason comes from the torrent engine. */
+    fun torrentSessionFailed(context: Context, reason: String): String =
+        context.getString(R.string.torrent_session_failed, reason)
+
+    /** Toast when torrents are up but no operating-system firewall rule backs the VPN guard. */
+    fun torrentNoKillSwitch(context: Context): String =
+        context.getString(R.string.torrent_no_kill_switch)
+
+    /** Toast when the connection check could not run. The reason comes from the VPN settings. */
+    fun torrentNotChecked(context: Context, reason: String): String =
+        context.getString(R.string.torrent_not_checked, reason)
+
+    /** Note on the sources screen after the source chain is rebuilt with torrents on. */
+    fun sourcesReloadedTorrentsPending(context: Context): String =
+        context.getString(R.string.sources_reloaded_torrents_pending)
+
+    /** Note on the sources screen after the source chain is rebuilt with torrents off. */
+    fun sourcesReloadedTorrentsOff(context: Context): String =
+        context.getString(R.string.sources_reloaded_torrents_off)
+
+    /** Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows. */
+    fun jobAnilistLimit(context: Context): String =
+        context.getString(R.string.job_anilist_limit)
+
+    /** Toast when there is no job to carry the wait for AniList's rate limit. */
+    fun noticeAnilistLimit(context: Context, wait: String): String =
+        context.getString(R.string.notice_anilist_limit, wait)
+
+    /** Toast when the AniList fallback takes over because AniList cannot be reached. */
+    fun noticeAnilistUnreachable(context: Context): String =
+        context.getString(R.string.notice_anilist_unreachable)
+
+    /** Toast when no metadata service answered and the last cached data is shown. */
+    fun noticeMetadataCached(context: Context): String =
+        context.getString(R.string.notice_metadata_cached)
+
+    /** Toast when AniList answers again. */
+    fun noticeAnilistBack(context: Context): String =
+        context.getString(R.string.notice_anilist_back)
+
+    /** Toast when a command needs watch parties but this app was built without them. */
+    fun noticePartyNotBuilt(context: Context): String =
+        context.getString(R.string.notice_party_not_built)
+
     /** The legal line. It exists once, so no translation can paraphrase it. */
     fun legalHostsNoContent(context: Context): String =
         context.getString(R.string.legal_hosts_no_content)
