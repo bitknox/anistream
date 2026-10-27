@@ -1218,6 +1218,39 @@ public static partial class T
     /// <summary>Greyed example inside the torrent proxy's host box. Keep it an address on a reserved example domain.</summary>
     public static string TorrentsProxyHostExample => Get("TorrentsProxyHostExample");
 
+    /// <summary>Under the code box when the six digits typed do not match the TV's.</summary>
+    public static string TvProblemWrongCode => Get("TvProblemWrongCode");
+
+    /// <summary>When the TV's code has run out. The pairing starts again with a new code.</summary>
+    public static string TvProblemNoCode => Get("TvProblemNoCode");
+
+    /// <summary>When the TV cannot keep another paired { -device }.</summary>
+    public static string TvProblemFull => Get("TvProblemFull");
+
+    /// <summary>When the TV is already connected to as many devices as it can serve.</summary>
+    public static string TvProblemBusy => Get("TvProblemBusy");
+
+    /// <summary>When the TV and this app run different versions.</summary>
+    public static string TvProblemVersion => Get("TvProblemVersion");
+
+    /// <summary>When a remote control action needs something playing and nothing is.</summary>
+    public static string TvProblemNotNow => Get("TvProblemNotNow");
+
+    /// <summary>When the TV has forgotten this { -device }.</summary>
+    public static string TvProblemUnpaired => Get("TvProblemUnpaired");
+
+    /// <summary>When the TV's key changed since pairing, as after a reset or reinstall.</summary>
+    public static string TvProblemKeyChanged => Get("TvProblemKeyChanged");
+
+    /// <summary>When the TV does not answer.</summary>
+    public static string TvProblemUnreachable => Get("TvProblemUnreachable");
+
+    /// <summary>When a TV picked from the list has left the network.</summary>
+    public static string TvProblemGone => Get("TvProblemGone");
+
+    /// <summary>When the typed text or scanned code is not a TV's pairing code or address.</summary>
+    public static string TvProblemNotALink => Get("TvProblemNotALink");
+
     /// <summary>Under a release in the source picker: how many people share it right now.</summary>
     public static string SourcePickerSeeders(long count) => Fill(GetPlural("SourcePickerSeeders", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
@@ -5204,6 +5237,17 @@ public static partial class T
         ["DownloadsPlayLabel"] = "Play episode {episode}",
         ["DownloadsProgressName"] = "{name} progress",
         ["TorrentsProxyHostExample"] = "proxy.example",
+        ["TvProblemWrongCode"] = "That code didn't match. Check the code on the TV and try again.",
+        ["TvProblemNoCode"] = "That code has expired. Ask the TV for a new one.",
+        ["TvProblemFull"] = "This TV has as many devices paired as it can keep. Remove one in the TV's Settings, under Remotes.",
+        ["TvProblemBusy"] = "The TV is connected to as many devices as it can. Try again soon.",
+        ["TvProblemVersion"] = "The TV runs another version of anistream. Update both to the same one.",
+        ["TvProblemNotNow"] = "Nothing is playing on the TV.",
+        ["TvProblemUnpaired"] = "The TV doesn't know this device anymore. Pair again.",
+        ["TvProblemKeyChanged"] = "The TV was reset or reinstalled since you paired. Pair again.",
+        ["TvProblemUnreachable"] = "Can't reach the TV. Check that it's on, with anistream open, on the same network.",
+        ["TvProblemGone"] = "That TV is no longer on the network.",
+        ["TvProblemNotALink"] = "That isn't a TV's pairing code or address.",
         ["SourcePickerSeeders_one"] = "One seeder",
         ["SourcePickerSeeders_other"] = "{count} seeders",
         ["TimeJustNow"] = "just now",

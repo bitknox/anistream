@@ -522,10 +522,23 @@ public static class TvWords
     public static string StartingLine => T.TvStarting;
 
     /// <summary>
-    /// What to say when the TV link fails. The engine's reason is English from deep in the link,
-    /// so the catalogue's catch-all stands in for it.
+    /// What to say when the TV link fails: the catalogue's line for the engine's problem.
     /// </summary>
-    public static string Of(Exception e) => T.TvTalkFailed;
+    public static string Of(Exception e) => e is FfiTvException.Failed failed ? failed.problem switch
+    {
+        FfiTvProblem.WrongCode => T.TvProblemWrongCode,
+        FfiTvProblem.NoCode => T.TvProblemNoCode,
+        FfiTvProblem.Full => T.TvProblemFull,
+        FfiTvProblem.Busy => T.TvProblemBusy,
+        FfiTvProblem.Version => T.TvProblemVersion,
+        FfiTvProblem.NotNow => T.TvProblemNotNow,
+        FfiTvProblem.Unpaired => T.TvProblemUnpaired,
+        FfiTvProblem.KeyChanged => T.TvProblemKeyChanged,
+        FfiTvProblem.Unreachable => T.TvProblemUnreachable,
+        FfiTvProblem.Gone => T.TvProblemGone,
+        FfiTvProblem.NotALink => T.TvProblemNotALink,
+        _ => T.TvTalkFailed,
+    } : T.TvTalkFailed;
 
     /// <summary>A track as the card names it: its language in this PC's language, and its title.</summary>
     public static string Track(FfiTvTrack track, CultureInfo? culture = null)

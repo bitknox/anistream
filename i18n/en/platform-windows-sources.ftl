@@ -267,3 +267,49 @@ downloads-progress-name = { $name } progress
 # Greyed example inside the torrent proxy's host box. Keep it an address on a reserved example domain.
 # @only windows
 torrents-proxy-host-example = proxy.example
+
+## Play on TV: why the link failed
+
+# Under the code box when the six digits typed do not match the TV's.
+# @only windows
+tv-problem-wrong-code = That code didn't match. Check the code on the TV and try again.
+
+# When the TV's code has run out. The pairing starts again with a new code.
+# @only windows
+tv-problem-no-code = That code has expired. Ask the TV for a new one.
+
+# When the TV cannot keep another paired { -device }.
+# @only windows
+tv-problem-full = This TV has as many { -device-pl } paired as it can keep. Remove one in the TV's Settings, under Remotes.
+
+# When the TV is already connected to as many devices as it can serve.
+# @only windows
+tv-problem-busy = The TV is connected to as many { -device-pl } as it can. Try again soon.
+
+# When the TV and this app run different versions.
+# @only windows
+tv-problem-version = The TV runs another version of { -app-name }. Update both to the same one.
+
+# When a remote control action needs something playing and nothing is.
+# @only windows
+tv-problem-not-now = Nothing is playing on the TV.
+
+# When the TV has forgotten this { -device }.
+# @only windows
+tv-problem-unpaired = The TV doesn't know this { -device } anymore. Pair again.
+
+# When the TV's key changed since pairing, as after a reset or reinstall.
+# @only windows
+tv-problem-key-changed = The TV was reset or reinstalled since you paired. Pair again.
+
+# When the TV does not answer.
+# @only windows
+tv-problem-unreachable = Can't reach the TV. Check that it's on, with { -app-name } open, on the same network.
+
+# When a TV picked from the list has left the network.
+# @only windows
+tv-problem-gone = That TV is no longer on the network.
+
+# When the typed text or scanned code is not a TV's pairing code or address.
+# @only windows
+tv-problem-not-a-link = That isn't a TV's pairing code or address.

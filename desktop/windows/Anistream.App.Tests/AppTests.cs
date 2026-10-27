@@ -492,13 +492,13 @@ public class StoresTests
             Listed("a", new StorePluginStatus.Update("1.0.0", ["new.example"]), "1.1.0", "x.example", "new.example"),
             Listed("b", new StorePluginStatus.Installed()));
         Assert.Equal(1, Stores.Updates(store));
-        Assert.Equal("Contacts x.example and 1 more", Stores.ContactsLine(store.Plugins[0]));
+        Assert.Equal("Contacts x.example and one more", Stores.ContactsLine(store.Plugins[0]));
         Assert.Equal("Contacts no hosts", Stores.ContactsLine(store.Plugins[1]));
         Assert.Equal("1.0.0", Stores.InstalledVersion(store.Plugins[0]));
-        Assert.Equal("1.0.0 installed", Stores.Standing(store.Plugins[0]));
+        Assert.Equal("Version 1.0.0 installed, 1.1.0 available", Stores.Standing(store.Plugins[0]));
         Assert.Equal("Run by Ren, Aki · one.example", Stores.RunBy(["Ren", "Aki"], "one.example"));
         Assert.Equal("one.example", Stores.RunBy([], "one.example"));
-        Assert.Equal("joined without a name", Stores.JoinedAs(store with { Anonymous = true }));
+        Assert.Equal("Joined without a name", Stores.JoinedAs(store with { Anonymous = true }));
     }
 
     [Fact]
@@ -826,7 +826,7 @@ public class ShowSettingsTests
     {
         foreach (var key in Enum.GetValues<ShowSettingKey>())
             Assert.NotEmpty(ShowSettingsCatalog.Choices(key));
-        Assert.Equal(["Japanese", "English"], ShowSettingsCatalog.Choices(ShowSettingKey.Translation).Select(c => c.Label));
+        Assert.Equal(["Subbed", "Dubbed"], ShowSettingsCatalog.Choices(ShowSettingKey.Translation).Select(c => c.Label));
         Assert.Equal(["480p", "720p", "1080p", "2160p"], ShowSettingsCatalog.Choices(ShowSettingKey.Quality).Select(c => c.Label));
         Assert.Equal(["Standard", "Higher"], ShowSettingsCatalog.Choices(ShowSettingKey.DownloadQuality).Select(c => c.Label));
         Assert.Equal("Off", ShowSettingsCatalog.Choices(ShowSettingKey.KeepNext)[0].Label);
@@ -845,7 +845,7 @@ public class ShowSettingsTests
     [Fact]
     public void ARowSaysItsValueInTheSheetsWords()
     {
-        Assert.Equal("English", ShowSettingsCatalog.Shown(ShowSettingKey.Translation, "dub"));
+        Assert.Equal("Dubbed", ShowSettingsCatalog.Shown(ShowSettingKey.Translation, "dub"));
         Assert.Equal("On", ShowSettingsCatalog.Shown(ShowSettingKey.SkipOpening, "on"));
         Assert.Equal("720p", ShowSettingsCatalog.Shown(ShowSettingKey.Quality, "720p"));
         Assert.Equal("Standard", ShowSettingsCatalog.Shown(ShowSettingKey.DownloadQuality, "standard"));
@@ -1129,7 +1129,7 @@ public class UpdateTests
 
             var shorter = await Updates.Fetch(new HttpClient(new Serve(Body[..1000])), Asset("x64", (ulong)Body.Length) with { Name = "short.exe" }, "2.1.0", dir, _ => { }, default);
             Assert.Equal(UpdateStep.Failed, shorter.Step);
-            Assert.StartsWith("The download is 1 KB, not the", shorter.Reason);
+            Assert.StartsWith("The download is 1.0 kB, not the", shorter.Reason);
 
             var refused = await Updates.Fetch(new HttpClient(new Serve([], System.Net.HttpStatusCode.NotFound)), Asset("x64", 5) with { Name = "gone.exe" }, "2.1.0", dir, _ => { }, default);
             Assert.Equal("The download stopped: the server answered 404.", refused.Reason);

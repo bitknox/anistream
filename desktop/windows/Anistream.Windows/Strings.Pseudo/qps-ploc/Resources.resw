@@ -1715,6 +1715,50 @@
     <value>[þŕöẋý.éẋàɱþļé~~~~]</value>
     <comment>Greyed example inside the torrent proxy's host box. Keep it an address on a reserved example domain.</comment>
   </data>
+  <data name="TvProblemWrongCode" xml:space="preserve">
+    <value>[Ţĥàţ çöðé ðîðñ'ţ ɱàţçĥ. Çĥéçķ ţĥé çöðé öñ ţĥé ŢṼ àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Under the code box when the six digits typed do not match the TV's.</comment>
+  </data>
+  <data name="TvProblemNoCode" xml:space="preserve">
+    <value>[Ţĥàţ çöðé ĥàš éẋþîŕéð. Åšķ ţĥé ŢṼ ƒöŕ à ñéŵ öñé.~~~~~~~~~~~~~~~]</value>
+    <comment>When the TV's code has run out. The pairing starts again with a new code.</comment>
+  </data>
+  <data name="TvProblemFull" xml:space="preserve">
+    <value>[Ţĥîš ŢṼ ĥàš àš ɱàñý ðéṽîçéš þàîŕéð àš îţ çàñ ķééþ. Ŕéɱöṽé öñé îñ ţĥé ŢṼ'š Šéţţîñĝš, üñðéŕ Ŕéɱöţéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>When the TV cannot keep another paired { -device }.</comment>
+  </data>
+  <data name="TvProblemBusy" xml:space="preserve">
+    <value>[Ţĥé ŢṼ îš çöññéçţéð ţö àš ɱàñý ðéṽîçéš àš îţ çàñ. Ţŕý àĝàîñ šööñ.~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>When the TV is already connected to as many devices as it can serve.</comment>
+  </data>
+  <data name="TvProblemVersion" xml:space="preserve">
+    <value>[Ţĥé ŢṼ ŕüñš àñöţĥéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ. Ûþðàţé ƀöţĥ ţö ţĥé šàɱé öñé.~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>When the TV and this app run different versions.</comment>
+  </data>
+  <data name="TvProblemNotNow" xml:space="preserve">
+    <value>[Ñöţĥîñĝ îš þļàýîñĝ öñ ţĥé ŢṼ.~~~~~~~~~]</value>
+    <comment>When a remote control action needs something playing and nothing is.</comment>
+  </data>
+  <data name="TvProblemUnpaired" xml:space="preserve">
+    <value>[Ţĥé ŢṼ ðöéšñ'ţ ķñöŵ ţĥîš ðéṽîçé àñýɱöŕé. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~]</value>
+    <comment>When the TV has forgotten this { -device }.</comment>
+  </data>
+  <data name="TvProblemKeyChanged" xml:space="preserve">
+    <value>[Ţĥé ŢṼ ŵàš ŕéšéţ öŕ ŕéîñšţàļļéð šîñçé ýöü þàîŕéð. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>When the TV's key changed since pairing, as after a reset or reinstall.</comment>
+  </data>
+  <data name="TvProblemUnreachable" xml:space="preserve">
+    <value>[Çàñ'ţ ŕéàçĥ ţĥé ŢṼ. Çĥéçķ ţĥàţ îţ'š öñ, ŵîţĥ àñîšţŕéàɱ öþéñ, öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>When the TV does not answer.</comment>
+  </data>
+  <data name="TvProblemGone" xml:space="preserve">
+    <value>[Ţĥàţ ŢṼ îš ñö ļöñĝéŕ öñ ţĥé ñéţŵöŕķ.~~~~~~~~~~~]</value>
+    <comment>When a TV picked from the list has left the network.</comment>
+  </data>
+  <data name="TvProblemNotALink" xml:space="preserve">
+    <value>[Ţĥàţ îšñ'ţ à ŢṼ'š þàîŕîñĝ çöðé öŕ àððŕéšš.~~~~~~~~~~~~~]</value>
+    <comment>When the typed text or scanned code is not a TV's pairing code or address.</comment>
+  </data>
   <data name="SourcePickerSeeders_one" xml:space="preserve">
     <value>[Öñé šééðéŕ~~~]</value>
     <comment>Under a release in the source picker: how many people share it right now.</comment>

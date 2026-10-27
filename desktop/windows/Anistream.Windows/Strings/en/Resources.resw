@@ -1715,6 +1715,50 @@
     <value>proxy.example</value>
     <comment>Greyed example inside the torrent proxy's host box. Keep it an address on a reserved example domain.</comment>
   </data>
+  <data name="TvProblemWrongCode" xml:space="preserve">
+    <value>That code didn't match. Check the code on the TV and try again.</value>
+    <comment>Under the code box when the six digits typed do not match the TV's.</comment>
+  </data>
+  <data name="TvProblemNoCode" xml:space="preserve">
+    <value>That code has expired. Ask the TV for a new one.</value>
+    <comment>When the TV's code has run out. The pairing starts again with a new code.</comment>
+  </data>
+  <data name="TvProblemFull" xml:space="preserve">
+    <value>This TV has as many devices paired as it can keep. Remove one in the TV's Settings, under Remotes.</value>
+    <comment>When the TV cannot keep another paired { -device }.</comment>
+  </data>
+  <data name="TvProblemBusy" xml:space="preserve">
+    <value>The TV is connected to as many devices as it can. Try again soon.</value>
+    <comment>When the TV is already connected to as many devices as it can serve.</comment>
+  </data>
+  <data name="TvProblemVersion" xml:space="preserve">
+    <value>The TV runs another version of anistream. Update both to the same one.</value>
+    <comment>When the TV and this app run different versions.</comment>
+  </data>
+  <data name="TvProblemNotNow" xml:space="preserve">
+    <value>Nothing is playing on the TV.</value>
+    <comment>When a remote control action needs something playing and nothing is.</comment>
+  </data>
+  <data name="TvProblemUnpaired" xml:space="preserve">
+    <value>The TV doesn't know this device anymore. Pair again.</value>
+    <comment>When the TV has forgotten this { -device }.</comment>
+  </data>
+  <data name="TvProblemKeyChanged" xml:space="preserve">
+    <value>The TV was reset or reinstalled since you paired. Pair again.</value>
+    <comment>When the TV's key changed since pairing, as after a reset or reinstall.</comment>
+  </data>
+  <data name="TvProblemUnreachable" xml:space="preserve">
+    <value>Can't reach the TV. Check that it's on, with anistream open, on the same network.</value>
+    <comment>When the TV does not answer.</comment>
+  </data>
+  <data name="TvProblemGone" xml:space="preserve">
+    <value>That TV is no longer on the network.</value>
+    <comment>When a TV picked from the list has left the network.</comment>
+  </data>
+  <data name="TvProblemNotALink" xml:space="preserve">
+    <value>That isn't a TV's pairing code or address.</value>
+    <comment>When the typed text or scanned code is not a TV's pairing code or address.</comment>
+  </data>
   <data name="SourcePickerSeeders_one" xml:space="preserve">
     <value>One seeder</value>
     <comment>Under a release in the source picker: how many people share it right now.</comment>
