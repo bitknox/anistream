@@ -5,7 +5,8 @@ use std::{io, sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths};
 use anistream_engine::{engine::Engine, host::DesktopHost, options::EngineOptions};
-use anistream_model::{command::Command, event::Event, notice::Notice};
+use anistream_i18n::t;
+use anistream_model::{command::Command, event::Event};
 use anistream_net::HttpClient;
 use anistream_store::Store;
 use anistream_tui::{
@@ -78,7 +79,7 @@ pub async fn run(
     // before anyone reads it, and a refused rebind otherwise looks like a key that does nothing.
     for problem in keybinding_problems {
         tracing::warn!(%problem, "keybinding not applied");
-        app.push_toast(Notice::raw_alert(format!("keybinding not applied: {problem}")));
+        app.push_toast(anistream_tui::app::alert(t::toast_keybinding_not_applied(&problem)));
     }
 
     if let Some(problem) = &config_problem {
@@ -276,7 +277,10 @@ pub fn show_config_problem(
     app.notice = Some(config_notice(&paths.config_file, problem));
     app.log(
         anistream_model::notice::NoticeKind::Alert,
-        format!("{}, {problem} — using the defaults", paths.config_file.display()),
+        t::tui_config_problem_logged(
+            &paths.config_file.display().to_string(),
+            &problem.to_string(),
+        ),
     );
 }
 
@@ -292,8 +296,10 @@ fn config_notice(
         .file_name()
         .map_or_else(|| file.display().to_string(), |n| n.to_string_lossy().into_owned());
     let what = problem.message.split(", expected").next().unwrap_or(&problem.message);
-    let place = problem.line.map_or_else(String::new, |line| format!(" line {line}"));
-    format!("{name}{place}: {what} — using the defaults until it is fixed")
+    match problem.line {
+        Some(line) => t::tui_config_problem_at_line(&name, line as i64, what),
+        None => t::tui_config_problem(&name, what),
+    }
 }
 
 /// The terminal the interface draws on.
@@ -324,7 +330,7 @@ mod tests {
         let problem = Config::parse("[playback]\nqualty = 720\n").unwrap_err();
         assert_eq!(
             config_notice(file, &problem),
-            "config.toml line 2: unknown field `qualty` — using the defaults until it is fixed"
+            "config.toml line 2: unknown field `qualty`. Using the defaults until it is fixed."
         );
         let rule = Config::parse("[playback]\ncommit_threshold = 3.0\n").unwrap_err();
         let notice = config_notice(file, &rule);

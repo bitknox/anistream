@@ -50,12 +50,12 @@ impl Role {
 
     pub const fn name(self) -> &'static str {
         match self {
-            Self::Text => "text",
-            Self::TextDim => "text-dim",
-            Self::Rule => "rule",
-            Self::Obi => "obi",
-            Self::State => "state",
-            Self::Alert => "alert",
+            Self::Text => "text",        // i18n-skip
+            Self::TextDim => "text-dim", // i18n-skip
+            Self::Rule => "rule",        // i18n-skip
+            Self::Obi => "obi",          // i18n-skip
+            Self::State => "state",      // i18n-skip
+            Self::Alert => "alert",      // i18n-skip
         }
     }
 }
@@ -289,7 +289,7 @@ pub fn player_theme() -> PlayerTheme {
         state: hex(palette.get(Role::State)),
         alert: hex(palette.get(Role::Alert)),
         ground: hex(palette.ground_ref()),
-        font: "Zen Kaku Gothic New".into(),
+        font: "Zen Kaku Gothic New".into(), // i18n-skip
     }
 }
 

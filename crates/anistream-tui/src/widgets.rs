@@ -17,7 +17,7 @@ use crate::{
     nav::{Focus, RailWidth, Section},
     theme::{
         Palette, Role,
-        glyph::{self, OBI, RULE_H, RULE_V},
+        glyph::{OBI, RULE_H, RULE_V},
     },
 };
 
@@ -491,10 +491,9 @@ impl Widget for StatusLine<'_> {
     }
 }
 
-/// A metadata line in caps, interpunct-separated: `TV  ·  28 EP  ·  91`.
+/// A metadata line, interpunct-separated: `TV  ·  28 episodes  ·  91`.
 pub fn meta_line(parts: &[&str]) -> String {
-    let parts: Vec<String> =
-        parts.iter().filter(|p| !p.is_empty()).map(|p| glyph::eyebrow(p)).collect();
+    let parts: Vec<&str> = parts.iter().copied().filter(|p| !p.is_empty()).collect();
     parts.join("  ·  ")
 }
 

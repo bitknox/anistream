@@ -32,9 +32,7 @@ pub(super) fn entry(id: u32, title: &str) -> Entry {
         episodes: Some(28),
         year: Some(2023),
         score: Some(91),
-        synopsis: "An elf mage outlives her companions and sets out to understand \
-                   what they meant to her."
-            .into(),
+        synopsis: "A mage outlives her companions and sets out to understand them.".into(), // i18n-skip
         ..Entry::new(AnilistId::new(id), title)
     }
 }
@@ -80,7 +78,7 @@ pub(super) fn provider(
 ) -> anistream_model::sources::ProviderRow {
     anistream_model::sources::ProviderRow {
         id: id.into(),
-        kind: "native".into(),
+        kind: "native".into(), // i18n-skip
         state: state.into(),
         latency_ms: Some(310),
         last_error: None,

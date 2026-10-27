@@ -45,8 +45,9 @@ use anistream_engine::{
     outbox::Internal,
     plugin_stores, sources, tracking,
 };
+use anistream_i18n::t;
 use anistream_meta::Meta;
-use anistream_model::{command::Command, event::Event, jobs::JobId, notice::Notice};
+use anistream_model::{command::Command, event::Event, jobs::JobId};
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
@@ -245,7 +246,9 @@ impl Harness {
         let mut app = App::with_images(settings, palette, keymap, ImageEngine::disabled());
         app.clock = Clock::fixed(options.now, zone());
         for problem in problems {
-            app.push_toast(Notice::raw_alert(format!("keybinding not applied: {problem}")));
+            app.push_toast(anistream_tui::app::alert(t::toast_keybinding_not_applied(
+                &problem,
+            )));
         }
         if let Some(problem) = &problem {
             show_config_problem(&mut app, &paths, problem);

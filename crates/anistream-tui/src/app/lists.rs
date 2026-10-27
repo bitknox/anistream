@@ -1167,7 +1167,11 @@ mod tests {
         let mut a = app();
         a.handle(Action::Filter, 10);
         assert!(!a.nav.has_overlay());
-        assert!(a.toasts.iter().any(|t| t.notice.text.contains("filters live")));
+        assert!(
+            a.toasts
+                .iter()
+                .any(|t| t.notice.text == anistream_i18n::t::toast_filters_elsewhere())
+        );
     }
 
     #[test]

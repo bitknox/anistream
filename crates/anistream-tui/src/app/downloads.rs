@@ -174,7 +174,7 @@ mod tests {
         assert!(
             a.toasts
                 .iter()
-                .any(|t| t.notice.text == "already downloaded — X deletes it and its file"),
+                .any(|t| t.notice.text == anistream_i18n::t::toast_download_done("X")),
             "{:?}",
             a.toasts
         );

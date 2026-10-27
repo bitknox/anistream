@@ -49,9 +49,9 @@ pub struct ImageEngine {
 
 impl std::fmt::Debug for ImageEngine {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ImageEngine")
-            .field("graphics", &self.graphics)
-            .field("font_size", &self.font_size)
+        f.debug_struct("ImageEngine") // i18n-skip
+            .field("graphics", &self.graphics) // i18n-skip
+            .field("font_size", &self.font_size) // i18n-skip
             .finish_non_exhaustive()
     }
 }
@@ -161,7 +161,7 @@ impl ImageEngine {
 
     /// On-disk path for a cached image.
     pub fn cache_path(&self, url: &str) -> PathBuf {
-        self.cache_dir.join(format!("{}.img", anistream_core::hash::stable_hash(url)))
+        self.cache_dir.join(format!("{}.img", anistream_core::hash::stable_hash(url))) // i18n-skip
     }
 }
 
@@ -189,9 +189,9 @@ pub struct ImageStore {
 
 impl std::fmt::Debug for ImageStore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ImageStore")
-            .field("engine", &self.engine)
-            .field("cached", &self.protocols.borrow().len())
+        f.debug_struct("ImageStore") // i18n-skip
+            .field("engine", &self.engine) // i18n-skip
+            .field("cached", &self.protocols.borrow().len()) // i18n-skip
             .finish()
     }
 }
