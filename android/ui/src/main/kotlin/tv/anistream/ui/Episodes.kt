@@ -61,7 +61,9 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import tv.anistream.i18n.R
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
@@ -102,6 +104,9 @@ class UserMarks {
  * and only the rows reading them recompose, not the whole page under them.
  */
 val LocalUserMarks = compositionLocalOf { UserMarks() }
+
+/** How faint an episode no source lists is drawn. */
+private const val UNSOURCED_ALPHA = 0.55f
 
 /** "24 min", from the row's duration. */
 internal fun minutes(row: EpisodeRow): String? = row.durationSecs?.let { "${maxOf(1, (it.toDouble() / 60).roundToInt())} min" }
@@ -154,6 +159,8 @@ internal fun EpisodeLine(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 72.dp)
+            // One no source lists is dimmed whole and plays nothing.
+            .graphicsLayer { alpha = if (row.unsourced) UNSOURCED_ALPHA else 1f }
             // One still to air is no button: nothing plays from it.
             .then(
                 if (unaired) {
@@ -165,7 +172,7 @@ internal fun EpisodeLine(
                     Modifier
                         .combinedClickable(
                             // One no source has opens its options, which offer to add a source.
-                            onClickLabel = if (row.metadataOnly) "Episode options" else "Play",
+                            onClickLabel = if (row.metadataOnly || row.unsourced) "Episode options" else "Play",
                             onLongClickLabel = "Episode options",
                             onClick = onPlay,
                             onLongClick = onMenu,
@@ -219,6 +226,7 @@ internal fun EpisodeLine(
                 if (unaired) Box(Modifier.size(6.dp).background(colors.secondary, androidx.compose.foundation.shape.CircleShape))
                 Text(
                     if (unaired) "E${row.number} \u00b7 " + (airs?.let { "Airs $it" } ?: "Not out yet")
+                    else if (row.unsourced) "E${row.number} \u00b7 " + stringResource(R.string.episode_unsourced)
                     else episodeDetail(row, resume = resume.takeIf { !row.completed }, unaired = false),
                     style = MaterialTheme.typography.bodyMedium.tabular(),
                     color = colors.onSurfaceVariant,
@@ -343,7 +351,9 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
                 }
             },
         )
-        if (row.metadataOnly) {
+        if (row.unsourced) {
+            // Nothing to play or download: marking it watched is all that is left.
+        } else if (row.metadataOnly) {
             DropdownMenuItem(
                 text = { Text(ADD_A_SOURCE) },
                 leadingIcon = { Icon(Icons.Providers, contentDescription = null) },

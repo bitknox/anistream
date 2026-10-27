@@ -55,7 +55,10 @@ import org.robolectric.annotation.GraphicsMode
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.Translation
+import tv.anistream.engine.core.SourceCandidate
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.SourceNote
+import tv.anistream.engine.model.SourceOption
 import tv.anistream.engine.model.SearchQuery
 import tv.anistream.store.AppClock
 import tv.anistream.store.AppStore
@@ -233,6 +236,74 @@ class BoardShots {
         compose.waitForIdle()
         open("Settings for this show")
     }
+
+    /** Source for this title, from the title page's More: Automatic, each source, the chosen release checked. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_source_picker() = shoot("phone-source-picker", WATCHING, title = 900001u, screen = true) { store -> openPicker(store, pinned = true) }
+
+    /** The same with nothing pinned: Automatic checked, a note where a source has no count. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_source_picker_automatic() = shoot("phone-source-picker-automatic", WATCHING, title = 900001u, screen = true) { store ->
+        openPicker(store, pinned = false)
+    }
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_source_picker() = shoot("tablet-source-picker", WATCHING, title = 900001u, screen = true) { store -> openPicker(store, pinned = true) }
+
+    /** Picking a source sends it, closes the sheet and leaves the page as it was. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun picking_a_source_sends_it_and_closes_the_sheet() = shoot("phone-source-picked", WATCHING, title = 900001u, screen = true) { store ->
+        openPicker(store, pinned = false)
+        compose.onNodeWithText("Mukashi Archive").performClick()
+        compose.waitForIdle()
+        assertEquals(
+            tv.anistream.engine.model.Command.SetProviderPreference(900001u, "mukashi-archive"),
+            store.waiting.last(),
+        )
+        compose.onAllNodesWithText("Each episode from the first source that has it").assertCountEquals(0)
+    }
+
+    /** Episodes no source lists are dimmed, say so, and offer no play. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_unsourced() = shoot("phone-title-unsourced", WATCHING, title = 900001u) { store ->
+        val rows = checkNotNull(store.titles.episodes.value[900001u])
+        compose.runOnUiThread {
+            store.apply(listOf(Event.Episodes(900001u, rows.map { if (it.number.toInt() >= 8) it.copy(unsourced = true) else it })))
+        }
+        compose.waitForIdle()
+        toEpisodes()
+        compose.onAllNodesWithText("E8 \u00b7 No source has this episode", substring = true).assertCountEquals(1)
+    }
+
+    private fun openPicker(store: AppStore, pinned: Boolean) {
+        compose.onNodeWithContentDescription("More").performClick()
+        compose.waitForIdle()
+        open("Source for this title")
+        compose.runOnUiThread { store.apply(listOf(Event.SourceOptions(900001u, pickerOptions(pinned)))) }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+    }
+
+    private fun pickerOptions(pinned: Boolean) = listOf(
+        SourceOption("hotaru-open-archive", "Hotaru Open Archive", 13u, 13u, false, null, emptyList(), null),
+        SourceOption("mukashi-archive", "Mukashi Archive", 6u, 13u, false, null, emptyList(), null),
+        SourceOption(
+            "torrents", "Torrent source", 12u, 13u, pinned, null,
+            listOf(
+                SourceCandidate("batch-1080", "torrents", "Stardust Wayfarer complete batch", 1080u, 84u, "14.2 GiB", true, false, true),
+                SourceCandidate("single-1080", "torrents", "Stardust Wayfarer 01", 1080u, 31u, "1.1 GiB", false, false, false),
+                SourceCandidate("single-720", "torrents", "Stardust Wayfarer 01", 720u, 12u, "480 MiB", false, false, false),
+            ),
+            "batch-1080".takeIf { pinned },
+        ),
+        SourceOption("fumi-mirror", "Fumi Mirror", 0u, 13u, false, SourceNote.Resting, emptyList(), null),
+        SourceOption("old-reel", "Old Reel", 0u, 13u, false, SourceNote.Failed("Timed out after 20 seconds"), emptyList(), null),
+    )
 
     // TalkBack and the keyboard.
 

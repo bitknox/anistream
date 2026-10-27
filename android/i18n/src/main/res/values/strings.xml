@@ -430,6 +430,11 @@
     </plurals>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
+    <!-- Under a release in the source picker: how many people share it right now. -->
+    <plurals name="release_seeders">
+        <item quantity="one">One seeder</item>
+        <item quantity="other">%1$d seeders</item>
+    </plurals>
     <!-- Button that runs a failed action again. -->
     <string name="action_try_again">Try again</string>
     <!-- Button that closes a dialog without doing what it offered. -->

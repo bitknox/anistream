@@ -49,7 +49,10 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import tv.anistream.i18n.Strings
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -100,6 +103,7 @@ import tv.anistream.tv.ui.TonalIconButton
 import tv.anistream.tv.ui.cardLabel
 import tv.anistream.tv.ui.focusSoon
 import tv.anistream.tv.ui.showSettingsSheet
+import tv.anistream.tv.ui.sourcePickerSheet
 import tv.anistream.tv.ui.statusSheet
 import tv.anistream.tv.ui.swapFade
 import tv.anistream.tv.ui.TvIcons
@@ -166,7 +170,7 @@ fun TitleScreen(
         }
         return
     }
-    val action = remember(entry) { PlayAction.of(entry) }
+    val action = remember(entry, rows) { PlayAction.of(entry, rows = rows) }
     ScrollRule(HeldScroll) {
         LazyColumn(
             state = list,
@@ -234,6 +238,7 @@ private fun Header(
 ) {
     val store = LocalAppStore.current
     val actions = LocalActions.current
+    val context = LocalContext.current
     HeroHeader(entry, rows, modifier) {
         Spacer(Modifier.height(6.dp))
         Text(entry.metadataLine, style = MaterialTheme.typography.labelSmall, color = ObiSilk.Haze, maxLines = 1)
@@ -247,7 +252,7 @@ private fun Header(
                     // Still focusable while it waits for the episode, so it can say when it is out.
                     enabled = action.playable,
                     modifier = Modifier.firstFocus(memory, "play"),
-                ) { ButtonLabel(action.label()) }
+                ) { ButtonLabel(if (action.unsourced) Strings.episodeUnsourced(context) else action.label()) }
             }
             Spacer(Modifier.width(16.dp))
             val status = entry.listStatus
@@ -260,7 +265,7 @@ private fun Header(
             TonalIconButton(
                 TvIcons.More,
                 "More",
-                onClick = { actions?.open(titleSheet(store, entry, rows, action)) },
+                onClick = { actions?.open(titleSheet(store, entry, rows, action, Strings.sourcePickerTitle(context))) },
                 modifier = Modifier.remembered(memory, "more"),
             )
         }
@@ -322,6 +327,8 @@ private fun Episodes(
     modifier: Modifier,
 ) {
     val store = LocalAppStore.current
+    val host = LocalActions.current
+    val context = LocalContext.current
     val next = rows?.indexOfFirst { it.number == action.episode.toString() }?.takeIf { it >= 0 } ?: 0
     val state = rememberLazyListState(initialFirstVisibleItemIndex = next)
     val nextRequester = remember { FocusRequester() }
@@ -340,12 +347,16 @@ private fun Episodes(
             EpisodeCard(
                 row = row,
                 entry = entry,
-                line = row.cardLine(entry.resume, playsNext),
+                line = if (row.unsourced) Strings.episodeUnsourced(context) else row.cardLine(entry.resume, playsNext),
                 progress = if (playsNext) entry.resume?.fraction?.toFloat() else null,
                 // Unwatched stills after the next one keep their colours and none of their detail.
                 // Only an episode's own still can spoil; the show's banner in its place cannot.
                 spoiler = spoilers && index > next && !row.completed && row.thumbnail != null,
-                onClick = { row.number.toUIntOrNull()?.let { onPlay(entry.id, it) } },
+                // One no source lists plays nothing: Center offers what can be done instead.
+                onClick = {
+                    if (row.unsourced) host?.open(episodeSheet(store, entry, rows, row, onPlayFromStart))
+                    else row.number.toUIntOrNull()?.let { onPlay(entry.id, it) }
+                },
                 sheet = { episodeSheet(store, entry, rows, row, onPlayFromStart) },
                 modifier = Modifier
                     .then(if (playsNext) Modifier.focusRequester(nextRequester) else Modifier)
@@ -370,7 +381,14 @@ private fun EpisodeCard(
     val label = cardLabel(row.cardTitle, line, progress) + if (row.completed) ", watched" else ""
     Column(Modifier.width(Canvas.CardWidth)) {
         ArtCard(onClick, Canvas.CardWidth, Canvas.CardHeight, modifier, sheet, label) {
-            ArtImage(row.thumbnail ?: entry.bannerUrl, CoverPlate.parse(entry.coverColor), pixels(Canvas.CardWidth), Modifier.fillMaxSize(), spoiler = spoiler)
+            // One no source lists is dimmed under its focus ring, which stays as bright as any.
+            ArtImage(
+                row.thumbnail ?: entry.bannerUrl,
+                CoverPlate.parse(entry.coverColor),
+                pixels(Canvas.CardWidth),
+                Modifier.fillMaxSize().alpha(if (row.unsourced) 0.45f else 1f),
+                spoiler = spoiler,
+            )
             if (progress != null) ProgressEdge(progress, Modifier.align(Alignment.BottomStart))
             if (row.completed) {
                 Box(
@@ -381,7 +399,7 @@ private fun EpisodeCard(
                 }
             }
         }
-        CardText(row.cardTitle, line, titleColor = if (row.completed) ObiSilk.Haze else ObiSilk.Silk)
+        CardText(row.cardTitle, line, titleColor = if (row.completed || row.unsourced) ObiSilk.Haze else ObiSilk.Silk)
     }
 }
 
@@ -484,7 +502,7 @@ fun episodeSheet(
     onPlayFromStart: (AnilistId, UInt) -> Unit,
 ): ActionSheet {
     val upTo = rows.takeWhile { it.number != row.number }.map { it.number } + row.number
-    val number = row.number.toUIntOrNull()?.takeIf { !row.metadataOnly }
+    val number = row.number.toUIntOrNull()?.takeIf { !row.metadataOnly && !row.unsourced }
     val title = "${entry.title} · ${row.cardTitle}"
     return ActionSheet(
         title,
@@ -507,12 +525,13 @@ fun episodeSheet(
  * The title page's More: Show settings, Mark watched up to the episode it would play, Hide from
  * Continue, Drop (keeps progress).
  */
-fun titleSheet(store: AppStore, entry: Entry, rows: List<EpisodeRow>?, action: PlayAction): ActionSheet {
+fun titleSheet(store: AppStore, entry: Entry, rows: List<EpisodeRow>?, action: PlayAction, sourcesLabel: String): ActionSheet {
     val before = rows?.takeWhile { it.number != action.episode.toString() }?.filter { !it.completed }?.map { it.number }.orEmpty()
     return ActionSheet(
         entry.title,
         listOfNotNull(
             CardAction("Show settings", then = showSettingsSheet(store, entry.id, entry.title)),
+            CardAction(sourcesLabel, then = sourcePickerSheet(store, entry, sourcesLabel)),
             before.takeIf { it.isNotEmpty() }?.let { upTo ->
                 CardAction("Mark all watched up to episode ${action.episode - 1u}") { store.setWatched(entry.id, upTo) }
             },

@@ -141,7 +141,7 @@ internal suspend fun Navigator.follow(link: AppLink, store: AppStore, actions: A
             val entry = withTimeoutOrNull(LINK_WAIT_MILLIS) {
                 store.titles.entries.map { it[link.id] }.filterNotNull().first()
             }
-            val item = entry?.let(ContinueItem::of)
+            val item = entry?.let { ContinueItem.of(it, store.titles.episodes.value[it.id]) }
             if (item != null && item.playable) actions.play(link.id, item.episode.toString()) else openTitleFromLink(link.id)
         }
     }

@@ -157,6 +157,14 @@ private fun BoxScope.Notices(store: AppStore, player: PlayerModel, remote: TvRem
         if (!(onUpdatePage && item.notice.text == failure)) notices.say(item.notice.text)
         store.notices.dismiss(item)
     }
+    // A source pinned for a title that can't be used: said once, whichever page is up.
+    val pin by store.sourceChoices.pinNotice.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(pin?.serial) {
+        val said = pin ?: return@LaunchedEffect
+        notices.say(tv.anistream.i18n.Strings.sourcePinUnavailable(context, said.name))
+        store.sourceChoices.told(said)
+    }
     val alert = player.alert
     LaunchedEffect(alert?.since) { alert?.let { notices.say(it.text) } }
     // A newer release, when the engine says to tell of it: the update's page is in Settings › About.

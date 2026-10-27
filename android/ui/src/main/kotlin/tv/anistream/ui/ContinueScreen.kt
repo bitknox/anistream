@@ -81,6 +81,7 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
     val store = LocalAppStore.current
     val state by store.continuing.list.state.collectAsStateWithLifecycle()
     val titles by store.titles.entries.collectAsStateWithLifecycle()
+    val tables by store.titles.episodes.collectAsStateWithLifecycle()
     val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { store.loadContinue() }
     val empty = state == ListState.Empty
@@ -91,7 +92,7 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
     FoldFollowsSelection(wide, queueState)
     // A tablet with something under way: the queue beside the selected title.
     if (wide && state is ListState.Loaded) {
-        val queue = store.continuing.queue(titles)
+        val queue = store.continuing.queue(titles, tables)
         if (!queue.isEmpty) {
             TabletQueue(queue, actions, queueState)
             return
@@ -115,7 +116,7 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
                     is ListState.Failed -> item(key = "failed") {
                         FailedState("Couldn't load Continue", list.reason, retry = { store.loadContinue(force = true) })
                     }
-                    is ListState.Loaded -> queue(store.continuing.queue(titles).without(leaving), actions, leave)
+                    is ListState.Loaded -> queue(store.continuing.queue(titles, tables).without(leaving), actions, leave)
                     // Nothing cached: offline says so, and a slow load draws the layout to come.
                     else -> item(key = "loading") { AfterWait { if (offline) OfflineState() else ContinuePlaceholders() } }
                 }

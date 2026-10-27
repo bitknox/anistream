@@ -245,6 +245,7 @@ fun AppRoot(
         LocalNotificationActions provides actions.notifications,
     ) {
         EngineNotices(onHint = routed.hint)
+        SourcePinNotice()
         UpdatePrompts()
         AccountSheets()
         TvSheetHost()

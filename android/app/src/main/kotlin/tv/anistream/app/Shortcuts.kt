@@ -110,9 +110,9 @@ class ContinueShortcut(private val context: Context) {
          * out, or `null` when there is none. Nothing while the queue is not known.
          */
         fun targets(store: AppStore): Flow<Target?> =
-            combine(store.continuing.list.state, store.continuing.hidden, store.titles.entries) { state, _, titles ->
+            combine(store.continuing.list.state, store.continuing.hidden, store.titles.entries, store.titles.episodes) { state, _, titles, tables ->
                 when (state) {
-                    is ListState.Loaded -> Wanted(store.continuing.queue(titles).nextUp?.let { Target(it.id, it.entry.showTitle, it.episode) })
+                    is ListState.Loaded -> Wanted(store.continuing.queue(titles, tables).nextUp?.let { Target(it.id, it.entry.showTitle, it.episode) })
                     ListState.Empty -> Wanted(null)
                     else -> null
                 }

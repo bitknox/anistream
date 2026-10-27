@@ -38,6 +38,8 @@ import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.store.AppStore
 import tv.anistream.store.ContinueItem
 import tv.anistream.store.ListState
+import tv.anistream.i18n.Strings
+import tv.anistream.tv.actionText
 import tv.anistream.tv.heroAction
 import tv.anistream.tv.heroLine
 import tv.anistream.tv.player.LocalAddStore
@@ -96,7 +98,7 @@ fun ContinueScreen(
     val seasonal by store.seasonal.state.collectAsStateWithLifecycle()
     val window by store.calendar.window.collectAsStateWithLifecycle()
     val offline = isOffline()
-    val queue = remember(entries, state, hidden) { store.continuing.queue(entries) }
+    val queue = remember(entries, tables, state, hidden) { store.continuing.queue(entries, tables) }
     val lead = queue.lead
     LaunchedEffect(lead?.id) { lead?.let { store.loadEpisodes(it.id) } }
 
@@ -273,7 +275,7 @@ private fun Hero(
                     onClick = { onPlay(item.id, item.episode) },
                     enabled = item.playable,
                     modifier = Modifier.firstFocus(memory, HERO),
-                ) { ButtonLabel(item.heroAction) }
+                ) { ButtonLabel(if (item.unsourced) Strings.episodeUnsourced(androidx.compose.ui.platform.LocalContext.current) else item.heroAction) }
             }
             Spacer(Modifier.width(16.dp))
             TonalButton(
