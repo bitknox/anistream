@@ -414,11 +414,12 @@ fn poster(hub: &Hub, entry: &Entry, caption: fn(&Entry) -> String) -> gtk::Box {
 /// The menu a title's cover or row opens on right-click, Shift+F10 and the Menu key.
 pub fn title_menu(widget: &impl IsA<gtk::Widget>, id: u32, planning: bool) {
     let menu = gio::Menu::new();
+    let action = |name: &str| format!("win.{name}(uint32 {id})"); // i18n-skip
     if planning {
-        menu.append(Some(&t::library_add_planning()), Some(&format!("win.plan(uint32 {id})")));
+        menu.append(Some(&t::library_add_planning()), Some(&action("plan"))); // i18n-skip
     }
-    menu.append(Some(&t::title_open()), Some(&format!("win.open-title(uint32 {id})")));
-    menu.append(Some(&t::title_open_anilist()), Some(&format!("win.open-anilist(uint32 {id})")));
+    menu.append(Some(&t::title_open()), Some(&action("open-title"))); // i18n-skip
+    menu.append(Some(&t::title_open_anilist()), Some(&action("open-anilist"))); // i18n-skip
     context_menu(widget, &menu);
 }
 

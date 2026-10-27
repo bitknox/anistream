@@ -1085,6 +1085,331 @@ pub fn player_translation_label() -> String {
     text("player-translation-label", &[])
 }
 
+/// Button on a notice that asks to open the plugin stores.
+pub fn shell_open_stores() -> String {
+    text("shell-open-stores", &[])
+}
+
+/// Button on an update notice that restarts the app to install it.
+pub fn shell_restart() -> String {
+    text("shell-restart", &[])
+}
+
+/// Button on a notice that a newer version is out: opens its page.
+pub fn shell_view_release() -> String {
+    text("shell-view-release", &[])
+}
+
+/// Notice when the app cannot keep running once its window is closed.
+pub fn shell_no_background() -> String {
+    text("shell-no-background", &[])
+}
+
+/// Tooltip of the main menu button in the sidebar's header.
+pub fn shell_main_menu() -> String {
+    text("shell-main-menu", &[])
+}
+
+/// Sidebar line under a signed-out account: opens the accounts page to connect a tracker.
+pub fn shell_connect_tracker(tracker: &str) -> String {
+    text("shell-connect-tracker", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Sidebar line under the account when changes wait to be sent to the tracker.
+pub fn shell_changes_waiting(count: i64) -> String {
+    text("shell-changes-waiting", &[("count", Arg::Int(count))])
+}
+
+/// Sidebar line under the account: the tracker, then that it is up to date.
+pub fn shell_tracker_synced(tracker: &str) -> String {
+    text("shell-tracker-synced", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Title of the keyboard shortcuts window.
+pub fn shortcuts_title() -> String {
+    text("shortcuts-title", &[])
+}
+
+/// Heading of the shortcuts that work on lists of titles.
+pub fn shortcuts_group_lists() -> String {
+    text("shortcuts-group-lists", &[])
+}
+
+/// Shortcut: jump to a section of the app by number.
+pub fn shortcuts_go_to_section() -> String {
+    text("shortcuts-go-to-section", &[])
+}
+
+/// Shortcut: open the keyboard shortcuts window.
+pub fn shortcuts_show() -> String {
+    text("shortcuts-show", &[])
+}
+
+/// Shortcut: close the window.
+pub fn shortcuts_close_window() -> String {
+    text("shortcuts-close-window", &[])
+}
+
+/// Shortcut: quit the app.
+pub fn shortcuts_quit() -> String {
+    text("shortcuts-quit", &[])
+}
+
+/// Shortcut: play the title that has focus in a list.
+pub fn shortcuts_play_selected() -> String {
+    text("shortcuts-play-selected", &[])
+}
+
+/// Shortcut: open the context menu of the title that has focus.
+pub fn shortcuts_context_menu() -> String {
+    text("shortcuts-context-menu", &[])
+}
+
+/// Shortcut: pause or resume.
+pub fn shortcuts_play_pause() -> String {
+    text("shortcuts-play-pause", &[])
+}
+
+/// Shortcut: small steps in the player.
+pub fn shortcuts_seek_5() -> String {
+    text("shortcuts-seek-5", &[])
+}
+
+/// Shortcut: larger steps in the player.
+pub fn shortcuts_seek_30() -> String {
+    text("shortcuts-seek-30", &[])
+}
+
+/// Shortcut: steps of ten seconds in the player.
+pub fn shortcuts_seek_10() -> String {
+    text("shortcuts-seek-10", &[])
+}
+
+/// Shortcut: change the volume.
+pub fn shortcuts_volume() -> String {
+    text("shortcuts-volume", &[])
+}
+
+/// Shortcut: mute the sound.
+pub fn shortcuts_mute() -> String {
+    text("shortcuts-mute", &[])
+}
+
+/// Shortcut: skip the opening or the ending.
+pub fn shortcuts_skip() -> String {
+    text("shortcuts-skip", &[])
+}
+
+/// Shortcut: undo a skip the player made by itself.
+pub fn shortcuts_undo_skip() -> String {
+    text("shortcuts-undo-skip", &[])
+}
+
+/// Shortcut: move between episodes.
+pub fn shortcuts_next_previous() -> String {
+    text("shortcuts-next-previous", &[])
+}
+
+/// Shortcut: change the playback speed.
+pub fn shortcuts_speed() -> String {
+    text("shortcuts-speed", &[])
+}
+
+/// Shortcut: answer the card that shows in the corner of the player.
+pub fn shortcuts_answer_card() -> String {
+    text("shortcuts-answer-card", &[])
+}
+
+/// Shortcut: Escape closes the topmost thing in the player, one step at a time.
+pub fn shortcuts_escape() -> String {
+    text("shortcuts-escape", &[])
+}
+
+/// Response of the close question: stop what runs and close.
+pub fn close_stop_and_close() -> String {
+    text("close-stop-and-close", &[])
+}
+
+/// Response of the close question: keep it running in the background.
+pub fn close_keep_going() -> String {
+    text("close-keep-going", &[])
+}
+
+/// Checkbox of the close question.
+pub fn close_dont_ask() -> String {
+    text("close-dont-ask", &[])
+}
+
+/// Body of the close question when episodes download.
+pub fn close_body_downloading(count: i64) -> String {
+    text("close-body-downloading", &[("count", Arg::Int(count))])
+}
+
+/// Body of the close question when episodes seed.
+pub fn close_body_seeding(count: i64) -> String {
+    text("close-body-seeding", &[("count", Arg::Int(count))])
+}
+
+/// Body of the close question when some episodes download and others seed.
+pub fn close_body_both(downloading: i64, seeding: i64) -> String {
+    text("close-body-both", &[("downloading", Arg::Int(downloading)), ("seeding", Arg::Int(seeding))])
+}
+
+/// Status in the sidebar and on the remote: the TV was not found again.
+pub fn tv_status_not_found(name: &str) -> String {
+    text("tv-status-not-found", &[("name", Arg::Text(name))])
+}
+
+/// Title of the dialog that wants a code to be typed: no name known yet.
+pub fn tv_connecting_title() -> String {
+    text("tv-connecting-title", &[])
+}
+
+/// Heading of a problem when the pairing code ran out.
+pub fn tv_code_expired() -> String {
+    text("tv-code-expired", &[])
+}
+
+/// Under a TV in the list: what choosing it does, for a screen reader.
+pub fn tv_row_pairs_with() -> String {
+    text("tv-row-pairs-with", &[])
+}
+
+/// Row title of the button that pairs another TV once one is paired.
+pub fn tv_another() -> String {
+    text("tv-another", &[])
+}
+
+/// Under a TV in the list: paired, but not seen on the network.
+pub fn tv_row_away() -> String {
+    text("tv-row-away", &[])
+}
+
+/// Under a TV in the list: found, not paired yet.
+pub fn tv_row_new() -> String {
+    text("tv-row-new", &[])
+}
+
+/// Under a TV in the list: its version does not match.
+pub fn tv_row_needs_update() -> String {
+    text("tv-row-needs-update", &[])
+}
+
+/// What a screen reader hears when a heading and its problem show together.
+pub fn tv_problem_announce(heading: &str, problem: &str) -> String {
+    text("tv-problem-announce", &[("heading", Arg::Text(heading)), ("problem", Arg::Text(problem))])
+}
+
+/// What a screen reader hears when no TV was found, then what to check.
+pub fn tv_none_found_announce(detail: &str) -> String {
+    text("tv-none-found-announce", &[("detail", Arg::Text(detail))])
+}
+
+/// Line on the picker while the episode to play is known: the show, then the episode.
+pub fn tv_title_episode(title: &str, episode: &str) -> String {
+    text("tv-title-episode", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Line under the show on the remote and the picker: which episode.
+pub fn tv_episode(episode: &str) -> String {
+    text("tv-episode", &[("episode", Arg::Text(episode))])
+}
+
+/// Line on the remote under the show: the episode, then its title.
+pub fn tv_episode_titled(episode: &str, title: &str) -> String {
+    text("tv-episode-titled", &[("episode", Arg::Text(episode)), ("title", Arg::Text(title))])
+}
+
+/// Explains the code a TV lists this computer by, above the paired TVs in the settings.
+pub fn tv_fingerprint_note(code: &str) -> String {
+    text("tv-fingerprint-note", &[("code", Arg::Text(code))])
+}
+
+/// Settings line of a paired TV: paired on a date, last seen a while ago.
+pub fn tv_paired_seen(paired: &str, ago: &str) -> String {
+    text("tv-paired-seen", &[("paired", Arg::Text(paired)), ("ago", Arg::Text(ago))])
+}
+
+/// Settings line of a paired TV: paired on a date, reached in the last minute.
+pub fn tv_paired_seen_now(paired: &str) -> String {
+    text("tv-paired-seen-now", &[("paired", Arg::Text(paired))])
+}
+
+/// Title of the remote's volume row.
+pub fn tv_volume() -> String {
+    text("tv-volume", &[])
+}
+
+/// Accessible label of the button that turns the TV down.
+pub fn tv_volume_down() -> String {
+    text("tv-volume-down", &[])
+}
+
+/// Accessible label of the button that turns the TV up.
+pub fn tv_volume_up() -> String {
+    text("tv-volume-up", &[])
+}
+
+/// The TV's volume as a value of 100.
+pub fn tv_volume_of(volume: i64) -> String {
+    text("tv-volume-of", &[("volume", Arg::Int(volume))])
+}
+
+/// Accessible name of a track menu: the row, then the track chosen.
+pub fn tv_track_choice(row: &str, track: &str) -> String {
+    text("tv-track-choice", &[("row", Arg::Text(row)), ("track", Arg::Text(track))])
+}
+
+/// The pairing code typed did not match.
+pub fn tv_problem_wrong_code() -> String {
+    text("tv-problem-wrong-code", &[])
+}
+
+/// The TV cannot take another paired device.
+pub fn tv_problem_full() -> String {
+    text("tv-problem-full", &[])
+}
+
+/// The TV cannot take another connection now.
+pub fn tv_problem_busy() -> String {
+    text("tv-problem-busy", &[])
+}
+
+/// The TV and this app speak different versions.
+pub fn tv_problem_version() -> String {
+    text("tv-problem-version", &[])
+}
+
+/// A command needs something playing and nothing is.
+pub fn tv_problem_not_now() -> String {
+    text("tv-problem-not-now", &[])
+}
+
+/// The TV has forgotten this computer.
+pub fn tv_problem_unpaired() -> String {
+    text("tv-problem-unpaired", &[])
+}
+
+/// The TV's key changed since pairing.
+pub fn tv_problem_key_changed() -> String {
+    text("tv-problem-key-changed", &[])
+}
+
+/// The TV did not answer.
+pub fn tv_problem_unreachable() -> String {
+    text("tv-problem-unreachable", &[])
+}
+
+/// The TV picked in the list has left the network.
+pub fn tv_problem_gone() -> String {
+    text("tv-problem-gone", &[])
+}
+
+/// What was typed or scanned is not a TV's code or address.
+pub fn tv_problem_not_a_link() -> String {
+    text("tv-problem-not-a-link", &[])
+}
+
 /// Under a release in the source picker: how many people share it right now.
 pub fn source_picker_seeders_linux(count: i64) -> String {
     text("source-picker-seeders-linux", &[("count", Arg::Int(count))])

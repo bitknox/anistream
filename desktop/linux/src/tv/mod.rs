@@ -36,12 +36,15 @@ use anistream_engine::remote::{
         LinkPhase, NowCard, Pairing, Problem, RemoteCard, TvLink, TvRow, TvRowKind, TvSender,
     },
 };
+use anistream_i18n::t;
 use gtk::{gio, glib, prelude::*};
 use tokio::runtime::Handle;
 
+use crate::say;
+
 /// What a TV lists this computer as: the kind of device, never the name it was given, which is
 /// often its owner's.
-const DEVICE: &str = "Linux computer";
+const DEVICE: &str = "Linux computer"; // i18n-skip
 
 /// The file this install's key is kept in, under the data directory's `remote`.
 const IDENTITY_FILE: &str = "sender-identity";
@@ -66,8 +69,8 @@ pub struct Step {
     pub needs_code: bool,
     /// A try is out, or the TV is being asked for its code.
     pub working: bool,
-    /// The engine's words for the last try that failed.
-    pub problem: Option<String>,
+    /// What the last try that failed ran into.
+    pub problem: Option<Problem>,
     /// The code on the TV ran out: none is typed until the TV shows a new one.
     pub expired: bool,
 }
@@ -108,7 +111,7 @@ pub struct Tv {
     ended: Cell<bool>,
     /// What was asked of the TV, until its card shows it.
     starting: RefCell<Option<Request>>,
-    problem: RefCell<Option<String>>,
+    problem: RefCell<Option<Problem>>,
     sheet: Cell<Option<Sheet>>,
     listeners: RefCell<Vec<(u64, Listener)>>,
     next_listener: Cell<u64>,
@@ -279,8 +282,8 @@ impl Tv {
         self.card.borrow().clone()
     }
 
-    pub fn problem(&self) -> Option<String> {
-        self.problem.borrow().clone()
+    pub fn problem(&self) -> Option<Problem> {
+        *self.problem.borrow()
     }
 
     /// The link is up, and the card's controls reach the TV.
@@ -311,7 +314,7 @@ impl Tv {
         Some(NowCard {
             id: request.id,
             title: request.title,
-            episode_line: format!("Episode {}", request.episode),
+            episode_line: t::tv_episode(&request.episode),
             episode: request.episode,
             loading: true,
             position: request.from.unwrap_or(0.0),
@@ -581,7 +584,7 @@ impl Tv {
             let mut pairing = self.pairing.borrow_mut();
             let Some(step) = pairing.as_mut() else { return };
             step.working = false;
-            step.problem = Some(problem.message().to_owned());
+            step.problem = Some(problem);
             step.expired = problem == Problem::NoCode;
         }
         self.changed();
@@ -709,7 +712,7 @@ impl Tv {
                         if mine {
                             tv.starting.replace(None);
                         }
-                        tv.problem.replace(Some(problem.message().to_owned()));
+                        tv.problem.replace(Some(problem));
                     }
                 }
                 tv.changed();
@@ -741,7 +744,7 @@ impl Tv {
         }
         self.run(async move { link.send(command).await }, |tv, answer| {
             if let Err(problem) = answer {
-                tv.problem.replace(Some(problem.message().to_owned()));
+                tv.problem.replace(Some(problem));
                 tv.changed();
             }
         });
@@ -833,21 +836,48 @@ fn identity_in(dir: &Path) -> Result<Identity, String> {
     Ok(identity)
 }
 
+/// What a problem with a TV says, in the language in use.
+pub fn problem_text(problem: Problem) -> String {
+    match problem {
+        Problem::WrongCode => t::tv_problem_wrong_code(),
+        Problem::NoCode => t::tv_code_expired(),
+        Problem::Full => t::tv_problem_full(),
+        Problem::Busy => t::tv_problem_busy(),
+        Problem::Version => t::tv_problem_version(),
+        Problem::NotNow => t::tv_problem_not_now(),
+        Problem::Unpaired => t::tv_problem_unpaired(),
+        Problem::KeyChanged => t::tv_problem_key_changed(),
+        Problem::Unreachable => t::tv_problem_unreachable(),
+        Problem::Gone => t::tv_problem_gone(),
+        Problem::NotALink => t::tv_problem_not_a_link(),
+        Problem::Other => t::tv_talk_failed(),
+    }
+}
+
+/// What a TV in the picker says under its name.
+pub fn row_detail(kind: TvRowKind) -> String {
+    match kind {
+        TvRowKind::Paired => t::tv_paired(),
+        TvRowKind::PairedAway => t::tv_row_away(),
+        TvRowKind::New => t::tv_row_new(),
+        TvRowKind::NeedsUpdate => t::tv_row_needs_update(),
+    }
+}
+
 /// What Settings says about a paired TV under its name: "Connected · 192.168.1.20:47811", or
 /// "Paired 12 Oct · seen 3 hours ago".
 pub fn paired_note(tv: &KnownTv, connected: bool, now: i64) -> String {
     if connected {
-        return format!("Connected · {}", tv.address);
+        return t::tv_connected_at(&tv.address.to_string());
     }
     let paired = glib::DateTime::from_unix_local(tv.paired_at)
         .ok()
         .and_then(|d| d.format("%-d %b").ok())
-        .map(|d| format!("Paired {d}"))
-        .unwrap_or_else(|| "Paired".to_owned());
+        .map(|d| t::tv_paired_on(&d))
+        .unwrap_or_else(t::tv_paired);
     match tv.last_seen {
-        Some(seen) => {
-            format!("{paired} · seen {}", anistream_model::wording::ago(now - seen))
-        }
+        Some(seen) if now - seen < 60 => t::tv_paired_seen_now(&paired),
+        Some(seen) => t::tv_paired_seen(&paired, &t::time_ago(&say::countdown(now - seen))),
         None => paired,
     }
 }

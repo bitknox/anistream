@@ -5,6 +5,7 @@ use std::{cell::Cell, rc::Rc};
 
 use adw::prelude::*;
 use anistream_engine::remote::protocol::known::KnownTv;
+use anistream_i18n::t;
 use gtk::glib;
 
 use super::{Tv, paired_note};
@@ -20,12 +21,8 @@ pub fn group(ctx: &Rc<Ctx>) -> Option<adw::PreferencesGroup> {
         return None;
     }
     let group = adw::PreferencesGroup::builder()
-        .title("Play on TV")
-        .description(format!(
-            "A TV lists this computer with the code {}. Forget a TV here and it forgets this \
-             computer too.",
-            tv.short_fingerprint()
-        ))
+        .title(t::tv_play_on())
+        .description(t::tv_fingerprint_note(&tv.short_fingerprint()))
         .build();
     let rows: Rc<std::cell::RefCell<Vec<gtk::Widget>>> = Rc::default();
     let fill = {
@@ -55,7 +52,7 @@ pub fn group(ctx: &Rc<Ctx>) -> Option<adw::PreferencesGroup> {
                     .subtitle(paired_note(tv, on, seen_now))
                     .use_markup(false)
                     .build();
-                let forget = gtk::Button::with_label("Forget");
+                let forget = gtk::Button::with_label(&t::action_forget());
                 forget.set_valign(gtk::Align::Center);
                 forget.connect_clicked({
                     let ctx = Rc::downgrade(&ctx);
@@ -71,12 +68,10 @@ pub fn group(ctx: &Rc<Ctx>) -> Option<adw::PreferencesGroup> {
                 rows.borrow_mut().push(row.upcast());
             }
             let another = adw::ActionRow::builder()
-                .title(if paired.is_empty() { "No TVs paired yet" } else { "Another TV" })
-                .subtitle(
-                    "Open anistream on the TV, on the same Wi‑Fi, then pair with it here.",
-                )
+                .title(if paired.is_empty() { t::tv_none_paired() } else { t::tv_another() })
+                .subtitle(t::tv_none_paired_detail())
                 .build();
-            let pair = gtk::Button::with_label("Pair a TV…");
+            let pair = gtk::Button::with_label(&t::tv_pair_menu());
             pair.set_valign(gtk::Align::Center);
             pair.connect_clicked({
                 let tv = Rc::downgrade(&ctx.tv);
@@ -119,11 +114,11 @@ pub fn group(ctx: &Rc<Ctx>) -> Option<adw::PreferencesGroup> {
 
 fn confirm_forget(ctx: &Rc<Ctx>, paired: &KnownTv) {
     let dialog = adw::AlertDialog::new(
-        Some(&format!("Forget {}?", paired.name)),
-        Some("To play on it again, pair with it again."),
+        Some(&t::tv_forget_title(&paired.name)),
+        Some(&t::tv_forget_detail()),
     );
-    dialog.add_response("cancel", "Cancel");
-    dialog.add_response("forget", "Forget");
+    dialog.add_response("cancel", &t::action_cancel());
+    dialog.add_response("forget", &t::action_forget());
     dialog.set_response_appearance("forget", adw::ResponseAppearance::Destructive);
     dialog.set_default_response(Some("cancel"));
     dialog.set_close_response("cancel");
