@@ -13,6 +13,18 @@
         }
       }
     },
+    "action-done" : {
+      "comment" : "Button that closes a sheet whose changes have already been made.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
     "action-not-now" : {
       "comment" : "Button that puts a question off until later.",
       "extractionState" : "manual",

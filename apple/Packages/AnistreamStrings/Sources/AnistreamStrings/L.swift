@@ -49,6 +49,9 @@ public enum L {
     /// Button that puts a question off until later.
     public static var actionNotNow: String { string("action-not-now", fallback: "Not now") }
 
+    /// Button that closes a sheet whose changes have already been made.
+    public static var actionDone: String { string("action-done", fallback: "Done") }
+
     /// Continue row subtitle. The show's title is cut first when the row is short.
     public static func queueEpisodesLeft(count: Int, title: String) -> String {
         format("queue-episodes-left", fallback: "%1$lld episodes left in %2$@", count, title)

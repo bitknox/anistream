@@ -14,7 +14,7 @@ struct TitleMenu: View {
     let entry: Entry
 
     var body: some View {
-        let action = TitleAction(entry)
+        let action = TitleAction(entry, episodes: store.titles.episodes[entry.id])
         if action.playable, store.titles.unlisted(entry.id) {
             Button(AddSourceWords.menu) { navigator.openProviders() }
         } else {
@@ -63,7 +63,7 @@ struct TitleMoreItems: View {
         Button(cased(mac: "Hide from Continue", touch: "Hide from Continue")) { store.hideFromContinue(entry.id) }
             .disabled(entry.progress == nil)
         Divider()
-        let action = TitleAction(entry)
+        let action = TitleAction(entry, episodes: store.titles.episodes[entry.id])
         // The episode Play would play, with a party: the form asks for the server and room.
         Button(cased(mac: "Watch Together…", touch: "Watch together…")) {
             store.party.open(.episode(id: entry.id, episode: String(action.episode)))

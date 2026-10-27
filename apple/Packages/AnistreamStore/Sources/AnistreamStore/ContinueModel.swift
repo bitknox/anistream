@@ -14,6 +14,8 @@ public struct ContinueItem: Identifiable, Equatable, Sendable {
     public let resume: ResumePoint?
     /// How many seconds ago that episode aired, when it is the newest out and aired this week.
     public let airedAgo: Int64?
+    /// Nothing from the next episode on has a source, so there is nothing to play.
+    public var unsourced = false
 
     /// Whether this is a new episode rather than one under way.
     public var isNew: Bool { airedAgo != nil }
@@ -25,7 +27,7 @@ public struct ContinueItem: Identifiable, Equatable, Sendable {
 
     /// Whether the row has an episode to play: not when everything out is watched and the next
     /// one is still to air.
-    public var playable: Bool { airing.hasAired }
+    public var playable: Bool { airing.hasAired && !unsourced }
 
     /// The episode's mark: "Dub" for a show watched dubbed, the engine's word for it, and nil for
     /// a sub, which is left unmarked.
@@ -41,6 +43,7 @@ public struct ContinueItem: Identifiable, Equatable, Sendable {
     /// episode, "Resume E7 · Dub · 10:06"; what is still to air is not, as the engine has it.
     public var action: String {
         if let resume { return "Resume \(marked("E\(episode)")) · \(resume.clock)" }
+        if unsourced { return marked("E\(episode)") }
         if !playable { return "Caught up · E\(episode) " + (airing.airs() ?? "not out yet") }
         if let airedAgo { return "Start \(marked("E\(episode)")) · out \(Wording.ago(airedAgo))" }
         return "Start \(marked("E\(episode)"))"
@@ -98,18 +101,21 @@ public struct ContinueQueue: Equatable, Sendable {
     /// `titles`.
     @MainActor
     public init(ids: [AnilistId], titles: TitleCache) {
-        let items = ids.compactMap { titles[$0] }.prefix(Self.rows).map(Self.item)
+        let items = ids.compactMap { titles[$0] }.prefix(Self.rows).map { Self.item($0, rows: titles.episodes[$0.id]) }
         inProgress = items.filter { !$0.isNew }
         newThisWeek = items.filter(\.isNew)
     }
 
-    static func item(_ entry: Entry) -> ContinueItem {
-        let episode = entry.progress?.next ?? 1
+    static func item(_ entry: Entry, rows: [EpisodeRow]? = nil) -> ContinueItem {
+        let target = entry.playableNext(in: rows)
+        let episode = target.episode
         let aired = entry.latestAired
         let airedAgo: Int64? =
             if entry.resume == nil, let aired, aired.episode == episode,
                let ago = aired.ago, ago < week { ago } else { nil }
-        return ContinueItem(entry: entry, episode: episode, resume: entry.resume, airedAgo: airedAgo)
+        var item = ContinueItem(entry: entry, episode: episode, resume: entry.resume, airedAgo: airedAgo)
+        item.unsourced = target.unsourced
+        return item
     }
 }
 

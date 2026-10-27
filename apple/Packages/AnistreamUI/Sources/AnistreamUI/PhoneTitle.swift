@@ -19,7 +19,7 @@ struct PhoneTitle: View {
 
     var body: some View {
         let entry = store.titles.page(id)
-        let action = TitleAction(entry, handedOff: navigator.handedOff)
+        let action = TitleAction(entry, handedOff: navigator.handedOff, episodes: store.titles.episodes[entry.id])
         let art = store.heroArt(entry)
         // A list, so the episodes take their swipes (native-ux), drawn as the scroll view was.
         List {
