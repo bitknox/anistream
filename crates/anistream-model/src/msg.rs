@@ -11,6 +11,266 @@ use crate::msg_text::{Size, Span, Value};
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Msg {
+    /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
+    NoticeReason { reason: Cause },
+    /// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
+    NoticeNotAired { episode: i64, when: Cause },
+    /// A play's explanation: the episode is after the next one to air. The "when" says when that one airs.
+    NoticeNotAiredYet { episode: i64, next: i64, when: Cause },
+    /// Job note while a play looks the title up.
+    StatusLookingUpTitle,
+    /// Job note while a play waits for the sources to arrive.
+    StatusLoadingSources,
+    /// Job note while the sources are asked for an episode. The episode is its label, often a number.
+    StatusSearchingSources { episode: String },
+    /// Status while the player opens.
+    StatusStartingPlayer,
+    /// Status line while an episode plays.
+    StatusPlaying { title: String, episode: String },
+    /// Toast when the player cannot be started. The reason comes from the system.
+    NoticePlayerFailedToStart { reason: String },
+    /// Toast when a stream never showed a frame and the next one is tried.
+    NoticeStreamNoVideo { next: i64, total: i64 },
+    /// Toast when mpv gave up on a file. The reason is mpv's own line.
+    NoticePlayerCouldNotPlay { reason: String },
+    /// Toast when mpv closed without playing and without saying why.
+    NoticePlayerExitedSilently,
+    /// Toast when no picture has appeared a while after the player opened.
+    NoticePlayerNotPlaying { seconds: i64 },
+    /// Toast when a play is asked for in a build with no player.
+    NoticeNoPlayer,
+    /// Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+    NoticeMpvMissing { binary: String },
+    /// Toast at launch when mpv is too old for anistream's own player.
+    NoticeMpvOld { version: String },
+    /// Toast after a link was handed to the browser.
+    NoticeOpenedInBrowser,
+    /// Toast when a link could not be opened. The reason comes from the system.
+    NoticeCouldNotOpen { reason: String },
+    /// Toast when a trailer plays in mpv.
+    NoticeTrailerPlaying,
+    /// Toast when a trailer opens in the browser.
+    NoticeTrailerOpened,
+    /// Toast when a trailer could not be opened. The reason comes from the system.
+    NoticeTrailerFailed { reason: String },
+    /// Toast when the next episode is not the one after this because filler was skipped.
+    NoticeFillerSkipped { episode: String },
+    /// Toast after switching the audio while playing.
+    NoticeAudioNowSubbed,
+    /// Toast after switching the audio while playing.
+    NoticeAudioNowDubbed,
+    /// Toast when the previous-episode control is used on the first episode.
+    NoticeAlreadyFirstEpisode,
+    /// Toast when the next-episode control is used on the last known episode.
+    NoticeLastEpisode { episode: String },
+    /// Toast when the next-episode control is used and the next episode is not known.
+    NoticeNoNextEpisode,
+    /// Toast when the previous-episode control finds no previous episode.
+    NoticeNoPreviousEpisode,
+    /// Toast when the title's episode match could not be cleared. The reason comes from the system.
+    NoticeMatchResetFailed { reason: String },
+    /// Toast when the chosen match could not be saved. The reason comes from the system.
+    NoticeMatchSaveFailed { reason: String },
+    /// Toast when a chosen match still left the title undecided.
+    NoticeMatchDidNotStick,
+    /// Toast when a search of the sources for a title found nothing.
+    NoticeSourceSearchEmpty { query: String },
+    /// Toast after the person picked a source for one title.
+    NoticeSourcePinned { source: String },
+    /// Toast after the person went back to automatic source selection for one title.
+    NoticeSourceAutomatic,
+    /// Toast when the source choice for a title could not be saved. The reason comes from the system.
+    NoticeSourceChoiceFailed { reason: String },
+    /// Toast when no source could list a show's episodes. The reason is what the sources said.
+    NoticeNoSourceCouldList { reason: String },
+    /// Toast when a title cannot be taken off the Continue row. The reason comes from the system.
+    NoticeContinueHideFailed { reason: String },
+    /// Toast after an episode was added to the download queue.
+    NoticeDownloadQueued { title: String, episode: String },
+    /// Toast when an episode asked for is in downloads already.
+    NoticeDownloadAlreadyQueued { title: String, episode: String },
+    /// Toast when a waiting or paused download was moved to the front and started.
+    NoticeDownloadStartingNow { title: String, episode: String },
+    /// Toast after a download was cancelled.
+    NoticeDownloadCancelled,
+    /// Toast after a download and its file were deleted.
+    NoticeDownloadFileDeleted,
+    /// Toast after a download was removed whose file was already gone.
+    NoticeDownloadRemovedFileGone,
+    /// Toast after a download was removed but its file could not be deleted. The reason comes from the system.
+    NoticeDownloadRemovedFileKept { reason: String },
+    /// Toast after a download with no file was removed.
+    NoticeDownloadRemoved,
+    /// Toast after finished downloads were cleared from the list.
+    NoticeDownloadsCleared { count: i64 },
+    /// Toast when an episode finished downloading.
+    NoticeDownloadFinished { title: String, episode: String },
+    /// Toast when an episode finished downloading and the note says what happened to its subtitles.
+    NoticeDownloadFinishedNote { title: String, episode: String, note: Cause },
+    /// Toast when a download could not start. The reason comes from the torrent client.
+    NoticeDownloadFailed { title: String, episode: String, reason: String },
+    /// Toast after a range was asked for and nothing was queued.
+    NoticeDownloadsNoneQueued,
+    /// Toast after a range was asked for and nothing was queued, and the reason it stopped.
+    NoticeDownloadsNoneQueuedStopped { reason: Cause },
+    /// Toast after a range was asked for and every episode was in the queue already.
+    NoticeDownloadsNoneNew { existing: Cause },
+    /// Toast as above, with the reason the range stopped.
+    NoticeDownloadsNoneNewStopped { existing: Cause, reason: Cause },
+    /// Toast after a range was asked for, some episodes were queued and some were there already.
+    NoticeEpisodesQueuedExisting { count: i64, existing: Cause },
+    /// Toast as above, with the reason the range stopped.
+    NoticeEpisodesQueuedStopped { count: i64, reason: Cause },
+    /// Toast as above, with some episodes in the queue already and the reason the range stopped.
+    NoticeEpisodesQueuedExistingStopped { count: i64, existing: Cause, reason: Cause },
+    /// Toast when keep next found no room for another episode.
+    NoticeKeepNextFull,
+    /// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+    PartyNeedsServer { server: String, operator: String },
+    /// Toast when a watch party is asked for in a build without watch parties.
+    NoticeNoParty,
+    /// Message when a watch party was asked for with no room named.
+    PartyNeedsRoom,
+    /// Message in a watch party when its server connection dropped and is retried.
+    PartyServerLost,
+    /// Message in a watch party when the connection came back.
+    PartyRejoined,
+    /// Message when the person left a watch party.
+    PartyLeft,
+    /// Toast after joining a plugin store with an invite that names this device's owner.
+    StoreJoined { store: String, member: String },
+    /// Toast after joining a plugin store with its open link, which keeps no name.
+    StoreJoinedUnnamed { store: String },
+    /// Toast after leaving a plugin store.
+    StoreLeft { store: String },
+    /// Toast after a plugin is deleted from this device.
+    PluginRemoved { plugin: String },
+    /// Toast after a store owner removes a member.
+    StoreMemberRemoved,
+    /// Toast after a store owner cancels an invite.
+    StoreInviteCancelled,
+    /// Toast after a store owner lets anyone with the store's link join.
+    StoreOpenJoinOn,
+    /// Toast after a store owner turns off joining with the link, when no device joined that way.
+    StoreOpenJoinOff,
+    /// Toast after a store owner turns off joining with the link, when some devices joined that way.
+    StoreOpenJoinOffDevices { devices: i64 },
+    /// Toast after one device that joined with the store's link is removed.
+    StoreDeviceRemoved,
+    /// Toast after every device that joined with the store's link is removed.
+    StoreDevicesRemoved,
+    /// Toast after a plugin is published to a store.
+    PluginPublished { plugin: String, version: String },
+    /// Toast after a plugin stops being offered in a store.
+    PluginUnpublished { plugin: String },
+    /// Toast after the store's admin page opens in the browser.
+    StoreAdminOpened,
+    /// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+    StoreAdminOpenFailed { reason: String },
+    /// Toast after a plugin is installed while plugins are switched off in the source order.
+    PluginInstalledUnused { plugin: String, version: String },
+    /// Toast after a plugin is installed under the name of a built-in source, so it was not loaded.
+    PluginInstalledNameClash { plugin: String, id: String },
+    /// Toast after a plugin is installed and ready to use.
+    PluginInstalled { plugin: String, version: String },
+    /// Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.
+    PluginInstalledNotLoaded { plugin: String, reason: String },
+    /// Toast at launch when joined plugin stores offer newer versions of installed plugins.
+    PluginUpdatesReady { count: i64, names: String },
+    /// Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host.
+    PluginsLoadFailed { reason: String },
+    /// Error: the store was joined once, but this device has no saved token for it.
+    StoreTokenMissing { store: String },
+    /// Error: the store the record points to is gone from the saved list.
+    StoreNotJoined,
+    /// Error: a store's signing key is unreadable. Shown as the reason a store is offline.
+    StoreKeyDamaged,
+    /// Error: a store rejected this device's token.
+    StoreDeviceRefused { store: String },
+    /// Error: a store could not be reached. The reason comes from the network.
+    StoreUnreachable { store: String, reason: String },
+    /// Error: an invite link names a store this device already joined, but at another address.
+    StoreMoved { store: String, current: String, target: String },
+    /// Error: an open link would replace the named membership this device already has.
+    StoreJoinWouldUnname { store: String, member: String },
+    /// Error: the server at a link's address could not prove it is the store the invite named.
+    StoreNotTheInvited { url: String, reason: String },
+    /// Error: the token for a joined store could not be saved on this device. The reason comes from the system.
+    StoreTokenNotKept { reason: String },
+    /// Error: an invite that cannot be used any more.
+    StoreInviteUnusable,
+    /// Error: an open link that no longer lets anyone join.
+    StoreOpenLinkUnusable,
+    /// Error: a plugin takes the name of a built-in source.
+    PluginReservedName { plugin: String },
+    /// Error: a store stopped offering a plugin between listing it and installing it.
+    StorePluginWithdrawn { store: String, plugin: String },
+    /// Error: a store changed a plugin after the person agreed to what was shown.
+    StorePluginChanged { store: String, plugin: String },
+    /// Error: a plugin installed from one store is offered by another.
+    PluginFromOtherStore { plugin: String, store: String },
+    /// Error: a plugin file added by hand already declares the same name.
+    PluginDuplicateFile { path: String, plugin: String },
+    /// Error: a plugin could not be downloaded or installed. The reason comes from the store or the system.
+    PluginInstallFailed { plugin: String, reason: String },
+    /// Error: a plugin could not be published. The reason comes from the store or the system.
+    PluginPublishFailed { plugin: String, reason: String },
+    /// Error: a plugin to publish is no longer in the plugin folder.
+    PluginMissingLocally { plugin: String },
+    /// Error: an invite for another device cannot be made from a device that joined with the open link.
+    StoreInviteNeedsLink { store: String },
+    /// Error: the store sent an invite link that does not parse. The reason comes from the link parser.
+    StoreLinkMalformed { reason: String },
+    /// Error: the store sent a link carrying another store's key.
+    StoreLinkWrongKey,
+    /// Error: the store's server has no admin page.
+    StoreAdminMissing { store: String },
+    /// Error: the store sent an admin link that points somewhere else.
+    StoreAdminLinkForeign { store: String },
+    /// Error: the store's server is too old for joining with a link.
+    StoreOpenJoinUnsupported { store: String },
+    /// Toast after a source (plugin) is switched off. It is skipped when looking for episodes.
+    SourceSwitchedOff { name: String },
+    /// Toast after a source (plugin) is switched on.
+    SourceSwitchedOn { name: String },
+    /// Error: a command named a plugin that is not loaded.
+    PluginNotLoaded { id: String },
+    /// Toast after a release is chosen for a title. The name is the release's title.
+    ReleasePinned { name: String },
+    /// Toast when the chosen source or release for a title could not be saved. The reason comes from the database.
+    NoticeChoiceNotSaved { reason: String },
+    /// Toast while torrents are running but the connection check failed, and the settings say to warn only.
+    TorrentCheckFailedRunning,
+    /// Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard.
+    TorrentVpnWaiting { reason: String },
+    /// Note on the sources screen: the VPN guard has no verdict yet.
+    TorrentVpnUnverified,
+    /// Error: torrents are on, but no torrent index is set.
+    TorrentNoIndex,
+    /// Error: the torrent session did not start because the interface closed first.
+    TorrentInterfaceClosed,
+    /// Error: the torrent session could not start. The reason comes from the torrent engine.
+    TorrentSessionFailed { reason: String },
+    /// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+    TorrentNoKillSwitch,
+    /// Toast when the connection check could not run. The reason comes from the VPN settings.
+    TorrentNotChecked { reason: String },
+    /// Note on the sources screen after the source chain is rebuilt with torrents on.
+    SourcesReloadedTorrentsPending,
+    /// Note on the sources screen after the source chain is rebuilt with torrents off.
+    SourcesReloadedTorrentsOff,
+    /// Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows.
+    JobAnilistLimit,
+    /// Toast when there is no job to carry the wait for AniList's rate limit.
+    NoticeAnilistLimit { wait: Span },
+    /// Toast when the AniList fallback takes over because AniList cannot be reached.
+    NoticeAnilistUnreachable,
+    /// Toast when no metadata service answered and the last cached data is shown.
+    NoticeMetadataCached,
+    /// Toast when AniList answers again.
+    NoticeAnilistBack,
+    /// Toast when a command needs watch parties but this app was built without them.
+    NoticePartyNotBuilt,
     /// Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
     NoticeSignedIn { tracker: String },
     /// Toast after a sign-in succeeded and the token went into the system keychain.
@@ -109,6 +369,136 @@ impl Msg {
     /// The catalogue id of the message.
     pub fn id(&self) -> &'static str {
         match self {
+            Self::NoticeReason { .. } => "notice-reason",
+            Self::NoticeNotAired { .. } => "notice-not-aired",
+            Self::NoticeNotAiredYet { .. } => "notice-not-aired-yet",
+            Self::StatusLookingUpTitle => "status-looking-up-title",
+            Self::StatusLoadingSources => "status-loading-sources",
+            Self::StatusSearchingSources { .. } => "status-searching-sources",
+            Self::StatusStartingPlayer => "status-starting-player",
+            Self::StatusPlaying { .. } => "status-playing",
+            Self::NoticePlayerFailedToStart { .. } => "notice-player-failed-to-start",
+            Self::NoticeStreamNoVideo { .. } => "notice-stream-no-video",
+            Self::NoticePlayerCouldNotPlay { .. } => "notice-player-could-not-play",
+            Self::NoticePlayerExitedSilently => "notice-player-exited-silently",
+            Self::NoticePlayerNotPlaying { .. } => "notice-player-not-playing",
+            Self::NoticeNoPlayer => "notice-no-player",
+            Self::NoticeMpvMissing { .. } => "notice-mpv-missing",
+            Self::NoticeMpvOld { .. } => "notice-mpv-old",
+            Self::NoticeOpenedInBrowser => "notice-opened-in-browser",
+            Self::NoticeCouldNotOpen { .. } => "notice-could-not-open",
+            Self::NoticeTrailerPlaying => "notice-trailer-playing",
+            Self::NoticeTrailerOpened => "notice-trailer-opened",
+            Self::NoticeTrailerFailed { .. } => "notice-trailer-failed",
+            Self::NoticeFillerSkipped { .. } => "notice-filler-skipped",
+            Self::NoticeAudioNowSubbed => "notice-audio-now-subbed",
+            Self::NoticeAudioNowDubbed => "notice-audio-now-dubbed",
+            Self::NoticeAlreadyFirstEpisode => "notice-already-first-episode",
+            Self::NoticeLastEpisode { .. } => "notice-last-episode",
+            Self::NoticeNoNextEpisode => "notice-no-next-episode",
+            Self::NoticeNoPreviousEpisode => "notice-no-previous-episode",
+            Self::NoticeMatchResetFailed { .. } => "notice-match-reset-failed",
+            Self::NoticeMatchSaveFailed { .. } => "notice-match-save-failed",
+            Self::NoticeMatchDidNotStick => "notice-match-did-not-stick",
+            Self::NoticeSourceSearchEmpty { .. } => "notice-source-search-empty",
+            Self::NoticeSourcePinned { .. } => "notice-source-pinned",
+            Self::NoticeSourceAutomatic => "notice-source-automatic",
+            Self::NoticeSourceChoiceFailed { .. } => "notice-source-choice-failed",
+            Self::NoticeNoSourceCouldList { .. } => "notice-no-source-could-list",
+            Self::NoticeContinueHideFailed { .. } => "notice-continue-hide-failed",
+            Self::NoticeDownloadQueued { .. } => "notice-download-queued",
+            Self::NoticeDownloadAlreadyQueued { .. } => "notice-download-already-queued",
+            Self::NoticeDownloadStartingNow { .. } => "notice-download-starting-now",
+            Self::NoticeDownloadCancelled => "notice-download-cancelled",
+            Self::NoticeDownloadFileDeleted => "notice-download-file-deleted",
+            Self::NoticeDownloadRemovedFileGone => "notice-download-removed-file-gone",
+            Self::NoticeDownloadRemovedFileKept { .. } => "notice-download-removed-file-kept",
+            Self::NoticeDownloadRemoved => "notice-download-removed",
+            Self::NoticeDownloadsCleared { .. } => "notice-downloads-cleared",
+            Self::NoticeDownloadFinished { .. } => "notice-download-finished",
+            Self::NoticeDownloadFinishedNote { .. } => "notice-download-finished-note",
+            Self::NoticeDownloadFailed { .. } => "notice-download-failed",
+            Self::NoticeDownloadsNoneQueued => "notice-downloads-none-queued",
+            Self::NoticeDownloadsNoneQueuedStopped { .. } => "notice-downloads-none-queued-stopped",
+            Self::NoticeDownloadsNoneNew { .. } => "notice-downloads-none-new",
+            Self::NoticeDownloadsNoneNewStopped { .. } => "notice-downloads-none-new-stopped",
+            Self::NoticeEpisodesQueuedExisting { .. } => "notice-episodes-queued-existing",
+            Self::NoticeEpisodesQueuedStopped { .. } => "notice-episodes-queued-stopped",
+            Self::NoticeEpisodesQueuedExistingStopped { .. } => "notice-episodes-queued-existing-stopped",
+            Self::NoticeKeepNextFull => "notice-keep-next-full",
+            Self::PartyNeedsServer { .. } => "party-needs-server",
+            Self::NoticeNoParty => "notice-no-party",
+            Self::PartyNeedsRoom => "party-needs-room",
+            Self::PartyServerLost => "party-server-lost",
+            Self::PartyRejoined => "party-rejoined",
+            Self::PartyLeft => "party-left",
+            Self::StoreJoined { .. } => "store-joined",
+            Self::StoreJoinedUnnamed { .. } => "store-joined-unnamed",
+            Self::StoreLeft { .. } => "store-left",
+            Self::PluginRemoved { .. } => "plugin-removed",
+            Self::StoreMemberRemoved => "store-member-removed",
+            Self::StoreInviteCancelled => "store-invite-cancelled",
+            Self::StoreOpenJoinOn => "store-open-join-on",
+            Self::StoreOpenJoinOff => "store-open-join-off",
+            Self::StoreOpenJoinOffDevices { .. } => "store-open-join-off-devices",
+            Self::StoreDeviceRemoved => "store-device-removed",
+            Self::StoreDevicesRemoved => "store-devices-removed",
+            Self::PluginPublished { .. } => "plugin-published",
+            Self::PluginUnpublished { .. } => "plugin-unpublished",
+            Self::StoreAdminOpened => "store-admin-opened",
+            Self::StoreAdminOpenFailed { .. } => "store-admin-open-failed",
+            Self::PluginInstalledUnused { .. } => "plugin-installed-unused",
+            Self::PluginInstalledNameClash { .. } => "plugin-installed-name-clash",
+            Self::PluginInstalled { .. } => "plugin-installed",
+            Self::PluginInstalledNotLoaded { .. } => "plugin-installed-not-loaded",
+            Self::PluginUpdatesReady { .. } => "plugin-updates-ready",
+            Self::PluginsLoadFailed { .. } => "plugins-load-failed",
+            Self::StoreTokenMissing { .. } => "store-token-missing",
+            Self::StoreNotJoined => "store-not-joined",
+            Self::StoreKeyDamaged => "store-key-damaged",
+            Self::StoreDeviceRefused { .. } => "store-device-refused",
+            Self::StoreUnreachable { .. } => "store-unreachable",
+            Self::StoreMoved { .. } => "store-moved",
+            Self::StoreJoinWouldUnname { .. } => "store-join-would-unname",
+            Self::StoreNotTheInvited { .. } => "store-not-the-invited",
+            Self::StoreTokenNotKept { .. } => "store-token-not-kept",
+            Self::StoreInviteUnusable => "store-invite-unusable",
+            Self::StoreOpenLinkUnusable => "store-open-link-unusable",
+            Self::PluginReservedName { .. } => "plugin-reserved-name",
+            Self::StorePluginWithdrawn { .. } => "store-plugin-withdrawn",
+            Self::StorePluginChanged { .. } => "store-plugin-changed",
+            Self::PluginFromOtherStore { .. } => "plugin-from-other-store",
+            Self::PluginDuplicateFile { .. } => "plugin-duplicate-file",
+            Self::PluginInstallFailed { .. } => "plugin-install-failed",
+            Self::PluginPublishFailed { .. } => "plugin-publish-failed",
+            Self::PluginMissingLocally { .. } => "plugin-missing-locally",
+            Self::StoreInviteNeedsLink { .. } => "store-invite-needs-link",
+            Self::StoreLinkMalformed { .. } => "store-link-malformed",
+            Self::StoreLinkWrongKey => "store-link-wrong-key",
+            Self::StoreAdminMissing { .. } => "store-admin-missing",
+            Self::StoreAdminLinkForeign { .. } => "store-admin-link-foreign",
+            Self::StoreOpenJoinUnsupported { .. } => "store-open-join-unsupported",
+            Self::SourceSwitchedOff { .. } => "source-switched-off",
+            Self::SourceSwitchedOn { .. } => "source-switched-on",
+            Self::PluginNotLoaded { .. } => "plugin-not-loaded",
+            Self::ReleasePinned { .. } => "release-pinned",
+            Self::NoticeChoiceNotSaved { .. } => "notice-choice-not-saved",
+            Self::TorrentCheckFailedRunning => "torrent-check-failed-running",
+            Self::TorrentVpnWaiting { .. } => "torrent-vpn-waiting",
+            Self::TorrentVpnUnverified => "torrent-vpn-unverified",
+            Self::TorrentNoIndex => "torrent-no-index",
+            Self::TorrentInterfaceClosed => "torrent-interface-closed",
+            Self::TorrentSessionFailed { .. } => "torrent-session-failed",
+            Self::TorrentNoKillSwitch => "torrent-no-kill-switch",
+            Self::TorrentNotChecked { .. } => "torrent-not-checked",
+            Self::SourcesReloadedTorrentsPending => "sources-reloaded-torrents-pending",
+            Self::SourcesReloadedTorrentsOff => "sources-reloaded-torrents-off",
+            Self::JobAnilistLimit => "job-anilist-limit",
+            Self::NoticeAnilistLimit { .. } => "notice-anilist-limit",
+            Self::NoticeAnilistUnreachable => "notice-anilist-unreachable",
+            Self::NoticeMetadataCached => "notice-metadata-cached",
+            Self::NoticeAnilistBack => "notice-anilist-back",
+            Self::NoticePartyNotBuilt => "notice-party-not-built",
             Self::NoticeSignedIn { .. } => "notice-signed-in",
             Self::NoticeSignedInKeychain { .. } => "notice-signed-in-keychain",
             Self::NoticeSignedInFile { .. } => "notice-signed-in-file",
@@ -161,6 +551,136 @@ impl Msg {
     /// The message's arguments, by catalogue name.
     pub fn values(&self) -> Vec<(&'static str, Value)> {
         match self {
+            Self::NoticeReason { reason } => vec![("reason", Value::Cause(reason.clone()))],
+            Self::NoticeNotAired { episode, when } => vec![("episode", Value::Int(*episode)), ("when", Value::Cause(when.clone()))],
+            Self::NoticeNotAiredYet { episode, next, when } => vec![("episode", Value::Int(*episode)), ("next", Value::Int(*next)), ("when", Value::Cause(when.clone()))],
+            Self::StatusLookingUpTitle => Vec::new(),
+            Self::StatusLoadingSources => Vec::new(),
+            Self::StatusSearchingSources { episode } => vec![("episode", Value::Text(episode.clone()))],
+            Self::StatusStartingPlayer => Vec::new(),
+            Self::StatusPlaying { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
+            Self::NoticePlayerFailedToStart { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeStreamNoVideo { next, total } => vec![("next", Value::Int(*next)), ("total", Value::Int(*total))],
+            Self::NoticePlayerCouldNotPlay { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticePlayerExitedSilently => Vec::new(),
+            Self::NoticePlayerNotPlaying { seconds } => vec![("seconds", Value::Int(*seconds))],
+            Self::NoticeNoPlayer => Vec::new(),
+            Self::NoticeMpvMissing { binary } => vec![("binary", Value::Text(binary.clone()))],
+            Self::NoticeMpvOld { version } => vec![("version", Value::Text(version.clone()))],
+            Self::NoticeOpenedInBrowser => Vec::new(),
+            Self::NoticeCouldNotOpen { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeTrailerPlaying => Vec::new(),
+            Self::NoticeTrailerOpened => Vec::new(),
+            Self::NoticeTrailerFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeFillerSkipped { episode } => vec![("episode", Value::Text(episode.clone()))],
+            Self::NoticeAudioNowSubbed => Vec::new(),
+            Self::NoticeAudioNowDubbed => Vec::new(),
+            Self::NoticeAlreadyFirstEpisode => Vec::new(),
+            Self::NoticeLastEpisode { episode } => vec![("episode", Value::Text(episode.clone()))],
+            Self::NoticeNoNextEpisode => Vec::new(),
+            Self::NoticeNoPreviousEpisode => Vec::new(),
+            Self::NoticeMatchResetFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeMatchSaveFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeMatchDidNotStick => Vec::new(),
+            Self::NoticeSourceSearchEmpty { query } => vec![("query", Value::Text(query.clone()))],
+            Self::NoticeSourcePinned { source } => vec![("source", Value::Text(source.clone()))],
+            Self::NoticeSourceAutomatic => Vec::new(),
+            Self::NoticeSourceChoiceFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeNoSourceCouldList { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeContinueHideFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeDownloadQueued { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
+            Self::NoticeDownloadAlreadyQueued { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
+            Self::NoticeDownloadStartingNow { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
+            Self::NoticeDownloadCancelled => Vec::new(),
+            Self::NoticeDownloadFileDeleted => Vec::new(),
+            Self::NoticeDownloadRemovedFileGone => Vec::new(),
+            Self::NoticeDownloadRemovedFileKept { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeDownloadRemoved => Vec::new(),
+            Self::NoticeDownloadsCleared { count } => vec![("count", Value::Int(*count))],
+            Self::NoticeDownloadFinished { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
+            Self::NoticeDownloadFinishedNote { title, episode, note } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone())), ("note", Value::Cause(note.clone()))],
+            Self::NoticeDownloadFailed { title, episode, reason } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::NoticeDownloadsNoneQueued => Vec::new(),
+            Self::NoticeDownloadsNoneQueuedStopped { reason } => vec![("reason", Value::Cause(reason.clone()))],
+            Self::NoticeDownloadsNoneNew { existing } => vec![("existing", Value::Cause(existing.clone()))],
+            Self::NoticeDownloadsNoneNewStopped { existing, reason } => vec![("existing", Value::Cause(existing.clone())), ("reason", Value::Cause(reason.clone()))],
+            Self::NoticeEpisodesQueuedExisting { count, existing } => vec![("count", Value::Int(*count)), ("existing", Value::Cause(existing.clone()))],
+            Self::NoticeEpisodesQueuedStopped { count, reason } => vec![("count", Value::Int(*count)), ("reason", Value::Cause(reason.clone()))],
+            Self::NoticeEpisodesQueuedExistingStopped { count, existing, reason } => vec![("count", Value::Int(*count)), ("existing", Value::Cause(existing.clone())), ("reason", Value::Cause(reason.clone()))],
+            Self::NoticeKeepNextFull => Vec::new(),
+            Self::PartyNeedsServer { server, operator } => vec![("server", Value::Text(server.clone())), ("operator", Value::Text(operator.clone()))],
+            Self::NoticeNoParty => Vec::new(),
+            Self::PartyNeedsRoom => Vec::new(),
+            Self::PartyServerLost => Vec::new(),
+            Self::PartyRejoined => Vec::new(),
+            Self::PartyLeft => Vec::new(),
+            Self::StoreJoined { store, member } => vec![("store", Value::Text(store.clone())), ("member", Value::Text(member.clone()))],
+            Self::StoreJoinedUnnamed { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreLeft { store } => vec![("store", Value::Text(store.clone()))],
+            Self::PluginRemoved { plugin } => vec![("plugin", Value::Text(plugin.clone()))],
+            Self::StoreMemberRemoved => Vec::new(),
+            Self::StoreInviteCancelled => Vec::new(),
+            Self::StoreOpenJoinOn => Vec::new(),
+            Self::StoreOpenJoinOff => Vec::new(),
+            Self::StoreOpenJoinOffDevices { devices } => vec![("devices", Value::Int(*devices))],
+            Self::StoreDeviceRemoved => Vec::new(),
+            Self::StoreDevicesRemoved => Vec::new(),
+            Self::PluginPublished { plugin, version } => vec![("plugin", Value::Text(plugin.clone())), ("version", Value::Text(version.clone()))],
+            Self::PluginUnpublished { plugin } => vec![("plugin", Value::Text(plugin.clone()))],
+            Self::StoreAdminOpened => Vec::new(),
+            Self::StoreAdminOpenFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::PluginInstalledUnused { plugin, version } => vec![("plugin", Value::Text(plugin.clone())), ("version", Value::Text(version.clone()))],
+            Self::PluginInstalledNameClash { plugin, id } => vec![("plugin", Value::Text(plugin.clone())), ("id", Value::Text(id.clone()))],
+            Self::PluginInstalled { plugin, version } => vec![("plugin", Value::Text(plugin.clone())), ("version", Value::Text(version.clone()))],
+            Self::PluginInstalledNotLoaded { plugin, reason } => vec![("plugin", Value::Text(plugin.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::PluginUpdatesReady { count, names } => vec![("count", Value::Int(*count)), ("names", Value::Text(names.clone()))],
+            Self::PluginsLoadFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::StoreTokenMissing { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreNotJoined => Vec::new(),
+            Self::StoreKeyDamaged => Vec::new(),
+            Self::StoreDeviceRefused { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreUnreachable { store, reason } => vec![("store", Value::Text(store.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::StoreMoved { store, current, target } => vec![("store", Value::Text(store.clone())), ("current", Value::Text(current.clone())), ("target", Value::Text(target.clone()))],
+            Self::StoreJoinWouldUnname { store, member } => vec![("store", Value::Text(store.clone())), ("member", Value::Text(member.clone()))],
+            Self::StoreNotTheInvited { url, reason } => vec![("url", Value::Text(url.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::StoreTokenNotKept { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::StoreInviteUnusable => Vec::new(),
+            Self::StoreOpenLinkUnusable => Vec::new(),
+            Self::PluginReservedName { plugin } => vec![("plugin", Value::Text(plugin.clone()))],
+            Self::StorePluginWithdrawn { store, plugin } => vec![("store", Value::Text(store.clone())), ("plugin", Value::Text(plugin.clone()))],
+            Self::StorePluginChanged { store, plugin } => vec![("store", Value::Text(store.clone())), ("plugin", Value::Text(plugin.clone()))],
+            Self::PluginFromOtherStore { plugin, store } => vec![("plugin", Value::Text(plugin.clone())), ("store", Value::Text(store.clone()))],
+            Self::PluginDuplicateFile { path, plugin } => vec![("path", Value::Text(path.clone())), ("plugin", Value::Text(plugin.clone()))],
+            Self::PluginInstallFailed { plugin, reason } => vec![("plugin", Value::Text(plugin.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::PluginPublishFailed { plugin, reason } => vec![("plugin", Value::Text(plugin.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::PluginMissingLocally { plugin } => vec![("plugin", Value::Text(plugin.clone()))],
+            Self::StoreInviteNeedsLink { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreLinkMalformed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::StoreLinkWrongKey => Vec::new(),
+            Self::StoreAdminMissing { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreAdminLinkForeign { store } => vec![("store", Value::Text(store.clone()))],
+            Self::StoreOpenJoinUnsupported { store } => vec![("store", Value::Text(store.clone()))],
+            Self::SourceSwitchedOff { name } => vec![("name", Value::Text(name.clone()))],
+            Self::SourceSwitchedOn { name } => vec![("name", Value::Text(name.clone()))],
+            Self::PluginNotLoaded { id } => vec![("id", Value::Text(id.clone()))],
+            Self::ReleasePinned { name } => vec![("name", Value::Text(name.clone()))],
+            Self::NoticeChoiceNotSaved { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::TorrentCheckFailedRunning => Vec::new(),
+            Self::TorrentVpnWaiting { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::TorrentVpnUnverified => Vec::new(),
+            Self::TorrentNoIndex => Vec::new(),
+            Self::TorrentInterfaceClosed => Vec::new(),
+            Self::TorrentSessionFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::TorrentNoKillSwitch => Vec::new(),
+            Self::TorrentNotChecked { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::SourcesReloadedTorrentsPending => Vec::new(),
+            Self::SourcesReloadedTorrentsOff => Vec::new(),
+            Self::JobAnilistLimit => Vec::new(),
+            Self::NoticeAnilistLimit { wait } => vec![("wait", Value::Span(*wait))],
+            Self::NoticeAnilistUnreachable => Vec::new(),
+            Self::NoticeMetadataCached => Vec::new(),
+            Self::NoticeAnilistBack => Vec::new(),
+            Self::NoticePartyNotBuilt => Vec::new(),
             Self::NoticeSignedIn { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
             Self::NoticeSignedInKeychain { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
             Self::NoticeSignedInFile { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
@@ -215,6 +735,36 @@ impl Msg {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Cause {
+    /// Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast.
+    NoSources,
+    /// Part of an air time: the broadcast is later today. The time is the viewer's local time.
+    AirsToday { time: String },
+    /// Part of an air time: the broadcast is tomorrow. The time is the viewer's local time.
+    AirsTomorrow { time: String },
+    /// Part of an air time: the broadcast is within the next week.
+    AirsInDays { days: i64, time: String },
+    /// Part of an air time: the broadcast is more than a week away. The date is year-month-day.
+    AirsOnDate { date: String, time: String },
+    /// Reason: the source answered but gave nothing to play.
+    NoPlayableStream,
+    /// Reason: no source could be matched to the title. The detail is what each source said.
+    TitleNoMatch { detail: String },
+    /// Reason: the source the person picked is no longer installed or enabled.
+    SourceGone { source: String },
+    /// Reason: the release the person picked would not start. The detail comes from the source.
+    ReleaseFailed { detail: String },
+    /// Reason: every source matched the title but none has the episode. The detail is what each said.
+    NoSourceHasEpisode { episode: String, detail: String },
+    /// Reason: the source streams episodes but only torrents can be downloaded.
+    SourceCannotDownload,
+    /// Reason: the title was never listed by a source, so it can't be downloaded.
+    NoSourceCouldListShow,
+    /// Part of a finished download's toast: subtitle files were merged into the video.
+    SubtitlesMerged { tracks: i64 },
+    /// Part of a finished download's toast: merging failed, so the subtitles stay as files beside it.
+    SubtitlesLeftApart { reason: String },
+    /// Part of a download toast: how many episodes of the range were in the queue already.
+    AlreadyInDownloads { count: i64 },
     /// The reason a setting was refused until the person confirms having no protection.
     ConfirmNoProtection,
     /// The reason a setting was refused until the person confirms the "warn only" choice.
@@ -233,6 +783,21 @@ impl Cause {
     /// The catalogue id of the message.
     pub fn id(&self) -> &'static str {
         match self {
+            Self::NoSources => "cause-no-sources",
+            Self::AirsToday { .. } => "cause-airs-today",
+            Self::AirsTomorrow { .. } => "cause-airs-tomorrow",
+            Self::AirsInDays { .. } => "cause-airs-in-days",
+            Self::AirsOnDate { .. } => "cause-airs-on-date",
+            Self::NoPlayableStream => "cause-no-playable-stream",
+            Self::TitleNoMatch { .. } => "cause-title-no-match",
+            Self::SourceGone { .. } => "cause-source-gone",
+            Self::ReleaseFailed { .. } => "cause-release-failed",
+            Self::NoSourceHasEpisode { .. } => "cause-no-source-has-episode",
+            Self::SourceCannotDownload => "cause-source-cannot-download",
+            Self::NoSourceCouldListShow => "cause-no-source-could-list-show",
+            Self::SubtitlesMerged { .. } => "cause-subtitles-merged",
+            Self::SubtitlesLeftApart { .. } => "cause-subtitles-left-apart",
+            Self::AlreadyInDownloads { .. } => "cause-already-in-downloads",
             Self::ConfirmNoProtection => "cause-confirm-no-protection",
             Self::ConfirmWarnOnly => "cause-confirm-warn-only",
             Self::ProxyNeedsAddress => "cause-proxy-needs-address",
@@ -245,6 +810,21 @@ impl Cause {
     /// The message's arguments, by catalogue name.
     pub fn values(&self) -> Vec<(&'static str, Value)> {
         match self {
+            Self::NoSources => Vec::new(),
+            Self::AirsToday { time } => vec![("time", Value::Text(time.clone()))],
+            Self::AirsTomorrow { time } => vec![("time", Value::Text(time.clone()))],
+            Self::AirsInDays { days, time } => vec![("days", Value::Int(*days)), ("time", Value::Text(time.clone()))],
+            Self::AirsOnDate { date, time } => vec![("date", Value::Text(date.clone())), ("time", Value::Text(time.clone()))],
+            Self::NoPlayableStream => Vec::new(),
+            Self::TitleNoMatch { detail } => vec![("detail", Value::Text(detail.clone()))],
+            Self::SourceGone { source } => vec![("source", Value::Text(source.clone()))],
+            Self::ReleaseFailed { detail } => vec![("detail", Value::Text(detail.clone()))],
+            Self::NoSourceHasEpisode { episode, detail } => vec![("episode", Value::Text(episode.clone())), ("detail", Value::Text(detail.clone()))],
+            Self::SourceCannotDownload => Vec::new(),
+            Self::NoSourceCouldListShow => Vec::new(),
+            Self::SubtitlesMerged { tracks } => vec![("tracks", Value::Int(*tracks))],
+            Self::SubtitlesLeftApart { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::AlreadyInDownloads { count } => vec![("count", Value::Int(*count))],
             Self::ConfirmNoProtection => Vec::new(),
             Self::ConfirmWarnOnly => Vec::new(),
             Self::ProxyNeedsAddress => Vec::new(),

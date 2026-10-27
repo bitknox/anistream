@@ -32,11 +32,6 @@ impl JobGuard {
     pub fn note(&self, note: Msg, wait: Option<Duration>) {
         let _ = self.tx.send(Event::JobNote { job: self.id, note, wait });
     }
-
-    /// A note whose words are still written in the engine. Being converted to catalogue messages.
-    pub fn raw_note(&self, note: impl Into<String>, wait: Option<Duration>) {
-        self.note(Msg::verbatim(note.into()), wait);
-    }
 }
 
 impl Drop for JobGuard {

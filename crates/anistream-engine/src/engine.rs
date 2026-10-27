@@ -1696,7 +1696,7 @@ mod tests {
         engine.send(Command::PlayLocal { id, episode: "1".into(), title, path });
         let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
         assert!(
-            matches!(&seen[..], [Event::Toast(n)] if n.text == crate::playback::NO_PLAYER),
+            matches!(&seen[..], [Event::Toast(n)] if n.text == Msg::NoticeNoPlayer.english()),
             "{seen:?}"
         );
 
@@ -1710,7 +1710,7 @@ mod tests {
                 provider_id: "yamabiko".into(),
                 source_id: "a".into(),
             },
-            crate::playback::NO_PLAYER.to_owned(),
+            Msg::NoticeNoPlayer.english(),
         )];
         if cfg!(not(feature = "party")) {
             plays

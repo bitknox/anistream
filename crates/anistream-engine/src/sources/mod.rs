@@ -345,6 +345,8 @@ pub fn guard_for(
 ///
 /// Ordering is the whole point: the guard is verified *before* a session exists, so there is
 /// no window in which torrent traffic could leave unprotected.
+// The error is a whole message with its values, which is large; it is built once, on failure.
+#[allow(clippy::result_large_err)]
 async fn start_torrent_provider(
     config: &Config,
     http: &HttpClient,

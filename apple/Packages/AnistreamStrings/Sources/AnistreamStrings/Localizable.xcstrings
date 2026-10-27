@@ -61,6 +61,110 @@
         }
       }
     },
+    "cause-airs-in-days" : {
+      "comment" : "Part of an air time: the broadcast is within the next week. Argument 1: days (Int). Argument 2: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@days@"
+          },
+          "substitutions" : {
+            "days" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "in one day at %2$@"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "in %1$lld days at %2$@"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "cause-airs-on-date" : {
+      "comment" : "Part of an air time: the broadcast is more than a week away. The date is year-month-day. Argument 1: date (Text). Argument 2: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "on %1$@ at %2$@"
+          }
+        }
+      }
+    },
+    "cause-airs-today" : {
+      "comment" : "Part of an air time: the broadcast is later today. The time is the viewer's local time. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "today at %1$@"
+          }
+        }
+      }
+    },
+    "cause-airs-tomorrow" : {
+      "comment" : "Part of an air time: the broadcast is tomorrow. The time is the viewer's local time. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tomorrow at %1$@"
+          }
+        }
+      }
+    },
+    "cause-already-in-downloads" : {
+      "comment" : "Part of a download toast: how many episodes of the range were in the queue already. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One episode is already in downloads."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld episodes are already in downloads."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "cause-confirm-no-protection" : {
       "comment" : "The reason a setting was refused until the person confirms having no protection.",
       "extractionState" : "manual",
@@ -81,6 +185,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm that you want to be warned only first."
+          }
+        }
+      }
+    },
+    "cause-no-playable-stream" : {
+      "comment" : "Reason: the source answered but gave nothing to play.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The source answered, but with nothing to play. Try another."
+          }
+        }
+      }
+    },
+    "cause-no-source-could-list-show" : {
+      "comment" : "Reason: the title was never listed by a source, so it can't be downloaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No source could list this show, so it can't be downloaded."
+          }
+        }
+      }
+    },
+    "cause-no-source-has-episode" : {
+      "comment" : "Reason: every source matched the title but none has the episode. The detail is what each said. Argument 1: episode (Text). Argument 2: detail (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No source has episode %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "cause-no-sources" : {
+      "comment" : "Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No sources are set up. Add one on the Sources screen."
           }
         }
       }
@@ -109,6 +261,18 @@
         }
       }
     },
+    "cause-release-failed" : {
+      "comment" : "Reason: the release the person picked would not start. The detail comes from the source. Argument 1: detail (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't start that release: %1$@"
+          }
+        }
+      }
+    },
     "cause-server-unreachable" : {
       "comment" : "The reason a request failed: it never reached the server.",
       "extractionState" : "manual",
@@ -117,6 +281,88 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The server couldn't be reached."
+          }
+        }
+      }
+    },
+    "cause-source-cannot-download" : {
+      "comment" : "Reason: the source streams episodes but only torrents can be downloaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This source streams episodes but can't download them."
+          }
+        }
+      }
+    },
+    "cause-source-gone" : {
+      "comment" : "Reason: the source the person picked is no longer installed or enabled. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The source %1$@ is no longer available. Choose another."
+          }
+        }
+      }
+    },
+    "cause-subtitles-left-apart" : {
+      "comment" : "Part of a finished download's toast: merging failed, so the subtitles stay as files beside it. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The subtitles stay as separate files. %1$@"
+          }
+        }
+      }
+    },
+    "cause-subtitles-merged" : {
+      "comment" : "Part of a finished download's toast: subtitle files were merged into the video. Argument 1: tracks (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@tracks@"
+          },
+          "substitutions" : {
+            "tracks" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One subtitle track was merged in."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld subtitle tracks were merged in."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "cause-title-no-match" : {
+      "comment" : "Reason: no source could be matched to the title. The detail is what each source said. Argument 1: detail (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't match this title: %1$@"
           }
         }
       }
@@ -275,6 +521,18 @@
         }
       }
     },
+    "job-anilist-limit" : {
+      "comment" : "Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting on the AniList rate limit"
+          }
+        }
+      }
+    },
     "language-draft-label" : {
       "comment" : "Label beside a language whose text a person has not reviewed yet.",
       "extractionState" : "manual",
@@ -347,6 +605,30 @@
         }
       }
     },
+    "notice-already-first-episode" : {
+      "comment" : "Toast when the previous-episode control is used on the first episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already at the first episode."
+          }
+        }
+      }
+    },
+    "notice-anilist-back" : {
+      "comment" : "Toast when AniList answers again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AniList is back."
+          }
+        }
+      }
+    },
     "notice-anilist-client-missing" : {
       "comment" : "Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated. Argument 1: client (Text). Argument 2: secret (Text).",
       "extractionState" : "manual",
@@ -371,6 +653,18 @@
         }
       }
     },
+    "notice-anilist-limit" : {
+      "comment" : "Toast when there is no job to carry the wait for AniList's rate limit. Argument 1: wait (Seconds).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting %1$@ on the AniList rate limit."
+          }
+        }
+      }
+    },
     "notice-anilist-paste-flow" : {
       "comment" : "Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.",
       "extractionState" : "manual",
@@ -379,6 +673,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pasting a code isn't possible here. Quit and run anistream --login instead."
+          }
+        }
+      }
+    },
+    "notice-anilist-unreachable" : {
+      "comment" : "Toast when the AniList fallback takes over because AniList cannot be reached.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AniList is unreachable. Using the fallback for fresh data for now."
+          }
+        }
+      }
+    },
+    "notice-audio-now-dubbed" : {
+      "comment" : "Toast after switching the audio while playing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio is now dubbed."
+          }
+        }
+      }
+    },
+    "notice-audio-now-subbed" : {
+      "comment" : "Toast after switching the audio while playing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio is now subbed."
           }
         }
       }
@@ -395,6 +725,18 @@
         }
       }
     },
+    "notice-choice-not-saved" : {
+      "comment" : "Toast when the chosen source or release for a title could not be saved. The reason comes from the database. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save that choice. %1$@"
+          }
+        }
+      }
+    },
     "notice-client-id-missing" : {
       "comment" : "Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated. Argument 1: setting (Text).",
       "extractionState" : "manual",
@@ -403,6 +745,244 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Set %1$@ in the config file first."
+          }
+        }
+      }
+    },
+    "notice-continue-hide-failed" : {
+      "comment" : "Toast when a title cannot be taken off the Continue row. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't remove that from Continue. %1$@"
+          }
+        }
+      }
+    },
+    "notice-could-not-open" : {
+      "comment" : "Toast when a link could not be opened. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open that. %1$@"
+          }
+        }
+      }
+    },
+    "notice-download-already-queued" : {
+      "comment" : "Toast when an episode asked for is in downloads already. Argument 1: title (Text). Argument 2: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %2$@ of %1$@ is already in downloads."
+          }
+        }
+      }
+    },
+    "notice-download-cancelled" : {
+      "comment" : "Toast after a download was cancelled.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download cancelled."
+          }
+        }
+      }
+    },
+    "notice-download-failed" : {
+      "comment" : "Toast when a download could not start. The reason comes from the torrent client. Argument 1: title (Text). Argument 2: episode (Text). Argument 3: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't download episode %2$@ of %1$@. %3$@"
+          }
+        }
+      }
+    },
+    "notice-download-file-deleted" : {
+      "comment" : "Toast after a download and its file were deleted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download and file deleted."
+          }
+        }
+      }
+    },
+    "notice-download-finished" : {
+      "comment" : "Toast when an episode finished downloading. Argument 1: title (Text). Argument 2: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded episode %2$@ of %1$@."
+          }
+        }
+      }
+    },
+    "notice-download-finished-note" : {
+      "comment" : "Toast when an episode finished downloading and the note says what happened to its subtitles. Argument 1: title (Text). Argument 2: episode (Text). Argument 3: note (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded episode %2$@ of %1$@. %3$@"
+          }
+        }
+      }
+    },
+    "notice-download-queued" : {
+      "comment" : "Toast after an episode was added to the download queue. Argument 1: title (Text). Argument 2: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queued episode %2$@ of %1$@."
+          }
+        }
+      }
+    },
+    "notice-download-removed" : {
+      "comment" : "Toast after a download with no file was removed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download removed."
+          }
+        }
+      }
+    },
+    "notice-download-removed-file-gone" : {
+      "comment" : "Toast after a download was removed whose file was already gone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download removed. Its file was already gone."
+          }
+        }
+      }
+    },
+    "notice-download-removed-file-kept" : {
+      "comment" : "Toast after a download was removed but its file could not be deleted. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed the download, but couldn't delete its file. %1$@"
+          }
+        }
+      }
+    },
+    "notice-download-starting-now" : {
+      "comment" : "Toast when a waiting or paused download was moved to the front and started. Argument 1: title (Text). Argument 2: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting episode %2$@ of %1$@ now."
+          }
+        }
+      }
+    },
+    "notice-downloads-cleared" : {
+      "comment" : "Toast after finished downloads were cleared from the list. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Cleared one finished download."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Cleared %1$lld finished downloads."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "notice-downloads-none-new" : {
+      "comment" : "Toast after a range was asked for and every episode was in the queue already. Argument 1: existing (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing new queued. %1$@"
+          }
+        }
+      }
+    },
+    "notice-downloads-none-new-stopped" : {
+      "comment" : "Toast as above, with the reason the range stopped. Argument 1: existing (Cause). Argument 2: reason (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing new queued. %1$@ %2$@"
+          }
+        }
+      }
+    },
+    "notice-downloads-none-queued" : {
+      "comment" : "Toast after a range was asked for and nothing was queued.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing queued."
+          }
+        }
+      }
+    },
+    "notice-downloads-none-queued-stopped" : {
+      "comment" : "Toast after a range was asked for and nothing was queued, and the reason it stopped. Argument 1: reason (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing queued. %1$@"
           }
         }
       }
@@ -487,6 +1067,132 @@
         }
       }
     },
+    "notice-episodes-queued-existing" : {
+      "comment" : "Toast after a range was asked for, some episodes were queued and some were there already. Argument 1: count (Int). Argument 2: existing (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Queued one episode. %2$@"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Queued %1$lld episodes. %2$@"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "notice-episodes-queued-existing-stopped" : {
+      "comment" : "Toast as above, with some episodes in the queue already and the reason the range stopped. Argument 1: count (Int). Argument 2: existing (Cause). Argument 3: reason (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Queued one episode, then it stopped. %2$@ %3$@"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Queued %1$lld episodes, then it stopped. %2$@ %3$@"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "notice-episodes-queued-stopped" : {
+      "comment" : "Toast as above, with the reason the range stopped. Argument 1: count (Int). Argument 2: reason (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Queued one episode, then it stopped. %2$@"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Queued %1$lld episodes, then it stopped. %2$@"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "notice-filler-skipped" : {
+      "comment" : "Toast when the next episode is not the one after this because filler was skipped. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skipped filler. Up next is episode %1$@."
+          }
+        }
+      }
+    },
+    "notice-keep-next-full" : {
+      "comment" : "Toast when keep next found no room for another episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough free space to keep the next episodes downloaded. Free up some space to download more."
+          }
+        }
+      }
+    },
     "notice-kitsu-signs-in-on-accounts" : {
       "comment" : "Toast on a screen that opens Kitsu's sign-in as a prompt. It is shown with a button to open it.",
       "extractionState" : "manual",
@@ -495,6 +1201,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kitsu signs in from the Accounts screen."
+          }
+        }
+      }
+    },
+    "notice-last-episode" : {
+      "comment" : "Toast when the next-episode control is used on the last known episode. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There's no next episode. Episode %1$@ is the last."
           }
         }
       }
@@ -559,6 +1277,162 @@
         }
       }
     },
+    "notice-match-did-not-stick" : {
+      "comment" : "Toast when a chosen match still left the title undecided.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That match didn't stick. The source may have changed. Try choosing it again."
+          }
+        }
+      }
+    },
+    "notice-match-reset-failed" : {
+      "comment" : "Toast when the title's episode match could not be cleared. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't reset the match. %1$@"
+          }
+        }
+      }
+    },
+    "notice-match-save-failed" : {
+      "comment" : "Toast when the chosen match could not be saved. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save that match. %1$@"
+          }
+        }
+      }
+    },
+    "notice-metadata-cached" : {
+      "comment" : "Toast when no metadata service answered and the last cached data is shown.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No metadata service answered. Showing what was last cached."
+          }
+        }
+      }
+    },
+    "notice-mpv-missing" : {
+      "comment" : "Toast at launch when the mpv program is missing. The binary is the name the settings give it. Argument 1: binary (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ wasn't found. Install mpv to play episodes."
+          }
+        }
+      }
+    },
+    "notice-mpv-old" : {
+      "comment" : "Toast at launch when mpv is too old for anistream's own player. Argument 1: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mpv %1$@ can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails."
+          }
+        }
+      }
+    },
+    "notice-no-next-episode" : {
+      "comment" : "Toast when the next-episode control is used and the next episode is not known.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There's no next episode."
+          }
+        }
+      }
+    },
+    "notice-no-party" : {
+      "comment" : "Toast when a watch party is asked for in a build without watch parties.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch parties aren't available in this version of anistream."
+          }
+        }
+      }
+    },
+    "notice-no-player" : {
+      "comment" : "Toast when a play is asked for in a build with no player.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This version of anistream can't play video."
+          }
+        }
+      }
+    },
+    "notice-no-previous-episode" : {
+      "comment" : "Toast when the previous-episode control finds no previous episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There's no previous episode."
+          }
+        }
+      }
+    },
+    "notice-no-source-could-list" : {
+      "comment" : "Toast when no source could list a show's episodes. The reason is what the sources said. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No source could list this show: %1$@"
+          }
+        }
+      }
+    },
+    "notice-not-aired" : {
+      "comment" : "A play's explanation: the episode's broadcast is still ahead. The \"when\" says today, tomorrow or a date. Argument 1: episode (Int). Argument 2: when (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld airs %2$@."
+          }
+        }
+      }
+    },
+    "notice-not-aired-yet" : {
+      "comment" : "A play's explanation: the episode is after the next one to air. The \"when\" says when that one airs. Argument 1: episode (Int). Argument 2: next (Int). Argument 3: when (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld hasn't aired yet. Episode %2$lld airs %3$@."
+          }
+        }
+      }
+    },
     "notice-not-saved" : {
       "comment" : "Toast when a setting could not be stored. The reason comes from the system. Argument 1: reason (Text).",
       "extractionState" : "manual",
@@ -583,6 +1457,30 @@
         }
       }
     },
+    "notice-opened-in-browser" : {
+      "comment" : "Toast after a link was handed to the browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opened in your browser."
+          }
+        }
+      }
+    },
+    "notice-party-not-built" : {
+      "comment" : "Toast when a command needs watch parties but this app was built without them.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch parties aren't built into this app."
+          }
+        }
+      }
+    },
     "notice-playback-failed" : {
       "comment" : "Toast when playback stops with an error.",
       "extractionState" : "manual",
@@ -591,6 +1489,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Playback failed. Try another source."
+          }
+        }
+      }
+    },
+    "notice-player-could-not-play" : {
+      "comment" : "Toast when mpv gave up on a file. The reason is mpv's own line. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mpv couldn't play this. %1$@"
+          }
+        }
+      }
+    },
+    "notice-player-exited-silently" : {
+      "comment" : "Toast when mpv closed without playing and without saying why.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mpv exited without playing anything and gave no reason. Try another source."
+          }
+        }
+      }
+    },
+    "notice-player-failed-to-start" : {
+      "comment" : "Toast when the player cannot be started. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't start mpv. Check that it runs on its own. (%1$@)"
+          }
+        }
+      }
+    },
+    "notice-player-not-playing" : {
+      "comment" : "Toast when no picture has appeared a while after the player opened. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mpv hasn't started playing after %1$lld s. The source may have no data. Check that mpv plays a file on its own."
           }
         }
       }
@@ -627,6 +1573,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't keep the proxy's password. Enter it again to try saving it. %1$@"
+          }
+        }
+      }
+    },
+    "notice-reason" : {
+      "comment" : "A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. Argument 1: reason (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@"
           }
         }
       }
@@ -869,6 +1827,66 @@
         }
       }
     },
+    "notice-source-automatic" : {
+      "comment" : "Toast after the person went back to automatic source selection for one title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to automatic source selection."
+          }
+        }
+      }
+    },
+    "notice-source-choice-failed" : {
+      "comment" : "Toast when the source choice for a title could not be saved. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save that choice. %1$@"
+          }
+        }
+      }
+    },
+    "notice-source-pinned" : {
+      "comment" : "Toast after the person picked a source for one title. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ will be used for this title."
+          }
+        }
+      }
+    },
+    "notice-source-search-empty" : {
+      "comment" : "Toast when a search of the sources for a title found nothing. Argument 1: query (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing found for “%1$@”. Try a different search."
+          }
+        }
+      }
+    },
+    "notice-stream-no-video" : {
+      "comment" : "Toast when a stream never showed a frame and the next one is tried. Argument 1: next (Int). Argument 2: total (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No video from that stream. Trying %1$lld of %2$lld."
+          }
+        }
+      }
+    },
     "notice-title-load-failed" : {
       "comment" : "Toast when a title's details did not load.",
       "extractionState" : "manual",
@@ -917,6 +1935,42 @@
         }
       }
     },
+    "notice-trailer-failed" : {
+      "comment" : "Toast when a trailer could not be opened. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open the trailer. %1$@"
+          }
+        }
+      }
+    },
+    "notice-trailer-opened" : {
+      "comment" : "Toast when a trailer opens in the browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trailer opened in your browser."
+          }
+        }
+      }
+    },
+    "notice-trailer-playing" : {
+      "comment" : "Toast when a trailer plays in mpv.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trailer playing in mpv."
+          }
+        }
+      }
+    },
     "notice-update-available" : {
       "comment" : "Toast when a new release of anistream is out, on the terminal app. The command is not translated. Argument 1: tag (Text).",
       "extractionState" : "manual",
@@ -925,6 +1979,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ is out. Run anistream --update to install it."
+          }
+        }
+      }
+    },
+    "party-left" : {
+      "comment" : "Message when the person left a watch party.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left the watch party."
+          }
+        }
+      }
+    },
+    "party-needs-room" : {
+      "comment" : "Message when a watch party was asked for with no room named.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A watch party needs a room to meet in. Choose one first."
+          }
+        }
+      }
+    },
+    "party-needs-server" : {
+      "comment" : "Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Argument 1: server (Text). Argument 2: operator (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a server for the watch party first, as syncplay.server. %1$@ is run by %2$@."
+          }
+        }
+      }
+    },
+    "party-rejoined" : {
+      "comment" : "Message in a watch party when the connection came back.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back in the watch party."
+          }
+        }
+      }
+    },
+    "party-server-lost" : {
+      "comment" : "Message in a watch party when its server connection dropped and is retried.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lost the watch party server. Trying again."
           }
         }
       }
@@ -941,6 +2055,162 @@
         }
       }
     },
+    "plugin-duplicate-file" : {
+      "comment" : "Error: a plugin file added by hand already declares the same name. Argument 1: path (Text). Argument 2: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ already declares %2$@. Remove that file first, or two copies would run."
+          }
+        }
+      }
+    },
+    "plugin-from-other-store" : {
+      "comment" : "Error: a plugin installed from one store is offered by another. Argument 1: plugin (Text). Argument 2: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is installed from %2$@, which keeps it updated."
+          }
+        }
+      }
+    },
+    "plugin-install-failed" : {
+      "comment" : "Error: a plugin could not be downloaded or installed. The reason comes from the store or the system. Argument 1: plugin (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't install %1$@. %2$@"
+          }
+        }
+      }
+    },
+    "plugin-installed" : {
+      "comment" : "Toast after a plugin is installed and ready to use. Argument 1: plugin (Text). Argument 2: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed %1$@ %2$@."
+          }
+        }
+      }
+    },
+    "plugin-installed-name-clash" : {
+      "comment" : "Toast after a plugin is installed under the name of a built-in source, so it was not loaded. Argument 1: plugin (Text). Argument 2: id (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed %1$@, but %2$@ is the name of a built-in source, so it wasn't loaded."
+          }
+        }
+      }
+    },
+    "plugin-installed-not-loaded" : {
+      "comment" : "Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host. Argument 1: plugin (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed %1$@, but it didn't load. %2$@"
+          }
+        }
+      }
+    },
+    "plugin-installed-unused" : {
+      "comment" : "Toast after a plugin is installed while plugins are switched off in the source order. Argument 1: plugin (Text). Argument 2: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed %1$@ %2$@, but plugins are switched off in the source order, so it isn't used."
+          }
+        }
+      }
+    },
+    "plugin-missing-locally" : {
+      "comment" : "Error: a plugin to publish is no longer in the plugin folder. Argument 1: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is no longer in the plugin folder."
+          }
+        }
+      }
+    },
+    "plugin-not-loaded" : {
+      "comment" : "Error: a command named a plugin that is not loaded. Argument 1: id (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is not a plugin that is loaded."
+          }
+        }
+      }
+    },
+    "plugin-publish-failed" : {
+      "comment" : "Error: a plugin could not be published. The reason comes from the store or the system. Argument 1: plugin (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't publish %1$@. %2$@"
+          }
+        }
+      }
+    },
+    "plugin-published" : {
+      "comment" : "Toast after a plugin is published to a store. Argument 1: plugin (Text). Argument 2: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Published %1$@ %2$@."
+          }
+        }
+      }
+    },
+    "plugin-removed" : {
+      "comment" : "Toast after a plugin is deleted from this device. Argument 1: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed %1$@."
+          }
+        }
+      }
+    },
+    "plugin-reserved-name" : {
+      "comment" : "Error: a plugin takes the name of a built-in source. Argument 1: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is the name of a built-in source, so it can't be a plugin."
+          }
+        }
+      }
+    },
     "plugin-risk-warning" : {
       "comment" : "Warning at install and in onboarding, in the same words in both.",
       "extractionState" : "manual",
@@ -949,6 +2219,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plugins are written by other people and run on your device. Install only from people you trust."
+          }
+        }
+      }
+    },
+    "plugin-unpublished" : {
+      "comment" : "Toast after a plugin stops being offered in a store. Argument 1: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is no longer offered."
+          }
+        }
+      }
+    },
+    "plugin-updates-ready" : {
+      "comment" : "Toast at launch when joined plugin stores offer newer versions of installed plugins. Argument 1: count (Int). Argument 2: names (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Plugin update ready: %2$@."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Plugin updates ready: %2$@."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "plugins-load-failed" : {
+      "comment" : "Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load plugins. %1$@"
           }
         }
       }
@@ -1017,6 +2345,18 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "release-pinned" : {
+      "comment" : "Toast after a release is chosen for a title. The name is the release's title. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ will be used for this title."
           }
         }
       }
@@ -1271,6 +2611,30 @@
         }
       }
     },
+    "source-switched-off" : {
+      "comment" : "Toast after a source (plugin) is switched off. It is skipped when looking for episodes. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is off. It is skipped when looking for episodes."
+          }
+        }
+      }
+    },
+    "source-switched-on" : {
+      "comment" : "Toast after a source (plugin) is switched on. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is on."
+          }
+        }
+      }
+    },
     "sources-empty" : {
       "comment" : "Shown on the sources screen when none is installed.",
       "extractionState" : "manual",
@@ -1279,6 +2643,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No sources yet. Join a plugin store to add some."
+          }
+        }
+      }
+    },
+    "sources-reloaded-torrents-off" : {
+      "comment" : "Note on the sources screen after the source chain is rebuilt with torrents off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents are off. The session was stopped."
+          }
+        }
+      }
+    },
+    "sources-reloaded-torrents-pending" : {
+      "comment" : "Note on the sources screen after the source chain is rebuilt with torrents on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sources reloaded. Torrents start once the VPN guard passes."
           }
         }
       }
@@ -1295,6 +2683,66 @@
         }
       }
     },
+    "status-loading-sources" : {
+      "comment" : "Job note while a play waits for the sources to arrive.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading sources…"
+          }
+        }
+      }
+    },
+    "status-looking-up-title" : {
+      "comment" : "Job note while a play looks the title up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking up the title…"
+          }
+        }
+      }
+    },
+    "status-playing" : {
+      "comment" : "Status line while an episode plays. Argument 1: title (Text). Argument 2: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playing %1$@, episode %2$@"
+          }
+        }
+      }
+    },
+    "status-searching-sources" : {
+      "comment" : "Job note while the sources are asked for an episode. The episode is its label, often a number. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching sources for episode %1$@…"
+          }
+        }
+      }
+    },
+    "status-starting-player" : {
+      "comment" : "Status while the player opens.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting mpv…"
+          }
+        }
+      }
+    },
     "status-waiting-for-redirect" : {
       "comment" : "Status line while the browser sign-in is open and the app waits for it to come back. Argument 1: tracker (Text).",
       "extractionState" : "manual",
@@ -1307,6 +2755,400 @@
         }
       }
     },
+    "store-admin-link-foreign" : {
+      "comment" : "Error: the store sent an admin link that points somewhere else. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ sent an admin link for another address."
+          }
+        }
+      }
+    },
+    "store-admin-missing" : {
+      "comment" : "Error: the store's server has no admin page. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ has no admin page. Its server may be older."
+          }
+        }
+      }
+    },
+    "store-admin-open-failed" : {
+      "comment" : "Toast when the browser could not be opened for the store's admin page. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open a browser (%1$@). On the plugin store's machine, run \"anistream store admin\" to print a link."
+          }
+        }
+      }
+    },
+    "store-admin-opened" : {
+      "comment" : "Toast after the store's admin page opens in the browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opened the admin page in your browser. The link works once, for ten minutes."
+          }
+        }
+      }
+    },
+    "store-device-refused" : {
+      "comment" : "Error: a store rejected this device's token. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ no longer accepts this device. Join it again with a new invite."
+          }
+        }
+      }
+    },
+    "store-device-removed" : {
+      "comment" : "Toast after one device that joined with the store's link is removed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That device no longer works with this plugin store."
+          }
+        }
+      }
+    },
+    "store-devices-removed" : {
+      "comment" : "Toast after every device that joined with the store's link is removed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed every device that joined with the link."
+          }
+        }
+      }
+    },
+    "store-invite-cancelled" : {
+      "comment" : "Toast after a store owner cancels an invite.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite cancelled. The link no longer works."
+          }
+        }
+      }
+    },
+    "store-invite-needs-link" : {
+      "comment" : "Error: an invite for another device cannot be made from a device that joined with the open link. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device joined %1$@ with its link. Paste the same link on the other device."
+          }
+        }
+      }
+    },
+    "store-invite-unusable" : {
+      "comment" : "Error: an invite that cannot be used any more.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That invite was already used, was cancelled or has expired. Ask for a new one."
+          }
+        }
+      }
+    },
+    "store-join-would-unname" : {
+      "comment" : "Error: an open link would replace the named membership this device already has. Argument 1: store (Text). Argument 2: member (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You joined %1$@ as %2$@. This link would join it again without your name, so nothing was changed."
+          }
+        }
+      }
+    },
+    "store-joined" : {
+      "comment" : "Toast after joining a plugin store with an invite that names this device's owner. Argument 1: store (Text). Argument 2: member (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joined %1$@ as %2$@."
+          }
+        }
+      }
+    },
+    "store-joined-unnamed" : {
+      "comment" : "Toast after joining a plugin store with its open link, which keeps no name. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joined %1$@ without a name."
+          }
+        }
+      }
+    },
+    "store-key-damaged" : {
+      "comment" : "Error: a store's signing key is unreadable. Shown as the reason a store is offline.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin store's key is damaged."
+          }
+        }
+      }
+    },
+    "store-left" : {
+      "comment" : "Toast after leaving a plugin store. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left %1$@. Its plugins stay installed."
+          }
+        }
+      }
+    },
+    "store-link-malformed" : {
+      "comment" : "Error: the store sent an invite link that does not parse. The reason comes from the link parser. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin store made a bad link. %1$@"
+          }
+        }
+      }
+    },
+    "store-link-wrong-key" : {
+      "comment" : "Error: the store sent a link carrying another store's key.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin store made a link with a different key. Check the address it was started with."
+          }
+        }
+      }
+    },
+    "store-member-removed" : {
+      "comment" : "Toast after a store owner removes a member.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed. Their devices stopped working with this plugin store."
+          }
+        }
+      }
+    },
+    "store-moved" : {
+      "comment" : "Error: an invite link names a store this device already joined, but at another address. Argument 1: store (Text). Argument 2: current (Text). Argument 3: target (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is joined at %2$@, but this link points to %3$@. If the plugin store has moved, leave it first and join again."
+          }
+        }
+      }
+    },
+    "store-not-joined" : {
+      "comment" : "Error: the store the record points to is gone from the saved list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That plugin store is no longer joined."
+          }
+        }
+      }
+    },
+    "store-not-the-invited" : {
+      "comment" : "Error: the server at a link's address could not prove it is the store the invite named. Argument 1: url (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is not the plugin store in the invite (%2$@). Nothing was joined."
+          }
+        }
+      }
+    },
+    "store-open-join-off" : {
+      "comment" : "Toast after a store owner turns off joining with the link, when no device joined that way.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only people you invite can join now."
+          }
+        }
+      }
+    },
+    "store-open-join-off-devices" : {
+      "comment" : "Toast after a store owner turns off joining with the link, when some devices joined that way. Argument 1: devices (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@devices@"
+          },
+          "substitutions" : {
+            "devices" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Only people you invite can join now. The device that joined with the link keeps working until you remove it."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Only people you invite can join now. The %1$lld devices that joined with the link keep working until you remove them."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "store-open-join-on" : {
+      "comment" : "Toast after a store owner lets anyone with the store's link join.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anyone with the plugin store's link can join now. Copy it from the members screen."
+          }
+        }
+      }
+    },
+    "store-open-join-unsupported" : {
+      "comment" : "Error: the store's server is too old for joining with a link. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@'s server is older and can't let anyone join with a link. Update it first."
+          }
+        }
+      }
+    },
+    "store-open-link-unusable" : {
+      "comment" : "Error: an open link that no longer lets anyone join.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That link no longer lets anyone join. Ask the plugin store's owner for a new link or an invite."
+          }
+        }
+      }
+    },
+    "store-plugin-changed" : {
+      "comment" : "Error: a store changed a plugin after the person agreed to what was shown. Argument 1: store (Text). Argument 2: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ changed %2$@ since it was shown. Look at it again before installing."
+          }
+        }
+      }
+    },
+    "store-plugin-withdrawn" : {
+      "comment" : "Error: a store stopped offering a plugin between listing it and installing it. Argument 1: store (Text). Argument 2: plugin (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ no longer offers %2$@."
+          }
+        }
+      }
+    },
+    "store-token-missing" : {
+      "comment" : "Error: the store was joined once, but this device has no saved token for it. Argument 1: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is no token for %1$@ on this device. Join it again with a new invite."
+          }
+        }
+      }
+    },
+    "store-token-not-kept" : {
+      "comment" : "Error: the token for a joined store could not be saved on this device. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't keep the token for this plugin store. %1$@"
+          }
+        }
+      }
+    },
+    "store-unreachable" : {
+      "comment" : "Error: a store could not be reached. The reason comes from the network. Argument 1: store (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't reach %1$@. %2$@"
+          }
+        }
+      }
+    },
     "title-based-on" : {
       "comment" : "Label before the name of the work a show is based on.",
       "extractionState" : "manual",
@@ -1315,6 +3157,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Based on"
+          }
+        }
+      }
+    },
+    "torrent-check-failed-running" : {
+      "comment" : "Toast while torrents are running but the connection check failed, and the settings say to warn only.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The connection check failed. Torrents keep running."
+          }
+        }
+      }
+    },
+    "torrent-interface-closed" : {
+      "comment" : "Error: the torrent session did not start because the interface closed first.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The interface closed before torrents started."
+          }
+        }
+      }
+    },
+    "torrent-no-index" : {
+      "comment" : "Error: torrents are on, but no torrent index is set.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents need a torrent index. anistream ships none, so add your own address in the settings."
+          }
+        }
+      }
+    },
+    "torrent-no-kill-switch" : {
+      "comment" : "Toast when torrents are up but no operating-system firewall rule backs the VPN guard.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is no OS-level kill switch behind the VPN guard. Run \"anistream --doctor\" for advice."
+          }
+        }
+      }
+    },
+    "torrent-not-checked" : {
+      "comment" : "Toast when the connection check could not run. The reason comes from the VPN settings. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't check the connection. %1$@"
+          }
+        }
+      }
+    },
+    "torrent-session-failed" : {
+      "comment" : "Error: the torrent session could not start. The reason comes from the torrent engine. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't start the torrent session. %1$@"
+          }
+        }
+      }
+    },
+    "torrent-vpn-unverified" : {
+      "comment" : "Note on the sources screen: the VPN guard has no verdict yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents start once the VPN guard passes. The connection hasn't been verified yet."
+          }
+        }
+      }
+    },
+    "torrent-vpn-waiting" : {
+      "comment" : "Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents start once the VPN guard passes. %1$@"
           }
         }
       }

@@ -5,6 +5,731 @@
 
 use crate::{Arg, text};
 
+/// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
+pub fn notice_reason(reason: &str) -> String {
+    text("notice-reason", &[("reason", Arg::Text(reason))])
+}
+
+/// Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast.
+pub fn cause_no_sources() -> String {
+    text("cause-no-sources", &[])
+}
+
+/// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
+pub fn notice_not_aired(episode: i64, when: &str) -> String {
+    text("notice-not-aired", &[("episode", Arg::Int(episode)), ("when", Arg::Text(when))])
+}
+
+/// A play's explanation: the episode is after the next one to air. The "when" says when that one airs.
+pub fn notice_not_aired_yet(episode: i64, next: i64, when: &str) -> String {
+    text("notice-not-aired-yet", &[("episode", Arg::Int(episode)), ("next", Arg::Int(next)), ("when", Arg::Text(when))])
+}
+
+/// Part of an air time: the broadcast is later today. The time is the viewer's local time.
+pub fn cause_airs_today(time: &str) -> String {
+    text("cause-airs-today", &[("time", Arg::Text(time))])
+}
+
+/// Part of an air time: the broadcast is tomorrow. The time is the viewer's local time.
+pub fn cause_airs_tomorrow(time: &str) -> String {
+    text("cause-airs-tomorrow", &[("time", Arg::Text(time))])
+}
+
+/// Part of an air time: the broadcast is within the next week.
+pub fn cause_airs_in_days(days: i64, time: &str) -> String {
+    text("cause-airs-in-days", &[("days", Arg::Int(days)), ("time", Arg::Text(time))])
+}
+
+/// Part of an air time: the broadcast is more than a week away. The date is year-month-day.
+pub fn cause_airs_on_date(date: &str, time: &str) -> String {
+    text("cause-airs-on-date", &[("date", Arg::Text(date)), ("time", Arg::Text(time))])
+}
+
+/// Reason: the source answered but gave nothing to play.
+pub fn cause_no_playable_stream() -> String {
+    text("cause-no-playable-stream", &[])
+}
+
+/// Reason: no source could be matched to the title. The detail is what each source said.
+pub fn cause_title_no_match(detail: &str) -> String {
+    text("cause-title-no-match", &[("detail", Arg::Text(detail))])
+}
+
+/// Reason: the source the person picked is no longer installed or enabled.
+pub fn cause_source_gone(source: &str) -> String {
+    text("cause-source-gone", &[("source", Arg::Text(source))])
+}
+
+/// Reason: the release the person picked would not start. The detail comes from the source.
+pub fn cause_release_failed(detail: &str) -> String {
+    text("cause-release-failed", &[("detail", Arg::Text(detail))])
+}
+
+/// Reason: every source matched the title but none has the episode. The detail is what each said.
+pub fn cause_no_source_has_episode(episode: &str, detail: &str) -> String {
+    text("cause-no-source-has-episode", &[("episode", Arg::Text(episode)), ("detail", Arg::Text(detail))])
+}
+
+/// Reason: the source streams episodes but only torrents can be downloaded.
+pub fn cause_source_cannot_download() -> String {
+    text("cause-source-cannot-download", &[])
+}
+
+/// Reason: the title was never listed by a source, so it can't be downloaded.
+pub fn cause_no_source_could_list_show() -> String {
+    text("cause-no-source-could-list-show", &[])
+}
+
+/// Part of a finished download's toast: subtitle files were merged into the video.
+pub fn cause_subtitles_merged(tracks: i64) -> String {
+    text("cause-subtitles-merged", &[("tracks", Arg::Int(tracks))])
+}
+
+/// Part of a finished download's toast: merging failed, so the subtitles stay as files beside it.
+pub fn cause_subtitles_left_apart(reason: &str) -> String {
+    text("cause-subtitles-left-apart", &[("reason", Arg::Text(reason))])
+}
+
+/// Part of a download toast: how many episodes of the range were in the queue already.
+pub fn cause_already_in_downloads(count: i64) -> String {
+    text("cause-already-in-downloads", &[("count", Arg::Int(count))])
+}
+
+/// Job note while a play looks the title up.
+pub fn status_looking_up_title() -> String {
+    text("status-looking-up-title", &[])
+}
+
+/// Job note while a play waits for the sources to arrive.
+pub fn status_loading_sources() -> String {
+    text("status-loading-sources", &[])
+}
+
+/// Job note while the sources are asked for an episode. The episode is its label, often a number.
+pub fn status_searching_sources(episode: &str) -> String {
+    text("status-searching-sources", &[("episode", Arg::Text(episode))])
+}
+
+/// Status while the player opens.
+pub fn status_starting_player() -> String {
+    text("status-starting-player", &[])
+}
+
+/// Status line while an episode plays.
+pub fn status_playing(title: &str, episode: &str) -> String {
+    text("status-playing", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Toast when the player cannot be started. The reason comes from the system.
+pub fn notice_player_failed_to_start(reason: &str) -> String {
+    text("notice-player-failed-to-start", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a stream never showed a frame and the next one is tried.
+pub fn notice_stream_no_video(next: i64, total: i64) -> String {
+    text("notice-stream-no-video", &[("next", Arg::Int(next)), ("total", Arg::Int(total))])
+}
+
+/// Toast when mpv gave up on a file. The reason is mpv's own line.
+pub fn notice_player_could_not_play(reason: &str) -> String {
+    text("notice-player-could-not-play", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when mpv closed without playing and without saying why.
+pub fn notice_player_exited_silently() -> String {
+    text("notice-player-exited-silently", &[])
+}
+
+/// Toast when no picture has appeared a while after the player opened.
+pub fn notice_player_not_playing(seconds: i64) -> String {
+    text("notice-player-not-playing", &[("seconds", Arg::Int(seconds))])
+}
+
+/// Toast when a play is asked for in a build with no player.
+pub fn notice_no_player() -> String {
+    text("notice-no-player", &[])
+}
+
+/// Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+pub fn notice_mpv_missing(binary: &str) -> String {
+    text("notice-mpv-missing", &[("binary", Arg::Text(binary))])
+}
+
+/// Toast at launch when mpv is too old for anistream's own player.
+pub fn notice_mpv_old(version: &str) -> String {
+    text("notice-mpv-old", &[("version", Arg::Text(version))])
+}
+
+/// Toast after a link was handed to the browser.
+pub fn notice_opened_in_browser() -> String {
+    text("notice-opened-in-browser", &[])
+}
+
+/// Toast when a link could not be opened. The reason comes from the system.
+pub fn notice_could_not_open(reason: &str) -> String {
+    text("notice-could-not-open", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a trailer plays in mpv.
+pub fn notice_trailer_playing() -> String {
+    text("notice-trailer-playing", &[])
+}
+
+/// Toast when a trailer opens in the browser.
+pub fn notice_trailer_opened() -> String {
+    text("notice-trailer-opened", &[])
+}
+
+/// Toast when a trailer could not be opened. The reason comes from the system.
+pub fn notice_trailer_failed(reason: &str) -> String {
+    text("notice-trailer-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when the next episode is not the one after this because filler was skipped.
+pub fn notice_filler_skipped(episode: &str) -> String {
+    text("notice-filler-skipped", &[("episode", Arg::Text(episode))])
+}
+
+/// Toast after switching the audio while playing.
+pub fn notice_audio_now_subbed() -> String {
+    text("notice-audio-now-subbed", &[])
+}
+
+/// Toast after switching the audio while playing.
+pub fn notice_audio_now_dubbed() -> String {
+    text("notice-audio-now-dubbed", &[])
+}
+
+/// Toast when the previous-episode control is used on the first episode.
+pub fn notice_already_first_episode() -> String {
+    text("notice-already-first-episode", &[])
+}
+
+/// Toast when the next-episode control is used on the last known episode.
+pub fn notice_last_episode(episode: &str) -> String {
+    text("notice-last-episode", &[("episode", Arg::Text(episode))])
+}
+
+/// Toast when the next-episode control is used and the next episode is not known.
+pub fn notice_no_next_episode() -> String {
+    text("notice-no-next-episode", &[])
+}
+
+/// Toast when the previous-episode control finds no previous episode.
+pub fn notice_no_previous_episode() -> String {
+    text("notice-no-previous-episode", &[])
+}
+
+/// Toast when the title's episode match could not be cleared. The reason comes from the system.
+pub fn notice_match_reset_failed(reason: &str) -> String {
+    text("notice-match-reset-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when the chosen match could not be saved. The reason comes from the system.
+pub fn notice_match_save_failed(reason: &str) -> String {
+    text("notice-match-save-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a chosen match still left the title undecided.
+pub fn notice_match_did_not_stick() -> String {
+    text("notice-match-did-not-stick", &[])
+}
+
+/// Toast when a search of the sources for a title found nothing.
+pub fn notice_source_search_empty(query: &str) -> String {
+    text("notice-source-search-empty", &[("query", Arg::Text(query))])
+}
+
+/// Toast after the person picked a source for one title.
+pub fn notice_source_pinned(source: &str) -> String {
+    text("notice-source-pinned", &[("source", Arg::Text(source))])
+}
+
+/// Toast after the person went back to automatic source selection for one title.
+pub fn notice_source_automatic() -> String {
+    text("notice-source-automatic", &[])
+}
+
+/// Toast when the source choice for a title could not be saved. The reason comes from the system.
+pub fn notice_source_choice_failed(reason: &str) -> String {
+    text("notice-source-choice-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when no source could list a show's episodes. The reason is what the sources said.
+pub fn notice_no_source_could_list(reason: &str) -> String {
+    text("notice-no-source-could-list", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a title cannot be taken off the Continue row. The reason comes from the system.
+pub fn notice_continue_hide_failed(reason: &str) -> String {
+    text("notice-continue-hide-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast after an episode was added to the download queue.
+pub fn notice_download_queued(title: &str, episode: &str) -> String {
+    text("notice-download-queued", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Toast when an episode asked for is in downloads already.
+pub fn notice_download_already_queued(title: &str, episode: &str) -> String {
+    text("notice-download-already-queued", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Toast when a waiting or paused download was moved to the front and started.
+pub fn notice_download_starting_now(title: &str, episode: &str) -> String {
+    text("notice-download-starting-now", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Toast after a download was cancelled.
+pub fn notice_download_cancelled() -> String {
+    text("notice-download-cancelled", &[])
+}
+
+/// Toast after a download and its file were deleted.
+pub fn notice_download_file_deleted() -> String {
+    text("notice-download-file-deleted", &[])
+}
+
+/// Toast after a download was removed whose file was already gone.
+pub fn notice_download_removed_file_gone() -> String {
+    text("notice-download-removed-file-gone", &[])
+}
+
+/// Toast after a download was removed but its file could not be deleted. The reason comes from the system.
+pub fn notice_download_removed_file_kept(reason: &str) -> String {
+    text("notice-download-removed-file-kept", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast after a download with no file was removed.
+pub fn notice_download_removed() -> String {
+    text("notice-download-removed", &[])
+}
+
+/// Toast after finished downloads were cleared from the list.
+pub fn notice_downloads_cleared(count: i64) -> String {
+    text("notice-downloads-cleared", &[("count", Arg::Int(count))])
+}
+
+/// Toast when an episode finished downloading.
+pub fn notice_download_finished(title: &str, episode: &str) -> String {
+    text("notice-download-finished", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Toast when an episode finished downloading and the note says what happened to its subtitles.
+pub fn notice_download_finished_note(title: &str, episode: &str, note: &str) -> String {
+    text("notice-download-finished-note", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode)), ("note", Arg::Text(note))])
+}
+
+/// Toast when a download could not start. The reason comes from the torrent client.
+pub fn notice_download_failed(title: &str, episode: &str, reason: &str) -> String {
+    text("notice-download-failed", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast after a range was asked for and nothing was queued.
+pub fn notice_downloads_none_queued() -> String {
+    text("notice-downloads-none-queued", &[])
+}
+
+/// Toast after a range was asked for and nothing was queued, and the reason it stopped.
+pub fn notice_downloads_none_queued_stopped(reason: &str) -> String {
+    text("notice-downloads-none-queued-stopped", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast after a range was asked for and every episode was in the queue already.
+pub fn notice_downloads_none_new(existing: &str) -> String {
+    text("notice-downloads-none-new", &[("existing", Arg::Text(existing))])
+}
+
+/// Toast as above, with the reason the range stopped.
+pub fn notice_downloads_none_new_stopped(existing: &str, reason: &str) -> String {
+    text("notice-downloads-none-new-stopped", &[("existing", Arg::Text(existing)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast after a range was asked for, some episodes were queued and some were there already.
+pub fn notice_episodes_queued_existing(count: i64, existing: &str) -> String {
+    text("notice-episodes-queued-existing", &[("count", Arg::Int(count)), ("existing", Arg::Text(existing))])
+}
+
+/// Toast as above, with the reason the range stopped.
+pub fn notice_episodes_queued_stopped(count: i64, reason: &str) -> String {
+    text("notice-episodes-queued-stopped", &[("count", Arg::Int(count)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast as above, with some episodes in the queue already and the reason the range stopped.
+pub fn notice_episodes_queued_existing_stopped(count: i64, existing: &str, reason: &str) -> String {
+    text("notice-episodes-queued-existing-stopped", &[("count", Arg::Int(count)), ("existing", Arg::Text(existing)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when keep next found no room for another episode.
+pub fn notice_keep_next_full() -> String {
+    text("notice-keep-next-full", &[])
+}
+
+/// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+pub fn party_needs_server(server: &str, operator: &str) -> String {
+    text("party-needs-server", &[("server", Arg::Text(server)), ("operator", Arg::Text(operator))])
+}
+
+/// Toast when a watch party is asked for in a build without watch parties.
+pub fn notice_no_party() -> String {
+    text("notice-no-party", &[])
+}
+
+/// Message when a watch party was asked for with no room named.
+pub fn party_needs_room() -> String {
+    text("party-needs-room", &[])
+}
+
+/// Message in a watch party when its server connection dropped and is retried.
+pub fn party_server_lost() -> String {
+    text("party-server-lost", &[])
+}
+
+/// Message in a watch party when the connection came back.
+pub fn party_rejoined() -> String {
+    text("party-rejoined", &[])
+}
+
+/// Message when the person left a watch party.
+pub fn party_left() -> String {
+    text("party-left", &[])
+}
+
+/// Toast after joining a plugin store with an invite that names this device's owner.
+pub fn store_joined(store: &str, member: &str) -> String {
+    text("store-joined", &[("store", Arg::Text(store)), ("member", Arg::Text(member))])
+}
+
+/// Toast after joining a plugin store with its open link, which keeps no name.
+pub fn store_joined_unnamed(store: &str) -> String {
+    text("store-joined-unnamed", &[("store", Arg::Text(store))])
+}
+
+/// Toast after leaving a plugin store.
+pub fn store_left(store: &str) -> String {
+    text("store-left", &[("store", Arg::Text(store))])
+}
+
+/// Toast after a plugin is deleted from this device.
+pub fn plugin_removed(plugin: &str) -> String {
+    text("plugin-removed", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Toast after a store owner removes a member.
+pub fn store_member_removed() -> String {
+    text("store-member-removed", &[])
+}
+
+/// Toast after a store owner cancels an invite.
+pub fn store_invite_cancelled() -> String {
+    text("store-invite-cancelled", &[])
+}
+
+/// Toast after a store owner lets anyone with the store's link join.
+pub fn store_open_join_on() -> String {
+    text("store-open-join-on", &[])
+}
+
+/// Toast after a store owner turns off joining with the link, when no device joined that way.
+pub fn store_open_join_off() -> String {
+    text("store-open-join-off", &[])
+}
+
+/// Toast after a store owner turns off joining with the link, when some devices joined that way.
+pub fn store_open_join_off_devices(devices: i64) -> String {
+    text("store-open-join-off-devices", &[("devices", Arg::Int(devices))])
+}
+
+/// Toast after one device that joined with the store's link is removed.
+pub fn store_device_removed() -> String {
+    text("store-device-removed", &[])
+}
+
+/// Toast after every device that joined with the store's link is removed.
+pub fn store_devices_removed() -> String {
+    text("store-devices-removed", &[])
+}
+
+/// Toast after a plugin is published to a store.
+pub fn plugin_published(plugin: &str, version: &str) -> String {
+    text("plugin-published", &[("plugin", Arg::Text(plugin)), ("version", Arg::Text(version))])
+}
+
+/// Toast after a plugin stops being offered in a store.
+pub fn plugin_unpublished(plugin: &str) -> String {
+    text("plugin-unpublished", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Toast after the store's admin page opens in the browser.
+pub fn store_admin_opened() -> String {
+    text("store-admin-opened", &[])
+}
+
+/// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+pub fn store_admin_open_failed(reason: &str) -> String {
+    text("store-admin-open-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast after a plugin is installed while plugins are switched off in the source order.
+pub fn plugin_installed_unused(plugin: &str, version: &str) -> String {
+    text("plugin-installed-unused", &[("plugin", Arg::Text(plugin)), ("version", Arg::Text(version))])
+}
+
+/// Toast after a plugin is installed under the name of a built-in source, so it was not loaded.
+pub fn plugin_installed_name_clash(plugin: &str, id: &str) -> String {
+    text("plugin-installed-name-clash", &[("plugin", Arg::Text(plugin)), ("id", Arg::Text(id))])
+}
+
+/// Toast after a plugin is installed and ready to use.
+pub fn plugin_installed(plugin: &str, version: &str) -> String {
+    text("plugin-installed", &[("plugin", Arg::Text(plugin)), ("version", Arg::Text(version))])
+}
+
+/// Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.
+pub fn plugin_installed_not_loaded(plugin: &str, reason: &str) -> String {
+    text("plugin-installed-not-loaded", &[("plugin", Arg::Text(plugin)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast at launch when joined plugin stores offer newer versions of installed plugins.
+pub fn plugin_updates_ready(count: i64, names: &str) -> String {
+    text("plugin-updates-ready", &[("count", Arg::Int(count)), ("names", Arg::Text(names))])
+}
+
+/// Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host.
+pub fn plugins_load_failed(reason: &str) -> String {
+    text("plugins-load-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Error: the store was joined once, but this device has no saved token for it.
+pub fn store_token_missing(store: &str) -> String {
+    text("store-token-missing", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store the record points to is gone from the saved list.
+pub fn store_not_joined() -> String {
+    text("store-not-joined", &[])
+}
+
+/// Error: a store's signing key is unreadable. Shown as the reason a store is offline.
+pub fn store_key_damaged() -> String {
+    text("store-key-damaged", &[])
+}
+
+/// Error: a store rejected this device's token.
+pub fn store_device_refused(store: &str) -> String {
+    text("store-device-refused", &[("store", Arg::Text(store))])
+}
+
+/// Error: a store could not be reached. The reason comes from the network.
+pub fn store_unreachable(store: &str, reason: &str) -> String {
+    text("store-unreachable", &[("store", Arg::Text(store)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: an invite link names a store this device already joined, but at another address.
+pub fn store_moved(store: &str, current: &str, target: &str) -> String {
+    text("store-moved", &[("store", Arg::Text(store)), ("current", Arg::Text(current)), ("target", Arg::Text(target))])
+}
+
+/// Error: an open link would replace the named membership this device already has.
+pub fn store_join_would_unname(store: &str, member: &str) -> String {
+    text("store-join-would-unname", &[("store", Arg::Text(store)), ("member", Arg::Text(member))])
+}
+
+/// Error: the server at a link's address could not prove it is the store the invite named.
+pub fn store_not_the_invited(url: &str, reason: &str) -> String {
+    text("store-not-the-invited", &[("url", Arg::Text(url)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: the token for a joined store could not be saved on this device. The reason comes from the system.
+pub fn store_token_not_kept(reason: &str) -> String {
+    text("store-token-not-kept", &[("reason", Arg::Text(reason))])
+}
+
+/// Error: an invite that cannot be used any more.
+pub fn store_invite_unusable() -> String {
+    text("store-invite-unusable", &[])
+}
+
+/// Error: an open link that no longer lets anyone join.
+pub fn store_open_link_unusable() -> String {
+    text("store-open-link-unusable", &[])
+}
+
+/// Error: a plugin takes the name of a built-in source.
+pub fn plugin_reserved_name(plugin: &str) -> String {
+    text("plugin-reserved-name", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a store stopped offering a plugin between listing it and installing it.
+pub fn store_plugin_withdrawn(store: &str, plugin: &str) -> String {
+    text("store-plugin-withdrawn", &[("store", Arg::Text(store)), ("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a store changed a plugin after the person agreed to what was shown.
+pub fn store_plugin_changed(store: &str, plugin: &str) -> String {
+    text("store-plugin-changed", &[("store", Arg::Text(store)), ("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a plugin installed from one store is offered by another.
+pub fn plugin_from_other_store(plugin: &str, store: &str) -> String {
+    text("plugin-from-other-store", &[("plugin", Arg::Text(plugin)), ("store", Arg::Text(store))])
+}
+
+/// Error: a plugin file added by hand already declares the same name.
+pub fn plugin_duplicate_file(path: &str, plugin: &str) -> String {
+    text("plugin-duplicate-file", &[("path", Arg::Text(path)), ("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a plugin could not be downloaded or installed. The reason comes from the store or the system.
+pub fn plugin_install_failed(plugin: &str, reason: &str) -> String {
+    text("plugin-install-failed", &[("plugin", Arg::Text(plugin)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: a plugin could not be published. The reason comes from the store or the system.
+pub fn plugin_publish_failed(plugin: &str, reason: &str) -> String {
+    text("plugin-publish-failed", &[("plugin", Arg::Text(plugin)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: a plugin to publish is no longer in the plugin folder.
+pub fn plugin_missing_locally(plugin: &str) -> String {
+    text("plugin-missing-locally", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Error: an invite for another device cannot be made from a device that joined with the open link.
+pub fn store_invite_needs_link(store: &str) -> String {
+    text("store-invite-needs-link", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store sent an invite link that does not parse. The reason comes from the link parser.
+pub fn store_link_malformed(reason: &str) -> String {
+    text("store-link-malformed", &[("reason", Arg::Text(reason))])
+}
+
+/// Error: the store sent a link carrying another store's key.
+pub fn store_link_wrong_key() -> String {
+    text("store-link-wrong-key", &[])
+}
+
+/// Error: the store's server has no admin page.
+pub fn store_admin_missing(store: &str) -> String {
+    text("store-admin-missing", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store sent an admin link that points somewhere else.
+pub fn store_admin_link_foreign(store: &str) -> String {
+    text("store-admin-link-foreign", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store's server is too old for joining with a link.
+pub fn store_open_join_unsupported(store: &str) -> String {
+    text("store-open-join-unsupported", &[("store", Arg::Text(store))])
+}
+
+/// Toast after a source (plugin) is switched off. It is skipped when looking for episodes.
+pub fn source_switched_off(name: &str) -> String {
+    text("source-switched-off", &[("name", Arg::Text(name))])
+}
+
+/// Toast after a source (plugin) is switched on.
+pub fn source_switched_on(name: &str) -> String {
+    text("source-switched-on", &[("name", Arg::Text(name))])
+}
+
+/// Error: a command named a plugin that is not loaded.
+pub fn plugin_not_loaded(id: &str) -> String {
+    text("plugin-not-loaded", &[("id", Arg::Text(id))])
+}
+
+/// Toast after a release is chosen for a title. The name is the release's title.
+pub fn release_pinned(name: &str) -> String {
+    text("release-pinned", &[("name", Arg::Text(name))])
+}
+
+/// Toast when the chosen source or release for a title could not be saved. The reason comes from the database.
+pub fn notice_choice_not_saved(reason: &str) -> String {
+    text("notice-choice-not-saved", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast while torrents are running but the connection check failed, and the settings say to warn only.
+pub fn torrent_check_failed_running() -> String {
+    text("torrent-check-failed-running", &[])
+}
+
+/// Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard.
+pub fn torrent_vpn_waiting(reason: &str) -> String {
+    text("torrent-vpn-waiting", &[("reason", Arg::Text(reason))])
+}
+
+/// Note on the sources screen: the VPN guard has no verdict yet.
+pub fn torrent_vpn_unverified() -> String {
+    text("torrent-vpn-unverified", &[])
+}
+
+/// Error: torrents are on, but no torrent index is set.
+pub fn torrent_no_index() -> String {
+    text("torrent-no-index", &[])
+}
+
+/// Error: the torrent session did not start because the interface closed first.
+pub fn torrent_interface_closed() -> String {
+    text("torrent-interface-closed", &[])
+}
+
+/// Error: the torrent session could not start. The reason comes from the torrent engine.
+pub fn torrent_session_failed(reason: &str) -> String {
+    text("torrent-session-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+pub fn torrent_no_kill_switch() -> String {
+    text("torrent-no-kill-switch", &[])
+}
+
+/// Toast when the connection check could not run. The reason comes from the VPN settings.
+pub fn torrent_not_checked(reason: &str) -> String {
+    text("torrent-not-checked", &[("reason", Arg::Text(reason))])
+}
+
+/// Note on the sources screen after the source chain is rebuilt with torrents on.
+pub fn sources_reloaded_torrents_pending() -> String {
+    text("sources-reloaded-torrents-pending", &[])
+}
+
+/// Note on the sources screen after the source chain is rebuilt with torrents off.
+pub fn sources_reloaded_torrents_off() -> String {
+    text("sources-reloaded-torrents-off", &[])
+}
+
+/// Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows.
+pub fn job_anilist_limit() -> String {
+    text("job-anilist-limit", &[])
+}
+
+/// Toast when there is no job to carry the wait for AniList's rate limit.
+pub fn notice_anilist_limit(wait: &str) -> String {
+    text("notice-anilist-limit", &[("wait", Arg::Text(wait))])
+}
+
+/// Toast when the AniList fallback takes over because AniList cannot be reached.
+pub fn notice_anilist_unreachable() -> String {
+    text("notice-anilist-unreachable", &[])
+}
+
+/// Toast when no metadata service answered and the last cached data is shown.
+pub fn notice_metadata_cached() -> String {
+    text("notice-metadata-cached", &[])
+}
+
+/// Toast when AniList answers again.
+pub fn notice_anilist_back() -> String {
+    text("notice-anilist-back", &[])
+}
+
+/// Toast when a command needs watch parties but this app was built without them.
+pub fn notice_party_not_built() -> String {
+    text("notice-party-not-built", &[])
+}
+
 /// Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
 pub fn notice_signed_in(tracker: &str) -> String {
     text("notice-signed-in", &[("tracker", Arg::Text(tracker))])
