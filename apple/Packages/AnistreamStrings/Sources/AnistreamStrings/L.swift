@@ -32,6 +32,14 @@ public enum L {
     /// Mac menu bar item. Title Case, as Apple's guidelines ask for the menu bar only.
     public static var menuShowLibrary: String { string("menu-show-library", fallback: "Show Library") }
 
+    /// Mac menu bar item that opens the source picker for the title on screen. Title Case, as the menu bar's items are. Everywhere else the picker is called source-picker-title.
+    public static var menuSourceForTitle: String { string("menu-source-for-title", fallback: "Source for This Title") }
+
+    /// Under a release in the source picker: how many people share it right now.
+    public static func sourceReleaseSeeders(count: Int) -> String {
+        format("source-release-seeders", fallback: "%1$lld seeders", count)
+    }
+
     /// Button that runs a failed action again.
     public static var actionTryAgain: String { string("action-try-again", fallback: "Try again") }
 

@@ -3,6 +3,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// One line in the palette.
@@ -54,6 +55,7 @@ func paletteItems(query: String, store: AppStore, navigator: Navigator) -> (titl
         }
         command("Hide from Continue", "eye.slash", detail: "Progress is kept", shortcut: "⌘⌫",
                 enabled: entry.progress != nil) { store.hideFromContinue(id) }
+        command(L.sourcePickerTitle, "arrow.triangle.branch") { navigator.sourcePicker = id }
         command("Show Settings for This Show…", "slider.horizontal.3",
                 detail: "Audio, subtitles, auto-skip, source", shortcut: "⌘I") { navigator.showSettings = id }
     }

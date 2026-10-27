@@ -3,6 +3,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// The episode a title's action plays, and how it says so.
@@ -721,7 +722,7 @@ struct EpisodeRowView: View {
         let current = number == (entry.progress?.next ?? 1)
         // One no source has: nothing to play, so a click offers what can be done, adding a
         // source among it, rather than playing.
-        if row.metadataOnly {
+        if row.metadataOnly || row.unsourced {
             Menu {
                 EpisodeMenu(entry: entry, number: number, row: row)
             } label: {
@@ -774,6 +775,9 @@ struct EpisodeRowView: View {
                         Text("Filler").groupHeaderStyle()
                     }
                 }
+                if row.unsourced {
+                    Text(L.episodeUnsourced).font(.mac(12)).foregroundStyle(.haze).lineLimit(1)
+                }
                 if current, let fraction = entry.resume?.fraction {
                     Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 200) }
                 }
@@ -784,6 +788,7 @@ struct EpisodeRowView: View {
                 .frame(width: 14)
         }
         .font(.mac(13))
+        .opacity(row.unsourced ? 0.55 : 1)
         .padding(.horizontal, 8)
         .frame(height: 44)
         .background(current ? Palette.selection : .clear, in: .rect(cornerRadius: 8))

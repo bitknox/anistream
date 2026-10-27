@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// A title's context menu in a grid or a calendar.
@@ -81,6 +82,7 @@ struct TitleMoreItems: View {
         }
         #endif
         Divider()
+        Button(L.sourcePickerTitle) { navigator.sourcePicker = entry.id }
         Button(cased(mac: "Show Settings for This Show…", touch: "Show settings for this show")) {
             navigator.showSettings = entry.id
         }
@@ -100,6 +102,9 @@ struct EpisodeMenu: View {
         // One no source has: the way to a source in Play's and Download's place.
         if row.metadataOnly {
             Button(AddSourceWords.menu) { navigator.openProviders() }
+        } else if row.unsourced {
+            // AniList says it is out and no source lists it: the picker, to try another.
+            Button(L.sourcePickerTitle) { navigator.sourcePicker = entry.id }
         } else {
             Button(resuming ? cased(mac: "Resume Episode \(number)", touch: "Resume episode \(number)")
                             : cased(mac: "Play Episode \(number)", touch: "Play episode \(number)")) {
@@ -132,7 +137,7 @@ struct EpisodeMenu: View {
             store.send(.setWatched(id: entry.id, episodes: (1...max(number, 1)).map(String.init), watched: true))
             navigator.watchedByHand += 1
         }
-        if !row.metadataOnly {
+        if !row.metadataOnly, !row.unsourced {
             Divider()
             Button("Download") { store.send(.downloadEpisode(id: entry.id, episode: row.number)) }
                 .disabled(store.hasDownload(entry.id, episode: row.number))

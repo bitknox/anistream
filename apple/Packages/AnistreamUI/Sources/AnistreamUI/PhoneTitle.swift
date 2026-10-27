@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 struct PhoneTitle: View {
@@ -349,7 +350,7 @@ struct PhoneEpisodeRow: View {
         if row.isUnaired(), let airs = row.airsDate {
             PhoneUnairedRow(row: row, airs: airs)
                 .accessibilityRotorEntry(id: row.number, in: rotor)
-        } else if row.metadataOnly {
+        } else if row.metadataOnly || row.unsourced {
             // One no source has: nothing to play, so a tap offers what can be done, adding a
             // source among it, rather than playing.
             Menu {
@@ -401,7 +402,9 @@ struct PhoneEpisodeRow: View {
                         .animation(.quick, value: row.completed)
                     if row.kind == .filler { Text("Filler").groupHeaderStyle() }
                 }
-                if current, let resume = entry.resume, let fraction = resume.fraction, fraction > 0 {
+                if row.unsourced {
+                    Text(L.episodeUnsourced).font(.ui(15)).foregroundStyle(.haze)
+                } else if current, let resume = entry.resume, let fraction = resume.fraction, fraction > 0 {
                     HStack(spacing: 8) {
                         Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 88) }
                         let left = max(1, Int(((resume.position / fraction - resume.position) / 60).rounded()))
@@ -416,6 +419,7 @@ struct PhoneEpisodeRow: View {
             Spacer(minLength: 0)
             WatchedCheck(watched: row.completed, size: 15)
         }
+        .opacity(row.unsourced ? 0.55 : 1)
         .frame(minHeight: 56)
         .contentShape(.rect)
     }
