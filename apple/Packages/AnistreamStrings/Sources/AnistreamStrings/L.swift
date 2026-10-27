@@ -1055,6 +1055,152 @@ public enum L {
         Self.format("downloads-seeding-uploaded", fallback: "Shared %1$@ of %2$@ · %3$@ · %4$@ up", shared, goal, left, size)
     }
 
+    /// Mac menu bar item that opens Settings.
+    public static var menuSettings: String { string("menu-settings", fallback: "Settings…") }
+
+    /// Mac menu bar item that opens the sheet for joining a plugin store.
+    public static var menuJoinPluginStore: String { string("menu-join-plugin-store", fallback: "Join Store…") }
+
+    /// Mac menu bar item that opens the invite link on the clipboard.
+    public static var menuOpenInviteLink: String { string("menu-open-invite-link", fallback: "Open Invite Link") }
+
+    /// Mac menu bar item that reveals the downloads folder in Finder.
+    public static var menuShowInFinder: String { string("menu-show-in-finder", fallback: "Show in Finder") }
+
+    /// Mac menu bar item that opens the filters of a search.
+    public static var menuSearchFilters: String { string("menu-search-filters", fallback: "Search Filters") }
+
+    /// Mac menu bar item that opens the command palette.
+    public static var menuCommandPalette: String { string("menu-command-palette", fallback: "Command Palette") }
+
+    /// Mac menu bar item that syncs with the tracker accounts now.
+    public static var menuSyncNow: String { string("menu-sync-now", fallback: "Sync Now") }
+
+    /// Mac menu bar item that pauses every download.
+    public static var menuPauseAllDownloads: String { string("menu-pause-all-downloads", fallback: "Pause All Downloads") }
+
+    /// Mac menu bar item that removes finished downloads from the list.
+    public static var menuClearFinishedDownloads: String { string("menu-clear-finished-downloads", fallback: "Clear Finished Downloads") }
+
+    /// Name of the Mac menu bar menu of playback commands.
+    public static var menuPlayback: String { string("menu-playback", fallback: "Playback") }
+
+    /// Name of the Mac menu bar menu of commands for one episode.
+    public static var menuEpisode: String { string("menu-episode", fallback: "Episode") }
+
+    /// Mac menu bar item that checks the plugin stores for plugin updates.
+    public static var menuCheckForUpdates: String { string("menu-check-for-updates", fallback: "Check for Updates") }
+
+    /// Mac menu bar item that opens the log of messages.
+    public static var menuMessages: String { string("menu-messages", fallback: "Messages") }
+
+    /// Mac menu bar item that opens a bug report.
+    public static var menuReportBug: String { string("menu-report-bug", fallback: "Report a Bug…") }
+
+    /// Mac menu bar item that shows the plugin stores.
+    public static var menuPluginStores: String { string("menu-plugin-stores", fallback: "Plugin Stores") }
+
+    /// Mac menu bar item that skips ahead ten seconds in the player.
+    public static var menuSkipForward: String { string("menu-skip-forward", fallback: "Skip Forward 10 Seconds") }
+
+    /// Mac menu bar item that skips back ten seconds in the player.
+    public static var menuSkipBack: String { string("menu-skip-back", fallback: "Skip Back 10 Seconds") }
+
+    /// Mac menu bar item that plays the next episode.
+    public static var menuNextEpisode: String { string("menu-next-episode", fallback: "Next Episode") }
+
+    /// Mac menu bar item that plays the previous episode.
+    public static var menuPreviousEpisode: String { string("menu-previous-episode", fallback: "Previous Episode") }
+
+    /// Mac menu bar item that skips the opening in the player.
+    public static var menuSkipOpening: String { string("menu-skip-opening", fallback: "Skip Opening") }
+
+    /// Mac menu bar item that brings the main window forward.
+    public static var menuMainWindow: String { string("menu-main-window", fallback: "Main Window") }
+
+    /// Heading of the Mac Episode menu when no episode is selected.
+    public static var menuNoEpisodeSelected: String { string("menu-no-episode-selected", fallback: "No Episode Selected") }
+
+    /// Mac menu bar item that marks the selected episode watched.
+    public static var menuMarkWatched: String { string("menu-mark-watched", fallback: "Mark Watched") }
+
+    /// Mac menu bar item that marks the selected episode unwatched.
+    public static var menuMarkUnwatched: String { string("menu-mark-unwatched", fallback: "Mark Unwatched") }
+
+    /// Mac menu bar item that marks every episode before the selected one watched.
+    public static var menuMarkAllPreviousWatched: String { string("menu-mark-all-previous-watched", fallback: "Mark All Previous Watched") }
+
+    /// Mac menu bar item that downloads the selected episode.
+    public static var menuDownload: String { string("menu-download", fallback: "Download") }
+
+    /// Heading of the Mac menu for a title when no title is selected.
+    public static var menuNoTitleSelected: String { string("menu-no-title-selected", fallback: "No Title Selected") }
+
+    /// Mac menu bar item that plays the selected title's trailer.
+    public static var menuPlayTrailer: String { string("menu-play-trailer", fallback: "Play Trailer") }
+
+    /// Mac menu bar item that opens the cast, staff and rankings of the selected title.
+    public static var menuMoreAbout: String { string("menu-more-about", fallback: "More About This Show…") }
+
+    /// Mac menu bar item that opens the settings of the selected title.
+    public static var menuShowSettings: String { string("menu-show-settings", fallback: "Show Settings for This Show…") }
+
+    /// Button under a long synopsis that folds it back to a few lines.
+    public static var shellLess: String { string("shell-less", fallback: "Less") }
+
+    /// VoiceOver label of a progress bar.
+    public static var shellProgress: String { string("shell-progress", fallback: "Progress") }
+
+    /// VoiceOver hint of the button that adds a source to play: it opens the Sources screen.
+    public static var shellOpensSources: String { string("shell-opens-sources", fallback: "Opens Sources") }
+
+    /// VoiceOver hint of the sync status in the sidebar: it opens the list of what is running.
+    public static var shellSyncHint: String { string("shell-sync-hint", fallback: "Shows what is running") }
+
+    /// Sync status in the sidebar when the tracker has no account signed in.
+    public static func shellSyncNotConnected(tracker: String) -> String {
+        Self.format("shell-sync-not-connected", fallback: "%1$@ not connected", tracker)
+    }
+
+    /// Line in the list of what the engine is doing, when it is doing nothing.
+    public static var shellNothingRunning: String { string("shell-nothing-running", fallback: "Nothing is running.") }
+
+    /// Line on a screen that this build does not have yet.
+    public static func shellNotBuiltYet(section: String) -> String {
+        Self.format("shell-not-built-yet", fallback: "%1$@ comes in a later build.", section)
+    }
+
+    /// Placeholder of the search field while Settings is open.
+    public static var shellSearchSettings: String { string("shell-search-settings", fallback: "Search settings") }
+
+    /// Toolbar button of Downloads that reveals the folder in Finder.
+    public static var shellShowInFinder: String { string("shell-show-in-finder", fallback: "Show in Finder") }
+
+    /// Swipe or context menu action that downloads an episode.
+    public static var shellDownload: String { string("shell-download", fallback: "Download") }
+
+    /// Accessibility label of the picker that chooses which list of the library to show.
+    public static var shellLibraryListLabel: String { string("shell-library-list-label", fallback: "List") }
+
+    /// Accessibility label of the picker that chooses how the library is sorted.
+    public static var shellLibraryOrderLabel: String { string("shell-library-order-label", fallback: "Order") }
+
+    /// Segment of the library list picker: the list's name and how many titles it holds.
+    public static func shellLibrarySegment(name: String, count: Int) -> String {
+        Self.format("shell-library-segment", fallback: "%1$@ %2$lld", name, count)
+    }
+
+    /// Error when a link that was pasted or opened is not a plugin store's invite.
+    public static var shellNotAStore: String { string("shell-not-a-store", fallback: "This link does not lead to a plugin store. Ask the plugin store's owner for a new invite.") }
+
+    /// Context menu item that carries on with an episode that was left part-way.
+    public static func shellResumeEpisode(episode: Int) -> String {
+        Self.format("shell-resume-episode", fallback: "Resume episode %1$lld", episode)
+    }
+
+    /// Context menu item that opens the settings of one title.
+    public static var shellShowSettings: String { string("shell-show-settings", fallback: "Show settings for this show") }
+
     /// Line under the heading of the sources list while the list is built again.
     public static var sourcesRebuilding: String { string("sources-rebuilding", fallback: "Sources are being set up again…") }
 

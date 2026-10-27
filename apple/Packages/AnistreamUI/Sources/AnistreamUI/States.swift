@@ -4,10 +4,12 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
-/// The same words in each platform's casing: title case on the Mac, as its controls are, and
-/// sentence case on iPhone and iPad.
+/// The same words in each platform's casing: title case on the Mac, and sentence case on iPhone
+/// and iPad. No longer called by this group's files; the files of other groups still call it until
+/// they move to catalogue messages, and then it goes.
 func cased(mac: String, touch: String) -> String {
     #if os(macOS)
     mac
@@ -84,7 +86,7 @@ struct ScreenFailed: View {
             }
         } actions: {
             if let retry {
-                Button(cased(mac: "Try Again", touch: "Try again"), action: retry)
+                Button(L.actionTryAgain, action: retry)
                     .buttonStyle(SecondaryCapsuleStyle(height: Self.buttonHeight, fontSize: Self.buttonFont))
             }
         }
@@ -131,7 +133,7 @@ struct OfflineLine: View {
                 HStack(spacing: 6) {
                     Image(systemName: "wifi.slash")
                         .accessibilityHidden(true)
-                    Text("Offline. Downloaded episodes still play.")
+                    Text(L.stateOfflineLine)
                 }
                 .font(.plat(mac: 13, touch: 15))
                 .foregroundStyle(.haze)
@@ -155,14 +157,14 @@ struct OfflineEmpty: View {
     var body: some View {
         ContentUnavailableView {
             Label {
-                Text("You're offline").foregroundStyle(.silk)
+                Text(L.stateOfflineTitle).foregroundStyle(.silk)
             } icon: {
                 Image(systemName: "wifi.slash").foregroundStyle(.haze)
             }
         } description: {
-            Text("Downloaded episodes still play.").foregroundStyle(.haze)
+            Text(L.stateOfflineDetail).foregroundStyle(.haze)
         } actions: {
-            Button(cased(mac: "Show Downloads", touch: "Show downloads")) {
+            Button(L.stateOfflineShowDownloads) {
                 navigator.showDownloads(compact: compact)
             }
             .buttonStyle(SecondaryCapsuleStyle(height: ScreenFailed.buttonHeight, fontSize: ScreenFailed.buttonFont))
@@ -232,7 +234,7 @@ struct FailedLine: View {
 }
 
 /// The fixed words for a link that leads to no store, from the join board.
-let notAStoreWords = "This link does not lead to a plugin store. Ask the store's owner for a new invite."
+var notAStoreWords: String { L.shellNotAStore }
 
 /// A small spinner beside a button while what it started runs, as the sign-in sheets have it;
 /// nothing otherwise.
@@ -245,7 +247,7 @@ struct Working: View {
         if on {
             ProgressView()
                 .controlSize(.small)
-                .accessibilityLabel("Working")
+                .accessibilityLabel(L.stateWorking)
         }
     }
 }

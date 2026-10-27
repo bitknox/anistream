@@ -5647,6 +5647,306 @@
         }
       }
     },
+    "menu-check-for-updates" : {
+      "comment" : "Mac menu bar item that checks the plugin stores for plugin updates.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check for Updates"
+          }
+        }
+      }
+    },
+    "menu-clear-finished-downloads" : {
+      "comment" : "Mac menu bar item that removes finished downloads from the list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Finished Downloads"
+          }
+        }
+      }
+    },
+    "menu-command-palette" : {
+      "comment" : "Mac menu bar item that opens the command palette.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command Palette"
+          }
+        }
+      }
+    },
+    "menu-download" : {
+      "comment" : "Mac menu bar item that downloads the selected episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        }
+      }
+    },
+    "menu-episode" : {
+      "comment" : "Name of the Mac menu bar menu of commands for one episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode"
+          }
+        }
+      }
+    },
+    "menu-join-plugin-store" : {
+      "comment" : "Mac menu bar item that opens the sheet for joining a plugin store.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join Store…"
+          }
+        }
+      }
+    },
+    "menu-main-window" : {
+      "comment" : "Mac menu bar item that brings the main window forward.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main Window"
+          }
+        }
+      }
+    },
+    "menu-mark-all-previous-watched" : {
+      "comment" : "Mac menu bar item that marks every episode before the selected one watched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark All Previous Watched"
+          }
+        }
+      }
+    },
+    "menu-mark-unwatched" : {
+      "comment" : "Mac menu bar item that marks the selected episode unwatched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark Unwatched"
+          }
+        }
+      }
+    },
+    "menu-mark-watched" : {
+      "comment" : "Mac menu bar item that marks the selected episode watched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark Watched"
+          }
+        }
+      }
+    },
+    "menu-messages" : {
+      "comment" : "Mac menu bar item that opens the log of messages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Messages"
+          }
+        }
+      }
+    },
+    "menu-more-about" : {
+      "comment" : "Mac menu bar item that opens the cast, staff and rankings of the selected title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More About This Show…"
+          }
+        }
+      }
+    },
+    "menu-next-episode" : {
+      "comment" : "Mac menu bar item that plays the next episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Episode"
+          }
+        }
+      }
+    },
+    "menu-no-episode-selected" : {
+      "comment" : "Heading of the Mac Episode menu when no episode is selected.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Episode Selected"
+          }
+        }
+      }
+    },
+    "menu-no-title-selected" : {
+      "comment" : "Heading of the Mac menu for a title when no title is selected.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Title Selected"
+          }
+        }
+      }
+    },
+    "menu-open-invite-link" : {
+      "comment" : "Mac menu bar item that opens the invite link on the clipboard.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Invite Link"
+          }
+        }
+      }
+    },
+    "menu-pause-all-downloads" : {
+      "comment" : "Mac menu bar item that pauses every download.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause All Downloads"
+          }
+        }
+      }
+    },
+    "menu-play-trailer" : {
+      "comment" : "Mac menu bar item that plays the selected title's trailer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play Trailer"
+          }
+        }
+      }
+    },
+    "menu-playback" : {
+      "comment" : "Name of the Mac menu bar menu of playback commands.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback"
+          }
+        }
+      }
+    },
+    "menu-plugin-stores" : {
+      "comment" : "Mac menu bar item that shows the plugin stores.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plugin Stores"
+          }
+        }
+      }
+    },
+    "menu-previous-episode" : {
+      "comment" : "Mac menu bar item that plays the previous episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Episode"
+          }
+        }
+      }
+    },
+    "menu-report-bug" : {
+      "comment" : "Mac menu bar item that opens a bug report.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report a Bug…"
+          }
+        }
+      }
+    },
+    "menu-search-filters" : {
+      "comment" : "Mac menu bar item that opens the filters of a search.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search Filters"
+          }
+        }
+      }
+    },
+    "menu-settings" : {
+      "comment" : "Mac menu bar item that opens Settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings…"
+          }
+        }
+      }
+    },
+    "menu-show-in-finder" : {
+      "comment" : "Mac menu bar item that reveals the downloads folder in Finder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        }
+      }
+    },
     "menu-show-library" : {
       "comment" : "Mac menu bar item. Title Case, as Apple's guidelines ask for the menu bar only.",
       "extractionState" : "manual",
@@ -5659,6 +5959,54 @@
         }
       }
     },
+    "menu-show-settings" : {
+      "comment" : "Mac menu bar item that opens the settings of the selected title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Settings for This Show…"
+          }
+        }
+      }
+    },
+    "menu-skip-back" : {
+      "comment" : "Mac menu bar item that skips back ten seconds in the player.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip Back 10 Seconds"
+          }
+        }
+      }
+    },
+    "menu-skip-forward" : {
+      "comment" : "Mac menu bar item that skips ahead ten seconds in the player.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip Forward 10 Seconds"
+          }
+        }
+      }
+    },
+    "menu-skip-opening" : {
+      "comment" : "Mac menu bar item that skips the opening in the player.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip Opening"
+          }
+        }
+      }
+    },
     "menu-source-for-title" : {
       "comment" : "Mac menu bar item that opens the source picker for the title on screen. Title Case, as the menu bar's items are. Everywhere else the picker is called source-picker-title.",
       "extractionState" : "manual",
@@ -5667,6 +6015,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Source for This Title"
+          }
+        }
+      }
+    },
+    "menu-sync-now" : {
+      "comment" : "Mac menu bar item that syncs with the tracker accounts now.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync Now"
           }
         }
       }
@@ -11375,6 +11735,198 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Downloads wait for Wi-Fi"
+          }
+        }
+      }
+    },
+    "shell-download" : {
+      "comment" : "Swipe or context menu action that downloads an episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        }
+      }
+    },
+    "shell-less" : {
+      "comment" : "Button under a long synopsis that folds it back to a few lines.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Less"
+          }
+        }
+      }
+    },
+    "shell-library-list-label" : {
+      "comment" : "Accessibility label of the picker that chooses which list of the library to show.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "List"
+          }
+        }
+      }
+    },
+    "shell-library-order-label" : {
+      "comment" : "Accessibility label of the picker that chooses how the library is sorted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Order"
+          }
+        }
+      }
+    },
+    "shell-library-segment" : {
+      "comment" : "Segment of the library list picker: the list's name and how many titles it holds. Argument 1: name (Text). Argument 2: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$lld"
+          }
+        }
+      }
+    },
+    "shell-not-a-store" : {
+      "comment" : "Error when a link that was pasted or opened is not a plugin store's invite.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This link does not lead to a plugin store. Ask the plugin store's owner for a new invite."
+          }
+        }
+      }
+    },
+    "shell-not-built-yet" : {
+      "comment" : "Line on a screen that this build does not have yet. Argument 1: section (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ comes in a later build."
+          }
+        }
+      }
+    },
+    "shell-nothing-running" : {
+      "comment" : "Line in the list of what the engine is doing, when it is doing nothing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is running."
+          }
+        }
+      }
+    },
+    "shell-opens-sources" : {
+      "comment" : "VoiceOver hint of the button that adds a source to play: it opens the Sources screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens Sources"
+          }
+        }
+      }
+    },
+    "shell-progress" : {
+      "comment" : "VoiceOver label of a progress bar.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress"
+          }
+        }
+      }
+    },
+    "shell-resume-episode" : {
+      "comment" : "Context menu item that carries on with an episode that was left part-way. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume episode %1$lld"
+          }
+        }
+      }
+    },
+    "shell-search-settings" : {
+      "comment" : "Placeholder of the search field while Settings is open.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search settings"
+          }
+        }
+      }
+    },
+    "shell-show-in-finder" : {
+      "comment" : "Toolbar button of Downloads that reveals the folder in Finder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        }
+      }
+    },
+    "shell-show-settings" : {
+      "comment" : "Context menu item that opens the settings of one title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show settings for this show"
+          }
+        }
+      }
+    },
+    "shell-sync-hint" : {
+      "comment" : "VoiceOver hint of the sync status in the sidebar: it opens the list of what is running.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows what is running"
+          }
+        }
+      }
+    },
+    "shell-sync-not-connected" : {
+      "comment" : "Sync status in the sidebar when the tracker has no account signed in. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ not connected"
           }
         }
       }
