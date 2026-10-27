@@ -217,7 +217,7 @@ struct TitleActions: View {
     let entry: Entry
 
     var body: some View {
-        let action = TitleAction(entry)
+        let action = TitleAction(entry, episodes: store.titles.episodes[entry.id])
         if action.playable, store.titles.unlisted(entry.id) {
             Button(AddSourceWords.menu) { navigator.openProviders() }
         } else if action.playable {

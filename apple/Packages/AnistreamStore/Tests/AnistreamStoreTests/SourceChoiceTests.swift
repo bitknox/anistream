@@ -64,3 +64,44 @@ struct SourceChoiceTests {
         #expect(store.sourceChoices.pinNotice != first, "a new choice is said again")
     }
 }
+
+@MainActor
+struct PlayableNextTests {
+    private func row(_ number: String, unsourced: Bool = false) -> EpisodeRow {
+        EpisodeRow(number: number, title: nil, thumbnail: nil, description: nil, durationSecs: nil, watched: 0,
+                   completed: false, kind: nil, skippable: false, airsAt: nil, delayedFrom: nil,
+                   metadataOnly: false, source: nil, unsourced: unsourced)
+    }
+
+    private func watching(next: UInt32, resume: Bool = false) -> Entry {
+        entry(900_001, "Stardust Wayfarer") {
+            $0.progress = TitleProgress(done: next - 1, next: next)
+            if resume { $0.resume = ResumePoint(position: 300, fraction: 0.3) }
+        }
+    }
+
+    @Test func theMainButtonSkipsEpisodesNoSourceLists() {
+        let rows = [row("6"), row("7", unsourced: true), row("8", unsourced: true), row("9")]
+        #expect(watching(next: 7).playableNext(in: rows) == PlayableNext(episode: 9, unsourced: false))
+        #expect(watching(next: 6).playableNext(in: rows) == PlayableNext(episode: 6, unsourced: false))
+    }
+
+    @Test func withNothingLeftThatPlaysItSaysSo() {
+        let rows = [row("6"), row("7", unsourced: true), row("8", unsourced: true)]
+        #expect(watching(next: 7).playableNext(in: rows) == PlayableNext(episode: 7, unsourced: true))
+    }
+
+    @Test func aPartWatchedEpisodeIsResumedAndAnUnloadedTableChangesNothing() {
+        let rows = [row("7", unsourced: true), row("8")]
+        #expect(watching(next: 7, resume: true).playableNext(in: rows).episode == 7)
+        #expect(watching(next: 7).playableNext(in: nil) == PlayableNext(episode: 7, unsourced: false))
+    }
+
+    @Test func continueRowsFollowIt() {
+        let rows = [row("7", unsourced: true), row("8")]
+        let item = ContinueQueue.item(watching(next: 7), rows: rows)
+        #expect(item.episode == 8 && item.playable)
+        let none = ContinueQueue.item(watching(next: 7), rows: [row("7", unsourced: true)])
+        #expect(none.unsourced && !none.playable)
+    }
+}

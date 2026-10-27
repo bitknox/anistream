@@ -53,9 +53,10 @@ struct SourcePickerSheet: View {
             .padding(.top, 24)
             .padding(.bottom, 12)
             SourcePickerList(id: id, done: { dismiss() })
+                .softEdges()
             HStack {
                 Spacer()
-                Button("Done") { dismiss() }
+                Button(L.actionDone) { dismiss() }
                     .buttonStyle(PrimaryCapsuleStyle(height: 34))
                     .keyboardShortcut(.defaultAction)
             }
@@ -73,7 +74,7 @@ struct SourcePickerSheet: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { dismiss() }.fontWeight(.semibold).tint(.silk)
+                        Button(L.actionDone) { dismiss() }.fontWeight(.semibold).tint(.silk)
                     }
                 }
         }
@@ -270,3 +271,39 @@ private extension View {
         #endif
     }
 }
+
+extension ContinueItem {
+    /// What stands in the place of the Play button when nothing plays: when the next episode
+    /// airs, or that no source has it.
+    var statusTitle: String {
+        unsourced ? L.episodeUnsourced : buttonTitle
+    }
+}
+
+#if os(macOS)
+private struct SoftEdges: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            // No fade: a hairline at each end says the list goes on.
+            content
+                .overlay(alignment: .top) { Rectangle().fill(.faintRule).frame(height: 1) }
+                .overlay(alignment: .bottom) { Rectangle().fill(.faintRule).frame(height: 1) }
+        } else {
+            // A row cut by the sheet's foot fades out rather than ending mid-line.
+            content.mask {
+                VStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom).frame(height: 14)
+                    Color.black
+                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom).frame(height: 28)
+                }
+            }
+        }
+    }
+}
+
+private extension View {
+    func softEdges() -> some View { modifier(SoftEdges()) }
+}
+#endif

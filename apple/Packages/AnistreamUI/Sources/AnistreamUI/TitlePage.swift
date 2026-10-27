@@ -15,15 +15,23 @@ struct TitleAction: Equatable {
     /// The episode another device handed over, which the action resumes where it was there.
     let handedOff: HandedOff?
 
-    init(_ entry: Entry, handedOff: HandedOff? = nil) {
+    /// Every episode from the next on is one no source lists: nothing to play, and the button
+    /// says so in the place of Play.
+    let unsourced: Bool
+
+    init(_ entry: Entry, handedOff: HandedOff? = nil, episodes: [EpisodeRow]? = nil) {
         if let handedOff, handedOff.id == entry.id, let number = UInt32(handedOff.episode) {
             episode = number
             resume = ResumePoint(position: handedOff.position, fraction: nil)
             airing = .aired
             self.handedOff = handedOff
+            unsourced = false
             return
         }
-        episode = entry.progress?.next ?? 1
+        // The engine's next episode, or the first after it that some source lists.
+        let target = entry.playableNext(in: episodes)
+        episode = target.episode
+        unsourced = target.unsourced
         resume = entry.resume
         airing = resume == nil ? entry.airing(of: episode) : .aired
         self.handedOff = nil
@@ -41,12 +49,13 @@ struct TitleAction: Equatable {
     }
 
     /// Whether there is an episode to play: never one still to air, which nothing could find.
-    var playable: Bool { airing.hasAired }
+    var playable: Bool { airing.hasAired && !unsourced }
 
     /// "Resume Episode 7 · 10:06", "Start Episode 4": title case, as a Mac button says it. With
     /// the episode still to air, the status in the button's place: "Airs Saturday 18:30".
     var title: String {
         if let resume { return "Resume Episode \(episode) · \(resume.clock)" }
+        if unsourced { return L.episodeUnsourced }
         if !playable { return airsLine }
         return "Start Episode \(episode)"
     }
@@ -54,6 +63,7 @@ struct TitleAction: Equatable {
     /// The same in sentence case, as iPhone says it: "Resume episode 7 · 10:06".
     var sentence: String {
         if let resume { return "Resume episode \(episode) · \(resume.clock)" }
+        if unsourced { return L.episodeUnsourced }
         if !playable { return airsLine }
         return "Start episode \(episode)"
     }
@@ -238,7 +248,7 @@ struct TitleHero: View {
     static let coverPixels = 460
 
     var body: some View {
-        let action = TitleAction(entry, handedOff: navigator.handedOff)
+        let action = TitleAction(entry, handedOff: navigator.handedOff, episodes: store.titles.episodes[entry.id])
         HStack(alignment: .bottom, spacing: 28) {
             // Across a season switch the last season's cover stays until the next one's lands.
             ArtworkView(url: entry.coverUrl, color: entry.plateColor, maxPixelSize: Self.coverPixels, holds: true)

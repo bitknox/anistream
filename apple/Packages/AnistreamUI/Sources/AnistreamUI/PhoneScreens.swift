@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 // MARK: - Continue
@@ -241,7 +242,7 @@ struct PhoneHero: View {
                     .layoutPriority(1)
                 } else {
                     // Caught up: when the next one airs, in the button's place.
-                    AirsStatus(text: item.buttonTitle, height: 44, fontSize: 17, fills: stacked)
+                    AirsStatus(text: item.statusTitle, height: 44, fontSize: 17, fills: stacked)
                         .fixedSize(horizontal: !stacked, vertical: false)
                         .layoutPriority(1)
                 }

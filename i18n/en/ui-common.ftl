@@ -6,3 +6,7 @@ action-cancel = Cancel
 
 # Button that puts a question off until later.
 action-not-now = Not now
+
+# Button that closes a sheet whose changes have already been made.
+# @max 12
+action-done = Done
