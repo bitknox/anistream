@@ -219,7 +219,9 @@ impl Trailer {
     pub fn watch_url(&self) -> String {
         match self.host {
             TrailerHost::YouTube => format!("https://www.youtube.com/watch?v={}", self.id),
-            TrailerHost::Dailymotion => format!("https://www.dailymotion.com/video/{}", self.id),
+            TrailerHost::Dailymotion => {
+                format!("https://www.dailymotion.com/video/{}", self.id)
+            }
         }
     }
 

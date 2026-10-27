@@ -16,8 +16,11 @@ use crate::{outbox::Outbox, state::EngineState};
 /// The answer for the engine as it stands.
 pub fn now(engine: &EngineState) -> AutoplayView {
     let path = engine.network;
-    let network =
-        Network { cellular: path.cellular, constrained: path.constrained, offline: path.offline };
+    let network = Network {
+        cellular: path.cellular,
+        constrained: path.constrained,
+        offline: path.offline,
+    };
     trailer::autoplay(engine.config.effective().theme.trailers, network, engine.device)
 }
 

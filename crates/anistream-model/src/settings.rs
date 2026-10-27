@@ -1228,7 +1228,8 @@ mod tests {
         assert_eq!(at(SettingKey::Trailers), at(SettingKey::Titles).map(|i| i + 1));
         assert_eq!(SettingKey::Trailers.category(), "appearance");
 
-        let step_to = |config: &Config, delta| step(config, config, SettingKey::Trailers, delta);
+        let step_to =
+            |config: &Config, delta| step(config, config, SettingKey::Trailers, delta);
         assert_eq!(step_to(&default, 1), Some(SettingValue::Str("wifi-only".into())));
         assert_eq!(step_to(&default, -1), Some(SettingValue::Str("always".into())), "an end");
         assert_eq!(

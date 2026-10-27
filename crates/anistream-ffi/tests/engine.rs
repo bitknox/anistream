@@ -174,9 +174,7 @@ fn a_title_comes_back_whole_with_the_source_pinned_for_it_ahead() {
 fn trailers_are_held_by_what_the_device_and_the_network_say() {
     use anistream_model::trailer::{AutoplayHold, AutoplayView};
     let (engine, _root) = started();
-    let saying = |expected: AutoplayView| {
-        move |event: &Event| matches!(event, Event::Autoplay(view) if *view == expected)
-    };
+    let saying = |expected: AutoplayView| move |event: &Event| matches!(event, Event::Autoplay(view) if *view == expected);
     let free = AutoplayView { trailers: true, held_by: None };
     let held = |hold| AutoplayView { trailers: false, held_by: Some(hold) };
 

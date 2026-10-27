@@ -1289,7 +1289,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn launch_says_the_settings_autoplay_the_stores_the_chain_and_the_trackers_in_order() {
+    async fn launch_says_the_settings_autoplay_the_stores_the_chain_and_the_trackers_in_order()
+    {
         let dir = tempfile::tempdir().unwrap();
         let (_engine, mut events) = quiet_engine(dir.path()).await;
         let launch: Vec<&str> = events

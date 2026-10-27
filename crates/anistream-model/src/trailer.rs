@@ -480,12 +480,18 @@ mod tests {
     fn no_page_for_a_trailer_the_app_does_not_play_or_an_origin_that_is_not_one() {
         let dailymotion = Trailer { host: TrailerHost::Dailymotion, id: "x7abc".into() };
         assert_eq!(embed_page(&dailymotion, EmbedStyle::Banner, &app()), None);
-        for origin in ["http://tv.anistream.app", "https://", "https://a\"b", "tv.anistream.app"] {
-            let page = embed_page(&youtube("abc"), EmbedStyle::Banner, &AppIdentity::new(origin));
+        for origin in
+            ["http://tv.anistream.app", "https://", "https://a\"b", "tv.anistream.app"]
+        {
+            let page =
+                embed_page(&youtube("abc"), EmbedStyle::Banner, &AppIdentity::new(origin));
             assert_eq!(page, None, "{origin}");
         }
-        for origin in [AppIdentity::LINUX, "https://Publisher.Anistream", "https://localhost:8080"] {
-            let page = embed_page(&youtube("abc"), EmbedStyle::Banner, &AppIdentity::new(origin));
+        for origin in
+            [AppIdentity::LINUX, "https://Publisher.Anistream", "https://localhost:8080"]
+        {
+            let page =
+                embed_page(&youtube("abc"), EmbedStyle::Banner, &AppIdentity::new(origin));
             assert!(page.is_some(), "{origin}");
         }
         assert_eq!(app().base_url(), "https://tv.anistream.app/");
@@ -497,7 +503,10 @@ mod tests {
         assert_eq!(TrailerMessage::parse("playing"), Some(TrailerMessage::Playing));
         assert_eq!(TrailerMessage::parse("paused"), Some(TrailerMessage::Paused));
         assert_eq!(TrailerMessage::parse("ended\n"), Some(TrailerMessage::Ended));
-        assert_eq!(TrailerMessage::parse("error:150"), Some(TrailerMessage::Error { code: 150 }));
+        assert_eq!(
+            TrailerMessage::parse("error:150"),
+            Some(TrailerMessage::Error { code: 150 })
+        );
         assert_eq!(TrailerMessage::parse("error:0"), Some(TrailerMessage::Error { code: 0 }));
         assert_eq!(TrailerMessage::parse("error:"), None);
         assert_eq!(TrailerMessage::parse("buffering"), None);
@@ -551,7 +560,11 @@ mod tests {
         }
     }
 
-    fn linked(id: u32, relation: Option<RelationKind>, status: Option<LibrarySegment>) -> LinkedTitle {
+    fn linked(
+        id: u32,
+        relation: Option<RelationKind>,
+        status: Option<LibrarySegment>,
+    ) -> LinkedTitle {
         LinkedTitle {
             id: AnilistId::new(id),
             title: format!("Starlit Harbour {id}"),
@@ -587,7 +600,8 @@ mod tests {
     #[test]
     fn a_sequel_of_an_unfinished_story_on_the_list_is_held_while_spoilers_are_protected() {
         use LibrarySegment::*;
-        let prequel = |status| page(2, vec![linked(1, Some(RelationKind::Prequel), status)], None);
+        let prequel =
+            |status| page(2, vec![linked(1, Some(RelationKind::Prequel), status)], None);
         for status in [Watching, Planning, Paused, Dropped] {
             assert!(!trailer_may_autoplay(&prequel(Some(status)), true), "{status:?}");
             assert!(trailer_may_autoplay(&prequel(Some(status)), false), "protection off");

@@ -10,7 +10,11 @@ use anistream_model::{
 /// The page to load into the web view for `trailer`, under [`trailer_base_url`]. `None` for a
 /// trailer the app's player does not play: Play trailer opens [`trailer_watch_url`] instead.
 #[uniffi::export]
-pub fn trailer_embed_page(trailer: Trailer, style: EmbedStyle, app: AppIdentity) -> Option<String> {
+pub fn trailer_embed_page(
+    trailer: Trailer,
+    style: EmbedStyle,
+    app: AppIdentity,
+) -> Option<String> {
     trailer::embed_page(&trailer, style, &app)
 }
 
