@@ -428,6 +428,12 @@
         <item quantity="one">Queued one episode.</item>
         <item quantity="other">Queued %1$d episodes.</item>
     </plurals>
+    <!-- Accessibility label of the account button in the top bar when someone is signed in. -->
+    <string name="account_button_named">%1$s, accounts and settings</string>
+    <!-- Button on a notice that opens the plugin stores, where its cause can be fixed. -->
+    <string name="notice_open_stores">Open plugin stores</string>
+    <!-- Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. -->
+    <string name="tv_pair_request_held">%1$s wants to pair. Code %2$s</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->

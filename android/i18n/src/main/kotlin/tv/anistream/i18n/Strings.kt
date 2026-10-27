@@ -789,6 +789,18 @@ object Strings {
     fun noticeEpisodesQueued(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.notice_episodes_queued, count, count)
 
+    /** Accessibility label of the account button in the top bar when someone is signed in. */
+    fun accountButtonNamed(context: Context, name: String): String =
+        context.getString(R.string.account_button_named, name)
+
+    /** Button on a notice that opens the plugin stores, where its cause can be fixed. */
+    fun noticeOpenStores(context: Context): String =
+        context.getString(R.string.notice_open_stores)
+
+    /** Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. */
+    fun tvPairRequestHeld(context: Context, phone: String, code: String): String =
+        context.getString(R.string.tv_pair_request_held, phone, code)
+
     /** Name of the notification channel for download progress, shown in the system's settings. */
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)
