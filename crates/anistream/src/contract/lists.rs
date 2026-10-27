@@ -138,7 +138,10 @@ async fn a_metadata_notice_comes_just_before_the_update_it_arrived_with() {
     let down = h.settle().await;
 
     assert_eq!(names(&down), ["MetaStatus", "Toast", "Caption", "Content", "JobDone"]);
-    assert_eq!(toasts(&down), ["info: anilist is unreachable — fresh data via tenrai for now"]);
+    assert_eq!(
+        toasts(&down),
+        ["info: AniList is unreachable. Using the fallback for fresh data for now."]
+    );
     let Event::MetaStatus(rows) = &down[0] else { unreachable!() };
     let serving: Vec<_> = rows.iter().filter(|r| r.active).map(|r| r.source.as_str()).collect();
     assert_eq!(serving, ["tenrai"]);
@@ -155,7 +158,7 @@ async fn a_metadata_notice_comes_just_before_the_update_it_arrived_with() {
         names(&back),
         ["MetaStatus", "Toast", "Caption", "Content", "LastAired", "JobDone"]
     );
-    assert_eq!(toasts(&back), ["info: anilist is back"]);
+    assert_eq!(toasts(&back), ["info: AniList is back."]);
     assert_eq!(ids(content(&back)), SEASONAL);
     ends(&back, job);
 }

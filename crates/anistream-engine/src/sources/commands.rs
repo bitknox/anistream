@@ -2,7 +2,7 @@
 //! off or back on.
 
 use anistream_core::{settings::SettingValue, traits::ProviderKind};
-use anistream_model::{event::Event, notice::Notice};
+use anistream_model::{Msg, event::Event, notice::Notice};
 
 use crate::{
     data,
@@ -38,9 +38,7 @@ pub fn disable_plugin(
     let Services { registry, paths, stores, .. } = services;
     let Some(plugin) = registry.get(&id).filter(|p| p.manifest().kind == ProviderKind::Plugin)
     else {
-        let _ = tx.send(Event::Toast(Notice::raw_alert(format!(
-            "{id} is not a plugin that is loaded"
-        ))));
+        let _ = tx.send(Event::Toast(Notice::alert(Msg::PluginNotLoaded { id })));
         return;
     };
     let name = plugin.manifest().display_name.clone();
@@ -64,14 +62,12 @@ pub fn disable_plugin(
     let _ = tx.send(Event::Providers(data::provider_rows(registry, stores)));
     let landed = written.is_ok();
     let notice = match written {
-        Ok(()) if disabled => {
-            Notice::raw_info(format!("{name} is off · skipped when looking for episodes"))
-        }
-        Ok(()) => Notice::raw_info(format!("{name} is on")),
+        Ok(()) if disabled => Notice::info(Msg::SourceSwitchedOff { name }),
+        Ok(()) => Notice::info(Msg::SourceSwitchedOn { name }),
         Err(anistream_core::Error::Config(reason)) => {
-            Notice::raw_alert(format!("not saved: {reason}"))
+            Notice::alert(Msg::NoticeNotSaved { reason })
         }
-        Err(other) => Notice::raw_alert(format!("not saved: {other}")),
+        Err(other) => Notice::alert(Msg::NoticeNotSaved { reason: other.to_string() }),
     };
     let _ = tx.send(Event::Toast(notice));
     // Republished for the background tasks, as any setting written is.

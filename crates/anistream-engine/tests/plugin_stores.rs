@@ -18,7 +18,10 @@ use std::{
 
 use anistream_core::config::{Config, Paths};
 use anistream_engine::plugin_stores::{Stores, WasmInspector};
-use anistream_model::stores::{StorePluginStatus, StoreState};
+use anistream_model::{
+    Msg,
+    stores::{StorePluginStatus, StoreState},
+};
 use anistream_plugin_store::server::{self, Server, Storage};
 use anistream_track::secret::{Backend, TokenStore};
 
@@ -228,9 +231,9 @@ async fn a_joined_stores_key_in_a_link_to_another_address_is_refused() {
         open: false,
     };
     let preview = stores.preview(&elsewhere.link()).await.unwrap_err();
-    assert!(preview.contains("is joined at"), "{preview}");
+    assert!(matches!(preview, Msg::StoreMoved { .. }), "{preview:?}");
     let join = stores.join(&elsewhere.link(), None).await.unwrap_err();
-    assert!(join.contains("is joined at"), "{join}");
+    assert!(matches!(join, Msg::StoreMoved { .. }), "{join:?}");
 
     let rows = stores.rows().unwrap();
     assert_eq!(rows[0].url, joined.base, "the record still points at the real store");
@@ -273,12 +276,12 @@ async fn an_open_store_is_joined_without_a_name_and_its_owner_decides_who_can_jo
     assert!(row.open && row.anonymous);
     assert_eq!(row.state, StoreState::Ready);
     let another = guest.invite(&id, None).await.unwrap_err();
-    assert!(another.contains("Paste the same link"), "{another}");
+    assert!(matches!(another, Msg::StoreInviteNeedsLink { .. }), "{another:?}");
 
     // The owner pasting the store's own link changes nothing: it would trade their name and
     // their owner rights for a member with neither.
     let refused = owner.preview(&link).await.unwrap_err();
-    assert!(refused.contains("without your name"), "{refused}");
+    assert!(matches!(refused, Msg::StoreJoinWouldUnname { .. }), "{refused:?}");
     assert!(owner.join(&link, None).await.is_err());
     assert!(owner.rows().unwrap()[0].owner);
 
@@ -294,7 +297,7 @@ async fn an_open_store_is_joined_without_a_name_and_its_owner_decides_who_can_jo
     assert!(!owner.rows().unwrap()[0].open);
     let (_, late) = stores(&root.path().join("late"));
     let stopped = late.preview(&link).await.unwrap_err();
-    assert!(stopped.contains("no longer lets anyone join"), "{stopped}");
+    assert_eq!(stopped, Msg::StoreOpenLinkUnusable);
     assert_eq!(guest.refresh().await.unwrap()[0].state, StoreState::Ready);
     let cleared = owner.remove_anonymous(&id, None).await.unwrap();
     assert_eq!(cleared.devices, 0);

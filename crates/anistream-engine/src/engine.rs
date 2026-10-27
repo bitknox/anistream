@@ -292,7 +292,7 @@ impl Engine {
                 joined
             }
             Err(e) => {
-                launch.push_back(Event::Toast(Notice::raw_alert(e)));
+                launch.push_back(Event::Toast(Notice::alert(e)));
                 false
             }
         };
@@ -526,7 +526,7 @@ fn say_plugin_load(loading: JoinHandle<Option<String>>, tx: Outbox) {
         if let Ok(outcome) = loading.await {
             match outcome {
                 Some(reason) => {
-                    let _ = tx.send(Event::ProviderNote(Msg::verbatim(reason)));
+                    let _ = tx.send(Event::ProviderNote(Msg::PluginsLoadFailed { reason }));
                 }
                 // Ranked again by the order as it stands now, since the user may have moved a
                 // source while these compiled, and the Providers screen refreshed so late
@@ -550,11 +550,10 @@ fn refresh_joined(stores: plugin_stores::Stores, tx: Outbox) {
         let updates = stores.pending_updates();
         // Where to install them is the front end's to say: the terminal's Providers, Enter.
         if !updates.is_empty() {
-            let notice = Notice::raw_info(format!(
-                "plugin {} ready: {}",
-                if updates.len() == 1 { "update" } else { "updates" },
-                updates.join(", ")
-            ));
+            let notice = Notice::info(Msg::PluginUpdatesReady {
+                count: updates.len() as i64,
+                names: updates.join(", "),
+            });
             let _ = tx.send(Event::Toast(notice.with_hint(NoticeHint::OpenStores)));
         }
     });
@@ -707,7 +706,7 @@ struct Actor {
     services: Services,
     inbox: Inbox,
     commands: mpsc::UnboundedReceiver<Message>,
-    arrivals: mpsc::UnboundedReceiver<(u64, Result<TorrentUp, String>)>,
+    arrivals: mpsc::UnboundedReceiver<(u64, Result<TorrentUp, Msg>)>,
     out: mpsc::UnboundedSender<Out>,
     /// The count the jobs it starts on its own are numbered by: see [`Jobs`]. Only an ending
     /// that rolls on leads it to start any.
@@ -949,7 +948,7 @@ impl Actor {
     }
 
     /// The torrent source is up, or will not come up; only the latest bring-up counts.
-    fn arrived(&mut self, generation: u64, outcome: Result<TorrentUp, String>) {
+    fn arrived(&mut self, generation: u64, outcome: Result<TorrentUp, Msg>) {
         let tx = self.inbox.sender();
         let crate::phases::Gate { hold, refusal } = crate::phases::gate_now(&mut self.state);
         let EngineState { torrent_tasks, vpn_guard, shared_config, .. } = &mut self.state;
@@ -1711,10 +1710,11 @@ mod tests {
                 provider_id: "yamabiko".into(),
                 source_id: "a".into(),
             },
-            crate::playback::NO_PLAYER,
+            crate::playback::NO_PLAYER.to_owned(),
         )];
         if cfg!(not(feature = "party")) {
-            plays.push((Command::play_party(id, episode()), crate::playback::NO_PARTY));
+            plays
+                .push((Command::play_party(id, episode()), Msg::NoticePartyNotBuilt.english()));
         }
         for (play, refusal) in plays {
             engine.send(play);

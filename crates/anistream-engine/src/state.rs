@@ -15,7 +15,7 @@ use anistream_core::{
     config::{Config, Paths},
     ids::AnilistId,
 };
-use anistream_model::{command::PlayerCommand, playback::PlaybackId};
+use anistream_model::{Msg, command::PlayerCommand, playback::PlaybackId};
 use anistream_providers::{torrent::TorrentSession, vpn::VpnGuard};
 use tokio::sync::mpsc;
 
@@ -30,7 +30,7 @@ use crate::{
 };
 
 /// Where a bring-up of the torrent source reports in, tagged with the bring-up it answers.
-pub type Arrivals = mpsc::UnboundedSender<(u64, Result<TorrentUp, String>)>;
+pub type Arrivals = mpsc::UnboundedSender<(u64, Result<TorrentUp, Msg>)>;
 
 /// The effect layer's own state: what commands read and leave for the commands after them.
 pub struct EngineState {

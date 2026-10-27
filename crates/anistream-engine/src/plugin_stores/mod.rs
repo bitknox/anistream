@@ -15,6 +15,7 @@ use std::{
 
 use anistream_core::config::{Config, Paths};
 use anistream_model::{
+    Msg,
     sources::{ProviderOrigin, ProviderUpdate},
     stores::{
         self, AnonymousDeviceRow, InviteLinkView, InvitedStore, LocalPluginRow, OpenJoinView,
@@ -69,10 +70,10 @@ impl Stores {
         config: &Config,
         paths: &Paths,
         tokens: TokenStore,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, Msg> {
         let timeout = Duration::from_secs(config.network.timeout_secs.max(1));
         Ok(Self {
-            client: StoreClient::new(timeout).map_err(|e| e.to_string())?,
+            client: StoreClient::new(timeout).map_err(foreign)?,
             state_path: state_path(paths),
             plugin_dir: paths.plugin_dir(),
             tokens,
@@ -91,10 +92,10 @@ impl Stores {
         config: &Config,
         paths: &Paths,
         tokens: TokenStore,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, Msg> {
         let timeout = Duration::from_secs(config.network.timeout_secs.max(1));
         Ok(Self {
-            client: StoreClient::offline(timeout).map_err(|e| e.to_string())?,
+            client: StoreClient::offline(timeout).map_err(foreign)?,
             ..Self::with_tokens(config, paths, tokens)?
         })
     }
@@ -112,7 +113,7 @@ impl Stores {
 
     /// The WebAssembly host, built the first time a plugin has to be read. Nothing pays for an
     /// engine until someone installs or publishes.
-    async fn inspector(&self) -> Result<Arc<WasmInspector>, String> {
+    async fn inspector(&self) -> Result<Arc<WasmInspector>, Msg> {
         self.inspector
             .get_or_try_init(|| async {
                 WasmInspector::new(
@@ -123,42 +124,40 @@ impl Stores {
             })
             .await
             .cloned()
+            .map_err(Msg::verbatim)
     }
 
-    fn load(&self) -> Result<LocalState, String> {
-        LocalState::load(&self.state_path).map_err(|e| e.to_string())
+    fn load(&self) -> Result<LocalState, Msg> {
+        LocalState::load(&self.state_path).map_err(foreign)
     }
 
     /// Change the state file under the lock.
-    async fn update<T>(&self, change: impl FnOnce(&mut LocalState) -> T) -> Result<T, String> {
+    async fn update<T>(&self, change: impl FnOnce(&mut LocalState) -> T) -> Result<T, Msg> {
         let _held = self.lock.lock().await;
         let mut state = self.load()?;
         let out = change(&mut state);
-        state.save(&self.state_path).map_err(|e| e.to_string())?;
+        state.save(&self.state_path).map_err(foreign)?;
         Ok(out)
     }
 
-    fn joined(&self, id: &str) -> Result<Joined, String> {
-        self.load()?.store(id).cloned().ok_or_else(|| "that store is no longer joined".into())
+    fn joined(&self, id: &str) -> Result<Joined, Msg> {
+        self.load()?.store(id).cloned().ok_or(Msg::StoreNotJoined)
     }
 
-    fn token(&self, joined: &Joined) -> Result<String, String> {
-        self.tokens.get(&joined.token_key()).map_err(|_| {
-            format!(
-                "no token for {} on this machine — join it again with a new invite",
-                joined.name
-            )
-        })
+    fn token(&self, joined: &Joined) -> Result<String, Msg> {
+        self.tokens
+            .get(&joined.token_key())
+            .map_err(|_| Msg::StoreTokenMissing { store: joined.name.clone() })
     }
 
-    fn joined_with_token(&self, id: &str) -> Result<(Joined, String), String> {
+    fn joined_with_token(&self, id: &str) -> Result<(Joined, String), Msg> {
         let joined = self.joined(id)?;
         let token = self.token(&joined)?;
         Ok((joined, token))
     }
 
     /// Rows for the store screens, from what is on disk. No network.
-    pub fn rows(&self) -> Result<Vec<StoreRow>, String> {
+    pub fn rows(&self) -> Result<Vec<StoreRow>, Msg> {
         let state = self.load()?;
         let offline = self.offline.lock().unwrap_or_else(|e| e.into_inner()).clone();
         Ok(rows(&state, &self.plugin_dir, &offline))
@@ -176,7 +175,7 @@ impl Stores {
     ///
     /// A store that cannot be reached keeps the last list it sent and is marked offline; one that
     /// refuses the token is marked as having removed this device.
-    pub async fn refresh(&self) -> Result<Vec<StoreRow>, String> {
+    pub async fn refresh(&self) -> Result<Vec<StoreRow>, Msg> {
         let state = self.load()?;
         // Nothing joined, nothing to ask — and no state file written just for looking.
         if state.stores.is_empty() {
@@ -189,7 +188,7 @@ impl Stores {
             async move {
                 let outcome = match self.token(&joined) {
                     Ok(token) => self.fetch_index(&joined, &token).await,
-                    Err(e) => Err(Fetch::Failed(e)),
+                    Err(e) => Err(Fetch::Failed(e.english())),
                 };
                 (joined.id, outcome)
             }
@@ -220,7 +219,7 @@ impl Stores {
 
     async fn fetch_index(&self, joined: &Joined, token: &str) -> Result<Index, Fetch> {
         let key =
-            joined.public_key().ok_or_else(|| Fetch::Failed("damaged store key".into()))?;
+            joined.public_key().ok_or_else(|| Fetch::Failed(Msg::StoreKeyDamaged.english()))?;
         match self.client.index(&joined.base, token, &key, joined.sequence).await {
             Ok(index) => Ok(index),
             Err(ClientError::Unauthorized) => Err(Fetch::Revoked),
@@ -229,7 +228,7 @@ impl Stores {
     }
 
     /// Fetch one store's list, record it, and return it.
-    async fn refresh_one(&self, joined: &Joined, token: &str) -> Result<Index, String> {
+    async fn refresh_one(&self, joined: &Joined, token: &str) -> Result<Index, Msg> {
         let outcome = self.fetch_index(joined, token).await;
         let offline = |reason: Option<String>| {
             let mut offline = self.offline.lock().unwrap_or_else(|e| e.into_inner());
@@ -248,11 +247,11 @@ impl Stores {
             Err(Fetch::Revoked) => {
                 offline(None);
                 self.update(|state| state.mark_revoked(&joined.id)).await?;
-                Err(format!("{} no longer accepts this device", joined.name))
+                Err(Msg::StoreDeviceRefused { store: joined.name.clone() })
             }
             Err(Fetch::Failed(reason)) => {
                 offline(Some(reason.clone()));
-                Err(format!("could not reach {}: {reason}", joined.name))
+                Err(Msg::StoreUnreachable { store: joined.name.clone(), reason })
             }
         }
     }
@@ -262,16 +261,16 @@ impl Stores {
     /// A store is known by its key, and a key is public: anyone can put a joined store's key in a
     /// link to their own server. Joining "again" through such a link would re-point the store's
     /// record at that server and hand it the token being replaced.
-    fn same_address(&self, invite: &Invite) -> Result<Option<Joined>, String> {
+    fn same_address(&self, invite: &Invite) -> Result<Option<Joined>, Msg> {
         let previous = self.load()?.store(&invite.key.id()).cloned();
         if let Some(previous) = &previous
             && previous.base != invite.base
         {
-            return Err(format!(
-                "{} is joined at {}, and this link points at {} — if the store has moved, leave \
-                 it first and join again",
-                previous.name, previous.base, invite.base
-            ));
+            return Err(Msg::StoreMoved {
+                store: previous.name.clone(),
+                current: previous.base.clone(),
+                target: invite.base.clone(),
+            });
         }
         Ok(previous)
     }
@@ -281,14 +280,13 @@ impl Stores {
     /// Joining again through the link would swap the member this machine joined as, owner
     /// rights and all, for one with no name, and revoke the token that held them. A store joined
     /// with the link already, or one that removed this device, is joined again as usual.
-    fn not_unnamed(invite: &Invite, previous: Option<&Joined>) -> Result<(), String> {
+    fn not_unnamed(invite: &Invite, previous: Option<&Joined>) -> Result<(), Msg> {
         match previous {
             Some(previous) if invite.open && !previous.anonymous && !previous.revoked => {
-                Err(format!(
-                    "you joined {} as {}. Its link would join it again without your name, so \
-                     nothing was changed",
-                    previous.name, previous.member.name
-                ))
+                Err(Msg::StoreJoinWouldUnname {
+                    store: previous.name.clone(),
+                    member: previous.member.name.clone(),
+                })
             }
             _ => Ok(()),
         }
@@ -296,11 +294,11 @@ impl Stores {
 
     /// What a pasted link leads to, checked against the key it carries. Spends nothing: an
     /// invite stays unused and an open link joins no one.
-    pub async fn preview(&self, link: &str) -> Result<InvitedStore, String> {
-        let invite = Invite::parse(link).map_err(|e| e.to_string())?;
+    pub async fn preview(&self, link: &str) -> Result<InvitedStore, Msg> {
+        let invite = Invite::parse(link).map_err(foreign)?;
         let previous = self.same_address(&invite)?;
         Self::not_unnamed(&invite, previous.as_ref())?;
-        let info = self.client.preview(&invite).await.map_err(|e| e.to_string())?;
+        let info = self.client.preview(&invite).await.map_err(foreign)?;
         // Who runs it and what it offers, signed by the key the link carries: nothing, from a
         // store that predates the preview. A link that would not join is said now, not after
         // the viewer has said yes to it.
@@ -334,13 +332,13 @@ impl Stores {
     ///
     /// An invite sends `label` as this device's name in the store, or the kind of device this is
     /// when it is `None` or blank: never the machine's own name, which is often its owner's.
-    pub async fn join(&self, link: &str, label: Option<&str>) -> Result<Joined, String> {
-        let invite = Invite::parse(link).map_err(|e| e.to_string())?;
+    pub async fn join(&self, link: &str, label: Option<&str>) -> Result<Joined, Msg> {
+        let invite = Invite::parse(link).map_err(foreign)?;
         let previous = self.same_address(&invite)?;
         Self::not_unnamed(&invite, previous.as_ref())?;
         // Checked again right before the invite is spent, not only when it was previewed: the
         // answer is what decides who receives the code.
-        let info = self.client.preview(&invite).await.map_err(|e| e.to_string())?;
+        let info = self.client.preview(&invite).await.map_err(foreign)?;
         // An open join is sent no label: the store keeps nothing about who joined.
         let label = if invite.open {
             String::new()
@@ -368,10 +366,10 @@ impl Stores {
         ) = &first
         {
             let _ = self.client.leave(&invite.base, &redeemed.token).await;
-            return Err(format!(
-                "{} is not the store in the invite ({e}) — nothing was joined",
-                invite.base
-            ));
+            return Err(Msg::StoreNotTheInvited {
+                url: invite.base.clone(),
+                reason: e.to_string(),
+            });
         }
 
         let old_token = previous.as_ref().and_then(|p| self.tokens.get(&p.token_key()).ok());
@@ -379,7 +377,7 @@ impl Stores {
         // and cannot be used.
         self.tokens
             .set(&local::token_key(&id), &redeemed.token)
-            .map_err(|e| format!("could not store the token: {e}"))?;
+            .map_err(|e| Msg::StoreTokenNotKept { reason: e.to_string() })?;
         let joined = Joined {
             id: id.clone(),
             base: invite.base.clone(),
@@ -415,7 +413,7 @@ impl Stores {
     }
 
     /// Forget a store and revoke this device's token there.
-    pub async fn leave(&self, id: &str) -> Result<String, String> {
+    pub async fn leave(&self, id: &str) -> Result<String, Msg> {
         let joined = self.joined(id)?;
         // Best effort: a store that has gone away must not stop anyone from leaving it.
         if let Ok(token) = self.token(&joined)
@@ -434,21 +432,19 @@ impl Stores {
         &self,
         store: &str,
         plugin: &str,
-    ) -> Result<(IndexEntry, PathBuf), String> {
+    ) -> Result<(IndexEntry, PathBuf), Msg> {
         // The chain swaps a source by id, so a plugin named after a built-in source would replace
         // it — the torrent source and its VPN guard included.
         if RESERVED_IDS.contains(&plugin) {
-            return Err(format!(
-                "{plugin} is the name of a built-in source, so it cannot be a plugin"
-            ));
+            return Err(Msg::PluginReservedName { plugin: plugin.to_owned() });
         }
         let (joined, token) = self.joined_with_token(store)?;
         let shown = joined.index.as_ref().and_then(|i| i.plugin(plugin)).cloned();
         let index = self.refresh_one(&joined, &token).await?;
-        let entry = index
-            .plugin(plugin)
-            .cloned()
-            .ok_or_else(|| format!("{} no longer offers {plugin}", joined.name))?;
+        let entry = index.plugin(plugin).cloned().ok_or_else(|| Msg::StorePluginWithdrawn {
+            store: joined.name.clone(),
+            plugin: plugin.to_owned(),
+        })?;
 
         // The user agreed to what the screen showed. If the store changed the plugin in between,
         // that agreement does not cover it: say so, and let the refreshed screen show the change.
@@ -456,15 +452,15 @@ impl Stores {
             && (shown.version != entry.version
                 || host_set(&shown.allowed_hosts) != host_set(&entry.allowed_hosts))
         {
-            return Err(format!(
-                "{} changed {plugin} since it was shown — look again",
-                joined.name
-            ));
+            return Err(Msg::StorePluginChanged {
+                store: joined.name.clone(),
+                plugin: plugin.to_owned(),
+            });
         }
         let state = self.load()?;
         if let PluginStatus::OtherStore(other) = state.status(store, &entry, &self.plugin_dir) {
             let other = state.store(&other).map_or(other.clone(), |s| s.name.clone());
-            return Err(format!("{plugin} is installed from {other}, which keeps it updated"));
+            return Err(Msg::PluginFromOtherStore { plugin: plugin.to_owned(), store: other });
         }
         // A copy added by hand under another file name, declaring the same id. Installing beside
         // it would leave two plugins answering to one name.
@@ -476,27 +472,27 @@ impl Stores {
             .into_iter()
             .find(|(path, info)| info.id == entry.id && *path != target)
         {
-            return Err(format!(
-                "{} already declares {plugin} — remove that file first, or two copies would run",
-                other.display()
-            ));
+            return Err(Msg::PluginDuplicateFile {
+                path: other.display().to_string(),
+                plugin: plugin.to_owned(),
+            });
         }
 
         let bytes = self
             .client
             .download(&joined.base, &token, &entry)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| install_failed(plugin, e))?;
         let path = install::install(&bytes, &entry, inspector.as_ref(), &self.plugin_dir)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| install_failed(plugin, e))?;
         self.update(|state| state.record_install(store, &entry)).await?;
         Ok((entry, path))
     }
 
     /// Delete an installed plugin's file and forget where it came from.
-    pub async fn remove(&self, plugin: &str) -> Result<(), String> {
-        install::uninstall(&self.plugin_dir, plugin).await.map_err(|e| e.to_string())?;
+    pub async fn remove(&self, plugin: &str) -> Result<(), Msg> {
+        install::uninstall(&self.plugin_dir, plugin).await.map_err(foreign)?;
         self.update(|state| state.forget_install(plugin)).await?;
         Ok(())
     }
@@ -506,28 +502,22 @@ impl Stores {
         &self,
         store: &str,
         name: Option<String>,
-    ) -> Result<InviteLinkView, String> {
+    ) -> Result<InviteLinkView, Msg> {
         let (joined, token) = self.joined_with_token(store)?;
         if joined.anonymous && name.is_none() {
-            return Err(format!(
-                "this device joined {} with its link. Paste the same link on the other device",
-                joined.name
-            ));
+            return Err(Msg::StoreInviteNeedsLink { store: joined.name.clone() });
         }
         let request = match &name {
             Some(name) => InviteRequest::Member { name: name.clone(), role: Role::Member },
             None => InviteRequest::Device,
         };
-        let created = self
-            .client
-            .create_invite(&joined.base, &token, &request)
-            .await
-            .map_err(|e| e.to_string())?;
+        let created =
+            self.client.create_invite(&joined.base, &token, &request).await.map_err(foreign)?;
         // A link carrying a different key would send whoever uses it to a different store.
         let link = Invite::parse(&created.link)
-            .map_err(|e| format!("the store made a bad link: {e}"))?;
+            .map_err(|e| Msg::StoreLinkMalformed { reason: e.to_string() })?;
         if Some(link.key) != joined.public_key() {
-            return Err("the store made a link with a different key — check its --url".into());
+            return Err(Msg::StoreLinkWrongKey);
         }
         Ok(InviteLinkView {
             store: store.to_owned(),
@@ -540,14 +530,12 @@ impl Stores {
     }
 
     /// A one-time link that signs a browser in to the store's admin page.
-    pub async fn admin_link(&self, store: &str) -> Result<String, String> {
+    pub async fn admin_link(&self, store: &str) -> Result<String, Msg> {
         let (joined, token) = self.joined_with_token(store)?;
         let link =
             self.client.admin_link(&joined.base, &token).await.map_err(|e| match e.code() {
-                Some("not_found") => {
-                    format!("{} has no admin page — its server may be older", joined.name)
-                }
-                _ => e.to_string(),
+                Some("not_found") => Msg::StoreAdminMissing { store: joined.name.clone() },
+                _ => foreign(e),
             })?;
         // Opened in a browser with owner rights, so it has to be this store's own page, on this
         // store's own address, and nothing a store could slip in instead.
@@ -555,17 +543,16 @@ impl Stores {
         let code = link.link.strip_prefix(&expected).filter(|code| crypto::is_code(code));
         match code {
             Some(code) => Ok(format!("{expected}{code}")),
-            None => Err(format!("{} sent an admin link for another address", joined.name)),
+            None => Err(Msg::StoreAdminLinkForeign { store: joined.name.clone() }),
         }
     }
 
     pub async fn members(
         &self,
         store: &str,
-    ) -> Result<(Vec<StoreMemberRow>, Vec<StoreInviteRow>), String> {
+    ) -> Result<(Vec<StoreMemberRow>, Vec<StoreInviteRow>), Msg> {
         let (joined, token) = self.joined_with_token(store)?;
-        let list =
-            self.client.members(&joined.base, &token).await.map_err(|e| e.to_string())?;
+        let list = self.client.members(&joined.base, &token).await.map_err(foreign)?;
         let members = list
             .members
             .into_iter()
@@ -593,26 +580,26 @@ impl Stores {
 
     /// Who can join a store, its open link, and the devices that joined with it. `None` from a
     /// store whose server has no open joining, which is invite-only and says nothing more.
-    pub async fn open_join(&self, store: &str) -> Result<Option<OpenJoinView>, String> {
+    pub async fn open_join(&self, store: &str) -> Result<Option<OpenJoinView>, Msg> {
         let (joined, token) = self.joined_with_token(store)?;
         match self.client.open_state(&joined.base, &token).await {
             Ok(state) => Ok(Some(self.open_view(&joined, state)?)),
             Err(ClientError::NotOpen) => Ok(None),
-            Err(e) => Err(e.to_string()),
+            Err(e) => Err(foreign(e)),
         }
     }
 
     /// Let anyone with the store's link join, or only people its owners invite. The store's list
     /// is fetched again after, so its row says which.
-    pub async fn set_open(&self, store: &str, open: bool) -> Result<OpenJoinView, String> {
+    pub async fn set_open(&self, store: &str, open: bool) -> Result<OpenJoinView, Msg> {
         let (joined, token) = self.joined_with_token(store)?;
-        let state = self.client.set_open(&joined.base, &token, open).await.map_err(|e| match e {
-            ClientError::NotOpen => format!(
-                "{}'s server is older and cannot let anyone join with a link. Update it first",
-                joined.name
-            ),
-            e => e.to_string(),
-        })?;
+        let state =
+            self.client.set_open(&joined.base, &token, open).await.map_err(|e| match e {
+                ClientError::NotOpen => {
+                    Msg::StoreOpenJoinUnsupported { store: joined.name.clone() }
+                }
+                e => foreign(e),
+            })?;
         let view = self.open_view(&joined, state)?;
         let _ = self.refresh_one(&joined, &token).await;
         Ok(view)
@@ -623,34 +610,32 @@ impl Stores {
         &self,
         store: &str,
         device: Option<&str>,
-    ) -> Result<OpenJoinView, String> {
+    ) -> Result<OpenJoinView, Msg> {
         let (joined, token) = self.joined_with_token(store)?;
         let state = match device {
             Some(device) => {
                 self.client
                     .revoke_device(&joined.base, &token, device)
                     .await
-                    .map_err(|e| e.to_string())?;
+                    .map_err(foreign)?;
                 self.client.open_state(&joined.base, &token).await
             }
             None => self.client.remove_anonymous(&joined.base, &token).await,
         }
-        .map_err(|e| e.to_string())?;
+        .map_err(foreign)?;
         self.open_view(&joined, state)
     }
 
     /// What the store says of who can join, for its owner's screens. The link has to be this
     /// store's own, with its key, at its address: it goes to the clipboard and from there to
     /// whoever the owner sends it to.
-    fn open_view(&self, joined: &Joined, state: OpenState) -> Result<OpenJoinView, String> {
+    fn open_view(&self, joined: &Joined, state: OpenState) -> Result<OpenJoinView, Msg> {
         let link = match state.link.as_deref() {
             Some(link) => {
                 let link = Invite::parse(link)
-                    .map_err(|e| format!("the store made a bad link: {e}"))?;
+                    .map_err(|e| Msg::StoreLinkMalformed { reason: e.to_string() })?;
                 if Some(link.key) != joined.public_key() || !link.open {
-                    return Err(
-                        "the store made a link with a different key. Check its --url".into()
-                    );
+                    return Err(Msg::StoreLinkWrongKey);
                 }
                 Some(Secret(link.link()))
             }
@@ -672,18 +657,18 @@ impl Stores {
         })
     }
 
-    pub async fn remove_member(&self, store: &str, member: &str) -> Result<(), String> {
+    pub async fn remove_member(&self, store: &str, member: &str) -> Result<(), Msg> {
         let (joined, token) = self.joined_with_token(store)?;
-        self.client.remove_member(&joined.base, &token, member).await.map_err(|e| e.to_string())
+        self.client.remove_member(&joined.base, &token, member).await.map_err(foreign)
     }
 
-    pub async fn cancel_invite(&self, store: &str, invite: &str) -> Result<(), String> {
+    pub async fn cancel_invite(&self, store: &str, invite: &str) -> Result<(), Msg> {
         let (joined, token) = self.joined_with_token(store)?;
-        self.client.cancel_invite(&joined.base, &token, invite).await.map_err(|e| e.to_string())
+        self.client.cancel_invite(&joined.base, &token, invite).await.map_err(foreign)
     }
 
     /// Every plugin in the plugin directory, read for what it is, against what `store` offers.
-    pub async fn local_plugins(&self, store: &str) -> Result<Vec<LocalPluginRow>, String> {
+    pub async fn local_plugins(&self, store: &str) -> Result<Vec<LocalPluginRow>, Msg> {
         let joined = self.joined(store)?;
         let inspector = self.inspector().await?;
         let mut rows: Vec<LocalPluginRow> = self
@@ -729,7 +714,7 @@ impl Stores {
     }
 
     /// Publish a local plugin to a store.
-    pub async fn publish(&self, store: &str, plugin: &str) -> Result<IndexEntry, String> {
+    pub async fn publish(&self, store: &str, plugin: &str) -> Result<IndexEntry, Msg> {
         let (joined, token) = self.joined_with_token(store)?;
         let inspector = self.inspector().await?;
         // Named after its id first, which is where the store would install it; any other file
@@ -743,18 +728,23 @@ impl Stores {
                 .into_iter()
                 .find(|(_, info)| info.id == plugin)
                 .map(|(path, _)| path)
-                .ok_or_else(|| format!("{plugin} is not in the plugin directory any more"))?
+                .ok_or_else(|| Msg::PluginMissingLocally { plugin: plugin.to_owned() })?
         };
-        let bytes = tokio::fs::read(&path).await.map_err(|e| e.to_string())?;
+        let bytes =
+            tokio::fs::read(&path).await.map_err(|e| publish_failed(plugin, foreign(e)))?;
         // Stamped on the way out, so a store that cannot run plugins — a Worker, a serverless
         // function — can still read what this one is.
-        let info = inspector.inspect(&bytes).await?;
-        let stamped = manifest::stamp(&bytes, &info).map_err(|e| e.to_string())?;
+        let info = inspector
+            .inspect(&bytes)
+            .await
+            .map_err(|e| publish_failed(plugin, Msg::verbatim(e)))?;
+        let stamped =
+            manifest::stamp(&bytes, &info).map_err(|e| publish_failed(plugin, foreign(e)))?;
         let entry = self
             .client
             .publish(&joined.base, &token, stamped.clone())
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| publish_failed(plugin, foreign(e)))?;
 
         // The owner's own copy is the published one, so the store page should say installed
         // rather than "added by hand". The stamped bytes are what was published, so they replace
@@ -769,9 +759,9 @@ impl Stores {
         Ok(entry)
     }
 
-    pub async fn unpublish(&self, store: &str, plugin: &str) -> Result<(), String> {
+    pub async fn unpublish(&self, store: &str, plugin: &str) -> Result<(), Msg> {
         let (joined, token) = self.joined_with_token(store)?;
-        self.client.unpublish(&joined.base, &token, plugin).await.map_err(|e| e.to_string())?;
+        self.client.unpublish(&joined.base, &token, plugin).await.map_err(foreign)?;
         let _ = self.refresh_one(&joined, &token).await;
         Ok(())
     }
@@ -795,20 +785,28 @@ enum Fetch {
     Failed(String),
 }
 
-/// What an invite that would not join is said as.
-const UNUSABLE: &str =
-    "that invite was already used, cancelled or has expired — ask for a new one";
+/// An error from outside this layer, as the person reads it: the words are its own.
+fn foreign(error: impl std::fmt::Display) -> Msg {
+    Msg::verbatim(error.to_string())
+}
 
-/// What an open link that no longer joins is said as.
-const OPEN_UNUSABLE: &str =
-    "that link no longer lets anyone join. Ask the store's owner for a new link or an invite";
+/// A plugin that could not be downloaded or installed, and why.
+fn install_failed(plugin: &str, error: impl std::fmt::Display) -> Msg {
+    Msg::PluginInstallFailed { plugin: plugin.to_owned(), reason: error.to_string() }
+}
+
+/// A plugin that could not be published, and why. A reason that is a message of ours is said
+/// as it reads.
+fn publish_failed(plugin: &str, reason: Msg) -> Msg {
+    Msg::PluginPublishFailed { plugin: plugin.to_owned(), reason: reason.english() }
+}
 
 /// A refused preview or join, in the words the link calls for.
-fn unusable(error: ClientError) -> String {
+fn unusable(error: ClientError) -> Msg {
     match error.code() {
-        Some("invite_unusable") => UNUSABLE.to_owned(),
-        Some("open_unusable") => OPEN_UNUSABLE.to_owned(),
-        _ => error.to_string(),
+        Some("invite_unusable") => Msg::StoreInviteUnusable,
+        Some("open_unusable") => Msg::StoreOpenLinkUnusable,
+        _ => foreign(error),
     }
 }
 
