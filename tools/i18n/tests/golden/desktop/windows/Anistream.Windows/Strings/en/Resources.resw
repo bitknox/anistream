@@ -35,6 +35,34 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="NoticeSaved" xml:space="preserve">
+    <value>Saved {label}.</value>
+    <comment>Toast after a setting is stored.</comment>
+  </data>
+  <data name="NoticeNotSaved" xml:space="preserve">
+    <value>Couldn't save that setting. {cause}</value>
+    <comment>Toast when a setting could not be stored.</comment>
+  </data>
+  <data name="NoticeEverything_one" xml:space="preserve">
+    <value>One thing in {wait}, {size}, {percent}%.</value>
+    <comment>Toast with a wait.</comment>
+  </data>
+  <data name="NoticeEverything_other" xml:space="preserve">
+    <value>{count} things in {wait}, {size}, {percent}%.</value>
+    <comment>Toast with a wait.</comment>
+  </data>
+  <data name="CauseDiskFull" xml:space="preserve">
+    <value>There is no space left. Free some and try again.</value>
+    <comment>The storage is full.</comment>
+  </data>
+  <data name="CauseNotWritable" xml:space="preserve">
+    <value>{path} is not writable.</value>
+    <comment>The file could not be written.</comment>
+  </data>
+  <data name="NoticeDone" xml:space="preserve">
+    <value>Done.</value>
+    <comment>Nothing to say.</comment>
+  </data>
   <data name="SettingsLanguage" xml:space="preserve">
     <value>Language</value>
     <comment>Settings row.</comment>

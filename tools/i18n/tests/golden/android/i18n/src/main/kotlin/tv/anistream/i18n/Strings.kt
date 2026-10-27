@@ -9,6 +9,30 @@ import android.content.Context
  * `stringResource(R.string.x)` and `pluralStringResource(R.plurals.x, n, ...)` directly.
  */
 object Strings {
+    /** Toast after a setting is stored. */
+    fun noticeSaved(context: Context, label: String): String =
+        context.getString(R.string.notice_saved, label)
+
+    /** Toast when a setting could not be stored. */
+    fun noticeNotSaved(context: Context, cause: String): String =
+        context.getString(R.string.notice_not_saved, cause)
+
+    /** Toast with a wait. */
+    fun noticeEverything(context: Context, wait: String, size: String, count: Int, percent: String): String =
+        context.resources.getQuantityString(R.plurals.notice_everything, count, wait, size, count, percent)
+
+    /** The storage is full. */
+    fun causeDiskFull(context: Context): String =
+        context.getString(R.string.cause_disk_full)
+
+    /** The file could not be written. */
+    fun causeNotWritable(context: Context, path: String): String =
+        context.getString(R.string.cause_not_writable, path)
+
+    /** Nothing to say. */
+    fun noticeDone(context: Context): String =
+        context.getString(R.string.notice_done)
+
     /** Name of the downloads channel. */
     fun channelDownloads(context: Context): String =
         context.getString(R.string.channel_downloads)
