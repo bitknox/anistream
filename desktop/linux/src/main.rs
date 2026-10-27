@@ -97,10 +97,9 @@ fn args() -> Args {
 fn main() -> glib::ExitCode {
     // Answered before GTK starts, so a package can check what it built without a display.
     if std::env::args().nth(1).as_deref() == Some("--version") {
-        println!("anistream {}", anistream_engine::updates::CURRENT);
+        println!("anistream {}", anistream_engine::updates::CURRENT); // i18n-skip
         return glib::ExitCode::SUCCESS;
     }
-    anistream_i18n::init(None);
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -109,6 +108,9 @@ fn main() -> glib::ExitCode {
         .with_writer(std::io::stderr)
         .init();
     let args = args();
+    // The language chosen in Settings (the config's own key, the one the terminal app reads),
+    // else the system's. `ANISTREAM_LANG` still wins over both.
+    anistream_i18n::init(saved_language(&args).as_deref());
 
     adw::init().expect("libadwaita");
     // A scene runs beside the user's own copy, never in it.
@@ -135,13 +137,14 @@ fn main() -> glib::ExitCode {
     // What the engine asks of the desktop, for the main loop.
     let (host_tx, host_rx) = async_channel::unbounded::<HostRequest>();
     let host = Arc::new(engine::DesktopHost::new(host_tx));
-    let (started, prefs_file, cache_dir, data_dir) = match start(&runtime, &args, host) {
+    let (started, paths) = match start(&runtime, &args, host) {
         Ok(started) => started,
         Err(e) => {
             tracing::error!(error = %e, "the engine did not start");
             return glib::ExitCode::FAILURE;
         }
     };
+    let cache_dir = paths.cache_dir.clone();
     let engine::Started { engine, mut events, keep, rebuilt } = started;
     let engine = Arc::new(engine);
 
@@ -169,9 +172,10 @@ fn main() -> glib::ExitCode {
         ..PlayerOptions::default()
     };
     let files = Files {
-        prefs: prefs_file,
+        prefs: paths.config_file.with_file_name("desktop.ini"),
         cache: cache_dir,
-        data: data_dir,
+        data: paths.data_dir.clone(),
+        paths,
         runtime: runtime.handle().clone(),
     };
     let pending = Rc::new(RefCell::new(Some((events_rx, host_rx))));
@@ -226,12 +230,31 @@ struct Files {
     prefs: PathBuf,
     cache: PathBuf,
     data: PathBuf,
+    /// Where the engine's config file is: the window reads and writes the language there.
+    paths: Paths,
     runtime: tokio::runtime::Handle,
 }
 
-/// The engine started, where the window keeps its own preferences, and the cache and data
-/// directories.
-type Start = (engine::Started, PathBuf, PathBuf, PathBuf);
+/// The engine started, and the directories and config file it runs on.
+type Start = (engine::Started, Paths);
+
+/// The language saved in the config the app is about to load: the user's own, or a fixture
+/// scene's under `--data`. `None` follows the system's.
+fn saved_language(args: &Args) -> Option<String> {
+    let file = if args.fixtures {
+        #[cfg(feature = "fixtures")]
+        {
+            engine::paths_under(args.data.as_deref()?).config_file
+        }
+        #[cfg(not(feature = "fixtures"))]
+        {
+            return None;
+        }
+    } else {
+        Paths::resolve().ok()?.config_file
+    };
+    prefs::saved_language(&file)
+}
 
 /// The engine on the user's own directories, or on the fixture scene under `--data`.
 fn start(
@@ -243,11 +266,8 @@ fn start(
         return start_fixtures(runtime, args, host);
     }
     let paths = Paths::resolve().map_err(|e| format!("{e:?}"))?;
-    let prefs = paths.config_file.with_file_name("desktop.ini");
-    let cache = paths.cache_dir.clone();
-    let data = paths.data_dir.clone();
-    let started = runtime.block_on(engine::start(paths, host))?;
-    Ok((started, prefs, cache, data))
+    let started = runtime.block_on(engine::start(paths.clone(), host))?;
+    Ok((started, paths))
 }
 
 #[cfg(feature = "fixtures")]
@@ -261,13 +281,10 @@ fn start_fixtures(
     });
     let scene = fixtures::Scene { media: args.media.clone(), downloading: args.downloading };
     let paths = engine::paths_under(&root);
-    let prefs = paths.config_file.with_file_name("desktop.ini");
-    let cache = paths.cache_dir.clone();
-    let data = paths.data_dir.clone();
     fixtures::keep_runtime(runtime.handle().clone());
     let started = runtime.block_on(fixtures::start(&root, &scene, host))?;
     tracing::info!(root = %root.display(), "the fixture scene");
-    Ok((started, prefs, cache, data))
+    Ok((started, paths))
 }
 
 #[cfg(not(feature = "fixtures"))]
@@ -276,7 +293,7 @@ fn start_fixtures(
     _: &Args,
     _: Arc<engine::DesktopHost>,
 ) -> Result<Start, String> {
-    Err("this build has no fixture scene: build it with --features fixtures".into())
+    Err("this build has no fixture scene: build it with --features fixtures".into()) // i18n-skip
 }
 
 /// Play on TV's sender: on the scene's TVs on loopback for a fixture run, never a real one.
@@ -304,7 +321,7 @@ fn build(
         style::action_icons(&display, &files.cache);
     }
     let hub = Hub::new(engine);
-    let prefs = Rc::new(Prefs::open(files.prefs.clone()));
+    let prefs = Rc::new(Prefs::open(files.prefs.clone()).with_config(files.paths.clone()));
     let updater = updater::Updater::new(&files.cache, args.fixtures);
     let tv = play_on_tv(args, files);
     let shell = Shell::build(app, Rc::clone(&hub), prefs, player, updater, tv, args.fixtures);

@@ -1085,6 +1085,161 @@ pub fn player_translation_label() -> String {
     text("player-translation-label", &[])
 }
 
+/// Tooltip on the button that opens a setting's preview on a page of its own, and accessible name of the preview.
+pub fn settings_preview() -> String {
+    text("settings-preview", &[])
+}
+
+/// Tooltip on the button that steps a setting to its previous value.
+pub fn settings_previous_value() -> String {
+    text("settings-previous-value", &[])
+}
+
+/// Tooltip on the button that steps a setting to its next value.
+pub fn settings_next_value() -> String {
+    text("settings-next-value", &[])
+}
+
+/// Line after the legal line under the sources settings: where sources come from.
+pub fn settings_sources_come_from() -> String {
+    text("settings-sources-come-from", &[])
+}
+
+/// Choice for the download quality: the usual size.
+pub fn settings_quality_standard() -> String {
+    text("settings-quality-standard", &[])
+}
+
+/// Choice for the download quality: larger files with more detail.
+pub fn settings_quality_higher() -> String {
+    text("settings-quality-higher", &[])
+}
+
+/// Label on the left half of the upscaling preview: the video before processing.
+pub fn settings_preview_source() -> String {
+    text("settings-preview-source", &[])
+}
+
+/// Preview note under the upscaling frame when upscaling is off.
+pub fn settings_upscaling_note_off() -> String {
+    text("settings-upscaling-note-off", &[])
+}
+
+/// Preview note under the upscaling frame for the natural look.
+pub fn settings_upscaling_note_natural() -> String {
+    text("settings-upscaling-note-natural", &[])
+}
+
+/// Preview note under the upscaling frame for the sharp look.
+pub fn settings_upscaling_note_sharp() -> String {
+    text("settings-upscaling-note-sharp", &[])
+}
+
+/// A line of sample subtitle over the preview frame. Any short sentence will do.
+pub fn settings_caption_sample() -> String {
+    text("settings-caption-sample", &[])
+}
+
+/// Preview note under the subtitle frame. The language is a language name.
+pub fn settings_caption_note(language: &str) -> String {
+    text("settings-caption-note", &[("language", Arg::Text(language))])
+}
+
+/// Preview note for new-episode notifications when they are on. The tracker is a name such as AniList.
+pub fn settings_notify_note_on(tracker: &str) -> String {
+    text("settings-notify-note-on", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Preview note for new-episode notifications when they are off.
+pub fn settings_notify_note_off() -> String {
+    text("settings-notify-note-off", &[])
+}
+
+/// Heading of the preview note beside the sources settings while torrents are on.
+pub fn settings_connection_check_title() -> String {
+    text("settings-connection-check-title", &[])
+}
+
+/// Preview note beside the sources settings while torrents are on.
+pub fn settings_connection_check_note() -> String {
+    text("settings-connection-check-note", &[])
+}
+
+/// Preview note beside the accounts settings.
+pub fn settings_accounts_note() -> String {
+    text("settings-accounts-note", &[])
+}
+
+/// Preview note beside the Discord settings when presence is on.
+pub fn settings_presence_note_on() -> String {
+    text("settings-presence-note-on", &[])
+}
+
+/// Preview note beside the Discord settings when presence is off.
+pub fn settings_presence_note_off() -> String {
+    text("settings-presence-note-off", &[])
+}
+
+/// Preview note beside the advanced settings.
+pub fn settings_advanced_note() -> String {
+    text("settings-advanced-note", &[])
+}
+
+/// Button that opens the page of the new version of the app.
+pub fn updates_view_version() -> String {
+    text("updates-view-version", &[])
+}
+
+/// Button that closes the app and opens the new version it has put in place.
+pub fn updates_restart() -> String {
+    text("updates-restart", &[])
+}
+
+/// Button that downloads the new version of the app.
+pub fn updates_download() -> String {
+    text("updates-download", &[])
+}
+
+/// Accessible name of the progress bar while the new version downloads.
+pub fn updates_progress_label() -> String {
+    text("updates-progress-label", &[])
+}
+
+/// Line under AniList's name on the Accounts page.
+pub fn accounts_sync_detail(tracker: &str) -> String {
+    text("accounts-sync-detail", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Line under a signed-in account while changes wait for the connection.
+pub fn accounts_changes_waiting_offline(count: i64) -> String {
+    text("accounts-changes-waiting-offline", &[("count", Arg::Int(count))])
+}
+
+/// Line under a signed-in account while changes wait to be sent.
+pub fn accounts_changes_waiting(count: i64) -> String {
+    text("accounts-changes-waiting", &[("count", Arg::Int(count))])
+}
+
+/// Footnote on the Accounts page: where sign-in tokens are kept, when it is the system's keyring.
+pub fn accounts_tokens_keyring() -> String {
+    text("accounts-tokens-keyring", &[])
+}
+
+/// Reason an update stopped: the downloaded file could not be read. The reason is the system's own words.
+pub fn updates_why_read(reason: &str) -> String {
+    text("updates-why-read", &[("reason", Arg::Text(reason))])
+}
+
+/// Reason an update stopped: the new version is in place but did not open.
+pub fn updates_why_reopen() -> String {
+    text("updates-why-reopen", &[])
+}
+
+/// Accessible description of the mascot's picture. Nagare is the mascot's name.
+pub fn nagare_description() -> String {
+    text("nagare-description", &[])
+}
+
 /// Button on a notice that asks to open the plugin stores.
 pub fn shell_open_stores() -> String {
     text("shell-open-stores", &[])

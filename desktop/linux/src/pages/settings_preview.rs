@@ -5,10 +5,11 @@
 use std::{cell::RefCell, rc::Rc};
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_model::{downloads::DownloadState, settings::SettingKey};
 use gtk::{gdk, glib};
 
-use crate::{catalog, hub::Known};
+use crate::{catalog, hub::Known, say};
 
 /// What the column shows: a pane's note, or a row's effect.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,13 +98,13 @@ fn mode_frame(value: &str) -> &'static str {
 }
 
 /// What the end chip and the note say of a mode.
-pub fn mode_words(value: &str) -> (&'static str, &'static str) {
+pub fn mode_words(value: &str) -> (String, String) {
     match mode_frame(value) {
-        "natural" => ("natural · ArtCNN", "Faithful line work and texture, nothing restyled."),
-        "sharp" => {
-            ("sharp · Anime4K", "Crisper lines and stronger edges, at some cost to texture.")
+        "natural" => {
+            (t::settings_value_upscaling_natural(), t::settings_upscaling_note_natural())
         }
-        _ => ("off", "The 480p source, scaled to fit without processing."),
+        "sharp" => (t::settings_value_upscaling_sharp(), t::settings_upscaling_note_sharp()),
+        _ => (t::value_off(), t::settings_upscaling_note_off()),
     }
 }
 
@@ -163,7 +164,7 @@ fn texture(width: usize, height: usize, rgba: Vec<u8>) -> gdk::Texture {
 /// Upscaling: the 480p source beside `value`'s mode, and what the mode does.
 pub fn upscaling(value: &str) -> gtk::Box {
     let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    column.append(&heading("Upscaling"));
+    column.append(&heading(&t::player_upscaling()));
     let (name, words) = mode_words(value);
     if let (Some(off), Some(mode)) = (frame("off"), frame(mode_frame(value))) {
         let rgba = split(&off, &mode);
@@ -171,21 +172,21 @@ pub fn upscaling(value: &str) -> gtk::Box {
         column.append(&framed(
             &picture,
             &[
-                chip("480p source", gtk::Align::Start).upcast(),
-                chip(name, gtk::Align::End).upcast(),
+                chip(&t::settings_preview_source(), gtk::Align::Start).upcast(),
+                chip(&name, gtk::Align::End).upcast(),
             ],
         ));
     }
-    column.append(&note(words));
+    column.append(&note(&words));
     column
 }
 
 /// Subtitles: a plain line as the player sets it, over the 480p frame.
 pub fn caption(language: &str) -> gtk::Box {
     let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    column.append(&heading("Subtitles"));
+    column.append(&heading(&t::player_subtitles()));
     if let Some(off) = frame("off") {
-        let line = gtk::Label::new(Some("The lantern road runs on past the last town."));
+        let line = gtk::Label::new(Some(&t::settings_caption_sample()));
         line.add_css_class("caption-sample");
         line.set_wrap(true);
         line.set_justify(gtk::Justification::Center);
@@ -199,15 +200,12 @@ pub fn caption(language: &str) -> gtk::Box {
         ));
     }
     let language = crate::say::language(language);
-    column.append(&note(&format!(
-        "Plain subtitles look like this, in {language} when an episode has them. Styled \
-         subtitles keep their own look."
-    )));
+    column.append(&note(&t::settings_caption_note(&language)));
     column
 }
 
 /// A pane's note, from what is known now.
-fn pane_note(pane: &str, known: &Known) -> Option<(&'static str, String)> {
+fn pane_note(pane: &str, known: &Known) -> Option<(String, String)> {
     let on = |key| known.setting(key).is_some_and(|r| catalog::is_on(&r));
     Some(match pane {
         "downloads" => {
@@ -217,52 +215,30 @@ fn pane_note(pane: &str, known: &Known) -> Option<(&'static str, String)> {
                 .filter(|r| r.state == DownloadState::Done)
                 .map(|r| r.total.max(r.downloaded))
                 .sum();
-            ("Storage", format!("Downloads take {}.", glib::format_size(taken)))
+            (t::settings_group_storage(), t::downloads_space_used(&say::bytes(taken)))
         }
         "notifications" => (
-            "New episodes",
+            t::settings_new_episodes(),
             if on(SettingKey::EpisodeNotifications) {
-                "One notification when an episode of a show in your Watching list comes out, at \
-                 the time AniList gives. A show's own setting comes first."
+                t::settings_notify_note_on(&say::tracker_name("anilist"))
             } else {
-                "Off. Only shows turned on in their own settings notify."
-            }
-            .to_owned(),
+                t::settings_notify_note_off()
+            },
         ),
-        "sources" if on(SettingKey::Torrents) => (
-            "Connection check",
-            "anistream checks where torrent traffic leaves from when a torrent starts and every \
-             minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is \
-             what protects you."
-                .to_owned(),
-        ),
-        "sources" => (
-            "Sources",
-            "Sources are tried in order, top to bottom. A show can keep its own source, chosen \
-             from its title page."
-                .to_owned(),
-        ),
-        "accounts" => (
-            "Accounts",
-            "anistream works without an account. Your watch history stays on this computer when \
-             you sign out."
-                .to_owned(),
-        ),
+        "sources" if on(SettingKey::Torrents) => {
+            (t::settings_connection_check_title(), t::settings_connection_check_note())
+        }
+        "sources" => (t::sources_title(), t::sources_order_detail_show()),
+        "accounts" => (t::accounts_title(), t::settings_accounts_note()),
         "integrations" => (
-            "Discord presence",
+            t::settings_discord_presence(),
             if on(SettingKey::Presence) {
-                "Your Discord profile shows what you watch while an episode plays."
+                t::settings_presence_note_on()
             } else {
-                "Off. When on, your Discord profile shows what you watch while an episode plays."
-            }
-            .to_owned(),
+                t::settings_presence_note_off()
+            },
         ),
-        "advanced" => (
-            "Advanced",
-            "An option here can undo a Playback setting, such as upscaling or night mode. Most \
-             people never need this pane."
-                .to_owned(),
-        ),
+        "advanced" => (t::settings_group_advanced(), t::settings_advanced_note()),
         _ => return None,
     })
 }
@@ -278,7 +254,7 @@ pub fn content(topic: Topic, known: &Known) -> Option<gtk::Widget> {
         Topic::Pane(pane) => {
             let (title, text) = pane_note(pane, known)?;
             let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
-            column.append(&heading(title));
+            column.append(&heading(&title));
             column.append(&note(&text));
             column.upcast()
         }
@@ -304,9 +280,9 @@ mod tests {
 
     #[test]
     fn modes_read_by_their_setting_value() {
-        assert_eq!(mode_words("natural").0, "natural · ArtCNN");
-        assert_eq!(mode_words("sharp").0, "sharp · Anime4K");
-        assert_eq!(mode_words("off").0, "off");
+        assert_eq!(mode_words("natural").0, "Natural · ArtCNN");
+        assert_eq!(mode_words("sharp").0, "Sharp · Anime4K");
+        assert_eq!(mode_words("off").0, "Off");
         assert_eq!(topic_of(SettingKey::Upscaling), Some(Topic::Upscaling));
         assert_eq!(topic_of(SettingKey::Quality), None);
     }
