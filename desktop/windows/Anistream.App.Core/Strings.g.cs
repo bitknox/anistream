@@ -102,6 +102,45 @@ public static partial class T
     /// <summary>Warning at install and in onboarding, in the same words in both.</summary>
     public static string PluginRiskWarning => Get("PluginRiskWarning");
 
+    /// <summary>Menu and palette entry that opens the picker, and the picker's title.</summary>
+    public static string SourcePickerTitle => Get("SourcePickerTitle");
+
+    /// <summary>The first choice: let anistream pick per episode. Paired with source-picker-automatic-detail.</summary>
+    public static string SourcePickerAutomatic => Get("SourcePickerAutomatic");
+
+    /// <summary>Under "Automatic": what it does.</summary>
+    public static string SourcePickerAutomaticDetail => Get("SourcePickerAutomaticDetail");
+
+    /// <summary>Under a source: how many of the title's released episodes it lists.</summary>
+    public static string SourcePickerCoverage(long covered, long of) => Fill(GetPlural("SourcePickerCoverage", of), ("covered", covered.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("of", of.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Under a source that is switched off in Settings.</summary>
+    public static string SourceNoteOff => Get("SourceNoteOff");
+
+    /// <summary>Under a source that failed a few times in a row. It is tried again shortly.</summary>
+    public static string SourceNoteResting => Get("SourceNoteResting");
+
+    /// <summary>Under a source picked for this title that is no longer installed.</summary>
+    public static string SourceNoteGone => Get("SourceNoteGone");
+
+    /// <summary>Under a source that found more than one show by this name and could not tell which is this one.</summary>
+    public static string SourceNoteAmbiguous => Get("SourceNoteAmbiguous");
+
+    /// <summary>Under a source held back by the VPN check in Settings.</summary>
+    public static string SourceNoteHeldBack => Get("SourceNoteHeldBack");
+
+    /// <summary>Heading over one source's releases, for a source that offers several (a batch, single episodes).</summary>
+    public static string SourcePickerReleases => Get("SourcePickerReleases");
+
+    /// <summary>Accessibility label and badge for the chosen row.</summary>
+    public static string SourcePickerChosen => Get("SourcePickerChosen");
+
+    /// <summary>Notice when the source picked for a title is off, removed or failing. Shown once per visit.</summary>
+    public static string SourcePinUnavailable(string name) => Fill(Get("SourcePinUnavailable"), ("name", name));
+
+    /// <summary>Under an episode that is out but that no source lists. The row is dimmed and can't be played.</summary>
+    public static string EpisodeUnsourced => Get("EpisodeUnsourced");
+
     /// <summary>The languages this build has text for, source first. Draft ones carry the draft label.</summary>
     public static readonly IReadOnlyList<(string Tag, string Name, bool Draft)> Languages = new (string, string, bool)[]
     {
@@ -143,6 +182,20 @@ public static partial class T
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",
+        ["SourcePickerTitle"] = "Source for this title",
+        ["SourcePickerAutomatic"] = "Automatic",
+        ["SourcePickerAutomaticDetail"] = "Each episode from the first source that has it",
+        ["SourcePickerCoverage_one"] = "{covered} of {of} episode",
+        ["SourcePickerCoverage_other"] = "{covered} of {of} episodes",
+        ["SourceNoteOff"] = "Switched off",
+        ["SourceNoteResting"] = "Not responding, trying again soon",
+        ["SourceNoteGone"] = "Not installed",
+        ["SourceNoteAmbiguous"] = "Couldn't match this title",
+        ["SourceNoteHeldBack"] = "Held back by the VPN check",
+        ["SourcePickerReleases"] = "Releases",
+        ["SourcePickerChosen"] = "Chosen",
+        ["SourcePinUnavailable"] = "{name} isn't available right now, so this title's episodes come from your other sources.",
+        ["EpisodeUnsourced"] = "No source has this episode",
     };
 
     /// <summary>The plural category of a whole number in a language, from CLDR.</summary>

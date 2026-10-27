@@ -167,4 +167,60 @@
     <value>Plugins are written by other people and run on your device. Install only from people you trust.</value>
     <comment>Warning at install and in onboarding, in the same words in both.</comment>
   </data>
+  <data name="SourcePickerTitle" xml:space="preserve">
+    <value>Source for this title</value>
+    <comment>Menu and palette entry that opens the picker, and the picker's title.</comment>
+  </data>
+  <data name="SourcePickerAutomatic" xml:space="preserve">
+    <value>Automatic</value>
+    <comment>The first choice: let anistream pick per episode. Paired with source-picker-automatic-detail.</comment>
+  </data>
+  <data name="SourcePickerAutomaticDetail" xml:space="preserve">
+    <value>Each episode from the first source that has it</value>
+    <comment>Under "Automatic": what it does.</comment>
+  </data>
+  <data name="SourcePickerCoverage_one" xml:space="preserve">
+    <value>{covered} of {of} episode</value>
+    <comment>Under a source: how many of the title's released episodes it lists.</comment>
+  </data>
+  <data name="SourcePickerCoverage_other" xml:space="preserve">
+    <value>{covered} of {of} episodes</value>
+    <comment>Under a source: how many of the title's released episodes it lists.</comment>
+  </data>
+  <data name="SourceNoteOff" xml:space="preserve">
+    <value>Switched off</value>
+    <comment>Under a source that is switched off in Settings.</comment>
+  </data>
+  <data name="SourceNoteResting" xml:space="preserve">
+    <value>Not responding, trying again soon</value>
+    <comment>Under a source that failed a few times in a row. It is tried again shortly.</comment>
+  </data>
+  <data name="SourceNoteGone" xml:space="preserve">
+    <value>Not installed</value>
+    <comment>Under a source picked for this title that is no longer installed.</comment>
+  </data>
+  <data name="SourceNoteAmbiguous" xml:space="preserve">
+    <value>Couldn't match this title</value>
+    <comment>Under a source that found more than one show by this name and could not tell which is this one.</comment>
+  </data>
+  <data name="SourceNoteHeldBack" xml:space="preserve">
+    <value>Held back by the VPN check</value>
+    <comment>Under a source held back by the VPN check in Settings.</comment>
+  </data>
+  <data name="SourcePickerReleases" xml:space="preserve">
+    <value>Releases</value>
+    <comment>Heading over one source's releases, for a source that offers several (a batch, single episodes).</comment>
+  </data>
+  <data name="SourcePickerChosen" xml:space="preserve">
+    <value>Chosen</value>
+    <comment>Accessibility label and badge for the chosen row.</comment>
+  </data>
+  <data name="SourcePinUnavailable" xml:space="preserve">
+    <value>{name} isn't available right now, so this title's episodes come from your other sources.</value>
+    <comment>Notice when the source picked for a title is off, removed or failing. Shown once per visit.</comment>
+  </data>
+  <data name="EpisodeUnsourced" xml:space="preserve">
+    <value>No source has this episode</value>
+    <comment>Under an episode that is out but that no source lists. The row is dimmed and can't be played.</comment>
+  </data>
 </root>

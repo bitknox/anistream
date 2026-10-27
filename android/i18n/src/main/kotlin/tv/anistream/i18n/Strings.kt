@@ -129,6 +129,58 @@ object Strings {
     fun pluginRiskWarning(context: Context): String =
         context.getString(R.string.plugin_risk_warning)
 
+    /** Menu and palette entry that opens the picker, and the picker's title. */
+    fun sourcePickerTitle(context: Context): String =
+        context.getString(R.string.source_picker_title)
+
+    /** The first choice: let anistream pick per episode. Paired with source-picker-automatic-detail. */
+    fun sourcePickerAutomatic(context: Context): String =
+        context.getString(R.string.source_picker_automatic)
+
+    /** Under "Automatic": what it does. */
+    fun sourcePickerAutomaticDetail(context: Context): String =
+        context.getString(R.string.source_picker_automatic_detail)
+
+    /** Under a source: how many of the title's released episodes it lists. */
+    fun sourcePickerCoverage(context: Context, covered: Int, of: Int): String =
+        context.resources.getQuantityString(R.plurals.source_picker_coverage, of, covered, of)
+
+    /** Under a source that is switched off in Settings. */
+    fun sourceNoteOff(context: Context): String =
+        context.getString(R.string.source_note_off)
+
+    /** Under a source that failed a few times in a row. It is tried again shortly. */
+    fun sourceNoteResting(context: Context): String =
+        context.getString(R.string.source_note_resting)
+
+    /** Under a source picked for this title that is no longer installed. */
+    fun sourceNoteGone(context: Context): String =
+        context.getString(R.string.source_note_gone)
+
+    /** Under a source that found more than one show by this name and could not tell which is this one. */
+    fun sourceNoteAmbiguous(context: Context): String =
+        context.getString(R.string.source_note_ambiguous)
+
+    /** Under a source held back by the VPN check in Settings. */
+    fun sourceNoteHeldBack(context: Context): String =
+        context.getString(R.string.source_note_held_back)
+
+    /** Heading over one source's releases, for a source that offers several (a batch, single episodes). */
+    fun sourcePickerReleases(context: Context): String =
+        context.getString(R.string.source_picker_releases)
+
+    /** Accessibility label and badge for the chosen row. */
+    fun sourcePickerChosen(context: Context): String =
+        context.getString(R.string.source_picker_chosen)
+
+    /** Notice when the source picked for a title is off, removed or failing. Shown once per visit. */
+    fun sourcePinUnavailable(context: Context, name: String): String =
+        context.getString(R.string.source_pin_unavailable, name)
+
+    /** Under an episode that is out but that no source lists. The row is dimmed and can't be played. */
+    fun episodeUnsourced(context: Context): String =
+        context.getString(R.string.episode_unsourced)
+
     /** The languages this build has text for, source first. Draft ones carry the draft label. */
     val languages: List<Language> = listOf(
         Language("en", "English", false),

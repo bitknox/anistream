@@ -103,3 +103,46 @@ sources-empty = No sources yet. Join a plugin store to add some.
 # Warning at install and in onboarding, in the same words in both.
 plugin-risk-warning = Plugins are written by other people and run on your device. Install only from people you trust.
 
+# Menu and palette entry that opens the picker, and the picker's title.
+source-picker-title = Source for this title
+
+# The first choice: let anistream pick per episode. Paired with source-picker-automatic-detail.
+source-picker-automatic = Automatic
+
+# Under "Automatic": what it does.
+source-picker-automatic-detail = Each episode from the first source that has it
+
+# Under a source: how many of the title's released episodes it lists.
+source-picker-coverage =
+    { $of ->
+        [one] { $covered } of { $of } episode
+       *[other] { $covered } of { $of } episodes
+    }
+
+# Under a source that is switched off in Settings.
+source-note-off = Switched off
+
+# Under a source that failed a few times in a row. It is tried again shortly.
+source-note-resting = Not responding, trying again soon
+
+# Under a source picked for this title that is no longer installed.
+source-note-gone = Not installed
+
+# Under a source that found more than one show by this name and could not tell which is this one.
+source-note-ambiguous = Couldn't match this title
+
+# Under a source held back by the VPN check in Settings.
+source-note-held-back = Held back by the VPN check
+
+# Heading over one source's releases, for a source that offers several (a batch, single episodes).
+source-picker-releases = Releases
+
+# Accessibility label and badge for the chosen row.
+source-picker-chosen = Chosen
+
+# Notice when the source picked for a title is off, removed or failing. Shown once per visit.
+source-pin-unavailable = { $name } isn't available right now, so this title's episodes come from your other sources.
+
+# Under an episode that is out but that no source lists. The row is dimmed and can't be played.
+episode-unsourced = No source has this episode
+

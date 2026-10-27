@@ -103,3 +103,46 @@ sources-empty = [Ñö šöüŕçéš ýéţ. Ĵöîñ à þļüĝîñ šţöŕé
 # Warning at install and in onboarding, in the same words in both.
 plugin-risk-warning = [Þļüĝîñš àŕé ŵŕîţţéñ ƀý öţĥéŕ þéöþļé àñð ŕüñ öñ ýöüŕ ðéṽîçé. Îñšţàļļ öñļý ƒŕöɱ þéöþļé ýöü ţŕüšţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
+# Menu and palette entry that opens the picker, and the picker's title.
+source-picker-title = [Šöüŕçé ƒöŕ ţĥîš ţîţļé~~~~~~~]
+
+# The first choice: let anistream pick per episode. Paired with source-picker-automatic-detail.
+source-picker-automatic = [Åüţöɱàţîç~~~]
+
+# Under "Automatic": what it does.
+source-picker-automatic-detail = [Éàçĥ éþîšöðé ƒŕöɱ ţĥé ƒîŕšţ šöüŕçé ţĥàţ ĥàš îţ~~~~~~~~~~~~~~]
+
+# Under a source: how many of the title's released episodes it lists.
+source-picker-coverage =
+    { $of ->
+        [one] [{ $covered } öƒ { $of } éþîšöðé~~~~~~]
+       *[other] [{ $covered } öƒ { $of } éþîšöðéš~~~~~~]
+    }
+
+# Under a source that is switched off in Settings.
+source-note-off = [Šŵîţçĥéð öƒƒ~~~~]
+
+# Under a source that failed a few times in a row. It is tried again shortly.
+source-note-resting = [Ñöţ ŕéšþöñðîñĝ, ţŕýîñĝ àĝàîñ šööñ~~~~~~~~~~]
+
+# Under a source picked for this title that is no longer installed.
+source-note-gone = [Ñöţ îñšţàļļéð~~~~]
+
+# Under a source that found more than one show by this name and could not tell which is this one.
+source-note-ambiguous = [Çöüļðñ'ţ ɱàţçĥ ţĥîš ţîţļé~~~~~~~~]
+
+# Under a source held back by the VPN check in Settings.
+source-note-held-back = [Ĥéļð ƀàçķ ƀý ţĥé ṼÞÑ çĥéçķ~~~~~~~~]
+
+# Heading over one source's releases, for a source that offers several (a batch, single episodes).
+source-picker-releases = [Ŕéļéàšéš~~~]
+
+# Accessibility label and badge for the chosen row.
+source-picker-chosen = [Çĥöšéñ~~]
+
+# Notice when the source picked for a title is off, removed or failing. Shown once per visit.
+source-pin-unavailable = [{ $name } îšñ'ţ àṽàîļàƀļé ŕîĝĥţ ñöŵ, šö ţĥîš ţîţļé'š éþîšöðéš çöɱé ƒŕöɱ ýöüŕ öţĥéŕ šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Under an episode that is out but that no source lists. The row is dimmed and can't be played.
+episode-unsourced = [Ñö šöüŕçé ĥàš ţĥîš éþîšöðé~~~~~~~~]
+

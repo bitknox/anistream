@@ -74,4 +74,33 @@
     <string name="sources_empty">No sources yet. Join a plugin store to add some.</string>
     <!-- Warning at install and in onboarding, in the same words in both. -->
     <string name="plugin_risk_warning">Plugins are written by other people and run on your device. Install only from people you trust.</string>
+    <!-- Menu and palette entry that opens the picker, and the picker's title. -->
+    <string name="source_picker_title">Source for this title</string>
+    <!-- The first choice: let anistream pick per episode. Paired with source-picker-automatic-detail. -->
+    <string name="source_picker_automatic">Automatic</string>
+    <!-- Under "Automatic": what it does. -->
+    <string name="source_picker_automatic_detail">Each episode from the first source that has it</string>
+    <!-- Under a source: how many of the title's released episodes it lists. -->
+    <plurals name="source_picker_coverage">
+        <item quantity="one">%1$d of %2$d episode</item>
+        <item quantity="other">%1$d of %2$d episodes</item>
+    </plurals>
+    <!-- Under a source that is switched off in Settings. -->
+    <string name="source_note_off">Switched off</string>
+    <!-- Under a source that failed a few times in a row. It is tried again shortly. -->
+    <string name="source_note_resting">Not responding, trying again soon</string>
+    <!-- Under a source picked for this title that is no longer installed. -->
+    <string name="source_note_gone">Not installed</string>
+    <!-- Under a source that found more than one show by this name and could not tell which is this one. -->
+    <string name="source_note_ambiguous">Couldn\'t match this title</string>
+    <!-- Under a source held back by the VPN check in Settings. -->
+    <string name="source_note_held_back">Held back by the VPN check</string>
+    <!-- Heading over one source's releases, for a source that offers several (a batch, single episodes). -->
+    <string name="source_picker_releases">Releases</string>
+    <!-- Accessibility label and badge for the chosen row. -->
+    <string name="source_picker_chosen">Chosen</string>
+    <!-- Notice when the source picked for a title is off, removed or failing. Shown once per visit. -->
+    <string name="source_pin_unavailable">%1$s isn\'t available right now, so this title\'s episodes come from your other sources.</string>
+    <!-- Under an episode that is out but that no source lists. The row is dimmed and can't be played. -->
+    <string name="episode_unsourced">No source has this episode</string>
 </resources>
