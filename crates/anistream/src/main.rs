@@ -52,6 +52,10 @@ struct Cli {
     #[arg(long, value_parser = ["adaptive", "immersive"])]
     theme: Option<String>,
 
+    /// Show the app in this language (a tag such as `da`), overriding the `language` setting.
+    #[arg(long, value_name = "TAG")]
+    lang: Option<String>,
+
     /// Turn off terminal graphics and use text only.
     #[arg(long)]
     no_images: bool,
@@ -240,8 +244,6 @@ async fn main() -> Result<()> {
     let _ = rlimit::increase_nofile_limit(8192);
 
     let args = Cli::parse();
-    // ANISTREAM_LANG=en-XA shows the pseudo-locale; a saved choice joins this when the TUI gets its Language row.
-    anistream_i18n::init(None);
     let paths = Paths::resolve().context("resolving config paths")?;
     // A store server is a long-running service in someone's terminal or a unit file, so it logs
     // where they are looking rather than to the app's log file.
@@ -261,6 +263,9 @@ async fn main() -> Result<()> {
         config_problem = Some(problem);
         Config::default()
     });
+    // The language, once: `--lang` over the config key, both over the system's. ANISTREAM_LANG
+    // (for trying a language or the pseudo-locale) still comes first.
+    anistream_i18n::init(args.lang.as_deref().or(config.language.as_deref()));
     if let Some(mode) = &args.theme {
         config.theme.mode =
             if mode == "immersive" { ThemeMode::Immersive } else { ThemeMode::Adaptive };

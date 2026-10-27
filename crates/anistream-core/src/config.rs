@@ -59,6 +59,10 @@ impl Paths {
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
+    /// The language the terminal app speaks, as a tag from `anistream_i18n::languages()` such as
+    /// `da` or `pt-BR`. Unset (or `"system"`) follows the system's language. `--lang` overrides it
+    /// for one run, and a language the build lacks shows English.
+    pub language: Option<String>,
     pub theme: ThemeConfig,
     pub playback: PlaybackConfig,
     pub providers: ProvidersConfig,
@@ -1193,6 +1197,13 @@ mod tests {
         let off = Config::from_toml("[playback]\nupscaling = \"off\"").unwrap();
         assert_eq!(off.playback.upscaling, Upscaling::Off, "an explicit off stays off");
         assert_eq!(Config::default().playback.upscaling, Upscaling::Natural);
+    }
+
+    #[test]
+    fn the_language_is_a_root_key_and_follows_the_system_when_unset() {
+        assert_eq!(Config::default().language, None);
+        let cfg = Config::from_toml("language = \"da\"\n[theme]\nmotion = false").unwrap();
+        assert_eq!(cfg.language.as_deref(), Some("da"));
     }
 
     #[test]

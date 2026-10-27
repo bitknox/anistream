@@ -13,6 +13,7 @@
 //! in `fixtures`.
 
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
+use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentFor, ContentList, Entry, LibrarySegment},
     command::Command,
@@ -63,7 +64,7 @@ pub use self::{
     lists::{
         SEARCH_FILTER_ROWS, cycle_search_filter, search_filter_summary, search_filter_value,
     },
-    notices::{ACTIVITY_DELAY, Job, LOG_CAPACITY, LogRow, Toast, worded},
+    notices::{ACTIVITY_DELAY, Job, LOG_CAPACITY, LogRow, Toast, alert, info, say, worded},
     overlays::{FrameReport, PALETTE_ROWS},
     playback::NowPlaying,
     providers::vpn_badge,
@@ -481,13 +482,12 @@ impl App {
             // A watch party: joined, left, and an episode the room plays that no source here
             // has, said as toasts. What the room says comes on the player, where the viewer is;
             // the members and the form are a native app's.
-            Event::PartyJoined(view) => self.push_toast(Notice::raw_info(format!(
-                "watch party · room {} on {}",
-                view.room, view.server
-            ))),
-            Event::PartyLeft { reason: Some(reason) } => self.push_toast(Notice::raw_alert(reason.english())),
+            Event::PartyJoined(view) => {
+                self.push_toast(info(t::party_joined(&view.room, &view.server)))
+            }
+            Event::PartyLeft { reason: Some(reason) } => self.push_toast(Notice::alert(reason)),
             Event::PartyNoSource { reason, .. } => {
-                self.push_toast(Notice::raw_alert(format!("{reason}; still in the party")))
+                self.push_toast(alert(t::party_no_source_still_in(&say(&reason))))
             }
             Event::PartyLeft { reason: None }
             | Event::PartyForm(_)
@@ -500,7 +500,7 @@ impl App {
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),
-            Event::Status(status) => self.status = status.map(|m| m.english()).unwrap_or_default(),
+            Event::Status(status) => self.status = status.map(|m| say(&m)).unwrap_or_default(),
             Event::Toast(notice) => self.push_toast(notice),
             // Decoded off the loop, and back through `artwork_decoded`.
             Event::ArtworkReady { .. } => {}
@@ -520,17 +520,17 @@ impl App {
             // A native app's show sheet, which the terminal has none of.
             Event::ShowSettings(_) => {}
             Event::TitleDub { id, dub } => self.apply_dub(id, dub),
-            Event::SourcesChanged => self.status = "reloading sources…".into(),
-            Event::ProviderNote(note) => self.provider_note = Some(note.english()),
+            Event::SourcesChanged => self.status = t::status_reloading_sources(),
+            Event::ProviderNote(note) => self.provider_note = Some(say(&note)),
             Event::ProviderPreference(choice) => self.provider_preference = choice,
             Event::SourceOptions { id, options } => {
                 if self.title_on_screen() == Some(id) {
                     self.source_options = options;
                 }
             }
-            Event::PinUnavailable { name, .. } => self.push_toast(Notice::raw_info(format!(
-                "{name} is pinned for this title and is not available, so the other sources are used"
-            ))),
+            Event::PinUnavailable { name, .. } => {
+                self.push_toast(info(t::pin_unavailable(&name)))
+            }
             Event::Sources { id, episode, candidates } => {
                 self.apply_sources(id, episode, candidates)
             }
@@ -600,7 +600,7 @@ impl App {
             Event::PlaybackEnded { ending, .. } => self.apply_playback_ended(ending),
             Event::Sync(state) => self.apply_sync(*state),
             Event::JobStarted { job, activity } => self.start_job(job, activity),
-            Event::JobNote { job, note, wait } => self.apply_job_note(job, note.english(), wait),
+            Event::JobNote { job, note, wait } => self.apply_job_note(job, say(&note), wait),
             Event::JobDone(job) => self.jobs.retain(|j| j.id != job),
             Event::ProgressQueued => self.apply_progress_queued(),
             Event::Conflicts(rows) => self.apply_conflicts(rows),

@@ -633,6 +633,27 @@ notice-episodes-queued =
        *[other] Queued { $count } episodes.
     }
 
+# What the terminal says beside a notice that has something to do about it. The key is the one bound to stopping playback, as the key map draws it.
+hint-stop-playback = Press { $key } to stop playback.
+
+# What the terminal says beside a notice about a { -plugin } update: where to go.
+hint-open-stores = Go to Sources and press Enter to open the plugin stores.
+
+# What the terminal says beside the notice that Kitsu signs in from the Accounts screen.
+hint-kitsu-credentials = Press Enter on its row to enter your credentials.
+
+# Toast when a { -watch-party } is joined.
+party-joined = Joined the watch party in room { $room } on { $server }.
+
+# Toast when the party's episode has no { -source } here. The reason says why.
+party-no-source-still-in = { $reason } You're still in the watch party.
+
+# Status line while the { -source-pl } are rebuilt after a change.
+status-reloading-sources = Reloading sources…
+
+# Toast when the { -source } pinned for a title can't be used and the others are tried instead.
+pin-unavailable = { $name } is pinned for this title but isn't available, so the other sources are used.
+
 # Button that runs a failed action again.
 action-try-again = Try again
 

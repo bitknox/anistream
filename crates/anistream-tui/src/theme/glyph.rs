@@ -83,18 +83,12 @@ pub fn meter_parts(fraction: f64, width: usize) -> (String, String) {
     (filled, empty)
 }
 
-/// An eyebrow: a small label above or beside content, set in caps.
+/// An eyebrow: a small label above or beside content. It reads as text in sentence case, set apart
+/// by the dim role and the interpunct separators, never by capitals in the string.
 ///
-/// This used to letterspace as well — `M A D H O U S E` — on the theory that tracking is a
-/// typographic lever almost no TUI uses. It is unused for a reason. Read on a real terminal
-/// it is tiring rather than refined, and it is worst on exactly the content that needs it
-/// least: digits. `2 8 E P · 2 0 2 6 · 8 5` defeats the grouping that makes a number
-/// scannable at a glance, and doubling every label's width crowds out the content beside it.
-///
-/// So the distinction between an eyebrow and body text is carried by case, by the dim role
-/// and by the interpunct separators instead — all of which cost no width at all.
+/// Being removed: callers pass their text straight through.
 pub fn eyebrow(text: &str) -> String {
-    text.to_uppercase()
+    text.to_owned()
 }
 
 /// Shade ramp, darkest to brightest. Unlike [`RAMP`] these vary in *density* rather than
@@ -187,10 +181,8 @@ mod tests {
     }
 
     #[test]
-    fn an_eyebrow_is_caps_and_nothing_else() {
-        // Specifically *not* letterspaced. The width matters: a tracked label is twice as
-        // wide, and in a fixed grid that width comes straight out of the content beside it.
-        assert_eq!(eyebrow("Atelier Hotaru"), "ATELIER HOTARU");
+    fn an_eyebrow_is_its_text_unchanged() {
+        assert_eq!(eyebrow("Atelier Hotaru"), "Atelier Hotaru");
         assert_eq!(eyebrow("28 EP"), "28 EP");
         assert_eq!(eyebrow(""), "");
     }

@@ -2,7 +2,9 @@
 
 use std::time::{Duration, Instant};
 
+use anistream_i18n::t;
 use anistream_model::{
+    Msg,
     bug_report::{BugError, BugReport, DeviceClass, issue_url},
     command::Command,
     downloads::DownloadState,
@@ -57,25 +59,40 @@ pub struct LogRow {
     pub count: u32,
 }
 
-/// A notice as the terminal says it: what can be done about it, if the work said, put in the
-/// terminal's own words and keys.
+/// An engine message in the language in use.
+pub fn say(msg: &Msg) -> String {
+    msg.text(&anistream_i18n::localizer())
+}
+
+/// An info notice the terminal makes itself, from text it took from the catalogue.
+pub fn info(text: impl Into<String>) -> Notice {
+    Notice::info(Msg::verbatim(text))
+}
+
+/// An alert the terminal makes itself, from text it took from the catalogue.
+pub fn alert(text: impl Into<String>) -> Notice {
+    Notice::alert(Msg::verbatim(text))
+}
+
+/// A notice as the terminal says it: in the language in use, with what can be done about it, if
+/// the work said, put in the terminal's own words and keys.
 ///
-/// Said where the work used to say the key itself, so the line reads exactly as it always has:
-/// after the text's first " — ", with a "; " before the rest of it, or at the end after a " — "
-/// of its own. Its key is the one bound now, so a rebind changes what the line says. Enter is
-/// named in words, as these lines always named it, where the binding would draw it as `↵`.
+/// The hint follows the notice as a sentence of its own. Its key is the one bound now, so a rebind
+/// changes what the line says.
 pub fn worded(notice: Notice, keymap: &Keymap) -> Notice {
-    let Some(hint) = notice.hint else { return notice };
-    let said = match hint {
-        NoticeHint::StopPlayback => {
-            format!("press {} to stop", keymap.key_for(Action::StopPlayback))
+    let said = say(&notice.message());
+    let text = match notice.hint {
+        None => said,
+        Some(hint) => {
+            let hint = match hint {
+                NoticeHint::StopPlayback => {
+                    t::hint_stop_playback(&keymap.key_for(Action::StopPlayback).to_string())
+                }
+                NoticeHint::OpenStores => t::hint_open_stores(),
+                NoticeHint::KitsuCredentials => t::hint_kitsu_credentials(),
+            };
+            format!("{said} {hint}")
         }
-        NoticeHint::OpenStores => "Providers, Enter".into(),
-        NoticeHint::KitsuCredentials => "enter on its row asks for credentials".into(),
-    };
-    let text = match notice.text.split_once(" — ") {
-        Some((head, rest)) => format!("{head} — {said}; {rest}"),
-        None => format!("{} — {said}", notice.text),
     };
     Notice { kind: notice.kind, text, hint: None, msg: None }
 }

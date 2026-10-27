@@ -633,6 +633,27 @@ notice-episodes-queued =
        *[other] [Ǫüéüéð { $count } éþîšöðéš.~~~~~~]
     }
 
+# What the terminal says beside a notice that has something to do about it. The key is the one bound to stopping playback, as the key map draws it.
+hint-stop-playback = [Þŕéšš { $key } ţö šţöþ þļàýƀàçķ.~~~~~~~~~]
+
+# What the terminal says beside a notice about a { -plugin } update: where to go.
+hint-open-stores = [Ĝö ţö Šöüŕçéš àñð þŕéšš Éñţéŕ ţö öþéñ ţĥé þļüĝîñ šţöŕéš.~~~~~~~~~~~~~~~~~]
+
+# What the terminal says beside the notice that Kitsu signs in from the Accounts screen.
+hint-kitsu-credentials = [Þŕéšš Éñţéŕ öñ îţš ŕöŵ ţö éñţéŕ ýöüŕ çŕéðéñţîàļš.~~~~~~~~~~~~~~~]
+
+# Toast when a { -watch-party } is joined.
+party-joined = [Ĵöîñéð ţĥé ŵàţçĥ þàŕţý îñ ŕööɱ { $room } öñ { $server }.~~~~~~~~~~~~~]
+
+# Toast when the party's episode has no { -source } here. The reason says why.
+party-no-source-still-in = [{ $reason } Ýöü'ŕé šţîļļ îñ ţĥé ŵàţçĥ þàŕţý.~~~~~~~~~~~]
+
+# Status line while the { -source-pl } are rebuilt after a change.
+status-reloading-sources = [Ŕéļöàðîñĝ šöüŕçéš…~~~~~~]
+
+# Toast when the { -source } pinned for a title can't be used and the others are tried instead.
+pin-unavailable = [{ $name } îš þîññéð ƒöŕ ţĥîš ţîţļé ƀüţ îšñ'ţ àṽàîļàƀļé, šö ţĥé öţĥéŕ šöüŕçéš àŕé üšéð.~~~~~~~~~~~~~~~~~~~~~~~~]
+
 # Button that runs a failed action again.
 action-try-again = [Ţŕý àĝàîñ~~~]
 

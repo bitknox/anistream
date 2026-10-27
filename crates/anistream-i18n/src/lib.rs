@@ -181,6 +181,12 @@ pub fn language() -> &'static str {
     current().read().expect("the language lock is never held across a panic").tag()
 }
 
+/// What formats messages in the language in use, for rendering a message that carries its own
+/// values (the engine's `Msg`) rather than calling a function in [`t`].
+pub fn localizer() -> Arc<Localizer> {
+    current().read().expect("the language lock is never held across a panic").clone()
+}
+
 /// The message `id` in the language in use. The functions in [`t`] call this.
 pub fn text(id: &str, args: &[(&str, Arg<'_>)]) -> String {
     let localizer =

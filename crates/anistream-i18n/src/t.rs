@@ -980,6 +980,41 @@ pub fn notice_episodes_queued(count: i64) -> String {
     text("notice-episodes-queued", &[("count", Arg::Int(count))])
 }
 
+/// What the terminal says beside a notice that has something to do about it. The key is the one bound to stopping playback, as the key map draws it.
+pub fn hint_stop_playback(key: &str) -> String {
+    text("hint-stop-playback", &[("key", Arg::Text(key))])
+}
+
+/// What the terminal says beside a notice about a { -plugin } update: where to go.
+pub fn hint_open_stores() -> String {
+    text("hint-open-stores", &[])
+}
+
+/// What the terminal says beside the notice that Kitsu signs in from the Accounts screen.
+pub fn hint_kitsu_credentials() -> String {
+    text("hint-kitsu-credentials", &[])
+}
+
+/// Toast when a { -watch-party } is joined.
+pub fn party_joined(room: &str, server: &str) -> String {
+    text("party-joined", &[("room", Arg::Text(room)), ("server", Arg::Text(server))])
+}
+
+/// Toast when the party's episode has no { -source } here. The reason says why.
+pub fn party_no_source_still_in(reason: &str) -> String {
+    text("party-no-source-still-in", &[("reason", Arg::Text(reason))])
+}
+
+/// Status line while the { -source-pl } are rebuilt after a change.
+pub fn status_reloading_sources() -> String {
+    text("status-reloading-sources", &[])
+}
+
+/// Toast when the { -source } pinned for a title can't be used and the others are tried instead.
+pub fn pin_unavailable(name: &str) -> String {
+    text("pin-unavailable", &[("name", Arg::Text(name))])
+}
+
 /// Button that runs a failed action again.
 pub fn action_try_again() -> String {
     text("action-try-again", &[])
