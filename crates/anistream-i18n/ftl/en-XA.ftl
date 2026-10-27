@@ -633,6 +633,107 @@ notice-episodes-queued =
        *[other] [Ǫüéüéð { $count } éþîšöðéš.~~~~~~]
     }
 
+# Tooltip on the button that opens a setting's preview on a page of its own, and accessible name of the preview.
+settings-preview = [Þŕéṽîéŵ~~~]
+
+# Tooltip on the button that steps a setting to its previous value.
+settings-previous-value = [Þŕéṽîöüš ṽàļüé~~~~~]
+
+# Tooltip on the button that steps a setting to its next value.
+settings-next-value = [Ñéẋţ ṽàļüé~~~]
+
+# Line after the legal line under the sources settings: where sources come from.
+settings-sources-come-from = [Šöüŕçéš çöɱé ƒŕöɱ ţĥé þļüĝîñ šţöŕéš ýöü ĵöîñ.~~~~~~~~~~~~~~]
+
+# Choice for the download quality: the usual size.
+settings-quality-standard = [Šţàñðàŕð~~~]
+
+# Choice for the download quality: larger files with more detail.
+settings-quality-higher = [Ĥîĝĥéŕ~~]
+
+# Label on the left half of the upscaling preview: the video before processing.
+settings-preview-source = [480þ šöüŕçé~~~~]
+
+# Preview note under the upscaling frame when upscaling is off.
+settings-upscaling-note-off = [Ţĥé 480þ šöüŕçé, šçàļéð ţö ƒîţ ŵîţĥöüţ þŕöçéššîñĝ.~~~~~~~~~~~~~~~]
+
+# Preview note under the upscaling frame for the natural look.
+settings-upscaling-note-natural = [Ƒàîţĥƒüļ ļîñé ŵöŕķ àñð ţéẋţüŕé, ñöţĥîñĝ ŕéšţýļéð.~~~~~~~~~~~~~~~]
+
+# Preview note under the upscaling frame for the sharp look.
+settings-upscaling-note-sharp = [Çŕîšþéŕ ļîñéš àñð šţŕöñĝéŕ éðĝéš, àţ šöɱé çöšţ ţö ţéẋţüŕé.~~~~~~~~~~~~~~~~~~]
+
+# A line of sample subtitle over the preview frame. Any short sentence will do.
+settings-caption-sample = [Ţĥé ļàñţéŕñ ŕöàð ŕüñš öñ þàšţ ţĥé ļàšţ ţöŵñ.~~~~~~~~~~~~~~]
+
+# Preview note under the subtitle frame. The language is a language name.
+settings-caption-note = [Þļàîñ šüƀţîţļéš ļööķ ļîķé ţĥîš, îñ { $language } ŵĥéñ àñ éþîšöðé ĥàš ţĥéɱ. Šţýļéð šüƀţîţļéš ķééþ ţĥéîŕ öŵñ ļööķ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Preview note for new-episode notifications when they are on. The tracker is a name such as AniList.
+settings-notify-note-on = [Öñé ñöţîƒîçàţîöñ ŵĥéñ àñ éþîšöðé öƒ à šĥöŵ îñ ýöüŕ Ŵàţçĥîñĝ ļîšţ çöɱéš öüţ, àţ ţĥé ţîɱé { $tracker } ĝîṽéš. Å šĥöŵ'š öŵñ šéţţîñĝ çöɱéš ƒîŕšţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Preview note for new-episode notifications when they are off.
+settings-notify-note-off = [Öƒƒ. Öñļý šĥöŵš ţüŕñéð öñ îñ ţĥéîŕ öŵñ šéţţîñĝš ñöţîƒý.~~~~~~~~~~~~~~~~~]
+
+# Heading of the preview note beside the sources settings while torrents are on.
+settings-connection-check-title = [Çöññéçţîöñ çĥéçķ~~~~~]
+
+# Preview note beside the sources settings while torrents are on.
+settings-connection-check-note = [àñîšţŕéàɱ çĥéçķš ŵĥéŕé ţöŕŕéñţ ţŕàƒƒîç ļéàṽéš ƒŕöɱ ŵĥéñ à ţöŕŕéñţ šţàŕţš àñð éṽéŕý ɱîñüţé ŵĥîļé îţ ŕüñš, àñð þàüšéš ţöŕŕéñţš îƒ ţĥàţ çĥéçķ ƒàîļš. Ýöüŕ ṼÞÑ öŕ þŕöẋý îš ŵĥàţ þŕöţéçţš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Preview note beside the accounts settings.
+settings-accounts-note = [àñîšţŕéàɱ ŵöŕķš ŵîţĥöüţ àñ àççöüñţ. Ýöüŕ ŵàţçĥ ĥîšţöŕý šţàýš öñ ţĥîš çöɱþüţéŕ ŵĥéñ ýöü šîĝñ öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Preview note beside the Discord settings when presence is on.
+settings-presence-note-on = [Ýöüŕ Ðîšçöŕð þŕöƒîļé šĥöŵš ŵĥàţ ýöü ŵàţçĥ ŵĥîļé àñ éþîšöðé þļàýš.~~~~~~~~~~~~~~~~~~~~]
+
+# Preview note beside the Discord settings when presence is off.
+settings-presence-note-off = [Öƒƒ. Ŵĥéñ öñ, ýöüŕ Ðîšçöŕð þŕöƒîļé šĥöŵš ŵĥàţ ýöü ŵàţçĥ ŵĥîļé àñ éþîšöðé þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Preview note beside the advanced settings.
+settings-advanced-note = [Åñ öþţîöñ ĥéŕé çàñ üñðö à Þļàýƀàçķ šéţţîñĝ, šüçĥ àš üþšçàļîñĝ öŕ ñîĝĥţ ɱöðé. Ṁöšţ þéöþļé ñéṽéŕ ñééð ţĥîš þàñé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Button that opens the page of the new version of the app.
+updates-view-version = [Ṽîéŵ ṽéŕšîöñ~~~~]
+
+# Button that closes the app and opens the new version it has put in place.
+updates-restart = [Ŕéšţàŕţ ţö üþðàţé~~~~~~]
+
+# Button that downloads the new version of the app.
+updates-download = [Ðöŵñļöàð üþðàţé~~~~~]
+
+# Accessible name of the progress bar while the new version downloads.
+updates-progress-label = [Ûþðàţé þŕöĝŕéšš~~~~~]
+
+# Line under AniList's name on the Accounts page.
+accounts-sync-detail = [Þŕöĝŕéšš àñð ļîšţ çĥàñĝéš šýñç ţö { $tracker }. Ļîƀŕàŕý àñð ţĥé çàļéñðàŕ'š ļîšţ šĥöŵ ýöüŕ { $tracker } ļîšţš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under a signed-in account while changes wait for the connection.
+accounts-changes-waiting-offline =
+    { $count ->
+        [one] [Öñé çĥàñĝé ŵàîţîñĝ üñţîļ ýöü'ŕé öñļîñé~~~~~~~~~~~~]
+       *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ üñţîļ ýöü'ŕé öñļîñé~~~~~~~~~~~~]
+    }
+
+# Line under a signed-in account while changes wait to be sent.
+accounts-changes-waiting =
+    { $count ->
+        [one] [Öñé çĥàñĝé ŵàîţîñĝ ţö šýñç~~~~~~~~]
+       *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ ţö šýñç~~~~~~~~~]
+    }
+
+# Footnote on the Accounts page: where sign-in tokens are kept, when it is the system's keyring.
+accounts-tokens-keyring = [Šîĝñ-îñ ţöķéñš àŕé ķéþţ îñ ţĥîš ðéṽîçé'š ķéýŕîñĝ.~~~~~~~~~~~~~~~]
+
+# Reason an update stopped: the downloaded file could not be read. The reason is the system's own words.
+updates-why-read = [Ţĥé ðöŵñļöàð çöüļðñ'ţ ƀé ŕéàð: { $reason }~~~~~~~~~~~]
+
+# Reason an update stopped: the new version is in place but did not open.
+updates-why-reopen = [Ţĥé ñéŵ ṽéŕšîöñ îš îñšţàļļéð ƀüţ çöüļðñ'ţ ƀé öþéñéð. Öþéñ àñîšţŕéàɱ àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Accessible description of the mascot's picture. Nagare is the mascot's name.
+nagare-description = [Ñàĝàŕé, ţĥé àñîšţŕéàɱ ɱàšçöţ: à ƒîĝüŕé ŵîţĥ à šîļķ ƀöƀ, àñ àɱƀéŕ šçàŕƒ àñð àñ îñðîĝö çļöàķ, ĥöļðîñĝ à šţàƒƒ ŵîţĥ à ŵàţéŕ çĥàŕɱ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
 # Under a release in the source picker: how many people share it right now.
 source-picker-seeders-linux =
     { $count ->

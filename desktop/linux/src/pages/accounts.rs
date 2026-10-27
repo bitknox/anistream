@@ -9,14 +9,14 @@ use std::{cell::RefCell, rc::Rc};
 use adw::prelude::*;
 use anistream_model::{
     command::Command,
-    present,
     stores::Secret,
     sync::{DeviceCodePrompt, SyncState},
 };
 
+use anistream_i18n::t;
 use gtk::glib;
 
-use crate::{hub::SignIn, widgets, window::Ctx, say};
+use crate::{hub::SignIn, say, widgets, window::Ctx};
 
 /// The trackers below AniList, in the order the other apps list them.
 const OTHERS: [&str; 4] = ["mal", "kitsu", "simkl", "trakt"];
@@ -36,17 +36,12 @@ pub fn fill(ctx: &Rc<Ctx>, page: &adw::PreferencesPage, rebuild: Rc<dyn Fn()>) {
     let offline = known.offline;
 
     let anilist = adw::PreferencesGroup::builder()
-        .title("AniList")
-        .description(
-            "Progress and list changes sync to AniList. Library and the Calendar's My List show \
-             your AniList lists.",
-        )
+        .title(say::tracker_name("anilist"))
+        .description(t::accounts_sync_detail(say::tracker_name("anilist")))
         .build();
-    let others = adw::PreferencesGroup::builder().title("Other Trackers").build();
+    let others = adw::PreferencesGroup::builder().title(t::accounts_other_trackers()).build();
     if offline {
-        others.set_description(Some(
-            "You're offline. Changes wait here and sync once you're back.",
-        ));
+        others.set_description(Some(t::accounts_offline_changes().as_str()));
     }
 
     for tracker in std::iter::once("anilist").chain(OTHERS) {
@@ -105,20 +100,18 @@ impl Shown<'_> {
     fn subtitle(&self) -> String {
         let name = say::tracker_name(self.tracker);
         match self.stand() {
-            Stand::Checking => "Checking…".into(),
-            Stand::InBrowser => "Waiting for the browser…".into(),
-            Stand::SigningIn if by_code(self.tracker) => format!("Waiting for {name}…"),
-            Stand::SigningIn => "Signing in…".into(),
-            Stand::SignedOut if self.offline => "Sign in once you're back online".into(),
-            Stand::SignedOut if self.tracker == "anilist" => {
-                "Brings in your lists and fills Continue with what you are watching.".into()
-            }
-            Stand::SignedOut => "Not signed in".into(),
+            Stand::Checking => t::accounts_state_checking(),
+            Stand::InBrowser => t::accounts_state_waiting_browser(),
+            Stand::SigningIn if by_code(self.tracker) => t::accounts_state_waiting(name),
+            Stand::SigningIn => t::accounts_state_signing_in(),
+            Stand::SignedOut if self.offline => t::accounts_state_offline(),
+            Stand::SignedOut if self.tracker == "anilist" => t::accounts_brings_lists(),
+            Stand::SignedOut => t::accounts_state_signed_out(),
             Stand::SignedIn => {
                 let state = self.state.expect("signed in has a state");
                 let words = sync_words(state, self.syncing, self.offline);
                 // The tracker's name once: beside the user's, or as the row's own title.
-                if state.user.is_some() { format!("{name} · {words}") } else { words }
+                if state.user.is_some() { format!("{name} · {words}") } else { words } // i18n-skip
             }
         }
     }
@@ -127,35 +120,30 @@ impl Shown<'_> {
 /// How a signed-in account's sync stands: what is wrong first, then what is waiting.
 pub fn sync_words(state: &SyncState, syncing: bool, offline: bool) -> String {
     if state.needs_reauth {
-        return "Sign in again to keep syncing".into();
+        return t::accounts_state_expired_short();
     }
     if let Some(error) = &state.pull_error {
-        return format!("Not synced: {}", error.reason);
+        // The engine gives the reason in English words, with no message id to translate yet.
+        return t::accounts_sync_failed(&error.reason);
     }
     if syncing {
-        return "Syncing…".into();
+        return t::accounts_sync_running();
     }
     match state.outbox {
-        0 => "Synced".into(),
-        n if offline => format!(
-            "{} waiting until you're online",
-            anistream_model::wording::plural(n as usize, "change")
-        ),
-        n => format!(
-            "{} waiting to sync",
-            anistream_model::wording::plural(n as usize, "change")
-        ),
+        0 => t::accounts_sync_done(),
+        n if offline => t::accounts_changes_waiting_offline(i64::from(n)),
+        n => t::accounts_changes_waiting(i64::from(n)),
     }
 }
 
 /// The footnote on where sign-in tokens are kept, once an account says.
-fn storage_note<'a>(states: impl Iterator<Item = &'a SyncState>) -> Option<&'static str> {
+fn storage_note<'a>(states: impl Iterator<Item = &'a SyncState>) -> Option<String> {
     let mut storage = states.filter(|s| s.connected).filter_map(|s| s.storage.as_deref());
     match storage.next()? {
         s if s.contains("keychain") || s.contains("keyring") => {
-            Some("Sign-in tokens are kept in this computer's keyring.")
+            Some(t::accounts_tokens_keyring())
         }
-        _ => Some("Sign-in tokens are kept in a file on this computer, readable only by you."),
+        _ => Some(t::accounts_tokens_file()),
     }
 }
 
@@ -197,21 +185,21 @@ fn row(ctx: &Rc<Ctx>, shown: &Shown, rebuild: &Rc<dyn Fn()>) -> adw::ActionRow {
         Stand::SignedOut => {
             // AniList leads: the one suggested button on the pane.
             let lead = (shown.tracker == "anilist").then_some("suggested-action");
-            let sign_in = button("Sign In…", lead);
+            let sign_in = button(&t::accounts_sign_in_menu(), lead);
             sign_in.set_sensitive(!shown.offline);
             sign_in.connect_clicked(sign_in_action(ctx, &tracker, rebuild));
         }
         Stand::SignedIn => {
             if reauth {
-                let again = button("Sign In Again…", Some("suggested-action"));
+                let again = button(&t::accounts_sign_in_again(), Some("suggested-action"));
                 again.set_sensitive(!shown.offline);
                 again.connect_clicked(sign_in_action(ctx, &tracker, rebuild));
             } else if tracker == "anilist" {
-                let sync = button("Sync Now", None);
+                let sync = button(&t::accounts_sync_now(), None);
                 sync.set_action_name(Some("win.sync"));
                 sync.set_sensitive(!shown.offline && !shown.syncing);
             }
-            let out = button("Sign Out", Some("flat"));
+            let out = button(&t::accounts_sign_out(), Some("flat"));
             let hub = Rc::downgrade(&ctx.hub);
             out.connect_clicked(move |_| {
                 if let Some(hub) = hub.upgrade() {
@@ -220,7 +208,7 @@ fn row(ctx: &Rc<Ctx>, shown: &Shown, rebuild: &Rc<dyn Fn()>) -> adw::ActionRow {
             });
         }
         Stand::InBrowser => {
-            let cancel = button("Cancel", None);
+            let cancel = button(&t::action_cancel(), None);
             let (hub, rebuild) = (Rc::downgrade(&ctx.hub), rebuild.clone());
             cancel.connect_clicked(move |_| {
                 let Some(hub) = hub.upgrade() else { return };
@@ -230,7 +218,7 @@ fn row(ctx: &Rc<Ctx>, shown: &Shown, rebuild: &Rc<dyn Fn()>) -> adw::ActionRow {
             });
         }
         Stand::SigningIn if by_code(&tracker) => {
-            let show = button("Show Code", None);
+            let show = button(&t::accounts_show_code(), None);
             let ctx = Rc::downgrade(ctx);
             show.connect_clicked(move |_| {
                 let prompt = CODE.with_borrow(|(_, prompt)| prompt.clone());
@@ -274,19 +262,21 @@ fn sign_in_action(
 
 /// Kitsu's sign-in: an email or user name and a password, sent once for a token.
 pub fn kitsu(ctx: &Rc<Ctx>, rebuild: Rc<dyn Fn()>) -> adw::AlertDialog {
+    let kitsu = say::tracker_name("kitsu");
     let dialog = adw::AlertDialog::new(
-        Some("Sign In to Kitsu"),
-        Some("Your password goes to Kitsu once, for a token kept on this computer."),
+        Some(&t::accounts_form_title(kitsu)),
+        Some(&t::accounts_form_detail(kitsu)),
     );
-    let user = adw::EntryRow::builder().title("Email or user name").build();
-    let password = adw::PasswordEntryRow::builder().title("Password").build();
+    let user = adw::EntryRow::builder().title(t::accounts_user_or_email()).build();
+    let password = adw::PasswordEntryRow::builder().title(t::accounts_password()).build();
     let list = gtk::ListBox::new();
     list.add_css_class("boxed-list");
     list.set_selection_mode(gtk::SelectionMode::None);
     list.append(&user);
     list.append(&password);
     dialog.set_extra_child(Some(&list));
-    dialog.add_responses(&[("cancel", "Cancel"), ("sign-in", "Sign In")]);
+    let (cancel, sign_in) = (t::action_cancel(), t::action_sign_in());
+    dialog.add_responses(&[("cancel", cancel.as_str()), ("sign-in", sign_in.as_str())]);
     dialog.set_response_appearance("sign-in", adw::ResponseAppearance::Suggested);
     dialog.set_default_response(Some("sign-in"));
     dialog.set_close_response("cancel");
@@ -355,26 +345,25 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
     let name = say::tracker_name(&prompt.tracker);
     let host = host(&prompt.url);
     let dialog = adw::AlertDialog::new(
-        Some(&format!("Sign In to {name}")),
-        Some(&format!("Go to {host} and enter this code. anistream signs in once you have.")),
+        Some(&t::accounts_sign_in_to(name)),
+        Some(&t::accounts_code_detail(&host)),
     );
     // The one thing on screen typed by hand: large, spaced, in a fixed width.
     let code = gtk::Label::new(Some(&prompt.code));
     let attrs = gtk::pango::AttrList::new();
     attrs.insert(gtk::pango::AttrFontDesc::new(&gtk::pango::FontDescription::from_string(
-        "Monospace Bold 26",
+        "Monospace Bold 26", // i18n-skip
     )));
     attrs.insert(gtk::pango::AttrInt::new_letter_spacing(4 * gtk::pango::SCALE));
     code.set_attributes(Some(&attrs));
     code.set_selectable(true);
     code.set_hexpand(true);
-    code.update_property(&[gtk::accessible::Property::Label(&format!(
-        "Code {}",
-        prompt.code.chars().map(String::from).collect::<Vec<_>>().join(" ")
+    code.update_property(&[gtk::accessible::Property::Label(&t::accounts_code_label(
+        &prompt.code.chars().map(String::from).collect::<Vec<_>>().join(" "),
     ))]);
     // The code on a flat raised plate, no shadow inside the dialog, with Copy beside it.
     let copy = gtk::Button::from_icon_name("edit-copy-symbolic");
-    copy.set_tooltip_text(Some("Copy Code"));
+    copy.set_tooltip_text(Some(&t::accounts_copy_code()));
     copy.add_css_class("flat");
     copy.set_valign(gtk::Align::Center);
     copy.connect_clicked({
@@ -382,12 +371,12 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
         move |button| {
             button.clipboard().set_text(&text);
             button.set_icon_name("object-select-symbolic");
-            button.set_tooltip_text(Some("Copied"));
+            button.set_tooltip_text(Some(&t::action_copied()));
             let button = button.downgrade();
             glib::timeout_add_seconds_local_once(2, move || {
                 if let Some(button) = button.upgrade() {
                     button.set_icon_name("edit-copy-symbolic");
-                    button.set_tooltip_text(Some("Copy Code"));
+                    button.set_tooltip_text(Some(&t::accounts_copy_code()));
                 }
             });
         }
@@ -398,7 +387,7 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
     plate.set_height_request(64);
     plate.append(&code);
     plate.append(&copy);
-    let open = gtk::Button::with_label(&format!("Open {host}"));
+    let open = gtk::Button::with_label(&t::accounts_open_host(&host));
     open.add_css_class("pill");
     open.add_css_class("suggested-action");
     open.set_halign(gtk::Align::Center);
@@ -415,7 +404,7 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
         let failed = failed.clone();
         crate::portal::open_uri(&window, &url, move || {
             if let Some(ctx) = failed.upgrade() {
-                ctx.toast("Couldn't open your browser");
+                ctx.toast(&t::accounts_browser_failed());
             }
         });
     });
@@ -425,7 +414,7 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
     let spinner = adw::Spinner::new();
     spinner.set_size_request(16, 16);
     waiting.append(&spinner);
-    waiting.append(&crate::widgets::haze(&format!("Waiting for {name}"), "caption"));
+    waiting.append(&crate::widgets::haze(&t::accounts_code_waiting(name), "caption"));
     let child = gtk::Box::new(gtk::Orientation::Vertical, 12);
     child.append(&plate);
     child.append(&open);
@@ -441,7 +430,7 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
         child.append(&countdown(ctx, parts, expires_at));
     }
     dialog.set_extra_child(Some(&child));
-    dialog.add_response("close", "Close");
+    dialog.add_response("close", &t::action_close());
     dialog.set_close_response("close");
     dialog.connect_response(None, |_, _| {
         CODE.with_borrow_mut(|(open, _)| *open = None);
@@ -458,6 +447,16 @@ fn seconds_left(expires_at: i64, now: i64) -> i64 {
     (expires_at - now).max(0)
 }
 
+/// What the line under a code says with `left` seconds to go, as the terminal app's does: seconds
+/// in the last minute, whole minutes before it, and "Code expired" at nought.
+fn code_expiry(left: i64) -> String {
+    match left {
+        ..=0 => t::accounts_code_ended(),
+        1..60 => t::accounts_code_expires_seconds(left),
+        _ => t::accounts_code_expires_minutes((left + 59) / 60),
+    }
+}
+
 /// The parts of the code dialog that change when the code runs out.
 struct Expiring {
     code: gtk::Widget,
@@ -472,20 +471,19 @@ struct Expiring {
 /// for until the viewer asks, so the code never changes under them.
 fn countdown(ctx: &Rc<Ctx>, parts: Expiring, expires_at: i64) -> gtk::Label {
     let now = || glib::real_time() / 1_000_000;
-    let label =
-        widgets::haze(&present::device_code_expiry(seconds_left(expires_at, now())), "caption");
+    let label = widgets::haze(&code_expiry(seconds_left(expires_at, now())), "caption");
     label.add_css_class("numeric");
     label.set_halign(gtk::Align::Center);
     label.set_xalign(0.5);
     let weak = label.downgrade();
     let ctx = Rc::downgrade(ctx);
     let expired = move |label: &gtk::Label| {
-        label.set_label(&present::device_code_expiry(0));
+        label.set_label(&code_expiry(0));
         parts.ran_out.set(true);
         parts.code.add_css_class("dim-label");
         parts.waiting.set_visible(false);
         let open = &parts.open;
-        open.set_label("Get a New Code");
+        open.set_label(&t::action_new_code());
         let (ctx, tracker, waiting) =
             (ctx.clone(), parts.tracker.clone(), parts.waiting.clone());
         let label = label.downgrade();
@@ -494,7 +492,7 @@ fn countdown(ctx: &Rc<Ctx>, parts: Expiring, expires_at: i64) -> gtk::Label {
             let Some(ctx) = ctx.upgrade() else { return };
             button.set_sensitive(false);
             if let Some(line) = waiting.last_child().and_downcast::<gtk::Label>() {
-                line.set_label("Getting a new code");
+                line.set_label(&t::accounts_getting_code());
             }
             waiting.set_visible(true);
             if let Some(label) = label.upgrade() {
@@ -510,7 +508,7 @@ fn countdown(ctx: &Rc<Ctx>, parts: Expiring, expires_at: i64) -> gtk::Label {
         };
         let left = seconds_left(expires_at, now());
         if left > 0 {
-            label.set_label(&present::device_code_expiry(left));
+            label.set_label(&code_expiry(left));
             return glib::ControlFlow::Continue;
         }
         expired(&label);
@@ -546,10 +544,11 @@ mod tests {
     #[test]
     fn a_code_counts_down_to_nought_and_no_further() {
         assert_eq!(seconds_left(1_000, 100), 900);
-        assert_eq!(present::device_code_expiry(seconds_left(1_000, 100)), "Expires in 15 min");
+        assert_eq!(code_expiry(seconds_left(1_000, 100)), "Expires in 15 min");
+        assert_eq!(code_expiry(seconds_left(1_000, 960)), "Expires in 40 s");
         assert_eq!(seconds_left(1_000, 1_000), 0);
         assert_eq!(seconds_left(1_000, 1_500), 0);
-        assert_eq!(present::device_code_expiry(0), "Code expired");
+        assert_eq!(code_expiry(0), "Code expired");
     }
 
     #[test]
