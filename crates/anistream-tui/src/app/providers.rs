@@ -1,16 +1,16 @@
 //! The Providers table: the sources failover walks and their order, and the header's chips
 //! for the sources, the metadata ladder and the VPN guard.
 
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
-    notice::Notice,
     settings::SettingKey,
     sources::{
         GuardView, ProviderRow, SourceChip, SourceState, order_with_source_moved, source_states,
     },
 };
 
-use super::App;
+use super::{App, alert};
 use crate::{
     nav::{Section, StageView},
     theme::glyph,
@@ -22,11 +22,19 @@ use crate::{
 /// configuration runs unprotected, which is a choice rather than a fault.
 pub fn vpn_badge(guard: &GuardView) -> (String, bool) {
     match guard {
-        GuardView::Checking => (format!("vpn {}  checking", glyph::STATE_UNKNOWN), false),
-        GuardView::Protected { exit } => (format!("vpn {}  {exit}", glyph::STATE_READY), false),
-        GuardView::Leaking => (format!("vpn {}  LEAK", glyph::STATE_DOWN), true),
-        GuardView::Unreachable => (format!("vpn {}  unreachable", glyph::STATE_DOWN), true),
-        GuardView::Unprotected => (format!("vpn {}  unprotected", glyph::STATE_DOWN), false),
+        GuardView::Checking => {
+            (t::sources_vpn_checking(&glyph::STATE_UNKNOWN.to_string()), false)
+        }
+        GuardView::Protected { exit } => {
+            (t::sources_vpn_protected(&glyph::STATE_READY.to_string(), exit), false)
+        }
+        GuardView::Leaking => (t::sources_vpn_leaking(&glyph::STATE_DOWN.to_string()), true),
+        GuardView::Unreachable => {
+            (t::sources_vpn_unreachable(&glyph::STATE_DOWN.to_string()), true)
+        }
+        GuardView::Unprotected => {
+            (t::sources_vpn_unprotected(&glyph::STATE_DOWN.to_string()), false)
+        }
     }
 }
 
@@ -47,7 +55,7 @@ impl App {
             .find(|chip| chip.state == SourceState::Ready)
             .or_else(|| sources.iter().find(|chip| chip.state != SourceState::Off))
             .or_else(|| sources.first())
-            .map_or_else(|| "no source".into(), |chip| chip.id.clone())
+            .map_or_else(t::sources_none_label, |chip| chip.id.clone())
     }
 
     /// Each configured source, in the order failover walks them, and how it stands: see
@@ -75,7 +83,10 @@ impl App {
         // A newly-failing guard is worth interrupting for: torrents have just been
         // paused and the user needs to know why playback stopped.
         if leaking && !self.vpn_leaking {
-            self.push_toast(Notice::raw_alert(format!("{badge} — torrents paused")));
+            self.push_toast(alert(match guard {
+                Some(GuardView::Unreachable) => t::sources_vpn_unreachable_paused(),
+                _ => t::sources_vpn_leak_paused(),
+            }));
         }
         self.vpn_badge = Some(badge);
         self.vpn_leaking = leaking;
@@ -268,10 +279,8 @@ mod tests {
     }
 
     #[test]
-    fn the_order_is_saved_under_a_name_and_put_back_when_the_write_fails() {
+    fn the_order_is_put_back_when_the_write_fails() {
         let mut a = at_providers();
-        assert_eq!(a.setting_label(&["providers"], "order"), Some("source order"));
-
         let mut owner = Owner::new(Config::default());
         owner.effective.providers.order = a.settings.sources.order.clone();
         owner.saved.providers.order = a.settings.sources.order.clone();

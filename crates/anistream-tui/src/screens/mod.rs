@@ -26,7 +26,7 @@ mod title;
 
 pub use downloads::download_state_label;
 pub use episodes::episode_kind_label;
-pub use playback::skip_label;
+pub use playback::skip_prompt;
 
 use ratatui::{Frame as TFrame, buffer::Buffer, layout::Rect, widgets::Widget};
 

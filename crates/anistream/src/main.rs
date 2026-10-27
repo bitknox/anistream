@@ -605,7 +605,6 @@ mod tests {
         for (table, key) in &written {
             let named = setting_label(table, key);
             assert!(named.is_some(), "{table:?}.{key} is saved without a word");
-            assert_eq!(named, app.setting_label(table, key), "{table:?}.{key}");
         }
         // And nothing named that the interface does not write.
         for setting in SettingKey::ROWS.into_iter().chain([SettingKey::SourceOrder]) {
@@ -624,10 +623,8 @@ mod tests {
         use anistream_player::SkipKind;
 
         for kind in [SkipKind::Opening, SkipKind::Ending] {
-            assert_eq!(
-                anistream_tui::screens::skip_label(playback::offered(kind)),
-                kind.label()
-            );
+            let prompt = anistream_tui::screens::skip_prompt(playback::offered(kind), "S");
+            assert!(prompt.to_lowercase().contains(kind.label()), "{prompt}");
         }
     }
 }

@@ -1,6 +1,7 @@
 //! What is drawn while an episode plays: the Now Playing screen with its playhead and the skip
 //! prompt, and the eyecatch wipe that covers the stage while a stream is found.
 
+use anistream_i18n::t;
 use anistream_model::playback::SkipKind;
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
@@ -12,11 +13,11 @@ use crate::{
 
 use super::{chrome::render_placeholder, line, set_meter};
 
-/// What the skip prompt calls the part it would seek past.
-pub fn skip_label(kind: SkipKind) -> &'static str {
+/// The skip prompt for the part it would seek past, with the key that skips.
+pub fn skip_prompt(kind: SkipKind, key: &str) -> String {
     match kind {
-        SkipKind::Opening => "opening",
-        SkipKind::Ending => "ending",
+        SkipKind::Opening => t::playback_skip_opening(key),
+        SkipKind::Ending => t::playback_skip_ending(key),
     }
 }
 
@@ -27,7 +28,13 @@ pub fn skip_label(kind: SkipKind) -> &'static str {
 /// rows hanging off the top edge of an otherwise empty stage reads as unfinished.
 pub(super) fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
     let Some(playing) = &app.playing else {
-        render_placeholder(buf, app, area, "NOW PLAYING", "nothing is playing");
+        render_placeholder(
+            buf,
+            app,
+            area,
+            &t::playback_title(),
+            &t::playback_nothing_playing(),
+        );
         return;
     };
 
@@ -42,18 +49,18 @@ pub(super) fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
     buf.set_string(
         column.left(),
         column.top(),
-        glyph::eyebrow("now playing"),
+        t::playback_title(),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
     // Whether mpv is actually alive belongs here, not in the header: this is the screen you
     // are on when it matters.
     let state = if playing.paused {
-        "paused".to_string()
+        t::playback_state_paused()
     } else {
-        format!("mpv {}", glyph::STATE_READY)
+        t::playback_state_playing(&glyph::STATE_READY.to_string())
     };
     // The provider that is actually serving this stream, not the configured first choice.
-    let right = format!("{state}  ·  {}", app.source_label());
+    let right = t::playback_status(&state, &app.source_label());
     let right_x = column.right().saturating_sub(right.chars().count() as u16);
     if right_x > column.left() + 14 {
         line(buf, right_x, column.top(), &right, app.palette.style(Role::TextDim));
@@ -78,17 +85,19 @@ pub(super) fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
         crate::logo::render(buf, body, body.left(), y - mark_height - 2);
     }
 
+    // The zero-padded numeral field again: episodes are a sequence, and this is the one number
+    // on screen that you navigate by.
+    let episode = t::playback_episode_number(
+        &anistream_core::media::EpisodeNumber::new(playing.episode.clone()).padded(),
+    );
     buf.set_string(
         body.left(),
         y,
-        truncate(&playing.title, body.width.saturating_sub(10) as usize),
+        truncate(
+            &playing.title,
+            body.width.saturating_sub(episode.chars().count() as u16 + 2) as usize,
+        ),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
-    );
-    // The zero-padded numeral field again: episodes are a sequence, and this is the one number
-    // on screen that you navigate by.
-    let episode = format!(
-        "ep {}",
-        anistream_core::media::EpisodeNumber::new(playing.episode.clone()).padded()
     );
     buf.set_string(
         body.right().saturating_sub(episode.chars().count() as u16),
@@ -143,12 +152,7 @@ pub(super) fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
             .first()
             .map(crate::keymap::Binding::render)
             .unwrap_or_else(|| "S".into());
-        buf.set_string(
-            body.left(),
-            y,
-            format!("⟨ skip {} — {key} ⟩", skip_label(kind)),
-            app.palette.style(Role::Obi),
-        );
+        buf.set_string(body.left(), y, skip_prompt(kind, &key), app.palette.style(Role::Obi));
     }
     let speed = format!("×{:.2}", playing.speed);
     buf.set_string(
@@ -199,7 +203,7 @@ pub(super) fn render_eyecatch(buf: &mut Buffer, app: &App, area: Rect) {
         // wedged resolve, and a torrent finding peers can take many seconds. Nothing is drawn
         // at all on a fast play — see `Eyecatch::waited_secs`.
         if let Some(secs) = eyecatch.waited_secs() {
-            let note = format!("still resolving  ·  {secs}s");
+            let note = t::playback_still_finding(&t::duration_seconds(secs as i64));
             let note = truncate(&note, room);
             let note_x = left + (right - left).saturating_sub(note.chars().count() as u16) / 2;
             if y + 2 < area.bottom() {
@@ -248,7 +252,10 @@ mod tests {
         assert!(text.contains("Where the Roads Cross"));
         assert!(text.contains("9:12 / 23:55"), "the clock is missing:\n{text}");
         // The zero-padded numeral field: episodes are a sequence you navigate by.
-        assert!(text.contains("ep 011"), "episode number is not in a fixed field:\n{text}");
+        assert!(
+            text.contains("Episode 011"),
+            "episode number is not in a fixed field:\n{text}"
+        );
     }
 
     #[test]
@@ -263,18 +270,18 @@ mod tests {
         app.apply(Event::Playback { position: 552.0, duration: Some(1435.0), paused: true });
         let paused = render_to_buffer(&mut app, 100, 26);
         assert_eq!(paused[meter_cell].fg, app.palette.color(Role::TextDim));
-        assert!(text_of(&paused).contains("paused"));
+        assert!(text_of(&paused).contains("Paused"));
     }
 
     #[test]
     fn the_skip_prompt_names_its_key_and_only_appears_when_offered() {
         let mut app = app_playing();
         // The status-line hint is always there; the prompt in the block is not.
-        assert!(!text_of(&render_to_buffer(&mut app, 100, 26)).contains("skip opening"));
+        assert!(!text_of(&render_to_buffer(&mut app, 100, 26)).contains("Skip opening"));
 
         app.apply(Event::SkipAvailable { kind: SkipKind::Opening, to: 93.2 });
         let text = text_of(&render_to_buffer(&mut app, 100, 26));
-        assert!(text.contains("skip opening"), "prompt missing:\n{text}");
+        assert!(text.contains("Skip opening"), "prompt missing:\n{text}");
         assert!(text.contains("S ⟩"), "the prompt has to name the key:\n{text}");
     }
 
@@ -303,14 +310,14 @@ mod tests {
         let mut app = app_playing();
         app.playing = None;
         app.nav.push(crate::nav::StageView::NowPlaying);
-        assert!(text_of(&render_to_buffer(&mut app, 100, 26)).contains("nothing is playing"));
+        assert!(text_of(&render_to_buffer(&mut app, 100, 26)).contains("Nothing is playing"));
     }
 
     #[test]
     fn a_slow_eyecatch_admits_it_is_still_working() {
         // A band that just sits there is indistinguishable from a wedged resolve.
         let mut app = app_playing();
-        app.eyecatch = Some(crate::Eyecatch::new("Hoshikuzu no Tabibito  ·  ep 012"));
+        app.eyecatch = Some(crate::Eyecatch::new("Hoshikuzu no Tabibito  ·  Episode 012"));
 
         // Covered, but only briefly: this still feels instant, so nothing extra is said.
         for _ in 0..crate::eyecatch::SWEEP_FRAMES {
@@ -318,14 +325,14 @@ mod tests {
         }
         let quick = text_of(&render_to_buffer(&mut app, 100, 26));
         assert!(quick.contains("Hoshikuzu"), "the label rides the band");
-        assert!(!quick.contains("still resolving"), "a fast play must stay quiet");
+        assert!(!quick.contains("Still finding a stream"), "a fast play must stay quiet");
 
         // Past the quiet window it says so, with how long it has been.
         for _ in 0..crate::eyecatch::QUIET_HOLD_FRAMES {
             app.eyecatch.as_mut().unwrap().advance();
         }
         let slow = text_of(&render_to_buffer(&mut app, 100, 26));
-        assert!(slow.contains("still resolving"), "a long wait must not look wedged");
+        assert!(slow.contains("Still finding a stream"), "a long wait must not look wedged");
         assert!(slow.contains("Hoshikuzu"), "the label stays alongside it");
     }
 
@@ -334,13 +341,13 @@ mod tests {
         // The whole point is hiding a slow resolution. Content showing through would make it
         // decoration rather than cover.
         let mut app = app_playing();
-        app.eyecatch = Some(crate::Eyecatch::new("Hoshikuzu no Tabibito  ·  ep 012"));
+        app.eyecatch = Some(crate::Eyecatch::new("Hoshikuzu no Tabibito  ·  Episode 012"));
         for _ in 0..crate::eyecatch::SWEEP_FRAMES {
             app.tick_animation();
         }
         let text = text_of(&render_to_buffer(&mut app, 100, 26));
         assert!(!text.contains("Where the Roads Cross"), "the stage showed through:\n{text}");
-        assert!(text.contains("ep 012"), "the band should carry its label:\n{text}");
+        assert!(text.contains("Episode 012"), "the band should carry its label:\n{text}");
     }
 
     #[test]
@@ -355,7 +362,7 @@ mod tests {
         }
         let text = text_of(&render_to_buffer(&mut app, 100, 26));
         assert!(text.contains("anistream"), "the header was covered");
-        assert!(text.contains("vpn ●  Mullvad"), "the VPN badge was covered:\n{text}");
+        assert!(text.contains("VPN ●  Mullvad"), "the VPN badge was covered:\n{text}");
     }
 
     #[test]

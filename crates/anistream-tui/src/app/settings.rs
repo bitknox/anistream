@@ -1,14 +1,18 @@
 //! The Settings screen: its rows as the engine says they stand, and the changes asked for
 //! from them.
 
+use anistream_core::media::Translation;
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
-    notice::Notice,
     settings::{SettingChange, SettingKey, SettingsView},
 };
 
-use super::{App, Field};
-use crate::nav::{Focus, Overlay, Section, StageView};
+use super::{App, Field, info};
+use crate::{
+    keymap::Action,
+    nav::{Focus, Overlay, Section, StageView},
+};
 
 /// One row of the Settings screen, as the terminal shows it: the row the config makes, under its
 /// heading, with the terminal's note.
@@ -17,9 +21,9 @@ use crate::nav::{Focus, Overlay, Section, StageView};
 /// row here either cycles through a closed set of values or says plainly why it cannot.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SettingLine {
-    pub label: &'static str,
+    pub label: String,
     /// The heading this row sits under on screen.
-    pub category: &'static str,
+    pub category: String,
     /// Rendered value.
     pub value: String,
     /// The setting it shows.
@@ -27,7 +31,7 @@ pub struct SettingLine {
     /// `false` for rows that are shown but not editable here.
     pub editable: bool,
     /// Why a row is read-only, or what a change will not do until restart.
-    pub note: Option<&'static str>,
+    pub note: Option<String>,
 }
 
 impl App {
@@ -101,9 +105,7 @@ impl App {
         if value.is_empty() {
             // The writer sets keys; it does not delete them. Refusing beats
             // writing an empty string that half the readers treat as a path.
-            self.push_toast(Notice::raw_info(
-                "left unchanged — delete the line in config.toml to unset",
-            ));
+            self.push_toast(info(t::settings_unchanged()));
             return None;
         }
         // No toast here: the write reports itself once it has landed, which is the
@@ -116,7 +118,10 @@ impl App {
     pub(super) fn toggle_translation(&mut self) -> Option<Command> {
         // For this session: the saved choice is the Settings row's to change.
         let translation = self.settings.translation.toggled();
-        self.push_toast(Notice::raw_info(format!("now using {translation} for this session")));
+        self.push_toast(info(match translation {
+            Translation::Sub => t::settings_session_subbed(),
+            Translation::Dub => t::settings_session_dubbed(),
+        }));
         Some(Command::SetTranslation { translation })
     }
 
@@ -127,56 +132,56 @@ impl App {
             .rows
             .iter()
             .map(|row| SettingLine {
-                label: row.key.label(),
-                category: row.key.category(),
+                label: label_text(row.key),
+                category: category_text(row.key.category()),
                 editable: row.change.editable(),
                 note: self.setting_note(row.key),
                 key: row.key,
-                value: row.value.clone(),
+                value: value_text(row.key, &row.value),
             })
             .collect()
     }
 
     /// What the terminal says under a Settings row: how it is changed here, why it is not, or
     /// when a change takes effect. The terminal's words, with its keys in them.
-    fn setting_note(&self, key: SettingKey) -> Option<&'static str> {
+    fn setting_note(&self, key: SettingKey) -> Option<String> {
         use SettingKey as S;
         Some(match key {
             // What "AniList's choice" is, which the value alone cannot say.
-            S::Titles => "AniList's choice follows your AniList account; English signed out",
-            S::Subtitles => "enter types a language code — too many values to cycle",
-            S::MarkChapters => "chapter marks on the seek bar, where the stream has none",
-            S::SkipButton => "a button over the opening and ending, where the skip isn't automatic",
-            S::Fullscreen => "mpv opens fullscreen; its own f key still leaves it",
+            S::Titles => t::settings_note_titles(),
+            S::Subtitles => t::settings_note_subtitles(),
+            S::MarkChapters => t::settings_note_mark_chapters(),
+            S::SkipButton => t::settings_note_skip_button(),
+            S::Fullscreen => t::settings_note_fullscreen(),
             // Read per playback, so the next episode uses this; the player's own menu changes
             // the one playing.
-            S::Upscaling => "adapts to the source and your GPU · from the next episode",
-            S::PlayerUi => "thumbnails, menus and the skip button in anistream's look",
-            S::NightMode => "evens out quiet dialogue and loud music",
-            S::DownloadDir => "enter types a path — applies to the next download",
-            S::MergeSubtitles => "applies to the next download that finishes",
+            S::Upscaling => t::settings_note_upscaling(),
+            S::PlayerUi => t::settings_note_player_ui(),
+            S::NightMode => t::settings_note_night_mode(),
+            S::DownloadDir => t::settings_note_download_dir(),
+            S::MergeSubtitles => t::settings_note_merge_subtitles(),
             // The privacy dial; saying so is the point of the row.
-            S::KeepSeeding => "on keeps advertising you as a source — applies immediately",
-            S::DownloadHook => "enter types a command — run after each finished download",
+            S::KeepSeeding => t::settings_note_keep_seeding(),
+            S::DownloadHook => t::settings_note_download_hook(),
             // `y` is the ordinary way in; this toggle sends *every* play there.
-            S::Syncplay => "y plays one episode with the room set below; on sends every play",
-            S::SyncplayServer => "enter types host:port; there is none until you pick one",
-            S::SyncplayRoom => "enter types a friend's room; empty starts one nobody can guess",
-            S::UpdateCheck => "one cached request a day, checked at startup",
+            S::Syncplay => t::settings_note_syncplay(&self.key_for(Action::PlayParty)),
+            S::SyncplayServer => t::settings_note_syncplay_server(),
+            S::SyncplayRoom => t::settings_note_syncplay_room(),
+            S::UpdateCheck => t::settings_note_update_check(),
             // Enabling it without a client id is a no-op, and a toggle that appears to work
             // while doing nothing is worse than one that says why.
-            S::Presence if self.settings.presence_client => "takes effect on the next episode",
-            S::Presence => "needs a client id — register an app at discord.com/developers",
+            S::Presence if self.settings.presence_client => t::settings_note_presence(),
+            S::Presence => t::settings_note_presence_needs_client(),
             // The privacy dial. Off still publishes that you are watching *something*, which
             // is the point for anyone who wants the presence without the title.
-            S::PresenceTitle => "off shows \"Watching anime\" without naming the show",
-            S::PresenceRich => "cover, progress bar and an AniList link; needs the title shown",
-            S::Torrents => "needs a VPN configured; takes effect immediately",
-            S::VpnMode => "edit config.toml — turning this off has to be deliberate",
-            S::SeedRatio => "keeps watched episodes seeding while anistream is open",
-            S::SeedHours => "the longest one episode keeps seeding, whatever its ratio",
-            S::UploadLimit => "caps all torrent upload, so seeding never slows playback",
-            S::TokenStorage => "use --token-to-file to move an existing token",
+            S::PresenceTitle => t::settings_note_presence_title(),
+            S::PresenceRich => t::settings_note_presence_rich(),
+            S::Torrents => t::settings_note_torrents(),
+            S::VpnMode => t::settings_note_vpn_mode(),
+            S::SeedRatio => t::settings_note_seed_ratio(),
+            S::SeedHours => t::settings_note_seed_hours(),
+            S::UploadLimit => t::settings_note_upload_limit(),
+            S::TokenStorage => t::settings_note_token_storage(),
             S::Theme
             // A native app's torrent sheet types it; here it is the file's.
             | S::TorrentIndex
@@ -202,16 +207,6 @@ impl App {
         })
     }
 
-    /// The name the Settings screen gives the setting stored at `table`.`key`, for saying it
-    /// was saved. The config key (`commit_threshold`) is the file's vocabulary, not the
-    /// screen's, and the value needs no repeating: the row beside it already shows it.
-    ///
-    /// `None` for what is stored without a row of its own, the remembered speed and volume:
-    /// saved in passing, and not something anyone asked to have confirmed.
-    pub fn setting_label(&self, table: &[&str], key: &str) -> Option<&'static str> {
-        SettingKey::at(table, key).map(SettingKey::label)
-    }
-
     /// Step the selected setting through its values.
     ///
     /// Cycling rather than free entry, because every editable setting here has a small closed set
@@ -223,14 +218,14 @@ impl App {
         match id.path() {
             Some(_) if rows.get(row)?.editable => {}
             _ => {
-                let note = rows.get(row).and_then(|r| r.note);
-                self.push_toast(Notice::raw_info(note.unwrap_or("not editable here")));
+                let note = rows.get(row).and_then(|r| r.note.clone());
+                self.push_toast(info(note.unwrap_or_else(t::settings_not_editable)));
                 return None;
             }
         };
         // Text values are typed, not cycled — arrows have nothing to step through.
         if id.typed() {
-            self.push_toast(Notice::raw_info("enter types a value here"));
+            self.push_toast(info(t::settings_enter_types()));
             return None;
         }
         // The engine steps it, by the rules every front end shares, and says the outcome.
@@ -260,6 +255,144 @@ impl App {
             self.status.clear();
         }
     }
+}
+
+/// A row's name, in the language in use.
+fn label_text(key: SettingKey) -> String {
+    use SettingKey as S;
+    match key {
+        S::Theme => t::settings_label_theme(),
+        S::Motion => t::settings_label_motion(),
+        S::Titles => t::settings_label_titles(),
+        S::Translation => t::settings_label_translation(),
+        S::Quality => t::settings_label_quality(),
+        S::Subtitles => t::settings_label_subtitles(),
+        S::CommitThreshold => t::settings_label_commit_threshold(),
+        S::AutoNext => t::settings_label_auto_next(),
+        S::SkipOpening => t::settings_label_skip_opening(),
+        S::SkipFiller => t::settings_label_skip_filler(),
+        S::MarkChapters => t::settings_label_mark_chapters(),
+        S::SkipButton => t::settings_label_skip_button(),
+        S::Fullscreen => t::settings_label_fullscreen(),
+        S::Upscaling => t::settings_label_upscaling(),
+        S::PlayerUi => t::settings_label_player_ui(),
+        S::NightMode => t::settings_label_night_mode(),
+        S::DownloadDir => t::settings_label_download_dir(),
+        S::MergeSubtitles => t::settings_label_merge_subtitles(),
+        S::KeepSeeding => t::settings_label_keep_seeding(),
+        S::DownloadHook => t::settings_label_download_hook(),
+        S::Syncplay => t::settings_label_syncplay(),
+        S::SyncplayServer => t::settings_label_syncplay_server(),
+        S::SyncplayRoom => t::settings_label_syncplay_room(),
+        S::UpdateCheck => t::settings_label_update_check(),
+        S::Presence => t::settings_label_presence(),
+        S::PresenceTitle => t::settings_label_presence_title(),
+        S::PresenceRich => t::settings_label_presence_rich(),
+        S::Torrents => t::settings_label_torrents(),
+        S::TorrentIndex => t::settings_label_torrent_index(),
+        S::SeedRatio => t::settings_label_seed_ratio(),
+        S::SeedHours => t::settings_label_seed_hours(),
+        S::UploadLimit => t::settings_label_upload_limit(),
+        S::VpnMode => t::settings_label_vpn_mode(),
+        S::TokenStorage => t::settings_label_token_storage(),
+        S::SourceOrder => t::settings_label_source_order(),
+        S::UpNextCountdown => t::settings_label_up_next_countdown(),
+        S::SpoilerProtection => t::settings_label_spoiler_protection(),
+        S::DownloadQuality => t::settings_label_download_quality(),
+        S::KeepNextEpisodes => t::settings_label_keep_next_episodes(),
+        S::DownloadsOnCellular => t::settings_label_downloads_on_cellular(),
+        S::TorrentsOnCellular => t::settings_label_torrents_on_cellular(),
+        S::VpnOnFailure => t::settings_label_vpn_on_failure(),
+        S::EpisodeNotifications => t::settings_label_episode_notifications(),
+        S::MpvOptions => t::settings_label_mpv_options(),
+        S::AdultTitles => t::settings_label_adult_titles(),
+    }
+}
+
+/// A heading's name for the model's category. A category the catalogue does not know stays as
+/// sent.
+fn category_text(category: &str) -> String {
+    match category {
+        "appearance" => t::settings_category_appearance(),
+        "playback" => t::settings_category_playback(),
+        "downloads" => t::settings_category_downloads(),
+        "sources" => t::settings_category_sources(),
+        "integrations" => t::settings_category_integrations(),
+        "notifications" => t::settings_category_notifications(),
+        "advanced" => t::settings_category_advanced(),
+        other => other.to_owned(),
+    }
+}
+
+/// A row's value, in the language in use. A value the catalogue does not know (a language code,
+/// a path, a host) stays as the model sent it.
+fn value_text(key: SettingKey, raw: &str) -> String {
+    use SettingKey as S;
+    // The saved choice, then the session's own when they differ.
+    if matches!(key, S::Theme | S::Translation)
+        && let Some((saved, rest)) = raw.split_once(" · ")
+        && let Some(current) = rest.strip_suffix(" this session")
+    {
+        return t::settings_value_this_session(
+            &known_value(key, saved),
+            &known_value(key, current),
+        );
+    }
+    known_value(key, raw)
+}
+
+/// What the model says for a download folder that is not set.
+const KEPT_WITH_CACHE: &str = "kept with the torrent cache"; // i18n-skip
+
+fn known_value(key: SettingKey, raw: &str) -> String {
+    use SettingKey as S;
+    if !key.typed() {
+        match raw {
+            "on" => return t::settings_value_on(),
+            "off" => return t::settings_value_off(),
+            _ => {}
+        }
+    }
+    let known = match (key, raw) {
+        (S::Theme, "adaptive") => t::settings_value_theme_adaptive(), // i18n-skip
+        (S::Theme, "immersive") => t::settings_value_theme_immersive(), // i18n-skip
+        (S::Titles, "AniList's choice") => t::settings_value_titles_anilist(), // i18n-skip
+        (S::Titles, "English") => t::settings_value_titles_english(), // i18n-skip
+        (S::Titles, "Romaji") => t::settings_value_titles_romaji(),   // i18n-skip
+        (S::Translation, "sub") => t::audio_subbed(),                 // i18n-skip
+        (S::Translation, "dub") => t::audio_dubbed(),                 // i18n-skip
+        (S::Upscaling, "natural · ArtCNN") => t::settings_value_upscaling_natural(), // i18n-skip
+        (S::Upscaling, "sharp · Anime4K") => t::settings_value_upscaling_sharp(), // i18n-skip
+        (S::PlayerUi, "anistream") => t::settings_value_player_ui_anistream(),    // i18n-skip
+        (S::PlayerUi, "your mpv setup") => t::settings_value_player_ui_mpv(),     // i18n-skip
+        (S::DownloadDir, KEPT_WITH_CACHE) => t::settings_value_download_dir_default(),
+        (S::DownloadHook, "configured") => t::settings_value_configured(), // i18n-skip
+        (S::DownloadHook | S::TorrentIndex | S::VpnMode, "none") => t::settings_value_none(), // i18n-skip
+        (S::SyncplayRoom, "unset — needed for parties") => t::settings_value_room_unset(), // i18n-skip
+        (S::VpnMode, "socks5") => t::settings_value_vpn_socks5(), // i18n-skip
+        (S::VpnMode, "external") => t::settings_value_vpn_external(), // i18n-skip
+        (S::UploadLimit, "unlimited") => t::settings_value_unlimited(), // i18n-skip
+        _ => String::new(),
+    };
+    if !known.is_empty() {
+        return known;
+    }
+    if key == S::SeedRatio
+        && let Some(ratio) = raw.strip_prefix("until ratio ")
+    {
+        return t::settings_value_seed_ratio(ratio);
+    }
+    if key == S::SeedHours
+        && let Some(hours) = raw.strip_suffix(" h").and_then(|h| h.parse().ok())
+    {
+        return t::duration_hours(hours);
+    }
+    if key == S::UploadLimit
+        && let Some(size) = raw.strip_suffix("/s")
+    {
+        return t::settings_value_per_second(size);
+    }
+    raw.to_owned()
 }
 
 #[cfg(test)]
@@ -302,22 +435,6 @@ mod tests {
         Owner::new(Config::default()).answer(&mut a, Some(task));
         assert_eq!(setting_text(&a, SettingKey::Subtitles), "spa");
         assert_eq!(a.nav.overlay(), None);
-    }
-
-    #[test]
-    fn a_saved_setting_is_named_as_the_screen_names_it() {
-        let a = app();
-        assert_eq!(
-            a.setting_label(&["playback"], "commit_threshold"),
-            Some("counts as watched at"),
-            "the screen's words, not the file's key"
-        );
-        assert_eq!(
-            a.setting_label(&["providers", "torrent"], "enabled"),
-            Some("torrent source")
-        );
-        // Kept in passing, with no row of its own: nothing to announce.
-        assert_eq!(a.setting_label(&["playback"], "persisted_speed"), None);
     }
 
     #[test]
@@ -386,7 +503,7 @@ mod tests {
 
         Owner::new(Config::default()).refuse(&mut a, task);
         assert!(!a.settings.sources.torrent, "back to what the file holds");
-        assert_eq!(setting_text(&a, SettingKey::Torrents), "off");
+        assert_eq!(setting_text(&a, SettingKey::Torrents), "Off");
         assert!(a.status.is_empty(), "the status line shows what is in effect again");
     }
 
@@ -415,7 +532,7 @@ mod tests {
         let mut a = app();
         let task = a.handle(Action::ToggleTranslation, 10);
         Owner::new(Config::default()).answer(&mut a, task);
-        assert_eq!(setting_text(&a, SettingKey::Translation), "sub · dub this session");
+        assert_eq!(setting_text(&a, SettingKey::Translation), "Subbed · Dubbed this session");
         assert!(a.toasts.last().unwrap().notice.text.contains("for this session"));
 
         // The arrows change the saved value, the one the row leads with.
@@ -431,7 +548,7 @@ mod tests {
             anistream_core::media::Translation::Dub,
             "dub is what is written"
         );
-        assert_eq!(setting_text(&a, SettingKey::Translation), "dub");
+        assert_eq!(setting_text(&a, SettingKey::Translation), "Dubbed");
     }
 
     #[test]
@@ -441,7 +558,7 @@ mod tests {
         config.theme.mode = ThemeMode::Immersive;
         let saved = Config::default();
         let a = App::new(settings::view(&config, &saved), Palette::dark(), Keymap::new());
-        assert_eq!(setting_text(&a, SettingKey::Theme), "adaptive · immersive this session");
+        assert_eq!(setting_text(&a, SettingKey::Theme), "Adaptive · Immersive this session");
     }
 
     #[test]
@@ -489,7 +606,7 @@ mod tests {
 
         // Off by default; one step right turns it on, at a modest ratio.
         a.set_cursor(at(SettingKey::SeedRatio));
-        assert_eq!(setting_text(&a, SettingKey::SeedRatio), "off");
+        assert_eq!(setting_text(&a, SettingKey::SeedRatio), "Off");
         let task = a.handle(Action::Right, 10);
         assert_eq!(task, Some(Command::StepSetting { key: SettingKey::SeedRatio, delta: 1 }));
         owner.answer(&mut a, task);
@@ -504,7 +621,7 @@ mod tests {
 
         a.set_cursor(at(SettingKey::UploadLimit));
         let rows = a.setting_rows();
-        assert_eq!(rows[a.cursor()].value, "unlimited");
+        assert_eq!(rows[a.cursor()].value, "Unlimited");
         let task = a.handle(Action::Right, 10);
         owner.answer(&mut a, task);
         // 256 KiB/s in the file, said in the decimal units every other size uses.
@@ -528,17 +645,17 @@ mod tests {
 
         assert_eq!(
             setting_text(&a, SettingKey::Presence),
-            "off",
+            "Off",
             "off by default: it publishes to a third party"
         );
         let task = a.handle(Action::Open, 10);
         assert_eq!(task, Some(Command::StepSetting { key: SettingKey::Presence, delta: 1 }));
         owner.answer(&mut a, task);
         assert!(owner.saved.presence.enabled, "written on");
-        assert_eq!(setting_text(&a, SettingKey::Presence), "on");
+        assert_eq!(setting_text(&a, SettingKey::Presence), "On");
         let task = a.handle(Action::Open, 10);
         owner.answer(&mut a, task);
-        assert_eq!(setting_text(&a, SettingKey::Presence), "off", "and back off again");
+        assert_eq!(setting_text(&a, SettingKey::Presence), "Off", "and back off again");
     }
 
     #[test]
@@ -549,12 +666,16 @@ mod tests {
         let rows = a.setting_rows();
         let row = rows
             .iter()
-            .find(|r| r.label == SettingKey::Presence.label())
+            .find(|r| r.label == t::settings_label_presence())
             .expect("the presence row");
         assert!(row.editable, "it must still be toggleable");
         // A client id ships by default, so the row says when the change applies rather than what is
         // missing. A Discord id is public, so there is nothing to withhold.
-        assert!(row.note.is_some_and(|n| n.contains("next episode")), "got {:?}", row.note);
+        assert!(
+            row.note.as_ref().is_some_and(|n| n.contains("next episode")),
+            "got {:?}",
+            row.note
+        );
 
         // Blanking the field must still resolve, via the shipped default — otherwise clearing it
         // instead of deleting the line would silently disable the feature.
