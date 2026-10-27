@@ -9,6 +9,318 @@ import android.content.Context
  * `stringResource(R.string.x)` and `pluralStringResource(R.plurals.x, n, ...)` directly.
  */
 object Strings {
+    /** A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. */
+    fun noticeReason(context: Context, reason: String): String =
+        context.getString(R.string.notice_reason, reason)
+
+    /** Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast. */
+    fun causeNoSources(context: Context): String =
+        context.getString(R.string.cause_no_sources)
+
+    /** A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date. */
+    fun noticeNotAired(context: Context, episode: Int, when: String): String =
+        context.getString(R.string.notice_not_aired, episode, when)
+
+    /** A play's explanation: the episode is after the next one to air. The "when" says when that one airs. */
+    fun noticeNotAiredYet(context: Context, episode: Int, next: Int, when: String): String =
+        context.getString(R.string.notice_not_aired_yet, episode, next, when)
+
+    /** Part of an air time: the broadcast is later today. The time is the viewer's local time. */
+    fun causeAirsToday(context: Context, time: String): String =
+        context.getString(R.string.cause_airs_today, time)
+
+    /** Part of an air time: the broadcast is tomorrow. The time is the viewer's local time. */
+    fun causeAirsTomorrow(context: Context, time: String): String =
+        context.getString(R.string.cause_airs_tomorrow, time)
+
+    /** Part of an air time: the broadcast is within the next week. */
+    fun causeAirsInDays(context: Context, days: Int, time: String): String =
+        context.resources.getQuantityString(R.plurals.cause_airs_in_days, days, days, time)
+
+    /** Part of an air time: the broadcast is more than a week away. The date is year-month-day. */
+    fun causeAirsOnDate(context: Context, date: String, time: String): String =
+        context.getString(R.string.cause_airs_on_date, date, time)
+
+    /** Reason: the source answered but gave nothing to play. */
+    fun causeNoPlayableStream(context: Context): String =
+        context.getString(R.string.cause_no_playable_stream)
+
+    /** Reason: no source could be matched to the title. The detail is what each source said. */
+    fun causeTitleNoMatch(context: Context, detail: String): String =
+        context.getString(R.string.cause_title_no_match, detail)
+
+    /** Reason: the source the person picked is no longer installed or enabled. */
+    fun causeSourceGone(context: Context, source: String): String =
+        context.getString(R.string.cause_source_gone, source)
+
+    /** Reason: the release the person picked would not start. The detail comes from the source. */
+    fun causeReleaseFailed(context: Context, detail: String): String =
+        context.getString(R.string.cause_release_failed, detail)
+
+    /** Reason: every source matched the title but none has the episode. The detail is what each said. */
+    fun causeNoSourceHasEpisode(context: Context, episode: String, detail: String): String =
+        context.getString(R.string.cause_no_source_has_episode, episode, detail)
+
+    /** Reason: the source streams episodes but only torrents can be downloaded. */
+    fun causeSourceCannotDownload(context: Context): String =
+        context.getString(R.string.cause_source_cannot_download)
+
+    /** Reason: the title was never listed by a source, so it can't be downloaded. */
+    fun causeNoSourceCouldListShow(context: Context): String =
+        context.getString(R.string.cause_no_source_could_list_show)
+
+    /** Part of a finished download's toast: subtitle files were merged into the video. */
+    fun causeSubtitlesMerged(context: Context, tracks: Int): String =
+        context.resources.getQuantityString(R.plurals.cause_subtitles_merged, tracks, tracks)
+
+    /** Part of a finished download's toast: merging failed, so the subtitles stay as files beside it. */
+    fun causeSubtitlesLeftApart(context: Context, reason: String): String =
+        context.getString(R.string.cause_subtitles_left_apart, reason)
+
+    /** Part of a download toast: how many episodes of the range were in the queue already. */
+    fun causeAlreadyInDownloads(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.cause_already_in_downloads, count, count)
+
+    /** Job note while a play looks the title up. */
+    fun statusLookingUpTitle(context: Context): String =
+        context.getString(R.string.status_looking_up_title)
+
+    /** Job note while a play waits for the sources to arrive. */
+    fun statusLoadingSources(context: Context): String =
+        context.getString(R.string.status_loading_sources)
+
+    /** Job note while the sources are asked for an episode. The episode is its label, often a number. */
+    fun statusSearchingSources(context: Context, episode: String): String =
+        context.getString(R.string.status_searching_sources, episode)
+
+    /** Status while the player opens. */
+    fun statusStartingPlayer(context: Context): String =
+        context.getString(R.string.status_starting_player)
+
+    /** Status line while an episode plays. */
+    fun statusPlaying(context: Context, title: String, episode: String): String =
+        context.getString(R.string.status_playing, title, episode)
+
+    /** Toast when the player cannot be started. The reason comes from the system. */
+    fun noticePlayerFailedToStart(context: Context, reason: String): String =
+        context.getString(R.string.notice_player_failed_to_start, reason)
+
+    /** Toast when a stream never showed a frame and the next one is tried. */
+    fun noticeStreamNoVideo(context: Context, next: Int, total: Int): String =
+        context.getString(R.string.notice_stream_no_video, next, total)
+
+    /** Toast when mpv gave up on a file. The reason is mpv's own line. */
+    fun noticePlayerCouldNotPlay(context: Context, reason: String): String =
+        context.getString(R.string.notice_player_could_not_play, reason)
+
+    /** Toast when mpv closed without playing and without saying why. */
+    fun noticePlayerExitedSilently(context: Context): String =
+        context.getString(R.string.notice_player_exited_silently)
+
+    /** Toast when no picture has appeared a while after the player opened. */
+    fun noticePlayerNotPlaying(context: Context, seconds: Int): String =
+        context.getString(R.string.notice_player_not_playing, seconds)
+
+    /** Toast when a play is asked for in a build with no player. */
+    fun noticeNoPlayer(context: Context): String =
+        context.getString(R.string.notice_no_player)
+
+    /** Toast at launch when the mpv program is missing. The binary is the name the settings give it. */
+    fun noticeMpvMissing(context: Context, binary: String): String =
+        context.getString(R.string.notice_mpv_missing, binary)
+
+    /** Toast at launch when mpv is too old for anistream's own player. */
+    fun noticeMpvOld(context: Context, version: String): String =
+        context.getString(R.string.notice_mpv_old, version)
+
+    /** Toast after a link was handed to the browser. */
+    fun noticeOpenedInBrowser(context: Context): String =
+        context.getString(R.string.notice_opened_in_browser)
+
+    /** Toast when a link could not be opened. The reason comes from the system. */
+    fun noticeCouldNotOpen(context: Context, reason: String): String =
+        context.getString(R.string.notice_could_not_open, reason)
+
+    /** Toast when a trailer plays in mpv. */
+    fun noticeTrailerPlaying(context: Context): String =
+        context.getString(R.string.notice_trailer_playing)
+
+    /** Toast when a trailer opens in the browser. */
+    fun noticeTrailerOpened(context: Context): String =
+        context.getString(R.string.notice_trailer_opened)
+
+    /** Toast when a trailer could not be opened. The reason comes from the system. */
+    fun noticeTrailerFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_trailer_failed, reason)
+
+    /** Toast when the next episode is not the one after this because filler was skipped. */
+    fun noticeFillerSkipped(context: Context, episode: String): String =
+        context.getString(R.string.notice_filler_skipped, episode)
+
+    /** Toast after switching the audio while playing. */
+    fun noticeAudioNowSubbed(context: Context): String =
+        context.getString(R.string.notice_audio_now_subbed)
+
+    /** Toast after switching the audio while playing. */
+    fun noticeAudioNowDubbed(context: Context): String =
+        context.getString(R.string.notice_audio_now_dubbed)
+
+    /** Toast when the previous-episode control is used on the first episode. */
+    fun noticeAlreadyFirstEpisode(context: Context): String =
+        context.getString(R.string.notice_already_first_episode)
+
+    /** Toast when the next-episode control is used on the last known episode. */
+    fun noticeLastEpisode(context: Context, episode: String): String =
+        context.getString(R.string.notice_last_episode, episode)
+
+    /** Toast when the next-episode control is used and the next episode is not known. */
+    fun noticeNoNextEpisode(context: Context): String =
+        context.getString(R.string.notice_no_next_episode)
+
+    /** Toast when the previous-episode control finds no previous episode. */
+    fun noticeNoPreviousEpisode(context: Context): String =
+        context.getString(R.string.notice_no_previous_episode)
+
+    /** Toast when the title's episode match could not be cleared. The reason comes from the system. */
+    fun noticeMatchResetFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_match_reset_failed, reason)
+
+    /** Toast when the chosen match could not be saved. The reason comes from the system. */
+    fun noticeMatchSaveFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_match_save_failed, reason)
+
+    /** Toast when a chosen match still left the title undecided. */
+    fun noticeMatchDidNotStick(context: Context): String =
+        context.getString(R.string.notice_match_did_not_stick)
+
+    /** Toast when a search of the sources for a title found nothing. */
+    fun noticeSourceSearchEmpty(context: Context, query: String): String =
+        context.getString(R.string.notice_source_search_empty, query)
+
+    /** Toast after the person picked a source for one title. */
+    fun noticeSourcePinned(context: Context, source: String): String =
+        context.getString(R.string.notice_source_pinned, source)
+
+    /** Toast after the person went back to automatic source selection for one title. */
+    fun noticeSourceAutomatic(context: Context): String =
+        context.getString(R.string.notice_source_automatic)
+
+    /** Toast when the source choice for a title could not be saved. The reason comes from the system. */
+    fun noticeSourceChoiceFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_source_choice_failed, reason)
+
+    /** Toast when no source could list a show's episodes. The reason is what the sources said. */
+    fun noticeNoSourceCouldList(context: Context, reason: String): String =
+        context.getString(R.string.notice_no_source_could_list, reason)
+
+    /** Toast when a title cannot be taken off the Continue row. The reason comes from the system. */
+    fun noticeContinueHideFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_continue_hide_failed, reason)
+
+    /** Toast after an episode was added to the download queue. */
+    fun noticeDownloadQueued(context: Context, title: String, episode: String): String =
+        context.getString(R.string.notice_download_queued, title, episode)
+
+    /** Toast when an episode asked for is in downloads already. */
+    fun noticeDownloadAlreadyQueued(context: Context, title: String, episode: String): String =
+        context.getString(R.string.notice_download_already_queued, title, episode)
+
+    /** Toast when a waiting or paused download was moved to the front and started. */
+    fun noticeDownloadStartingNow(context: Context, title: String, episode: String): String =
+        context.getString(R.string.notice_download_starting_now, title, episode)
+
+    /** Toast after a download was cancelled. */
+    fun noticeDownloadCancelled(context: Context): String =
+        context.getString(R.string.notice_download_cancelled)
+
+    /** Toast after a download and its file were deleted. */
+    fun noticeDownloadFileDeleted(context: Context): String =
+        context.getString(R.string.notice_download_file_deleted)
+
+    /** Toast after a download was removed whose file was already gone. */
+    fun noticeDownloadRemovedFileGone(context: Context): String =
+        context.getString(R.string.notice_download_removed_file_gone)
+
+    /** Toast after a download was removed but its file could not be deleted. The reason comes from the system. */
+    fun noticeDownloadRemovedFileKept(context: Context, reason: String): String =
+        context.getString(R.string.notice_download_removed_file_kept, reason)
+
+    /** Toast after a download with no file was removed. */
+    fun noticeDownloadRemoved(context: Context): String =
+        context.getString(R.string.notice_download_removed)
+
+    /** Toast after finished downloads were cleared from the list. */
+    fun noticeDownloadsCleared(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.notice_downloads_cleared, count, count)
+
+    /** Toast when an episode finished downloading. */
+    fun noticeDownloadFinished(context: Context, title: String, episode: String): String =
+        context.getString(R.string.notice_download_finished, title, episode)
+
+    /** Toast when an episode finished downloading and the note says what happened to its subtitles. */
+    fun noticeDownloadFinishedNote(context: Context, title: String, episode: String, note: String): String =
+        context.getString(R.string.notice_download_finished_note, title, episode, note)
+
+    /** Toast when a download could not start. The reason comes from the torrent client. */
+    fun noticeDownloadFailed(context: Context, title: String, episode: String, reason: String): String =
+        context.getString(R.string.notice_download_failed, title, episode, reason)
+
+    /** Toast after a range was asked for and nothing was queued. */
+    fun noticeDownloadsNoneQueued(context: Context): String =
+        context.getString(R.string.notice_downloads_none_queued)
+
+    /** Toast after a range was asked for and nothing was queued, and the reason it stopped. */
+    fun noticeDownloadsNoneQueuedStopped(context: Context, reason: String): String =
+        context.getString(R.string.notice_downloads_none_queued_stopped, reason)
+
+    /** Toast after a range was asked for and every episode was in the queue already. */
+    fun noticeDownloadsNoneNew(context: Context, existing: String): String =
+        context.getString(R.string.notice_downloads_none_new, existing)
+
+    /** Toast as above, with the reason the range stopped. */
+    fun noticeDownloadsNoneNewStopped(context: Context, existing: String, reason: String): String =
+        context.getString(R.string.notice_downloads_none_new_stopped, existing, reason)
+
+    /** Toast after a range was asked for, some episodes were queued and some were there already. */
+    fun noticeEpisodesQueuedExisting(context: Context, count: Int, existing: String): String =
+        context.resources.getQuantityString(R.plurals.notice_episodes_queued_existing, count, count, existing)
+
+    /** Toast as above, with the reason the range stopped. */
+    fun noticeEpisodesQueuedStopped(context: Context, count: Int, reason: String): String =
+        context.resources.getQuantityString(R.plurals.notice_episodes_queued_stopped, count, count, reason)
+
+    /** Toast as above, with some episodes in the queue already and the reason the range stopped. */
+    fun noticeEpisodesQueuedExistingStopped(context: Context, count: Int, existing: String, reason: String): String =
+        context.resources.getQuantityString(R.plurals.notice_episodes_queued_existing_stopped, count, count, existing, reason)
+
+    /** Toast when keep next found no room for another episode. */
+    fun noticeKeepNextFull(context: Context): String =
+        context.getString(R.string.notice_keep_next_full)
+
+    /** Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. */
+    fun partyNeedsServer(context: Context, server: String, operator: String): String =
+        context.getString(R.string.party_needs_server, server, operator)
+
+    /** Toast when a watch party is asked for in a build without watch parties. */
+    fun noticeNoParty(context: Context): String =
+        context.getString(R.string.notice_no_party)
+
+    /** Message when a watch party was asked for with no room named. */
+    fun partyNeedsRoom(context: Context): String =
+        context.getString(R.string.party_needs_room)
+
+    /** Message in a watch party when its server connection dropped and is retried. */
+    fun partyServerLost(context: Context): String =
+        context.getString(R.string.party_server_lost)
+
+    /** Message in a watch party when the connection came back. */
+    fun partyRejoined(context: Context): String =
+        context.getString(R.string.party_rejoined)
+
+    /** Message when the person left a watch party. */
+    fun partyLeft(context: Context): String =
+        context.getString(R.string.party_left)
+
     /** The legal line. It exists once, so no translation can paraphrase it. */
     fun legalHostsNoContent(context: Context): String =
         context.getString(R.string.legal_hosts_no_content)

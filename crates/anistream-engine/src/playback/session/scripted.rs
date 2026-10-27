@@ -365,7 +365,7 @@ async fn a_licensed_stream_is_handed_to_the_host_and_no_window_opens() {
 
     assert_eq!(*rig.links.0.lock().unwrap(), ["https://hikari.example/watch/G2XU04E88"]);
     assert!(rig.opener.calls().is_empty(), "{:?}", rig.opener.calls());
-    assert_eq!(toasts(&events), ["opened in your browser"]);
+    assert_eq!(toasts(&events), ["Opened in your browser."]);
     assert_eq!(ending(&events), Some(Ending::Elsewhere));
 }
 
@@ -376,7 +376,10 @@ async fn a_player_that_will_not_open_fails_the_playback_in_words() {
     let events = rig.play(stream(StreamKind::Mp4), context("1", None), settings()).await;
 
     assert_eq!(rig.opener.calls(), [Call::Open { fullscreen: true }]);
-    assert_eq!(toasts(&events), ["mpv: not installed"]);
+    assert_eq!(
+        toasts(&events),
+        ["Couldn't start mpv. Check that it runs on its own. (not installed)"]
+    );
     assert_eq!(ending(&events), Some(Ending::Failed));
 }
 

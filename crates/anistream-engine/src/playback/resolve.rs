@@ -3,7 +3,7 @@
 
 use anistream_core::ids::AnilistId;
 use anistream_meta::Meta;
-use anistream_model::Msg;
+use anistream_model::{Cause, Msg};
 use anistream_model::{event::Event, notice::Notice, party::NoSourceWhy};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
@@ -13,7 +13,14 @@ use crate::{
 };
 
 /// What a lookup says when there is no source to ask.
-pub(crate) const NO_SOURCES: &str = "no sources configured: see the Providers screen";
+pub(crate) fn no_sources() -> Cause {
+    Cause::NoSources
+}
+
+/// A reason as the toast or the dialog says it.
+pub(crate) fn explained(cause: Cause) -> Msg {
+    Msg::NoticeReason { reason: cause }
+}
 
 /// Why `episode` of `media` cannot be played yet, when its schedule says it has not aired.
 ///
@@ -22,7 +29,7 @@ pub(crate) const NO_SOURCES: &str = "no sources configured: see the Providers sc
 /// whose own broadcast is still ahead, said by its own time, or, past the broadcasts the title
 /// carries, one after the next to air while that is still ahead. A label that is not a number,
 /// or a title with no schedule, is looked up as ever.
-pub(crate) fn not_aired(media: &anistream_meta::Media, episode: &str) -> Option<String> {
+pub(crate) fn not_aired(media: &anistream_meta::Media, episode: &str) -> Option<Msg> {
     not_aired_in(media, episode, &jiff::tz::TimeZone::system())
 }
 
@@ -31,77 +38,79 @@ fn not_aired_in(
     media: &anistream_meta::Media,
     episode: &str,
     zone: &jiff::tz::TimeZone,
-) -> Option<String> {
+) -> Option<Msg> {
     let number: u32 = episode.trim().parse().ok()?;
     let next = media.next_airing_episode.as_ref();
     // Now as the answer had it, so what is ahead and the day it falls on are counted by the
     // clock its countdown was; a title with nothing to come has only the wall clock.
     let now = next.map_or_else(now_epoch, |next| next.airing_at - next.time_until_airing);
     match media.air_times().get(&number) {
-        Some(&at) if at > now => {
-            Some(format!("episode {number} airs {}", airs_when(at, now, zone)?))
-        }
+        Some(&at) if at > now => Some(Msg::NoticeNotAired {
+            episode: i64::from(number),
+            when: airs_when(at, now, zone)?,
+        }),
         Some(_) => None,
         // Not among the broadcasts the title carries: ruled out only by coming after the next.
         None => {
             let next =
                 next.filter(|next| next.time_until_airing > 0 && number > next.episode)?;
             let when = airs_when(next.airing_at, now, zone)?;
-            Some(format!(
-                "episode {number} hasn't aired yet; episode {} airs {when}",
-                next.episode
-            ))
+            Some(Msg::NoticeNotAiredYet {
+                episode: i64::from(number),
+                next: i64::from(next.episode),
+                when,
+            })
         }
     }
 }
 
 /// Why a play found nothing to play, as the lookup decided it: its kind, for a party's
 /// no-source dialog to offer what fits, and its words, for a toast or the terminal.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Unplayable {
     pub why: NoSourceWhy,
-    pub text: String,
+    pub text: Msg,
 }
 
 impl Unplayable {
-    /// No source is set up to ask: [`NO_SOURCES`].
+    /// No source is set up to ask: [`no_sources`].
     pub(crate) fn no_sources() -> Self {
-        Self { why: NoSourceWhy::NoSources, text: NO_SOURCES.into() }
+        Self { why: NoSourceWhy::NoSources, text: explained(no_sources()) }
     }
 
     /// The schedule rules the episode out: [`not_aired`]'s words.
-    pub(crate) fn not_aired(text: String) -> Self {
+    pub(crate) fn not_aired(text: Msg) -> Self {
         Self { why: NoSourceWhy::NotAired, text }
     }
 }
 
 /// Any other failure: the sources were asked, and none of them played it.
-impl From<String> for Unplayable {
-    fn from(text: String) -> Self {
-        Self { why: NoSourceWhy::NotFound, text }
+impl From<Cause> for Unplayable {
+    fn from(cause: Cause) -> Self {
+        Self { why: NoSourceWhy::NotFound, text: explained(cause) }
     }
 }
 
 impl std::fmt::Display for Unplayable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.text)
+        write!(f, "{}", self.text)
     }
 }
 
 impl std::error::Error for Unplayable {}
 
-/// When a broadcast at `at` is, as someone in `zone` says it at `now`: "today 18:30",
-/// "tomorrow 18:30", "Saturday 18:30" within the week and "Saturday 2 November 18:30" after.
-fn airs_when(at: i64, now: i64, zone: &jiff::tz::TimeZone) -> Option<String> {
+/// When a broadcast at `at` is, as someone in `zone` says it at `now`: today, tomorrow, in so
+/// many days within the week, and on its date after.
+fn airs_when(at: i64, now: i64, zone: &jiff::tz::TimeZone) -> Option<Cause> {
     let at = jiff::Timestamp::from_second(at).ok()?.to_zoned(zone.clone());
     let today = jiff::Timestamp::from_second(now).ok()?.to_zoned(zone.clone()).date();
     let days = today.until(at.date()).ok()?.get_days();
-    let time = at.strftime("%H:%M");
+    let time = at.strftime("%H:%M").to_string();
     Some(match days {
-        ..=0 => format!("today {time}"),
-        1 => format!("tomorrow {time}"),
-        2..=6 => format!("{} {time}", at.strftime("%A")),
-        _ => format!("{} {time}", at.strftime("%A %-d %B")),
+        ..=0 => Cause::AirsToday { time },
+        1 => Cause::AirsTomorrow { time },
+        2..=6 => Cause::AirsInDays { days: i64::from(days), time },
+        _ => Cause::AirsOnDate { date: at.strftime("%Y-%m-%d").to_string(), time },
     })
 }
 
@@ -109,7 +118,7 @@ fn airs_when(at: i64, now: i64, zone: &jiff::tz::TimeZone) -> Option<String> {
 pub type Resolved = (Vec<anistream_core::stream::Stream>, playback::PlaybackContext);
 
 /// Everything needed before mpv can be spawned: a stream, and the context history needs.
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::result_large_err)]
 pub async fn resolve_for_playback(
     meta: &Meta,
     store: &Store,
@@ -126,10 +135,10 @@ pub async fn resolve_for_playback(
 > {
     // The step under way, on the job when there is one; the CLI has no activity row and reads
     // the status channel instead.
-    let step = |text: String| match job {
-        Some(job) => job.raw_note(text, None),
+    let step = |text: Msg| match job {
+        Some(job) => job.note(text, None),
         None => {
-            let _ = tx.send(Event::Status(Some(Msg::verbatim(text))));
+            let _ = tx.send(Event::Status(Some(text)));
         }
     };
     let began = std::time::Instant::now();
@@ -144,10 +153,10 @@ pub async fn resolve_for_playback(
     // Phase-labelled, because the wait between Enter and mpv is where every tool in
     // this category earns its "is it frozen?" issues. The status line names the rung
     // being climbed; the eyecatch's own timer says how long it has taken.
-    step("looking up the title".into());
+    step(Msg::StatusLookingUpTitle);
     let media = meta.media(id).await.map_err(|e| {
         tracing::warn!(error = %e, elapsed_ms = began.elapsed().as_millis() as u64, "could not look up the title");
-        e.to_string()
+        Cause::verbatim(e.to_string())
     })?;
     tracing::info!(elapsed_ms = began.elapsed().as_millis() as u64, "title looked up");
     if let Some(reason) = not_aired(&media, episode) {
@@ -155,7 +164,7 @@ pub async fn resolve_for_playback(
     }
     // Plugins still compiling are part of the chain a moment from now. Looked up without
     // them, the episode would come from whichever source was ready first, or from none.
-    crate::sources::arrived(registry, || step("loading sources".into())).await;
+    crate::sources::arrived(registry, || step(Msg::StatusLoadingSources)).await;
     if registry.is_empty() {
         tracing::warn!("no sources to resolve against");
         return Err(Unplayable::no_sources());
@@ -194,7 +203,7 @@ pub async fn resolve_for_playback(
     let registry = chain.as_ref().unwrap_or(registry);
     let target = media.match_target();
 
-    step(format!("searching sources for ep {episode}"));
+    step(Msg::StatusSearchingSources { episode: episode.to_owned() });
     let mut streams = match &pick {
         // A picked release goes straight to its provider, no failover: substituting a
         // different stream for the one the user chose would silently undo the choice. Matched
@@ -202,7 +211,7 @@ pub async fn resolve_for_playback(
         Some((provider_id, source_id)) => {
             let source = registry
                 .pinned(provider_id)
-                .ok_or_else(|| format!("{provider_id} is not a source any more"))?;
+                .ok_or_else(|| Cause::SourceGone { source: provider_id.clone() })?;
             let resolution = anistream_providers::resolve(
                 store,
                 &source,
@@ -212,9 +221,10 @@ pub async fn resolve_for_playback(
                 now,
             )
             .await;
-            let key = resolution.key().cloned().ok_or_else(|| {
-                format!("could not match this title: {}", resolution.explain())
-            })?;
+            let key = resolution
+                .key()
+                .cloned()
+                .ok_or_else(|| Cause::TitleNoMatch { detail: resolution.explain() })?;
             source
                 .resolve_source(
                     provider_id,
@@ -225,7 +235,7 @@ pub async fn resolve_for_playback(
                     now,
                 )
                 .await
-                .map_err(|e| format!("could not start that release: {e}"))?
+                .map_err(|e| Cause::ReleaseFailed { detail: e.to_string() })?
         }
         None => {
             let from_release = pinned_release(
@@ -256,11 +266,7 @@ pub async fn resolve_for_playback(
                 match answer {
                     anistream_providers::Answer::Answered { value, .. } => value,
                     anistream_providers::Answer::Ambiguous { .. } => {
-                        return Err(format!(
-                            "could not match this title: {}",
-                            answer.explain()
-                        )
-                        .into());
+                        return Err(Cause::TitleNoMatch { detail: answer.explain() }.into());
                     }
                     anistream_providers::Answer::Unanswered { matched, .. } => {
                         return Err(no_source_has(episode, matched, &answer.explain()).into());
@@ -282,7 +288,7 @@ pub async fn resolve_for_playback(
             elapsed_ms = began.elapsed().as_millis() as u64,
             "the source answered with no stream"
         );
-        return Err(String::from("no playable stream").into());
+        return Err(Cause::NoPlayableStream.into());
     }
     if let Some(first) = streams.first() {
         tracing::info!(
@@ -367,11 +373,11 @@ async fn pinned_release(
 
 /// What a play says when no source gave the episode: that none has it, when each source matched
 /// the title and lacked the episode, and otherwise what each source said.
-fn no_source_has(episode: &str, matched: bool, reasons: &str) -> String {
+fn no_source_has(episode: &str, matched: bool, reasons: &str) -> Cause {
     if matched {
-        format!("no source has episode {episode}: {reasons}")
+        Cause::NoSourceHasEpisode { episode: episode.to_owned(), detail: reasons.to_owned() }
     } else {
-        reasons.to_owned()
+        Cause::verbatim(reasons)
     }
 }
 
@@ -386,17 +392,17 @@ async fn source_slate(
     id: anistream_core::ids::AnilistId,
     episode: &str,
     translation: anistream_core::media::Translation,
-) -> std::result::Result<Vec<anistream_core::traits::SourceCandidate>, String> {
+) -> std::result::Result<Vec<anistream_core::traits::SourceCandidate>, Msg> {
     if registry.is_empty() && !registry.is_arriving() {
-        return Err(NO_SOURCES.into());
+        return Err(explained(no_sources()));
     }
-    let media = meta.media(id).await.map_err(|e| e.to_string())?;
+    let media = meta.media(id).await.map_err(|e| Msg::verbatim(e.to_string()))?;
     if let Some(reason) = not_aired(&media, episode) {
         return Err(reason);
     }
     crate::sources::arrived(registry, || ()).await;
     if registry.is_empty() {
-        return Err(NO_SOURCES.into());
+        return Err(explained(no_sources()));
     }
     let target = media.match_target();
     let now = now_epoch();
@@ -414,7 +420,7 @@ async fn source_slate(
         }
     }
     if slate.is_empty() && !reasons.is_empty() {
-        return Err(format!("could not match this title: {}", reasons.join(", ")));
+        return Err(explained(Cause::TitleNoMatch { detail: reasons.join(", ") }));
     }
     Ok(slate)
 }
@@ -438,7 +444,7 @@ pub fn load_sources(
         let update =
             match source_slate(&meta, &store, &registry, id, &episode, translation).await {
                 Ok(candidates) => Event::Sources { id, episode, candidates },
-                Err(reason) => Event::Toast(Notice::raw_alert(reason)),
+                Err(msg) => Event::Toast(Notice::alert(msg)),
             };
         let _ = tx.send(update);
     });
@@ -504,7 +510,7 @@ mod tests {
         // No source to ask.
         let none = failure(show(false), "3", Vec::new()).await;
         assert_eq!(none.why, NoSourceWhy::NoSources);
-        assert_eq!(none.text, NO_SOURCES);
+        assert_eq!(none.text, explained(no_sources()));
         // The schedule rules the episode out before any source is asked.
         let unaired = failure(show(true), "8", vec![MockProvider::new("sample")]).await;
         assert_eq!(unaired.why, NoSourceWhy::NotAired);
@@ -512,9 +518,9 @@ mod tests {
         let missing = failure(show(false), "3", vec![MockProvider::new("sample")]).await;
         assert_eq!(missing.why, NoSourceWhy::NotFound);
         assert!(
-            missing.text.contains("sample"),
+            missing.text.english().contains("sample"),
             "the source's answer, not the title's lookup: {}",
-            missing.text
+            missing.text.english()
         );
     }
 
@@ -547,24 +553,30 @@ mod tests {
         // Wednesday 21 October 2026, ten in the morning.
         let now = local("2026-10-21T10:00");
         let said = |next, in_secs, episode| {
-            not_aired_in(&airing(next, now, in_secs), episode, &zone())
+            not_aired_in(&airing(next, now, in_secs), episode, &zone()).map(|msg| msg.english())
         };
         assert_eq!(
             said(4, 8 * HOUR + 1_800, "4").as_deref(),
-            Some("episode 4 airs today 18:30")
+            Some("Episode 4 airs today at 18:30.")
         );
-        assert_eq!(said(4, 15 * HOUR, "4").as_deref(), Some("episode 4 airs tomorrow 01:00"));
+        assert_eq!(
+            said(4, 15 * HOUR, "4").as_deref(),
+            Some("Episode 4 airs tomorrow at 01:00.")
+        );
         let saturday = local("2026-10-24T18:30") - now;
-        assert_eq!(said(4, saturday, "4").as_deref(), Some("episode 4 airs Saturday 18:30"));
+        assert_eq!(
+            said(4, saturday, "4").as_deref(),
+            Some("Episode 4 airs in 3 days at 18:30.")
+        );
         let fortnight = local("2026-11-02T18:30") - now;
         assert_eq!(
             said(4, fortnight, "4").as_deref(),
-            Some("episode 4 airs Monday 2 November 18:30")
+            Some("Episode 4 airs on 2026-11-02 at 18:30.")
         );
         // One after it has not aired either, and is told when the next one is.
         assert_eq!(
             said(4, saturday, " 6").as_deref(),
-            Some("episode 6 hasn't aired yet; episode 4 airs Saturday 18:30")
+            Some("Episode 6 hasn't aired yet. Episode 4 airs in 3 days at 18:30.")
         );
     }
 
@@ -588,14 +600,14 @@ mod tests {
             "aired": [{ "episode": 3, "airingAt": saturday - 7 * 24 * HOUR }],
         }))
         .unwrap();
-        let said = |episode| not_aired_in(&media, episode, &zone());
-        assert_eq!(said("4").as_deref(), Some("episode 4 airs Saturday 18:30"));
-        assert_eq!(said("5").as_deref(), Some("episode 5 airs Saturday 31 October 18:30"));
-        assert_eq!(said("6").as_deref(), Some("episode 6 airs Saturday 7 November 18:30"));
+        let said = |episode| not_aired_in(&media, episode, &zone()).map(|msg| msg.english());
+        assert_eq!(said("4").as_deref(), Some("Episode 4 airs in 3 days at 18:30."));
+        assert_eq!(said("5").as_deref(), Some("Episode 5 airs on 2026-10-31 at 18:30."));
+        assert_eq!(said("6").as_deref(), Some("Episode 6 airs on 2026-11-07 at 18:30."));
         // Past what the schedule carries, the next one is what can be said.
         assert_eq!(
             said("9").as_deref(),
-            Some("episode 9 hasn't aired yet; episode 4 airs Saturday 18:30")
+            Some("Episode 9 hasn't aired yet. Episode 4 airs in 3 days at 18:30.")
         );
         // Out already.
         assert_eq!(said("3"), None);
@@ -605,7 +617,7 @@ mod tests {
     fn an_episode_the_schedule_does_not_rule_out_is_looked_up() {
         let now = local("2026-10-21T10:00");
         let said = |next, in_secs, episode| {
-            not_aired_in(&airing(next, now, in_secs), episode, &zone())
+            not_aired_in(&airing(next, now, in_secs), episode, &zone()).map(|msg| msg.english())
         };
         // Aired already, or due by now with the schedule not yet moved on.
         assert_eq!(said(4, HOUR, "3"), None);

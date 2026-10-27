@@ -5,6 +5,336 @@ import Foundation
 
 /// Every string the apps show, by catalogue id. A missing translation falls back to English per string.
 public enum L {
+    /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
+    public static func noticeReason(reason: String) -> String {
+        format("notice-reason", fallback: "%1$@", reason)
+    }
+
+    /// Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast.
+    public static var causeNoSources: String { string("cause-no-sources", fallback: "No sources are set up. Add one on the Sources screen.") }
+
+    /// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
+    public static func noticeNotAired(episode: Int, when: String) -> String {
+        format("notice-not-aired", fallback: "Episode %1$lld airs %2$@.", episode, when)
+    }
+
+    /// A play's explanation: the episode is after the next one to air. The "when" says when that one airs.
+    public static func noticeNotAiredYet(episode: Int, next: Int, when: String) -> String {
+        format("notice-not-aired-yet", fallback: "Episode %1$lld hasn't aired yet. Episode %2$lld airs %3$@.", episode, next, when)
+    }
+
+    /// Part of an air time: the broadcast is later today. The time is the viewer's local time.
+    public static func causeAirsToday(time: String) -> String {
+        format("cause-airs-today", fallback: "today at %1$@", time)
+    }
+
+    /// Part of an air time: the broadcast is tomorrow. The time is the viewer's local time.
+    public static func causeAirsTomorrow(time: String) -> String {
+        format("cause-airs-tomorrow", fallback: "tomorrow at %1$@", time)
+    }
+
+    /// Part of an air time: the broadcast is within the next week.
+    public static func causeAirsInDays(days: Int, time: String) -> String {
+        format("cause-airs-in-days", fallback: "in %1$lld days at %2$@", days, time)
+    }
+
+    /// Part of an air time: the broadcast is more than a week away. The date is year-month-day.
+    public static func causeAirsOnDate(date: String, time: String) -> String {
+        format("cause-airs-on-date", fallback: "on %1$@ at %2$@", date, time)
+    }
+
+    /// Reason: the source answered but gave nothing to play.
+    public static var causeNoPlayableStream: String { string("cause-no-playable-stream", fallback: "The source answered, but with nothing to play. Try another.") }
+
+    /// Reason: no source could be matched to the title. The detail is what each source said.
+    public static func causeTitleNoMatch(detail: String) -> String {
+        format("cause-title-no-match", fallback: "Couldn't match this title: %1$@", detail)
+    }
+
+    /// Reason: the source the person picked is no longer installed or enabled.
+    public static func causeSourceGone(source: String) -> String {
+        format("cause-source-gone", fallback: "The source %1$@ is no longer available. Choose another.", source)
+    }
+
+    /// Reason: the release the person picked would not start. The detail comes from the source.
+    public static func causeReleaseFailed(detail: String) -> String {
+        format("cause-release-failed", fallback: "Couldn't start that release: %1$@", detail)
+    }
+
+    /// Reason: every source matched the title but none has the episode. The detail is what each said.
+    public static func causeNoSourceHasEpisode(episode: String, detail: String) -> String {
+        format("cause-no-source-has-episode", fallback: "No source has episode %1$@: %2$@", episode, detail)
+    }
+
+    /// Reason: the source streams episodes but only torrents can be downloaded.
+    public static var causeSourceCannotDownload: String { string("cause-source-cannot-download", fallback: "This source streams episodes but can't download them.") }
+
+    /// Reason: the title was never listed by a source, so it can't be downloaded.
+    public static var causeNoSourceCouldListShow: String { string("cause-no-source-could-list-show", fallback: "No source could list this show, so it can't be downloaded.") }
+
+    /// Part of a finished download's toast: subtitle files were merged into the video.
+    public static func causeSubtitlesMerged(tracks: Int) -> String {
+        format("cause-subtitles-merged", fallback: "%1$lld subtitle tracks were merged in.", tracks)
+    }
+
+    /// Part of a finished download's toast: merging failed, so the subtitles stay as files beside it.
+    public static func causeSubtitlesLeftApart(reason: String) -> String {
+        format("cause-subtitles-left-apart", fallback: "The subtitles stay as separate files. %1$@", reason)
+    }
+
+    /// Part of a download toast: how many episodes of the range were in the queue already.
+    public static func causeAlreadyInDownloads(count: Int) -> String {
+        format("cause-already-in-downloads", fallback: "%1$lld episodes are already in downloads.", count)
+    }
+
+    /// Job note while a play looks the title up.
+    public static var statusLookingUpTitle: String { string("status-looking-up-title", fallback: "Looking up the title…") }
+
+    /// Job note while a play waits for the sources to arrive.
+    public static var statusLoadingSources: String { string("status-loading-sources", fallback: "Loading sources…") }
+
+    /// Job note while the sources are asked for an episode. The episode is its label, often a number.
+    public static func statusSearchingSources(episode: String) -> String {
+        format("status-searching-sources", fallback: "Searching sources for episode %1$@…", episode)
+    }
+
+    /// Status while the player opens.
+    public static var statusStartingPlayer: String { string("status-starting-player", fallback: "Starting mpv…") }
+
+    /// Status line while an episode plays.
+    public static func statusPlaying(title: String, episode: String) -> String {
+        format("status-playing", fallback: "Playing %1$@, episode %2$@", title, episode)
+    }
+
+    /// Toast when the player cannot be started. The reason comes from the system.
+    public static func noticePlayerFailedToStart(reason: String) -> String {
+        format("notice-player-failed-to-start", fallback: "Couldn't start mpv. Check that it runs on its own. (%1$@)", reason)
+    }
+
+    /// Toast when a stream never showed a frame and the next one is tried.
+    public static func noticeStreamNoVideo(next: Int, total: Int) -> String {
+        format("notice-stream-no-video", fallback: "No video from that stream. Trying %1$lld of %2$lld.", next, total)
+    }
+
+    /// Toast when mpv gave up on a file. The reason is mpv's own line.
+    public static func noticePlayerCouldNotPlay(reason: String) -> String {
+        format("notice-player-could-not-play", fallback: "mpv couldn't play this. %1$@", reason)
+    }
+
+    /// Toast when mpv closed without playing and without saying why.
+    public static var noticePlayerExitedSilently: String { string("notice-player-exited-silently", fallback: "mpv exited without playing anything and gave no reason. Try another source.") }
+
+    /// Toast when no picture has appeared a while after the player opened.
+    public static func noticePlayerNotPlaying(seconds: Int) -> String {
+        format("notice-player-not-playing", fallback: "mpv hasn't started playing after %1$lld s. The source may have no data. Check that mpv plays a file on its own.", seconds)
+    }
+
+    /// Toast when a play is asked for in a build with no player.
+    public static var noticeNoPlayer: String { string("notice-no-player", fallback: "This version of anistream can't play video.") }
+
+    /// Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+    public static func noticeMpvMissing(binary: String) -> String {
+        format("notice-mpv-missing", fallback: "%1$@ wasn't found. Install mpv to play episodes.", binary)
+    }
+
+    /// Toast at launch when mpv is too old for anistream's own player.
+    public static func noticeMpvOld(version: String) -> String {
+        format("notice-mpv-old", fallback: "mpv %1$@ can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.", version)
+    }
+
+    /// Toast after a link was handed to the browser.
+    public static var noticeOpenedInBrowser: String { string("notice-opened-in-browser", fallback: "Opened in your browser.") }
+
+    /// Toast when a link could not be opened. The reason comes from the system.
+    public static func noticeCouldNotOpen(reason: String) -> String {
+        format("notice-could-not-open", fallback: "Couldn't open that. %1$@", reason)
+    }
+
+    /// Toast when a trailer plays in mpv.
+    public static var noticeTrailerPlaying: String { string("notice-trailer-playing", fallback: "Trailer playing in mpv.") }
+
+    /// Toast when a trailer opens in the browser.
+    public static var noticeTrailerOpened: String { string("notice-trailer-opened", fallback: "Trailer opened in your browser.") }
+
+    /// Toast when a trailer could not be opened. The reason comes from the system.
+    public static func noticeTrailerFailed(reason: String) -> String {
+        format("notice-trailer-failed", fallback: "Couldn't open the trailer. %1$@", reason)
+    }
+
+    /// Toast when the next episode is not the one after this because filler was skipped.
+    public static func noticeFillerSkipped(episode: String) -> String {
+        format("notice-filler-skipped", fallback: "Skipped filler. Up next is episode %1$@.", episode)
+    }
+
+    /// Toast after switching the audio while playing.
+    public static var noticeAudioNowSubbed: String { string("notice-audio-now-subbed", fallback: "Audio is now subbed.") }
+
+    /// Toast after switching the audio while playing.
+    public static var noticeAudioNowDubbed: String { string("notice-audio-now-dubbed", fallback: "Audio is now dubbed.") }
+
+    /// Toast when the previous-episode control is used on the first episode.
+    public static var noticeAlreadyFirstEpisode: String { string("notice-already-first-episode", fallback: "Already at the first episode.") }
+
+    /// Toast when the next-episode control is used on the last known episode.
+    public static func noticeLastEpisode(episode: String) -> String {
+        format("notice-last-episode", fallback: "There's no next episode. Episode %1$@ is the last.", episode)
+    }
+
+    /// Toast when the next-episode control is used and the next episode is not known.
+    public static var noticeNoNextEpisode: String { string("notice-no-next-episode", fallback: "There's no next episode.") }
+
+    /// Toast when the previous-episode control finds no previous episode.
+    public static var noticeNoPreviousEpisode: String { string("notice-no-previous-episode", fallback: "There's no previous episode.") }
+
+    /// Toast when the title's episode match could not be cleared. The reason comes from the system.
+    public static func noticeMatchResetFailed(reason: String) -> String {
+        format("notice-match-reset-failed", fallback: "Couldn't reset the match. %1$@", reason)
+    }
+
+    /// Toast when the chosen match could not be saved. The reason comes from the system.
+    public static func noticeMatchSaveFailed(reason: String) -> String {
+        format("notice-match-save-failed", fallback: "Couldn't save that match. %1$@", reason)
+    }
+
+    /// Toast when a chosen match still left the title undecided.
+    public static var noticeMatchDidNotStick: String { string("notice-match-did-not-stick", fallback: "That match didn't stick. The source may have changed. Try choosing it again.") }
+
+    /// Toast when a search of the sources for a title found nothing.
+    public static func noticeSourceSearchEmpty(query: String) -> String {
+        format("notice-source-search-empty", fallback: "Nothing found for “%1$@”. Try a different search.", query)
+    }
+
+    /// Toast after the person picked a source for one title.
+    public static func noticeSourcePinned(source: String) -> String {
+        format("notice-source-pinned", fallback: "%1$@ will be used for this title.", source)
+    }
+
+    /// Toast after the person went back to automatic source selection for one title.
+    public static var noticeSourceAutomatic: String { string("notice-source-automatic", fallback: "Back to automatic source selection.") }
+
+    /// Toast when the source choice for a title could not be saved. The reason comes from the system.
+    public static func noticeSourceChoiceFailed(reason: String) -> String {
+        format("notice-source-choice-failed", fallback: "Couldn't save that choice. %1$@", reason)
+    }
+
+    /// Toast when no source could list a show's episodes. The reason is what the sources said.
+    public static func noticeNoSourceCouldList(reason: String) -> String {
+        format("notice-no-source-could-list", fallback: "No source could list this show: %1$@", reason)
+    }
+
+    /// Toast when a title cannot be taken off the Continue row. The reason comes from the system.
+    public static func noticeContinueHideFailed(reason: String) -> String {
+        format("notice-continue-hide-failed", fallback: "Couldn't remove that from Continue. %1$@", reason)
+    }
+
+    /// Toast after an episode was added to the download queue.
+    public static func noticeDownloadQueued(title: String, episode: String) -> String {
+        format("notice-download-queued", fallback: "Queued episode %2$@ of %1$@.", title, episode)
+    }
+
+    /// Toast when an episode asked for is in downloads already.
+    public static func noticeDownloadAlreadyQueued(title: String, episode: String) -> String {
+        format("notice-download-already-queued", fallback: "Episode %2$@ of %1$@ is already in downloads.", title, episode)
+    }
+
+    /// Toast when a waiting or paused download was moved to the front and started.
+    public static func noticeDownloadStartingNow(title: String, episode: String) -> String {
+        format("notice-download-starting-now", fallback: "Starting episode %2$@ of %1$@ now.", title, episode)
+    }
+
+    /// Toast after a download was cancelled.
+    public static var noticeDownloadCancelled: String { string("notice-download-cancelled", fallback: "Download cancelled.") }
+
+    /// Toast after a download and its file were deleted.
+    public static var noticeDownloadFileDeleted: String { string("notice-download-file-deleted", fallback: "Download and file deleted.") }
+
+    /// Toast after a download was removed whose file was already gone.
+    public static var noticeDownloadRemovedFileGone: String { string("notice-download-removed-file-gone", fallback: "Download removed. Its file was already gone.") }
+
+    /// Toast after a download was removed but its file could not be deleted. The reason comes from the system.
+    public static func noticeDownloadRemovedFileKept(reason: String) -> String {
+        format("notice-download-removed-file-kept", fallback: "Removed the download, but couldn't delete its file. %1$@", reason)
+    }
+
+    /// Toast after a download with no file was removed.
+    public static var noticeDownloadRemoved: String { string("notice-download-removed", fallback: "Download removed.") }
+
+    /// Toast after finished downloads were cleared from the list.
+    public static func noticeDownloadsCleared(count: Int) -> String {
+        format("notice-downloads-cleared", fallback: "Cleared %1$lld finished downloads.", count)
+    }
+
+    /// Toast when an episode finished downloading.
+    public static func noticeDownloadFinished(title: String, episode: String) -> String {
+        format("notice-download-finished", fallback: "Downloaded episode %2$@ of %1$@.", title, episode)
+    }
+
+    /// Toast when an episode finished downloading and the note says what happened to its subtitles.
+    public static func noticeDownloadFinishedNote(title: String, episode: String, note: String) -> String {
+        format("notice-download-finished-note", fallback: "Downloaded episode %2$@ of %1$@. %3$@", title, episode, note)
+    }
+
+    /// Toast when a download could not start. The reason comes from the torrent client.
+    public static func noticeDownloadFailed(title: String, episode: String, reason: String) -> String {
+        format("notice-download-failed", fallback: "Couldn't download episode %2$@ of %1$@. %3$@", title, episode, reason)
+    }
+
+    /// Toast after a range was asked for and nothing was queued.
+    public static var noticeDownloadsNoneQueued: String { string("notice-downloads-none-queued", fallback: "Nothing queued.") }
+
+    /// Toast after a range was asked for and nothing was queued, and the reason it stopped.
+    public static func noticeDownloadsNoneQueuedStopped(reason: String) -> String {
+        format("notice-downloads-none-queued-stopped", fallback: "Nothing queued. %1$@", reason)
+    }
+
+    /// Toast after a range was asked for and every episode was in the queue already.
+    public static func noticeDownloadsNoneNew(existing: String) -> String {
+        format("notice-downloads-none-new", fallback: "Nothing new queued. %1$@", existing)
+    }
+
+    /// Toast as above, with the reason the range stopped.
+    public static func noticeDownloadsNoneNewStopped(existing: String, reason: String) -> String {
+        format("notice-downloads-none-new-stopped", fallback: "Nothing new queued. %1$@ %2$@", existing, reason)
+    }
+
+    /// Toast after a range was asked for, some episodes were queued and some were there already.
+    public static func noticeEpisodesQueuedExisting(count: Int, existing: String) -> String {
+        format("notice-episodes-queued-existing", fallback: "Queued %1$lld episodes. %2$@", count, existing)
+    }
+
+    /// Toast as above, with the reason the range stopped.
+    public static func noticeEpisodesQueuedStopped(count: Int, reason: String) -> String {
+        format("notice-episodes-queued-stopped", fallback: "Queued %1$lld episodes, then it stopped. %2$@", count, reason)
+    }
+
+    /// Toast as above, with some episodes in the queue already and the reason the range stopped.
+    public static func noticeEpisodesQueuedExistingStopped(count: Int, existing: String, reason: String) -> String {
+        format("notice-episodes-queued-existing-stopped", fallback: "Queued %1$lld episodes, then it stopped. %2$@ %3$@", count, existing, reason)
+    }
+
+    /// Toast when keep next found no room for another episode.
+    public static var noticeKeepNextFull: String { string("notice-keep-next-full", fallback: "Not enough free space to keep the next episodes downloaded. Free up some space to download more.") }
+
+    /// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+    public static func partyNeedsServer(server: String, `operator`: String) -> String {
+        format("party-needs-server", fallback: "Choose a server for the watch party first, as syncplay.server. %1$@ is run by %2$@.", server, `operator`)
+    }
+
+    /// Toast when a watch party is asked for in a build without watch parties.
+    public static var noticeNoParty: String { string("notice-no-party", fallback: "Watch parties aren't available in this version of anistream.") }
+
+    /// Message when a watch party was asked for with no room named.
+    public static var partyNeedsRoom: String { string("party-needs-room", fallback: "A watch party needs a room to meet in. Choose one first.") }
+
+    /// Message in a watch party when its server connection dropped and is retried.
+    public static var partyServerLost: String { string("party-server-lost", fallback: "Lost the watch party server. Trying again.") }
+
+    /// Message in a watch party when the connection came back.
+    public static var partyRejoined: String { string("party-rejoined", fallback: "Back in the watch party.") }
+
+    /// Message when the person left a watch party.
+    public static var partyLeft: String { string("party-left", fallback: "Left the watch party.") }
+
     /// The legal line. It exists once, so no translation can paraphrase it.
     public static var legalHostsNoContent: String { string("legal-hosts-no-content", fallback: "anistream hosts no content.") }
 

@@ -1,7 +1,7 @@
 //! A title's page, and what it opens: the trailer, and links in the browser.
 
 use anistream_core::ids::AnilistId;
-use anistream_model::{event::Event, notice::Notice};
+use anistream_model::{Msg, event::Event, notice::Notice};
 
 use crate::{
     data, dispatch::Lent, jobs::JobGuard, outbox::Outbox, services::Services,
@@ -22,8 +22,8 @@ pub async fn load_detail(lent: Lent, id: AnilistId) {
     let (media, fresh) = match meta.media_answered(id).await {
         Ok(answered) => answered,
         Err(e) => {
-            let _ =
-                tx.send(Event::Toast(Notice::raw_alert(format!("could not load title: {e}"))));
+            tracing::warn!(error = %e, %id, "could not load the title");
+            let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeTitleLoadFailed)));
             return;
         }
     };
@@ -68,15 +68,15 @@ pub fn play_trailer(
                 .stderr(std::process::Stdio::null())
                 .spawn()
         {
-            let _ = tx.send(Event::Toast(Notice::raw_info("trailer playing in mpv")));
+            let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeTrailerPlaying)));
             // Reaped so a closed trailer never lingers as a zombie.
             let _ = child.wait().await;
             return;
         }
         let update = match host.open_url(&url) {
-            Ok(()) => Event::Toast(Notice::raw_info("trailer opened in your browser")),
+            Ok(()) => Event::Toast(Notice::info(Msg::NoticeTrailerOpened)),
             Err(e) => {
-                Event::Toast(Notice::raw_alert(format!("could not open the trailer: {e}")))
+                Event::Toast(Notice::alert(Msg::NoticeTrailerFailed { reason: e.to_string() }))
             }
         };
         let _ = tx.send(update);
@@ -102,6 +102,8 @@ fn in_path(names: &[&str]) -> bool {
 /// Open a link in the browser.
 pub fn open_external(url: String, services: &Services, tx: &Outbox) {
     if let Err(e) = services.host.open_url(&url) {
-        let _ = tx.send(Event::Toast(Notice::raw_alert(format!("could not open: {e}"))));
+        let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeCouldNotOpen {
+            reason: e.to_string(),
+        })));
     }
 }

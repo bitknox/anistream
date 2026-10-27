@@ -295,7 +295,7 @@ pub(crate) fn dispatch(
         | Command::PartyJoin { .. }
         | Command::PartyReady { .. }
         | Command::PartyLeave => {
-            let _ = tx.send(Event::Toast(Notice::raw_alert(crate::playback::NO_PARTY)));
+            let _ = tx.send(Event::Toast(Notice::alert(crate::playback::NO_PARTY)));
         }
         Command::PlayLocal { id, episode, title, path } => {
             #[cfg(feature = "party")]

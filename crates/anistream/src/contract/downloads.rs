@@ -81,7 +81,7 @@ async fn cancelling_takes_the_row_away_then_says_so() {
 
     assert_eq!(names(&updates), ["Downloads", "Toast"]);
     assert_eq!(queue(&updates[0]), ["2 queued"]);
-    assert_eq!(toasts(&updates), ["info: download cancelled"]);
+    assert_eq!(toasts(&updates), ["info: Download cancelled."]);
 }
 
 #[tokio::test]
@@ -98,7 +98,7 @@ async fn deleting_takes_the_file_with_the_row() {
 
     assert_eq!(names(&updates), ["Downloads", "Toast"]);
     assert!(queue(&updates[0]).is_empty());
-    assert_eq!(toasts(&updates), ["info: download and file deleted"]);
+    assert_eq!(toasts(&updates), ["info: Download and file deleted."]);
     assert!(!file.exists());
 
     // A file already gone is said as such, and the row still goes.
@@ -106,7 +106,7 @@ async fn deleting_takes_the_file_with_the_row() {
     h.store().finish_download(done.id, Some(file.to_str().unwrap())).unwrap();
     h.send(Command::DownloadDelete { id: done.id });
     let updates = h.settle().await;
-    assert_eq!(toasts(&updates), ["info: download removed — file was already gone"]);
+    assert_eq!(toasts(&updates), ["info: Download removed. Its file was already gone."]);
 }
 
 #[tokio::test]
@@ -119,7 +119,7 @@ async fn clearing_finished_downloads_counts_them() {
 
     assert_eq!(names(&updates), ["Downloads", "Toast"]);
     assert_eq!(queue(&updates[0]), ["2 queued"]);
-    assert_eq!(toasts(&updates), ["info: cleared 1 finished"]);
+    assert_eq!(toasts(&updates), ["info: Cleared one finished download."]);
 }
 
 #[tokio::test]
@@ -129,7 +129,7 @@ async fn queueing_an_episode_says_what_happened_then_publishes_the_queue() {
     let job = h.send(Command::DownloadEpisode { id: FINISHED, episode: "5".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
-    assert_eq!(toasts(&updates), ["info: queued Stardust Wayfarer ep 5"]);
+    assert_eq!(toasts(&updates), ["info: Queued episode 5 of Stardust Wayfarer."]);
     assert_eq!(queue(&updates[2]), ["5 queued"]);
     ends(&updates, job);
 
@@ -137,7 +137,10 @@ async fn queueing_an_episode_says_what_happened_then_publishes_the_queue() {
     let job = h.send(Command::DownloadEpisode { id: FINISHED, episode: "5".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
-    assert_eq!(toasts(&updates), ["info: Stardust Wayfarer ep 5 is already in downloads"]);
+    assert_eq!(
+        toasts(&updates),
+        ["info: Episode 5 of Stardust Wayfarer is already in downloads."]
+    );
     assert_eq!(queue(&updates[2]), ["5 queued"]);
     ends(&updates, job);
 }
@@ -151,7 +154,7 @@ async fn queueing_a_failed_episode_again_retries_it_in_place() {
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
-    assert_eq!(toasts(&updates), ["info: queued Stardust Wayfarer ep 5"]);
+    assert_eq!(toasts(&updates), ["info: Queued episode 5 of Stardust Wayfarer."]);
     let Event::Downloads(rows) = &updates[2] else { unreachable!() };
     assert_eq!(rows.len(), 1, "the same row, not a second one");
     assert_eq!(
@@ -168,7 +171,10 @@ async fn an_episode_that_only_streams_is_refused_in_the_same_shape() {
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
-    assert_eq!(toasts(&updates), ["alert: this source streams but cannot be downloaded"]);
+    assert_eq!(
+        toasts(&updates),
+        ["alert: This source streams episodes but can't download them."]
+    );
     assert!(queue(&updates[2]).is_empty());
     ends(&updates, job);
 }
@@ -195,7 +201,10 @@ async fn a_range_publishes_each_row_as_it_lands_then_sums_up() {
     };
     assert_eq!(rows(&updates[0]), ["5 queued", "6 queued"]);
     assert_eq!(rows(&updates[1]), ["5 queued", "6 queued", "7 queued"]);
-    assert_eq!(toasts(&updates), ["info: queued 2 episodes — 1 already in downloads"]);
+    assert_eq!(
+        toasts(&updates),
+        ["info: Queued 2 episodes. One episode is already in downloads."]
+    );
     ends(&updates, job);
 
     // Nothing that can be downloaded: no rows, one alert.
@@ -206,7 +215,7 @@ async fn a_range_publishes_each_row_as_it_lands_then_sums_up() {
     assert_eq!(names(&updates), ["Toast", "JobDone"]);
     assert_eq!(
         toasts(&updates),
-        ["alert: nothing queued: this source streams but cannot be downloaded"]
+        ["alert: Nothing queued. This source streams episodes but can't download them."]
     );
     ends(&updates, job);
 }

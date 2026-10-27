@@ -11,6 +11,132 @@ use crate::msg_text::{Size, Span, Value};
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Msg {
+    /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
+    NoticeReason { reason: Cause },
+    /// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
+    NoticeNotAired { episode: i64, when: Cause },
+    /// A play's explanation: the episode is after the next one to air. The "when" says when that one airs.
+    NoticeNotAiredYet { episode: i64, next: i64, when: Cause },
+    /// Job note while a play looks the title up.
+    StatusLookingUpTitle,
+    /// Job note while a play waits for the sources to arrive.
+    StatusLoadingSources,
+    /// Job note while the sources are asked for an episode. The episode is its label, often a number.
+    StatusSearchingSources { episode: String },
+    /// Status while the player opens.
+    StatusStartingPlayer,
+    /// Status line while an episode plays.
+    StatusPlaying { title: String, episode: String },
+    /// Toast when the player cannot be started. The reason comes from the system.
+    NoticePlayerFailedToStart { reason: String },
+    /// Toast when a stream never showed a frame and the next one is tried.
+    NoticeStreamNoVideo { next: i64, total: i64 },
+    /// Toast when mpv gave up on a file. The reason is mpv's own line.
+    NoticePlayerCouldNotPlay { reason: String },
+    /// Toast when mpv closed without playing and without saying why.
+    NoticePlayerExitedSilently,
+    /// Toast when no picture has appeared a while after the player opened.
+    NoticePlayerNotPlaying { seconds: i64 },
+    /// Toast when a play is asked for in a build with no player.
+    NoticeNoPlayer,
+    /// Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+    NoticeMpvMissing { binary: String },
+    /// Toast at launch when mpv is too old for anistream's own player.
+    NoticeMpvOld { version: String },
+    /// Toast after a link was handed to the browser.
+    NoticeOpenedInBrowser,
+    /// Toast when a link could not be opened. The reason comes from the system.
+    NoticeCouldNotOpen { reason: String },
+    /// Toast when a trailer plays in mpv.
+    NoticeTrailerPlaying,
+    /// Toast when a trailer opens in the browser.
+    NoticeTrailerOpened,
+    /// Toast when a trailer could not be opened. The reason comes from the system.
+    NoticeTrailerFailed { reason: String },
+    /// Toast when the next episode is not the one after this because filler was skipped.
+    NoticeFillerSkipped { episode: String },
+    /// Toast after switching the audio while playing.
+    NoticeAudioNowSubbed,
+    /// Toast after switching the audio while playing.
+    NoticeAudioNowDubbed,
+    /// Toast when the previous-episode control is used on the first episode.
+    NoticeAlreadyFirstEpisode,
+    /// Toast when the next-episode control is used on the last known episode.
+    NoticeLastEpisode { episode: String },
+    /// Toast when the next-episode control is used and the next episode is not known.
+    NoticeNoNextEpisode,
+    /// Toast when the previous-episode control finds no previous episode.
+    NoticeNoPreviousEpisode,
+    /// Toast when the title's episode match could not be cleared. The reason comes from the system.
+    NoticeMatchResetFailed { reason: String },
+    /// Toast when the chosen match could not be saved. The reason comes from the system.
+    NoticeMatchSaveFailed { reason: String },
+    /// Toast when a chosen match still left the title undecided.
+    NoticeMatchDidNotStick,
+    /// Toast when a search of the sources for a title found nothing.
+    NoticeSourceSearchEmpty { query: String },
+    /// Toast after the person picked a source for one title.
+    NoticeSourcePinned { source: String },
+    /// Toast after the person went back to automatic source selection for one title.
+    NoticeSourceAutomatic,
+    /// Toast when the source choice for a title could not be saved. The reason comes from the system.
+    NoticeSourceChoiceFailed { reason: String },
+    /// Toast when no source could list a show's episodes. The reason is what the sources said.
+    NoticeNoSourceCouldList { reason: String },
+    /// Toast when a title cannot be taken off the Continue row. The reason comes from the system.
+    NoticeContinueHideFailed { reason: String },
+    /// Toast after an episode was added to the download queue.
+    NoticeDownloadQueued { title: String, episode: String },
+    /// Toast when an episode asked for is in downloads already.
+    NoticeDownloadAlreadyQueued { title: String, episode: String },
+    /// Toast when a waiting or paused download was moved to the front and started.
+    NoticeDownloadStartingNow { title: String, episode: String },
+    /// Toast after a download was cancelled.
+    NoticeDownloadCancelled,
+    /// Toast after a download and its file were deleted.
+    NoticeDownloadFileDeleted,
+    /// Toast after a download was removed whose file was already gone.
+    NoticeDownloadRemovedFileGone,
+    /// Toast after a download was removed but its file could not be deleted. The reason comes from the system.
+    NoticeDownloadRemovedFileKept { reason: String },
+    /// Toast after a download with no file was removed.
+    NoticeDownloadRemoved,
+    /// Toast after finished downloads were cleared from the list.
+    NoticeDownloadsCleared { count: i64 },
+    /// Toast when an episode finished downloading.
+    NoticeDownloadFinished { title: String, episode: String },
+    /// Toast when an episode finished downloading and the note says what happened to its subtitles.
+    NoticeDownloadFinishedNote { title: String, episode: String, note: Cause },
+    /// Toast when a download could not start. The reason comes from the torrent client.
+    NoticeDownloadFailed { title: String, episode: String, reason: String },
+    /// Toast after a range was asked for and nothing was queued.
+    NoticeDownloadsNoneQueued,
+    /// Toast after a range was asked for and nothing was queued, and the reason it stopped.
+    NoticeDownloadsNoneQueuedStopped { reason: Cause },
+    /// Toast after a range was asked for and every episode was in the queue already.
+    NoticeDownloadsNoneNew { existing: Cause },
+    /// Toast as above, with the reason the range stopped.
+    NoticeDownloadsNoneNewStopped { existing: Cause, reason: Cause },
+    /// Toast after a range was asked for, some episodes were queued and some were there already.
+    NoticeEpisodesQueuedExisting { count: i64, existing: Cause },
+    /// Toast as above, with the reason the range stopped.
+    NoticeEpisodesQueuedStopped { count: i64, reason: Cause },
+    /// Toast as above, with some episodes in the queue already and the reason the range stopped.
+    NoticeEpisodesQueuedExistingStopped { count: i64, existing: Cause, reason: Cause },
+    /// Toast when keep next found no room for another episode.
+    NoticeKeepNextFull,
+    /// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+    PartyNeedsServer { server: String, operator: String },
+    /// Toast when a watch party is asked for in a build without watch parties.
+    NoticeNoParty,
+    /// Message when a watch party was asked for with no room named.
+    PartyNeedsRoom,
+    /// Message in a watch party when its server connection dropped and is retried.
+    PartyServerLost,
+    /// Message in a watch party when the connection came back.
+    PartyRejoined,
+    /// Message when the person left a watch party.
+    PartyLeft,
     /// The legal line. It exists once, so no translation can paraphrase it.
     LegalHostsNoContent,
     /// Toast after a setting is stored. The label is the setting's name.
@@ -31,6 +157,69 @@ impl Msg {
     /// The catalogue id of the message.
     pub fn id(&self) -> &'static str {
         match self {
+            Self::NoticeReason { .. } => "notice-reason",
+            Self::NoticeNotAired { .. } => "notice-not-aired",
+            Self::NoticeNotAiredYet { .. } => "notice-not-aired-yet",
+            Self::StatusLookingUpTitle => "status-looking-up-title",
+            Self::StatusLoadingSources => "status-loading-sources",
+            Self::StatusSearchingSources { .. } => "status-searching-sources",
+            Self::StatusStartingPlayer => "status-starting-player",
+            Self::StatusPlaying { .. } => "status-playing",
+            Self::NoticePlayerFailedToStart { .. } => "notice-player-failed-to-start",
+            Self::NoticeStreamNoVideo { .. } => "notice-stream-no-video",
+            Self::NoticePlayerCouldNotPlay { .. } => "notice-player-could-not-play",
+            Self::NoticePlayerExitedSilently => "notice-player-exited-silently",
+            Self::NoticePlayerNotPlaying { .. } => "notice-player-not-playing",
+            Self::NoticeNoPlayer => "notice-no-player",
+            Self::NoticeMpvMissing { .. } => "notice-mpv-missing",
+            Self::NoticeMpvOld { .. } => "notice-mpv-old",
+            Self::NoticeOpenedInBrowser => "notice-opened-in-browser",
+            Self::NoticeCouldNotOpen { .. } => "notice-could-not-open",
+            Self::NoticeTrailerPlaying => "notice-trailer-playing",
+            Self::NoticeTrailerOpened => "notice-trailer-opened",
+            Self::NoticeTrailerFailed { .. } => "notice-trailer-failed",
+            Self::NoticeFillerSkipped { .. } => "notice-filler-skipped",
+            Self::NoticeAudioNowSubbed => "notice-audio-now-subbed",
+            Self::NoticeAudioNowDubbed => "notice-audio-now-dubbed",
+            Self::NoticeAlreadyFirstEpisode => "notice-already-first-episode",
+            Self::NoticeLastEpisode { .. } => "notice-last-episode",
+            Self::NoticeNoNextEpisode => "notice-no-next-episode",
+            Self::NoticeNoPreviousEpisode => "notice-no-previous-episode",
+            Self::NoticeMatchResetFailed { .. } => "notice-match-reset-failed",
+            Self::NoticeMatchSaveFailed { .. } => "notice-match-save-failed",
+            Self::NoticeMatchDidNotStick => "notice-match-did-not-stick",
+            Self::NoticeSourceSearchEmpty { .. } => "notice-source-search-empty",
+            Self::NoticeSourcePinned { .. } => "notice-source-pinned",
+            Self::NoticeSourceAutomatic => "notice-source-automatic",
+            Self::NoticeSourceChoiceFailed { .. } => "notice-source-choice-failed",
+            Self::NoticeNoSourceCouldList { .. } => "notice-no-source-could-list",
+            Self::NoticeContinueHideFailed { .. } => "notice-continue-hide-failed",
+            Self::NoticeDownloadQueued { .. } => "notice-download-queued",
+            Self::NoticeDownloadAlreadyQueued { .. } => "notice-download-already-queued",
+            Self::NoticeDownloadStartingNow { .. } => "notice-download-starting-now",
+            Self::NoticeDownloadCancelled => "notice-download-cancelled",
+            Self::NoticeDownloadFileDeleted => "notice-download-file-deleted",
+            Self::NoticeDownloadRemovedFileGone => "notice-download-removed-file-gone",
+            Self::NoticeDownloadRemovedFileKept { .. } => "notice-download-removed-file-kept",
+            Self::NoticeDownloadRemoved => "notice-download-removed",
+            Self::NoticeDownloadsCleared { .. } => "notice-downloads-cleared",
+            Self::NoticeDownloadFinished { .. } => "notice-download-finished",
+            Self::NoticeDownloadFinishedNote { .. } => "notice-download-finished-note",
+            Self::NoticeDownloadFailed { .. } => "notice-download-failed",
+            Self::NoticeDownloadsNoneQueued => "notice-downloads-none-queued",
+            Self::NoticeDownloadsNoneQueuedStopped { .. } => "notice-downloads-none-queued-stopped",
+            Self::NoticeDownloadsNoneNew { .. } => "notice-downloads-none-new",
+            Self::NoticeDownloadsNoneNewStopped { .. } => "notice-downloads-none-new-stopped",
+            Self::NoticeEpisodesQueuedExisting { .. } => "notice-episodes-queued-existing",
+            Self::NoticeEpisodesQueuedStopped { .. } => "notice-episodes-queued-stopped",
+            Self::NoticeEpisodesQueuedExistingStopped { .. } => "notice-episodes-queued-existing-stopped",
+            Self::NoticeKeepNextFull => "notice-keep-next-full",
+            Self::PartyNeedsServer { .. } => "party-needs-server",
+            Self::NoticeNoParty => "notice-no-party",
+            Self::PartyNeedsRoom => "party-needs-room",
+            Self::PartyServerLost => "party-server-lost",
+            Self::PartyRejoined => "party-rejoined",
+            Self::PartyLeft => "party-left",
             Self::LegalHostsNoContent => "legal-hosts-no-content",
             Self::NoticeSaved { .. } => "notice-saved",
             Self::NoticeNotSaved { .. } => "notice-not-saved",
@@ -44,6 +233,69 @@ impl Msg {
     /// The message's arguments, by catalogue name.
     pub fn values(&self) -> Vec<(&'static str, Value)> {
         match self {
+            Self::NoticeReason { reason } => vec![("reason", Value::Cause(reason.clone()))],
+            Self::NoticeNotAired { episode, when } => vec![("episode", Value::Int(*episode)), ("when", Value::Cause(when.clone()))],
+            Self::NoticeNotAiredYet { episode, next, when } => vec![("episode", Value::Int(*episode)), ("next", Value::Int(*next)), ("when", Value::Cause(when.clone()))],
+            Self::StatusLookingUpTitle => Vec::new(),
+            Self::StatusLoadingSources => Vec::new(),
+            Self::StatusSearchingSources { episode } => vec![("episode", Value::Text(episode.clone()))],
+            Self::StatusStartingPlayer => Vec::new(),
+            Self::StatusPlaying { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
+            Self::NoticePlayerFailedToStart { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeStreamNoVideo { next, total } => vec![("next", Value::Int(*next)), ("total", Value::Int(*total))],
+            Self::NoticePlayerCouldNotPlay { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticePlayerExitedSilently => Vec::new(),
+            Self::NoticePlayerNotPlaying { seconds } => vec![("seconds", Value::Int(*seconds))],
+            Self::NoticeNoPlayer => Vec::new(),
+            Self::NoticeMpvMissing { binary } => vec![("binary", Value::Text(binary.clone()))],
+            Self::NoticeMpvOld { version } => vec![("version", Value::Text(version.clone()))],
+            Self::NoticeOpenedInBrowser => Vec::new(),
+            Self::NoticeCouldNotOpen { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeTrailerPlaying => Vec::new(),
+            Self::NoticeTrailerOpened => Vec::new(),
+            Self::NoticeTrailerFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeFillerSkipped { episode } => vec![("episode", Value::Text(episode.clone()))],
+            Self::NoticeAudioNowSubbed => Vec::new(),
+            Self::NoticeAudioNowDubbed => Vec::new(),
+            Self::NoticeAlreadyFirstEpisode => Vec::new(),
+            Self::NoticeLastEpisode { episode } => vec![("episode", Value::Text(episode.clone()))],
+            Self::NoticeNoNextEpisode => Vec::new(),
+            Self::NoticeNoPreviousEpisode => Vec::new(),
+            Self::NoticeMatchResetFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeMatchSaveFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeMatchDidNotStick => Vec::new(),
+            Self::NoticeSourceSearchEmpty { query } => vec![("query", Value::Text(query.clone()))],
+            Self::NoticeSourcePinned { source } => vec![("source", Value::Text(source.clone()))],
+            Self::NoticeSourceAutomatic => Vec::new(),
+            Self::NoticeSourceChoiceFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeNoSourceCouldList { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeContinueHideFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeDownloadQueued { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
+            Self::NoticeDownloadAlreadyQueued { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
+            Self::NoticeDownloadStartingNow { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
+            Self::NoticeDownloadCancelled => Vec::new(),
+            Self::NoticeDownloadFileDeleted => Vec::new(),
+            Self::NoticeDownloadRemovedFileGone => Vec::new(),
+            Self::NoticeDownloadRemovedFileKept { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeDownloadRemoved => Vec::new(),
+            Self::NoticeDownloadsCleared { count } => vec![("count", Value::Int(*count))],
+            Self::NoticeDownloadFinished { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
+            Self::NoticeDownloadFinishedNote { title, episode, note } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone())), ("note", Value::Cause(note.clone()))],
+            Self::NoticeDownloadFailed { title, episode, reason } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::NoticeDownloadsNoneQueued => Vec::new(),
+            Self::NoticeDownloadsNoneQueuedStopped { reason } => vec![("reason", Value::Cause(reason.clone()))],
+            Self::NoticeDownloadsNoneNew { existing } => vec![("existing", Value::Cause(existing.clone()))],
+            Self::NoticeDownloadsNoneNewStopped { existing, reason } => vec![("existing", Value::Cause(existing.clone())), ("reason", Value::Cause(reason.clone()))],
+            Self::NoticeEpisodesQueuedExisting { count, existing } => vec![("count", Value::Int(*count)), ("existing", Value::Cause(existing.clone()))],
+            Self::NoticeEpisodesQueuedStopped { count, reason } => vec![("count", Value::Int(*count)), ("reason", Value::Cause(reason.clone()))],
+            Self::NoticeEpisodesQueuedExistingStopped { count, existing, reason } => vec![("count", Value::Int(*count)), ("existing", Value::Cause(existing.clone())), ("reason", Value::Cause(reason.clone()))],
+            Self::NoticeKeepNextFull => Vec::new(),
+            Self::PartyNeedsServer { server, operator } => vec![("server", Value::Text(server.clone())), ("operator", Value::Text(operator.clone()))],
+            Self::NoticeNoParty => Vec::new(),
+            Self::PartyNeedsRoom => Vec::new(),
+            Self::PartyServerLost => Vec::new(),
+            Self::PartyRejoined => Vec::new(),
+            Self::PartyLeft => Vec::new(),
             Self::LegalHostsNoContent => Vec::new(),
             Self::NoticeSaved { label } => vec![("label", Value::Text(label.clone()))],
             Self::NoticeNotSaved { reason } => vec![("reason", Value::Text(reason.clone()))],
@@ -59,6 +311,36 @@ impl Msg {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Cause {
+    /// Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast.
+    NoSources,
+    /// Part of an air time: the broadcast is later today. The time is the viewer's local time.
+    AirsToday { time: String },
+    /// Part of an air time: the broadcast is tomorrow. The time is the viewer's local time.
+    AirsTomorrow { time: String },
+    /// Part of an air time: the broadcast is within the next week.
+    AirsInDays { days: i64, time: String },
+    /// Part of an air time: the broadcast is more than a week away. The date is year-month-day.
+    AirsOnDate { date: String, time: String },
+    /// Reason: the source answered but gave nothing to play.
+    NoPlayableStream,
+    /// Reason: no source could be matched to the title. The detail is what each source said.
+    TitleNoMatch { detail: String },
+    /// Reason: the source the person picked is no longer installed or enabled.
+    SourceGone { source: String },
+    /// Reason: the release the person picked would not start. The detail comes from the source.
+    ReleaseFailed { detail: String },
+    /// Reason: every source matched the title but none has the episode. The detail is what each said.
+    NoSourceHasEpisode { episode: String, detail: String },
+    /// Reason: the source streams episodes but only torrents can be downloaded.
+    SourceCannotDownload,
+    /// Reason: the title was never listed by a source, so it can't be downloaded.
+    NoSourceCouldListShow,
+    /// Part of a finished download's toast: subtitle files were merged into the video.
+    SubtitlesMerged { tracks: i64 },
+    /// Part of a finished download's toast: merging failed, so the subtitles stay as files beside it.
+    SubtitlesLeftApart { reason: String },
+    /// Part of a download toast: how many episodes of the range were in the queue already.
+    AlreadyInDownloads { count: i64 },
     /// Text anistream does not own, shown as it is: a plugin's note, a tracker's error.
     Verbatim { text: String },
 }
@@ -67,6 +349,21 @@ impl Cause {
     /// The catalogue id of the message.
     pub fn id(&self) -> &'static str {
         match self {
+            Self::NoSources => "cause-no-sources",
+            Self::AirsToday { .. } => "cause-airs-today",
+            Self::AirsTomorrow { .. } => "cause-airs-tomorrow",
+            Self::AirsInDays { .. } => "cause-airs-in-days",
+            Self::AirsOnDate { .. } => "cause-airs-on-date",
+            Self::NoPlayableStream => "cause-no-playable-stream",
+            Self::TitleNoMatch { .. } => "cause-title-no-match",
+            Self::SourceGone { .. } => "cause-source-gone",
+            Self::ReleaseFailed { .. } => "cause-release-failed",
+            Self::NoSourceHasEpisode { .. } => "cause-no-source-has-episode",
+            Self::SourceCannotDownload => "cause-source-cannot-download",
+            Self::NoSourceCouldListShow => "cause-no-source-could-list-show",
+            Self::SubtitlesMerged { .. } => "cause-subtitles-merged",
+            Self::SubtitlesLeftApart { .. } => "cause-subtitles-left-apart",
+            Self::AlreadyInDownloads { .. } => "cause-already-in-downloads",
             Self::Verbatim { .. } => "verbatim",
         }
     }
@@ -74,6 +371,21 @@ impl Cause {
     /// The message's arguments, by catalogue name.
     pub fn values(&self) -> Vec<(&'static str, Value)> {
         match self {
+            Self::NoSources => Vec::new(),
+            Self::AirsToday { time } => vec![("time", Value::Text(time.clone()))],
+            Self::AirsTomorrow { time } => vec![("time", Value::Text(time.clone()))],
+            Self::AirsInDays { days, time } => vec![("days", Value::Int(*days)), ("time", Value::Text(time.clone()))],
+            Self::AirsOnDate { date, time } => vec![("date", Value::Text(date.clone())), ("time", Value::Text(time.clone()))],
+            Self::NoPlayableStream => Vec::new(),
+            Self::TitleNoMatch { detail } => vec![("detail", Value::Text(detail.clone()))],
+            Self::SourceGone { source } => vec![("source", Value::Text(source.clone()))],
+            Self::ReleaseFailed { detail } => vec![("detail", Value::Text(detail.clone()))],
+            Self::NoSourceHasEpisode { episode, detail } => vec![("episode", Value::Text(episode.clone())), ("detail", Value::Text(detail.clone()))],
+            Self::SourceCannotDownload => Vec::new(),
+            Self::NoSourceCouldListShow => Vec::new(),
+            Self::SubtitlesMerged { tracks } => vec![("tracks", Value::Int(*tracks))],
+            Self::SubtitlesLeftApart { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::AlreadyInDownloads { count } => vec![("count", Value::Int(*count))],
             Self::Verbatim { text } => vec![("text", Value::Text(text.clone()))],
         }
     }

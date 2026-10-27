@@ -1673,7 +1673,7 @@ mod tests {
         engine.send(Command::PlayLocal { id, episode: "1".into(), title, path });
         let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
         assert!(
-            matches!(&seen[..], [Event::Toast(n)] if n.text == crate::playback::NO_PLAYER),
+            matches!(&seen[..], [Event::Toast(n)] if n.message() == anistream_model::Msg::NoticeNoPlayer),
             "{seen:?}"
         );
 
@@ -1687,7 +1687,7 @@ mod tests {
                 provider_id: "yamabiko".into(),
                 source_id: "a".into(),
             },
-            crate::playback::NO_PLAYER,
+            anistream_model::Msg::NoticeNoPlayer,
         )];
         if cfg!(not(feature = "party")) {
             plays.push((Command::play_party(id, episode()), crate::playback::NO_PARTY));
@@ -1696,7 +1696,7 @@ mod tests {
             engine.send(play);
             let seen = until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
             assert!(
-                seen.iter().any(|e| matches!(e, Event::Toast(n) if n.text == refusal)),
+                seen.iter().any(|e| matches!(e, Event::Toast(n) if n.message() == refusal)),
                 "{seen:?}"
             );
             assert!(

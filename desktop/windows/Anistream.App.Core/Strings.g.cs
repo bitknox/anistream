@@ -15,6 +15,240 @@ public static partial class T
     /// <summary>The language the resolver answers in, which picks plural forms. Set with the resolver.</summary>
     public static string Language { get; set; } = "en";
 
+    /// <summary>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</summary>
+    public static string NoticeReason(string reason) => Fill(Get("NoticeReason"), ("reason", reason));
+
+    /// <summary>Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast.</summary>
+    public static string CauseNoSources => Get("CauseNoSources");
+
+    /// <summary>A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.</summary>
+    public static string NoticeNotAired(long episode, string when) => Fill(Get("NoticeNotAired"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("when", when));
+
+    /// <summary>A play's explanation: the episode is after the next one to air. The "when" says when that one airs.</summary>
+    public static string NoticeNotAiredYet(long episode, long next, string when) => Fill(Get("NoticeNotAiredYet"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("next", next.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("when", when));
+
+    /// <summary>Part of an air time: the broadcast is later today. The time is the viewer's local time.</summary>
+    public static string CauseAirsToday(string time) => Fill(Get("CauseAirsToday"), ("time", time));
+
+    /// <summary>Part of an air time: the broadcast is tomorrow. The time is the viewer's local time.</summary>
+    public static string CauseAirsTomorrow(string time) => Fill(Get("CauseAirsTomorrow"), ("time", time));
+
+    /// <summary>Part of an air time: the broadcast is within the next week.</summary>
+    public static string CauseAirsInDays(long days, string time) => Fill(GetPlural("CauseAirsInDays", days), ("days", days.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("time", time));
+
+    /// <summary>Part of an air time: the broadcast is more than a week away. The date is year-month-day.</summary>
+    public static string CauseAirsOnDate(string date, string time) => Fill(Get("CauseAirsOnDate"), ("date", date), ("time", time));
+
+    /// <summary>Reason: the source answered but gave nothing to play.</summary>
+    public static string CauseNoPlayableStream => Get("CauseNoPlayableStream");
+
+    /// <summary>Reason: no source could be matched to the title. The detail is what each source said.</summary>
+    public static string CauseTitleNoMatch(string detail) => Fill(Get("CauseTitleNoMatch"), ("detail", detail));
+
+    /// <summary>Reason: the source the person picked is no longer installed or enabled.</summary>
+    public static string CauseSourceGone(string source) => Fill(Get("CauseSourceGone"), ("source", source));
+
+    /// <summary>Reason: the release the person picked would not start. The detail comes from the source.</summary>
+    public static string CauseReleaseFailed(string detail) => Fill(Get("CauseReleaseFailed"), ("detail", detail));
+
+    /// <summary>Reason: every source matched the title but none has the episode. The detail is what each said.</summary>
+    public static string CauseNoSourceHasEpisode(string episode, string detail) => Fill(Get("CauseNoSourceHasEpisode"), ("episode", episode), ("detail", detail));
+
+    /// <summary>Reason: the source streams episodes but only torrents can be downloaded.</summary>
+    public static string CauseSourceCannotDownload => Get("CauseSourceCannotDownload");
+
+    /// <summary>Reason: the title was never listed by a source, so it can't be downloaded.</summary>
+    public static string CauseNoSourceCouldListShow => Get("CauseNoSourceCouldListShow");
+
+    /// <summary>Part of a finished download's toast: subtitle files were merged into the video.</summary>
+    public static string CauseSubtitlesMerged(long tracks) => Fill(GetPlural("CauseSubtitlesMerged", tracks), ("tracks", tracks.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Part of a finished download's toast: merging failed, so the subtitles stay as files beside it.</summary>
+    public static string CauseSubtitlesLeftApart(string reason) => Fill(Get("CauseSubtitlesLeftApart"), ("reason", reason));
+
+    /// <summary>Part of a download toast: how many episodes of the range were in the queue already.</summary>
+    public static string CauseAlreadyInDownloads(long count) => Fill(GetPlural("CauseAlreadyInDownloads", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Job note while a play looks the title up.</summary>
+    public static string StatusLookingUpTitle => Get("StatusLookingUpTitle");
+
+    /// <summary>Job note while a play waits for the sources to arrive.</summary>
+    public static string StatusLoadingSources => Get("StatusLoadingSources");
+
+    /// <summary>Job note while the sources are asked for an episode. The episode is its label, often a number.</summary>
+    public static string StatusSearchingSources(string episode) => Fill(Get("StatusSearchingSources"), ("episode", episode));
+
+    /// <summary>Status while the player opens.</summary>
+    public static string StatusStartingPlayer => Get("StatusStartingPlayer");
+
+    /// <summary>Status line while an episode plays.</summary>
+    public static string StatusPlaying(string title, string episode) => Fill(Get("StatusPlaying"), ("title", title), ("episode", episode));
+
+    /// <summary>Toast when the player cannot be started. The reason comes from the system.</summary>
+    public static string NoticePlayerFailedToStart(string reason) => Fill(Get("NoticePlayerFailedToStart"), ("reason", reason));
+
+    /// <summary>Toast when a stream never showed a frame and the next one is tried.</summary>
+    public static string NoticeStreamNoVideo(long next, long total) => Fill(Get("NoticeStreamNoVideo"), ("next", next.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("total", total.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Toast when mpv gave up on a file. The reason is mpv's own line.</summary>
+    public static string NoticePlayerCouldNotPlay(string reason) => Fill(Get("NoticePlayerCouldNotPlay"), ("reason", reason));
+
+    /// <summary>Toast when mpv closed without playing and without saying why.</summary>
+    public static string NoticePlayerExitedSilently => Get("NoticePlayerExitedSilently");
+
+    /// <summary>Toast when no picture has appeared a while after the player opened.</summary>
+    public static string NoticePlayerNotPlaying(long seconds) => Fill(Get("NoticePlayerNotPlaying"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Toast when a play is asked for in a build with no player.</summary>
+    public static string NoticeNoPlayer => Get("NoticeNoPlayer");
+
+    /// <summary>Toast at launch when the mpv program is missing. The binary is the name the settings give it.</summary>
+    public static string NoticeMpvMissing(string binary) => Fill(Get("NoticeMpvMissing"), ("binary", binary));
+
+    /// <summary>Toast at launch when mpv is too old for anistream's own player.</summary>
+    public static string NoticeMpvOld(string version) => Fill(Get("NoticeMpvOld"), ("version", version));
+
+    /// <summary>Toast after a link was handed to the browser.</summary>
+    public static string NoticeOpenedInBrowser => Get("NoticeOpenedInBrowser");
+
+    /// <summary>Toast when a link could not be opened. The reason comes from the system.</summary>
+    public static string NoticeCouldNotOpen(string reason) => Fill(Get("NoticeCouldNotOpen"), ("reason", reason));
+
+    /// <summary>Toast when a trailer plays in mpv.</summary>
+    public static string NoticeTrailerPlaying => Get("NoticeTrailerPlaying");
+
+    /// <summary>Toast when a trailer opens in the browser.</summary>
+    public static string NoticeTrailerOpened => Get("NoticeTrailerOpened");
+
+    /// <summary>Toast when a trailer could not be opened. The reason comes from the system.</summary>
+    public static string NoticeTrailerFailed(string reason) => Fill(Get("NoticeTrailerFailed"), ("reason", reason));
+
+    /// <summary>Toast when the next episode is not the one after this because filler was skipped.</summary>
+    public static string NoticeFillerSkipped(string episode) => Fill(Get("NoticeFillerSkipped"), ("episode", episode));
+
+    /// <summary>Toast after switching the audio while playing.</summary>
+    public static string NoticeAudioNowSubbed => Get("NoticeAudioNowSubbed");
+
+    /// <summary>Toast after switching the audio while playing.</summary>
+    public static string NoticeAudioNowDubbed => Get("NoticeAudioNowDubbed");
+
+    /// <summary>Toast when the previous-episode control is used on the first episode.</summary>
+    public static string NoticeAlreadyFirstEpisode => Get("NoticeAlreadyFirstEpisode");
+
+    /// <summary>Toast when the next-episode control is used on the last known episode.</summary>
+    public static string NoticeLastEpisode(string episode) => Fill(Get("NoticeLastEpisode"), ("episode", episode));
+
+    /// <summary>Toast when the next-episode control is used and the next episode is not known.</summary>
+    public static string NoticeNoNextEpisode => Get("NoticeNoNextEpisode");
+
+    /// <summary>Toast when the previous-episode control finds no previous episode.</summary>
+    public static string NoticeNoPreviousEpisode => Get("NoticeNoPreviousEpisode");
+
+    /// <summary>Toast when the title's episode match could not be cleared. The reason comes from the system.</summary>
+    public static string NoticeMatchResetFailed(string reason) => Fill(Get("NoticeMatchResetFailed"), ("reason", reason));
+
+    /// <summary>Toast when the chosen match could not be saved. The reason comes from the system.</summary>
+    public static string NoticeMatchSaveFailed(string reason) => Fill(Get("NoticeMatchSaveFailed"), ("reason", reason));
+
+    /// <summary>Toast when a chosen match still left the title undecided.</summary>
+    public static string NoticeMatchDidNotStick => Get("NoticeMatchDidNotStick");
+
+    /// <summary>Toast when a search of the sources for a title found nothing.</summary>
+    public static string NoticeSourceSearchEmpty(string query) => Fill(Get("NoticeSourceSearchEmpty"), ("query", query));
+
+    /// <summary>Toast after the person picked a source for one title.</summary>
+    public static string NoticeSourcePinned(string source) => Fill(Get("NoticeSourcePinned"), ("source", source));
+
+    /// <summary>Toast after the person went back to automatic source selection for one title.</summary>
+    public static string NoticeSourceAutomatic => Get("NoticeSourceAutomatic");
+
+    /// <summary>Toast when the source choice for a title could not be saved. The reason comes from the system.</summary>
+    public static string NoticeSourceChoiceFailed(string reason) => Fill(Get("NoticeSourceChoiceFailed"), ("reason", reason));
+
+    /// <summary>Toast when no source could list a show's episodes. The reason is what the sources said.</summary>
+    public static string NoticeNoSourceCouldList(string reason) => Fill(Get("NoticeNoSourceCouldList"), ("reason", reason));
+
+    /// <summary>Toast when a title cannot be taken off the Continue row. The reason comes from the system.</summary>
+    public static string NoticeContinueHideFailed(string reason) => Fill(Get("NoticeContinueHideFailed"), ("reason", reason));
+
+    /// <summary>Toast after an episode was added to the download queue.</summary>
+    public static string NoticeDownloadQueued(string title, string episode) => Fill(Get("NoticeDownloadQueued"), ("title", title), ("episode", episode));
+
+    /// <summary>Toast when an episode asked for is in downloads already.</summary>
+    public static string NoticeDownloadAlreadyQueued(string title, string episode) => Fill(Get("NoticeDownloadAlreadyQueued"), ("title", title), ("episode", episode));
+
+    /// <summary>Toast when a waiting or paused download was moved to the front and started.</summary>
+    public static string NoticeDownloadStartingNow(string title, string episode) => Fill(Get("NoticeDownloadStartingNow"), ("title", title), ("episode", episode));
+
+    /// <summary>Toast after a download was cancelled.</summary>
+    public static string NoticeDownloadCancelled => Get("NoticeDownloadCancelled");
+
+    /// <summary>Toast after a download and its file were deleted.</summary>
+    public static string NoticeDownloadFileDeleted => Get("NoticeDownloadFileDeleted");
+
+    /// <summary>Toast after a download was removed whose file was already gone.</summary>
+    public static string NoticeDownloadRemovedFileGone => Get("NoticeDownloadRemovedFileGone");
+
+    /// <summary>Toast after a download was removed but its file could not be deleted. The reason comes from the system.</summary>
+    public static string NoticeDownloadRemovedFileKept(string reason) => Fill(Get("NoticeDownloadRemovedFileKept"), ("reason", reason));
+
+    /// <summary>Toast after a download with no file was removed.</summary>
+    public static string NoticeDownloadRemoved => Get("NoticeDownloadRemoved");
+
+    /// <summary>Toast after finished downloads were cleared from the list.</summary>
+    public static string NoticeDownloadsCleared(long count) => Fill(GetPlural("NoticeDownloadsCleared", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Toast when an episode finished downloading.</summary>
+    public static string NoticeDownloadFinished(string title, string episode) => Fill(Get("NoticeDownloadFinished"), ("title", title), ("episode", episode));
+
+    /// <summary>Toast when an episode finished downloading and the note says what happened to its subtitles.</summary>
+    public static string NoticeDownloadFinishedNote(string title, string episode, string note) => Fill(Get("NoticeDownloadFinishedNote"), ("title", title), ("episode", episode), ("note", note));
+
+    /// <summary>Toast when a download could not start. The reason comes from the torrent client.</summary>
+    public static string NoticeDownloadFailed(string title, string episode, string reason) => Fill(Get("NoticeDownloadFailed"), ("title", title), ("episode", episode), ("reason", reason));
+
+    /// <summary>Toast after a range was asked for and nothing was queued.</summary>
+    public static string NoticeDownloadsNoneQueued => Get("NoticeDownloadsNoneQueued");
+
+    /// <summary>Toast after a range was asked for and nothing was queued, and the reason it stopped.</summary>
+    public static string NoticeDownloadsNoneQueuedStopped(string reason) => Fill(Get("NoticeDownloadsNoneQueuedStopped"), ("reason", reason));
+
+    /// <summary>Toast after a range was asked for and every episode was in the queue already.</summary>
+    public static string NoticeDownloadsNoneNew(string existing) => Fill(Get("NoticeDownloadsNoneNew"), ("existing", existing));
+
+    /// <summary>Toast as above, with the reason the range stopped.</summary>
+    public static string NoticeDownloadsNoneNewStopped(string existing, string reason) => Fill(Get("NoticeDownloadsNoneNewStopped"), ("existing", existing), ("reason", reason));
+
+    /// <summary>Toast after a range was asked for, some episodes were queued and some were there already.</summary>
+    public static string NoticeEpisodesQueuedExisting(long count, string existing) => Fill(GetPlural("NoticeEpisodesQueuedExisting", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("existing", existing));
+
+    /// <summary>Toast as above, with the reason the range stopped.</summary>
+    public static string NoticeEpisodesQueuedStopped(long count, string reason) => Fill(GetPlural("NoticeEpisodesQueuedStopped", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("reason", reason));
+
+    /// <summary>Toast as above, with some episodes in the queue already and the reason the range stopped.</summary>
+    public static string NoticeEpisodesQueuedExistingStopped(long count, string existing, string reason) => Fill(GetPlural("NoticeEpisodesQueuedExistingStopped", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("existing", existing), ("reason", reason));
+
+    /// <summary>Toast when keep next found no room for another episode.</summary>
+    public static string NoticeKeepNextFull => Get("NoticeKeepNextFull");
+
+    /// <summary>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.</summary>
+    public static string PartyNeedsServer(string server, string operator) => Fill(Get("PartyNeedsServer"), ("server", server), ("operator", operator));
+
+    /// <summary>Toast when a watch party is asked for in a build without watch parties.</summary>
+    public static string NoticeNoParty => Get("NoticeNoParty");
+
+    /// <summary>Message when a watch party was asked for with no room named.</summary>
+    public static string PartyNeedsRoom => Get("PartyNeedsRoom");
+
+    /// <summary>Message in a watch party when its server connection dropped and is retried.</summary>
+    public static string PartyServerLost => Get("PartyServerLost");
+
+    /// <summary>Message in a watch party when the connection came back.</summary>
+    public static string PartyRejoined => Get("PartyRejoined");
+
+    /// <summary>Message when the person left a watch party.</summary>
+    public static string PartyLeft => Get("PartyLeft");
+
     /// <summary>The legal line. It exists once, so no translation can paraphrase it.</summary>
     public static string LegalHostsNoContent => Get("LegalHostsNoContent");
 
@@ -179,6 +413,91 @@ public static partial class T
 
     static readonly Dictionary<string, string> English = new()
     {
+        ["NoticeReason"] = "{reason}",
+        ["CauseNoSources"] = "No sources are set up. Add one on the Sources screen.",
+        ["NoticeNotAired"] = "Episode {episode} airs {when}.",
+        ["NoticeNotAiredYet"] = "Episode {episode} hasn't aired yet. Episode {next} airs {when}.",
+        ["CauseAirsToday"] = "today at {time}",
+        ["CauseAirsTomorrow"] = "tomorrow at {time}",
+        ["CauseAirsInDays_one"] = "in one day at {time}",
+        ["CauseAirsInDays_other"] = "in {days} days at {time}",
+        ["CauseAirsOnDate"] = "on {date} at {time}",
+        ["CauseNoPlayableStream"] = "The source answered, but with nothing to play. Try another.",
+        ["CauseTitleNoMatch"] = "Couldn't match this title: {detail}",
+        ["CauseSourceGone"] = "The source {source} is no longer available. Choose another.",
+        ["CauseReleaseFailed"] = "Couldn't start that release: {detail}",
+        ["CauseNoSourceHasEpisode"] = "No source has episode {episode}: {detail}",
+        ["CauseSourceCannotDownload"] = "This source streams episodes but can't download them.",
+        ["CauseNoSourceCouldListShow"] = "No source could list this show, so it can't be downloaded.",
+        ["CauseSubtitlesMerged_one"] = "One subtitle track was merged in.",
+        ["CauseSubtitlesMerged_other"] = "{tracks} subtitle tracks were merged in.",
+        ["CauseSubtitlesLeftApart"] = "The subtitles stay as separate files. {reason}",
+        ["CauseAlreadyInDownloads_one"] = "One episode is already in downloads.",
+        ["CauseAlreadyInDownloads_other"] = "{count} episodes are already in downloads.",
+        ["StatusLookingUpTitle"] = "Looking up the title…",
+        ["StatusLoadingSources"] = "Loading sources…",
+        ["StatusSearchingSources"] = "Searching sources for episode {episode}…",
+        ["StatusStartingPlayer"] = "Starting mpv…",
+        ["StatusPlaying"] = "Playing {title}, episode {episode}",
+        ["NoticePlayerFailedToStart"] = "Couldn't start mpv. Check that it runs on its own. ({reason})",
+        ["NoticeStreamNoVideo"] = "No video from that stream. Trying {next} of {total}.",
+        ["NoticePlayerCouldNotPlay"] = "mpv couldn't play this. {reason}",
+        ["NoticePlayerExitedSilently"] = "mpv exited without playing anything and gave no reason. Try another source.",
+        ["NoticePlayerNotPlaying"] = "mpv hasn't started playing after {seconds} s. The source may have no data. Check that mpv plays a file on its own.",
+        ["NoticeNoPlayer"] = "This version of anistream can't play video.",
+        ["NoticeMpvMissing"] = "{binary} wasn't found. Install mpv to play episodes.",
+        ["NoticeMpvOld"] = "mpv {version} can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.",
+        ["NoticeOpenedInBrowser"] = "Opened in your browser.",
+        ["NoticeCouldNotOpen"] = "Couldn't open that. {reason}",
+        ["NoticeTrailerPlaying"] = "Trailer playing in mpv.",
+        ["NoticeTrailerOpened"] = "Trailer opened in your browser.",
+        ["NoticeTrailerFailed"] = "Couldn't open the trailer. {reason}",
+        ["NoticeFillerSkipped"] = "Skipped filler. Up next is episode {episode}.",
+        ["NoticeAudioNowSubbed"] = "Audio is now subbed.",
+        ["NoticeAudioNowDubbed"] = "Audio is now dubbed.",
+        ["NoticeAlreadyFirstEpisode"] = "Already at the first episode.",
+        ["NoticeLastEpisode"] = "There's no next episode. Episode {episode} is the last.",
+        ["NoticeNoNextEpisode"] = "There's no next episode.",
+        ["NoticeNoPreviousEpisode"] = "There's no previous episode.",
+        ["NoticeMatchResetFailed"] = "Couldn't reset the match. {reason}",
+        ["NoticeMatchSaveFailed"] = "Couldn't save that match. {reason}",
+        ["NoticeMatchDidNotStick"] = "That match didn't stick. The source may have changed. Try choosing it again.",
+        ["NoticeSourceSearchEmpty"] = "Nothing found for “{query}”. Try a different search.",
+        ["NoticeSourcePinned"] = "{source} will be used for this title.",
+        ["NoticeSourceAutomatic"] = "Back to automatic source selection.",
+        ["NoticeSourceChoiceFailed"] = "Couldn't save that choice. {reason}",
+        ["NoticeNoSourceCouldList"] = "No source could list this show: {reason}",
+        ["NoticeContinueHideFailed"] = "Couldn't remove that from Continue. {reason}",
+        ["NoticeDownloadQueued"] = "Queued episode {episode} of {title}.",
+        ["NoticeDownloadAlreadyQueued"] = "Episode {episode} of {title} is already in downloads.",
+        ["NoticeDownloadStartingNow"] = "Starting episode {episode} of {title} now.",
+        ["NoticeDownloadCancelled"] = "Download cancelled.",
+        ["NoticeDownloadFileDeleted"] = "Download and file deleted.",
+        ["NoticeDownloadRemovedFileGone"] = "Download removed. Its file was already gone.",
+        ["NoticeDownloadRemovedFileKept"] = "Removed the download, but couldn't delete its file. {reason}",
+        ["NoticeDownloadRemoved"] = "Download removed.",
+        ["NoticeDownloadsCleared_one"] = "Cleared one finished download.",
+        ["NoticeDownloadsCleared_other"] = "Cleared {count} finished downloads.",
+        ["NoticeDownloadFinished"] = "Downloaded episode {episode} of {title}.",
+        ["NoticeDownloadFinishedNote"] = "Downloaded episode {episode} of {title}. {note}",
+        ["NoticeDownloadFailed"] = "Couldn't download episode {episode} of {title}. {reason}",
+        ["NoticeDownloadsNoneQueued"] = "Nothing queued.",
+        ["NoticeDownloadsNoneQueuedStopped"] = "Nothing queued. {reason}",
+        ["NoticeDownloadsNoneNew"] = "Nothing new queued. {existing}",
+        ["NoticeDownloadsNoneNewStopped"] = "Nothing new queued. {existing} {reason}",
+        ["NoticeEpisodesQueuedExisting_one"] = "Queued one episode. {existing}",
+        ["NoticeEpisodesQueuedExisting_other"] = "Queued {count} episodes. {existing}",
+        ["NoticeEpisodesQueuedStopped_one"] = "Queued one episode, then it stopped. {reason}",
+        ["NoticeEpisodesQueuedStopped_other"] = "Queued {count} episodes, then it stopped. {reason}",
+        ["NoticeEpisodesQueuedExistingStopped_one"] = "Queued one episode, then it stopped. {existing} {reason}",
+        ["NoticeEpisodesQueuedExistingStopped_other"] = "Queued {count} episodes, then it stopped. {existing} {reason}",
+        ["NoticeKeepNextFull"] = "Not enough free space to keep the next episodes downloaded. Free up some space to download more.",
+        ["PartyNeedsServer"] = "Choose a server for the watch party first, as syncplay.server. {server} is run by {operator}.",
+        ["NoticeNoParty"] = "Watch parties aren't available in this version of anistream.",
+        ["PartyNeedsRoom"] = "A watch party needs a room to meet in. Choose one first.",
+        ["PartyServerLost"] = "Lost the watch party server. Trying again.",
+        ["PartyRejoined"] = "Back in the watch party.",
+        ["PartyLeft"] = "Left the watch party.",
         ["LegalHostsNoContent"] = "anistream hosts no content.",
         ["NoticeSaved"] = "Saved {label}.",
         ["NoticeNotSaved"] = "Couldn't save that setting. {reason}",
