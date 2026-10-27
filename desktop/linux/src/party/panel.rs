@@ -10,6 +10,7 @@ use std::{
 };
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
     event::Event,
@@ -53,7 +54,7 @@ impl Panel {
         body.set_margin_end(6);
 
         let head = gtk::Box::new(gtk::Orientation::Vertical, 2);
-        let title = gtk::Label::new(Some("Watch Party"));
+        let title = gtk::Label::new(Some(&t::party_title()));
         title.add_css_class("heading");
         title.set_xalign(0.0);
         head.append(&title);
@@ -68,7 +69,7 @@ impl Panel {
         body.append(&head);
 
         let members = gtk::Box::new(gtk::Orientation::Vertical, 2);
-        members.update_property(&[gtk::accessible::Property::Label("Members")]);
+        members.update_property(&[gtk::accessible::Property::Label(&t::party_members())]);
         body.append(&members);
         let ready_line = widgets::haze("", "caption");
         ready_line.set_margin_top(-6);
@@ -76,11 +77,11 @@ impl Panel {
 
         let ready = gtk::Switch::new();
         ready.set_valign(gtk::Align::Center);
-        let ready_label = gtk::Label::new(Some("I'm Ready"));
+        let ready_label = gtk::Label::new(Some(&t::party_ready_action()));
         ready_label.set_xalign(0.0);
         ready_label.set_hexpand(true);
         ready_label.set_mnemonic_widget(Some(&ready));
-        ready.update_property(&[gtk::accessible::Property::Label("I'm ready")]);
+        ready.update_property(&[gtk::accessible::Property::Label(&t::party_ready_action())]);
         let ready_row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
         ready_row.append(&ready_label);
         ready_row.append(&ready);
@@ -88,7 +89,7 @@ impl Panel {
 
         body.append(&gtk::Separator::new(gtk::Orientation::Horizontal));
 
-        let copy_label = gtk::Label::new(Some("Copy Invite Link"));
+        let copy_label = gtk::Label::new(Some(&t::party_copy_invite()));
         let copy_line = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         copy_line.set_halign(gtk::Align::Center);
         copy_line.append(&gtk::Image::from_icon_name("edit-copy-symbolic"));
@@ -102,7 +103,7 @@ impl Panel {
         body.append(&invite);
 
         let plain = gtk::Box::new(gtk::Orientation::Vertical, 2);
-        let plain_title = gtk::Label::new(Some("For Syncplay's own app"));
+        let plain_title = gtk::Label::new(Some(&t::party_other_app()));
         plain_title.add_css_class("caption-heading");
         plain_title.set_xalign(0.0);
         plain.append(&plain_title);
@@ -115,7 +116,7 @@ impl Panel {
         motd.set_visible(false);
         body.append(&motd);
 
-        let leave = gtk::Button::with_label("Leave Party");
+        let leave = gtk::Button::with_label(&t::party_leave());
         body.append(&leave);
 
         // A wrapping label asks for its whole line: held to the panel's width, so the popover
@@ -167,7 +168,7 @@ impl Panel {
             move |_| {
                 let Some(panel) = weak.upgrade() else { return };
                 panel.leaving.set(true);
-                panel.leave.set_label("Leaving…");
+                panel.leave.set_label(&t::party_leaving());
                 panel.show();
                 panel.ctx.hub.send(Command::PartyLeave);
             }
@@ -177,7 +178,7 @@ impl Panel {
             move |_| {
                 if let Some(panel) = weak.upgrade() {
                     panel.leaving.set(false);
-                    panel.leave.set_label("Leave Party");
+                    panel.leave.set_label(&t::party_leave());
                     panel.show();
                 }
             }
@@ -228,7 +229,7 @@ impl Panel {
                 let spinner = adw::Spinner::new();
                 spinner.set_size_request(16, 16);
                 wait.append(&spinner);
-                wait.append(&widgets::haze("Waiting for the room's members", ""));
+                wait.append(&widgets::haze(&t::party_waiting_members(), ""));
                 self.members.append(&wait);
                 self.ready_line.set_visible(false);
             }
@@ -240,12 +241,12 @@ impl Panel {
         self.ready.set_sensitive(!lost && !leaving);
 
         self.copy.set_sensitive(party.invite.is_some() && !leaving);
-        self.invite_note.set_label(if party.invite.is_some() {
-            "It names the room and the episode. Each friend plays it from their own sources."
+        self.invite_note.set_label(&if party.invite.is_some() {
+            t::party_invite_detail()
         } else {
-            "The invite link comes once an episode plays."
+            t::party_invite_after_play()
         });
-        self.place.set_label(&format!("Server {}\nRoom {}", party.server, party.room));
+        self.place.set_label(&t::party_other_app_detail(&party.server, &party.room));
         let motd = party.motd.as_deref().filter(|m| !m.trim().is_empty());
         self.motd.set_label(motd.unwrap_or_default());
         self.motd.set_visible(motd.is_some());
@@ -261,14 +262,14 @@ impl Panel {
         self.copy.clipboard().set_text(&link);
         let mine = self.copied.get() + 1;
         self.copied.set(mine);
-        self.copy_label.set_label("Copied");
+        self.copy_label.set_label(&t::action_copied());
         let me = self.me.clone();
         // Back after 2 s, unless copied again since.
         glib::timeout_add_local_once(Duration::from_secs(2), move || {
             if let Some(panel) = me.upgrade()
                 && panel.copied.get() == mine
             {
-                panel.copy_label.set_label("Copy Invite Link");
+                panel.copy_label.set_label(&t::party_copy_invite());
             }
         });
     }
@@ -294,11 +295,11 @@ fn row(member: &PartyMember) -> gtk::Box {
     name.set_ellipsize(gtk::pango::EllipsizeMode::End);
     names.append(&name);
     if let Some(file) = super::member_file(member) {
-        let file = widgets::haze(file, "caption");
+        let file = widgets::haze(&file, "caption");
         file.set_max_width_chars(MAX_CHARS);
         names.append(&file);
     }
-    let state = gtk::Label::new(Some(super::member_state(member)));
+    let state = gtk::Label::new(Some(&super::member_state(member)));
     state.add_css_class("caption");
     if member.ready != Some(true) {
         state.add_css_class("haze");

@@ -3,6 +3,7 @@
 //! a way to load a track from a file. A pick goes to the engine, which selects it and remembers
 //! it for the series; a file loaded here is mpv's alone, for this episode.
 
+use anistream_i18n::t;
 use anistream_model::hosted::TrackKind;
 use gtk::{gio, prelude::*};
 use serde_json::Value;
@@ -39,7 +40,7 @@ pub fn tracks(list: &Value) -> Vec<Track> {
                     .into_iter()
                     .flatten()
                 {
-                    label = format!("{label} · {part}");
+                    label = [label.as_str(), part.as_str()].join(" · ");
                 }
             }
             Some(Track {
@@ -59,12 +60,12 @@ pub fn label(language: Option<&str>, title: Option<&str>, id: i64, kind: TrackKi
     let title = title.map(str::trim).filter(|t| !t.is_empty());
     match (language, title) {
         (Some(language), Some(title)) if title.eq_ignore_ascii_case(&language) => language,
-        (Some(language), Some(title)) => format!("{language} · {title}"),
+        (Some(language), Some(title)) => [language.as_str(), title].join(" · "),
         (Some(language), None) => language,
         (None, Some(title)) => title.to_owned(),
         (None, None) => match kind {
-            TrackKind::Audio => format!("Audio {id}"),
-            TrackKind::Subtitle => format!("Subtitle {id}"),
+            TrackKind::Audio => t::player_audio_track_n(id),
+            TrackKind::Subtitle => t::player_subtitle_track_n(id),
         },
     }
 }
@@ -72,11 +73,11 @@ pub fn label(language: Option<&str>, title: Option<&str>, id: i64, kind: TrackKi
 /// A channel count as a speaker layout: "Stereo", "5.1".
 fn layout(channels: i64) -> Option<String> {
     Some(match channels {
-        1 => "Mono".into(),
-        2 => "Stereo".into(),
-        6 => "5.1".into(),
-        8 => "7.1".into(),
-        n if n > 0 => format!("{n} channels"),
+        1 => t::player_channels_mono(),
+        2 => t::player_channels_stereo(),
+        6 => "5.1".into(), // i18n-skip
+        8 => "7.1".into(), // i18n-skip
+        n if n > 0 => t::player_channels(n),
         _ => return None,
     })
 }
@@ -95,13 +96,13 @@ pub fn translation_switch() -> gtk::Box {
     switch.set_margin_end(6);
     switch.set_margin_top(6);
     switch.set_margin_bottom(6);
-    for (label, target) in [("Sub", "sub"), ("Dub", "dub")] {
-        let toggle = gtk::ToggleButton::with_label(label);
+    for (label, target) in [(t::audio_subbed(), "sub"), (t::audio_dubbed(), "dub")] {
+        let toggle = gtk::ToggleButton::with_label(&label);
         toggle.set_action_name(Some("player.translation"));
         toggle.set_action_target_value(Some(&target.to_variant()));
         switch.append(&toggle);
     }
-    switch.update_property(&[gtk::accessible::Property::Label("Sub or Dub")]);
+    switch.update_property(&[gtk::accessible::Property::Label(&t::player_translation_label())]);
     switch
 }
 
@@ -128,14 +129,14 @@ pub fn menu(tracks: &[Track], playing: bool, dub: bool) -> gio::Menu {
     if !playing {
         let waiting = gio::Menu::new();
         // An item without an action: shown, and insensitive.
-        waiting.append(Some("No Tracks Yet"), None);
+        waiting.append(Some(&t::player_no_tracks()), None);
         menu.append_section(None, &waiting);
         return menu;
     }
     let section = |title: &str, kind: TrackKind, action: &str, load: (&str, &str)| {
         let section = gio::Menu::new();
         if kind == TrackKind::Subtitle {
-            section.append_item(&radio("Off", action, "off"));
+            section.append_item(&radio(&t::value_off(), action, "off"));
         }
         for track in tracks.iter().filter(|t| t.kind == kind) {
             section.append_item(&radio(&track.label, action, &track.id.to_string()));
@@ -144,16 +145,16 @@ pub fn menu(tracks: &[Track], playing: bool, dub: bool) -> gio::Menu {
         menu.append_section(Some(title), &section);
     };
     section(
-        "Subtitles",
+        &t::player_subtitles(),
         TrackKind::Subtitle,
         "player.subtitle",
-        ("Load Subtitle File…", "player.load-subtitle"),
+        (&t::player_load_subtitle_file(), "player.load-subtitle"),
     );
     section(
-        "Audio",
+        &t::player_audio(),
         TrackKind::Audio,
         "player.audio",
-        ("Load Audio File…", "player.load-audio"),
+        (&t::player_load_audio_file(), "player.load-audio"),
     );
     menu
 }
@@ -166,12 +167,12 @@ fn radio(label: &str, action: &str, target: &str) -> gio::MenuItem {
 
 /// The file chooser's filter for a kind of track: the formats mpv reads as one.
 pub fn filter(kind: TrackKind) -> gio::ListStore {
-    let (name, patterns): (&str, &[&str]) = match kind {
+    let (name, patterns): (String, &[&str]) = match kind {
         TrackKind::Subtitle => {
-            ("Subtitles", &["*.srt", "*.ass", "*.ssa", "*.vtt", "*.sub", "*.sup"])
+            (t::player_subtitles(), &["*.srt", "*.ass", "*.ssa", "*.vtt", "*.sub", "*.sup"])
         }
         TrackKind::Audio => (
-            "Audio",
+            t::player_audio(),
             &[
                 "*.mka", "*.m4a", "*.aac", "*.ac3", "*.eac3", "*.flac", "*.mp3", "*.ogg",
                 "*.opus", "*.wav",
@@ -179,7 +180,7 @@ pub fn filter(kind: TrackKind) -> gio::ListStore {
         ),
     };
     let filter = gtk::FileFilter::new();
-    filter.set_name(Some(name));
+    filter.set_name(Some(&name));
     for pattern in patterns {
         filter.add_pattern(pattern);
         filter.add_pattern(&pattern.to_uppercase());
@@ -231,7 +232,7 @@ mod tests {
     #[test]
     fn a_track_with_nothing_to_say_is_named_by_its_kind_and_number() {
         assert_eq!(label(None, None, 3, TrackKind::Audio), "Audio 3");
-        assert_eq!(label(Some(""), Some(" "), 5, TrackKind::Subtitle), "Subtitle 5");
+        assert_eq!(label(Some(""), Some(" "), 5, TrackKind::Subtitle), "Subtitles 5");
         assert_eq!(label(Some("eng"), Some("English"), 1, TrackKind::Audio), "English");
         let list =
             json!([{ "id": 2, "type": "audio", "codec": "aac", "demux-channel-count": 2 }]);

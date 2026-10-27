@@ -7,6 +7,7 @@
 use std::rc::Rc;
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
     party::{PartyConnection, PartyForm, PartyInvite, PartyMember, PartyView},
@@ -19,23 +20,23 @@ pub mod panel;
 pub mod source;
 
 /// What the panel says of a member, beside their name.
-pub fn member_state(member: &PartyMember) -> &'static str {
+pub fn member_state(member: &PartyMember) -> String {
     match member.ready {
-        Some(true) => "Ready",
-        Some(false) => "Not ready",
-        None => "No ready state",
+        Some(true) => t::party_member_ready(),
+        Some(false) => t::party_member_not_ready(),
+        None => t::party_member_no_ready_state(),
     }
 }
 
 /// A second line for a member whose episode is not this device's.
-pub fn member_file(member: &PartyMember) -> Option<&'static str> {
+pub fn member_file(member: &PartyMember) -> Option<String> {
     if member.you {
         return None;
     }
     if member.file_matches == Some(false) {
-        Some("Playing a different file")
+        Some(t::party_member_other_file())
     } else if member.file.is_none() {
-        Some("Nothing open yet")
+        Some(t::party_member_no_file())
     } else {
         None
     }
@@ -43,7 +44,7 @@ pub fn member_file(member: &PartyMember) -> Option<&'static str> {
 
 /// The member's name, with "(you)" for this device's.
 pub fn member_name(member: &PartyMember) -> String {
-    if member.you { format!("{} (you)", member.name) } else { member.name.clone() }
+    if member.you { t::party_member_you(&member.name) } else { member.name.clone() }
 }
 
 /// Every member is ready, and there are at least two: when play starts on its own. A member
@@ -55,21 +56,22 @@ pub fn all_ready(members: &[PartyMember]) -> bool {
 /// The line under the members: everyone ready, who the room waits for, or nobody else yet.
 pub fn ready_line(members: &[PartyMember]) -> String {
     if members.len() < 2 {
-        return "Nobody else is here yet. Send the invite link.".into();
+        return t::party_alone();
     }
     if all_ready(members) {
-        return "Everyone is ready".into();
+        return t::party_all_ready();
     }
+    let you = t::party_you();
     let waiting: Vec<&str> = members
         .iter()
         .filter(|m| m.ready == Some(false))
-        .map(|m| if m.you { "you" } else { m.name.as_str() })
+        .map(|m| if m.you { you.as_str() } else { m.name.as_str() })
         .collect();
     match waiting.as_slice() {
-        ["you"] => "Play starts once you're ready".into(),
-        [one] => format!("Play starts once {one} is ready"),
-        [one, two] => format!("Play starts once {one} and {two} are ready"),
-        more => format!("Play starts once {} more are ready", more.len()),
+        [only] if *only == you => t::party_wait_you(),
+        [one] => t::party_wait_one(one),
+        [one, two] => t::party_wait_two(one, two),
+        more => t::party_wait_many(more.len() as i64),
     }
 }
 
@@ -77,17 +79,17 @@ pub fn ready_line(members: &[PartyMember]) -> String {
 pub fn connection_line(party: &PartyView) -> String {
     match party.connection {
         PartyConnection::Reconnecting { attempt, of } => {
-            format!("Connection lost. Trying again, {attempt} of {of}")
+            t::party_connection_lost(i64::from(attempt), i64::from(of))
         }
         PartyConnection::Connected => {
             let how = if party.encrypted {
-                "Connected, encrypted"
+                t::party_connected_encrypted()
             } else {
-                "Connected, not encrypted"
+                t::party_connected_plain()
             };
             match party.latency_ms {
-                Some(ms) => format!("{how} · {ms} ms"),
-                None => how.into(),
+                Some(ms) => t::party_connected_latency(&how, i64::from(ms)),
+                None => how,
             }
         }
     }
@@ -102,56 +104,58 @@ pub fn is_suggested(typed: &str, form: &PartyForm) -> bool {
 /// joining.
 pub fn server_hint(typed: &str, form: &PartyForm) -> String {
     if is_suggested(typed, form) {
-        format!("A public server run by {}, not by anistream.", form.suggested_run_by)
+        t::party_server_public(&form.suggested_run_by)
     } else {
-        format!(
-            "No server of your own? {} is a public one, run by {}.",
-            form.suggested_server, form.suggested_run_by
-        )
+        t::party_server_suggest(&form.suggested_server, &form.suggested_run_by)
     }
 }
 
 /// What is wrong with a server as typed, when it does not read as `host`, `host:port` or
 /// `[v6]:port`. Empty is not wrong, only not chosen yet.
-pub fn server_problem(typed: &str) -> Option<&'static str> {
-    const SHAPE: &str = "Write the server as a host and a port, like party.example:8999.";
+pub fn server_problem(typed: &str) -> Option<String> {
+    let shape = || Some(t::party_server_shape());
     let text = typed.trim();
     if text.is_empty() {
         return None;
     }
     if text.contains([' ', '/']) {
-        return Some(SHAPE);
+        return shape();
     }
     let (host, port) = if let Some(rest) = text.strip_prefix('[') {
-        let Some((host, rest)) = rest.split_once(']') else { return Some(SHAPE) };
+        let Some((host, rest)) = rest.split_once(']') else { return shape() };
         match rest.strip_prefix(':') {
-            Some("") => return Some(SHAPE),
+            Some("") => return shape(),
             Some(port) => (host, port),
             None if rest.is_empty() => (host, ""),
-            None => return Some(SHAPE),
+            None => return shape(),
         }
     } else {
         match text.split(':').collect::<Vec<_>>().as_slice() {
             [host] => (*host, ""),
-            [_, ""] => return Some(SHAPE),
+            [_, ""] => return shape(),
             [host, port] => (*host, *port),
-            _ => return Some(SHAPE),
+            _ => return shape(),
         }
     };
     if host.is_empty() {
-        return Some(SHAPE);
+        return shape();
     }
     let port_ok = port.is_empty()
         || (port.bytes().all(|b| b.is_ascii_digit())
             && port.parse::<u16>().is_ok_and(|n| n > 0));
-    (!port_ok).then_some(SHAPE)
+    if port_ok { None } else { shape() }
+}
+
+/// An episode as the catalogue counts it. The engine names one by its number as text.
+pub fn number(episode: &str) -> i64 {
+    episode.trim().parse().unwrap_or(0)
 }
 
 /// "Episode 7 of Stardust Wayfarer", or "Episode 7" before the title is known.
 pub fn episode_of(ctx: &Ctx, id: anistream_core::ids::AnilistId, episode: &str) -> String {
     match ctx.hub.entry(id) {
-        Some(entry) => format!("Episode {episode} of {}", entry.title),
-        None => format!("Episode {episode}"),
+        Some(entry) => t::party_form_episode_of(number(episode), &entry.title),
+        None => t::party_form_episode(number(episode)),
     }
 }
 
@@ -164,27 +168,21 @@ pub fn heard(shell: &Rc<Shell>, event: &anistream_model::event::Event) {
     match event {
         Event::PartyJoined(_) if !shell.in_party.replace(true) => {
             if shell.is_player() {
-                ctx.toast("You're in the party. The people button has the invite link.");
+                ctx.toast(&t::party_in_note());
             } else {
-                ctx.toast(
-                    "You're in the party. The people button in the player has the invite link.",
-                );
+                ctx.toast(&t::party_in_note_player());
             }
         }
         Event::PartyLeft { reason } => {
             if shell.in_party.replace(false) && !form::joining() && !shell.is_player() {
                 match reason {
-                    // i18n P2: replace with the catalogue
-                    Some(why) => ctx.alert(&crate::catalog::shown(&why.english())),
-                    None => {
-                        ctx.toast("You left the party. What's playing goes on, just for you.")
-                    }
+                    Some(why) => ctx.alert(&crate::say::msg(why)),
+                    None => ctx.toast(&t::party_left_note()),
                 }
             }
         }
         Event::PartyNoSource { id, episode, why, reason } => {
-            // i18n P2: replace with the catalogue
-            source::open(ctx, *id, episode, *why, &reason.english());
+            source::open(ctx, *id, episode, *why, &crate::say::msg(reason));
         }
         _ => {}
     }
@@ -194,7 +192,7 @@ pub fn heard(shell: &Rc<Shell>, event: &anistream_model::event::Event) {
 pub fn open_invite(shell: &Rc<Shell>, link: &str) {
     let ctx = &shell.ctx;
     let Some(invite) = PartyInvite::parse(link) else {
-        ctx.toast("That party link is missing its server, room or episode");
+        ctx.toast(&t::party_link_incomplete());
         return;
     };
     let same = ctx
@@ -205,7 +203,7 @@ pub fn open_invite(shell: &Rc<Shell>, link: &str) {
         .as_ref()
         .is_some_and(|p| p.server == invite.server && p.room == invite.room);
     if same {
-        ctx.toast("You're already in this party");
+        ctx.toast(&t::party_already_in());
         return;
     }
     if !shell.is_player() {
@@ -220,12 +218,13 @@ pub fn ask_before_closing(shell: &Rc<Shell>) -> bool {
         return false;
     };
     let dialog = adw::AlertDialog::new(
-        Some("Leave the Party?"),
-        Some(&format!(
-            "Closing anistream leaves {room}. Everyone else carries on without you."
-        )),
+        Some(&t::party_leave_title()),
+        Some(&t::party_leave_detail(&room)),
     );
-    dialog.add_responses(&[("stay", "Stay"), ("leave", "Leave and Close")]);
+    dialog.add_responses(&[
+        ("stay", &t::party_stay()),
+        ("leave", &t::party_leave_and_close()),
+    ]);
     dialog.set_response_appearance("leave", adw::ResponseAppearance::Destructive);
     // Stay is the default: Return and Escape both keep the party.
     dialog.set_default_response(Some("stay"));
