@@ -145,7 +145,7 @@ fn swift(langs: &[Shipped]) -> String {
                 .map(|n| if KEYWORDS.contains(&n.as_str()) { format!("`{n}`") } else { n })
                 .collect();
             out.push_str(&format!(
-                "    public static func {name}({}) -> String {{\n        format(\"{}\", fallback: \"{}\", {})\n    }}\n\n",
+                "    public static func {name}({}) -> String {{\n        Self.format(\"{}\", fallback: \"{}\", {})\n    }}\n\n",
                 params.join(", "),
                 m.id,
                 c_escape(&english),
