@@ -642,6 +642,26 @@ mod tests {
     }
 
     #[test]
+    fn the_tui_scan_counts_words_wherever_they_stand_and_skips_what_is_not_text() {
+        let dir = tree(&[(
+            "crates/anistream-tui/src/a.rs",
+            concat!(
+                "fn f() {\n",
+                "    let a = format!(\"{} items left\", n);\n",
+                "    let b = \"Plain words\".to_owned();\n",
+                "    tracing::info!(n, \"not for people\");\n",
+                "    let c = x.expect(\"never fails\");\n",
+                "    match k { \"token\" => 1, _ => 2 };\n",
+                "    let d = \"a token\"; // i18n-skip\n",
+                "    let e = \"raw \\\"quoted\\\" text\";\n",
+                "}\n",
+            ),
+        )]);
+        let counts = scan(dir.path(), Platform::Tui).unwrap();
+        assert_eq!(counts.values().sum::<usize>(), 3, "{counts:?}");
+    }
+
+    #[test]
     fn a_baseline_only_allows_what_is_there() {
         let counts = BTreeMap::from([("a".to_owned(), 3), ("b".to_owned(), 1)]);
         let baseline = BTreeMap::from([("a".to_owned(), 3)]);
