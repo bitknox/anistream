@@ -166,7 +166,10 @@ fn a_redirect_that_does_not_carry_the_state_back_is_refused_and_the_sign_in_wait
 
     app.finish(redirect("someone-elses"));
     let refused = app.alert();
-    assert_eq!(refused, "That sign-in to AniList didn't come back from this request. Start the sign-in again.");
+    assert_eq!(
+        refused,
+        "That sign-in to AniList didn't come back from this request. Start the sign-in again."
+    );
 
     // The sheet's own redirect still finishes it.
     app.finish(redirect(&state));
@@ -184,10 +187,16 @@ fn a_token_with_no_state_is_refused_and_the_sign_in_waits_on() {
     let mut app = App::start();
     let (_, state) = app.authorize();
     app.finish("anistream://auth/anilist#access_token=fake-token&token_type=Bearer".into());
-    assert_eq!(app.alert(), "That sign-in to AniList didn't come back from this request. Start the sign-in again.");
+    assert_eq!(
+        app.alert(),
+        "That sign-in to AniList didn't come back from this request. Start the sign-in again."
+    );
     // With neither a state nor a token, nothing to take either.
     app.finish("anistream://auth/anilist#token_type=Bearer".into());
-    assert_eq!(app.alert(), "That sign-in to AniList didn't come back from this request. Start the sign-in again.");
+    assert_eq!(
+        app.alert(),
+        "That sign-in to AniList didn't come back from this request. Start the sign-in again."
+    );
 
     // The sheet's own redirect, with the token and the state beside it, still finishes it.
     app.finish(redirect(&state));
@@ -204,7 +213,10 @@ fn a_sheet_closed_ends_the_sign_in_and_a_redirect_after_finds_none() {
     let (_, state) = app.authorize();
     app.engine.send(Command::CancelSignIn { tracker: "anilist".into() });
     app.finish(redirect(&state));
-    assert_eq!(app.alert(), "No sign-in to AniList is waiting for that. Start the sign-in again.");
+    assert_eq!(
+        app.alert(),
+        "No sign-in to AniList is waiting for that. Start the sign-in again."
+    );
 
     // A refusal on AniList's page comes back as an error, said as one.
     let (_, state) = app.authorize();
