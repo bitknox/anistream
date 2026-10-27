@@ -7,17 +7,17 @@ import Foundation
 public enum L {
     /// Toast after a setting is stored.
     public static func noticeSaved(label: String) -> String {
-        format("notice-saved", fallback: "Saved %1$@.", label)
+        Self.format("notice-saved", fallback: "Saved %1$@.", label)
     }
 
     /// Toast when a setting could not be stored.
     public static func noticeNotSaved(cause: String) -> String {
-        format("notice-not-saved", fallback: "Couldn't save that setting. %1$@", cause)
+        Self.format("notice-not-saved", fallback: "Couldn't save that setting. %1$@", cause)
     }
 
     /// Toast with a wait.
     public static func noticeEverything(wait: String, size: String, count: Int, percent: String) -> String {
-        format("notice-everything", fallback: "%3$lld things in %1$@, %2$@, %4$@%%.", wait, size, count, percent)
+        Self.format("notice-everything", fallback: "%3$lld things in %1$@, %2$@, %4$@%%.", wait, size, count, percent)
     }
 
     /// The storage is full.
@@ -25,7 +25,7 @@ public enum L {
 
     /// The file could not be written.
     public static func causeNotWritable(path: String) -> String {
-        format("cause-not-writable", fallback: "%1$@ is not writable.", path)
+        Self.format("cause-not-writable", fallback: "%1$@ is not writable.", path)
     }
 
     /// Nothing to say.
@@ -36,17 +36,17 @@ public enum L {
 
     /// Row subtitle on the continue shelf.
     public static func queueLeft(count: Int, title: String) -> String {
-        format("queue-left", fallback: "%1$lld episodes left in %2$@", count, title)
+        Self.format("queue-left", fallback: "%1$lld episodes left in %2$@", count, title)
     }
 
     /// The reasons a match was made.
     public static func matchRemembered(percent: String) -> String {
-        format("match-remembered", fallback: "Remembered (%1$@) at 100%%", percent)
+        Self.format("match-remembered", fallback: "Remembered (%1$@) at 100%%", percent)
     }
 
     /// Quote and apostrophe handling.
     public static func quote(name: String) -> String {
-        format("quote", fallback: "Couldn't find \"%1$@\" in <Sources> & more.", name)
+        Self.format("quote", fallback: "Couldn't find \"%1$@\" in <Sources> & more.", name)
     }
 
     /// A handle at the start of a string.
@@ -57,7 +57,7 @@ public enum L {
 
     /// Order changes per language.
     public static func twoArgs(who: String, what: String) -> String {
-        format("two-args", fallback: "%1$@ watched %2$@", who, what)
+        Self.format("two-args", fallback: "%1$@ watched %2$@", who, what)
     }
 
     /// The languages this build has text for, source first. `draft` languages carry the draft label.
