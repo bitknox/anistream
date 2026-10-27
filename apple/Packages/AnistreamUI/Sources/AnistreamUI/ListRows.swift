@@ -101,7 +101,7 @@ private struct EpisodeSwipes: ViewModifier {
                 }
             }
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                if !row.metadataOnly, !store.hasDownload(entry.id, episode: row.number) {
+                if !row.metadataOnly, !row.unsourced, !store.hasDownload(entry.id, episode: row.number) {
                     Button("Download") { store.send(.downloadEpisode(id: entry.id, episode: row.number)) }
                 }
             }

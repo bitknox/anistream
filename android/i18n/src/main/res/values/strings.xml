@@ -25,6 +25,8 @@
     <string name="action_cancel">Cancel</string>
     <!-- Button that puts a question off until later. -->
     <string name="action_not_now">Not now</string>
+    <!-- Button that closes a sheet whose changes have already been made. -->
+    <string name="action_done">Done</string>
     <!-- Continue row subtitle. The show's title is cut first when the row is short. -->
     <plurals name="queue_episodes_left">
         <item quantity="one">One episode left in %2$s</item>

@@ -153,6 +153,26 @@ extension AppStore {
         send(.setProviderPreference(id: id, provider: provider))
     }
 
+    /// Ask for what each source has of `id`, for the picker. The engine answers with
+    /// `Event.sourceOptions`.
+    public func loadSourceOptions(_ id: AnilistId) {
+        sourceChoices.asking(id)
+        send(.loadSourceOptions(id))
+    }
+
+    /// Pin `provider` for `id`, or give it back to automatic with `nil`, as the picker's rows do.
+    /// The engine relists the episodes by itself.
+    public func chooseSource(_ id: AnilistId, provider: String?) {
+        sourceChoices.chose(id, provider: provider)
+        setProviderPreference(id, to: provider)
+    }
+
+    /// Pin one release of a source for `id`, played for every episode that release holds.
+    public func chooseRelease(_ id: AnilistId, provider: String, release: SourceCandidate) {
+        sourceChoices.chose(id, provider: provider, release: release.id)
+        send(.pinRelease(id: id, providerId: provider, releaseId: release.id, title: release.title))
+    }
+
     // MARK: Plugin stores
 
     public func loadStores() {

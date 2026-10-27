@@ -50,6 +50,11 @@ pub fn action_not_now() -> String {
     text("action-not-now", &[])
 }
 
+/// Button that closes a sheet whose changes have already been made.
+pub fn action_done() -> String {
+    text("action-done", &[])
+}
+
 /// Continue row subtitle. The show's title is cut first when the row is short.
 pub fn queue_episodes_left(count: i64, title: &str) -> String {
     text("queue-episodes-left", &[("count", Arg::Int(count)), ("title", Arg::Text(title))])

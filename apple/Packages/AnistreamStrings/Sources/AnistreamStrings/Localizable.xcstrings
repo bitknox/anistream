@@ -13,6 +13,18 @@
         }
       }
     },
+    "action-done" : {
+      "comment" : "Button that closes a sheet whose changes have already been made.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
     "action-not-now" : {
       "comment" : "Button that puts a question off until later.",
       "extractionState" : "manual",
@@ -211,6 +223,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show Library"
+          }
+        }
+      }
+    },
+    "menu-source-for-title" : {
+      "comment" : "Mac menu bar item that opens the source picker for the title on screen. Title Case, as the menu bar's items are. Everywhere else the picker is called source-picker-title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source for This Title"
           }
         }
       }
@@ -587,6 +611,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ isn't available right now, so this title's episodes come from your other sources."
+          }
+        }
+      }
+    },
+    "source-release-seeders" : {
+      "comment" : "Under a release in the source picker: how many people share it right now. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One seeder"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld seeders"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

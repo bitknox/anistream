@@ -42,6 +42,9 @@ public static partial class T
     /// <summary>Button that puts a question off until later.</summary>
     public static string ActionNotNow => Get("ActionNotNow");
 
+    /// <summary>Button that closes a sheet whose changes have already been made.</summary>
+    public static string ActionDone => Get("ActionDone");
+
     /// <summary>Continue row subtitle. The show's title is cut first when the row is short.</summary>
     public static string QueueEpisodesLeft(long count, string title) => Fill(GetPlural("QueueEpisodesLeft", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
 
@@ -159,6 +162,7 @@ public static partial class T
         ["ActionTryAgain"] = "Try again",
         ["ActionCancel"] = "Cancel",
         ["ActionNotNow"] = "Not now",
+        ["ActionDone"] = "Done",
         ["QueueEpisodesLeft_one"] = "One episode left in {title}",
         ["QueueEpisodesLeft_other"] = "{count} episodes left in {title}",
         ["EpisodesCount_one"] = "{count} episode",

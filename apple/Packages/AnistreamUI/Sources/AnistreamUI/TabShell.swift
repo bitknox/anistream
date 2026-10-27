@@ -78,6 +78,7 @@ struct TabShell: View {
                 .presentationDetents([.medium, .large])
         }
         .moreAboutSheet(navigator)
+        .sourcePickerSheet(navigator)
         .modifier(AppSheets())
     }
 

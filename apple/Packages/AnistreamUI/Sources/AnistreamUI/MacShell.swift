@@ -91,6 +91,7 @@ struct MacShell: View {
             ShowSettingsSheet(entry: item.entry)
         }
         .moreAboutSheet(navigator)
+        .sourcePickerSheet(navigator)
     }
 
     /// What the toolbar says under the section's name.
