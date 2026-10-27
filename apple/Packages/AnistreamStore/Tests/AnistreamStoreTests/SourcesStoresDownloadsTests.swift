@@ -44,7 +44,7 @@ struct ProvidersTests {
     @Test func theProvidersComeInAndANoteGoesOnceThereAreSome() {
         let store = AppStore()
         #expect(!store.providers.loaded)
-        store.apply(.providerNote("No sources yet: plugins are still compiling."))
+        store.apply(.providerNote(.verbatim(text: "No sources yet: plugins are still compiling.")))
         store.apply(.providers([]))
         #expect(store.providers.loaded)
         #expect(store.providers.note == "No sources yet: plugins are still compiling.")

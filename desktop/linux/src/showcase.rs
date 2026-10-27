@@ -129,8 +129,11 @@ pub fn answer(command: &Command) -> Option<Vec<Event>> {
             | Command::LoadLocalPlugins { .. }
             | Command::PublishPlugin { .. }
     );
-    let failed =
-        |why: &str| vec![Event::Toast(anistream_model::notice::Notice::alert(why.to_owned()))];
+    let failed = |why: &str| {
+        vec![Event::Toast(anistream_model::notice::Notice::alert(
+            anistream_model::Msg::verbatim(why.to_owned()),
+        ))]
+    };
     match (mood, command) {
         (Mood::Silent, Command::SearchMore { .. }) => return Some(Vec::new()),
         (Mood::Silent, _) if owners => return Some(Vec::new()),

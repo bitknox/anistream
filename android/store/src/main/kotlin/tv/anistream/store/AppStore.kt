@@ -27,6 +27,7 @@ import tv.anistream.engine.ffi.FfiException
 import tv.anistream.engine.ffi.FfiHost
 import tv.anistream.engine.ffi.FfiTvBrowser
 import tv.anistream.engine.ffi.FfiTvRemote
+import tv.anistream.engine.ffi.msgEnglish
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.ContentFor
 import tv.anistream.engine.model.ContentList
@@ -807,7 +808,7 @@ class AppStore(
         if (event is Event.Toast && event.v1.kind == NoticeKind.ALERT) onPlayback?.invoke(event)
         when (event) {
             is Event.JobStarted -> jobs.started(event.job, event.activity)
-            is Event.JobNote -> jobs.note(event.job, event.note, event.wait?.toMillis())
+            is Event.JobNote -> jobs.note(event.job, msgEnglish(event.note), event.wait?.toMillis()) // i18n P2: replace with the catalogue
             is Event.JobDone -> {
                 jobs.done(event.v1)
                 // A listing that ended with none said: it failed, which a notice says, and none came.
@@ -837,7 +838,7 @@ class AppStore(
             is Event.Episodes -> titles.episodes(event.id, event.rows)
             is Event.TitleDub -> titles.dub(event.id, event.dub)
 
-            is Event.Status -> notices.status(event.v1)
+            is Event.Status -> notices.status(event.v1?.let { msgEnglish(it) } ?: "") // i18n P2: replace with the catalogue
             is Event.Connectivity -> _offline.value = event.offline
             is Event.Toast -> notices.post(event.v1)
 
@@ -856,7 +857,7 @@ class AppStore(
                 providers.apply(event.v1)
                 if (!had && event.v1.any { it.usable }) sourcesArrived()
             }
-            is Event.ProviderNote -> providers.note(event.v1)
+            is Event.ProviderNote -> providers.note(msgEnglish(event.v1)) // i18n P2: replace with the catalogue
             Event.SourcesChanged -> providers.sourcesChanged()
             is Event.Vpn -> providers.guardSaid(event.v1)
             is Event.ProtectionChecked -> providers.trialSaid(event.v1)?.let { send(Command.CheckTorrentProtection(it.mode, it.proxy)) }

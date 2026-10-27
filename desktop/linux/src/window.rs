@@ -1032,7 +1032,8 @@ fn sign_in_return(link: &str) -> Option<String> {
 /// The engine's word that a setting was written, "saved · quality": the row already shows the
 /// new value, so it goes unsaid. A refusal, "not saved: …", still shows.
 fn setting_saved(notice: &Notice) -> bool {
-    notice.kind == NoticeKind::Info && notice.text.starts_with("saved · ")
+    notice.kind == NoticeKind::Info
+        && matches!(notice.msg, Some(anistream_model::Msg::NoticeSaved { .. }))
 }
 
 fn sentence(text: &str) -> String {
@@ -1392,10 +1393,12 @@ mod tests {
 
     #[test]
     fn a_setting_saved_goes_unsaid_and_one_not_saved_does_not() {
-        let notice = |kind, text: &str| Notice { kind, text: text.into(), hint: None };
-        assert!(setting_saved(&notice(NoticeKind::Info, "saved · upscaling")));
-        assert!(!setting_saved(&notice(NoticeKind::Alert, "not saved: the disk is full")));
-        assert!(!setting_saved(&notice(NoticeKind::Info, "not saved: the disk is full")));
+        let said = |kind, msg: anistream_model::Msg| Notice::new(kind, msg);
+        let saved = anistream_model::Msg::NoticeSaved { label: "upscaling".into() };
+        let refused = anistream_model::Msg::verbatim("not saved: the disk is full");
+        assert!(setting_saved(&said(NoticeKind::Info, saved)));
+        assert!(!setting_saved(&said(NoticeKind::Alert, refused.clone())));
+        assert!(!setting_saved(&said(NoticeKind::Info, refused)));
     }
 
     #[test]

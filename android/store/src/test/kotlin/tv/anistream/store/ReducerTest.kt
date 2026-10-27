@@ -15,6 +15,7 @@ import org.junit.Before
 import org.junit.Test
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.core.Translation
+import tv.anistream.engine.model.Msg
 import tv.anistream.engine.model.Aired
 import tv.anistream.engine.model.Bounds
 import tv.anistream.engine.model.BrowseRail
@@ -374,7 +375,7 @@ class ReducerTest {
         now += 600
         store.jobs.refresh()
         assertEquals(listOf("loading this season"), store.jobs.shown.value.map { it.activity })
-        store.apply(Event.JobNote(1u, "waiting on AniList", java.time.Duration.ofMillis(1_500)))
+        store.apply(Event.JobNote(1u, Msg.Verbatim("waiting on AniList"), java.time.Duration.ofMillis(1_500)))
         assertEquals(now + 1_500, store.jobs.running.value.single().waitUntil)
         store.apply(Event.JobDone(1u))
         assertTrue(store.jobs.shown.value.isEmpty())
@@ -383,7 +384,7 @@ class ReducerTest {
     @Test
     fun a_notice_shows_until_dismissed_and_stays_in_the_log() {
         val notice = Notice(kind = NoticeKind.INFO, text = "Update ready: Hotaru Open Archive", hint = null)
-        store.apply(listOf(Event.Toast(notice), Event.Status("2 changes waiting to sync")))
+        store.apply(listOf(Event.Toast(notice), Event.Status(Msg.Verbatim("2 changes waiting to sync"))))
         val item = store.notices.current.value!!
         assertEquals("Update ready: Hotaru Open Archive", item.notice.text)
         assertEquals("2 changes waiting to sync", store.notices.status.value)
