@@ -86,7 +86,7 @@ async fn an_ordinary_write_lands_in_the_file_and_is_read_back() {
     let file = std::fs::read_to_string(&h.paths().config_file).unwrap();
     assert_eq!(file, "[playback]\nauto_next = false\n");
     let row = h.app().setting_rows().into_iter().find(|row| row.key == SettingKey::AutoNext);
-    assert_eq!(row.unwrap().value, "off", "the screen shows the file");
+    assert_eq!(row.unwrap().value, "Off", "the screen shows the file");
 }
 
 #[tokio::test]

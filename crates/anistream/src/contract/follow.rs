@@ -58,7 +58,7 @@ fn staged_alike(h: &Harness, updates: &[Event]) {
     );
     assert_eq!((playing.speed, playing.duration, playing.position), (1.0, None, 0.0));
     let label = app.eyecatch.as_ref().map(|eyecatch| eyecatch.label.clone());
-    assert_eq!(label, Some(format!("{title}  ·  ep {episode}")));
+    assert_eq!(label, Some(format!("{title}  ·  Episode {episode}")));
     assert_eq!(app.nav.current(), &StageView::NowPlaying);
 }
 
@@ -176,7 +176,7 @@ fn the_binge_ends_here(h: &Harness, updates: &[Event]) {
     assert_eq!(names(updates), ["Progress", "PlaybackEnded"]);
     assert_eq!(rolled_on(updates), [false]);
     let said = |text: &str| h.app().toasts.iter().any(|toast| toast.notice.text == text);
-    assert!(said("episode finished"), "the screen says the episode is done");
+    assert!(said("Episode finished."), "the screen says the episode is done");
     assert!(h.app().playing.is_none());
     assert_ne!(h.app().nav.current(), &StageView::NowPlaying);
 }
@@ -412,7 +412,7 @@ async fn a_binge_rolls_on_in_the_window_the_last_episode_left() {
     let finished = h.app().episodes.iter().filter(|row| row.completed).count();
     assert_eq!(finished, 12, "both recorded as watched");
     assert!(h.app().playing.is_none());
-    assert!(h.app().toasts.iter().any(|toast| toast.notice.text == "episode finished"));
+    assert!(h.app().toasts.iter().any(|toast| toast.notice.text == "Episode finished."));
 }
 
 #[tokio::test]

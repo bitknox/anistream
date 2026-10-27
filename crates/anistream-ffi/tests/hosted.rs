@@ -603,7 +603,7 @@ fn finding() -> (App, ProviderRegistry) {
 /// Wait until the play under way says it is waiting for its sources.
 fn waiting(app: &mut App) {
     app.until("the wait, said", |event| match event {
-        Event::JobNote { note, .. } if note.english() == "loading sources" => Some(()),
+        Event::JobNote { note, .. } if note.english() == "Loading sources…" => Some(()),
         _ => None,
     });
 }
@@ -1412,9 +1412,9 @@ fn an_episode_yet_to_air_fails_at_once_without_asking_a_source() {
         source_id: "a".into(),
     };
     for (play, said) in [
-        (Command::play(AIRING, "6"), "episode 6 airs "),
-        (picked, "episode 7 airs "),
-        (Command::play(AIRING, "99"), "episode 99 hasn't aired yet; episode 6 airs "),
+        (Command::play(AIRING, "6"), "Episode 6 airs "),
+        (picked, "Episode 7 airs "),
+        (Command::play(AIRING, "99"), "Episode 99 hasn't aired yet. Episode 6 airs "),
     ] {
         app.engine.send(play);
         let refusal = app.until("the refusal", |event| match event {
@@ -1438,7 +1438,7 @@ fn a_play_while_sources_are_still_loading_waits_for_them() {
     let mut app = App::start(chain.clone(), "");
     app.play(FINISHED, "1");
     app.until("the wait, said", |event| match event {
-        Event::JobNote { note, .. } if note.english() == "loading sources" => Some(()),
+        Event::JobNote { note, .. } if note.english() == "Loading sources…" => Some(()),
         _ => None,
     });
 
