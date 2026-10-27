@@ -9,6 +9,42 @@ import android.content.Context
  * `stringResource(R.string.x)` and `pluralStringResource(R.plurals.x, n, ...)` directly.
  */
 object Strings {
+    /** A comment's age, beside its author, when it was written under a minute ago. */
+    fun discussionAgeNow(context: Context): String =
+        context.getString(R.string.discussion_age_now)
+
+    /** A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it. */
+    fun discussionAgeMinutes(context: Context, minutes: Int): String =
+        context.getString(R.string.discussion_age_minutes, minutes)
+
+    /** A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it. */
+    fun discussionAgeHours(context: Context, hours: Int): String =
+        context.getString(R.string.discussion_age_hours, hours)
+
+    /** A comment's age, beside its author, in days. Abbreviated, as a timeline shows it. */
+    fun discussionAgeDays(context: Context, days: Int): String =
+        context.getString(R.string.discussion_age_days, days)
+
+    /** A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it. */
+    fun discussionAgeWeeks(context: Context, weeks: Int): String =
+        context.getString(R.string.discussion_age_weeks, weeks)
+
+    /** A comment's age, beside its author, in years. Abbreviated, as a timeline shows it. */
+    fun discussionAgeYears(context: Context, years: Int): String =
+        context.getString(R.string.discussion_age_years, years)
+
+    /** Toast when a like on a comment did not reach AniList. The like is taken back. */
+    fun noticeCommentLikeFailed(context: Context): String =
+        context.getString(R.string.notice_comment_like_failed)
+
+    /** Toast when a comment could not be deleted on AniList. The comment stays. */
+    fun noticeCommentDeleteFailed(context: Context): String =
+        context.getString(R.string.notice_comment_delete_failed)
+
+    /** Toast when the viewer tried to like or post in a discussion without signing in to AniList. */
+    fun noticeDiscussionSignIn(context: Context): String =
+        context.getString(R.string.notice_discussion_sign_in)
+
     /** A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. */
     fun noticeReason(context: Context, reason: String): String =
         context.getString(R.string.notice_reason, reason)

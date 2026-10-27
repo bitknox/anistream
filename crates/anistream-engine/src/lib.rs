@@ -100,6 +100,7 @@ pub mod clock;
 pub mod config;
 pub mod connectivity;
 pub mod data;
+pub mod discussion;
 pub(crate) mod dispatch;
 pub mod downloads;
 pub mod engine;

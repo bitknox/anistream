@@ -15,6 +15,33 @@ public static partial class T
     /// <summary>The language the resolver answers in, which picks plural forms. Set with the resolver.</summary>
     public static string Language { get; set; } = "en";
 
+    /// <summary>A comment's age, beside its author, when it was written under a minute ago.</summary>
+    public static string DiscussionAgeNow => Get("DiscussionAgeNow");
+
+    /// <summary>A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeMinutes(long minutes) => Fill(Get("DiscussionAgeMinutes"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeHours(long hours) => Fill(Get("DiscussionAgeHours"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in days. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeDays(long days) => Fill(Get("DiscussionAgeDays"), ("days", days.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeWeeks(long weeks) => Fill(Get("DiscussionAgeWeeks"), ("weeks", weeks.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in years. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeYears(long years) => Fill(Get("DiscussionAgeYears"), ("years", years.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Toast when a like on a comment did not reach AniList. The like is taken back.</summary>
+    public static string NoticeCommentLikeFailed => Get("NoticeCommentLikeFailed");
+
+    /// <summary>Toast when a comment could not be deleted on AniList. The comment stays.</summary>
+    public static string NoticeCommentDeleteFailed => Get("NoticeCommentDeleteFailed");
+
+    /// <summary>Toast when the viewer tried to like or post in a discussion without signing in to AniList.</summary>
+    public static string NoticeDiscussionSignIn => Get("NoticeDiscussionSignIn");
+
     /// <summary>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</summary>
     public static string NoticeReason(string reason) => Fill(Get("NoticeReason"), ("reason", reason));
 
@@ -4154,6 +4181,15 @@ public static partial class T
 
     static readonly Dictionary<string, string> English = new()
     {
+        ["DiscussionAgeNow"] = "now",
+        ["DiscussionAgeMinutes"] = "{minutes} min",
+        ["DiscussionAgeHours"] = "{hours} h",
+        ["DiscussionAgeDays"] = "{days} d",
+        ["DiscussionAgeWeeks"] = "{weeks} w",
+        ["DiscussionAgeYears"] = "{years} y",
+        ["NoticeCommentLikeFailed"] = "Couldn't like the comment. Try again.",
+        ["NoticeCommentDeleteFailed"] = "Couldn't delete the comment. Try again.",
+        ["NoticeDiscussionSignIn"] = "Sign in with AniList to like and reply.",
         ["NoticeReason"] = "{reason}",
         ["CauseNoSources"] = "No sources are set up. Add one on the Sources screen.",
         ["NoticeNotAired"] = "Episode {episode} airs {when}.",

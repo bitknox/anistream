@@ -355,6 +355,48 @@ pub enum Command {
     OpenExternal {
         url: String,
     },
+    /// Open the discussion of `episode` of `media`: AniList's forum thread for it, answered
+    /// with [`Event::Discussion`] as it loads and on every change after, until
+    /// [`Command::CloseDiscussion`]. One at a time: opening another closes this one.
+    ///
+    /// Refused, with [`DiscussionState::NoThread`] and no request, while spoiler protection is
+    /// on for the show and the episode is after the viewer's progress, and while discussions
+    /// are switched off in Settings. Costs AniList one request, or two when the thread was not
+    /// looked up in the last hour. Sending it again is Try again.
+    ///
+    /// [`Event::Discussion`]: crate::event::Event::Discussion
+    /// [`DiscussionState::NoThread`]: crate::discussion::DiscussionState::NoThread
+    OpenDiscussion {
+        media: AnilistId,
+        episode: u32,
+    },
+    /// The open discussion's next page of comments, as the viewer scrolls to the end.
+    MoreComments,
+    /// Post `text` to the open discussion, as a reply to comment `parent` when set. It shows at
+    /// once as [`PostState::Sending`], then posted, or failed with the text kept; sending the
+    /// same text again tries a failed one again.
+    ///
+    /// [`PostState::Sending`]: crate::discussion::PostState::Sending
+    PostComment {
+        parent: Option<u32>,
+        text: String,
+    },
+    /// Put `text` in place of the viewer's own comment `id`.
+    EditComment {
+        id: u32,
+        text: String,
+    },
+    /// Delete the viewer's own comment `id`, once the front end has asked. A comment that never
+    /// posted is only taken away.
+    DeleteComment {
+        id: u32,
+    },
+    /// Like comment `id`, or take the like back.
+    LikeComment {
+        id: u32,
+    },
+    /// The discussion's sheet or pane closed: nothing more is said of it.
+    CloseDiscussion,
     /// Play the exact release the user picked from the Sources overlay. The eyecatch
     /// covers this the same way it covers [`Command::Play`].
     PlaySource {

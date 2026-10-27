@@ -301,6 +301,82 @@ pub const SAVE_PROGRESS: &str = r"
     }
 ";
 
+/// The Release Discussion category's threads tagged with one title whose titles match a
+/// search, most replied first: the candidates for one episode's thread.
+///
+/// AniList's search matches loosely, so the client keeps only the titles that name the
+/// episode: see [`super::threads::names_episode`]. Ten candidates is ample; duplicates are
+/// rare and the most replied one wins.
+pub const EPISODE_THREADS: &str = r"
+    query ($media: Int, $search: String) {
+        Page(page: 1, perPage: 10) {
+            threads(mediaCategoryId: $media, categoryId: 5, search: $search, sort: [REPLY_COUNT_DESC]) {
+                id
+                title
+                replyCount
+                siteUrl
+            }
+        }
+    }
+";
+
+/// The fields of one comment. `childComments` is AniList's JSON tree of the replies, each with
+/// these same fields, read by [`super::threads`].
+const COMMENT_FIELDS: &str = r"
+    id
+    comment
+    likeCount
+    isLiked
+    createdAt
+    user { id name avatar { medium } }
+";
+
+/// One page of a thread's top-level comments, oldest first, each with its replies.
+pub fn thread_comments() -> String {
+    format!(
+        r"
+    query ($thread: Int, $page: Int, $perPage: Int) {{
+        Page(page: $page, perPage: $perPage) {{
+            pageInfo {{ hasNextPage }}
+            threadComments(threadId: $thread) {{
+                {COMMENT_FIELDS}
+                childComments
+            }}
+        }}
+    }}
+"
+    )
+}
+
+/// Post a comment, as a reply when `parentCommentId` is set, or edit one when `id` is.
+pub fn save_thread_comment() -> String {
+    format!(
+        r"
+    mutation ($id: Int, $thread: Int, $parent: Int, $comment: String) {{
+        SaveThreadComment(id: $id, threadId: $thread, parentCommentId: $parent, comment: $comment) {{
+            {COMMENT_FIELDS}
+        }}
+    }}
+"
+    )
+}
+
+/// Delete one of the viewer's comments.
+pub const DELETE_THREAD_COMMENT: &str = r"
+    mutation ($id: Int) {
+        DeleteThreadComment(id: $id) { deleted }
+    }
+";
+
+/// Like a comment, or take the like back: AniList toggles it and says where it now stands.
+pub const TOGGLE_COMMENT_LIKE: &str = r"
+    mutation ($id: Int) {
+        ToggleLikeV2(id: $id, type: THREAD_COMMENT) {
+            ... on ThreadComment { id likeCount isLiked }
+        }
+    }
+";
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -392,6 +468,11 @@ mod tests {
             ("viewer", VIEWER.to_string()),
             ("save_progress", SAVE_PROGRESS.to_string()),
             ("delete_entry", DELETE_ENTRY.to_string()),
+            ("episode_threads", EPISODE_THREADS.to_string()),
+            ("thread_comments", thread_comments()),
+            ("save_thread_comment", save_thread_comment()),
+            ("delete_thread_comment", DELETE_THREAD_COMMENT.to_string()),
+            ("toggle_comment_like", TOGGLE_COMMENT_LIKE.to_string()),
         ]
     }
 

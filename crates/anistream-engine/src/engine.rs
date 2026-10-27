@@ -861,9 +861,15 @@ impl Actor {
         settings::remember(&event, state, services, || inbox.sender());
         // What it leads to on its own, started now and said right after it, so nothing the
         // front end reads comes between an ending and the episode it rolls on to.
+        let watched = played.clone().filter(|_| matches!(event, Event::ProgressQueued));
         let after = self.follow(&mut event, played.as_ref());
         self.pass_on(event);
         after.into_iter().for_each(|said| self.pass_on(said));
+        // An episode counted as watched: its discussion opens from now on, and is looked up.
+        if let Some(played) = watched.as_ref() {
+            let tx = self.inbox.sender();
+            crate::discussion::watched(played.id, &played.episode, &self.state, &self.services, &tx);
+        }
         // An episode watched: the episodes after it, kept.
         if moved_on {
             let tx = self.inbox.sender();

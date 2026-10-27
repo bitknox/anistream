@@ -2369,6 +2369,78 @@
         }
       }
     },
+    "discussion-age-days" : {
+      "comment" : "A comment's age, beside its author, in days. Abbreviated, as a timeline shows it. Argument 1: days (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld d"
+          }
+        }
+      }
+    },
+    "discussion-age-hours" : {
+      "comment" : "A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it. Argument 1: hours (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld h"
+          }
+        }
+      }
+    },
+    "discussion-age-minutes" : {
+      "comment" : "A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it. Argument 1: minutes (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld min"
+          }
+        }
+      }
+    },
+    "discussion-age-now" : {
+      "comment" : "A comment's age, beside its author, when it was written under a minute ago.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "now"
+          }
+        }
+      }
+    },
+    "discussion-age-weeks" : {
+      "comment" : "A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it. Argument 1: weeks (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld w"
+          }
+        }
+      }
+    },
+    "discussion-age-years" : {
+      "comment" : "A comment's age, beside its author, in years. Abbreviated, as a timeline shows it. Argument 1: years (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld y"
+          }
+        }
+      }
+    },
     "downloads-ahead" : {
       "comment" : "Short row caption for an episode downloaded before it was asked for.",
       "extractionState" : "manual",
@@ -5591,6 +5663,30 @@
         }
       }
     },
+    "notice-comment-delete-failed" : {
+      "comment" : "Toast when a comment could not be deleted on AniList. The comment stays.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't delete the comment. Try again."
+          }
+        }
+      }
+    },
+    "notice-comment-like-failed" : {
+      "comment" : "Toast when a like on a comment did not reach AniList. The like is taken back.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't like the comment. Try again."
+          }
+        }
+      }
+    },
     "notice-continue-hide-failed" : {
       "comment" : "Toast when a title cannot be taken off the Continue row. The reason comes from the system. Argument 1: reason (Text).",
       "extractionState" : "manual",
@@ -5611,6 +5707,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't open that. %1$@"
+          }
+        }
+      }
+    },
+    "notice-discussion-sign-in" : {
+      "comment" : "Toast when the viewer tried to like or post in a discussion without signing in to AniList.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with AniList to like and reply."
           }
         }
       }
