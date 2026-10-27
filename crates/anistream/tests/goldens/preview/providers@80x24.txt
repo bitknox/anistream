@@ -1,19 +1,19 @@
 anistream                                       torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  PROVIDERS
+  ▸│  Sources
   ▤│
-  ▦│    PROVIDER            KIND        STATE           LATENCY
+  ▦│    Source              Kind        State           Latency
   /│  ────────────────────────────────────────────────────────────────────────
-  ▥│  ▌ fixture             native      ready           0ms
+  ▥│  ▌ fixture             Built in    Ready           0 ms
   ↓│
 ▌ ◇│
-  ◎│  PLUGIN STORES
-  ⚙│    plugins shared by people you know — join with an invite link   ↵ open
+  ◎│  Plugin stores
+  ⚙│    Plugins shared by people you know. Join with an invite link.   ↵ Open
    │
-   │  METADATA
+   │  Metadata
    │
-   │    anilist             live
-   │    tenrai              standby
+   │    anilist             Live
+   │    tenrai              Standby
    │    cache               ready       1 title
    │
    │
@@ -21,4 +21,4 @@ anistream                                       torrent ○  plugins ·  ·  kit
    │
    │
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                              r refresh   ↵ stores   ? keys
+plugins · Subbed · 1080p                    r refresh   ↵ plugin stores   ? keys

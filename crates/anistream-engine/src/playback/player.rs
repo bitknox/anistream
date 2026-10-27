@@ -4,7 +4,7 @@
 //! the player a playback gets.
 
 use anistream_core::config::{Config, Paths};
-use anistream_model::{notice::Notice, playback::PlayerTheme};
+use anistream_model::{Msg, notice::Notice, playback::PlayerTheme};
 use anistream_player::protocol::MpvVersion;
 
 /// The player, built from the configuration *as it stands now*.
@@ -45,24 +45,23 @@ pub fn player(config: &Config, paths: &Paths, theme: &PlayerTheme) -> anistream_
 /// is what the config calls mpv, the name the notice gives it.
 pub async fn launch_notice(mpv: &anistream_player::Mpv, binary: &str) -> Option<Notice> {
     if !mpv.is_available().await {
-        return Some(Notice::alert(format!(
-            "{binary} not found — install mpv to play anything"
-        )));
+        return Some(Notice::alert(Msg::NoticeMpvMissing { binary: binary.to_owned() }));
     }
-    mpv.mpv_version().await.and_then(old_mpv_note).map(Notice::info)
+    mpv.mpv_version().await.and_then(old_mpv_msg).map(Notice::info)
 }
 
-/// What an older mpv costs, in a sentence, or `None` when it costs nothing.
+/// What an older mpv costs, or `None` when it costs nothing.
 ///
 /// Ubuntu 24.04 ships 0.37 and Debian 12 ships 0.35, and the `.deb` installs whichever the system
 /// has, so this is a common case rather than an edge one.
+pub fn old_mpv_msg(version: MpvVersion) -> Option<Msg> {
+    (!version.has_companion_support())
+        .then(|| Msg::NoticeMpvOld { version: version.to_string() })
+}
+
+/// [`old_mpv_msg`] in English, for the command line's own report.
 pub fn old_mpv_note(version: MpvVersion) -> Option<String> {
-    (!version.has_companion_support()).then(|| {
-        format!(
-            "mpv {version} plays, but anistream's player (skip button, Up Next, menus, \
-             thumbnails) needs mpv 0.36 or newer"
-        )
-    })
+    old_mpv_msg(version).map(|msg| msg.english())
 }
 
 // Where the shaders were written, named from here too, beside the player they dress.

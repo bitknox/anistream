@@ -16,6 +16,7 @@ use std::{
 };
 
 use anistream_model::{
+    Msg,
     event::Event,
     notice::Notice,
     updates::{Release, ReleaseAsset, UpdateStatus},
@@ -88,8 +89,8 @@ fn should_tell(latest: &str, current: &str, told: Option<(i64, &str)>, now: i64)
 
 /// What the terminal's notice says, short enough for its status rule. The apps tell of a
 /// release with notices of their own, from [`UpdateStatus::Available`].
-fn notice_text(tag: &str) -> String {
-    format!("{tag} is out. Run `anistream --update` to install it.")
+fn notice_msg(tag: &str) -> Msg {
+    Msg::NoticeUpdateAvailable { tag: tag.to_owned() }
 }
 
 /// A stamp file's "<unix time> <tag>".
@@ -462,7 +463,7 @@ async fn daily(
                 let _ = std::fs::write(&files.told, format!("{now} {tag}"));
                 // The terminal's notice. An app shows its own, from the status.
                 if cfg!(feature = "desktop") {
-                    let _ = tx.send(Event::Toast(Notice::info(notice_text(tag))));
+                    let _ = tx.send(Event::Toast(Notice::info(notice_msg(tag))));
                 }
             }
             UpdateStatus::Available { release, notify }
@@ -573,9 +574,9 @@ mod tests {
 
     #[test]
     fn the_terminals_notice_names_the_release_and_how_to_take_it() {
-        let text = notice_text("v9.0.0");
-        assert!(text.contains("v9.0.0"), "{text}");
-        assert!(text.contains("anistream --update"), "{text}");
+        assert_eq!(notice_msg("v9.0.0"), Msg::NoticeUpdateAvailable { tag: "v9.0.0".into() });
+        let text = notice_msg("v9.0.0").english();
+        assert!(text.contains("v9.0.0") && text.contains("anistream --update"), "{text}");
     }
 
     #[test]

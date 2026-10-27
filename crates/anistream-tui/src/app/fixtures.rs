@@ -26,6 +26,8 @@ pub(super) use crate::{
 };
 
 pub(super) fn app() -> App {
+    // The tests read English, so say so rather than take it from the machine.
+    anistream_i18n::set_language("en");
     App::new(SettingsView::default(), Palette::dark(), Keymap::new())
 }
 
@@ -87,7 +89,10 @@ impl Owner {
 pub(super) fn entries(n: usize) -> ContentList {
     ContentList::Entries(
         (0..n)
-            .map(|i| Entry::new(AnilistId::new(i as u32 + 1), format!("Title {i}")))
+            .map(|i| {
+                let title = format!("Title {i}"); // i18n-skip
+                Entry::new(AnilistId::new(i as u32 + 1), title)
+            })
             .collect(),
     )
 }
@@ -128,7 +133,7 @@ pub(super) fn app_at_episodes() -> App {
             (1..=12)
                 .map(|n| EpisodeRow {
                     number: n.to_string(),
-                    title: Some(format!("Episode {n}")),
+                    title: Some(format!("Episode {n}")), // i18n-skip
                     duration_secs: Some(1435),
                     watched: 0.0,
                     completed: false,
@@ -150,16 +155,21 @@ pub(super) fn app_at_episodes() -> App {
 }
 
 pub(super) fn connected(outbox: u32) -> SyncState {
-    SyncState { tracker: "anilist".into(), connected: true, outbox, ..SyncState::default() }
+    SyncState {
+        tracker: "anilist".into(), // i18n-skip
+        connected: true,
+        outbox,
+        ..SyncState::default()
+    }
 }
 
 pub(super) fn conflict(title: &str) -> ConflictRow {
     ConflictRow {
         anilist_id: AnilistId::new(1),
         title: title.into(),
-        field: "status".into(),
-        local: "Completed".into(),
-        remote: "Current".into(),
+        field: "status".into(),    // i18n-skip
+        local: "Completed".into(), // i18n-skip
+        remote: "Current".into(),  // i18n-skip
     }
 }
 
@@ -190,7 +200,7 @@ pub(super) fn related(id: u32, title: &str) -> RelatedTitle {
     RelatedTitle {
         id: AnilistId::new(id),
         title: title.into(),
-        relation: "sequel".into(),
+        relation: "sequel".into(), // i18n-skip
         format: None,
     }
 }

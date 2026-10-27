@@ -14,6 +14,7 @@
 //!
 //! [`send`]: Engine::send
 
+use anistream_model::Msg;
 use std::{
     collections::VecDeque,
     sync::{
@@ -525,7 +526,7 @@ fn say_plugin_load(loading: JoinHandle<Option<String>>, tx: Outbox) {
         if let Ok(outcome) = loading.await {
             match outcome {
                 Some(reason) => {
-                    let _ = tx.send(Event::ProviderNote(reason));
+                    let _ = tx.send(Event::ProviderNote(Msg::PluginsLoadFailed { reason }));
                 }
                 // Ranked again by the order as it stands now, since the user may have moved a
                 // source while these compiled, and the Providers screen refreshed so late
@@ -549,11 +550,10 @@ fn refresh_joined(stores: plugin_stores::Stores, tx: Outbox) {
         let updates = stores.pending_updates();
         // Where to install them is the front end's to say: the terminal's Providers, Enter.
         if !updates.is_empty() {
-            let notice = Notice::info(format!(
-                "plugin {} ready: {}",
-                if updates.len() == 1 { "update" } else { "updates" },
-                updates.join(", ")
-            ));
+            let notice = Notice::info(Msg::PluginUpdatesReady {
+                count: updates.len() as i64,
+                names: updates.join(", "),
+            });
             let _ = tx.send(Event::Toast(notice.with_hint(NoticeHint::OpenStores)));
         }
     });
@@ -706,7 +706,7 @@ struct Actor {
     services: Services,
     inbox: Inbox,
     commands: mpsc::UnboundedReceiver<Message>,
-    arrivals: mpsc::UnboundedReceiver<(u64, Result<TorrentUp, String>)>,
+    arrivals: mpsc::UnboundedReceiver<(u64, Result<TorrentUp, Msg>)>,
     out: mpsc::UnboundedSender<Out>,
     /// The count the jobs it starts on its own are numbered by: see [`Jobs`]. Only an ending
     /// that rolls on leads it to start any.
@@ -948,7 +948,7 @@ impl Actor {
     }
 
     /// The torrent source is up, or will not come up; only the latest bring-up counts.
-    fn arrived(&mut self, generation: u64, outcome: Result<TorrentUp, String>) {
+    fn arrived(&mut self, generation: u64, outcome: Result<TorrentUp, Msg>) {
         let tx = self.inbox.sender();
         let crate::phases::Gate { hold, refusal } = crate::phases::gate_now(&mut self.state);
         let EngineState { torrent_tasks, vpn_guard, shared_config, .. } = &mut self.state;
@@ -1069,6 +1069,7 @@ mod tests {
     use super::*;
     use anistream_core::config::{Config, Paths};
     use anistream_model::playback::PlayerTheme;
+    use anistream_model::{Cause, Msg};
     use anistream_net::HttpClient;
     use anistream_providers::ProviderRegistry;
 
@@ -1205,7 +1206,10 @@ mod tests {
         let bare = Secret("anistream://auth/mal?code=a-code".into());
         engine.send(Command::FinishSignIn { tracker: "mal".into(), callback: bare });
         let refused = said(&until(&mut events, |e| matches!(e, Event::JobDone(_))).await);
-        assert_eq!(refused.text, "that sign-in to mal did not come back from this request");
+        assert_eq!(
+            refused.msg,
+            Some(Msg::NoticeSignInWrongRequest { tracker: "MyAnimeList".into() })
+        );
 
         // The code comes back with the state; its exchange, which asks MyAnimeList itself,
         // cannot leave this test, and nothing is kept.
@@ -1213,7 +1217,11 @@ mod tests {
         engine.send(Command::FinishSignIn { tracker: "mal".into(), callback });
         let failed = said(&until(&mut events, |e| matches!(e, Event::JobDone(_))).await);
         assert_eq!(failed.kind, NoticeKind::Alert);
-        assert!(failed.text.starts_with("token exchange failed"), "{}", failed.text);
+        assert!(
+            matches!(&failed.msg, Some(Msg::NoticeTokenExchangeFailed { tracker, .. }) if tracker == "MyAnimeList"),
+            "{:?}",
+            failed.msg
+        );
         assert_eq!(kept.get("mal").unwrap(), None);
     }
 
@@ -1373,7 +1381,7 @@ mod tests {
         let row = view.rows.iter().find(|row| row.key == SettingKey::AutoNext).unwrap();
         assert_eq!(row.value, "off");
         assert_eq!(view.refused, None);
-        assert_eq!(saved.text, "saved · auto-play next");
+        assert_eq!(saved.msg, Some(Msg::NoticeSaved { label: "auto-play next".into() }));
         let file = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
         assert_eq!(file, "[playback]\nauto_next = false\n");
     }
@@ -1396,7 +1404,11 @@ mod tests {
         assert_eq!(row.value, "off", "put back to what the file holds");
         assert!(!view.sources.torrent);
         assert_eq!(refusal.kind, NoticeKind::Alert);
-        assert!(refusal.text.starts_with("not saved: torrents need"), "{}", refusal.text);
+        assert!(
+            matches!(&refusal.msg, Some(Msg::NoticeNotSaved { reason }) if reason.starts_with("torrents need")),
+            "{:?}",
+            refusal.msg
+        );
         assert!(!dir.path().join("config.toml").exists(), "nothing written");
     }
 
@@ -1482,7 +1494,13 @@ mod tests {
         let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
         let [Event::Toast(refusal)] = &seen[..] else { panic!("the refusal alone: {seen:?}") };
         assert_eq!(refusal.kind, NoticeKind::Alert);
-        assert_eq!(refusal.text, "not saved: \u{201c}hd\u{201d} is not a quality");
+        assert_eq!(
+            refusal.msg,
+            Some(Msg::NoticeShowSettingRefused {
+                value: "\u{201c}hd\u{201d}".into(),
+                setting: "quality".into(),
+            })
+        );
     }
 
     #[tokio::test]
@@ -1560,7 +1578,7 @@ mod tests {
             panic!("the settings, then the notice: {seen:?}")
         };
         assert_eq!(view.refused, None);
-        assert_eq!(saved.text, "saved · torrent protection");
+        assert_eq!(saved.msg, Some(Msg::NoticeProtectionSaved));
         assert_eq!(view.torrent.protection, TorrentProtection::Proxy);
         assert_eq!(view.torrent.on_failure, FailedCheck::Stop);
         let user = Some("mika".to_owned());
@@ -1608,7 +1626,10 @@ mod tests {
         assert_eq!(view.refused, Some(SettingKey::VpnMode));
         assert_eq!(view.torrent.protection, TorrentProtection::Proxy, "as the file has it");
         assert_eq!(refusal.kind, NoticeKind::Alert);
-        assert_eq!(refusal.text, "not saved: no protection needs your confirmation first");
+        assert_eq!(
+            refusal.msg,
+            Some(Msg::NoticeNotSavedBecause { cause: Cause::ConfirmNoProtection })
+        );
 
         // Warn only, as a setting, which cannot carry the confirmation.
         let warn = SettingValue::Str("warn".into());
@@ -1618,7 +1639,10 @@ mod tests {
             panic!("the settings, then the notice: {seen:?}")
         };
         assert_eq!(view.refused, Some(SettingKey::VpnOnFailure));
-        assert_eq!(refusal.text, "not saved: warn only needs your confirmation first");
+        assert_eq!(
+            refusal.msg,
+            Some(Msg::NoticeNotSavedBecause { cause: Cause::ConfirmWarnOnly })
+        );
         assert!(!dir.path().join("config.toml").exists(), "nothing written");
 
         // Confirmed, it is.
@@ -1662,7 +1686,7 @@ mod tests {
         };
         assert_eq!((*started, *done), (job, job));
         assert_eq!(refusal.kind, NoticeKind::Alert);
-        assert_eq!(refusal.text, "playback isn't built into this front end");
+        assert_eq!(refusal.text, Msg::NoticeNoPlayer.english());
 
         // Steering nothing says nothing; a download played from disk is refused alike.
         engine.send(Command::Player(PlayerCommand::Stop));
@@ -1672,7 +1696,7 @@ mod tests {
         engine.send(Command::PlayLocal { id, episode: "1".into(), title, path });
         let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
         assert!(
-            matches!(&seen[..], [Event::Toast(n)] if n.text == crate::playback::NO_PLAYER),
+            matches!(&seen[..], [Event::Toast(n)] if n.text == Msg::NoticeNoPlayer.english()),
             "{seen:?}"
         );
 
@@ -1686,10 +1710,11 @@ mod tests {
                 provider_id: "yamabiko".into(),
                 source_id: "a".into(),
             },
-            crate::playback::NO_PLAYER,
+            Msg::NoticeNoPlayer.english(),
         )];
         if cfg!(not(feature = "party")) {
-            plays.push((Command::play_party(id, episode()), crate::playback::NO_PARTY));
+            plays
+                .push((Command::play_party(id, episode()), Msg::NoticePartyNotBuilt.english()));
         }
         for (play, refusal) in plays {
             engine.send(play);
@@ -1860,7 +1885,7 @@ mod tests {
         }) else {
             panic!("{seen:?}")
         };
-        assert!(reason.contains("host and a port"), "{reason}");
+        assert!(reason.english().contains("host and a port"), "{reason}");
     }
 
     /// A party asked of a play with no server chosen: refused, naming the public one and who
@@ -1880,7 +1905,10 @@ mod tests {
             _ => None,
         });
         let reason = reason.unwrap_or_else(|| panic!("{seen:?}"));
-        assert!(reason.contains(SUGGESTED_SERVER) && reason.contains(SUGGESTED_SERVER_RUN_BY));
+        assert!(
+            reason.english().contains(SUGGESTED_SERVER)
+                && reason.english().contains(SUGGESTED_SERVER_RUN_BY)
+        );
         assert!(!seen.iter().any(|e| matches!(e, Event::PlaybackStaged { .. })), "{seen:?}");
     }
 
@@ -1905,7 +1933,7 @@ mod tests {
             // No server is set, so the terminal's play is told to choose one; the app's plays
             // with no word of a party.
             let asked = seen.iter().any(|e| {
-                matches!(e, Event::PartyLeft { reason: Some(reason) } if reason.contains(SUGGESTED_SERVER))
+                matches!(e, Event::PartyLeft { reason: Some(reason) } if reason.english().contains(SUGGESTED_SERVER))
             });
             assert_eq!(asked, terminal, "{seen:?}");
             engine.shutdown().await;

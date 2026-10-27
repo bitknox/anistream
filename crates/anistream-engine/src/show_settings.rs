@@ -13,6 +13,7 @@ use anistream_core::{
     track_memory::{SubtitleChoice, SubtitleMemory, TrackMemory},
 };
 use anistream_model::{
+    Msg,
     event::Event,
     notice::Notice,
     settings::{SettingKey, SettingOverride},
@@ -120,8 +121,10 @@ pub fn set_show_setting(
             Some(text) => Some(text),
             None => {
                 tracing::debug!(?key, ?value, "not a value this setting takes");
-                let refusal =
-                    format!("not saved: {} is not a {}", words(value), key.setting().label());
+                let refusal = Msg::NoticeShowSettingRefused {
+                    value: words(value),
+                    setting: key.setting().label().to_owned(),
+                };
                 let _ = tx.send(Event::Toast(Notice::alert(refusal)));
                 return;
             }
@@ -135,7 +138,8 @@ pub fn set_show_setting(
         anistream_store::now(),
     );
     if let Err(error) = written {
-        let _ = tx.send(Event::Toast(Notice::alert(format!("not saved: {error}"))));
+        let reason = error.to_string();
+        let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeNotSaved { reason })));
     }
     load_show_settings(id, engine, services, tx);
     recount(engine, services, tx);
@@ -150,7 +154,9 @@ pub fn reset_show_settings(
     tx: &Outbox,
 ) {
     if let Err(error) = services.store.reset_show(id) {
-        let _ = tx.send(Event::Toast(Notice::alert(format!("not reset: {error}"))));
+        let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeShowNotReset {
+            reason: error.to_string(),
+        })));
     }
     load_show_settings(id, engine, services, tx);
     recount(engine, services, tx);
@@ -184,7 +190,7 @@ pub fn set_show_subtitles(
             match remembered(&wanted, &kept, others) {
                 Some(choice) => Some(choice),
                 None => {
-                    let refusal = "not saved: the show remembers no such subtitles";
+                    let refusal = Msg::NoticeShowNoSuchSubtitles;
                     let _ = tx.send(Event::Toast(Notice::alert(refusal)));
                     load_show_settings(id, engine, services, tx);
                     return;
@@ -193,7 +199,8 @@ pub fn set_show_subtitles(
         }
     };
     if let Err(error) = store.remember_tracks(id, translation, &kept) {
-        let _ = tx.send(Event::Toast(Notice::alert(format!("not saved: {error}"))));
+        let reason = error.to_string();
+        let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeNotSaved { reason })));
     }
     load_show_settings(id, engine, services, tx);
 }

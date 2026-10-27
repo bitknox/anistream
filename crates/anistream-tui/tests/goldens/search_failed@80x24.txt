@@ -1,8 +1,8 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  FIND hoshikuzu▏
+  ▸│  Find hoshikuzu▏
   ▤│
-  ▦│  COULD NOT LOAD
+  ▦│  Couldn't load this list
 ▌ /│
   ▥│  AniList answered 500 Internal Server Error
   ↓│
@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                       ↵ search   ctrl+f filters   esc back
+plugins · Subbed · 1080p                    ↵ search   ctrl+f filters   esc back
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -39,7 +39,7 @@ r03 c02-02 fg=text-dim
 r03 c03-03 fg=rule
 r04 c02-02 fg=text-dim
 r04 c03-03 fg=rule
-r04 c06-19 fg=alert mod=BOLD
+r04 c06-28 fg=alert mod=BOLD
 r05 c00-00 fg=text-dim
 r05 c02-02 fg=text
 r05 c03-03 fg=rule
@@ -66,7 +66,7 @@ r19 c03-03 fg=rule
 r20 c03-03 fg=rule
 r21 c03-03 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c44-44 fg=text
 r23 c45-54 fg=text-dim
 r23 c55-60 fg=text

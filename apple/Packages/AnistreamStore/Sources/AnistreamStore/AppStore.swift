@@ -569,7 +569,7 @@ public final class AppStore {
         case .jobStarted(let job, let activity):
             jobs.started(job, activity: activity)
         case .jobNote(let job, let note, let wait):
-            jobs.note(job, note: note, wait: wait)
+            jobs.note(job, note: msgEnglish(msg: note), wait: wait)  // i18n P2: replace with the catalogue
         case .jobDone(let job):
             jobs.done(job)
             stores.done(job)
@@ -598,7 +598,7 @@ public final class AppStore {
             titles.dub(id: id, extent: dub)
 
         case .status(let text):
-            notices.status(text)
+            notices.status(text.map { msgEnglish(msg: $0) } ?? "")  // i18n P2: replace with the catalogue
         case .toast(let notice):
             party.apply(event)
             notices.post(notice)
@@ -638,7 +638,7 @@ public final class AppStore {
             providers.apply(rows)
             if !had, rows.contains(where: { $0.usable }) { sourcesArrived() }
         case .providerNote(let text):
-            providers.note(text)
+            providers.note(msgEnglish(msg: text))  // i18n P2: replace with the catalogue
         case .sourcesChanged:
             providers.sourcesChanged()
         case .providerPreference(let provider):

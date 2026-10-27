@@ -17,7 +17,7 @@ pub fn sync_now(job: Option<JobGuard>, services: &Services, tx: &Outbox) {
         let _job = job;
         tracking::drain_once(&sync, &tx).await;
         tracking::pull_once(&sync, &tx).await;
-        let _ = tx.send(Event::Status(String::new()));
+        let _ = tx.send(Event::Status(None));
     });
 }
 

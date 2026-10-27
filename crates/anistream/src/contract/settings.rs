@@ -82,11 +82,11 @@ async fn an_ordinary_write_lands_in_the_file_and_is_read_back() {
     assert_eq!(shown(view, SettingKey::AutoNext), "off");
     assert!(!on_disk(&h).playback.auto_next);
     assert_eq!(view.refused, None);
-    assert_eq!(toasts(&updates), ["info: saved · auto-play next"]);
+    assert_eq!(toasts(&updates), ["info: Saved auto-play next."]);
     let file = std::fs::read_to_string(&h.paths().config_file).unwrap();
     assert_eq!(file, "[playback]\nauto_next = false\n");
     let row = h.app().setting_rows().into_iter().find(|row| row.key == SettingKey::AutoNext);
-    assert_eq!(row.unwrap().value, "off", "the screen shows the file");
+    assert_eq!(row.unwrap().value, "Off", "the screen shows the file");
 }
 
 #[tokio::test]
@@ -141,7 +141,7 @@ async fn a_choice_made_in_the_player_is_saved_however_the_front_end_reads_its_ev
 
     let file = std::fs::read_to_string(&h.paths().config_file).unwrap_or_default();
     assert_eq!(file, "[playback]\nnight_mode = true\n", "night mode was not saved");
-    assert_eq!(toasts(&updates), ["info: saved · night mode"]);
+    assert_eq!(toasts(&updates), ["info: Saved night mode."]);
 }
 
 #[tokio::test]
@@ -206,14 +206,17 @@ async fn a_plugin_switched_off_keeps_its_row_and_is_not_tried() {
     let Event::Providers(rows) = &updates[1] else { unreachable!() };
     let row = rows.iter().find(|row| row.id == "archive").expect("its row stays");
     assert!(row.disabled && !row.usable);
-    assert_eq!(toasts(&updates), ["info: archive is off · skipped when looking for episodes"]);
+    assert_eq!(
+        toasts(&updates),
+        ["info: archive is off. It is skipped when looking for episodes."]
+    );
     assert_eq!(on_disk(&h).providers.disabled, ["archive"]);
     assert_eq!(h.registry().ids(), ["archive", "fixture"], "in its place");
     assert_eq!(h.registry().usable_ids(), ["fixture"]);
 
     h.send(Command::DisablePlugin { id: "archive".into(), disabled: false });
     let updates = h.settle().await;
-    assert_eq!(toasts(&updates), ["info: archive is on"]);
+    assert_eq!(toasts(&updates), ["info: archive is on."]);
     assert!(on_disk(&h).providers.disabled.is_empty());
     assert_eq!(h.registry().usable_ids(), ["archive", "fixture"]);
 
@@ -221,7 +224,7 @@ async fn a_plugin_switched_off_keeps_its_row_and_is_not_tried() {
     h.send(Command::DisablePlugin { id: "fixture".into(), disabled: true });
     let updates = h.settle().await;
     assert_eq!(h.trace(), ["Toast"]);
-    assert_eq!(toasts(&updates), ["alert: fixture is not a plugin that is loaded"]);
+    assert_eq!(toasts(&updates), ["alert: fixture is not a plugin that is loaded."]);
 }
 
 #[tokio::test]
@@ -237,7 +240,7 @@ async fn an_order_that_only_moves_sources_reorders_the_chain_in_place() {
         h.trace(),
         ["Settings", "Toast", "SettingsSaved", "Providers", "SourcesReordered"]
     );
-    assert_eq!(toasts(&updates), ["info: saved · source order"]);
+    assert_eq!(toasts(&updates), ["info: Saved source order."]);
     assert_eq!(provider_ids(&updates[2]), ["alt", "fixture"]);
     assert_eq!(h.registry().ids(), ["alt", "fixture"], "the live chain, not a rebuilt one");
 
@@ -267,7 +270,7 @@ async fn an_order_that_takes_a_source_away_rebuilds_the_chain() {
     );
     assert!(matches!(&updates[3], Event::Vpn(None)));
     let Event::ProviderNote(note) = &updates[4] else { unreachable!() };
-    assert_eq!(note, "torrents are off — the session was stopped");
+    assert_eq!(note.english(), "Torrents are off. The session was stopped.");
     // Rebuilt from the config, which describes no source the fixture one could be.
     assert!(provider_ids(&updates[5]).is_empty());
     assert!(h.registry().is_empty());
@@ -286,7 +289,10 @@ async fn a_write_the_config_refuses_leaves_the_file_alone_and_alerts() {
     assert!(!view.sources.torrent, "put back to what the file holds");
     assert_eq!(shown(view, SettingKey::Torrents), "off");
     let said = toasts(&updates);
-    assert!(said[0].starts_with("alert: not saved: torrents need"), "{said:?}");
+    assert!(
+        said[0].starts_with("alert: Couldn't save that setting. torrents need"),
+        "{said:?}"
+    );
     assert!(!h.paths().config_file.exists(), "nothing was written");
 }
 
@@ -309,7 +315,7 @@ async fn a_protection_is_written_as_one_change_and_read_back_as_the_terminal_rea
         (TorrentProtection::Device, FailedCheck::Stop)
     );
     assert_eq!(shown(view, SettingKey::VpnMode), "external", "the terminal's row says it too");
-    assert_eq!(toasts(&updates), ["info: saved · torrent protection"]);
+    assert_eq!(toasts(&updates), ["info: Saved torrent protection."]);
     let file = std::fs::read_to_string(&h.paths().config_file).unwrap();
     assert_eq!(
         file,
@@ -380,7 +386,10 @@ async fn a_failed_check_leaves_the_file_and_the_kept_password_as_they_were() {
         ),
         "{updates:?}"
     );
-    assert_eq!(toasts(&updates), ["alert: not checked: a proxy needs its address and port"]);
+    assert_eq!(
+        toasts(&updates),
+        ["alert: Couldn't check the torrent protection. A proxy needs a host and a port."]
+    );
     assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), file);
     assert_eq!(h.secrets().get(PROXY_SECRET).unwrap().as_deref(), Some("before"));
 }
@@ -495,7 +504,12 @@ async fn a_show_s_subtitles_are_chosen_and_forgotten_from_its_sheet() {
     h.send(Command::SetShowSubtitles { id, translation: Translation::Dub, subtitles });
     let updates = h.settle().await;
     assert_eq!(h.trace(), ["Toast", "ShowSettings"]);
-    assert_eq!(toasts(&updates), ["alert: not saved: the show remembers no such subtitles"]);
+    assert_eq!(
+        toasts(&updates),
+        [
+            "alert: Couldn't save that subtitle choice. This show hasn't used those subtitles before."
+        ]
+    );
     let dub = h.store().track_memory(id, Translation::Dub).unwrap().unwrap();
     assert_eq!(dub, memory("signs", "eng"), "left as it was");
 }
@@ -538,7 +552,10 @@ async fn a_file_that_does_not_load_is_not_written_over() {
         "read back as startup reads it: the defaults"
     );
     let said = toasts(&updates);
-    assert!(said[0].starts_with("alert: not saved: config.toml is left as it is"), "{said:?}");
+    assert!(
+        said[0].starts_with("alert: Couldn't save that setting. config.toml is left as it is"),
+        "{said:?}"
+    );
     assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), BROKEN);
 }
 

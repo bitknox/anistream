@@ -2,14 +2,16 @@
 //! opened from it: the list status and rating pickers, the source picker, the watch order and the
 //! recommendations.
 
+use anistream_i18n::t;
 use anistream_model::{
-    catalog::LibrarySegment, progress::TitleProgress, wording::broadcast_line,
+    catalog::{Entry, LibrarySegment},
+    progress::TitleProgress,
 };
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier};
 
 use crate::{
-    app::App,
-    theme::{Role, glyph},
+    app::{App, push_detail, status_text},
+    theme::Role,
     widgets::{truncate, wrap},
 };
 
@@ -18,7 +20,13 @@ use super::{chrome::render_placeholder, draw_artwork, line, lists::metadata_line
 /// The Title screen: key visual as hero, then the title block.
 pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     let Some(entry) = app.target() else {
-        render_placeholder(buf, app, area, "TITLE", "nothing selected");
+        render_placeholder(
+            buf,
+            app,
+            area,
+            &t::title_heading(),
+            &t::title_nothing_selected_note(),
+        );
         return;
     };
 
@@ -76,7 +84,7 @@ pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     y += 2;
 
     if !entry.available_on.is_empty() && y < area.bottom() {
-        let services = format!("available on  {}", entry.available_on.join("  ·  "));
+        let services = t::title_available_on(&entry.available_on.join("  ·  "));
         buf.set_string(
             area.left(),
             y,
@@ -107,7 +115,7 @@ pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     // Progress, or the countdown to the next broadcast — whichever the viewer needs next.
     if y < area.bottom() {
         if let (Some(TitleProgress { next, .. }), Some(label)) =
-            (entry.progress, entry.progress_label())
+            (entry.progress, progress_label(entry))
         {
             let mut x = area.left();
             if entry.progress_of().is_some() {
@@ -117,7 +125,7 @@ pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
             buf.set_string(
                 x,
                 y,
-                format!("{label}   ep {next} next"),
+                [label, t::title_up_next(i64::from(next))].join("   "),
                 app.palette.style(Role::TextDim),
             );
         } else {
@@ -136,6 +144,22 @@ pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     }
 }
 
+/// The count beside the meter, in the language in use.
+fn progress_label(entry: &Entry) -> Option<String> {
+    let done = i64::from(entry.progress?.done);
+    Some(match entry.progress_of() {
+        Some((total, true)) => t::progress_episodes(done, i64::from(total)),
+        Some((aired, false)) => t::title_progress_aired(done, i64::from(aired)),
+        None => t::title_progress_watched(done),
+    })
+}
+
+/// What most recently aired and what is next: the line the preview gives, so the same fact reads
+/// the same on both.
+fn broadcast_line(entry: &Entry) -> String {
+    super::lists::broadcast_text(entry)
+}
+
 /// The list-status picker.
 pub(super) fn status_rows(app: &App) -> Vec<(String, String)> {
     let current = app.target();
@@ -143,12 +167,10 @@ pub(super) fn status_rows(app: &App) -> Vec<(String, String)> {
         .iter()
         .map(|segment| {
             let hint = match (segment, current.and_then(|e| e.progress)) {
-                (LibrarySegment::Completed, Some(_)) => "sets progress to the last episode",
-                _ => "",
+                (LibrarySegment::Completed, Some(_)) => t::title_status_completed_hint(),
+                _ => String::new(),
             };
-            // A status is a value, and values are lowercase — as the Library strip and every
-            // message that names one already have it.
-            (hint.to_string(), segment.label().to_owned())
+            (hint, status_text(*segment))
         })
         .collect()
 }
@@ -157,20 +179,20 @@ pub(super) fn rate_rows() -> Vec<(String, String)> {
     // Ten down to one, the way a rating reads. The words carry the judgement so the
     // numbers do not have to be remembered as a scale.
     [
-        "masterpiece",
-        "great",
-        "very good",
-        "good",
-        "fine",
-        "average",
-        "poor",
-        "bad",
-        "awful",
-        "appalling",
+        t::title_rating_10(),
+        t::title_rating_9(),
+        t::title_rating_8(),
+        t::title_rating_7(),
+        t::title_rating_6(),
+        t::title_rating_5(),
+        t::title_rating_4(),
+        t::title_rating_3(),
+        t::title_rating_2(),
+        t::title_rating_1(),
     ]
-    .iter()
+    .into_iter()
     .enumerate()
-    .map(|(i, word)| ((*word).to_string(), glyph::eyebrow(&format!("{}", 10 - i))))
+    .map(|(i, word)| (word, format!("{}", 10 - i)))
     .collect()
 }
 
@@ -183,9 +205,8 @@ pub(super) fn source_provider_rows(app: &App) -> Vec<(String, String)> {
         .map(|(id, label)| {
             // The marker is the whole point of the list — without it the overlay says what the
             // options are but not which one this title is already on.
-            let marker =
-                if id.as_deref() == app.provider_preference.as_deref() { "in use" } else { "" };
-            (marker.to_string(), label)
+            let in_force = id.as_deref() == app.provider_preference.as_deref();
+            (if in_force { t::source_picker_chosen() } else { String::new() }, label)
         })
         .collect()
 }
@@ -200,8 +221,7 @@ pub(super) fn source_release_rows(app: &App) -> Vec<(String, String)> {
     app.release_choices()
         .into_iter()
         .map(|(id, label)| {
-            let marker = if id == pinned { "in use" } else { "" };
-            (marker.to_string(), label)
+            (if id == pinned { t::source_picker_chosen() } else { String::new() }, label)
         })
         .collect()
 }
@@ -215,7 +235,7 @@ pub(super) fn watch_order_rows(app: &App) -> Vec<(String, String)> {
         .map(|step| {
             let mut label = step.title;
             if let Some(format) = &step.format {
-                label.push_str(&format!("  ·  {format}"));
+                push_detail(&mut label, format);
             }
             (step.place, label)
         })
@@ -232,7 +252,7 @@ pub(super) fn recommendation_rows(app: &App) -> Vec<(String, String)> {
         .map(|rec| {
             let mut label = rec.title.clone();
             if let Some(format) = &rec.format {
-                label.push_str(&format!("  ·  {format}"));
+                push_detail(&mut label, format);
             }
             (String::new(), label)
         })
@@ -268,7 +288,7 @@ mod tests {
         assert!(!text.contains("HOSHIKUZU"), "the hero title must not be letterspaced");
 
         // Metadata is still distinguished, by case and the dim role rather than by width.
-        assert!(text.contains("28 EP"), "metadata should be caps");
+        assert!(text.contains("28 episodes"), "metadata missing");
 
         // The plate occupies the top of the stage, above the title block.
         let plate_row = text.lines().position(|l| l.contains('░')).unwrap();

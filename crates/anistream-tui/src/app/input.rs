@@ -1,17 +1,18 @@
 //! From a key to what it does: text into a field first, then an open overlay, then the
 //! screen, and the way back out.
 
-use anistream_model::{command::Command, downloads::DownloadState, notice::Notice};
+use anistream_i18n::t;
+use anistream_model::{command::Command, downloads::DownloadState};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use super::App;
+use super::{App, info};
 use crate::{
     keymap::{Action, Context},
     nav::{Focus, Overlay, Section, StageView},
 };
 
 /// The website's privacy page, which the palette's "Open the privacy page" opens.
-pub const PRIVACY_URL: &str = "https://anistream.tv/docs/privacy/";
+pub const PRIVACY_URL: &str = "https://anistream.tv/docs/privacy/"; // i18n-skip
 
 impl App {
     /// Handle a keystroke: text into a focused field first, then the binding it resolves to.
@@ -91,9 +92,7 @@ impl App {
                     // row and left the file on disk with no way back to it from here.
                     if row.state == DownloadState::Done {
                         let delete = self.key_for(Action::DeleteDownload);
-                        self.push_toast(Notice::info(format!(
-                            "already downloaded — {delete} deletes it and its file"
-                        )));
+                        self.push_toast(info(t::toast_download_done(&delete)));
                         return None;
                     }
                     return Some(Command::DownloadCancel { id: row.id });
@@ -116,7 +115,7 @@ impl App {
             && !matches!(self.nav.current(), StageView::NowPlaying)
             && self.target().is_none()
         {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(info(t::toast_nothing_selected()));
             return None;
         }
 
@@ -229,7 +228,7 @@ impl App {
             Action::MarkAllPrevious if self.in_episodes() => return self.mark_all_previous(),
             Action::DownloadRange if self.in_episodes() => self.open_download_range(),
             Action::DownloadRange => {
-                self.push_toast(Notice::info("ranges are queued from the episode table"));
+                self.push_toast(info(t::toast_ranges_elsewhere()));
             }
             Action::Filter if self.in_episodes() => self.cycle_episode_filter(),
             // By the view, not the section: a title opened from the results is a title page,
@@ -237,10 +236,10 @@ impl App {
             Action::Filter if self.on_search_root() => self.open_search_filters(),
             Action::FilterSearch => return self.filter_search(),
             Action::Filter => {
-                self.push_toast(Notice::info("filters live in search and the episode table"));
+                self.push_toast(info(t::toast_filters_elsewhere()));
             }
             Action::ToggleWatched | Action::MarkAllPrevious => {
-                self.push_toast(Notice::info("watched marks live in the episode table"));
+                self.push_toast(info(t::toast_watched_elsewhere()));
             }
             Action::OpenInBrowser => return self.open_in_browser(),
             Action::PickProvider => return self.pick_provider(),
@@ -284,7 +283,7 @@ impl App {
                 // written to the status line it stayed there, over the state it shows, for
                 // the rest of the session.
                 let quit = self.key_for(Action::Quit);
-                self.push_toast(Notice::info(format!("at the top — {quit} quits")));
+                self.push_toast(info(t::toast_at_top(&quit)));
             }
             crate::nav::BackOutcome::Popped => {
                 if self.nav.focus() == Focus::Rail {
@@ -317,13 +316,10 @@ impl App {
         // An action that means nothing here — a playback key with nothing playing, a
         // Downloads key elsewhere, usually run from the palette — says where it does
         // something rather than doing nothing, which would read as the key being broken.
-        let label = action.label();
-        let mut chars = label.chars();
-        let label = match chars.next() {
-            Some(first) => first.to_lowercase().chain(chars).collect::<String>(),
-            None => String::new(),
-        };
-        self.push_toast(Notice::info(format!("{label} works {}", action.where_it_works())));
+        self.push_toast(info(t::toast_works_elsewhere(
+            action.label(),
+            action.where_it_works(),
+        )));
     }
 
     fn handle_while_typing(&mut self, action: Action, visible_rows: usize) -> Option<Command> {
@@ -463,7 +459,7 @@ mod tests {
         owner.effective.theme.motion = true;
         owner.tell(&mut a);
         assert_eq!(a.handle(Action::Right, 5), None, "a switch that is on stays on");
-        assert_eq!(setting_text(&a, SettingKey::Motion), "on");
+        assert_eq!(setting_text(&a, SettingKey::Motion), "On");
         let task = a.handle(Action::Left, 5);
         assert_eq!(task, Some(Command::StepSetting { key: SettingKey::Motion, delta: -1 }));
         owner.answer(&mut a, task);
@@ -471,7 +467,7 @@ mod tests {
         assert_eq!(a.nav.focus(), Focus::Rail);
         assert_eq!(
             setting_text(&a, SettingKey::Motion),
-            "off",
+            "Off",
             "reaching the rail changed nothing"
         );
 
@@ -558,7 +554,7 @@ mod tests {
         a.handle(Action::Back, 10);
         assert!(!a.should_quit, "back must never quit");
         assert!(
-            a.toasts.iter().any(|t| t.notice.text == "at the top — Q quits"),
+            a.toasts.iter().any(|t| t.notice.text == anistream_i18n::t::toast_at_top("Q")),
             "{:?}",
             a.toasts
         );
@@ -579,7 +575,7 @@ mod tests {
         assert!(a.keymap.apply_overrides(&keys).is_empty());
         a.handle(Action::Back, 10);
         assert!(
-            a.toasts.iter().any(|t| t.notice.text == "at the top — ctrl+q quits"),
+            a.toasts.iter().any(|t| t.notice.text == anistream_i18n::t::toast_at_top("ctrl+q")),
             "{:?}",
             a.toasts
         );

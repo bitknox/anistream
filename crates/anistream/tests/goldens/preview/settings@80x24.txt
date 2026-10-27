@@ -1,24 +1,24 @@
 anistream                                       torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  APPEARANCE  ───────────────────────────────────────────────────────────
-  ▤│  ▌ THEME                       adaptive
-  ▦│    MOTION                      on
-  /│    TITLES                      AniList's choice
+  ▸│  Appearance  ───────────────────────────────────────────────────────────
+  ▤│  ▌ Theme                       Adaptive
+  ▦│    Motion                      On
+  /│    Titles                      AniList's choice
   ▥│
-  ↓│  PLAYBACK  ─────────────────────────────────────────────────────────────
-  ◇│    TRANSLATION                 sub
-  ◎│    QUALITY                     1080p
-▌ ⚙│    SUBTITLES                   eng
-   │    COUNTS AS WATCHED AT        85%
-   │    AUTO-PLAY NEXT              on
-   │    SKIP OPENING AUTOMATICALLY  on
-   │    SKIP FILLER AUTOMATICALLY   off
-   │    MARK OPENING AND ENDING     on
-   │    SHOW SKIP BUTTON            on
-   │    START FULLSCREEN            off
-   │    UPSCALING                   natural · ArtCNN
-   │    PLAYER INTERFACE            anistream
+  ↓│  Playback  ─────────────────────────────────────────────────────────────
+  ◇│    Audio                       Subbed
+  ◎│    Quality                     1080p
+▌ ⚙│    Subtitles                   eng
+   │    Counts as watched at        85%
+   │    Auto-play next              On
+   │    Skip opening automatically  On
+   │    Skip filler automatically   Off
+   │    Mark opening and ending     On
+   │    Show skip button            On
+   │    Start fullscreen            Off
+   │    Upscaling                   Natural · ArtCNN
+   │    Player interface            anistream
    │
    │
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                        h/l change   ? keys
+plugins · Subbed · 1080p                                     h/l change   ? keys

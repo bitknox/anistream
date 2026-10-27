@@ -1,8 +1,8 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-▌ ▸│  ▌ Hoshikuzu no Tabibito                                      ep 4 · 57%
-  ▤│    Kaze no Tegami                                               ep 9 out
-  ▦│    Yoru no Toshokan                                       ep 6 in 2h 41m
+▌ ▸│  ▌ Hoshikuzu no Tabibito                                        E4 · 57%
+  ▤│    Kaze no Tegami                                                 E9 out
+  ▦│    Yoru no Toshokan                                         E6 in 2h 41m
   /│
   ▥│
   ↓│
@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                               ↵ play   e episodes   ? keys
+plugins · Subbed · 1080p                            ↵ play   e episodes   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text bg=#161a2e mod=BOLD
@@ -41,24 +41,24 @@ r02 c04-05 bg=#161a2e
 r02 c06-06 fg=obi bg=#161a2e
 r02 c07-07 bg=#161a2e
 r02 c08-28 fg=text bg=#161a2e mod=BOLD
-r02 c29-66 bg=#161a2e
-r02 c67-76 fg=state bg=#161a2e
+r02 c29-68 bg=#161a2e
+r02 c69-76 fg=state bg=#161a2e
 r02 c77-79 bg=#161a2e
 r03 c00-01 bg=#161a2e
 r03 c02-02 fg=#9298b5 bg=#161a2e
 r03 c03-03 fg=#434653 bg=#161a2e
 r03 c04-07 bg=#161a2e
 r03 c08-21 fg=#9298b5 bg=#161a2e
-r03 c22-68 bg=#161a2e
-r03 c69-76 fg=state bg=#161a2e
+r03 c22-70 bg=#161a2e
+r03 c71-76 fg=state bg=#161a2e
 r03 c77-79 bg=#161a2e
 r04 c00-01 bg=#161a2e
 r04 c02-02 fg=#9298b5 bg=#161a2e
 r04 c03-03 fg=#434653 bg=#161a2e
 r04 c04-07 bg=#161a2e
 r04 c08-23 fg=#9298b5 bg=#161a2e
-r04 c24-62 bg=#161a2e
-r04 c63-76 fg=#9298b5 bg=#161a2e
+r04 c24-64 bg=#161a2e
+r04 c65-76 fg=#9298b5 bg=#161a2e
 r04 c77-79 bg=#161a2e
 r05 c00-01 bg=#161a2e
 r05 c02-02 fg=#9298b5 bg=#161a2e
@@ -118,8 +118,8 @@ r21 c00-02 bg=#161a2e
 r21 c03-03 fg=#434653 bg=#161a2e
 r21 c04-79 bg=#161a2e
 r22 c00-79 fg=#434653 bg=#161a2e
-r23 c00-20 fg=#9298b5 bg=#161a2e
-r23 c21-51 bg=#161a2e
+r23 c00-23 fg=#9298b5 bg=#161a2e
+r23 c24-51 bg=#161a2e
 r23 c52-52 fg=text bg=#161a2e
 r23 c53-60 fg=#9298b5 bg=#161a2e
 r23 c61-61 fg=text bg=#161a2e

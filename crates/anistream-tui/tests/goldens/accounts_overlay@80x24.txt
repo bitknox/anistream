@@ -1,15 +1,15 @@
 anistream           torrent ○  plugins ●  ·  anilist ⇅ 3  kitsu ○  mal ✕ sign in
 ────────────────────────────────────────────────────────────────────────────────
-▌ ▸│  ▌ Hoshikuzu no Tabibito                                      ep 4 · 57%
-  ▤│    Kaze no Tegami                                               ep 9 out
-  ▦│    Yoru no Toshokan                                       ep 6 in 2h 41m
-  /│    Tsuki to Kujira no Uta                                         7 / 12
+▌ ▸│  ▌ Hoshikuzu no Tabibito                                        E4 · 57%
+  ▤│    Kaze no Tegami                                                 E9 out
+  ▦│    Yoru no Toshokan                                         E6 in 2h 41m
+  /│    Tsuki to Kujira no Uta                               7 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────
-▌ ACCOUNTS
+▌ Accounts
 ────────────────────────────────────────────────────────────────────────────────
-  anilist  ·  as tsubame_reads  ·  3 queued, 1 waiting for an id m… sign out
-▌ kitsu  ·  not connected  ·  0600 file                              sign in
-  mal  ·  as hotaru_watches  ·  pull failed on Oct 16 at 17:2… sign in again
+  AniList  ·  Signed in as tsubame_reads  ·  3 queued, 1 waiting f… Sign out
+▌ Kitsu  ·  Not connected  ·  0600 file                              Sign in
+  MyAnimeList  ·  Signed in as hotaru_watches  ·  Fetching yo… Sign in again
 
    │
    │
@@ -20,8 +20,8 @@ anistream           torrent ○  plugins ●  ·  anilist ⇅ 3  kitsu ○  mal 
    │
    │
    │
-────────────────────────── ▌ mal needs signing in again — press 8 for Accounts ─
-plugins · sub · 1080p                                      ↵ choose   esc cancel
+────────────── ▌ MyAnimeList needs signing in again. Press 8 to open Accounts. ─
+plugins · Subbed · 1080p                                   ↵ choose   esc cancel
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=rule mod=BOLD
@@ -65,13 +65,13 @@ r18 c00-79 fg=rule
 r19 c00-79 fg=rule
 r20 c00-79 fg=rule
 r21 c00-79 fg=rule
-r22 c00-25 fg=rule
-r22 c26-26 fg=text
-r22 c27-27 fg=alert
-r22 c28-78 fg=text
+r22 c00-13 fg=rule
+r22 c14-14 fg=text
+r22 c15-15 fg=alert
+r22 c16-78 fg=text
 r22 c79-79 fg=rule
-r23 c00-20 fg=text-dim
-r23 c21-58 fg=rule
+r23 c00-23 fg=text-dim
+r23 c24-58 fg=rule
 r23 c59-59 fg=text
 r23 c60-69 fg=text-dim
 r23 c70-72 fg=text

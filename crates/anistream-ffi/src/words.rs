@@ -20,6 +20,13 @@ pub fn player_stats_fixture(state: StatsFixture) -> PlayerStats {
     anistream_engine::playback::stats::fixture(state)
 }
 
+/// A message from the engine in English. A bridge for the apps that have not moved to the
+/// catalogue yet (P2); each caller is marked `i18n P2` and goes when its app does.
+#[uniffi::export]
+pub fn msg_english(msg: anistream_model::Msg) -> String {
+    msg.english()
+}
+
 /// A wait in the largest unit that still reads at a glance: `6d 17h`, `2h 5m`, `now`.
 #[uniffi::export]
 pub fn countdown(seconds: i64) -> String {

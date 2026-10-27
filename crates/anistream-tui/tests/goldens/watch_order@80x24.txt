@@ -5,13 +5,13 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ▦│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   /│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────
-▌ WATCH ORDER   around Kaze no Tegami — enter opens
+▌ Watch order   Around Kaze no Tegami. Enter opens.
 ────────────────────────────────────────────────────────────────────────────────
-▌ Kaze no Tegami: Hajimari no Fuukei  ·  OVA                         prequel
-  Kaze no Tegami Season 2  ·  TV                                      sequel
+▌ Kaze no Tegami: Hajimari no Fuukei  ·  OVA                         Prequel
+  Kaze no Tegami Season 2  ·  TV                                      Sequel
 
    │
-   │  available on  Hikari Stream
+   │  Available on Hikari Stream
    │
    │  A postwoman in a hill town reads the wind for letters nobody sent. When
    │  one arrives addressed to her in her own hand, dated ten years from now,
@@ -19,9 +19,9 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │  Drama  ·  Romance
    │
-   │  █████░░░░░░░░░░░░░░░  6 / 24   ep 7 next
+   │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                        ↵ open   esc cancel
+plugins · Subbed · 1080p                                     ↵ open   esc cancel
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=rule mod=BOLD
@@ -62,8 +62,8 @@ r19 c00-79 fg=rule
 r20 c00-79 fg=rule
 r21 c00-79 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
-r23 c21-60 fg=rule
+r23 c00-23 fg=text-dim
+r23 c24-60 fg=rule
 r23 c61-61 fg=text
 r23 c62-69 fg=text-dim
 r23 c70-72 fg=text

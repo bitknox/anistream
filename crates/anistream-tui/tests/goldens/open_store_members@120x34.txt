@@ -1,18 +1,18 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  MEMBERS · HEARTH PLUGINS
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │    NAME                        ROLE      DEVICES   LAST SEEN
-  /  SEARCH                 │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▥  LIBRARY                │    Mirei (you)                 owner     2         just now
-  ↓  DOWNLOADS              │    Rin                         member    1         9 days ago
-▌ ◇  PROVIDERS              │
-  ◎  ACCOUNTS               │  ANYONE WITH THE LINK CAN JOIN · 14 DEVICES JOINED WITH IT
-  ⚙  SETTINGS               │    the store's link                                show and copy
-                            │  ▌ joined today                                    seen just now
-                            │    joined 3 days ago                               seen yesterday
-                            │    joined 6 days ago                               seen never
-                            │    remove all 14
+  ▸  Continue               │  Members · Hearth plugins
+  ▤  Calendar               │
+  ▦  Seasonal               │    Name                        Role      Devices   Last seen
+  /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▥  Library                │    Mirei (you)                 Owner     2         Just now
+  ↓  Downloads              │    Rin                         Member    1         9 days ago
+▌ ◇  Sources                │
+  ◎  Accounts               │  Anyone with the link can join · 14 devices joined with it
+  ⚙  Settings               │    The store's link                                Show and copy
+                            │  ▌ Joined today                                    Seen just now
+                            │    Joined 3 days ago                               Seen yesterday
+                            │    Joined 6 days ago                               Not seen yet
+                            │    Remove all 14
                             │
                             │
                             │
@@ -29,9 +29,9 @@ anistream                                                                       
                             │
                             │
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    ↵ remove this device, known only by when it joined
+                            │    ↵ Remove this device, known only by when it joined
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                                           ↵ open   q back   ? keys
+plugins · Subbed · 1080p                                                                        ↵ open   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -76,7 +76,7 @@ r07 c71-71 fg=text-dim
 r07 c81-90 fg=text-dim
 r08 c00-00 fg=text-dim
 r08 c02-02 fg=text
-r08 c05-13 fg=text mod=BOLD
+r08 c05-11 fg=text mod=BOLD
 r08 c28-28 fg=rule
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim
@@ -96,7 +96,7 @@ r12 c33-49 fg=text
 r12 c81-94 fg=text-dim
 r13 c28-28 fg=rule
 r13 c33-49 fg=text
-r13 c81-90 fg=text-dim
+r13 c81-92 fg=text-dim
 r14 c28-28 fg=rule
 r14 c33-45 fg=text
 r15 c28-28 fg=rule
@@ -119,7 +119,7 @@ r30 c31-117 fg=rule
 r31 c28-28 fg=rule
 r31 c33-82 fg=text-dim
 r32 c00-119 fg=rule
-r33 c00-20 fg=text-dim
+r33 c00-23 fg=text-dim
 r33 c96-96 fg=text
 r33 c97-104 fg=text-dim
 r33 c105-105 fg=text

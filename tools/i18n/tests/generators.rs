@@ -58,6 +58,35 @@ braces = Use { "{" }name{ "}" } here
 two-args = { $who } watched { $what }
 "#;
 
+const ENGINE_EN: &str = r#"# Toast after a setting is stored.
+# @arg label: text
+notice-saved = Saved { $label }.
+
+# Toast when a setting could not be stored.
+# @arg cause: cause
+notice-not-saved = Couldn't save that setting. { $cause }
+
+# Toast with a wait.
+# @arg wait: seconds
+# @arg size: bytes
+# @arg count: int
+# @arg percent: percent
+notice-everything = { $count ->
+    [one] One thing
+   *[other] { $count } things
+ } in { $wait }, { $size }, { $percent }%.
+
+# The storage is full.
+cause-disk-full = There is no space left. Free some and try again.
+
+# The file could not be written.
+# @arg path: text
+cause-not-writable = { $path } is not writable.
+
+# Nothing to say.
+notice-done = Done.
+"#;
+
 const ANDROID_EN: &str = "# Name of the downloads channel.\nchannel-downloads = Downloads\n";
 
 const PL_TERMS: &str = "-app-name = anistream\n-source = źródło\n-source-cap-pl = Źródła\n";
@@ -94,6 +123,7 @@ fn fixture() -> tempfile::TempDir {
     put("languages.toml", LANGUAGES);
     put("en/terms.ftl", TERMS);
     put("en/ui.ftl", EN);
+    put("en/engine.ftl", ENGINE_EN);
     put("en/platform-android.ftl", ANDROID_EN);
     put("pl/terms.ftl", PL_TERMS);
     put("pl/ui.ftl", PL);

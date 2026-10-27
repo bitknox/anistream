@@ -2,10 +2,12 @@
 //! segments — with the preview beside the selected title, the loading skeleton, the empty and
 //! failed states, and the cover plates and metadata line the title page shares.
 
+use anistream_core::media::Translation;
+use anistream_i18n::t;
 use anistream_model::{
+    Span,
     catalog::{ContentList, Entry, LibrarySegment},
     progress::TitleProgress,
-    wording::{broadcast_line, calendar_time},
 };
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
@@ -34,7 +36,7 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
         let cursor =
             if app.is_typing() { String::from(glyph::OBI_THIN) } else { String::new() };
         let prompt =
-            format!("{} {}{cursor}", glyph::eyebrow("find"), field_text(app, Field::Search));
+            t::lists_search_prompt(&format!("{}{}", field_text(app, Field::Search), cursor));
         buf.set_string(
             area.left(),
             y,
@@ -78,7 +80,7 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                 buf,
                 area.left(),
                 y,
-                glyph::eyebrow("could not load"),
+                t::lists_load_failed(),
                 app.palette.style(Role::Alert).add_modifier(Modifier::BOLD),
             );
             for (i, text) in wrap(reason, area.width as usize, 3).into_iter().enumerate() {
@@ -190,10 +192,11 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                         let episode = continue_episode(entry, next);
                         Some((
                             match resume.fraction {
-                                Some(f) => {
-                                    format!("{episode} · {}%", (f * 100.0).round() as u32)
-                                }
-                                None => format!("{episode} · {}", resume.clock()),
+                                Some(f) => t::lists_row_resume_percent(
+                                    &episode,
+                                    (f * 100.0).round() as i64,
+                                ),
+                                None => t::lists_row_resume_clock(&episode, &resume.clock()),
                             },
                             true,
                         ))
@@ -207,20 +210,18 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                             && entry.latest_aired().is_some_and(|(ep, _)| ep >= next) =>
                     {
                         let (aired, _) = entry.latest_aired().expect("checked");
-                        Some((format!("{} out", continue_episode(entry, aired)), true))
+                        Some((t::lists_episode_out(&continue_episode(entry, aired)), true))
                     }
                     // Caught up on an airing show: "out" would be old news, so the row
                     // carries the wait instead — which episode, and how long. Dim, not
                     // state: a countdown is a fact to glance at, not a thing to act on.
                     (Some(_), s, Some(secs)) if s != Section::Calendar && secs > 0 => {
                         let label = match entry.next_episode {
-                            Some(ep) => {
-                                format!(
-                                    "ep {ep} in {}",
-                                    anistream_model::wording::countdown(secs)
-                                )
-                            }
-                            None => format!("in {}", anistream_model::wording::countdown(secs)),
+                            Some(ep) => t::lists_episode_in(
+                                &t::lists_episode(&ep.to_string()),
+                                &countdown_text(secs),
+                            ),
+                            None => t::lists_time_in(&countdown_text(secs)),
                         };
                         Some((label, false))
                     }
@@ -230,20 +231,16 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                     // tracked shows are the actionable ones. The episode is a column of its
                     // own, in the trailing text, which truncation never reaches.
                     (_, Section::Calendar, Some(secs)) => {
-                        let (episode_width, time_width) =
-                            calendar_columns.expect("set for the calendar");
+                        let (ew, tw) = calendar_columns.expect("set for the calendar");
                         let episode = calendar_episode(entry);
                         Some((
-                            format!(
-                                "{episode:<episode_width$}  {:>time_width$}",
-                                calendar_when(entry, secs)
-                            ),
+                            format!("{:<ew$}  {:>tw$}", episode, calendar_when(entry, secs)),
                             secs <= 0 && entry.progress.is_some(),
                         ))
                     }
                     // The same count the preview and the Title page give, rather than a bare
                     // number that read like a score.
-                    (Some(_), _, _) => entry.progress_label().map(|label| (label, false)),
+                    (Some(_), _, _) => progress_text(entry).map(|label| (label, false)),
                     _ => entry.score.map(|s| (s.to_string(), false)),
                 };
                 if let Some((text, fresh)) = trailing {
@@ -315,15 +312,15 @@ fn calendar_window(
     start
 }
 
-/// `today` / `yesterday` / `tomorrow`, then the weekday and date. Rendered as a caps
-/// heading, so lowercase here.
+/// `Today` / `Yesterday` / `Tomorrow`, then the weekday and date (in the system's English, as
+/// the clock library names them).
 fn day_label(clock: &Clock, day: chrono::NaiveDate) -> String {
     let today = clock.today();
     match (day - today).num_days() {
-        0 => "today".into(),
-        -1 => "yesterday".into(),
-        1 => "tomorrow".into(),
-        _ => day.format("%A · %-d %b").to_string().to_lowercase(),
+        0 => t::lists_day_today(),
+        -1 => t::lists_day_yesterday(),
+        1 => t::lists_day_tomorrow(),
+        _ => day.format("%A · %-d %b").to_string(),
     }
 }
 
@@ -349,7 +346,7 @@ pub(super) fn render_loading(buf: &mut Buffer, app: &App, area: Rect) {
         buf.set_string(
             area.left() + pulse.chars().count() as u16 + 2,
             area.top(),
-            glyph::eyebrow("loading"),
+            t::lists_loading(),
             app.palette.style(Role::TextDim),
         );
     }
@@ -392,40 +389,35 @@ pub(super) fn render_loading(buf: &mut Buffer, app: &App, area: Rect) {
 ///
 /// For Continue, asked-and-empty means there is history and none of it is left to continue:
 /// everything was hidden with `x`. That is not "nothing watched yet", which is what it said.
-fn empty_state(app: &App, section: Section, searched: bool) -> (&'static str, Option<String>) {
-    let ways_on = || {
-        format!(
-            "press {} for this season, or {} to search",
-            app.section_key(Section::Seasonal),
-            app.key_for(crate::keymap::Action::FocusSearch),
-        )
-    };
+fn empty_state(app: &App, section: Section, searched: bool) -> (String, Option<String>) {
+    let seasonal = app.section_key(Section::Seasonal);
+    let search = app.key_for(crate::keymap::Action::FocusSearch);
     // A query typed and not yet run. "Type to search" over it told someone who had typed to
     // start typing, and an earlier "no matches" answers a query no longer in the field.
     let typed = app.text(Field::Search).trim();
     let unsent = !typed.is_empty() && typed != app.searched_query.text;
     match section {
-        Section::Search if unsent => ("↵ to search", None),
+        Section::Search if unsent => (t::lists_empty_press_enter(), None),
         Section::Search if !searched => {
             let browse = if app.search_filter.has_filters() {
-                "or ↵ to browse with these filters"
+                t::lists_empty_browse_filtered()
             } else {
-                "or ↵ to browse the most popular"
+                t::lists_empty_browse_popular()
             };
-            ("type to search", Some(browse.to_owned()))
+            (t::lists_empty_type_to_search(), Some(browse))
         }
         Section::Search if app.searched_query.is_browse() => {
-            ("no matches", Some("try fewer filters".to_owned()))
+            (t::lists_empty_no_matches(), Some(t::lists_empty_fewer_filters()))
         }
-        Section::Search => {
-            ("no matches", Some("try a shorter query, or the romaji title".to_owned()))
+        Section::Search => (t::lists_empty_no_matches(), Some(t::lists_empty_shorter_query())),
+        Section::Home if !searched => {
+            (t::lists_empty_nothing_watched(), Some(t::lists_empty_ways_on(&seasonal, &search)))
         }
-        Section::Home if !searched => ("nothing watched yet", Some(ways_on())),
         Section::Home => (
-            "nothing to continue",
-            Some(format!("titles you hid come back when you watch them · {}", ways_on())),
+            t::lists_empty_nothing_to_continue(),
+            Some(t::lists_empty_hidden_come_back(&seasonal, &search)),
         ),
-        _ => ("nothing here yet", None),
+        _ => (t::lists_empty_nothing_here(), None),
     }
 }
 
@@ -434,7 +426,7 @@ fn render_empty(
     app: &App,
     area: Rect,
     y: u16,
-    (message, hint): (&str, Option<String>),
+    (message, hint): (String, Option<String>),
 ) {
     // The pixel mark, above the message — a printer's mark on the blank page. Only when
     // it genuinely fits with room to spare; on a cramped terminal the words win.
@@ -445,7 +437,7 @@ fn render_empty(
         y += mark_height + 1;
     }
 
-    buf.set_string(area.left(), y, glyph::eyebrow(message), app.palette.style(Role::TextDim));
+    buf.set_string(area.left(), y, message, app.palette.style(Role::TextDim));
     if let Some(hint) = hint {
         // Wrapped rather than cut: the way out is the part of the line that matters most.
         let room = area.bottom().saturating_sub(y + 2) as usize;
@@ -528,15 +520,15 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
         && y < area.bottom()
     {
         let next = continue_episode(entry, entry.progress.map_or(1, |p| p.next));
-        let label = match resume.fraction {
-            Some(f) => format!(
-                "{} resume {next} at {} ({}%)",
-                glyph::OBI_THIN,
-                resume.clock(),
-                (f * 100.0).round() as u32
+        let said = match resume.fraction {
+            Some(f) => t::lists_preview_continue_percent(
+                &next,
+                &resume.clock(),
+                (f * 100.0).round() as i64,
             ),
-            None => format!("{} resume {next} at {}", glyph::OBI_THIN, resume.clock()),
+            None => t::lists_preview_continue(&next, &resume.clock()),
         };
+        let label = format!("{} {}", glyph::OBI_THIN, said);
         buf.set_string(
             area.left(),
             y,
@@ -559,7 +551,7 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
     // a list of airing shows is actually asked, and until now the screen answered a different
     // one — total episode count, which says nothing about whether there is anything new.
     // Given the `state` role rather than the dim one because it is the actionable fact here.
-    let broadcast = broadcast_line(entry);
+    let broadcast = broadcast_text(entry);
     if !broadcast.is_empty() && y < area.bottom() {
         buf.set_string(
             area.left(),
@@ -577,7 +569,7 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
         buf.set_string(area.left(), y + i as u16, line, app.palette.style(Role::TextDim));
     }
 
-    if let Some(label) = entry.progress_label() {
+    if let Some(label) = progress_text(entry) {
         let meter_y = area.bottom().saturating_sub(1);
         // A meter only when there is something to measure against; the label keeps its room.
         let meter_width = if entry.progress_of().is_some() {
@@ -612,7 +604,13 @@ pub(super) fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
     // `MIN_TABLE_HEIGHT` because this screen spends three rows on chrome before any content, and
     // the list renderer below assumes it has room. See `render_providers` for why this exists.
     if area.height < MIN_TABLE_HEIGHT + 3 {
-        render_placeholder(buf, app, area, "LIBRARY", "needs a larger terminal");
+        render_placeholder(
+            buf,
+            app,
+            area,
+            &t::lists_library_title(),
+            &t::lists_terminal_too_small(),
+        );
         return;
     }
     let mut x = area.left();
@@ -621,7 +619,7 @@ pub(super) fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
         // Not tracked, unlike other eyebrows. Five letterspaced words need 91 cells and would
         // silently drop a segment at 80 columns; the obi already marks which one is active, and
         // tracking on top of it is the accessory to leave off.
-        let label = segment.label();
+        let label = segment_label(segment);
         // Room for the obi, the label and a gap. Segments that would be clipped are dropped
         // rather than truncated — half a word reads as a rendering fault.
         let needed = label.chars().count() as u16 + 4;
@@ -659,19 +657,13 @@ pub(super) fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
         // nothing there to sign in to yet, which pointing at it alone used to hide.
         let accounts = app.section_key(Section::Accounts);
         let next = if app.sync.is_empty() {
-            format!(
-                "add one to trackers.enabled in config.toml, then press {accounts} for Accounts"
-            )
+            t::lists_library_enable_tracker(super::accounts::TRACKERS_SETTING, &accounts)
         } else {
-            format!("press {accounts} for Accounts to sign in")
+            t::lists_library_sign_in(&accounts)
         };
         let lines = [
-            (0, glyph::eyebrow("no account connected")),
-            (
-                2,
-                "your watch history works without one — the Library mirrors a tracker's list"
-                    .into(),
-            ),
+            (0, t::lists_library_no_account()),
+            (2, t::lists_library_works_without()),
             (3, next),
         ];
         for (offset, text) in lines {
@@ -724,7 +716,7 @@ pub(super) fn metadata_line(entry: &Entry) -> String {
         parts.push(format.clone());
     }
     if let Some(episodes) = entry.episodes {
-        parts.push(format!("{episodes} EP"));
+        parts.push(t::episodes_count(i64::from(episodes)));
     }
     if let Some(year) = entry.year {
         parts.push(year.to_string());
@@ -739,26 +731,106 @@ pub(super) fn metadata_line(entry: &Entry) -> String {
     crate::widgets::meta_line(&refs)
 }
 
-/// A calendar row's episode column: "ep 5", with "dub" after it once the episode is out in the
+/// A calendar row's episode column: "E5", with "Dubbed" after it once the episode is out in the
 /// dub, as far as the engine knows.
 fn calendar_episode(entry: &Entry) -> String {
     let Some(episode) = entry.airing_episode else { return String::new() };
-    match anistream_model::present::calendar_mark(entry) {
-        Some(mark) => format!("ep {episode} {}", mark.to_lowercase()),
-        None => format!("ep {episode}"),
+    let dubbed = entry.airing_translation == Some(Translation::Dub) || entry.airing_dubbed;
+    episode_text(episode, dubbed)
+}
+
+/// An episode as a row names one to play: "E7", or "E7 · Dubbed" for a title watched dubbed.
+fn continue_episode(entry: &Entry, episode: u32) -> String {
+    episode_text(episode, entry.watched_in == Some(Translation::Dub))
+}
+
+fn episode_text(episode: u32, dubbed: bool) -> String {
+    if dubbed {
+        t::lists_episode_dubbed(&episode.to_string())
+    } else {
+        t::lists_episode(&episode.to_string())
     }
 }
 
-/// An episode as a row names one to play: "ep 7", or "ep 7 · dub" for a title watched dubbed,
-/// as [`anistream_model::present::episode_line`] marks it, in the terminal's lower case.
-fn continue_episode(entry: &Entry, episode: u32) -> String {
-    anistream_model::present::episode_line(&format!("ep {episode}"), entry.watched_in)
-        .to_lowercase()
+/// A calendar row's time column, `secs` from now, "~" before an estimate: "~In 6d 23h".
+fn calendar_when(entry: &Entry, secs: i64) -> String {
+    let time = if secs > 0 {
+        t::lists_time_in(&countdown_text(secs))
+    } else if -secs < 60 {
+        t::lists_time_just_now()
+    } else {
+        t::lists_time_ago(&countdown_text(-secs))
+    };
+    if entry.airing_approximate { t::lists_time_approximate(&time) } else { time }
 }
 
-/// A calendar row's time column, `secs` from now, "~" before an estimate: "~in 6d 23h".
-fn calendar_when(entry: &Entry, secs: i64) -> String {
-    anistream_model::present::air_time(&calendar_time(secs), entry.airing_approximate)
+/// A wait in the largest units that still read at a glance: "6d 17h", "1h 5m", "7m".
+pub(super) fn countdown_text(seconds: i64) -> String {
+    let span = Span::countdown(seconds);
+    if span.days > 0 && span.hours > 0 {
+        t::duration_days_hours(i64::from(span.days), i64::from(span.hours))
+    } else if span.days > 0 {
+        t::duration_days(i64::from(span.days))
+    } else if span.hours > 0 && span.minutes > 0 {
+        t::duration_hours_minutes(i64::from(span.hours), i64::from(span.minutes))
+    } else if span.hours > 0 {
+        t::duration_hours(i64::from(span.hours))
+    } else {
+        t::duration_minutes(i64::from(span.minutes))
+    }
+}
+
+/// What most recently aired and what is next: "E5 out 3h ago  ·  E6 in 6d 23h".
+///
+/// Latest first, because truncation in a narrow column should cost the countdown rather than the
+/// fact that there is a new episode out. Both halves are absent for a finished show.
+pub(super) fn broadcast_text(entry: &Entry) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if let Some((episode, ago)) = entry.latest_aired() {
+        let episode = t::lists_episode(&episode.to_string());
+        parts.push(match ago {
+            Some(ago) if ago < 60 => t::lists_episode_out_just_now(&episode),
+            Some(ago) => t::lists_episode_out_ago(&episode, &countdown_text(ago)),
+            // Known to be out only by inference from the next episode's number, so there
+            // is no broadcast time to date it with: absent beats guessed.
+            None => t::lists_episode_out(&episode),
+        });
+    }
+    // The title's own schedule rather than the row's slot, so a calendar row about an episode
+    // that has just aired still reports when the next one is due. Filtered to a countdown that
+    // has time left: AniList hands back a non-positive `timeUntilAiring` around a broadcast.
+    if let Some(seconds) = entry.next_airing_in.filter(|s| *s > 0) {
+        parts.push(match entry.next_episode {
+            Some(next) => t::lists_episode_in(
+                &t::lists_episode(&next.to_string()),
+                &countdown_text(seconds),
+            ),
+            None => t::lists_next_in(&countdown_text(seconds)),
+        });
+    }
+    parts.join("  ·  ")
+}
+
+/// The count beside the meter: "2 of 12 episodes", "2 of 3 episodes aired" while the length is
+/// unannounced, or "2 episodes watched" when there is nothing to count against.
+pub(super) fn progress_text(entry: &Entry) -> Option<String> {
+    let done = i64::from(entry.progress?.done);
+    Some(match entry.progress_of() {
+        Some((total, true)) => t::progress_episodes(done, i64::from(total)),
+        Some((aired, false)) => t::lists_progress_aired(done, i64::from(aired)),
+        None => t::lists_progress_watched(done),
+    })
+}
+
+/// A Library segment's name in the strip across the top.
+pub(super) fn segment_label(segment: LibrarySegment) -> String {
+    match segment {
+        LibrarySegment::Watching => t::lists_segment_watching(),
+        LibrarySegment::Planning => t::lists_segment_planning(),
+        LibrarySegment::Completed => t::lists_segment_completed(),
+        LibrarySegment::Paused => t::lists_segment_paused(),
+        LibrarySegment::Dropped => t::lists_segment_dropped(),
+    }
 }
 
 #[cfg(test)]
@@ -784,7 +856,7 @@ mod tests {
         let mut buf = Buffer::empty(area);
         render_preview(&mut buf, &app, area, &e);
         let text = text_of(&buf);
-        assert!(text.contains("2 / 2 aired"), "card was:\n{text}");
+        assert!(text.contains("2 of 2 episodes aired"), "card was:\n{text}");
         assert!(!text.contains("/ 0"), "card was:\n{text}");
     }
 
@@ -793,7 +865,7 @@ mod tests {
         // The single most important rendering rule in the app.
         let mut app = app_with(ContentList::Failed("all providers unreachable".into()));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("COULD NOT LOAD"));
+        assert!(text.contains("Couldn't load this list"));
         assert!(text.contains("all providers unreachable"));
     }
 
@@ -802,7 +874,7 @@ mod tests {
         let mut app = app_with(ContentList::Loading);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(
-            text.contains("LOADING"),
+            text.contains("Loading"),
             "a moving indicator still needs to say what it means"
         );
         // Skeleton rows, so the layout does not jump when the real list replaces them.
@@ -818,8 +890,8 @@ mod tests {
         app.searched_query = anistream_model::search::SearchQuery::text("zzzz");
         app.apply(app.content_here(ContentList::Entries(vec![])));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("NO MATCHES"), "got {text:?}");
-        assert!(!text.contains("COULD NOT"));
+        assert!(text.contains("No matches"), "got {text:?}");
+        assert!(!text.contains("Couldn't load"));
     }
 
     #[test]
@@ -828,7 +900,7 @@ mod tests {
         // labelled CONTINUE a discovery screen — and left a half-finished episode nowhere to appear.
         let mut app = app_with(ContentList::Empty);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("NOTHING WATCHED YET"), "got {text:?}");
+        assert!(text.contains("Nothing watched yet"), "got {text:?}");
         assert!(text.contains("this season"), "an empty screen needs a way out: {text:?}");
     }
 
@@ -838,12 +910,12 @@ mod tests {
         let mut untouched = app_with(ContentList::Empty);
         untouched.go_to_section(Section::Search);
         untouched.apply(untouched.content_here(ContentList::Empty));
-        assert!(text_of(&render_to_buffer(&mut untouched, 120, 30)).contains("TYPE TO SEARCH"));
+        assert!(text_of(&render_to_buffer(&mut untouched, 120, 30)).contains("Type to search"));
 
         let mut searched = app_with(ContentList::Empty);
         searched.go_to_section(Section::Search);
         searched.apply(searched.content_here(ContentList::Entries(vec![])));
-        assert!(text_of(&render_to_buffer(&mut searched, 120, 30)).contains("NO MATCHES"));
+        assert!(text_of(&render_to_buffer(&mut searched, 120, 30)).contains("No matches"));
     }
 
     #[test]
@@ -854,8 +926,8 @@ mod tests {
             app.type_char(ch);
         }
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("↵ TO SEARCH"), "got {text:?}");
-        assert!(!text.contains("TYPE TO SEARCH"), "got {text:?}");
+        assert!(text.contains("Press ↵ to search"), "got {text:?}");
+        assert!(!text.contains("Type to search"), "got {text:?}");
     }
 
     #[test]
@@ -865,7 +937,7 @@ mod tests {
         app.type_char('f');
         app.type_char('r');
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("FIND"));
+        assert!(text.contains("Find"));
         assert!(text.contains("fr"));
     }
 
@@ -893,9 +965,9 @@ mod tests {
         let mut app = app_with(ContentList::Entries(vec![entry(1, "Invented Show")]));
         app.handle(crate::keymap::Action::JumpSection(4), 20);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("TYPE TO SEARCH"), "got {text:?}");
+        assert!(text.contains("Type to search"), "got {text:?}");
         assert!(!text.contains("Invented Show"), "the previous list was drawn under Search");
-        assert!(!text.contains("NO MATCHES"));
+        assert!(!text.contains("No matches"));
     }
 
     #[test]
@@ -911,14 +983,14 @@ mod tests {
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         // Labels computed by the same helpers the renderer uses, so the assertion holds
         // whatever the wall clock says. 26 hours apart is always two different days.
-        let first = super::day_label(&app.clock, super::air_date(&app.clock, -1).unwrap())
-            .to_uppercase();
+        let first = super::day_label(&app.clock, super::air_date(&app.clock, -1).unwrap());
         let second =
-            super::day_label(&app.clock, super::air_date(&app.clock, 26 * 3600).unwrap())
-                .to_uppercase();
+            super::day_label(&app.clock, super::air_date(&app.clock, 26 * 3600).unwrap());
         assert_ne!(first, second);
-        assert!(text.contains(&first), "missing the {first} ruling:\n{text}");
-        assert!(text.contains(&second), "missing the {second} ruling:\n{text}");
+        // Headings are set in capitals at draw time, so compare without case.
+        let shown = text.to_lowercase();
+        assert!(shown.contains(&first.to_lowercase()), "missing the {first} ruling:\n{text}");
+        assert!(shown.contains(&second.to_lowercase()), "missing the {second} ruling:\n{text}");
     }
 
     /// The calendar drawn on a stopped clock: its rulings and times are fixed text, the same
@@ -954,13 +1026,16 @@ mod tests {
                 next,
             ],
         );
-        for ruling in ["SATURDAY · 17 OCT", "TODAY", "SATURDAY · 24 OCT"] {
-            assert!(text.contains(ruling), "missing the {ruling} ruling:\n{text}");
+        for ruling in ["saturday · 17 oct", "today", "saturday · 24 oct"] {
+            assert!(
+                text.to_lowercase().contains(ruling),
+                "missing the {ruling} ruling:\n{text}"
+            );
         }
-        for time in ["2d ago", "1h ago", "in 4d 20h"] {
+        for time in ["2d ago", "1h ago", "In 4d 20h"] {
             assert!(text.contains(time), "missing the {time} row:\n{text}");
         }
-        assert!(text.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{text}");
+        assert!(text.contains("E3 out 2d ago  ·  E4 in 4d 20h"), "{text}");
     }
 
     /// The day an episode airs on is a local date, so the zone moves it: an hour after 23:30
@@ -978,10 +1053,11 @@ mod tests {
         let utc = calendar_at(Clock::fixed(late_monday, zone(0)), entries());
         let west = calendar_at(Clock::fixed(late_monday, zone(-8)), entries());
 
-        assert!(utc.contains("TOMORROW") && !utc.contains("TODAY"), "{utc}");
-        assert!(utc.contains("FRIDAY · 23 OCT") && !utc.contains("THURSDAY"), "{utc}");
-        assert!(west.contains("TODAY") && !west.contains("TOMORROW"), "{west}");
-        assert!(west.contains("THURSDAY · 22 OCT") && !west.contains("FRIDAY"), "{west}");
+        let (utc, west) = (utc.to_lowercase(), west.to_lowercase());
+        assert!(utc.contains("tomorrow") && !utc.contains("today"), "{utc}");
+        assert!(utc.contains("friday · 23 oct") && !utc.contains("thursday"), "{utc}");
+        assert!(west.contains("today") && !west.contains("tomorrow"), "{west}");
+        assert!(west.contains("thursday · 22 oct") && !west.contains("friday"), "{west}");
     }
 
     #[test]
@@ -1001,16 +1077,16 @@ mod tests {
         ];
         let mut app = app_with(ContentList::Entries(rows));
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
-        assert!(text.contains("ep 7 · dub · 50%"), "{text}");
-        assert!(text.contains("ep 4 · 50%") && text.contains("ep 9 · 50%"), "{text}");
+        assert!(text.contains("E7 · Dubbed · 50%"), "{text}");
+        assert!(text.contains("E4 · 50%") && text.contains("E9 · 50%"), "{text}");
         assert_eq!(
-            text.matches("dub").count(),
+            text.matches("Dubbed").count(),
             1,
             "a sub, or nothing known, says nothing:\n{text}"
         );
         // The preview names the episode the same way.
         let preview = text_of(&render_to_buffer(&mut app, 120, 34));
-        assert!(preview.contains("resume ep 7 · dub at 10:00 (50%)"), "{preview}");
+        assert!(preview.contains("Continue E7 · Dubbed at 10:00 (50%)"), "{preview}");
     }
 
     #[test]
@@ -1021,12 +1097,12 @@ mod tests {
         let mut app = app_with(ContentList::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
-        assert!(text.contains("ep 8 out"), "being behind is the fact worth stating:\n{text}");
+        assert!(text.contains("E8 out"), "being behind is the fact worth stating:\n{text}");
     }
 
     #[test]
     fn a_caught_up_show_counts_down_instead_of_crying_out() {
-        // Watched everything that aired: "ep 8 out" would be old news. The row waits
+        // Watched everything that aired: "E8 out" would be old news. The row waits
         // with you instead.
         let mut e = entry(1, "Hoshikuzu");
         e.progress = Some(TitleProgress { done: 8, next: 9 });
@@ -1036,8 +1112,8 @@ mod tests {
         let mut app = app_with(ContentList::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
-        assert!(!text.contains("ep 8 out"), "already watched — not news:\n{text}");
-        assert!(text.contains("ep 9 in 2d 1h"), "the wait is the fact:\n{text}");
+        assert!(!text.contains("E8 out"), "already watched — not news:\n{text}");
+        assert!(text.contains("E9 in 2d 1h"), "the wait is the fact:\n{text}");
     }
 
     #[test]
@@ -1053,8 +1129,8 @@ mod tests {
         let mut app = app_with(ContentList::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
-        assert!(text.contains("ep 8 out"), "the launch went unannounced:\n{text}");
-        assert!(!text.contains("ep 9 in"), "counting down is old news beside a launch");
+        assert!(text.contains("E8 out"), "the launch went unannounced:\n{text}");
+        assert!(!text.contains("E9 in"), "counting down is old news beside a launch");
     }
 
     #[test]
@@ -1068,7 +1144,7 @@ mod tests {
         let mut app = app_with(ContentList::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
-        assert!(text.contains("ep 4 out"), "got:\n{text}");
+        assert!(text.contains("E4 out"), "got:\n{text}");
     }
 
     #[test]
@@ -1106,17 +1182,14 @@ mod tests {
         for width in [120, 80] {
             let text = lines_of(&mut app, width, 30).join("\n");
             for ep in 1..=5 {
-                assert!(
-                    text.contains(&format!("ep {ep} ")),
-                    "ep {ep} lost at {width}:\n{text}"
-                );
+                assert!(text.contains(&format!("E{ep} ")), "E{ep} lost at {width}:\n{text}");
             }
         }
         // And the episode lines up as a column, rather than trailing each title.
         let lines = lines_of(&mut app, 120, 30);
         let columns: Vec<usize> = lines
             .iter()
-            .filter_map(|l| l.find("ep ").map(|at| l[..at].chars().count()))
+            .filter_map(|l| l.find(" E").map(|at| l[..at].chars().count()))
             .filter(|at| *at > 30 && *at < 70)
             .collect();
         assert!(columns.len() >= 5 && columns.windows(2).all(|w| w[0] == w[1]), "{lines:#?}");
@@ -1131,7 +1204,7 @@ mod tests {
         app.handle(crate::keymap::Action::Open, 20);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("Paper Kite"), "{text}");
-        assert!(!text.contains("Paper Kite  ep 7"), "the row's episode leaked:\n{text}");
+        assert!(!text.contains("Paper Kite  E7"), "the row's episode leaked:\n{text}");
     }
 
     #[test]
@@ -1150,9 +1223,9 @@ mod tests {
         };
         let mut app = calendar_with(vec![dubbed, estimated]);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("~in 10m"), "{text}");
-        assert!(text.contains("ep 4 dub"), "{text}");
-        assert!(!text.contains("ep 7 dub"), "{text}");
+        assert!(text.contains("~In 10m"), "{text}");
+        assert!(text.contains("E4 · Dubbed"), "{text}");
+        assert!(!text.contains("E7 · Dubbed"), "{text}");
     }
 
     /// `G` on the calendar left rows blank at the bottom: the offset reserved rows for day
@@ -1213,12 +1286,13 @@ mod tests {
             "blank at the end:\n{lines:#?}"
         );
         assert!(
-            stage.iter().any(|l| l.contains("TOMORROW")),
+            stage.iter().any(|l| l.to_lowercase().contains("tomorrow")),
             "the day's heading stays:\n{lines:#?}"
         );
         // The slack sits above the heading, and the heading still has no blank pushed
         // between it and its rows.
-        let heading = stage.iter().position(|l| l.contains("TOMORROW")).expect("heading");
+        let heading =
+            stage.iter().position(|l| l.to_lowercase().contains("tomorrow")).expect("heading");
         assert!(stage[heading + 1].contains("Weekly"), "{lines:#?}");
     }
 
@@ -1226,8 +1300,8 @@ mod tests {
     fn an_empty_continue_list_names_keys_as_keys() {
         let mut app = app_with(ContentList::Empty);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("NOTHING WATCHED YET"), "{text}");
-        assert!(text.contains("press 3 for this season"), "{text}");
+        assert!(text.contains("Nothing watched yet"), "{text}");
+        assert!(text.contains("Press 3 for this season"), "{text}");
 
         // A rebind is what the sentence says.
         let mut app = app_with(ContentList::Empty);
@@ -1235,7 +1309,7 @@ mod tests {
         keys.insert("jump_section_3".to_string(), "S".to_string());
         assert!(app.keymap.apply_overrides(&keys).is_empty());
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("press S for this season"), "{text}");
+        assert!(text.contains("Press S for this season"), "{text}");
     }
 
     /// History that is all hidden is not "nothing watched yet".
@@ -1248,8 +1322,8 @@ mod tests {
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::HideFromContinue, 20);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("NOTHING TO CONTINUE"), "{text}");
-        assert!(!text.contains("NOTHING WATCHED YET"), "{text}");
+        assert!(text.contains("Nothing to continue"), "{text}");
+        assert!(!text.contains("Nothing watched yet"), "{text}");
     }
 
     #[test]
@@ -1264,7 +1338,7 @@ mod tests {
             app.content_here(ContentList::Entries((1..60).map(|i| entry(i, "Show")).collect())),
         );
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("FALL 2026 · THE 40 MOST POPULAR"), "{text}");
+        assert!(text.contains("fall 2026 · the 40 most popular"), "{text}");
 
         // A caption belongs to the list it came with.
         app.apply(Event::Content {
@@ -1288,7 +1362,7 @@ mod tests {
             content: ContentList::Entries(vec![entry(1, "Kite")]),
         });
         let lines = lines_of(&mut app, 120, 30);
-        let prompt = lines.iter().find(|l| l.contains("FIND")).unwrap();
+        let prompt = lines.iter().find(|l| l.contains("Find")).unwrap();
         assert!(prompt.contains("showing the first 30"), "{prompt}");
     }
 
@@ -1304,11 +1378,11 @@ mod tests {
         };
         let mut app = app_with(ContentList::Entries(vec![e]));
         let preview = text_of(&render_to_buffer(&mut app, 120, 34));
-        assert!(preview.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{preview}");
+        assert!(preview.contains("E3 out 2d ago  ·  E4 in 4d 20h"), "{preview}");
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
         let title = text_of(&render_to_buffer(&mut app, 120, 34));
-        assert!(title.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{title}");
+        assert!(title.contains("E3 out 2d ago  ·  E4 in 4d 20h"), "{title}");
         assert!(!title.contains("next episode in"), "{title}");
     }
 
@@ -1318,7 +1392,7 @@ mod tests {
             Entry { progress: Some(TitleProgress { done: 5, next: 6 }), ..entry(1, "Kite") };
         let mut app = app_with(ContentList::Entries(vec![e]));
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
-        assert!(text.contains("5 / 28"), "{text}");
+        assert!(text.contains("5 of 28 episodes"), "{text}");
         assert!(!text.contains("▏5"), "{text}");
     }
 
@@ -1332,6 +1406,6 @@ mod tests {
 
         app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState::new("kitsu"))));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("press 8 for Accounts to sign in"), "{text}");
+        assert!(text.contains("Press 8 to open Accounts and sign in"), "{text}");
     }
 }

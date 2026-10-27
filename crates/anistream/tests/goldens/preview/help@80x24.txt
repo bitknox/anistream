@@ -1,24 +1,24 @@
 anistream                                       torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────
 ────────────────────────────────────────────────────────────────────────────────
-▌ KEYS                                                             page 1 of 3
+▌ Keys                                                             Page 1 of 3
 ────────────────────────────────────────────────────────────────────────────────
-  GLOBAL                                 Move right                  l / →
-    Show keys                       ?    Jump to top                     g
-    Run a command          : / ctrl+k    Jump to bottom                  G
-    Quit                   Q / ctrl+c    Page up                    ctrl+u
-    Back                      q / esc    Page down                  ctrl+d
-    Toggle rail width             tab  LISTS AND GRIDS
-    Refresh this view               r    Open                            ↵
-    Force a full resync             R    Play next unwatched         space
-    Switch sub / dub                t    Set list status                 a
-    Go to section                 1–9    Rate this title                 *
-    Search                          /    Expand synopsis                 i
-    Recent messages                 L    Remove from continue watching   x
-  MOVEMENT                               Search filters             ctrl+f
-    Move up                     k / ↑  TITLE
-    Move down                   j / ↓    Episodes                        e
-    Move left                   h / ←    Sources                         s
+  Global                                Move right                 l / →
+    Show keys                      ?    Jump to top                    g
+    Run a command         : / ctrl+k    Jump to bottom                 G
+    Quit                  Q / ctrl+c    Page up                   ctrl+u
+    Back                     q / esc    Page down                 ctrl+d
+    Toggle rail width            tab  Lists and grids
+    Refresh this view              r    Open                           ↵
+    Force a full resync            R    Play next unwatched        space
+    Subbed or dubbed               t    Set list status                a
+    Go to section                1–9    Rate this title                *
+    Search                         /    Expand synopsis                i
+    Recent messages                L    Remove from Continue           x
+  Movement                              Search filters            ctrl+f
+    Move up                    k / ↑  Title
+    Move down                  j / ↓    Episodes                       e
+    Move left                  h / ←    Sources                        s
 
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                        ↑↓ page   esc close
+plugins · Subbed · 1080p                                     ↑↓ page   esc close

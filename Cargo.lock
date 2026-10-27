@@ -259,6 +259,7 @@ name = "anistream-model"
 version = "2.0.0"
 dependencies = [
  "anistream-core",
+ "anistream-i18n",
  "serde",
  "uniffi",
 ]

@@ -174,7 +174,8 @@ pub fn heard(shell: &Rc<Shell>, event: &anistream_model::event::Event) {
         Event::PartyLeft { reason } => {
             if shell.in_party.replace(false) && !form::joining() && !shell.is_player() {
                 match reason {
-                    Some(why) => ctx.alert(&crate::catalog::shown(why)),
+                    // i18n P2: replace with the catalogue
+                    Some(why) => ctx.alert(&crate::catalog::shown(&why.english())),
                     None => {
                         ctx.toast("You left the party. What's playing goes on, just for you.")
                     }
@@ -182,7 +183,8 @@ pub fn heard(shell: &Rc<Shell>, event: &anistream_model::event::Event) {
             }
         }
         Event::PartyNoSource { id, episode, why, reason } => {
-            source::open(ctx, *id, episode, *why, reason);
+            // i18n P2: replace with the catalogue
+            source::open(ctx, *id, episode, *why, &reason.english());
         }
         _ => {}
     }

@@ -2,13 +2,13 @@
 //! its end.
 
 use anistream_core::ids::AnilistId;
+use anistream_i18n::t;
 use anistream_model::{
     command::{Command, PlayerCommand},
-    notice::Notice,
     playback::{Ending, SkipKind},
 };
 
-use super::App;
+use super::{App, info};
 use crate::{eyecatch::Eyecatch, keymap::Action, nav::StageView};
 
 /// Live playback state for the Now Playing surface.
@@ -44,9 +44,9 @@ impl NowPlaying {
         let total = seconds.max(0.0) as u64;
         let (hours, minutes, secs) = (total / 3600, (total % 3600) / 60, total % 60);
         if hours > 0 {
-            format!("{hours}:{minutes:02}:{secs:02}")
+            format!("{hours}:{minutes:02}:{secs:02}") // i18n-skip
         } else {
-            format!("{minutes}:{secs:02}")
+            format!("{minutes}:{secs:02}") // i18n-skip
         }
     }
 
@@ -57,7 +57,7 @@ impl NowPlaying {
     pub fn elapsed(&self) -> String {
         let elapsed = Self::clock(self.position);
         let width = self.total().chars().count();
-        format!("{elapsed:>width$}")
+        format!("{elapsed:>width$}") // i18n-skip
     }
 
     pub fn total(&self) -> String {
@@ -99,7 +99,7 @@ impl App {
             Action::Detach => {
                 // mpv keeps playing; we just stop looking at it. Progress recording continues,
                 // because the session outlives the screen.
-                self.push_toast(Notice::info("detached — mpv is still playing"));
+                self.push_toast(info(t::playback_detached()));
                 self.nav.pop();
                 return Some(None);
             }
@@ -110,7 +110,7 @@ impl App {
                     Some((_, to)) => P::SeekTo(to),
                     // Better to say nothing is offered than to seek somewhere arbitrary.
                     None => {
-                        self.push_toast(Notice::info("no skip here"));
+                        self.push_toast(info(t::playback_no_skip()));
                         return Some(None);
                     }
                 }
@@ -127,7 +127,7 @@ impl App {
     /// Driven off the watch log rather than a tracker, so this works with no account at all.
     pub(super) fn play_next_unwatched(&mut self) -> Option<Command> {
         let Some(entry) = self.target() else {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(info(t::playback_nothing_selected()));
             return None;
         };
         let id = entry.id;
@@ -187,7 +187,7 @@ impl App {
             .into_iter()
             .flatten()
             .find(|e| e.id == id)
-            .map_or_else(|| "playing".to_string(), |e| e.title.clone());
+            .map_or_else(t::playback_fallback_title, |e| e.title.clone());
         self.raise_now_playing_titled(id, title, episode);
     }
 
@@ -219,7 +219,7 @@ impl App {
     /// and the view pushed.
     fn put_up(&mut self, playing: NowPlaying) {
         self.eyecatch =
-            Some(Eyecatch::new(format!("{}  ·  ep {}", playing.title, playing.episode)));
+            Some(Eyecatch::new(t::playback_transition_label(&playing.title, &playing.episode)));
         // One that has reported keeps playing until this one is found; one merely staged before
         // this was never going to play.
         let replaced = self.playing.take().filter(|p| p.duration.is_some());
@@ -349,7 +349,7 @@ impl App {
             self.nav.pop();
         }
         if matches!(ending, Ending::Complete { .. }) {
-            self.push_toast(Notice::info("episode finished"));
+            self.push_toast(info(t::playback_episode_finished()));
         }
     }
 
@@ -357,7 +357,7 @@ impl App {
     pub(super) fn apply_resumed(&mut self, position: f64) {
         // Resume happens without asking — mpv is already at the right place by the time
         // this arrives. Saying so is what keeps it from feeling like a glitch.
-        self.push_toast(Notice::info(format!("resumed at {}", NowPlaying::clock(position))));
+        self.push_toast(info(t::playback_resumed(&NowPlaying::clock(position))));
         if let Some(playing) = &mut self.playing {
             playing.position = position;
         }
@@ -406,7 +406,7 @@ mod tests {
         // way to know the stream failed.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Event::Toast(Notice::alert("all providers failed")));
+        a.apply(Event::Toast(crate::app::alert("all providers failed")));
         for _ in 0..crate::eyecatch::SWEEP_FRAMES * 3 {
             a.tick_animation();
         }
@@ -432,7 +432,7 @@ mod tests {
         a.handle(Action::Open, 20);
         a.apply(Event::Resumed { position: 87.0 });
         let toast = a.toasts.last().expect("a toast");
-        assert_eq!(toast.notice.text, "resumed at 1:27");
+        assert_eq!(toast.notice.text, "Resumed at 1:27.");
     }
 
     #[test]
@@ -479,7 +479,7 @@ mod tests {
         assert_eq!(a.playing.as_ref().unwrap().position, 0.0);
         assert!(a.eyecatch.is_some(), "a report from 4 is not 9 starting");
 
-        a.apply(Event::Toast(Notice::alert("a: timed out")));
+        a.apply(Event::Toast(crate::app::alert("a: timed out")));
         a.apply(Event::PlaybackKept);
         let playing = a.playing.as_ref().unwrap();
         assert_eq!((playing.episode.as_str(), playing.position), ("4", 301.0));
@@ -517,7 +517,10 @@ mod tests {
         );
         assert_eq!(playing.episode_title.as_deref(), Some("Fifth"));
         assert_eq!((playing.speed, playing.duration), (1.25, None));
-        assert_eq!(a.eyecatch.as_ref().map(|e| e.label.as_str()), Some("Title 1  ·  ep 5"));
+        assert_eq!(
+            a.eyecatch.as_ref().map(|e| e.label.as_str()),
+            Some("Title 1  ·  Episode 5")
+        );
         assert_eq!(a.nav.current(), &StageView::NowPlaying);
     }
 
@@ -584,7 +587,10 @@ mod tests {
         let playing = a.playing.as_ref().expect("the next episode is staged");
         assert_eq!((playing.title.as_str(), playing.episode.as_str()), ("Title 0", "2"));
         assert_eq!(playing.episode_title.as_deref(), Some("Episode 2"));
-        assert_eq!(a.eyecatch.as_ref().map(|e| e.label.as_str()), Some("Title 0  ·  ep 2"));
+        assert_eq!(
+            a.eyecatch.as_ref().map(|e| e.label.as_str()),
+            Some("Title 0  ·  Episode 2")
+        );
         assert_eq!(a.nav.current(), &StageView::NowPlaying);
         // The finished one is gone, not kept in the window: what reports now is the next one.
         a.apply(Event::Playback { position: 1.0, duration: Some(1420.0), paused: false });
@@ -660,7 +666,7 @@ mod tests {
         a.handle(Action::Open, 20);
         a.apply(finished(None));
         assert!(a.take_commands().is_empty());
-        assert!(a.toasts.iter().any(|t| t.notice.text == "episode finished"));
+        assert!(a.toasts.iter().any(|t| t.notice.text == t::playback_episode_finished()));
     }
 
     #[test]

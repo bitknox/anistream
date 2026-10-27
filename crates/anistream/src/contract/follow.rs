@@ -58,7 +58,7 @@ fn staged_alike(h: &Harness, updates: &[Event]) {
     );
     assert_eq!((playing.speed, playing.duration, playing.position), (1.0, None, 0.0));
     let label = app.eyecatch.as_ref().map(|eyecatch| eyecatch.label.clone());
-    assert_eq!(label, Some(format!("{title}  ·  ep {episode}")));
+    assert_eq!(label, Some(format!("{title}  ·  Episode {episode}")));
     assert_eq!(app.nav.current(), &StageView::NowPlaying);
 }
 
@@ -157,7 +157,7 @@ async fn filler_is_stepped_over_when_the_settings_skip_it() {
     let toast = updates.iter().position(|u| matches!(u, Event::Toast(_))).expect("a toast");
     let stage = updates.iter().position(|u| matches!(u, Event::PlaybackStaged { .. }));
     assert!(Some(toast) < stage, "{:?}", names(&updates));
-    assert_eq!(toasts(&updates)[0], "info: skipped filler — ep 8 next");
+    assert_eq!(toasts(&updates)[0], "info: Skipped filler. Up next is episode 8.");
 }
 
 #[tokio::test]
@@ -176,7 +176,7 @@ fn the_binge_ends_here(h: &Harness, updates: &[Event]) {
     assert_eq!(names(updates), ["Progress", "PlaybackEnded"]);
     assert_eq!(rolled_on(updates), [false]);
     let said = |text: &str| h.app().toasts.iter().any(|toast| toast.notice.text == text);
-    assert!(said("episode finished"), "the screen says the episode is done");
+    assert!(said("Episode finished."), "the screen says the episode is done");
     assert!(h.app().playing.is_none());
     assert_ne!(h.app().nav.current(), &StageView::NowPlaying);
 }
@@ -255,7 +255,7 @@ async fn sub_or_dub_picked_in_the_player_restarts_the_episode_in_it() {
     // The notice and the restart, then the session's choice of dub said whole.
     let restarted = ["PlayerTranslation", "Toast", "PlaybackStaged", "Settings"];
     assert_eq!(names(&updates), [&restarted[..], &LOOKED_UP].concat());
-    assert_eq!(toasts(&updates)[0], "info: now using dub");
+    assert_eq!(toasts(&updates)[0], "info: Audio is now dubbed.");
     let what = (FINISHED, title(FINISHED), "4".into(), Some("Embers in the Snow".into()));
     assert_eq!(staged(&updates), what);
     assert_eq!(h.app().settings.translation, Translation::Dub);
@@ -377,7 +377,10 @@ fn staged_episodes(updates: &[Event]) -> Vec<String> {
 
 /// How many player windows were opened.
 fn windows(updates: &[Event]) -> usize {
-    updates.iter().filter(|u| matches!(u, Event::Status(s) if s == "starting mpv…")).count()
+    updates
+        .iter()
+        .filter(|u| matches!(u, Event::Status(Some(s)) if s.english() == "Starting mpv…"))
+        .count()
 }
 
 /// [`FINISHED`]'s table with ten episodes watched, to play for real: mpv with no window and no
@@ -409,7 +412,7 @@ async fn a_binge_rolls_on_in_the_window_the_last_episode_left() {
     let finished = h.app().episodes.iter().filter(|row| row.completed).count();
     assert_eq!(finished, 12, "both recorded as watched");
     assert!(h.app().playing.is_none());
-    assert!(h.app().toasts.iter().any(|toast| toast.notice.text == "episode finished"));
+    assert!(h.app().toasts.iter().any(|toast| toast.notice.text == "Episode finished."));
 }
 
 #[tokio::test]

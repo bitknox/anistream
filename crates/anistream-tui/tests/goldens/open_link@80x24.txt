@@ -1,27 +1,27 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  MEMBERS · HEARTH PLUGINS
+  ▸│  Members · Hearth plugins
   ▤│
-  ▦│    NAME                        ROLE      DEVICES   LAST SEEN
+  ▦│    Name                        Role      Devices   Last seen
 ────────────────────────────────────────────────────────────────────────────────
-▌ THE STORE'S LINK   of Hearth plugins
+▌ Link to the plugin store   Hearth plugins
 ────────────────────────────────────────────────────────────────────────────────
   https://plugins.example/join/Wd3Kp8Lq2Zx7Nv5Rt1Yb0g?open#Qe7Ga1Ud5Js0Lo6W
   i2Ty9Rb3Np8
 
-  copied to the clipboard where the terminal allows it, or select it to co…
-  anyone with it can join, without a name, as often as they like
-  it works until the store goes back to invites only
-  enter closes
+  Copied to the clipboard where the terminal allows it, or select it to co…
+  Anyone with it can join, without a name, as often as they like.
+  It works until the store goes back to invites only.
+  Enter closes
 
    │
    │
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    ↵ show the link, to copy and share
+   │    ↵ Show the link, to copy and share
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                    ↵ close
+plugins · Subbed · 1080p                                                 ↵ close
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=rule mod=BOLD
@@ -35,8 +35,8 @@ r04 c00-79 fg=rule
 r05 c00-79 fg=rule bg=ground
 r06 c00-00 fg=obi bg=ground
 r06 c01-01 fg=rule bg=ground
-r06 c02-37 fg=text bg=ground mod=BOLD
-r06 c38-79 fg=rule bg=ground
+r06 c02-42 fg=text bg=ground mod=BOLD
+r06 c43-79 fg=rule bg=ground
 r07 c00-79 fg=rule bg=ground
 r08 c00-01 fg=rule bg=ground
 r08 c02-74 fg=text bg=ground mod=BOLD
@@ -51,11 +51,11 @@ r11 c00-01 fg=rule bg=ground
 r11 c02-74 fg=text-dim bg=ground
 r11 c75-79 fg=rule bg=ground
 r12 c00-01 fg=rule bg=ground
-r12 c02-63 fg=text-dim bg=ground
-r12 c64-79 fg=rule bg=ground
+r12 c02-64 fg=text-dim bg=ground
+r12 c65-79 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-51 fg=text-dim bg=ground
-r13 c52-79 fg=rule bg=ground
+r13 c02-52 fg=text-dim bg=ground
+r13 c53-79 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
 r14 c02-13 fg=text-dim bg=ground
 r14 c14-79 fg=rule bg=ground
@@ -67,7 +67,7 @@ r19 c00-79 fg=rule
 r20 c00-79 fg=rule
 r21 c00-79 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
-r23 c21-72 fg=rule
+r23 c00-23 fg=text-dim
+r23 c24-72 fg=rule
 r23 c73-73 fg=text
 r23 c74-79 fg=text-dim

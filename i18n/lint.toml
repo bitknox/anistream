@@ -7,7 +7,7 @@
 # when one is found.
 names = []
 # Upper-case words that are not shouting.
-acronyms = ["MIT", "TV", "VPN", "URL", "HLS", "RSS", "SSL", "DNS", "API", "OK", "IP", "HTTP", "HTTPS", "AniList"]
+acronyms = ["MIT", "TV", "VPN", "URL", "HLS", "RSS", "SSL", "DNS", "API", "OK", "IP", "HTTP", "HTTPS", "AniList", "OVA", "ONA"]
 
 [language.en]
 words = ["provider", "providers", "pirate", "oops", "simply", "easily", "effortless", "seamless"]
@@ -16,4 +16,4 @@ phrases = ["watch together", "mark as seen", "mark as watched", "sub or dub", "d
 [code]
 # Platforms whose hardcoded-string scan fails the build. A platform is added in the last commit
 # of its migration, when its baseline in i18n/baselines/ is empty.
-enforce = []
+enforce = ["tui"]

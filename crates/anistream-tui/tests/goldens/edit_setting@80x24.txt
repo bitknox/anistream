@@ -1,27 +1,27 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  APPEARANCE  ───────────────────────────────────────────────────────────
-  ▤│    THEME                       adaptive
-  ▦│    MOTION                      on
-  /│    TITLES                      AniList's choice
+  ▸│  Appearance  ───────────────────────────────────────────────────────────
+  ▤│    Theme                       Adaptive
+  ▦│    Motion                      On
+  /│    Titles                      AniList's choice
   ▥│
 ────────────────────────────────────────────────────────────────────────────────
-▌ EDIT   spa,en▏
+▌ Edit   spa,en▏
 ────────────────────────────────────────────────────────────────────────────────
-  subtitles — enter saves, esc leaves it be
+  subtitles. Enter saves, Esc leaves it as it is.
 
-   │    AUTO-PLAY NEXT              on
-   │    SKIP OPENING AUTOMATICALLY  on
-   │    SKIP FILLER AUTOMATICALLY   off
-   │    MARK OPENING AND ENDING     on
-   │    SHOW SKIP BUTTON            on
-   │    START FULLSCREEN            off
-   │    UPSCALING                   natural · ArtCNN
-   │    PLAYER INTERFACE            anistream
+   │    Auto-play next              On
+   │    Skip opening automatically  On
+   │    Skip filler automatically   Off
+   │    Mark opening and ending     On
+   │    Show skip button            On
+   │    Start fullscreen            Off
+   │    Upscaling                   Natural · ArtCNN
+   │    Player interface            anistream
    │  ────────────────────────────────────────────────────────────────────────
-   │    enter types a language code — too many values to cycle
+   │    Press Enter to type a language code. There are too many values to c…
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                        ↵ save   esc cancel
+plugins · Subbed · 1080p                                     ↵ save   esc cancel
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=rule mod=BOLD
@@ -41,8 +41,8 @@ r09 c00-79 fg=rule bg=ground
 r10 c00-01 fg=rule bg=ground
 r10 c02-35 fg=text-dim bg=ground
 r10 c36-38 fg=text-dim bg=ground mod=BOLD
-r10 c39-42 fg=text-dim bg=ground
-r10 c43-79 fg=rule bg=ground
+r10 c39-48 fg=text-dim bg=ground
+r10 c49-79 fg=rule bg=ground
 r11 c00-79 fg=rule bg=ground
 r12 c00-79 fg=rule
 r13 c00-79 fg=rule
@@ -55,8 +55,8 @@ r19 c00-79 fg=rule
 r20 c00-79 fg=rule
 r21 c00-79 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
-r23 c21-60 fg=rule
+r23 c00-23 fg=text-dim
+r23 c24-60 fg=rule
 r23 c61-61 fg=text
 r23 c62-69 fg=text-dim
 r23 c70-72 fg=text

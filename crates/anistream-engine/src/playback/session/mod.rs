@@ -18,6 +18,7 @@
 //! viewer's controls, what the companion shows, the picture, what is written down of the watch,
 //! skipping, the subtitles fetched ahead and the Discord presence each have a file of their own.
 
+use anistream_model::Msg;
 use std::sync::Arc;
 
 use anistream_core::{
@@ -237,8 +238,10 @@ pub async fn play(
         slot.release();
         tracing::info!(url = %first.url, "handing off to the system handler");
         let update = match host.open_url(&first.url) {
-            Ok(()) => Event::Toast(Notice::info("opened in your browser")),
-            Err(e) => Event::Toast(Notice::alert(format!("could not open: {e}"))),
+            Ok(()) => Event::Toast(Notice::info(Msg::NoticeOpenedInBrowser)),
+            Err(e) => {
+                Event::Toast(Notice::alert(Msg::NoticeCouldNotOpen { reason: e.to_string() }))
+            }
         };
         let _ = tx.send(update);
         // Nothing plays here, so Now Playing comes down rather than waiting on a player that
@@ -376,15 +379,18 @@ pub async fn play(
             run.night_applied = false;
         }
         if player.is_none() {
-            let _ = tx.send(Event::Status("starting mpv…".into()));
+            let _ = tx.send(Event::Status(Some(Msg::StatusStartingPlayer)));
             match opener.open(&request).await {
                 Ok((link, events)) => player = Some(Player::new(link, events)),
                 Err(e) if last => {
-                    let _ = tx.send(Event::Toast(Notice::alert(format!("mpv: {e}"))));
+                    let _ =
+                        tx.send(Event::Toast(Notice::alert(Msg::NoticePlayerFailedToStart {
+                            reason: e.to_string(),
+                        })));
                     // The player never existed, but the UI has Now Playing up and a control
                     // surface pointed at it. Saying so is what takes them down.
                     let _ = tx.send(Event::playback_ended(false, Ending::Failed));
-                    let _ = tx.send(Event::Status(String::new()));
+                    let _ = tx.send(Event::Status(None));
                     return;
                 }
                 Err(e) => {
@@ -418,8 +424,10 @@ pub async fn play(
         if let Err(e) = load(current.link.as_ref(), &stream, &request).await {
             tracing::warn!(error = %e, "could not hand the stream to mpv");
         }
-        let _ =
-            tx.send(Event::Status(format!("playing {} ep {}", context.title, context.episode)));
+        let _ = tx.send(Event::Status(Some(Msg::StatusPlaying {
+            title: context.title.clone(),
+            episode: context.episode.clone(),
+        })));
         // mpv is already at the resume point by now — `start` handled it. Saying so is what
         // keeps it from looking like the episode began in the wrong place.
         if let Some(position) = resume_at {
@@ -496,10 +504,10 @@ pub async fn play(
                         ?reported,
                         "no frames; trying the next stream"
                     );
-                    let _ = tx.send(Event::Toast(Notice::info(format!(
-                        "no video from that stream — trying {} of {total}",
-                        attempt + 1
-                    ))));
+                    let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeStreamNoVideo {
+                        next: attempt as i64 + 1,
+                        total: total as i64,
+                    })));
                     index = next_untried(&tried, index);
                     continue;
                 }
@@ -548,14 +556,11 @@ pub async fn play(
                 // ends no file, and only the socket closing says anything happened.
                 if no_frames && !stopped && !quit {
                     let message = match reported {
-                        Some(line) => format!("mpv could not play this: {line}"),
-                        None => {
-                            "mpv exited without playing anything, and said nothing about why"
-                                .into()
-                        }
+                        Some(line) => Msg::NoticePlayerCouldNotPlay { reason: line },
+                        None => Msg::NoticePlayerExitedSilently,
                     };
                     tracing::warn!(
-                        %message,
+                        message = %message,
                         from = %crate::logged::address(&streams[index].url),
                         "playback produced no frames"
                     );
@@ -576,7 +581,7 @@ pub async fn play(
                     Ending::Failed
                 };
                 let _ = tx.send(Event::playback_ended(watched.unwrap_or(false), ending));
-                let _ = tx.send(Event::Status(String::new()));
+                let _ = tx.send(Event::Status(None));
                 return;
             }
         }
@@ -617,7 +622,7 @@ fn next_untried(tried: &[bool], current: usize) -> usize {
 
 /// What a party is answered with where this build has no watch parties: see the `party`
 /// feature.
-pub const NO_PARTY: &str = "watch parties aren't built into this front end";
+pub const NO_PARTY: Msg = Msg::NoticeNoParty;
 
 /// One playback's state across the streams it tries.
 struct Run<'a> {

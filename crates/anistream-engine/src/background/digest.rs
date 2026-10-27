@@ -8,7 +8,7 @@
 use std::{collections::HashSet, sync::Arc};
 
 use anistream_meta::Meta;
-use anistream_model::{event::Event, notice::Notice};
+use anistream_model::{Msg, event::Event, notice::Notice};
 use anistream_store::Store;
 
 use crate::{
@@ -95,20 +95,23 @@ pub fn spawn(
 /// Say what aired: as a toast, and through the host too when `desktop` asks for it. Then keep
 /// next tops the shows up, since an episode out is one more it may keep.
 fn say(hits: &[(String, u32)], desktop: bool, host: &dyn Host, tx: &Outbox) {
-    let text = compose(hits);
+    let msg = compose(hits);
     // A copy for people who launch the app and switch away. The toast is the real channel.
+    // The host takes plain text, so this one is English until hosts render messages themselves.
     if desktop {
-        host.notify("anistream", &text);
+        host.notify("anistream", &msg.english());
     }
-    let _ = tx.send(Event::Toast(Notice::info(text)));
+    let _ = tx.send(Event::Toast(Notice::info(msg)));
     let _ = tx.internal(Internal::TopUp);
 }
 
 /// One line, sized to what it reports: a single episode is named, a pile is counted.
-fn compose(hits: &[(String, u32)]) -> String {
+fn compose(hits: &[(String, u32)]) -> Msg {
     match hits {
-        [(title, episode)] => format!("{title} ep {episode} aired while you were away"),
-        _ => format!("{} new episodes for shows you watch — the calendar has them", hits.len()),
+        [(title, episode)] => {
+            Msg::NoticeEpisodeAired { title: title.clone(), episode: i64::from(*episode) }
+        }
+        _ => Msg::NoticeEpisodesAired { count: i64::try_from(hits.len()).unwrap_or(i64::MAX) },
     }
 }
 
@@ -130,15 +133,12 @@ mod tests {
     #[test]
     fn one_episode_is_named_rather_than_counted() {
         let line = compose(&[("Hoshikuzu".into(), 12)]);
-        assert!(line.contains("Hoshikuzu"), "got {line:?}");
-        assert!(line.contains("12"));
+        assert_eq!(line, Msg::NoticeEpisodeAired { title: "Hoshikuzu".into(), episode: 12 });
     }
 
     #[test]
     fn several_episodes_become_a_count_that_points_at_the_calendar() {
         let hits = vec![("A".into(), 1), ("B".into(), 2), ("C".into(), 3)];
-        let line = compose(&hits);
-        assert!(line.contains('3'), "got {line:?}");
-        assert!(line.to_lowercase().contains("calendar"));
+        assert_eq!(compose(&hits), Msg::NoticeEpisodesAired { count: 3 });
     }
 }

@@ -500,9 +500,11 @@ impl Form {
                     field.set_sensitive(true);
                 }
                 self.start.set_label("Try Again");
-                let why = reason
-                    .as_deref()
-                    .map_or("The party ended before it began.".into(), crate::catalog::shown);
+                // i18n P2: replace with the catalogue
+                let why =
+                    reason.as_ref().map_or("The party ended before it began.".into(), |m| {
+                        crate::catalog::shown(&m.english())
+                    });
                 self.say(&why, false, true);
             }
             Event::Detail(_) | Event::Content { .. } => self.show_episode(),

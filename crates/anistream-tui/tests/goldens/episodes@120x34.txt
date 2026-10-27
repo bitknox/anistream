@@ -2,15 +2,15 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ←  Hoshikuzu no Tabibito
  ▤ │
- ▦ │    #     TITLE                                                RUN     WATCHED
+ ▦ │    #     Title                                                Run     Watched
  / │  ─────────────────────────────────────────────────────────────────────────────────────
- ▥ │    001   The Last Mail Coach                                  23:55   ██████████  done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ↓ │    002   A Town Under Glass                                   23:55   ██████████  done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ◇ │    003   Lamplight, Lamplight                                 23:55   ██████████  done  ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ▥ │    001   The Last Mail Coach                                  23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ↓ │    002   A Town Under Glass                                   23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ◇ │    003   Lamplight, Lamplight                                 23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
  ◎ │  ▌ 004   The Cartographer's Daughter                          23:55   █████▊░░░░        ░░░░░░░░░░░░░░░░░░░░░░░░░
  ⚙ │    005   Rain on the Rails                                    23:55   ░░░░░░░░░░        ░░░░░░░░░░░░░░░░░░░░░░░░░
-   │    006   Two Letters, One Name                                23:55   ░░░░░░░░░░  mixed ░░░░░░░░░░░░░░░░░░░░░░░░░
-   │    007   The Festival of Small Stars                          23:55   ░░░░░░░░░░  filler░░░░░░░░░░░░░░░░░░░░░░░░░
+   │    006   Two Letters, One Name                                23:55   ░░░░░░░░░░  Mixed ░░░░░░░░░░░░░░░░░░░░░░░░░
+   │    007   The Festival of Small Stars                          23:55   ░░░░░░░░░░  Filler░░░░░░░░░░░░░░░░░░░░░░░░░
    │    008   Where the Road Ends                                  23:55   ░░░░░░░░░░
    │    009   Postmarked Yesterday                                 23:55   ░░░░░░░░░░        A girl who draws maps of
    │    010   The Comet's Wake                                     23:55   ░░░░░░░░░░        places that are not there
@@ -31,7 +31,7 @@ anistream                                                                       
    │
    │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                               ↵ play   u watched   q back   ? keys
+plugins · Subbed · 1080p                                                            ↵ play   u watched   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -156,7 +156,7 @@ r29 c03-03 fg=rule
 r30 c03-03 fg=rule
 r31 c03-03 fg=rule
 r32 c00-119 fg=rule
-r33 c00-20 fg=text-dim
+r33 c00-23 fg=text-dim
 r33 c84-84 fg=text
 r33 c85-92 fg=text-dim
 r33 c93-93 fg=text

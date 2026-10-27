@@ -5,6 +5,36 @@
 
 use crate::{Arg, text};
 
+/// Toast after a setting is stored.
+pub fn notice_saved(label: &str) -> String {
+    text("notice-saved", &[("label", Arg::Text(label))])
+}
+
+/// Toast when a setting could not be stored.
+pub fn notice_not_saved(cause: &str) -> String {
+    text("notice-not-saved", &[("cause", Arg::Text(cause))])
+}
+
+/// Toast with a wait.
+pub fn notice_everything(wait: &str, size: &str, count: i64, percent: &str) -> String {
+    text("notice-everything", &[("wait", Arg::Text(wait)), ("size", Arg::Text(size)), ("count", Arg::Int(count)), ("percent", Arg::Text(percent))])
+}
+
+/// The storage is full.
+pub fn cause_disk_full() -> String {
+    text("cause-disk-full", &[])
+}
+
+/// The file could not be written.
+pub fn cause_not_writable(path: &str) -> String {
+    text("cause-not-writable", &[("path", Arg::Text(path))])
+}
+
+/// Nothing to say.
+pub fn notice_done() -> String {
+    text("notice-done", &[])
+}
+
 /// Settings row.
 pub fn settings_language() -> String {
     text("settings-language", &[])

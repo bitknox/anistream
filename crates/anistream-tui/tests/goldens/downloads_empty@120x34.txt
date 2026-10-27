@@ -1,14 +1,14 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  TITLE                             STATE         PROGRESS
-  ▤  CALENDAR               │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▦  SEASONAL               │  NOTHING QUEUED
-  /  SEARCH                 │
-  ▥  LIBRARY                │  d on a title or episode queues it for offline
-▌ ↓  DOWNLOADS              │
-  ◇  PROVIDERS              │
-  ◎  ACCOUNTS               │
-  ⚙  SETTINGS               │
+  ▸  Continue               │  Title                             State         Progress
+  ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▦  Seasonal               │  Nothing queued
+  /  Search                 │
+  ▥  Library                │  Press d on a title or episode to queue it for offline.
+▌ ↓  Downloads              │
+  ◇  Sources                │
+  ◎  Accounts               │
+  ⚙  Settings               │
                             │
                             │
                             │
@@ -31,7 +31,7 @@ anistream                                                                       
                             │
                             │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                                                             ? keys
+plugins · Subbed · 1080p                                                                                          ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -62,13 +62,13 @@ r05 c28-28 fg=rule
 r06 c02-02 fg=text-dim
 r06 c05-11 fg=text-dim
 r06 c28-28 fg=rule
-r06 c31-75 fg=text-dim
+r06 c31-84 fg=text-dim
 r07 c00-00 fg=text-dim
 r07 c02-02 fg=text
 r07 c05-13 fg=text mod=BOLD
 r07 c28-28 fg=rule
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim
@@ -98,6 +98,6 @@ r29 c28-28 fg=rule
 r30 c28-28 fg=rule
 r31 c28-28 fg=rule
 r32 c00-119 fg=rule
-r33 c00-20 fg=text-dim
+r33 c00-23 fg=text-dim
 r33 c114-114 fg=text
 r33 c115-119 fg=text-dim

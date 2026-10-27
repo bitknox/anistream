@@ -1,12 +1,12 @@
 anistream                                     torrent ○  plugins ●  ·  anilist ○
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  ▌ watching    planning    completed    paused    dropped
+  ▸│  ▌ Watching    Planning    Completed    Paused    Dropped
   ▤│  ────────────────────────────────────────────────────────────────────────
   ▦│
-  /│  NO ACCOUNT CONNECTED
+  /│  No account connected
 ▌ ▥│
-  ↓│  your watch history works without one — the Library mirrors a tracker's …
-  ◇│  press 8 for Accounts to sign in
+  ↓│  Your watch history works without one. The library mirrors the list on a…
+  ◇│  Press 8 to open Accounts and sign in.
   ◎│
   ⚙│
    │
@@ -21,7 +21,7 @@ anistream                                     torrent ○  plugins ●  ·  anil
    │
    │
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                    h/l list   ↵ open   e episodes   ? keys
+plugins · Subbed · 1080p                 h/l list   ↵ open   e episodes   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -56,7 +56,7 @@ r07 c03-03 fg=rule
 r07 c06-77 fg=text-dim
 r08 c02-02 fg=text-dim
 r08 c03-03 fg=rule
-r08 c06-36 fg=text-dim
+r08 c06-42 fg=text-dim
 r09 c02-02 fg=text-dim
 r09 c03-03 fg=rule
 r10 c02-02 fg=text-dim
@@ -73,7 +73,7 @@ r19 c03-03 fg=rule
 r20 c03-03 fg=rule
 r21 c03-03 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c41-43 fg=text
 r23 c44-51 fg=text-dim
 r23 c52-52 fg=text

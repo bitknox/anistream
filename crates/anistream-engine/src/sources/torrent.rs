@@ -2,6 +2,7 @@
 //! session once the VPN guard passes, and the source chain rebuilt when a setting changes which
 //! sources there are.
 
+use anistream_model::Msg;
 use std::{sync::Arc, time::Duration};
 
 use anistream_core::config::Config;
@@ -89,10 +90,7 @@ impl TorrentTasks {
         config: &Config,
         services: &Services,
         tx: &Outbox,
-        arrivals: &mpsc::UnboundedSender<(
-            u64,
-            std::result::Result<sources::TorrentUp, String>,
-        )>,
+        arrivals: &mpsc::UnboundedSender<(u64, std::result::Result<sources::TorrentUp, Msg>)>,
     ) {
         self.generation += 1;
         if !sources::torrent_wanted(config) {
@@ -129,7 +127,7 @@ impl TorrentTasks {
     pub(crate) fn arrived(
         &mut self,
         generation: u64,
-        outcome: std::result::Result<sources::TorrentUp, String>,
+        outcome: std::result::Result<sources::TorrentUp, Msg>,
         vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
         services: &Services,
         config: &SharedConfig,
@@ -143,7 +141,7 @@ impl TorrentTasks {
         let up = match outcome {
             Ok(up) => up,
             Err(reason) => {
-                tracing::warn!(%reason, "torrent source not started");
+                tracing::warn!(reason = %reason.english(), "torrent source not started");
                 let _ = tx.send(Event::ProviderNote(reason));
                 return;
             }
@@ -257,7 +255,7 @@ fn check_alone(
         Ok(guard) => guard,
         Err(reason) => {
             let _ = tx.send(Event::Vpn(Some(GuardView::Unreachable)));
-            let _ = tx.send(Event::Toast(Notice::alert(format!("not checked: {reason}"))));
+            let _ = tx.send(Event::Toast(Notice::alert(Msg::TorrentNotChecked { reason })));
             return;
         }
     };
@@ -320,7 +318,7 @@ pub async fn reload_sources(
     vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
     config: &SharedConfig,
     tx: &Outbox,
-    arrivals: &mpsc::UnboundedSender<(u64, std::result::Result<sources::TorrentUp, String>)>,
+    arrivals: &mpsc::UnboundedSender<(u64, std::result::Result<sources::TorrentUp, Msg>)>,
 ) {
     // Old traffic stops before new traffic starts. The other order would leave two
     // sessions briefly alive, and one of them is the one being switched off.
@@ -347,9 +345,9 @@ pub async fn reload_sources(
         let _ = tx.send(Event::Vpn(None));
     }
     let _ = tx.send(Event::ProviderNote(if sources::torrent_wanted(&snapshot) {
-        "sources reloaded — torrents start once the VPN guard passes".into()
+        Msg::SourcesReloadedTorrentsPending
     } else {
-        "torrents are off — the session was stopped".into()
+        Msg::SourcesReloadedTorrentsOff
     }));
     let _ = tx.send(Event::Providers(data::provider_rows(registry, &services.stores)));
     tracing::info!(providers = ?registry.ids(), "source chain reloaded");
@@ -433,6 +431,9 @@ mod tests {
         let mut said = said(&mut rx);
         let Some(Event::Toast(notice)) = said.pop() else { panic!("{said:?}") };
         assert_eq!(badges(said), [Some(GuardView::Unreachable)]);
-        assert!(notice.text.starts_with("not checked: socks5 mode requires"), "{notice:?}");
+        assert!(
+            notice.text.starts_with("Couldn't check the connection. socks5 mode requires"),
+            "{notice:?}"
+        );
     }
 }

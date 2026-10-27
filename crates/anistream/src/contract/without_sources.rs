@@ -89,7 +89,7 @@ async fn a_source_that_cannot_find_the_show_leaves_anilists_episodes_and_says_so
     assert!(rows.iter().all(|row| row.metadata_only));
     assert_eq!(
         toasts(&updates),
-        ["info: no source could list this show: fixture found no matches"]
+        ["info: No source could list this show: fixture found no matches"]
     );
     ends(&updates, job);
 }
@@ -121,7 +121,10 @@ async fn a_download_of_a_show_no_source_lists_is_refused_without_asking_one() {
     let job = h.send(Command::DownloadEpisode { id: FINISHED, episode: "1".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "JobDone"]);
-    assert_eq!(toasts(&updates), ["alert: no sources configured: see the Providers screen"]);
+    assert_eq!(
+        toasts(&updates),
+        ["alert: No sources are set up. Add one on the Sources screen."]
+    );
     ends(&updates, job);
     assert!(h.store().downloads().unwrap().is_empty());
 
@@ -140,7 +143,7 @@ async fn a_download_of_a_show_no_source_lists_is_refused_without_asking_one() {
         let updates = h.settle().await;
         assert_eq!(
             toasts(&updates),
-            ["alert: no source could list this show, so it can't be downloaded"]
+            ["alert: No source could list this show, so it can't be downloaded."]
         );
     }
     assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), asked, "not asked again");

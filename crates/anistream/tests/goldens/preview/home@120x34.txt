@@ -1,14 +1,14 @@
 anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  CONTINUE               │  ▌ Stardust Wayfarer       ep 4 · 21%   ░░░░░░░░░░░░░░░░░
-  ▤  CALENDAR               │                                         ░░░░░░░░░░░░░░░░░
-  ▦  SEASONAL               │                                         ░░░░░░░░░░░░░░░░░
-  /  SEARCH                 │                                         ░░░░░░░░░░░░░░░░░
-  ▥  LIBRARY                │                                         ░░░░░░░░░░░░░░░░░
-  ↓  DOWNLOADS              │                                         ░░░░░░░░░░░░░░░░░
-  ◇  PROVIDERS              │                                         ░░░░░░░░░░░░░░░░░
-  ◎  ACCOUNTS               │                                         ░░░░░░░░░░░░░░░░░
-  ⚙  SETTINGS               │                                         ░░░░░░░░░░░░░░░░░
+▌ ▸  Continue               │  ▌ Stardust Wayfarer         E4 · 21%   ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │                                         ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │                                         ░░░░░░░░░░░░░░░░░
+  /  Search                 │                                         ░░░░░░░░░░░░░░░░░
+  ▥  Library                │                                         ░░░░░░░░░░░░░░░░░
+  ↓  Downloads              │                                         ░░░░░░░░░░░░░░░░░
+  ◇  Sources                │                                         ░░░░░░░░░░░░░░░░░
+  ◎  Accounts               │                                         ░░░░░░░░░░░░░░░░░
+  ⚙  Settings               │                                         ░░░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░░░
@@ -17,10 +17,10 @@ anistream                                                                       
                             │                                         Stardust Wayfarer
                             │                                         Hoshikuzu no Tabibito
                             │
-                            │                                         TV  ·  12 EP  ·  2024  ·  82  ·  KUJAKU ANIMA…
+                            │                                         TV  ·  12 episodes  ·  2024  ·  82  ·  Kujaku…
                             │                                         Adventure  ·  Drama  ·  Fantasy
                             │
-                            │                                         ▏ resume ep 4 at 5:00 (21%)
+                            │                                         ▏ Continue E4 at 5:00 (21%)
                             │                                         █████░░░░░░░░░░░░░░░░░░░
                             │
                             │                                         A lamplighter with no memory of her home walks
@@ -29,6 +29,6 @@ anistream                                                                       
                             │                                         town she saves remembers a little of her, and
                             │                                         she, a little less of herself.
                             │
-                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                                j move down   l move right   ? keys
+plugins · Subbed · 1080p                                                             j move down   l move right   ? keys

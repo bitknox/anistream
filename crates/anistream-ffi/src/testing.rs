@@ -169,7 +169,7 @@ pub(crate) fn options(
         sync.anilist = Some(tracker);
     }
     let stores = plugin_stores::Stores::with_offline_tokens(&config, &paths, tokens)
-        .map_err(|reason| FfiError::Engine { reason })?;
+        .map_err(|reason| FfiError::Engine { reason: reason.english() })?;
 
     let mut options = Opened { paths, config, store }.options(http, start);
     options.sources =

@@ -9,19 +9,19 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ◇│  Umibe no Kissaten
   ◎│  The Seaside Café
   ⚙│
-   │  TV  ·  12 EP  ·  2026  ·  86  ·  STUDIO KAWASEMI
+   │  TV  ·  12 episodes  ·  2026  ·  86  ·  Studio Kawasemi
    │
    │  Umibe no Kissaten: a story told in twelve evenings.
    │
    │  Drama
    │
-   │  ep 2 out 6d 2h ago  ·  ep 3 in 17h 48m
+   │  E2 out 6d 2h ago  ·  E3 in 17h 48m
    │
    │
    │
    │
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p             space play next   ↵ episodes   q back   ? keys
+plugins · Subbed · 1080p          space play next   ↵ episodes   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -59,7 +59,7 @@ r09 c06-21 fg=text-dim
 r10 c02-02 fg=text-dim
 r10 c03-03 fg=rule
 r11 c03-03 fg=rule
-r11 c06-53 fg=text-dim
+r11 c06-59 fg=text-dim
 r12 c03-03 fg=rule
 r13 c03-03 fg=rule
 r13 c06-56 fg=text-dim
@@ -68,13 +68,13 @@ r15 c03-03 fg=rule
 r15 c06-10 fg=text-dim
 r16 c03-03 fg=rule
 r17 c03-03 fg=rule
-r17 c06-43 fg=state
+r17 c06-39 fg=state
 r18 c03-03 fg=rule
 r19 c03-03 fg=rule
 r20 c03-03 fg=rule
 r21 c03-03 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c34-38 fg=text
 r23 c39-51 fg=text-dim
 r23 c52-52 fg=text

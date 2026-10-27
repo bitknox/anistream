@@ -15,7 +15,7 @@ anistream                                                                       
 
 
 
-                                             Hoshikuzu no Tabibito  ·  ep 4
+                                          Hoshikuzu no Tabibito  ·  Episode 4
 
 
 
@@ -31,7 +31,7 @@ anistream                                                                       
 
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                           space pause   S skip   q detach   ? keys
+plugins · Subbed · 1080p                                                        space pause   S skip   q detach   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -110,15 +110,15 @@ r13 c00-119 bg=obi
 r14 c00-119 bg=obi
 r15 c00-01 bg=obi
 r15 c02-22 fg=text bg=obi mod=BOLD
-r15 c23-59 bg=obi
-r15 c60-65 fg=text-dim bg=obi
+r15 c23-54 bg=obi
+r15 c55-65 fg=text-dim bg=obi
 r15 c66-119 bg=obi
 r16 c00-01 bg=obi
 r16 c02-28 fg=text-dim bg=obi
 r16 c29-119 bg=obi
-r17 c00-44 bg=obi
-r17 c45-74 fg=#161a2e bg=obi mod=BOLD
-r17 c75-119 bg=obi
+r17 c00-41 bg=obi
+r17 c42-76 fg=#161a2e bg=obi mod=BOLD
+r17 c77-119 bg=obi
 r18 c00-01 bg=obi
 r18 c02-49 fg=rule bg=obi
 r18 c50-52 bg=obi
@@ -140,7 +140,7 @@ r29 c00-119 bg=obi
 r30 c00-119 bg=obi
 r31 c00-119 bg=obi
 r32 c00-119 fg=rule
-r33 c00-20 fg=text-dim
+r33 c00-23 fg=text-dim
 r33 c80-84 fg=text
 r33 c85-93 fg=text-dim
 r33 c94-94 fg=text

@@ -2,7 +2,8 @@
 //! sign-in prompt while a device code is pending, and the rows of the overlays that show the
 //! accounts and the divergences a merge refused to guess at.
 
-use anistream_model::sync::PullError;
+use anistream_i18n::t;
+use anistream_model::{present::tracker_name, sync::PullError};
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
 use crate::{
@@ -33,7 +34,13 @@ const COL_TOKEN: u16 = 44;
 /// dialog you must dismiss to look at anything else is the wrong container for that.
 pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
     if area.height < MIN_TABLE_HEIGHT || area.width < 40 {
-        render_placeholder(buf, app, area, "ACCOUNTS", "needs a larger terminal");
+        render_placeholder(
+            buf,
+            app,
+            area,
+            &t::accounts_screen_title(),
+            &t::lists_terminal_too_small(),
+        );
         return;
     }
     let mut y = area.top();
@@ -48,7 +55,7 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
             area.left() + 2,
             y,
             truncate(
-                &glyph::eyebrow(&format!("finish signing in to {}", prompt.tracker)),
+                &t::accounts_finish_signing_in(&tracker_name(&prompt.tracker)),
                 area.width.saturating_sub(3) as usize,
             ),
             app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
@@ -58,7 +65,7 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
             area.left() + 2,
             y,
             truncate(
-                &format!("1. open   {}", prompt.url),
+                &t::accounts_step_open(&prompt.url),
                 area.width.saturating_sub(3) as usize,
             ),
             app.palette.style(Role::TextDim),
@@ -71,7 +78,7 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
         buf.set_string(
             area.left() + 2,
             y,
-            truncate("2. enter", area.width.saturating_sub(3) as usize),
+            truncate(&t::accounts_step_enter(), area.width.saturating_sub(3) as usize),
             app.palette.style(Role::TextDim),
         );
         buf.set_string(
@@ -87,7 +94,7 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
                 area.left() + 12,
                 y,
                 truncate(
-                    &anistream_model::present::device_code_expiry(at - app.clock.now_epoch()),
+                    &code_expiry(at - app.clock.now_epoch()),
                     area.width.saturating_sub(13) as usize,
                 ),
                 app.palette.style(Role::TextDim),
@@ -101,15 +108,19 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
         }
     }
 
-    buf.set_string(area.left(), y, glyph::eyebrow("tracker"), app.palette.style(Role::TextDim));
-    for (label, x) in [("state", COL_STATE), ("queued", COL_QUEUED), ("token", COL_TOKEN)] {
+    buf.set_string(
+        area.left(),
+        y,
+        t::accounts_column_tracker(),
+        app.palette.style(Role::TextDim),
+    );
+    for (label, x) in [
+        (t::accounts_column_state(), COL_STATE),
+        (t::accounts_column_queued(), COL_QUEUED),
+        (t::accounts_column_token(), COL_TOKEN),
+    ] {
         if area.left() + x < area.right() {
-            buf.set_string(
-                area.left() + x,
-                y,
-                glyph::eyebrow(label),
-                app.palette.style(Role::TextDim),
-            );
+            buf.set_string(area.left() + x, y, label, app.palette.style(Role::TextDim));
         }
     }
     y += 1;
@@ -120,16 +131,13 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
         buf.set_string(
             area.left(),
             y,
-            glyph::eyebrow("no trackers enabled"),
+            t::accounts_empty_heading(),
             app.palette.style(Role::TextDim),
         );
         buf.set_string(
             area.left(),
             y + 2,
-            truncate(
-                "add one to trackers.enabled in config.toml — local history works without any",
-                area.width as usize,
-            ),
+            truncate(&t::accounts_empty_hint(TRACKERS_SETTING), area.width as usize),
             app.palette.style(Role::TextDim),
         );
         return;
@@ -147,7 +155,7 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
         buf.set_string(
             area.left() + 2,
             y,
-            truncate(&glyph::eyebrow(&state.tracker), (COL_STATE - 3) as usize),
+            truncate(&tracker_name(&state.tracker), (COL_STATE - 3) as usize),
             if selected {
                 app.palette.style(Role::Text).add_modifier(Modifier::BOLD)
             } else {
@@ -159,11 +167,16 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
         // hide the one condition the user has to act on.
         // The same marks as the header chip for this tracker, so the two never disagree.
         let (mark, label, role) = match (state.connected, state.needs_reauth) {
-            (_, true) => (glyph::STATE_DOWN, "sign in again", Role::Alert),
-            (true, _) => (glyph::STATE_READY, "connected", Role::State),
-            (false, _) => (glyph::STATE_OFF, "not connected", Role::TextDim),
+            (_, true) => (glyph::STATE_DOWN, t::accounts_state_sign_in_again(), Role::Alert),
+            (true, _) => (glyph::STATE_READY, t::accounts_state_connected(), Role::State),
+            (false, _) => (glyph::STATE_OFF, t::accounts_state_not_connected(), Role::TextDim),
         };
-        buf.set_string(area.left() + 16, y, format!("{mark} {label}"), app.palette.style(role));
+        buf.set_string(
+            area.left() + 16,
+            y,
+            format!("{} {}", mark, label),
+            app.palette.style(role),
+        );
 
         if area.left() + 30 < area.right() {
             // Queue depth belongs beside the account: ops accumulate against a tracker whether or
@@ -199,7 +212,7 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
                 area.left() + 16,
                 y,
                 truncate(
-                    &format!("pull failed {}: {error}", pull_time(&app.clock, *at)),
+                    &pull_failed(&app.clock, *at, error),
                     area.right().saturating_sub(area.left() + 17) as usize,
                 ),
                 app.palette.style(Role::Alert),
@@ -216,10 +229,7 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
         buf.set_string(
             area.left() + 2,
             y,
-            truncate(
-                "tokens stored in 0600 files — OS keychain unavailable",
-                area.width.saturating_sub(4) as usize,
-            ),
+            truncate(&t::accounts_token_files(), area.width.saturating_sub(4) as usize),
             app.palette.style(Role::TextDim),
         );
         y += 1;
@@ -227,10 +237,13 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
 
     // What Enter will do to the selected row, spelled out — signing out is destructive enough that
     // it should never be a surprise.
-    let action = app
-        .sync
-        .get(app.cursors.accounts.selected)
-        .map(|s| if s.connected && !s.needs_reauth { "↵ sign out" } else { "↵ sign in" });
+    let action = app.sync.get(app.cursors.accounts.selected).map(|s| {
+        if s.connected && !s.needs_reauth {
+            t::accounts_enter_sign_out()
+        } else {
+            t::accounts_enter_sign_in()
+        }
+    });
     if let Some(action) = action
         && y + 1 < area.bottom()
     {
@@ -238,7 +251,7 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
         buf.set_string(
             area.left() + 2,
             y + 1,
-            truncate(action, area.width.saturating_sub(4) as usize),
+            truncate(&action, area.width.saturating_sub(4) as usize),
             app.palette.style(Role::TextDim),
         );
     }
@@ -247,32 +260,29 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
 /// Tracker accounts and what sync is doing.
 pub(super) fn accounts_rows(app: &App) -> Vec<(String, String)> {
     if app.sync.is_empty() {
-        return vec![(
-            String::new(),
-            "no trackers enabled — add one to trackers.enabled in config.toml".into(),
-        )];
+        return vec![(String::new(), t::accounts_rows_empty(TRACKERS_SETTING))];
     }
     app.sync
         .iter()
         .map(|state| {
             let action = if state.needs_reauth {
-                "sign in again"
+                t::accounts_action_sign_in_again()
             } else if state.connected {
-                "sign out"
+                t::accounts_action_sign_out()
             } else {
-                "sign in"
+                t::accounts_action_sign_in()
             };
-            let mut detail = vec![state.tracker.clone()];
+            let mut detail = vec![tracker_name(&state.tracker)];
             match (&state.user, state.connected) {
-                (Some(user), _) => detail.push(format!("as {user}")),
-                (None, true) => detail.push("connected".into()),
-                (None, false) => detail.push("not connected".into()),
+                (Some(user), _) => detail.push(t::accounts_row_signed_in_as(user)),
+                (None, true) => detail.push(t::accounts_row_connected()),
+                (None, false) => detail.push(t::accounts_row_not_connected()),
             }
             match (state.outbox, state.deferred) {
                 (0, _) => {}
-                (queued, 0) => detail.push(format!("{queued} queued")),
+                (queued, 0) => detail.push(t::accounts_row_queued(i64::from(queued))),
                 (queued, held) => {
-                    detail.push(format!("{queued} queued, {held} waiting for an id mapping"))
+                    detail.push(t::accounts_row_queued_held(i64::from(queued), i64::from(held)))
                 }
             }
             // Surfaced rather than hidden: someone on a shared machine should know their token
@@ -287,22 +297,40 @@ pub(super) fn accounts_rows(app: &App) -> Vec<(String, String)> {
             }
             // Last, so a narrow row truncates the reason rather than the fact.
             if let Some(PullError { reason: error, at }) = &state.pull_error {
-                detail.push(format!("pull failed {}: {error}", pull_time(&app.clock, *at)));
+                detail.push(pull_failed(&app.clock, *at, error));
             }
-            (action.to_string(), detail.join("  ·  "))
+            (action, detail.join("  ·  "))
         })
         .collect()
 }
 
-/// When a pull failed, as a local clock time — with the date once it is not today, because
-/// "14:32" from last week reads as an outage still going on.
-fn pull_time(clock: &Clock, at: i64) -> String {
+/// That a pull failed and why, with the local clock time of the failure — and the date once it
+/// is not today, because "14:32" from last week reads as an outage still going on.
+fn pull_failed(clock: &Clock, at: i64, error: &str) -> String {
     match clock.local(at) {
-        Some(when) if when.date_naive() == clock.today() => when.format("at %H:%M").to_string(),
-        Some(when) => when.format("on %b %-d at %H:%M").to_string(),
-        None => String::new(),
+        Some(when) if when.date_naive() == clock.today() => {
+            t::accounts_pull_failed_today(&when.format("%H:%M").to_string(), error)
+        }
+        Some(when) => t::accounts_pull_failed_dated(
+            &when.format("%-d %b").to_string(),
+            &when.format("%H:%M").to_string(),
+            error,
+        ),
+        None => t::accounts_pull_failed(error),
     }
 }
+
+/// How long a device code has left: seconds in the last minute, whole minutes before that.
+fn code_expiry(seconds_left: i64) -> String {
+    match seconds_left {
+        ..=0 => t::accounts_code_expired(),
+        1..60 => t::accounts_code_expires_seconds(seconds_left),
+        _ => t::accounts_code_expires_minutes((seconds_left + 59) / 60),
+    }
+}
+
+/// The config setting that lists the enabled trackers, as the config file spells it.
+pub(super) const TRACKERS_SETTING: &str = "trackers.enabled"; // i18n-skip
 
 /// Divergences the merge refused to guess at.
 pub(super) fn conflict_rows(app: &App) -> Vec<(String, String)> {
@@ -310,13 +338,12 @@ pub(super) fn conflict_rows(app: &App) -> Vec<(String, String)> {
         .iter()
         .map(|row| {
             (
-                "keep mine".to_string(),
-                format!(
-                    "{}  ·  {}: mine {} / theirs {}",
-                    truncate(&row.title, 34),
-                    row.field,
-                    row.local,
-                    row.remote
+                t::accounts_conflict_keep_mine(),
+                t::accounts_conflict_row(
+                    &truncate(&row.title, 34),
+                    &row.field,
+                    &row.local,
+                    &row.remote,
                 ),
             )
         })
@@ -371,16 +398,17 @@ mod tests {
             ..anistream_model::sync::SyncState::new("anilist")
         })));
         let (_, detail) = &accounts_rows(&app)[0];
-        let clock = pull_time(&app.clock, at);
-        assert_eq!(clock, "at 11:59", "today's failure reads as a clock time");
         assert!(
-            detail.contains(&format!("pull failed {clock}: network: timed out")),
-            "{detail}"
+            detail.contains("Fetching your list failed at 11:59: network: timed out"),
+            "today's failure reads as a clock time: {detail}"
         );
         assert!(!detail.contains("pulled"), "{detail}");
 
         // An older failure carries its date.
-        assert_eq!(pull_time(&app.clock, at - 10 * 86_400), "on Oct 9 at 11:59");
+        assert_eq!(
+            pull_failed(&app.clock, at - 10 * 86_400, "timed out"),
+            "Fetching your list failed on 9 Oct at 11:59: timed out"
+        );
     }
 
     #[test]
@@ -398,7 +426,7 @@ mod tests {
         })));
         app.go_to_section(Section::Accounts);
         let text = text_of(&render_to_buffer(&mut app, 120, 34));
-        assert!(text.contains("pull failed at "), "{text}");
+        assert!(text.contains("Fetching your list failed at "), "{text}");
         assert!(text.contains("network: timed out"), "{text}");
     }
 
@@ -423,13 +451,13 @@ mod tests {
 
         let buf = render_to_buffer(&mut app, 110, 20);
         let text = text_of(&buf);
-        assert!(text.contains("FINISH SIGNING IN TO SIMKL"), "got {text:?}");
+        assert!(text.contains("Finish signing in to Simkl"), "got {text:?}");
         assert!(text.contains("https://simkl.com/pin"), "the URL has to be there too");
         // Letterspaced *here specifically*: a code copied character by character wants them
         // separated. This is the one place that treatment earns its keep.
         assert!(text.contains("F A 4 3 3"), "the code must be legible: {text:?}");
         // And the account rows are still visible underneath, not pushed off.
-        assert!(text.contains("SIMKL"), "the table must survive the prompt");
+        assert!(text.contains("Simkl"), "the table must survive the prompt");
     }
 
     #[test]

@@ -9,9 +9,9 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ◇│    ▀▀▀▀▀▀▀▀▀▄
   ◎│    ▀ ▀▀   ▀▀
   ⚙│
-   │  NOTHING WATCHED YET
+   │  Nothing watched yet
    │
-   │  press 3 for this season, or / to search
+   │  Press 3 for this season, or / to search.
    │
    │
    │
@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                               ↵ open   e episodes   ? keys
+plugins · Subbed · 1080p                            ↵ open   e episodes   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -96,7 +96,7 @@ r11 c03-03 fg=rule
 r11 c06-24 fg=text-dim
 r12 c03-03 fg=rule
 r13 c03-03 fg=rule
-r13 c06-44 fg=text-dim
+r13 c06-45 fg=text-dim
 r14 c03-03 fg=rule
 r15 c03-03 fg=rule
 r16 c03-03 fg=rule
@@ -106,7 +106,7 @@ r19 c03-03 fg=rule
 r20 c03-03 fg=rule
 r21 c03-03 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c52-52 fg=text
 r23 c53-60 fg=text-dim
 r23 c61-61 fg=text

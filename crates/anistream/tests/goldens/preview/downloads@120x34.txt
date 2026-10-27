@@ -1,14 +1,14 @@
 anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  TITLE                             STATE         PROGRESS
-  ▤  CALENDAR               │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▦  SEASONAL               │  ▌ Stardust Wayfarer  ep 4         complete      ████████████████████  367 MB / 367 MB
-  /  SEARCH                 │    Stardust Wayfarer  ep 5         downloading   ████████░░░░░░░░░░░░  147 MB / 367 MB
-  ▥  LIBRARY                │    Stardust Wayfarer  ep 6         queued        ░░░░░░░░░░░░░░░░░░░░  torrents are off
-▌ ↓  DOWNLOADS            2 │    Stardust Wayfarer  ep 7         failed        ██░░░░░░░░░░░░░░░░░░  37 MB / 367 MB
-  ◇  PROVIDERS              │
-  ◎  ACCOUNTS               │
-  ⚙  SETTINGS               │
+  ▸  Continue               │  Title                             State         Progress
+  ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▦  Seasonal               │  ▌ Stardust Wayfarer  E4           Complete      ████████████████████  367 MB / 367 MB
+  /  Search                 │    Stardust Wayfarer  E5           Downloading   ████████░░░░░░░░░░░░  147 MB / 367 MB
+  ▥  Library                │    Stardust Wayfarer  E6           Queued        ░░░░░░░░░░░░░░░░░░░░  Torrents are off
+▌ ↓  Downloads            2 │    Stardust Wayfarer  E7           Failed        ██░░░░░░░░░░░░░░░░░░  37 MB / 367 MB
+  ◇  Sources                │
+  ◎  Accounts               │
+  ⚙  Settings               │
                             │
                             │
                             │
@@ -31,4 +31,4 @@ anistream                                                                       
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    downloads/900001/04.mkv
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                      c clear finished   X delete   ↵ play   ? keys
+plugins · Subbed · 1080p                                                   c clear finished   X delete   ↵ play   ? keys

@@ -9,6 +9,762 @@ import android.content.Context
  * `stringResource(R.string.x)` and `pluralStringResource(R.plurals.x, n, ...)` directly.
  */
 object Strings {
+    /** A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. */
+    fun noticeReason(context: Context, reason: String): String =
+        context.getString(R.string.notice_reason, reason)
+
+    /** Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast. */
+    fun causeNoSources(context: Context): String =
+        context.getString(R.string.cause_no_sources)
+
+    /** A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date. */
+    fun noticeNotAired(context: Context, episode: Int, `when`: String): String =
+        context.getString(R.string.notice_not_aired, episode, `when`)
+
+    /** A play's explanation: the episode is after the next one to air. The "when" says when that one airs. */
+    fun noticeNotAiredYet(context: Context, episode: Int, next: Int, `when`: String): String =
+        context.getString(R.string.notice_not_aired_yet, episode, next, `when`)
+
+    /** Part of an air time: the broadcast is later today. The time is the viewer's local time. */
+    fun causeAirsToday(context: Context, time: String): String =
+        context.getString(R.string.cause_airs_today, time)
+
+    /** Part of an air time: the broadcast is tomorrow. The time is the viewer's local time. */
+    fun causeAirsTomorrow(context: Context, time: String): String =
+        context.getString(R.string.cause_airs_tomorrow, time)
+
+    /** Part of an air time: the broadcast is within the next week. */
+    fun causeAirsInDays(context: Context, days: Int, time: String): String =
+        context.resources.getQuantityString(R.plurals.cause_airs_in_days, days, days, time)
+
+    /** Part of an air time: the broadcast is more than a week away. The date is year-month-day. */
+    fun causeAirsOnDate(context: Context, date: String, time: String): String =
+        context.getString(R.string.cause_airs_on_date, date, time)
+
+    /** Reason: the source answered but gave nothing to play. */
+    fun causeNoPlayableStream(context: Context): String =
+        context.getString(R.string.cause_no_playable_stream)
+
+    /** Reason: no source could be matched to the title. The detail is what each source said. */
+    fun causeTitleNoMatch(context: Context, detail: String): String =
+        context.getString(R.string.cause_title_no_match, detail)
+
+    /** Reason: the source the person picked is no longer installed or enabled. */
+    fun causeSourceGone(context: Context, source: String): String =
+        context.getString(R.string.cause_source_gone, source)
+
+    /** Reason: the release the person picked would not start. The detail comes from the source. */
+    fun causeReleaseFailed(context: Context, detail: String): String =
+        context.getString(R.string.cause_release_failed, detail)
+
+    /** Reason: every source matched the title but none has the episode. The detail is what each said. */
+    fun causeNoSourceHasEpisode(context: Context, episode: String, detail: String): String =
+        context.getString(R.string.cause_no_source_has_episode, episode, detail)
+
+    /** Reason: the source streams episodes but only torrents can be downloaded. */
+    fun causeSourceCannotDownload(context: Context): String =
+        context.getString(R.string.cause_source_cannot_download)
+
+    /** Reason: the title was never listed by a source, so it can't be downloaded. */
+    fun causeNoSourceCouldListShow(context: Context): String =
+        context.getString(R.string.cause_no_source_could_list_show)
+
+    /** Part of a finished download's toast: subtitle files were merged into the video. */
+    fun causeSubtitlesMerged(context: Context, tracks: Int): String =
+        context.resources.getQuantityString(R.plurals.cause_subtitles_merged, tracks, tracks)
+
+    /** Part of a finished download's toast: merging failed, so the subtitles stay as files beside it. */
+    fun causeSubtitlesLeftApart(context: Context, reason: String): String =
+        context.getString(R.string.cause_subtitles_left_apart, reason)
+
+    /** Part of a download toast: how many episodes of the range were in the queue already. */
+    fun causeAlreadyInDownloads(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.cause_already_in_downloads, count, count)
+
+    /** Job note while a play looks the title up. */
+    fun statusLookingUpTitle(context: Context): String =
+        context.getString(R.string.status_looking_up_title)
+
+    /** Job note while a play waits for the sources to arrive. */
+    fun statusLoadingSources(context: Context): String =
+        context.getString(R.string.status_loading_sources)
+
+    /** Job note while the sources are asked for an episode. The episode is its label, often a number. */
+    fun statusSearchingSources(context: Context, episode: String): String =
+        context.getString(R.string.status_searching_sources, episode)
+
+    /** Status while the player opens. */
+    fun statusStartingPlayer(context: Context): String =
+        context.getString(R.string.status_starting_player)
+
+    /** Status line while an episode plays. */
+    fun statusPlaying(context: Context, title: String, episode: String): String =
+        context.getString(R.string.status_playing, title, episode)
+
+    /** Toast when the player cannot be started. The reason comes from the system. */
+    fun noticePlayerFailedToStart(context: Context, reason: String): String =
+        context.getString(R.string.notice_player_failed_to_start, reason)
+
+    /** Toast when a stream never showed a frame and the next one is tried. */
+    fun noticeStreamNoVideo(context: Context, next: Int, total: Int): String =
+        context.getString(R.string.notice_stream_no_video, next, total)
+
+    /** Toast when mpv gave up on a file. The reason is mpv's own line. */
+    fun noticePlayerCouldNotPlay(context: Context, reason: String): String =
+        context.getString(R.string.notice_player_could_not_play, reason)
+
+    /** Toast when mpv closed without playing and without saying why. */
+    fun noticePlayerExitedSilently(context: Context): String =
+        context.getString(R.string.notice_player_exited_silently)
+
+    /** Toast when no picture has appeared a while after the player opened. */
+    fun noticePlayerNotPlaying(context: Context, seconds: Int): String =
+        context.getString(R.string.notice_player_not_playing, seconds)
+
+    /** Toast when a play is asked for in a build with no player. */
+    fun noticeNoPlayer(context: Context): String =
+        context.getString(R.string.notice_no_player)
+
+    /** Toast at launch when the mpv program is missing. The binary is the name the settings give it. */
+    fun noticeMpvMissing(context: Context, binary: String): String =
+        context.getString(R.string.notice_mpv_missing, binary)
+
+    /** Toast at launch when mpv is too old for anistream's own player. */
+    fun noticeMpvOld(context: Context, version: String): String =
+        context.getString(R.string.notice_mpv_old, version)
+
+    /** Toast after a link was handed to the browser. */
+    fun noticeOpenedInBrowser(context: Context): String =
+        context.getString(R.string.notice_opened_in_browser)
+
+    /** Toast when a link could not be opened. The reason comes from the system. */
+    fun noticeCouldNotOpen(context: Context, reason: String): String =
+        context.getString(R.string.notice_could_not_open, reason)
+
+    /** Toast when a trailer plays in mpv. */
+    fun noticeTrailerPlaying(context: Context): String =
+        context.getString(R.string.notice_trailer_playing)
+
+    /** Toast when a trailer opens in the browser. */
+    fun noticeTrailerOpened(context: Context): String =
+        context.getString(R.string.notice_trailer_opened)
+
+    /** Toast when a trailer could not be opened. The reason comes from the system. */
+    fun noticeTrailerFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_trailer_failed, reason)
+
+    /** Toast when the next episode is not the one after this because filler was skipped. */
+    fun noticeFillerSkipped(context: Context, episode: String): String =
+        context.getString(R.string.notice_filler_skipped, episode)
+
+    /** Toast after switching the audio while playing. */
+    fun noticeAudioNowSubbed(context: Context): String =
+        context.getString(R.string.notice_audio_now_subbed)
+
+    /** Toast after switching the audio while playing. */
+    fun noticeAudioNowDubbed(context: Context): String =
+        context.getString(R.string.notice_audio_now_dubbed)
+
+    /** Toast when the previous-episode control is used on the first episode. */
+    fun noticeAlreadyFirstEpisode(context: Context): String =
+        context.getString(R.string.notice_already_first_episode)
+
+    /** Toast when the next-episode control is used on the last known episode. */
+    fun noticeLastEpisode(context: Context, episode: String): String =
+        context.getString(R.string.notice_last_episode, episode)
+
+    /** Toast when the next-episode control is used and the next episode is not known. */
+    fun noticeNoNextEpisode(context: Context): String =
+        context.getString(R.string.notice_no_next_episode)
+
+    /** Toast when the previous-episode control finds no previous episode. */
+    fun noticeNoPreviousEpisode(context: Context): String =
+        context.getString(R.string.notice_no_previous_episode)
+
+    /** Toast when the title's episode match could not be cleared. The reason comes from the system. */
+    fun noticeMatchResetFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_match_reset_failed, reason)
+
+    /** Toast when the chosen match could not be saved. The reason comes from the system. */
+    fun noticeMatchSaveFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_match_save_failed, reason)
+
+    /** Toast when a chosen match still left the title undecided. */
+    fun noticeMatchDidNotStick(context: Context): String =
+        context.getString(R.string.notice_match_did_not_stick)
+
+    /** Toast when a search of the sources for a title found nothing. */
+    fun noticeSourceSearchEmpty(context: Context, query: String): String =
+        context.getString(R.string.notice_source_search_empty, query)
+
+    /** Toast after the person picked a source for one title. */
+    fun noticeSourcePinned(context: Context, source: String): String =
+        context.getString(R.string.notice_source_pinned, source)
+
+    /** Toast after the person went back to automatic source selection for one title. */
+    fun noticeSourceAutomatic(context: Context): String =
+        context.getString(R.string.notice_source_automatic)
+
+    /** Toast when the source choice for a title could not be saved. The reason comes from the system. */
+    fun noticeSourceChoiceFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_source_choice_failed, reason)
+
+    /** Toast when no source could list a show's episodes. The reason is what the sources said. */
+    fun noticeNoSourceCouldList(context: Context, reason: String): String =
+        context.getString(R.string.notice_no_source_could_list, reason)
+
+    /** Toast when a title cannot be taken off the Continue row. The reason comes from the system. */
+    fun noticeContinueHideFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_continue_hide_failed, reason)
+
+    /** Toast after an episode was added to the download queue. */
+    fun noticeDownloadQueued(context: Context, title: String, episode: String): String =
+        context.getString(R.string.notice_download_queued, title, episode)
+
+    /** Toast when an episode asked for is in downloads already. */
+    fun noticeDownloadAlreadyQueued(context: Context, title: String, episode: String): String =
+        context.getString(R.string.notice_download_already_queued, title, episode)
+
+    /** Toast when a waiting or paused download was moved to the front and started. */
+    fun noticeDownloadStartingNow(context: Context, title: String, episode: String): String =
+        context.getString(R.string.notice_download_starting_now, title, episode)
+
+    /** Toast after a download was cancelled. */
+    fun noticeDownloadCancelled(context: Context): String =
+        context.getString(R.string.notice_download_cancelled)
+
+    /** Toast after a download and its file were deleted. */
+    fun noticeDownloadFileDeleted(context: Context): String =
+        context.getString(R.string.notice_download_file_deleted)
+
+    /** Toast after a download was removed whose file was already gone. */
+    fun noticeDownloadRemovedFileGone(context: Context): String =
+        context.getString(R.string.notice_download_removed_file_gone)
+
+    /** Toast after a download was removed but its file could not be deleted. The reason comes from the system. */
+    fun noticeDownloadRemovedFileKept(context: Context, reason: String): String =
+        context.getString(R.string.notice_download_removed_file_kept, reason)
+
+    /** Toast after a download with no file was removed. */
+    fun noticeDownloadRemoved(context: Context): String =
+        context.getString(R.string.notice_download_removed)
+
+    /** Toast after finished downloads were cleared from the list. */
+    fun noticeDownloadsCleared(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.notice_downloads_cleared, count, count)
+
+    /** Toast when an episode finished downloading. */
+    fun noticeDownloadFinished(context: Context, title: String, episode: String): String =
+        context.getString(R.string.notice_download_finished, title, episode)
+
+    /** Toast when an episode finished downloading and the note says what happened to its subtitles. */
+    fun noticeDownloadFinishedNote(context: Context, title: String, episode: String, note: String): String =
+        context.getString(R.string.notice_download_finished_note, title, episode, note)
+
+    /** Toast when a download could not start. The reason comes from the torrent client. */
+    fun noticeDownloadFailed(context: Context, title: String, episode: String, reason: String): String =
+        context.getString(R.string.notice_download_failed, title, episode, reason)
+
+    /** Toast after a range was asked for and nothing was queued. */
+    fun noticeDownloadsNoneQueued(context: Context): String =
+        context.getString(R.string.notice_downloads_none_queued)
+
+    /** Toast after a range was asked for and nothing was queued, and the reason it stopped. */
+    fun noticeDownloadsNoneQueuedStopped(context: Context, reason: String): String =
+        context.getString(R.string.notice_downloads_none_queued_stopped, reason)
+
+    /** Toast after a range was asked for and every episode was in the queue already. */
+    fun noticeDownloadsNoneNew(context: Context, existing: String): String =
+        context.getString(R.string.notice_downloads_none_new, existing)
+
+    /** Toast as above, with the reason the range stopped. */
+    fun noticeDownloadsNoneNewStopped(context: Context, existing: String, reason: String): String =
+        context.getString(R.string.notice_downloads_none_new_stopped, existing, reason)
+
+    /** Toast after a range was asked for, some episodes were queued and some were there already. */
+    fun noticeEpisodesQueuedExisting(context: Context, count: Int, existing: String): String =
+        context.resources.getQuantityString(R.plurals.notice_episodes_queued_existing, count, count, existing)
+
+    /** Toast as above, with the reason the range stopped. */
+    fun noticeEpisodesQueuedStopped(context: Context, count: Int, reason: String): String =
+        context.resources.getQuantityString(R.plurals.notice_episodes_queued_stopped, count, count, reason)
+
+    /** Toast as above, with some episodes in the queue already and the reason the range stopped. */
+    fun noticeEpisodesQueuedExistingStopped(context: Context, count: Int, existing: String, reason: String): String =
+        context.resources.getQuantityString(R.plurals.notice_episodes_queued_existing_stopped, count, count, existing, reason)
+
+    /** Toast when keep next found no room for another episode. */
+    fun noticeKeepNextFull(context: Context): String =
+        context.getString(R.string.notice_keep_next_full)
+
+    /** Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. */
+    fun partyNeedsServer(context: Context, server: String, operator: String): String =
+        context.getString(R.string.party_needs_server, server, operator)
+
+    /** Toast when a watch party is asked for in a build without watch parties. */
+    fun noticeNoParty(context: Context): String =
+        context.getString(R.string.notice_no_party)
+
+    /** Message when a watch party was asked for with no room named. */
+    fun partyNeedsRoom(context: Context): String =
+        context.getString(R.string.party_needs_room)
+
+    /** Message in a watch party when its server connection dropped and is retried. */
+    fun partyServerLost(context: Context): String =
+        context.getString(R.string.party_server_lost)
+
+    /** Message in a watch party when the connection came back. */
+    fun partyRejoined(context: Context): String =
+        context.getString(R.string.party_rejoined)
+
+    /** Message when the person left a watch party. */
+    fun partyLeft(context: Context): String =
+        context.getString(R.string.party_left)
+
+    /** Toast after joining a plugin store with an invite that names this device's owner. */
+    fun storeJoined(context: Context, store: String, member: String): String =
+        context.getString(R.string.store_joined, store, member)
+
+    /** Toast after joining a plugin store with its open link, which keeps no name. */
+    fun storeJoinedUnnamed(context: Context, store: String): String =
+        context.getString(R.string.store_joined_unnamed, store)
+
+    /** Toast after leaving a plugin store. */
+    fun storeLeft(context: Context, store: String): String =
+        context.getString(R.string.store_left, store)
+
+    /** Toast after a plugin is deleted from this device. */
+    fun pluginRemoved(context: Context, plugin: String): String =
+        context.getString(R.string.plugin_removed, plugin)
+
+    /** Toast after a store owner removes a member. */
+    fun storeMemberRemoved(context: Context): String =
+        context.getString(R.string.store_member_removed)
+
+    /** Toast after a store owner cancels an invite. */
+    fun storeInviteCancelled(context: Context): String =
+        context.getString(R.string.store_invite_cancelled)
+
+    /** Toast after a store owner lets anyone with the store's link join. */
+    fun storeOpenJoinOn(context: Context): String =
+        context.getString(R.string.store_open_join_on)
+
+    /** Toast after a store owner turns off joining with the link, when no device joined that way. */
+    fun storeOpenJoinOff(context: Context): String =
+        context.getString(R.string.store_open_join_off)
+
+    /** Toast after a store owner turns off joining with the link, when some devices joined that way. */
+    fun storeOpenJoinOffDevices(context: Context, devices: Int): String =
+        context.resources.getQuantityString(R.plurals.store_open_join_off_devices, devices, devices)
+
+    /** Toast after one device that joined with the store's link is removed. */
+    fun storeDeviceRemoved(context: Context): String =
+        context.getString(R.string.store_device_removed)
+
+    /** Toast after every device that joined with the store's link is removed. */
+    fun storeDevicesRemoved(context: Context): String =
+        context.getString(R.string.store_devices_removed)
+
+    /** Toast after a plugin is published to a store. */
+    fun pluginPublished(context: Context, plugin: String, version: String): String =
+        context.getString(R.string.plugin_published, plugin, version)
+
+    /** Toast after a plugin stops being offered in a store. */
+    fun pluginUnpublished(context: Context, plugin: String): String =
+        context.getString(R.string.plugin_unpublished, plugin)
+
+    /** Toast after the store's admin page opens in the browser. */
+    fun storeAdminOpened(context: Context): String =
+        context.getString(R.string.store_admin_opened)
+
+    /** Toast when the browser could not be opened for the store's admin page. The reason comes from the system. */
+    fun storeAdminOpenFailed(context: Context, reason: String): String =
+        context.getString(R.string.store_admin_open_failed, reason)
+
+    /** Toast after a plugin is installed while plugins are switched off in the source order. */
+    fun pluginInstalledUnused(context: Context, plugin: String, version: String): String =
+        context.getString(R.string.plugin_installed_unused, plugin, version)
+
+    /** Toast after a plugin is installed under the name of a built-in source, so it was not loaded. */
+    fun pluginInstalledNameClash(context: Context, plugin: String, id: String): String =
+        context.getString(R.string.plugin_installed_name_clash, plugin, id)
+
+    /** Toast after a plugin is installed and ready to use. */
+    fun pluginInstalled(context: Context, plugin: String, version: String): String =
+        context.getString(R.string.plugin_installed, plugin, version)
+
+    /** Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host. */
+    fun pluginInstalledNotLoaded(context: Context, plugin: String, reason: String): String =
+        context.getString(R.string.plugin_installed_not_loaded, plugin, reason)
+
+    /** Toast at launch when joined plugin stores offer newer versions of installed plugins. */
+    fun pluginUpdatesReady(context: Context, count: Int, names: String): String =
+        context.resources.getQuantityString(R.plurals.plugin_updates_ready, count, count, names)
+
+    /** Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host. */
+    fun pluginsLoadFailed(context: Context, reason: String): String =
+        context.getString(R.string.plugins_load_failed, reason)
+
+    /** Error: the store was joined once, but this device has no saved token for it. */
+    fun storeTokenMissing(context: Context, store: String): String =
+        context.getString(R.string.store_token_missing, store)
+
+    /** Error: the store the record points to is gone from the saved list. */
+    fun storeNotJoined(context: Context): String =
+        context.getString(R.string.store_not_joined)
+
+    /** Error: a store's signing key is unreadable. Shown as the reason a store is offline. */
+    fun storeKeyDamaged(context: Context): String =
+        context.getString(R.string.store_key_damaged)
+
+    /** Error: a store rejected this device's token. */
+    fun storeDeviceRefused(context: Context, store: String): String =
+        context.getString(R.string.store_device_refused, store)
+
+    /** Error: a store could not be reached. The reason comes from the network. */
+    fun storeUnreachable(context: Context, store: String, reason: String): String =
+        context.getString(R.string.store_unreachable, store, reason)
+
+    /** Error: an invite link names a store this device already joined, but at another address. */
+    fun storeMoved(context: Context, store: String, current: String, target: String): String =
+        context.getString(R.string.store_moved, store, current, target)
+
+    /** Error: an open link would replace the named membership this device already has. */
+    fun storeJoinWouldUnname(context: Context, store: String, member: String): String =
+        context.getString(R.string.store_join_would_unname, store, member)
+
+    /** Error: the server at a link's address could not prove it is the store the invite named. */
+    fun storeNotTheInvited(context: Context, url: String, reason: String): String =
+        context.getString(R.string.store_not_the_invited, url, reason)
+
+    /** Error: the token for a joined store could not be saved on this device. The reason comes from the system. */
+    fun storeTokenNotKept(context: Context, reason: String): String =
+        context.getString(R.string.store_token_not_kept, reason)
+
+    /** Error: an invite that cannot be used any more. */
+    fun storeInviteUnusable(context: Context): String =
+        context.getString(R.string.store_invite_unusable)
+
+    /** Error: an open link that no longer lets anyone join. */
+    fun storeOpenLinkUnusable(context: Context): String =
+        context.getString(R.string.store_open_link_unusable)
+
+    /** Error: a plugin takes the name of a built-in source. */
+    fun pluginReservedName(context: Context, plugin: String): String =
+        context.getString(R.string.plugin_reserved_name, plugin)
+
+    /** Error: a store stopped offering a plugin between listing it and installing it. */
+    fun storePluginWithdrawn(context: Context, store: String, plugin: String): String =
+        context.getString(R.string.store_plugin_withdrawn, store, plugin)
+
+    /** Error: a store changed a plugin after the person agreed to what was shown. */
+    fun storePluginChanged(context: Context, store: String, plugin: String): String =
+        context.getString(R.string.store_plugin_changed, store, plugin)
+
+    /** Error: a plugin installed from one store is offered by another. */
+    fun pluginFromOtherStore(context: Context, plugin: String, store: String): String =
+        context.getString(R.string.plugin_from_other_store, plugin, store)
+
+    /** Error: a plugin file added by hand already declares the same name. */
+    fun pluginDuplicateFile(context: Context, path: String, plugin: String): String =
+        context.getString(R.string.plugin_duplicate_file, path, plugin)
+
+    /** Error: a plugin could not be downloaded or installed. The reason comes from the store or the system. */
+    fun pluginInstallFailed(context: Context, plugin: String, reason: String): String =
+        context.getString(R.string.plugin_install_failed, plugin, reason)
+
+    /** Error: a plugin could not be published. The reason comes from the store or the system. */
+    fun pluginPublishFailed(context: Context, plugin: String, reason: String): String =
+        context.getString(R.string.plugin_publish_failed, plugin, reason)
+
+    /** Error: a plugin to publish is no longer in the plugin folder. */
+    fun pluginMissingLocally(context: Context, plugin: String): String =
+        context.getString(R.string.plugin_missing_locally, plugin)
+
+    /** Error: an invite for another device cannot be made from a device that joined with the open link. */
+    fun storeInviteNeedsLink(context: Context, store: String): String =
+        context.getString(R.string.store_invite_needs_link, store)
+
+    /** Error: the store sent an invite link that does not parse. The reason comes from the link parser. */
+    fun storeLinkMalformed(context: Context, reason: String): String =
+        context.getString(R.string.store_link_malformed, reason)
+
+    /** Error: the store sent a link carrying another store's key. */
+    fun storeLinkWrongKey(context: Context): String =
+        context.getString(R.string.store_link_wrong_key)
+
+    /** Error: the store's server has no admin page. */
+    fun storeAdminMissing(context: Context, store: String): String =
+        context.getString(R.string.store_admin_missing, store)
+
+    /** Error: the store sent an admin link that points somewhere else. */
+    fun storeAdminLinkForeign(context: Context, store: String): String =
+        context.getString(R.string.store_admin_link_foreign, store)
+
+    /** Error: the store's server is too old for joining with a link. */
+    fun storeOpenJoinUnsupported(context: Context, store: String): String =
+        context.getString(R.string.store_open_join_unsupported, store)
+
+    /** Toast after a source (plugin) is switched off. It is skipped when looking for episodes. */
+    fun sourceSwitchedOff(context: Context, name: String): String =
+        context.getString(R.string.source_switched_off, name)
+
+    /** Toast after a source (plugin) is switched on. */
+    fun sourceSwitchedOn(context: Context, name: String): String =
+        context.getString(R.string.source_switched_on, name)
+
+    /** Error: a command named a plugin that is not loaded. */
+    fun pluginNotLoaded(context: Context, id: String): String =
+        context.getString(R.string.plugin_not_loaded, id)
+
+    /** Toast after a release is chosen for a title. The name is the release's title. */
+    fun releasePinned(context: Context, name: String): String =
+        context.getString(R.string.release_pinned, name)
+
+    /** Toast when the chosen source or release for a title could not be saved. The reason comes from the database. */
+    fun noticeChoiceNotSaved(context: Context, reason: String): String =
+        context.getString(R.string.notice_choice_not_saved, reason)
+
+    /** Toast while torrents are running but the connection check failed, and the settings say to warn only. */
+    fun torrentCheckFailedRunning(context: Context): String =
+        context.getString(R.string.torrent_check_failed_running)
+
+    /** Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard. */
+    fun torrentVpnWaiting(context: Context, reason: String): String =
+        context.getString(R.string.torrent_vpn_waiting, reason)
+
+    /** Note on the sources screen: the VPN guard has no verdict yet. */
+    fun torrentVpnUnverified(context: Context): String =
+        context.getString(R.string.torrent_vpn_unverified)
+
+    /** Error: torrents are on, but no torrent index is set. */
+    fun torrentNoIndex(context: Context): String =
+        context.getString(R.string.torrent_no_index)
+
+    /** Error: the torrent session did not start because the interface closed first. */
+    fun torrentInterfaceClosed(context: Context): String =
+        context.getString(R.string.torrent_interface_closed)
+
+    /** Error: the torrent session could not start. The reason comes from the torrent engine. */
+    fun torrentSessionFailed(context: Context, reason: String): String =
+        context.getString(R.string.torrent_session_failed, reason)
+
+    /** Toast when torrents are up but no operating-system firewall rule backs the VPN guard. */
+    fun torrentNoKillSwitch(context: Context): String =
+        context.getString(R.string.torrent_no_kill_switch)
+
+    /** Toast when the connection check could not run. The reason comes from the VPN settings. */
+    fun torrentNotChecked(context: Context, reason: String): String =
+        context.getString(R.string.torrent_not_checked, reason)
+
+    /** Note on the sources screen after the source chain is rebuilt with torrents on. */
+    fun sourcesReloadedTorrentsPending(context: Context): String =
+        context.getString(R.string.sources_reloaded_torrents_pending)
+
+    /** Note on the sources screen after the source chain is rebuilt with torrents off. */
+    fun sourcesReloadedTorrentsOff(context: Context): String =
+        context.getString(R.string.sources_reloaded_torrents_off)
+
+    /** Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows. */
+    fun jobAnilistLimit(context: Context): String =
+        context.getString(R.string.job_anilist_limit)
+
+    /** Toast when there is no job to carry the wait for AniList's rate limit. */
+    fun noticeAnilistLimit(context: Context, wait: String): String =
+        context.getString(R.string.notice_anilist_limit, wait)
+
+    /** Toast when the AniList fallback takes over because AniList cannot be reached. */
+    fun noticeAnilistUnreachable(context: Context): String =
+        context.getString(R.string.notice_anilist_unreachable)
+
+    /** Toast when no metadata service answered and the last cached data is shown. */
+    fun noticeMetadataCached(context: Context): String =
+        context.getString(R.string.notice_metadata_cached)
+
+    /** Toast when AniList answers again. */
+    fun noticeAnilistBack(context: Context): String =
+        context.getString(R.string.notice_anilist_back)
+
+    /** Toast when a command needs watch parties but this app was built without them. */
+    fun noticePartyNotBuilt(context: Context): String =
+        context.getString(R.string.notice_party_not_built)
+
+    /** Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList. */
+    fun noticeSignedIn(context: Context, tracker: String): String =
+        context.getString(R.string.notice_signed_in, tracker)
+
+    /** Toast after a sign-in succeeded and the token went into the system keychain. */
+    fun noticeSignedInKeychain(context: Context, tracker: String): String =
+        context.getString(R.string.notice_signed_in_keychain, tracker)
+
+    /** Toast after a sign-in succeeded on a device with no keychain. The token is in a file only this user can read. It is said so that someone on a shared computer knows. */
+    fun noticeSignedInFile(context: Context, tracker: String): String =
+        context.getString(R.string.notice_signed_in_file, tracker)
+
+    /** Toast when a sign-in worked but the token could not be stored. The reason comes from the system. */
+    fun noticeSignedInUnsaved(context: Context, tracker: String, reason: String): String =
+        context.getString(R.string.notice_signed_in_unsaved, tracker, reason)
+
+    /** Toast when a sign-in token could not be stored. The reason comes from the system. */
+    fun noticeTokenNotSaved(context: Context, reason: String): String =
+        context.getString(R.string.notice_token_not_saved, reason)
+
+    /** Toast when a sign-in did not finish. The reason comes from the tracker or the network. */
+    fun noticeSignInFailed(context: Context, tracker: String, reason: String): String =
+        context.getString(R.string.notice_sign_in_failed, tracker, reason)
+
+    /** Toast when the wait for a sign-in ended early. The reason comes from the system. */
+    fun noticeSignInStopped(context: Context, tracker: String, reason: String): String =
+        context.getString(R.string.notice_sign_in_stopped, tracker, reason)
+
+    /** Toast when a tracker would not give a token for the sign-in. The reason comes from the tracker. */
+    fun noticeTokenExchangeFailed(context: Context, tracker: String, reason: String): String =
+        context.getString(R.string.notice_token_exchange_failed, tracker, reason)
+
+    /** Toast when no browser could be opened for a sign-in. The reason comes from the system. */
+    fun noticeBrowserNotOpened(context: Context, reason: String): String =
+        context.getString(R.string.notice_browser_not_opened, reason)
+
+    /** Toast when a sign-in redirect arrives and no sign-in is waiting for it. */
+    fun noticeSignInNotWaiting(context: Context, tracker: String): String =
+        context.getString(R.string.notice_sign_in_not_waiting, tracker)
+
+    /** Toast when a sign-in redirect does not match the request that was made. */
+    fun noticeSignInWrongRequest(context: Context, tracker: String): String =
+        context.getString(R.string.notice_sign_in_wrong_request, tracker)
+
+    /** Toast when a tracker sent the person back without a token. */
+    fun noticeSignInNoToken(context: Context, tracker: String): String =
+        context.getString(R.string.notice_sign_in_no_token, tracker)
+
+    /** Toast when this build has no MyAnimeList client to finish a sign-in with. */
+    fun noticeMalClientMissingBuild(context: Context): String =
+        context.getString(R.string.notice_mal_client_missing_build)
+
+    /** Toast on a screen that opens Kitsu's sign-in as a prompt. It is shown with a button to open it. */
+    fun noticeKitsuSignsInOnAccounts(context: Context): String =
+        context.getString(R.string.notice_kitsu_signs_in_on_accounts)
+
+    /** Toast when a tracker has no way to sign in yet. */
+    fun noticeSignInUnsupported(context: Context, tracker: String): String =
+        context.getString(R.string.notice_sign_in_unsupported, tracker)
+
+    /** Toast on an app that cannot receive a browser redirect. */
+    fun noticeSignInNeedsRedirect(context: Context, tracker: String): String =
+        context.getString(R.string.notice_sign_in_needs_redirect, tracker)
+
+    /** Toast when AniList is set to a sign-in method only the anistream app can finish. The setting name is a key of the config file and is not translated. */
+    fun noticeAnilistImplicitFlow(context: Context, setting: String): String =
+        context.getString(R.string.notice_anilist_implicit_flow, setting)
+
+    /** Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated. */
+    fun noticeAnilistClientMissing(context: Context, client: String, secret: String): String =
+        context.getString(R.string.notice_anilist_client_missing, client, secret)
+
+    /** Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. */
+    fun noticeAnilistPasteFlow(context: Context): String =
+        context.getString(R.string.notice_anilist_paste_flow)
+
+    /** Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated. */
+    fun noticeMalClientMissing(context: Context, setting: String): String =
+        context.getString(R.string.notice_mal_client_missing, setting)
+
+    /** Status line while the browser sign-in is open and the app waits for it to come back. */
+    fun statusWaitingForRedirect(context: Context, tracker: String): String =
+        context.getString(R.string.status_waiting_for_redirect, tracker)
+
+    /** Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month. */
+    fun noticeMalNoRefreshToken(context: Context): String =
+        context.getString(R.string.notice_mal_no_refresh_token)
+
+    /** Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated. */
+    fun noticeClientIdMissing(context: Context, setting: String): String =
+        context.getString(R.string.notice_client_id_missing, setting)
+
+    /** Toast after signing out of a tracker with nothing waiting to send. */
+    fun noticeSignedOut(context: Context, tracker: String): String =
+        context.getString(R.string.notice_signed_out, tracker)
+
+    /** Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in. */
+    fun noticeSignedOutQueue(context: Context, tracker: String, count: Int): String =
+        context.resources.getQuantityString(R.plurals.notice_signed_out_queue, count, tracker, count)
+
+    /** Toast when signing out of a tracker failed. The reason comes from the system. */
+    fun noticeSignOutFailed(context: Context, tracker: String, reason: String): String =
+        context.getString(R.string.notice_sign_out_failed, tracker, reason)
+
+    /** Toast when a setting could not be stored. The cause says why and what to do. */
+    fun noticeNotSavedBecause(context: Context, cause: String): String =
+        context.getString(R.string.notice_not_saved_because, cause)
+
+    /** Toast when the torrent protection choice was saved. */
+    fun noticeProtectionSaved(context: Context): String =
+        context.getString(R.string.notice_protection_saved)
+
+    /** Toast when the torrent protection could not be checked. The cause says why. */
+    fun noticeProtectionNotChecked(context: Context, cause: String): String =
+        context.getString(R.string.notice_protection_not_checked, cause)
+
+    /** Toast when the proxy's password could not be stored. The reason comes from the system. */
+    fun noticeProxyPasswordNotKept(context: Context, reason: String): String =
+        context.getString(R.string.notice_proxy_password_not_kept, reason)
+
+    /** Toast when a show's setting was given a value it does not take. The value is what was given. */
+    fun noticeShowSettingRefused(context: Context, value: String, setting: String): String =
+        context.getString(R.string.notice_show_setting_refused, value, setting)
+
+    /** Toast when resetting a show's settings failed. The reason comes from the local database. */
+    fun noticeShowNotReset(context: Context, reason: String): String =
+        context.getString(R.string.notice_show_not_reset, reason)
+
+    /** Toast when a subtitle choice names subtitles the show has not used. */
+    fun noticeShowNoSuchSubtitles(context: Context): String =
+        context.getString(R.string.notice_show_no_such_subtitles)
+
+    /** Toast while torrents are held until the connection check passes. */
+    fun noticeTorrentsWaitingForCheck(context: Context): String =
+        context.getString(R.string.notice_torrents_waiting_for_check)
+
+    /** Toast when the mapping data downloads work again after a failure. */
+    fun noticeMappingDataRefreshed(context: Context): String =
+        context.getString(R.string.notice_mapping_data_refreshed)
+
+    /** Toast when the mapping data could not be downloaded. It is said once; the retries are silent. */
+    fun noticeMappingDataFailed(context: Context, datasets: String, wait: String, cause: String): String =
+        context.getString(R.string.notice_mapping_data_failed, datasets, wait, cause)
+
+    /** Toast, and desktop notification, for one episode that aired while the app was closed. */
+    fun noticeEpisodeAired(context: Context, title: String, episode: Int): String =
+        context.getString(R.string.notice_episode_aired, title, episode)
+
+    /** Toast, and desktop notification, for several episodes that aired while the app was closed. */
+    fun noticeEpisodesAired(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.notice_episodes_aired, count, count)
+
+    /** Toast when a new release of anistream is out, on the terminal app. The command is not translated. */
+    fun noticeUpdateAvailable(context: Context, tag: String): String =
+        context.getString(R.string.notice_update_available, tag)
+
+    /** The reason a setting was refused until the person confirms having no protection. */
+    fun causeConfirmNoProtection(context: Context): String =
+        context.getString(R.string.cause_confirm_no_protection)
+
+    /** The reason a setting was refused until the person confirms the "warn only" choice. */
+    fun causeConfirmWarnOnly(context: Context): String =
+        context.getString(R.string.cause_confirm_warn_only)
+
+    /** The reason a proxy was refused: it has no host or no port. */
+    fun causeProxyNeedsAddress(context: Context): String =
+        context.getString(R.string.cause_proxy_needs_address)
+
+    /** The reason a proxy could not be checked: its address is not one the check can use. */
+    fun causeProxyAddressUnusable(context: Context): String =
+        context.getString(R.string.cause_proxy_address_unusable)
+
+    /** The reason a request failed: it never reached the server. */
+    fun causeServerUnreachable(context: Context): String =
+        context.getString(R.string.cause_server_unreachable)
+
     /** The legal line. It exists once, so no translation can paraphrase it. */
     fun legalHostsNoContent(context: Context): String =
         context.getString(R.string.legal_hosts_no_content)
@@ -52,6 +808,46 @@ object Strings {
     /** Button that puts a question off until later. */
     fun actionNotNow(context: Context): String =
         context.getString(R.string.action_not_now)
+
+    /** A span of time in whole days. The unit letter belongs to the language. */
+    fun durationDays(context: Context, days: Int): String =
+        context.getString(R.string.duration_days, days)
+
+    /** A span of time in hours and minutes. */
+    fun durationHoursMinutes(context: Context, hours: Int, minutes: Int): String =
+        context.getString(R.string.duration_hours_minutes, hours, minutes)
+
+    /** A span of time in whole hours. */
+    fun durationHours(context: Context, hours: Int): String =
+        context.getString(R.string.duration_hours, hours)
+
+    /** A span of time in minutes. */
+    fun durationMinutes(context: Context, minutes: Int): String =
+        context.getString(R.string.duration_minutes, minutes)
+
+    /** A short wait in minutes and seconds. The seconds come with a leading zero. */
+    fun durationMinutesSeconds(context: Context, minutes: Int, seconds: String): String =
+        context.getString(R.string.duration_minutes_seconds, minutes, seconds)
+
+    /** A short wait in seconds. */
+    fun durationSeconds(context: Context, seconds: Int): String =
+        context.getString(R.string.duration_seconds, seconds)
+
+    /** A file size in bytes. The number is already formatted. */
+    fun sizeByte(context: Context, value: String): String =
+        context.getString(R.string.size_byte, value)
+
+    /** A file size in kilobytes (1,000 bytes). The number is already formatted. */
+    fun sizeKilobyte(context: Context, value: String): String =
+        context.getString(R.string.size_kilobyte, value)
+
+    /** A file size in megabytes (1,000,000 bytes). The number is already formatted. */
+    fun sizeMegabyte(context: Context, value: String): String =
+        context.getString(R.string.size_megabyte, value)
+
+    /** A file size in gigabytes (1,000,000,000 bytes). The number is already formatted. */
+    fun sizeGigabyte(context: Context, value: String): String =
+        context.getString(R.string.size_gigabyte, value)
 
     /** Button that closes a sheet whose changes have already been made. */
     fun actionDone(context: Context): String =

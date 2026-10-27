@@ -1,11 +1,11 @@
 anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  CONTINUE               │  ▌ Stardust Wayfarer       ep 4 · 21%   ░░░░░░░░░░░░░░░░░
-  ▤  CALENDAR               │                                         ░░░░░░░░░░░░░░░░░
-  ▦  SEASONAL               │                                         ░░░░░░░░░░░░░░░░░
-  /  SEARCH                 │                                         ░░░░░░░░░░░░░░░░░
+▌ ▸  Continue               │  ▌ Stardust Wayfarer         E4 · 21%   ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │                                         ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │                                         ░░░░░░░░░░░░░░░░░
+  /  Search                 │                                         ░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ RUN   ep▏
+▌ Run   ep▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Episodes                                                                                                         e
   Download a range of episodes                                                                                     D
@@ -20,7 +20,7 @@ anistream                                                                       
   Volume up                                                                                                        0
   Leave player running                                                                                             q
 
-                            │                                         ▏ resume ep 4 at 5:00 (21%)
+                            │                                         ▏ Continue E4 at 5:00 (21%)
                             │                                         █████░░░░░░░░░░░░░░░░░░░
                             │
                             │                                         A lamplighter with no memory of her home walks
@@ -29,6 +29,6 @@ anistream                                                                       
                             │                                         town she saves remembers a little of her, and
                             │                                         she, a little less of herself.
                             │
-                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                                        ↑↓ move   ↵ run   esc close
+plugins · Subbed · 1080p                                                                     ↑↓ move   ↵ run   esc close

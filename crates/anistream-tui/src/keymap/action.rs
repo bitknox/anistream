@@ -4,6 +4,8 @@
 //! hint, its scope and the name `[keys]` knows it by are the same whatever the rebinds, so
 //! they live here and the binding tables only map keys onto them.
 
+use super::said;
+
 /// Everything the user can ask for.
 ///
 /// One flat enum rather than per-screen enums: the command palette needs to enumerate every
@@ -192,81 +194,82 @@ impl Action {
 
     /// Label shown in the help overlay and the command palette.
     pub fn label(self) -> &'static str {
-        match self {
-            Self::Help => "Show keys",
-            Self::CommandPalette => "Run a command",
-            Self::Quit => "Quit",
-            Self::Back => "Back",
-            Self::ToggleRail => "Toggle rail width",
-            Self::Refresh => "Refresh this view",
-            Self::ForceResync => "Force a full resync",
-            Self::ToggleTranslation => "Switch sub / dub",
+        use anistream_i18n::t;
+        said(match self {
+            Self::Help => t::keys_action_show_keys(),
+            Self::CommandPalette => t::keys_action_command_palette(),
+            Self::Quit => t::keys_action_quit(),
+            Self::Back => t::keys_action_back(),
+            Self::ToggleRail => t::keys_action_toggle_rail(),
+            Self::Refresh => t::keys_action_refresh(),
+            Self::ForceResync => t::keys_action_force_resync(),
+            Self::ToggleTranslation => t::keys_action_toggle_translation(),
             // Named for the section, in the rail's order, so the palette can offer each one.
-            Self::JumpSection(1) => "Go to Continue",
-            Self::JumpSection(2) => "Go to Calendar",
-            Self::JumpSection(3) => "Go to Seasonal",
-            Self::JumpSection(4) => "Go to Search",
-            Self::JumpSection(5) => "Go to Library",
-            Self::JumpSection(6) => "Go to Downloads",
-            Self::JumpSection(7) => "Go to Providers",
-            Self::JumpSection(8) => "Go to Accounts",
-            Self::JumpSection(9) => "Go to Settings",
-            Self::JumpSection(_) => "Go to section",
-            Self::FocusSearch => "Search",
-            Self::ShowAccounts => "Accounts and sync",
-            Self::ShowConflicts => "Resolve sync conflicts",
-            Self::ShowLogs => "Recent messages",
-            Self::OpenPrivacy => "Open the privacy page",
-            Self::ReportBug => "Report a bug",
-            Self::Up => "Move up",
-            Self::Down => "Move down",
-            Self::Left => "Move left",
-            Self::Right => "Move right",
-            Self::Top => "Jump to top",
-            Self::Bottom => "Jump to bottom",
-            Self::PageUp => "Page up",
-            Self::PageDown => "Page down",
-            Self::Open => "Open",
-            Self::PlayNext => "Play next unwatched",
-            Self::SetListStatus => "Set list status",
-            Self::RateTitle => "Rate this title",
-            Self::ToggleSynopsis => "Expand synopsis",
-            Self::HideFromContinue => "Remove from continue watching",
-            Self::ShowEpisodes => "Episodes",
-            Self::ShowSources => sources_label(),
-            Self::PickProvider => "Source for this title",
-            Self::FixMapping => "Fix this match",
-            Self::Download => "Download",
-            Self::WatchOrder => "Watch order",
-            Self::Recommendations => "Recommendations",
-            Self::PlayTrailer => "Play the trailer",
-            Self::OpenInBrowser => "Open on AniList",
-            Self::ClearCompleted => "Clear finished downloads",
-            Self::DeleteDownload => "Delete download and its file",
-            Self::RaiseSource => "Move source up",
-            Self::LowerSource => "Move source down",
-            Self::DownloadRange => "Download a range of episodes",
-            Self::PlayParty => "Play in a watch party",
-            Self::ToggleWatched => "Toggle watched",
-            Self::MarkAllPrevious => "Mark all previous watched",
-            Self::Filter => "Filter",
-            Self::FilterSearch => "Search filters",
-            Self::PlayPause => "Play / pause",
-            Self::SeekBack => "Back 5s",
-            Self::SeekForward => "Forward 5s",
-            Self::SeekBackFar => "Back 30s",
-            Self::SeekForwardFar => "Forward 30s",
-            Self::NextEpisode => "Next episode",
-            Self::PreviousEpisode => "Previous episode",
-            Self::SkipOpening => "Skip opening",
-            Self::SpeedDown => "Slower",
-            Self::SpeedUp => "Faster",
-            Self::VolumeDown => "Volume down",
-            Self::VolumeUp => "Volume up",
-            Self::Fullscreen => "Fullscreen",
-            Self::Detach => "Leave player running",
-            Self::StopPlayback => "Stop playback",
-        }
+            Self::JumpSection(1) => t::keys_action_jump_continue(),
+            Self::JumpSection(2) => t::keys_action_jump_calendar(),
+            Self::JumpSection(3) => t::keys_action_jump_seasonal(),
+            Self::JumpSection(4) => t::keys_action_jump_search(),
+            Self::JumpSection(5) => t::keys_action_jump_library(),
+            Self::JumpSection(6) => t::keys_action_jump_downloads(),
+            Self::JumpSection(7) => t::keys_action_jump_sources(),
+            Self::JumpSection(8) => t::keys_action_jump_accounts(),
+            Self::JumpSection(9) => t::keys_action_jump_settings(),
+            Self::JumpSection(_) => t::keys_action_jump_section(),
+            Self::FocusSearch => t::keys_action_focus_search(),
+            Self::ShowAccounts => t::keys_action_show_accounts(),
+            Self::ShowConflicts => t::keys_action_show_conflicts(),
+            Self::ShowLogs => t::keys_action_show_logs(),
+            Self::OpenPrivacy => t::keys_action_open_privacy(),
+            Self::ReportBug => t::keys_action_report_bug(),
+            Self::Up => t::keys_action_up(),
+            Self::Down => t::keys_action_down(),
+            Self::Left => t::keys_action_left(),
+            Self::Right => t::keys_action_right(),
+            Self::Top => t::keys_action_top(),
+            Self::Bottom => t::keys_action_bottom(),
+            Self::PageUp => t::keys_action_page_up(),
+            Self::PageDown => t::keys_action_page_down(),
+            Self::Open => t::keys_action_open(),
+            Self::PlayNext => t::keys_action_play_next(),
+            Self::SetListStatus => t::keys_action_set_list_status(),
+            Self::RateTitle => t::keys_action_rate_title(),
+            Self::ToggleSynopsis => t::keys_action_toggle_synopsis(),
+            Self::HideFromContinue => t::keys_action_hide_from_continue(),
+            Self::ShowEpisodes => t::keys_action_show_episodes(),
+            Self::ShowSources => t::sources_title(),
+            Self::PickProvider => t::source_picker_title(),
+            Self::FixMapping => t::keys_action_fix_mapping(),
+            Self::Download => t::keys_action_download(),
+            Self::WatchOrder => t::keys_action_watch_order(),
+            Self::Recommendations => t::keys_action_recommendations(),
+            Self::PlayTrailer => t::keys_action_play_trailer(),
+            Self::OpenInBrowser => t::keys_action_open_in_browser(),
+            Self::ClearCompleted => t::keys_action_clear_completed(),
+            Self::DeleteDownload => t::keys_action_delete_download(),
+            Self::RaiseSource => t::keys_action_raise_source(),
+            Self::LowerSource => t::keys_action_lower_source(),
+            Self::DownloadRange => t::keys_action_download_range(),
+            Self::PlayParty => t::keys_action_play_party(),
+            Self::ToggleWatched => t::keys_action_toggle_watched(),
+            Self::MarkAllPrevious => t::keys_action_mark_all_previous(),
+            Self::Filter => t::keys_action_filter(),
+            Self::FilterSearch => t::keys_action_filter_search(),
+            Self::PlayPause => t::keys_action_play_pause(),
+            Self::SeekBack => t::keys_action_seek_back(),
+            Self::SeekForward => t::keys_action_seek_forward(),
+            Self::SeekBackFar => t::keys_action_seek_back_far(),
+            Self::SeekForwardFar => t::keys_action_seek_forward_far(),
+            Self::NextEpisode => t::keys_action_next_episode(),
+            Self::PreviousEpisode => t::keys_action_previous_episode(),
+            Self::SkipOpening => t::keys_action_skip_opening(),
+            Self::SpeedDown => t::keys_action_speed_down(),
+            Self::SpeedUp => t::keys_action_speed_up(),
+            Self::VolumeDown => t::keys_action_volume_down(),
+            Self::VolumeUp => t::keys_action_volume_up(),
+            Self::Fullscreen => t::keys_action_fullscreen(),
+            Self::Detach => t::keys_action_detach(),
+            Self::StopPlayback => t::keys_action_stop_playback(),
+        })
     }
 
     /// The terse form used in the status line.
@@ -275,24 +278,25 @@ impl Action {
     /// dropped for being too long is worse than a curt one. "Leave player running" explains
     /// itself in the help overlay; here it is `detach`.
     pub fn hint(self) -> &'static str {
+        use anistream_i18n::t;
         match self {
-            Self::PlayPause => "pause",
-            Self::SkipOpening => "skip",
-            Self::Detach => "detach",
-            Self::StopPlayback => "stop",
-            Self::PlayNext => "play next",
-            Self::ShowEpisodes => "episodes",
-            Self::OpenInBrowser => "on AniList",
-            Self::MarkAllPrevious => "mark previous",
-            Self::FilterSearch => "filters",
-            Self::ForceResync => "resync",
-            Self::Help => "keys",
-            Self::Refresh => "refresh",
-            Self::ToggleWatched => "watched",
-            Self::ClearCompleted => "clear finished",
-            Self::DeleteDownload => "delete",
-            Self::RaiseSource => "move up",
-            Self::LowerSource => "move down",
+            Self::PlayPause => said(t::keys_hint_pause()),
+            Self::SkipOpening => said(t::keys_hint_skip()),
+            Self::Detach => said(t::keys_hint_detach()),
+            Self::StopPlayback => said(t::keys_hint_stop()),
+            Self::PlayNext => said(t::keys_hint_play_next()),
+            Self::ShowEpisodes => said(t::keys_hint_episodes()),
+            Self::OpenInBrowser => said(t::keys_hint_on_anilist()),
+            Self::MarkAllPrevious => said(t::keys_hint_mark_previous()),
+            Self::FilterSearch => said(t::keys_hint_filters()),
+            Self::ForceResync => said(t::keys_hint_resync()),
+            Self::Help => said(t::keys_hint_keys()),
+            Self::Refresh => said(t::keys_hint_refresh()),
+            Self::ToggleWatched => said(t::keys_hint_watched()),
+            Self::ClearCompleted => said(t::keys_hint_clear_finished()),
+            Self::DeleteDownload => said(t::keys_hint_delete()),
+            Self::RaiseSource => said(t::keys_hint_move_up()),
+            Self::LowerSource => said(t::keys_hint_move_down()),
             other => other.label(),
         }
     }
@@ -394,22 +398,23 @@ impl Action {
     /// The palette offers every action from everywhere, so it can run one on a screen where it
     /// means nothing. Naming the place answers the question that leaves, which "not available"
     /// would not.
-    pub const fn where_it_works(self) -> &'static str {
-        match self.scope() {
-            Scope::Playback => "while something is playing",
-            Scope::Downloads => "on the Downloads screen",
-            Scope::Providers => "on the Providers screen",
-            Scope::Episodes => "in the episode table",
-            _ => "on another screen",
-        }
+    pub fn where_it_works(self) -> &'static str {
+        use anistream_i18n::t;
+        said(match self.scope() {
+            Scope::Playback => t::keys_where_playback(),
+            Scope::Downloads => t::keys_where_downloads(),
+            Scope::Providers => t::keys_where_sources(),
+            Scope::Episodes => t::keys_where_episodes(),
+            _ => t::keys_where_elsewhere(),
+        })
     }
 
     /// Stable machine name, used as the config key and the palette's search text.
     pub fn config_key(self) -> String {
         match self {
-            Self::JumpSection(n) => format!("jump_section_{n}"),
+            Self::JumpSection(n) => format!("jump_section_{n}"), // i18n-skip
             other => {
-                let label = format!("{other:?}");
+                let label = format!("{other:?}"); // i18n-skip
                 let mut out = String::with_capacity(label.len() + 4);
                 for (i, ch) in label.chars().enumerate() {
                     if ch.is_uppercase() {
@@ -452,25 +457,19 @@ impl Scope {
         Self::Playback,
     ];
 
-    pub const fn heading(self) -> &'static str {
-        match self {
-            Self::Global => "GLOBAL",
-            Self::Movement => "MOVEMENT",
-            Self::Lists => "LISTS AND GRIDS",
-            Self::Title => "TITLE",
-            Self::Episodes => "EPISODES",
-            Self::Downloads => "DOWNLOADS",
-            Self::Providers => "PROVIDERS",
-            Self::Playback => "NOW PLAYING",
-        }
+    pub fn heading(self) -> &'static str {
+        use anistream_i18n::t;
+        said(match self {
+            Self::Global => t::keys_scope_global(),
+            Self::Movement => t::keys_scope_movement(),
+            Self::Lists => t::keys_scope_lists(),
+            Self::Title => t::keys_scope_title(),
+            Self::Episodes => t::keys_scope_episodes(),
+            Self::Downloads => t::keys_scope_downloads(),
+            Self::Providers => t::keys_scope_sources(),
+            Self::Playback => t::keys_scope_playback(),
+        })
     }
-}
-
-/// "Sources" in the language in use. The terminal app picks its language once at start-up, so the
-/// answer is kept for the life of the process, which is what a `&'static str` label needs.
-fn sources_label() -> &'static str {
-    static LABEL: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    LABEL.get_or_init(anistream_i18n::t::sources_title)
 }
 
 #[cfg(test)]

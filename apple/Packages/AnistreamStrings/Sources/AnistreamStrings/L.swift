@@ -5,6 +5,817 @@ import Foundation
 
 /// Every string the apps show, by catalogue id. A missing translation falls back to English per string.
 public enum L {
+    /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
+    public static func noticeReason(reason: String) -> String {
+        format("notice-reason", fallback: "%1$@", reason)
+    }
+
+    /// Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast.
+    public static var causeNoSources: String { string("cause-no-sources", fallback: "No sources are set up. Add one on the Sources screen.") }
+
+    /// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
+    public static func noticeNotAired(episode: Int, when: String) -> String {
+        format("notice-not-aired", fallback: "Episode %1$lld airs %2$@.", episode, when)
+    }
+
+    /// A play's explanation: the episode is after the next one to air. The "when" says when that one airs.
+    public static func noticeNotAiredYet(episode: Int, next: Int, when: String) -> String {
+        format("notice-not-aired-yet", fallback: "Episode %1$lld hasn't aired yet. Episode %2$lld airs %3$@.", episode, next, when)
+    }
+
+    /// Part of an air time: the broadcast is later today. The time is the viewer's local time.
+    public static func causeAirsToday(time: String) -> String {
+        format("cause-airs-today", fallback: "today at %1$@", time)
+    }
+
+    /// Part of an air time: the broadcast is tomorrow. The time is the viewer's local time.
+    public static func causeAirsTomorrow(time: String) -> String {
+        format("cause-airs-tomorrow", fallback: "tomorrow at %1$@", time)
+    }
+
+    /// Part of an air time: the broadcast is within the next week.
+    public static func causeAirsInDays(days: Int, time: String) -> String {
+        format("cause-airs-in-days", fallback: "in %1$lld days at %2$@", days, time)
+    }
+
+    /// Part of an air time: the broadcast is more than a week away. The date is year-month-day.
+    public static func causeAirsOnDate(date: String, time: String) -> String {
+        format("cause-airs-on-date", fallback: "on %1$@ at %2$@", date, time)
+    }
+
+    /// Reason: the source answered but gave nothing to play.
+    public static var causeNoPlayableStream: String { string("cause-no-playable-stream", fallback: "The source answered, but with nothing to play. Try another.") }
+
+    /// Reason: no source could be matched to the title. The detail is what each source said.
+    public static func causeTitleNoMatch(detail: String) -> String {
+        format("cause-title-no-match", fallback: "Couldn't match this title: %1$@", detail)
+    }
+
+    /// Reason: the source the person picked is no longer installed or enabled.
+    public static func causeSourceGone(source: String) -> String {
+        format("cause-source-gone", fallback: "The source %1$@ is no longer available. Choose another.", source)
+    }
+
+    /// Reason: the release the person picked would not start. The detail comes from the source.
+    public static func causeReleaseFailed(detail: String) -> String {
+        format("cause-release-failed", fallback: "Couldn't start that release: %1$@", detail)
+    }
+
+    /// Reason: every source matched the title but none has the episode. The detail is what each said.
+    public static func causeNoSourceHasEpisode(episode: String, detail: String) -> String {
+        format("cause-no-source-has-episode", fallback: "No source has episode %1$@: %2$@", episode, detail)
+    }
+
+    /// Reason: the source streams episodes but only torrents can be downloaded.
+    public static var causeSourceCannotDownload: String { string("cause-source-cannot-download", fallback: "This source streams episodes but can't download them.") }
+
+    /// Reason: the title was never listed by a source, so it can't be downloaded.
+    public static var causeNoSourceCouldListShow: String { string("cause-no-source-could-list-show", fallback: "No source could list this show, so it can't be downloaded.") }
+
+    /// Part of a finished download's toast: subtitle files were merged into the video.
+    public static func causeSubtitlesMerged(tracks: Int) -> String {
+        format("cause-subtitles-merged", fallback: "%1$lld subtitle tracks were merged in.", tracks)
+    }
+
+    /// Part of a finished download's toast: merging failed, so the subtitles stay as files beside it.
+    public static func causeSubtitlesLeftApart(reason: String) -> String {
+        format("cause-subtitles-left-apart", fallback: "The subtitles stay as separate files. %1$@", reason)
+    }
+
+    /// Part of a download toast: how many episodes of the range were in the queue already.
+    public static func causeAlreadyInDownloads(count: Int) -> String {
+        format("cause-already-in-downloads", fallback: "%1$lld episodes are already in downloads.", count)
+    }
+
+    /// Job note while a play looks the title up.
+    public static var statusLookingUpTitle: String { string("status-looking-up-title", fallback: "Looking up the title…") }
+
+    /// Job note while a play waits for the sources to arrive.
+    public static var statusLoadingSources: String { string("status-loading-sources", fallback: "Loading sources…") }
+
+    /// Job note while the sources are asked for an episode. The episode is its label, often a number.
+    public static func statusSearchingSources(episode: String) -> String {
+        format("status-searching-sources", fallback: "Searching sources for episode %1$@…", episode)
+    }
+
+    /// Status while the player opens.
+    public static var statusStartingPlayer: String { string("status-starting-player", fallback: "Starting mpv…") }
+
+    /// Status line while an episode plays.
+    public static func statusPlaying(title: String, episode: String) -> String {
+        format("status-playing", fallback: "Playing %1$@, episode %2$@", title, episode)
+    }
+
+    /// Toast when the player cannot be started. The reason comes from the system.
+    public static func noticePlayerFailedToStart(reason: String) -> String {
+        format("notice-player-failed-to-start", fallback: "Couldn't start mpv. Check that it runs on its own. (%1$@)", reason)
+    }
+
+    /// Toast when a stream never showed a frame and the next one is tried.
+    public static func noticeStreamNoVideo(next: Int, total: Int) -> String {
+        format("notice-stream-no-video", fallback: "No video from that stream. Trying %1$lld of %2$lld.", next, total)
+    }
+
+    /// Toast when mpv gave up on a file. The reason is mpv's own line.
+    public static func noticePlayerCouldNotPlay(reason: String) -> String {
+        format("notice-player-could-not-play", fallback: "mpv couldn't play this. %1$@", reason)
+    }
+
+    /// Toast when mpv closed without playing and without saying why.
+    public static var noticePlayerExitedSilently: String { string("notice-player-exited-silently", fallback: "mpv exited without playing anything and gave no reason. Try another source.") }
+
+    /// Toast when no picture has appeared a while after the player opened.
+    public static func noticePlayerNotPlaying(seconds: Int) -> String {
+        format("notice-player-not-playing", fallback: "mpv hasn't started playing after %1$lld s. The source may have no data. Check that mpv plays a file on its own.", seconds)
+    }
+
+    /// Toast when a play is asked for in a build with no player.
+    public static var noticeNoPlayer: String { string("notice-no-player", fallback: "This version of anistream can't play video.") }
+
+    /// Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+    public static func noticeMpvMissing(binary: String) -> String {
+        format("notice-mpv-missing", fallback: "%1$@ wasn't found. Install mpv to play episodes.", binary)
+    }
+
+    /// Toast at launch when mpv is too old for anistream's own player.
+    public static func noticeMpvOld(version: String) -> String {
+        format("notice-mpv-old", fallback: "mpv %1$@ can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.", version)
+    }
+
+    /// Toast after a link was handed to the browser.
+    public static var noticeOpenedInBrowser: String { string("notice-opened-in-browser", fallback: "Opened in your browser.") }
+
+    /// Toast when a link could not be opened. The reason comes from the system.
+    public static func noticeCouldNotOpen(reason: String) -> String {
+        format("notice-could-not-open", fallback: "Couldn't open that. %1$@", reason)
+    }
+
+    /// Toast when a trailer plays in mpv.
+    public static var noticeTrailerPlaying: String { string("notice-trailer-playing", fallback: "Trailer playing in mpv.") }
+
+    /// Toast when a trailer opens in the browser.
+    public static var noticeTrailerOpened: String { string("notice-trailer-opened", fallback: "Trailer opened in your browser.") }
+
+    /// Toast when a trailer could not be opened. The reason comes from the system.
+    public static func noticeTrailerFailed(reason: String) -> String {
+        format("notice-trailer-failed", fallback: "Couldn't open the trailer. %1$@", reason)
+    }
+
+    /// Toast when the next episode is not the one after this because filler was skipped.
+    public static func noticeFillerSkipped(episode: String) -> String {
+        format("notice-filler-skipped", fallback: "Skipped filler. Up next is episode %1$@.", episode)
+    }
+
+    /// Toast after switching the audio while playing.
+    public static var noticeAudioNowSubbed: String { string("notice-audio-now-subbed", fallback: "Audio is now subbed.") }
+
+    /// Toast after switching the audio while playing.
+    public static var noticeAudioNowDubbed: String { string("notice-audio-now-dubbed", fallback: "Audio is now dubbed.") }
+
+    /// Toast when the previous-episode control is used on the first episode.
+    public static var noticeAlreadyFirstEpisode: String { string("notice-already-first-episode", fallback: "Already at the first episode.") }
+
+    /// Toast when the next-episode control is used on the last known episode.
+    public static func noticeLastEpisode(episode: String) -> String {
+        format("notice-last-episode", fallback: "There's no next episode. Episode %1$@ is the last.", episode)
+    }
+
+    /// Toast when the next-episode control is used and the next episode is not known.
+    public static var noticeNoNextEpisode: String { string("notice-no-next-episode", fallback: "There's no next episode.") }
+
+    /// Toast when the previous-episode control finds no previous episode.
+    public static var noticeNoPreviousEpisode: String { string("notice-no-previous-episode", fallback: "There's no previous episode.") }
+
+    /// Toast when the title's episode match could not be cleared. The reason comes from the system.
+    public static func noticeMatchResetFailed(reason: String) -> String {
+        format("notice-match-reset-failed", fallback: "Couldn't reset the match. %1$@", reason)
+    }
+
+    /// Toast when the chosen match could not be saved. The reason comes from the system.
+    public static func noticeMatchSaveFailed(reason: String) -> String {
+        format("notice-match-save-failed", fallback: "Couldn't save that match. %1$@", reason)
+    }
+
+    /// Toast when a chosen match still left the title undecided.
+    public static var noticeMatchDidNotStick: String { string("notice-match-did-not-stick", fallback: "That match didn't stick. The source may have changed. Try choosing it again.") }
+
+    /// Toast when a search of the sources for a title found nothing.
+    public static func noticeSourceSearchEmpty(query: String) -> String {
+        format("notice-source-search-empty", fallback: "Nothing found for “%1$@”. Try a different search.", query)
+    }
+
+    /// Toast after the person picked a source for one title.
+    public static func noticeSourcePinned(source: String) -> String {
+        format("notice-source-pinned", fallback: "%1$@ will be used for this title.", source)
+    }
+
+    /// Toast after the person went back to automatic source selection for one title.
+    public static var noticeSourceAutomatic: String { string("notice-source-automatic", fallback: "Back to automatic source selection.") }
+
+    /// Toast when the source choice for a title could not be saved. The reason comes from the system.
+    public static func noticeSourceChoiceFailed(reason: String) -> String {
+        format("notice-source-choice-failed", fallback: "Couldn't save that choice. %1$@", reason)
+    }
+
+    /// Toast when no source could list a show's episodes. The reason is what the sources said.
+    public static func noticeNoSourceCouldList(reason: String) -> String {
+        format("notice-no-source-could-list", fallback: "No source could list this show: %1$@", reason)
+    }
+
+    /// Toast when a title cannot be taken off the Continue row. The reason comes from the system.
+    public static func noticeContinueHideFailed(reason: String) -> String {
+        format("notice-continue-hide-failed", fallback: "Couldn't remove that from Continue. %1$@", reason)
+    }
+
+    /// Toast after an episode was added to the download queue.
+    public static func noticeDownloadQueued(title: String, episode: String) -> String {
+        format("notice-download-queued", fallback: "Queued episode %2$@ of %1$@.", title, episode)
+    }
+
+    /// Toast when an episode asked for is in downloads already.
+    public static func noticeDownloadAlreadyQueued(title: String, episode: String) -> String {
+        format("notice-download-already-queued", fallback: "Episode %2$@ of %1$@ is already in downloads.", title, episode)
+    }
+
+    /// Toast when a waiting or paused download was moved to the front and started.
+    public static func noticeDownloadStartingNow(title: String, episode: String) -> String {
+        format("notice-download-starting-now", fallback: "Starting episode %2$@ of %1$@ now.", title, episode)
+    }
+
+    /// Toast after a download was cancelled.
+    public static var noticeDownloadCancelled: String { string("notice-download-cancelled", fallback: "Download cancelled.") }
+
+    /// Toast after a download and its file were deleted.
+    public static var noticeDownloadFileDeleted: String { string("notice-download-file-deleted", fallback: "Download and file deleted.") }
+
+    /// Toast after a download was removed whose file was already gone.
+    public static var noticeDownloadRemovedFileGone: String { string("notice-download-removed-file-gone", fallback: "Download removed. Its file was already gone.") }
+
+    /// Toast after a download was removed but its file could not be deleted. The reason comes from the system.
+    public static func noticeDownloadRemovedFileKept(reason: String) -> String {
+        format("notice-download-removed-file-kept", fallback: "Removed the download, but couldn't delete its file. %1$@", reason)
+    }
+
+    /// Toast after a download with no file was removed.
+    public static var noticeDownloadRemoved: String { string("notice-download-removed", fallback: "Download removed.") }
+
+    /// Toast after finished downloads were cleared from the list.
+    public static func noticeDownloadsCleared(count: Int) -> String {
+        format("notice-downloads-cleared", fallback: "Cleared %1$lld finished downloads.", count)
+    }
+
+    /// Toast when an episode finished downloading.
+    public static func noticeDownloadFinished(title: String, episode: String) -> String {
+        format("notice-download-finished", fallback: "Downloaded episode %2$@ of %1$@.", title, episode)
+    }
+
+    /// Toast when an episode finished downloading and the note says what happened to its subtitles.
+    public static func noticeDownloadFinishedNote(title: String, episode: String, note: String) -> String {
+        format("notice-download-finished-note", fallback: "Downloaded episode %2$@ of %1$@. %3$@", title, episode, note)
+    }
+
+    /// Toast when a download could not start. The reason comes from the torrent client.
+    public static func noticeDownloadFailed(title: String, episode: String, reason: String) -> String {
+        format("notice-download-failed", fallback: "Couldn't download episode %2$@ of %1$@. %3$@", title, episode, reason)
+    }
+
+    /// Toast after a range was asked for and nothing was queued.
+    public static var noticeDownloadsNoneQueued: String { string("notice-downloads-none-queued", fallback: "Nothing queued.") }
+
+    /// Toast after a range was asked for and nothing was queued, and the reason it stopped.
+    public static func noticeDownloadsNoneQueuedStopped(reason: String) -> String {
+        format("notice-downloads-none-queued-stopped", fallback: "Nothing queued. %1$@", reason)
+    }
+
+    /// Toast after a range was asked for and every episode was in the queue already.
+    public static func noticeDownloadsNoneNew(existing: String) -> String {
+        format("notice-downloads-none-new", fallback: "Nothing new queued. %1$@", existing)
+    }
+
+    /// Toast as above, with the reason the range stopped.
+    public static func noticeDownloadsNoneNewStopped(existing: String, reason: String) -> String {
+        format("notice-downloads-none-new-stopped", fallback: "Nothing new queued. %1$@ %2$@", existing, reason)
+    }
+
+    /// Toast after a range was asked for, some episodes were queued and some were there already.
+    public static func noticeEpisodesQueuedExisting(count: Int, existing: String) -> String {
+        format("notice-episodes-queued-existing", fallback: "Queued %1$lld episodes. %2$@", count, existing)
+    }
+
+    /// Toast as above, with the reason the range stopped.
+    public static func noticeEpisodesQueuedStopped(count: Int, reason: String) -> String {
+        format("notice-episodes-queued-stopped", fallback: "Queued %1$lld episodes, then it stopped. %2$@", count, reason)
+    }
+
+    /// Toast as above, with some episodes in the queue already and the reason the range stopped.
+    public static func noticeEpisodesQueuedExistingStopped(count: Int, existing: String, reason: String) -> String {
+        format("notice-episodes-queued-existing-stopped", fallback: "Queued %1$lld episodes, then it stopped. %2$@ %3$@", count, existing, reason)
+    }
+
+    /// Toast when keep next found no room for another episode.
+    public static var noticeKeepNextFull: String { string("notice-keep-next-full", fallback: "Not enough free space to keep the next episodes downloaded. Free up some space to download more.") }
+
+    /// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+    public static func partyNeedsServer(server: String, `operator`: String) -> String {
+        format("party-needs-server", fallback: "Choose a server for the watch party first, as syncplay.server. %1$@ is run by %2$@.", server, `operator`)
+    }
+
+    /// Toast when a watch party is asked for in a build without watch parties.
+    public static var noticeNoParty: String { string("notice-no-party", fallback: "Watch parties aren't available in this version of anistream.") }
+
+    /// Message when a watch party was asked for with no room named.
+    public static var partyNeedsRoom: String { string("party-needs-room", fallback: "A watch party needs a room to meet in. Choose one first.") }
+
+    /// Message in a watch party when its server connection dropped and is retried.
+    public static var partyServerLost: String { string("party-server-lost", fallback: "Lost the watch party server. Trying again.") }
+
+    /// Message in a watch party when the connection came back.
+    public static var partyRejoined: String { string("party-rejoined", fallback: "Back in the watch party.") }
+
+    /// Message when the person left a watch party.
+    public static var partyLeft: String { string("party-left", fallback: "Left the watch party.") }
+
+    /// Toast after joining a plugin store with an invite that names this device's owner.
+    public static func storeJoined(store: String, member: String) -> String {
+        format("store-joined", fallback: "Joined %1$@ as %2$@.", store, member)
+    }
+
+    /// Toast after joining a plugin store with its open link, which keeps no name.
+    public static func storeJoinedUnnamed(store: String) -> String {
+        format("store-joined-unnamed", fallback: "Joined %1$@ without a name.", store)
+    }
+
+    /// Toast after leaving a plugin store.
+    public static func storeLeft(store: String) -> String {
+        format("store-left", fallback: "Left %1$@. Its plugins stay installed.", store)
+    }
+
+    /// Toast after a plugin is deleted from this device.
+    public static func pluginRemoved(plugin: String) -> String {
+        format("plugin-removed", fallback: "Removed %1$@.", plugin)
+    }
+
+    /// Toast after a store owner removes a member.
+    public static var storeMemberRemoved: String { string("store-member-removed", fallback: "Removed. Their devices stopped working with this plugin store.") }
+
+    /// Toast after a store owner cancels an invite.
+    public static var storeInviteCancelled: String { string("store-invite-cancelled", fallback: "Invite cancelled. The link no longer works.") }
+
+    /// Toast after a store owner lets anyone with the store's link join.
+    public static var storeOpenJoinOn: String { string("store-open-join-on", fallback: "Anyone with the plugin store's link can join now. Copy it from the members screen.") }
+
+    /// Toast after a store owner turns off joining with the link, when no device joined that way.
+    public static var storeOpenJoinOff: String { string("store-open-join-off", fallback: "Only people you invite can join now.") }
+
+    /// Toast after a store owner turns off joining with the link, when some devices joined that way.
+    public static func storeOpenJoinOffDevices(devices: Int) -> String {
+        format("store-open-join-off-devices", fallback: "Only people you invite can join now. The %1$lld devices that joined with the link keep working until you remove them.", devices)
+    }
+
+    /// Toast after one device that joined with the store's link is removed.
+    public static var storeDeviceRemoved: String { string("store-device-removed", fallback: "That device no longer works with this plugin store.") }
+
+    /// Toast after every device that joined with the store's link is removed.
+    public static var storeDevicesRemoved: String { string("store-devices-removed", fallback: "Removed every device that joined with the link.") }
+
+    /// Toast after a plugin is published to a store.
+    public static func pluginPublished(plugin: String, version: String) -> String {
+        format("plugin-published", fallback: "Published %1$@ %2$@.", plugin, version)
+    }
+
+    /// Toast after a plugin stops being offered in a store.
+    public static func pluginUnpublished(plugin: String) -> String {
+        format("plugin-unpublished", fallback: "%1$@ is no longer offered.", plugin)
+    }
+
+    /// Toast after the store's admin page opens in the browser.
+    public static var storeAdminOpened: String { string("store-admin-opened", fallback: "Opened the admin page in your browser. The link works once, for ten minutes.") }
+
+    /// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+    public static func storeAdminOpenFailed(reason: String) -> String {
+        format("store-admin-open-failed", fallback: "Couldn't open a browser (%1$@). On the plugin store's machine, run \"anistream store admin\" to print a link.", reason)
+    }
+
+    /// Toast after a plugin is installed while plugins are switched off in the source order.
+    public static func pluginInstalledUnused(plugin: String, version: String) -> String {
+        format("plugin-installed-unused", fallback: "Installed %1$@ %2$@, but plugins are switched off in the source order, so it isn't used.", plugin, version)
+    }
+
+    /// Toast after a plugin is installed under the name of a built-in source, so it was not loaded.
+    public static func pluginInstalledNameClash(plugin: String, id: String) -> String {
+        format("plugin-installed-name-clash", fallback: "Installed %1$@, but %2$@ is the name of a built-in source, so it wasn't loaded.", plugin, id)
+    }
+
+    /// Toast after a plugin is installed and ready to use.
+    public static func pluginInstalled(plugin: String, version: String) -> String {
+        format("plugin-installed", fallback: "Installed %1$@ %2$@.", plugin, version)
+    }
+
+    /// Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.
+    public static func pluginInstalledNotLoaded(plugin: String, reason: String) -> String {
+        format("plugin-installed-not-loaded", fallback: "Installed %1$@, but it didn't load. %2$@", plugin, reason)
+    }
+
+    /// Toast at launch when joined plugin stores offer newer versions of installed plugins.
+    public static func pluginUpdatesReady(count: Int, names: String) -> String {
+        format("plugin-updates-ready", fallback: "Plugin updates ready: %2$@.", count, names)
+    }
+
+    /// Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host.
+    public static func pluginsLoadFailed(reason: String) -> String {
+        format("plugins-load-failed", fallback: "Couldn't load plugins. %1$@", reason)
+    }
+
+    /// Error: the store was joined once, but this device has no saved token for it.
+    public static func storeTokenMissing(store: String) -> String {
+        format("store-token-missing", fallback: "There is no token for %1$@ on this device. Join it again with a new invite.", store)
+    }
+
+    /// Error: the store the record points to is gone from the saved list.
+    public static var storeNotJoined: String { string("store-not-joined", fallback: "That plugin store is no longer joined.") }
+
+    /// Error: a store's signing key is unreadable. Shown as the reason a store is offline.
+    public static var storeKeyDamaged: String { string("store-key-damaged", fallback: "The plugin store's key is damaged.") }
+
+    /// Error: a store rejected this device's token.
+    public static func storeDeviceRefused(store: String) -> String {
+        format("store-device-refused", fallback: "%1$@ no longer accepts this device. Join it again with a new invite.", store)
+    }
+
+    /// Error: a store could not be reached. The reason comes from the network.
+    public static func storeUnreachable(store: String, reason: String) -> String {
+        format("store-unreachable", fallback: "Couldn't reach %1$@. %2$@", store, reason)
+    }
+
+    /// Error: an invite link names a store this device already joined, but at another address.
+    public static func storeMoved(store: String, current: String, target: String) -> String {
+        format("store-moved", fallback: "%1$@ is joined at %2$@, but this link points to %3$@. If the plugin store has moved, leave it first and join again.", store, current, target)
+    }
+
+    /// Error: an open link would replace the named membership this device already has.
+    public static func storeJoinWouldUnname(store: String, member: String) -> String {
+        format("store-join-would-unname", fallback: "You joined %1$@ as %2$@. This link would join it again without your name, so nothing was changed.", store, member)
+    }
+
+    /// Error: the server at a link's address could not prove it is the store the invite named.
+    public static func storeNotTheInvited(url: String, reason: String) -> String {
+        format("store-not-the-invited", fallback: "%1$@ is not the plugin store in the invite (%2$@). Nothing was joined.", url, reason)
+    }
+
+    /// Error: the token for a joined store could not be saved on this device. The reason comes from the system.
+    public static func storeTokenNotKept(reason: String) -> String {
+        format("store-token-not-kept", fallback: "Couldn't keep the token for this plugin store. %1$@", reason)
+    }
+
+    /// Error: an invite that cannot be used any more.
+    public static var storeInviteUnusable: String { string("store-invite-unusable", fallback: "That invite was already used, was cancelled or has expired. Ask for a new one.") }
+
+    /// Error: an open link that no longer lets anyone join.
+    public static var storeOpenLinkUnusable: String { string("store-open-link-unusable", fallback: "That link no longer lets anyone join. Ask the plugin store's owner for a new link or an invite.") }
+
+    /// Error: a plugin takes the name of a built-in source.
+    public static func pluginReservedName(plugin: String) -> String {
+        format("plugin-reserved-name", fallback: "%1$@ is the name of a built-in source, so it can't be a plugin.", plugin)
+    }
+
+    /// Error: a store stopped offering a plugin between listing it and installing it.
+    public static func storePluginWithdrawn(store: String, plugin: String) -> String {
+        format("store-plugin-withdrawn", fallback: "%1$@ no longer offers %2$@.", store, plugin)
+    }
+
+    /// Error: a store changed a plugin after the person agreed to what was shown.
+    public static func storePluginChanged(store: String, plugin: String) -> String {
+        format("store-plugin-changed", fallback: "%1$@ changed %2$@ since it was shown. Look at it again before installing.", store, plugin)
+    }
+
+    /// Error: a plugin installed from one store is offered by another.
+    public static func pluginFromOtherStore(plugin: String, store: String) -> String {
+        format("plugin-from-other-store", fallback: "%1$@ is installed from %2$@, which keeps it updated.", plugin, store)
+    }
+
+    /// Error: a plugin file added by hand already declares the same name.
+    public static func pluginDuplicateFile(path: String, plugin: String) -> String {
+        format("plugin-duplicate-file", fallback: "%1$@ already declares %2$@. Remove that file first, or two copies would run.", path, plugin)
+    }
+
+    /// Error: a plugin could not be downloaded or installed. The reason comes from the store or the system.
+    public static func pluginInstallFailed(plugin: String, reason: String) -> String {
+        format("plugin-install-failed", fallback: "Couldn't install %1$@. %2$@", plugin, reason)
+    }
+
+    /// Error: a plugin could not be published. The reason comes from the store or the system.
+    public static func pluginPublishFailed(plugin: String, reason: String) -> String {
+        format("plugin-publish-failed", fallback: "Couldn't publish %1$@. %2$@", plugin, reason)
+    }
+
+    /// Error: a plugin to publish is no longer in the plugin folder.
+    public static func pluginMissingLocally(plugin: String) -> String {
+        format("plugin-missing-locally", fallback: "%1$@ is no longer in the plugin folder.", plugin)
+    }
+
+    /// Error: an invite for another device cannot be made from a device that joined with the open link.
+    public static func storeInviteNeedsLink(store: String) -> String {
+        format("store-invite-needs-link", fallback: "This device joined %1$@ with its link. Paste the same link on the other device.", store)
+    }
+
+    /// Error: the store sent an invite link that does not parse. The reason comes from the link parser.
+    public static func storeLinkMalformed(reason: String) -> String {
+        format("store-link-malformed", fallback: "The plugin store made a bad link. %1$@", reason)
+    }
+
+    /// Error: the store sent a link carrying another store's key.
+    public static var storeLinkWrongKey: String { string("store-link-wrong-key", fallback: "The plugin store made a link with a different key. Check the address it was started with.") }
+
+    /// Error: the store's server has no admin page.
+    public static func storeAdminMissing(store: String) -> String {
+        format("store-admin-missing", fallback: "%1$@ has no admin page. Its server may be older.", store)
+    }
+
+    /// Error: the store sent an admin link that points somewhere else.
+    public static func storeAdminLinkForeign(store: String) -> String {
+        format("store-admin-link-foreign", fallback: "%1$@ sent an admin link for another address.", store)
+    }
+
+    /// Error: the store's server is too old for joining with a link.
+    public static func storeOpenJoinUnsupported(store: String) -> String {
+        format("store-open-join-unsupported", fallback: "%1$@'s server is older and can't let anyone join with a link. Update it first.", store)
+    }
+
+    /// Toast after a source (plugin) is switched off. It is skipped when looking for episodes.
+    public static func sourceSwitchedOff(name: String) -> String {
+        format("source-switched-off", fallback: "%1$@ is off. It is skipped when looking for episodes.", name)
+    }
+
+    /// Toast after a source (plugin) is switched on.
+    public static func sourceSwitchedOn(name: String) -> String {
+        format("source-switched-on", fallback: "%1$@ is on.", name)
+    }
+
+    /// Error: a command named a plugin that is not loaded.
+    public static func pluginNotLoaded(id: String) -> String {
+        format("plugin-not-loaded", fallback: "%1$@ is not a plugin that is loaded.", id)
+    }
+
+    /// Toast after a release is chosen for a title. The name is the release's title.
+    public static func releasePinned(name: String) -> String {
+        format("release-pinned", fallback: "%1$@ will be used for this title.", name)
+    }
+
+    /// Toast when the chosen source or release for a title could not be saved. The reason comes from the database.
+    public static func noticeChoiceNotSaved(reason: String) -> String {
+        format("notice-choice-not-saved", fallback: "Couldn't save that choice. %1$@", reason)
+    }
+
+    /// Toast while torrents are running but the connection check failed, and the settings say to warn only.
+    public static var torrentCheckFailedRunning: String { string("torrent-check-failed-running", fallback: "The connection check failed. Torrents keep running.") }
+
+    /// Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard.
+    public static func torrentVpnWaiting(reason: String) -> String {
+        format("torrent-vpn-waiting", fallback: "Torrents start once the VPN guard passes. %1$@", reason)
+    }
+
+    /// Note on the sources screen: the VPN guard has no verdict yet.
+    public static var torrentVpnUnverified: String { string("torrent-vpn-unverified", fallback: "Torrents start once the VPN guard passes. The connection hasn't been verified yet.") }
+
+    /// Error: torrents are on, but no torrent index is set.
+    public static var torrentNoIndex: String { string("torrent-no-index", fallback: "Torrents need a torrent index. anistream ships none, so add your own address in the settings.") }
+
+    /// Error: the torrent session did not start because the interface closed first.
+    public static var torrentInterfaceClosed: String { string("torrent-interface-closed", fallback: "The interface closed before torrents started.") }
+
+    /// Error: the torrent session could not start. The reason comes from the torrent engine.
+    public static func torrentSessionFailed(reason: String) -> String {
+        format("torrent-session-failed", fallback: "Couldn't start the torrent session. %1$@", reason)
+    }
+
+    /// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+    public static var torrentNoKillSwitch: String { string("torrent-no-kill-switch", fallback: "There is no OS-level kill switch behind the VPN guard. Run \"anistream --doctor\" for advice.") }
+
+    /// Toast when the connection check could not run. The reason comes from the VPN settings.
+    public static func torrentNotChecked(reason: String) -> String {
+        format("torrent-not-checked", fallback: "Couldn't check the connection. %1$@", reason)
+    }
+
+    /// Note on the sources screen after the source chain is rebuilt with torrents on.
+    public static var sourcesReloadedTorrentsPending: String { string("sources-reloaded-torrents-pending", fallback: "Sources reloaded. Torrents start once the VPN guard passes.") }
+
+    /// Note on the sources screen after the source chain is rebuilt with torrents off.
+    public static var sourcesReloadedTorrentsOff: String { string("sources-reloaded-torrents-off", fallback: "Torrents are off. The session was stopped.") }
+
+    /// Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows.
+    public static var jobAnilistLimit: String { string("job-anilist-limit", fallback: "Waiting on the AniList rate limit") }
+
+    /// Toast when there is no job to carry the wait for AniList's rate limit.
+    public static func noticeAnilistLimit(wait: String) -> String {
+        format("notice-anilist-limit", fallback: "Waiting %1$@ on the AniList rate limit.", wait)
+    }
+
+    /// Toast when the AniList fallback takes over because AniList cannot be reached.
+    public static var noticeAnilistUnreachable: String { string("notice-anilist-unreachable", fallback: "AniList is unreachable. Using the fallback for fresh data for now.") }
+
+    /// Toast when no metadata service answered and the last cached data is shown.
+    public static var noticeMetadataCached: String { string("notice-metadata-cached", fallback: "No metadata service answered. Showing what was last cached.") }
+
+    /// Toast when AniList answers again.
+    public static var noticeAnilistBack: String { string("notice-anilist-back", fallback: "AniList is back.") }
+
+    /// Toast when a command needs watch parties but this app was built without them.
+    public static var noticePartyNotBuilt: String { string("notice-party-not-built", fallback: "Watch parties aren't built into this app.") }
+
+    /// Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
+    public static func noticeSignedIn(tracker: String) -> String {
+        format("notice-signed-in", fallback: "Signed in to %1$@.", tracker)
+    }
+
+    /// Toast after a sign-in succeeded and the token went into the system keychain.
+    public static func noticeSignedInKeychain(tracker: String) -> String {
+        format("notice-signed-in-keychain", fallback: "Signed in to %1$@. The token is in the OS keychain.", tracker)
+    }
+
+    /// Toast after a sign-in succeeded on a device with no keychain. The token is in a file only this user can read. It is said so that someone on a shared computer knows.
+    public static func noticeSignedInFile(tracker: String) -> String {
+        format("notice-signed-in-file", fallback: "Signed in to %1$@. No keychain is available, so the token is in a private file on this device.", tracker)
+    }
+
+    /// Toast when a sign-in worked but the token could not be stored. The reason comes from the system.
+    public static func noticeSignedInUnsaved(tracker: String, reason: String) -> String {
+        format("notice-signed-in-unsaved", fallback: "Signed in to %1$@, but the token wasn't saved, so you'll need to sign in again next time. %2$@", tracker, reason)
+    }
+
+    /// Toast when a sign-in token could not be stored. The reason comes from the system.
+    public static func noticeTokenNotSaved(reason: String) -> String {
+        format("notice-token-not-saved", fallback: "Couldn't save the sign-in token. Try signing in again. %1$@", reason)
+    }
+
+    /// Toast when a sign-in did not finish. The reason comes from the tracker or the network.
+    public static func noticeSignInFailed(tracker: String, reason: String) -> String {
+        format("notice-sign-in-failed", fallback: "Couldn't sign in to %1$@. Try again. %2$@", tracker, reason)
+    }
+
+    /// Toast when the wait for a sign-in ended early. The reason comes from the system.
+    public static func noticeSignInStopped(tracker: String, reason: String) -> String {
+        format("notice-sign-in-stopped", fallback: "The sign-in to %1$@ stopped before it finished. Try again. %2$@", tracker, reason)
+    }
+
+    /// Toast when a tracker would not give a token for the sign-in. The reason comes from the tracker.
+    public static func noticeTokenExchangeFailed(tracker: String, reason: String) -> String {
+        format("notice-token-exchange-failed", fallback: "Couldn't get a token from %1$@. Try signing in again. %2$@", tracker, reason)
+    }
+
+    /// Toast when no browser could be opened for a sign-in. The reason comes from the system.
+    public static func noticeBrowserNotOpened(reason: String) -> String {
+        format("notice-browser-not-opened", fallback: "Couldn't open a browser for the sign-in. Check that one is installed and try again. %1$@", reason)
+    }
+
+    /// Toast when a sign-in redirect arrives and no sign-in is waiting for it.
+    public static func noticeSignInNotWaiting(tracker: String) -> String {
+        format("notice-sign-in-not-waiting", fallback: "No sign-in to %1$@ is waiting for that. Start the sign-in again.", tracker)
+    }
+
+    /// Toast when a sign-in redirect does not match the request that was made.
+    public static func noticeSignInWrongRequest(tracker: String) -> String {
+        format("notice-sign-in-wrong-request", fallback: "That sign-in to %1$@ didn't come back from this request. Start the sign-in again.", tracker)
+    }
+
+    /// Toast when a tracker sent the person back without a token.
+    public static func noticeSignInNoToken(tracker: String) -> String {
+        format("notice-sign-in-no-token", fallback: "The sign-in to %1$@ came back without a token. Try again.", tracker)
+    }
+
+    /// Toast when this build has no MyAnimeList client to finish a sign-in with.
+    public static var noticeMalClientMissingBuild: String { string("notice-mal-client-missing-build", fallback: "Couldn't finish signing in to MyAnimeList: this build has no client for it.") }
+
+    /// Toast on a screen that opens Kitsu's sign-in as a prompt. It is shown with a button to open it.
+    public static var noticeKitsuSignsInOnAccounts: String { string("notice-kitsu-signs-in-on-accounts", fallback: "Kitsu signs in from the Accounts screen.") }
+
+    /// Toast when a tracker has no way to sign in yet.
+    public static func noticeSignInUnsupported(tracker: String) -> String {
+        format("notice-sign-in-unsupported", fallback: "Signing in to %1$@ isn't supported yet.", tracker)
+    }
+
+    /// Toast on an app that cannot receive a browser redirect.
+    public static func noticeSignInNeedsRedirect(tracker: String) -> String {
+        format("notice-sign-in-needs-redirect", fallback: "Signing in to %1$@ needs a browser redirect, which this app can't receive.", tracker)
+    }
+
+    /// Toast when AniList is set to a sign-in method only the anistream app can finish. The setting name is a key of the config file and is not translated.
+    public static func noticeAnilistImplicitFlow(setting: String) -> String {
+        format("notice-anilist-implicit-flow", fallback: "This AniList sign-in method works only in the anistream app. To sign in here, set %1$@ to \"loopback\" in the config file.", setting)
+    }
+
+    /// Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.
+    public static func noticeAnilistClientMissing(client: String, secret: String) -> String {
+        format("notice-anilist-client-missing", fallback: "AniList needs a client id and secret. Set %1$@ and %2$@ in the config file, then sign in again. To get the sign-in address, run anistream --login-url.", client, secret)
+    }
+
+    /// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+    public static var noticeAnilistPasteFlow: String { string("notice-anilist-paste-flow", fallback: "Pasting a code isn't possible here. Quit and run anistream --login instead.") }
+
+    /// Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
+    public static func noticeMalClientMissing(setting: String) -> String {
+        format("notice-mal-client-missing", fallback: "MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set %1$@ in the config file.", setting)
+    }
+
+    /// Status line while the browser sign-in is open and the app waits for it to come back.
+    public static func statusWaitingForRedirect(tracker: String) -> String {
+        format("status-waiting-for-redirect", fallback: "Waiting for %1$@ to redirect back…", tracker)
+    }
+
+    /// Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.
+    public static var noticeMalNoRefreshToken: String { string("notice-mal-no-refresh-token", fallback: "MyAnimeList didn't issue a refresh token. You'll need to sign in again in about a month.") }
+
+    /// Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated.
+    public static func noticeClientIdMissing(setting: String) -> String {
+        format("notice-client-id-missing", fallback: "Set %1$@ in the config file first.", setting)
+    }
+
+    /// Toast after signing out of a tracker with nothing waiting to send.
+    public static func noticeSignedOut(tracker: String) -> String {
+        format("notice-signed-out", fallback: "Signed out of %1$@.", tracker)
+    }
+
+    /// Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in.
+    public static func noticeSignedOutQueue(tracker: String, count: Int) -> String {
+        format("notice-signed-out-queue", fallback: "Signed out of %1$@. %2$lld queued changes are kept for the next sign-in.", tracker, count)
+    }
+
+    /// Toast when signing out of a tracker failed. The reason comes from the system.
+    public static func noticeSignOutFailed(tracker: String, reason: String) -> String {
+        format("notice-sign-out-failed", fallback: "Couldn't sign out of %1$@. Try again. %2$@", tracker, reason)
+    }
+
+    /// Toast when a setting could not be stored. The cause says why and what to do.
+    public static func noticeNotSavedBecause(cause: String) -> String {
+        format("notice-not-saved-because", fallback: "Couldn't save that setting. %1$@", cause)
+    }
+
+    /// Toast when the torrent protection choice was saved.
+    public static var noticeProtectionSaved: String { string("notice-protection-saved", fallback: "Saved torrent protection.") }
+
+    /// Toast when the torrent protection could not be checked. The cause says why.
+    public static func noticeProtectionNotChecked(cause: String) -> String {
+        format("notice-protection-not-checked", fallback: "Couldn't check the torrent protection. %1$@", cause)
+    }
+
+    /// Toast when the proxy's password could not be stored. The reason comes from the system.
+    public static func noticeProxyPasswordNotKept(reason: String) -> String {
+        format("notice-proxy-password-not-kept", fallback: "Couldn't keep the proxy's password. Enter it again to try saving it. %1$@", reason)
+    }
+
+    /// Toast when a show's setting was given a value it does not take. The value is what was given.
+    public static func noticeShowSettingRefused(value: String, setting: String) -> String {
+        format("notice-show-setting-refused", fallback: "Couldn't save that setting. %1$@ isn't a value for %2$@.", value, setting)
+    }
+
+    /// Toast when resetting a show's settings failed. The reason comes from the local database.
+    public static func noticeShowNotReset(reason: String) -> String {
+        format("notice-show-not-reset", fallback: "Couldn't reset this show's settings. %1$@", reason)
+    }
+
+    /// Toast when a subtitle choice names subtitles the show has not used.
+    public static var noticeShowNoSuchSubtitles: String { string("notice-show-no-such-subtitles", fallback: "Couldn't save that subtitle choice. This show hasn't used those subtitles before.") }
+
+    /// Toast while torrents are held until the connection check passes.
+    public static var noticeTorrentsWaitingForCheck: String { string("notice-torrents-waiting-for-check", fallback: "Torrents are waiting for the connection check to pass again.") }
+
+    /// Toast when the mapping data downloads work again after a failure.
+    public static var noticeMappingDataRefreshed: String { string("notice-mapping-data-refreshed", fallback: "Mapping data refreshed.") }
+
+    /// Toast when the mapping data could not be downloaded. It is said once; the retries are silent.
+    public static func noticeMappingDataFailed(datasets: String, wait: String, cause: String) -> String {
+        format("notice-mapping-data-failed", fallback: "Couldn't refresh the mapping data (%1$@). Trying again in %2$@. %3$@", datasets, wait, cause)
+    }
+
+    /// Toast, and desktop notification, for one episode that aired while the app was closed.
+    public static func noticeEpisodeAired(title: String, episode: Int) -> String {
+        format("notice-episode-aired", fallback: "%1$@, episode %2$lld, aired while you were away.", title, episode)
+    }
+
+    /// Toast, and desktop notification, for several episodes that aired while the app was closed.
+    public static func noticeEpisodesAired(count: Int) -> String {
+        format("notice-episodes-aired", fallback: "%1$lld new episodes of shows you watch aired. The calendar has them.", count)
+    }
+
+    /// Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+    public static func noticeUpdateAvailable(tag: String) -> String {
+        format("notice-update-available", fallback: "%1$@ is out. Run anistream --update to install it.", tag)
+    }
+
+    /// The reason a setting was refused until the person confirms having no protection.
+    public static var causeConfirmNoProtection: String { string("cause-confirm-no-protection", fallback: "Confirm that you want no protection first.") }
+
+    /// The reason a setting was refused until the person confirms the "warn only" choice.
+    public static var causeConfirmWarnOnly: String { string("cause-confirm-warn-only", fallback: "Confirm that you want to be warned only first.") }
+
+    /// The reason a proxy was refused: it has no host or no port.
+    public static var causeProxyNeedsAddress: String { string("cause-proxy-needs-address", fallback: "A proxy needs a host and a port.") }
+
+    /// The reason a proxy could not be checked: its address is not one the check can use.
+    public static var causeProxyAddressUnusable: String { string("cause-proxy-address-unusable", fallback: "The proxy's address is not one a check can use.") }
+
+    /// The reason a request failed: it never reached the server.
+    public static var causeServerUnreachable: String { string("cause-server-unreachable", fallback: "The server couldn't be reached.") }
+
     /// The legal line. It exists once, so no translation can paraphrase it.
     public static var legalHostsNoContent: String { string("legal-hosts-no-content", fallback: "anistream hosts no content.") }
 
@@ -48,6 +859,56 @@ public enum L {
 
     /// Button that puts a question off until later.
     public static var actionNotNow: String { string("action-not-now", fallback: "Not now") }
+
+    /// A span of time in whole days. The unit letter belongs to the language.
+    public static func durationDays(days: Int) -> String {
+        format("duration-days", fallback: "%1$lldd", days)
+    }
+
+    /// A span of time in hours and minutes.
+    public static func durationHoursMinutes(hours: Int, minutes: Int) -> String {
+        format("duration-hours-minutes", fallback: "%1$lldh %2$lldm", hours, minutes)
+    }
+
+    /// A span of time in whole hours.
+    public static func durationHours(hours: Int) -> String {
+        format("duration-hours", fallback: "%1$lldh", hours)
+    }
+
+    /// A span of time in minutes.
+    public static func durationMinutes(minutes: Int) -> String {
+        format("duration-minutes", fallback: "%1$lldm", minutes)
+    }
+
+    /// A short wait in minutes and seconds. The seconds come with a leading zero.
+    public static func durationMinutesSeconds(minutes: Int, seconds: String) -> String {
+        format("duration-minutes-seconds", fallback: "%1$lldm %2$@s", minutes, seconds)
+    }
+
+    /// A short wait in seconds.
+    public static func durationSeconds(seconds: Int) -> String {
+        format("duration-seconds", fallback: "%1$llds", seconds)
+    }
+
+    /// A file size in bytes. The number is already formatted.
+    public static func sizeByte(value: String) -> String {
+        format("size-byte", fallback: "%1$@ B", value)
+    }
+
+    /// A file size in kilobytes (1,000 bytes). The number is already formatted.
+    public static func sizeKilobyte(value: String) -> String {
+        format("size-kilobyte", fallback: "%1$@ kB", value)
+    }
+
+    /// A file size in megabytes (1,000,000 bytes). The number is already formatted.
+    public static func sizeMegabyte(value: String) -> String {
+        format("size-megabyte", fallback: "%1$@ MB", value)
+    }
+
+    /// A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.
+    public static func sizeGigabyte(value: String) -> String {
+        format("size-gigabyte", fallback: "%1$@ GB", value)
+    }
 
     /// Button that closes a sheet whose changes have already been made.
     public static var actionDone: String { string("action-done", fallback: "Done") }

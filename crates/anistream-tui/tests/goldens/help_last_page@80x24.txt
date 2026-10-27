@@ -1,11 +1,11 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
 ────────────────────────────────────────────────────────────────────────────────
-▌ KEYS                                                             page 3 of 3
+▌ Keys                                                             Page 3 of 3
 ────────────────────────────────────────────────────────────────────────────────
-    Fullscreen                      F
-    Leave player running            q
-    Stop playback                   x
+    Fullscreen                     F
+    Leave player running           q
+    Stop playback                  x
 
 
 
@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 
 
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                        ↑↓ page   esc close
+plugins · Subbed · 1080p                                     ↑↓ page   esc close
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=rule mod=BOLD
@@ -39,19 +39,19 @@ r03 c78-79 fg=rule bg=ground
 r04 c00-79 fg=rule bg=ground
 r05 c00-01 fg=rule bg=ground
 r05 c02-13 fg=text-dim bg=ground
-r05 c14-35 fg=rule bg=ground
-r05 c36-36 fg=text bg=ground
-r05 c37-79 fg=rule bg=ground
+r05 c14-34 fg=rule bg=ground
+r05 c35-35 fg=text bg=ground
+r05 c36-79 fg=rule bg=ground
 r06 c00-01 fg=rule bg=ground
 r06 c02-23 fg=text-dim bg=ground
-r06 c24-35 fg=rule bg=ground
-r06 c36-36 fg=text bg=ground
-r06 c37-79 fg=rule bg=ground
+r06 c24-34 fg=rule bg=ground
+r06 c35-35 fg=text bg=ground
+r06 c36-79 fg=rule bg=ground
 r07 c00-01 fg=rule bg=ground
 r07 c02-16 fg=text-dim bg=ground
-r07 c17-35 fg=rule bg=ground
-r07 c36-36 fg=text bg=ground
-r07 c37-79 fg=rule bg=ground
+r07 c17-34 fg=rule bg=ground
+r07 c35-35 fg=text bg=ground
+r07 c36-79 fg=rule bg=ground
 r08 c00-79 fg=rule bg=ground
 r09 c00-79 fg=rule bg=ground
 r10 c00-79 fg=rule bg=ground
@@ -67,8 +67,8 @@ r19 c00-79 fg=rule bg=ground
 r20 c00-79 fg=rule bg=ground
 r21 c00-79 fg=rule bg=ground
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
-r23 c21-60 fg=rule
+r23 c00-23 fg=text-dim
+r23 c24-60 fg=rule
 r23 c61-62 fg=text
 r23 c63-70 fg=text-dim
 r23 c71-73 fg=text

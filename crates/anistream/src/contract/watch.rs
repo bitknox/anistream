@@ -175,7 +175,7 @@ async fn syncing_now_sends_the_queue_then_pulls_the_library() {
     let (sent, pulled) = (state(&updates[0]), state(&updates[1]));
     assert_eq!((sent.tracker.as_str(), sent.last.as_deref()), ("anilist", Some("sent 1")));
     assert_eq!(pulled.last.as_deref(), Some("pulled 3 titles"));
-    assert!(matches!(&updates[2], Event::Status(text) if text.is_empty()));
+    assert!(matches!(&updates[2], Event::Status(None)));
     ends(&updates, job);
 
     let pushed = h.server().requests_for(Operation::SaveEntry);
@@ -208,7 +208,10 @@ async fn signing_out_says_what_was_kept_then_republishes_every_tracker() {
 
     assert!(job.is_none());
     assert_eq!(names(&updates), ["Toast", "Sync", "Sync"]);
-    assert_eq!(toasts(&updates), ["info: signed out of anilist — 1 queued change kept"]);
+    assert_eq!(
+        toasts(&updates),
+        ["info: Signed out of AniList. One queued change is kept for the next sign-in."]
+    );
     let states: Vec<(&str, bool)> =
         updates[1..].iter().map(state).map(|s| (s.tracker.as_str(), s.connected)).collect();
     assert_eq!(states, [("anilist", false), ("kitsu", false)]);

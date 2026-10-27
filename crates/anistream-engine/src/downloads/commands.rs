@@ -2,7 +2,7 @@
 //! now, paused, cancelled, deleted, or cleared away once finished.
 
 use anistream_core::ids::AnilistId;
-use anistream_model::{event::Event, notice::Notice};
+use anistream_model::{Cause, Msg, event::Event, notice::Notice};
 
 use crate::{
     downloads, jobs::JobGuard, outbox::Outbox, services::Services, state::EngineState,
@@ -13,12 +13,13 @@ use crate::{
 fn refused(id: AnilistId, engine: &EngineState, services: &Services) -> Option<Notice> {
     let registry = &services.registry;
     if registry.is_empty() && !registry.is_arriving() {
-        return Some(Notice::alert(crate::playback::resolve::NO_SOURCES));
+        return Some(Notice::alert(crate::playback::resolve::explained(
+            crate::playback::resolve::no_sources(),
+        )));
     }
-    engine
-        .ahead
-        .unlisted(id)
-        .then(|| Notice::alert("no source could list this show, so it can't be downloaded"))
+    engine.ahead.unlisted(id).then(|| {
+        Notice::alert(crate::playback::resolve::explained(Cause::NoSourceCouldListShow))
+    })
 }
 
 /// Queue one episode for download.
@@ -46,16 +47,23 @@ pub fn download_episode(
         let queued = downloads::enqueue(&store, &registry, &meta, id, &episode, wanted, false);
         let update = match queued.await {
             Ok((row, downloads::Queued::New)) => {
-                Event::Toast(Notice::info(format!("queued {} ep {}", row.title, row.episode)))
+                Event::Toast(Notice::info(Msg::NoticeDownloadQueued {
+                    title: row.title,
+                    episode: row.episode,
+                }))
             }
-            Ok((row, downloads::Queued::Existing)) => Event::Toast(Notice::info(format!(
-                "{} ep {} is already in downloads",
-                row.title, row.episode
+            Ok((row, downloads::Queued::Existing)) => {
+                Event::Toast(Notice::info(Msg::NoticeDownloadAlreadyQueued {
+                    title: row.title,
+                    episode: row.episode,
+                }))
+            }
+            Err(refusal) => Event::Toast(Notice::alert(crate::playback::resolve::explained(
+                refusal.into_cause(),
             ))),
-            Err(refusal) => Event::Toast(Notice::alert(refusal.to_string())),
         };
         let _ = tx.send(update);
-        let _ = tx.send(Event::Status(String::new()));
+        let _ = tx.send(Event::Status(None));
         downloads::publish_now(&store, &tx);
     });
 }
@@ -126,10 +134,10 @@ pub fn download_start_now(id: i64, services: &Services, tx: &Outbox) {
     let moved = store.download_to_front(id, anistream_store::now()).unwrap_or(false);
     downloads::publish_now(store, tx);
     if let (true, Some(row)) = (moved, row) {
-        let _ = tx.send(Event::Toast(Notice::info(format!(
-            "starting {} ep {} now",
-            row.title, row.episode
-        ))));
+        let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeDownloadStartingNow {
+            title: row.title,
+            episode: row.episode,
+        })));
     }
 }
 
@@ -140,7 +148,7 @@ pub fn download_cancel(id: i64, services: &Services, tx: &Outbox) {
     // torrent. Deleting the torrent from here would race with that loop.
     let _ = store.remove_download(id);
     downloads::publish_now(store, tx);
-    let _ = tx.send(Event::Toast(Notice::info("download cancelled")));
+    let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeDownloadCancelled)));
 }
 
 /// Delete a download and its file.
@@ -157,13 +165,15 @@ pub fn download_delete(id: i64, services: &Services, tx: &Outbox) {
     let _ = store.remove_download(id);
     let note = match path {
         Some(path) => match std::fs::remove_file(&path) {
-            Ok(()) => Notice::info("download and file deleted"),
+            Ok(()) => Notice::info(Msg::NoticeDownloadFileDeleted),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                Notice::info("download removed — file was already gone")
+                Notice::info(Msg::NoticeDownloadRemovedFileGone)
             }
-            Err(e) => Notice::alert(format!("removed the entry, not the file: {e}")),
+            Err(e) => {
+                Notice::alert(Msg::NoticeDownloadRemovedFileKept { reason: e.to_string() })
+            }
         },
-        None => Notice::info("download removed"),
+        None => Notice::info(Msg::NoticeDownloadRemoved),
     };
     downloads::publish_now(store, tx);
     let _ = tx.send(Event::Toast(note));
@@ -174,5 +184,7 @@ pub fn download_clear_completed(services: &Services, tx: &Outbox) {
     let Services { store, .. } = services;
     let cleared = store.clear_completed_downloads().unwrap_or(0);
     downloads::publish_now(store, tx);
-    let _ = tx.send(Event::Toast(Notice::info(format!("cleared {cleared} finished"))));
+    let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeDownloadsCleared {
+        count: cleared as i64,
+    })));
 }

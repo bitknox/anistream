@@ -1,27 +1,27 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  HEARTH PLUGINS                                                    owner
-  ▤│  https://plugins.example  ·  key 489f 49ea 0372 41ac
+  ▸│  Hearth plugins                                                    Owner
+  ▤│  https://plugins.example  ·  Key 489f 49ea 0372 41ac
   ▦│
-  /│    PLUGIN                      VERSION       STATE
+  /│    Plugin                      Version       State
   ▥│  ────────────────────────────────────────────────────────────────────────
-  ↓│    Yamabiko                    1.4.0         ● installed
-▌ ◇│  ▌ Kawasemi                    2.1.0         update from 2.0.3
-  ◎│    Hotaru                      0.3.0         not installed
+  ↓│    Yamabiko                    1.4.0         ● Installed
+▌ ◇│  ▌ Kawasemi                    2.1.0         Update from 2.0.3
+  ◎│    Hotaru                      0.3.0         Not installed
   ⚙│
-   │    link another device
-   │    invite someone
-   │    members
-   │    who can join                only people you invite
-   │    publish a plugin
-   │    open the admin page
-   │    leave this store
+   │    Link another device
+   │    Invite someone
+   │    Members
+   │    Who can join                Only people you invite
+   │    Publish a plugin
+   │    Open the admin page
+   │    Leave this store
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    the update also wants to contact  img.kawasemi.example
+   │    The update also wants to contact img.kawasemi.example
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                   ↵ open   q back   ? keys
+plugins · Subbed · 1080p                                ↵ open   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -88,9 +88,9 @@ r19 c03-03 fg=rule
 r20 c03-03 fg=rule
 r20 c06-77 fg=rule
 r21 c03-03 fg=rule
-r21 c08-61 fg=alert
+r21 c08-60 fg=alert
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c56-56 fg=text
 r23 c57-64 fg=text-dim
 r23 c65-65 fg=text

@@ -21,6 +21,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 const ROWS: usize = 20;
 
 fn app() -> App {
+    anistream_i18n::set_language("en");
     App::new(SettingsView::default(), Palette::dark(), Keymap::new())
 }
 
@@ -103,7 +104,7 @@ fn no_movement_key_on_a_title_page_moves_the_list_behind_it() {
 fn enter_on_a_title_page_opens_its_episodes_and_the_hint_says_so() {
     let mut a = home(3);
     press(&mut a, &["enter"]);
-    assert_eq!(hint(&a, "↵"), Some("episodes"));
+    assert_eq!(hint(&a, "↵"), Some("Episodes"));
     assert_eq!(press(&mut a, &["enter"]), vec![Command::LoadEpisodes(AnilistId::new(1))]);
     assert_eq!(a.nav.current(), &StageView::Episodes(AnilistId::new(1)));
 }
@@ -157,7 +158,7 @@ fn down_moves_from_the_search_field_into_its_results() {
     assert_eq!(a.text(Field::Search), "query", "letters are typed in the field");
     assert!(matches!(press(&mut a, &["enter"]).as_slice(), [Command::Search { .. }]));
     a.apply(a.content_here(entries(30)));
-    assert_eq!(hint(&a, "↓"), Some("results"));
+    assert_eq!(hint(&a, "↓"), Some("Results"));
 
     press(&mut a, &["down", "j", "j", "G"]);
     assert_eq!(a.text(Field::Search), "query", "j and G were typed into the query");
@@ -175,15 +176,15 @@ fn space_and_x_pause_and_cancel_downloads_while_idle_and_say_so() {
         download(7, DownloadState::Active),
         download(8, DownloadState::Paused),
     ]));
-    assert_eq!(hint(&a, "space"), Some("pause"));
-    assert_eq!(hint(&a, "x"), Some("cancel"));
+    assert_eq!(hint(&a, "space"), Some("Pause"));
+    assert_eq!(hint(&a, "x"), Some("Cancel"));
     assert_eq!(press(&mut a, &[" "]), vec![Command::DownloadPause { id: 7 }]);
     press(&mut a, &["j"]);
-    assert_eq!(hint(&a, "space"), Some("resume"));
+    assert_eq!(hint(&a, "space"), Some("Resume"));
     assert_eq!(press(&mut a, &["x"]), vec![Command::DownloadCancel { id: 8 }]);
 
     a.apply(Event::Downloads(vec![download(9, DownloadState::Done)]));
-    assert_eq!(hint(&a, "↵"), Some("play"));
+    assert_eq!(hint(&a, "↵"), Some("Play"));
     assert_eq!(hint(&a, "space"), None, "a finished download has nothing to pause");
 }
 

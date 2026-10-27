@@ -21,7 +21,7 @@ pub mod commands;
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use anistream_core::{config::Config, ids::AnilistId, media::Translation};
-use anistream_model::{event::Event, notice::Notice};
+use anistream_model::{Cause, Msg, event::Event, notice::Notice};
 use anistream_providers::{ProviderRegistry, torrent::TorrentSession};
 use anistream_store::{Download, DownloadState, Store};
 
@@ -199,9 +199,10 @@ async fn poll_running(
                 }
             }
             let merged = finish(store, config, &row, final_path.clone()).await;
+            let (title, episode) = (row.title.clone(), row.episode.clone());
             let _ = tx.send(Event::Toast(Notice::info(match merged {
-                Some(note) => format!("downloaded {} ep {} — {note}", row.title, row.episode),
-                None => format!("downloaded {} ep {}", row.title, row.episode),
+                Some(note) => Msg::NoticeDownloadFinishedNote { title, episode, note },
+                None => Msg::NoticeDownloadFinished { title, episode },
             })));
             run_completion_hook(config, &row, final_path.as_deref());
             finished.push(entry.row_id);
@@ -283,10 +284,11 @@ async fn start_queued(
                 let reason = e.to_string();
                 tracing::warn!(row = row.id, %reason, "download could not start");
                 let _ = store.fail_download(row.id, &reason);
-                let _ = tx.send(Event::Toast(Notice::alert(format!(
-                    "{} ep {}: {reason}",
-                    row.title, row.episode
-                ))));
+                let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeDownloadFailed {
+                    title: row.title.clone(),
+                    episode: row.episode.clone(),
+                    reason,
+                })));
             }
         }
         publish(store, tx);
@@ -406,7 +408,7 @@ async fn finish(
     config: &Config,
     row: &Download,
     path: Option<PathBuf>,
-) -> Option<String> {
+) -> Option<Cause> {
     let path_string = path.as_ref().map(|p| p.display().to_string());
     let _ = store.finish_download(row.id, path_string.as_deref());
 
@@ -416,14 +418,14 @@ async fn finish(
     let path = path?;
     match crate::playback::remux::merge_sidecar_subtitles(&path).await {
         Ok(crate::playback::remux::Merge::Merged { tracks, .. }) => {
-            Some(format!("{tracks} subtitle track(s) merged in"))
+            Some(Cause::SubtitlesMerged { tracks: tracks as i64 })
         }
         Ok(crate::playback::remux::Merge::NothingToDo) => None,
         Err(e) => {
             // Never fatal. The video is downloaded and playable; a failed remux costs you an
             // external subtitle file, which mpv will pick up beside the video anyway.
             tracing::warn!(error = %e, path = %path.display(), "subtitle merge failed");
-            Some(format!("subtitles left as separate files: {e}"))
+            Some(Cause::SubtitlesLeftApart { reason: e.to_string() })
         }
     }
 }
@@ -469,19 +471,28 @@ pub fn publish_now(store: &Store, tx: &Outbox) {
 }
 
 /// Why an episode was not queued, and whether the same answer holds for the rest of the title.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Refusal {
     /// About this episode only: no source has it, and the next one may still be there.
-    Episode(String),
+    Episode(Cause),
     /// About the title: it could not be matched, or its source streams but cannot be downloaded.
     /// Asking again for another episode would walk the same chain to the same answer.
-    Title(String),
+    Title(Cause),
+}
+
+impl Refusal {
+    /// The reason, whichever it is about.
+    pub fn into_cause(self) -> Cause {
+        match self {
+            Self::Episode(reason) | Self::Title(reason) => reason,
+        }
+    }
 }
 
 impl std::fmt::Display for Refusal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Episode(reason) | Self::Title(reason) => f.write_str(reason),
+            Self::Episode(reason) | Self::Title(reason) => write!(f, "{reason}"),
         }
     }
 }
@@ -495,7 +506,7 @@ pub enum Queued {
 }
 
 /// What a range came to, for the toast that reports it.
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq)]
 pub struct RangeOutcome {
     /// Rows this range added.
     pub queued: usize,
@@ -503,26 +514,33 @@ pub struct RangeOutcome {
     /// were in the queue before claimed work that was never done.
     pub existing: usize,
     /// The last reason an episode was not queued.
-    pub failed: Option<String>,
+    pub failed: Option<Cause>,
 }
 
 impl RangeOutcome {
     /// Worded from what happened: what was added, what was there already, and what stopped it.
     pub fn toast(&self) -> Notice {
-        use anistream_model::wording::plural;
-        let mut text = match (self.queued, self.existing) {
-            (0, 0) => "nothing queued".to_owned(),
-            (0, _) => "nothing new queued".to_owned(),
-            (n, _) => format!("queued {}", plural(n, "episode")),
-        };
-        if self.existing > 0 {
-            text.push_str(&format!(" — {} already in downloads", self.existing));
-        }
-        match (&self.failed, self.queued, self.existing) {
-            (None, ..) => Notice::info(text),
-            (Some(reason), 0, 0) => Notice::alert(format!("{text}: {reason}")),
-            (Some(reason), 0, _) => Notice::alert(format!("{text}; {reason}")),
-            (Some(reason), ..) => Notice::alert(format!("{text}, then: {reason}")),
+        let count = self.queued as i64;
+        let existing = Cause::AlreadyInDownloads { count: self.existing as i64 };
+        match (self.failed.clone(), self.queued, self.existing) {
+            (None, 0, 0) => Notice::info(Msg::NoticeDownloadsNoneQueued),
+            (None, 0, _) => Notice::info(Msg::NoticeDownloadsNoneNew { existing }),
+            (None, _, 0) => Notice::info(Msg::NoticeEpisodesQueued { count }),
+            (None, _, _) => Notice::info(Msg::NoticeEpisodesQueuedExisting { count, existing }),
+            (Some(reason), 0, 0) => {
+                Notice::alert(Msg::NoticeDownloadsNoneQueuedStopped { reason })
+            }
+            (Some(reason), 0, _) => {
+                Notice::alert(Msg::NoticeDownloadsNoneNewStopped { existing, reason })
+            }
+            (Some(reason), _, 0) => {
+                Notice::alert(Msg::NoticeEpisodesQueuedStopped { count, reason })
+            }
+            (Some(reason), _, _) => Notice::alert(Msg::NoticeEpisodesQueuedExistingStopped {
+                count,
+                existing,
+                reason,
+            }),
         }
     }
 }
@@ -598,7 +616,10 @@ pub async fn enqueue(
         return Ok((existing, Queued::Existing));
     }
 
-    let media = meta.media(anilist_id).await.map_err(|e| Refusal::Title(e.to_string()))?;
+    let media = meta
+        .media(anilist_id)
+        .await
+        .map_err(|e| Refusal::Title(Cause::verbatim(e.to_string())))?;
     let title = meta.titles().pick(&media.title);
     let now = anistream_store::now();
     // "Use this source for this series", as playback applies it: before the title is matched,
@@ -626,11 +647,11 @@ pub async fn enqueue(
     let streams = match answer {
         anistream_providers::Answer::Answered { value, .. } => value,
         anistream_providers::Answer::Ambiguous { .. } => {
-            return Err(Refusal::Title(format!("could not match this title: {summary}")));
+            return Err(Refusal::Title(Cause::TitleNoMatch { detail: summary }));
         }
         // No source has the title: every episode of it would be refused the same way.
         anistream_providers::Answer::Unanswered { matched: false, .. } => {
-            return Err(Refusal::Title(format!("could not match this title: {summary}")));
+            return Err(Refusal::Title(Cause::TitleNoMatch { detail: summary }));
         }
         anistream_providers::Answer::Unanswered { .. } => Vec::new(),
     };
@@ -646,9 +667,12 @@ pub async fn enqueue(
         .and_then(|s| s.download_source.clone())
         .ok_or_else(|| {
             if streams.is_empty() {
-                Refusal::Episode(format!("no source has this episode: {summary}"))
+                Refusal::Episode(Cause::NoSourceHasEpisode {
+                    episode: episode.to_owned(),
+                    detail: summary.clone(),
+                })
             } else {
-                Refusal::Title("this source streams but cannot be downloaded".to_string())
+                Refusal::Title(Cause::SourceCannotDownload)
             }
         })?;
 
@@ -658,7 +682,9 @@ pub async fn enqueue(
     } else {
         store.enqueue_download(anilist_id, episode, title, &magnet)
     };
-    queued.map(|row| (row, Queued::New)).map_err(|e| Refusal::Title(e.to_string()))
+    queued
+        .map(|row| (row, Queued::New))
+        .map_err(|e| Refusal::Title(Cause::verbatim(e.to_string())))
 }
 
 #[cfg(test)]
@@ -688,13 +714,13 @@ mod tests {
             async move {
                 match episode.as_str() {
                     "1" => Ok(Queued::New),
-                    _ => Err(Refusal::Title("cannot be downloaded".into())),
+                    _ => Err(Refusal::Title(Cause::verbatim("cannot be downloaded"))),
                 }
             }
         })
         .await;
         assert_eq!(outcome.queued, 1);
-        assert_eq!(outcome.failed.as_deref(), Some("cannot be downloaded"));
+        assert_eq!(outcome.failed, Some(Cause::verbatim("cannot be downloaded")));
         assert_eq!(asked, ["1", "2"], "the rest of the range was asked for anyway");
     }
 
@@ -702,13 +728,13 @@ mod tests {
     async fn a_missing_episode_does_not_stop_the_rest() {
         let outcome = enqueue_each(&episodes(4), |episode| async move {
             match episode.as_str() {
-                "2" => Err(Refusal::Episode("no source has this episode".into())),
+                "2" => Err(Refusal::Episode(Cause::verbatim("no source has this episode"))),
                 _ => Ok(Queued::New),
             }
         })
         .await;
         assert_eq!(outcome.queued, 3);
-        assert_eq!(outcome.failed.as_deref(), Some("no source has this episode"));
+        assert_eq!(outcome.failed, Some(Cause::verbatim("no source has this episode")));
     }
 
     /// Episodes already in the queue were counted as queued, so a range that added nothing said
@@ -719,25 +745,37 @@ mod tests {
         let outcome = enqueue_each(&range, |episode| async move {
             match episode.as_str() {
                 "3" | "4" => Ok(Queued::Existing),
-                _ => Err(Refusal::Title("this source streams but cannot be downloaded".into())),
+                _ => Err(Refusal::Title(Cause::SourceCannotDownload)),
             }
         })
         .await;
         assert_eq!((outcome.queued, outcome.existing), (0, 2));
         let toast = outcome.toast();
         assert_eq!(
+            toast.message(),
+            Msg::NoticeDownloadsNoneNewStopped {
+                existing: Cause::AlreadyInDownloads { count: 2 },
+                reason: Cause::SourceCannotDownload,
+            }
+        );
+        assert_eq!(
             toast.text,
-            "nothing new queued — 2 already in downloads; \
-             this source streams but cannot be downloaded"
+            "Nothing new queued. 2 episodes are already in downloads. \
+             This source streams episodes but can't download them."
         );
         assert_eq!(toast.kind, anistream_model::notice::NoticeKind::Alert);
 
         let mixed = RangeOutcome { queued: 2, existing: 1, failed: None };
-        assert_eq!(mixed.toast().text, "queued 2 episodes — 1 already in downloads");
-        let stopped = RangeOutcome { queued: 1, existing: 0, failed: Some("why".into()) };
-        assert_eq!(stopped.toast().text, "queued 1 episode, then: why");
-        let refused = RangeOutcome { failed: Some("why".into()), ..RangeOutcome::default() };
-        assert_eq!(refused.toast().text, "nothing queued: why");
+        assert_eq!(
+            mixed.toast().text,
+            "Queued 2 episodes. One episode is already in downloads."
+        );
+        let stopped =
+            RangeOutcome { queued: 1, existing: 0, failed: Some(Cause::verbatim("why")) };
+        assert_eq!(stopped.toast().text, "Queued one episode, then it stopped. why");
+        let refused =
+            RangeOutcome { failed: Some(Cause::verbatim("why")), ..RangeOutcome::default() };
+        assert_eq!(refused.toast().text, "Nothing queued. why");
     }
 
     fn row(id: i64, state: DownloadState, front_at: Option<i64>) -> Download {

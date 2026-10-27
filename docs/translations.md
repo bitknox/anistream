@@ -12,7 +12,7 @@ cargo run -p i18n-tool -- generate
 ## Add a string
 
 1. Pick the file in `i18n/en/` by screen (`ui-library.ftl`, `ui-settings.ftl`, and so on). Strings
-   that only one platform shows go in `platform-<name>.ftl`. Engine notices go in `engine.ftl`.
+   that only one platform shows go in `platform-<name>.ftl` (or `platform-<name>-<screen>.ftl`). Engine notices go in `engine.ftl`.
 2. Write the message. The id is kebab-case and names what the text is, not where it sits.
 
    ```
@@ -55,6 +55,11 @@ message shows it in English, per string.
 ships only when `i18n/status/<lang>.json` marks it `reviewed` against the current English text. A
 language set to `drafts = "ship"` also ships drafts, and the apps label it "Draft translation".
 
+## Language in the terminal
+
+`--lang <tag>` wins over the `language` key in `config.toml`, and both win over the system's
+language. `ANISTREAM_LANG` still overrides all three, for trying a language or the pseudo-locale.
+
 ## Pseudo-locale
 
 Accented, 30% longer English for checking layouts and finding strings that were never moved.
@@ -68,7 +73,7 @@ Accented, 30% longer English for checking layouts and finding strings that were 
 
 `lint` holds the catalogue to the writing rules (glossary terms, no em dashes, no all caps, no
 "provider", consistent placeholders and plurals, widths). `lint-code` counts hardcoded strings per
-platform against `i18n/baselines/<platform>.txt`. It only reports until a platform is added to
+platform against `i18n/baselines/<platform>.txt`. For the terminal it counts every string literal that reads as words (three letters in a row) outside logs, assertions, match patterns and comparisons; a line ending in `// i18n-skip` marks a literal that is a token, not text, and `I18N_LIST=1` prints each one found. It only reports until a platform is added to
 `[code] enforce` in `i18n/lint.toml`, which that platform's migration does once its baseline is
 empty. Platform hooks: the CI `i18n` job, `apple/scripts/test.sh`, Android's Gradle `check` and
 `desktop/windows/scripts/test.sh`, each running `lint-code --platform <name>`.

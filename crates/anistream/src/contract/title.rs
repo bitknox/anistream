@@ -213,7 +213,7 @@ async fn a_pin_written_inline_is_what_the_next_task_reads() {
         ["Settings", "Toast", "ShowSettings", "ProviderPreference", "Detail", "JobDone"]
     );
     assert_eq!(kept_sources(&updates[0]), 1);
-    assert_eq!(toasts(&updates), ["info: alt will be used for this title"]);
+    assert_eq!(toasts(&updates), ["info: alt will be used for this title."]);
     // The show's sheet says the pin, for the sheet it was made from.
     assert!(
         matches!(&updates[2], Event::ShowSettings(sheet) if sheet.source.as_deref() == Some("alt"))
@@ -227,7 +227,7 @@ async fn a_pin_written_inline_is_what_the_next_task_reads() {
     assert_eq!(names(&updates), ["Settings", "Toast", "ShowSettings"]);
     assert!(matches!(&updates[2], Event::ShowSettings(sheet) if sheet.source.is_none()));
     assert_eq!(kept_sources(&updates[0]), 0);
-    assert_eq!(toasts(&updates), ["info: back to automatic source selection"]);
+    assert_eq!(toasts(&updates), ["info: Back to automatic source selection."]);
     assert_eq!(h.store().provider_preference(FINISHED).unwrap(), None);
 }
 
@@ -240,7 +240,7 @@ async fn a_title_that_cannot_be_loaded_is_a_toast_after_the_preference() {
 
     assert_eq!(names(&updates), ["ProviderPreference", "Toast", "JobDone"]);
     let said = toasts(&updates);
-    assert!(said[0].starts_with("alert: could not load title: "), "{said:?}");
+    assert_eq!(said, ["alert: Couldn't load this title. Check your connection and try again."]);
     ends(&updates, job);
 }
 
@@ -412,14 +412,17 @@ async fn releases_that_cannot_be_listed_are_a_toast() {
     let job = h.send(Command::LoadSources { id: FINISHED, episode: "1".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "JobDone"]);
-    assert_eq!(toasts(&updates), ["alert: no sources configured: see the Providers screen"]);
+    assert_eq!(
+        toasts(&updates),
+        ["alert: No sources are set up. Add one on the Sources screen."]
+    );
     ends(&updates, job);
 
     let mut h = harness(unsure()).await;
     let job = h.send(Command::LoadSources { id: FINISHED, episode: "1".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "JobDone"]);
-    assert!(toasts(&updates)[0].starts_with("alert: could not match this title: "));
+    assert!(toasts(&updates)[0].starts_with("alert: Couldn't match this title: "));
     ends(&updates, job);
 }
 
@@ -442,7 +445,10 @@ async fn a_search_in_your_own_words_offers_ranked_choices() {
     let job = h.send(Command::ManualSearch { id: FINISHED, query: "tabibito".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "JobDone"]);
-    assert_eq!(toasts(&updates), ["alert: nothing found for \"tabibito\""]);
+    assert_eq!(
+        toasts(&updates),
+        ["alert: Nothing found for “tabibito”. Try a different search."]
+    );
     ends(&updates, job);
 }
 

@@ -41,6 +41,7 @@ pub const PSEUDO_TAG: &str = "en-XA";
 pub enum Arg<'a> {
     Text(&'a str),
     Int(i64),
+    Float(f64),
 }
 
 /// The languages to offer, source first. The pseudo-locale is listed only where it is available.
@@ -128,6 +129,7 @@ impl Localizer {
             match arg {
                 Arg::Text(t) => fluent_args.set(*name, FluentValue::from(*t)),
                 Arg::Int(n) => fluent_args.set(*name, FluentValue::from(*n)),
+                Arg::Float(f) => fluent_args.set(*name, FluentValue::from(*f)),
             }
         }
         for bundle in std::iter::once(&self.primary).chain(self.fallback.as_ref()) {
@@ -177,6 +179,12 @@ pub fn set_language(tag: &str) -> &'static str {
 /// The language in use.
 pub fn language() -> &'static str {
     current().read().expect("the language lock is never held across a panic").tag()
+}
+
+/// What formats messages in the language in use, for rendering a message that carries its own
+/// values (the engine's `Msg`) rather than calling a function in [`t`].
+pub fn localizer() -> Arc<Localizer> {
+    current().read().expect("the language lock is never held across a panic").clone()
 }
 
 /// The message `id` in the language in use. The functions in [`t`] call this.

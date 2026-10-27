@@ -122,7 +122,7 @@ async fn an_invite_is_previewed_then_joined() {
     let Event::Stores(rows) = &updates[0] else { unreachable!() };
     assert!(matches!(&updates[1], Event::StoreJoined { store } if *store == rows[0].id));
     assert!(rows[0].owner);
-    assert_eq!(toasts(&updates), ["info: joined Ours as Owner"]);
+    assert_eq!(toasts(&updates), ["info: Joined Ours as Owner."]);
     ends(&updates, job);
 
     let job = h.send(Command::LoadStores);
@@ -186,7 +186,10 @@ async fn an_owner_invites_someone_lists_them_and_takes_their_access_away() {
     let job = owner.send(Command::RemoveMember { store: id.clone(), member });
     let updates = owner.settle().await;
     assert_eq!(names(&updates), ["Toast", "StoreMembers", "JobDone"]);
-    assert_eq!(toasts(&updates), ["info: removed — their devices stopped working here"]);
+    assert_eq!(
+        toasts(&updates),
+        ["info: Removed. Their devices stopped working with this plugin store."]
+    );
     assert_eq!(people(&updates[1]), (vec!["Owner".into()], vec![]));
     ends(&updates, job);
 
@@ -213,7 +216,7 @@ async fn a_cancelled_invite_is_said_then_gone_from_the_list() {
     let updates = h.settle().await;
     assert!(job.is_none(), "cancelling has no activity row");
     assert_eq!(names(&updates), ["Toast", "StoreMembers"]);
-    assert_eq!(toasts(&updates), ["info: invite cancelled — the link no longer works"]);
+    assert_eq!(toasts(&updates), ["info: Invite cancelled. The link no longer works."]);
     assert_eq!(people(&updates[1]), (vec!["Owner".into()], vec![]));
 }
 
@@ -234,10 +237,7 @@ async fn plugins_that_are_not_there_are_refused_by_name() {
     let job = h.send(Command::PublishPlugin { store: id.clone(), plugin: "absent".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "JobDone"]);
-    assert_eq!(
-        toasts(&updates),
-        ["alert: absent not published: absent is not in the plugin directory any more"]
-    );
+    assert_eq!(toasts(&updates), ["alert: absent is no longer in the plugin folder."]);
     ends(&updates, job);
 
     let job = h.send(Command::UnpublishPlugin { store: id.clone(), plugin: "absent".into() });
@@ -250,7 +250,7 @@ async fn plugins_that_are_not_there_are_refused_by_name() {
     let job = h.send(Command::InstallPlugin { store: id.clone(), plugin: "absent".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Stores", "Toast", "JobDone"]);
-    assert_eq!(toasts(&updates), ["alert: absent not installed: Ours no longer offers absent"]);
+    assert_eq!(toasts(&updates), ["alert: Ours no longer offers absent."]);
     ends(&updates, job);
 }
 
@@ -274,7 +274,7 @@ async fn leaving_sends_the_rows_then_says_the_plugins_stay() {
 
     assert_eq!(names(&updates), ["Stores", "Toast", "JobDone"]);
     assert!(matches!(&updates[0], Event::Stores(rows) if rows.is_empty()));
-    assert_eq!(toasts(&updates), ["info: left Ours — its plugins stay installed"]);
+    assert_eq!(toasts(&updates), ["info: Left Ours. Its plugins stay installed."]);
     ends(&updates, job);
 }
 
@@ -299,7 +299,9 @@ async fn an_owner_opens_the_store_and_anyone_with_its_link_joins_without_a_name(
     let link = open_view(&updates[1]).link.clone().expect("an open store's link").0;
     assert_eq!(
         toasts(&updates),
-        ["info: anyone with the store's link can join now. Copy it from members"]
+        [
+            "info: Anyone with the plugin store's link can join now. Copy it from the members screen."
+        ]
     );
     ends(&updates, job);
 
@@ -317,7 +319,7 @@ async fn an_owner_opens_the_store_and_anyone_with_its_link_joins_without_a_name(
     let job = guest.send(Command::JoinStore { link: Secret(link.clone()), label: None });
     let updates = guest.settle().await;
     assert_eq!(names(&updates), ["Stores", "StoreJoined", "Toast", "JobDone"]);
-    assert_eq!(toasts(&updates), ["info: joined Ours without a name"]);
+    assert_eq!(toasts(&updates), ["info: Joined Ours without a name."]);
     assert!(matches!(&updates[0], Event::Stores(rows) if rows[0].anonymous && rows[0].open));
     ends(&updates, job);
 
@@ -336,8 +338,8 @@ async fn an_owner_opens_the_store_and_anyone_with_its_link_joins_without_a_name(
     assert!(!open_view(&updates[1]).open && open_view(&updates[1]).link.is_none());
     assert_eq!(
         toasts(&updates),
-        ["info: only people you invite can join now. The device that joined with the link \
-             keeps working until you remove it"]
+        ["info: Only people you invite can join now. The device that joined with the link \
+             keeps working until you remove it."]
     );
     ends(&updates, job);
     let job = owner.send(Command::RemoveAnonymous { store: id, device: Some(device) });

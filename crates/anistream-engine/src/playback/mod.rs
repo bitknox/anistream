@@ -44,9 +44,6 @@ pub use session::{
     UP_NEXT_COUNTDOWN, offered, play,
 };
 
-/// What a play is answered with where there is no player to play it in, said of each play.
-pub const NO_PLAYER: &str = "playback isn't built into this front end";
-
 /// Answer a play where this build has no player to open, which without the `desktop` feature is
 /// every play for now: an alert that says so, then the job's end. Nothing is staged, and nothing
 /// ends, since nothing started.
@@ -55,6 +52,6 @@ pub const NO_PLAYER: &str = "playback isn't built into this front end";
 /// can hand one over: see [`link::opener`].
 pub(crate) fn refuse(job: Option<crate::jobs::JobGuard>, tx: &crate::outbox::Outbox) {
     use anistream_model::{event::Event, notice::Notice};
-    let _ = tx.send(Event::Toast(Notice::alert(NO_PLAYER)));
+    let _ = tx.send(Event::Toast(Notice::alert(anistream_model::Msg::NoticeNoPlayer)));
     drop(job);
 }

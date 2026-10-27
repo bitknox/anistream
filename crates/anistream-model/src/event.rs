@@ -5,6 +5,7 @@ use std::time::Duration;
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 
 use crate::{
+    Msg,
     catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired, TitleLanguage},
     downloads::{DownloadRow, SeedRow},
     episodes::{DubExtent, EpisodeRow},
@@ -50,7 +51,7 @@ pub enum Event {
     /// wait down is the front end's.
     JobNote {
         job: JobId,
-        note: String,
+        note: Msg,
         wait: Option<Duration>,
     },
     /// The work carrying this job has ended, whether it succeeded or not.
@@ -122,7 +123,8 @@ pub enum Event {
     /// names titles the old way, so it loads what it shows again; what arrives from now on is
     /// named the new way.
     TitlesChanged(TitleLanguage),
-    Status(String),
+    /// What the work is doing now, for the status line; `None` clears it.
+    Status(Option<Msg>),
     Toast(Notice),
     Providers(Vec<ProviderRow>),
     /// The metadata ladder's condition: which rung is serving, and why.
@@ -137,7 +139,7 @@ pub enum Event {
     /// reports: whatever reloads them has done so, and the screen only has to say it.
     SourcesChanged,
     /// Why no sources are available, when none are.
-    ProviderNote(String),
+    ProviderNote(Msg),
     /// The source pinned for the title on screen, or `None` for automatic.
     ProviderPreference(Option<String>),
     /// The ladder found candidates but could not choose between them.
@@ -471,7 +473,7 @@ pub enum Event {
     /// user ("party.example:8999 refused the party: …"). What is playing goes on as a private
     /// session.
     PartyLeft {
-        reason: Option<String>,
+        reason: Option<Msg>,
     },
     /// The party's episode has no source here: this device is in the room without playing,
     /// for the dialog that says why and offers what fits, Choose source among it. It carries
@@ -480,7 +482,7 @@ pub enum Event {
         id: AnilistId,
         episode: String,
         why: NoSourceWhy,
-        reason: String,
+        reason: Msg,
     },
 }
 

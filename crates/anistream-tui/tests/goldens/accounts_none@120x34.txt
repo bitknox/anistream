@@ -1,14 +1,14 @@
 anistream                                                                                           torrent ○  plugins ●
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  TRACKER         STATE             QUEUED    TOKEN
-  ▤  CALENDAR               │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▦  SEASONAL               │  NO TRACKERS ENABLED
-  /  SEARCH                 │
-  ▥  LIBRARY                │  add one to trackers.enabled in config.toml — local history works without any
-  ↓  DOWNLOADS              │
-  ◇  PROVIDERS              │
-▌ ◎  ACCOUNTS               │
-  ⚙  SETTINGS               │
+  ▸  Continue               │  Tracker         State             Queued    Token
+  ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▦  Seasonal               │  No trackers enabled
+  /  Search                 │
+  ▥  Library                │  Add one to trackers.enabled in config.toml. Your watch history works without any.
+  ↓  Downloads              │
+  ◇  Sources                │
+▌ ◎  Accounts               │
+  ⚙  Settings               │
                             │
                             │
                             │
@@ -31,7 +31,7 @@ anistream                                                                       
                             │
                             │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                                                             ? keys
+plugins · Subbed · 1080p                                                                                          ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -59,12 +59,12 @@ r05 c28-28 fg=rule
 r06 c02-02 fg=text-dim
 r06 c05-11 fg=text-dim
 r06 c28-28 fg=rule
-r06 c31-106 fg=text-dim
+r06 c31-111 fg=text-dim
 r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r09 c00-00 fg=text-dim
 r09 c02-02 fg=text
@@ -95,6 +95,6 @@ r29 c28-28 fg=rule
 r30 c28-28 fg=rule
 r31 c28-28 fg=rule
 r32 c00-119 fg=rule
-r33 c00-20 fg=text-dim
+r33 c00-23 fg=text-dim
 r33 c114-114 fg=text
 r33 c115-119 fg=text-dim

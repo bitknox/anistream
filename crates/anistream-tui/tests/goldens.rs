@@ -37,7 +37,6 @@ use anistream_model::{
     episodes::{EpisodeKind, EpisodeRow},
     event::Event,
     jobs::JobId,
-    notice::Notice,
     playback::SkipKind,
     progress::TitleProgress,
     settings::{self, SettingsView},
@@ -100,6 +99,7 @@ struct Screen {
 
 impl Screen {
     fn new(width: u16, height: u16) -> Self {
+        anistream_i18n::set_language("en");
         let mut app = App::new(SettingsView::default(), Palette::dark(), Keymap::new());
         // Stopped before anything can start a job, so every job's running time is measured
         // against this clock's own instant.
@@ -1309,12 +1309,12 @@ fn activity_and_toasts(s: &mut Screen) {
     let job = s.start(&sync);
     s.apply(Event::JobNote {
         job,
-        note: "AniList asked for a pause".into(),
+        note: anistream_model::Msg::verbatim("AniList asked for a pause"),
         wait: Some(Duration::from_millis(42_600)),
     });
     s.wait(Duration::from_millis(900));
-    s.apply(Event::Toast(Notice::info("saved upscaling")));
-    s.apply(Event::Toast(Notice::alert("tsubame: search timed out after 8 s")));
+    s.apply(Event::Toast(anistream_tui::app::info("saved upscaling")));
+    s.apply(Event::Toast(anistream_tui::app::alert("tsubame: search timed out after 8 s")));
 }
 
 // ── Overlays ───────────────────────────────────────────────────────────────────────────────────
@@ -1429,13 +1429,13 @@ fn search_filters(s: &mut Screen) {
 fn logs(s: &mut Screen) {
     continue_watching(s);
     for toast in [
-        Notice::info("saved upscaling"),
-        Notice::alert("cover unavailable"),
-        Notice::alert("cover unavailable"),
-        Notice::alert("cover unavailable"),
-        Notice::alert("tsubame: search timed out after 8 s"),
-        Notice::info("now using dub for this session"),
-        Notice::info("resumed at 13:32"),
+        anistream_tui::app::info("saved upscaling"),
+        anistream_tui::app::alert("cover unavailable"),
+        anistream_tui::app::alert("cover unavailable"),
+        anistream_tui::app::alert("cover unavailable"),
+        anistream_tui::app::alert("tsubame: search timed out after 8 s"),
+        anistream_tui::app::info("now using dub for this session"),
+        anistream_tui::app::info("resumed at 13:32"),
     ] {
         s.apply(Event::Toast(toast));
     }

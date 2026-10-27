@@ -606,7 +606,8 @@ impl PlayerView {
                     .get(job)
                     .is_some_and(|activity| activity.starts_with("starting"));
                 if starting {
-                    self.starting_note.replace(Some(crate::catalog::shown(note)));
+                    // i18n P2: replace with the catalogue
+                    self.starting_note.replace(Some(crate::catalog::shown(&note.english())));
                 }
             }
             _ => {}

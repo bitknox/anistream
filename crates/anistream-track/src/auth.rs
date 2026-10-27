@@ -174,6 +174,11 @@ pub async fn listen(port: u16) -> Result<Loopback, AuthError> {
 }
 
 impl Loopback {
+    /// The port it is bound to: what was asked for, or the one the OS chose for port 0.
+    pub fn port(&self) -> u16 {
+        self.listener.local_addr().map(|addr| addr.port()).unwrap_or_default()
+    }
+
     /// Wait for the browser to arrive at the callback, and return the authorization code.
     ///
     /// One request, read straight off the request line: the code is a query parameter, so unlike a
@@ -615,8 +620,10 @@ mod tests {
     async fn the_loopback_flow_captures_a_code_from_the_query_string() {
         // Drives the real listener over a real socket. Unlike a fragment, the code reaches the
         // server directly — which is why no in-browser relay is needed.
-        let port = 45_941;
-        let loopback = listen(port).await.unwrap();
+        // Port 0: a fixed port sits in the ephemeral range, where another test's outgoing
+        // connection can hold it.
+        let loopback = listen(0).await.unwrap();
+        let port = loopback.port();
         let waiting = tokio::spawn(loopback.wait_for_code("your tracker"));
 
         let mut socket = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.unwrap();
@@ -640,8 +647,10 @@ mod tests {
     async fn a_favicon_request_does_not_end_the_flow() {
         // Browsers ask for /favicon.ico unprompted. Treating that as the callback would end
         // sign-in with nothing and look like a timeout.
-        let port = 45_942;
-        let loopback = listen(port).await.unwrap();
+        // Port 0: a fixed port sits in the ephemeral range, where another test's outgoing
+        // connection can hold it.
+        let loopback = listen(0).await.unwrap();
+        let port = loopback.port();
         let waiting = tokio::spawn(loopback.wait_for_code("your tracker"));
 
         let mut noise = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.unwrap();
@@ -665,8 +674,10 @@ mod tests {
     #[tokio::test]
     async fn a_declined_authorisation_is_reported_as_a_decision() {
         // Pressing "Deny" must read as a choice, not as a broken flow.
-        let port = 45_943;
-        let loopback = listen(port).await.unwrap();
+        // Port 0: a fixed port sits in the ephemeral range, where another test's outgoing
+        // connection can hold it.
+        let loopback = listen(0).await.unwrap();
+        let port = loopback.port();
         let waiting = tokio::spawn(loopback.wait_for_code("your tracker"));
 
         let mut socket = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.unwrap();
@@ -686,8 +697,8 @@ mod tests {
     async fn a_port_already_in_use_fails_clearly() {
         // The port is fixed because AniList matches the redirect exactly, which makes a
         // collision with another program a real possibility worth naming.
-        let port = 45_944;
-        let _held = tokio::net::TcpListener::bind(("127.0.0.1", port)).await.unwrap();
+        let held = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let port = held.local_addr().unwrap().port();
         assert!(matches!(listen(port).await, Err(AuthError::Listen { .. })));
     }
 }

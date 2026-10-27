@@ -2,6 +2,7 @@
 //! actions, and its members and invites; the rows of the overlays that join a store, confirm a
 //! store action, act on a plugin, publish one and show an invite link.
 
+use anistream_i18n::t;
 use anistream_model::stores::{StorePluginRow, StorePluginStatus, StoreRow, StoreState};
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
@@ -30,12 +31,16 @@ const COL_PLUGIN_STATE: u16 = 44;
 /// A store's condition in a few words, and the role to draw it in.
 fn store_state(store: &StoreRow) -> (String, Role) {
     match &store.state {
-        StoreState::Revoked => ("access removed".into(), Role::Alert),
-        StoreState::Offline(_) => (format!("{} offline", glyph::STATE_DEGRADED), Role::State),
+        StoreState::Revoked => (t::stores_state_revoked(), Role::Alert),
+        StoreState::Offline(_) => {
+            (format!("{} {}", glyph::STATE_DEGRADED, t::stores_state_offline()), Role::State)
+        }
         StoreState::Ready => match store.updates() {
-            0 => (format!("{} up to date", glyph::STATE_READY), Role::TextDim),
-            1 => ("1 update".into(), Role::Obi),
-            n => (format!("{n} updates"), Role::Obi),
+            0 => (
+                format!("{} {}", glyph::STATE_READY, t::stores_state_up_to_date()),
+                Role::TextDim,
+            ),
+            n => (t::stores_state_updates(n as i64), Role::Obi),
         },
     }
 }
@@ -77,31 +82,31 @@ fn render_footer(buf: &mut Buffer, app: &App, area: Rect, text: &str, role: Role
 /// Every store this machine has joined, and the way to join another.
 pub(super) fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
     if area.height < MIN_TABLE_HEIGHT + 4 || area.width < 40 {
-        render_placeholder(buf, app, area, "PLUGIN STORES", "needs a larger terminal");
+        render_placeholder(
+            buf,
+            app,
+            area,
+            &t::stores_list_heading(),
+            &t::stores_needs_larger_terminal(),
+        );
         return;
     }
     line(
         buf,
         area.left(),
         area.top(),
-        glyph::eyebrow("plugin stores"),
+        t::stores_list_heading(),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
     let head = area.top() + 2;
     for (label, x) in [
-        ("store", COL_PROVIDER),
-        ("plugins", COL_STORE_COUNT),
-        ("you", COL_STORE_ROLE),
-        ("state", COL_STORE_STATE),
+        (t::stores_column_store(), COL_PROVIDER),
+        (t::stores_column_plugins(), COL_STORE_COUNT),
+        (t::stores_column_you(), COL_STORE_ROLE),
+        (t::stores_column_state(), COL_STORE_STATE),
     ] {
         if x < area.width {
-            line(
-                buf,
-                area.left() + x,
-                head,
-                glyph::eyebrow(label),
-                app.palette.style(Role::TextDim),
-            );
+            line(buf, area.left() + x, head, label, app.palette.style(Role::TextDim));
         }
     }
     Hairline::new(&app.palette).render(Rect { y: head + 1, height: 1, ..area }, buf);
@@ -113,7 +118,7 @@ pub(super) fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
             buf,
             area.left() + COL_PROVIDER,
             y,
-            "none joined yet",
+            t::stores_none_joined(),
             app.palette.style(Role::TextDim),
         );
         y += 1;
@@ -141,7 +146,7 @@ pub(super) fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
             buf,
             area.left() + COL_STORE_ROLE,
             y,
-            if store.owner { "owner" } else { "member" },
+            role_text(store.owner),
             app.palette.style(Role::TextDim),
         );
         let (state, role) = store_state(store);
@@ -160,31 +165,29 @@ pub(super) fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
     if join_y < last_row {
         let style =
             focus_row(buf, app, area, join_y, app.cursors.stores.selected == app.stores.len());
-        line(buf, area.left() + COL_PROVIDER, join_y, "+ join a store", style);
+        line(buf, area.left() + COL_PROVIDER, join_y, t::stores_join_row(), style);
     }
 
     let (footer, role) = match app.stores.get(app.cursors.stores.selected) {
         Some(store) => match &store.state {
-            StoreState::Revoked => (
-                "this store no longer accepts this device — its owner can send a new invite"
-                    .to_owned(),
-                Role::Alert,
-            ),
-            StoreState::Offline(reason) => (format!("{} — {reason}", store.url), Role::State),
+            StoreState::Revoked => (t::stores_footer_revoked(), Role::Alert),
+            StoreState::Offline(reason) => {
+                (t::stores_footer_offline(&store.url, reason), Role::State)
+            }
             StoreState::Ready => (
                 glyph::dotted(&[
                     &store.url,
-                    &format!("key {}", store.fingerprint),
+                    &t::stores_key(&store.fingerprint),
                     &if store.anonymous {
-                        "joined without a name".to_owned()
+                        t::stores_joined_without_name()
                     } else {
-                        format!("joined as {}", store.member)
+                        t::stores_joined_as(&store.member)
                     },
                 ]),
                 Role::TextDim,
             ),
         },
-        None => ("paste the invite or store link you were given".to_owned(), Role::TextDim),
+        None => (t::stores_footer_join(), Role::TextDim),
     };
     render_footer(buf, app, area, &footer, role);
 }
@@ -192,26 +195,27 @@ pub(super) fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
 /// One store: its plugins, then what can be done there.
 pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
     let Some(store) = app.store(id) else {
-        render_placeholder(buf, app, area, "PLUGIN STORE", "loading…");
+        render_placeholder(buf, app, area, &t::stores_page_heading(), &t::stores_loading());
         return;
     };
     if area.height < MIN_TABLE_HEIGHT + 6 || area.width < 40 {
-        render_placeholder(buf, app, area, &store.name, "needs a larger terminal");
+        render_placeholder(buf, app, area, &store.name, &t::stores_needs_larger_terminal());
         return;
     }
     line(
         buf,
         area.left(),
         area.top(),
-        truncate(&glyph::eyebrow(&store.name), area.width.saturating_sub(10) as usize),
+        truncate(&store.name, area.width.saturating_sub(10) as usize),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
     if store.owner {
+        let tag = t::stores_owner_tag();
         line(
             buf,
-            area.right().saturating_sub(6),
+            area.right().saturating_sub(tag.chars().count() as u16 + 1),
             area.top(),
-            "owner",
+            tag,
             app.palette.style(Role::TextDim),
         );
     }
@@ -219,21 +223,16 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
         StoreState::Ready if store.open => (
             glyph::dotted(&[
                 &store.url,
-                &format!("key {}", store.fingerprint),
-                "anyone with the link can join",
+                &t::stores_key(&store.fingerprint),
+                &t::stores_anyone_can_join(),
             ]),
             Role::TextDim,
         ),
         StoreState::Ready => {
-            (glyph::dotted(&[&store.url, &format!("key {}", store.fingerprint)]), Role::TextDim)
+            (glyph::dotted(&[&store.url, &t::stores_key(&store.fingerprint)]), Role::TextDim)
         }
-        StoreState::Offline(reason) => {
-            (format!("offline, showing the last list it sent — {reason}"), Role::State)
-        }
-        StoreState::Revoked => (
-            "this store no longer accepts this device — what it installed keeps working".into(),
-            Role::Alert,
-        ),
+        StoreState::Offline(reason) => (t::stores_note_offline(reason), Role::State),
+        StoreState::Revoked => (t::stores_note_revoked(), Role::Alert),
     };
     line(
         buf,
@@ -244,17 +243,13 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
     );
 
     let head = area.top() + 3;
-    for (label, x) in
-        [("plugin", COL_PROVIDER), ("version", COL_PLUGIN_VERSION), ("state", COL_PLUGIN_STATE)]
-    {
+    for (label, x) in [
+        (t::stores_column_plugin(), COL_PROVIDER),
+        (t::stores_column_version(), COL_PLUGIN_VERSION),
+        (t::stores_column_state(), COL_PLUGIN_STATE),
+    ] {
         if x < area.width {
-            line(
-                buf,
-                area.left() + x,
-                head,
-                glyph::eyebrow(label),
-                app.palette.style(Role::TextDim),
-            );
+            line(buf, area.left() + x, head, label, app.palette.style(Role::TextDim));
         }
     }
     Hairline::new(&app.palette).render(Rect { y: head + 1, height: 1, ..area }, buf);
@@ -263,11 +258,8 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
     let last_row = area.bottom().saturating_sub(3);
     let mut y = head + 2;
     if store.plugins.is_empty() && y < last_row {
-        let empty = if store.owner {
-            "nothing published yet — publish a plugin from below"
-        } else {
-            "nothing published yet"
-        };
+        let empty =
+            if store.owner { t::stores_empty_owner() } else { t::stores_empty_member() };
         line(buf, area.left() + COL_PROVIDER, y, empty, app.palette.style(Role::TextDim));
         y += 1;
     }
@@ -307,18 +299,21 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
                     app.palette.style(Role::TextDim),
                 );
                 let (state, role) = match &plugin.status {
-                    StorePluginStatus::Available => ("not installed".to_owned(), Role::TextDim),
-                    StorePluginStatus::Installed => {
-                        (format!("{} installed", glyph::STATE_READY), Role::State)
+                    StorePluginStatus::Available => {
+                        (t::stores_plugin_not_installed(), Role::TextDim)
                     }
+                    StorePluginStatus::Installed => (
+                        format!("{} {}", glyph::STATE_READY, t::stores_plugin_installed()),
+                        Role::State,
+                    ),
                     StorePluginStatus::Update { from, .. } => {
-                        (format!("update from {from}"), Role::Obi)
+                        (t::stores_plugin_update_from(from), Role::Obi)
                     }
                     StorePluginStatus::AddedByHand => {
-                        ("added by hand".to_owned(), Role::TextDim)
+                        (t::stores_plugin_added_by_hand(), Role::TextDim)
                     }
                     StorePluginStatus::OtherStore(_) => {
-                        ("from another store".to_owned(), Role::TextDim)
+                        (t::stores_plugin_from_another_store(), Role::TextDim)
                     }
                 };
                 line(
@@ -344,7 +339,7 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
                         area.left() + COL_PLUGIN_VERSION,
                         y,
                         truncate(
-                            who_can_join(store.open),
+                            &who_can_join(store.open),
                             area.width.saturating_sub(COL_PLUGIN_VERSION + 1) as usize,
                         ),
                         app.palette.style(Role::TextDim),
@@ -358,96 +353,91 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
     let (footer, role) = match lines.get(app.cursors.store_lines.selected) {
         Some(StoreLine::Plugin(at)) => match store.plugins.get(*at) {
             Some(plugin) => match &plugin.status {
-                StorePluginStatus::Update { new_hosts, .. } if !new_hosts.is_empty() => (
-                    format!("the update also wants to contact  {}", new_hosts.join(", ")),
-                    Role::Alert,
-                ),
-                _ => (format!("may contact  {}", hosts_text(&plugin.hosts)), Role::TextDim),
+                StorePluginStatus::Update { new_hosts, .. } if !new_hosts.is_empty() => {
+                    (t::stores_footer_update_hosts(&new_hosts.join(", ")), Role::Alert)
+                }
+                _ => (t::stores_footer_may_contact(&hosts_text(&plugin.hosts)), Role::TextDim),
             },
             None => (String::new(), Role::TextDim),
         },
-        Some(StoreLine::LinkDevice) => (
-            "a one-time link that joins another of your computers as you".into(),
-            Role::TextDim,
-        ),
-        Some(StoreLine::Invite) => ("a one-time link for someone new".into(), Role::TextDim),
-        Some(StoreLine::Members) => {
-            ("who has joined, and removing someone's access".into(), Role::TextDim)
-        }
+        Some(StoreLine::LinkDevice) => (t::stores_footer_link_device(), Role::TextDim),
+        Some(StoreLine::Invite) => (t::stores_footer_invite(), Role::TextDim),
+        Some(StoreLine::Members) => (t::stores_footer_members(), Role::TextDim),
         Some(StoreLine::WhoCanJoin) if store.open => {
-            ("↵ only let people you invite join, and stop the link".into(), Role::TextDim)
+            (t::stores_footer_close_join(), Role::TextDim)
         }
-        Some(StoreLine::WhoCanJoin) => {
-            ("↵ let anyone with the store's link join, without a name".into(), Role::TextDim)
-        }
-        Some(StoreLine::Publish) => {
-            ("offer a plugin from this machine's plugin directory".into(), Role::TextDim)
-        }
-        Some(StoreLine::Admin) => {
-            ("manage members, invites and plugins in your browser".into(), Role::TextDim)
-        }
-        Some(StoreLine::Leave) => (
-            "plugins installed from it stay on this machine and stop updating".into(),
-            Role::TextDim,
-        ),
+        Some(StoreLine::WhoCanJoin) => (t::stores_footer_open_join(), Role::TextDim),
+        Some(StoreLine::Publish) => (t::stores_footer_publish(), Role::TextDim),
+        Some(StoreLine::Admin) => (t::stores_footer_admin(), Role::TextDim),
+        Some(StoreLine::Leave) => (t::stores_footer_leave(), Role::TextDim),
         None => (String::new(), Role::TextDim),
     };
     render_footer(buf, app, area, &footer, role);
 }
 
 /// The plugins a store a link leads to offers, a line each, with what each may contact and where
-/// it stands here: at most a handful, then how many more.
-fn offered_rows(plugins: &[StorePluginRow]) -> Vec<String> {
+/// it stands here: at most a handful, then how many more. `label` is the first line's label, and
+/// `indent` the width the rows after it are set in by.
+fn offered_rows(plugins: &[StorePluginRow], label: &str, indent: usize) -> Vec<String> {
     const SHOWN: usize = 5;
     if plugins.is_empty() {
         return Vec::new();
     }
-    let mut rows = vec![format!(
-        "offers    {}",
-        if plugins.len() == 1 {
-            "1 plugin".to_owned()
-        } else {
-            format!("{} plugins", plugins.len())
-        }
-    )];
+    let pad = " ".repeat(indent);
+    let mut rows = vec![format!("{label}{}", t::stores_offers_count(plugins.len() as i64))]; // i18n-skip
     rows.extend(plugins.iter().take(SHOWN).map(|plugin| {
         let here = match &plugin.status {
             StorePluginStatus::Available => String::new(),
-            StorePluginStatus::Installed => " · installed".into(),
-            StorePluginStatus::Update { from, .. } => format!(" · {from} installed"),
-            StorePluginStatus::AddedByHand => " · added by hand".into(),
-            StorePluginStatus::OtherStore(other) => format!(" · from {other}"),
+            StorePluginStatus::Installed => t::stores_offered_installed(),
+            StorePluginStatus::Update { from, .. } => t::stores_offered_installed_version(from),
+            StorePluginStatus::AddedByHand => t::stores_offered_added_by_hand(),
+            StorePluginStatus::OtherStore(other) => t::stores_offered_from_other(other),
         };
+        let here = if here.is_empty() { here } else { format!(" · {here}") }; // i18n-skip
         format!(
-            "          {} {}  may contact {}{here}",
-            plugin.name,
-            plugin.version,
-            hosts_text(&plugin.hosts)
+            "{pad}{}{here}", // i18n-skip
+            t::stores_offered_plugin(&plugin.name, &plugin.version, &hosts_text(&plugin.hosts))
         )
     }));
     if plugins.len() > SHOWN {
-        rows.push(format!("          and {} more", plugins.len() - SHOWN));
+        rows.push(format!("{pad}{}", t::stores_offered_more((plugins.len() - SHOWN) as i64))); // i18n-skip
     }
     rows
 }
 
+/// A store's role in a few words.
+fn role_text(owner: bool) -> String {
+    if owner { t::stores_role_owner() } else { t::stores_role_member() }
+}
+
 /// Who can join a store, in a few words.
-fn who_can_join(open: bool) -> &'static str {
-    if open { "anyone with the link" } else { "only people you invite" }
+fn who_can_join(open: bool) -> String {
+    if open { t::stores_who_open() } else { t::stores_who_invite_only() }
 }
 
 fn hosts_text(hosts: &[String]) -> String {
-    if hosts.is_empty() { "nothing".into() } else { hosts.join(", ") }
+    if hosts.is_empty() { t::stores_hosts_none() } else { hosts.join(", ") }
 }
 
 /// How long ago a moment was, coarsely. Exactness would be noise on a "last seen" column.
 fn ago(clock: &Clock, at: i64) -> String {
     let span = clock.now_epoch().saturating_sub(at).max(0);
     match span {
-        0..3_600 => "just now".into(),
-        3_600..86_400 => "today".into(),
-        86_400..172_800 => "yesterday".into(),
-        _ => format!("{} days ago", span / 86_400),
+        0..3_600 => t::stores_ago_just_now(),
+        3_600..86_400 => t::stores_ago_today(),
+        86_400..172_800 => t::stores_ago_yesterday(),
+        _ => t::stores_ago_days(span / 86_400),
+    }
+}
+
+/// [`ago`] for after a word ("Joined just now"), so it starts in lower case.
+fn ago_inline(clock: &Clock, at: i64) -> String {
+    let span = clock.now_epoch().saturating_sub(at).max(0);
+    match span {
+        0..3_600 => t::stores_ago_inline_just_now(),
+        3_600..86_400 => t::stores_ago_inline_today(),
+        86_400..172_800 => t::stores_ago_inline_yesterday(),
+        _ => t::stores_ago_inline_days(span / 86_400),
     }
 }
 
@@ -455,42 +445,42 @@ fn ago(clock: &Clock, at: i64) -> String {
 fn until(clock: &Clock, at: i64) -> String {
     let span = at.saturating_sub(clock.now_epoch());
     match span {
-        ..=0 => "expired".into(),
-        1..86_400 => "expires today".into(),
-        86_400..172_800 => "expires tomorrow".into(),
-        _ => format!("expires in {} days", span / 86_400),
+        ..=0 => t::stores_expired(),
+        1..86_400 => t::stores_expires_today(),
+        86_400..172_800 => t::stores_expires_tomorrow(),
+        _ => t::stores_expires_days(span / 86_400),
     }
 }
 
 /// Who has joined a store and which invites are still open, for its owner.
 pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
-    let name = app.store(id).map_or("plugin store", |s| s.name.as_str());
+    let name = app.store(id).map_or_else(t::stores_unnamed, |s| s.name.clone());
     if area.height < MIN_TABLE_HEIGHT + 4 || area.width < 40 {
-        render_placeholder(buf, app, area, "MEMBERS", "needs a larger terminal");
+        render_placeholder(
+            buf,
+            app,
+            area,
+            &t::stores_members_placeholder_heading(),
+            &t::stores_needs_larger_terminal(),
+        );
         return;
     }
     line(
         buf,
         area.left(),
         area.top(),
-        truncate(&glyph::eyebrow(&format!("members · {name}")), area.width as usize),
+        truncate(&t::stores_members_heading(&name), area.width as usize),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
     let head = area.top() + 2;
     for (label, x) in [
-        ("name", COL_PROVIDER),
-        ("role", COL_STORE_COUNT),
-        ("devices", COL_STORE_ROLE),
-        ("last seen", COL_STORE_STATE),
+        (t::stores_column_name(), COL_PROVIDER),
+        (t::stores_column_role(), COL_STORE_COUNT),
+        (t::stores_column_devices(), COL_STORE_ROLE),
+        (t::stores_column_last_seen(), COL_STORE_STATE),
     ] {
         if x < area.width {
-            line(
-                buf,
-                area.left() + x,
-                head,
-                glyph::eyebrow(label),
-                app.palette.style(Role::TextDim),
-            );
+            line(buf, area.left() + x, head, label, app.palette.style(Role::TextDim));
         }
     }
     Hairline::new(&app.palette).render(Rect { y: head + 1, height: 1, ..area }, buf);
@@ -498,7 +488,13 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
     let last_row = area.bottom().saturating_sub(3);
     let mut y = head + 2;
     if app.store_members.is_empty() {
-        line(buf, area.left() + COL_PROVIDER, y, "loading…", app.palette.style(Role::TextDim));
+        line(
+            buf,
+            area.left() + COL_PROVIDER,
+            y,
+            t::stores_loading(),
+            app.palette.style(Role::TextDim),
+        );
         return;
     }
     let lines = app.member_lines();
@@ -511,7 +507,7 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
         }
         let style = focus_row(buf, app, area, y, selected == Some(MemberLine::Member(i)));
         let label =
-            if member.you { format!("{} (you)", member.name) } else { member.name.clone() };
+            if member.you { t::stores_member_you(&member.name) } else { member.name.clone() };
         line(
             buf,
             area.left() + COL_PROVIDER,
@@ -519,16 +515,9 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
             truncate(&label, (COL_STORE_COUNT - COL_PROVIDER - 2) as usize),
             style,
         );
-        line(
-            buf,
-            area.left() + COL_STORE_COUNT,
-            y,
-            if member.owner { "owner" } else { "member" },
-            dim,
-        );
+        line(buf, area.left() + COL_STORE_COUNT, y, role_text(member.owner), dim);
         line(buf, area.left() + COL_STORE_ROLE, y, member.devices.to_string(), dim);
-        let seen =
-            member.last_seen.map_or_else(|| "never".to_owned(), |at| ago(&app.clock, at));
+        let seen = member.last_seen.map_or_else(t::stores_seen_never, |at| ago(&app.clock, at));
         line(
             buf,
             area.left() + COL_STORE_STATE,
@@ -541,7 +530,7 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
 
     if !app.store_invites.is_empty() && y + 2 < last_row {
         y += 1;
-        line(buf, area.left(), y, glyph::eyebrow("invites not used yet"), dim);
+        line(buf, area.left(), y, t::stores_invites_heading(), dim);
         y += 1;
         for (i, invite) in app.store_invites.iter().enumerate() {
             if y >= last_row {
@@ -549,7 +538,7 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
             }
             let style = focus_row(buf, app, area, y, selected == Some(MemberLine::Invite(i)));
             let label = if invite.device {
-                format!("{}, another device", invite.name)
+                t::stores_invite_another_device(&invite.name)
             } else {
                 invite.name.clone()
             };
@@ -580,22 +569,13 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
         && y + 2 < last_row
     {
         y += 1;
-        let joined = match view.devices {
-            1 => "1 device".to_owned(),
-            n => format!("{n} devices"),
-        };
+        let joined = t::stores_joined_devices(i64::from(view.devices));
         let heading = if view.open {
-            format!("anyone with the link can join · {joined} joined with it")
+            t::stores_open_heading(&joined)
         } else {
-            format!("joined with the link before it was closed · {joined}")
+            t::stores_closed_heading(&joined)
         };
-        line(
-            buf,
-            area.left(),
-            y,
-            truncate(&glyph::eyebrow(&heading), area.width as usize),
-            dim,
-        );
+        line(buf, area.left(), y, truncate(&heading, area.width as usize), dim);
         y += 1;
         let mut row = |y: &mut u16, line_at: Option<usize>, label: String, note: String| {
             if *y >= last_row {
@@ -623,41 +603,39 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
             row(
                 &mut y,
                 at(MemberLine::OpenLink),
-                "the store's link".into(),
-                "show and copy".into(),
+                t::stores_open_link_row(),
+                t::stores_open_link_note(),
             );
         }
         for (i, device) in view.recent.iter().enumerate() {
-            let seen =
-                device.last_seen.map_or_else(|| "never".to_owned(), |at| ago(&app.clock, at));
+            let seen = device.last_seen.map_or_else(t::stores_anonymous_never_seen, |at| {
+                t::stores_anonymous_seen(&ago_inline(&app.clock, at))
+            });
             row(
                 &mut y,
                 at(MemberLine::Anonymous(i)),
-                format!("joined {}", ago(&app.clock, device.joined_at)),
-                format!("seen {seen}"),
+                t::stores_anonymous_joined(&ago_inline(&app.clock, device.joined_at)),
+                seen,
             );
         }
         if view.devices > 0 {
-            let all = match view.devices {
-                1 => "remove it".to_owned(),
-                n => format!("remove all {n}"),
-            };
+            let all = t::stores_remove_devices(i64::from(view.devices));
             row(&mut y, at(MemberLine::RemoveAnonymous), all, String::new());
         }
     }
 
     let footer = match selected {
         Some(MemberLine::Member(i)) => match app.store_members.get(i) {
-            Some(member) if member.you => "you — a store always keeps its owner",
-            _ => "↵ remove their access",
+            Some(member) if member.you => t::stores_footer_you(),
+            _ => t::stores_footer_remove_member(),
         },
-        Some(MemberLine::Invite(_)) => "↵ cancel this invite",
-        Some(MemberLine::OpenLink) => "↵ show the link, to copy and share",
-        Some(MemberLine::Anonymous(_)) => "↵ remove this device, known only by when it joined",
-        Some(MemberLine::RemoveAnonymous) => "↵ remove every device that joined with the link",
-        None => "",
+        Some(MemberLine::Invite(_)) => t::stores_footer_cancel_invite(),
+        Some(MemberLine::OpenLink) => t::stores_footer_show_link(),
+        Some(MemberLine::Anonymous(_)) => t::stores_footer_remove_anonymous(),
+        Some(MemberLine::RemoveAnonymous) => t::stores_footer_remove_all_anonymous(),
+        None => String::new(),
     };
-    render_footer(buf, app, area, footer, Role::TextDim);
+    render_footer(buf, app, area, &footer, Role::TextDim);
 }
 
 /// How many characters of an invite link fit on one overlay row.
@@ -691,18 +669,11 @@ pub(super) fn open_link_rows(app: &App, width: usize) -> Vec<(String, String)> {
     rows.push((String::new(), String::new()));
     rows.push((
         String::new(),
-        if app.open_link_copied {
-            "copied to the clipboard where the terminal allows it, or select it to copy".into()
-        } else {
-            "select it to copy".into()
-        },
+        if app.open_link_copied { t::stores_link_copied() } else { t::stores_link_select() },
     ));
-    rows.push((
-        String::new(),
-        "anyone with it can join, without a name, as often as they like".into(),
-    ));
-    rows.push((String::new(), "it works until the store goes back to invites only".into()));
-    rows.push((String::new(), "enter closes".into()));
+    rows.push((String::new(), t::stores_open_link_warning()));
+    rows.push((String::new(), t::stores_open_link_lasts()));
+    rows.push((String::new(), t::stores_link_close()));
     rows
 }
 
@@ -715,131 +686,128 @@ pub(super) fn invite_link_rows(app: &App, width: usize) -> Vec<(String, String)>
     rows.push((String::new(), String::new()));
     rows.push((
         String::new(),
-        if app.invite_copied {
-            "copied to the clipboard where the terminal allows it — or select it to copy".into()
-        } else {
-            "select it to copy".into()
-        },
+        if app.invite_copied { t::stores_link_copied() } else { t::stores_link_select() },
     ));
-    rows.push((String::new(), format!("works once, {}", until(&app.clock, view.expires_at))));
     rows.push((
         String::new(),
-        "opening it in a browser shows how to join and does not use it up".into(),
+        t::stores_invite_works_once(&until(&app.clock, view.expires_at)),
     ));
-    rows.push((String::new(), "enter closes".into()));
+    rows.push((String::new(), t::stores_invite_preview_safe()));
+    rows.push((String::new(), t::stores_link_close()));
     rows
 }
 
 pub(super) fn store_confirm_heading(app: &App) -> String {
-    let question = match &app.store_confirm {
-        Some(StoreConfirm::Join(preview)) => format!("join {}?", preview.name),
-        Some(StoreConfirm::Leave { name, .. }) => format!("leave {name}?"),
-        Some(StoreConfirm::RemoveMember { name, .. }) => format!("remove {name}?"),
-        Some(StoreConfirm::CancelInvite { name, .. }) => {
-            format!("cancel the invite for {name}?")
-        }
-        Some(StoreConfirm::Unpublish { name, .. }) => format!("stop offering {name}?"),
-        Some(StoreConfirm::SetOpen { name, open: true, .. }) => {
-            format!("let anyone with the link join {name}?")
-        }
-        Some(StoreConfirm::SetOpen { name, open: false, .. }) => {
-            format!("only let people you invite join {name}?")
-        }
+    match &app.store_confirm {
+        Some(StoreConfirm::Join(preview)) => t::stores_confirm_join(&preview.name),
+        Some(StoreConfirm::Leave { name, .. }) => t::stores_confirm_leave(name),
+        Some(StoreConfirm::RemoveMember { name, .. }) => t::stores_confirm_remove_member(name),
+        Some(StoreConfirm::CancelInvite { name, .. }) => t::stores_confirm_cancel_invite(name),
+        Some(StoreConfirm::Unpublish { name, .. }) => t::stores_confirm_unpublish(name),
+        Some(StoreConfirm::SetOpen { name, open: true, .. }) => t::stores_confirm_open(name),
+        Some(StoreConfirm::SetOpen { name, open: false, .. }) => t::stores_confirm_close(name),
         Some(StoreConfirm::RemoveAnonymous { device: Some(_), .. }) => {
-            "remove this device?".into()
+            t::stores_confirm_remove_device()
         }
-        Some(StoreConfirm::RemoveAnonymous { devices, .. }) => match devices {
-            1 => "remove the device that joined with the link?".into(),
-            n => format!("remove all {n} devices that joined with the link?"),
-        },
-        None => "confirm".into(),
-    };
-    glyph::eyebrow(&question)
+        Some(StoreConfirm::RemoveAnonymous { devices, .. }) => {
+            t::stores_confirm_remove_devices(i64::from(*devices))
+        }
+        None => t::stores_confirm_fallback(),
+    }
 }
 
 pub(super) fn store_confirm_rows(app: &App) -> Vec<(String, String)> {
     let row = |text: &str| (String::new(), text.to_owned());
     match &app.store_confirm {
         Some(StoreConfirm::Join(preview)) => {
-            let from = if preview.anonymous { "the link" } else { "the invite" };
-            let mut rows = vec![
-                row(&format!("address   {}", preview.url)),
-                row(&format!("key       {}  — matches {from}", preview.fingerprint)),
+            // The labels are set in one column, as wide as the longest and three cells more.
+            let labels = [
+                t::stores_label_address(),
+                t::stores_label_key(),
+                t::stores_label_run_by(),
+                t::stores_label_device(),
+                t::stores_label_offers(),
             ];
+            let indent = labels.iter().map(|l| l.chars().count()).max().unwrap_or(0) + 3;
+            let [address, key, run_by, device, offers] = labels;
+            let labelled = |label: &str, value: &str| row(&format!("{label:<indent$}{value}")); // i18n-skip
+            let fingerprint = if preview.anonymous {
+                t::stores_key_matches_link(&preview.fingerprint)
+            } else {
+                t::stores_key_matches_invite(&preview.fingerprint)
+            };
+            let mut rows = vec![labelled(&address, &preview.url), labelled(&key, &fingerprint)];
             if !preview.owners.is_empty() {
-                rows.push(row(&format!("run by    {}", preview.owners.join(", "))));
+                rows.push(labelled(&run_by, &preview.owners.join(", ")));
             }
-            rows.extend(offered_rows(&preview.plugins).into_iter().map(|text| row(&text)));
+            rows.extend(
+                offered_rows(&preview.plugins, &format!("{offers:<indent$}"), indent) // i18n-skip
+                    .into_iter()
+                    .map(|text| row(&text)),
+            );
             if preview.open {
-                rows.push(row("anyone with the link can join"));
+                rows.push(row(&t::stores_join_open()));
             }
             if preview.anonymous {
-                rows.push(row(
-                    "you join without a name, and another device joins with the same link",
-                ));
+                rows.push(row(&t::stores_join_anonymous()));
             }
             if preview.already_joined {
-                rows.push(row("already joined — joining again gives this device a new token"));
+                rows.push(row(&t::stores_join_already()));
             }
             // An invite sends a name for this device, which the person joining can change here.
             if !preview.anonymous {
                 rows.push(row(""));
                 let name = super::overlays::field_text(app, Field::DeviceLabel);
-                rows.push(row(&format!("device    {name}▏")));
-                rows.push(row(
-                    "          the store's owner sees this name · type to change it",
-                ));
+                rows.push(labelled(&device, &format!("{name}▏"))); // i18n-skip
+                rows.push(row(&format!("{:indent$}{}", "", t::stores_join_device_note()))); // i18n-skip
             }
             rows.push(row(""));
-            rows.push(row("enter joins · esc cancels"));
+            rows.push(row(&t::stores_join_keys()));
             rows
         }
         Some(StoreConfirm::Leave { .. }) => vec![
-            row("plugins installed from it stay on this machine and stop updating"),
-            row("this device's access to the store is revoked"),
+            row(&t::stores_leave_plugins()),
+            row(&t::stores_leave_revoked()),
             row(""),
-            row("enter leaves · esc stays"),
+            row(&t::stores_leave_keys()),
         ],
         Some(StoreConfirm::RemoveMember { devices, .. }) => vec![
-            row(&match devices {
-                1 => "their device stops working with this store at once".to_owned(),
-                n => format!("their {n} devices stop working with this store at once"),
-            }),
-            row("plugins they already installed stay on their machines"),
+            row(&t::stores_remove_member_devices(i64::from(*devices))),
+            row(&t::stores_remove_member_plugins()),
             row(""),
-            row("enter removes · esc keeps them"),
+            row(&t::stores_remove_member_keys()),
         ],
-        Some(StoreConfirm::CancelInvite { .. }) => {
-            vec![row("the link stops working"), row(""), row("enter cancels it · esc keeps it")]
+        Some(StoreConfirm::CancelInvite { .. }) => vec![
+            row(&t::stores_cancel_invite_link()),
+            row(""),
+            row(&t::stores_cancel_invite_keys()),
+        ],
+        Some(StoreConfirm::Unpublish { .. }) => {
+            vec![row(&t::stores_unpublish_members()), row(""), row(&t::stores_unpublish_keys())]
         }
-        Some(StoreConfirm::Unpublish { .. }) => vec![
-            row("members who installed it keep it, and it stops updating"),
-            row(""),
-            row("enter withdraws it · esc keeps it"),
-        ],
         Some(StoreConfirm::SetOpen { open: true, .. }) => vec![
-            row("anyone with the store's link can join it, without a name"),
-            row("the link is new each time, so an earlier one stays dead"),
-            row("members see that the store is open"),
+            row(&t::stores_open_anyone()),
+            row(&t::stores_open_link_new()),
+            row(&t::stores_open_members_see()),
             row(""),
-            row("enter opens it · esc keeps it to invites"),
+            row(&t::stores_open_keys()),
         ],
         Some(StoreConfirm::SetOpen { open: false, .. }) => vec![
-            row("the link stops working, and no one new joins without an invite"),
-            row("devices that joined with it keep working until you remove them in members"),
+            row(&t::stores_close_link()),
+            row(&t::stores_close_devices()),
             row(""),
-            row("enter limits it to invites · esc keeps it open"),
+            row(&t::stores_close_keys()),
         ],
         Some(StoreConfirm::RemoveAnonymous { device, .. }) => vec![
-            row(if device.is_some() {
-                "it stops working with this store at once"
+            row(&if device.is_some() {
+                t::stores_anonymous_one_stops()
             } else {
-                "they stop working with this store at once"
+                t::stores_anonymous_all_stop()
             }),
-            row("plugins already installed stay where they are"),
-            row("while the store is open, the link still joins anyone"),
+            row(&t::stores_anonymous_plugins()),
+            row(&t::stores_anonymous_still_joins()),
             row(""),
-            row("enter removes · esc keeps"),
+            row(&t::stores_anonymous_keys()),
         ],
         None => Vec::new(),
     }
@@ -849,24 +817,19 @@ pub(super) fn store_confirm_rows(app: &App) -> Vec<(String, String)> {
 pub(super) fn plugin_action_rows(app: &App) -> (Vec<(String, String)>, usize) {
     let Some((_, plugin)) = app.plugin_in_action() else { return (Vec::new(), 0) };
     let mut rows = vec![
-        (String::new(), format!("may contact   {}", hosts_text(&plugin.hosts))),
-        (
-            String::new(),
-            "cannot        read files, open sockets or see your environment".into(),
-        ),
+        (String::new(), t::stores_plugin_may_contact(&hosts_text(&plugin.hosts))),
+        (String::new(), t::stores_plugin_cannot()),
     ];
     match &plugin.status {
         StorePluginStatus::Update { new_hosts, .. } if !new_hosts.is_empty() => {
-            rows.push((String::new(), format!("the update adds   {}", new_hosts.join(", "))))
+            rows.push((String::new(), t::stores_plugin_update_adds(&new_hosts.join(", "))))
         }
-        StorePluginStatus::AddedByHand => rows.push((
-            String::new(),
-            format!("{}.wasm is already in the plugin directory, added by hand", plugin.id),
-        )),
-        StorePluginStatus::OtherStore(_) => rows.push((
-            String::new(),
-            "installed from another store, which keeps it updated".into(),
-        )),
+        StorePluginStatus::AddedByHand => {
+            rows.push((String::new(), t::stores_plugin_added_by_hand_note(&plugin.id)))
+        }
+        StorePluginStatus::OtherStore(_) => {
+            rows.push((String::new(), t::stores_plugin_other_store_note()))
+        }
         _ => {}
     }
     rows.push((String::new(), String::new()));
@@ -886,9 +849,9 @@ pub(super) fn publish_rows(app: &App) -> Vec<(String, String)> {
         .iter()
         .map(|plugin| {
             let state = match &plugin.published {
-                None => "new".to_owned(),
-                Some(version) if *version == plugin.version => "published".to_owned(),
-                Some(version) => format!("replaces {version}"),
+                None => t::stores_publish_new(),
+                Some(version) if *version == plugin.version => t::stores_publish_published(),
+                Some(version) => t::stores_publish_replaces(version),
             };
             (state, format!("{}  {}", plugin.name, plugin.version))
         })
@@ -1101,7 +1064,8 @@ mod tests {
         let mut app = app_with(ContentList::Entries(Vec::new()));
         app.go_to_section(Section::Providers);
         let text = text_of(&render_to_buffer(&mut app, 120, 34));
-        assert!(text.contains("PLUGIN STORES"), "{text}");
+        // The line on the Sources screen belongs to that screen; it names the stores either way.
+        assert!(text.to_lowercase().contains("plugin stores"), "{text}");
         assert!(text.contains("invite link"), "{text}");
     }
 
@@ -1113,20 +1077,23 @@ mod tests {
         app.nav.push(StageView::Store("aaaa".into()));
         let text = text_of(&render_to_buffer(&mut app, 140, 40));
         for expected in [
-            "not installed",
-            "installed",
-            "update from 1.0.0",
-            "added by hand",
-            "invite someone",
-            "members",
-            "publish a plugin",
-            "leave this store",
-            "key 9f3c 1a2b 77de 0c41",
+            t::stores_plugin_not_installed(),
+            t::stores_plugin_installed(),
+            t::stores_plugin_update_from("1.0.0"),
+            t::stores_plugin_added_by_hand(),
+            t::stores_line_invite(),
+            t::stores_line_members(),
+            t::stores_line_publish(),
+            t::stores_line_leave(),
+            t::stores_key("9f3c 1a2b 77de 0c41"),
         ] {
-            assert!(text.contains(expected), "missing {expected:?}:\n{text}");
+            assert!(text.contains(&expected), "missing {expected:?}:\n{text}");
         }
         // The first plugin is focused, and the footer says what it may contact.
-        assert!(text.contains("may contact  api.example, cdn.example"), "{text}");
+        assert!(
+            text.contains(&t::stores_footer_may_contact("api.example, cdn.example")),
+            "{text}"
+        );
     }
 
     #[test]
@@ -1136,9 +1103,9 @@ mod tests {
         app.go_to_section(Section::Providers);
         app.nav.push(StageView::Store("aaaa".into()));
         let text = text_of(&render_to_buffer(&mut app, 140, 40));
-        assert!(text.contains("link another device"));
-        assert!(!text.contains("invite someone"));
-        assert!(!text.contains("publish a plugin"));
+        assert!(text.contains(&t::stores_line_link_device()));
+        assert!(!text.contains(&t::stores_line_invite()));
+        assert!(!text.contains(&t::stores_line_publish()));
     }
 
     #[test]
@@ -1148,9 +1115,13 @@ mod tests {
         app.nav.push(StageView::Store("aaaa".into()));
         app.nav.open_overlay(Overlay::PluginAction);
         let text = text_of(&render_to_buffer(&mut app, 140, 40));
-        let hosts = text.find("may contact   api.example, cdn.example").expect("hosts shown");
-        let adds = text.find("the update adds   else.example").expect("new host called out");
-        let offer = text.find("update to 1.4.0").expect("update offered");
+        let hosts = text
+            .find(&t::stores_plugin_may_contact("api.example, cdn.example"))
+            .expect("hosts shown");
+        let adds = text
+            .find(&t::stores_plugin_update_adds("else.example"))
+            .expect("new host called out");
+        let offer = text.find(&t::stores_choice_update("1.4.0")).expect("update offered");
         assert!(hosts < offer && adds < offer, "facts come before the choice:\n{text}");
     }
 

@@ -1004,7 +1004,7 @@ mod tests {
     fn events_carrying_spans_bytes_and_boxed_rows_cross_intact() {
         crosses_intact(Event::JobNote {
             job: JobId::new(3),
-            note: "waiting on AniList".into(),
+            note: anistream_model::Msg::verbatim("waiting on AniList"),
             wait: Some(Duration::from_millis(1_500)),
         });
         crosses_intact(Event::ArtworkReady {

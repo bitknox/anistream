@@ -2,16 +2,16 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ←  Hoshikuzu no Tabibito
  ▤ │
- ▦ │    #     TITLE                                                RUN     WATCHED
+ ▦ │    #     Title                                                Run     Watched
  / │  ─────────────────────────────────────────────────────────────────────────────────────
- ▥ │    001   The Last Mail Coach                                  23:55   ██████████  done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ↓ │    002   A Town Under Glass                                   23:55   ██████████  done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ◇ │    003   Lamplight, Lamplight                                 23:55   ██████████  done  ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ▥ │    001   The Last Mail Coach                                  23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ↓ │    002   A Town Under Glass                                   23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ◇ │    003   Lamplight, Lamplight                                 23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
  ◎ │  ▌ 004   The Cartographer's Daughter                          23:55   █████▊░░░░        ░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ DOWNLOAD EPISODES   5-9▏
+▌ Download episodes   5-9▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  4 for one episode, 1-12 for a run, 7- for everything from there
+  4 for one episode, 1-12 for a run, 7- for everything from there.
 
    │    010   The Comet's Wake                                     23:55   ░░░░░░░░░░        places that are not there
    │    011   Every Lamp at Once                                   23:55   ░░░░░░░░░░        yet asks for passage, and
@@ -31,7 +31,7 @@ anistream                                                                       
    │
    │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                                               ↵ queue   esc cancel
+plugins · Subbed · 1080p                                                                            ↵ queue   esc cancel
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=rule mod=BOLD
@@ -60,8 +60,8 @@ r11 c02-25 fg=text bg=ground mod=BOLD
 r11 c26-119 fg=rule bg=ground
 r12 c00-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-64 fg=text-dim bg=ground
-r13 c65-119 fg=rule bg=ground
+r13 c02-65 fg=text-dim bg=ground
+r13 c66-119 fg=rule bg=ground
 r14 c00-119 fg=rule bg=ground
 r15 c00-119 fg=rule
 r16 c00-119 fg=rule
@@ -81,8 +81,8 @@ r29 c00-119 fg=rule
 r30 c00-119 fg=rule
 r31 c00-119 fg=rule
 r32 c00-119 fg=rule
-r33 c00-20 fg=text-dim
-r33 c21-99 fg=rule
+r33 c00-23 fg=text-dim
+r33 c24-99 fg=rule
 r33 c100-100 fg=text
 r33 c101-109 fg=text-dim
 r33 c110-112 fg=text

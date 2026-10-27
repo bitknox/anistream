@@ -1,3 +1,4 @@
+using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 
 namespace Anistream.App;
@@ -193,7 +194,7 @@ public sealed class Known
                     ProviderNote = null;
                 break;
             case Event.ProviderNote n:
-                ProviderNote = n.V1;
+                ProviderNote = AnistreamFfiMethods.MsgEnglish(n.V1); // i18n P2: replace with the catalogue
                 break;
             case Event.SourcesChanged:
                 Rebuilding = true;

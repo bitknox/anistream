@@ -1,27 +1,27 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  PLUGIN STORES
+  ▸│  Plugin stores
   ▤│
 ────────────────────────────────────────────────────────────────────────────────
-▌ JOIN RIN'S SOURCES?
+▌ Join Rin's sources?
 ────────────────────────────────────────────────────────────────────────────────
-  address   https://rin.example
-  key       0c41 77de 1a2b 9f3c  — matches the invite
-  already joined — joining again gives this device a new token
+  Address   https://rin.example
+  Key       0c41 77de 1a2b 9f3c  (matches the invite)
+  Already joined. Joining again gives this device a new token.
 
-  device    Computer▏
-            the store's owner sees this name · type to change it
+  Device    Computer▏
+            The store's owner sees this name. Type to change it.
 
-  enter joins · esc cancels
+  Enter joins · Esc cancels
 
    │
    │
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    paste the invite or store link you were given
+   │    Paste the invite or store link you were given
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                     ↵ confirm   esc cancel
+plugins · Subbed · 1080p                                  ↵ confirm   esc cancel
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=rule mod=BOLD
@@ -67,8 +67,8 @@ r19 c00-79 fg=rule
 r20 c00-79 fg=rule
 r21 c00-79 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
-r23 c21-57 fg=rule
+r23 c00-23 fg=text-dim
+r23 c24-57 fg=rule
 r23 c58-58 fg=text
 r23 c59-69 fg=text-dim
 r23 c70-72 fg=text

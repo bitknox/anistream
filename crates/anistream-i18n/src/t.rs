@@ -5,6 +5,951 @@
 
 use crate::{Arg, text};
 
+/// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
+pub fn notice_reason(reason: &str) -> String {
+    text("notice-reason", &[("reason", Arg::Text(reason))])
+}
+
+/// Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast.
+pub fn cause_no_sources() -> String {
+    text("cause-no-sources", &[])
+}
+
+/// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
+pub fn notice_not_aired(episode: i64, when: &str) -> String {
+    text("notice-not-aired", &[("episode", Arg::Int(episode)), ("when", Arg::Text(when))])
+}
+
+/// A play's explanation: the episode is after the next one to air. The "when" says when that one airs.
+pub fn notice_not_aired_yet(episode: i64, next: i64, when: &str) -> String {
+    text("notice-not-aired-yet", &[("episode", Arg::Int(episode)), ("next", Arg::Int(next)), ("when", Arg::Text(when))])
+}
+
+/// Part of an air time: the broadcast is later today. The time is the viewer's local time.
+pub fn cause_airs_today(time: &str) -> String {
+    text("cause-airs-today", &[("time", Arg::Text(time))])
+}
+
+/// Part of an air time: the broadcast is tomorrow. The time is the viewer's local time.
+pub fn cause_airs_tomorrow(time: &str) -> String {
+    text("cause-airs-tomorrow", &[("time", Arg::Text(time))])
+}
+
+/// Part of an air time: the broadcast is within the next week.
+pub fn cause_airs_in_days(days: i64, time: &str) -> String {
+    text("cause-airs-in-days", &[("days", Arg::Int(days)), ("time", Arg::Text(time))])
+}
+
+/// Part of an air time: the broadcast is more than a week away. The date is year-month-day.
+pub fn cause_airs_on_date(date: &str, time: &str) -> String {
+    text("cause-airs-on-date", &[("date", Arg::Text(date)), ("time", Arg::Text(time))])
+}
+
+/// Reason: the source answered but gave nothing to play.
+pub fn cause_no_playable_stream() -> String {
+    text("cause-no-playable-stream", &[])
+}
+
+/// Reason: no source could be matched to the title. The detail is what each source said.
+pub fn cause_title_no_match(detail: &str) -> String {
+    text("cause-title-no-match", &[("detail", Arg::Text(detail))])
+}
+
+/// Reason: the source the person picked is no longer installed or enabled.
+pub fn cause_source_gone(source: &str) -> String {
+    text("cause-source-gone", &[("source", Arg::Text(source))])
+}
+
+/// Reason: the release the person picked would not start. The detail comes from the source.
+pub fn cause_release_failed(detail: &str) -> String {
+    text("cause-release-failed", &[("detail", Arg::Text(detail))])
+}
+
+/// Reason: every source matched the title but none has the episode. The detail is what each said.
+pub fn cause_no_source_has_episode(episode: &str, detail: &str) -> String {
+    text("cause-no-source-has-episode", &[("episode", Arg::Text(episode)), ("detail", Arg::Text(detail))])
+}
+
+/// Reason: the source streams episodes but only torrents can be downloaded.
+pub fn cause_source_cannot_download() -> String {
+    text("cause-source-cannot-download", &[])
+}
+
+/// Reason: the title was never listed by a source, so it can't be downloaded.
+pub fn cause_no_source_could_list_show() -> String {
+    text("cause-no-source-could-list-show", &[])
+}
+
+/// Part of a finished download's toast: subtitle files were merged into the video.
+pub fn cause_subtitles_merged(tracks: i64) -> String {
+    text("cause-subtitles-merged", &[("tracks", Arg::Int(tracks))])
+}
+
+/// Part of a finished download's toast: merging failed, so the subtitles stay as files beside it.
+pub fn cause_subtitles_left_apart(reason: &str) -> String {
+    text("cause-subtitles-left-apart", &[("reason", Arg::Text(reason))])
+}
+
+/// Part of a download toast: how many episodes of the range were in the queue already.
+pub fn cause_already_in_downloads(count: i64) -> String {
+    text("cause-already-in-downloads", &[("count", Arg::Int(count))])
+}
+
+/// Job note while a play looks the title up.
+pub fn status_looking_up_title() -> String {
+    text("status-looking-up-title", &[])
+}
+
+/// Job note while a play waits for the sources to arrive.
+pub fn status_loading_sources() -> String {
+    text("status-loading-sources", &[])
+}
+
+/// Job note while the sources are asked for an episode. The episode is its label, often a number.
+pub fn status_searching_sources(episode: &str) -> String {
+    text("status-searching-sources", &[("episode", Arg::Text(episode))])
+}
+
+/// Status while the player opens.
+pub fn status_starting_player() -> String {
+    text("status-starting-player", &[])
+}
+
+/// Status line while an episode plays.
+pub fn status_playing(title: &str, episode: &str) -> String {
+    text("status-playing", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Toast when the player cannot be started. The reason comes from the system.
+pub fn notice_player_failed_to_start(reason: &str) -> String {
+    text("notice-player-failed-to-start", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a stream never showed a frame and the next one is tried.
+pub fn notice_stream_no_video(next: i64, total: i64) -> String {
+    text("notice-stream-no-video", &[("next", Arg::Int(next)), ("total", Arg::Int(total))])
+}
+
+/// Toast when mpv gave up on a file. The reason is mpv's own line.
+pub fn notice_player_could_not_play(reason: &str) -> String {
+    text("notice-player-could-not-play", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when mpv closed without playing and without saying why.
+pub fn notice_player_exited_silently() -> String {
+    text("notice-player-exited-silently", &[])
+}
+
+/// Toast when no picture has appeared a while after the player opened.
+pub fn notice_player_not_playing(seconds: i64) -> String {
+    text("notice-player-not-playing", &[("seconds", Arg::Int(seconds))])
+}
+
+/// Toast when a play is asked for in a build with no player.
+pub fn notice_no_player() -> String {
+    text("notice-no-player", &[])
+}
+
+/// Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+pub fn notice_mpv_missing(binary: &str) -> String {
+    text("notice-mpv-missing", &[("binary", Arg::Text(binary))])
+}
+
+/// Toast at launch when mpv is too old for anistream's own player.
+pub fn notice_mpv_old(version: &str) -> String {
+    text("notice-mpv-old", &[("version", Arg::Text(version))])
+}
+
+/// Toast after a link was handed to the browser.
+pub fn notice_opened_in_browser() -> String {
+    text("notice-opened-in-browser", &[])
+}
+
+/// Toast when a link could not be opened. The reason comes from the system.
+pub fn notice_could_not_open(reason: &str) -> String {
+    text("notice-could-not-open", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a trailer plays in mpv.
+pub fn notice_trailer_playing() -> String {
+    text("notice-trailer-playing", &[])
+}
+
+/// Toast when a trailer opens in the browser.
+pub fn notice_trailer_opened() -> String {
+    text("notice-trailer-opened", &[])
+}
+
+/// Toast when a trailer could not be opened. The reason comes from the system.
+pub fn notice_trailer_failed(reason: &str) -> String {
+    text("notice-trailer-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when the next episode is not the one after this because filler was skipped.
+pub fn notice_filler_skipped(episode: &str) -> String {
+    text("notice-filler-skipped", &[("episode", Arg::Text(episode))])
+}
+
+/// Toast after switching the audio while playing.
+pub fn notice_audio_now_subbed() -> String {
+    text("notice-audio-now-subbed", &[])
+}
+
+/// Toast after switching the audio while playing.
+pub fn notice_audio_now_dubbed() -> String {
+    text("notice-audio-now-dubbed", &[])
+}
+
+/// Toast when the previous-episode control is used on the first episode.
+pub fn notice_already_first_episode() -> String {
+    text("notice-already-first-episode", &[])
+}
+
+/// Toast when the next-episode control is used on the last known episode.
+pub fn notice_last_episode(episode: &str) -> String {
+    text("notice-last-episode", &[("episode", Arg::Text(episode))])
+}
+
+/// Toast when the next-episode control is used and the next episode is not known.
+pub fn notice_no_next_episode() -> String {
+    text("notice-no-next-episode", &[])
+}
+
+/// Toast when the previous-episode control finds no previous episode.
+pub fn notice_no_previous_episode() -> String {
+    text("notice-no-previous-episode", &[])
+}
+
+/// Toast when the title's episode match could not be cleared. The reason comes from the system.
+pub fn notice_match_reset_failed(reason: &str) -> String {
+    text("notice-match-reset-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when the chosen match could not be saved. The reason comes from the system.
+pub fn notice_match_save_failed(reason: &str) -> String {
+    text("notice-match-save-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a chosen match still left the title undecided.
+pub fn notice_match_did_not_stick() -> String {
+    text("notice-match-did-not-stick", &[])
+}
+
+/// Toast when a search of the sources for a title found nothing.
+pub fn notice_source_search_empty(query: &str) -> String {
+    text("notice-source-search-empty", &[("query", Arg::Text(query))])
+}
+
+/// Toast after the person picked a source for one title.
+pub fn notice_source_pinned(source: &str) -> String {
+    text("notice-source-pinned", &[("source", Arg::Text(source))])
+}
+
+/// Toast after the person went back to automatic source selection for one title.
+pub fn notice_source_automatic() -> String {
+    text("notice-source-automatic", &[])
+}
+
+/// Toast when the source choice for a title could not be saved. The reason comes from the system.
+pub fn notice_source_choice_failed(reason: &str) -> String {
+    text("notice-source-choice-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when no source could list a show's episodes. The reason is what the sources said.
+pub fn notice_no_source_could_list(reason: &str) -> String {
+    text("notice-no-source-could-list", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a title cannot be taken off the Continue row. The reason comes from the system.
+pub fn notice_continue_hide_failed(reason: &str) -> String {
+    text("notice-continue-hide-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast after an episode was added to the download queue.
+pub fn notice_download_queued(title: &str, episode: &str) -> String {
+    text("notice-download-queued", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Toast when an episode asked for is in downloads already.
+pub fn notice_download_already_queued(title: &str, episode: &str) -> String {
+    text("notice-download-already-queued", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Toast when a waiting or paused download was moved to the front and started.
+pub fn notice_download_starting_now(title: &str, episode: &str) -> String {
+    text("notice-download-starting-now", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Toast after a download was cancelled.
+pub fn notice_download_cancelled() -> String {
+    text("notice-download-cancelled", &[])
+}
+
+/// Toast after a download and its file were deleted.
+pub fn notice_download_file_deleted() -> String {
+    text("notice-download-file-deleted", &[])
+}
+
+/// Toast after a download was removed whose file was already gone.
+pub fn notice_download_removed_file_gone() -> String {
+    text("notice-download-removed-file-gone", &[])
+}
+
+/// Toast after a download was removed but its file could not be deleted. The reason comes from the system.
+pub fn notice_download_removed_file_kept(reason: &str) -> String {
+    text("notice-download-removed-file-kept", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast after a download with no file was removed.
+pub fn notice_download_removed() -> String {
+    text("notice-download-removed", &[])
+}
+
+/// Toast after finished downloads were cleared from the list.
+pub fn notice_downloads_cleared(count: i64) -> String {
+    text("notice-downloads-cleared", &[("count", Arg::Int(count))])
+}
+
+/// Toast when an episode finished downloading.
+pub fn notice_download_finished(title: &str, episode: &str) -> String {
+    text("notice-download-finished", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Toast when an episode finished downloading and the note says what happened to its subtitles.
+pub fn notice_download_finished_note(title: &str, episode: &str, note: &str) -> String {
+    text("notice-download-finished-note", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode)), ("note", Arg::Text(note))])
+}
+
+/// Toast when a download could not start. The reason comes from the torrent client.
+pub fn notice_download_failed(title: &str, episode: &str, reason: &str) -> String {
+    text("notice-download-failed", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast after a range was asked for and nothing was queued.
+pub fn notice_downloads_none_queued() -> String {
+    text("notice-downloads-none-queued", &[])
+}
+
+/// Toast after a range was asked for and nothing was queued, and the reason it stopped.
+pub fn notice_downloads_none_queued_stopped(reason: &str) -> String {
+    text("notice-downloads-none-queued-stopped", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast after a range was asked for and every episode was in the queue already.
+pub fn notice_downloads_none_new(existing: &str) -> String {
+    text("notice-downloads-none-new", &[("existing", Arg::Text(existing))])
+}
+
+/// Toast as above, with the reason the range stopped.
+pub fn notice_downloads_none_new_stopped(existing: &str, reason: &str) -> String {
+    text("notice-downloads-none-new-stopped", &[("existing", Arg::Text(existing)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast after a range was asked for, some episodes were queued and some were there already.
+pub fn notice_episodes_queued_existing(count: i64, existing: &str) -> String {
+    text("notice-episodes-queued-existing", &[("count", Arg::Int(count)), ("existing", Arg::Text(existing))])
+}
+
+/// Toast as above, with the reason the range stopped.
+pub fn notice_episodes_queued_stopped(count: i64, reason: &str) -> String {
+    text("notice-episodes-queued-stopped", &[("count", Arg::Int(count)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast as above, with some episodes in the queue already and the reason the range stopped.
+pub fn notice_episodes_queued_existing_stopped(count: i64, existing: &str, reason: &str) -> String {
+    text("notice-episodes-queued-existing-stopped", &[("count", Arg::Int(count)), ("existing", Arg::Text(existing)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when keep next found no room for another episode.
+pub fn notice_keep_next_full() -> String {
+    text("notice-keep-next-full", &[])
+}
+
+/// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+pub fn party_needs_server(server: &str, operator: &str) -> String {
+    text("party-needs-server", &[("server", Arg::Text(server)), ("operator", Arg::Text(operator))])
+}
+
+/// Toast when a watch party is asked for in a build without watch parties.
+pub fn notice_no_party() -> String {
+    text("notice-no-party", &[])
+}
+
+/// Message when a watch party was asked for with no room named.
+pub fn party_needs_room() -> String {
+    text("party-needs-room", &[])
+}
+
+/// Message in a watch party when its server connection dropped and is retried.
+pub fn party_server_lost() -> String {
+    text("party-server-lost", &[])
+}
+
+/// Message in a watch party when the connection came back.
+pub fn party_rejoined() -> String {
+    text("party-rejoined", &[])
+}
+
+/// Message when the person left a watch party.
+pub fn party_left() -> String {
+    text("party-left", &[])
+}
+
+/// Toast after joining a plugin store with an invite that names this device's owner.
+pub fn store_joined(store: &str, member: &str) -> String {
+    text("store-joined", &[("store", Arg::Text(store)), ("member", Arg::Text(member))])
+}
+
+/// Toast after joining a plugin store with its open link, which keeps no name.
+pub fn store_joined_unnamed(store: &str) -> String {
+    text("store-joined-unnamed", &[("store", Arg::Text(store))])
+}
+
+/// Toast after leaving a plugin store.
+pub fn store_left(store: &str) -> String {
+    text("store-left", &[("store", Arg::Text(store))])
+}
+
+/// Toast after a plugin is deleted from this device.
+pub fn plugin_removed(plugin: &str) -> String {
+    text("plugin-removed", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Toast after a store owner removes a member.
+pub fn store_member_removed() -> String {
+    text("store-member-removed", &[])
+}
+
+/// Toast after a store owner cancels an invite.
+pub fn store_invite_cancelled() -> String {
+    text("store-invite-cancelled", &[])
+}
+
+/// Toast after a store owner lets anyone with the store's link join.
+pub fn store_open_join_on() -> String {
+    text("store-open-join-on", &[])
+}
+
+/// Toast after a store owner turns off joining with the link, when no device joined that way.
+pub fn store_open_join_off() -> String {
+    text("store-open-join-off", &[])
+}
+
+/// Toast after a store owner turns off joining with the link, when some devices joined that way.
+pub fn store_open_join_off_devices(devices: i64) -> String {
+    text("store-open-join-off-devices", &[("devices", Arg::Int(devices))])
+}
+
+/// Toast after one device that joined with the store's link is removed.
+pub fn store_device_removed() -> String {
+    text("store-device-removed", &[])
+}
+
+/// Toast after every device that joined with the store's link is removed.
+pub fn store_devices_removed() -> String {
+    text("store-devices-removed", &[])
+}
+
+/// Toast after a plugin is published to a store.
+pub fn plugin_published(plugin: &str, version: &str) -> String {
+    text("plugin-published", &[("plugin", Arg::Text(plugin)), ("version", Arg::Text(version))])
+}
+
+/// Toast after a plugin stops being offered in a store.
+pub fn plugin_unpublished(plugin: &str) -> String {
+    text("plugin-unpublished", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Toast after the store's admin page opens in the browser.
+pub fn store_admin_opened() -> String {
+    text("store-admin-opened", &[])
+}
+
+/// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+pub fn store_admin_open_failed(reason: &str) -> String {
+    text("store-admin-open-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast after a plugin is installed while plugins are switched off in the source order.
+pub fn plugin_installed_unused(plugin: &str, version: &str) -> String {
+    text("plugin-installed-unused", &[("plugin", Arg::Text(plugin)), ("version", Arg::Text(version))])
+}
+
+/// Toast after a plugin is installed under the name of a built-in source, so it was not loaded.
+pub fn plugin_installed_name_clash(plugin: &str, id: &str) -> String {
+    text("plugin-installed-name-clash", &[("plugin", Arg::Text(plugin)), ("id", Arg::Text(id))])
+}
+
+/// Toast after a plugin is installed and ready to use.
+pub fn plugin_installed(plugin: &str, version: &str) -> String {
+    text("plugin-installed", &[("plugin", Arg::Text(plugin)), ("version", Arg::Text(version))])
+}
+
+/// Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.
+pub fn plugin_installed_not_loaded(plugin: &str, reason: &str) -> String {
+    text("plugin-installed-not-loaded", &[("plugin", Arg::Text(plugin)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast at launch when joined plugin stores offer newer versions of installed plugins.
+pub fn plugin_updates_ready(count: i64, names: &str) -> String {
+    text("plugin-updates-ready", &[("count", Arg::Int(count)), ("names", Arg::Text(names))])
+}
+
+/// Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host.
+pub fn plugins_load_failed(reason: &str) -> String {
+    text("plugins-load-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Error: the store was joined once, but this device has no saved token for it.
+pub fn store_token_missing(store: &str) -> String {
+    text("store-token-missing", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store the record points to is gone from the saved list.
+pub fn store_not_joined() -> String {
+    text("store-not-joined", &[])
+}
+
+/// Error: a store's signing key is unreadable. Shown as the reason a store is offline.
+pub fn store_key_damaged() -> String {
+    text("store-key-damaged", &[])
+}
+
+/// Error: a store rejected this device's token.
+pub fn store_device_refused(store: &str) -> String {
+    text("store-device-refused", &[("store", Arg::Text(store))])
+}
+
+/// Error: a store could not be reached. The reason comes from the network.
+pub fn store_unreachable(store: &str, reason: &str) -> String {
+    text("store-unreachable", &[("store", Arg::Text(store)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: an invite link names a store this device already joined, but at another address.
+pub fn store_moved(store: &str, current: &str, target: &str) -> String {
+    text("store-moved", &[("store", Arg::Text(store)), ("current", Arg::Text(current)), ("target", Arg::Text(target))])
+}
+
+/// Error: an open link would replace the named membership this device already has.
+pub fn store_join_would_unname(store: &str, member: &str) -> String {
+    text("store-join-would-unname", &[("store", Arg::Text(store)), ("member", Arg::Text(member))])
+}
+
+/// Error: the server at a link's address could not prove it is the store the invite named.
+pub fn store_not_the_invited(url: &str, reason: &str) -> String {
+    text("store-not-the-invited", &[("url", Arg::Text(url)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: the token for a joined store could not be saved on this device. The reason comes from the system.
+pub fn store_token_not_kept(reason: &str) -> String {
+    text("store-token-not-kept", &[("reason", Arg::Text(reason))])
+}
+
+/// Error: an invite that cannot be used any more.
+pub fn store_invite_unusable() -> String {
+    text("store-invite-unusable", &[])
+}
+
+/// Error: an open link that no longer lets anyone join.
+pub fn store_open_link_unusable() -> String {
+    text("store-open-link-unusable", &[])
+}
+
+/// Error: a plugin takes the name of a built-in source.
+pub fn plugin_reserved_name(plugin: &str) -> String {
+    text("plugin-reserved-name", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a store stopped offering a plugin between listing it and installing it.
+pub fn store_plugin_withdrawn(store: &str, plugin: &str) -> String {
+    text("store-plugin-withdrawn", &[("store", Arg::Text(store)), ("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a store changed a plugin after the person agreed to what was shown.
+pub fn store_plugin_changed(store: &str, plugin: &str) -> String {
+    text("store-plugin-changed", &[("store", Arg::Text(store)), ("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a plugin installed from one store is offered by another.
+pub fn plugin_from_other_store(plugin: &str, store: &str) -> String {
+    text("plugin-from-other-store", &[("plugin", Arg::Text(plugin)), ("store", Arg::Text(store))])
+}
+
+/// Error: a plugin file added by hand already declares the same name.
+pub fn plugin_duplicate_file(path: &str, plugin: &str) -> String {
+    text("plugin-duplicate-file", &[("path", Arg::Text(path)), ("plugin", Arg::Text(plugin))])
+}
+
+/// Error: a plugin could not be downloaded or installed. The reason comes from the store or the system.
+pub fn plugin_install_failed(plugin: &str, reason: &str) -> String {
+    text("plugin-install-failed", &[("plugin", Arg::Text(plugin)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: a plugin could not be published. The reason comes from the store or the system.
+pub fn plugin_publish_failed(plugin: &str, reason: &str) -> String {
+    text("plugin-publish-failed", &[("plugin", Arg::Text(plugin)), ("reason", Arg::Text(reason))])
+}
+
+/// Error: a plugin to publish is no longer in the plugin folder.
+pub fn plugin_missing_locally(plugin: &str) -> String {
+    text("plugin-missing-locally", &[("plugin", Arg::Text(plugin))])
+}
+
+/// Error: an invite for another device cannot be made from a device that joined with the open link.
+pub fn store_invite_needs_link(store: &str) -> String {
+    text("store-invite-needs-link", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store sent an invite link that does not parse. The reason comes from the link parser.
+pub fn store_link_malformed(reason: &str) -> String {
+    text("store-link-malformed", &[("reason", Arg::Text(reason))])
+}
+
+/// Error: the store sent a link carrying another store's key.
+pub fn store_link_wrong_key() -> String {
+    text("store-link-wrong-key", &[])
+}
+
+/// Error: the store's server has no admin page.
+pub fn store_admin_missing(store: &str) -> String {
+    text("store-admin-missing", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store sent an admin link that points somewhere else.
+pub fn store_admin_link_foreign(store: &str) -> String {
+    text("store-admin-link-foreign", &[("store", Arg::Text(store))])
+}
+
+/// Error: the store's server is too old for joining with a link.
+pub fn store_open_join_unsupported(store: &str) -> String {
+    text("store-open-join-unsupported", &[("store", Arg::Text(store))])
+}
+
+/// Toast after a source (plugin) is switched off. It is skipped when looking for episodes.
+pub fn source_switched_off(name: &str) -> String {
+    text("source-switched-off", &[("name", Arg::Text(name))])
+}
+
+/// Toast after a source (plugin) is switched on.
+pub fn source_switched_on(name: &str) -> String {
+    text("source-switched-on", &[("name", Arg::Text(name))])
+}
+
+/// Error: a command named a plugin that is not loaded.
+pub fn plugin_not_loaded(id: &str) -> String {
+    text("plugin-not-loaded", &[("id", Arg::Text(id))])
+}
+
+/// Toast after a release is chosen for a title. The name is the release's title.
+pub fn release_pinned(name: &str) -> String {
+    text("release-pinned", &[("name", Arg::Text(name))])
+}
+
+/// Toast when the chosen source or release for a title could not be saved. The reason comes from the database.
+pub fn notice_choice_not_saved(reason: &str) -> String {
+    text("notice-choice-not-saved", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast while torrents are running but the connection check failed, and the settings say to warn only.
+pub fn torrent_check_failed_running() -> String {
+    text("torrent-check-failed-running", &[])
+}
+
+/// Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard.
+pub fn torrent_vpn_waiting(reason: &str) -> String {
+    text("torrent-vpn-waiting", &[("reason", Arg::Text(reason))])
+}
+
+/// Note on the sources screen: the VPN guard has no verdict yet.
+pub fn torrent_vpn_unverified() -> String {
+    text("torrent-vpn-unverified", &[])
+}
+
+/// Error: torrents are on, but no torrent index is set.
+pub fn torrent_no_index() -> String {
+    text("torrent-no-index", &[])
+}
+
+/// Error: the torrent session did not start because the interface closed first.
+pub fn torrent_interface_closed() -> String {
+    text("torrent-interface-closed", &[])
+}
+
+/// Error: the torrent session could not start. The reason comes from the torrent engine.
+pub fn torrent_session_failed(reason: &str) -> String {
+    text("torrent-session-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+pub fn torrent_no_kill_switch() -> String {
+    text("torrent-no-kill-switch", &[])
+}
+
+/// Toast when the connection check could not run. The reason comes from the VPN settings.
+pub fn torrent_not_checked(reason: &str) -> String {
+    text("torrent-not-checked", &[("reason", Arg::Text(reason))])
+}
+
+/// Note on the sources screen after the source chain is rebuilt with torrents on.
+pub fn sources_reloaded_torrents_pending() -> String {
+    text("sources-reloaded-torrents-pending", &[])
+}
+
+/// Note on the sources screen after the source chain is rebuilt with torrents off.
+pub fn sources_reloaded_torrents_off() -> String {
+    text("sources-reloaded-torrents-off", &[])
+}
+
+/// Note on a running job: requests to AniList are being slowed to stay within its limit. A countdown follows.
+pub fn job_anilist_limit() -> String {
+    text("job-anilist-limit", &[])
+}
+
+/// Toast when there is no job to carry the wait for AniList's rate limit.
+pub fn notice_anilist_limit(wait: &str) -> String {
+    text("notice-anilist-limit", &[("wait", Arg::Text(wait))])
+}
+
+/// Toast when the AniList fallback takes over because AniList cannot be reached.
+pub fn notice_anilist_unreachable() -> String {
+    text("notice-anilist-unreachable", &[])
+}
+
+/// Toast when no metadata service answered and the last cached data is shown.
+pub fn notice_metadata_cached() -> String {
+    text("notice-metadata-cached", &[])
+}
+
+/// Toast when AniList answers again.
+pub fn notice_anilist_back() -> String {
+    text("notice-anilist-back", &[])
+}
+
+/// Toast when a command needs watch parties but this app was built without them.
+pub fn notice_party_not_built() -> String {
+    text("notice-party-not-built", &[])
+}
+
+/// Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
+pub fn notice_signed_in(tracker: &str) -> String {
+    text("notice-signed-in", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast after a sign-in succeeded and the token went into the system keychain.
+pub fn notice_signed_in_keychain(tracker: &str) -> String {
+    text("notice-signed-in-keychain", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast after a sign-in succeeded on a device with no keychain. The token is in a file only this user can read. It is said so that someone on a shared computer knows.
+pub fn notice_signed_in_file(tracker: &str) -> String {
+    text("notice-signed-in-file", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when a sign-in worked but the token could not be stored. The reason comes from the system.
+pub fn notice_signed_in_unsaved(tracker: &str, reason: &str) -> String {
+    text("notice-signed-in-unsaved", &[("tracker", Arg::Text(tracker)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when a sign-in token could not be stored. The reason comes from the system.
+pub fn notice_token_not_saved(reason: &str) -> String {
+    text("notice-token-not-saved", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a sign-in did not finish. The reason comes from the tracker or the network.
+pub fn notice_sign_in_failed(tracker: &str, reason: &str) -> String {
+    text("notice-sign-in-failed", &[("tracker", Arg::Text(tracker)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when the wait for a sign-in ended early. The reason comes from the system.
+pub fn notice_sign_in_stopped(tracker: &str, reason: &str) -> String {
+    text("notice-sign-in-stopped", &[("tracker", Arg::Text(tracker)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when a tracker would not give a token for the sign-in. The reason comes from the tracker.
+pub fn notice_token_exchange_failed(tracker: &str, reason: &str) -> String {
+    text("notice-token-exchange-failed", &[("tracker", Arg::Text(tracker)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when no browser could be opened for a sign-in. The reason comes from the system.
+pub fn notice_browser_not_opened(reason: &str) -> String {
+    text("notice-browser-not-opened", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a sign-in redirect arrives and no sign-in is waiting for it.
+pub fn notice_sign_in_not_waiting(tracker: &str) -> String {
+    text("notice-sign-in-not-waiting", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when a sign-in redirect does not match the request that was made.
+pub fn notice_sign_in_wrong_request(tracker: &str) -> String {
+    text("notice-sign-in-wrong-request", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when a tracker sent the person back without a token.
+pub fn notice_sign_in_no_token(tracker: &str) -> String {
+    text("notice-sign-in-no-token", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when this build has no MyAnimeList client to finish a sign-in with.
+pub fn notice_mal_client_missing_build() -> String {
+    text("notice-mal-client-missing-build", &[])
+}
+
+/// Toast on a screen that opens Kitsu's sign-in as a prompt. It is shown with a button to open it.
+pub fn notice_kitsu_signs_in_on_accounts() -> String {
+    text("notice-kitsu-signs-in-on-accounts", &[])
+}
+
+/// Toast when a tracker has no way to sign in yet.
+pub fn notice_sign_in_unsupported(tracker: &str) -> String {
+    text("notice-sign-in-unsupported", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast on an app that cannot receive a browser redirect.
+pub fn notice_sign_in_needs_redirect(tracker: &str) -> String {
+    text("notice-sign-in-needs-redirect", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when AniList is set to a sign-in method only the anistream app can finish. The setting name is a key of the config file and is not translated.
+pub fn notice_anilist_implicit_flow(setting: &str) -> String {
+    text("notice-anilist-implicit-flow", &[("setting", Arg::Text(setting))])
+}
+
+/// Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.
+pub fn notice_anilist_client_missing(client: &str, secret: &str) -> String {
+    text("notice-anilist-client-missing", &[("client", Arg::Text(client)), ("secret", Arg::Text(secret))])
+}
+
+/// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+pub fn notice_anilist_paste_flow() -> String {
+    text("notice-anilist-paste-flow", &[])
+}
+
+/// Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
+pub fn notice_mal_client_missing(setting: &str) -> String {
+    text("notice-mal-client-missing", &[("setting", Arg::Text(setting))])
+}
+
+/// Status line while the browser sign-in is open and the app waits for it to come back.
+pub fn status_waiting_for_redirect(tracker: &str) -> String {
+    text("status-waiting-for-redirect", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.
+pub fn notice_mal_no_refresh_token() -> String {
+    text("notice-mal-no-refresh-token", &[])
+}
+
+/// Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated.
+pub fn notice_client_id_missing(setting: &str) -> String {
+    text("notice-client-id-missing", &[("setting", Arg::Text(setting))])
+}
+
+/// Toast after signing out of a tracker with nothing waiting to send.
+pub fn notice_signed_out(tracker: &str) -> String {
+    text("notice-signed-out", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in.
+pub fn notice_signed_out_queue(tracker: &str, count: i64) -> String {
+    text("notice-signed-out-queue", &[("tracker", Arg::Text(tracker)), ("count", Arg::Int(count))])
+}
+
+/// Toast when signing out of a tracker failed. The reason comes from the system.
+pub fn notice_sign_out_failed(tracker: &str, reason: &str) -> String {
+    text("notice-sign-out-failed", &[("tracker", Arg::Text(tracker)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when a setting could not be stored. The cause says why and what to do.
+pub fn notice_not_saved_because(cause: &str) -> String {
+    text("notice-not-saved-because", &[("cause", Arg::Text(cause))])
+}
+
+/// Toast when the torrent protection choice was saved.
+pub fn notice_protection_saved() -> String {
+    text("notice-protection-saved", &[])
+}
+
+/// Toast when the torrent protection could not be checked. The cause says why.
+pub fn notice_protection_not_checked(cause: &str) -> String {
+    text("notice-protection-not-checked", &[("cause", Arg::Text(cause))])
+}
+
+/// Toast when the proxy's password could not be stored. The reason comes from the system.
+pub fn notice_proxy_password_not_kept(reason: &str) -> String {
+    text("notice-proxy-password-not-kept", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a show's setting was given a value it does not take. The value is what was given.
+pub fn notice_show_setting_refused(value: &str, setting: &str) -> String {
+    text("notice-show-setting-refused", &[("value", Arg::Text(value)), ("setting", Arg::Text(setting))])
+}
+
+/// Toast when resetting a show's settings failed. The reason comes from the local database.
+pub fn notice_show_not_reset(reason: &str) -> String {
+    text("notice-show-not-reset", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a subtitle choice names subtitles the show has not used.
+pub fn notice_show_no_such_subtitles() -> String {
+    text("notice-show-no-such-subtitles", &[])
+}
+
+/// Toast while torrents are held until the connection check passes.
+pub fn notice_torrents_waiting_for_check() -> String {
+    text("notice-torrents-waiting-for-check", &[])
+}
+
+/// Toast when the mapping data downloads work again after a failure.
+pub fn notice_mapping_data_refreshed() -> String {
+    text("notice-mapping-data-refreshed", &[])
+}
+
+/// Toast when the mapping data could not be downloaded. It is said once; the retries are silent.
+pub fn notice_mapping_data_failed(datasets: &str, wait: &str, cause: &str) -> String {
+    text("notice-mapping-data-failed", &[("datasets", Arg::Text(datasets)), ("wait", Arg::Text(wait)), ("cause", Arg::Text(cause))])
+}
+
+/// Toast, and desktop notification, for one episode that aired while the app was closed.
+pub fn notice_episode_aired(title: &str, episode: i64) -> String {
+    text("notice-episode-aired", &[("title", Arg::Text(title)), ("episode", Arg::Int(episode))])
+}
+
+/// Toast, and desktop notification, for several episodes that aired while the app was closed.
+pub fn notice_episodes_aired(count: i64) -> String {
+    text("notice-episodes-aired", &[("count", Arg::Int(count))])
+}
+
+/// Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+pub fn notice_update_available(tag: &str) -> String {
+    text("notice-update-available", &[("tag", Arg::Text(tag))])
+}
+
+/// The reason a setting was refused until the person confirms having no protection.
+pub fn cause_confirm_no_protection() -> String {
+    text("cause-confirm-no-protection", &[])
+}
+
+/// The reason a setting was refused until the person confirms the "warn only" choice.
+pub fn cause_confirm_warn_only() -> String {
+    text("cause-confirm-warn-only", &[])
+}
+
+/// The reason a proxy was refused: it has no host or no port.
+pub fn cause_proxy_needs_address() -> String {
+    text("cause-proxy-needs-address", &[])
+}
+
+/// The reason a proxy could not be checked: its address is not one the check can use.
+pub fn cause_proxy_address_unusable() -> String {
+    text("cause-proxy-address-unusable", &[])
+}
+
+/// The reason a request failed: it never reached the server.
+pub fn cause_server_unreachable() -> String {
+    text("cause-server-unreachable", &[])
+}
+
 /// The legal line. It exists once, so no translation can paraphrase it.
 pub fn legal_hosts_no_content() -> String {
     text("legal-hosts-no-content", &[])
@@ -40,6 +985,3926 @@ pub fn source_picker_seeders_linux(count: i64) -> String {
     text("source-picker-seeders-linux", &[("count", Arg::Int(count))])
 }
 
+/// Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
+pub fn chrome_meta_chip(mark: &str) -> String {
+    text("chrome-meta-chip", &[("mark", Arg::Text(mark))])
+}
+
+/// Activity row: how many more running jobs there are than fit. It follows the last job shown.
+pub fn chrome_activity_more(count: i64) -> String {
+    text("chrome-activity-more", &[("count", Arg::Int(count))])
+}
+
+/// Activity row: a running job that is held up (a rate-limit pause), with the wait counting down. The note says what it waits on; the countdown is a clock such as 0:12.
+pub fn chrome_job_held(note: &str, countdown: &str) -> String {
+    text("chrome-job-held", &[("note", Arg::Text(note)), ("countdown", Arg::Text(countdown))])
+}
+
+/// Heading of an overlay that lists the lines of a long table: which lines are in view.
+pub fn overlays_window_position(from: i64, to: i64, total: i64) -> String {
+    text("overlays-window-position", &[("from", Arg::Int(from)), ("to", Arg::Int(to)), ("total", Arg::Int(total))])
+}
+
+/// Heading of the help overlay when its table does not fit on one page.
+pub fn overlays_help_page(page: i64, pages: i64) -> String {
+    text("overlays-help-page", &[("page", Arg::Int(page)), ("pages", Arg::Int(pages))])
+}
+
+/// The log overlay, when nothing has been logged this session.
+pub fn overlays_logs_empty() -> String {
+    text("overlays-logs-empty", &[])
+}
+
+/// Prompt hint under the manual search heading. Enter and Esc are the fixed keys of every prompt.
+pub fn overlays_hint_manual_query() -> String {
+    text("overlays-hint-manual-query", &[])
+}
+
+/// Prompt hint for the first step of signing in to Kitsu.
+pub fn overlays_hint_kitsu_username() -> String {
+    text("overlays-hint-kitsu-username", &[])
+}
+
+/// Prompt hint for the second step of signing in to Kitsu. The password is shown as dots.
+pub fn overlays_hint_kitsu_password() -> String {
+    text("overlays-hint-kitsu-password", &[])
+}
+
+/// Prompt hint for the download range. The examples are episode numbers and stay as written.
+pub fn overlays_hint_download_range() -> String {
+    text("overlays-hint-download-range", &[])
+}
+
+/// Prompt hint for editing a setting. The setting is named by its label on the Settings screen.
+pub fn overlays_hint_edit_setting(setting: &str) -> String {
+    text("overlays-hint-edit-setting", &[("setting", Arg::Text(setting))])
+}
+
+/// Prompt hint for editing a setting, when the setting is not known.
+pub fn overlays_hint_edit_setting_bare() -> String {
+    text("overlays-hint-edit-setting-bare", &[])
+}
+
+/// Prompt hint for joining a { -plugin-store }.
+pub fn overlays_hint_join_store() -> String {
+    text("overlays-hint-join-store", &[])
+}
+
+/// Prompt hint for naming the person an invite link is for.
+pub fn overlays_hint_invite_name() -> String {
+    text("overlays-hint-invite-name", &[])
+}
+
+/// Overlay heading after the title: the plugin's version and the { -plugin-store } it comes from. The plugin's name leads the heading.
+pub fn overlays_heading_plugin(name: &str, version: &str, store: &str) -> String {
+    text("overlays-heading-plugin", &[("name", Arg::Text(name)), ("version", Arg::Text(version)), ("store", Arg::Text(store))])
+}
+
+/// Overlay heading, after the title "Invite link": whom the link is for.
+pub fn overlays_heading_invite_for(name: &str) -> String {
+    text("overlays-heading-invite-for", &[("name", Arg::Text(name))])
+}
+
+/// Title of the invite link overlay when the link is not for a named person.
+pub fn overlays_title_link_device() -> String {
+    text("overlays-title-link-device", &[])
+}
+
+/// Overlay heading, after the title of the store's link: which { -plugin-store } it opens.
+pub fn overlays_heading_open_link_of(store: &str) -> String {
+    text("overlays-heading-open-link-of", &[("store", Arg::Text(store))])
+}
+
+/// Overlay heading, after the title of the publish list: where the plugin goes.
+pub fn overlays_heading_publish_to(store: &str) -> String {
+    text("overlays-heading-publish-to", &[("store", Arg::Text(store))])
+}
+
+/// Overlay heading, after the title "Which one": the title being matched.
+pub fn overlays_heading_disambiguate(name: &str) -> String {
+    text("overlays-heading-disambiguate", &[("name", Arg::Text(name))])
+}
+
+/// Same, when no title is known.
+pub fn overlays_heading_disambiguate_bare() -> String {
+    text("overlays-heading-disambiguate-bare", &[])
+}
+
+/// Overlay heading, after the title "Watch order": the title the order is built around.
+pub fn overlays_heading_watch_order(name: &str) -> String {
+    text("overlays-heading-watch-order", &[("name", Arg::Text(name))])
+}
+
+/// Same, when no title is known.
+pub fn overlays_heading_watch_order_bare() -> String {
+    text("overlays-heading-watch-order-bare", &[])
+}
+
+/// Overlay heading, after the title "Recommended": the title the list came from.
+pub fn overlays_heading_recommendations(name: &str) -> String {
+    text("overlays-heading-recommendations", &[("name", Arg::Text(name))])
+}
+
+/// Same, when no title is known.
+pub fn overlays_heading_recommendations_bare() -> String {
+    text("overlays-heading-recommendations-bare", &[])
+}
+
+/// Overlay heading, after the title of the release list.
+pub fn overlays_heading_release() -> String {
+    text("overlays-heading-release", &[])
+}
+
+/// Overlay heading, after the title of the { -source } list: the choice is kept for this title.
+pub fn overlays_heading_source(name: &str) -> String {
+    text("overlays-heading-source", &[("name", Arg::Text(name))])
+}
+
+/// Same, when no title is known.
+pub fn overlays_heading_source_bare() -> String {
+    text("overlays-heading-source-bare", &[])
+}
+
+/// Overlay heading, after the title "Filters": the keys of the filter editor.
+pub fn overlays_heading_filters() -> String {
+    text("overlays-heading-filters", &[])
+}
+
+/// Overlay heading, after the title of the releases list: the episode it is for.
+pub fn overlays_heading_releases(episode: &str) -> String {
+    text("overlays-heading-releases", &[("episode", Arg::Text(episode))])
+}
+
+/// Same, when no episode is known.
+pub fn overlays_heading_releases_bare() -> String {
+    text("overlays-heading-releases-bare", &[])
+}
+
+/// Toast: a download that is finished cannot be cancelled, only deleted. The key is the delete key.
+pub fn toast_download_done(delete: &str) -> String {
+    text("toast-download-done", &[("delete", Arg::Text(delete))])
+}
+
+/// Toast: a command needs a title and none is selected.
+pub fn toast_nothing_selected() -> String {
+    text("toast-nothing-selected", &[])
+}
+
+/// Toast: the download-range key was pressed away from the episode table.
+pub fn toast_ranges_elsewhere() -> String {
+    text("toast-ranges-elsewhere", &[])
+}
+
+/// Toast: the filter key was pressed on a screen without filters.
+pub fn toast_filters_elsewhere() -> String {
+    text("toast-filters-elsewhere", &[])
+}
+
+/// Toast: a watched-mark key was pressed away from the episode table.
+pub fn toast_watched_elsewhere() -> String {
+    text("toast-watched-elsewhere", &[])
+}
+
+/// Toast: Back was pressed at the top of a section. The key is the quit key.
+pub fn toast_at_top(quit: &str) -> String {
+    text("toast-at-top", &[("quit", Arg::Text(quit))])
+}
+
+/// Toast: an action was run that does nothing on this screen. The action is its label, such as "Mark all previous watched"; the place says where it works, such as "in the episode table".
+pub fn toast_works_elsewhere(action: &str, place: &str) -> String {
+    text("toast-works-elsewhere", &[("action", Arg::Text(action)), ("place", Arg::Text(place))])
+}
+
+/// Toast: the bug report is being opened.
+pub fn toast_bug_report_opening() -> String {
+    text("toast-bug-report-opening", &[])
+}
+
+/// Log line holding the whole bug report link, for a terminal that cannot open it.
+pub fn tui_log_bug_report_link(url: &str) -> String {
+    text("tui-log-bug-report-link", &[("url", Arg::Text(url))])
+}
+
+/// Toast: a key binding in the config file was refused. The problem says which and why.
+pub fn toast_keybinding_not_applied(problem: &str) -> String {
+    text("toast-keybinding-not-applied", &[("problem", Arg::Text(problem))])
+}
+
+/// Standing notice: the config file did not load. The problem is the parser's own text.
+pub fn tui_config_problem(file: &str, what: &str) -> String {
+    text("tui-config-problem", &[("file", Arg::Text(file)), ("what", Arg::Text(what))])
+}
+
+/// Same, when the problem is on a known line.
+pub fn tui_config_problem_at_line(file: &str, line: i64, what: &str) -> String {
+    text("tui-config-problem-at-line", &[("file", Arg::Text(file)), ("line", Arg::Int(line)), ("what", Arg::Text(what))])
+}
+
+/// Log line for the same problem. The path is the whole path of the config file.
+pub fn tui_config_problem_logged(path: &str, problem: &str) -> String {
+    text("tui-config-problem-logged", &[("path", Arg::Text(path)), ("problem", Arg::Text(problem))])
+}
+
+/// The status line at the foot of the screen when nothing is being said: the source in use, the audio and the quality.
+pub fn chrome_status_state(source: &str, audio: &str, quality: i64) -> String {
+    text("chrome-status-state", &[("source", Arg::Text(source)), ("audio", Arg::Text(audio)), ("quality", Arg::Int(quality))])
+}
+
+/// Heading of the title page when no title is highlighted.
+pub fn title_heading() -> String {
+    text("title-heading", &[])
+}
+
+/// Under the heading of the title page and the episode table when no title is highlighted.
+pub fn title_nothing_selected_note() -> String {
+    text("title-nothing-selected-note", &[])
+}
+
+/// Toast when a title action is asked for and no title is highlighted.
+pub fn title_nothing_selected() -> String {
+    text("title-nothing-selected", &[])
+}
+
+/// Toast when something that needs a title's full page is asked from a list.
+pub fn title_trailer_off_page() -> String {
+    text("title-trailer-off-page", &[])
+}
+
+/// Toast when something that needs a title's full page is asked from a list.
+pub fn title_recommendations_off_page() -> String {
+    text("title-recommendations-off-page", &[])
+}
+
+/// Toast when something that needs a title's full page is asked from a list.
+pub fn title_seasons_off_page() -> String {
+    text("title-seasons-off-page", &[])
+}
+
+/// Toast when a title has no trailer on record.
+pub fn title_no_trailer() -> String {
+    text("title-no-trailer", &[])
+}
+
+/// Toast when a title has no recommendations.
+pub fn title_no_recommendations() -> String {
+    text("title-no-recommendations", &[])
+}
+
+/// Toast when a title has no connected seasons.
+pub fn title_no_seasons() -> String {
+    text("title-no-seasons", &[])
+}
+
+/// Toast when the { -source } picker is asked for from a list.
+pub fn title_pin_off_page() -> String {
+    text("title-pin-off-page", &[])
+}
+
+/// Toast when the { -source } picker is asked for and no { -source } is registered. They register a moment after launch.
+pub fn title_no_sources_yet() -> String {
+    text("title-no-sources-yet", &[])
+}
+
+/// Toast when a list status or rating is asked for and no { -tracker } is signed in. The command is typed as it is.
+pub fn title_status_needs_tracker() -> String {
+    text("title-status-needs-tracker", &[])
+}
+
+/// Toast when a rating is asked for and no { -tracker } is signed in. The command is typed as it is.
+pub fn title_rating_needs_tracker() -> String {
+    text("title-rating-needs-tracker", &[])
+}
+
+/// Toast after a list status is picked. The status is one of the status names; the trackers are a comma separated list.
+pub fn title_status_set(status: &str, trackers: &str) -> String {
+    text("title-status-set", &[("status", Arg::Text(status)), ("trackers", Arg::Text(trackers))])
+}
+
+/// Toast after a rating is picked.
+pub fn title_rated(score: i64, trackers: &str) -> String {
+    text("title-rated", &[("score", Arg::Int(score)), ("trackers", Arg::Text(trackers))])
+}
+
+/// List status in the status picker and in the toast after picking one.
+pub fn title_status_watching() -> String {
+    text("title-status-watching", &[])
+}
+
+/// List status in the status picker and in the toast after picking one.
+pub fn title_status_planning() -> String {
+    text("title-status-planning", &[])
+}
+
+/// List status in the status picker and in the toast after picking one.
+pub fn title_status_completed() -> String {
+    text("title-status-completed", &[])
+}
+
+/// List status in the status picker and in the toast after picking one.
+pub fn title_status_paused() -> String {
+    text("title-status-paused", &[])
+}
+
+/// List status in the status picker and in the toast after picking one.
+pub fn title_status_dropped() -> String {
+    text("title-status-dropped", &[])
+}
+
+/// Beside the Completed status in the status picker, when the title has progress: what choosing it does.
+pub fn title_status_completed_hint() -> String {
+    text("title-status-completed-hint", &[])
+}
+
+/// A rating in the rating picker, beside the number 10.
+pub fn title_rating_10() -> String {
+    text("title-rating-10", &[])
+}
+
+/// A rating in the rating picker, beside the number 9.
+pub fn title_rating_9() -> String {
+    text("title-rating-9", &[])
+}
+
+/// A rating in the rating picker, beside the number 8.
+pub fn title_rating_8() -> String {
+    text("title-rating-8", &[])
+}
+
+/// A rating in the rating picker, beside the number 7.
+pub fn title_rating_7() -> String {
+    text("title-rating-7", &[])
+}
+
+/// A rating in the rating picker, beside the number 6.
+pub fn title_rating_6() -> String {
+    text("title-rating-6", &[])
+}
+
+/// A rating in the rating picker, beside the number 5.
+pub fn title_rating_5() -> String {
+    text("title-rating-5", &[])
+}
+
+/// A rating in the rating picker, beside the number 4.
+pub fn title_rating_4() -> String {
+    text("title-rating-4", &[])
+}
+
+/// A rating in the rating picker, beside the number 3.
+pub fn title_rating_3() -> String {
+    text("title-rating-3", &[])
+}
+
+/// A rating in the rating picker, beside the number 2.
+pub fn title_rating_2() -> String {
+    text("title-rating-2", &[])
+}
+
+/// A rating in the rating picker, beside the number 1.
+pub fn title_rating_1() -> String {
+    text("title-rating-1", &[])
+}
+
+/// Place of a title in the watch order: the nth season of its franchise. Sits in a narrow column.
+pub fn title_season(number: i64) -> String {
+    text("title-season", &[("number", Arg::Int(number))])
+}
+
+/// Place of a title in the watch order: it comes before this one.
+pub fn title_relation_prequel() -> String {
+    text("title-relation-prequel", &[])
+}
+
+/// Place of a title in the watch order: it is the story this one comes from.
+pub fn title_relation_parent() -> String {
+    text("title-relation-parent", &[])
+}
+
+/// Place of a title in the watch order: it comes after this one.
+pub fn title_relation_sequel() -> String {
+    text("title-relation-sequel", &[])
+}
+
+/// First choice in the { -source } picker: let anistream pick.
+pub fn title_source_automatic() -> String {
+    text("title-source-automatic", &[])
+}
+
+/// Beside a { -source } in the picker when it is failing and so not used.
+pub fn title_source_failing() -> String {
+    text("title-source-failing", &[])
+}
+
+/// First choice in the { -release } picker: the { -source } decides.
+pub fn title_release_first() -> String {
+    text("title-release-first", &[])
+}
+
+/// Beside a { -release } in the picker: how many people share it.
+pub fn title_release_seeders(count: i64) -> String {
+    text("title-release-seeders", &[("count", Arg::Int(count))])
+}
+
+/// The services a title is available on, under its metadata. The list is already joined.
+pub fn title_available_on(services: &str) -> String {
+    text("title-available-on", &[("services", Arg::Text(services))])
+}
+
+/// Beside the progress meter on the title page: the episode that follows what has been watched.
+pub fn title_up_next(next: i64) -> String {
+    text("title-up-next", &[("next", Arg::Int(next))])
+}
+
+/// Beside the progress meter when the watched count is against the episodes that have aired so far.
+pub fn title_progress_aired(done: i64, aired: i64) -> String {
+    text("title-progress-aired", &[("done", Arg::Int(done)), ("aired", Arg::Int(aired))])
+}
+
+/// Beside the progress meter when there is nothing to count against.
+pub fn title_progress_watched(done: i64) -> String {
+    text("title-progress-watched", &[("done", Arg::Int(done))])
+}
+
+/// Heading of the episode table when the title is not known.
+pub fn episodes_heading() -> String {
+    text("episodes-heading", &[])
+}
+
+/// Column heading over the episode titles.
+pub fn episodes_column_title() -> String {
+    text("episodes-column-title", &[])
+}
+
+/// Column heading over the running time of each episode.
+pub fn episodes_column_run() -> String {
+    text("episodes-column-run", &[])
+}
+
+/// Column heading over how much of each episode is watched.
+pub fn episodes_column_watched() -> String {
+    text("episodes-column-watched", &[])
+}
+
+/// Beside a finished episode, in the last column.
+pub fn episodes_done() -> String {
+    text("episodes-done", &[])
+}
+
+/// In the last column for an episode that is not out yet. The span is short, such as 2d 3h.
+pub fn episodes_airs_in(span: &str) -> String {
+    text("episodes-airs-in", &[("span", Arg::Text(span))])
+}
+
+/// Episode kind in the last column: the story episodes.
+pub fn episodes_kind_canon() -> String {
+    text("episodes-kind-canon", &[])
+}
+
+/// Episode kind in the last column: part story, part filler.
+pub fn episodes_kind_mixed() -> String {
+    text("episodes-kind-mixed", &[])
+}
+
+/// Episode kind in the last column: filler, which can be skipped.
+pub fn episodes_kind_filler() -> String {
+    text("episodes-kind-filler", &[])
+}
+
+/// Episode kind in the last column: made for the anime and not in the book it comes from.
+pub fn episodes_kind_anime_canon() -> String {
+    text("episodes-kind-anime-canon", &[])
+}
+
+/// The episode filter shown when nothing is filtered, and named at the top right of the table.
+pub fn episodes_filter_all() -> String {
+    text("episodes-filter-all", &[])
+}
+
+/// The episode filter that hides the episodes already watched.
+pub fn episodes_filter_unwatched() -> String {
+    text("episodes-filter-unwatched", &[])
+}
+
+/// The episode filter that hides filler.
+pub fn episodes_filter_no_filler() -> String {
+    text("episodes-filter-no-filler", &[])
+}
+
+/// Toast after the filter changes.
+pub fn episodes_showing_all() -> String {
+    text("episodes-showing-all", &[])
+}
+
+/// Toast after the filter changes.
+pub fn episodes_showing_unwatched() -> String {
+    text("episodes-showing-unwatched", &[])
+}
+
+/// Toast after the filter changes.
+pub fn episodes_showing_no_filler() -> String {
+    text("episodes-showing-no-filler", &[])
+}
+
+/// Top right of the episode table: how far the dub goes, for a dub that stops short of what has aired.
+pub fn episodes_dub_through(through: i64) -> String {
+    text("episodes-dub-through", &[("through", Arg::Int(through))])
+}
+
+/// Top right of the episode table: the dub has every episode.
+pub fn episodes_dub_complete() -> String {
+    text("episodes-dub-complete", &[])
+}
+
+/// Heading of the empty episode table when the filter hides every episode.
+pub fn episodes_empty_filtered() -> String {
+    text("episodes-empty-filtered", &[])
+}
+
+/// Under the heading when the filter hides every episode. The key is the filter key.
+pub fn episodes_empty_filtered_hint(key: &str) -> String {
+    text("episodes-empty-filtered-hint", &[("key", Arg::Text(key))])
+}
+
+/// Heading of the empty episode table when no { -source } is ready.
+pub fn episodes_empty_no_source() -> String {
+    text("episodes-empty-no-source", &[])
+}
+
+/// Under the heading when no { -source } is ready. The key opens the { -source-pl } screen.
+pub fn episodes_empty_no_source_hint(key: &str) -> String {
+    text("episodes-empty-no-source-hint", &[("key", Arg::Text(key))])
+}
+
+/// Heading of the empty episode table when the title has not aired yet.
+pub fn episodes_empty_unaired() -> String {
+    text("episodes-empty-unaired", &[])
+}
+
+/// Under the heading when the title has not aired yet. The span is short, such as 2d 3h.
+pub fn episodes_empty_unaired_hint(episode: i64, span: &str) -> String {
+    text("episodes-empty-unaired-hint", &[("episode", Arg::Int(episode)), ("span", Arg::Text(span))])
+}
+
+/// Heading of the empty episode table when a { -source } matched the title and listed nothing.
+pub fn episodes_empty_none_listed() -> String {
+    text("episodes-empty-none-listed", &[])
+}
+
+/// Under the heading when a { -source } listed no episodes. The keys search by hand and pick another { -source }.
+pub fn episodes_empty_none_listed_hint(search: &str, pick: &str) -> String {
+    text("episodes-empty-none-listed-hint", &[("search", Arg::Text(search)), ("pick", Arg::Text(pick))])
+}
+
+/// Toast when an episode has no { -release } to pick from.
+pub fn episodes_no_releases() -> String {
+    text("episodes-no-releases", &[])
+}
+
+/// Toast when a download is asked for from a table listed from AniList alone. The key opens the { -source-pl } screen.
+pub fn episodes_add_source_to_download(key: &str) -> String {
+    text("episodes-add-source-to-download", &[("key", Arg::Text(key))])
+}
+
+/// Toast when marking the episodes before the highlighted one and the table is empty.
+pub fn episodes_mark_none_listed() -> String {
+    text("episodes-mark-none-listed", &[])
+}
+
+/// Toast when marking the episodes before the first one.
+pub fn episodes_mark_nothing_before() -> String {
+    text("episodes-mark-nothing-before", &[])
+}
+
+/// Toast when every episode before the highlighted one is already watched.
+pub fn episodes_mark_already_watched(episode: &str) -> String {
+    text("episodes-mark-already-watched", &[("episode", Arg::Text(episode))])
+}
+
+/// Toast after the episodes before the highlighted one are marked watched.
+pub fn episodes_marked_watched(count: i64) -> String {
+    text("episodes-marked-watched", &[("count", Arg::Int(count))])
+}
+
+/// Toast when the range typed for a download is not understood. The examples are typed as they are.
+pub fn episodes_range_invalid() -> String {
+    text("episodes-range-invalid", &[])
+}
+
+/// Toast when no episode falls in the range typed for a download.
+pub fn episodes_range_empty() -> String {
+    text("episodes-range-empty", &[])
+}
+
+/// Toast after a range is queued for download.
+pub fn episodes_queueing(count: i64) -> String {
+    text("episodes-queueing", &[("count", Arg::Int(count))])
+}
+
+/// Toast when a match is fixed from a list.
+pub fn episodes_match_off_page() -> String {
+    text("episodes-match-off-page", &[])
+}
+
+/// Toast when a match is fixed and no title is highlighted.
+pub fn episodes_match_nothing() -> String {
+    text("episodes-match-nothing", &[])
+}
+
+/// Toast after a match is picked. The title is the candidate's own.
+pub fn episodes_matched(title: &str) -> String {
+    text("episodes-matched", &[("title", Arg::Text(title))])
+}
+
+/// After a { -release } in the picker: it holds both the subbed and the dubbed audio.
+pub fn episodes_release_dual() -> String {
+    text("episodes-release-dual", &[])
+}
+
+/// After a { -release } in the picker: it is dubbed.
+pub fn episodes_release_dub() -> String {
+    text("episodes-release-dub", &[])
+}
+
+/// After a { -release } in the picker: it is the one anistream would play on its own.
+pub fn episodes_release_current_pick() -> String {
+    text("episodes-release-current-pick", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_show_keys() -> String {
+    text("keys-action-show-keys", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_command_palette() -> String {
+    text("keys-action-command-palette", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_quit() -> String {
+    text("keys-action-quit", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_back() -> String {
+    text("keys-action-back", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_toggle_rail() -> String {
+    text("keys-action-toggle-rail", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_refresh() -> String {
+    text("keys-action-refresh", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_force_resync() -> String {
+    text("keys-action-force-resync", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_toggle_translation() -> String {
+    text("keys-action-toggle-translation", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_jump_continue() -> String {
+    text("keys-action-jump-continue", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_jump_calendar() -> String {
+    text("keys-action-jump-calendar", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_jump_seasonal() -> String {
+    text("keys-action-jump-seasonal", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_jump_search() -> String {
+    text("keys-action-jump-search", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_jump_library() -> String {
+    text("keys-action-jump-library", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_jump_downloads() -> String {
+    text("keys-action-jump-downloads", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_jump_sources() -> String {
+    text("keys-action-jump-sources", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_jump_accounts() -> String {
+    text("keys-action-jump-accounts", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_jump_settings() -> String {
+    text("keys-action-jump-settings", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_jump_section() -> String {
+    text("keys-action-jump-section", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_focus_search() -> String {
+    text("keys-action-focus-search", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_show_accounts() -> String {
+    text("keys-action-show-accounts", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_show_conflicts() -> String {
+    text("keys-action-show-conflicts", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_show_logs() -> String {
+    text("keys-action-show-logs", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_open_privacy() -> String {
+    text("keys-action-open-privacy", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_report_bug() -> String {
+    text("keys-action-report-bug", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_up() -> String {
+    text("keys-action-up", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_down() -> String {
+    text("keys-action-down", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_left() -> String {
+    text("keys-action-left", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_right() -> String {
+    text("keys-action-right", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_top() -> String {
+    text("keys-action-top", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_bottom() -> String {
+    text("keys-action-bottom", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_page_up() -> String {
+    text("keys-action-page-up", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_page_down() -> String {
+    text("keys-action-page-down", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_open() -> String {
+    text("keys-action-open", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_play_next() -> String {
+    text("keys-action-play-next", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_set_list_status() -> String {
+    text("keys-action-set-list-status", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_rate_title() -> String {
+    text("keys-action-rate-title", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_toggle_synopsis() -> String {
+    text("keys-action-toggle-synopsis", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_hide_from_continue() -> String {
+    text("keys-action-hide-from-continue", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_show_episodes() -> String {
+    text("keys-action-show-episodes", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_fix_mapping() -> String {
+    text("keys-action-fix-mapping", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_download() -> String {
+    text("keys-action-download", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_watch_order() -> String {
+    text("keys-action-watch-order", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_recommendations() -> String {
+    text("keys-action-recommendations", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_play_trailer() -> String {
+    text("keys-action-play-trailer", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_open_in_browser() -> String {
+    text("keys-action-open-in-browser", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_clear_completed() -> String {
+    text("keys-action-clear-completed", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_delete_download() -> String {
+    text("keys-action-delete-download", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_raise_source() -> String {
+    text("keys-action-raise-source", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_lower_source() -> String {
+    text("keys-action-lower-source", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_download_range() -> String {
+    text("keys-action-download-range", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_play_party() -> String {
+    text("keys-action-play-party", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_toggle_watched() -> String {
+    text("keys-action-toggle-watched", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_mark_all_previous() -> String {
+    text("keys-action-mark-all-previous", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_filter() -> String {
+    text("keys-action-filter", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_filter_search() -> String {
+    text("keys-action-filter-search", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_play_pause() -> String {
+    text("keys-action-play-pause", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_seek_back() -> String {
+    text("keys-action-seek-back", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_seek_forward() -> String {
+    text("keys-action-seek-forward", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_seek_back_far() -> String {
+    text("keys-action-seek-back-far", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_seek_forward_far() -> String {
+    text("keys-action-seek-forward-far", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_next_episode() -> String {
+    text("keys-action-next-episode", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_previous_episode() -> String {
+    text("keys-action-previous-episode", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_skip_opening() -> String {
+    text("keys-action-skip-opening", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_speed_down() -> String {
+    text("keys-action-speed-down", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_speed_up() -> String {
+    text("keys-action-speed-up", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_volume_down() -> String {
+    text("keys-action-volume-down", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_volume_up() -> String {
+    text("keys-action-volume-up", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_fullscreen() -> String {
+    text("keys-action-fullscreen", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_detach() -> String {
+    text("keys-action-detach", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_stop_playback() -> String {
+    text("keys-action-stop-playback", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_pause() -> String {
+    text("keys-hint-pause", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_skip() -> String {
+    text("keys-hint-skip", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_detach() -> String {
+    text("keys-hint-detach", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_stop() -> String {
+    text("keys-hint-stop", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_play_next() -> String {
+    text("keys-hint-play-next", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_episodes() -> String {
+    text("keys-hint-episodes", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_on_anilist() -> String {
+    text("keys-hint-on-anilist", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_mark_previous() -> String {
+    text("keys-hint-mark-previous", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_filters() -> String {
+    text("keys-hint-filters", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_resync() -> String {
+    text("keys-hint-resync", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_keys() -> String {
+    text("keys-hint-keys", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_refresh() -> String {
+    text("keys-hint-refresh", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_watched() -> String {
+    text("keys-hint-watched", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_clear_finished() -> String {
+    text("keys-hint-clear-finished", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_delete() -> String {
+    text("keys-hint-delete", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_move_up() -> String {
+    text("keys-hint-move-up", &[])
+}
+
+/// Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+pub fn keys_hint_move_down() -> String {
+    text("keys-hint-move-down", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_open() -> String {
+    text("keys-hint-open", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_search() -> String {
+    text("keys-hint-search", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_results() -> String {
+    text("keys-hint-results", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_back() -> String {
+    text("keys-hint-back", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_add_source() -> String {
+    text("keys-hint-add-source", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_play() -> String {
+    text("keys-hint-play", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_list() -> String {
+    text("keys-hint-list", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_cancel() -> String {
+    text("keys-hint-cancel", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_resume() -> String {
+    text("keys-hint-resume", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_start_now() -> String {
+    text("keys-hint-start-now", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_order() -> String {
+    text("keys-hint-order", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_stores() -> String {
+    text("keys-hint-stores", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_sign_out() -> String {
+    text("keys-hint-sign-out", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_sign_in() -> String {
+    text("keys-hint-sign-in", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_change() -> String {
+    text("keys-hint-change", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_page() -> String {
+    text("keys-hint-page", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_close() -> String {
+    text("keys-hint-close", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_move() -> String {
+    text("keys-hint-move", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_keep() -> String {
+    text("keys-hint-keep", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_run() -> String {
+    text("keys-hint-run", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_set() -> String {
+    text("keys-hint-set", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_rate() -> String {
+    text("keys-hint-rate", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_pin() -> String {
+    text("keys-hint-pin", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_use() -> String {
+    text("keys-hint-use", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_choose() -> String {
+    text("keys-hint-choose", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_resolve() -> String {
+    text("keys-hint-resolve", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_publish() -> String {
+    text("keys-hint-publish", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_confirm() -> String {
+    text("keys-hint-confirm", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_queue() -> String {
+    text("keys-hint-queue", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_save() -> String {
+    text("keys-hint-save", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_next() -> String {
+    text("keys-hint-next", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_check() -> String {
+    text("keys-hint-check", &[])
+}
+
+/// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+pub fn keys_hint_make_link() -> String {
+    text("keys-hint-make-link", &[])
+}
+
+/// Heading of a group of keys in the help overlay.
+pub fn keys_scope_global() -> String {
+    text("keys-scope-global", &[])
+}
+
+/// Heading of a group of keys in the help overlay.
+pub fn keys_scope_movement() -> String {
+    text("keys-scope-movement", &[])
+}
+
+/// Heading of a group of keys in the help overlay.
+pub fn keys_scope_lists() -> String {
+    text("keys-scope-lists", &[])
+}
+
+/// Heading of a group of keys in the help overlay.
+pub fn keys_scope_title() -> String {
+    text("keys-scope-title", &[])
+}
+
+/// Heading of a group of keys in the help overlay.
+pub fn keys_scope_episodes() -> String {
+    text("keys-scope-episodes", &[])
+}
+
+/// Heading of a group of keys in the help overlay.
+pub fn keys_scope_downloads() -> String {
+    text("keys-scope-downloads", &[])
+}
+
+/// Heading of a group of keys in the help overlay.
+pub fn keys_scope_sources() -> String {
+    text("keys-scope-sources", &[])
+}
+
+/// Heading of a group of keys in the help overlay.
+pub fn keys_scope_playback() -> String {
+    text("keys-scope-playback", &[])
+}
+
+/// Ends the toast that says a command does nothing on this screen: it follows the command's name and "works", and names where the command does work.
+pub fn keys_where_playback() -> String {
+    text("keys-where-playback", &[])
+}
+
+/// Ends the toast that says a command does nothing on this screen: it follows the command's name and "works", and names where the command does work.
+pub fn keys_where_downloads() -> String {
+    text("keys-where-downloads", &[])
+}
+
+/// Ends the toast that says a command does nothing on this screen: it follows the command's name and "works", and names where the command does work.
+pub fn keys_where_sources() -> String {
+    text("keys-where-sources", &[])
+}
+
+/// Ends the toast that says a command does nothing on this screen: it follows the command's name and "works", and names where the command does work.
+pub fn keys_where_episodes() -> String {
+    text("keys-where-episodes", &[])
+}
+
+/// Ends the toast that says a command does nothing on this screen: it follows the command's name and "works", and names where the command does work.
+pub fn keys_where_elsewhere() -> String {
+    text("keys-where-elsewhere", &[])
+}
+
+/// Names a command that has no key, inside a sentence such as "Press … to confirm". The action is its label in lower case.
+pub fn keys_unbound(action: &str) -> String {
+    text("keys-unbound", &[("action", Arg::Text(action))])
+}
+
+/// Config problem shown at start-up: a [keys] entry names an action that does not exist. The action is the name as typed.
+pub fn keys_error_unknown_action(action: &str) -> String {
+    text("keys-error-unknown-action", &[("action", Arg::Text(action))])
+}
+
+/// Config problem shown at start-up: a [keys] entry has a key that can't be parsed.
+pub fn keys_error_bad_key(key: &str, action: &str) -> String {
+    text("keys-error-bad-key", &[("key", Arg::Text(key)), ("action", Arg::Text(action))])
+}
+
+/// Config problem shown at start-up: two [keys] entries ask for the same key. Both names are action names as typed.
+pub fn keys_error_key_twice(key: &str, first: &str, second: &str) -> String {
+    text("keys-error-key-twice", &[("key", Arg::Text(key)), ("first", Arg::Text(first)), ("second", Arg::Text(second))])
+}
+
+/// Config problem shown at start-up: a [keys] entry asks for a key another action keeps.
+pub fn keys_error_key_taken(key: &str, action: &str, holder: &str) -> String {
+    text("keys-error-key-taken", &[("key", Arg::Text(key)), ("action", Arg::Text(action)), ("holder", Arg::Text(holder))])
+}
+
+/// Label of the one help row that stands for every section jump key.
+pub fn keys_help_jump_section() -> String {
+    text("keys-help-jump-section", &[])
+}
+
+/// Name of a section in the navigation rail. The rail is 28 cells wide.
+pub fn nav_section_continue() -> String {
+    text("nav-section-continue", &[])
+}
+
+/// Name of a section in the navigation rail. The rail is 28 cells wide.
+pub fn nav_section_calendar() -> String {
+    text("nav-section-calendar", &[])
+}
+
+/// Name of a section in the navigation rail. The rail is 28 cells wide.
+pub fn nav_section_seasonal() -> String {
+    text("nav-section-seasonal", &[])
+}
+
+/// Name of a section in the navigation rail. The rail is 28 cells wide.
+pub fn nav_section_search() -> String {
+    text("nav-section-search", &[])
+}
+
+/// Name of a section in the navigation rail. The rail is 28 cells wide.
+pub fn nav_section_library() -> String {
+    text("nav-section-library", &[])
+}
+
+/// Name of a section in the navigation rail. The rail is 28 cells wide.
+pub fn nav_section_downloads() -> String {
+    text("nav-section-downloads", &[])
+}
+
+/// Name of a section in the navigation rail. The rail is 28 cells wide.
+pub fn nav_section_accounts() -> String {
+    text("nav-section-accounts", &[])
+}
+
+/// Name of a section in the navigation rail. The rail is 28 cells wide.
+pub fn nav_section_settings() -> String {
+    text("nav-section-settings", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_palette() -> String {
+    text("nav-overlay-palette", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_help() -> String {
+    text("nav-overlay-help", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_release_for_title() -> String {
+    text("nav-overlay-release-for-title", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_disambiguate() -> String {
+    text("nav-overlay-disambiguate", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_manual_query() -> String {
+    text("nav-overlay-manual-query", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_watch_order() -> String {
+    text("nav-overlay-watch-order", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_recommendations() -> String {
+    text("nav-overlay-recommendations", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_download_range() -> String {
+    text("nav-overlay-download-range", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_edit_setting() -> String {
+    text("nav-overlay-edit-setting", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_list_status() -> String {
+    text("nav-overlay-list-status", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_rate() -> String {
+    text("nav-overlay-rate", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_filters() -> String {
+    text("nav-overlay-filters", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_kitsu_username() -> String {
+    text("nav-overlay-kitsu-username", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_kitsu_password() -> String {
+    text("nav-overlay-kitsu-password", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_accounts() -> String {
+    text("nav-overlay-accounts", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_conflicts() -> String {
+    text("nav-overlay-conflicts", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_logs() -> String {
+    text("nav-overlay-logs", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_join_store() -> String {
+    text("nav-overlay-join-store", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_store_confirm() -> String {
+    text("nav-overlay-store-confirm", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_plugin_action() -> String {
+    text("nav-overlay-plugin-action", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_invite_name() -> String {
+    text("nav-overlay-invite-name", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_invite_link() -> String {
+    text("nav-overlay-invite-link", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_open_link() -> String {
+    text("nav-overlay-open-link", &[])
+}
+
+/// Title of an overlay panel.
+pub fn nav_overlay_publish_pick() -> String {
+    text("nav-overlay-publish-pick", &[])
+}
+
+/// Name of the rail's width setting, shown in a toast when it changes.
+pub fn nav_rail_expanded() -> String {
+    text("nav-rail-expanded", &[])
+}
+
+/// Name of the rail's width setting, shown in a toast when it changes.
+pub fn nav_rail_collapsed() -> String {
+    text("nav-rail-collapsed", &[])
+}
+
+/// Name of the rail's width setting, shown in a toast when it changes.
+pub fn nav_rail_hidden() -> String {
+    text("nav-rail-hidden", &[])
+}
+
+/// Shown in place of a screen when the terminal is too small to draw it.
+pub fn lists_terminal_too_small() -> String {
+    text("lists-terminal-too-small", &[])
+}
+
+/// Title of the Downloads screen, shown in the placeholder when the terminal is too small.
+pub fn downloads_screen_title() -> String {
+    text("downloads-screen-title", &[])
+}
+
+/// Column heading above the downloads' titles.
+pub fn downloads_column_title() -> String {
+    text("downloads-column-title", &[])
+}
+
+/// Column heading above each download's state.
+pub fn downloads_column_state() -> String {
+    text("downloads-column-state", &[])
+}
+
+/// Column heading above each download's progress meter.
+pub fn downloads_column_progress() -> String {
+    text("downloads-column-progress", &[])
+}
+
+/// Heading of the Downloads screen when nothing is queued.
+pub fn downloads_empty_heading() -> String {
+    text("downloads-empty-heading", &[])
+}
+
+/// Hint under the empty Downloads screen. The key is the one bound to downloading, as the key map draws it.
+pub fn downloads_empty_hint(key: &str) -> String {
+    text("downloads-empty-hint", &[("key", Arg::Text(key))])
+}
+
+/// A download's row: the episode number after the title. The title is cut before this is.
+pub fn downloads_row_episode(episode: &str) -> String {
+    text("downloads-row-episode", &[("episode", Arg::Text(episode))])
+}
+
+/// A download's row for an episode queued ahead of time because the person is watching on. The episode number comes after the title, which is cut before this is.
+pub fn downloads_row_episode_ahead(episode: &str) -> String {
+    text("downloads-row-episode-ahead", &[("episode", Arg::Text(episode))])
+}
+
+/// Beside a download's meter: the bytes so far and the total, each already sized (such as "700 MB").
+pub fn downloads_note_sizes(downloaded: &str, total: &str) -> String {
+    text("downloads-note-sizes", &[("downloaded", Arg::Text(downloaded)), ("total", Arg::Text(total))])
+}
+
+/// Beside the meter of a download that is running but has no size yet.
+pub fn downloads_note_waiting_metadata() -> String {
+    text("downloads-note-waiting-metadata", &[])
+}
+
+/// Beside the meter of a queued download while torrents are switched off, so it will not start.
+pub fn downloads_note_torrents_off() -> String {
+    text("downloads-note-torrents-off", &[])
+}
+
+/// Beside the meter of a queued download that has not started.
+pub fn downloads_note_waiting_start() -> String {
+    text("downloads-note-waiting-start", &[])
+}
+
+/// A download's state in the table. A narrow column.
+pub fn downloads_state_queued() -> String {
+    text("downloads-state-queued", &[])
+}
+
+/// A download's state in the table. A narrow column.
+pub fn downloads_state_active() -> String {
+    text("downloads-state-active", &[])
+}
+
+/// A download's state in the table. A narrow column.
+pub fn downloads_state_paused() -> String {
+    text("downloads-state-paused", &[])
+}
+
+/// A download's state in the table. A narrow column.
+pub fn downloads_state_done() -> String {
+    text("downloads-state-done", &[])
+}
+
+/// A download's state in the table. A narrow column.
+pub fn downloads_state_failed() -> String {
+    text("downloads-state-failed", &[])
+}
+
+/// Detail line for a download queued ahead of time, on its own.
+pub fn downloads_detail_ahead() -> String {
+    text("downloads-detail-ahead", &[])
+}
+
+/// Detail line for a download queued ahead of time: where it stands, then what becomes of it.
+pub fn downloads_detail_with_ahead(detail: &str) -> String {
+    text("downloads-detail-with-ahead", &[("detail", Arg::Text(detail))])
+}
+
+/// Detail line for a paused download. Both sizes are already formatted (such as "734 MB").
+pub fn downloads_detail_paused_at(downloaded: &str, total: &str) -> String {
+    text("downloads-detail-paused-at", &[("downloaded", Arg::Text(downloaded)), ("total", Arg::Text(total))])
+}
+
+/// Detail line for a download paused before any bytes arrived.
+pub fn downloads_detail_paused_early() -> String {
+    text("downloads-detail-paused-early", &[])
+}
+
+/// Detail line for a queued download while torrents are off. The key opens the Settings screen, as the key map draws it.
+pub fn downloads_detail_torrents_off(key: &str) -> String {
+    text("downloads-detail-torrents-off", &[("key", Arg::Text(key))])
+}
+
+/// Detail line for a queued download.
+pub fn downloads_detail_queued() -> String {
+    text("downloads-detail-queued", &[])
+}
+
+/// Detail line for a running download that has no size yet.
+pub fn downloads_detail_waiting_metadata() -> String {
+    text("downloads-detail-waiting-metadata", &[])
+}
+
+/// Heading of the list of torrents still seeding after the episode was watched.
+pub fn downloads_seeding_heading() -> String {
+    text("downloads-seeding-heading", &[])
+}
+
+/// A seeding torrent: the share ratio so far, the ratio it is aiming for, the time left and the amount uploaded. The ratios are already formatted with one decimal.
+pub fn downloads_seeding_detail(ratio: &str, goal: &str, left: &str, uploaded: &str) -> String {
+    text("downloads-seeding-detail", &[("ratio", Arg::Text(ratio)), ("goal", Arg::Text(goal)), ("left", Arg::Text(left)), ("uploaded", Arg::Text(uploaded))])
+}
+
+/// Toast when Enter is pressed on a failed download that has no recorded reason.
+pub fn downloads_failed_no_reason() -> String {
+    text("downloads-failed-no-reason", &[])
+}
+
+/// Toast when Enter is pressed on a download that is running and has not finished.
+pub fn downloads_not_finished() -> String {
+    text("downloads-not-finished", &[])
+}
+
+/// Title of the Accounts screen, shown in the placeholder when the terminal is too small.
+pub fn accounts_screen_title() -> String {
+    text("accounts-screen-title", &[])
+}
+
+/// A { -tracker }'s chip in the header when it needs signing in again. The mark is a symbol that says the account is down.
+pub fn accounts_badge_sign_in(tracker: &str, mark: &str) -> String {
+    text("accounts-badge-sign-in", &[("tracker", Arg::Text(tracker)), ("mark", Arg::Text(mark))])
+}
+
+/// Status line while the browser is opened for a { -tracker } sign-in.
+pub fn accounts_status_opening_browser() -> String {
+    text("accounts-status-opening-browser", &[])
+}
+
+/// Toast when a { -tracker } needs signing in again. The key opens the Accounts screen, as the key map draws it.
+pub fn accounts_needs_sign_in(tracker: &str, key: &str) -> String {
+    text("accounts-needs-sign-in", &[("tracker", Arg::Text(tracker)), ("key", Arg::Text(key))])
+}
+
+/// Toast when sync disagreements appear. The key opens the list of them, as the key map draws it.
+pub fn accounts_conflicts_found(count: i64, key: &str) -> String {
+    text("accounts-conflicts-found", &[("count", Arg::Int(count)), ("key", Arg::Text(key))])
+}
+
+/// Toast when the sync disagreements list is opened and there are none.
+pub fn accounts_conflicts_none() -> String {
+    text("accounts-conflicts-none", &[])
+}
+
+/// Toast when a sync is asked for and no { -tracker } is set up. The key opens the Accounts screen, as the key map draws it.
+pub fn accounts_no_tracker(key: &str) -> String {
+    text("accounts-no-tracker", &[("key", Arg::Text(key))])
+}
+
+/// Heading of the sign-in prompt shown while a device code is waiting to be entered.
+pub fn accounts_finish_signing_in(tracker: &str) -> String {
+    text("accounts-finish-signing-in", &[("tracker", Arg::Text(tracker))])
+}
+
+/// First step of the device-code sign-in: the address to open. The spaces keep it aligned with the next step.
+pub fn accounts_step_open(url: &str) -> String {
+    text("accounts-step-open", &[("url", Arg::Text(url))])
+}
+
+/// Second step of the device-code sign-in: the code is shown after this, in the same row.
+pub fn accounts_step_enter() -> String {
+    text("accounts-step-enter", &[])
+}
+
+/// Under a device code that is about to run out, seconds left.
+pub fn accounts_code_expires_seconds(seconds: i64) -> String {
+    text("accounts-code-expires-seconds", &[("seconds", Arg::Int(seconds))])
+}
+
+/// Under a device code, whole minutes left.
+pub fn accounts_code_expires_minutes(minutes: i64) -> String {
+    text("accounts-code-expires-minutes", &[("minutes", Arg::Int(minutes))])
+}
+
+/// Under a device code that has run out. Pressing Enter on the row asks for a new one.
+pub fn accounts_code_expired() -> String {
+    text("accounts-code-expired", &[])
+}
+
+/// Column heading above the { -tracker-pl }' names.
+pub fn accounts_column_tracker() -> String {
+    text("accounts-column-tracker", &[])
+}
+
+/// Column heading above each account's state.
+pub fn accounts_column_state() -> String {
+    text("accounts-column-state", &[])
+}
+
+/// Column heading above the number of changes waiting to be sent to the { -tracker }.
+pub fn accounts_column_queued() -> String {
+    text("accounts-column-queued", &[])
+}
+
+/// Column heading above where the sign-in token is stored.
+pub fn accounts_column_token() -> String {
+    text("accounts-column-token", &[])
+}
+
+/// Heading when no { -tracker } is enabled in the config file.
+pub fn accounts_empty_heading() -> String {
+    text("accounts-empty-heading", &[])
+}
+
+/// Hint under the empty Accounts screen. The setting is the config key that lists the enabled { -tracker-pl }, such as trackers.enabled, and stays as written; config.toml is the file name.
+pub fn accounts_empty_hint(setting: &str) -> String {
+    text("accounts-empty-hint", &[("setting", Arg::Text(setting))])
+}
+
+/// State of an account whose sign-in has lapsed. A narrow column, after a mark.
+pub fn accounts_state_sign_in_again() -> String {
+    text("accounts-state-sign-in-again", &[])
+}
+
+/// State of a signed-in account. A narrow column, after a mark.
+pub fn accounts_state_connected() -> String {
+    text("accounts-state-connected", &[])
+}
+
+/// State of an account that is not signed in. A narrow column, after a mark.
+pub fn accounts_state_not_connected() -> String {
+    text("accounts-state-not-connected", &[])
+}
+
+/// Under an account whose last fetch of the list failed, when it failed today. The time is already formatted, and the reason is the { -tracker }'s own text.
+pub fn accounts_pull_failed_today(time: &str, error: &str) -> String {
+    text("accounts-pull-failed-today", &[("time", Arg::Text(time)), ("error", Arg::Text(error))])
+}
+
+/// Under an account whose last fetch of the list failed, on an earlier day.
+pub fn accounts_pull_failed_dated(date: &str, time: &str, error: &str) -> String {
+    text("accounts-pull-failed-dated", &[("date", Arg::Text(date)), ("time", Arg::Text(time)), ("error", Arg::Text(error))])
+}
+
+/// Under an account whose last fetch of the list failed, when the time is not known.
+pub fn accounts_pull_failed(error: &str) -> String {
+    text("accounts-pull-failed", &[("error", Arg::Text(error))])
+}
+
+/// Note under the accounts when sign-in tokens are kept in files because the system keychain cannot be used. 0600 is the file permission and stays as written.
+pub fn accounts_token_files() -> String {
+    text("accounts-token-files", &[])
+}
+
+/// Hint under the accounts for the selected row that is connected. Enter signs it out.
+pub fn accounts_enter_sign_out() -> String {
+    text("accounts-enter-sign-out", &[])
+}
+
+/// Hint under the accounts for the selected row that is not connected. Enter signs it in.
+pub fn accounts_enter_sign_in() -> String {
+    text("accounts-enter-sign-in", &[])
+}
+
+/// Action on an account row whose sign-in has lapsed.
+pub fn accounts_action_sign_in_again() -> String {
+    text("accounts-action-sign-in-again", &[])
+}
+
+/// Action on a connected account row.
+pub fn accounts_action_sign_out() -> String {
+    text("accounts-action-sign-out", &[])
+}
+
+/// Action on an account row that is not connected.
+pub fn accounts_action_sign_in() -> String {
+    text("accounts-action-sign-in", &[])
+}
+
+/// Overlay row shown when no { -tracker } is enabled. The setting is the config key that lists the enabled { -tracker-pl }, and stays as written; config.toml is the file name.
+pub fn accounts_rows_empty(setting: &str) -> String {
+    text("accounts-rows-empty", &[("setting", Arg::Text(setting))])
+}
+
+/// Part of an account's overlay row: who is signed in.
+pub fn accounts_row_signed_in_as(user: &str) -> String {
+    text("accounts-row-signed-in-as", &[("user", Arg::Text(user))])
+}
+
+/// Part of an account's overlay row: signed in with no user name known.
+pub fn accounts_row_connected() -> String {
+    text("accounts-row-connected", &[])
+}
+
+/// Part of an account's overlay row: not signed in.
+pub fn accounts_row_not_connected() -> String {
+    text("accounts-row-not-connected", &[])
+}
+
+/// Part of an account's overlay row: changes waiting to be sent.
+pub fn accounts_row_queued(count: i64) -> String {
+    text("accounts-row-queued", &[("count", Arg::Int(count))])
+}
+
+/// Part of an account's overlay row: changes waiting to be sent, and some of them held back until the title is matched to the { -tracker }'s own id.
+pub fn accounts_row_queued_held(queued: i64, held: i64) -> String {
+    text("accounts-row-queued-held", &[("queued", Arg::Int(queued)), ("held", Arg::Int(held))])
+}
+
+/// Action beside a sync disagreement in the overlay: Enter keeps the value on this device.
+pub fn accounts_conflict_keep_mine() -> String {
+    text("accounts-conflict-keep-mine", &[])
+}
+
+/// A sync disagreement in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
+pub fn accounts_conflict_row(title: &str, field: &str, local: &str, remote: &str) -> String {
+    text("accounts-conflict-row", &[("title", Arg::Text(title)), ("field", Arg::Text(field)), ("local", Arg::Text(local)), ("remote", Arg::Text(remote))])
+}
+
+/// Title of the Library screen, shown in the placeholder when the terminal is too small.
+pub fn lists_library_title() -> String {
+    text("lists-library-title", &[])
+}
+
+/// Toast when the remove key is pressed outside the { -continue-cap } list.
+pub fn lists_remove_wrong_list() -> String {
+    text("lists-remove-wrong-list", &[])
+}
+
+/// Toast when a title is removed from the { -continue-cap } list.
+pub fn lists_continue_removed(title: &str) -> String {
+    text("lists-continue-removed", &[("title", Arg::Text(title))])
+}
+
+/// Toast when Enter is pressed on a list with nothing highlighted.
+pub fn lists_nothing_selected() -> String {
+    text("lists-nothing-selected", &[])
+}
+
+/// The search box's prompt: the label, then what has been typed (and the cursor).
+pub fn lists_search_prompt(query: &str) -> String {
+    text("lists-search-prompt", &[("query", Arg::Text(query))])
+}
+
+/// Heading when a list could not be loaded. The reason follows under it.
+pub fn lists_load_failed() -> String {
+    text("lists-load-failed", &[])
+}
+
+/// Shown beside the loading skeleton.
+pub fn lists_loading() -> String {
+    text("lists-loading", &[])
+}
+
+/// Heading of an empty search whose query has been typed but not yet sent.
+pub fn lists_empty_press_enter() -> String {
+    text("lists-empty-press-enter", &[])
+}
+
+/// Heading of the Search screen before anything is searched.
+pub fn lists_empty_type_to_search() -> String {
+    text("lists-empty-type-to-search", &[])
+}
+
+/// Hint under the Search heading when filters are set. ↵ is the Enter key.
+pub fn lists_empty_browse_filtered() -> String {
+    text("lists-empty-browse-filtered", &[])
+}
+
+/// Hint under the Search heading when no filter is set. ↵ is the Enter key.
+pub fn lists_empty_browse_popular() -> String {
+    text("lists-empty-browse-popular", &[])
+}
+
+/// Heading when a search or a browse found nothing.
+pub fn lists_empty_no_matches() -> String {
+    text("lists-empty-no-matches", &[])
+}
+
+/// Hint when browsing with filters found nothing.
+pub fn lists_empty_fewer_filters() -> String {
+    text("lists-empty-fewer-filters", &[])
+}
+
+/// Hint when a search found nothing.
+pub fn lists_empty_shorter_query() -> String {
+    text("lists-empty-shorter-query", &[])
+}
+
+/// Heading of the { -continue-cap } list when there is no watch history.
+pub fn lists_empty_nothing_watched() -> String {
+    text("lists-empty-nothing-watched", &[])
+}
+
+/// Hint under the empty { -continue-cap } and Library lists. The keys are the ones bound to the Seasonal screen and to search, as the key map draws them.
+pub fn lists_empty_ways_on(seasonal: &str, search: &str) -> String {
+    text("lists-empty-ways-on", &[("seasonal", Arg::Text(seasonal)), ("search", Arg::Text(search))])
+}
+
+/// Heading of the { -continue-cap } list when everything in the history was removed from it.
+pub fn lists_empty_nothing_to_continue() -> String {
+    text("lists-empty-nothing-to-continue", &[])
+}
+
+/// Hint under it. The keys are the ones bound to the Seasonal screen and to search.
+pub fn lists_empty_hidden_come_back(seasonal: &str, search: &str) -> String {
+    text("lists-empty-hidden-come-back", &[("seasonal", Arg::Text(seasonal)), ("search", Arg::Text(search))])
+}
+
+/// Heading of any other empty list.
+pub fn lists_empty_nothing_here() -> String {
+    text("lists-empty-nothing-here", &[])
+}
+
+/// Heading of the Library when no account is connected.
+pub fn lists_library_no_account() -> String {
+    text("lists-library-no-account", &[])
+}
+
+/// Line under it.
+pub fn lists_library_works_without() -> String {
+    text("lists-library-works-without", &[])
+}
+
+/// Line under it when no { -tracker } is enabled. The key opens the Accounts screen, as the key map draws it. The setting is the config key that lists the enabled { -tracker-pl }, and stays as written; config.toml is the file name.
+pub fn lists_library_enable_tracker(setting: &str, key: &str) -> String {
+    text("lists-library-enable-tracker", &[("setting", Arg::Text(setting)), ("key", Arg::Text(key))])
+}
+
+/// Line under it when a { -tracker } is enabled but not signed in. The key opens the Accounts screen.
+pub fn lists_library_sign_in(key: &str) -> String {
+    text("lists-library-sign-in", &[("key", Arg::Text(key))])
+}
+
+/// A Library segment in the strip across the top.
+pub fn lists_segment_watching() -> String {
+    text("lists-segment-watching", &[])
+}
+
+/// A Library segment in the strip across the top.
+pub fn lists_segment_planning() -> String {
+    text("lists-segment-planning", &[])
+}
+
+/// A Library segment in the strip across the top.
+pub fn lists_segment_completed() -> String {
+    text("lists-segment-completed", &[])
+}
+
+/// A Library segment in the strip across the top.
+pub fn lists_segment_paused() -> String {
+    text("lists-segment-paused", &[])
+}
+
+/// A Library segment in the strip across the top.
+pub fn lists_segment_dropped() -> String {
+    text("lists-segment-dropped", &[])
+}
+
+/// An episode in a list row.
+pub fn lists_episode(episode: &str) -> String {
+    text("lists-episode", &[("episode", Arg::Text(episode))])
+}
+
+/// An episode in a list row, for a title watched dubbed.
+pub fn lists_episode_dubbed(episode: &str) -> String {
+    text("lists-episode-dubbed", &[("episode", Arg::Text(episode))])
+}
+
+/// A row on the { -continue-cap } list: the episode and how far into it the person stopped.
+pub fn lists_row_resume_percent(episode: &str, percent: i64) -> String {
+    text("lists-row-resume-percent", &[("episode", Arg::Text(episode)), ("percent", Arg::Int(percent))])
+}
+
+/// A row on the { -continue-cap } list: the episode and the playhead where the person stopped.
+pub fn lists_row_resume_clock(episode: &str, clock: &str) -> String {
+    text("lists-row-resume-clock", &[("episode", Arg::Text(episode)), ("clock", Arg::Text(clock))])
+}
+
+/// A row for a show with an episode out that has not been watched.
+pub fn lists_episode_out(episode: &str) -> String {
+    text("lists-episode-out", &[("episode", Arg::Text(episode))])
+}
+
+/// A row, or a line in the preview, for the next episode and the time until it airs. The countdown is already formatted (such as "4d 20h").
+pub fn lists_episode_in(episode: &str, countdown: &str) -> String {
+    text("lists-episode-in", &[("episode", Arg::Text(episode)), ("countdown", Arg::Text(countdown))])
+}
+
+/// A row, or a line in the preview, for a show whose next episode number is not known.
+pub fn lists_next_in(countdown: &str) -> String {
+    text("lists-next-in", &[("countdown", Arg::Text(countdown))])
+}
+
+/// A line in the preview: an episode that came out a while ago. The countdown is already formatted.
+pub fn lists_episode_out_ago(episode: &str, countdown: &str) -> String {
+    text("lists-episode-out-ago", &[("episode", Arg::Text(episode)), ("countdown", Arg::Text(countdown))])
+}
+
+/// A line in the preview: an episode that came out under a minute ago.
+pub fn lists_episode_out_just_now(episode: &str) -> String {
+    text("lists-episode-out-just-now", &[("episode", Arg::Text(episode))])
+}
+
+/// The calendar's time column for an episode still to come. The countdown is already formatted.
+pub fn lists_time_in(countdown: &str) -> String {
+    text("lists-time-in", &[("countdown", Arg::Text(countdown))])
+}
+
+/// The calendar's time column for an episode that aired a while ago.
+pub fn lists_time_ago(countdown: &str) -> String {
+    text("lists-time-ago", &[("countdown", Arg::Text(countdown))])
+}
+
+/// The calendar's time column for an episode that aired under a minute ago.
+pub fn lists_time_just_now() -> String {
+    text("lists-time-just-now", &[])
+}
+
+/// The calendar's time column when the broadcast time is an estimate. The time is already formatted, with "In" or "ago".
+pub fn lists_time_approximate(time: &str) -> String {
+    text("lists-time-approximate", &[("time", Arg::Text(time))])
+}
+
+/// A calendar day heading.
+pub fn lists_day_today() -> String {
+    text("lists-day-today", &[])
+}
+
+/// A calendar day heading.
+pub fn lists_day_yesterday() -> String {
+    text("lists-day-yesterday", &[])
+}
+
+/// A calendar day heading.
+pub fn lists_day_tomorrow() -> String {
+    text("lists-day-tomorrow", &[])
+}
+
+/// The line in the preview that says where the person stopped. The mark in front is added by the screen.
+pub fn lists_preview_continue_percent(episode: &str, clock: &str, percent: i64) -> String {
+    text("lists-preview-continue-percent", &[("episode", Arg::Text(episode)), ("clock", Arg::Text(clock)), ("percent", Arg::Int(percent))])
+}
+
+/// The same line when the fraction is not known.
+pub fn lists_preview_continue(episode: &str, clock: &str) -> String {
+    text("lists-preview-continue", &[("episode", Arg::Text(episode)), ("clock", Arg::Text(clock))])
+}
+
+/// Beside the progress meter: episodes watched out of the total.
+pub fn lists_progress_aired(done: i64, total: i64) -> String {
+    text("lists-progress-aired", &[("done", Arg::Int(done)), ("total", Arg::Int(total))])
+}
+
+/// Beside the progress meter when there is nothing to count against.
+pub fn lists_progress_watched(count: i64) -> String {
+    text("lists-progress-watched", &[("count", Arg::Int(count))])
+}
+
+/// Filter row label in the search filters overlay.
+pub fn lists_filter_genre() -> String {
+    text("lists-filter-genre", &[])
+}
+
+/// Filter row label in the search filters overlay.
+pub fn lists_filter_year() -> String {
+    text("lists-filter-year", &[])
+}
+
+/// Filter row label in the search filters overlay.
+pub fn lists_filter_season() -> String {
+    text("lists-filter-season", &[])
+}
+
+/// Filter row label in the search filters overlay.
+pub fn lists_filter_format() -> String {
+    text("lists-filter-format", &[])
+}
+
+/// Filter row label in the search filters overlay.
+pub fn lists_filter_status() -> String {
+    text("lists-filter-status", &[])
+}
+
+/// Filter row label in the search filters overlay.
+pub fn lists_filter_sort() -> String {
+    text("lists-filter-sort", &[])
+}
+
+/// A filter that is not set.
+pub fn lists_filter_any() -> String {
+    text("lists-filter-any", &[])
+}
+
+/// The search sort order when none is chosen.
+pub fn lists_sort_relevance() -> String {
+    text("lists-sort-relevance", &[])
+}
+
+/// A filter value for the season of the year.
+pub fn lists_season_winter() -> String {
+    text("lists-season-winter", &[])
+}
+
+/// A filter value for the season of the year.
+pub fn lists_season_spring() -> String {
+    text("lists-season-spring", &[])
+}
+
+/// A filter value for the season of the year.
+pub fn lists_season_summer() -> String {
+    text("lists-season-summer", &[])
+}
+
+/// A filter value for the season of the year.
+pub fn lists_season_fall() -> String {
+    text("lists-season-fall", &[])
+}
+
+/// A filter value for the format of a title.
+pub fn lists_format_tv() -> String {
+    text("lists-format-tv", &[])
+}
+
+/// A filter value for the format of a title: short episodes of a few minutes.
+pub fn lists_format_tv_short() -> String {
+    text("lists-format-tv-short", &[])
+}
+
+/// A filter value for the format of a title.
+pub fn lists_format_movie() -> String {
+    text("lists-format-movie", &[])
+}
+
+/// A filter value for the format of a title: original video animation.
+pub fn lists_format_ova() -> String {
+    text("lists-format-ova", &[])
+}
+
+/// A filter value for the format of a title: original net animation.
+pub fn lists_format_ona() -> String {
+    text("lists-format-ona", &[])
+}
+
+/// A filter value for the format of a title.
+pub fn lists_format_special() -> String {
+    text("lists-format-special", &[])
+}
+
+/// A filter value for the format of a title.
+pub fn lists_format_music() -> String {
+    text("lists-format-music", &[])
+}
+
+/// A filter value for whether a title is still airing.
+pub fn lists_status_airing() -> String {
+    text("lists-status-airing", &[])
+}
+
+/// A filter value for whether a title is still airing.
+pub fn lists_status_finished() -> String {
+    text("lists-status-finished", &[])
+}
+
+/// A filter value for whether a title is still airing.
+pub fn lists_status_upcoming() -> String {
+    text("lists-status-upcoming", &[])
+}
+
+/// A search sort order.
+pub fn lists_sort_popularity() -> String {
+    text("lists-sort-popularity", &[])
+}
+
+/// A search sort order.
+pub fn lists_sort_score() -> String {
+    text("lists-sort-score", &[])
+}
+
+/// A search sort order.
+pub fn lists_sort_trending() -> String {
+    text("lists-sort-trending", &[])
+}
+
+/// A search sort order.
+pub fn lists_sort_newest() -> String {
+    text("lists-sort-newest", &[])
+}
+
+/// Notice when the person leaves Now Playing while mpv carries on in its own window.
+pub fn playback_detached() -> String {
+    text("playback-detached", &[])
+}
+
+/// Notice when the skip key is pressed and no opening or ending is on offer.
+pub fn playback_no_skip() -> String {
+    text("playback-no-skip", &[])
+}
+
+/// Notice when a play key is pressed with no show under the cursor.
+pub fn playback_nothing_selected() -> String {
+    text("playback-nothing-selected", &[])
+}
+
+/// Title shown on the transition over the screen when the show being played is not known yet.
+pub fn playback_fallback_title() -> String {
+    text("playback-fallback-title", &[])
+}
+
+/// Notice when an episode reaches its end.
+pub fn playback_episode_finished() -> String {
+    text("playback-episode-finished", &[])
+}
+
+/// Notice when playback picks up where the person left off.
+pub fn playback_resumed(time: &str) -> String {
+    text("playback-resumed", &[("time", Arg::Text(time))])
+}
+
+/// Label on the transition over the screen while a stream is found: the show, then its episode.
+pub fn playback_transition_label(title: &str, episode: &str) -> String {
+    text("playback-transition-label", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
+}
+
+/// Heading of the Now Playing screen.
+pub fn playback_title() -> String {
+    text("playback-title", &[])
+}
+
+/// Shown on the Now Playing screen when nothing is playing.
+pub fn playback_nothing_playing() -> String {
+    text("playback-nothing-playing", &[])
+}
+
+/// Player state at the top right of Now Playing while the video is paused.
+pub fn playback_state_paused() -> String {
+    text("playback-state-paused", &[])
+}
+
+/// Player state at the top right of Now Playing while the video plays. The mark is a status glyph.
+pub fn playback_state_playing(mark: &str) -> String {
+    text("playback-state-playing", &[("mark", Arg::Text(mark))])
+}
+
+/// Top right of Now Playing: the player state, then the name of the source serving the stream.
+pub fn playback_status(state: &str, source: &str) -> String {
+    text("playback-status", &[("state", Arg::Text(state)), ("source", Arg::Text(source))])
+}
+
+/// Episode number at the right of the title on Now Playing. The number is zero-padded.
+pub fn playback_episode_number(number: &str) -> String {
+    text("playback-episode-number", &[("number", Arg::Text(number))])
+}
+
+/// Prompt over the controls while an opening can be skipped. The key is the one bound to skipping.
+pub fn playback_skip_opening(key: &str) -> String {
+    text("playback-skip-opening", &[("key", Arg::Text(key))])
+}
+
+/// Prompt over the controls while an ending can be skipped. The key is the one bound to skipping.
+pub fn playback_skip_ending(key: &str) -> String {
+    text("playback-skip-ending", &[("key", Arg::Text(key))])
+}
+
+/// Note on the transition when finding a stream takes more than a moment. The time is how long it has taken so far.
+pub fn playback_still_finding(time: &str) -> String {
+    text("playback-still-finding", &[("time", Arg::Text(time))])
+}
+
+/// Short label for the status line when no source is configured.
+pub fn sources_none_label() -> String {
+    text("sources-none-label", &[])
+}
+
+/// Note on the Sources screen when the window is too small to draw it.
+pub fn sources_too_small() -> String {
+    text("sources-too-small", &[])
+}
+
+/// Heading shown on the Sources screen when there is nothing to list, in the alert colour.
+pub fn sources_none_available() -> String {
+    text("sources-none-available", &[])
+}
+
+/// Reason shown when no source is available and the engine gave none. The setting is the name of a key in the config file and is not translated.
+pub fn sources_torrents_off(setting: &str) -> String {
+    text("sources-torrents-off", &[("setting", Arg::Text(setting))])
+}
+
+/// Column heading in the Sources table: the name of the source.
+pub fn sources_column_source() -> String {
+    text("sources-column-source", &[])
+}
+
+/// Column heading in the Sources table: what kind of source it is (plugin, torrent and so on).
+pub fn sources_column_kind() -> String {
+    text("sources-column-kind", &[])
+}
+
+/// Column heading in the Sources table: whether the source is working.
+pub fn sources_column_state() -> String {
+    text("sources-column-state", &[])
+}
+
+/// Column heading in the Sources table: how long the source took to answer last.
+pub fn sources_column_latency() -> String {
+    text("sources-column-latency", &[])
+}
+
+/// How long a source took to answer, in milliseconds.
+pub fn sources_latency(ms: i64) -> String {
+    text("sources-latency", &[("ms", Arg::Int(ms))])
+}
+
+/// Line under the Sources table: the name of the source that failed last, then why.
+pub fn sources_last_error(name: &str, error: &str) -> String {
+    text("sources-last-error", &[("name", Arg::Text(name)), ("error", Arg::Text(error))])
+}
+
+/// Kind of source: built in to the app.
+pub fn sources_kind_native() -> String {
+    text("sources-kind-native", &[])
+}
+
+/// Kind of source: an installed { -plugin }.
+pub fn sources_kind_plugin() -> String {
+    text("sources-kind-plugin", &[])
+}
+
+/// Kind of source: another device's source reached over the network.
+pub fn sources_kind_remote() -> String {
+    text("sources-kind-remote", &[])
+}
+
+/// Kind of source: the torrent source.
+pub fn sources_kind_torrent() -> String {
+    text("sources-kind-torrent", &[])
+}
+
+/// Kind of source: one that streams licensed content.
+pub fn sources_kind_licensed() -> String {
+    text("sources-kind-licensed", &[])
+}
+
+/// State of a source: it is working.
+pub fn sources_state_ready() -> String {
+    text("sources-state-ready", &[])
+}
+
+/// State of a source: it is working but slowly or only in part.
+pub fn sources_state_degraded() -> String {
+    text("sources-state-degraded", &[])
+}
+
+/// State of a source: it is not responding.
+pub fn sources_state_down() -> String {
+    text("sources-state-down", &[])
+}
+
+/// State of a source: it has not been tried yet.
+pub fn sources_state_unchecked() -> String {
+    text("sources-state-unchecked", &[])
+}
+
+/// State of a source: it works but local rules (the VPN check) are withholding it.
+pub fn sources_state_held_back() -> String {
+    text("sources-state-held-back", &[])
+}
+
+/// Heading of the line about { -plugin-store-pl }.
+pub fn sources_stores_title() -> String {
+    text("sources-stores-title", &[])
+}
+
+/// Under the heading when no { -plugin-store } is joined or the list has not arrived.
+pub fn sources_stores_invite() -> String {
+    text("sources-stores-invite", &[])
+}
+
+/// Part of the { -plugin-store } summary: how many { -plugin-store-pl } are joined.
+pub fn sources_stores_joined(count: i64) -> String {
+    text("sources-stores-joined", &[("count", Arg::Int(count))])
+}
+
+/// Part of the { -plugin-store } summary: how many { -plugin } updates are waiting.
+pub fn sources_stores_updates(count: i64) -> String {
+    text("sources-stores-updates", &[("count", Arg::Int(count))])
+}
+
+/// Part of the { -plugin-store } summary: how many { -plugin-store-pl } have stopped accepting this device.
+pub fn sources_stores_removed(count: i64) -> String {
+    text("sources-stores-removed", &[("count", Arg::Int(count))])
+}
+
+/// Hint at the right of the { -plugin-store } line. The arrow is the Enter key.
+pub fn sources_stores_open() -> String {
+    text("sources-stores-open", &[])
+}
+
+/// Heading of the list of metadata services (where titles, covers and descriptions come from).
+pub fn sources_metadata_title() -> String {
+    text("sources-metadata-title", &[])
+}
+
+/// State of a metadata service: answering normally.
+pub fn sources_meta_state_live() -> String {
+    text("sources-meta-state-live", &[])
+}
+
+/// State of a metadata service: not answering.
+pub fn sources_meta_state_unreachable() -> String {
+    text("sources-meta-state-unreachable", &[])
+}
+
+/// State of a metadata service: failed recently and is being left alone for a while.
+pub fn sources_meta_state_backing_off() -> String {
+    text("sources-meta-state-backing-off", &[])
+}
+
+/// State of a metadata service: switched off in the config.
+pub fn sources_meta_state_off() -> String {
+    text("sources-meta-state-off", &[])
+}
+
+/// State of a metadata service: the one answering now, in place of the first choice.
+pub fn sources_meta_state_serving() -> String {
+    text("sources-meta-state-serving", &[])
+}
+
+/// State of a metadata service: ready if the others fail.
+pub fn sources_meta_state_standby() -> String {
+    text("sources-meta-state-standby", &[])
+}
+
+/// State of a metadata service: failing.
+pub fn sources_meta_state_failing() -> String {
+    text("sources-meta-state-failing", &[])
+}
+
+/// Detail for a metadata service that failed, with no reason given.
+pub fn sources_meta_cause_failing() -> String {
+    text("sources-meta-cause-failing", &[])
+}
+
+/// Detail for a metadata service being left alone until the given clock time. The cause is the service's own error text.
+pub fn sources_meta_skipped_until(time: &str, cause: &str) -> String {
+    text("sources-meta-skipped-until", &[("time", Arg::Text(time)), ("cause", Arg::Text(cause))])
+}
+
+/// Detail for a metadata service whose wait is over: it is asked again when something needs it. The cause is the service's own error text.
+pub fn sources_meta_next_request(cause: &str) -> String {
+    text("sources-meta-next-request", &[("cause", Arg::Text(cause))])
+}
+
+/// Header chip while the VPN check is running. The mark is a status glyph.
+pub fn sources_vpn_checking(mark: &str) -> String {
+    text("sources-vpn-checking", &[("mark", Arg::Text(mark))])
+}
+
+/// Header chip when the VPN protects the connection. The name is where traffic leaves the network.
+pub fn sources_vpn_protected(mark: &str, exit: &str) -> String {
+    text("sources-vpn-protected", &[("mark", Arg::Text(mark)), ("exit", Arg::Text(exit))])
+}
+
+/// Header chip when the VPN check found traffic leaving outside the tunnel.
+pub fn sources_vpn_leaking(mark: &str) -> String {
+    text("sources-vpn-leaking", &[("mark", Arg::Text(mark))])
+}
+
+/// Header chip when the VPN check could not be completed.
+pub fn sources_vpn_unreachable(mark: &str) -> String {
+    text("sources-vpn-unreachable", &[("mark", Arg::Text(mark))])
+}
+
+/// Header chip when the configuration runs with no VPN on purpose.
+pub fn sources_vpn_unprotected(mark: &str) -> String {
+    text("sources-vpn-unprotected", &[("mark", Arg::Text(mark))])
+}
+
+/// Notice when the VPN check finds a leak and torrents are paused.
+pub fn sources_vpn_leak_paused() -> String {
+    text("sources-vpn-leak-paused", &[])
+}
+
+/// Notice when the VPN check cannot be completed and torrents are paused.
+pub fn sources_vpn_unreachable_paused() -> String {
+    text("sources-vpn-unreachable-paused", &[])
+}
+
+/// Notice after the person submits an empty value for a text setting.
+pub fn settings_unchanged() -> String {
+    text("settings-unchanged", &[])
+}
+
+/// Notice after switching between subbed and dubbed audio for this session only.
+pub fn settings_session_subbed() -> String {
+    text("settings-session-subbed", &[])
+}
+
+/// Notice after switching between subbed and dubbed audio for this session only.
+pub fn settings_session_dubbed() -> String {
+    text("settings-session-dubbed", &[])
+}
+
+/// Notice when a setting cannot be changed from the terminal and has no explanation of its own.
+pub fn settings_not_editable() -> String {
+    text("settings-not-editable", &[])
+}
+
+/// Notice when an arrow key is pressed on a setting that is typed rather than cycled.
+pub fn settings_enter_types() -> String {
+    text("settings-enter-types", &[])
+}
+
+/// Value of a setting that is on.
+pub fn settings_value_on() -> String {
+    text("settings-value-on", &[])
+}
+
+/// Value of a setting that is off.
+pub fn settings_value_off() -> String {
+    text("settings-value-off", &[])
+}
+
+/// Value of a setting that has nothing set.
+pub fn settings_value_none() -> String {
+    text("settings-value-none", &[])
+}
+
+/// Value of a setting that is set, where the value is not shown.
+pub fn settings_value_configured() -> String {
+    text("settings-value-configured", &[])
+}
+
+/// Value of a setting where the saved choice and this session's differ.
+pub fn settings_value_this_session(saved: &str, current: &str) -> String {
+    text("settings-value-this-session", &[("saved", Arg::Text(saved)), ("current", Arg::Text(current))])
+}
+
+/// Value of the theme setting: follows the terminal's colours.
+pub fn settings_value_theme_adaptive() -> String {
+    text("settings-value-theme-adaptive", &[])
+}
+
+/// Value of the theme setting: draws its own background.
+pub fn settings_value_theme_immersive() -> String {
+    text("settings-value-theme-immersive", &[])
+}
+
+/// Value of the titles setting: use the language AniList picks for the signed-in account.
+pub fn settings_value_titles_anilist() -> String {
+    text("settings-value-titles-anilist", &[])
+}
+
+/// Value of the titles setting: English titles.
+pub fn settings_value_titles_english() -> String {
+    text("settings-value-titles-english", &[])
+}
+
+/// Value of the titles setting: titles in Latin letters as written in Japanese.
+pub fn settings_value_titles_romaji() -> String {
+    text("settings-value-titles-romaji", &[])
+}
+
+/// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+pub fn settings_value_upscaling_natural() -> String {
+    text("settings-value-upscaling-natural", &[])
+}
+
+/// Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+pub fn settings_value_upscaling_sharp() -> String {
+    text("settings-value-upscaling-sharp", &[])
+}
+
+/// Value of the player interface setting: the app's own look.
+pub fn settings_value_player_ui_anistream() -> String {
+    text("settings-value-player-ui-anistream", &[])
+}
+
+/// Value of the player interface setting: mpv's own interface and the person's configuration.
+pub fn settings_value_player_ui_mpv() -> String {
+    text("settings-value-player-ui-mpv", &[])
+}
+
+/// Value of the download folder setting when no folder is set.
+pub fn settings_value_download_dir_default() -> String {
+    text("settings-value-download-dir-default", &[])
+}
+
+/// Value of the Syncplay room setting when no room is set.
+pub fn settings_value_room_unset() -> String {
+    text("settings-value-room-unset", &[])
+}
+
+/// Value of the VPN mode setting: traffic goes through a proxy server (SOCKS5).
+pub fn settings_value_vpn_socks5() -> String {
+    text("settings-value-vpn-socks5", &[])
+}
+
+/// Value of the VPN mode setting: a tunnel set up outside the app.
+pub fn settings_value_vpn_external() -> String {
+    text("settings-value-vpn-external", &[])
+}
+
+/// Value of the seeding ratio setting: seed until the ratio is reached.
+pub fn settings_value_seed_ratio(ratio: &str) -> String {
+    text("settings-value-seed-ratio", &[("ratio", Arg::Text(ratio))])
+}
+
+/// Value of the upload limit setting when there is no limit.
+pub fn settings_value_unlimited() -> String {
+    text("settings-value-unlimited", &[])
+}
+
+/// Value of the upload limit setting: a speed. The size is already formatted, with its unit.
+pub fn settings_value_per_second(size: &str) -> String {
+    text("settings-value-per-second", &[("size", Arg::Text(size))])
+}
+
+/// Settings heading: how the app looks.
+pub fn settings_category_appearance() -> String {
+    text("settings-category-appearance", &[])
+}
+
+/// Settings heading: how episodes play.
+pub fn settings_category_playback() -> String {
+    text("settings-category-playback", &[])
+}
+
+/// Settings heading: downloads.
+pub fn settings_category_downloads() -> String {
+    text("settings-category-downloads", &[])
+}
+
+/// Settings heading: where episodes come from.
+pub fn settings_category_sources() -> String {
+    text("settings-category-sources", &[])
+}
+
+/// Settings heading: links to other services.
+pub fn settings_category_integrations() -> String {
+    text("settings-category-integrations", &[])
+}
+
+/// Settings heading: notifications.
+pub fn settings_category_notifications() -> String {
+    text("settings-category-notifications", &[])
+}
+
+/// Settings heading: options for experienced users.
+pub fn settings_category_advanced() -> String {
+    text("settings-category-advanced", &[])
+}
+
+/// Settings row: the colour theme.
+pub fn settings_label_theme() -> String {
+    text("settings-label-theme", &[])
+}
+
+/// Settings row: whether the interface moves.
+pub fn settings_label_motion() -> String {
+    text("settings-label-motion", &[])
+}
+
+/// Settings row: which language titles are shown in.
+pub fn settings_label_titles() -> String {
+    text("settings-label-titles", &[])
+}
+
+/// Settings row: subbed or dubbed audio.
+pub fn settings_label_translation() -> String {
+    text("settings-label-translation", &[])
+}
+
+/// Settings row: the video quality to look for.
+pub fn settings_label_quality() -> String {
+    text("settings-label-quality", &[])
+}
+
+/// Settings row: the language of subtitles.
+pub fn settings_label_subtitles() -> String {
+    text("settings-label-subtitles", &[])
+}
+
+/// Settings row: how much of an episode must play before it counts as watched.
+pub fn settings_label_commit_threshold() -> String {
+    text("settings-label-commit-threshold", &[])
+}
+
+/// Settings row: whether the next episode starts by itself.
+pub fn settings_label_auto_next() -> String {
+    text("settings-label-auto-next", &[])
+}
+
+/// Settings row: whether openings are skipped without asking.
+pub fn settings_label_skip_opening() -> String {
+    text("settings-label-skip-opening", &[])
+}
+
+/// Settings row: whether filler episodes are skipped.
+pub fn settings_label_skip_filler() -> String {
+    text("settings-label-skip-filler", &[])
+}
+
+/// Settings row: whether the opening and ending are marked on the seek bar.
+pub fn settings_label_mark_chapters() -> String {
+    text("settings-label-mark-chapters", &[])
+}
+
+/// Settings row: whether a skip button is shown over the video.
+pub fn settings_label_skip_button() -> String {
+    text("settings-label-skip-button", &[])
+}
+
+/// Settings row: whether the player opens fullscreen.
+pub fn settings_label_fullscreen() -> String {
+    text("settings-label-fullscreen", &[])
+}
+
+/// Settings row: the video upscaling mode.
+pub fn settings_label_upscaling() -> String {
+    text("settings-label-upscaling", &[])
+}
+
+/// Settings row: which interface the player shows.
+pub fn settings_label_player_ui() -> String {
+    text("settings-label-player-ui", &[])
+}
+
+/// Settings row: whether quiet and loud sound is evened out.
+pub fn settings_label_night_mode() -> String {
+    text("settings-label-night-mode", &[])
+}
+
+/// Settings row: the folder downloads are saved in.
+pub fn settings_label_download_dir() -> String {
+    text("settings-label-download-dir", &[])
+}
+
+/// Settings row: whether subtitles are merged into the downloaded file.
+pub fn settings_label_merge_subtitles() -> String {
+    text("settings-label-merge-subtitles", &[])
+}
+
+/// Settings row: whether finished downloads keep being shared.
+pub fn settings_label_keep_seeding() -> String {
+    text("settings-label-keep-seeding", &[])
+}
+
+/// Settings row: a command run when a download finishes.
+pub fn settings_label_download_hook() -> String {
+    text("settings-label-download-hook", &[])
+}
+
+/// Settings row: Syncplay { -watch-party-pl }.
+pub fn settings_label_syncplay() -> String {
+    text("settings-label-syncplay", &[])
+}
+
+/// Settings row: the Syncplay server.
+pub fn settings_label_syncplay_server() -> String {
+    text("settings-label-syncplay-server", &[])
+}
+
+/// Settings row: the Syncplay room.
+pub fn settings_label_syncplay_room() -> String {
+    text("settings-label-syncplay-room", &[])
+}
+
+/// Settings row: whether the app checks for a new version.
+pub fn settings_label_update_check() -> String {
+    text("settings-label-update-check", &[])
+}
+
+/// Settings row: Discord presence, showing what is being watched.
+pub fn settings_label_presence() -> String {
+    text("settings-label-presence", &[])
+}
+
+/// Settings row: whether Discord shows the show's title.
+pub fn settings_label_presence_title() -> String {
+    text("settings-label-presence-title", &[])
+}
+
+/// Settings row: whether Discord shows a card with cover and progress.
+pub fn settings_label_presence_rich() -> String {
+    text("settings-label-presence-rich", &[])
+}
+
+/// Settings row: the torrent source on or off.
+pub fn settings_label_torrents() -> String {
+    text("settings-label-torrents", &[])
+}
+
+/// Settings row: the { -torrent-index } used to look up releases.
+pub fn settings_label_torrent_index() -> String {
+    text("settings-label-torrent-index", &[])
+}
+
+/// Settings row: how long watched episodes keep being shared, by ratio.
+pub fn settings_label_seed_ratio() -> String {
+    text("settings-label-seed-ratio", &[])
+}
+
+/// Settings row: how long watched episodes keep being shared, in hours.
+pub fn settings_label_seed_hours() -> String {
+    text("settings-label-seed-hours", &[])
+}
+
+/// Settings row: the cap on torrent upload speed.
+pub fn settings_label_upload_limit() -> String {
+    text("settings-label-upload-limit", &[])
+}
+
+/// Settings row: how traffic is protected by a VPN.
+pub fn settings_label_vpn_mode() -> String {
+    text("settings-label-vpn-mode", &[])
+}
+
+/// Settings row: where sign-in tokens are kept.
+pub fn settings_label_token_storage() -> String {
+    text("settings-label-token-storage", &[])
+}
+
+/// Name of the order in which { -source-pl } are tried.
+pub fn settings_label_source_order() -> String {
+    text("settings-label-source-order", &[])
+}
+
+/// Settings row: seconds counted down before the next episode starts.
+pub fn settings_label_up_next_countdown() -> String {
+    text("settings-label-up-next-countdown", &[])
+}
+
+/// Settings row: whether stills of unwatched episodes are blurred.
+pub fn settings_label_spoiler_protection() -> String {
+    text("settings-label-spoiler-protection", &[])
+}
+
+/// Settings row: the version of an episode downloads take.
+pub fn settings_label_download_quality() -> String {
+    text("settings-label-download-quality", &[])
+}
+
+/// Settings row: how many following episodes downloads keep.
+pub fn settings_label_keep_next_episodes() -> String {
+    text("settings-label-keep-next-episodes", &[])
+}
+
+/// Settings row: whether downloads run on a mobile connection.
+pub fn settings_label_downloads_on_cellular() -> String {
+    text("settings-label-downloads-on-cellular", &[])
+}
+
+/// Settings row: whether torrents run on a mobile connection.
+pub fn settings_label_torrents_on_cellular() -> String {
+    text("settings-label-torrents-on-cellular", &[])
+}
+
+/// Settings row: what happens to torrents when the VPN check fails.
+pub fn settings_label_vpn_on_failure() -> String {
+    text("settings-label-vpn-on-failure", &[])
+}
+
+/// Settings row: whether the app notifies of new episodes.
+pub fn settings_label_episode_notifications() -> String {
+    text("settings-label-episode-notifications", &[])
+}
+
+/// Settings row: the person's own options for mpv.
+pub fn settings_label_mpv_options() -> String {
+    text("settings-label-mpv-options", &[])
+}
+
+/// Settings row: whether titles marked adult are shown.
+pub fn settings_label_adult_titles() -> String {
+    text("settings-label-adult-titles", &[])
+}
+
+/// Note under the titles row.
+pub fn settings_note_titles() -> String {
+    text("settings-note-titles", &[])
+}
+
+/// Note under the subtitles row.
+pub fn settings_note_subtitles() -> String {
+    text("settings-note-subtitles", &[])
+}
+
+/// Note under the opening and ending marks row.
+pub fn settings_note_mark_chapters() -> String {
+    text("settings-note-mark-chapters", &[])
+}
+
+/// Note under the skip button row.
+pub fn settings_note_skip_button() -> String {
+    text("settings-note-skip-button", &[])
+}
+
+/// Note under the fullscreen row. "f" is mpv's own key and is not translated.
+pub fn settings_note_fullscreen() -> String {
+    text("settings-note-fullscreen", &[])
+}
+
+/// Note under the upscaling row.
+pub fn settings_note_upscaling() -> String {
+    text("settings-note-upscaling", &[])
+}
+
+/// Note under the player interface row.
+pub fn settings_note_player_ui() -> String {
+    text("settings-note-player-ui", &[])
+}
+
+/// Note under the night mode row.
+pub fn settings_note_night_mode() -> String {
+    text("settings-note-night-mode", &[])
+}
+
+/// Note under the download folder row.
+pub fn settings_note_download_dir() -> String {
+    text("settings-note-download-dir", &[])
+}
+
+/// Note under the merge subtitles row.
+pub fn settings_note_merge_subtitles() -> String {
+    text("settings-note-merge-subtitles", &[])
+}
+
+/// Note under the keep seeding row. It is a privacy choice.
+pub fn settings_note_keep_seeding() -> String {
+    text("settings-note-keep-seeding", &[])
+}
+
+/// Note under the after each download row.
+pub fn settings_note_download_hook() -> String {
+    text("settings-note-download-hook", &[])
+}
+
+/// Note under the Syncplay row. The key is the one that plays a single episode in a { -watch-party }.
+pub fn settings_note_syncplay(key: &str) -> String {
+    text("settings-note-syncplay", &[("key", Arg::Text(key))])
+}
+
+/// Note under the Syncplay server row.
+pub fn settings_note_syncplay_server() -> String {
+    text("settings-note-syncplay-server", &[])
+}
+
+/// Note under the Syncplay room row.
+pub fn settings_note_syncplay_room() -> String {
+    text("settings-note-syncplay-room", &[])
+}
+
+/// Note under the check for updates row.
+pub fn settings_note_update_check() -> String {
+    text("settings-note-update-check", &[])
+}
+
+/// Note under the Discord presence row once a client ID is set.
+pub fn settings_note_presence() -> String {
+    text("settings-note-presence", &[])
+}
+
+/// Note under the Discord presence row when no client ID is set. The address is a web address.
+pub fn settings_note_presence_needs_client() -> String {
+    text("settings-note-presence-needs-client", &[])
+}
+
+/// Note under the presence title row. The quoted text is what Discord shows.
+pub fn settings_note_presence_title() -> String {
+    text("settings-note-presence-title", &[])
+}
+
+/// Note under the rich presence row.
+pub fn settings_note_presence_rich() -> String {
+    text("settings-note-presence-rich", &[])
+}
+
+/// Note under the torrent source row.
+pub fn settings_note_torrents() -> String {
+    text("settings-note-torrents", &[])
+}
+
+/// Note under the VPN mode row.
+pub fn settings_note_vpn_mode() -> String {
+    text("settings-note-vpn-mode", &[])
+}
+
+/// Note under the seed after watching row.
+pub fn settings_note_seed_ratio() -> String {
+    text("settings-note-seed-ratio", &[])
+}
+
+/// Note under the seed for at most row.
+pub fn settings_note_seed_hours() -> String {
+    text("settings-note-seed-hours", &[])
+}
+
+/// Note under the upload limit row.
+pub fn settings_note_upload_limit() -> String {
+    text("settings-note-upload-limit", &[])
+}
+
+/// Note under the token storage row. The option is a command-line flag and is not translated.
+pub fn settings_note_token_storage() -> String {
+    text("settings-note-token-storage", &[])
+}
+
+/// Heading of the { -plugin-store } screens when the terminal is too small to draw them.
+pub fn stores_needs_larger_terminal() -> String {
+    text("stores-needs-larger-terminal", &[])
+}
+
+/// Heading of the list of { -plugin-store-pl } this machine has joined.
+pub fn stores_list_heading() -> String {
+    text("stores-list-heading", &[])
+}
+
+/// Heading of one { -plugin-store }'s page while it loads, and when the terminal is too small.
+pub fn stores_page_heading() -> String {
+    text("stores-page-heading", &[])
+}
+
+/// Heading of a { -plugin-store }'s members screen when the terminal is too small.
+pub fn stores_members_placeholder_heading() -> String {
+    text("stores-members-placeholder-heading", &[])
+}
+
+/// Column heading over the names of the stores joined.
+pub fn stores_column_store() -> String {
+    text("stores-column-store", &[])
+}
+
+/// Column heading over how many plugins each store offers. Ten cells wide.
+pub fn stores_column_plugins() -> String {
+    text("stores-column-plugins", &[])
+}
+
+/// Column heading over whether this person owns the store or is a member. Ten cells wide.
+pub fn stores_column_you() -> String {
+    text("stores-column-you", &[])
+}
+
+/// Column heading over each store's condition: up to date, offline, access removed. Takes the rest of the row.
+pub fn stores_column_state() -> String {
+    text("stores-column-state", &[])
+}
+
+/// Shown under the column headings when no { -plugin-store } has been joined.
+pub fn stores_none_joined() -> String {
+    text("stores-none-joined", &[])
+}
+
+/// Role in a store, in the list of stores and on the members screen. Ten cells wide.
+pub fn stores_role_owner() -> String {
+    text("stores-role-owner", &[])
+}
+
+/// Role in a store, in the list of stores and on the members screen. Ten cells wide.
+pub fn stores_role_member() -> String {
+    text("stores-role-member", &[])
+}
+
+/// Row under the list of stores that opens the prompt for joining another.
+pub fn stores_join_row() -> String {
+    text("stores-join-row", &[])
+}
+
+/// State of a store whose owner removed this device. Column of about 30 cells.
+pub fn stores_state_revoked() -> String {
+    text("stores-state-revoked", &[])
+}
+
+/// State of a store that could not be reached. The symbol before it is drawn by the program.
+pub fn stores_state_offline() -> String {
+    text("stores-state-offline", &[])
+}
+
+/// State of a store with nothing to update. The symbol before it is drawn by the program.
+pub fn stores_state_up_to_date() -> String {
+    text("stores-state-up-to-date", &[])
+}
+
+/// State of a store that has newer versions of installed plugins.
+pub fn stores_state_updates(count: i64) -> String {
+    text("stores-state-updates", &[("count", Arg::Int(count))])
+}
+
+/// Footer of the list of stores when the focused store has removed this device's access.
+pub fn stores_footer_revoked() -> String {
+    text("stores-footer-revoked", &[])
+}
+
+/// Footer of the list of stores when the focused store cannot be reached. The reason comes from the network.
+pub fn stores_footer_offline(url: &str, reason: &str) -> String {
+    text("stores-footer-offline", &[("url", Arg::Text(url)), ("reason", Arg::Text(reason))])
+}
+
+/// Part of a store's footer line: the store's key fingerprint, as groups of hexadecimal digits.
+pub fn stores_key(fingerprint: &str) -> String {
+    text("stores-key", &[("fingerprint", Arg::Text(fingerprint))])
+}
+
+/// Part of a store's footer line when this device joined with the store's link, which keeps no name.
+pub fn stores_joined_without_name() -> String {
+    text("stores-joined-without-name", &[])
+}
+
+/// Part of a store's footer line: the name this device joined under.
+pub fn stores_joined_as(name: &str) -> String {
+    text("stores-joined-as", &[("name", Arg::Text(name))])
+}
+
+/// Footer of the list of stores when the focused row is the one that joins another store.
+pub fn stores_footer_join() -> String {
+    text("stores-footer-join", &[])
+}
+
+/// Tag at the top right of a store's page when this person owns it. Up to seven cells wide.
+pub fn stores_owner_tag() -> String {
+    text("stores-owner-tag", &[])
+}
+
+/// Part of a store's note line when anyone with its link can join.
+pub fn stores_anyone_can_join() -> String {
+    text("stores-anyone-can-join", &[])
+}
+
+/// Note under a store's name when it cannot be reached and its last list is shown. The reason comes from the network.
+pub fn stores_note_offline(reason: &str) -> String {
+    text("stores-note-offline", &[("reason", Arg::Text(reason))])
+}
+
+/// Note under a store's name when it removed this device's access.
+pub fn stores_note_revoked() -> String {
+    text("stores-note-revoked", &[])
+}
+
+/// Column heading of a store's page over the plugin names.
+pub fn stores_column_plugin() -> String {
+    text("stores-column-plugin", &[])
+}
+
+/// Column heading of a store's page over the plugin versions. Fourteen cells wide.
+pub fn stores_column_version() -> String {
+    text("stores-column-version", &[])
+}
+
+/// Shown on a store's page when it offers nothing and this person owns it, who can publish from the rows below.
+pub fn stores_empty_owner() -> String {
+    text("stores-empty-owner", &[])
+}
+
+/// Shown on a store's page when it offers nothing and this person is a member.
+pub fn stores_empty_member() -> String {
+    text("stores-empty-member", &[])
+}
+
+/// Row on a store's page: makes a one-time link that joins another computer of this person's.
+pub fn stores_line_link_device() -> String {
+    text("stores-line-link-device", &[])
+}
+
+/// Row on a store's page: makes an invite for someone new. Owners only.
+pub fn stores_line_invite() -> String {
+    text("stores-line-invite", &[])
+}
+
+/// Row on a store's page: opens the members screen. Owners only.
+pub fn stores_line_members() -> String {
+    text("stores-line-members", &[])
+}
+
+/// Row on a store's page: switches between invite-only and open to anyone with the link. Owners only.
+pub fn stores_line_who_can_join() -> String {
+    text("stores-line-who-can-join", &[])
+}
+
+/// Row on a store's page: offers a plugin from the plugin directory. Owners only.
+pub fn stores_line_publish() -> String {
+    text("stores-line-publish", &[])
+}
+
+/// Row on a store's page: opens the store's admin page in a browser. Owners only.
+pub fn stores_line_admin() -> String {
+    text("stores-line-admin", &[])
+}
+
+/// Row on a store's page: leaves the store.
+pub fn stores_line_leave() -> String {
+    text("stores-line-leave", &[])
+}
+
+/// What a plugin is, in a store's page, when it is not installed. Column of about 20 cells.
+pub fn stores_plugin_not_installed() -> String {
+    text("stores-plugin-not-installed", &[])
+}
+
+/// What a plugin is, in a store's page, when it is installed. The symbol before it is drawn by the program.
+pub fn stores_plugin_installed() -> String {
+    text("stores-plugin-installed", &[])
+}
+
+/// What a plugin is, in a store's page, when a newer version is offered. Column of about 20 cells.
+pub fn stores_plugin_update_from(from: &str) -> String {
+    text("stores-plugin-update-from", &[("from", Arg::Text(from))])
+}
+
+/// What a plugin is, in a store's page, when the same file was put in the plugin directory by hand.
+pub fn stores_plugin_added_by_hand() -> String {
+    text("stores-plugin-added-by-hand", &[])
+}
+
+/// What a plugin is, in a store's page, when another store installed it.
+pub fn stores_plugin_from_another_store() -> String {
+    text("stores-plugin-from-another-store", &[])
+}
+
+/// Footer of a store's page on a plugin whose update asks to contact more hosts than before.
+pub fn stores_footer_update_hosts(hosts: &str) -> String {
+    text("stores-footer-update-hosts", &[("hosts", Arg::Text(hosts))])
+}
+
+/// Footer of a store's page on a plugin: the hosts it may contact, as a list.
+pub fn stores_footer_may_contact(hosts: &str) -> String {
+    text("stores-footer-may-contact", &[("hosts", Arg::Text(hosts))])
+}
+
+/// Footer of a store's page on the row that makes a link for another of this person's computers.
+pub fn stores_footer_link_device() -> String {
+    text("stores-footer-link-device", &[])
+}
+
+/// Footer of a store's page on the row that makes an invite.
+pub fn stores_footer_invite() -> String {
+    text("stores-footer-invite", &[])
+}
+
+/// Footer of a store's page on the row that opens the members screen.
+pub fn stores_footer_members() -> String {
+    text("stores-footer-members", &[])
+}
+
+/// Footer of a store's page on the row that changes who can join, while the store is open to anyone with its link. Enter is the key on this screen.
+pub fn stores_footer_close_join() -> String {
+    text("stores-footer-close-join", &[])
+}
+
+/// Footer of a store's page on the row that changes who can join, while the store is invite-only. Enter is the key on this screen.
+pub fn stores_footer_open_join() -> String {
+    text("stores-footer-open-join", &[])
+}
+
+/// Footer of a store's page on the row that publishes a plugin.
+pub fn stores_footer_publish() -> String {
+    text("stores-footer-publish", &[])
+}
+
+/// Footer of a store's page on the row that opens the admin page.
+pub fn stores_footer_admin() -> String {
+    text("stores-footer-admin", &[])
+}
+
+/// Footer of a store's page on the row that leaves the store.
+pub fn stores_footer_leave() -> String {
+    text("stores-footer-leave", &[])
+}
+
+/// Value beside the "who can join" row while anyone with the store's link can join. Takes the rest of the row.
+pub fn stores_who_open() -> String {
+    text("stores-who-open", &[])
+}
+
+/// Value beside the "who can join" row while only invited people can join. Takes the rest of the row.
+pub fn stores_who_invite_only() -> String {
+    text("stores-who-invite-only", &[])
+}
+
+/// Label before the number of plugins a store offers, in the join confirmation. Padded to line up with the other labels there.
+pub fn stores_label_offers() -> String {
+    text("stores-label-offers", &[])
+}
+
+/// The number of plugins a store offers, after the label "Offers".
+pub fn stores_offers_count(count: i64) -> String {
+    text("stores-offers-count", &[("count", Arg::Int(count))])
+}
+
+/// A plugin the store offers, in the join confirmation. The hosts are what the plugin may contact.
+pub fn stores_offered_plugin(name: &str, version: &str, hosts: &str) -> String {
+    text("stores-offered-plugin", &[("name", Arg::Text(name)), ("version", Arg::Text(version)), ("hosts", Arg::Text(hosts))])
+}
+
+/// Added after an offered plugin that is already installed here.
+pub fn stores_offered_installed() -> String {
+    text("stores-offered-installed", &[])
+}
+
+/// Added after an offered plugin when an older version is installed here.
+pub fn stores_offered_installed_version(from: &str) -> String {
+    text("stores-offered-installed-version", &[("from", Arg::Text(from))])
+}
+
+/// Added after an offered plugin when the same file was put in the plugin directory by hand.
+pub fn stores_offered_added_by_hand() -> String {
+    text("stores-offered-added-by-hand", &[])
+}
+
+/// Added after an offered plugin that another store installed here.
+pub fn stores_offered_from_other(other: &str) -> String {
+    text("stores-offered-from-other", &[("other", Arg::Text(other))])
+}
+
+/// Last line of the plugins a store offers, when only the first few are listed.
+pub fn stores_offered_more(count: i64) -> String {
+    text("stores-offered-more", &[("count", Arg::Int(count))])
+}
+
+/// What a plugin may contact when it has no hosts. It follows "may contact" in a sentence, so it is lower case.
+pub fn stores_hosts_none() -> String {
+    text("stores-hosts-none", &[])
+}
+
+/// Shown on the members screen while the members load.
+pub fn stores_loading() -> String {
+    text("stores-loading", &[])
+}
+
+/// After a member's name, when that member is this person.
+pub fn stores_member_you(name: &str) -> String {
+    text("stores-member-you", &[("name", Arg::Text(name))])
+}
+
+/// Column heading of the members screen over names.
+pub fn stores_column_name() -> String {
+    text("stores-column-name", &[])
+}
+
+/// Column heading of the members screen over the role. Ten cells wide.
+pub fn stores_column_role() -> String {
+    text("stores-column-role", &[])
+}
+
+/// Column heading of the members screen over how many devices each member has. Ten cells wide.
+pub fn stores_column_devices() -> String {
+    text("stores-column-devices", &[])
+}
+
+/// Column heading of the members screen over when each member was last seen. Takes the rest of the row.
+pub fn stores_column_last_seen() -> String {
+    text("stores-column-last-seen", &[])
+}
+
+/// Title of the members screen.
+pub fn stores_members_heading(name: &str) -> String {
+    text("stores-members-heading", &[("name", Arg::Text(name))])
+}
+
+/// Name of a store on the members screen when it is not known.
+pub fn stores_unnamed() -> String {
+    text("stores-unnamed", &[])
+}
+
+/// Heading over invites that have not been used.
+pub fn stores_invites_heading() -> String {
+    text("stores-invites-heading", &[])
+}
+
+/// An invite on the members screen that makes a link for another of the person's own computers.
+pub fn stores_invite_another_device(name: &str) -> String {
+    text("stores-invite-another-device", &[("name", Arg::Text(name))])
+}
+
+/// When a member was last seen, when never. Column value.
+pub fn stores_seen_never() -> String {
+    text("stores-seen-never", &[])
+}
+
+/// How long ago a member was last seen, under 1 hour. Column value.
+pub fn stores_ago_just_now() -> String {
+    text("stores-ago-just-now", &[])
+}
+
+/// How long ago a member was last seen, 1 to 24 hours. Column value.
+pub fn stores_ago_today() -> String {
+    text("stores-ago-today", &[])
+}
+
+/// How long ago a member was last seen, 1 day. Column value.
+pub fn stores_ago_yesterday() -> String {
+    text("stores-ago-yesterday", &[])
+}
+
+/// How long ago a member was last seen, 2 days or more. Column value.
+pub fn stores_ago_days(days: i64) -> String {
+    text("stores-ago-days", &[("days", Arg::Int(days))])
+}
+
+/// After "Joined" or "Seen" on a row, under 1 hour. Lower case: it follows a word.
+pub fn stores_ago_inline_just_now() -> String {
+    text("stores-ago-inline-just-now", &[])
+}
+
+/// After "Joined" or "Seen" on a row, 1 to 24 hours. Lower case: it follows a word.
+pub fn stores_ago_inline_today() -> String {
+    text("stores-ago-inline-today", &[])
+}
+
+/// After "Joined" or "Seen" on a row, 1 day. Lower case: it follows a word.
+pub fn stores_ago_inline_yesterday() -> String {
+    text("stores-ago-inline-yesterday", &[])
+}
+
+/// After "Joined" or "Seen" on a row, 2 days or more. Lower case: it follows a word.
+pub fn stores_ago_inline_days(days: i64) -> String {
+    text("stores-ago-inline-days", &[("days", Arg::Int(days))])
+}
+
+/// When an invite stops working, already past. Column value.
+pub fn stores_expired() -> String {
+    text("stores-expired", &[])
+}
+
+/// When an invite stops working, within a day. Column value.
+pub fn stores_expires_today() -> String {
+    text("stores-expires-today", &[])
+}
+
+/// When an invite stops working, in a day. Column value.
+pub fn stores_expires_tomorrow() -> String {
+    text("stores-expires-tomorrow", &[])
+}
+
+/// When an invite stops working, in 2 days or more. Column value.
+pub fn stores_expires_days(days: i64) -> String {
+    text("stores-expires-days", &[("days", Arg::Int(days))])
+}
+
+/// Heading over the store's link and the devices that joined with it, while anyone with the link can join.
+pub fn stores_open_heading(joined: &str) -> String {
+    text("stores-open-heading", &[("joined", Arg::Text(joined))])
+}
+
+/// Heading over the devices that joined with the store's link, after it was closed.
+pub fn stores_closed_heading(joined: &str) -> String {
+    text("stores-closed-heading", &[("joined", Arg::Text(joined))])
+}
+
+/// How many devices joined with the store's link, inside the headings over them.
+pub fn stores_joined_devices(count: i64) -> String {
+    text("stores-joined-devices", &[("count", Arg::Int(count))])
+}
+
+/// Row on the members screen that shows the store's open link.
+pub fn stores_open_link_row() -> String {
+    text("stores-open-link-row", &[])
+}
+
+/// Note beside the row of the store's link.
+pub fn stores_open_link_note() -> String {
+    text("stores-open-link-note", &[])
+}
+
+/// Row of one device that joined with the store's link. The time reads like "just now" or "3 days ago".
+pub fn stores_anonymous_joined(when: &str) -> String {
+    text("stores-anonymous-joined", &[("when", Arg::Text(when))])
+}
+
+/// Note beside a device that joined with the store's link: when it was last seen.
+pub fn stores_anonymous_seen(when: &str) -> String {
+    text("stores-anonymous-seen", &[("when", Arg::Text(when))])
+}
+
+/// Note beside a device that joined with the store's link and was never seen again.
+pub fn stores_anonymous_never_seen() -> String {
+    text("stores-anonymous-never-seen", &[])
+}
+
+/// Row on the members screen that removes the single device that joined with the store's link, or all of them.
+pub fn stores_remove_devices(count: i64) -> String {
+    text("stores-remove-devices", &[("count", Arg::Int(count))])
+}
+
+/// Footer of the members screen on this person's own row.
+pub fn stores_footer_you() -> String {
+    text("stores-footer-you", &[])
+}
+
+/// Footer of the members screen on another member's row. Enter is the key on this screen.
+pub fn stores_footer_remove_member() -> String {
+    text("stores-footer-remove-member", &[])
+}
+
+/// Footer of the members screen on an invite not used yet.
+pub fn stores_footer_cancel_invite() -> String {
+    text("stores-footer-cancel-invite", &[])
+}
+
+/// Footer of the members screen on the store's link row.
+pub fn stores_footer_show_link() -> String {
+    text("stores-footer-show-link", &[])
+}
+
+/// Footer of the members screen on a device that joined with the store's link.
+pub fn stores_footer_remove_anonymous() -> String {
+    text("stores-footer-remove-anonymous", &[])
+}
+
+/// Footer of the members screen on the row that removes every device that joined with the link.
+pub fn stores_footer_remove_all_anonymous() -> String {
+    text("stores-footer-remove-all-anonymous", &[])
+}
+
+/// Line in the store's link overlay, once the link was copied.
+pub fn stores_link_copied() -> String {
+    text("stores-link-copied", &[])
+}
+
+/// Line in a link overlay before the link was copied, or when the terminal cannot copy.
+pub fn stores_link_select() -> String {
+    text("stores-link-select", &[])
+}
+
+/// Line in the store's link overlay.
+pub fn stores_open_link_warning() -> String {
+    text("stores-open-link-warning", &[])
+}
+
+/// Line in the store's link overlay.
+pub fn stores_open_link_lasts() -> String {
+    text("stores-open-link-lasts", &[])
+}
+
+/// Last line of the link overlays: Enter is the key.
+pub fn stores_link_close() -> String {
+    text("stores-link-close", &[])
+}
+
+/// Line in an invite link overlay: the link works once, and when it stops working. The expiry reads like "Expires today".
+pub fn stores_invite_works_once(expiry: &str) -> String {
+    text("stores-invite-works-once", &[("expiry", Arg::Text(expiry))])
+}
+
+/// Line in an invite link overlay.
+pub fn stores_invite_preview_safe() -> String {
+    text("stores-invite-preview-safe", &[])
+}
+
+/// Question in the heading of the confirmation to join a store.
+pub fn stores_confirm_join(name: &str) -> String {
+    text("stores-confirm-join", &[("name", Arg::Text(name))])
+}
+
+/// Question in the heading of the confirmation to leave a store.
+pub fn stores_confirm_leave(name: &str) -> String {
+    text("stores-confirm-leave", &[("name", Arg::Text(name))])
+}
+
+/// Question in the heading of the confirmation to remove a member.
+pub fn stores_confirm_remove_member(name: &str) -> String {
+    text("stores-confirm-remove-member", &[("name", Arg::Text(name))])
+}
+
+/// Question in the heading of the confirmation to cancel an invite.
+pub fn stores_confirm_cancel_invite(name: &str) -> String {
+    text("stores-confirm-cancel-invite", &[("name", Arg::Text(name))])
+}
+
+/// Question in the heading of the confirmation to stop offering a plugin in a store.
+pub fn stores_confirm_unpublish(name: &str) -> String {
+    text("stores-confirm-unpublish", &[("name", Arg::Text(name))])
+}
+
+/// Question in the heading of the confirmation to let anyone with the store's link join.
+pub fn stores_confirm_open(name: &str) -> String {
+    text("stores-confirm-open", &[("name", Arg::Text(name))])
+}
+
+/// Question in the heading of the confirmation to let only invited people join.
+pub fn stores_confirm_close(name: &str) -> String {
+    text("stores-confirm-close", &[("name", Arg::Text(name))])
+}
+
+/// Question in the heading of the confirmation to remove one device that joined with the store's link.
+pub fn stores_confirm_remove_device() -> String {
+    text("stores-confirm-remove-device", &[])
+}
+
+/// Question in the heading of the confirmation to remove devices that joined with the store's link.
+pub fn stores_confirm_remove_devices(count: i64) -> String {
+    text("stores-confirm-remove-devices", &[("count", Arg::Int(count))])
+}
+
+/// Heading of a store confirmation when nothing is being confirmed.
+pub fn stores_confirm_fallback() -> String {
+    text("stores-confirm-fallback", &[])
+}
+
+/// Label before the store's address in the join confirmation. Padded to line up with the other labels there.
+pub fn stores_label_address() -> String {
+    text("stores-label-address", &[])
+}
+
+/// Label before the store's key fingerprint in the join confirmation.
+pub fn stores_label_key() -> String {
+    text("stores-label-key", &[])
+}
+
+/// Label before the people who run the store in the join confirmation.
+pub fn stores_label_run_by() -> String {
+    text("stores-label-run-by", &[])
+}
+
+/// Label before this device's name in the join confirmation.
+pub fn stores_label_device() -> String {
+    text("stores-label-device", &[])
+}
+
+/// The store's key fingerprint, in the join confirmation of an open link, with a note that it matches the link.
+pub fn stores_key_matches_link(fingerprint: &str) -> String {
+    text("stores-key-matches-link", &[("fingerprint", Arg::Text(fingerprint))])
+}
+
+/// The store's key fingerprint, in the join confirmation of an invite, with a note that it matches the invite.
+pub fn stores_key_matches_invite(fingerprint: &str) -> String {
+    text("stores-key-matches-invite", &[("fingerprint", Arg::Text(fingerprint))])
+}
+
+/// Line of the join confirmation when the store is open to anyone with its link.
+pub fn stores_join_open() -> String {
+    text("stores-join-open", &[])
+}
+
+/// Line of the join confirmation when it is an open link, which keeps no name.
+pub fn stores_join_anonymous() -> String {
+    text("stores-join-anonymous", &[])
+}
+
+/// Line of the join confirmation when this device has already joined.
+pub fn stores_join_already() -> String {
+    text("stores-join-already", &[])
+}
+
+/// Note under the device name field in the join confirmation.
+pub fn stores_join_device_note() -> String {
+    text("stores-join-device-note", &[])
+}
+
+/// Last line of the join confirmation: Enter and Esc are the keys.
+pub fn stores_join_keys() -> String {
+    text("stores-join-keys", &[])
+}
+
+/// Lines of the leave confirmation.
+pub fn stores_leave_plugins() -> String {
+    text("stores-leave-plugins", &[])
+}
+
+/// Lines of the leave confirmation.
+pub fn stores_leave_revoked() -> String {
+    text("stores-leave-revoked", &[])
+}
+
+/// Last line of the leave confirmation.
+pub fn stores_leave_keys() -> String {
+    text("stores-leave-keys", &[])
+}
+
+/// Line of the remove member confirmation.
+pub fn stores_remove_member_devices(count: i64) -> String {
+    text("stores-remove-member-devices", &[("count", Arg::Int(count))])
+}
+
+/// Line of the remove member confirmation.
+pub fn stores_remove_member_plugins() -> String {
+    text("stores-remove-member-plugins", &[])
+}
+
+/// Last line of the remove member confirmation.
+pub fn stores_remove_member_keys() -> String {
+    text("stores-remove-member-keys", &[])
+}
+
+/// Line of the cancel invite confirmation.
+pub fn stores_cancel_invite_link() -> String {
+    text("stores-cancel-invite-link", &[])
+}
+
+/// Last line of the cancel invite confirmation.
+pub fn stores_cancel_invite_keys() -> String {
+    text("stores-cancel-invite-keys", &[])
+}
+
+/// Line of the stop offering confirmation.
+pub fn stores_unpublish_members() -> String {
+    text("stores-unpublish-members", &[])
+}
+
+/// Last line of the stop offering confirmation.
+pub fn stores_unpublish_keys() -> String {
+    text("stores-unpublish-keys", &[])
+}
+
+/// Line of the confirmation to let anyone with the store's link join.
+pub fn stores_open_anyone() -> String {
+    text("stores-open-anyone", &[])
+}
+
+/// Line of the confirmation to let anyone with the store's link join.
+pub fn stores_open_link_new() -> String {
+    text("stores-open-link-new", &[])
+}
+
+/// Line of the confirmation to let anyone with the store's link join.
+pub fn stores_open_members_see() -> String {
+    text("stores-open-members-see", &[])
+}
+
+/// Last line of the confirmation to let anyone with the store's link join.
+pub fn stores_open_keys() -> String {
+    text("stores-open-keys", &[])
+}
+
+/// Line of the confirmation to let only invited people join.
+pub fn stores_close_link() -> String {
+    text("stores-close-link", &[])
+}
+
+/// Line of the confirmation to let only invited people join.
+pub fn stores_close_devices() -> String {
+    text("stores-close-devices", &[])
+}
+
+/// Last line of the confirmation to let only invited people join.
+pub fn stores_close_keys() -> String {
+    text("stores-close-keys", &[])
+}
+
+/// Line of the confirmation to remove one device that joined with the store's link.
+pub fn stores_anonymous_one_stops() -> String {
+    text("stores-anonymous-one-stops", &[])
+}
+
+/// Line of the confirmation to remove all devices that joined with the store's link.
+pub fn stores_anonymous_all_stop() -> String {
+    text("stores-anonymous-all-stop", &[])
+}
+
+/// Line of the confirmation to remove devices that joined with the store's link.
+pub fn stores_anonymous_plugins() -> String {
+    text("stores-anonymous-plugins", &[])
+}
+
+/// Line of the confirmation to remove devices that joined with the store's link.
+pub fn stores_anonymous_still_joins() -> String {
+    text("stores-anonymous-still-joins", &[])
+}
+
+/// Last line of the confirmation to remove devices that joined with the store's link.
+pub fn stores_anonymous_keys() -> String {
+    text("stores-anonymous-keys", &[])
+}
+
+/// Line of the plugin overlay: the hosts the plugin may contact.
+pub fn stores_plugin_may_contact(hosts: &str) -> String {
+    text("stores-plugin-may-contact", &[("hosts", Arg::Text(hosts))])
+}
+
+/// Line of the plugin overlay: what a plugin can never do.
+pub fn stores_plugin_cannot() -> String {
+    text("stores-plugin-cannot", &[])
+}
+
+/// Line of the plugin overlay when an update adds hosts to what the plugin may contact.
+pub fn stores_plugin_update_adds(hosts: &str) -> String {
+    text("stores-plugin-update-adds", &[("hosts", Arg::Text(hosts))])
+}
+
+/// Line of the plugin overlay when a file of the same name is already in the plugin directory. The id is the file name without ".wasm".
+pub fn stores_plugin_added_by_hand_note(id: &str) -> String {
+    text("stores-plugin-added-by-hand-note", &[("id", Arg::Text(id))])
+}
+
+/// Line of the plugin overlay when another store installed the plugin.
+pub fn stores_plugin_other_store_note() -> String {
+    text("stores-plugin-other-store-note", &[])
+}
+
+/// Choice in the plugin overlay: install the plugin.
+pub fn stores_choice_install() -> String {
+    text("stores-choice-install", &[])
+}
+
+/// Choice in the plugin overlay: install the newer version.
+pub fn stores_choice_update(version: &str) -> String {
+    text("stores-choice-update", &[("version", Arg::Text(version))])
+}
+
+/// Choice in the plugin overlay: overwrite the file that was added by hand.
+pub fn stores_choice_replace() -> String {
+    text("stores-choice-replace", &[])
+}
+
+/// Choice in the plugin overlay: delete the plugin from this machine.
+pub fn stores_choice_remove() -> String {
+    text("stores-choice-remove", &[])
+}
+
+/// Choice in the plugin overlay: owners stop offering the plugin in the store.
+pub fn stores_choice_unpublish() -> String {
+    text("stores-choice-unpublish", &[])
+}
+
+/// Choice in the plugin overlay: close without doing anything.
+pub fn stores_choice_cancel() -> String {
+    text("stores-choice-cancel", &[])
+}
+
+/// Tag beside a local plugin in the publish picker when it was never published to the store. Column of about 12 cells.
+pub fn stores_publish_new() -> String {
+    text("stores-publish-new", &[])
+}
+
+/// Tag beside a local plugin in the publish picker when the store has this version.
+pub fn stores_publish_published() -> String {
+    text("stores-publish-published", &[])
+}
+
+/// Tag beside a local plugin in the publish picker when publishing replaces another version.
+pub fn stores_publish_replaces(version: &str) -> String {
+    text("stores-publish-replaces", &[("version", Arg::Text(version))])
+}
+
+/// Toast when a pasted invite checked out but the person is no longer on the store list.
+pub fn stores_toast_invite_checked() -> String {
+    text("stores-toast-invite-checked", &[])
+}
+
+/// Toast when there is no plugin in the plugin directory to publish.
+pub fn stores_toast_nothing_to_publish(command: &str) -> String {
+    text("stores-toast-nothing-to-publish", &[("command", Arg::Text(command))])
+}
+
+/// Toast when the person tries to remove themselves from a store's members.
+pub fn stores_toast_that_is_you() -> String {
+    text("stores-toast-that-is-you", &[])
+}
+
+/// What the terminal says beside a notice that has something to do about it. The key is the one bound to stopping playback, as the key map draws it.
+pub fn hint_stop_playback(key: &str) -> String {
+    text("hint-stop-playback", &[("key", Arg::Text(key))])
+}
+
+/// What the terminal says beside a notice about a { -plugin } update: where to go.
+pub fn hint_open_stores() -> String {
+    text("hint-open-stores", &[])
+}
+
+/// What the terminal says beside the notice that Kitsu signs in from the Accounts screen.
+pub fn hint_kitsu_credentials() -> String {
+    text("hint-kitsu-credentials", &[])
+}
+
+/// Toast when a { -watch-party } is joined.
+pub fn party_joined(room: &str, server: &str) -> String {
+    text("party-joined", &[("room", Arg::Text(room)), ("server", Arg::Text(server))])
+}
+
+/// Toast when the party's episode has no { -source } here. The reason says why.
+pub fn party_no_source_still_in(reason: &str) -> String {
+    text("party-no-source-still-in", &[("reason", Arg::Text(reason))])
+}
+
+/// Status line while the { -source-pl } are rebuilt after a change.
+pub fn status_reloading_sources() -> String {
+    text("status-reloading-sources", &[])
+}
+
+/// Toast when the { -source } pinned for a title can't be used and the others are tried instead.
+pub fn pin_unavailable(name: &str) -> String {
+    text("pin-unavailable", &[("name", Arg::Text(name))])
+}
+
 /// Button that runs a failed action again.
 pub fn action_try_again() -> String {
     text("action-try-again", &[])
@@ -53,6 +4918,56 @@ pub fn action_cancel() -> String {
 /// Button that puts a question off until later.
 pub fn action_not_now() -> String {
     text("action-not-now", &[])
+}
+
+/// A span of time in whole days. The unit letter belongs to the language.
+pub fn duration_days(days: i64) -> String {
+    text("duration-days", &[("days", Arg::Int(days))])
+}
+
+/// A span of time in hours and minutes.
+pub fn duration_hours_minutes(hours: i64, minutes: i64) -> String {
+    text("duration-hours-minutes", &[("hours", Arg::Int(hours)), ("minutes", Arg::Int(minutes))])
+}
+
+/// A span of time in whole hours.
+pub fn duration_hours(hours: i64) -> String {
+    text("duration-hours", &[("hours", Arg::Int(hours))])
+}
+
+/// A span of time in minutes.
+pub fn duration_minutes(minutes: i64) -> String {
+    text("duration-minutes", &[("minutes", Arg::Int(minutes))])
+}
+
+/// A short wait in minutes and seconds. The seconds come with a leading zero.
+pub fn duration_minutes_seconds(minutes: i64, seconds: &str) -> String {
+    text("duration-minutes-seconds", &[("minutes", Arg::Int(minutes)), ("seconds", Arg::Text(seconds))])
+}
+
+/// A short wait in seconds.
+pub fn duration_seconds(seconds: i64) -> String {
+    text("duration-seconds", &[("seconds", Arg::Int(seconds))])
+}
+
+/// A file size in bytes. The number is already formatted.
+pub fn size_byte(value: &str) -> String {
+    text("size-byte", &[("value", Arg::Text(value))])
+}
+
+/// A file size in kilobytes (1,000 bytes). The number is already formatted.
+pub fn size_kilobyte(value: &str) -> String {
+    text("size-kilobyte", &[("value", Arg::Text(value))])
+}
+
+/// A file size in megabytes (1,000,000 bytes). The number is already formatted.
+pub fn size_megabyte(value: &str) -> String {
+    text("size-megabyte", &[("value", Arg::Text(value))])
+}
+
+/// A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.
+pub fn size_gigabyte(value: &str) -> String {
+    text("size-gigabyte", &[("value", Arg::Text(value))])
 }
 
 /// Button that closes a sheet whose changes have already been made.

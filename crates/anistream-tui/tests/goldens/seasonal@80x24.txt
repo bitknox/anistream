@@ -1,6 +1,6 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│    FALL 2026  ──────────────────────────────────────────────────────────
+  ▸│    fall 2026  ──────────────────────────────────────────────────────────
   ▤│    Natsukusa Tanteisha                                                77
 ▌ ▦│    Hotaru Line Kaisoku                                                76
   /│    Kagami Kissa Ruri                                                  75
@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │    Ginga Yuubinkyoku II                                               60
    │  ▌ Komorebi Ryokan II                                                 59
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                               ↵ open   e episodes   ? keys
+plugins · Subbed · 1080p                            ↵ open   e episodes   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -104,7 +104,7 @@ r21 c06-06 fg=obi
 r21 c08-25 fg=text mod=BOLD
 r21 c75-76 fg=text-dim
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c52-52 fg=text
 r23 c53-60 fg=text-dim
 r23 c61-61 fg=text

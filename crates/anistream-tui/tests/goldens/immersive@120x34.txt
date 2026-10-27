@@ -1,14 +1,14 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  CONTINUE               │  ▌ Hoshikuzu no Tabibito   ep 4 · 57%   ░░░░░░░░░░░░░░░░░
-  ▤  CALENDAR               │    Kaze no Tegami            ep 9 out   ░░░░░░░░░░░░░░░░░
-  ▦  SEASONAL               │    Yoru no Toshokan    ep 6 in 2h 41m   ░░░░░░░░░░░░░░░░░
-  /  SEARCH                 │                                         ░░░░░░░░░░░░░░░░░
-  ▥  LIBRARY                │                                         ░░░░░░░░░░░░░░░░░
-  ↓  DOWNLOADS              │                                         ░░░░░░░░░░░░░░░░░
-  ◇  PROVIDERS              │                                         ░░░░░░░░░░░░░░░░░
-  ◎  ACCOUNTS               │                                         ░░░░░░░░░░░░░░░░░
-  ⚙  SETTINGS               │                                         ░░░░░░░░░░░░░░░░░
+▌ ▸  Continue               │  ▌ Hoshikuzu no Tabibito     E4 · 57%   ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │    Yoru no Toshokan      E6 in 2h 41m   ░░░░░░░░░░░░░░░░░
+  /  Search                 │                                         ░░░░░░░░░░░░░░░░░
+  ▥  Library                │                                         ░░░░░░░░░░░░░░░░░
+  ↓  Downloads              │                                         ░░░░░░░░░░░░░░░░░
+  ◇  Sources                │                                         ░░░░░░░░░░░░░░░░░
+  ◎  Accounts               │                                         ░░░░░░░░░░░░░░░░░
+  ⚙  Settings               │                                         ░░░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░░░
@@ -17,21 +17,21 @@ anistream                                                                       
                             │                                         Hoshikuzu no Tabibito
                             │                                         The Stardust Traveller
                             │
-                            │                                         TV  ·  12 EP  ·  2026  ·  84  ·  STUDIO KAWAS…
+                            │                                         TV  ·  12 episodes  ·  2026  ·  84  ·  Studio…
                             │                                         Adventure  ·  Fantasy  ·  Slice of Life
                             │
-                            │                                         ▏ resume ep 4 at 13:32 (57%)
+                            │                                         ▏ Continue E4 at 13:32 (57%)
                             │                                         █████████████▋░░░░░░░░░░
                             │
-                            │                                         ep 4 out 2d 3h ago  ·  ep 5 in 4d 20h
+                            │                                         E4 out 2d 3h ago  ·  E5 in 4d 20h
                             │
                             │                                         A lamplighter on a dying comet rides the last
                             │                                         mail coach between the stars, delivering
                             │                                         letters to towns that may no longer exist.…
                             │
-                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                                       ↵ play   e episodes   ? keys
+plugins · Subbed · 1080p                                                                    ↵ play   e episodes   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text bg=#161a2e mod=BOLD
@@ -54,8 +54,8 @@ r02 c29-30 bg=#161a2e
 r02 c31-31 fg=obi bg=#161a2e
 r02 c32-32 bg=#161a2e
 r02 c33-53 fg=text bg=#161a2e mod=BOLD
-r02 c54-56 bg=#161a2e
-r02 c57-66 fg=state bg=#161a2e
+r02 c54-58 bg=#161a2e
+r02 c59-66 fg=state bg=#161a2e
 r02 c67-69 bg=#161a2e
 r02 c70-86 fg=#434653 bg=#161a2e
 r02 c87-119 bg=#161a2e
@@ -67,8 +67,8 @@ r03 c13-27 bg=#161a2e
 r03 c28-28 fg=#434653 bg=#161a2e
 r03 c29-32 bg=#161a2e
 r03 c33-46 fg=#9298b5 bg=#161a2e
-r03 c47-58 bg=#161a2e
-r03 c59-66 fg=state bg=#161a2e
+r03 c47-60 bg=#161a2e
+r03 c61-66 fg=state bg=#161a2e
 r03 c67-69 bg=#161a2e
 r03 c70-86 fg=#434653 bg=#161a2e
 r03 c87-119 bg=#161a2e
@@ -80,8 +80,8 @@ r04 c13-27 bg=#161a2e
 r04 c28-28 fg=#434653 bg=#161a2e
 r04 c29-32 bg=#161a2e
 r04 c33-48 fg=#9298b5 bg=#161a2e
-r04 c49-52 bg=#161a2e
-r04 c53-66 fg=#9298b5 bg=#161a2e
+r04 c49-54 bg=#161a2e
+r04 c55-66 fg=#9298b5 bg=#161a2e
 r04 c67-69 bg=#161a2e
 r04 c70-86 fg=#434653 bg=#161a2e
 r04 c87-119 bg=#161a2e
@@ -115,8 +115,8 @@ r07 c87-119 bg=#161a2e
 r08 c00-01 bg=#161a2e
 r08 c02-02 fg=#9298b5 bg=#161a2e
 r08 c03-04 bg=#161a2e
-r08 c05-13 fg=#9298b5 bg=#161a2e
-r08 c14-27 bg=#161a2e
+r08 c05-11 fg=#9298b5 bg=#161a2e
+r08 c12-27 bg=#161a2e
 r08 c28-28 fg=#434653 bg=#161a2e
 r08 c29-69 bg=#161a2e
 r08 c70-86 fg=#434653 bg=#161a2e
@@ -205,8 +205,8 @@ r24 c29-119 bg=#161a2e
 r25 c00-27 bg=#161a2e
 r25 c28-28 fg=#434653 bg=#161a2e
 r25 c29-69 bg=#161a2e
-r25 c70-106 fg=state bg=#161a2e
-r25 c107-119 bg=#161a2e
+r25 c70-102 fg=state bg=#161a2e
+r25 c103-119 bg=#161a2e
 r26 c00-27 bg=#161a2e
 r26 c28-28 fg=#434653 bg=#161a2e
 r26 c29-119 bg=#161a2e
@@ -234,11 +234,11 @@ r31 c29-69 bg=#161a2e
 r31 c70-74 fg=obi bg=#161a2e
 r31 c75-89 fg=#434653 bg=#161a2e
 r31 c90-91 bg=#161a2e
-r31 c92-97 fg=#9298b5 bg=#161a2e
-r31 c98-119 bg=#161a2e
+r31 c92-107 fg=#9298b5 bg=#161a2e
+r31 c108-119 bg=#161a2e
 r32 c00-119 fg=#434653 bg=#161a2e
-r33 c00-20 fg=#9298b5 bg=#161a2e
-r33 c21-91 bg=#161a2e
+r33 c00-23 fg=#9298b5 bg=#161a2e
+r33 c24-91 bg=#161a2e
 r33 c92-92 fg=text bg=#161a2e
 r33 c93-100 fg=#9298b5 bg=#161a2e
 r33 c101-101 fg=text bg=#161a2e

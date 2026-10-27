@@ -2,18 +2,18 @@ anistream                                   torrent ○  plugins ·  ·  anilist
 ────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ←  Kaze no Tegami
  ▤ │
- ▦ │    #     TITLE                                   RUN     WATCHED
+ ▦ │    #     Title                                   Run     Watched
  / │  ────────────────────────────────────────────────────────────────────────
- ▥ │    001   Letter No. 1                            24:00   ██████████  done
- ↓ │    002   Letter No. 2                            24:00   ██████████  done
- ◇ │    003   Letter No. 3                            24:00   ██████████  done
- ◎ │    004   Letter No. 4                            24:00   ██████████  done
- ⚙ │    005   Letter No. 5                            24:00   ██████████  done
-   │    006   Letter No. 6                            24:00   ██████████  done
+ ▥ │    001   Letter No. 1                            24:00   ██████████  Done
+ ↓ │    002   Letter No. 2                            24:00   ██████████  Done
+ ◇ │    003   Letter No. 3                            24:00   ██████████  Done
+ ◎ │    004   Letter No. 4                            24:00   ██████████  Done
+ ⚙ │    005   Letter No. 5                            24:00   ██████████  Done
+   │    006   Letter No. 6                            24:00   ██████████  Done
    │  ▌ 007   Letter No. 7                            24:00   ░░░░░░░░░░
    │    008   Letter No. 8                            24:00   ░░░░░░░░░░
    │    009   Letter No. 9                            24:00   ░░░░░░░░░░
-   │    010   —                                       24:00   in 3h 2m
+   │    010   —                                       24:00   In 3h 2m
    │
    │
    │
@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ·  ·  anilist
    │
    │
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p       ↵ add a source to play   u watched   q back   ? keys
+plugins · Subbed · 1080p    ↵ add a source to play   u watched   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -114,7 +114,7 @@ r19 c03-03 fg=rule
 r20 c03-03 fg=rule
 r21 c03-03 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c28-28 fg=text
 r23 c29-52 fg=text-dim
 r23 c53-53 fg=text

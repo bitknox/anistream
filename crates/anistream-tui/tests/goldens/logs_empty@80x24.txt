@@ -1,14 +1,14 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-▌ ▸│  ▌ Hoshikuzu no Tabibito                                      ep 4 · 57%
-  ▤│    Kaze no Tegami                                               ep 9 out
-  ▦│    Yoru no Toshokan                                       ep 6 in 2h 41m
-  /│    Tsuki to Kujira no Uta                                         7 / 12
+▌ ▸│  ▌ Hoshikuzu no Tabibito                                        E4 · 57%
+  ▤│    Kaze no Tegami                                                 E9 out
+  ▦│    Yoru no Toshokan                                         E6 in 2h 41m
+  /│    Tsuki to Kujira no Uta                               7 of 12 episodes
   ▥│
 ────────────────────────────────────────────────────────────────────────────────
-▌ LOGS
+▌ Logs
 ────────────────────────────────────────────────────────────────────────────────
-  nothing logged yet
+  Nothing logged yet
 
    │
    │
@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                  esc close
+plugins · Subbed · 1080p                                               esc close
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=rule mod=BOLD
@@ -55,7 +55,7 @@ r19 c00-79 fg=rule
 r20 c00-79 fg=rule
 r21 c00-79 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
-r23 c21-70 fg=rule
+r23 c00-23 fg=text-dim
+r23 c24-70 fg=rule
 r23 c71-73 fg=text
 r23 c74-79 fg=text-dim

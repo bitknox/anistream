@@ -26,5 +26,5 @@ public static class Lines
     /// the new value, so the apps leave it unsaid; a refusal ("not saved: …") still shows.
     /// </summary>
     public static bool SettingSaved(Notice notice) =>
-        notice.Kind == NoticeKind.Info && notice.Text.StartsWith("saved · ", StringComparison.Ordinal);
+        notice.Kind == NoticeKind.Info && notice.Msg is Msg.NoticeSaved;
 }

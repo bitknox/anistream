@@ -2,9 +2,9 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ←  Tsuki to Kujira no Uta
  ▤ │
- ▦ │  NOTHING MATCHES THE FILTER
+ ▦ │  Nothing matches the filter
  / │
- ▥ │  f cycles it — showing none now
+ ▥ │  The filter hides every episode. Press f to change it.
  ↓ │
  ◇ │
  ◎ │
@@ -20,8 +20,8 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
    │
-────────────────────────────────────────────────────────── ▌ showing unwatched ─
-plugins · sub · 1080p                       ↵ play   u watched   q back   ? keys
+──────────────────────────────────────────────── ▌ Showing unwatched episodes. ─
+plugins · Subbed · 1080p                    ↵ play   u watched   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -45,7 +45,7 @@ r05 c01-01 fg=text-dim
 r05 c03-03 fg=rule
 r06 c01-01 fg=text-dim
 r06 c03-03 fg=rule
-r06 c06-35 fg=text-dim
+r06 c06-58 fg=text-dim
 r07 c01-01 fg=text-dim
 r07 c03-03 fg=rule
 r08 c01-01 fg=text-dim
@@ -65,12 +65,12 @@ r18 c03-03 fg=rule
 r19 c03-03 fg=rule
 r20 c03-03 fg=rule
 r21 c03-03 fg=rule
-r22 c00-57 fg=rule
-r22 c58-58 fg=text
-r22 c59-59 fg=state
-r22 c60-78 fg=text
+r22 c00-47 fg=rule
+r22 c48-48 fg=text
+r22 c49-49 fg=state
+r22 c50-78 fg=text
 r22 c79-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c44-44 fg=text
 r23 c45-52 fg=text-dim
 r23 c53-53 fg=text

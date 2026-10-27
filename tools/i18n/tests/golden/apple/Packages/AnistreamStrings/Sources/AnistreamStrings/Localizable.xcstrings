@@ -25,6 +25,30 @@
         }
       }
     },
+    "cause-disk-full" : {
+      "comment" : "The storage is full.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is no space left. Free some and try again."
+          }
+        }
+      }
+    },
+    "cause-not-writable" : {
+      "comment" : "The file could not be written. Argument 1: path (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is not writable."
+          }
+        }
+      }
+    },
     "match-remembered" : {
       "comment" : "The reasons a match was made. Argument 1: percent (Percent).",
       "extractionState" : "manual",
@@ -33,6 +57,76 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remembered (%1$@) at 100%%"
+          }
+        }
+      }
+    },
+    "notice-done" : {
+      "comment" : "Nothing to say.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done."
+          }
+        }
+      }
+    },
+    "notice-everything" : {
+      "comment" : "Toast with a wait. Argument 1: wait (Seconds). Argument 2: size (Bytes). Argument 3: count (Int). Argument 4: percent (Percent).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One thing in %1$@, %2$@, %4$@%%."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%3$lld things in %1$@, %2$@, %4$@%%."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "notice-not-saved" : {
+      "comment" : "Toast when a setting could not be stored. Argument 1: cause (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save that setting. %1$@"
+          }
+        }
+      }
+    },
+    "notice-saved" : {
+      "comment" : "Toast after a setting is stored. Argument 1: label (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved %1$@."
           }
         }
       }

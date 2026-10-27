@@ -17,7 +17,7 @@ use crate::{
     nav::{Focus, RailWidth, Section},
     theme::{
         Palette, Role,
-        glyph::{self, OBI, RULE_H, RULE_V},
+        glyph::{OBI, RULE_H, RULE_V},
     },
 };
 
@@ -191,7 +191,7 @@ impl Widget for ObiList<'_> {
                 // the way this used to would spend that signal on nothing and leave the
                 // amber cell doing the work alone.
                 (
-                    row.label.to_uppercase(),
+                    row.label.to_owned(),
                     if row.selected {
                         self.palette.style(Role::Text).add_modifier(Modifier::BOLD)
                     } else if row.fresh {
@@ -491,10 +491,9 @@ impl Widget for StatusLine<'_> {
     }
 }
 
-/// A metadata line in caps, interpunct-separated: `TV  ·  28 EP  ·  91`.
+/// A metadata line, interpunct-separated: `TV  ·  28 episodes  ·  91`.
 pub fn meta_line(parts: &[&str]) -> String {
-    let parts: Vec<String> =
-        parts.iter().filter(|p| !p.is_empty()).map(|p| glyph::eyebrow(p)).collect();
+    let parts: Vec<&str> = parts.iter().copied().filter(|p| !p.is_empty()).collect();
     parts.join("  ·  ")
 }
 
@@ -622,12 +621,12 @@ mod tests {
     }
 
     #[test]
-    fn headings_render_as_plain_caps_with_room_for_a_mark() {
+    fn headings_render_as_plain_text_with_room_for_a_mark() {
         let rows = [ObiRow::heading("Continue")];
         let mut buf = buffer(24, 1);
         ObiList::new(&rows, &palette()).render(buf.area, &mut buf);
         let text = row_text(&buf, 0);
-        assert!(text.contains("CONTINUE"), "got {text:?}");
+        assert!(text.contains("Continue"), "got {text:?}");
         assert!(!text.contains("C O N T I N U E"), "headings must not be letterspaced");
     }
 
@@ -644,7 +643,7 @@ mod tests {
         // The mark occupies its own column rather than pushing into the label's space, so a list
         // where only some rows carry one still reads as a column.
         assert_eq!(
-            with_mark.find("CONTINUE").unwrap() - row_text(&b, 0).find("CONTINUE").unwrap(),
+            with_mark.find("Continue").unwrap() - row_text(&b, 0).find("Continue").unwrap(),
             MARK_COLUMN as usize
         );
     }
@@ -701,7 +700,7 @@ mod tests {
             .render(buf.area, &mut buf);
         let first = row_text(&buf, 0);
         assert!(first.contains(Section::Home.glyph()), "mark missing: {first:?}");
-        assert!(first.contains("CONTINUE"), "label missing: {first:?}");
+        assert!(first.contains("Continue"), "label missing: {first:?}");
         // Every section still fits at the rail's real width, marks included.
         for (i, section) in Section::ALL.iter().enumerate() {
             let row = row_text(&buf, i as u16);

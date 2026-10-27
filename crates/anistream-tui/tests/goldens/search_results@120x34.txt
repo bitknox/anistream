@@ -1,14 +1,14 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  FIND no   Action · 2026                       first 50 — narrow the search for the rest
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │    Hoshikuzu no Tabibito           92   ░░░░░░░░░░░░░░░
-▌ /  SEARCH                 │  ▌ Kaze no Tegami                  91   ░░░░░░░░░░░░░░░
-  ▥  LIBRARY                │    Yoru no Toshokan                90   ░░░░░░░░░░░░░░░
-  ↓  DOWNLOADS              │    Tsuki to Kujira no Uta          89   ░░░░░░░░░░░░░░░
-  ◇  PROVIDERS              │    Umibe no Kissaten               86   ░░░░░░░░░░░░░░░
-  ◎  ACCOUNTS               │    Mori no Kajiya                  85   ░░░░░░░░░░░░░░░
-  ⚙  SETTINGS               │    Tetsu no Hanazono               82   ░░░░░░░░░░░░░░░
+  ▸  Continue               │  Find no   Action · 2026                       first 50 — narrow the search for the rest
+  ▤  Calendar               │
+  ▦  Seasonal               │    Hoshikuzu no Tabibito           92   ░░░░░░░░░░░░░░░
+▌ /  Search                 │  ▌ Kaze no Tegami                  91   ░░░░░░░░░░░░░░░
+  ▥  Library                │    Yoru no Toshokan                90   ░░░░░░░░░░░░░░░
+  ↓  Downloads              │    Tsuki to Kujira no Uta          89   ░░░░░░░░░░░░░░░
+  ◇  Sources                │    Umibe no Kissaten               86   ░░░░░░░░░░░░░░░
+  ◎  Accounts               │    Mori no Kajiya                  85   ░░░░░░░░░░░░░░░
+  ⚙  Settings               │    Tetsu no Hanazono               82   ░░░░░░░░░░░░░░░
                             │    Ame Furu Machi no Robotto       81   ░░░░░░░░░░░░░░░
                             │    Kumo no Ue no Gakkou            80   ░░░░░░░░░░░░░░░
                             │    Fuyu no Shika to Tabi           78   ░░░░░░░░░░░░░░░
@@ -16,7 +16,7 @@ anistream                                                                       
                             │    Tanuki Densha Monogatari        73
                             │    Uta no Tou no Majo              70   Kaze no Tegami
                             │
-                            │                                         TV  ·  24 EP  ·  2026  ·  91  ·  ATELIER HOTA…
+                            │                                         TV  ·  24 episodes  ·  2026  ·  91  ·  Atelie…
                             │                                         Comedy
                             │
                             │                                         Kaze no Tegami: a story told in twelve
@@ -31,7 +31,7 @@ anistream                                                                       
                             │
                             │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                                       ↵ open   e episodes   ? keys
+plugins · Subbed · 1080p                                                                    ↵ open   e episodes   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -78,7 +78,7 @@ r07 c33-54 fg=text-dim
 r07 c65-66 fg=text-dim
 r07 c70-84 fg=rule
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r08 c33-49 fg=text-dim
 r08 c65-66 fg=text-dim
@@ -138,7 +138,7 @@ r29 c28-28 fg=rule
 r30 c28-28 fg=rule
 r31 c28-28 fg=rule
 r32 c00-119 fg=rule
-r33 c00-20 fg=text-dim
+r33 c00-23 fg=text-dim
 r33 c92-92 fg=text
 r33 c93-100 fg=text-dim
 r33 c101-101 fg=text

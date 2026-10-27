@@ -1,9 +1,9 @@
 //! Plugin stores: joining one, a store's page and its plugins, its members and invites, and
 //! publishing to it.
 
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
-    notice::Notice,
     stores::{
         InviteLinkView, InvitePreview, InvitedStore, LocalPluginRow, OpenJoinView, Secret,
         StoreInviteRow, StoreMemberRow, StorePluginRow, StorePluginStatus, StoreRow,
@@ -11,7 +11,7 @@ use anistream_model::{
     },
 };
 
-use super::{App, Field};
+use super::{App, Field, alert, info};
 use crate::nav::{Overlay, StageView};
 
 /// A store action waiting for a yes.
@@ -68,16 +68,16 @@ pub enum StoreLine {
 }
 
 impl StoreLine {
-    pub const fn label(self) -> &'static str {
+    pub fn label(self) -> String {
         match self {
-            Self::Plugin(_) => "",
-            Self::LinkDevice => "link another device",
-            Self::Invite => "invite someone",
-            Self::Members => "members",
-            Self::WhoCanJoin => "who can join",
-            Self::Publish => "publish a plugin",
-            Self::Admin => "open the admin page",
-            Self::Leave => "leave this store",
+            Self::Plugin(_) => String::new(),
+            Self::LinkDevice => t::stores_line_link_device(),
+            Self::Invite => t::stores_line_invite(),
+            Self::Members => t::stores_line_members(),
+            Self::WhoCanJoin => t::stores_line_who_can_join(),
+            Self::Publish => t::stores_line_publish(),
+            Self::Admin => t::stores_line_admin(),
+            Self::Leave => t::stores_line_leave(),
         }
     }
 }
@@ -112,12 +112,12 @@ pub enum PluginChoice {
 impl PluginChoice {
     pub fn label(&self) -> String {
         match self {
-            Self::Install => "install".into(),
-            Self::Update(version) => format!("update to {version}"),
-            Self::Replace => "replace the copy added by hand".into(),
-            Self::Remove => "remove from this machine".into(),
-            Self::Unpublish => "stop offering it in this store".into(),
-            Self::Cancel => "cancel".into(),
+            Self::Install => t::stores_choice_install(),
+            Self::Update(version) => t::stores_choice_update(version),
+            Self::Replace => t::stores_choice_replace(),
+            Self::Remove => t::stores_choice_remove(),
+            Self::Unpublish => t::stores_choice_unpublish(),
+            Self::Cancel => t::stores_choice_cancel(),
         }
     }
 }
@@ -207,9 +207,7 @@ impl App {
             // took over would be answering a question the user is not looking at — and an open
             // "leave" or "remove" would quietly become a "join" under the same Enter.
             InvitePreview::Store(_) if !self.in_stores() || self.nav.has_overlay() => {
-                self.push_toast(Notice::info(
-                    "the invite checked out — paste it again to join",
-                ));
+                self.push_toast(info(t::stores_toast_invite_checked()));
             }
             InvitePreview::Store(preview) => {
                 // What the store will call this device, to change before saying yes. Empty for
@@ -219,7 +217,7 @@ impl App {
                 self.nav.open_overlay(Overlay::StoreConfirm);
             }
             InvitePreview::Failed { reason } => {
-                self.push_toast(Notice::alert(reason));
+                self.push_toast(alert(reason));
                 // Back to the prompt with the link still in it, so a link cut short in the
                 // copy can be finished rather than pasted again — when the user is still here.
                 if self.in_stores() && !self.nav.has_overlay() {
@@ -348,9 +346,7 @@ impl App {
             return;
         }
         if plugins.is_empty() {
-            self.push_toast(Notice::info(
-                "no plugins in the plugin directory to publish — `anistream --plugins` shows where it is",
-            ));
+            self.push_toast(info(t::stores_toast_nothing_to_publish("anistream --plugins"))); // i18n-skip
             return;
         }
         self.local_plugins = plugins;
@@ -585,9 +581,7 @@ impl App {
             MemberLine::Member(at) => {
                 let member = self.store_members.get(at)?;
                 if member.you {
-                    self.push_toast(Notice::info(
-                        "that is you — a store always keeps its owner",
-                    ));
+                    self.push_toast(info(t::stores_toast_that_is_you()));
                     return None;
                 }
                 StoreConfirm::RemoveMember {

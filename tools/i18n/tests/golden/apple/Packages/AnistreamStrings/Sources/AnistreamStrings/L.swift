@@ -5,6 +5,32 @@ import Foundation
 
 /// Every string the apps show, by catalogue id. A missing translation falls back to English per string.
 public enum L {
+    /// Toast after a setting is stored.
+    public static func noticeSaved(label: String) -> String {
+        format("notice-saved", fallback: "Saved %1$@.", label)
+    }
+
+    /// Toast when a setting could not be stored.
+    public static func noticeNotSaved(cause: String) -> String {
+        format("notice-not-saved", fallback: "Couldn't save that setting. %1$@", cause)
+    }
+
+    /// Toast with a wait.
+    public static func noticeEverything(wait: String, size: String, count: Int, percent: String) -> String {
+        format("notice-everything", fallback: "%3$lld things in %1$@, %2$@, %4$@%%.", wait, size, count, percent)
+    }
+
+    /// The storage is full.
+    public static var causeDiskFull: String { string("cause-disk-full", fallback: "There is no space left. Free some and try again.") }
+
+    /// The file could not be written.
+    public static func causeNotWritable(path: String) -> String {
+        format("cause-not-writable", fallback: "%1$@ is not writable.", path)
+    }
+
+    /// Nothing to say.
+    public static var noticeDone: String { string("notice-done", fallback: "Done.") }
+
     /// Settings row.
     public static var settingsLanguage: String { string("settings-language", fallback: "Language") }
 

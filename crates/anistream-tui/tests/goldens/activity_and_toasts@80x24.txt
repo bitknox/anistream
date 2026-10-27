@@ -1,6 +1,6 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  █▓▒  LOADING
+  ▸│  █▓▒  Loading…
   ▤│
 ▌ ▦│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   /│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
    │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ─ █▓▒  syncing · AniList asked for a pause, 41s   +2  ▌ tsubame: search t…  +1 ─
-plugins · sub · 1080p                               ↵ open   e episodes   ? keys
+plugins · Subbed · 1080p                            ↵ open   e episodes   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -35,7 +35,7 @@ r01 c00-79 fg=rule
 r02 c02-02 fg=text-dim
 r02 c03-03 fg=rule
 r02 c06-08 fg=obi
-r02 c11-17 fg=text-dim
+r02 c11-18 fg=text-dim
 r03 c02-02 fg=text-dim
 r03 c03-03 fg=rule
 r04 c00-00 fg=text-dim
@@ -93,7 +93,7 @@ r22 c55-73 fg=text
 r22 c74-77 fg=text-dim
 r22 c78-78 fg=text
 r22 c79-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c52-52 fg=text
 r23 c53-60 fg=text-dim
 r23 c61-61 fg=text

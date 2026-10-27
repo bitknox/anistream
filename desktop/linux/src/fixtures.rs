@@ -171,7 +171,8 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
         sync.trackers[at] = tracker.clone();
         sync.anilist = Some(tracker);
     }
-    let stores = plugin_stores::Stores::with_tokens(&config, &paths, tokens)?;
+    let stores =
+        plugin_stores::Stores::with_tokens(&config, &paths, tokens).map_err(|m| m.english())?;
 
     let mut options = EngineOptions::new(paths, config.clone(), http, store, theme());
     options.saved = Some(config);

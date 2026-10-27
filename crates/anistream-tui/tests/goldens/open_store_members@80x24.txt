@@ -1,27 +1,27 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  MEMBERS · HEARTH PLUGINS
+  ▸│  Members · Hearth plugins
   ▤│
-  ▦│    NAME                        ROLE      DEVICES   LAST SEEN
+  ▦│    Name                        Role      Devices   Last seen
   /│  ────────────────────────────────────────────────────────────────────────
-  ▥│    Mirei (you)                 owner     2         just now
-  ↓│    Rin                         member    1         9 days ago
+  ▥│    Mirei (you)                 Owner     2         Just now
+  ↓│    Rin                         Member    1         9 days ago
 ▌ ◇│
-  ◎│  ANYONE WITH THE LINK CAN JOIN · 14 DEVICES JOINED WITH IT
-  ⚙│    the store's link                                show and copy
-   │  ▌ joined today                                    seen just now
-   │    joined 3 days ago                               seen yesterday
-   │    joined 6 days ago                               seen never
-   │    remove all 14
+  ◎│  Anyone with the link can join · 14 devices joined with it
+  ⚙│    The store's link                                Show and copy
+   │  ▌ Joined today                                    Seen just now
+   │    Joined 3 days ago                               Seen yesterday
+   │    Joined 6 days ago                               Not seen yet
+   │    Remove all 14
    │
    │
    │
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    ↵ remove this device, known only by when it joined
+   │    ↵ Remove this device, known only by when it joined
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                   ↵ open   q back   ? keys
+plugins · Subbed · 1080p                                ↵ open   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -77,7 +77,7 @@ r12 c08-24 fg=text
 r12 c56-69 fg=text-dim
 r13 c03-03 fg=rule
 r13 c08-24 fg=text
-r13 c56-65 fg=text-dim
+r13 c56-67 fg=text-dim
 r14 c03-03 fg=rule
 r14 c08-20 fg=text
 r15 c03-03 fg=rule
@@ -90,7 +90,7 @@ r20 c06-77 fg=rule
 r21 c03-03 fg=rule
 r21 c08-57 fg=text-dim
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c56-56 fg=text
 r23 c57-64 fg=text-dim
 r23 c65-65 fg=text

@@ -15,6 +15,24 @@ public static partial class T
     /// <summary>The language the resolver answers in, which picks plural forms. Set with the resolver.</summary>
     public static string Language { get; set; } = "en";
 
+    /// <summary>Toast after a setting is stored.</summary>
+    public static string NoticeSaved(string label) => Fill(Get("NoticeSaved"), ("label", label));
+
+    /// <summary>Toast when a setting could not be stored.</summary>
+    public static string NoticeNotSaved(string cause) => Fill(Get("NoticeNotSaved"), ("cause", cause));
+
+    /// <summary>Toast with a wait.</summary>
+    public static string NoticeEverything(string wait, string size, long count, string percent) => Fill(GetPlural("NoticeEverything", count), ("wait", wait), ("size", size), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("percent", percent));
+
+    /// <summary>The storage is full.</summary>
+    public static string CauseDiskFull => Get("CauseDiskFull");
+
+    /// <summary>The file could not be written.</summary>
+    public static string CauseNotWritable(string path) => Fill(Get("CauseNotWritable"), ("path", path));
+
+    /// <summary>Nothing to say.</summary>
+    public static string NoticeDone => Get("NoticeDone");
+
     /// <summary>Settings row.</summary>
     public static string SettingsLanguage => Get("SettingsLanguage");
 
@@ -46,6 +64,13 @@ public static partial class T
 
     static readonly Dictionary<string, string> English = new()
     {
+        ["NoticeSaved"] = "Saved {label}.",
+        ["NoticeNotSaved"] = "Couldn't save that setting. {cause}",
+        ["NoticeEverything_one"] = "One thing in {wait}, {size}, {percent}%.",
+        ["NoticeEverything_other"] = "{count} things in {wait}, {size}, {percent}%.",
+        ["CauseDiskFull"] = "There is no space left. Free some and try again.",
+        ["CauseNotWritable"] = "{path} is not writable.",
+        ["NoticeDone"] = "Done.",
         ["SettingsLanguage"] = "Language",
         ["QueueLeft_one"] = "One episode left in {title}",
         ["QueueLeft_other"] = "{count} episodes left in {title}",

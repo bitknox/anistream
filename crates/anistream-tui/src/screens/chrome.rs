@@ -2,7 +2,8 @@
 //! and what the screens share — the selection mark, the placeholder a screen draws when it has
 //! nothing to show or no room to show it, and the cell of a fixed-column table.
 
-use anistream_model::{notice::NoticeKind, wording::clock};
+use anistream_i18n::t;
+use anistream_model::notice::NoticeKind;
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
 use crate::{
@@ -34,7 +35,7 @@ pub(super) fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
             S::Failing => (glyph::STATE_DOWN, Role::Alert),
             S::Pending => (glyph::STATE_UNKNOWN, Role::TextDim),
         };
-        chips.push((format!("{source} {mark}"), role));
+        chips.push((format!("{} {}", source, mark), role));
     }
 
     // VPN state sits next to the source it governs. Always shown when torrenting is
@@ -47,7 +48,7 @@ pub(super) fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
     // Only while degraded: a healthy ladder is the resting state and saying so on every frame
     // would be noise. The Providers screen has the detail.
     if app.meta_degraded() {
-        chips.push((format!("meta {}", glyph::STATE_DEGRADED), Role::Alert));
+        chips.push((t::chrome_meta_chip(&glyph::STATE_DEGRADED.to_string()), Role::Alert));
     }
 
     // One chip per tracker, carrying the queue depth — the answer to "did my progress actually
@@ -64,7 +65,9 @@ pub(super) fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
         ));
     }
 
-    Header::new(&app.palette, "anistream").chips(&chips).render(geometry.header, buf);
+    Header::new(&app.palette, "anistream") // i18n-skip: the product name
+        .chips(&chips)
+        .render(geometry.header, buf);
 }
 
 /// The running jobs, newest first, each with how long it has taken, written into the status
@@ -108,7 +111,7 @@ pub(super) fn render_activity(
         // Whatever does not fit is counted rather than cut mid-word; the first job always gets
         // what room there is, because it is the one just asked for.
         let rest = jobs.len() - shown;
-        let more = format!("   +{rest}");
+        let more = format!("   {}", t::chrome_activity_more(rest as i64));
         if shown > 0 && x + width + more.chars().count() as u16 > right {
             let room = right.saturating_sub(x) as usize;
             let (mx, _) =
@@ -128,7 +131,7 @@ pub(super) fn render_activity(
             let (dx, _) = buf.set_stringn(
                 x,
                 area.top(),
-                format!(" · {detail}"),
+                format!(" · {}", detail),
                 room,
                 app.palette.style(Role::TextDim),
             );
@@ -142,12 +145,24 @@ pub(super) fn render_activity(
     x + 1
 }
 
+/// A short wait as the language writes it: `7s`, then `1m 05s`.
+fn clock(span: std::time::Duration) -> String {
+    let secs = span.as_secs().max(1);
+    if secs < 60 {
+        t::duration_seconds(secs as i64)
+    } else {
+        t::duration_minutes_seconds((secs / 60) as i64, &format!("{:02}", secs % 60))
+    }
+}
+
 /// A job's label, and what to say after it: the hold-up and its countdown while it lasts,
 /// otherwise the elapsed time once there is a second of it to show.
 fn job_text(job: &crate::app::Job, now: std::time::Instant) -> (String, Option<String>) {
     let held = job.note.as_ref().and_then(|(note, until)| match until {
         Some(until) if *until <= now => None,
-        Some(until) => Some(format!("{note}, {}", clock(until.saturating_duration_since(now)))),
+        Some(until) => {
+            Some(t::chrome_job_held(note, &clock(until.saturating_duration_since(now))))
+        }
         None => Some(note.clone()),
     });
     let ran = now.saturating_duration_since(job.started);
@@ -168,12 +183,11 @@ pub(super) fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame, help_
         return;
     }
     let state = if app.status.is_empty() {
-        format!(
-            "{} · {} · {}p",
-            app.source_label(),
-            app.settings.translation,
-            app.settings.quality
-        )
+        let audio = match app.settings.translation {
+            anistream_core::media::Translation::Sub => t::audio_subbed(),
+            anistream_core::media::Translation::Dub => t::audio_dubbed(),
+        };
+        t::chrome_status_state(&app.source_label(), &audio, i64::from(app.settings.quality))
     } else {
         app.status.clone()
     };
@@ -224,7 +238,7 @@ pub(super) fn render_placeholder(
     buf.set_string(
         area.left(),
         area.top(),
-        glyph::eyebrow(title),
+        title,
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
     // The note is said as given. It was the tail of "arrives in …", which suited "a moment"
@@ -352,12 +366,15 @@ mod tests {
     fn a_hold_up_is_counted_down_in_place_of_the_runtime() {
         let mut app = app_with(ContentList::Loading);
         let id = running(&mut app, &anistream_model::command::Command::LoadSeasonal, 4);
-        let until = app.clock.now_instant() + std::time::Duration::from_millis(12_400);
         app.apply(Event::JobNote {
             job: id,
-            note: "AniList limit".into(),
+            note: anistream_model::Msg::verbatim("AniList limit"),
             wait: Some(std::time::Duration::from_millis(12_400)),
         });
+        // The deadline the app stored, not one taken beside it: the clock runs between the two,
+        // and rendering the note through the catalogue can take over a millisecond.
+        let until =
+            app.jobs[0].note.as_ref().and_then(|(_, until)| *until).expect("a deadline");
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("loading this season · AniList limit, 12s"), "{text}");
         assert!(!text.contains("· 4s"), "two clocks at once");
@@ -396,7 +413,7 @@ mod tests {
         let buf = render_to_buffer(&mut app, 120, 30);
         let text = text_of(&buf);
         assert!(text.contains("anistream"), "header missing");
-        assert!(text.contains("CONTINUE"), "rail missing");
+        assert!(text.contains("Continue"), "rail missing");
         assert!(text.contains("Hoshikuzu"), "content missing");
         assert!(text.contains('─'), "hairlines missing");
         assert!(text.contains('│'), "divider missing");
@@ -420,11 +437,11 @@ mod tests {
         let mut app = app_with(ContentList::Entries(vec![entry(1, "An Invented Show")]));
         app.notice =
             Some("config.toml line 5: unknown field `qualty` — running on defaults".into());
-        app.push_toast(anistream_model::notice::Notice::info("saved quality"));
+        app.push_toast(crate::app::info("saved quality"));
         for _ in 0..500 {
             app.tick_toasts();
         }
-        app.push_toast(anistream_model::notice::Notice::alert("a passing problem"));
+        app.push_toast(crate::app::alert("a passing problem"));
 
         for section in [Section::Home, Section::Settings, Section::Providers] {
             app.go_to_section(section);
@@ -505,7 +522,7 @@ mod tests {
         app.apply(Event::Vpn(Some(GuardView::Leaking)));
         let leaking = render_to_buffer(&mut app, 120, 20);
         let leaking_text = text_of(&leaking);
-        assert!(leaking_text.contains("LEAK"));
+        assert!(leaking_text.contains("Leaking"));
 
         // And a newly-failing guard interrupts, because torrents have just been paused.
         assert!(
@@ -622,7 +639,7 @@ mod tests {
     #[test]
     fn toasts_appear_and_disappear() {
         let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
-        app.push_toast(anistream_model::notice::Notice::alert("provider unreachable"));
+        app.push_toast(crate::app::alert("provider unreachable"));
         assert!(text_of(&render_to_buffer(&mut app, 120, 30)).contains("provider unreachable"));
 
         for _ in 0..300 {
@@ -639,7 +656,10 @@ mod tests {
         // first one that is not switched off rather than the first in the list.
         let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("plugins · sub · 1080p"), "status line missing state:\n{text}");
+        assert!(
+            text.contains("plugins · Subbed · 1080p"),
+            "status line missing state:\n{text}"
+        );
     }
 
     #[test]
@@ -683,7 +703,7 @@ mod tests {
         let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Settings);
         let before = lines_of(&mut app, 80, 24);
-        app.push_toast(anistream_model::notice::Notice::info("saved · counts as watched at"));
+        app.push_toast(crate::app::info("saved · counts as watched at"));
         let after = lines_of(&mut app, 80, 24);
         let rule = after.len() - 2;
         assert!(after[rule].contains("saved · counts as watched at"), "{after:#?}");
@@ -693,7 +713,7 @@ mod tests {
             }
         }
         // More than one up: the newest, and how many others.
-        app.push_toast(anistream_model::notice::Notice::alert("source unreachable"));
+        app.push_toast(crate::app::alert("source unreachable"));
         let rule_line = lines_of(&mut app, 80, 24)[rule].clone();
         assert!(rule_line.contains("source unreachable  +1"), "{rule_line}");
     }
@@ -703,7 +723,7 @@ mod tests {
         let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Downloads);
         let text = text_of(&render_to_buffer(&mut app, 40, 7));
-        assert!(text.contains("needs a larger terminal"), "{text}");
+        assert!(text.contains("Needs a larger terminal"), "{text}");
         assert!(!text.contains("arrives in"), "{text}");
     }
 

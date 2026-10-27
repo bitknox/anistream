@@ -110,7 +110,8 @@ impl Services {
         // the trackers alike, so a token is read from the keychain once.
         let secrets = host.secrets().unwrap_or_else(|| crate::host::file_secrets(&paths));
         let tokens = TokenStore::over(secrets);
-        let stores = plugin_stores::Stores::with_tokens(config, &paths, tokens.clone())?;
+        let stores = plugin_stores::Stores::with_tokens(config, &paths, tokens.clone())
+            .map_err(|e| e.english())?;
         // Trackers are built whether or not they hold a token: the Accounts overlay needs
         // something to offer a sign-in for, and the outbox accumulates against the id meanwhile.
         let sync = tracking::Sync::with_tokens(config, &store, &http, tokens);

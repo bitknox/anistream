@@ -9,9 +9,9 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ◇│  Kaze no Tegami
   ◎│  Letters on the Wind
   ⚙│
-   │  TV  ·  24 EP  ·  2026  ·  79  ·  ATELIER HOTARU
+   │  TV  ·  24 episodes  ·  2026  ·  79  ·  Atelier Hotaru
    │
-   │  available on  Hikari Stream
+   │  Available on Hikari Stream
    │
    │  A postwoman in a hill town reads the wind for letters nobody sent. When
    │  one arrives addressed to her in her own hand, dated ten years from now,
@@ -19,9 +19,9 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │  Drama  ·  Romance
    │
-   │  █████░░░░░░░░░░░░░░░  6 / 24   ep 7 next
+   │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p             space play next   ↵ episodes   q back   ? keys
+plugins · Subbed · 1080p          space play next   ↵ episodes   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -59,10 +59,10 @@ r09 c06-24 fg=text-dim
 r10 c02-02 fg=text-dim
 r10 c03-03 fg=rule
 r11 c03-03 fg=rule
-r11 c06-52 fg=text-dim
+r11 c06-58 fg=text-dim
 r12 c03-03 fg=rule
 r13 c03-03 fg=rule
-r13 c06-32 fg=state
+r13 c06-31 fg=state
 r14 c03-03 fg=rule
 r15 c03-03 fg=rule
 r15 c06-76 fg=text-dim
@@ -77,9 +77,9 @@ r20 c03-03 fg=rule
 r21 c03-03 fg=rule
 r21 c06-10 fg=obi
 r21 c11-25 fg=rule
-r21 c28-45 fg=text-dim
+r21 c28-64 fg=text-dim
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c34-38 fg=text
 r23 c39-51 fg=text-dim
 r23 c52-52 fg=text

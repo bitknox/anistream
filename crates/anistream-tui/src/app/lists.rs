@@ -1,15 +1,15 @@
 //! The sections' lists: what each one asks for and takes, the calendar's paging back through
 //! time, Search with its filters, the Library's segments, and the Continue list.
 
+use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentFor, ContentList, Entry, Season, TitleAired},
     command::Command,
     event::Event,
-    notice::Notice,
     search::{MediaFormat, SearchQuery, SearchSort},
 };
 
-use super::{App, Cursor, Field};
+use super::{App, Cursor, Field, info};
 use crate::{
     clock::Clock,
     nav::{Focus, Overlay, Section, StageView},
@@ -287,7 +287,7 @@ impl App {
         let at_home_list = self.nav.section() == Section::Home
             && matches!(self.nav.current(), StageView::Section(Section::Home));
         if !at_home_list {
-            self.push_toast(Notice::info("removing works on the Continue list"));
+            self.push_toast(info(t::lists_remove_wrong_list()));
             return None;
         }
         let ContentList::Entries(entries) = &mut self.content else {
@@ -304,10 +304,7 @@ impl App {
         home.offset = home.offset.min(home.selected);
         // Say how to undo, because there is no key for it — the way back is the
         // same thing that put it here.
-        self.push_toast(Notice::info(format!(
-            "{} removed — watching it again brings it back",
-            entry.title
-        )));
+        self.push_toast(info(t::lists_continue_removed(&entry.title)));
         Some(Command::HideFromContinue { id: entry.id })
     }
 
@@ -321,7 +318,7 @@ impl App {
     /// resume. Public for `--preview`, which shows a title page from a list whose Enter plays.
     pub fn open_selected(&mut self) -> Option<Command> {
         let Some(entry) = self.selected_entry().cloned() else {
-            self.push_toast(Notice::info("nothing selected"));
+            self.push_toast(info(t::lists_nothing_selected()));
             return None;
         };
         let id = entry.id;
@@ -574,45 +571,89 @@ impl App {
     }
 }
 
-/// The FILTERS overlay's row labels, in order. The cycling and display functions index against
+/// The filters overlay's row labels, in order. The cycling and display functions index against
 /// this.
 ///
 /// The overlay's rather than the query's own: which rows there are, the words a value is shown in
 /// and the ladder each one steps through are how this screen offers a search. The native apps
 /// offer the rest of the query's filters.
-pub const SEARCH_FILTER_ROWS: [&str; 6] =
-    ["genre", "year", "season", "format", "status", "sort"];
+pub fn search_filter_labels() -> [String; 6] {
+    [
+        t::lists_filter_genre(),
+        t::lists_filter_year(),
+        t::lists_filter_season(),
+        t::lists_filter_format(),
+        t::lists_filter_status(),
+        t::lists_filter_sort(),
+    ]
+}
 
-const SEARCH_SEASONS: [(Season, &str); 4] = [
-    (Season::Winter, "winter"),
-    (Season::Spring, "spring"),
-    (Season::Summer, "summer"),
-    (Season::Fall, "fall"),
+/// How many rows the filters overlay has.
+const SEARCH_FILTER_ROW_COUNT: usize = 6;
+
+const SEARCH_SEASONS: [Season; 4] =
+    [Season::Winter, Season::Spring, Season::Summer, Season::Fall];
+
+// Short-form TV, a few minutes an episode, is its own format on AniList, so a filter without it
+// had no way to find one.
+const SEARCH_FORMATS: [MediaFormat; 7] = [
+    MediaFormat::Tv,
+    MediaFormat::TvShort,
+    MediaFormat::Movie,
+    MediaFormat::Ova,
+    MediaFormat::Ona,
+    MediaFormat::Special,
+    MediaFormat::Music,
 ];
 
-const SEARCH_FORMATS: [(MediaFormat, &str); 7] = [
-    (MediaFormat::Tv, "tv"),
-    // Short-form TV — a few minutes an episode — is its own format on AniList, so a
-    // filter without it had no way to find one.
-    (MediaFormat::TvShort, "tv short"),
-    (MediaFormat::Movie, "movie"),
-    (MediaFormat::Ova, "ova"),
-    (MediaFormat::Ona, "ona"),
-    (MediaFormat::Special, "special"),
-    (MediaFormat::Music, "music"),
-];
-
-const SEARCH_STATUSES: [(anistream_model::catalog::AiringStatus, &str); 3] = {
+const SEARCH_STATUSES: [anistream_model::catalog::AiringStatus; 3] = {
     use anistream_model::catalog::AiringStatus as S;
-    [(S::Releasing, "airing"), (S::Finished, "finished"), (S::NotYetReleased, "upcoming")]
+    [S::Releasing, S::Finished, S::NotYetReleased]
 };
 
-const SEARCH_SORTS: [(SearchSort, &str); 4] = [
-    (SearchSort::Popularity, "popularity"),
-    (SearchSort::Score, "score"),
-    (SearchSort::Trending, "trending"),
-    (SearchSort::Newest, "newest"),
-];
+const SEARCH_SORTS: [SearchSort; 4] =
+    [SearchSort::Popularity, SearchSort::Score, SearchSort::Trending, SearchSort::Newest];
+
+fn season_word(season: Season) -> String {
+    match season {
+        Season::Winter => t::lists_season_winter(),
+        Season::Spring => t::lists_season_spring(),
+        Season::Summer => t::lists_season_summer(),
+        Season::Fall => t::lists_season_fall(),
+    }
+}
+
+fn format_word(format: MediaFormat) -> String {
+    match format {
+        MediaFormat::Tv => t::lists_format_tv(),
+        MediaFormat::TvShort => t::lists_format_tv_short(),
+        MediaFormat::Movie => t::lists_format_movie(),
+        MediaFormat::Ova => t::lists_format_ova(),
+        MediaFormat::Ona => t::lists_format_ona(),
+        MediaFormat::Special => t::lists_format_special(),
+        MediaFormat::Music => t::lists_format_music(),
+    }
+}
+
+fn status_word(status: anistream_model::catalog::AiringStatus) -> Option<String> {
+    use anistream_model::catalog::AiringStatus as S;
+    match status {
+        S::Releasing => Some(t::lists_status_airing()),
+        S::Finished => Some(t::lists_status_finished()),
+        S::NotYetReleased => Some(t::lists_status_upcoming()),
+        _ => None,
+    }
+}
+
+fn sort_word(sort: SearchSort) -> Option<String> {
+    match sort {
+        SearchSort::Popularity => Some(t::lists_sort_popularity()),
+        SearchSort::Score => Some(t::lists_sort_score()),
+        SearchSort::Trending => Some(t::lists_sort_trending()),
+        SearchSort::Newest => Some(t::lists_sort_newest()),
+        _ => None,
+    }
+}
 
 /// Older than any TV anime that streams anywhere; the year cycle stops here.
 const OLDEST_SEARCH_YEAR: u32 = 1970;
@@ -620,32 +661,26 @@ const OLDEST_SEARCH_YEAR: u32 = 1970;
 /// Rows from the end of the results at which the next page is asked for.
 const SEARCH_MORE_MARGIN: usize = 8;
 
-/// The word for `value` among `set`'s.
-fn word<T: PartialEq + Copy>(set: &[(T, &str)], value: Option<T>) -> Option<String> {
-    let value = value?;
-    set.iter().find(|(v, _)| *v == value).map(|(_, word)| (*word).to_owned())
-}
-
 /// What a filter row currently shows: the display form, or "any" when unset.
 pub fn search_filter_value(filter: &SearchQuery, row: usize) -> String {
     match row {
         // A genre is a name, and keeps the casing it has everywhere else it is shown.
         0 => filter.genres.first().cloned(),
         1 => filter.years.single().map(|y| y.to_string()),
-        2 => word(&SEARCH_SEASONS, filter.season),
-        3 => word(&SEARCH_FORMATS, filter.formats.first().copied()),
-        4 => word(&SEARCH_STATUSES, filter.statuses.first().copied()),
+        2 => filter.season.map(season_word),
+        3 => filter.formats.first().copied().map(format_word),
+        4 => filter.statuses.first().copied().and_then(status_word),
         5 => {
-            return word(&SEARCH_SORTS, filter.sort).unwrap_or_else(|| "relevance".into());
+            return filter.sort.and_then(sort_word).unwrap_or_else(t::lists_sort_relevance);
         }
         _ => None,
     }
-    .unwrap_or_else(|| "any".into())
+    .unwrap_or_else(t::lists_filter_any)
 }
 
 /// The set filter values joined for the search prompt line, empty when nothing is.
 pub fn search_filter_summary(filter: &SearchQuery) -> String {
-    (0..SEARCH_FILTER_ROWS.len())
+    (0..SEARCH_FILTER_ROW_COUNT)
         .filter(|row| {
             // "relevance" is the resting state of sort, not a choice worth announcing.
             match row {
@@ -694,21 +729,16 @@ pub fn cycle_search_filter(filter: &mut SearchQuery, row: usize, forward: bool, 
             };
             filter.years = anistream_model::search::Bounds { min: year, max: year };
         }
-        2 => filter.season = step(filter.season, &SEARCH_SEASONS.map(|(s, _)| s), forward),
+        2 => filter.season = step(filter.season, &SEARCH_SEASONS, forward),
         3 => {
-            let next =
-                step(filter.formats.first().copied(), &SEARCH_FORMATS.map(|(f, _)| f), forward);
+            let next = step(filter.formats.first().copied(), &SEARCH_FORMATS, forward);
             filter.formats = next.into_iter().collect();
         }
         4 => {
-            let next = step(
-                filter.statuses.first().copied(),
-                &SEARCH_STATUSES.map(|(s, _)| s),
-                forward,
-            );
+            let next = step(filter.statuses.first().copied(), &SEARCH_STATUSES, forward);
             filter.statuses = next.into_iter().collect();
         }
-        _ => filter.sort = step(filter.sort, &SEARCH_SORTS.map(|(s, _)| s), forward),
+        _ => filter.sort = step(filter.sort, &SEARCH_SORTS, forward),
     }
 }
 
@@ -913,10 +943,10 @@ mod tests {
         let mut filter = SearchQuery::default();
         let clock = Clock::system();
         cycle_search_filter(&mut filter, 3, true, &clock);
-        assert_eq!(search_filter_value(&filter, 3), "tv");
+        assert_eq!(search_filter_value(&filter, 3), "TV");
         cycle_search_filter(&mut filter, 3, true, &clock);
         assert_eq!(filter.formats, [MediaFormat::TvShort]);
-        assert_eq!(search_filter_value(&filter, 3), "tv short");
+        assert_eq!(search_filter_value(&filter, 3), "TV short");
     }
 
     #[test]
@@ -1137,7 +1167,11 @@ mod tests {
         let mut a = app();
         a.handle(Action::Filter, 10);
         assert!(!a.nav.has_overlay());
-        assert!(a.toasts.iter().any(|t| t.notice.text.contains("filters live")));
+        assert!(
+            a.toasts
+                .iter()
+                .any(|t| t.notice.text == anistream_i18n::t::toast_filters_elsewhere())
+        );
     }
 
     #[test]
