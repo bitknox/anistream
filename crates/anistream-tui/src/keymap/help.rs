@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 
-use super::{Action, Binding, Keymap, Scope};
+use super::{Action, Binding, Keymap, Scope, said};
 
 impl Keymap {
     /// The help overlay's content, grouped by scope.
@@ -24,7 +24,7 @@ impl Keymap {
                 .collect();
             numbers.sort_unstable();
             match (numbers.first(), numbers.last()) {
-                (Some(first), Some(last)) if first != last => format!("{first}–{last}"),
+                (Some(first), Some(last)) if first != last => format!("{first}–{last}"), // i18n-skip
                 (Some(only), _) => only.to_string(),
                 _ => String::new(),
             }
@@ -53,7 +53,10 @@ impl Keymap {
                         keys.sort();
                         if matches!(action, Action::JumpSection(_)) {
                             // One row for all of them, so it is labelled for all of them.
-                            return (jump_range.clone(), "Go to section");
+                            return (
+                                jump_range.clone(),
+                                said(anistream_i18n::t::keys_help_jump_section()),
+                            );
                         }
                         let rendered =
                             keys.iter().map(Binding::render).collect::<Vec<_>>().join(" / ");
@@ -80,7 +83,7 @@ mod tests {
             .find(|(s, _)| *s == Scope::Providers)
             .map(|(_, rows)| rows)
             .expect("a PROVIDERS group");
-        assert_eq!(Scope::Providers.heading(), "PROVIDERS");
+        assert_eq!(Scope::Providers.heading(), anistream_i18n::t::keys_scope_sources());
         assert_eq!(
             providers,
             [("K".to_string(), "Move source up"), ("J".to_string(), "Move source down")]
@@ -89,7 +92,10 @@ mod tests {
         assert!(entries.contains(&(Action::RaiseSource, "K".into())), "{entries:?}");
         assert!(entries.contains(&(Action::LowerSource, "J".into())), "{entries:?}");
         assert_eq!(Action::LowerSource.config_key(), "lower_source");
-        assert_eq!(Action::RaiseSource.where_it_works(), "on the Providers screen");
+        assert_eq!(
+            Action::RaiseSource.where_it_works(),
+            anistream_i18n::t::keys_where_sources()
+        );
     }
 
     #[test]

@@ -114,24 +114,24 @@ impl Binding {
     pub fn render(&self) -> String {
         let mut out = String::new();
         if self.modifiers.contains(KeyModifiers::CONTROL) {
-            out.push_str("ctrl+");
+            out.push_str("ctrl+"); // i18n-skip
         }
         if self.modifiers.contains(KeyModifiers::ALT) {
-            out.push_str("alt+");
+            out.push_str("alt+"); // i18n-skip
         }
         match self.code {
-            KeyCode::Char(' ') => out.push_str("space"),
+            KeyCode::Char(' ') => out.push_str("space"), // i18n-skip
             KeyCode::Char(c) => out.push(c),
-            KeyCode::Esc => out.push_str("esc"),
+            KeyCode::Esc => out.push_str("esc"), // i18n-skip
             KeyCode::Enter => out.push('↵'),
-            KeyCode::Tab => out.push_str("tab"),
+            KeyCode::Tab => out.push_str("tab"), // i18n-skip
             KeyCode::Up => out.push('↑'),
             KeyCode::Down => out.push('↓'),
             KeyCode::Left => out.push('←'),
             KeyCode::Right => out.push('→'),
-            KeyCode::PageUp => out.push_str("pgup"),
-            KeyCode::PageDown => out.push_str("pgdn"),
-            other => out.push_str(&format!("{other:?}").to_lowercase()),
+            KeyCode::PageUp => out.push_str("pgup"), // i18n-skip
+            KeyCode::PageDown => out.push_str("pgdn"), // i18n-skip
+            other => out.push_str(&format!("{other:?}").to_lowercase()), // i18n-skip
         }
         out
     }
