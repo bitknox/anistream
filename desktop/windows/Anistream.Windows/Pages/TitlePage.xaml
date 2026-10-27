@@ -55,7 +55,7 @@
                     <MenuFlyout x:Name="StatusMenu" Placement="BottomEdgeAlignedLeft" />
                   </DropDownButton.Flyout>
                 </DropDownButton>
-                <Button Height="40" Width="40" Padding="0" ToolTipService.ToolTip="More" AutomationProperties.Name="More">
+                <Button x:Name="MoreButton" Height="40" Width="40" Padding="0" ToolTipService.ToolTip="More" AutomationProperties.Name="More">
                   <FontIcon Glyph="&#xE712;" />
                   <Button.Flyout>
                     <MenuFlyout x:Name="MoreMenu" Placement="BottomEdgeAlignedLeft">
@@ -67,6 +67,9 @@
                       </MenuFlyoutItem>
                       <MenuFlyoutItem x:Name="PartyItem" Text="Watch together…" Click="OnWatchTogether">
                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE716;" /></MenuFlyoutItem.Icon>
+                      </MenuFlyoutItem>
+                      <MenuFlyoutItem x:Name="SourceItem" Click="OnPickSource">
+                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8FD;" /></MenuFlyoutItem.Icon>
                       </MenuFlyoutItem>
                       <MenuFlyoutSeparator />
                       <MenuFlyoutItem Text="Mark all previous watched" Click="OnMarkPrevious">

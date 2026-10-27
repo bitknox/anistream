@@ -119,6 +119,18 @@ public sealed partial class MainWindow : Window
 #if ANISTREAM_TESTING
             if (options.Showcase && Showcase.Holds(e))
                 return true;
+            // --show=source-unsourced: the title's table, with episodes no source lists.
+            if (options.Show is "source-unsourced" or "source-unsourced-end" && e is Event.Episodes table)
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    var shown = new Event[] { Showcase.Unsourced(table, ctx.Known.Entry(table.Id)?.Progress?.Next ?? 1) };
+                    ctx.Known.Take(shown[0]);
+                    Heard(shown);
+                    ctx.Heard(shown);
+                });
+                return true;
+            }
 #endif
             if (e is not Event.PlayerOps ops)
                 return false;
@@ -394,6 +406,10 @@ public sealed partial class MainWindow : Window
                     break;
                 case Event.Toast t when !Lines.SettingSaved(t.V1):
                     ShowToast(t.V1);
+                    break;
+                case Event.PinUnavailable pin when ctx.Known.SourceChoices.Say(new PinUnavailableNotice(pin.Id, pin.ProviderId, pin.Name)):
+                    // The source kept for a title is off, removed or resting: said once, and the order is used.
+                    ShowToast(InfoBarSeverity.Informational, T.SourcePinUnavailable(pin.Name));
                     break;
                 case Event.DeviceCode code:
                     Pages.DeviceCodeDialog.Heard(Root.XamlRoot, code.V1);
