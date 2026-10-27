@@ -1,19 +1,19 @@
 anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  PROVIDERS
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │    PROVIDER            KIND        STATE           LATENCY
-  /  SEARCH                 │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▥  LIBRARY                │  ▌ fixture             native      ready           0ms
-  ↓  DOWNLOADS              │
-▌ ◇  PROVIDERS              │
-  ◎  ACCOUNTS               │  PLUGIN STORES
-  ⚙  SETTINGS               │    plugins shared by people you know — join with an invite link                  ↵ open
+  ▸  Continue               │  Sources
+  ▤  Calendar               │
+  ▦  Seasonal               │    Source              Kind        State           Latency
+  /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▥  Library                │  ▌ fixture             Built in    Ready           0 ms
+  ↓  Downloads              │
+▌ ◇  Sources                │
+  ◎  Accounts               │  Plugin stores
+  ⚙  Settings               │    Plugins shared by people you know. Join with an invite link.                  ↵ Open
                             │
-                            │  METADATA
+                            │  Metadata
                             │
-                            │    anilist             live
-                            │    tenrai              standby
+                            │    anilist             Live
+                            │    tenrai              Standby
                             │    cache               ready       1 title
                             │
                             │
@@ -31,4 +31,4 @@ anistream                                                                       
                             │
                             │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                                      r refresh   ↵ stores   ? keys
+plugins · Subbed · 1080p                                                            r refresh   ↵ plugin stores   ? keys

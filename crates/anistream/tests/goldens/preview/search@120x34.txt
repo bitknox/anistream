@@ -1,14 +1,14 @@
 anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  FIND hoshikuzu▏
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │  ▌ Stardust Wayfarer           3 / 12   ░░░░░░░░░░░░░░░
-▌ /  SEARCH                 │    Stardust Wayfarer Season 2      84   ░░░░░░░░░░░░░░░
-  ▥  LIBRARY                │                                         ░░░░░░░░░░░░░░░
-  ↓  DOWNLOADS              │                                         ░░░░░░░░░░░░░░░
-  ◇  PROVIDERS              │                                         ░░░░░░░░░░░░░░░
-  ◎  ACCOUNTS               │                                         ░░░░░░░░░░░░░░░
-  ⚙  SETTINGS               │                                         ░░░░░░░░░░░░░░░
+  ▸  Continue               │  Find hoshikuzu▏
+  ▤  Calendar               │
+  ▦  Seasonal               │  ▌ Stardust Wayfarer 3 of 12 episodes   ░░░░░░░░░░░░░░░
+▌ /  Search                 │    Stardust Wayfarer Season 2      84   ░░░░░░░░░░░░░░░
+  ▥  Library                │                                         ░░░░░░░░░░░░░░░
+  ↓  Downloads              │                                         ░░░░░░░░░░░░░░░
+  ◇  Sources                │                                         ░░░░░░░░░░░░░░░
+  ◎  Accounts               │                                         ░░░░░░░░░░░░░░░
+  ⚙  Settings               │                                         ░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░
@@ -17,10 +17,10 @@ anistream                                                                       
                             │                                         Stardust Wayfarer
                             │                                         Hoshikuzu no Tabibito
                             │
-                            │                                         TV  ·  12 EP  ·  2024  ·  82  ·  KUJAKU ANIMA…
+                            │                                         TV  ·  12 episodes  ·  2024  ·  82  ·  Kujaku…
                             │                                         Adventure  ·  Drama  ·  Fantasy
                             │
-                            │                                         ▏ resume ep 4 at 5:00 (21%)
+                            │                                         ▏ Continue E4 at 5:00 (21%)
                             │                                         █████░░░░░░░░░░░░░░░░░░░
                             │
                             │                                         A lamplighter with no memory of her home walks
@@ -29,6 +29,6 @@ anistream                                                                       
                             │                                         town she saves remembers a little of her, and
                             │                                         she, a little less of herself.
                             │
-                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                     ↵ open   ↓ results   ctrl+f filters   esc back
+plugins · Subbed · 1080p                                                  ↵ open   ↓ results   ctrl+f filters   esc back

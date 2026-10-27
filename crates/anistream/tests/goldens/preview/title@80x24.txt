@@ -9,9 +9,9 @@ anistream                                       torrent ○  plugins ·  ·  kit
   ◇│  Stardust Wayfarer
   ◎│  Hoshikuzu no Tabibito
   ⚙│
-   │  TV  ·  12 EP  ·  2024  ·  82  ·  KUJAKU ANIMATION WORKS
+   │  TV  ·  12 episodes  ·  2024  ·  82  ·  Kujaku Animation Works
    │
-   │  available on  Lantern Stream
+   │  Available on Lantern Stream
    │
    │  A lamplighter with no memory of her home walks the old star roads,
    │  relighting the beacons that guide travellers between the towns. Each
@@ -19,6 +19,6 @@ anistream                                       torrent ○  plugins ·  ·  kit
    │
    │  Adventure  ·  Drama  ·  Fantasy
    │
-   │  █████░░░░░░░░░░░░░░░  3 / 12   ep 4 next
+   │  █████░░░░░░░░░░░░░░░  3 of 12 episodes   Up next: episode 4
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p             space play next   ↵ episodes   q back   ? keys
+plugins · Subbed · 1080p          space play next   ↵ episodes   q back   ? keys
