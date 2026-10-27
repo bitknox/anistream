@@ -366,12 +366,15 @@ mod tests {
     fn a_hold_up_is_counted_down_in_place_of_the_runtime() {
         let mut app = app_with(ContentList::Loading);
         let id = running(&mut app, &anistream_model::command::Command::LoadSeasonal, 4);
-        let until = app.clock.now_instant() + std::time::Duration::from_millis(12_400);
         app.apply(Event::JobNote {
             job: id,
             note: anistream_model::Msg::verbatim("AniList limit"),
             wait: Some(std::time::Duration::from_millis(12_400)),
         });
+        // The deadline the app stored, not one taken beside it: the clock runs between the two,
+        // and rendering the note through the catalogue can take over a millisecond.
+        let until =
+            app.jobs[0].note.as_ref().and_then(|(_, until)| *until).expect("a deadline");
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("loading this season · AniList limit, 12s"), "{text}");
         assert!(!text.contains("· 4s"), "two clocks at once");

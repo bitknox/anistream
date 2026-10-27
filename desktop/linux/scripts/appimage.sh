@@ -101,7 +101,7 @@ step() { echo "appimage.sh: $* ($((SECONDS - started)) s)"; }
 
 tool() {
   local key="$1" url="$2" file="$work/tools/$1"
-  curl -fsSL --retry 3 -o "$file" "$url"
+  curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -o "$file" "$url"
   [[ "$(sha256sum "$file" | cut -d' ' -f1)" == "${sums[$key]}" ]] ||
     fail "$url has SHA-256 $(sha256sum "$file" | cut -d' ' -f1), not ${sums[$key]}"
   chmod +x "$file"

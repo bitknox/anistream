@@ -39,7 +39,7 @@ fi
 
 rm -rf "$out"
 mkdir -p "$out"
-curl -fsSL --retry 3 --max-time 300 -o "$out/$file.part" "$url"
+curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 --max-time 300 -o "$out/$file.part" "$url"
 if [[ "$(shasum -a 256 "$out/$file.part" | cut -d' ' -f1)" != "$sha256" ]]; then
   rm -f "$out/$file.part"
   echo "fonts.sh: $url does not match its SHA-256 $sha256" >&2
