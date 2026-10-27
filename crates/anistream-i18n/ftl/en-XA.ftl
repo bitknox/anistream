@@ -633,6 +633,213 @@ notice-episodes-queued =
        *[other] [Ǫüéüéð { $count } éþîšöðéš.~~~~~~]
     }
 
+# Button on a notice that asks to open the plugin stores.
+shell-open-stores = [Öþéñ þļüĝîñ šţöŕéš~~~~~~]
+
+# Button on an update notice that restarts the app to install it.
+shell-restart = [Ŕéšţàŕţ~~~]
+
+# Button on a notice that a newer version is out: opens its page.
+shell-view-release = [Ṽîéŵ~~]
+
+# Notice when the app cannot keep running once its window is closed.
+shell-no-background = [àñîšţŕéàɱ çàñ'ţ ķééþ ŕüññîñĝ îñ ţĥé ƀàçķĝŕöüñð ĥéŕé~~~~~~~~~~~~~~~~]
+
+# Tooltip of the main menu button in the sidebar's header.
+shell-main-menu = [Ṁàîñ ɱéñü~~~]
+
+# Sidebar line under a signed-out account: opens the accounts page to connect a tracker.
+shell-connect-tracker = [Çöññéçţ { $tracker }~~~~]
+
+# Sidebar line under the account when changes wait to be sent to the tracker.
+shell-changes-waiting =
+    { $count ->
+        [one] [Öñé çĥàñĝé ŵàîţîñĝ ţö šýñç~~~~~~~~]
+       *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ ţö šýñç~~~~~~~~~]
+    }
+
+# Sidebar line under the account: the tracker, then that it is up to date.
+shell-tracker-synced = [{ $tracker } · Šýñçéð~~~~]
+
+# Title of the keyboard shortcuts window.
+shortcuts-title = [Ķéýƀöàŕð šĥöŕţçüţš~~~~~~]
+
+# Heading of the shortcuts that work on lists of titles.
+shortcuts-group-lists = [Ļîšţš~~]
+
+# Shortcut: jump to a section of the app by number.
+shortcuts-go-to-section = [Ĝö ţö à šéçţîöñ~~~~~]
+
+# Shortcut: open the keyboard shortcuts window.
+shortcuts-show = [Ķéýƀöàŕð šĥöŕţçüţš~~~~~~]
+
+# Shortcut: close the window.
+shortcuts-close-window = [Çļöšé ţĥé ŵîñðöŵ~~~~~]
+
+# Shortcut: quit the app.
+shortcuts-quit = [Ǫüîţ~~]
+
+# Shortcut: play the title that has focus in a list.
+shortcuts-play-selected = [Þļàý ţĥé šéļéçţéð ţîţļé~~~~~~~]
+
+# Shortcut: open the context menu of the title that has focus.
+shortcuts-context-menu = [Çöñţéẋţ ɱéñü~~~~]
+
+# Shortcut: pause or resume.
+shortcuts-play-pause = [Þļàý öŕ þàüšé~~~~]
+
+# Shortcut: small steps in the player.
+shortcuts-seek-5 = [Ɓàçķ öŕ ƒöŕŵàŕð 5 šéçöñðš~~~~~~~~]
+
+# Shortcut: larger steps in the player.
+shortcuts-seek-30 = [Ɓàçķ öŕ ƒöŕŵàŕð 30 šéçöñðš~~~~~~~~]
+
+# Shortcut: steps of ten seconds in the player.
+shortcuts-seek-10 = [Ɓàçķ öŕ ƒöŕŵàŕð 10 šéçöñðš~~~~~~~~]
+
+# Shortcut: change the volume.
+shortcuts-volume = [Ṽöļüɱé üþ öŕ ðöŵñ~~~~~~]
+
+# Shortcut: mute the sound.
+shortcuts-mute = [Ṁüţé~~]
+
+# Shortcut: skip the opening or the ending.
+shortcuts-skip = [Šķîþ ţĥé öþéñîñĝ öŕ éñðîñĝ~~~~~~~~]
+
+# Shortcut: undo a skip the player made by itself.
+shortcuts-undo-skip = [Ûñðö àñ àüţöɱàţîç šķîþ~~~~~~~]
+
+# Shortcut: move between episodes.
+shortcuts-next-previous = [Ñéẋţ öŕ þŕéṽîöüš éþîšöðé~~~~~~~~]
+
+# Shortcut: change the playback speed.
+shortcuts-speed = [Ƒàšţéŕ öŕ šļöŵéŕ~~~~~]
+
+# Shortcut: answer the card that shows in the corner of the player.
+shortcuts-answer-card = [Åñšŵéŕ ţĥé çàŕð îñ ţĥé çöŕñéŕ~~~~~~~~~]
+
+# Shortcut: Escape closes the topmost thing in the player, one step at a time.
+shortcuts-escape = [Çļöšé à çàŕð, ţĥé ɱîñî þļàýéŕ, ƒüļļ šçŕééñ, ţĥéñ ţĥé þļàýéŕ~~~~~~~~~~~~~~~~~~]
+
+# Response of the close question: stop what runs and close.
+close-stop-and-close = [Šţöþ àñð çļöšé~~~~~]
+
+# Response of the close question: keep it running in the background.
+close-keep-going = [Ķééþ ĝöîñĝ~~~]
+
+# Checkbox of the close question.
+close-dont-ask = [Ðöñ'ţ àšķ àĝàîñ~~~~~]
+
+# Body of the close question when episodes download.
+close-body-downloading =
+    { $count ->
+        [one] [Öñé éþîšöðé îš ðöŵñļöàðîñĝ. Ķééþ îţ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ îţ?~~~~~~~~~~~~~~~~~~~~~~~~]
+       *[other] [{ $count } éþîšöðéš àŕé ðöŵñļöàðîñĝ. Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~~~~~~~~~~]
+    }
+
+# Body of the close question when episodes seed.
+close-body-seeding =
+    { $count ->
+        [one] [Öñé éþîšöðé îš šééðîñĝ. Ķééþ îţ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ îţ?~~~~~~~~~~~~~~~~~~~~~~~]
+       *[other] [{ $count } éþîšöðéš àŕé šééðîñĝ. Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~~~~~~~~]
+    }
+
+# Body of the close question when some episodes download and others seed.
+close-body-both = [Éþîšöðéš: { $downloading } ðöŵñļöàðîñĝ àñð { $seeding } šééðîñĝ. Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Status in the sidebar and on the remote: the TV was not found again.
+tv-status-not-found = [{ $name } ñöţ ƒöüñð~~~~]
+
+# Title of the dialog that wants a code to be typed: no name known yet.
+tv-connecting-title = [Çöññéçţîñĝ ţö ţĥé ŢṼ~~~~~~]
+
+# Heading of a problem when the pairing code ran out.
+tv-code-expired = [Çöðé éẋþîŕéð~~~~]
+
+# Under a TV in the list: what choosing it does, for a screen reader.
+tv-row-pairs-with = [Þàîŕš ŵîţĥ ţĥîš ŢṼ~~~~~~]
+
+# Row title of the button that pairs another TV once one is paired.
+tv-another = [Åñöţĥéŕ ŢṼ~~~]
+
+# Under a TV in the list: paired, but not seen on the network.
+tv-row-away = [Þàîŕéð, ñöţ šééñ öñ ţĥîš ñéţŵöŕķ~~~~~~~~~~]
+
+# Under a TV in the list: found, not paired yet.
+tv-row-new = [Ñöţ þàîŕéð ýéţ~~~~~]
+
+# Under a TV in the list: its version does not match.
+tv-row-needs-update = [Ñééðš ţĥé šàɱé àñîšţŕéàɱ ṽéŕšîöñ àš ţĥîš ðéṽîçé~~~~~~~~~~~~~~~]
+
+# What a screen reader hears when a heading and its problem show together.
+tv-problem-announce = [{ $heading }. { $problem }~~~]
+
+# What a screen reader hears when no TV was found, then what to check.
+tv-none-found-announce = [Ñö ŢṼš ƒöüñð. { $detail }~~~~~~]
+
+# Line on the picker while the episode to play is known: the show, then the episode.
+tv-title-episode = [{ $title }, éþîšöðé { $episode }~~~~~]
+
+# Line under the show on the remote and the picker: which episode.
+tv-episode = [Éþîšöðé { $episode }~~~~]
+
+# Line on the remote under the show: the episode, then its title.
+tv-episode-titled = [Éþîšöðé { $episode } · { $title }~~~~~~]
+
+# Explains the code a TV lists this computer by, above the paired TVs in the settings.
+tv-fingerprint-note = [Å ŢṼ ļîšţš ţĥîš ðéṽîçé ŵîţĥ ţĥé çöðé { $code }. Ƒöŕĝéţ à ŢṼ ĥéŕé àñð îţ ƒöŕĝéţš ţĥîš ðéṽîçé ţöö.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Settings line of a paired TV: paired on a date, last seen a while ago.
+tv-paired-seen = [{ $paired } · šééñ { $ago }~~~~~]
+
+# Settings line of a paired TV: paired on a date, reached in the last minute.
+tv-paired-seen-now = [{ $paired } · šééñ ĵüšţ ñöŵ~~~~~~]
+
+# Title of the remote's volume row.
+tv-volume = [ŢṼ ṽöļüɱé~~~]
+
+# Accessible label of the button that turns the TV down.
+tv-volume-down = [Ṽöļüɱé ðöŵñ~~~~]
+
+# Accessible label of the button that turns the TV up.
+tv-volume-up = [Ṽöļüɱé üþ~~~]
+
+# The TV's volume as a value of 100.
+tv-volume-of = [{ $volume } öƒ 100~~~]
+
+# Accessible name of a track menu: the row, then the track chosen.
+tv-track-choice = [{ $row }, { $track }~~~]
+
+# The pairing code typed did not match.
+tv-problem-wrong-code = [Ţĥàţ çöðé ðîðñ'ţ ɱàţçĥ. Çĥéçķ ţĥé çöðé öñ ţĥé ŢṼ àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~]
+
+# The TV cannot take another paired device.
+tv-problem-full = [Ţĥîš ŢṼ ĥàš àš ɱàñý ðéṽîçéš þàîŕéð àš îţ çàñ ķééþ. Ŕéɱöṽé öñé îñ ţĥé ŢṼ'š šéţţîñĝš, üñðéŕ Ŕéɱöţéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# The TV cannot take another connection now.
+tv-problem-busy = [Ţĥé ŢṼ îš çöññéçţéð ţö àš ɱàñý ðéṽîçéš àš îţ çàñ. Ţŕý àĝàîñ šööñ.~~~~~~~~~~~~~~~~~~~~]
+
+# The TV and this app speak different versions.
+tv-problem-version = [Ţĥé ŢṼ ŕüñš àñöţĥéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ. Ûþðàţé ƀöţĥ ţö ţĥé šàɱé öñé.~~~~~~~~~~~~~~~~~~~~~]
+
+# A command needs something playing and nothing is.
+tv-problem-not-now = [Ñöţĥîñĝ îš þļàýîñĝ öñ ţĥé ŢṼ.~~~~~~~~~]
+
+# The TV has forgotten this computer.
+tv-problem-unpaired = [Ţĥé ŢṼ ðöéšñ'ţ ķñöŵ ţĥîš ðéṽîçé àñý ɱöŕé. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~]
+
+# The TV's key changed since pairing.
+tv-problem-key-changed = [Ţĥé ŢṼ ŵàš ŕéšéţ öŕ ŕéîñšţàļļéð šîñçé ýöü þàîŕéð. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~~~~]
+
+# The TV did not answer.
+tv-problem-unreachable = [Çàñ'ţ ŕéàçĥ ţĥé ŢṼ. Çĥéçķ ţĥàţ îţ'š öñ, ŵîţĥ àñîšţŕéàɱ öþéñ, öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# The TV picked in the list has left the network.
+tv-problem-gone = [Ţĥàţ ŢṼ îš ñö ļöñĝéŕ öñ ţĥé ñéţŵöŕķ.~~~~~~~~~~~]
+
+# What was typed or scanned is not a TV's code or address.
+tv-problem-not-a-link = [Ţĥàţ îšñ'ţ à ŢṼ'š þàîŕîñĝ çöðé öŕ àððŕéšš.~~~~~~~~~~~~~]
+
 # Under a release in the source picker: how many people share it right now.
 source-picker-seeders-linux =
     { $count ->

@@ -1,7 +1,7 @@
 //! The TV sheet, as the Mac's: the picker that finds TVs and pairs with one, the six digits a TV
 //! shows, and the remote for the TV driven. One dialog, which a narrow window shows as a bottom
 //! sheet; its face follows the model. Every word about the link and what went wrong is the
-//! engine's.
+//! catalogue's, chosen here from what the engine says happened.
 
 use std::{
     cell::{Cell, RefCell},
@@ -15,16 +15,16 @@ use anistream_engine::remote::{
         command::{RemoteCommand, Track},
         state::TrackInfo,
     },
-    sender::{LinkPhase, NowCard, TvRow, TvRowKind},
+    sender::{LinkPhase, NowCard, Problem, TvRow, TvRowKind},
 };
+use anistream_i18n::t;
 use anistream_model::hosted::TrackKind;
 use gtk::{gdk, gio, glib};
 
 use super::{Sheet as Shown, Tv};
 use crate::{
-    widgets,
+    say, widgets,
     window::{Ctx, Size},
-    say,
 };
 
 /// The picker says nothing for this long while no TV is listed, as most TVs answer by then.
@@ -138,7 +138,7 @@ impl Dialog {
         stack.add_named(&remote.view, Some("remote"));
         let dialog = adw::Dialog::builder()
             .name("tv")
-            .title("Play on TV")
+            .title(t::tv_play_on())
             .follows_content_size(true)
             .child(&stack)
             .build();
@@ -452,7 +452,8 @@ impl ProblemLine {
         self.heading.set_label(&heading);
         self.heading.set_visible(!heading.is_empty());
         self.text.set_label(&text);
-        let said = if heading.is_empty() { text } else { format!("{heading}. {text}") };
+        let said =
+            if heading.is_empty() { text } else { t::tv_problem_announce(&heading, &text) };
         self.widget.announce(&said, gtk::AccessibleAnnouncementPriority::High);
     }
 }
@@ -479,9 +480,9 @@ struct Picker {
 
 impl Picker {
     fn new() -> Self {
-        let title = adw::WindowTitle::new("Play on TV", "");
+        let title = adw::WindowTitle::new(&t::tv_play_on(), "");
         let (view, header, body) = face(&title);
-        let done = gtk::Button::with_label("Done");
+        let done = gtk::Button::with_label(&t::action_done());
         header.pack_end(&done);
         let line = line();
         body.append(&line);
@@ -499,11 +500,11 @@ impl Picker {
         let spinner = adw::Spinner::new();
         spinner.set_size_request(16, 16);
         looking.append(&spinner);
-        looking.append(&widgets::haze("Looking for TVs on this network", ""));
+        looking.append(&widgets::haze(&t::tv_looking(), ""));
         stages.add_named(&looking, Some("looking"));
         let none = gtk::Box::new(gtk::Orientation::Vertical, 2);
         none.set_valign(gtk::Align::Center);
-        let none_title = gtk::Label::new(Some("No TVs found"));
+        let none_title = gtk::Label::new(Some(&t::tv_none_found()));
         none_title.set_xalign(0.0);
         none.append(&none_title);
         let none_line = widgets::haze("", "caption");
@@ -522,17 +523,17 @@ impl Picker {
         list.append(&searching);
         body.append(&list);
 
-        let type_address = gtk::Button::with_label("Type an Address…");
+        let type_address = gtk::Button::with_label(&t::tv_type_address());
         type_address.set_halign(gtk::Align::Start);
         type_address.set_margin_top(6);
         body.append(&type_address);
         let address = gtk::Entry::builder()
-            .placeholder_text("192.168.1.20:47811")
+            .placeholder_text("192.168.1.20:47811") // i18n-skip
             .input_purpose(gtk::InputPurpose::Url)
             .hexpand(true)
             .build();
-        address.update_property(&[gtk::accessible::Property::Label("TV address")]);
-        let connect = gtk::Button::with_label("Connect");
+        address.update_property(&[gtk::accessible::Property::Label(&t::tv_address())]);
+        let connect = gtk::Button::with_label(&t::tv_connect());
         connect.set_sensitive(false);
         let field = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         field.append(&address);
@@ -540,10 +541,7 @@ impl Picker {
         let address_box = gtk::Box::new(gtk::Orientation::Vertical, 6);
         address_box.set_margin_top(6);
         address_box.append(&field);
-        address_box.append(&widgets::haze(
-            "The TV shows its address on its Pair a phone screen.",
-            "caption",
-        ));
+        address_box.append(&widgets::haze(&t::tv_address_hint(), "caption"));
         address_box.set_visible(false);
         body.append(&address_box);
 
@@ -573,19 +571,20 @@ impl Picker {
 
     fn update(&self, tv: &Tv, came: bool) {
         let request = tv.request();
-        self.title.set_title(if request.is_some() { "Play on TV" } else { "Pair a TV" });
-        self.line.set_label(&match &request {
-            None => {
-                "Open anistream on the TV. It needs to be on the same Wi‑Fi as this computer."
-                    .to_owned()
-            }
-            Some(r) if r.title.is_empty() => format!("Episode {}", r.episode),
-            Some(r) => format!("{}, episode {}", r.title, r.episode),
-        });
-        self.none_line.set_label(if request.is_none() {
-            "Check that anistream is open on the TV."
+        self.title.set_title(&if request.is_some() {
+            t::tv_play_on()
         } else {
-            "Check that anistream is open on the TV, on the same Wi‑Fi as this computer."
+            t::tv_sheet_title_pair()
+        });
+        self.line.set_label(&match &request {
+            None => t::tv_open_on_tv(),
+            Some(r) if r.title.is_empty() => t::tv_episode(&r.episode),
+            Some(r) => t::tv_title_episode(&r.title, &r.episode),
+        });
+        self.none_line.set_label(&if request.is_none() {
+            t::tv_none_found_short()
+        } else {
+            t::tv_none_found_detail()
         });
         if came {
             self.address.set_text("");
@@ -629,7 +628,7 @@ impl Picker {
             self.stages.set_visible_child_name(stage);
             if stage == "none" && empty {
                 self.stages.announce(
-                    &format!("No TVs found. {}", self.none_line.label()),
+                    &t::tv_none_found_announce(&self.none_line.label()),
                     gtk::AccessibleAnnouncementPriority::Medium,
                 );
             }
@@ -641,23 +640,25 @@ impl Picker {
 fn tv_row(row: &TvRow, connected: bool) -> adw::ActionRow {
     let line = adw::ActionRow::builder()
         .title(&row.name)
-        .subtitle(row.kind.detail())
+        .subtitle(super::row_detail(row.kind))
         .use_markup(false)
         .activatable(row.kind != TvRowKind::NeedsUpdate)
         .build();
     line.set_widget_name(&row.key);
     match row.kind {
         TvRowKind::New => {
-            let pair = gtk::Label::new(Some("Pair"));
+            let pair = gtk::Label::new(Some(&t::action_pair()));
             pair.add_css_class("heading");
             line.add_suffix(&pair);
             line.upcast_ref::<gtk::Widget>().update_property(&[
-                gtk::accessible::Property::Description("Pairs with this TV"),
+                gtk::accessible::Property::Description(&t::tv_row_pairs_with()),
             ]);
         }
         TvRowKind::Paired | TvRowKind::PairedAway if connected => {
             let check = gtk::Image::from_icon_name("object-select-symbolic");
-            check.update_property(&[gtk::accessible::Property::Label("Connected")]);
+            check.update_property(&[gtk::accessible::Property::Label(
+                &t::tv_status_connected(),
+            )]);
             line.add_suffix(&check);
         }
         TvRowKind::Paired | TvRowKind::PairedAway => line.add_suffix(&widgets::chevron()),
@@ -678,16 +679,16 @@ struct Pairing {
     code: Rc<CodeBoxes>,
     show_new: gtk::Button,
     problem: ProblemLine,
-    shown_problem: RefCell<Option<String>>,
+    shown_problem: RefCell<Option<Problem>>,
 }
 
 impl Pairing {
     fn new() -> Self {
-        let title = adw::WindowTitle::new("Pair a TV", "");
+        let title = adw::WindowTitle::new(&t::tv_sheet_title_pair(), "");
         let (view, header, body) = face(&title);
-        let back = gtk::Button::with_label("Back");
+        let back = gtk::Button::with_label(&t::action_back());
         header.pack_start(&back);
-        let pair = gtk::Button::with_label("Pair");
+        let pair = gtk::Button::with_label(&t::action_pair());
         pair.add_css_class("suggested-action");
         pair.set_sensitive(false);
         header.pack_end(&pair);
@@ -702,7 +703,7 @@ impl Pairing {
         code.widget.set_margin_top(12);
         code.widget.set_margin_bottom(6);
         body.append(&code.widget);
-        let show_new = gtk::Button::with_label("Show New Code");
+        let show_new = gtk::Button::with_label(&t::action_new_code());
         show_new.set_halign(gtk::Align::Center);
         body.append(&show_new);
         let problem = ProblemLine::new();
@@ -726,18 +727,15 @@ impl Pairing {
         let Some(step) = tv.pairing() else { return };
         let typing = step.needs_code && !step.tv_name.is_empty();
         if typing {
-            self.title.set_title(&format!("Pair with {}", step.tv_name));
-            self.line.set_label(&format!(
-                "Type the six digits {} shows. After this, this computer connects by itself.",
-                step.tv_name
-            ));
+            self.title.set_title(&t::tv_pair_with(&step.tv_name));
+            self.line.set_label(&t::tv_type_code(&step.tv_name));
         } else {
             self.title.set_title(&if step.tv_name.is_empty() {
-                "Connecting to the TV".to_owned()
+                t::tv_connecting_title()
             } else {
-                format!("Pairing with {}", step.tv_name)
+                t::tv_pairing_with(&step.tv_name)
             });
-            self.line.set_label("This takes a moment.");
+            self.line.set_label(&t::tv_pairing_moment());
         }
         // Once a try has failed, the problem says what happened in its place.
         self.line.set_visible(typing || step.working || step.problem.is_none());
@@ -751,7 +749,7 @@ impl Pairing {
         self.code.set_sensitive(!step.working && !expired);
         self.show_new.set_visible(typing);
         self.show_new.set_sensitive(!step.working);
-        self.show_new.set_label(if expired { "Get a New Code" } else { "Show New Code" });
+        self.show_new.set_label(&t::action_new_code());
         if expired {
             self.show_new.add_css_class("suggested-action");
         } else {
@@ -771,7 +769,10 @@ impl Pairing {
         self.pair.set_visible(typing);
         self.pair.set_sensitive(self.code.six().is_some() && !step.working && !expired);
         self.shown_problem.replace(step.problem.clone());
-        self.problem.show(expired.then_some("Code Expired"), step.problem.as_deref());
+        self.problem.show(
+            expired.then(t::tv_code_expired).as_deref(),
+            step.problem.map(super::problem_text).as_deref(),
+        );
         if typing && !step.working && !expired && came {
             self.code.focus();
         }
@@ -810,14 +811,14 @@ impl CodeBoxes {
             boxes.push(digit);
         }
         row.set_can_target(false);
-        row.update_property(&[gtk::accessible::Property::Label("Pairing code")]);
+        row.update_property(&[gtk::accessible::Property::Label(&t::tv_pairing_code())]);
         let text = gtk::Text::builder()
             .input_purpose(gtk::InputPurpose::Digits)
             .max_length(12)
             .opacity(0.0)
             .can_target(false)
             .build();
-        text.update_property(&[gtk::accessible::Property::Label("Pairing code")]);
+        text.update_property(&[gtk::accessible::Property::Label(&t::tv_pairing_code())]);
         let widget = gtk::Overlay::new();
         widget.set_child(Some(&row));
         widget.add_overlay(&text);
@@ -980,7 +981,7 @@ impl Remote {
     fn new() -> Self {
         let title = adw::WindowTitle::new("TV", "");
         let (view, header, body) = face(&title);
-        let done = gtk::Button::with_label("Done");
+        let done = gtk::Button::with_label(&t::action_done());
         header.pack_end(&done);
         let status = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         body.append(&status);
@@ -1003,7 +1004,7 @@ impl Remote {
         episode.set_ellipsize(gtk::pango::EllipsizeMode::End);
         text.append(&episode);
         head.append(&text);
-        let skip = gtk::Button::with_label("Skip Opening");
+        let skip = gtk::Button::with_label(&t::player_skip_opening());
         skip.set_valign(gtk::Align::Center);
         head.append(&skip);
         now.append(&head);
@@ -1012,7 +1013,7 @@ impl Remote {
         seek.set_draw_value(false);
         seek.set_hexpand(true);
         seek.set_increments(10.0, 60.0);
-        seek.update_property(&[gtk::accessible::Property::Label("Position")]);
+        seek.update_property(&[gtk::accessible::Property::Label(&t::player_position())]);
         let times = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let position = widgets::haze("0:00", "caption");
         position.add_css_class("numeric");
@@ -1027,11 +1028,11 @@ impl Remote {
         seek_line.append(&times);
         now.append(&seek_line);
 
-        let back10 = glyph("media-seek-backward-symbolic", "Back 10 Seconds");
-        let play = glyph("media-playback-pause-symbolic", "Pause");
+        let back10 = glyph("media-seek-backward-symbolic", &t::player_back_10());
+        let play = glyph("media-playback-pause-symbolic", &t::action_pause());
         play.add_css_class("tv-play");
-        let forward10 = glyph("media-seek-forward-symbolic", "Forward 10 Seconds");
-        let next = glyph("media-skip-forward-symbolic", "Next Episode");
+        let forward10 = glyph("media-seek-forward-symbolic", &t::player_forward_10());
+        let next = glyph("media-skip-forward-symbolic", &t::player_next_episode());
         let transport = gtk::Box::new(gtk::Orientation::Horizontal, 16);
         transport.set_halign(gtk::Align::Center);
         for button in [&back10, &play, &forward10, &next] {
@@ -1047,22 +1048,22 @@ impl Remote {
             button
         };
         let subtitles = menu_button();
-        subtitles.update_property(&[gtk::accessible::Property::Label("Subtitles")]);
-        let subtitle_row = adw::ActionRow::builder().title("Subtitles").build();
+        subtitles.update_property(&[gtk::accessible::Property::Label(&t::player_subtitles())]);
+        let subtitle_row = adw::ActionRow::builder().title(t::player_subtitles()).build();
         subtitle_row.add_suffix(&subtitles);
         subtitle_row.set_activatable_widget(Some(&subtitles));
         rows.append(&subtitle_row);
         let audio = menu_button();
-        audio.update_property(&[gtk::accessible::Property::Label("Audio")]);
-        let audio_row = adw::ActionRow::builder().title("Audio").build();
+        audio.update_property(&[gtk::accessible::Property::Label(&t::player_audio())]);
+        let audio_row = adw::ActionRow::builder().title(t::player_audio()).build();
         audio_row.add_suffix(&audio);
         audio_row.set_activatable_widget(Some(&audio));
         rows.append(&audio_row);
-        let volume = adw::ActionRow::builder().title("TV Volume").build();
+        let volume = adw::ActionRow::builder().title(t::tv_volume()).build();
         // "40 of 100" in even digits, as the times and the code.
         volume.add_css_class("numeric");
-        let volume_down = glyph("audio-volume-low-symbolic", "Volume Down");
-        let volume_up = glyph("audio-volume-high-symbolic", "Volume Up");
+        let volume_down = glyph("audio-volume-low-symbolic", &t::tv_volume_down());
+        let volume_up = glyph("audio-volume-high-symbolic", &t::tv_volume_up());
         volume.add_suffix(&volume_down);
         volume.add_suffix(&volume_up);
         rows.append(&volume);
@@ -1070,24 +1071,24 @@ impl Remote {
         body.append(&now);
 
         let nothing = line();
-        nothing.set_label("Choose Play on TV on an episode, or search on the TV from here.");
+        nothing.set_label(&t::tv_after_pairing());
         body.append(&nothing);
 
         let search = gtk::Entry::builder()
-            .placeholder_text("Search on the TV")
+            .placeholder_text(t::tv_search_on_tv())
             .primary_icon_name("system-search-symbolic")
             .margin_top(6)
             .build();
-        search.update_property(&[gtk::accessible::Property::Label("Search on the TV")]);
+        search.update_property(&[gtk::accessible::Property::Label(&t::tv_search_on_tv())]);
         body.append(&search);
         let problem = ProblemLine::new();
         body.append(&problem.widget);
 
         let foot = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         foot.set_margin_top(6);
-        let pair_again = gtk::Button::with_label("Pair Again");
-        let another = gtk::Button::with_label("Choose Another TV…");
-        let disconnect = gtk::Button::with_label("Disconnect");
+        let pair_again = gtk::Button::with_label(&t::tv_pair_again());
+        let another = gtk::Button::with_label(&t::tv_choose_another());
+        let disconnect = gtk::Button::with_label(&t::action_disconnect());
         foot.append(&pair_again);
         foot.append(&another);
         foot.append(&disconnect);
@@ -1245,10 +1246,7 @@ impl Remote {
         let live = tv.live();
         let name = card.as_ref().map_or_else(|| "TV".to_owned(), |c| c.tv_name.clone());
         self.title.set_title(&name);
-        let line = card
-            .as_ref()
-            .and_then(|c| c.phase_line.clone())
-            .unwrap_or_else(|| "Connected".to_owned());
+        let line = card.as_ref().and_then(link_line).unwrap_or_else(t::tv_status_connected);
         let mark = match card.as_ref().map(|c| c.phase) {
             Some(LinkPhase::Connected) => "water",
             Some(LinkPhase::Unpaired | LinkPhase::KeyChanged) => "vermilion",
@@ -1276,7 +1274,7 @@ impl Remote {
             self.draw_now(ctx, now, live);
         }
         self.search.set_sensitive(live);
-        self.problem.show(None, tv.problem().as_deref());
+        self.problem.show(None, tv.problem().map(super::problem_text).as_deref());
         let lost = tv.lost();
         self.pair_again.set_visible(lost);
         self.another.set_visible(!lost);
@@ -1295,14 +1293,18 @@ impl Remote {
         }
         let title = ctx.hub.entry(now.id).map_or_else(|| now.title.clone(), |e| e.title);
         self.show.set_label(if now.title.is_empty() { &title } else { &now.title });
-        self.episode.set_label(if now.loading && now.duration.is_none() {
-            "Starting on the TV"
+        self.episode.set_label(&if now.loading && now.duration.is_none() {
+            t::tv_starting()
         } else {
-            &now.episode_line
+            episode_line(now)
         });
         match &now.skip {
             Some(skip) => {
-                self.skip.set_label(&header_case(&skip.label));
+                self.skip.set_label(&if skip.label.ends_with("ending") {
+                    t::player_skip_ending()
+                } else {
+                    t::player_skip_opening()
+                });
                 self.skip.set_visible(true);
             }
             None => self.skip.set_visible(false),
@@ -1311,12 +1313,12 @@ impl Remote {
         let controls = live && !now.loading;
         self.transport.set_sensitive(controls);
         let (icon, tip) = if now.paused {
-            ("media-playback-start-symbolic", "Play")
+            ("media-playback-start-symbolic", t::action_play())
         } else {
-            ("media-playback-pause-symbolic", "Pause")
+            ("media-playback-pause-symbolic", t::action_pause())
         };
         self.play.set_icon_name(icon);
-        self.play.set_tooltip_text(Some(tip));
+        self.play.set_tooltip_text(Some(&tip));
         self.seek.set_sensitive(controls && now.duration.is_some());
         if let Some(duration) = now.duration {
             self.seek.set_range(0.0, duration.max(1.0));
@@ -1345,15 +1347,17 @@ impl Remote {
         self.subtitles.set_label(&subtitle);
         self.audio.set_label(&audio);
         // A screen reader hears the choice with the row's name: "Subtitles, English · Full".
-        self.subtitles.update_property(&[gtk::accessible::Property::Label(&format!(
-            "Subtitles, {subtitle}"
+        self.subtitles.update_property(&[gtk::accessible::Property::Label(
+            &t::tv_track_choice(&t::player_subtitles(), &subtitle),
+        )]);
+        self.audio.update_property(&[gtk::accessible::Property::Label(&t::tv_track_choice(
+            &t::player_audio(),
+            &audio,
         ))]);
-        self.audio
-            .update_property(&[gtk::accessible::Property::Label(&format!("Audio, {audio}"))]);
         self.subtitles.set_sensitive(live && !now.subtitles.is_empty());
         self.audio.set_sensitive(live && !now.audio.is_empty());
         self.volume.set_subtitle(
-            &now.volume.map(|v| format!("{} of 100", v.round() as i64)).unwrap_or_default(),
+            &now.volume.map(|v| t::tv_volume_of(v.round() as i64)).unwrap_or_default(),
         );
         self.volume.set_sensitive(live);
         self.rows.set_opacity(if live { 1.0 } else { 0.6 });
@@ -1407,16 +1411,24 @@ impl Remote {
     }
 }
 
-/// "Skip opening" as a button says it: "Skip Opening".
-fn header_case(label: &str) -> String {
-    label
-        .split(' ')
-        .map(|word| {
-            let mut chars = word.chars();
-            chars.next().map_or_else(String::new, |c| c.to_uppercase().chain(chars).collect())
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
+/// What the card says of the link: its name for the phase, or nothing when it is up.
+fn link_line(card: &anistream_engine::remote::sender::RemoteCard) -> Option<String> {
+    let name = &card.tv_name;
+    match card.phase {
+        LinkPhase::Connected => None,
+        LinkPhase::Connecting => Some(t::tv_status_connecting(name)),
+        LinkPhase::Retrying => Some(t::tv_status_reconnecting(name)),
+        LinkPhase::Unpaired => Some(super::problem_text(Problem::Unpaired)),
+        LinkPhase::KeyChanged => Some(super::problem_text(Problem::KeyChanged)),
+    }
+}
+
+/// The episode on the TV's card: "Episode 5", or "Episode 5 · Title" when the TV knows its title.
+fn episode_line(now: &NowCard) -> String {
+    match now.episode_line.split_once(" \u{b7} ") {
+        Some((_, title)) => t::tv_episode_titled(&now.episode, title),
+        None => t::tv_episode(&now.episode),
+    }
 }
 
 fn kind_of(track: Track) -> TrackKind {
@@ -1438,12 +1450,9 @@ fn track_label(track: &TrackInfo, kind: Track) -> String {
 /// What the menu button says: the track on, "Off", or "None" when the TV says of none.
 fn chosen(tracks: &[TrackInfo], off: bool, kind: Track) -> String {
     if off {
-        return "Off".to_owned();
+        return t::value_off();
     }
-    tracks
-        .iter()
-        .find(|t| t.selected)
-        .map_or_else(|| "None".to_owned(), |t| track_label(t, kind))
+    tracks.iter().find(|t| t.selected).map_or_else(t::value_none, |t| track_label(t, kind))
 }
 
 fn track_menu(tracks: &[TrackInfo], kind: Track) -> gio::Menu {
@@ -1452,7 +1461,7 @@ fn track_menu(tracks: &[TrackInfo], kind: Track) -> gio::Menu {
         Track::Audio => ("tv.audio", gio::Menu::new()),
     };
     if kind == Track::Subtitle {
-        menu.append_item(&widgets::menu_item("Off", action, "off"));
+        menu.append_item(&widgets::menu_item(&t::value_off(), action, "off"));
     }
     for track in tracks {
         menu.append_item(&widgets::menu_item(
@@ -1467,12 +1476,6 @@ fn track_menu(tracks: &[TrackInfo], kind: Track) -> gio::Menu {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn a_skip_reads_in_header_capitals() {
-        assert_eq!(header_case("Skip opening"), "Skip Opening");
-        assert_eq!(header_case("Skip ending"), "Skip Ending");
-    }
 
     #[test]
     fn the_track_button_says_off_none_or_the_track() {

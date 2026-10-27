@@ -633,6 +633,213 @@ notice-episodes-queued =
        *[other] Queued { $count } episodes.
     }
 
+# Button on a notice that asks to open the plugin stores.
+shell-open-stores = Open plugin stores
+
+# Button on an update notice that restarts the app to install it.
+shell-restart = Restart
+
+# Button on a notice that a newer version is out: opens its page.
+shell-view-release = View
+
+# Notice when the app cannot keep running once its window is closed.
+shell-no-background = anistream can't keep running in the background here
+
+# Tooltip of the main menu button in the sidebar's header.
+shell-main-menu = Main menu
+
+# Sidebar line under a signed-out account: opens the accounts page to connect a tracker.
+shell-connect-tracker = Connect { $tracker }
+
+# Sidebar line under the account when changes wait to be sent to the tracker.
+shell-changes-waiting =
+    { $count ->
+        [one] One change waiting to sync
+       *[other] { $count } changes waiting to sync
+    }
+
+# Sidebar line under the account: the tracker, then that it is up to date.
+shell-tracker-synced = { $tracker } · Synced
+
+# Title of the keyboard shortcuts window.
+shortcuts-title = Keyboard shortcuts
+
+# Heading of the shortcuts that work on lists of titles.
+shortcuts-group-lists = Lists
+
+# Shortcut: jump to a section of the app by number.
+shortcuts-go-to-section = Go to a section
+
+# Shortcut: open the keyboard shortcuts window.
+shortcuts-show = Keyboard shortcuts
+
+# Shortcut: close the window.
+shortcuts-close-window = Close the window
+
+# Shortcut: quit the app.
+shortcuts-quit = Quit
+
+# Shortcut: play the title that has focus in a list.
+shortcuts-play-selected = Play the selected title
+
+# Shortcut: open the context menu of the title that has focus.
+shortcuts-context-menu = Context menu
+
+# Shortcut: pause or resume.
+shortcuts-play-pause = Play or pause
+
+# Shortcut: small steps in the player.
+shortcuts-seek-5 = Back or forward 5 seconds
+
+# Shortcut: larger steps in the player.
+shortcuts-seek-30 = Back or forward 30 seconds
+
+# Shortcut: steps of ten seconds in the player.
+shortcuts-seek-10 = Back or forward 10 seconds
+
+# Shortcut: change the volume.
+shortcuts-volume = Volume up or down
+
+# Shortcut: mute the sound.
+shortcuts-mute = Mute
+
+# Shortcut: skip the opening or the ending.
+shortcuts-skip = Skip the opening or ending
+
+# Shortcut: undo a skip the player made by itself.
+shortcuts-undo-skip = Undo an automatic skip
+
+# Shortcut: move between episodes.
+shortcuts-next-previous = Next or previous episode
+
+# Shortcut: change the playback speed.
+shortcuts-speed = Faster or slower
+
+# Shortcut: answer the card that shows in the corner of the player.
+shortcuts-answer-card = Answer the card in the corner
+
+# Shortcut: Escape closes the topmost thing in the player, one step at a time.
+shortcuts-escape = Close a card, the mini player, full screen, then the player
+
+# Response of the close question: stop what runs and close.
+close-stop-and-close = Stop and close
+
+# Response of the close question: keep it running in the background.
+close-keep-going = Keep going
+
+# Checkbox of the close question.
+close-dont-ask = Don't ask again
+
+# Body of the close question when episodes download.
+close-body-downloading =
+    { $count ->
+        [one] One episode is downloading. Keep it going after the window closes, or stop it?
+       *[other] { $count } episodes are downloading. Keep them going after the window closes, or stop them?
+    }
+
+# Body of the close question when episodes seed.
+close-body-seeding =
+    { $count ->
+        [one] One episode is seeding. Keep it going after the window closes, or stop it?
+       *[other] { $count } episodes are seeding. Keep them going after the window closes, or stop them?
+    }
+
+# Body of the close question when some episodes download and others seed.
+close-body-both = Episodes: { $downloading } downloading and { $seeding } seeding. Keep them going after the window closes, or stop them?
+
+# Status in the sidebar and on the remote: the TV was not found again.
+tv-status-not-found = { $name } not found
+
+# Title of the dialog that wants a code to be typed: no name known yet.
+tv-connecting-title = Connecting to the TV
+
+# Heading of a problem when the pairing code ran out.
+tv-code-expired = Code expired
+
+# Under a TV in the list: what choosing it does, for a screen reader.
+tv-row-pairs-with = Pairs with this TV
+
+# Row title of the button that pairs another TV once one is paired.
+tv-another = Another TV
+
+# Under a TV in the list: paired, but not seen on the network.
+tv-row-away = Paired, not seen on this network
+
+# Under a TV in the list: found, not paired yet.
+tv-row-new = Not paired yet
+
+# Under a TV in the list: its version does not match.
+tv-row-needs-update = Needs the same anistream version as this device
+
+# What a screen reader hears when a heading and its problem show together.
+tv-problem-announce = { $heading }. { $problem }
+
+# What a screen reader hears when no TV was found, then what to check.
+tv-none-found-announce = No TVs found. { $detail }
+
+# Line on the picker while the episode to play is known: the show, then the episode.
+tv-title-episode = { $title }, episode { $episode }
+
+# Line under the show on the remote and the picker: which episode.
+tv-episode = Episode { $episode }
+
+# Line on the remote under the show: the episode, then its title.
+tv-episode-titled = Episode { $episode } · { $title }
+
+# Explains the code a TV lists this computer by, above the paired TVs in the settings.
+tv-fingerprint-note = A TV lists this device with the code { $code }. Forget a TV here and it forgets this device too.
+
+# Settings line of a paired TV: paired on a date, last seen a while ago.
+tv-paired-seen = { $paired } · seen { $ago }
+
+# Settings line of a paired TV: paired on a date, reached in the last minute.
+tv-paired-seen-now = { $paired } · seen just now
+
+# Title of the remote's volume row.
+tv-volume = TV volume
+
+# Accessible label of the button that turns the TV down.
+tv-volume-down = Volume down
+
+# Accessible label of the button that turns the TV up.
+tv-volume-up = Volume up
+
+# The TV's volume as a value of 100.
+tv-volume-of = { $volume } of 100
+
+# Accessible name of a track menu: the row, then the track chosen.
+tv-track-choice = { $row }, { $track }
+
+# The pairing code typed did not match.
+tv-problem-wrong-code = That code didn't match. Check the code on the TV and try again.
+
+# The TV cannot take another paired device.
+tv-problem-full = This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.
+
+# The TV cannot take another connection now.
+tv-problem-busy = The TV is connected to as many devices as it can. Try again soon.
+
+# The TV and this app speak different versions.
+tv-problem-version = The TV runs another version of anistream. Update both to the same one.
+
+# A command needs something playing and nothing is.
+tv-problem-not-now = Nothing is playing on the TV.
+
+# The TV has forgotten this computer.
+tv-problem-unpaired = The TV doesn't know this device any more. Pair again.
+
+# The TV's key changed since pairing.
+tv-problem-key-changed = The TV was reset or reinstalled since you paired. Pair again.
+
+# The TV did not answer.
+tv-problem-unreachable = Can't reach the TV. Check that it's on, with anistream open, on the same network.
+
+# The TV picked in the list has left the network.
+tv-problem-gone = That TV is no longer on the network.
+
+# What was typed or scanned is not a TV's code or address.
+tv-problem-not-a-link = That isn't a TV's pairing code or address.
+
 # Under a release in the source picker: how many people share it right now.
 source-picker-seeders-linux =
     { $count ->
