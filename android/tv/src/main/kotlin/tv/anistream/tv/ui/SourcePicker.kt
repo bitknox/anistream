@@ -37,25 +37,30 @@ import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.SourceNote
 import tv.anistream.engine.model.SourceOption
 import tv.anistream.i18n.Strings
+import tv.anistream.engine.core.AnilistId
 import tv.anistream.store.AppStore
 import tv.anistream.store.PickerRow
 import tv.anistream.store.pickerRows
 
 /** The panel for [entry], titled [title] ("Source for this title"). */
 fun sourcePickerSheet(store: AppStore, entry: Entry, title: String): ActionSheet =
-    ActionSheet(title, body = { SourcePickerBody(store, entry) })
+    sourcePickerSheet(store, entry.id, entry.title, title)
+
+/** The same panel for a show known by its [id] and [name], as the show settings open it. */
+fun sourcePickerSheet(store: AppStore, id: AnilistId, name: String, title: String): ActionSheet =
+    ActionSheet(title, body = { SourcePickerBody(store, id, name) })
 
 @Composable
-private fun SourcePickerBody(store: AppStore, entry: Entry) {
+private fun SourcePickerBody(store: AppStore, id: AnilistId, name: String) {
     val host = LocalActions.current
     val context = LocalContext.current
     val options by store.sourceChoices.options.collectAsStateWithLifecycle()
     val asked by store.sourceChoices.asked.collectAsStateWithLifecycle()
-    val listed = options[entry.id]
-    val loading = listed == null && entry.id in asked
-    LaunchedEffect(entry.id) { store.loadSourceOptions(entry.id) }
+    val listed = options[id]
+    val loading = listed == null && id in asked
+    LaunchedEffect(id) { store.loadSourceOptions(id) }
     // An answer that never came is not waited for once the panel is gone.
-    DisposableEffect(entry.id) { onDispose { store.sourceChoices.giveUp(entry.id) } }
+    DisposableEffect(id) { onDispose { store.sourceChoices.giveUp(id) } }
     val rows = pickerRows(listed)
     // Focus starts on Automatic, and moves to the chosen source once the options are there, unless
     // the viewer has already moved on.
@@ -73,7 +78,7 @@ private fun SourcePickerBody(store: AppStore, entry: Entry) {
         chosen.focusSoon()
     }
 
-    Text(entry.title, style = TvTitle.list, color = ObiSilk.Haze, maxLines = 1, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
+    Text(name, style = TvTitle.list, color = ObiSilk.Haze, maxLines = 1, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
     LazyColumn(state = state, verticalArrangement = Arrangement.spacedBy(4.dp), contentPadding = PaddingValues(bottom = 27.dp)) {
         items(rows, key = { it.key }, contentType = { it::class.simpleName }) { row ->
             when (row) {
@@ -81,7 +86,7 @@ private fun SourcePickerBody(store: AppStore, entry: Entry) {
                     Strings.sourcePickerAutomatic(context),
                     onClick = {
                         host?.close()
-                        store.chooseSource(entry.id, null)
+                        store.chooseSource(id, null)
                     },
                     supporting = Strings.sourcePickerAutomaticDetail(context),
                     selected = row.chosen,
@@ -93,7 +98,7 @@ private fun SourcePickerBody(store: AppStore, entry: Entry) {
                     row.option.name,
                     onClick = {
                         host?.close()
-                        store.chooseSource(entry.id, row.option.providerId)
+                        store.chooseSource(id, row.option.providerId)
                     },
                     supporting = SourceWords.detail(context, row.option),
                     selected = row.chosen,
@@ -111,7 +116,7 @@ private fun SourcePickerBody(store: AppStore, entry: Entry) {
                     row.candidate.title,
                     onClick = {
                         host?.close()
-                        store.chooseRelease(entry.id, row.option.providerId, row.candidate)
+                        store.chooseRelease(id, row.option.providerId, row.candidate)
                     },
                     supporting = SourceWords.detail(context, row.candidate),
                     selected = row.chosen,
