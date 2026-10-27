@@ -840,6 +840,283 @@ public enum L {
         Self.format("notice-episodes-queued", fallback: "Queued %1$lld episodes.", count)
     }
 
+    /// Line under the heading of the sources list while the list is built again.
+    public static var sourcesRebuilding: String { string("sources-rebuilding", fallback: "Sources are being set up again…") }
+
+    /// Line under the heading of the sources list on a phone, where the order is changed with Edit.
+    public static var sourcesOrderDetailEdit: String { string("sources-order-detail-edit", fallback: "Sources are tried top to bottom. Tap Edit to change the order.") }
+
+    /// Button that opens the update question for a plugin.
+    public static func sourcesUpdateTo(version: String) -> String {
+        Self.format("sources-update-to", fallback: "Update to %1$@", version)
+    }
+
+    /// Next to a plugin's version: the newer one its store offers.
+    public static func sourcesUpdateAvailableVersion(version: String) -> String {
+        Self.format("sources-update-available-version", fallback: "%1$@ available", version)
+    }
+
+    /// Value of a plugin's response time, in milliseconds.
+    public static func sourcesResponseMs(ms: Int) -> String {
+        Self.format("sources-response-ms", fallback: "%1$lld ms", ms)
+    }
+
+    /// Row label on a plugin's page: the plugin store it came from.
+    public static var storesStoreLabel: String { string("stores-store-label", fallback: "Plugin store") }
+
+    /// Line under a plugin store's key: when its list was last fetched and checked. The time is relative, such as "2 minutes ago".
+    public static func storesCheckedAt(when: String) -> String {
+        Self.format("stores-checked-at", fallback: "Checked %1$@", when)
+    }
+
+    /// Short status of a plugin store: how many plugins have an update.
+    public static func storesUpdatesCount(count: Int) -> String {
+        Self.format("stores-updates-count", fallback: "%1$lld updates", count)
+    }
+
+    /// Line on a plugin's row: the version installed, when an update is offered or the plugin came from here.
+    public static func storesInstalledVersion(version: String) -> String {
+        Self.format("stores-installed-version", fallback: "%1$@ installed", version)
+    }
+
+    /// Number of plugins a plugin store offers, beside its name in the invite preview.
+    public static func storesPluginsCount(count: Int) -> String {
+        Self.format("stores-plugins-count", fallback: "%1$lld plugins", count)
+    }
+
+    /// Number of devices of one member of a plugin store.
+    public static func storesDevicesCount(count: Int) -> String {
+        Self.format("stores-devices-count", fallback: "%1$lld devices", count)
+    }
+
+    /// Line in the replace question: the plugin added by hand is replaced by the store's copy.
+    public static func storesReplaceByHandDetail(version: String, store: String) -> String {
+        Self.format("stores-replace-by-hand-detail", fallback: "Version %1$@ from %2$@ replaces the copy added by hand.", version, store)
+    }
+
+    /// Line under the switch of the who-can-join sheet while anyone with the link can join.
+    public static var storesOpenJoinOnDetail: String { string("stores-open-join-on-detail", fallback: "They join without a name. Turning this off stops the link; turning it on again makes a new one.") }
+
+    /// Line under the switch of the who-can-join sheet while only invited people can join.
+    public static var storesOpenJoinOffDetail: String { string("stores-open-join-off-detail", fallback: "Only people you invite can join. Turned on, anyone with the link joins, without a name.") }
+
+    /// Line under the count of devices that joined with the link, while the link is open.
+    public static var storesOpenJoinNoNames: String { string("stores-open-join-no-names", fallback: "No names are kept.") }
+
+    /// Line under the count of devices that joined with the link, while the link is closed.
+    public static var storesOpenJoinKeepWorking: String { string("stores-open-join-keep-working", fallback: "They keep working until you remove them.") }
+
+    /// Button that removes every device that joined with the link.
+    public static var storesRemoveAll: String { string("stores-remove-all", fallback: "Remove all") }
+
+    /// Line of a device that joined with the link: when it was last seen. The time is relative.
+    public static func storesDeviceSeenAt(when: String) -> String {
+        Self.format("stores-device-seen-at", fallback: "Seen %1$@", when)
+    }
+
+    /// Line of a device that joined with the link and was never seen again.
+    public static var storesDeviceNotSeen: String { string("stores-device-not-seen", fallback: "Not seen since") }
+
+    /// Line of a plugin in the publish sheet: the version the plugin store offers.
+    public static func storesPublishOffered(version: String) -> String {
+        Self.format("stores-publish-offered", fallback: "The plugin store offers %1$@", version)
+    }
+
+    /// Line of a plugin in the publish sheet that the plugin store does not have yet.
+    public static var storesPublishNotYet: String { string("stores-publish-not-yet", fallback: "Not in the plugin store yet") }
+
+    /// Title of the sheet that turns torrents on.
+    public static var torrentsSheetTurnOn: String { string("torrents-sheet-turn-on", fallback: "Turn on torrents") }
+
+    /// Title of the sheet that changes what protects torrents.
+    public static var torrentsSheetProtect: String { string("torrents-sheet-protect", fallback: "Protect torrents") }
+
+    /// Title of the sheet that edits the saved proxy.
+    public static var torrentsSheetEditProxy: String { string("torrents-sheet-edit-proxy", fallback: "Edit proxy") }
+
+    /// Button of the turn-on sheet.
+    public static var torrentsTurnOnButton: String { string("torrents-turn-on-button", fallback: "Turn on") }
+
+    /// Button that opens the sheet that edits the saved proxy.
+    public static var torrentsEditProxy: String { string("torrents-edit-proxy", fallback: "Edit proxy") }
+
+    /// Hint inside the optional proxy fields.
+    public static var torrentsProxyOptional: String { string("torrents-proxy-optional", fallback: "Optional") }
+
+    /// Line under the protection choices: what the connection check does.
+    public static var torrentsCheckNote: String { string("torrents-check-note", fallback: "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.") }
+
+    /// Line under the question that asks whether torrents may keep running when a check fails.
+    public static var torrentsWarnOnlyDetail: String { string("torrents-warn-only-detail", fallback: "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.") }
+
+    /// Notice after the protection was saved.
+    public static var torrentsProtectionSaved: String { string("torrents-protection-saved", fallback: "Torrent protection saved") }
+
+    /// Line naming where the saved proxy is and who it signs in as.
+    public static func torrentsProxyLineUser(address: String, user: String) -> String {
+        Self.format("torrents-proxy-line-user", fallback: "%1$@ · as %2$@", address, user)
+    }
+
+    /// Button that closes the app and leaves the party.
+    public static var partyLeaveAndQuit: String { string("party-leave-and-quit", fallback: "Leave and quit") }
+
+    /// Line under the question when the window is closed while in a party. The room is a name.
+    public static func partyLeaveDetailWindow(room: String) -> String {
+        Self.format("party-leave-detail-window", fallback: "Closing the window leaves %1$@. Everyone else carries on without you.", room)
+    }
+
+    /// Line on the form when the device is offline.
+    public static var partyNeedsConnection: String { string("party-needs-connection", fallback: "A watch party needs a connection. You're offline.") }
+
+    /// Title of the sheet that lists sources for the party's episode. The episode is a number.
+    public static func partyChooseSourceTitle(episode: String) -> String {
+        Self.format("party-choose-source-title", fallback: "Choose a source for episode %1$@", episode)
+    }
+
+    /// Button that opens the sources screen.
+    public static var partyOpenSources: String { string("party-open-sources", fallback: "Open Sources") }
+
+    /// Button that lists what each source has for the episode.
+    public static var partyChooseSource: String { string("party-choose-source", fallback: "Choose a source") }
+
+    /// Button that plays the chosen source with the room.
+    public static var partyPlayWith: String { string("party-play-with", fallback: "Play with the watch party") }
+
+    /// Line while the sources are asked about the episode.
+    public static var partyLookingSources: String { string("party-looking-sources", fallback: "Looking through your sources…") }
+
+    /// Line when no source lists the episode.
+    public static func partyNoSourceLists(episode: String) -> String {
+        Self.format("party-no-source-lists", fallback: "No source lists episode %1$@. Sources come from plugins, which a plugin store adds.", episode)
+    }
+
+    /// Fallback name of a TV that has none.
+    public static var tvGenericName: String { string("tv-generic-name", fallback: "TV") }
+
+    /// Line under the name of a TV in the picker: paired and found on the network.
+    public static var tvRowPaired: String { string("tv-row-paired", fallback: "Paired") }
+
+    /// Line under the name of a TV in the picker: paired, but not found on this network now.
+    public static var tvRowPairedAway: String { string("tv-row-paired-away", fallback: "Paired, not seen on this network") }
+
+    /// Line under the name of a TV in the picker: found, not paired yet.
+    public static var tvRowNotPaired: String { string("tv-row-not-paired", fallback: "Not paired yet") }
+
+    /// Line under the name of a TV in the picker: it runs another version of the app.
+    public static var tvRowNeedsUpdate: String { string("tv-row-needs-update", fallback: "Needs the same anistream version as this device") }
+
+    /// Accessibility hint of a TV's row that pairs.
+    public static var tvRowPairHint: String { string("tv-row-pair-hint", fallback: "Pairs with this TV") }
+
+    /// Line of the sheet picker: what the episode is that is about to play, with its title. The episode is a number.
+    public static func tvPickerTitleEpisode(title: String, episode: String) -> String {
+        Self.format("tv-picker-title-episode", fallback: "%1$@, episode %2$@", title, episode)
+    }
+
+    /// Title of the sheet while the app connects to a TV and its name is not known.
+    public static var tvConnectingGeneric: String { string("tv-connecting-generic", fallback: "Connecting to the TV") }
+
+    /// Title of the section that lists TVs found on the network.
+    public static var tvSectionNetwork: String { string("tv-section-network", fallback: "On this network") }
+
+    /// Title of the section for a TV that is not listed.
+    public static var tvSectionNotListed: String { string("tv-section-not-listed", fallback: "Not listed") }
+
+    /// Button that opens the camera to read the code on the TV.
+    public static var tvScanCode: String { string("tv-scan-code", fallback: "Scan the code on the TV") }
+
+    /// Title of the section over the code boxes on a phone.
+    public static func tvCodeOn(name: String) -> String {
+        Self.format("tv-code-on", fallback: "Code on %1$@", name)
+    }
+
+    /// Title of the remote when nothing plays on the TV.
+    public static var tvNothingPlaying: String { string("tv-nothing-playing", fallback: "Nothing playing") }
+
+    /// Label of the TV's volume.
+    public static var tvVolume: String { string("tv-volume", fallback: "TV volume") }
+
+    /// Accessibility label of the button that lowers the volume.
+    public static var tvVolumeDown: String { string("tv-volume-down", fallback: "Volume down") }
+
+    /// Accessibility label of the button that raises the volume.
+    public static var tvVolumeUp: String { string("tv-volume-up", fallback: "Volume up") }
+
+    /// Value under the TV's volume. The volume is a number from 0 to 100.
+    public static func tvVolumeOf(volume: Int) -> String {
+        Self.format("tv-volume-of", fallback: "%1$lld of 100", volume)
+    }
+
+    /// Accessibility action that opens the remote.
+    public static var tvRemoteAction: String { string("tv-remote-action", fallback: "Show the remote") }
+
+    /// Status of the remote: the link was lost and the TV is not answering any more.
+    public static func tvStatusCantReach(name: String) -> String {
+        Self.format("tv-status-cant-reach", fallback: "Can't reach %1$@. Check that it is on and on the same network.", name)
+    }
+
+    /// Short status of the remote in the toolbar: the TV never answered.
+    public static func tvBarCantReach(name: String) -> String {
+        Self.format("tv-bar-cant-reach", fallback: "Can't reach %1$@", name)
+    }
+
+    /// Short status of the remote in the toolbar: the TV was given up on.
+    public static func tvBarNotFound(name: String) -> String {
+        Self.format("tv-bar-not-found", fallback: "%1$@ not found", name)
+    }
+
+    /// Why a code was not accepted.
+    public static var tvProblemWrongCode: String { string("tv-problem-wrong-code", fallback: "That code didn't match. Check the code on the TV and try again.") }
+
+    /// Why a TV cannot be paired: it keeps as many devices as it can.
+    public static var tvProblemFull: String { string("tv-problem-full", fallback: "This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.") }
+
+    /// Why a TV cannot be connected: too many devices are connected.
+    public static var tvProblemBusy: String { string("tv-problem-busy", fallback: "The TV is connected to as many devices as it can. Try again soon.") }
+
+    /// Why a TV cannot be used: another version of the app.
+    public static var tvProblemVersion: String { string("tv-problem-version", fallback: "The TV runs another version of anistream. Update both to the same one.") }
+
+    /// Why a command was not sent: nothing plays on the TV.
+    public static var tvProblemNotNow: String { string("tv-problem-not-now", fallback: "Nothing is playing on the TV.") }
+
+    /// Status and problem: the TV no longer knows this device.
+    public static var tvProblemUnpaired: String { string("tv-problem-unpaired", fallback: "The TV doesn't know this device any more. Pair again.") }
+
+    /// Status and problem: the TV was reset or reinstalled after pairing.
+    public static var tvProblemKeyChanged: String { string("tv-problem-key-changed", fallback: "The TV was reset or reinstalled since you paired. Pair again.") }
+
+    /// Why a TV could not be reached.
+    public static var tvProblemUnreachable: String { string("tv-problem-unreachable", fallback: "Can't reach the TV. Check that it is on, with anistream open, on the same network.") }
+
+    /// Why a TV could not be used: it left the network.
+    public static var tvProblemGone: String { string("tv-problem-gone", fallback: "That TV is no longer on the network.") }
+
+    /// Why an address or code was not used: it is not a TV's.
+    public static var tvProblemNotALink: String { string("tv-problem-not-a-link", fallback: "That isn't a TV's pairing code or address.") }
+
+    /// Row title in the settings for pairing one more TV when some are paired.
+    public static var tvAnother: String { string("tv-another", fallback: "Another TV") }
+
+    /// Title of the list of paired TVs on a phone.
+    public static var tvPairedTvs: String { string("tv-paired-tvs", fallback: "Paired TVs") }
+
+    /// Title of the page of paired TVs on a phone.
+    public static var tvTitleList: String { string("tv-title-list", fallback: "TVs") }
+
+    /// Line under the settings group of paired TVs. The code is a short fingerprint.
+    public static func tvSettingsFootnote(code: String) -> String {
+        Self.format("tv-settings-footnote", fallback: "A TV lists this device with the code %1$@. Forget a TV here and it forgets this device too.", code)
+    }
+
+    /// Line of a paired TV in the settings: when it was paired and when it was last seen.
+    public static func tvPairedSeen(paired: String, when: String) -> String {
+        Self.format("tv-paired-seen", fallback: "%1$@ · seen %2$@", paired, when)
+    }
+
+    /// Time of the last sighting of a paired TV, within the last minute.
+    public static var tvSeenJustNow: String { string("tv-seen-just-now", fallback: "just now") }
+
     /// Mac menu bar item. Title Case, as Apple's guidelines ask for the menu bar only.
     public static var menuShowLibrary: String { string("menu-show-library", fallback: "Show Library") }
 

@@ -6993,6 +6993,30 @@
         }
       }
     },
+    "party-choose-source" : {
+      "comment" : "Button that lists what each source has for the episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a source"
+          }
+        }
+      }
+    },
+    "party-choose-source-title" : {
+      "comment" : "Title of the sheet that lists sources for the party's episode. The episode is a number. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a source for episode %1$@"
+          }
+        }
+      }
+    },
     "party-connected-encrypted" : {
       "comment" : "Connection line: encrypted.",
       "extractionState" : "manual",
@@ -7257,6 +7281,18 @@
         }
       }
     },
+    "party-leave-and-quit" : {
+      "comment" : "Button that closes the app and leaves the party.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave and quit"
+          }
+        }
+      }
+    },
     "party-leave-detail" : {
       "comment" : "Line under it. The room is a name. Argument 1: room (Text).",
       "extractionState" : "manual",
@@ -7265,6 +7301,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Closing anistream leaves %1$@. Everyone else carries on without you."
+          }
+        }
+      }
+    },
+    "party-leave-detail-window" : {
+      "comment" : "Line under the question when the window is closed while in a party. The room is a name. Argument 1: room (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Closing the window leaves %1$@. Everyone else carries on without you."
           }
         }
       }
@@ -7325,6 +7373,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "That party link is missing its server, room or episode."
+          }
+        }
+      }
+    },
+    "party-looking-sources" : {
+      "comment" : "Line while the sources are asked about the episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking through your sources…"
           }
         }
       }
@@ -7401,6 +7461,18 @@
         }
       }
     },
+    "party-needs-connection" : {
+      "comment" : "Line on the form when the device is offline.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A watch party needs a connection. You're offline."
+          }
+        }
+      }
+    },
     "party-needs-room" : {
       "comment" : "Message when a watch party was asked for with no room named.",
       "extractionState" : "manual",
@@ -7421,6 +7493,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose a server for the watch party first, as syncplay.server. %1$@ is run by %2$@."
+          }
+        }
+      }
+    },
+    "party-no-source-lists" : {
+      "comment" : "Line when no source lists the episode. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No source lists episode %1$@. Sources come from plugins, which a plugin store adds."
           }
         }
       }
@@ -7521,6 +7605,18 @@
         }
       }
     },
+    "party-open-sources" : {
+      "comment" : "Button that opens the sources screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Sources"
+          }
+        }
+      }
+    },
     "party-other-app" : {
       "comment" : "Heading in the panel for people using another app.",
       "extractionState" : "manual",
@@ -7541,6 +7637,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Server %1$@. Room %2$@."
+          }
+        }
+      }
+    },
+    "party-play-with" : {
+      "comment" : "Button that plays the chosen source with the room.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play with the watch party"
           }
         }
       }
@@ -11631,6 +11739,18 @@
         }
       }
     },
+    "sources-order-detail-edit" : {
+      "comment" : "Line under the heading of the sources list on a phone, where the order is changed with Edit.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sources are tried top to bottom. Tap Edit to change the order."
+          }
+        }
+      }
+    },
     "sources-order-detail-show" : {
       "comment" : "Line under the heading on a phone, where a show can keep its own.",
       "extractionState" : "manual",
@@ -11727,6 +11847,18 @@
         }
       }
     },
+    "sources-rebuilding" : {
+      "comment" : "Line under the heading of the sources list while the list is built again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sources are being set up again…"
+          }
+        }
+      }
+    },
     "sources-reloaded-torrents-off" : {
       "comment" : "Note on the sources screen after the source chain is rebuilt with torrents off.",
       "extractionState" : "manual",
@@ -11783,6 +11915,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Replace %1$@?"
+          }
+        }
+      }
+    },
+    "sources-response-ms" : {
+      "comment" : "Value of a plugin's response time, in milliseconds. Argument 1: ms (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld ms"
           }
         }
       }
@@ -11895,6 +12039,18 @@
         }
       }
     },
+    "sources-update-available-version" : {
+      "comment" : "Next to a plugin's version: the newer one its store offers. Argument 1: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ available"
+          }
+        }
+      }
+    },
     "sources-update-contacts" : {
       "comment" : "Line: an update adds several hosts. The count is the hosts after the first. Argument 1: first (Text). Argument 2: more (Int).",
       "extractionState" : "manual",
@@ -11961,6 +12117,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Update %1$@?"
+          }
+        }
+      }
+    },
+    "sources-update-to" : {
+      "comment" : "Button that opens the update question for a plugin. Argument 1: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update to %1$@"
           }
         }
       }
@@ -12719,6 +12887,18 @@
         }
       }
     },
+    "stores-checked-at" : {
+      "comment" : "Line under a plugin store's key: when its list was last fetched and checked. The time is relative, such as \"2 minutes ago\". Argument 1: when (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checked %1$@"
+          }
+        }
+      }
+    },
     "stores-checking-link" : {
       "comment" : "Line while the link is checked.",
       "extractionState" : "manual",
@@ -12803,6 +12983,64 @@
         }
       }
     },
+    "stores-device-not-seen" : {
+      "comment" : "Line of a device that joined with the link and was never seen again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not seen since"
+          }
+        }
+      }
+    },
+    "stores-device-seen-at" : {
+      "comment" : "Line of a device that joined with the link: when it was last seen. The time is relative. Argument 1: when (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seen %1$@"
+          }
+        }
+      }
+    },
+    "stores-devices-count" : {
+      "comment" : "Number of devices of one member of a plugin store. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One device"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld devices"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "stores-devices-joined" : {
       "comment" : "Line over the list of devices that joined with the link. Argument 1: count (Int).",
       "extractionState" : "manual",
@@ -12869,6 +13107,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Install %1$@"
+          }
+        }
+      }
+    },
+    "stores-installed-version" : {
+      "comment" : "Line on a plugin's row: the version installed, when an update is offered or the plugin came from here. Argument 1: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ installed"
           }
         }
       }
@@ -13519,6 +13769,54 @@
         }
       }
     },
+    "stores-open-join-keep-working" : {
+      "comment" : "Line under the count of devices that joined with the link, while the link is closed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "They keep working until you remove them."
+          }
+        }
+      }
+    },
+    "stores-open-join-no-names" : {
+      "comment" : "Line under the count of devices that joined with the link, while the link is open.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No names are kept."
+          }
+        }
+      }
+    },
+    "stores-open-join-off-detail" : {
+      "comment" : "Line under the switch of the who-can-join sheet while only invited people can join.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only people you invite can join. Turned on, anyone with the link joins, without a name."
+          }
+        }
+      }
+    },
+    "stores-open-join-on-detail" : {
+      "comment" : "Line under the switch of the who-can-join sheet while anyone with the link can join.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "They join without a name. Turning this off stops the link; turning it on again makes a new one."
+          }
+        }
+      }
+    },
     "stores-open-store" : {
       "comment" : "Button that opens a store that was joined already.",
       "extractionState" : "manual",
@@ -13711,6 +14009,40 @@
         }
       }
     },
+    "stores-plugins-count" : {
+      "comment" : "Number of plugins a plugin store offers, beside its name in the invite preview. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One plugin"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld plugins"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "stores-publish-menu" : {
       "comment" : "Menu item: publish a plugin.",
       "extractionState" : "manual",
@@ -13735,6 +14067,30 @@
         }
       }
     },
+    "stores-publish-not-yet" : {
+      "comment" : "Line of a plugin in the publish sheet that the plugin store does not have yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not in the plugin store yet"
+          }
+        }
+      }
+    },
+    "stores-publish-offered" : {
+      "comment" : "Line of a plugin in the publish sheet: the version the plugin store offers. Argument 1: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin store offers %1$@"
+          }
+        }
+      }
+    },
     "stores-publish-title" : {
       "comment" : "Title of the publish sheet. Argument 1: name (Text).",
       "extractionState" : "manual",
@@ -13755,6 +14111,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scan the QR code with your phone, then paste the plugin store's invite link on the page that opens."
+          }
+        }
+      }
+    },
+    "stores-remove-all" : {
+      "comment" : "Button that removes every device that joined with the link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove all"
           }
         }
       }
@@ -13839,6 +14207,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove %1$@?"
+          }
+        }
+      }
+    },
+    "stores-replace-by-hand-detail" : {
+      "comment" : "Line in the replace question: the plugin added by hand is replaced by the store's copy. Argument 1: version (Text). Argument 2: store (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %1$@ from %2$@ replaces the copy added by hand."
           }
         }
       }
@@ -13935,6 +14315,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Offline"
+          }
+        }
+      }
+    },
+    "stores-store-label" : {
+      "comment" : "Row label on a plugin's page: the plugin store it came from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plugin store"
           }
         }
       }
@@ -14043,6 +14435,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Update %1$@ to %2$@"
+          }
+        }
+      }
+    },
+    "stores-updates-count" : {
+      "comment" : "Short status of a plugin store: how many plugins have an update. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One update"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld updates"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -14635,6 +15061,18 @@
         }
       }
     },
+    "torrents-check-note" : {
+      "comment" : "Line under the protection choices: what the connection check does.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you."
+          }
+        }
+      }
+    },
     "torrents-check-now" : {
       "comment" : "Button that runs the check.",
       "extractionState" : "manual",
@@ -14739,6 +15177,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Checking the proxy…"
+          }
+        }
+      }
+    },
+    "torrents-edit-proxy" : {
+      "comment" : "Button that opens the sheet that edits the saved proxy.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit proxy"
           }
         }
       }
@@ -15223,6 +15673,18 @@
         }
       }
     },
+    "torrents-protection-saved" : {
+      "comment" : "Notice after the protection was saved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrent protection saved"
+          }
+        }
+      }
+    },
     "torrents-proxy-host" : {
       "comment" : "Label of the proxy host field.",
       "extractionState" : "manual",
@@ -15259,6 +15721,18 @@
         }
       }
     },
+    "torrents-proxy-line-user" : {
+      "comment" : "Line naming where the saved proxy is and who it signs in as. Argument 1: address (Text). Argument 2: user (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · as %2$@"
+          }
+        }
+      }
+    },
     "torrents-proxy-not-saved" : {
       "comment" : "Notice when a proxy was not saved. The reason is a sentence fragment. Argument 1: why (Cause).",
       "extractionState" : "manual",
@@ -15267,6 +15741,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not saved. %1$@, so the saved proxy stays."
+          }
+        }
+      }
+    },
+    "torrents-proxy-optional" : {
+      "comment" : "Hint inside the optional proxy fields.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional"
           }
         }
       }
@@ -15327,6 +15813,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start."
+          }
+        }
+      }
+    },
+    "torrents-sheet-edit-proxy" : {
+      "comment" : "Title of the sheet that edits the saved proxy.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit proxy"
+          }
+        }
+      }
+    },
+    "torrents-sheet-protect" : {
+      "comment" : "Title of the sheet that changes what protects torrents.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protect torrents"
+          }
+        }
+      }
+    },
+    "torrents-sheet-turn-on" : {
+      "comment" : "Title of the sheet that turns torrents on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on torrents"
           }
         }
       }
@@ -15403,6 +15925,18 @@
         }
       }
     },
+    "torrents-turn-on-button" : {
+      "comment" : "Button of the turn-on sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on"
+          }
+        }
+      }
+    },
     "torrents-turn-on-unprotected" : {
       "comment" : "Button that confirms turning torrents on without protection.",
       "extractionState" : "manual",
@@ -15451,6 +15985,18 @@
         }
       }
     },
+    "torrents-warn-only-detail" : {
+      "comment" : "Line under the question that asks whether torrents may keep running when a check fails.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address."
+          }
+        }
+      }
+    },
     "tv-address" : {
       "comment" : "Label of the address field.",
       "extractionState" : "manual",
@@ -15487,6 +16033,42 @@
         }
       }
     },
+    "tv-another" : {
+      "comment" : "Row title in the settings for pairing one more TV when some are paired.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another TV"
+          }
+        }
+      }
+    },
+    "tv-bar-cant-reach" : {
+      "comment" : "Short status of the remote in the toolbar: the TV never answered. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't reach %1$@"
+          }
+        }
+      }
+    },
+    "tv-bar-not-found" : {
+      "comment" : "Short status of the remote in the toolbar: the TV was given up on. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ not found"
+          }
+        }
+      }
+    },
     "tv-choose-another" : {
       "comment" : "Button that picks another TV.",
       "extractionState" : "manual",
@@ -15511,6 +16093,18 @@
         }
       }
     },
+    "tv-code-on" : {
+      "comment" : "Title of the section over the code boxes on a phone. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code on %1$@"
+          }
+        }
+      }
+    },
     "tv-connect" : {
       "comment" : "Button that connects to the typed address.",
       "extractionState" : "manual",
@@ -15531,6 +16125,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connected · %1$@"
+          }
+        }
+      }
+    },
+    "tv-connecting-generic" : {
+      "comment" : "Title of the sheet while the app connects to a TV and its name is not known.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting to the TV"
           }
         }
       }
@@ -15567,6 +16173,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Forget %1$@?"
+          }
+        }
+      }
+    },
+    "tv-generic-name" : {
+      "comment" : "Fallback name of a TV that has none.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TV"
           }
         }
       }
@@ -15639,6 +16257,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open anistream on the TV, on the same Wi-Fi, then pair with it here."
+          }
+        }
+      }
+    },
+    "tv-nothing-playing" : {
+      "comment" : "Title of the remote when nothing plays on the TV.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing playing"
           }
         }
       }
@@ -15823,6 +16453,30 @@
         }
       }
     },
+    "tv-paired-seen" : {
+      "comment" : "Line of a paired TV in the settings: when it was paired and when it was last seen. Argument 1: paired (Text). Argument 2: when (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · seen %2$@"
+          }
+        }
+      }
+    },
+    "tv-paired-tvs" : {
+      "comment" : "Title of the list of paired TVs on a phone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paired TVs"
+          }
+        }
+      }
+    },
     "tv-pairing-code" : {
       "comment" : "Accessibility label of the pairing code field.",
       "extractionState" : "manual",
@@ -15871,6 +16525,18 @@
         }
       }
     },
+    "tv-picker-title-episode" : {
+      "comment" : "Line of the sheet picker: what the episode is that is about to play, with its title. The episode is a number. Argument 1: title (Text). Argument 2: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, episode %2$@"
+          }
+        }
+      }
+    },
     "tv-play-failed" : {
       "comment" : "Line when the TV did not start the episode. The reason is a sentence fragment. Argument 1: reason (Cause).",
       "extractionState" : "manual",
@@ -15903,6 +16569,138 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Play on TV…"
+          }
+        }
+      }
+    },
+    "tv-problem-busy" : {
+      "comment" : "Why a TV cannot be connected: too many devices are connected.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV is connected to as many devices as it can. Try again soon."
+          }
+        }
+      }
+    },
+    "tv-problem-full" : {
+      "comment" : "Why a TV cannot be paired: it keeps as many devices as it can.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes."
+          }
+        }
+      }
+    },
+    "tv-problem-gone" : {
+      "comment" : "Why a TV could not be used: it left the network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That TV is no longer on the network."
+          }
+        }
+      }
+    },
+    "tv-problem-key-changed" : {
+      "comment" : "Status and problem: the TV was reset or reinstalled after pairing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV was reset or reinstalled since you paired. Pair again."
+          }
+        }
+      }
+    },
+    "tv-problem-not-a-link" : {
+      "comment" : "Why an address or code was not used: it is not a TV's.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That isn't a TV's pairing code or address."
+          }
+        }
+      }
+    },
+    "tv-problem-not-now" : {
+      "comment" : "Why a command was not sent: nothing plays on the TV.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is playing on the TV."
+          }
+        }
+      }
+    },
+    "tv-problem-unpaired" : {
+      "comment" : "Status and problem: the TV no longer knows this device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV doesn't know this device any more. Pair again."
+          }
+        }
+      }
+    },
+    "tv-problem-unreachable" : {
+      "comment" : "Why a TV could not be reached.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't reach the TV. Check that it is on, with anistream open, on the same network."
+          }
+        }
+      }
+    },
+    "tv-problem-version" : {
+      "comment" : "Why a TV cannot be used: another version of the app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV runs another version of anistream. Update both to the same one."
+          }
+        }
+      }
+    },
+    "tv-problem-wrong-code" : {
+      "comment" : "Why a code was not accepted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That code didn't match. Check the code on the TV and try again."
+          }
+        }
+      }
+    },
+    "tv-remote-action" : {
+      "comment" : "Accessibility action that opens the remote.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the remote"
           }
         }
       }
@@ -15943,6 +16741,78 @@
         }
       }
     },
+    "tv-row-needs-update" : {
+      "comment" : "Line under the name of a TV in the picker: it runs another version of the app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs the same anistream version as this device"
+          }
+        }
+      }
+    },
+    "tv-row-not-paired" : {
+      "comment" : "Line under the name of a TV in the picker: found, not paired yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not paired yet"
+          }
+        }
+      }
+    },
+    "tv-row-pair-hint" : {
+      "comment" : "Accessibility hint of a TV's row that pairs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pairs with this TV"
+          }
+        }
+      }
+    },
+    "tv-row-paired" : {
+      "comment" : "Line under the name of a TV in the picker: paired and found on the network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paired"
+          }
+        }
+      }
+    },
+    "tv-row-paired-away" : {
+      "comment" : "Line under the name of a TV in the picker: paired, but not found on this network now.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paired, not seen on this network"
+          }
+        }
+      }
+    },
+    "tv-scan-code" : {
+      "comment" : "Button that opens the camera to read the code on the TV.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan the code on the TV"
+          }
+        }
+      }
+    },
     "tv-scan-hint" : {
       "comment" : "Line telling how to scan the TV's code.",
       "extractionState" : "manual",
@@ -15963,6 +16833,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Search on the TV"
+          }
+        }
+      }
+    },
+    "tv-section-network" : {
+      "comment" : "Title of the section that lists TVs found on the network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On this network"
+          }
+        }
+      }
+    },
+    "tv-section-not-listed" : {
+      "comment" : "Title of the section for a TV that is not listed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not listed"
+          }
+        }
+      }
+    },
+    "tv-seen-just-now" : {
+      "comment" : "Time of the last sighting of a paired TV, within the last minute.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "just now"
+          }
+        }
+      }
+    },
+    "tv-settings-footnote" : {
+      "comment" : "Line under the settings group of paired TVs. The code is a short fingerprint. Argument 1: code (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A TV lists this device with the code %1$@. Forget a TV here and it forgets this device too."
           }
         }
       }
@@ -16011,6 +16929,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Starting on %1$@"
+          }
+        }
+      }
+    },
+    "tv-status-cant-reach" : {
+      "comment" : "Status of the remote: the link was lost and the TV is not answering any more. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't reach %1$@. Check that it is on and on the same network."
           }
         }
       }
@@ -16087,6 +17017,18 @@
         }
       }
     },
+    "tv-title-list" : {
+      "comment" : "Title of the page of paired TVs on a phone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TVs"
+          }
+        }
+      }
+    },
     "tv-track-n" : {
       "comment" : "Name of a track that has no name. Argument 1: id (Int).",
       "extractionState" : "manual",
@@ -16131,6 +17073,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Type a search"
+          }
+        }
+      }
+    },
+    "tv-volume" : {
+      "comment" : "Label of the TV's volume.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TV volume"
+          }
+        }
+      }
+    },
+    "tv-volume-down" : {
+      "comment" : "Accessibility label of the button that lowers the volume.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume down"
+          }
+        }
+      }
+    },
+    "tv-volume-of" : {
+      "comment" : "Value under the TV's volume. The volume is a number from 0 to 100. Argument 1: volume (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of 100"
+          }
+        }
+      }
+    },
+    "tv-volume-up" : {
+      "comment" : "Accessibility label of the button that raises the volume.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume up"
           }
         }
       }
