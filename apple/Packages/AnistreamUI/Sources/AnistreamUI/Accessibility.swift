@@ -240,7 +240,7 @@ struct NoticeAnnouncer: ViewModifier {
     func body(content: Content) -> some View {
         content.onChange(of: store.notices.current?.id) { _, id in
             guard enabled, id != nil, let item = store.notices.current else { return }
-            var words = AttributedString(item.notice.text.firstCapitalized)
+            var words = AttributedString(item.notice.words.firstCapitalized)
             words.accessibilitySpeechAnnouncementPriority = item.isAlert ? .high : .default
             AccessibilityNotification.Announcement(words).post()
         }

@@ -3376,6 +3376,24 @@ time-minutes-left = [{ $minutes } ɱîñ ļéƒţ~~~~]
 # A length in minutes, for an episode.
 time-minutes = [{ $minutes } ɱîñ~~~]
 
+# A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.
+time-now = [ñöŵ~]
+
+# How long ago, under a minute. Lower case, as it stands inside a line.
+time-just-now = [ĵüšţ ñöŵ~~~]
+
+# Later today.
+when-today = [ţöðàý { $time }~~~]
+
+# Tomorrow.
+when-tomorrow = [ţöɱöŕŕöŵ { $time }~~~~]
+
+# Within the next six days. The day is the weekday's name, already formatted.
+when-weekday = [{ $day } { $time }~~~]
+
+# A week or more away. The date is the day and short month, already formatted, such as "29 Oct".
+when-date = [{ $date }, { $time }~~~]
+
 # Line under a title when the device has no connection.
 state-offline-line = [Öƒƒļîñé. Ðöŵñļöàðéð éþîšöðéš šţîļļ þļàý.~~~~~~~~~~~~]
 

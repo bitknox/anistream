@@ -3376,6 +3376,24 @@ time-minutes-left = { $minutes } min left
 # A length in minutes, for an episode.
 time-minutes = { $minutes } min
 
+# A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.
+time-now = now
+
+# How long ago, under a minute. Lower case, as it stands inside a line.
+time-just-now = just now
+
+# Later today.
+when-today = today { $time }
+
+# Tomorrow.
+when-tomorrow = tomorrow { $time }
+
+# Within the next six days. The day is the weekday's name, already formatted.
+when-weekday = { $day } { $time }
+
+# A week or more away. The date is the day and short month, already formatted, such as "29 Oct".
+when-date = { $date }, { $time }
+
 # Line under a title when the device has no connection.
 state-offline-line = Offline. Downloaded episodes still play.
 

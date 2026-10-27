@@ -18,7 +18,7 @@ struct ReportBugAction {
 
     /// The newest problem the app has told of this session, for a report started from a menu.
     var lastProblem: BugContext? {
-        store.notices.log.first { $0.isAlert }.map { BugContext(kind: "message", message: $0.notice.text) }
+        store.notices.log.first { $0.isAlert }.map { BugContext(kind: "message", message: $0.notice.words) }
     }
 }
 

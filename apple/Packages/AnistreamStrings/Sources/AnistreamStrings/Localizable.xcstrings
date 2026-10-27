@@ -14107,6 +14107,18 @@
         }
       }
     },
+    "time-just-now" : {
+      "comment" : "How long ago, under a minute. Lower case, as it stands inside a line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "just now"
+          }
+        }
+      }
+    },
     "time-minutes" : {
       "comment" : "A length in minutes, for an episode. Argument 1: minutes (Int).",
       "extractionState" : "manual",
@@ -14127,6 +14139,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld min left"
+          }
+        }
+      }
+    },
+    "time-now" : {
+      "comment" : "A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "now"
           }
         }
       }
@@ -16995,6 +17019,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Use default · %1$@"
+          }
+        }
+      }
+    },
+    "when-date" : {
+      "comment" : "A week or more away. The date is the day and short month, already formatted, such as \"29 Oct\". Argument 1: date (Text). Argument 2: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "when-today" : {
+      "comment" : "Later today. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "today %1$@"
+          }
+        }
+      }
+    },
+    "when-tomorrow" : {
+      "comment" : "Tomorrow. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tomorrow %1$@"
+          }
+        }
+      }
+    },
+    "when-weekday" : {
+      "comment" : "Within the next six days. The day is the weekday's name, already formatted. Argument 1: day (Text). Argument 2: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
           }
         }
       }

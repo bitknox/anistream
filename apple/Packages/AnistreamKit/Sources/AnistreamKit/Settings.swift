@@ -3,6 +3,7 @@
 // (`step`) and its wording (`value`), kept to the same rules, so a menu offers exactly what the
 // engine's arrows step through and names each choice as the row will once it is chosen.
 
+import AnistreamStrings
 import Foundation
 
 /// One value a setting can be set to, as `SetSetting` takes it, and the words its row then says.
@@ -89,7 +90,8 @@ extension SettingKey {
 
     /// An upload cap as people read it: `unlimited`, `524 kB/s`, `2.1 MB/s`. `upload_label`.
     static func uploadLabel(kib: UInt64) -> String {
-        kib == 0 ? "unlimited" : "\(Wording.bytes(kib * 1024))/s"
+        // The engine's own words, which `SettingRow.option` matches the row's value against.
+        kib == 0 ? "unlimited" : "\(Wording.bytes(kib * 1024, locale: Locale(identifier: "en")))/s"
     }
 }
 
@@ -124,15 +126,22 @@ extension SettingRow {
 extension Wording {
     /// A size as people read it: `9.4 GB`, `140 MB`, `0 B`. `wording::human_bytes`.
     ///
-    /// One decimal below ten and none above, in decimal units.
+    /// One decimal below ten and none above, in decimal units, with the person's decimal mark.
     public static func bytes(_ bytes: UInt64) -> String {
-        let units: [(String, UInt64)] = [("GB", 1_000_000_000), ("MB", 1_000_000), ("kB", 1_000), ("B", 1)]
-        for (unit, scale) in units where bytes >= scale {
+        self.bytes(bytes, locale: AirTime.locale)
+    }
+
+    /// The same, in `locale`'s numbers.
+    public static func bytes(_ bytes: UInt64, locale: Locale) -> String {
+        let units: [(UInt64, (String) -> String)] = [
+            (1_000_000_000, L.sizeGigabyte(value:)), (1_000_000, L.sizeMegabyte(value:)),
+            (1_000, L.sizeKilobyte(value:)), (1, L.sizeByte(value:)),
+        ]
+        for (scale, unit) in units where bytes >= scale {
             let value = Double(bytes) / Double(scale)
-            return value < 10 && scale > 1
-                ? String(format: "%.1f %@", value, unit)
-                : "\(UInt64(value.rounded())) \(unit)"
+            let digits = value < 10 && scale > 1 ? 1 : 0
+            return unit(value.formatted(.number.precision(.fractionLength(digits)).locale(locale)))
         }
-        return "0 B"
+        return L.sizeByte(value: 0.formatted(.number.locale(locale)))
     }
 }

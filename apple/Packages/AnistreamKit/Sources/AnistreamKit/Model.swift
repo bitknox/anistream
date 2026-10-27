@@ -2,6 +2,7 @@
 // the fields: each a port of the method it is named after, kept to the same rule, so that a
 // native screen says what the terminal says.
 
+import AnistreamStrings
 import Foundation
 
 extension FfiDirs {
@@ -96,88 +97,95 @@ public enum EpisodeAvailability: Equatable, Sendable {
 }
 
 /// A broadcast's time as the screens say it (native-spec/metadata.md): "today 16:30", "tomorrow
-/// 16:30", "Thursday 16:30" within six days, "29 Oct, 16:30" later. English words, day before
-/// month, on the device's own clock.
+/// 16:30", "Thursday 16:30" within six days, "29 Oct, 16:30" later, in the person's language and
+/// on the device's own clock.
 public enum AirTime {
-    public static let locale = Locale(identifier: "en_GB")
+    /// The locale dates and numbers are written in: the language the strings are shown in, with
+    /// the person's region. Tests bind it (`AirTime.$locale.withValue`) so they read the same on
+    /// every machine.
+    @TaskLocal public static var locale: Locale = .current
 
     public static func words(_ date: Date, now: Date = .now, calendar: Calendar = .current) -> String {
         let time = clock(date)
-        if calendar.isDate(date, inSameDayAs: now) { return "today \(time)" }
+        if calendar.isDate(date, inSameDayAs: now) { return L.whenToday(time: time) }
         if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now), calendar.isDate(date, inSameDayAs: tomorrow) {
-            return "tomorrow \(time)"
+            return L.whenTomorrow(time: time)
         }
         let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: date)).day ?? 0
         let style = Date.FormatStyle(locale: locale)
-        if (0...6).contains(days) { return "\(date.formatted(style.weekday(.wide))) \(time)" }
-        return "\(date.formatted(style.day().month(.abbreviated))), \(time)"
+        if (0...6).contains(days) { return L.whenWeekday(day: date.formatted(style.weekday(.wide)), time: time) }
+        return L.whenDate(date: date.formatted(style.day().month(.abbreviated)), time: time)
     }
 
     /// The time on the device's own clock: "16:30", or "4:30 PM" where it keeps twelve hours.
     public static func clock(_ date: Date) -> String {
-        let twelve = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: .current)?.contains("a") ?? false
-        let style = Date.FormatStyle(locale: Locale(identifier: twelve ? "en_US" : "en_GB"))
-        return date.formatted(style.hour(.defaultDigits(amPM: .abbreviated)).minute(.twoDigits))
+        date.formatted(Date.FormatStyle(locale: locale).hour(.defaultDigits(amPM: .abbreviated)).minute(.twoDigits))
     }
 
     /// "Thursday 15 October 2026", a day in full.
     public static func day(_ date: Date) -> String {
-        let style = Date.FormatStyle(locale: locale)
-        return "\(date.formatted(style.weekday(.wide))) \(date.formatted(style.day().month(.wide).year()))"
+        date.formatted(Date.FormatStyle(locale: locale).weekday(.wide).day().month(.wide).year())
     }
 }
 
-/// The words for counts and spans of time: `anistream_model::wording`, so a native screen says a
-/// wait or a count as the terminal does.
+/// The words for counts and spans of time, so a native screen says a wait or a count as the
+/// terminal does, in the person's language.
 public enum Wording {
     /// A countdown in the largest unit that still reads at a glance: `6d 17h`, `2h 5m`, `4m`,
     /// `now` at zero. `wording::countdown`.
     public static func countdown(_ seconds: Int64) -> String {
-        guard seconds > 0 else { return "now" }
-        let minutes = seconds / 60
+        guard seconds > 0 else { return L.timeNow }
+        let minutes = Int(seconds / 60)
         let hours = minutes / 60
         let days = hours / 24
         if days >= 1 {
             let hoursLeft = hours % 24
-            return hoursLeft > 0 && days < 7 ? "\(days)d \(hoursLeft)h" : "\(days)d"
+            return hoursLeft > 0 && days < 7 ? L.durationDaysHours(days: days, hours: hoursLeft) : L.durationDays(days: days)
         }
         if hours >= 1 {
             let minutesLeft = minutes % 60
-            return minutesLeft > 0 ? "\(hours)h \(minutesLeft)m" : "\(hours)h"
+            return minutesLeft > 0 ? L.durationHoursMinutes(hours: hours, minutes: minutesLeft) : L.durationHours(hours: hours)
         }
-        return "\(minutes)m"
+        return L.durationMinutes(minutes: minutes)
     }
 
     /// How long ago: `2d ago`, or `just now` under a minute. `wording::ago`.
     public static func ago(_ seconds: Int64) -> String {
-        seconds < 60 ? "just now" : "\(countdown(seconds)) ago"
+        seconds < 60 ? L.timeJustNow : L.timeAgo(span: countdown(seconds))
     }
 
-    /// A count and its noun, singular at one: `1 episode`, `3 episodes`. `wording::plural`.
+    /// A count and an English noun, singular at one. English only: being replaced by a catalogue
+    /// message per noun, and removed once nothing calls it.
+    @available(*, deprecated, message: "Use the catalogue message for the count, such as L.episodesCount(count:)")
     public static func plural(_ count: Int, _ noun: String) -> String {
         count == 1 ? "1 \(noun)" : "\(count) \(noun)s"
     }
 }
 
 extension Translation {
-    /// "Sub" or "Dub", as the episode line ends with it: "Episode 10 · Dub".
+    /// "Subbed" or "Dubbed", as the episode line ends with it: "Episode 10 · Dubbed".
     public var label: String {
         switch self {
-        case .sub: "Sub"
-        case .dub: "Dub"
+        case .sub: L.audioSubbed
+        case .dub: L.audioDubbed
         }
     }
 }
 
 extension LibrarySegment {
-    /// The list's name in lower case: "watching". `LibrarySegment::label`.
-    public var label: String {
+    /// The list's name, as a picker or a header shows it: "Watching".
+    public var title: String {
         switch self {
-        case .watching: "watching"
-        case .planning: "planning"
-        case .completed: "completed"
-        case .paused: "paused"
-        case .dropped: "dropped"
+        case .watching: L.libraryStatusWatching
+        case .planning: L.libraryStatusPlanning
+        case .completed: L.libraryStatusCompleted
+        case .paused: L.libraryStatusPaused
+        case .dropped: L.libraryStatusDropped
         }
+    }
+
+    /// The list's name in running text, as `library-list-empty` takes it: "watching".
+    public var label: String {
+        title.lowercased(with: AirTime.locale)
     }
 }

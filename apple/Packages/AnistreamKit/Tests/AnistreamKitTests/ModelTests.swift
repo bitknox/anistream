@@ -114,7 +114,7 @@ struct WordingTests {
     }
 
     @Test func aTranslationReadsAsTheEpisodeLineEndsWithIt() {
-        #expect(Translation.sub.label == "Sub")
-        #expect(Translation.dub.label == "Dub")
+        #expect(Translation.sub.label == "Subbed")
+        #expect(Translation.dub.label == "Dubbed")
     }
 }

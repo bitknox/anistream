@@ -643,6 +643,18 @@
     <string name="time_minutes_left">%1$d min left</string>
     <!-- A length in minutes, for an episode. -->
     <string name="time_minutes">%1$d min</string>
+    <!-- A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line. -->
+    <string name="time_now">now</string>
+    <!-- How long ago, under a minute. Lower case, as it stands inside a line. -->
+    <string name="time_just_now">just now</string>
+    <!-- Later today. -->
+    <string name="when_today">today %1$s</string>
+    <!-- Tomorrow. -->
+    <string name="when_tomorrow">tomorrow %1$s</string>
+    <!-- Within the next six days. The day is the weekday's name, already formatted. -->
+    <string name="when_weekday">%1$s %2$s</string>
+    <!-- A week or more away. The date is the day and short month, already formatted, such as "29 Oct". -->
+    <string name="when_date">%1$s, %2$s</string>
     <!-- Line under a title when the device has no connection. -->
     <string name="state_offline_line">Offline. Downloaded episodes still play.</string>
     <!-- Title of the full-screen state when a screen needs a connection and there is none. -->

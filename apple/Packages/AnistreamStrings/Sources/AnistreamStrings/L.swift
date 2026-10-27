@@ -1217,6 +1217,32 @@ public enum L {
         Self.format("time-minutes", fallback: "%1$lld min", minutes)
     }
 
+    /// A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.
+    public static var timeNow: String { string("time-now", fallback: "now") }
+
+    /// How long ago, under a minute. Lower case, as it stands inside a line.
+    public static var timeJustNow: String { string("time-just-now", fallback: "just now") }
+
+    /// Later today.
+    public static func whenToday(time: String) -> String {
+        Self.format("when-today", fallback: "today %1$@", time)
+    }
+
+    /// Tomorrow.
+    public static func whenTomorrow(time: String) -> String {
+        Self.format("when-tomorrow", fallback: "tomorrow %1$@", time)
+    }
+
+    /// Within the next six days. The day is the weekday's name, already formatted.
+    public static func whenWeekday(day: String, time: String) -> String {
+        Self.format("when-weekday", fallback: "%1$@ %2$@", day, time)
+    }
+
+    /// A week or more away. The date is the day and short month, already formatted, such as "29 Oct".
+    public static func whenDate(date: String, time: String) -> String {
+        Self.format("when-date", fallback: "%1$@, %2$@", date, time)
+    }
+
     /// Line under a title when the device has no connection.
     public static var stateOfflineLine: String { string("state-offline-line", fallback: "Offline. Downloaded episodes still play.") }
 

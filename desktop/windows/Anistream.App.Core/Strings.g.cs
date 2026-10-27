@@ -915,6 +915,24 @@ public static partial class T
     /// <summary>A length in minutes, for an episode.</summary>
     public static string TimeMinutes(long minutes) => Fill(Get("TimeMinutes"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.</summary>
+    public static string TimeNow => Get("TimeNow");
+
+    /// <summary>How long ago, under a minute. Lower case, as it stands inside a line.</summary>
+    public static string TimeJustNow => Get("TimeJustNow");
+
+    /// <summary>Later today.</summary>
+    public static string WhenToday(string time) => Fill(Get("WhenToday"), ("time", time));
+
+    /// <summary>Tomorrow.</summary>
+    public static string WhenTomorrow(string time) => Fill(Get("WhenTomorrow"), ("time", time));
+
+    /// <summary>Within the next six days. The day is the weekday's name, already formatted.</summary>
+    public static string WhenWeekday(string day, string time) => Fill(Get("WhenWeekday"), ("day", day), ("time", time));
+
+    /// <summary>A week or more away. The date is the day and short month, already formatted, such as "29 Oct".</summary>
+    public static string WhenDate(string date, string time) => Fill(Get("WhenDate"), ("date", date), ("time", time));
+
     /// <summary>Line under a title when the device has no connection.</summary>
     public static string StateOfflineLine => Get("StateOfflineLine");
 
@@ -4467,6 +4485,12 @@ public static partial class T
         ["TimeIn"] = "in {span}",
         ["TimeMinutesLeft"] = "{minutes} min left",
         ["TimeMinutes"] = "{minutes} min",
+        ["TimeNow"] = "now",
+        ["TimeJustNow"] = "just now",
+        ["WhenToday"] = "today {time}",
+        ["WhenTomorrow"] = "tomorrow {time}",
+        ["WhenWeekday"] = "{day} {time}",
+        ["WhenDate"] = "{date}, {time}",
         ["StateOfflineLine"] = "Offline. Downloaded episodes still play.",
         ["StateOfflineTitle"] = "You're offline",
         ["StateOfflineDetail"] = "Downloaded episodes still play.",

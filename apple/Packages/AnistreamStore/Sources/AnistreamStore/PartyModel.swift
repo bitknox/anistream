@@ -314,7 +314,7 @@ public final class PartyModel {
             }
         case .toast(let notice):
             if choice == .looking, notice.kind == .alert {
-                choice = .failed(PartyWords.sentence(notice.text))
+                choice = .failed(PartyWords.sentence(notice.words))
             }
         default:
             break

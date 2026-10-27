@@ -5425,6 +5425,36 @@ pub fn time_minutes(minutes: i64) -> String {
     text("time-minutes", &[("minutes", Arg::Int(minutes))])
 }
 
+/// A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.
+pub fn time_now() -> String {
+    text("time-now", &[])
+}
+
+/// How long ago, under a minute. Lower case, as it stands inside a line.
+pub fn time_just_now() -> String {
+    text("time-just-now", &[])
+}
+
+/// Later today.
+pub fn when_today(time: &str) -> String {
+    text("when-today", &[("time", Arg::Text(time))])
+}
+
+/// Tomorrow.
+pub fn when_tomorrow(time: &str) -> String {
+    text("when-tomorrow", &[("time", Arg::Text(time))])
+}
+
+/// Within the next six days. The day is the weekday's name, already formatted.
+pub fn when_weekday(day: &str, time: &str) -> String {
+    text("when-weekday", &[("day", Arg::Text(day)), ("time", Arg::Text(time))])
+}
+
+/// A week or more away. The date is the day and short month, already formatted, such as "29 Oct".
+pub fn when_date(date: &str, time: &str) -> String {
+    text("when-date", &[("date", Arg::Text(date)), ("time", Arg::Text(time))])
+}
+
 /// Line under a title when the device has no connection.
 pub fn state_offline_line() -> String {
     text("state-offline-line", &[])

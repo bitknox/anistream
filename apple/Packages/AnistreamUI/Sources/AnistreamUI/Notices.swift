@@ -29,7 +29,7 @@ struct NoticeCapsule: View {
     /// every 10 words past 12.
     static func duration(_ item: NoticeItem) -> Duration {
         let base = item.isAlert || item.notice.hint != nil ? 8 : 4
-        let words = item.notice.text.split(whereSeparator: \.isWhitespace).count
+        let words = item.notice.words.split(whereSeparator: \.isWhitespace).count
         return .seconds(base + max(0, words - 12) / 10)
     }
 
@@ -44,7 +44,7 @@ struct NoticeCapsule: View {
                             if item.isAlert {
                                 Circle().fill(.vermilion).frame(width: 6, height: 6)
                             }
-                            Text(item.notice.text.firstCapitalized)
+                            Text(item.notice.words.firstCapitalized)
                                 .font(.mac(13))
                                 .foregroundStyle(.silk)
                                 .lineLimit(2)
@@ -60,7 +60,7 @@ struct NoticeCapsule: View {
                             .buttonStyle(SecondaryCapsuleStyle(height: 24, fontSize: 12))
                             .padding(.trailing, 6)
                     } else if item.isAlert {
-                        ReportButton(context: BugContext(kind: "message", message: item.notice.text), height: 24, fontSize: 12)
+                        ReportButton(context: BugContext(kind: "message", message: item.notice.words), height: 24, fontSize: 12)
                             .padding(.trailing, 6)
                     }
                 }
@@ -77,7 +77,7 @@ struct NoticeCapsule: View {
                 }
                 .transition(.opacity)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(item.notice.text.firstCapitalized)
+                .accessibilityLabel(item.notice.words.firstCapitalized)
                 .accessibilityAction(named: "Dismiss") { store.notices.dismiss(item) }
                 .accessibilityFocused($focused)
                 .task(id: item.id) {
@@ -250,7 +250,7 @@ private struct MessageRow: View {
                 .fill(item.isAlert ? Palette.vermilion : .clear)
                 .frame(width: 6, height: 6)
                 .accessibilityHidden(true)
-            Text(item.notice.text.firstCapitalized)
+            Text(item.notice.words.firstCapitalized)
                 .font(MessagesView.font(13))
                 .foregroundStyle(.silk)
                 .textSelection(.enabled)
@@ -258,9 +258,9 @@ private struct MessageRow: View {
                 .fixedSize(horizontal: false, vertical: true)
             if item.isAlert {
                 #if os(macOS)
-                ReportButton(context: BugContext(kind: "message", message: item.notice.text), height: 24, fontSize: 12, raisedSurface: true)
+                ReportButton(context: BugContext(kind: "message", message: item.notice.words), height: 24, fontSize: 12, raisedSurface: true)
                 #else
-                ReportButton(context: BugContext(kind: "message", message: item.notice.text), height: 28, fontSize: 15)
+                ReportButton(context: BugContext(kind: "message", message: item.notice.words), height: 28, fontSize: 15)
                 #endif
             }
             Text(item.at, style: .time)

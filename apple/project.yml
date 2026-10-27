@@ -233,6 +233,9 @@ targets:
   AnistreamKit:
     templates: [Engine]
     templateAttributes: { module: AnistreamKit, flavour: release }
+    dependencies:
+      - target: AnistreamStrings
+        embed: false
   AnistreamDesign:
     templates: [Design]
     templateAttributes: { module: AnistreamDesign }
@@ -289,6 +292,9 @@ targets:
   AnistreamKitFixtures:
     templates: [Engine, Fixtures]
     templateAttributes: { module: AnistreamKit, flavour: testing }
+    dependencies:
+      - target: AnistreamStringsFixtures
+        embed: false
   AnistreamDesignFixtures:
     templates: [Design, Fixtures]
     templateAttributes: { module: AnistreamDesign }

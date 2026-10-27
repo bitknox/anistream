@@ -1287,6 +1287,30 @@
     <value>{minutes} min</value>
     <comment>A length in minutes, for an episode.</comment>
   </data>
+  <data name="TimeNow" xml:space="preserve">
+    <value>now</value>
+    <comment>A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.</comment>
+  </data>
+  <data name="TimeJustNow" xml:space="preserve">
+    <value>just now</value>
+    <comment>How long ago, under a minute. Lower case, as it stands inside a line.</comment>
+  </data>
+  <data name="WhenToday" xml:space="preserve">
+    <value>today {time}</value>
+    <comment>Later today.</comment>
+  </data>
+  <data name="WhenTomorrow" xml:space="preserve">
+    <value>tomorrow {time}</value>
+    <comment>Tomorrow.</comment>
+  </data>
+  <data name="WhenWeekday" xml:space="preserve">
+    <value>{day} {time}</value>
+    <comment>Within the next six days. The day is the weekday's name, already formatted.</comment>
+  </data>
+  <data name="WhenDate" xml:space="preserve">
+    <value>{date}, {time}</value>
+    <comment>A week or more away. The date is the day and short month, already formatted, such as "29 Oct".</comment>
+  </data>
   <data name="StateOfflineLine" xml:space="preserve">
     <value>Offline. Downloaded episodes still play.</value>
     <comment>Line under a title when the device has no connection.</comment>

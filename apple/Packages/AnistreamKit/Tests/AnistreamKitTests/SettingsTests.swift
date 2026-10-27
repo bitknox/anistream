@@ -39,11 +39,12 @@ struct SettingsPortTests {
     }
 
     @Test func aSizeReadsAsTheTerminalSaysIt() {
-        #expect(Wording.bytes(0) == "0 B")
-        #expect(Wording.bytes(999) == "999 B")
-        #expect(Wording.bytes(9_400_000_000) == "9.4 GB")
-        #expect(Wording.bytes(140_300_000) == "140 MB")
-        #expect(Wording.bytes(1_500) == "1.5 kB")
+        let en = Locale(identifier: "en_GB")
+        #expect(Wording.bytes(0, locale: en) == "0 B")
+        #expect(Wording.bytes(999, locale: en) == "999 B")
+        #expect(Wording.bytes(9_400_000_000, locale: en) == "9.4 GB")
+        #expect(Wording.bytes(140_300_000, locale: en) == "140 MB")
+        #expect(Wording.bytes(1_500, locale: en) == "1.5 kB")
     }
 
     @Test func aRowStandsOnTheSavedChoiceWhenTheSessionDiffers() {

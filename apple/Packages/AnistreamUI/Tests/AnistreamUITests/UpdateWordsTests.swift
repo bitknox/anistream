@@ -7,6 +7,7 @@ import Foundation
 import Testing
 
 @MainActor
+@Suite(.britishEnglish)
 struct UpdateWordsTests {
     let release = Release(
         version: "2.0.3", publishedAt: 1_792_664_639, pageUrl: "https://github.example/releases/tag/v2.0.3",

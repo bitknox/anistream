@@ -1213,6 +1213,30 @@ object Strings {
     fun timeMinutes(context: Context, minutes: Int): String =
         context.getString(R.string.time_minutes, minutes)
 
+    /** A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line. */
+    fun timeNow(context: Context): String =
+        context.getString(R.string.time_now)
+
+    /** How long ago, under a minute. Lower case, as it stands inside a line. */
+    fun timeJustNow(context: Context): String =
+        context.getString(R.string.time_just_now)
+
+    /** Later today. */
+    fun whenToday(context: Context, time: String): String =
+        context.getString(R.string.when_today, time)
+
+    /** Tomorrow. */
+    fun whenTomorrow(context: Context, time: String): String =
+        context.getString(R.string.when_tomorrow, time)
+
+    /** Within the next six days. The day is the weekday's name, already formatted. */
+    fun whenWeekday(context: Context, day: String, time: String): String =
+        context.getString(R.string.when_weekday, day, time)
+
+    /** A week or more away. The date is the day and short month, already formatted, such as "29 Oct". */
+    fun whenDate(context: Context, date: String, time: String): String =
+        context.getString(R.string.when_date, date, time)
+
     /** Line under a title when the device has no connection. */
     fun stateOfflineLine(context: Context): String =
         context.getString(R.string.state_offline_line)
