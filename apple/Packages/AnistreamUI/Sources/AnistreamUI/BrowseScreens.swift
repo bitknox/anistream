@@ -3,6 +3,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 // MARK: - Seasonal
@@ -18,15 +19,15 @@ struct SeasonalScreen: View {
             ListStates(
                 state: store.seasonal.state,
                 placeholder: AnyView(PosterGridPlaceholder(minimum: minimum)),
-                activity: "loading this season",
-                failure: "Couldn't load this season",
+                activity: "loading this season", // the engine job this list waits on
+                failure: L.seasonalLoadFailed,
                 retry: { store.loadSeasonal() }
             ) { ids in
                 PosterGrid(entries: ids.compactMap { store.titles[$0] }, minimum: minimum, spacing: minimum < 128 ? 12 : 20) { entry in
                     PosterCell(entry: entry, detail: entry.genres.first, width: minimum)
                 }
             } empty: {
-                QuietLine("Nothing is airing this season yet")
+                QuietLine(L.seasonalEmptyTitle(season: store.seasonalName))
             }
             .padding(EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
         }
@@ -45,21 +46,24 @@ struct SeasonalToolbar: View {
         Button {
             navigator.search(.season(), in: store)
         } label: {
-            Label("Filter in Search", systemImage: "line.3.horizontal.decrease")
+            Label(L.seasonalFilterInSearch, systemImage: "line.3.horizontal.decrease")
                 .labelStyle(.titleAndIcon)
         }
-        .help("This season in Search, where every filter narrows it")
+        .help(L.seasonalFilterHelp)
     }
 }
 
 extension AppStore {
-    /// Which season Seasonal is, as the engine says it, in title case: "Fall 2026".
+    /// Which season Seasonal is: "Autumn 2026".
+    var seasonalName: String {
+        let query = SearchQuery.season()
+        guard let season = query.season, let year = query.years.max else { return "" }
+        return L.seasonWithYear(season: TitleWords.season(season), year: String(year))
+    }
+
+    /// The same, once Seasonal has its titles.
     var seasonName: String? {
-        seasonal.caption.map { caption in
-            String(caption.split(separator: "·").first ?? Substring(caption))
-                .trimmingCharacters(in: .whitespaces)
-                .capitalized
-        }
+        seasonal.caption == nil ? nil : seasonalName
     }
 }
 
@@ -67,11 +71,20 @@ extension AppStore {
 
 /// How the Library orders a list.
 enum LibrarySort: String, CaseIterable, Identifiable {
-    case lastWatched = "Last Watched"
-    case title = "Title"
-    case score = "Score"
+    case lastWatched = "Last Watched" // i18n-skip
+    case title = "Title" // i18n-skip
+    case score = "Score" // i18n-skip
 
     var id: String { rawValue }
+
+    /// The name the sort goes by in a menu.
+    var name: String {
+        switch self {
+        case .lastWatched: L.librarySortUpdated
+        case .title: L.librarySortTitle
+        case .score: L.librarySortScore
+        }
+    }
 }
 
 /// The tracker's lists, a grid each; or, signed out, where they would come from.
@@ -85,7 +98,7 @@ struct LibraryScreen: View {
     private var narrow: Bool { false }
     #endif
     @AppStorage("anistream.librarySort") private var sort: LibrarySort = .lastWatched
-    /// Just the grid, inside a screen of its own, as the iPhone's Library has it.
+    /// The grid alone, inside a screen of its own, as the iPhone's Library has it.
     var embedded = false
 
     var body: some View {
@@ -114,8 +127,8 @@ struct LibraryScreen: View {
         return ListStates(
             state: store.library.segment(segment).state,
             placeholder: AnyView(PosterGridPlaceholder(minimum: minimum)),
-            activity: "loading your \(segment.label) list",
-            failure: "Couldn't load your list",
+            activity: "loading your \(segment.label) list", // the engine job this list waits on
+            failure: L.libraryListLoadFailed(list: segment.label),
             retry: { store.loadLibrary(segment) }
         ) { ids in
             PosterGrid(entries: sorted(ids.compactMap { store.titles[$0] }), minimum: minimum,
@@ -129,7 +142,7 @@ struct LibraryScreen: View {
                 )
             }
         } empty: {
-            QuietLine("Nothing on this list")
+            QuietLine(L.libraryListEmpty(list: segment.label))
         }
         // A list of its own: switching to one already there shows it at once.
         .id(segment)
@@ -147,12 +160,13 @@ struct LibraryScreen: View {
         let done = entry.progress?.done ?? 0
         switch segment {
         case .completed:
-            return entry.episodes.map { Wording.plural(Int($0), "episode") }
+            return entry.episodes.map { L.episodesCount(count: Int($0)) }
         case .planning:
-            return [entry.format, entry.year.map(String.init)].compactMap { $0 }.joined(separator: " · ")
+            return [entry.format.map(TitleWords.format), entry.year.map(String.init)].compactMap { $0 }.joined(separator: " · ")
         case .watching, .paused, .dropped:
             let next = done + 1
-            return entry.episodes.map { "Ep \(min(next, $0)) of \($0)" } ?? "Ep \(next)"
+            return entry.episodes.map { L.progressEpisodesShort(done: Int(min(next, $0)), total: Int($0)) }
+                ?? L.progressEpisodeShort(done: Int(next))
         }
     }
 
@@ -168,7 +182,7 @@ struct LibraryScreen: View {
         guard let aired = entry.latestAired, aired.episode == next, let ago = aired.ago,
               ago < ContinueQueue.week
         else { return nil }
-        return "Ep \(next) out \(Wording.ago(ago))"
+        return L.calendarLineOut(episode: Int(next), ago: Wording.ago(ago))
     }
 }
 
@@ -179,10 +193,10 @@ struct SignedOutLibrary: View {
     var body: some View {
         VStack(spacing: 0) {
             EmptyState(
-                title: "Your lists come from AniList",
-                line: "Sign in to sync what you watch and where you stopped."
+                title: L.librarySignedOutTitle,
+                line: L.librarySignedOutDetail
             ) {
-                Button(cased(mac: "Sign In to AniList", touch: "Sign in to AniList")) {
+                Button(L.librarySignedOutAction) {
                     store.send(.connect(tracker: "anilist"))
                 }
                 .buttonStyle(PrimaryCapsuleStyle(height: ScreenFailed.buttonHeight, fontSize: ScreenFailed.buttonFont))
@@ -197,7 +211,7 @@ struct SignedOutLibrary: View {
 /// The one legal line, everywhere it appears.
 struct LegalLine: View {
     var body: some View {
-        Text("anistream hosts no content.")
+        Text(L.legalHostsNoContent)
             .font(.mac(13))
             .foregroundStyle(.haze)
             .multilineTextAlignment(.center)

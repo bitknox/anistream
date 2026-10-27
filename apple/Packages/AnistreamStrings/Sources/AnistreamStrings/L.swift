@@ -840,6 +840,221 @@ public enum L {
         Self.format("notice-episodes-queued", fallback: "Queued %1$lld episodes.", count)
     }
 
+    /// VoiceOver: a title that is up to date and whose next episode airs later. The time is already worded.
+    public static func accessCaughtUpAirs(episode: Int, when: String) -> String {
+        Self.format("access-caught-up-airs", fallback: "Caught up, episode %1$lld airs %2$@", episode, when)
+    }
+
+    /// VoiceOver: a title that is up to date and whose next episode has no air time yet.
+    public static func accessCaughtUpUnaired(episode: Int) -> String {
+        Self.format("access-caught-up-unaired", fallback: "Caught up, episode %1$lld is not out yet", episode)
+    }
+
+    /// VoiceOver: where a part-watched episode stopped. The time is a clock time.
+    public static func accessStoppedAt(time: String) -> String {
+        Self.format("access-stopped-at", fallback: "stopped at %1$@", time)
+    }
+
+    /// VoiceOver: how long a part-watched episode has left.
+    public static func accessMinutesLeft(minutes: Int) -> String {
+        Self.format("access-minutes-left", fallback: "%1$lld minutes left", minutes)
+    }
+
+    /// VoiceOver: a length of time in whole minutes.
+    public static func accessMinutes(minutes: Int) -> String {
+        Self.format("access-minutes", fallback: "%1$lld minutes", minutes)
+    }
+
+    /// VoiceOver: when an episode came out. The span is spoken in full, such as "2 hours".
+    public static func accessOutAgo(span: String) -> String {
+        Self.format("access-out-ago", fallback: "out %1$@ ago", span)
+    }
+
+    /// VoiceOver: when an episode will come out. The span is spoken in full, such as "1 hour 30 minutes".
+    public static func accessInSpan(span: String) -> String {
+        Self.format("access-in-span", fallback: "in %1$@", span)
+    }
+
+    /// VoiceOver: an episode and the time it airs, when the engine has only estimated the time.
+    public static func accessAtAbout(episode: String, time: String) -> String {
+        Self.format("access-at-about", fallback: "%1$@ at about %2$@", episode, time)
+    }
+
+    /// VoiceOver: an episode and the time it airs.
+    public static func accessAt(episode: String, time: String) -> String {
+        Self.format("access-at", fallback: "%1$@ at %2$@", episode, time)
+    }
+
+    /// VoiceOver: an episode that was delayed, with the time it was first set for.
+    public static func accessDelayedFrom(time: String) -> String {
+        Self.format("access-delayed-from", fallback: "delayed from %1$@", time)
+    }
+
+    /// VoiceOver: an episode that will air. The time is already worded.
+    public static func accessAirs(when: String) -> String {
+        Self.format("access-airs", fallback: "airs %1$@", when)
+    }
+
+    /// VoiceOver: an episode with no air time yet.
+    public static var accessNotOut: String { string("access-not-out", fallback: "not out yet") }
+
+    /// VoiceOver: two parts of one description, read one after the other.
+    public static func accessThen(first: String, next: String) -> String {
+        Self.format("access-then", fallback: "%1$@, %2$@", first, next)
+    }
+
+    /// VoiceOver: the name of a custom list that jumps between the episodes not yet watched.
+    public static var accessRotorUnwatched: String { string("access-rotor-unwatched", fallback: "Unwatched episodes") }
+
+    /// VoiceOver: the name of a custom list that jumps between the days of the calendar.
+    public static var accessRotorDays: String { string("access-rotor-days", fallback: "Days") }
+
+    /// VoiceOver: the name of a custom list that jumps between the downloads under way.
+    public static var accessRotorInProgress: String { string("access-rotor-in-progress", fallback: "In progress") }
+
+    /// VoiceOver: a day of the calendar with nothing on it.
+    public static var accessNothingAiring: String { string("access-nothing-airing", fallback: "nothing airing") }
+
+    /// VoiceOver: a calendar day and what airs on it. The second part is a count of episodes or "nothing airing".
+    public static func accessDayAiring(day: String, airing: String) -> String {
+        Self.format("access-day-airing", fallback: "%1$@, %2$@", day, airing)
+    }
+
+    /// VoiceOver: a download that waits its turn.
+    public static var accessQueued: String { string("access-queued", fallback: "queued") }
+
+    /// VoiceOver: one download in the list of downloads under way.
+    public static func accessDownload(title: String, episode: String, standing: String) -> String {
+        Self.format("access-download", fallback: "%1$@, %2$@, %3$@", title, episode, standing)
+    }
+
+    /// Short episode name for a dubbed episode, in a row or a widget.
+    public static func titleEpisodeShortDubbed(episode: Int) -> String {
+        Self.format("title-episode-short-dubbed", fallback: "E%1$lld dubbed", episode)
+    }
+
+    /// Long episode name for a dubbed episode, in a row or a widget.
+    public static func titleEpisodeLongDubbed(episode: Int) -> String {
+        Self.format("title-episode-long-dubbed", fallback: "Episode %1$lld · Dubbed", episode)
+    }
+
+    /// Row caption: the next unwatched episode, dubbed, which came out a while ago.
+    public static func continueRowStartAiredDubbed(episode: Int, ago: String) -> String {
+        Self.format("continue-row-start-aired-dubbed", fallback: "Play E%1$lld dubbed · out %2$@", episode, ago)
+    }
+
+    /// Row caption: an episode part-watched, with how long is left. The time left is already worded.
+    public static func continueRowLeft(episode: Int, left: String) -> String {
+        Self.format("continue-row-left", fallback: "E%1$lld · %2$@", episode, left)
+    }
+
+    /// Row caption: a dubbed episode part-watched, with how long is left. The time left is already worded.
+    public static func continueRowLeftDubbed(episode: Int, left: String) -> String {
+        Self.format("continue-row-left-dubbed", fallback: "E%1$lld dubbed · %2$@", episode, left)
+    }
+
+    /// Widget action: carry on with an episode that was left part-way.
+    public static func continueWidgetResume(episode: Int) -> String {
+        Self.format("continue-widget-resume", fallback: "Resume E%1$lld", episode)
+    }
+
+    /// Widget action: carry on with a dubbed episode that was left part-way.
+    public static func continueWidgetResumeDubbed(episode: Int) -> String {
+        Self.format("continue-widget-resume-dubbed", fallback: "Resume E%1$lld dubbed", episode)
+    }
+
+    /// Title of the system window that keeps downloads going after the person leaves the app.
+    public static var downloadsContinuedTitle: String { string("downloads-continued-title", fallback: "Downloading episodes") }
+
+    /// Line in that window: how many downloads are still to finish.
+    public static func downloadsContinuedLeft(count: Int) -> String {
+        Self.format("downloads-continued-left", fallback: "%1$lld episodes left", count)
+    }
+
+    /// Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.
+    public static func titleButtonResumeDubbed(episode: Int, time: String) -> String {
+        Self.format("title-button-resume-dubbed", fallback: "Resume episode %1$lld · Dubbed · %2$@", episode, time)
+    }
+
+    /// Main button of the title page for a dubbed episode that has not been started.
+    public static func titleButtonPlayDubbed(episode: Int) -> String {
+        Self.format("title-button-play-dubbed", fallback: "Play episode %1$lld · Dubbed", episode)
+    }
+
+    /// Line on the title page and in a Continue preview: where else the show streams. The places are already joined, such as "Lantern Stream and Hikari Stream".
+    public static func titleAlsoOn(places: String) -> String {
+        Self.format("title-also-on", fallback: "Also on %1$@", places)
+    }
+
+    /// Time of a broadcast that is an estimate, with a tilde before it. The time is already formatted.
+    public static func calendarTimeApproximate(time: String) -> String {
+        Self.format("calendar-time-approximate", fallback: "~%1$@", time)
+    }
+
+    /// Name of the week before this one, in the calendar's toolbar.
+    public static var calendarLastWeek: String { string("calendar-last-week", fallback: "Last week") }
+
+    /// Calendar row: an episode that has aired. The span is already worded, such as "1d 2h ago".
+    public static func calendarLineOut(episode: Int, ago: String) -> String {
+        Self.format("calendar-line-out", fallback: "E%1$lld out %2$@", episode, ago)
+    }
+
+    /// Calendar row: a dubbed episode that has aired. The span is already worded, such as "1d 2h ago".
+    public static func calendarLineOutDubbed(episode: Int, ago: String) -> String {
+        Self.format("calendar-line-out-dubbed", fallback: "E%1$lld out %2$@ · Dubbed", episode, ago)
+    }
+
+    /// Calendar row: an episode that airs soon. The span is already worded, such as "1h 30m".
+    public static func calendarLineIn(episode: Int, span: String) -> String {
+        Self.format("calendar-line-in", fallback: "E%1$lld in %2$@", episode, span)
+    }
+
+    /// Calendar row: a dubbed episode that airs soon. The span is already worded, such as "1h 30m".
+    public static func calendarLineInDubbed(episode: Int, span: String) -> String {
+        Self.format("calendar-line-in-dubbed", fallback: "E%1$lld in %2$@ · Dubbed", episode, span)
+    }
+
+    /// Swipe action on an episode row that downloads it.
+    public static var titleSwipeDownload: String { string("title-swipe-download", fallback: "Download") }
+
+    /// Line under a title in Spotlight: the episode it plays next, out of how many there are.
+    public static func titleEpisodeOf(episode: Int, total: Int) -> String {
+        Self.format("title-episode-of", fallback: "Episode %1$lld of %2$lld", episode, total)
+    }
+
+    /// Title of the failure shown over a list of titles that could not load, when the screen has no name of its own for it.
+    public static var browseListFailed: String { string("browse-list-failed", fallback: "Couldn't load this list") }
+
+    /// Line under Downloads in the Mac's toolbar: free space, then what downloads take. Both are already formatted.
+    public static func downloadsSubtitleFree(free: String, size: String) -> String {
+        Self.format("downloads-subtitle-free", fallback: "%1$@ free · Downloads take %2$@", free, size)
+    }
+
+    /// Line under a title in Downloads: how many episodes it has downloaded and what they take. The count is already worded, such as "3 episodes".
+    public static func downloadsGroupSummary(count: String, size: String) -> String {
+        Self.format("downloads-group-summary", fallback: "%1$@ · %2$@", count, size)
+    }
+
+    /// Part of a running download's line: how much of the whole is done. Both are already formatted.
+    public static func downloadsOfTotal(done: String, total: String) -> String {
+        Self.format("downloads-of-total", fallback: "%1$@ of %2$@", done, total)
+    }
+
+    /// Part of a running download's line: how fast it goes. The rate is already formatted, such as "2.4 MB".
+    public static func downloadsRate(rate: String) -> String {
+        Self.format("downloads-rate", fallback: "%1$@/s", rate)
+    }
+
+    /// Part of a running download's line and of a seeding line: how long is left. The time is already worded.
+    public static func downloadsTimeLeft(left: String) -> String {
+        Self.format("downloads-time-left", fallback: "%1$@ left", left)
+    }
+
+    /// Line of a seeding episode: ratio shared out of the goal, time left and how much went up. Ratios, time and size are already formatted.
+    public static func downloadsSeedingUploaded(shared: String, goal: String, left: String, size: String) -> String {
+        Self.format("downloads-seeding-uploaded", fallback: "Shared %1$@ of %2$@ · %3$@ · %4$@ up", shared, goal, left, size)
+    }
+
     /// Line under the heading of the sources list while the list is built again.
     public static var sourcesRebuilding: String { string("sources-rebuilding", fallback: "Sources are being set up again…") }
 

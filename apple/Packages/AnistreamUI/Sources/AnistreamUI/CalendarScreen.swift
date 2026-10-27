@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// One broadcast: a title's episode, and when it airs or aired.
@@ -18,27 +19,28 @@ struct Broadcast: Identifiable, Equatable {
         entry.delayedFrom.map { Date(timeIntervalSince1970: TimeInterval($0)) }
     }
 
-    /// "(was 23:00)" after a delay.
+    /// "Moved from 23:00" after a delay.
     var delayNote: String? {
-        delayedFrom.map { "(was \(CalendarWords.time($0)))" }
+        delayedFrom.map { L.calendarMovedFrom(time: CalendarWords.time($0)) }
     }
 
     /// When it airs, "~16:30" when the time is the engine's estimate.
     var clock: String {
-        airTime(time: CalendarWords.time(airs), approximate: entry.airingApproximate)
+        let time = CalendarWords.time(airs)
+        return entry.airingApproximate ? L.calendarTimeApproximate(time: time) : time
     }
 
-    /// "Dub" on the episode line, when the engine marks the row as the dub's. Only dubs are
-    /// marked, and the engine marks nothing else.
-    var mark: String? {
-        calendarMark(entry: entry)
+    /// Whether the episode line says "Dubbed": the engine marks a row as the dub's own time, or
+    /// of an episode out in the dub. Only dubs are marked, and nothing else is.
+    var dubbed: Bool {
+        entry.airingTranslation == .dub || entry.airingDubbed
     }
 
-    /// The mark as the episode line ends with it: " · Dub", or nothing. The spaces don't break,
+    /// The mark as an episode line ends with it: " · Dubbed", or nothing. The spaces don't break,
     /// so a line that wraps in a narrow column takes its last word down with the mark rather
-    /// than leaving "· Dub" alone on a line.
+    /// than leaving "· Dubbed" alone on a line.
     var markSuffix: String {
-        mark.map { "\u{00A0}·\u{00A0}\($0)" } ?? ""
+        dubbed ? "\u{00A0}·\u{00A0}\(L.audioDubbed)" : ""
     }
 
     /// Whether you have watched this episode.
@@ -46,12 +48,26 @@ struct Broadcast: Identifiable, Equatable {
         (entry.progress?.done ?? 0) >= episode
     }
 
-    /// "Ep 8 out 1d 2h ago" once it has aired, "Ep 9 in 1h 30m" before.
+    /// "E8 out 1d 2h ago" once it has aired, "E9 in 1h 30m" before, with "Dubbed" last for a dub.
     func line(now: Date) -> String {
         let seconds = Int64(airs.timeIntervalSince(now))
-        return seconds <= 0
-            ? "Ep \(episode) out \(Wording.ago(-seconds))"
-            : "Ep \(episode) in \(Wording.countdown(seconds))"
+        let number = Int(episode)
+        if seconds <= 0 {
+            let ago = Wording.ago(-seconds)
+            return dubbed ? L.calendarLineOutDubbed(episode: number, ago: ago) : L.calendarLineOut(episode: number, ago: ago)
+        }
+        let span = Wording.countdown(seconds)
+        return dubbed ? L.calendarLineInDubbed(episode: number, span: span) : L.calendarLineIn(episode: number, span: span)
+    }
+
+    /// "Episode 8", or "Episode 8 · Dubbed" for a dub.
+    var episodeLong: String {
+        dubbed ? L.titleEpisodeLongDubbed(episode: Int(episode)) : L.episodeNumber(number: Int(episode))
+    }
+
+    /// "E8", or "E8 Dubbed" for a dub.
+    var episodeShort: String {
+        dubbed ? L.titleEpisodeShortDubbed(episode: Int(episode)) : L.episodeNumberShort(number: Int(episode))
     }
 
     /// Whether it has aired and is not watched: the water dot.
@@ -63,7 +79,7 @@ struct Broadcast: Identifiable, Equatable {
 /// The calendar's words for days and times, through the system's formatters, so they follow the
 /// locale and its clock (copy rule 3).
 enum CalendarWords {
-    static var locale: Locale { .autoupdatingCurrent }
+    static var locale: Locale { AirTime.locale }
 
     static func time(_ date: Date) -> String {
         date.formatted(Date.FormatStyle(date: .omitted, time: .shortened, locale: locale))
@@ -74,7 +90,7 @@ enum CalendarWords {
     }
 
     static func shortWeekday(_ date: Date) -> String {
-        date.formatted(Date.FormatStyle(locale: locale).weekday(.abbreviated)).uppercased()
+        date.formatted(Date.FormatStyle(locale: locale).weekday(.abbreviated))
     }
 
     static func dayMonth(_ date: Date) -> String {
@@ -156,8 +172,8 @@ struct CalendarScreen: View {
         ListStates(
             state: store.calendar.list.state,
             placeholder: AnyView(CalendarPlaceholder(days: days).padding(EdgeInsets(top: 4, leading: 12, bottom: 12, trailing: 16))),
-            activity: "loading the calendar",
-            failure: "Couldn't load the calendar",
+            activity: "loading the calendar", // the engine job this list waits on
+            failure: L.calendarLoadFailed,
             retry: { store.loadCalendar() },
             offlineInset: 12
         ) { _ in
@@ -192,7 +208,7 @@ struct CalendarScreen: View {
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { page = $0 - 16 }
             .daysRotor(days, broadcasts: broadcasts, in: rotor)
         } empty: {
-            QuietLine("Nothing airing")
+            QuietLine(L.calendarEmptyTitle)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .task { if store.calendar.list.state == .idle { store.loadCalendar() } }
@@ -248,7 +264,7 @@ struct DayHeading: View {
     private var todayMark: some View {
         HStack(spacing: 4) {
             Circle().fill(.amber).frame(width: 6, height: 6)
-            Text("Today").fontWeight(.medium).foregroundStyle(.silk)
+            Text(L.dayToday).fontWeight(.medium).foregroundStyle(.silk)
         }
     }
 }
@@ -265,7 +281,7 @@ struct DayBroadcasts: View {
         let today = Calendar.current.isDateInToday(day)
         VStack(alignment: .leading, spacing: 4) {
             if broadcasts.isEmpty {
-                Text("Nothing airing")
+                Text(L.calendarEmptyTitle)
                     .font(.mac(12))
                     .foregroundStyle(.haze)
                     .padding(4)
@@ -300,7 +316,7 @@ struct BroadcastCell: View {
                         Text(broadcast.clock).font(.mac(13)).monospacedDigit()
                         Spacer(minLength: 4)
                         HStack(spacing: 4) {
-                            Text("Ep \(broadcast.episode)" + broadcast.markSuffix)
+                            Text(broadcast.episodeShort)
                                 .lineLimit(1)
                             Image(systemName: "checkmark").font(.mac(10, weight: .semibold))
                         }
@@ -380,17 +396,17 @@ struct CalendarToolbar: View {
         @Bindable var navigator = navigator
         HStack(spacing: 8) {
             HStack(spacing: 0) {
-                Button(cased(mac: "Previous Week", touch: "Previous week"), systemImage: "chevron.left") { navigator.calendarWeek -= 1 }
+                Button(L.calendarPreviousWeek, systemImage: "chevron.left") { navigator.calendarWeek -= 1 }
                     .labelStyle(.iconOnly)
                 Text(weekName)
                     .font(.mac(13))
                     .frame(minWidth: 84)
-                Button(cased(mac: "Next Week", touch: "Next week"), systemImage: "chevron.right") { navigator.calendarWeek += 1 }
+                Button(L.calendarNextWeek, systemImage: "chevron.right") { navigator.calendarWeek += 1 }
                     .labelStyle(.iconOnly)
             }
-            Picker("Show", selection: $navigator.calendarMine) {
-                Text(cased(mac: "My List", touch: "My list")).tag(true)
-                Text(cased(mac: "All Airing", touch: "All airing")).tag(false)
+            Picker(L.filterShow, selection: $navigator.calendarMine) {
+                Text(L.calendarFilterMine).tag(true)
+                Text(L.calendarFilterAll).tag(false)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -400,9 +416,9 @@ struct CalendarToolbar: View {
 
     private var weekName: String {
         switch navigator.calendarWeek {
-        case 0: cased(mac: "This Week", touch: "This week")
-        case -1: cased(mac: "Last Week", touch: "Last week")
-        case 1: cased(mac: "Next Week", touch: "Next week")
+        case 0: L.calendarThisWeek
+        case -1: L.calendarLastWeek
+        case 1: L.calendarNextWeek
         default: CalendarWords.range(weekDays(offset: navigator.calendarWeek))
         }
     }
@@ -430,9 +446,9 @@ struct CalendarPlaceholder: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 RoundedRectangle(cornerRadius: 6).fill(.raised).aspectRatio(16 / 9, contentMode: .fit)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("17:30").font(.mac(13))
-                                    Text("Natsukaze Relay").font(.macShowTitle(size: 13))
-                                    Text("Ep 9 in 1h 30m").font(.mac(12))
+                                    Text("17:30").font(.mac(13)) // i18n-skip
+                                    Text("Natsukaze Relay").font(.macShowTitle(size: 13)) // i18n-skip
+                                    Text("E9 in 1h 30m").font(.mac(12)) // i18n-skip
                                 }
                                 .redacted(reason: .placeholder)
                                 .foregroundStyle(.haze)
