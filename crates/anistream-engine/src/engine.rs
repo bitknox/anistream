@@ -1686,7 +1686,7 @@ mod tests {
         };
         assert_eq!((*started, *done), (job, job));
         assert_eq!(refusal.kind, NoticeKind::Alert);
-        assert_eq!(refusal.text, "playback isn't built into this front end");
+        assert_eq!(refusal.text, Msg::NoticeNoPlayer.english());
 
         // Steering nothing says nothing; a download played from disk is refused alike.
         engine.send(Command::Player(PlayerCommand::Stop));
