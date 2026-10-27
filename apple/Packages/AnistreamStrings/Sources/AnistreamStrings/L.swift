@@ -7,7 +7,7 @@ import Foundation
 public enum L {
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     public static func noticeReason(reason: String) -> String {
-        format("notice-reason", fallback: "%1$@", reason)
+        Self.format("notice-reason", fallback: "%1$@", reason)
     }
 
     /// Reason: no source is set up, so nothing can be played or downloaded. Shown in a toast.
@@ -15,32 +15,32 @@ public enum L {
 
     /// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
     public static func noticeNotAired(episode: Int, when: String) -> String {
-        format("notice-not-aired", fallback: "Episode %1$lld airs %2$@.", episode, when)
+        Self.format("notice-not-aired", fallback: "Episode %1$lld airs %2$@.", episode, when)
     }
 
     /// A play's explanation: the episode is after the next one to air. The "when" says when that one airs.
     public static func noticeNotAiredYet(episode: Int, next: Int, when: String) -> String {
-        format("notice-not-aired-yet", fallback: "Episode %1$lld hasn't aired yet. Episode %2$lld airs %3$@.", episode, next, when)
+        Self.format("notice-not-aired-yet", fallback: "Episode %1$lld hasn't aired yet. Episode %2$lld airs %3$@.", episode, next, when)
     }
 
     /// Part of an air time: the broadcast is later today. The time is the viewer's local time.
     public static func causeAirsToday(time: String) -> String {
-        format("cause-airs-today", fallback: "today at %1$@", time)
+        Self.format("cause-airs-today", fallback: "today at %1$@", time)
     }
 
     /// Part of an air time: the broadcast is tomorrow. The time is the viewer's local time.
     public static func causeAirsTomorrow(time: String) -> String {
-        format("cause-airs-tomorrow", fallback: "tomorrow at %1$@", time)
+        Self.format("cause-airs-tomorrow", fallback: "tomorrow at %1$@", time)
     }
 
     /// Part of an air time: the broadcast is within the next week.
     public static func causeAirsInDays(days: Int, time: String) -> String {
-        format("cause-airs-in-days", fallback: "in %1$lld days at %2$@", days, time)
+        Self.format("cause-airs-in-days", fallback: "in %1$lld days at %2$@", days, time)
     }
 
     /// Part of an air time: the broadcast is more than a week away. The date is year-month-day.
     public static func causeAirsOnDate(date: String, time: String) -> String {
-        format("cause-airs-on-date", fallback: "on %1$@ at %2$@", date, time)
+        Self.format("cause-airs-on-date", fallback: "on %1$@ at %2$@", date, time)
     }
 
     /// Reason: the source answered but gave nothing to play.
@@ -48,22 +48,22 @@ public enum L {
 
     /// Reason: no source could be matched to the title. The detail is what each source said.
     public static func causeTitleNoMatch(detail: String) -> String {
-        format("cause-title-no-match", fallback: "Couldn't match this title: %1$@", detail)
+        Self.format("cause-title-no-match", fallback: "Couldn't match this title: %1$@", detail)
     }
 
     /// Reason: the source the person picked is no longer installed or enabled.
     public static func causeSourceGone(source: String) -> String {
-        format("cause-source-gone", fallback: "The source %1$@ is no longer available. Choose another.", source)
+        Self.format("cause-source-gone", fallback: "The source %1$@ is no longer available. Choose another.", source)
     }
 
     /// Reason: the release the person picked would not start. The detail comes from the source.
     public static func causeReleaseFailed(detail: String) -> String {
-        format("cause-release-failed", fallback: "Couldn't start that release: %1$@", detail)
+        Self.format("cause-release-failed", fallback: "Couldn't start that release: %1$@", detail)
     }
 
     /// Reason: every source matched the title but none has the episode. The detail is what each said.
     public static func causeNoSourceHasEpisode(episode: String, detail: String) -> String {
-        format("cause-no-source-has-episode", fallback: "No source has episode %1$@: %2$@", episode, detail)
+        Self.format("cause-no-source-has-episode", fallback: "No source has episode %1$@: %2$@", episode, detail)
     }
 
     /// Reason: the source streams episodes but only torrents can be downloaded.
@@ -74,17 +74,17 @@ public enum L {
 
     /// Part of a finished download's toast: subtitle files were merged into the video.
     public static func causeSubtitlesMerged(tracks: Int) -> String {
-        format("cause-subtitles-merged", fallback: "%1$lld subtitle tracks were merged in.", tracks)
+        Self.format("cause-subtitles-merged", fallback: "%1$lld subtitle tracks were merged in.", tracks)
     }
 
     /// Part of a finished download's toast: merging failed, so the subtitles stay as files beside it.
     public static func causeSubtitlesLeftApart(reason: String) -> String {
-        format("cause-subtitles-left-apart", fallback: "The subtitles stay as separate files. %1$@", reason)
+        Self.format("cause-subtitles-left-apart", fallback: "The subtitles stay as separate files. %1$@", reason)
     }
 
     /// Part of a download toast: how many episodes of the range were in the queue already.
     public static func causeAlreadyInDownloads(count: Int) -> String {
-        format("cause-already-in-downloads", fallback: "%1$lld episodes are already in downloads.", count)
+        Self.format("cause-already-in-downloads", fallback: "%1$lld episodes are already in downloads.", count)
     }
 
     /// Job note while a play looks the title up.
@@ -95,7 +95,7 @@ public enum L {
 
     /// Job note while the sources are asked for an episode. The episode is its label, often a number.
     public static func statusSearchingSources(episode: String) -> String {
-        format("status-searching-sources", fallback: "Searching sources for episode %1$@…", episode)
+        Self.format("status-searching-sources", fallback: "Searching sources for episode %1$@…", episode)
     }
 
     /// Status while the player opens.
@@ -103,22 +103,22 @@ public enum L {
 
     /// Status line while an episode plays.
     public static func statusPlaying(title: String, episode: String) -> String {
-        format("status-playing", fallback: "Playing %1$@, episode %2$@", title, episode)
+        Self.format("status-playing", fallback: "Playing %1$@, episode %2$@", title, episode)
     }
 
     /// Toast when the player cannot be started. The reason comes from the system.
     public static func noticePlayerFailedToStart(reason: String) -> String {
-        format("notice-player-failed-to-start", fallback: "Couldn't start mpv. Check that it runs on its own. (%1$@)", reason)
+        Self.format("notice-player-failed-to-start", fallback: "Couldn't start mpv. Check that it runs on its own. (%1$@)", reason)
     }
 
     /// Toast when a stream never showed a frame and the next one is tried.
     public static func noticeStreamNoVideo(next: Int, total: Int) -> String {
-        format("notice-stream-no-video", fallback: "No video from that stream. Trying %1$lld of %2$lld.", next, total)
+        Self.format("notice-stream-no-video", fallback: "No video from that stream. Trying %1$lld of %2$lld.", next, total)
     }
 
     /// Toast when mpv gave up on a file. The reason is mpv's own line.
     public static func noticePlayerCouldNotPlay(reason: String) -> String {
-        format("notice-player-could-not-play", fallback: "mpv couldn't play this. %1$@", reason)
+        Self.format("notice-player-could-not-play", fallback: "mpv couldn't play this. %1$@", reason)
     }
 
     /// Toast when mpv closed without playing and without saying why.
@@ -126,7 +126,7 @@ public enum L {
 
     /// Toast when no picture has appeared a while after the player opened.
     public static func noticePlayerNotPlaying(seconds: Int) -> String {
-        format("notice-player-not-playing", fallback: "mpv hasn't started playing after %1$lld s. The source may have no data. Check that mpv plays a file on its own.", seconds)
+        Self.format("notice-player-not-playing", fallback: "mpv hasn't started playing after %1$lld s. The source may have no data. Check that mpv plays a file on its own.", seconds)
     }
 
     /// Toast when a play is asked for in a build with no player.
@@ -134,12 +134,12 @@ public enum L {
 
     /// Toast at launch when the mpv program is missing. The binary is the name the settings give it.
     public static func noticeMpvMissing(binary: String) -> String {
-        format("notice-mpv-missing", fallback: "%1$@ wasn't found. Install mpv to play episodes.", binary)
+        Self.format("notice-mpv-missing", fallback: "%1$@ wasn't found. Install mpv to play episodes.", binary)
     }
 
     /// Toast at launch when mpv is too old for anistream's own player.
     public static func noticeMpvOld(version: String) -> String {
-        format("notice-mpv-old", fallback: "mpv %1$@ can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.", version)
+        Self.format("notice-mpv-old", fallback: "mpv %1$@ can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.", version)
     }
 
     /// Toast after a link was handed to the browser.
@@ -147,7 +147,7 @@ public enum L {
 
     /// Toast when a link could not be opened. The reason comes from the system.
     public static func noticeCouldNotOpen(reason: String) -> String {
-        format("notice-could-not-open", fallback: "Couldn't open that. %1$@", reason)
+        Self.format("notice-could-not-open", fallback: "Couldn't open that. %1$@", reason)
     }
 
     /// Toast when a trailer plays in mpv.
@@ -158,12 +158,12 @@ public enum L {
 
     /// Toast when a trailer could not be opened. The reason comes from the system.
     public static func noticeTrailerFailed(reason: String) -> String {
-        format("notice-trailer-failed", fallback: "Couldn't open the trailer. %1$@", reason)
+        Self.format("notice-trailer-failed", fallback: "Couldn't open the trailer. %1$@", reason)
     }
 
     /// Toast when the next episode is not the one after this because filler was skipped.
     public static func noticeFillerSkipped(episode: String) -> String {
-        format("notice-filler-skipped", fallback: "Skipped filler. Up next is episode %1$@.", episode)
+        Self.format("notice-filler-skipped", fallback: "Skipped filler. Up next is episode %1$@.", episode)
     }
 
     /// Toast after switching the audio while playing.
@@ -177,7 +177,7 @@ public enum L {
 
     /// Toast when the next-episode control is used on the last known episode.
     public static func noticeLastEpisode(episode: String) -> String {
-        format("notice-last-episode", fallback: "There's no next episode. Episode %1$@ is the last.", episode)
+        Self.format("notice-last-episode", fallback: "There's no next episode. Episode %1$@ is the last.", episode)
     }
 
     /// Toast when the next-episode control is used and the next episode is not known.
@@ -188,12 +188,12 @@ public enum L {
 
     /// Toast when the title's episode match could not be cleared. The reason comes from the system.
     public static func noticeMatchResetFailed(reason: String) -> String {
-        format("notice-match-reset-failed", fallback: "Couldn't reset the match. %1$@", reason)
+        Self.format("notice-match-reset-failed", fallback: "Couldn't reset the match. %1$@", reason)
     }
 
     /// Toast when the chosen match could not be saved. The reason comes from the system.
     public static func noticeMatchSaveFailed(reason: String) -> String {
-        format("notice-match-save-failed", fallback: "Couldn't save that match. %1$@", reason)
+        Self.format("notice-match-save-failed", fallback: "Couldn't save that match. %1$@", reason)
     }
 
     /// Toast when a chosen match still left the title undecided.
@@ -201,12 +201,12 @@ public enum L {
 
     /// Toast when a search of the sources for a title found nothing.
     public static func noticeSourceSearchEmpty(query: String) -> String {
-        format("notice-source-search-empty", fallback: "Nothing found for “%1$@”. Try a different search.", query)
+        Self.format("notice-source-search-empty", fallback: "Nothing found for “%1$@”. Try a different search.", query)
     }
 
     /// Toast after the person picked a source for one title.
     public static func noticeSourcePinned(source: String) -> String {
-        format("notice-source-pinned", fallback: "%1$@ will be used for this title.", source)
+        Self.format("notice-source-pinned", fallback: "%1$@ will be used for this title.", source)
     }
 
     /// Toast after the person went back to automatic source selection for one title.
@@ -214,32 +214,32 @@ public enum L {
 
     /// Toast when the source choice for a title could not be saved. The reason comes from the system.
     public static func noticeSourceChoiceFailed(reason: String) -> String {
-        format("notice-source-choice-failed", fallback: "Couldn't save that choice. %1$@", reason)
+        Self.format("notice-source-choice-failed", fallback: "Couldn't save that choice. %1$@", reason)
     }
 
     /// Toast when no source could list a show's episodes. The reason is what the sources said.
     public static func noticeNoSourceCouldList(reason: String) -> String {
-        format("notice-no-source-could-list", fallback: "No source could list this show: %1$@", reason)
+        Self.format("notice-no-source-could-list", fallback: "No source could list this show: %1$@", reason)
     }
 
     /// Toast when a title cannot be taken off the Continue row. The reason comes from the system.
     public static func noticeContinueHideFailed(reason: String) -> String {
-        format("notice-continue-hide-failed", fallback: "Couldn't remove that from Continue. %1$@", reason)
+        Self.format("notice-continue-hide-failed", fallback: "Couldn't remove that from Continue. %1$@", reason)
     }
 
     /// Toast after an episode was added to the download queue.
     public static func noticeDownloadQueued(title: String, episode: String) -> String {
-        format("notice-download-queued", fallback: "Queued episode %2$@ of %1$@.", title, episode)
+        Self.format("notice-download-queued", fallback: "Queued episode %2$@ of %1$@.", title, episode)
     }
 
     /// Toast when an episode asked for is in downloads already.
     public static func noticeDownloadAlreadyQueued(title: String, episode: String) -> String {
-        format("notice-download-already-queued", fallback: "Episode %2$@ of %1$@ is already in downloads.", title, episode)
+        Self.format("notice-download-already-queued", fallback: "Episode %2$@ of %1$@ is already in downloads.", title, episode)
     }
 
     /// Toast when a waiting or paused download was moved to the front and started.
     public static func noticeDownloadStartingNow(title: String, episode: String) -> String {
-        format("notice-download-starting-now", fallback: "Starting episode %2$@ of %1$@ now.", title, episode)
+        Self.format("notice-download-starting-now", fallback: "Starting episode %2$@ of %1$@ now.", title, episode)
     }
 
     /// Toast after a download was cancelled.
@@ -253,7 +253,7 @@ public enum L {
 
     /// Toast after a download was removed but its file could not be deleted. The reason comes from the system.
     public static func noticeDownloadRemovedFileKept(reason: String) -> String {
-        format("notice-download-removed-file-kept", fallback: "Removed the download, but couldn't delete its file. %1$@", reason)
+        Self.format("notice-download-removed-file-kept", fallback: "Removed the download, but couldn't delete its file. %1$@", reason)
     }
 
     /// Toast after a download with no file was removed.
@@ -261,22 +261,22 @@ public enum L {
 
     /// Toast after finished downloads were cleared from the list.
     public static func noticeDownloadsCleared(count: Int) -> String {
-        format("notice-downloads-cleared", fallback: "Cleared %1$lld finished downloads.", count)
+        Self.format("notice-downloads-cleared", fallback: "Cleared %1$lld finished downloads.", count)
     }
 
     /// Toast when an episode finished downloading.
     public static func noticeDownloadFinished(title: String, episode: String) -> String {
-        format("notice-download-finished", fallback: "Downloaded episode %2$@ of %1$@.", title, episode)
+        Self.format("notice-download-finished", fallback: "Downloaded episode %2$@ of %1$@.", title, episode)
     }
 
     /// Toast when an episode finished downloading and the note says what happened to its subtitles.
     public static func noticeDownloadFinishedNote(title: String, episode: String, note: String) -> String {
-        format("notice-download-finished-note", fallback: "Downloaded episode %2$@ of %1$@. %3$@", title, episode, note)
+        Self.format("notice-download-finished-note", fallback: "Downloaded episode %2$@ of %1$@. %3$@", title, episode, note)
     }
 
     /// Toast when a download could not start. The reason comes from the torrent client.
     public static func noticeDownloadFailed(title: String, episode: String, reason: String) -> String {
-        format("notice-download-failed", fallback: "Couldn't download episode %2$@ of %1$@. %3$@", title, episode, reason)
+        Self.format("notice-download-failed", fallback: "Couldn't download episode %2$@ of %1$@. %3$@", title, episode, reason)
     }
 
     /// Toast after a range was asked for and nothing was queued.
@@ -284,32 +284,32 @@ public enum L {
 
     /// Toast after a range was asked for and nothing was queued, and the reason it stopped.
     public static func noticeDownloadsNoneQueuedStopped(reason: String) -> String {
-        format("notice-downloads-none-queued-stopped", fallback: "Nothing queued. %1$@", reason)
+        Self.format("notice-downloads-none-queued-stopped", fallback: "Nothing queued. %1$@", reason)
     }
 
     /// Toast after a range was asked for and every episode was in the queue already.
     public static func noticeDownloadsNoneNew(existing: String) -> String {
-        format("notice-downloads-none-new", fallback: "Nothing new queued. %1$@", existing)
+        Self.format("notice-downloads-none-new", fallback: "Nothing new queued. %1$@", existing)
     }
 
     /// Toast as above, with the reason the range stopped.
     public static func noticeDownloadsNoneNewStopped(existing: String, reason: String) -> String {
-        format("notice-downloads-none-new-stopped", fallback: "Nothing new queued. %1$@ %2$@", existing, reason)
+        Self.format("notice-downloads-none-new-stopped", fallback: "Nothing new queued. %1$@ %2$@", existing, reason)
     }
 
     /// Toast after a range was asked for, some episodes were queued and some were there already.
     public static func noticeEpisodesQueuedExisting(count: Int, existing: String) -> String {
-        format("notice-episodes-queued-existing", fallback: "Queued %1$lld episodes. %2$@", count, existing)
+        Self.format("notice-episodes-queued-existing", fallback: "Queued %1$lld episodes. %2$@", count, existing)
     }
 
     /// Toast as above, with the reason the range stopped.
     public static func noticeEpisodesQueuedStopped(count: Int, reason: String) -> String {
-        format("notice-episodes-queued-stopped", fallback: "Queued %1$lld episodes, then it stopped. %2$@", count, reason)
+        Self.format("notice-episodes-queued-stopped", fallback: "Queued %1$lld episodes, then it stopped. %2$@", count, reason)
     }
 
     /// Toast as above, with some episodes in the queue already and the reason the range stopped.
     public static func noticeEpisodesQueuedExistingStopped(count: Int, existing: String, reason: String) -> String {
-        format("notice-episodes-queued-existing-stopped", fallback: "Queued %1$lld episodes, then it stopped. %2$@ %3$@", count, existing, reason)
+        Self.format("notice-episodes-queued-existing-stopped", fallback: "Queued %1$lld episodes, then it stopped. %2$@ %3$@", count, existing, reason)
     }
 
     /// Toast when keep next found no room for another episode.
@@ -317,7 +317,7 @@ public enum L {
 
     /// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
     public static func partyNeedsServer(server: String, `operator`: String) -> String {
-        format("party-needs-server", fallback: "Choose a server for the watch party first, as syncplay.server. %1$@ is run by %2$@.", server, `operator`)
+        Self.format("party-needs-server", fallback: "Choose a server for the watch party first, as syncplay.server. %1$@ is run by %2$@.", server, `operator`)
     }
 
     /// Toast when a watch party is asked for in a build without watch parties.
@@ -337,22 +337,22 @@ public enum L {
 
     /// Toast after joining a plugin store with an invite that names this device's owner.
     public static func storeJoined(store: String, member: String) -> String {
-        format("store-joined", fallback: "Joined %1$@ as %2$@.", store, member)
+        Self.format("store-joined", fallback: "Joined %1$@ as %2$@.", store, member)
     }
 
     /// Toast after joining a plugin store with its open link, which keeps no name.
     public static func storeJoinedUnnamed(store: String) -> String {
-        format("store-joined-unnamed", fallback: "Joined %1$@ without a name.", store)
+        Self.format("store-joined-unnamed", fallback: "Joined %1$@ without a name.", store)
     }
 
     /// Toast after leaving a plugin store.
     public static func storeLeft(store: String) -> String {
-        format("store-left", fallback: "Left %1$@. Its plugins stay installed.", store)
+        Self.format("store-left", fallback: "Left %1$@. Its plugins stay installed.", store)
     }
 
     /// Toast after a plugin is deleted from this device.
     public static func pluginRemoved(plugin: String) -> String {
-        format("plugin-removed", fallback: "Removed %1$@.", plugin)
+        Self.format("plugin-removed", fallback: "Removed %1$@.", plugin)
     }
 
     /// Toast after a store owner removes a member.
@@ -369,7 +369,7 @@ public enum L {
 
     /// Toast after a store owner turns off joining with the link, when some devices joined that way.
     public static func storeOpenJoinOffDevices(devices: Int) -> String {
-        format("store-open-join-off-devices", fallback: "Only people you invite can join now. The %1$lld devices that joined with the link keep working until you remove them.", devices)
+        Self.format("store-open-join-off-devices", fallback: "Only people you invite can join now. The %1$lld devices that joined with the link keep working until you remove them.", devices)
     }
 
     /// Toast after one device that joined with the store's link is removed.
@@ -380,12 +380,12 @@ public enum L {
 
     /// Toast after a plugin is published to a store.
     public static func pluginPublished(plugin: String, version: String) -> String {
-        format("plugin-published", fallback: "Published %1$@ %2$@.", plugin, version)
+        Self.format("plugin-published", fallback: "Published %1$@ %2$@.", plugin, version)
     }
 
     /// Toast after a plugin stops being offered in a store.
     public static func pluginUnpublished(plugin: String) -> String {
-        format("plugin-unpublished", fallback: "%1$@ is no longer offered.", plugin)
+        Self.format("plugin-unpublished", fallback: "%1$@ is no longer offered.", plugin)
     }
 
     /// Toast after the store's admin page opens in the browser.
@@ -393,42 +393,42 @@ public enum L {
 
     /// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
     public static func storeAdminOpenFailed(reason: String) -> String {
-        format("store-admin-open-failed", fallback: "Couldn't open a browser (%1$@). On the plugin store's machine, run \"anistream store admin\" to print a link.", reason)
+        Self.format("store-admin-open-failed", fallback: "Couldn't open a browser (%1$@). On the plugin store's machine, run \"anistream store admin\" to print a link.", reason)
     }
 
     /// Toast after a plugin is installed while plugins are switched off in the source order.
     public static func pluginInstalledUnused(plugin: String, version: String) -> String {
-        format("plugin-installed-unused", fallback: "Installed %1$@ %2$@, but plugins are switched off in the source order, so it isn't used.", plugin, version)
+        Self.format("plugin-installed-unused", fallback: "Installed %1$@ %2$@, but plugins are switched off in the source order, so it isn't used.", plugin, version)
     }
 
     /// Toast after a plugin is installed under the name of a built-in source, so it was not loaded.
     public static func pluginInstalledNameClash(plugin: String, id: String) -> String {
-        format("plugin-installed-name-clash", fallback: "Installed %1$@, but %2$@ is the name of a built-in source, so it wasn't loaded.", plugin, id)
+        Self.format("plugin-installed-name-clash", fallback: "Installed %1$@, but %2$@ is the name of a built-in source, so it wasn't loaded.", plugin, id)
     }
 
     /// Toast after a plugin is installed and ready to use.
     public static func pluginInstalled(plugin: String, version: String) -> String {
-        format("plugin-installed", fallback: "Installed %1$@ %2$@.", plugin, version)
+        Self.format("plugin-installed", fallback: "Installed %1$@ %2$@.", plugin, version)
     }
 
     /// Toast after a plugin is installed but could not be loaded. The reason comes from the plugin host.
     public static func pluginInstalledNotLoaded(plugin: String, reason: String) -> String {
-        format("plugin-installed-not-loaded", fallback: "Installed %1$@, but it didn't load. %2$@", plugin, reason)
+        Self.format("plugin-installed-not-loaded", fallback: "Installed %1$@, but it didn't load. %2$@", plugin, reason)
     }
 
     /// Toast at launch when joined plugin stores offer newer versions of installed plugins.
     public static func pluginUpdatesReady(count: Int, names: String) -> String {
-        format("plugin-updates-ready", fallback: "Plugin updates ready: %2$@.", count, names)
+        Self.format("plugin-updates-ready", fallback: "Plugin updates ready: %2$@.", count, names)
     }
 
     /// Note on the sources screen when the plugins could not be loaded. The reason comes from the plugin host.
     public static func pluginsLoadFailed(reason: String) -> String {
-        format("plugins-load-failed", fallback: "Couldn't load plugins. %1$@", reason)
+        Self.format("plugins-load-failed", fallback: "Couldn't load plugins. %1$@", reason)
     }
 
     /// Error: the store was joined once, but this device has no saved token for it.
     public static func storeTokenMissing(store: String) -> String {
-        format("store-token-missing", fallback: "There is no token for %1$@ on this device. Join it again with a new invite.", store)
+        Self.format("store-token-missing", fallback: "There is no token for %1$@ on this device. Join it again with a new invite.", store)
     }
 
     /// Error: the store the record points to is gone from the saved list.
@@ -439,32 +439,32 @@ public enum L {
 
     /// Error: a store rejected this device's token.
     public static func storeDeviceRefused(store: String) -> String {
-        format("store-device-refused", fallback: "%1$@ no longer accepts this device. Join it again with a new invite.", store)
+        Self.format("store-device-refused", fallback: "%1$@ no longer accepts this device. Join it again with a new invite.", store)
     }
 
     /// Error: a store could not be reached. The reason comes from the network.
     public static func storeUnreachable(store: String, reason: String) -> String {
-        format("store-unreachable", fallback: "Couldn't reach %1$@. %2$@", store, reason)
+        Self.format("store-unreachable", fallback: "Couldn't reach %1$@. %2$@", store, reason)
     }
 
     /// Error: an invite link names a store this device already joined, but at another address.
     public static func storeMoved(store: String, current: String, target: String) -> String {
-        format("store-moved", fallback: "%1$@ is joined at %2$@, but this link points to %3$@. If the plugin store has moved, leave it first and join again.", store, current, target)
+        Self.format("store-moved", fallback: "%1$@ is joined at %2$@, but this link points to %3$@. If the plugin store has moved, leave it first and join again.", store, current, target)
     }
 
     /// Error: an open link would replace the named membership this device already has.
     public static func storeJoinWouldUnname(store: String, member: String) -> String {
-        format("store-join-would-unname", fallback: "You joined %1$@ as %2$@. This link would join it again without your name, so nothing was changed.", store, member)
+        Self.format("store-join-would-unname", fallback: "You joined %1$@ as %2$@. This link would join it again without your name, so nothing was changed.", store, member)
     }
 
     /// Error: the server at a link's address could not prove it is the store the invite named.
     public static func storeNotTheInvited(url: String, reason: String) -> String {
-        format("store-not-the-invited", fallback: "%1$@ is not the plugin store in the invite (%2$@). Nothing was joined.", url, reason)
+        Self.format("store-not-the-invited", fallback: "%1$@ is not the plugin store in the invite (%2$@). Nothing was joined.", url, reason)
     }
 
     /// Error: the token for a joined store could not be saved on this device. The reason comes from the system.
     public static func storeTokenNotKept(reason: String) -> String {
-        format("store-token-not-kept", fallback: "Couldn't keep the token for this plugin store. %1$@", reason)
+        Self.format("store-token-not-kept", fallback: "Couldn't keep the token for this plugin store. %1$@", reason)
     }
 
     /// Error: an invite that cannot be used any more.
@@ -475,52 +475,52 @@ public enum L {
 
     /// Error: a plugin takes the name of a built-in source.
     public static func pluginReservedName(plugin: String) -> String {
-        format("plugin-reserved-name", fallback: "%1$@ is the name of a built-in source, so it can't be a plugin.", plugin)
+        Self.format("plugin-reserved-name", fallback: "%1$@ is the name of a built-in source, so it can't be a plugin.", plugin)
     }
 
     /// Error: a store stopped offering a plugin between listing it and installing it.
     public static func storePluginWithdrawn(store: String, plugin: String) -> String {
-        format("store-plugin-withdrawn", fallback: "%1$@ no longer offers %2$@.", store, plugin)
+        Self.format("store-plugin-withdrawn", fallback: "%1$@ no longer offers %2$@.", store, plugin)
     }
 
     /// Error: a store changed a plugin after the person agreed to what was shown.
     public static func storePluginChanged(store: String, plugin: String) -> String {
-        format("store-plugin-changed", fallback: "%1$@ changed %2$@ since it was shown. Look at it again before installing.", store, plugin)
+        Self.format("store-plugin-changed", fallback: "%1$@ changed %2$@ since it was shown. Look at it again before installing.", store, plugin)
     }
 
     /// Error: a plugin installed from one store is offered by another.
     public static func pluginFromOtherStore(plugin: String, store: String) -> String {
-        format("plugin-from-other-store", fallback: "%1$@ is installed from %2$@, which keeps it updated.", plugin, store)
+        Self.format("plugin-from-other-store", fallback: "%1$@ is installed from %2$@, which keeps it updated.", plugin, store)
     }
 
     /// Error: a plugin file added by hand already declares the same name.
     public static func pluginDuplicateFile(path: String, plugin: String) -> String {
-        format("plugin-duplicate-file", fallback: "%1$@ already declares %2$@. Remove that file first, or two copies would run.", path, plugin)
+        Self.format("plugin-duplicate-file", fallback: "%1$@ already declares %2$@. Remove that file first, or two copies would run.", path, plugin)
     }
 
     /// Error: a plugin could not be downloaded or installed. The reason comes from the store or the system.
     public static func pluginInstallFailed(plugin: String, reason: String) -> String {
-        format("plugin-install-failed", fallback: "Couldn't install %1$@. %2$@", plugin, reason)
+        Self.format("plugin-install-failed", fallback: "Couldn't install %1$@. %2$@", plugin, reason)
     }
 
     /// Error: a plugin could not be published. The reason comes from the store or the system.
     public static func pluginPublishFailed(plugin: String, reason: String) -> String {
-        format("plugin-publish-failed", fallback: "Couldn't publish %1$@. %2$@", plugin, reason)
+        Self.format("plugin-publish-failed", fallback: "Couldn't publish %1$@. %2$@", plugin, reason)
     }
 
     /// Error: a plugin to publish is no longer in the plugin folder.
     public static func pluginMissingLocally(plugin: String) -> String {
-        format("plugin-missing-locally", fallback: "%1$@ is no longer in the plugin folder.", plugin)
+        Self.format("plugin-missing-locally", fallback: "%1$@ is no longer in the plugin folder.", plugin)
     }
 
     /// Error: an invite for another device cannot be made from a device that joined with the open link.
     public static func storeInviteNeedsLink(store: String) -> String {
-        format("store-invite-needs-link", fallback: "This device joined %1$@ with its link. Paste the same link on the other device.", store)
+        Self.format("store-invite-needs-link", fallback: "This device joined %1$@ with its link. Paste the same link on the other device.", store)
     }
 
     /// Error: the store sent an invite link that does not parse. The reason comes from the link parser.
     public static func storeLinkMalformed(reason: String) -> String {
-        format("store-link-malformed", fallback: "The plugin store made a bad link. %1$@", reason)
+        Self.format("store-link-malformed", fallback: "The plugin store made a bad link. %1$@", reason)
     }
 
     /// Error: the store sent a link carrying another store's key.
@@ -528,42 +528,42 @@ public enum L {
 
     /// Error: the store's server has no admin page.
     public static func storeAdminMissing(store: String) -> String {
-        format("store-admin-missing", fallback: "%1$@ has no admin page. Its server may be older.", store)
+        Self.format("store-admin-missing", fallback: "%1$@ has no admin page. Its server may be older.", store)
     }
 
     /// Error: the store sent an admin link that points somewhere else.
     public static func storeAdminLinkForeign(store: String) -> String {
-        format("store-admin-link-foreign", fallback: "%1$@ sent an admin link for another address.", store)
+        Self.format("store-admin-link-foreign", fallback: "%1$@ sent an admin link for another address.", store)
     }
 
     /// Error: the store's server is too old for joining with a link.
     public static func storeOpenJoinUnsupported(store: String) -> String {
-        format("store-open-join-unsupported", fallback: "%1$@'s server is older and can't let anyone join with a link. Update it first.", store)
+        Self.format("store-open-join-unsupported", fallback: "%1$@'s server is older and can't let anyone join with a link. Update it first.", store)
     }
 
     /// Toast after a source (plugin) is switched off. It is skipped when looking for episodes.
     public static func sourceSwitchedOff(name: String) -> String {
-        format("source-switched-off", fallback: "%1$@ is off. It is skipped when looking for episodes.", name)
+        Self.format("source-switched-off", fallback: "%1$@ is off. It is skipped when looking for episodes.", name)
     }
 
     /// Toast after a source (plugin) is switched on.
     public static func sourceSwitchedOn(name: String) -> String {
-        format("source-switched-on", fallback: "%1$@ is on.", name)
+        Self.format("source-switched-on", fallback: "%1$@ is on.", name)
     }
 
     /// Error: a command named a plugin that is not loaded.
     public static func pluginNotLoaded(id: String) -> String {
-        format("plugin-not-loaded", fallback: "%1$@ is not a plugin that is loaded.", id)
+        Self.format("plugin-not-loaded", fallback: "%1$@ is not a plugin that is loaded.", id)
     }
 
     /// Toast after a release is chosen for a title. The name is the release's title.
     public static func releasePinned(name: String) -> String {
-        format("release-pinned", fallback: "%1$@ will be used for this title.", name)
+        Self.format("release-pinned", fallback: "%1$@ will be used for this title.", name)
     }
 
     /// Toast when the chosen source or release for a title could not be saved. The reason comes from the database.
     public static func noticeChoiceNotSaved(reason: String) -> String {
-        format("notice-choice-not-saved", fallback: "Couldn't save that choice. %1$@", reason)
+        Self.format("notice-choice-not-saved", fallback: "Couldn't save that choice. %1$@", reason)
     }
 
     /// Toast while torrents are running but the connection check failed, and the settings say to warn only.
@@ -571,7 +571,7 @@ public enum L {
 
     /// Note on the sources screen: torrents are waiting for the VPN guard. The reason comes from the guard.
     public static func torrentVpnWaiting(reason: String) -> String {
-        format("torrent-vpn-waiting", fallback: "Torrents start once the VPN guard passes. %1$@", reason)
+        Self.format("torrent-vpn-waiting", fallback: "Torrents start once the VPN guard passes. %1$@", reason)
     }
 
     /// Note on the sources screen: the VPN guard has no verdict yet.
@@ -585,7 +585,7 @@ public enum L {
 
     /// Error: the torrent session could not start. The reason comes from the torrent engine.
     public static func torrentSessionFailed(reason: String) -> String {
-        format("torrent-session-failed", fallback: "Couldn't start the torrent session. %1$@", reason)
+        Self.format("torrent-session-failed", fallback: "Couldn't start the torrent session. %1$@", reason)
     }
 
     /// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
@@ -593,7 +593,7 @@ public enum L {
 
     /// Toast when the connection check could not run. The reason comes from the VPN settings.
     public static func torrentNotChecked(reason: String) -> String {
-        format("torrent-not-checked", fallback: "Couldn't check the connection. %1$@", reason)
+        Self.format("torrent-not-checked", fallback: "Couldn't check the connection. %1$@", reason)
     }
 
     /// Note on the sources screen after the source chain is rebuilt with torrents on.
@@ -607,7 +607,7 @@ public enum L {
 
     /// Toast when there is no job to carry the wait for AniList's rate limit.
     public static func noticeAnilistLimit(wait: String) -> String {
-        format("notice-anilist-limit", fallback: "Waiting %1$@ on the AniList rate limit.", wait)
+        Self.format("notice-anilist-limit", fallback: "Waiting %1$@ on the AniList rate limit.", wait)
     }
 
     /// Toast when the AniList fallback takes over because AniList cannot be reached.
@@ -624,62 +624,62 @@ public enum L {
 
     /// Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
     public static func noticeSignedIn(tracker: String) -> String {
-        format("notice-signed-in", fallback: "Signed in to %1$@.", tracker)
+        Self.format("notice-signed-in", fallback: "Signed in to %1$@.", tracker)
     }
 
     /// Toast after a sign-in succeeded and the token went into the system keychain.
     public static func noticeSignedInKeychain(tracker: String) -> String {
-        format("notice-signed-in-keychain", fallback: "Signed in to %1$@. The token is in the OS keychain.", tracker)
+        Self.format("notice-signed-in-keychain", fallback: "Signed in to %1$@. The token is in the OS keychain.", tracker)
     }
 
     /// Toast after a sign-in succeeded on a device with no keychain. The token is in a file only this user can read. It is said so that someone on a shared computer knows.
     public static func noticeSignedInFile(tracker: String) -> String {
-        format("notice-signed-in-file", fallback: "Signed in to %1$@. No keychain is available, so the token is in a private file on this device.", tracker)
+        Self.format("notice-signed-in-file", fallback: "Signed in to %1$@. No keychain is available, so the token is in a private file on this device.", tracker)
     }
 
     /// Toast when a sign-in worked but the token could not be stored. The reason comes from the system.
     public static func noticeSignedInUnsaved(tracker: String, reason: String) -> String {
-        format("notice-signed-in-unsaved", fallback: "Signed in to %1$@, but the token wasn't saved, so you'll need to sign in again next time. %2$@", tracker, reason)
+        Self.format("notice-signed-in-unsaved", fallback: "Signed in to %1$@, but the token wasn't saved, so you'll need to sign in again next time. %2$@", tracker, reason)
     }
 
     /// Toast when a sign-in token could not be stored. The reason comes from the system.
     public static func noticeTokenNotSaved(reason: String) -> String {
-        format("notice-token-not-saved", fallback: "Couldn't save the sign-in token. Try signing in again. %1$@", reason)
+        Self.format("notice-token-not-saved", fallback: "Couldn't save the sign-in token. Try signing in again. %1$@", reason)
     }
 
     /// Toast when a sign-in did not finish. The reason comes from the tracker or the network.
     public static func noticeSignInFailed(tracker: String, reason: String) -> String {
-        format("notice-sign-in-failed", fallback: "Couldn't sign in to %1$@. Try again. %2$@", tracker, reason)
+        Self.format("notice-sign-in-failed", fallback: "Couldn't sign in to %1$@. Try again. %2$@", tracker, reason)
     }
 
     /// Toast when the wait for a sign-in ended early. The reason comes from the system.
     public static func noticeSignInStopped(tracker: String, reason: String) -> String {
-        format("notice-sign-in-stopped", fallback: "The sign-in to %1$@ stopped before it finished. Try again. %2$@", tracker, reason)
+        Self.format("notice-sign-in-stopped", fallback: "The sign-in to %1$@ stopped before it finished. Try again. %2$@", tracker, reason)
     }
 
     /// Toast when a tracker would not give a token for the sign-in. The reason comes from the tracker.
     public static func noticeTokenExchangeFailed(tracker: String, reason: String) -> String {
-        format("notice-token-exchange-failed", fallback: "Couldn't get a token from %1$@. Try signing in again. %2$@", tracker, reason)
+        Self.format("notice-token-exchange-failed", fallback: "Couldn't get a token from %1$@. Try signing in again. %2$@", tracker, reason)
     }
 
     /// Toast when no browser could be opened for a sign-in. The reason comes from the system.
     public static func noticeBrowserNotOpened(reason: String) -> String {
-        format("notice-browser-not-opened", fallback: "Couldn't open a browser for the sign-in. Check that one is installed and try again. %1$@", reason)
+        Self.format("notice-browser-not-opened", fallback: "Couldn't open a browser for the sign-in. Check that one is installed and try again. %1$@", reason)
     }
 
     /// Toast when a sign-in redirect arrives and no sign-in is waiting for it.
     public static func noticeSignInNotWaiting(tracker: String) -> String {
-        format("notice-sign-in-not-waiting", fallback: "No sign-in to %1$@ is waiting for that. Start the sign-in again.", tracker)
+        Self.format("notice-sign-in-not-waiting", fallback: "No sign-in to %1$@ is waiting for that. Start the sign-in again.", tracker)
     }
 
     /// Toast when a sign-in redirect does not match the request that was made.
     public static func noticeSignInWrongRequest(tracker: String) -> String {
-        format("notice-sign-in-wrong-request", fallback: "That sign-in to %1$@ didn't come back from this request. Start the sign-in again.", tracker)
+        Self.format("notice-sign-in-wrong-request", fallback: "That sign-in to %1$@ didn't come back from this request. Start the sign-in again.", tracker)
     }
 
     /// Toast when a tracker sent the person back without a token.
     public static func noticeSignInNoToken(tracker: String) -> String {
-        format("notice-sign-in-no-token", fallback: "The sign-in to %1$@ came back without a token. Try again.", tracker)
+        Self.format("notice-sign-in-no-token", fallback: "The sign-in to %1$@ came back without a token. Try again.", tracker)
     }
 
     /// Toast when this build has no MyAnimeList client to finish a sign-in with.
@@ -690,22 +690,22 @@ public enum L {
 
     /// Toast when a tracker has no way to sign in yet.
     public static func noticeSignInUnsupported(tracker: String) -> String {
-        format("notice-sign-in-unsupported", fallback: "Signing in to %1$@ isn't supported yet.", tracker)
+        Self.format("notice-sign-in-unsupported", fallback: "Signing in to %1$@ isn't supported yet.", tracker)
     }
 
     /// Toast on an app that cannot receive a browser redirect.
     public static func noticeSignInNeedsRedirect(tracker: String) -> String {
-        format("notice-sign-in-needs-redirect", fallback: "Signing in to %1$@ needs a browser redirect, which this app can't receive.", tracker)
+        Self.format("notice-sign-in-needs-redirect", fallback: "Signing in to %1$@ needs a browser redirect, which this app can't receive.", tracker)
     }
 
     /// Toast when AniList is set to a sign-in method only the anistream app can finish. The setting name is a key of the config file and is not translated.
     public static func noticeAnilistImplicitFlow(setting: String) -> String {
-        format("notice-anilist-implicit-flow", fallback: "This AniList sign-in method works only in the anistream app. To sign in here, set %1$@ to \"loopback\" in the config file.", setting)
+        Self.format("notice-anilist-implicit-flow", fallback: "This AniList sign-in method works only in the anistream app. To sign in here, set %1$@ to \"loopback\" in the config file.", setting)
     }
 
     /// Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.
     public static func noticeAnilistClientMissing(client: String, secret: String) -> String {
-        format("notice-anilist-client-missing", fallback: "AniList needs a client id and secret. Set %1$@ and %2$@ in the config file, then sign in again. To get the sign-in address, run anistream --login-url.", client, secret)
+        Self.format("notice-anilist-client-missing", fallback: "AniList needs a client id and secret. Set %1$@ and %2$@ in the config file, then sign in again. To get the sign-in address, run anistream --login-url.", client, secret)
     }
 
     /// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
@@ -713,12 +713,12 @@ public enum L {
 
     /// Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
     public static func noticeMalClientMissing(setting: String) -> String {
-        format("notice-mal-client-missing", fallback: "MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set %1$@ in the config file.", setting)
+        Self.format("notice-mal-client-missing", fallback: "MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set %1$@ in the config file.", setting)
     }
 
     /// Status line while the browser sign-in is open and the app waits for it to come back.
     public static func statusWaitingForRedirect(tracker: String) -> String {
-        format("status-waiting-for-redirect", fallback: "Waiting for %1$@ to redirect back…", tracker)
+        Self.format("status-waiting-for-redirect", fallback: "Waiting for %1$@ to redirect back…", tracker)
     }
 
     /// Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.
@@ -726,27 +726,27 @@ public enum L {
 
     /// Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated.
     public static func noticeClientIdMissing(setting: String) -> String {
-        format("notice-client-id-missing", fallback: "Set %1$@ in the config file first.", setting)
+        Self.format("notice-client-id-missing", fallback: "Set %1$@ in the config file first.", setting)
     }
 
     /// Toast after signing out of a tracker with nothing waiting to send.
     public static func noticeSignedOut(tracker: String) -> String {
-        format("notice-signed-out", fallback: "Signed out of %1$@.", tracker)
+        Self.format("notice-signed-out", fallback: "Signed out of %1$@.", tracker)
     }
 
     /// Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in.
     public static func noticeSignedOutQueue(tracker: String, count: Int) -> String {
-        format("notice-signed-out-queue", fallback: "Signed out of %1$@. %2$lld queued changes are kept for the next sign-in.", tracker, count)
+        Self.format("notice-signed-out-queue", fallback: "Signed out of %1$@. %2$lld queued changes are kept for the next sign-in.", tracker, count)
     }
 
     /// Toast when signing out of a tracker failed. The reason comes from the system.
     public static func noticeSignOutFailed(tracker: String, reason: String) -> String {
-        format("notice-sign-out-failed", fallback: "Couldn't sign out of %1$@. Try again. %2$@", tracker, reason)
+        Self.format("notice-sign-out-failed", fallback: "Couldn't sign out of %1$@. Try again. %2$@", tracker, reason)
     }
 
     /// Toast when a setting could not be stored. The cause says why and what to do.
     public static func noticeNotSavedBecause(cause: String) -> String {
-        format("notice-not-saved-because", fallback: "Couldn't save that setting. %1$@", cause)
+        Self.format("notice-not-saved-because", fallback: "Couldn't save that setting. %1$@", cause)
     }
 
     /// Toast when the torrent protection choice was saved.
@@ -754,22 +754,22 @@ public enum L {
 
     /// Toast when the torrent protection could not be checked. The cause says why.
     public static func noticeProtectionNotChecked(cause: String) -> String {
-        format("notice-protection-not-checked", fallback: "Couldn't check the torrent protection. %1$@", cause)
+        Self.format("notice-protection-not-checked", fallback: "Couldn't check the torrent protection. %1$@", cause)
     }
 
     /// Toast when the proxy's password could not be stored. The reason comes from the system.
     public static func noticeProxyPasswordNotKept(reason: String) -> String {
-        format("notice-proxy-password-not-kept", fallback: "Couldn't keep the proxy's password. Enter it again to try saving it. %1$@", reason)
+        Self.format("notice-proxy-password-not-kept", fallback: "Couldn't keep the proxy's password. Enter it again to try saving it. %1$@", reason)
     }
 
     /// Toast when a show's setting was given a value it does not take. The value is what was given.
     public static func noticeShowSettingRefused(value: String, setting: String) -> String {
-        format("notice-show-setting-refused", fallback: "Couldn't save that setting. %1$@ isn't a value for %2$@.", value, setting)
+        Self.format("notice-show-setting-refused", fallback: "Couldn't save that setting. %1$@ isn't a value for %2$@.", value, setting)
     }
 
     /// Toast when resetting a show's settings failed. The reason comes from the local database.
     public static func noticeShowNotReset(reason: String) -> String {
-        format("notice-show-not-reset", fallback: "Couldn't reset this show's settings. %1$@", reason)
+        Self.format("notice-show-not-reset", fallback: "Couldn't reset this show's settings. %1$@", reason)
     }
 
     /// Toast when a subtitle choice names subtitles the show has not used.
@@ -783,22 +783,22 @@ public enum L {
 
     /// Toast when the mapping data could not be downloaded. It is said once; the retries are silent.
     public static func noticeMappingDataFailed(datasets: String, wait: String, cause: String) -> String {
-        format("notice-mapping-data-failed", fallback: "Couldn't refresh the mapping data (%1$@). Trying again in %2$@. %3$@", datasets, wait, cause)
+        Self.format("notice-mapping-data-failed", fallback: "Couldn't refresh the mapping data (%1$@). Trying again in %2$@. %3$@", datasets, wait, cause)
     }
 
     /// Toast, and desktop notification, for one episode that aired while the app was closed.
     public static func noticeEpisodeAired(title: String, episode: Int) -> String {
-        format("notice-episode-aired", fallback: "%1$@, episode %2$lld, aired while you were away.", title, episode)
+        Self.format("notice-episode-aired", fallback: "%1$@, episode %2$lld, aired while you were away.", title, episode)
     }
 
     /// Toast, and desktop notification, for several episodes that aired while the app was closed.
     public static func noticeEpisodesAired(count: Int) -> String {
-        format("notice-episodes-aired", fallback: "%1$lld new episodes of shows you watch aired. The calendar has them.", count)
+        Self.format("notice-episodes-aired", fallback: "%1$lld new episodes of shows you watch aired. The calendar has them.", count)
     }
 
     /// Toast when a new release of anistream is out, on the terminal app. The command is not translated.
     public static func noticeUpdateAvailable(tag: String) -> String {
-        format("notice-update-available", fallback: "%1$@ is out. Run anistream --update to install it.", tag)
+        Self.format("notice-update-available", fallback: "%1$@ is out. Run anistream --update to install it.", tag)
     }
 
     /// The reason a setting was refused until the person confirms having no protection.
@@ -821,12 +821,12 @@ public enum L {
 
     /// Toast after a setting is stored. The label is the setting's name.
     public static func noticeSaved(label: String) -> String {
-        format("notice-saved", fallback: "Saved %1$@.", label)
+        Self.format("notice-saved", fallback: "Saved %1$@.", label)
     }
 
     /// Toast when a setting could not be stored. The reason comes from the system.
     public static func noticeNotSaved(reason: String) -> String {
-        format("notice-not-saved", fallback: "Couldn't save that setting. %1$@", reason)
+        Self.format("notice-not-saved", fallback: "Couldn't save that setting. %1$@", reason)
     }
 
     /// Toast when a title's details did not load.
@@ -837,7 +837,7 @@ public enum L {
 
     /// Toast after episodes are added to the download queue.
     public static func noticeEpisodesQueued(count: Int) -> String {
-        format("notice-episodes-queued", fallback: "Queued %1$lld episodes.", count)
+        Self.format("notice-episodes-queued", fallback: "Queued %1$lld episodes.", count)
     }
 
     /// Mac menu bar item. Title Case, as Apple's guidelines ask for the menu bar only.
@@ -848,7 +848,7 @@ public enum L {
 
     /// Under a release in the source picker: how many people share it right now.
     public static func sourceReleaseSeeders(count: Int) -> String {
-        format("source-release-seeders", fallback: "%1$lld seeders", count)
+        Self.format("source-release-seeders", fallback: "%1$lld seeders", count)
     }
 
     /// Title of the about page.
@@ -859,7 +859,7 @@ public enum L {
 
     /// Line with the version.
     public static func aboutVersion(version: String) -> String {
-        format("about-version", fallback: "Version %1$@", version)
+        Self.format("about-version", fallback: "Version %1$@", version)
     }
 
     /// Line with the licence.
@@ -903,7 +903,7 @@ public enum L {
 
     /// Heading of today's column or row. The day is already worded.
     public static func calendarTodayHeading(day: String) -> String {
-        format("calendar-today-heading", fallback: "Today · %1$@", day)
+        Self.format("calendar-today-heading", fallback: "Today · %1$@", day)
     }
 
     /// Title of the state when no show airs.
@@ -920,7 +920,7 @@ public enum L {
 
     /// Line when no show airs on the day. The day is already worded, such as "Thursday".
     public static func calendarEmptyDay(day: String) -> String {
-        format("calendar-empty-day", fallback: "Nothing airs on %1$@.", day)
+        Self.format("calendar-empty-day", fallback: "Nothing airs on %1$@.", day)
     }
 
     /// Title of the state when the calendar could not load.
@@ -928,32 +928,32 @@ public enum L {
 
     /// Row: episode number and the time it airs.
     public static func calendarRowTime(episode: Int, time: String) -> String {
-        format("calendar-row-time", fallback: "E%1$lld · %2$@", episode, time)
+        Self.format("calendar-row-time", fallback: "E%1$lld · %2$@", episode, time)
     }
 
     /// Row: episode number, dubbed, and the time it airs.
     public static func calendarRowTimeDubbed(episode: Int, time: String) -> String {
-        format("calendar-row-time-dubbed", fallback: "E%1$lld dubbed · %2$@", episode, time)
+        Self.format("calendar-row-time-dubbed", fallback: "E%1$lld dubbed · %2$@", episode, time)
     }
 
     /// Note on a row whose episode moved to a later time.
     public static func calendarMovedFrom(time: String) -> String {
-        format("calendar-moved-from", fallback: "Moved from %1$@", time)
+        Self.format("calendar-moved-from", fallback: "Moved from %1$@", time)
     }
 
     /// Note on a row whose episode was delayed. The note says how long.
     public static func calendarDelayed(note: String) -> String {
-        format("calendar-delayed", fallback: "Delayed %1$@", note)
+        Self.format("calendar-delayed", fallback: "Delayed %1$@", note)
     }
 
     /// Row: the episode came out a while ago. The span is already worded.
     public static func calendarOut(ago: String) -> String {
-        format("calendar-out", fallback: "Out %1$@", ago)
+        Self.format("calendar-out", fallback: "Out %1$@", ago)
     }
 
     /// Row in a small widget: the episode is out.
     public static func calendarEpisodeOut(episode: Int) -> String {
-        format("calendar-episode-out", fallback: "E%1$lld out", episode)
+        Self.format("calendar-episode-out", fallback: "E%1$lld out", episode)
     }
 
     /// Accessibility word for an aired episode that the person has not watched.
@@ -961,12 +961,12 @@ public enum L {
 
     /// Line saying when an episode airs. The time is already worded: "in 1h 30m", "Thursday 16:30".
     public static func episodeAirs(episode: Int, when: String) -> String {
-        format("episode-airs", fallback: "Episode %1$lld airs %2$@", episode, when)
+        Self.format("episode-airs", fallback: "Episode %1$lld airs %2$@", episode, when)
     }
 
     /// Line for an episode that has not aired and has no date yet.
     public static func episodeNotOut(episode: Int) -> String {
-        format("episode-not-out", fallback: "Episode %1$lld is not out yet", episode)
+        Self.format("episode-not-out", fallback: "Episode %1$lld is not out yet", episode)
     }
 
     /// Header of the list of episodes that air in the next seven days.
@@ -986,52 +986,52 @@ public enum L {
 
     /// A span of time in whole days. The unit letter belongs to the language.
     public static func durationDays(days: Int) -> String {
-        format("duration-days", fallback: "%1$lldd", days)
+        Self.format("duration-days", fallback: "%1$lldd", days)
     }
 
     /// A span of time in hours and minutes.
     public static func durationHoursMinutes(hours: Int, minutes: Int) -> String {
-        format("duration-hours-minutes", fallback: "%1$lldh %2$lldm", hours, minutes)
+        Self.format("duration-hours-minutes", fallback: "%1$lldh %2$lldm", hours, minutes)
     }
 
     /// A span of time in whole hours.
     public static func durationHours(hours: Int) -> String {
-        format("duration-hours", fallback: "%1$lldh", hours)
+        Self.format("duration-hours", fallback: "%1$lldh", hours)
     }
 
     /// A span of time in minutes.
     public static func durationMinutes(minutes: Int) -> String {
-        format("duration-minutes", fallback: "%1$lldm", minutes)
+        Self.format("duration-minutes", fallback: "%1$lldm", minutes)
     }
 
     /// A short wait in minutes and seconds. The seconds come with a leading zero.
     public static func durationMinutesSeconds(minutes: Int, seconds: String) -> String {
-        format("duration-minutes-seconds", fallback: "%1$lldm %2$@s", minutes, seconds)
+        Self.format("duration-minutes-seconds", fallback: "%1$lldm %2$@s", minutes, seconds)
     }
 
     /// A short wait in seconds.
     public static func durationSeconds(seconds: Int) -> String {
-        format("duration-seconds", fallback: "%1$llds", seconds)
+        Self.format("duration-seconds", fallback: "%1$llds", seconds)
     }
 
     /// A file size in bytes. The number is already formatted.
     public static func sizeByte(value: String) -> String {
-        format("size-byte", fallback: "%1$@ B", value)
+        Self.format("size-byte", fallback: "%1$@ B", value)
     }
 
     /// A file size in kilobytes (1,000 bytes). The number is already formatted.
     public static func sizeKilobyte(value: String) -> String {
-        format("size-kilobyte", fallback: "%1$@ kB", value)
+        Self.format("size-kilobyte", fallback: "%1$@ kB", value)
     }
 
     /// A file size in megabytes (1,000,000 bytes). The number is already formatted.
     public static func sizeMegabyte(value: String) -> String {
-        format("size-megabyte", fallback: "%1$@ MB", value)
+        Self.format("size-megabyte", fallback: "%1$@ MB", value)
     }
 
     /// A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.
     public static func sizeGigabyte(value: String) -> String {
-        format("size-gigabyte", fallback: "%1$@ GB", value)
+        Self.format("size-gigabyte", fallback: "%1$@ GB", value)
     }
 
     /// Button that closes a sheet whose changes have already been made.
@@ -1153,7 +1153,7 @@ public enum L {
 
     /// Button that opens a page in the browser.
     public static func actionOpenHost(host: String) -> String {
-        format("action-open-host", fallback: "Open %1$@", host)
+        Self.format("action-open-host", fallback: "Open %1$@", host)
     }
 
     /// Value of a switch that is on.
@@ -1176,7 +1176,7 @@ public enum L {
 
     /// Row that follows the app-wide setting, with what that setting is now.
     public static func valueUseDefaultIs(value: String) -> String {
-        format("value-use-default-is", fallback: "Use default · %1$@", value)
+        Self.format("value-use-default-is", fallback: "Use default · %1$@", value)
     }
 
     /// Accessibility word for the chosen row in a list.
@@ -1199,22 +1199,22 @@ public enum L {
 
     /// How long ago something happened.
     public static func timeAgo(span: String) -> String {
-        format("time-ago", fallback: "%1$@ ago", span)
+        Self.format("time-ago", fallback: "%1$@ ago", span)
     }
 
     /// How long until something happens.
     public static func timeIn(span: String) -> String {
-        format("time-in", fallback: "in %1$@", span)
+        Self.format("time-in", fallback: "in %1$@", span)
     }
 
     /// Under a title or in a row: minutes left in an episode.
     public static func timeMinutesLeft(minutes: Int) -> String {
-        format("time-minutes-left", fallback: "%1$lld min left", minutes)
+        Self.format("time-minutes-left", fallback: "%1$lld min left", minutes)
     }
 
     /// A length in minutes, for an episode.
     public static func timeMinutes(minutes: Int) -> String {
-        format("time-minutes", fallback: "%1$lld min", minutes)
+        Self.format("time-minutes", fallback: "%1$lld min", minutes)
     }
 
     /// Line under a title when the device has no connection.
@@ -1240,7 +1240,7 @@ public enum L {
 
     /// Failure to reach a service. The name is the service, such as AniList.
     public static func errorServiceUnreachable(name: String) -> String {
-        format("error-service-unreachable", fallback: "Couldn't reach %1$@. Check your connection and try again.", name)
+        Self.format("error-service-unreachable", fallback: "Couldn't reach %1$@. Check your connection and try again.", name)
     }
 
     /// Failure when a request took too long.
@@ -1284,12 +1284,12 @@ public enum L {
 
     /// Line showing the space the downloads use. The size is already formatted.
     public static func downloadsSpaceUsed(size: String) -> String {
-        format("downloads-space-used", fallback: "Downloads take %1$@", size)
+        Self.format("downloads-space-used", fallback: "Downloads take %1$@", size)
     }
 
     /// Line in the phone settings with the space in use.
     public static func downloadsInDownloads(size: String) -> String {
-        format("downloads-in-downloads", fallback: "%1$@ in downloads", size)
+        Self.format("downloads-in-downloads", fallback: "%1$@ in downloads", size)
     }
 
     /// Accessibility label of the space-used bar.
@@ -1309,7 +1309,7 @@ public enum L {
 
     /// Name of a row.
     public static func downloadsEpisodeName(episode: Int) -> String {
-        format("downloads-episode-name", fallback: "Episode %1$lld", episode)
+        Self.format("downloads-episode-name", fallback: "Episode %1$lld", episode)
     }
 
     /// Row caption: waiting for a free place.
@@ -1323,7 +1323,7 @@ public enum L {
 
     /// Row caption: running. Both sizes are already formatted.
     public static func downloadsCaptionRunning(done: String, total: String) -> String {
-        format("downloads-caption-running", fallback: "Downloading · %1$@ of %2$@", done, total)
+        Self.format("downloads-caption-running", fallback: "Downloading · %1$@ of %2$@", done, total)
     }
 
     /// Row caption: running, size not known yet.
@@ -1331,12 +1331,12 @@ public enum L {
 
     /// Row caption: paused at a percentage.
     public static func downloadsCaptionPaused(percent: String) -> String {
-        format("downloads-caption-paused", fallback: "Paused · %1$@", percent)
+        Self.format("downloads-caption-paused", fallback: "Paused · %1$@", percent)
     }
 
     /// Row caption: finished. The size is already formatted.
     public static func downloadsCaptionDoneSize(size: String) -> String {
-        format("downloads-caption-done-size", fallback: "Downloaded · %1$@", size)
+        Self.format("downloads-caption-done-size", fallback: "Downloaded · %1$@", size)
     }
 
     /// Row caption: finished.
@@ -1350,7 +1350,7 @@ public enum L {
 
     /// Row caption: stopped with a reason, which is already a sentence fragment.
     public static func downloadsCaptionFailedWhy(why: String) -> String {
-        format("downloads-caption-failed-why", fallback: "Failed · %1$@", why)
+        Self.format("downloads-caption-failed-why", fallback: "Failed · %1$@", why)
     }
 
     /// Row caption: stopped without a reason.
@@ -1358,7 +1358,7 @@ public enum L {
 
     /// Row caption: sharing back. Both amounts are ratios already formatted, the last is time left.
     public static func downloadsSeedingLine(shared: String, goal: String, left: String) -> String {
-        format("downloads-seeding-line", fallback: "Shared %1$@ of %2$@ · %3$@", shared, goal, left)
+        Self.format("downloads-seeding-line", fallback: "Shared %1$@ of %2$@ · %3$@", shared, goal, left)
     }
 
     /// Menu item that starts a queued download before the others.
@@ -1384,12 +1384,12 @@ public enum L {
 
     /// Accessibility label: play one downloaded episode.
     public static func downloadsPlayEpisode(episode: Int) -> String {
-        format("downloads-play-episode", fallback: "Play episode %1$lld", episode)
+        Self.format("downloads-play-episode", fallback: "Play episode %1$lld", episode)
     }
 
     /// Title of the confirmation.
     public static func downloadsDeleteTitle(name: String) -> String {
-        format("downloads-delete-title", fallback: "Delete %1$@?", name)
+        Self.format("downloads-delete-title", fallback: "Delete %1$@?", name)
     }
 
     /// Line under the confirmation title.
@@ -1448,22 +1448,22 @@ public enum L {
 
     /// Title of the notification when an episode finished.
     public static func downloadsNoticeDone(episode: Int) -> String {
-        format("downloads-notice-done", fallback: "Episode %1$lld downloaded", episode)
+        Self.format("downloads-notice-done", fallback: "Episode %1$lld downloaded", episode)
     }
 
     /// Body of that notification.
     public static func downloadsNoticeDoneDetail(title: String) -> String {
-        format("downloads-notice-done-detail", fallback: "%1$@ · ready to watch offline", title)
+        Self.format("downloads-notice-done-detail", fallback: "%1$@ · ready to watch offline", title)
     }
 
     /// Notification text while several episodes download.
     public static func downloadsNoticeRunning(count: Int) -> String {
-        format("downloads-notice-running", fallback: "Downloading %1$lld episodes", count)
+        Self.format("downloads-notice-running", fallback: "Downloading %1$lld episodes", count)
     }
 
     /// Notification text: first line of one running download.
     public static func downloadsNoticeEpisodeLeft(episode: Int, left: String) -> String {
-        format("downloads-notice-episode-left", fallback: "Episode %1$lld · %2$@ left", episode, left)
+        Self.format("downloads-notice-episode-left", fallback: "Episode %1$lld · %2$@ left", episode, left)
     }
 
     /// Notification text: a download is starting.
@@ -1471,7 +1471,7 @@ public enum L {
 
     /// Button on a title page to download one episode.
     public static func episodeDownloadOne(episode: Int) -> String {
-        format("episode-download-one", fallback: "Download episode %1$lld", episode)
+        Self.format("episode-download-one", fallback: "Download episode %1$lld", episode)
     }
 
     /// Line under that button while it waits.
@@ -1482,12 +1482,12 @@ public enum L {
 
     /// Line under that button while it runs.
     public static func episodeDownloadRunning(percent: String) -> String {
-        format("episode-download-running", fallback: "Downloading · %1$@", percent)
+        Self.format("episode-download-running", fallback: "Downloading · %1$@", percent)
     }
 
     /// Line under that button while it is paused.
     public static func episodeDownloadPaused(percent: String) -> String {
-        format("episode-download-paused", fallback: "Download paused at %1$@", percent)
+        Self.format("episode-download-paused", fallback: "Download paused at %1$@", percent)
     }
 
     /// Line under that button once the file is saved.
@@ -1495,27 +1495,27 @@ public enum L {
 
     /// Line under that button after a failure.
     public static func episodeDownloadFailed(episode: Int) -> String {
-        format("episode-download-failed", fallback: "Couldn't download episode %1$lld. Download again.", episode)
+        Self.format("episode-download-failed", fallback: "Couldn't download episode %1$lld. Download again.", episode)
     }
 
     /// Continue row subtitle. The show's title is cut first when the row is short.
     public static func queueEpisodesLeft(count: Int, title: String) -> String {
-        format("queue-episodes-left", fallback: "%1$lld episodes left in %2$@", count, title)
+        Self.format("queue-episodes-left", fallback: "%1$lld episodes left in %2$@", count, title)
     }
 
     /// A number of episodes, alone: a badge or a count under a title.
     public static func episodesCount(count: Int) -> String {
-        format("episodes-count", fallback: "%1$lld episodes", count)
+        Self.format("episodes-count", fallback: "%1$lld episodes", count)
     }
 
     /// How far through a show a person is. The plural follows the total.
     public static func progressEpisodes(watched: Int, total: Int) -> String {
-        format("progress-episodes", fallback: "%1$lld of %2$lld episodes", watched, total)
+        Self.format("progress-episodes", fallback: "%1$lld of %2$lld episodes", watched, total)
     }
 
     /// A span of time to the next episode, in days and hours. The unit letters belong to the language.
     public static func durationDaysHours(days: Int, hours: Int) -> String {
-        format("duration-days-hours", fallback: "%1$lldd %2$lldh", days, hours)
+        Self.format("duration-days-hours", fallback: "%1$lldd %2$lldh", days, hours)
     }
 
     /// Group header on the library and continue screens.
@@ -1556,37 +1556,37 @@ public enum L {
 
     /// Accessibility label on the overflow button of a row.
     public static func continueMoreFor(title: String) -> String {
-        format("continue-more-for", fallback: "More for %1$@", title)
+        Self.format("continue-more-for", fallback: "More for %1$@", title)
     }
 
     /// Row caption: resumes this episode where it stopped. The clock is the stored position.
     public static func continueRowResume(episode: Int, clock: String) -> String {
-        format("continue-row-resume", fallback: "Continue E%1$lld · %2$@", episode, clock)
+        Self.format("continue-row-resume", fallback: "Continue E%1$lld · %2$@", episode, clock)
     }
 
     /// Row caption: resumes this episode where it stopped, dubbed.
     public static func continueRowResumeDubbed(episode: Int, clock: String) -> String {
-        format("continue-row-resume-dubbed", fallback: "Continue E%1$lld dubbed · %2$@", episode, clock)
+        Self.format("continue-row-resume-dubbed", fallback: "Continue E%1$lld dubbed · %2$@", episode, clock)
     }
 
     /// Row caption: the next unwatched episode.
     public static func continueRowStart(episode: Int) -> String {
-        format("continue-row-start", fallback: "Play E%1$lld", episode)
+        Self.format("continue-row-start", fallback: "Play E%1$lld", episode)
     }
 
     /// Row caption: the next unwatched episode, dubbed.
     public static func continueRowStartDubbed(episode: Int) -> String {
-        format("continue-row-start-dubbed", fallback: "Play E%1$lld dubbed", episode)
+        Self.format("continue-row-start-dubbed", fallback: "Play E%1$lld dubbed", episode)
     }
 
     /// Row caption: the next unwatched episode, which came out a while ago.
     public static func continueRowStartAired(episode: Int, ago: String) -> String {
-        format("continue-row-start-aired", fallback: "Play E%1$lld · out %2$@", episode, ago)
+        Self.format("continue-row-start-aired", fallback: "Play E%1$lld · out %2$@", episode, ago)
     }
 
     /// Row caption: nothing new to watch. The time is when the next episode airs.
     public static func continueRowCaughtUp(episode: Int, when: String) -> String {
-        format("continue-row-caught-up", fallback: "Caught up · E%1$lld %2$@", episode, when)
+        Self.format("continue-row-caught-up", fallback: "Caught up · E%1$lld %2$@", episode, when)
     }
 
     /// Row caption: nothing new to watch and no date for the next episode.
@@ -1600,12 +1600,12 @@ public enum L {
 
     /// Main button of the title page when the episode is part-watched. The time is where it stopped, already formatted.
     public static func titleButtonResume(episode: Int, time: String) -> String {
-        format("title-button-resume", fallback: "Resume episode %1$lld · %2$@", episode, time)
+        Self.format("title-button-resume", fallback: "Resume episode %1$lld · %2$@", episode, time)
     }
 
     /// Main button of the title page otherwise: plays the next unwatched episode from the start.
     public static func titleButtonPlay(episode: Int) -> String {
-        format("title-button-play", fallback: "Play episode %1$lld", episode)
+        Self.format("title-button-play", fallback: "Play episode %1$lld", episode)
     }
 
     /// Main button of the title page when there is no { -source } to play from.
@@ -1637,12 +1637,12 @@ public enum L {
 
     /// Button showing the library's current sort order.
     public static func librarySortButton(sort: String) -> String {
-        format("library-sort-button", fallback: "Sort: %1$@", sort)
+        Self.format("library-sort-button", fallback: "Sort: %1$@", sort)
     }
 
     /// Accessibility label of the sort button.
     public static func librarySortLabel(sort: String) -> String {
-        format("library-sort-label", fallback: "Sort by %1$@", sort)
+        Self.format("library-sort-label", fallback: "Sort by %1$@", sort)
     }
 
     /// Title of the library when no tracker is signed in.
@@ -1656,7 +1656,7 @@ public enum L {
 
     /// Title of an empty list. The list is its status in running text, such as "planning".
     public static func libraryListEmpty(list: String) -> String {
-        format("library-list-empty", fallback: "Nothing on your %1$@ list", list)
+        Self.format("library-list-empty", fallback: "Nothing on your %1$@ list", list)
     }
 
     /// Line under an empty list's title.
@@ -1664,7 +1664,7 @@ public enum L {
 
     /// Title of the state when one list could not load.
     public static func libraryListLoadFailed(list: String) -> String {
-        format("library-list-load-failed", fallback: "Couldn't load your %1$@ list", list)
+        Self.format("library-list-load-failed", fallback: "Couldn't load your %1$@ list", list)
     }
 
     /// Short line while the library loads.
@@ -1687,12 +1687,12 @@ public enum L {
 
     /// Short progress under a show: the last episode watched out of the total.
     public static func progressEpisodesShort(done: Int, total: Int) -> String {
-        format("progress-episodes-short", fallback: "E%1$lld of %2$lld", done, total)
+        Self.format("progress-episodes-short", fallback: "E%1$lld of %2$lld", done, total)
     }
 
     /// Short progress under a show when the total is not known.
     public static func progressEpisodeShort(done: Int) -> String {
-        format("progress-episode-short", fallback: "E%1$lld", done)
+        Self.format("progress-episode-short", fallback: "E%1$lld", done)
     }
 
     /// Format of a show: broadcast on television.
@@ -1730,7 +1730,7 @@ public enum L {
 
     /// A season and its year, such as "Autumn 2026". Both are already worded.
     public static func seasonWithYear(season: String, year: String) -> String {
-        format("season-with-year", fallback: "%1$@ %2$@", season, year)
+        Self.format("season-with-year", fallback: "%1$@ %2$@", season, year)
     }
 
     /// Status of a show that has finished airing.
@@ -1750,12 +1750,12 @@ public enum L {
 
     /// Date line of a show that is airing: when it started.
     public static func mediaAiringSince(date: String) -> String {
-        format("media-airing-since", fallback: "Since %1$@", date)
+        Self.format("media-airing-since", fallback: "Since %1$@", date)
     }
 
     /// Date line of a show that has not started: when it will.
     public static func mediaAiringFrom(date: String) -> String {
-        format("media-airing-from", fallback: "From %1$@", date)
+        Self.format("media-airing-from", fallback: "From %1$@", date)
     }
 
     /// Value of "Based on": a story written for the screen.
@@ -1844,22 +1844,22 @@ public enum L {
 
     /// A related title's relation, its format and its year.
     public static func relationLine(relation: String, format: String, year: String) -> String {
-        format("relation-line", fallback: "%1$@ · %2$@ · %3$@", relation, format, year)
+        Self.format("relation-line", fallback: "%1$@ · %2$@ · %3$@", relation, format, year)
     }
 
     /// Ranking line, such as "#4 Highest rated, Autumn 2026". The label is already worded.
     public static func rankingLine(rank: Int, label: String) -> String {
-        format("ranking-line", fallback: "#%1$lld %2$@", rank, label)
+        Self.format("ranking-line", fallback: "#%1$lld %2$@", rank, label)
     }
 
     /// Label of a ranking by score within a period.
     public static func rankingHighestRated(scope: String) -> String {
-        format("ranking-highest-rated", fallback: "Highest rated, %1$@", scope)
+        Self.format("ranking-highest-rated", fallback: "Highest rated, %1$@", scope)
     }
 
     /// Label of a ranking by popularity within a period.
     public static func rankingMostPopular(scope: String) -> String {
-        format("ranking-most-popular", fallback: "Most popular, %1$@", scope)
+        Self.format("ranking-most-popular", fallback: "Most popular, %1$@", scope)
     }
 
     /// The period of a ranking that covers everything.
@@ -1960,7 +1960,7 @@ public enum L {
 
     /// Name of a shortcut or tooltip: the name, then the key that does it.
     public static func tooltipWithKey(name: String, key: String) -> String {
-        format("tooltip-with-key", fallback: "%1$@ (%2$@)", name, key)
+        Self.format("tooltip-with-key", fallback: "%1$@ (%2$@)", name, key)
     }
 
     /// Title of the welcome window.
@@ -2049,7 +2049,7 @@ public enum L {
 
     /// Button that fills the suggested server in. The server is a host name.
     public static func partyUseServer(server: String) -> String {
-        format("party-use-server", fallback: "Use %1$@", server)
+        Self.format("party-use-server", fallback: "Use %1$@", server)
     }
 
     /// Button that fills in what was suggested.
@@ -2063,12 +2063,12 @@ public enum L {
 
     /// Line under the server field when the public server is chosen. The operator is a name.
     public static func partyServerPublic(`operator`: String) -> String {
-        format("party-server-public", fallback: "A public server run by %1$@, not by anistream.", `operator`)
+        Self.format("party-server-public", fallback: "A public server run by %1$@, not by anistream.", `operator`)
     }
 
     /// Line under the server field when something else is typed.
     public static func partyServerSuggest(server: String, `operator`: String) -> String {
-        format("party-server-suggest", fallback: "No server of your own? %1$@ is a public one, run by %2$@.", server, `operator`)
+        Self.format("party-server-suggest", fallback: "No server of your own? %1$@ is a public one, run by %2$@.", server, `operator`)
     }
 
     /// Line under an invite's room when the server is not the public one.
@@ -2085,12 +2085,12 @@ public enum L {
 
     /// Line on the invite card naming the room and server.
     public static func partyInviteRoom(room: String, server: String) -> String {
-        format("party-invite-room", fallback: "Room %1$@ on %2$@", room, server)
+        Self.format("party-invite-room", fallback: "Room %1$@ on %2$@", room, server)
     }
 
     /// Line while the form joins the party.
     public static func partyJoining(room: String, server: String) -> String {
-        format("party-joining", fallback: "Joining %1$@ on %2$@…", room, server)
+        Self.format("party-joining", fallback: "Joining %1$@ on %2$@…", room, server)
     }
 
     /// Line on the form when no episode is playing yet.
@@ -2098,12 +2098,12 @@ public enum L {
 
     /// Line naming the episode of the form.
     public static func partyFormEpisodeOf(episode: Int, title: String) -> String {
-        format("party-form-episode-of", fallback: "Episode %1$lld of %2$@", episode, title)
+        Self.format("party-form-episode-of", fallback: "Episode %1$lld of %2$@", episode, title)
     }
 
     /// Line naming the episode of the form when the show has no name.
     public static func partyFormEpisode(episode: Int) -> String {
-        format("party-form-episode", fallback: "Episode %1$lld", episode)
+        Self.format("party-form-episode", fallback: "Episode %1$lld", episode)
     }
 
     /// Line on the form when the party could not begin.
@@ -2117,12 +2117,12 @@ public enum L {
 
     /// Server and room in the panel, for another app.
     public static func partyOtherAppDetail(server: String, room: String) -> String {
-        format("party-other-app-detail", fallback: "Server %1$@. Room %2$@.", server, room)
+        Self.format("party-other-app-detail", fallback: "Server %1$@. Room %2$@.", server, room)
     }
 
     /// Name of a member who is this device.
     public static func partyMemberYou(name: String) -> String {
-        format("party-member-you", fallback: "%1$@ (you)", name)
+        Self.format("party-member-you", fallback: "%1$@ (you)", name)
     }
 
     /// Word for you in a sentence about who is not ready.
@@ -2154,22 +2154,22 @@ public enum L {
 
     /// Line when one other member is still to be ready.
     public static func partyWaitOne(name: String) -> String {
-        format("party-wait-one", fallback: "Play starts once %1$@ is ready", name)
+        Self.format("party-wait-one", fallback: "Play starts once %1$@ is ready", name)
     }
 
     /// Line when two members are still to be ready.
     public static func partyWaitTwo(first: String, second: String) -> String {
-        format("party-wait-two", fallback: "Play starts once %1$@ and %2$@ are ready", first, second)
+        Self.format("party-wait-two", fallback: "Play starts once %1$@ and %2$@ are ready", first, second)
     }
 
     /// Line when more than two members are still to be ready.
     public static func partyWaitMany(count: Int) -> String {
-        format("party-wait-many", fallback: "Play starts once %1$lld more are ready", count)
+        Self.format("party-wait-many", fallback: "Play starts once %1$lld more are ready", count)
     }
 
     /// Connection line while the party reconnects.
     public static func partyConnectionLost(attempt: Int, of: Int) -> String {
-        format("party-connection-lost", fallback: "Connection lost. Trying again, %1$lld of %2$lld", attempt, of)
+        Self.format("party-connection-lost", fallback: "Connection lost. Trying again, %1$lld of %2$lld", attempt, of)
     }
 
     /// Connection line: encrypted.
@@ -2180,7 +2180,7 @@ public enum L {
 
     /// Connection line with the round trip time.
     public static func partyConnectedLatency(line: String, ms: Int) -> String {
-        format("party-connected-latency", fallback: "%1$@ · %2$lld ms", line, ms)
+        Self.format("party-connected-latency", fallback: "%1$@ · %2$lld ms", line, ms)
     }
 
     /// Line under the invite link button before any episode plays.
@@ -2191,7 +2191,7 @@ public enum L {
 
     /// Line shown in the room with nothing playing.
     public static func partyInRoomIdle(room: String, server: String) -> String {
-        format("party-in-room-idle", fallback: "You're in %1$@ on %2$@, with nothing playing.", room, server)
+        Self.format("party-in-room-idle", fallback: "You're in %1$@ on %2$@, with nothing playing.", room, server)
     }
 
     /// Line shown in the room with nothing playing, when the room is unknown.
@@ -2217,7 +2217,7 @@ public enum L {
 
     /// Line under it. The room is a name.
     public static func partyLeaveDetail(room: String) -> String {
-        format("party-leave-detail", fallback: "Closing anistream leaves %1$@. Everyone else carries on without you.", room)
+        Self.format("party-leave-detail", fallback: "Closing anistream leaves %1$@. Everyone else carries on without you.", room)
     }
 
     /// Title when the user has installed no source.
@@ -2225,7 +2225,7 @@ public enum L {
 
     /// Line under it.
     public static func partyNosourceNoneDetail(what: String) -> String {
-        format("party-nosource-none-detail", fallback: "Sources come from plugins, which a plugin store adds. %1$@ plays with the room once one of them has it.", what)
+        Self.format("party-nosource-none-detail", fallback: "Sources come from plugins, which a plugin store adds. %1$@ plays with the room once one of them has it.", what)
     }
 
     /// Title when no source has the episode.
@@ -2233,12 +2233,12 @@ public enum L {
 
     /// Line under it. The reason is a sentence without its full stop.
     public static func partyNosourceMissingDetail(why: String, what: String) -> String {
-        format("party-nosource-missing-detail", fallback: "%1$@. %2$@ plays with the room once you choose a source that has it.", why, what)
+        Self.format("party-nosource-missing-detail", fallback: "%1$@. %2$@ plays with the room once you choose a source that has it.", why, what)
     }
 
     /// Line under a title that says the episode has not aired.
     public static func partyNosourceUnaired(episode: Int) -> String {
-        format("party-nosource-unaired", fallback: "Your sources won't have episode %1$lld before it's out.", episode)
+        Self.format("party-nosource-unaired", fallback: "Your sources won't have episode %1$lld before it's out.", episode)
     }
 
     /// Line under a title that says the episode has not aired and no date is known.
@@ -2246,7 +2246,7 @@ public enum L {
 
     /// Line over the list of sources that list the episode.
     public static func partySourcesFound(count: Int) -> String {
-        format("party-sources-found", fallback: "%1$lld sources have it", count)
+        Self.format("party-sources-found", fallback: "%1$lld sources have it", count)
     }
 
     /// Accessibility label of the list of sources for the episode.
@@ -2254,7 +2254,7 @@ public enum L {
 
     /// Line of a source: its quality and size already formatted, and the number of seeders.
     public static func partySourceSeeders(seeders: Int) -> String {
-        format("party-source-seeders", fallback: "%1$lld seeders", seeders)
+        Self.format("party-source-seeders", fallback: "%1$lld seeders", seeders)
     }
 
     /// Label on the card for the episode that plays after this one.
@@ -2265,12 +2265,12 @@ public enum L {
 
     /// Line on the starting screen, from the moment the player is asked to play until the first frame.
     public static func playerStarting(episode: Int) -> String {
-        format("player-starting", fallback: "Starting episode %1$lld", episode)
+        Self.format("player-starting", fallback: "Starting episode %1$lld", episode)
     }
 
     /// Line on the starting screen after a few seconds: the app is looking for a stream.
     public static func playerFindingSource(seconds: Int) -> String {
-        format("player-finding-source", fallback: "Finding a source · %1$lld s", seconds)
+        Self.format("player-finding-source", fallback: "Finding a source · %1$lld s", seconds)
     }
 
     /// Same line before the wait is counted.
@@ -2278,7 +2278,7 @@ public enum L {
 
     /// Title of the card shown when an episode could not play.
     public static func playerFailedTitle(episode: Int) -> String {
-        format("player-failed-title", fallback: "Couldn't play episode %1$lld", episode)
+        Self.format("player-failed-title", fallback: "Couldn't play episode %1$lld", episode)
     }
 
     /// Line under the failure title when every { -source } was tried.
@@ -2301,7 +2301,7 @@ public enum L {
 
     /// Title of the stall card. The seconds count up.
     public static func playerStallTitle(seconds: Int) -> String {
-        format("player-stall-title", fallback: "Source is buffering · %1$lld s", seconds)
+        Self.format("player-stall-title", fallback: "Source is buffering · %1$lld s", seconds)
     }
 
     /// Line under the stall title.
@@ -2315,7 +2315,7 @@ public enum L {
 
     /// Line on the Up next card: the episode starts when the count ends.
     public static func playerPlaysIn(seconds: Int) -> String {
-        format("player-plays-in", fallback: "Plays in %1$lld s", seconds)
+        Self.format("player-plays-in", fallback: "Plays in %1$lld s", seconds)
     }
 
     /// Button that skips the opening.
@@ -2332,7 +2332,7 @@ public enum L {
 
     /// Note at the top of the video after it resumed where it stopped.
     public static func playerResumedAt(clock: String) -> String {
-        format("player-resumed-at", fallback: "Resumed at %1$@", clock)
+        Self.format("player-resumed-at", fallback: "Resumed at %1$@", clock)
     }
 
     /// Button beside the resume note that plays from the start.
@@ -2343,7 +2343,7 @@ public enum L {
 
     /// Line under the still-watching title.
     public static func playerStillWatchingDetail(count: Int) -> String {
-        format("player-still-watching-detail", fallback: "Paused after %1$lld episodes in a row.", count)
+        Self.format("player-still-watching-detail", fallback: "Paused after %1$lld episodes in a row.", count)
     }
 
     /// Button on the still-watching card that goes on.
@@ -2351,7 +2351,7 @@ public enum L {
 
     /// Line on the TV player: when the episode ends. The time is already formatted.
     public static func playerEndsAt(time: String) -> String {
-        format("player-ends-at", fallback: "Ends at %1$@", time)
+        Self.format("player-ends-at", fallback: "Ends at %1$@", time)
     }
 
     /// Accessibility label and tooltip: go back ten seconds.
@@ -2368,7 +2368,7 @@ public enum L {
 
     /// Note on screen after the volume changed. The number is a percentage.
     public static func playerVolumeLevel(percent: String) -> String {
-        format("player-volume-level", fallback: "Volume %1$@", percent)
+        Self.format("player-volume-level", fallback: "Volume %1$@", percent)
     }
 
     /// Note on screen while the sound is off.
@@ -2379,7 +2379,7 @@ public enum L {
 
     /// Accessibility label of the speed control, with the speed now.
     public static func playerSpeedIs(speed: String) -> String {
-        format("player-speed-is", fallback: "Playback speed, %1$@", speed)
+        Self.format("player-speed-is", fallback: "Playback speed, %1$@", speed)
     }
 
     /// Menu item that goes back to the normal speed.
@@ -2486,12 +2486,12 @@ public enum L {
 
     /// Name of an audio track the file does not describe.
     public static func playerAudioTrackN(id: Int) -> String {
-        format("player-audio-track-n", fallback: "Audio %1$lld", id)
+        Self.format("player-audio-track-n", fallback: "Audio %1$lld", id)
     }
 
     /// Name of a subtitle track the file does not describe.
     public static func playerSubtitleTrackN(id: Int) -> String {
-        format("player-subtitle-track-n", fallback: "Subtitles %1$lld", id)
+        Self.format("player-subtitle-track-n", fallback: "Subtitles %1$lld", id)
     }
 
     /// Line in the track list before the file has told which tracks it has.
@@ -2520,7 +2520,7 @@ public enum L {
 
     /// Title of the state when a season lists no titles. The season is already worded.
     public static func seasonalEmptyTitle(season: String) -> String {
-        format("seasonal-empty-title", fallback: "Nothing listed for %1$@ yet", season)
+        Self.format("seasonal-empty-title", fallback: "Nothing listed for %1$@ yet", season)
     }
 
     /// Line under the empty season title.
@@ -2552,12 +2552,12 @@ public enum L {
 
     /// Button showing the current sort order.
     public static func sortButton(sort: String) -> String {
-        format("sort-button", fallback: "Sort: %1$@", sort)
+        Self.format("sort-button", fallback: "Sort: %1$@", sort)
     }
 
     /// Accessibility label of the sort button.
     public static func sortLabel(sort: String) -> String {
-        format("sort-label", fallback: "Sort by %1$@", sort)
+        Self.format("sort-label", fallback: "Sort by %1$@", sort)
     }
 
     /// Placeholder of the search field.
@@ -2568,12 +2568,12 @@ public enum L {
 
     /// Row under the field while a search runs. The query is what the person typed.
     public static func searchSearching(query: String) -> String {
-        format("search-searching", fallback: "Searching for “%1$@”", query)
+        Self.format("search-searching", fallback: "Searching for “%1$@”", query)
     }
 
     /// Heading over the results of a search.
     public static func searchResultsFor(query: String) -> String {
-        format("search-results-for", fallback: "Results for “%1$@”", query)
+        Self.format("search-results-for", fallback: "Results for “%1$@”", query)
     }
 
     /// Heading over the titles shown when nothing was typed.
@@ -2581,7 +2581,7 @@ public enum L {
 
     /// Title of the state when a search finds nothing.
     public static func searchNothingFound(query: String) -> String {
-        format("search-nothing-found", fallback: "Nothing found for “%1$@”", query)
+        Self.format("search-nothing-found", fallback: "Nothing found for “%1$@”", query)
     }
 
     /// Line under the title when a search finds nothing.
@@ -2592,7 +2592,7 @@ public enum L {
 
     /// Title of the state when a search and its filters leave nothing.
     public static func searchNothingFoundWithFilters(query: String) -> String {
-        format("search-nothing-found-with-filters", fallback: "Nothing found for “%1$@” with these filters", query)
+        Self.format("search-nothing-found-with-filters", fallback: "Nothing found for “%1$@” with these filters", query)
     }
 
     /// Line under a state that filters emptied.
@@ -2615,7 +2615,7 @@ public enum L {
 
     /// Accessibility label of the button that forgets one recent search.
     public static func searchRecentRemove(query: String) -> String {
-        format("search-recent-remove", fallback: "Remove %1$@", query)
+        Self.format("search-recent-remove", fallback: "Remove %1$@", query)
     }
 
     /// Button that shows every title in a group.
@@ -2632,7 +2632,7 @@ public enum L {
 
     /// Button that opens the filters, with how many are on.
     public static func filtersButtonCount(count: Int) -> String {
-        format("filters-button-count", fallback: "All filters · %1$lld", count)
+        Self.format("filters-button-count", fallback: "All filters · %1$lld", count)
     }
 
     /// Button that opens the filters when none is on.
@@ -2715,7 +2715,7 @@ public enum L {
 
     /// Filter name: how closely a tag must fit a show.
     public static func filterTagRank(rank: String) -> String {
-        format("filter-tag-rank", fallback: "Tag rank at least %1$@", rank)
+        Self.format("filter-tag-rank", fallback: "Tag rank at least %1$@", rank)
     }
 
     /// Switch that shows tags that give away the story.
@@ -2744,7 +2744,7 @@ public enum L {
 
     /// Choice in the year range: up to a year.
     public static func filterYearsUpTo(year: String) -> String {
-        format("filter-years-up-to", fallback: "Up to %1$@", year)
+        Self.format("filter-years-up-to", fallback: "Up to %1$@", year)
     }
 
     /// State of a genre or tag in a filter: it must be there.
@@ -2761,7 +2761,7 @@ public enum L {
 
     /// Accessibility label of the button that removes one filter.
     public static func filterRemove(filter: String) -> String {
-        format("filter-remove", fallback: "Remove %1$@", filter)
+        Self.format("filter-remove", fallback: "Remove %1$@", filter)
     }
 
     /// Settings group and row title for choosing a language.
@@ -2838,7 +2838,7 @@ public enum L {
 
     /// Option: use the tracker's own choice. The tracker is a name.
     public static func settingsTitleTracker(tracker: String) -> String {
-        format("settings-title-tracker", fallback: "%1$@'s choice", tracker)
+        Self.format("settings-title-tracker", fallback: "%1$@'s choice", tracker)
     }
 
     /// Option: English titles.
@@ -2855,7 +2855,7 @@ public enum L {
 
     /// Line under it. The tracker is a name.
     public static func settingsAdultDetail(tracker: String) -> String {
-        format("settings-adult-detail", fallback: "Titles %1$@ marks adult, in Search and Seasonal", tracker)
+        Self.format("settings-adult-detail", fallback: "Titles %1$@ marks adult, in Search and Seasonal", tracker)
     }
 
     /// Row: quality.
@@ -2905,7 +2905,7 @@ public enum L {
 
     /// Line: how many shows override a setting.
     public static func settingsOverridden(count: Int) -> String {
-        format("settings-overridden", fallback: "Overridden for %1$lld shows", count)
+        Self.format("settings-overridden", fallback: "Overridden for %1$lld shows", count)
     }
 
     /// Row: new downloads.
@@ -3075,7 +3075,7 @@ public enum L {
 
     /// Name of a track with a part in brackets. The part is already formatted.
     public static func showSettingsTrackWith(language: String, part: String) -> String {
-        format("show-settings-track-with", fallback: "%1$@ (%2$@)", language, part)
+        Self.format("show-settings-track-with", fallback: "%1$@ (%2$@)", language, part)
     }
 
     /// Title of the airing widget.
@@ -3089,7 +3089,7 @@ public enum L {
 
     /// Line when nothing airs today and the next is known.
     public static func widgetNothingNext(when: String) -> String {
-        format("widget-nothing-next", fallback: "Nothing airing. Next: %1$@.", when)
+        Self.format("widget-nothing-next", fallback: "Nothing airing. Next: %1$@.", when)
     }
 
     /// Heading of the section that shows what is in the library.
@@ -3100,7 +3100,7 @@ public enum L {
 
     /// Line telling when the widget was updated.
     public static func widgetUpdated(when: String) -> String {
-        format("widget-updated", fallback: "Updated %1$@", when)
+        Self.format("widget-updated", fallback: "Updated %1$@", when)
     }
 
     /// Line on the continue widget when nothing is connected.
@@ -3111,17 +3111,17 @@ public enum L {
 
     /// Accessibility label of a widget row: continue an episode.
     public static func widgetResumeLabel(episode: Int, title: String) -> String {
-        format("widget-resume-label", fallback: "Resume episode %1$lld of %2$@", episode, title)
+        Self.format("widget-resume-label", fallback: "Resume episode %1$lld of %2$@", episode, title)
     }
 
     /// Accessibility label of a widget row: start an episode.
     public static func widgetStartLabel(episode: Int, title: String) -> String {
-        format("widget-start-label", fallback: "Play episode %1$lld of %2$@", episode, title)
+        Self.format("widget-start-label", fallback: "Play episode %1$lld of %2$@", episode, title)
     }
 
     /// Accessibility label of a widget row: continue a dubbed episode.
     public static func widgetResumeDubbedLabel(episode: Int, title: String) -> String {
-        format("widget-resume-dubbed-label", fallback: "Resume episode %1$lld, dubbed, of %2$@", episode, title)
+        Self.format("widget-resume-dubbed-label", fallback: "Resume episode %1$lld, dubbed, of %2$@", episode, title)
     }
 
     /// Title of the screen or section that lists sources.
@@ -3144,7 +3144,7 @@ public enum L {
 
     /// Under a source: how many of the title's released episodes it lists.
     public static func sourcePickerCoverage(covered: Int, of: Int) -> String {
-        format("source-picker-coverage", fallback: "%1$lld of %2$lld episodes", covered, of)
+        Self.format("source-picker-coverage", fallback: "%1$lld of %2$lld episodes", covered, of)
     }
 
     /// Under a source that is switched off in Settings.
@@ -3170,7 +3170,7 @@ public enum L {
 
     /// Notice when the source picked for a title is off, removed or failing. Shown once per visit.
     public static func sourcePinUnavailable(name: String) -> String {
-        format("source-pin-unavailable", fallback: "%1$@ isn't available right now, so this title's episodes come from your other sources.", name)
+        Self.format("source-pin-unavailable", fallback: "%1$@ isn't available right now, so this title's episodes come from your other sources.", name)
     }
 
     /// Under an episode that is out but that no source lists. The row is dimmed and can't be played.
@@ -3226,12 +3226,12 @@ public enum L {
 
     /// Origin: from a store.
     public static func sourcesOriginFrom(name: String) -> String {
-        format("sources-origin-from", fallback: "From %1$@", name)
+        Self.format("sources-origin-from", fallback: "From %1$@", name)
     }
 
     /// Origin: from a store, with the place in the list.
     public static func sourcesOriginIn(place: String) -> String {
-        format("sources-origin-in", fallback: "In %1$@", place)
+        Self.format("sources-origin-in", fallback: "In %1$@", place)
     }
 
     /// Status: the source does not answer.
@@ -3248,7 +3248,7 @@ public enum L {
 
     /// Status line: no answer, with a reason.
     public static func sourcesDetailNotAnswering(why: String) -> String {
-        format("sources-detail-not-answering", fallback: "Not answering. %1$@", why)
+        Self.format("sources-detail-not-answering", fallback: "Not answering. %1$@", why)
     }
 
     /// Status line: no answer.
@@ -3286,12 +3286,12 @@ public enum L {
 
     /// Line: the plugin contacts one host.
     public static func sourcesContactsOne(first: String) -> String {
-        format("sources-contacts-one", fallback: "Contacts %1$@", first)
+        Self.format("sources-contacts-one", fallback: "Contacts %1$@", first)
     }
 
     /// Line: the plugin contacts several hosts. The count is the hosts after the first.
     public static func sourcesContactsLine(first: String, more: Int) -> String {
-        format("sources-contacts-line", fallback: "Contacts %1$@ and %2$lld more", first, more)
+        Self.format("sources-contacts-line", fallback: "Contacts %1$@ and %2$lld more", first, more)
     }
 
     /// Line: the plugin contacts no host.
@@ -3302,32 +3302,32 @@ public enum L {
 
     /// Line: an update adds one host.
     public static func sourcesUpdateContactsOne(first: String) -> String {
-        format("sources-update-contacts-one", fallback: "This update also contacts %1$@.", first)
+        Self.format("sources-update-contacts-one", fallback: "This update also contacts %1$@.", first)
     }
 
     /// Line: an update adds several hosts. The count is the hosts after the first.
     public static func sourcesUpdateContacts(first: String, more: Int) -> String {
-        format("sources-update-contacts", fallback: "This update also contacts %1$@ and %2$lld more.", first, more)
+        Self.format("sources-update-contacts", fallback: "This update also contacts %1$@ and %2$lld more.", first, more)
     }
 
     /// Title of the update question.
     public static func sourcesUpdateTitle(name: String) -> String {
-        format("sources-update-title", fallback: "Update %1$@?", name)
+        Self.format("sources-update-title", fallback: "Update %1$@?", name)
     }
 
     /// Title of the replace question.
     public static func sourcesReplaceTitle(name: String) -> String {
-        format("sources-replace-title", fallback: "Replace %1$@?", name)
+        Self.format("sources-replace-title", fallback: "Replace %1$@?", name)
     }
 
     /// Line under the update question.
     public static func sourcesUpdateDetail(version: String, store: String, from: String) -> String {
-        format("sources-update-detail", fallback: "Version %1$@ from %2$@ replaces %3$@.", version, store, from)
+        Self.format("sources-update-detail", fallback: "Version %1$@ from %2$@ replaces %3$@.", version, store, from)
     }
 
     /// Line under the replace question.
     public static func sourcesReplaceDetail(version: String, store: String, detail: String) -> String {
-        format("sources-replace-detail", fallback: "Version %1$@ from %2$@ replaces the copy added by hand. %3$@.", version, store, detail)
+        Self.format("sources-replace-detail", fallback: "Version %1$@ from %2$@ replaces the copy added by hand. %3$@.", version, store, detail)
     }
 
     /// Button that opens the settings for sources.
@@ -3368,12 +3368,12 @@ public enum L {
 
     /// Line under the name of a store: who runs it and where.
     public static func storesRunBy(owner: String, host: String) -> String {
-        format("stores-run-by", fallback: "Run by %1$@ · %2$@", owner, host)
+        Self.format("stores-run-by", fallback: "Run by %1$@ · %2$@", owner, host)
     }
 
     /// Line under a store added by hand.
     public static func storesAddedByHand(detail: String) -> String {
-        format("stores-added-by-hand", fallback: "Added by hand · %1$@", detail)
+        Self.format("stores-added-by-hand", fallback: "Added by hand · %1$@", detail)
     }
 
     /// Short status: the store cannot be reached.
@@ -3396,7 +3396,7 @@ public enum L {
 
     /// Line when the store cannot be reached but a list was kept. The reason is a sentence fragment.
     public static func storesOfflineLastList(reason: String) -> String {
-        format("stores-offline-last-list", fallback: "Offline: %1$@. The plugins below are the last list that was checked.", reason)
+        Self.format("stores-offline-last-list", fallback: "Offline: %1$@. The plugins below are the last list that was checked.", reason)
     }
 
     /// Line when offline, without a reason.
@@ -3404,12 +3404,12 @@ public enum L {
 
     /// Line with the store's key and how this device joined.
     public static func storesKeyLine(key: String, joined: String) -> String {
-        format("stores-key-line", fallback: "Store key %1$@ · %2$@", key, joined)
+        Self.format("stores-key-line", fallback: "Store key %1$@ · %2$@", key, joined)
     }
 
     /// How the device joined, when a name was given.
     public static func storesDeviceJoinedAs(name: String) -> String {
-        format("stores-device-joined-as", fallback: "Joined as %1$@", name)
+        Self.format("stores-device-joined-as", fallback: "Joined as %1$@", name)
     }
 
     /// How the device joined, when no name was given.
@@ -3447,7 +3447,7 @@ public enum L {
 
     /// Title of the leave confirmation.
     public static func storesLeaveTitle(name: String) -> String {
-        format("stores-leave-title", fallback: "Leave %1$@?", name)
+        Self.format("stores-leave-title", fallback: "Leave %1$@?", name)
     }
 
     /// Line under it.
@@ -3476,7 +3476,7 @@ public enum L {
 
     /// Accessibility label of the row's actions menu.
     public static func storesActionsFor(name: String) -> String {
-        format("stores-actions-for", fallback: "Actions for %1$@", name)
+        Self.format("stores-actions-for", fallback: "Actions for %1$@", name)
     }
 
     /// Short status: installed.
@@ -3484,7 +3484,7 @@ public enum L {
 
     /// Short status: installed from another store.
     public static func storesPluginFrom(other: String) -> String {
-        format("stores-plugin-from", fallback: "From %1$@", other)
+        Self.format("stores-plugin-from", fallback: "From %1$@", other)
     }
 
     /// Short status: the store is offline, so the plugin cannot be installed.
@@ -3495,32 +3495,32 @@ public enum L {
 
     /// Line: the version installed and the one now offered.
     public static func storesPluginUpdateLine(from: String, to: String) -> String {
-        format("stores-plugin-update-line", fallback: "Version %1$@ installed, %2$@ available", from, to)
+        Self.format("stores-plugin-update-line", fallback: "Version %1$@ installed, %2$@ available", from, to)
     }
 
     /// Line: the version installed.
     public static func storesPluginVersion(version: String) -> String {
-        format("stores-plugin-version", fallback: "Version %1$@", version)
+        Self.format("stores-plugin-version", fallback: "Version %1$@", version)
     }
 
     /// Accessibility label of the update button.
     public static func storesUpdateLabel(name: String, version: String) -> String {
-        format("stores-update-label", fallback: "Update %1$@ to %2$@", name, version)
+        Self.format("stores-update-label", fallback: "Update %1$@ to %2$@", name, version)
     }
 
     /// Accessibility label of the install button.
     public static func storesInstallLabel(name: String) -> String {
-        format("stores-install-label", fallback: "Install %1$@", name)
+        Self.format("stores-install-label", fallback: "Install %1$@", name)
     }
 
     /// Accessibility label of the replace button, for a plugin that was added by hand.
     public static func storesReplaceLabel(name: String) -> String {
-        format("stores-replace-label", fallback: "Replace the copy of %1$@ added by hand", name)
+        Self.format("stores-replace-label", fallback: "Replace the copy of %1$@ added by hand", name)
     }
 
     /// Title of the remove confirmation.
     public static func storesRemovePluginTitle(name: String) -> String {
-        format("stores-remove-plugin-title", fallback: "Remove %1$@?", name)
+        Self.format("stores-remove-plugin-title", fallback: "Remove %1$@?", name)
     }
 
     /// Line under it.
@@ -3531,12 +3531,12 @@ public enum L {
 
     /// Line in the update sheet: the hosts the new version adds. The hosts are a list already joined.
     public static func storesUpdateContacts(hosts: String) -> String {
-        format("stores-update-contacts", fallback: "This update also contacts %1$@.", hosts)
+        Self.format("stores-update-contacts", fallback: "This update also contacts %1$@.", hosts)
     }
 
     /// Heading in the update sheet for what changed.
     public static func storesNewIn(version: String) -> String {
-        format("stores-new-in", fallback: "New in %1$@", version)
+        Self.format("stores-new-in", fallback: "New in %1$@", version)
     }
 
     /// Title of the join form.
@@ -3583,7 +3583,7 @@ public enum L {
 
     /// Title of the confirmation on a desktop.
     public static func storesJoinConfirmTitle(name: String) -> String {
-        format("stores-join-confirm-title", fallback: "Join %1$@?", name)
+        Self.format("stores-join-confirm-title", fallback: "Join %1$@?", name)
     }
 
     /// Line: joining installs nothing.
@@ -3591,7 +3591,7 @@ public enum L {
 
     /// Line when the key in the link matches the store. The key is shown beside it.
     public static func storesKeyMatches(key: String) -> String {
-        format("stores-key-matches", fallback: "Key %1$@ matches the plugin store.", key)
+        Self.format("stores-key-matches", fallback: "Key %1$@ matches the plugin store.", key)
     }
 
     /// Line when the link is open to anyone.
@@ -3614,7 +3614,7 @@ public enum L {
 
     /// Notice when the TV joined a store. The name is a store name.
     public static func storesTvJoined(name: String) -> String {
-        format("stores-tv-joined", fallback: "Joined %1$@", name)
+        Self.format("stores-tv-joined", fallback: "Joined %1$@", name)
     }
 
     /// Notice when the TV joined a store with no name known.
@@ -3652,7 +3652,7 @@ public enum L {
 
     /// Heading of the members list.
     public static func storesMembersOf(name: String) -> String {
-        format("stores-members-of", fallback: "Members of %1$@", name)
+        Self.format("stores-members-of", fallback: "Members of %1$@", name)
     }
 
     /// Heading of the members section on a small screen.
@@ -3660,12 +3660,12 @@ public enum L {
 
     /// Row for the owner. The devices count is already formatted.
     public static func storesOwnerDevices(devices: String) -> String {
-        format("stores-owner-devices", fallback: "Owner · %1$@", devices)
+        Self.format("stores-owner-devices", fallback: "Owner · %1$@", devices)
     }
 
     /// Line of a member: the number of devices.
     public static func storesMemberDevices(count: Int) -> String {
-        format("stores-member-devices", fallback: "Their %1$lld devices", count)
+        Self.format("stores-member-devices", fallback: "Their %1$lld devices", count)
     }
 
     /// Label of the field for the name of the person invited.
@@ -3691,12 +3691,12 @@ public enum L {
 
     /// Line under a link made for your own device.
     public static func storesLinkOnceUntil(until: String) -> String {
-        format("stores-link-once-until", fallback: "Open this link on the other device. It works once, until %1$@.", until)
+        Self.format("stores-link-once-until", fallback: "Open this link on the other device. It works once, until %1$@.", until)
     }
 
     /// Title of an invite for a named person.
     public static func storesInviteForName(name: String) -> String {
-        format("stores-invite-for-name", fallback: "Invite for %1$@", name)
+        Self.format("stores-invite-for-name", fallback: "Invite for %1$@", name)
     }
 
     /// Line when no invites wait.
@@ -3710,7 +3710,7 @@ public enum L {
 
     /// Line of an unused invite.
     public static func storesInvitedUntil(until: String) -> String {
-        format("stores-invited-until", fallback: "Invited, until %1$@", until)
+        Self.format("stores-invited-until", fallback: "Invited, until %1$@", until)
     }
 
     /// Menu item that cancels an invite.
@@ -3721,7 +3721,7 @@ public enum L {
 
     /// Title of the confirmation that removes a member.
     public static func storesRemoveMemberTitle(name: String) -> String {
-        format("stores-remove-member-title", fallback: "Remove %1$@?", name)
+        Self.format("stores-remove-member-title", fallback: "Remove %1$@?", name)
     }
 
     /// Line under it.
@@ -3729,7 +3729,7 @@ public enum L {
 
     /// Heading of the who-can-join sheet.
     public static func storesWhoCanJoinTitle(name: String) -> String {
-        format("stores-who-can-join-title", fallback: "Who can join %1$@", name)
+        Self.format("stores-who-can-join-title", fallback: "Who can join %1$@", name)
     }
 
     /// Option: anyone with the store's link.
@@ -3740,17 +3740,17 @@ public enum L {
 
     /// Line over the list of devices that joined with the link.
     public static func storesDevicesJoined(count: Int) -> String {
-        format("stores-devices-joined", fallback: "%1$lld devices joined with the link", count)
+        Self.format("stores-devices-joined", fallback: "%1$lld devices joined with the link", count)
     }
 
     /// Line of a device that joined.
     public static func storesDeviceJoinedAt(when: String) -> String {
-        format("stores-device-joined-at", fallback: "Joined %1$@", when)
+        Self.format("stores-device-joined-at", fallback: "Joined %1$@", when)
     }
 
     /// Line under the list when it is cut off.
     public static func storesNewestListed(count: Int) -> String {
-        format("stores-newest-listed", fallback: "The newest %1$lld are listed.", count)
+        Self.format("stores-newest-listed", fallback: "The newest %1$lld are listed.", count)
     }
 
     /// Line when the store's server cannot offer the choice.
@@ -3761,12 +3761,12 @@ public enum L {
 
     /// Line under it.
     public static func storesRemoveDevicesDetail(name: String) -> String {
-        format("stores-remove-devices-detail", fallback: "They stop working with %1$@ at once. Plugins already installed on them stay.", name)
+        Self.format("stores-remove-devices-detail", fallback: "They stop working with %1$@ at once. Plugins already installed on them stay.", name)
     }
 
     /// Title of the publish sheet.
     public static func storesPublishTitle(name: String) -> String {
-        format("stores-publish-title", fallback: "Publish a plugin to %1$@", name)
+        Self.format("stores-publish-title", fallback: "Publish a plugin to %1$@", name)
     }
 
     /// Line when there is nothing to publish.
@@ -3774,7 +3774,7 @@ public enum L {
 
     /// Version line of a plugin in the publish sheet.
     public static func storesPluginNameVersion(name: String, version: String) -> String {
-        format("stores-plugin-name-version", fallback: "%1$@ %2$@", name, version)
+        Self.format("stores-plugin-name-version", fallback: "%1$@ %2$@", name, version)
     }
 
     /// Title of the state when a title page could not load.
@@ -3803,7 +3803,7 @@ public enum L {
 
     /// Name of one season of a show, such as "Season 2".
     public static func seasonNumber(number: Int) -> String {
-        format("season-number", fallback: "Season %1$lld", number)
+        Self.format("season-number", fallback: "Season %1$lld", number)
     }
 
     /// Heading of the list of episodes.
@@ -3829,7 +3829,7 @@ public enum L {
 
     /// Label under a season: which episodes are dubbed so far.
     public static func titleDubbedTo(episode: Int) -> String {
-        format("title-dubbed-to", fallback: "Dubbed to episode %1$lld", episode)
+        Self.format("title-dubbed-to", fallback: "Dubbed to episode %1$lld", episode)
     }
 
     /// State of a title with no episodes listed yet.
@@ -3855,27 +3855,27 @@ public enum L {
 
     /// Row that stands for several watched episodes in a row, such as "Episodes 1 to 5 watched".
     public static func titleWatchedRange(first: Int, last: Int) -> String {
-        format("title-watched-range", fallback: "Episodes %1$lld to %2$lld watched", first, last)
+        Self.format("title-watched-range", fallback: "Episodes %1$lld to %2$lld watched", first, last)
     }
 
     /// Name of an episode, such as "Episode 7".
     public static func episodeNumber(number: Int) -> String {
-        format("episode-number", fallback: "Episode %1$lld", number)
+        Self.format("episode-number", fallback: "Episode %1$lld", number)
     }
 
     /// Short name of an episode, for tight spaces.
     public static func episodeNumberShort(number: Int) -> String {
-        format("episode-number-short", fallback: "E%1$lld", number)
+        Self.format("episode-number-short", fallback: "E%1$lld", number)
     }
 
     /// An episode and its name.
     public static func episodeWithTitle(number: Int, title: String) -> String {
-        format("episode-with-title", fallback: "Episode %1$lld · %2$@", number, title)
+        Self.format("episode-with-title", fallback: "Episode %1$lld · %2$@", number, title)
     }
 
     /// An episode, dubbed, and its name.
     public static func episodeWithTitleDubbed(number: Int, title: String) -> String {
-        format("episode-with-title-dubbed", fallback: "Episode %1$lld · Dubbed · %2$@", number, title)
+        Self.format("episode-with-title-dubbed", fallback: "Episode %1$lld · Dubbed · %2$@", number, title)
     }
 
     /// Badge on an episode the person has watched.
@@ -3889,7 +3889,7 @@ public enum L {
 
     /// Row note for an episode that has not aired, with when it does.
     public static func episodeRowAirs(when: String) -> String {
-        format("episode-row-airs", fallback: "Airs %1$@", when)
+        Self.format("episode-row-airs", fallback: "Airs %1$@", when)
     }
 
     /// Accessibility label of an episode's still while spoiler protection hides it.
@@ -3909,22 +3909,22 @@ public enum L {
 
     /// Menu item that marks every episode up to a given one as watched.
     public static func episodeMarkUpTo(episode: Int) -> String {
-        format("episode-mark-up-to", fallback: "Mark watched up to episode %1$lld", episode)
+        Self.format("episode-mark-up-to", fallback: "Mark watched up to episode %1$lld", episode)
     }
 
     /// Menu item that marks one numbered episode as watched.
     public static func episodeMarkNWatched(episode: Int) -> String {
-        format("episode-mark-n-watched", fallback: "Mark episode %1$lld watched", episode)
+        Self.format("episode-mark-n-watched", fallback: "Mark episode %1$lld watched", episode)
     }
 
     /// Menu item that marks one numbered episode as not watched.
     public static func episodeMarkNUnwatched(episode: Int) -> String {
-        format("episode-mark-n-unwatched", fallback: "Mark episode %1$lld unwatched", episode)
+        Self.format("episode-mark-n-unwatched", fallback: "Mark episode %1$lld unwatched", episode)
     }
 
     /// Notice after an episode was marked watched.
     public static func episodeMarkedWatched(episode: Int) -> String {
-        format("episode-marked-watched", fallback: "Marked episode %1$lld watched.", episode)
+        Self.format("episode-marked-watched", fallback: "Marked episode %1$lld watched.", episode)
     }
 
     /// Menu item that starts an episode from the beginning.
@@ -3932,7 +3932,7 @@ public enum L {
 
     /// Menu item that downloads one numbered episode.
     public static func episodeDownloadN(episode: Int) -> String {
-        format("episode-download-n", fallback: "Download episode %1$lld", episode)
+        Self.format("episode-download-n", fallback: "Download episode %1$lld", episode)
     }
 
     /// Menu item that downloads every episode not yet watched.
@@ -3973,7 +3973,7 @@ public enum L {
 
     /// Button that shows the spoiler tags.
     public static func moreShowSpoilerTags(count: Int) -> String {
-        format("more-show-spoiler-tags", fallback: "Show %1$lld spoiler tags", count)
+        Self.format("more-show-spoiler-tags", fallback: "Show %1$lld spoiler tags", count)
     }
 
     /// Title of the settings group and the screen.
@@ -4017,7 +4017,7 @@ public enum L {
 
     /// Summary: a proxy protects. Host and port are already formatted.
     public static func torrentsSummaryProxyAt(host: String, port: String) -> String {
-        format("torrents-summary-proxy-at", fallback: "Protected by a SOCKS5 proxy at %1$@:%2$@.", host, port)
+        Self.format("torrents-summary-proxy-at", fallback: "Protected by a SOCKS5 proxy at %1$@:%2$@.", host, port)
     }
 
     /// Summary: a proxy protects, address not shown.
@@ -4076,17 +4076,17 @@ public enum L {
 
     /// Notice when a proxy was not saved. The reason is a sentence fragment.
     public static func torrentsProxyNotSaved(why: String) -> String {
-        format("torrents-proxy-not-saved", fallback: "Not saved. %1$@, so the saved proxy stays.", why)
+        Self.format("torrents-proxy-not-saved", fallback: "Not saved. %1$@, so the saved proxy stays.", why)
     }
 
     /// Notice when protection was not saved. The reason is a sentence fragment.
     public static func torrentsProtectionNotSaved(why: String) -> String {
-        format("torrents-protection-not-saved", fallback: "Not saved. %1$@, so the saved protection stays.", why)
+        Self.format("torrents-protection-not-saved", fallback: "Not saved. %1$@, so the saved protection stays.", why)
     }
 
     /// Notice when torrents stayed off. The reason is a sentence fragment.
     public static func torrentsStillOff(why: String) -> String {
-        format("torrents-still-off", fallback: "Torrents are still off. %1$@.", why)
+        Self.format("torrents-still-off", fallback: "Torrents are still off. %1$@.", why)
     }
 
     /// Label of the index address field.
@@ -4139,7 +4139,7 @@ public enum L {
 
     /// Check passed. The exit is where the traffic leaves from, already formatted.
     public static func torrentsCheckPassedExit(exit: String) -> String {
-        format("torrents-check-passed-exit", fallback: "Leaving through %1$@", exit)
+        Self.format("torrents-check-passed-exit", fallback: "Leaving through %1$@", exit)
     }
 
     /// Check passed.
@@ -4153,12 +4153,12 @@ public enum L {
 
     /// Check failed: traffic left outside. The consequence follows.
     public static func torrentsCheckLeaked(then: String) -> String {
-        format("torrents-check-leaked", fallback: "Traffic left outside the protection. %1$@", then)
+        Self.format("torrents-check-leaked", fallback: "Traffic left outside the protection. %1$@", then)
     }
 
     /// Check failed: the check could not be made. The consequence follows.
     public static func torrentsCheckUnmade(then: String) -> String {
-        format("torrents-check-unmade", fallback: "The check could not be made. %1$@", then)
+        Self.format("torrents-check-unmade", fallback: "The check could not be made. %1$@", then)
     }
 
     /// Short word: the check failed.
@@ -4187,7 +4187,7 @@ public enum L {
 
     /// Title of the page on the phone for signing in. The tracker is a name.
     public static func torrentsPageSignIn(tracker: String) -> String {
-        format("torrents-page-sign-in", fallback: "Sign in to %1$@", tracker)
+        Self.format("torrents-page-sign-in", fallback: "Sign in to %1$@", tracker)
     }
 
     /// Line on that page: the form was not complete.
@@ -4195,7 +4195,7 @@ public enum L {
 
     /// Line on that page after sending.
     public static func torrentsPageLookAtTv(next: String) -> String {
-        format("torrents-page-look-at-tv", fallback: "Look at the TV: %1$@. You can close this page.", next)
+        Self.format("torrents-page-look-at-tv", fallback: "Look at the TV: %1$@. You can close this page.", next)
     }
 
     /// Title when the page address is wrong.
@@ -4224,7 +4224,7 @@ public enum L {
 
     /// Line on the welcome screen: why to sign in.
     public static func accountsWelcomeDetail(tracker: String) -> String {
-        format("accounts-welcome-detail", fallback: "Sign in to %1$@ to sync your list and where you stopped.", tracker)
+        Self.format("accounts-welcome-detail", fallback: "Sign in to %1$@ to sync your list and where you stopped.", tracker)
     }
 
     /// Line under a tracker that brings in lists.
@@ -4232,27 +4232,27 @@ public enum L {
 
     /// Line under the accounts screen when the library needs a tracker.
     public static func accountsLibraryNeeds(tracker: String) -> String {
-        format("accounts-library-needs", fallback: "Library and sync need a %1$@ account", tracker)
+        Self.format("accounts-library-needs", fallback: "Library and sync need a %1$@ account", tracker)
     }
 
     /// Line on the settings page: where the library gets its lists.
     public static func accountsLibraryFrom(tracker: String) -> String {
-        format("accounts-library-from", fallback: "Library shows your lists from %1$@.", tracker)
+        Self.format("accounts-library-from", fallback: "Library shows your lists from %1$@.", tracker)
     }
 
     /// Line on the library when signed out, one sentence.
     public static func accountsListsComeFrom(tracker: String) -> String {
-        format("accounts-lists-come-from", fallback: "Your lists come from %1$@.", tracker)
+        Self.format("accounts-lists-come-from", fallback: "Your lists come from %1$@.", tracker)
     }
 
     /// Line on the library for an empty status.
     public static func accountsStatusEmpty(tracker: String) -> String {
-        format("accounts-status-empty", fallback: "Titles you set to this status on %1$@ show here.", tracker)
+        Self.format("accounts-status-empty", fallback: "Titles you set to this status on %1$@ show here.", tracker)
     }
 
     /// Line on the library for an empty list.
     public static func accountsListEmpty(tracker: String) -> String {
-        format("accounts-list-empty", fallback: "Titles you add on %1$@ show up here.", tracker)
+        Self.format("accounts-list-empty", fallback: "Titles you add on %1$@ show up here.", tracker)
     }
 
     /// Status: not signed in.
@@ -4260,17 +4260,17 @@ public enum L {
 
     /// Status: signed in. The name is the user's name on the tracker.
     public static func accountsStateSignedIn(tracker: String, name: String) -> String {
-        format("accounts-state-signed-in", fallback: "Signed in to %1$@ as %2$@", tracker, name)
+        Self.format("accounts-state-signed-in", fallback: "Signed in to %1$@ as %2$@", tracker, name)
     }
 
     /// Status: signed in, with changes waiting to be sent.
     public static func accountsStateSignedInWaiting(tracker: String, name: String, count: Int) -> String {
-        format("accounts-state-signed-in-waiting", fallback: "Signed in to %1$@ as %2$@ · %3$lld changes waiting", tracker, name, count)
+        Self.format("accounts-state-signed-in-waiting", fallback: "Signed in to %1$@ as %2$@ · %3$lld changes waiting", tracker, name, count)
     }
 
     /// Status: the sign-in ran out.
     public static func accountsStateExpired(tracker: String) -> String {
-        format("accounts-state-expired", fallback: "%1$@ needs you to sign in again", tracker)
+        Self.format("accounts-state-expired", fallback: "%1$@ needs you to sign in again", tracker)
     }
 
     /// Status: the sign-in ran out, short.
@@ -4284,7 +4284,7 @@ public enum L {
 
     /// Status: waiting for a tracker.
     public static func accountsStateWaiting(tracker: String) -> String {
-        format("accounts-state-waiting", fallback: "Waiting for %1$@…", tracker)
+        Self.format("accounts-state-waiting", fallback: "Waiting for %1$@…", tracker)
     }
 
     /// Status: signing in.
@@ -4298,7 +4298,7 @@ public enum L {
 
     /// Status: sync running, with the tracker.
     public static func accountsSyncRunningWith(tracker: String) -> String {
-        format("accounts-sync-running-with", fallback: "Syncing with %1$@", tracker)
+        Self.format("accounts-sync-running-with", fallback: "Syncing with %1$@", tracker)
     }
 
     /// Status: synced.
@@ -4306,7 +4306,7 @@ public enum L {
 
     /// Status: sync failed. The reason is a sentence fragment.
     public static func accountsSyncFailed(why: String) -> String {
-        format("accounts-sync-failed", fallback: "Not synced: %1$@", why)
+        Self.format("accounts-sync-failed", fallback: "Not synced: %1$@", why)
     }
 
     /// Line on the sync menu: sync with every tracker.
@@ -4332,7 +4332,7 @@ public enum L {
 
     /// Button that signs in to a named tracker.
     public static func accountsSignInTo(tracker: String) -> String {
-        format("accounts-sign-in-to", fallback: "Sign in to %1$@", tracker)
+        Self.format("accounts-sign-in-to", fallback: "Sign in to %1$@", tracker)
     }
 
     /// Button that signs out.
@@ -4346,7 +4346,7 @@ public enum L {
 
     /// Line in the confirmation that signs out on the TV.
     public static func accountsSignOutTvDetail(name: String) -> String {
-        format("accounts-sign-out-tv-detail", fallback: "This TV stops syncing with %1$@. Your list stays on %1$@.", name)
+        Self.format("accounts-sign-out-tv-detail", fallback: "This TV stops syncing with %1$@. Your list stays on %1$@.", name)
     }
 
     /// Line telling where sign-in tokens are kept: in the keychain.
@@ -4360,12 +4360,12 @@ public enum L {
 
     /// Title of the form.
     public static func accountsFormTitle(tracker: String) -> String {
-        format("accounts-form-title", fallback: "Sign in to %1$@", tracker)
+        Self.format("accounts-form-title", fallback: "Sign in to %1$@", tracker)
     }
 
     /// Line under the title: where the password goes.
     public static func accountsFormDetail(tracker: String) -> String {
-        format("accounts-form-detail", fallback: "Your password goes to %1$@ once, for a token kept on this device.", tracker)
+        Self.format("accounts-form-detail", fallback: "Your password goes to %1$@ once, for a token kept on this device.", tracker)
     }
 
     /// Label of the name field.
@@ -4379,22 +4379,22 @@ public enum L {
 
     /// Line under the title: what to do.
     public static func accountsCodeDetail(host: String) -> String {
-        format("accounts-code-detail", fallback: "Go to %1$@ and enter this code. anistream signs in once you have.", host)
+        Self.format("accounts-code-detail", fallback: "Go to %1$@ and enter this code. anistream signs in once you have.", host)
     }
 
     /// Accessibility label of the code. The code is spelled out.
     public static func accountsCodeLabel(code: String) -> String {
-        format("accounts-code-label", fallback: "Code %1$@", code)
+        Self.format("accounts-code-label", fallback: "Code %1$@", code)
     }
 
     /// Line while waiting for the tracker.
     public static func accountsCodeWaiting(tracker: String) -> String {
-        format("accounts-code-waiting", fallback: "Waiting for %1$@", tracker)
+        Self.format("accounts-code-waiting", fallback: "Waiting for %1$@", tracker)
     }
 
     /// Line telling when the code ends. The time is already formatted.
     public static func accountsCodeExpires(time: String) -> String {
-        format("accounts-code-expires", fallback: "Expires in %1$@", time)
+        Self.format("accounts-code-expires", fallback: "Expires in %1$@", time)
     }
 
     /// Line when the code ended.
@@ -4405,7 +4405,7 @@ public enum L {
 
     /// Button that opens the tracker's page. The host is a website.
     public static func accountsOpenHost(host: String) -> String {
-        format("accounts-open-host", fallback: "Open %1$@", host)
+        Self.format("accounts-open-host", fallback: "Open %1$@", host)
     }
 
     /// Line while a new code is fetched.
@@ -4419,27 +4419,27 @@ public enum L {
 
     /// Line on the TV's sign-in screen for a tracker that signs in by code.
     public static func accountsScanCode(tracker: String) -> String {
-        format("accounts-scan-code", fallback: "Scan with your phone. Open %1$@ there, allow anistream, then paste the code on this page.", tracker)
+        Self.format("accounts-scan-code", fallback: "Scan with your phone. Open %1$@ there, allow anistream, then paste the code on this page.", tracker)
     }
 
     /// Line on the TV's sign-in screen for a tracker that signs in by password.
     public static func accountsScanPassword(tracker: String) -> String {
-        format("accounts-scan-password", fallback: "Scan with your phone, then enter your %1$@ user name and password on the page.", tracker)
+        Self.format("accounts-scan-password", fallback: "Scan with your phone, then enter your %1$@ user name and password on the page.", tracker)
     }
 
     /// Title of the clash sheet.
     public static func accountsClashTitle(tracker: String) -> String {
-        format("accounts-clash-title", fallback: "Different on %1$@", tracker)
+        Self.format("accounts-clash-title", fallback: "Different on %1$@", tracker)
     }
 
     /// Line under it.
     public static func accountsClashDetail(tracker: String) -> String {
-        format("accounts-clash-detail", fallback: "These changed on %1$@ and here since the last sync. Keep one side of each.", tracker)
+        Self.format("accounts-clash-detail", fallback: "These changed on %1$@ and here since the last sync. Keep one side of each.", tracker)
     }
 
     /// One row of the clash sheet.
     public static func accountsClashRow(field: String, local: String, remote: String, tracker: String) -> String {
-        format("accounts-clash-row", fallback: "%1$@: %2$@ here, %3$@ on %4$@", field, local, remote, tracker)
+        Self.format("accounts-clash-row", fallback: "%1$@: %2$@ here, %3$@ on %4$@", field, local, remote, tracker)
     }
 
     /// Button that keeps this device's value.
@@ -4447,52 +4447,52 @@ public enum L {
 
     /// Button that keeps the tracker's value.
     public static func accountsKeepTheirs(tracker: String) -> String {
-        format("accounts-keep-theirs", fallback: "Keep %1$@'s", tracker)
+        Self.format("accounts-keep-theirs", fallback: "Keep %1$@'s", tracker)
     }
 
     /// Menu item and button.
     public static func accountsOpenOn(tracker: String) -> String {
-        format("accounts-open-on", fallback: "Open on %1$@", tracker)
+        Self.format("accounts-open-on", fallback: "Open on %1$@", tracker)
     }
 
     /// Menu item on the title page, as the title is listed there.
     public static func accountsListedBy(tracker: String) -> String {
-        format("accounts-listed-by", fallback: "Listed by %1$@", tracker)
+        Self.format("accounts-listed-by", fallback: "Listed by %1$@", tracker)
     }
 
     /// Line when the tracker did not answer.
     public static func accountsDidNotAnswer(tracker: String) -> String {
-        format("accounts-did-not-answer", fallback: "%1$@ did not answer.", tracker)
+        Self.format("accounts-did-not-answer", fallback: "%1$@ did not answer.", tracker)
     }
 
     /// Line when the tracker has nothing for the show.
     public static func accountsNoExtras(tracker: String) -> String {
-        format("accounts-no-extras", fallback: "%1$@ has no cast, staff or recommendations for this show yet.", tracker)
+        Self.format("accounts-no-extras", fallback: "%1$@ has no cast, staff or recommendations for this show yet.", tracker)
     }
 
     /// Line when episodes come from the tracker only.
     public static func accountsEpisodesFrom(tracker: String) -> String {
-        format("accounts-episodes-from", fallback: "Episodes from %1$@. Add a source to play them.", tracker)
+        Self.format("accounts-episodes-from", fallback: "Episodes from %1$@. Add a source to play them.", tracker)
     }
 
     /// Line on a list of seasonal titles.
     public static func accountsAddsSeason(tracker: String) -> String {
-        format("accounts-adds-season", fallback: "%1$@ adds a season's titles as they're announced.", tracker)
+        Self.format("accounts-adds-season", fallback: "%1$@ adds a season's titles as they're announced.", tracker)
     }
 
     /// Name of the setting that follows the tracker's own choice.
     public static func accountsTrackerChoice(tracker: String) -> String {
-        format("accounts-tracker-choice", fallback: "%1$@'s choice", tracker)
+        Self.format("accounts-tracker-choice", fallback: "%1$@'s choice", tracker)
     }
 
     /// Line under that setting.
     public static func accountsFollowsAccount(tracker: String) -> String {
-        format("accounts-follows-account", fallback: "Follows your %1$@ account", tracker)
+        Self.format("accounts-follows-account", fallback: "Follows your %1$@ account", tracker)
     }
 
     /// Line under that setting while signed out.
     public static func accountsFollowsSignedOut(tracker: String) -> String {
-        format("accounts-follows-signed-out", fallback: "English while signed out of %1$@", tracker)
+        Self.format("accounts-follows-signed-out", fallback: "English while signed out of %1$@", tracker)
     }
 
     /// Button and menu item that sends the episode to a paired TV.
@@ -4515,12 +4515,12 @@ public enum L {
 
     /// Title of the pairing step for one TV. The name is the name the TV gave itself.
     public static func tvPairWith(name: String) -> String {
-        format("tv-pair-with", fallback: "Pair with %1$@", name)
+        Self.format("tv-pair-with", fallback: "Pair with %1$@", name)
     }
 
     /// Title while pairing is under way.
     public static func tvPairingWith(name: String) -> String {
-        format("tv-pairing-with", fallback: "Pairing with %1$@", name)
+        Self.format("tv-pairing-with", fallback: "Pairing with %1$@", name)
     }
 
     /// Button that pairs.
@@ -4531,7 +4531,7 @@ public enum L {
 
     /// Title of the card of a TV that needs pairing again.
     public static func tvPairAgainWith(name: String) -> String {
-        format("tv-pair-again-with", fallback: "Pair again with %1$@", name)
+        Self.format("tv-pair-again-with", fallback: "Pair again with %1$@", name)
     }
 
     /// Button that picks another TV.
@@ -4545,7 +4545,7 @@ public enum L {
 
     /// Line telling what to type.
     public static func tvTypeCode(name: String) -> String {
-        format("tv-type-code", fallback: "Type the six digits %1$@ shows. After this, this device connects by itself.", name)
+        Self.format("tv-type-code", fallback: "Type the six digits %1$@ shows. After this, this device connects by itself.", name)
     }
 
     /// Line while pairing is under way.
@@ -4574,7 +4574,7 @@ public enum L {
 
     /// Line while the TV starts the episode.
     public static func tvStartingOn(name: String) -> String {
-        format("tv-starting-on", fallback: "Starting on %1$@", name)
+        Self.format("tv-starting-on", fallback: "Starting on %1$@", name)
     }
 
     /// Line while the app starts on the TV, without a name.
@@ -4585,7 +4585,7 @@ public enum L {
 
     /// Line when the TV did not start the episode. The reason is a sentence fragment.
     public static func tvPlayFailed(reason: String) -> String {
-        format("tv-play-failed", fallback: "Play on TV did not start: %1$@", reason)
+        Self.format("tv-play-failed", fallback: "Play on TV did not start: %1$@", reason)
     }
 
     /// Label of the address field.
@@ -4605,7 +4605,7 @@ public enum L {
 
     /// Line on the settings row of a paired TV.
     public static func tvPairedOn(when: String) -> String {
-        format("tv-paired-on", fallback: "Paired %1$@", when)
+        Self.format("tv-paired-on", fallback: "Paired %1$@", when)
     }
 
     /// Short word: paired, no date known.
@@ -4613,12 +4613,12 @@ public enum L {
 
     /// Line with the address.
     public static func tvConnectedAt(address: String) -> String {
-        format("tv-connected-at", fallback: "Connected · %1$@", address)
+        Self.format("tv-connected-at", fallback: "Connected · %1$@", address)
     }
 
     /// Title of the confirmation that forgets a TV.
     public static func tvForgetTitle(name: String) -> String {
-        format("tv-forget-title", fallback: "Forget %1$@?", name)
+        Self.format("tv-forget-title", fallback: "Forget %1$@?", name)
     }
 
     /// Line under it.
@@ -4626,27 +4626,27 @@ public enum L {
 
     /// Accessibility label of the forget button.
     public static func tvForgetLabel(name: String) -> String {
-        format("tv-forget-label", fallback: "Forget %1$@", name)
+        Self.format("tv-forget-label", fallback: "Forget %1$@", name)
     }
 
     /// Tooltip of a card that opens the remote.
     public static func tvShowRemote(name: String) -> String {
-        format("tv-show-remote", fallback: "Show the remote for %1$@", name)
+        Self.format("tv-show-remote", fallback: "Show the remote for %1$@", name)
     }
 
     /// Status on the remote: playing on a TV.
     public static func tvStatusPlaying(name: String) -> String {
-        format("tv-status-playing", fallback: "Playing on %1$@", name)
+        Self.format("tv-status-playing", fallback: "Playing on %1$@", name)
     }
 
     /// Status on the remote: connecting.
     public static func tvStatusConnecting(name: String) -> String {
-        format("tv-status-connecting", fallback: "Connecting to %1$@", name)
+        Self.format("tv-status-connecting", fallback: "Connecting to %1$@", name)
     }
 
     /// Status on the remote: connection lost, trying again.
     public static func tvStatusReconnecting(name: String) -> String {
-        format("tv-status-reconnecting", fallback: "Reconnecting to %1$@", name)
+        Self.format("tv-status-reconnecting", fallback: "Reconnecting to %1$@", name)
     }
 
     /// Status on the remote: connected.
@@ -4660,7 +4660,7 @@ public enum L {
 
     /// Name of a track that has no name.
     public static func tvTrackN(id: Int) -> String {
-        format("tv-track-n", fallback: "Track %1$lld", id)
+        Self.format("tv-track-n", fallback: "Track %1$lld", id)
     }
 
     /// Title of the screen on the TV that waits for a phone.
@@ -4674,7 +4674,7 @@ public enum L {
 
     /// Line naming this TV on that screen.
     public static func tvThisTv(name: String, address: String) -> String {
-        format("tv-this-tv", fallback: "This TV: %1$@, %2$@", name, address)
+        Self.format("tv-this-tv", fallback: "This TV: %1$@, %2$@", name, address)
     }
 
     /// Line: how often the code changes.
@@ -4682,7 +4682,7 @@ public enum L {
 
     /// Title of the question on the TV when a phone asks to pair.
     public static func tvPairRequest(name: String) -> String {
-        format("tv-pair-request", fallback: "Pair with %1$@?", name)
+        Self.format("tv-pair-request", fallback: "Pair with %1$@?", name)
     }
 
     /// Line under it.
@@ -4690,12 +4690,12 @@ public enum L {
 
     /// Line on the TV after a phone paired. The name is a phone name.
     public static func tvPhonePaired(name: String) -> String {
-        format("tv-phone-paired", fallback: "%1$@ is paired", name)
+        Self.format("tv-phone-paired", fallback: "%1$@ is paired", name)
     }
 
     /// Title of the confirmation on the TV that removes a phone.
     public static func tvRemovePhoneTitle(name: String) -> String {
-        format("tv-remove-phone-title", fallback: "Remove %1$@?", name)
+        Self.format("tv-remove-phone-title", fallback: "Remove %1$@?", name)
     }
 
     /// Line under it.
@@ -4721,12 +4721,12 @@ public enum L {
 
     /// Line when the check failed. The reason starts with a capital.
     public static func updatesCheckFailed(reason: String) -> String {
-        format("updates-check-failed", fallback: "Couldn't check: %1$@", reason)
+        Self.format("updates-check-failed", fallback: "Couldn't check: %1$@", reason)
     }
 
     /// Line when the check failed on the phone. The reason is already a sentence.
     public static func updatesNotCheckedBecause(reason: String) -> String {
-        format("updates-not-checked-because", fallback: "Not checked. %1$@", reason)
+        Self.format("updates-not-checked-because", fallback: "Not checked. %1$@", reason)
     }
 
     /// Line describing the schedule.
@@ -4740,42 +4740,42 @@ public enum L {
 
     /// Line when a version is out.
     public static func updatesVersionOut(version: String) -> String {
-        format("updates-version-out", fallback: "Version %1$@ is out", version)
+        Self.format("updates-version-out", fallback: "Version %1$@ is out", version)
     }
 
     /// Line when a version is out and the software centre installs it.
     public static func updatesVersionOutSoftware(version: String) -> String {
-        format("updates-version-out-software", fallback: "Version %1$@ is out. Software installs it.", version)
+        Self.format("updates-version-out-software", fallback: "Version %1$@ is out. Software installs it.", version)
     }
 
     /// Line when a version is out and its page has the installer.
     public static func updatesVersionOutPage(version: String) -> String {
-        format("updates-version-out-page", fallback: "Version %1$@ is out. Its page has the installer.", version)
+        Self.format("updates-version-out-page", fallback: "Version %1$@ is out. Its page has the installer.", version)
     }
 
     /// Line when a version is out and its page has the AppImage.
     public static func updatesVersionOutAppimage(version: String) -> String {
-        format("updates-version-out-appimage", fallback: "Version %1$@ is out. Its page has the AppImage.", version)
+        Self.format("updates-version-out-appimage", fallback: "Version %1$@ is out. Its page has the AppImage.", version)
     }
 
     /// Title of the offer card.
     public static func updatesAvailable(version: String) -> String {
-        format("updates-available", fallback: "anistream %1$@ is available", version)
+        Self.format("updates-available", fallback: "anistream %1$@ is available", version)
     }
 
     /// Banner on the TV pointing to the update.
     public static func updatesAvailableTv(version: String) -> String {
-        format("updates-available-tv", fallback: "Update available: anistream %1$@. Settings › About", version)
+        Self.format("updates-available-tv", fallback: "Update available: anistream %1$@. Settings › About", version)
     }
 
     /// Button that starts the update.
     public static func updatesUpdateTo(version: String) -> String {
-        format("updates-update-to", fallback: "Update to %1$@", version)
+        Self.format("updates-update-to", fallback: "Update to %1$@", version)
     }
 
     /// Line on the TV: the version now installed.
     public static func updatesThisHas(version: String) -> String {
-        format("updates-this-has", fallback: "This TV has %1$@", version)
+        Self.format("updates-this-has", fallback: "This TV has %1$@", version)
     }
 
     /// Line when the notes are on the release page.
@@ -4792,22 +4792,22 @@ public enum L {
 
     /// Line while downloading, with the version.
     public static func updatesDownloading(version: String) -> String {
-        format("updates-downloading", fallback: "Downloading version %1$@", version)
+        Self.format("updates-downloading", fallback: "Downloading version %1$@", version)
     }
 
     /// Line while downloading, with progress. Sizes are already formatted.
     public static func updatesDownloadingSize(version: String, done: String, total: String) -> String {
-        format("updates-downloading-size", fallback: "Downloading version %1$@ · %2$@ of %3$@", version, done, total)
+        Self.format("updates-downloading-size", fallback: "Downloading version %1$@ · %2$@ of %3$@", version, done, total)
     }
 
     /// Line while downloading, with a percentage.
     public static func updatesDownloadingPercent(percent: String) -> String {
-        format("updates-downloading-percent", fallback: "Downloading %1$@", percent)
+        Self.format("updates-downloading-percent", fallback: "Downloading %1$@", percent)
     }
 
     /// Line while downloading, with a percentage and sizes.
     public static func updatesDownloadingFull(percent: String, done: String, total: String) -> String {
-        format("updates-downloading-full", fallback: "Downloading · %1$@ · %2$@ of %3$@", percent, done, total)
+        Self.format("updates-downloading-full", fallback: "Downloading · %1$@ · %2$@ of %3$@", percent, done, total)
     }
 
     /// Line while the download is about to start.
@@ -4815,7 +4815,7 @@ public enum L {
 
     /// Line while the download is checked.
     public static func updatesCheckingDownload(version: String) -> String {
-        format("updates-checking-download", fallback: "Checking the download of version %1$@…", version)
+        Self.format("updates-checking-download", fallback: "Checking the download of version %1$@…", version)
     }
 
     /// Short line while the download is checked.
@@ -4823,12 +4823,12 @@ public enum L {
 
     /// Line when the download is ready.
     public static func updatesReady(version: String) -> String {
-        format("updates-ready", fallback: "Version %1$@ is ready to install", version)
+        Self.format("updates-ready", fallback: "Version %1$@ is ready to install", version)
     }
 
     /// Line while installing.
     public static func updatesInstalling(version: String) -> String {
-        format("updates-installing", fallback: "Installing version %1$@…", version)
+        Self.format("updates-installing", fallback: "Installing version %1$@…", version)
     }
 
     /// Line after Android is asked to install.
@@ -4836,12 +4836,12 @@ public enum L {
 
     /// Line after the update: when it opens.
     public static func updatesUpdatedTv(version: String) -> String {
-        format("updates-updated-tv", fallback: "Updated to %1$@. It opens next time you start anistream.", version)
+        Self.format("updates-updated-tv", fallback: "Updated to %1$@. It opens next time you start anistream.", version)
     }
 
     /// Notice after restarting into the new version.
     public static func updatesUpdated(version: String) -> String {
-        format("updates-updated", fallback: "Updated to version %1$@", version)
+        Self.format("updates-updated", fallback: "Updated to version %1$@", version)
     }
 
     /// Short line after the update on a phone.
@@ -4849,12 +4849,12 @@ public enum L {
 
     /// Line when the update stopped.
     public static func updatesStopped(version: String, reason: String) -> String {
-        format("updates-stopped", fallback: "The update to version %1$@ stopped. %2$@", version, reason)
+        Self.format("updates-stopped", fallback: "The update to version %1$@ stopped. %2$@", version, reason)
     }
 
     /// Notice when the new version did not install.
     public static func updatesDidNotInstall(version: String) -> String {
-        format("updates-did-not-install", fallback: "Version %1$@ didn't install. About can try again.", version)
+        Self.format("updates-did-not-install", fallback: "Version %1$@ didn't install. About can try again.", version)
     }
 
     /// Button that opens About.
@@ -4862,22 +4862,22 @@ public enum L {
 
     /// Line on Linux when the file is saved to the downloads folder.
     public static func updatesSaved(version: String) -> String {
-        format("updates-saved", fallback: "Version %1$@ saved to Downloads", version)
+        Self.format("updates-saved", fallback: "Version %1$@ saved to Downloads", version)
     }
 
     /// Line on Linux telling what to replace.
     public static func updatesSavedReplace(version: String, file: String) -> String {
-        format("updates-saved-replace", fallback: "Version %1$@ saved to Downloads. Replace the old file, %2$@, with it to update.", version, file)
+        Self.format("updates-saved-replace", fallback: "Version %1$@ saved to Downloads. Replace the old file, %2$@, with it to update.", version, file)
     }
 
     /// Line on Linux telling what to replace, file unknown.
     public static func updatesSavedReplacePlain(version: String) -> String {
-        format("updates-saved-replace-plain", fallback: "Version %1$@ saved to Downloads. Replace the old file with it to update.", version)
+        Self.format("updates-saved-replace-plain", fallback: "Version %1$@ saved to Downloads. Replace the old file with it to update.", version)
     }
 
     /// The server refused. The code is a number.
     public static func updatesWhyServer(code: Int) -> String {
-        format("updates-why-server", fallback: "The download stopped: the server answered %1$lld.", code)
+        Self.format("updates-why-server", fallback: "The download stopped: the server answered %1$lld.", code)
     }
 
     /// The connection broke.
@@ -4885,12 +4885,12 @@ public enum L {
 
     /// The file could not be saved. The reason is a sentence fragment.
     public static func updatesWhySave(reason: String) -> String {
-        format("updates-why-save", fallback: "The download couldn't be saved: %1$@", reason)
+        Self.format("updates-why-save", fallback: "The download couldn't be saved: %1$@", reason)
     }
 
     /// The file has the wrong size. Sizes are already formatted.
     public static func updatesWhySize(got: String, expected: String) -> String {
-        format("updates-why-size", fallback: "The download is %1$@, not the %2$@ listed for this version.", got, expected)
+        Self.format("updates-why-size", fallback: "The download is %1$@, not the %2$@ listed for this version.", got, expected)
     }
 
     /// The file does not match its checksum.
@@ -4928,7 +4928,7 @@ public enum L {
 
     /// The installer would not start. The reason is a sentence fragment.
     public static func updatesWhyInstaller(reason: String) -> String {
-        format("updates-why-installer", fallback: "The installer couldn't start: %1$@", reason)
+        Self.format("updates-why-installer", fallback: "The installer couldn't start: %1$@", reason)
     }
 
     /// Title of the step.
@@ -4948,12 +4948,12 @@ public enum L {
 
     /// Line while waiting for the switch. The path is the Android settings path.
     public static func updatesAllowWaiting(path: String) -> String {
-        format("updates-allow-waiting", fallback: "Waiting for the switch. If Android's page didn't open, find it under %1$@.", path)
+        Self.format("updates-allow-waiting", fallback: "Waiting for the switch. If Android's page didn't open, find it under %1$@.", path)
     }
 
     /// Line the first time. The path is the Android settings path.
     public static func updatesAllowOnce(path: String) -> String {
-        format("updates-allow-once", fallback: "Android asks this once. If its page doesn't open, the switch is under %1$@.", path)
+        Self.format("updates-allow-once", fallback: "Android asks this once. If its page doesn't open, the switch is under %1$@.", path)
     }
 
     /// The languages this build has text for, source first. `draft` languages carry the draft label.

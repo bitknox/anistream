@@ -22,6 +22,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../AnistreamDesign"),
+        .package(path: "../AnistreamStrings"),
     ],
     targets: [
         .target(name: "AnistreamWidgetData"),
@@ -30,6 +31,7 @@ let package = Package(
             dependencies: [
                 "AnistreamWidgetData",
                 .product(name: "AnistreamDesign", package: "AnistreamDesign"),
+                .product(name: "AnistreamStrings", package: "AnistreamStrings"),
             ]
         ),
         .executableTarget(

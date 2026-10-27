@@ -285,7 +285,7 @@ public final class PartyModel {
         case .partyMembers(let members):
             self.members = members
         case .partyLeft(let message):
-            let reason = message.map { msgEnglish(msg: $0) }  // i18n P2: replace with the catalogue
+            let reason = message.map { $0.text }
             let was = party != nil
             party = nil
             members = nil
@@ -306,7 +306,7 @@ public final class PartyModel {
                 }
             }
         case .partyNoSource(let id, let episode, let why, let reason):
-            noSource = PartyNoSourceAsk(id: id, episode: episode, why: why, reason: msgEnglish(msg: reason))  // i18n P2: replace with the catalogue
+            noSource = PartyNoSourceAsk(id: id, episode: episode, why: why, reason: reason.text)
             choice = nil
         case .sources(let id, let episode, let candidates):
             if choice == .looking, let noSource, noSource.id == id, noSource.episode == episode {
