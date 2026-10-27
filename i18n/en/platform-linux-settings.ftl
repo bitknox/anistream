@@ -144,3 +144,7 @@ updates-why-reopen = The new version is installed but couldn't be opened. Open {
 # Accessible description of the mascot's picture. Nagare is the mascot's name.
 # @only linux
 nagare-description = Nagare, the { -app-name } mascot: a figure with a silk bob, an amber scarf and an indigo cloak, holding a staff with a water charm
+
+# Line under the seeding group in Settings: seeding stops when the app closes.
+# @only linux
+settings-seeding-open-only = Seeding runs only while { -app-name } is open.

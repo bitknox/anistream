@@ -6,7 +6,7 @@ use std::ops::Deref;
 
 use anistream_i18n::t;
 use anistream_model::{
-    Cause, Msg, Size, SizeUnit, Span,
+    Msg, Size, SizeUnit, Span,
     catalog::{AiringStatus, Entry, RelationKind, Season, SourceMaterial},
     episodes::EpisodeRow,
     present::{QUEUE_ROWS, QueueItem},
@@ -20,18 +20,15 @@ pub fn msg(msg: &Msg) -> String {
     msg.text(&anistream_i18n::localizer())
 }
 
-/// An engine cause in the language in use.
-pub fn cause(cause: &Cause) -> String {
-    cause.text(&anistream_i18n::localizer())
-}
-
 /// A percentage as the language writes it: "82%". The catalogue passes percentages in already
 /// formatted, as the platform's formatter would.
 pub fn percent(value: f64) -> String {
     let number = value.round() as i64;
     match anistream_i18n::language().split('-').next().unwrap_or("en") {
         // Languages that set the sign apart with a no-break space.
-        "da" | "de" | "fr" | "nb" | "sv" | "fi" | "cs" | "ru" | "es" => format!("{number}\u{a0}%"),
+        "da" | "de" | "fr" | "nb" | "sv" | "fi" | "cs" | "ru" | "es" => {
+            format!("{number}\u{a0}%")
+        }
         _ => format!("{number}%"),
     }
 }
@@ -53,7 +50,10 @@ pub fn span(span: Span) -> String {
         }
     } else if span.minutes > 0 {
         if span.seconds > 0 {
-            t::duration_minutes_seconds(int(span.minutes.into()), &format!("{:02}", span.seconds))
+            t::duration_minutes_seconds(
+                int(span.minutes.into()),
+                &format!("{:02}", span.seconds),
+            )
         } else {
             t::duration_minutes(int(span.minutes.into()))
         }
@@ -158,11 +158,11 @@ pub fn cover_caption(entry: &Entry) -> String {
 /// A tracker's name as the app shows it: "AniList" for `anilist`. Names are not translated.
 pub fn tracker_name(id: &str) -> &str {
     match id {
-        "anilist" => "AniList", // i18n-skip
-        "kitsu" => "Kitsu", // i18n-skip
+        "anilist" => "AniList",                 // i18n-skip
+        "kitsu" => "Kitsu",                     // i18n-skip
         "mal" | "myanimelist" => "MyAnimeList", // i18n-skip
-        "simkl" => "Simkl", // i18n-skip
-        "trakt" => "Trakt", // i18n-skip
+        "simkl" => "Simkl",                     // i18n-skip
+        "trakt" => "Trakt",                     // i18n-skip
         other => other,
     }
 }

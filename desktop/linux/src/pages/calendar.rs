@@ -8,13 +8,13 @@ use std::{
 };
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentFor, ContentList, Entry, LibrarySegment},
     command::Command,
     event::Event,
     present,
 };
-use anistream_i18n::t;
 use gtk::{gio, glib};
 
 use crate::{
@@ -465,8 +465,11 @@ impl Page {
                 continue;
             }
             let name = day_heading(day, month_first());
-            let heading =
-                widgets::heading(&if is_today { t::calendar_today_heading(&name) } else { name });
+            let heading = widgets::heading(&if is_today {
+                t::calendar_today_heading(&name)
+            } else {
+                name
+            });
             let section = gtk::Box::new(gtk::Orientation::Vertical, 8);
             section.append(&heading);
             if on_day.is_empty() {

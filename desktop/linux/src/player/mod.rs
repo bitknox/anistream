@@ -30,9 +30,8 @@ use gtk::{gdk, gio, glib};
 
 use crate::{
     mpris::{Action as MediaAction, Mpris, Track},
-    video, widgets,
+    say, video, widgets,
     window::{Ctx, Shell, Size},
-    say,
 };
 
 mod stats;
@@ -1043,10 +1042,9 @@ impl PlayerView {
                 let left = (duration - position).max(0.0);
                 // A minus sign, not a hyphen, and said as time left.
                 ui.remaining.set_label(&format!("\u{2212}{}", say::clock(left)));
-                ui.remaining.update_property(&[gtk::accessible::Property::Label(&format!(
-                    "{}",
-                    t::player_time_left(&say::spoken_duration(left))
-                ))]);
+                ui.remaining.update_property(&[gtk::accessible::Property::Label(
+                    &t::player_time_left(&say::spoken_duration(left)),
+                )]);
             }
             if Instant::now() >= self.held_until.get() {
                 ui.timeline.set_value(position);
@@ -2158,7 +2156,8 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     people.add_css_class("flat");
     people.add_css_class("image-button");
     let tv = icon_button("video-display-symbolic", &t::tv_play_on(), "player.tv");
-    let full = icon_button("view-fullscreen-symbolic", &t::player_fullscreen(), "player.fullscreen");
+    let full =
+        icon_button("view-fullscreen-symbolic", &t::player_fullscreen(), "player.fullscreen");
     let mini_button =
         icon_button("anistream-mini-player-symbolic", &t::player_mini_player(), "player.mini");
     let top = adw::HeaderBar::new();
@@ -2174,12 +2173,16 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     top.pack_end(&tv);
 
     // The bottom bar.
-    let play = icon_button("media-playback-pause-symbolic", &t::action_pause(), "player.toggle");
+    let play =
+        icon_button("media-playback-pause-symbolic", &t::action_pause(), "player.toggle");
     play.add_css_class("play");
     let back10 =
         icon_button("media-seek-backward-symbolic", &t::player_back_10(), "player.back-10");
-    let forward10 =
-        icon_button("media-seek-forward-symbolic", &t::player_forward_10(), "player.forward-10");
+    let forward10 = icon_button(
+        "media-seek-forward-symbolic",
+        &t::player_forward_10(),
+        "player.forward-10",
+    );
     let position = gtk::Label::new(Some("0:00"));
     let remaining = gtk::Label::new(Some("\u{2212}0:00"));
     for label in [&position, &remaining] {
@@ -2387,11 +2390,16 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     middle_row.set_valign(gtk::Align::Center);
     middle_row.set_vexpand(true);
     middle_row.add_css_class("mini-controls");
-    let mini_play = icon_button("media-playback-pause-symbolic", &t::action_pause(), "player.toggle");
+    let mini_play =
+        icon_button("media-playback-pause-symbolic", &t::action_pause(), "player.toggle");
     for button in [
         icon_button("media-seek-backward-symbolic", &t::player_back_10(), "player.back-10"),
         mini_play.clone(),
-        icon_button("media-seek-forward-symbolic", &t::player_forward_10(), "player.forward-10"),
+        icon_button(
+            "media-seek-forward-symbolic",
+            &t::player_forward_10(),
+            "player.forward-10",
+        ),
     ] {
         button.add_css_class("osd");
         middle_row.append(&button);

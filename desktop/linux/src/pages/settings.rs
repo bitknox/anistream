@@ -464,7 +464,7 @@ impl Inner {
                 // Seeding only says anything once torrents are on.
                 let on = known.setting(K::Torrents).is_some_and(|r| catalog::is_on(&r));
                 group.set_visible(on);
-                group.set_description(Some(t::downloads_seeding_open_only().as_str()));
+                group.set_description(Some(t::settings_seeding_open_only().as_str()));
                 self.keep(K::Torrents, {
                     let group = group.clone();
                     move |row| group.set_visible(catalog::is_on(row))
@@ -1038,7 +1038,7 @@ impl Inner {
         let protection =
             known.settings.as_ref().map(|v| (*v.torrent).clone()).unwrap_or_default();
         let note = |on: bool, view: &ProtectionView| {
-            if on { torrents::on_note(view) } else { torrents::OFF_NOTE.to_owned() }
+            if on { torrents::on_note(view) } else { torrents::off_note() }
         };
         let group = adw::PreferencesGroup::builder()
             .title(t::torrents_title())
@@ -1054,7 +1054,7 @@ impl Inner {
             .text(index.as_deref().unwrap_or_default())
             .show_apply_button(true)
             .input_purpose(gtk::InputPurpose::Url)
-            .tooltip_text(torrents::INDEX_NOTE)
+            .tooltip_text(torrents::index_note())
             .build();
         entry.connect_apply({
             let hub = Rc::downgrade(&self.ctx.hub);

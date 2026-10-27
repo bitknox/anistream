@@ -503,7 +503,9 @@ impl Page {
             .and_then(|r| r.title);
         let dubbed = item.mark.is_some();
         let line = match episode_title {
-            Some(name) if dubbed => t::episode_with_title_dubbed(i64::from(item.episode), &name),
+            Some(name) if dubbed => {
+                t::episode_with_title_dubbed(i64::from(item.episode), &name)
+            }
             Some(name) => t::episode_with_title(i64::from(item.episode), &name),
             None => say::marked(t::episode_number(i64::from(item.episode)), dubbed),
         };

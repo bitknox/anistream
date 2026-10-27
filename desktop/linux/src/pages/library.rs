@@ -5,20 +5,19 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentFor, ContentList, Entry, LibrarySegment},
     command::Command,
     event::Event,
 };
-use anistream_i18n::t;
 use gtk::{gio, glib};
 
 use crate::{
-    nagare,
+    nagare, say,
     states::{self, Shape, States},
     widgets::{self, PosterGrid},
     window::{Ctx, Size},
-    say,
 };
 
 /// How a list is ordered.
@@ -154,8 +153,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     connect.set_halign(gtk::Align::Center);
     connect.set_action_name(Some("win.connect"));
     connect.set_action_target_value(Some(&"anilist".to_variant()));
-    let signed_out =
-        nagare::status_page(
+    let signed_out = nagare::status_page(
         &t::library_signed_out_title(),
         &t::library_signed_out_detail(),
         Some(&connect),
@@ -304,7 +302,10 @@ impl Page {
         };
         self.order.borrow().sort(&mut entries);
         grid.set(&entries);
-        page.set_title(Some(&t::library_linux_list_count(&segment_title(segment), &entries.len().to_string())));
+        page.set_title(Some(&t::library_linux_list_count(
+            &segment_title(segment),
+            &entries.len().to_string(),
+        )));
         if entries.is_empty() {
             list.empty();
         } else {

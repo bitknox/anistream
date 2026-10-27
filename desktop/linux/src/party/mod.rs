@@ -221,10 +221,7 @@ pub fn ask_before_closing(shell: &Rc<Shell>) -> bool {
         Some(&t::party_leave_title()),
         Some(&t::party_leave_detail(&room)),
     );
-    dialog.add_responses(&[
-        ("stay", &t::party_stay()),
-        ("leave", &t::party_leave_and_close()),
-    ]);
+    dialog.add_responses(&[("stay", &t::party_stay()), ("leave", &t::party_leave_and_close())]);
     dialog.set_response_appearance("leave", adw::ResponseAppearance::Destructive);
     // Stay is the default: Return and Escape both keep the party.
     dialog.set_default_response(Some("stay"));
@@ -282,10 +279,10 @@ mod tests {
         let mut other = member("Mika", Some(true), false);
         assert_eq!(member_file(&other), None);
         other.file_matches = Some(false);
-        assert_eq!(member_file(&other), Some("Playing a different file"));
+        assert_eq!(member_file(&other).as_deref(), Some("Playing a different file"));
         other.file = None;
         other.file_matches = None;
-        assert_eq!(member_file(&other), Some("Nothing open yet"));
+        assert_eq!(member_file(&other).as_deref(), Some("Nothing open yet"));
         let mut you = member("Ada", Some(false), true);
         you.file = None;
         assert_eq!(member_file(&you), None);

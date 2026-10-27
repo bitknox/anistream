@@ -916,6 +916,9 @@ updates-why-reopen = The new version is installed but couldn't be opened. Open a
 # Accessible description of the mascot's picture. Nagare is the mascot's name.
 nagare-description = Nagare, the anistream mascot: a figure with a silk bob, an amber scarf and an indigo cloak, holding a staff with a water charm
 
+# Line under the seeding group in Settings: seeding stops when the app closes.
+settings-seeding-open-only = Seeding runs only while anistream is open.
+
 # Button on a notice that asks to open the plugin stores.
 shell-open-stores = Open plugin stores
 

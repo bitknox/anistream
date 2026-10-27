@@ -220,7 +220,7 @@ fn pane_note(pane: &str, known: &Known) -> Option<(String, String)> {
         "notifications" => (
             t::settings_new_episodes(),
             if on(SettingKey::EpisodeNotifications) {
-                t::settings_notify_note_on(&say::tracker_name("anilist"))
+                t::settings_notify_note_on(say::tracker_name("anilist"))
             } else {
                 t::settings_notify_note_off()
             },

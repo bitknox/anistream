@@ -6,35 +6,35 @@
 use std::{cell::RefCell, rc::Rc};
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_model::{
     catalog::Season,
     search::{
         ActiveFilter, FilterKey, MediaFormat, Pick, SEARCH_STATUSES, SearchQuery, SearchSort,
     },
 };
-use anistream_i18n::t;
 use gtk::{gio, glib};
 
 use crate::say;
 
 /// AniList's genres, until the engine says which it offers.
 const GENRES: [&str; 16] = [
-    "Action", // i18n-skip
-    "Adventure", // i18n-skip
-    "Comedy", // i18n-skip
-    "Drama", // i18n-skip
-    "Fantasy", // i18n-skip
-    "Horror", // i18n-skip
-    "Mecha", // i18n-skip
-    "Music", // i18n-skip
-    "Mystery", // i18n-skip
+    "Action",        // i18n-skip
+    "Adventure",     // i18n-skip
+    "Comedy",        // i18n-skip
+    "Drama",         // i18n-skip
+    "Fantasy",       // i18n-skip
+    "Horror",        // i18n-skip
+    "Mecha",         // i18n-skip
+    "Music",         // i18n-skip
+    "Mystery",       // i18n-skip
     "Psychological", // i18n-skip
-    "Romance", // i18n-skip
-    "Sci-Fi", // i18n-skip
+    "Romance",       // i18n-skip
+    "Sci-Fi",        // i18n-skip
     "Slice of Life", // i18n-skip
-    "Sports", // i18n-skip
-    "Supernatural", // i18n-skip
-    "Thriller", // i18n-skip
+    "Sports",        // i18n-skip
+    "Supernatural",  // i18n-skip
+    "Thriller",      // i18n-skip
 ];
 
 const SEASONS: [Season; 4] = [Season::Winter, Season::Spring, Season::Summer, Season::Fall];
@@ -338,7 +338,12 @@ impl Filters {
         self.genres.set_menu_model(Some(&menu));
         let label = match set {
             0 => t::filter_genres(),
-            1 => query.active().into_iter().next().map(|f| chip_label(query, &f)).unwrap_or_default(),
+            1 => query
+                .active()
+                .into_iter()
+                .next()
+                .map(|f| chip_label(query, &f))
+                .unwrap_or_default(),
             n => t::filter_linux_genres_count(n as i64),
         };
         set_label(&self.genres, &label, set > 0);
@@ -359,11 +364,7 @@ impl Filters {
         self.set_state("year", &single.map(|y| y.to_string()).unwrap_or_default());
         let label = query.active().into_iter().find(|f| f.key == FilterKey::Years);
         let set = !query.years.is_open();
-        set_label(
-            &self.year,
-            &label.map(|f| f.label).unwrap_or_else(t::filter_year),
-            set,
-        );
+        set_label(&self.year, &label.map(|f| f.label).unwrap_or_else(t::filter_year), set);
     }
 
     fn show_season(&self, query: &SearchQuery) {
@@ -454,7 +455,10 @@ impl Filters {
             if sort == SearchSort::Relevance && !with_text {
                 continue;
             }
-            sorts.append(Some(&sort_name(sort)), Some(&format!("filter.sort::{}", sort.label())));
+            sorts.append(
+                Some(&sort_name(sort)),
+                Some(&format!("filter.sort::{}", sort.label())),
+            );
         }
         menu.append_section(Some(&t::filter_linux_sort_by()), &sorts);
         self.sort.set_menu_model(Some(&menu));
@@ -629,8 +633,13 @@ fn faded_scroll(capsules: &gtk::Box) -> gtk::Overlay {
         });
         (fade, arrow)
     };
-    let (start_fade, start_arrow) =
-        edge("start", gtk::Align::Start, "go-previous-symbolic", &t::filter_linux_earlier(), -1.0);
+    let (start_fade, start_arrow) = edge(
+        "start",
+        gtk::Align::Start,
+        "go-previous-symbolic",
+        &t::filter_linux_earlier(),
+        -1.0,
+    );
     let (end_fade, end_arrow) =
         edge("end", gtk::Align::End, "go-next-symbolic", &t::filter_linux_more(), 1.0);
     let overlay = gtk::Overlay::builder().child(&scroll).hexpand(true).build();

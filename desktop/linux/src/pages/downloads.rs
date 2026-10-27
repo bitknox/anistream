@@ -17,6 +17,7 @@ use std::{
 
 use adw::prelude::*;
 use anistream_core::ids::AnilistId;
+use anistream_i18n::t;
 use anistream_model::{
     catalog::Entry,
     command::Command,
@@ -24,7 +25,6 @@ use anistream_model::{
     event::Event,
     settings::SettingKey,
 };
-use anistream_i18n::t;
 use gtk::{gio, glib};
 
 use crate::{
@@ -79,8 +79,12 @@ fn state_line(row: &DownloadRow) -> String {
             t::downloads_caption_running(&size(row.downloaded), &size(row.total))
         }
         DownloadState::Active => t::downloads_caption_running_plain(),
-        DownloadState::Paused => t::downloads_caption_paused(&crate::say::percent(f64::from(percent))),
-        DownloadState::Done if row.total > 0 => t::downloads_caption_done_size(&size(row.total)),
+        DownloadState::Paused => {
+            t::downloads_caption_paused(&crate::say::percent(f64::from(percent)))
+        }
+        DownloadState::Done if row.total > 0 => {
+            t::downloads_caption_done_size(&size(row.total))
+        }
         DownloadState::Done => t::downloads_caption_done(),
         DownloadState::Failed => match &row.error {
             Some(why) => t::downloads_caption_failed_why(why),
@@ -245,11 +249,8 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         .vexpand(true)
         .child(&adw::Clamp::builder().maximum_size(820).child(&column).build())
         .build();
-    let empty = nagare::status_page(
-        &t::downloads_empty_title(),
-        &t::downloads_empty_detail(),
-        None,
-    );
+    let empty =
+        nagare::status_page(&t::downloads_empty_title(), &t::downloads_empty_detail(), None);
     let rows = Shape::Rows { count: 3, width: 80, height: 45 };
     let body = States::new(&ctx.hub, &scroll, rows, &empty, &t::downloads_load_failed());
     // The app asks for the downloads as it opens.
@@ -518,7 +519,11 @@ impl Page {
     /// The header: Pause All or Resume All, as words on wide windows; on narrow ones it and Open
     /// Folder go into the menu, so the page's name has the room.
     fn header(&self, running: bool, paused: bool) {
-        let words = if running || !paused { t::downloads_pause_all() } else { t::downloads_resume_all() };
+        let words = if running || !paused {
+            t::downloads_pause_all()
+        } else {
+            t::downloads_resume_all()
+        };
         let narrow = self.ctx.size() == Size::Narrow;
         self.pause_all.set_label(&words);
         self.pause_all.set_sensitive(running || paused);
@@ -531,7 +536,8 @@ impl Page {
             }
             self.more.append(Some(&t::downloads_open_folder()), Some("downloads.open-folder"));
         }
-        self.more.append(Some(&t::downloads_clear_finished()), Some("downloads.clear-finished"));
+        self.more
+            .append(Some(&t::downloads_clear_finished()), Some("downloads.clear-finished"));
     }
 
     fn show(&self) {
@@ -747,16 +753,24 @@ fn episode_row(row: &DownloadRow, narrow: bool) -> EpisodeRow {
         Words(String, &'static str),
     }
     let main = match row.state {
-        DownloadState::Active => {
-            Some(Main::Icon("media-playback-pause-symbolic", t::downloads_pause_one(), "downloads.pause"))
+        DownloadState::Active => Some(Main::Icon(
+            "media-playback-pause-symbolic",
+            t::downloads_pause_one(),
+            "downloads.pause",
+        )),
+        DownloadState::Queued => {
+            Some(Main::Words(t::downloads_start_now(), "downloads.start-now"))
         }
-        DownloadState::Queued => Some(Main::Words(t::downloads_start_now(), "downloads.start-now")),
-        DownloadState::Paused => {
-            Some(Main::Icon("media-playback-start-symbolic", t::downloads_resume_one(), "downloads.pause"))
-        }
-        DownloadState::Done if row.path.is_some() => {
-            Some(Main::Icon("media-playback-start-symbolic", t::action_play(), "downloads.play"))
-        }
+        DownloadState::Paused => Some(Main::Icon(
+            "media-playback-start-symbolic",
+            t::downloads_resume_one(),
+            "downloads.pause",
+        )),
+        DownloadState::Done if row.path.is_some() => Some(Main::Icon(
+            "media-playback-start-symbolic",
+            t::action_play(),
+            "downloads.play",
+        )),
         DownloadState::Failed => Some(Main::Words(t::action_try_again(), "downloads.retry")),
         DownloadState::Done => None,
     };
@@ -770,7 +784,9 @@ fn episode_row(row: &DownloadRow, narrow: bool) -> EpisodeRow {
         Some(Main::Icon(_, label, action) | Main::Words(label, action)) if narrow => {
             menu.append_item(&item(&label, action));
         }
-        Some(Main::Icon(icon, tip, action)) => line.add_suffix(&icon_button(icon, &tip, action)),
+        Some(Main::Icon(icon, tip, action)) => {
+            line.add_suffix(&icon_button(icon, &tip, action))
+        }
         Some(Main::Words(label, action)) => line.add_suffix(&text_button(&label, action)),
         None => {}
     }

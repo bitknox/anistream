@@ -21,11 +21,10 @@ use anistream_model::{
 use gtk::{gio, glib};
 
 use crate::{
-    catalog, choices, motion,
+    catalog, choices, motion, say,
     states::{Shape, States},
     widgets,
     window::{Ctx, Size},
-    say,
 };
 
 /// How far a watched episode's still dims.
@@ -609,7 +608,8 @@ impl Page {
         if seasons.len() < 2 {
             return;
         }
-        let names: Vec<String> = (1..=seasons.len()).map(|n| t::season_number(n as i64)).collect();
+        let names: Vec<String> =
+            (1..=seasons.len()).map(|n| t::season_number(n as i64)).collect();
         let refs: Vec<&str> = names.iter().map(String::as_str).collect();
         let picker = gtk::DropDown::from_strings(&refs);
         picker.set_tooltip_text(Some(&t::filter_season()));
@@ -698,9 +698,7 @@ impl Page {
             let tile = gtk::Box::new(gtk::Orientation::Vertical, 4);
             tile.append(&widgets::cover(&self.ctx.hub, &shown, 76, 114));
             let label = widgets::haze(
-                &linked
-                    .relation
-                    .map_or_else(|| linked.title.clone(), say::relation),
+                &linked.relation.map_or_else(|| linked.title.clone(), say::relation),
                 "caption",
             );
             label.set_wrap(false);
@@ -779,9 +777,9 @@ impl Page {
 
             let check = gtk::CheckButton::new();
             check.set_valign(gtk::Align::Center);
-            check.update_property(&[gtk::accessible::Property::Label(&t::title_linux_episode_watched(
-                say::episode_n(&row.number),
-            ))]);
+            check.update_property(&[gtk::accessible::Property::Label(
+                &t::title_linux_episode_watched(say::episode_n(&row.number)),
+            )]);
             let episode = row.number.clone();
             let toggled = check.connect_toggled(move |check| {
                 let _ = check.activate_action(

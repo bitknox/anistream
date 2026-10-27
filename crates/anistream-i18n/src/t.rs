@@ -1405,6 +1405,11 @@ pub fn nagare_description() -> String {
     text("nagare-description", &[])
 }
 
+/// Line under the seeding group in Settings: seeding stops when the app closes.
+pub fn settings_seeding_open_only() -> String {
+    text("settings-seeding-open-only", &[])
+}
+
 /// Button on a notice that asks to open the plugin stores.
 pub fn shell_open_stores() -> String {
     text("shell-open-stores", &[])

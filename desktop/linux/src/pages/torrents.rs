@@ -676,8 +676,13 @@ fn form(
     // failure, not as a toast, for as long as the form is open.
     let claim = ctx.claim_alerts({
         let (words, dot) = (words.clone(), dot.clone());
-        move |text| {
-            if !text.starts_with(&t::torrents_not_checked()) || !dot.has_css_class("vermilion") {
+        move |msg, text| {
+            let not_checked = matches!(
+                msg,
+                anistream_model::Msg::TorrentNotChecked { .. }
+                    | anistream_model::Msg::NoticeProtectionNotChecked { .. }
+            );
+            if !not_checked || !dot.has_css_class("vermilion") {
                 return false;
             }
             let said = format!("{} {text}.", words.label()); // i18n-skip

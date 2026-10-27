@@ -487,8 +487,7 @@ impl Inner {
                 }
                 match content {
                     ContentList::Loading => {
-                        self.states
-                            .loading(Some(searching(query)));
+                        self.states.loading(Some(searching(query)));
                     }
                     ContentList::Entries(entries) if !entries.is_empty() => {
                         self.entries.replace(entries.clone());
@@ -536,15 +535,16 @@ impl Inner {
             let rows = known.settings.iter().flat_map(|v| v.rows.iter().chain(&v.native_rows));
             for row in rows {
                 let Some(pane) = super::settings::pane_of(row.key) else { continue };
-                if !row.key.label().contains(&query) {
+                let label = catalog::label(row.key);
+                if !label.to_lowercase().contains(&query) {
                     continue;
                 }
                 let line = adw::ActionRow::builder()
-                    .title(catalog::shown(row.key.label()))
+                    .title(label)
                     .subtitle(format!(
                         "{} · {}",
                         super::settings::pane_title(pane),
-                        catalog::shown(&row.value)
+                        catalog::display(row)
                     ))
                     .activatable(true)
                     .build();

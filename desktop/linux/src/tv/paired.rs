@@ -22,7 +22,7 @@ pub fn group(ctx: &Rc<Ctx>) -> Option<adw::PreferencesGroup> {
     }
     let group = adw::PreferencesGroup::builder()
         .title(t::tv_play_on())
-        .description(t::tv_fingerprint_note(&tv.short_fingerprint()))
+        .description(t::tv_fingerprint_note(tv.short_fingerprint()))
         .build();
     let rows: Rc<std::cell::RefCell<Vec<gtk::Widget>>> = Rc::default();
     let fill = {

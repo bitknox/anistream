@@ -14,6 +14,9 @@ pub const NAME: &str = "org.mpris.MediaPlayer2.anistream";
 const PATH: &str = "/org/mpris/MediaPlayer2";
 const ROOT: &str = "org.mpris.MediaPlayer2";
 const PLAYER: &str = "org.mpris.MediaPlayer2.Player";
+/// The two properties a client may set.
+const VOLUME: &str = "Volume"; // i18n-skip
+const RATE: &str = "Rate"; // i18n-skip
 
 const INTERFACES: &str = r#"<node>
   <interface name="org.mpris.MediaPlayer2">
@@ -111,8 +114,8 @@ pub struct Media {
 impl Media {
     pub fn status(&self) -> &'static str {
         match (&self.track, self.paused) {
-            (None, _) => "Stopped", // i18n-skip
-            (Some(_), true) => "Paused", // i18n-skip
+            (None, _) => "Stopped",        // i18n-skip
+            (Some(_), true) => "Paused",   // i18n-skip
             (Some(_), false) => "Playing", // i18n-skip
         }
     }
@@ -148,15 +151,15 @@ impl Media {
         let playing = self.track.is_some();
         Some(match name {
             "PlaybackStatus" => self.status().to_variant(), // i18n-skip
-            "Rate" => self.rate.to_variant(), // i18n-skip
+            "Rate" => self.rate.to_variant(),               // i18n-skip
             "MinimumRate" => RATES.0.to_variant(),
             "MaximumRate" => RATES.1.to_variant(),
-            "Metadata" => self.metadata(), // i18n-skip
+            "Metadata" => self.metadata(),        // i18n-skip
             "Volume" => self.volume.to_variant(), // i18n-skip
             "Position" => micros(self.position).to_variant(),
             "CanGoNext" => (playing && self.has_next).to_variant(), // i18n-skip
             "CanGoPrevious" => (playing && self.has_previous).to_variant(), // i18n-skip
-            "CanPlay" | "CanPause" => playing.to_variant(), // i18n-skip
+            "CanPlay" | "CanPause" => playing.to_variant(),         // i18n-skip
             "CanSeek" => (playing && self.length.is_some()).to_variant(), // i18n-skip
             "CanControl" => true.to_variant(),
             _ => return None,
@@ -166,13 +169,13 @@ impl Media {
 
 /// The properties a new track or its end changes.
 const EVERYTHING: [&str; 7] = [
-    "Metadata", // i18n-skip
+    "Metadata",       // i18n-skip
     "PlaybackStatus", // i18n-skip
-    "CanGoNext", // i18n-skip
-    "CanGoPrevious", // i18n-skip
-    "CanPlay", // i18n-skip
-    "CanPause", // i18n-skip
-    "CanSeek", // i18n-skip
+    "CanGoNext",      // i18n-skip
+    "CanGoPrevious",  // i18n-skip
+    "CanPlay",        // i18n-skip
+    "CanPause",       // i18n-skip
+    "CanSeek",        // i18n-skip
 ];
 
 /// The desktop entry the controls take the app's name and icon from: the AppImage's own when
@@ -288,13 +291,13 @@ impl Mpris {
             .set_property(move |_, _, _, _, name, value| {
                 let Some(mpris) = set_media.upgrade() else { return false };
                 match (name, value.get::<f64>()) {
-                    ("Volume", Some(volume)) => { // i18n-skip
+                    (VOLUME, Some(volume)) => {
                         let volume = volume.clamp(0.0, 1.0);
                         mpris.media.borrow_mut().volume = volume;
                         set_act(Action::Volume(volume));
                         true
                     }
-                    ("Rate", Some(rate)) if rate > 0.0 => { // i18n-skip
+                    (RATE, Some(rate)) if rate > 0.0 => {
                         set_act(Action::Rate(rate.clamp(RATES.0, RATES.1)));
                         true
                     }

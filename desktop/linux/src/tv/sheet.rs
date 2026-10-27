@@ -768,7 +768,7 @@ impl Pairing {
         // After the clear, which says nothing: Pair lights only over six digits.
         self.pair.set_visible(typing);
         self.pair.set_sensitive(self.code.six().is_some() && !step.working && !expired);
-        self.shown_problem.replace(step.problem.clone());
+        self.shown_problem.replace(step.problem);
         self.problem.show(
             expired.then(t::tv_code_expired).as_deref(),
             step.problem.map(super::problem_text).as_deref(),

@@ -69,7 +69,7 @@ pub struct Ctx {
 }
 
 /// A dialog's hold on the engine's alerts: given the words, it says whether it showed them.
-type Claim = Rc<dyn Fn(&str) -> bool>;
+type Claim = Rc<dyn Fn(&anistream_model::Msg, &str) -> bool>;
 
 impl Ctx {
     pub fn size(&self) -> Size {
@@ -113,11 +113,12 @@ impl Ctx {
             return;
         }
         // An alert a dialog is waiting on shows in that dialog, not as a toast under it.
-        let text = crate::say::msg(&notice.message());
+        let msg = notice.message();
+        let text = crate::say::msg(&msg);
         if notice.kind == NoticeKind::Alert {
             let claims: Vec<Claim> =
                 self.claims.borrow().iter().rev().map(|(_, c)| Rc::clone(c)).collect();
-            if claims.iter().any(|claim| claim(&text)) {
+            if claims.iter().any(|claim| claim(&msg, &text)) {
                 return;
             }
         }
@@ -135,7 +136,10 @@ impl Ctx {
 
     /// Have the engine's alerts go to `claim` first, until [`Ctx::release_alerts`]: for a dialog
     /// that waits on the engine, which says only by an alert why it could not.
-    pub fn claim_alerts(&self, claim: impl Fn(&str) -> bool + 'static) -> u64 {
+    pub fn claim_alerts(
+        &self,
+        claim: impl Fn(&anistream_model::Msg, &str) -> bool + 'static,
+    ) -> u64 {
         let id = self.next_claim.get();
         self.next_claim.set(id + 1);
         self.claims.borrow_mut().push((id, Rc::new(claim)));

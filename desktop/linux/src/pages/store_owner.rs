@@ -99,7 +99,7 @@ fn listen(ctx: &Ctx, dialog: &adw::Dialog, heard: impl Fn(&Event) + 'static) {
 
 /// The engine's alerts, said in the dialog while `claim` takes them, until it closes.
 fn claim(ctx: &Rc<Ctx>, dialog: &adw::Dialog, claim: impl Fn(&str) -> bool + 'static) {
-    let id = ctx.claim_alerts(claim);
+    let id = ctx.claim_alerts(move |_, why| claim(why));
     let ctx = Rc::downgrade(ctx);
     dialog.connect_closed(move |_| {
         if let Some(ctx) = ctx.upgrade() {

@@ -85,7 +85,8 @@ pub fn open(ctx: &Rc<Ctx>, what: For) {
     header.set_show_start_title_buttons(false);
     let cancel = gtk::Button::with_label(&t::action_cancel());
     header.pack_start(&cancel);
-    let start = gtk::Button::with_label(&if invite { t::party_join() } else { t::party_start() });
+    let start =
+        gtk::Button::with_label(&if invite { t::party_join() } else { t::party_start() });
     start.add_css_class("suggested-action");
     start.set_sensitive(false);
     header.pack_end(&start);
@@ -123,7 +124,8 @@ pub fn open(ctx: &Rc<Ctx>, what: For) {
     if let For::Invite(link) = &what {
         // An invite names the room: it is shown, not asked, with whose server it is.
         let place = widgets::boxed_list();
-        for (title, value) in [(t::party_room(), &link.room), (t::party_server(), &link.server)] {
+        for (title, value) in [(t::party_room(), &link.room), (t::party_server(), &link.server)]
+        {
             let row = adw::ActionRow::builder().title(title).subtitle(value).build();
             row.add_css_class("property");
             row.set_subtitle_selectable(true);
@@ -499,9 +501,7 @@ impl Form {
                     field.set_sensitive(true);
                 }
                 self.start.set_label(&t::action_try_again());
-                let why = reason
-                    .as_ref()
-                    .map_or_else(t::party_ended_early, crate::say::msg);
+                let why = reason.as_ref().map_or_else(t::party_ended_early, crate::say::msg);
                 self.say(&why, false, true);
             }
             Event::Detail(_) | Event::Content { .. } => self.show_episode(),

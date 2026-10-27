@@ -341,7 +341,7 @@ pub fn about() -> StatsAbout {
     let system = ["/run/host/os-release", "/etc/os-release"]
         .iter()
         .find_map(|path| pretty_name(&std::fs::read_to_string(path).ok()?))
-        .unwrap_or_else(|| "Linux".into()) // i18n-skip;
+        .unwrap_or_else(|| "Linux".into()); // i18n-skip
     StatsAbout {
         app_version: anistream_engine::updates::CURRENT.to_owned(),
         system,

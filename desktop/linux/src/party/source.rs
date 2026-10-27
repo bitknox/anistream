@@ -7,8 +7,8 @@
 use std::{cell::Cell, rc::Rc};
 
 use adw::prelude::*;
-use anistream_i18n::t;
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
+use anistream_i18n::t;
 use anistream_model::{command::Command, event::Event, notice::NoticeKind, party::NoSourceWhy};
 
 use crate::{

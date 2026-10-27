@@ -916,6 +916,9 @@ updates-why-reopen = [Ţĥé ñéŵ ṽéŕšîöñ îš îñšţàļļéð ƀü
 # Accessible description of the mascot's picture. Nagare is the mascot's name.
 nagare-description = [Ñàĝàŕé, ţĥé àñîšţŕéàɱ ɱàšçöţ: à ƒîĝüŕé ŵîţĥ à šîļķ ƀöƀ, àñ àɱƀéŕ šçàŕƒ àñð àñ îñðîĝö çļöàķ, ĥöļðîñĝ à šţàƒƒ ŵîţĥ à ŵàţéŕ çĥàŕɱ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
+# Line under the seeding group in Settings: seeding stops when the app closes.
+settings-seeding-open-only = [Šééðîñĝ ŕüñš öñļý ŵĥîļé àñîšţŕéàɱ îš öþéñ.~~~~~~~~~~~~~]
+
 # Button on a notice that asks to open the plugin stores.
 shell-open-stores = [Öþéñ þļüĝîñ šţöŕéš~~~~~~]
 
