@@ -24,7 +24,7 @@ import UIKit
 /// or failed with nothing saved. `all` leaves these out too.
 public enum Showcase: String, CaseIterable, Sendable {
     case sources, stores, downloads, invite, update, pale, offline, stranded, failed, messages, calendar,
-         signin, expired, proxy, checking, unsaved, all
+         signin, expired, proxy, checking, unsaved, picker, all
 
     /// The one the launch arguments name.
     public static func from(arguments: [String]) -> Showcase? {
@@ -103,12 +103,45 @@ public enum Showcase: String, CaseIterable, Sendable {
                     events.append(.settings(Self.throughProxy(Self.torrentsOn(settings))))
                     held.insert("settings")
                 }
+            case .picker:
+                events.append(.sourceOptions(id: Self.pickerTitle, options: Self.pickerOptions))
+                held.insert("sourceOptions")
             case .all:
                 break
             }
         }
         return (events, held)
     }
+
+    /// The title the picker's invented options are for.
+    static let pickerTitle: AnilistId = 900001
+
+    /// What the source picker lists: two sources that list episodes, one with several releases,
+    /// one resting and one switched off.
+    static let pickerOptions: [SourceOption] = [
+        SourceOption(providerId: "hotaru-open-archive", name: "Hotaru Open Archive", covered: 13, of: 13,
+                     pinned: false, note: nil, releases: [], pinnedRelease: nil),
+        SourceOption(providerId: "mukashi-archive", name: "Mukashi Archive", covered: 6, of: 13,
+                     pinned: false, note: nil, releases: [], pinnedRelease: nil),
+        SourceOption(providerId: "torrents", name: "Torrent source", covered: 12, of: 13,
+                     pinned: false, note: nil,
+                     releases: [
+                        SourceCandidate(id: "batch-1080", providerId: "torrents",
+                                        title: "Stardust Wayfarer complete batch", quality: 1080, seeders: 84,
+                                        size: "14.2 GiB", dualAudio: true, dubbed: false, autoPick: true),
+                        SourceCandidate(id: "single-1080", providerId: "torrents",
+                                        title: "Stardust Wayfarer 01", quality: 1080, seeders: 31,
+                                        size: "1.1 GiB", dualAudio: false, dubbed: false, autoPick: false),
+                        SourceCandidate(id: "single-720", providerId: "torrents",
+                                        title: "Stardust Wayfarer 01", quality: 720, seeders: 12,
+                                        size: "480 MiB", dualAudio: false, dubbed: false, autoPick: false),
+                     ],
+                     pinnedRelease: nil),
+        SourceOption(providerId: "fumi-mirror", name: "Fumi Mirror", covered: 0, of: 13,
+                     pinned: false, note: .resting, releases: [], pinnedRelease: nil),
+        SourceOption(providerId: "old-reel", name: "Old Reel", covered: 0, of: 13,
+                     pinned: false, note: .off, releases: [], pinnedRelease: nil),
+    ]
 
     /// A session's notices, oldest first: a few passing ones, and two failures, one long.
     static let sessionNotices: [(kind: NoticeKind, text: String)] = [
@@ -344,6 +377,7 @@ extension Event {
         case .update: "update"
         case .connectivity: "connectivity"
         case .content: "content"
+        case .sourceOptions: "sourceOptions"
         default: nil
         }
     }

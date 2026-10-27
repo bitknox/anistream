@@ -6,6 +6,7 @@ import Accessibility
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 extension Entry {
@@ -103,6 +104,7 @@ extension EpisodeRow {
             parts.append(Wording.plural(max(1, Int((Double(seconds) / 60).rounded())), "minute"))
         }
         if kind == .filler { parts.append("filler") }
+        if unsourced { parts.append(L.episodeUnsourced) }
         return parts
     }
 }

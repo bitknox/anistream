@@ -2,6 +2,7 @@
 
 import AnistreamDesign
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// What the app's window shows, over the store in the environment.
@@ -37,6 +38,10 @@ public struct RootView: View {
         #endif
         .preferredColorScheme(.dark)
         .modifier(SpotlightResults())
+        // A pinned source the engine could not use, said once in the notice capsule.
+        .onChange(of: store.sourceChoices.pinNotice) { _, notice in
+            if let notice { store.say(L.sourcePinUnavailable(name: notice.name)) }
+        }
     }
 }
 
