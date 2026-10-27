@@ -2,11 +2,12 @@
 //! when it earns the room, and why the table is empty when it is; and the rows of the overlays
 //! that pick a title's match and an episode's release.
 
+use anistream_i18n::t;
 use anistream_model::episodes::EpisodeKind;
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
 use crate::{
-    app::App,
+    app::{App, countdown_text, push_detail},
     nav::{Focus, Section},
     theme::{Role, glyph},
     widgets::{Hairline, truncate, wrap},
@@ -25,7 +26,8 @@ const MIN_TITLE: usize = 16;
 /// headers, and dense rows. Episodes genuinely are a sequence, so the numbering carries
 /// information rather than decorating — which is what earns the zero-padded field.
 pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
-    let title = app.detail.as_ref().map_or("EPISODES", |e| e.title.as_str());
+    let heading = t::episodes_heading();
+    let title = app.detail.as_ref().map_or(heading.as_str(), |e| e.title.as_str());
     // How far the dub goes sits at the right of the title's row, when the row has room for both:
     // it is the source's, as the table is.
     let room = area.width.saturating_sub(4) as usize;
@@ -74,13 +76,7 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
 
     if app.episodes.is_empty() {
         let (headline, hint) = empty_episodes(app);
-        line(
-            buf,
-            table.left(),
-            table.top(),
-            glyph::eyebrow(headline),
-            app.palette.style(Role::TextDim),
-        );
+        line(buf, table.left(), table.top(), headline, app.palette.style(Role::TextDim));
         let room = table.bottom().saturating_sub(table.top() + 2) as usize;
         for (i, text) in wrap(&hint, table.width as usize, room.min(3)).into_iter().enumerate()
         {
@@ -130,25 +126,25 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     buf.set_string(
         table.left() + cols.title,
         table.top(),
-        glyph::eyebrow("title"),
+        t::episodes_column_title(),
         app.palette.style(Role::TextDim),
     );
     buf.set_string(
         table.left() + cols.runtime,
         table.top(),
-        glyph::eyebrow("run"),
+        t::episodes_column_run(),
         app.palette.style(Role::TextDim),
     );
     buf.set_string(
         table.left() + cols.state,
         table.top(),
-        glyph::eyebrow("watched"),
+        t::episodes_column_watched(),
         app.palette.style(Role::TextDim),
     );
     // The active filter sits at the right edge of the header row — always visible while
     // it is narrowing the table, invisible when it is not.
     if app.episode_filter != crate::app::EpisodeFilter::All {
-        let marker = glyph::eyebrow(app.episode_filter.label());
+        let marker = app.episode_filter.label();
         let width = marker.chars().count() as u16;
         if table.left() + cols.state + 10 + width < table.right() {
             buf.set_string(
@@ -214,7 +210,7 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
         // of a meter there is nothing to fill yet.
         let now = app.clock.now_epoch();
         if let Some(at) = episode.airs_at.filter(|at| *at > now) {
-            let airs = format!("in {}", anistream_model::wording::countdown(at - now));
+            let airs = t::episodes_airs_in(&countdown_text(at - now));
             buf.set_string(
                 table.left() + cols.state,
                 y,
@@ -240,7 +236,7 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
         // finished and worth flagging, and two columns for one word each would be noise.
         let tail_x = table.left() + cols.state + meter_width as u16 + 2;
         if episode.completed {
-            buf.set_string(tail_x, y, "done", app.palette.style(Role::TextDim));
+            buf.set_string(tail_x, y, t::episodes_done(), app.palette.style(Role::TextDim));
         } else if let Some(kind) = episode.kind {
             // Only skippable filler earns the alert role. `mixed` is labelled but not coloured,
             // because it is information rather than a suggestion — skipping it loses story.
@@ -251,12 +247,12 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
 }
 
 /// What the episode table calls a kind of episode.
-pub fn episode_kind_label(kind: EpisodeKind) -> &'static str {
+pub fn episode_kind_label(kind: EpisodeKind) -> String {
     match kind {
-        EpisodeKind::Canon => "canon",
-        EpisodeKind::Mixed => "mixed",
-        EpisodeKind::Filler => "filler",
-        EpisodeKind::AnimeCanon => "anime canon",
+        EpisodeKind::Canon => t::episodes_kind_canon(),
+        EpisodeKind::Mixed => t::episodes_kind_mixed(),
+        EpisodeKind::Filler => t::episodes_kind_filler(),
+        EpisodeKind::AnimeCanon => t::episodes_kind_anime_canon(),
     }
 }
 
@@ -266,25 +262,16 @@ pub fn episode_kind_label(kind: EpisodeKind) -> &'static str {
 /// Providers over their own filter would be cruel. Nor is a title that has not aired yet, or a
 /// source that matched and listed nothing: "no source is configured" was said over all of them,
 /// with a ready plugin a screen away.
-fn empty_episodes(app: &App) -> (&'static str, String) {
+fn empty_episodes(app: &App) -> (String, String) {
     use crate::keymap::Action;
     if app.episodes_all_filtered_out() {
         let filter = app.key_for(Action::Filter);
-        return (
-            "nothing matches the filter",
-            format!("{filter} cycles it — showing none now"),
-        );
+        return (t::episodes_empty_filtered(), t::episodes_empty_filtered_hint(&filter));
     }
     // AniList knows of none either: how many there are, and what has aired, is not known yet.
     if !app.providers.iter().any(|p| p.usable) {
         let providers = app.section_key(Section::Providers);
-        return (
-            "no episodes yet",
-            format!(
-                "AniList lists none for this title yet, and no source is ready: press \
-                 {providers} for the Providers screen"
-            ),
-        );
+        return (t::episodes_empty_no_source(), t::episodes_empty_no_source_hint(&providers));
     }
     if let Some(detail) = &app.detail
         && detail.latest_aired().is_none()
@@ -292,16 +279,15 @@ fn empty_episodes(app: &App) -> (&'static str, String) {
     {
         let episode = detail.next_episode.unwrap_or(1);
         return (
-            "nothing has aired yet",
-            format!("ep {episode} in {}", anistream_model::wording::countdown(secs)),
+            t::episodes_empty_unaired(),
+            t::episodes_empty_unaired_hint(i64::from(episode), &countdown_text(secs)),
         );
     }
     (
-        "no episodes listed",
-        format!(
-            "the source listed none for this title — {} searches for the right match, {} picks another source",
-            app.key_for(Action::FixMapping),
-            app.key_for(Action::PickProvider),
+        t::episodes_empty_none_listed(),
+        t::episodes_empty_none_listed_hint(
+            &app.key_for(Action::FixMapping),
+            &app.key_for(Action::PickProvider),
         ),
     )
 }
@@ -335,10 +321,10 @@ pub(super) fn candidate_rows(app: &App) -> Vec<(String, String)> {
         .iter()
         .map(|candidate| {
             let similarity = format!("{:>3.0}%", candidate.similarity * 100.0);
-            let title = match &candidate.rejected {
-                Some(reason) => format!("{}  ·  {reason}", candidate.title),
-                None => candidate.title.clone(),
-            };
+            let mut title = candidate.title.clone();
+            if let Some(reason) = &candidate.rejected {
+                push_detail(&mut title, reason);
+            }
             (similarity, title)
         })
         .collect()
@@ -360,15 +346,15 @@ pub(super) fn source_rows(app: &App) -> Vec<(String, String)> {
             };
             let mut label = source.title.clone();
             if let Some(size) = &source.size {
-                label.push_str(&format!("  ·  {size}"));
+                push_detail(&mut label, size);
             }
             if source.dual_audio {
-                label.push_str("  ·  dual");
+                push_detail(&mut label, &t::episodes_release_dual());
             } else if source.dubbed {
-                label.push_str("  ·  dub");
+                push_detail(&mut label, &t::episodes_release_dub());
             }
             if source.auto_pick {
-                label.push_str("  ·  current pick");
+                push_detail(&mut label, &t::episodes_release_current_pick());
             }
             (seeders, label)
         })
@@ -466,8 +452,8 @@ mod tests {
         assert!(text.contains("010"));
         assert!(text.contains("The Last Lamplighter"));
         assert!(text.contains("24:00"), "runtime as mm:ss");
-        assert!(text.contains("done"), "completed episodes are marked");
-        assert!(text.contains("TITLE"), "caps column headers");
+        assert!(text.contains(&t::episodes_done()), "completed episodes are marked");
+        assert!(text.contains(&t::episodes_column_title()), "column headers");
         // A naive string sort would put 10 before 9; the caller supplies order, but the
         // padding must not reorder anything.
         let nine = text.find("009").unwrap();
@@ -503,8 +489,8 @@ mod tests {
         let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
         let text = text_of(&render_to_buffer(&mut app, 110, 20));
-        assert!(text.contains("NO EPISODES YET"));
-        assert!(text.contains("Providers screen"), "must point somewhere actionable");
+        assert!(text.contains(&t::episodes_empty_no_source()));
+        assert!(text.contains("Press 7"), "must point somewhere actionable: {text}");
     }
 
     #[test]
@@ -628,8 +614,8 @@ mod tests {
         let mut app = episodes_open_on(entry(1, "Paper Kite"));
         app.apply(Event::Providers(vec![provider("someplugin", "ready", true, false)]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("NO EPISODES LISTED"), "{text}");
-        assert!(text.contains("m searches for the right match"), "{text}");
+        assert!(text.contains(&t::episodes_empty_none_listed()), "{text}");
+        assert!(text.contains("Press m to search for the right match"), "{text}");
         assert!(!text.contains("no source is configured"), "{text}");
 
         // Not out yet: the wait, not a fault.
@@ -641,8 +627,8 @@ mod tests {
         let mut app = episodes_open_on(unaired);
         app.apply(Event::Providers(vec![provider("someplugin", "ready", true, false)]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("NOTHING HAS AIRED YET"), "{text}");
-        assert!(text.contains("ep 1 in 1d 12h"), "{text}");
+        assert!(text.contains(&t::episodes_empty_unaired()), "{text}");
+        assert!(text.contains("Episode 1 airs in 1d 12h"), "{text}");
     }
 
     #[test]
