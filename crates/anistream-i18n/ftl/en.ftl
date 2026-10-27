@@ -31,6 +31,9 @@ action-cancel = Cancel
 # Button that puts a question off until later.
 action-not-now = Not now
 
+# Button that closes a sheet whose changes have already been made.
+action-done = Done
+
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
     { $count ->

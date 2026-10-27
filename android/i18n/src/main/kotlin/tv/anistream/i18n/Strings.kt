@@ -49,6 +49,10 @@ object Strings {
     fun actionNotNow(context: Context): String =
         context.getString(R.string.action_not_now)
 
+    /** Button that closes a sheet whose changes have already been made. */
+    fun actionDone(context: Context): String =
+        context.getString(R.string.action_done)
+
     /** Continue row subtitle. The show's title is cut first when the row is short. */
     fun queueEpisodesLeft(context: Context, count: Int, title: String): String =
         context.resources.getQuantityString(R.plurals.queue_episodes_left, count, count, title)

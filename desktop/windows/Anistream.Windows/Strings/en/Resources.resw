@@ -75,6 +75,10 @@
     <value>Not now</value>
     <comment>Button that puts a question off until later.</comment>
   </data>
+  <data name="ActionDone" xml:space="preserve">
+    <value>Done</value>
+    <comment>Button that closes a sheet whose changes have already been made.</comment>
+  </data>
   <data name="QueueEpisodesLeft_one" xml:space="preserve">
     <value>One episode left in {title}</value>
     <comment>Continue row subtitle. The show's title is cut first when the row is short.</comment>
