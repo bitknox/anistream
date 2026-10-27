@@ -183,6 +183,20 @@ pub struct Entry {
     /// reads this.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub trailer: Option<Trailer>,
+    /// The title's prequels, each with where it is on the viewer's list, on list rows and the
+    /// title page alike. A list row carries no [`TitleDetail`], so this is what
+    /// [`crate::trailer::trailer_may_autoplay`] holds a sequel's trailer back by there.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub prequels: Vec<EarlierTitle>,
+}
+
+/// A prequel of a title, by id, and where it was on the viewer's list when the row was built.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct EarlierTitle {
+    pub id: AnilistId,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub list_status: Option<LibrarySegment>,
 }
 
 /// A title's trailer: a video on a host, as AniList names it. Never searched for: the app plays
@@ -593,6 +607,7 @@ impl Entry {
             airing_dubbed: false,
             watched_in: None,
             trailer: None,
+            prequels: Vec::new(),
         }
     }
 
