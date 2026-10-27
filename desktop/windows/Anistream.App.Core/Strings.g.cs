@@ -33,6 +33,9 @@ public static partial class T
     /// <summary>Toast after episodes are added to the download queue.</summary>
     public static string NoticeEpisodesQueued(long count) => Fill(GetPlural("NoticeEpisodesQueued", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>Under a release in the source picker: how many people share it right now.</summary>
+    public static string SourcePickerSeeders(long count) => Fill(GetPlural("SourcePickerSeeders", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>Button that runs a failed action again.</summary>
     public static string ActionTryAgain => Get("ActionTryAgain");
 
@@ -159,6 +162,8 @@ public static partial class T
         ["NoticePlaybackFailed"] = "Playback failed. Try another source.",
         ["NoticeEpisodesQueued_one"] = "Queued one episode.",
         ["NoticeEpisodesQueued_other"] = "Queued {count} episodes.",
+        ["SourcePickerSeeders_one"] = "One seeder",
+        ["SourcePickerSeeders_other"] = "{count} seeders",
         ["ActionTryAgain"] = "Try again",
         ["ActionCancel"] = "Cancel",
         ["ActionNotNow"] = "Not now",

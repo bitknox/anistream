@@ -81,6 +81,10 @@ public sealed partial class ContinuePage : Page, IPageKeys
                     ShowPreview(selected);
                     break;
             }
+            // A row plays the first episode after the next that a source lists, once its table is
+            // known; when the table moves it, the queue is worked out again.
+            if (e is Event.Episodes table && Moved(table.Id))
+                again = true;
         }
         if (again)
             Show();
@@ -133,8 +137,22 @@ public sealed partial class ContinuePage : Page, IPageKeys
         ShowPreview(pick);
     }
 
+    /// <summary>Whether the row for title <paramref name="id"/> now plays a different episode than it says.</summary>
+    bool Moved(uint id)
+    {
+        foreach (var group in (IEnumerable<QueueGroup>?)Groups.Source ?? [])
+            foreach (var row in group.Where(r => r.Item.Entry.Id == id))
+            {
+                var now = PlayableNext.Item(row.Item, ctx.Known.Episodes.GetValueOrDefault(id), Casing.Sentence);
+                if (now.Episode != row.Item.Episode || now.Playable != row.Item.Playable)
+                    return true;
+            }
+        return false;
+    }
+
     QueueRow Row(QueueItem item)
     {
+        item = PlayableNext.Item(item, ctx.Known.Episodes.GetValueOrDefault(item.Entry.Id), Casing.Sentence);
         var cover = new CoverItem(item.Entry);
         cover.PropertyChanged += (_, p) =>
         {

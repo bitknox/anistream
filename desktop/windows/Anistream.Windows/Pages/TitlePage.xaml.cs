@@ -29,11 +29,12 @@ public sealed partial class EpisodeItem : INotifyPropertyChanged
     public string Name => $"{Heading}, {Line}";
     public double Watched => Row.Watched;
     public bool Completed => Row.Completed;
-    public double Dim => Row.Completed ? 0.6 : 1;
+    /// <summary>An episode no source lists is dimmed whole; a watched one is only a little.</summary>
+    public double Dim => Row.Unsourced ? 0.55 : Row.Completed ? 0.6 : 1;
     /// <summary>Play on TV in the episode's menu, once the engine gives a sender.</summary>
     public Visibility OnTv => Ctx.Current.Tv.Available ? Visibility.Visible : Visibility.Collapsed;
     public Visibility PartWay => Row.Watched is > 0 and < 1 && !Row.Completed ? Visibility.Visible : Visibility.Collapsed;
-    public bool Playable => !Row.MetadataOnly;
+    public bool Playable => EpisodeSources.Playable(Row);
     public string WatchedAction => Row.Completed ? "Mark as unwatched" : "Mark as watched";
     public Visibility SpoilerShown => Spoiler ? Visibility.Visible : Visibility.Collapsed;
 
@@ -41,6 +42,8 @@ public sealed partial class EpisodeItem : INotifyPropertyChanged
     {
         get
         {
+            if (Row.Unsourced)
+                return T.EpisodeUnsourced;
             if (Row.DurationSecs is not { } secs)
                 return Row.MetadataOnly ? "Listed by AniList" : "";
             if (Row.Watched is > 0 and < 1 && !Row.Completed)
@@ -143,6 +146,7 @@ public sealed partial class TitlePage : Page, IPageKeys
             item.Click += (_, _) => ctx.Send(new Command.SetStatus(id, segment));
             StatusMenu.Items.Add(item);
         }
+        SourceItem.Text = T.SourcePickerTitle;
         State.Placeholders = Placeholders;
         State.ActivityText = "Loading this title";
         var settings = new Microsoft.UI.Xaml.Input.KeyboardAccelerator { Key = global::Windows.System.VirtualKey.I, Modifiers = global::Windows.System.VirtualKeyModifiers.Control };
@@ -206,6 +210,16 @@ public sealed partial class TitlePage : Page, IPageKeys
         }
         if (ctx.Options.Show is "settings" or "settings-loading" or "settings-failed" && ctx.Options.Title == id)
             DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, OpenShowSettings);
+#if ANISTREAM_TESTING
+        if (ctx.Options.Show is "source-picker" or "source-picker-pinned" or "source-picker-releases" or "source-picker-loading" && ctx.Options.Title == id)
+            _ = Task.Delay(1500).ContinueWith(_ => DispatcherQueue.TryEnqueue(OpenSourcePicker));
+        // --show=source-unsourced-end: the table scrolled to its end, where the last unsourced rows are.
+        if (ctx.Options.Show == "source-unsourced-end")
+            _ = Task.Delay(2500).ContinueWith(_ => DispatcherQueue.TryEnqueue(() => Scroll.ChangeView(null, Scroll.ScrollableHeight, null, true)));
+        // --show=source-menu: the More menu open, for a screenshot.
+        if (ctx.Options.Show == "source-menu" && ctx.Options.Title == id)
+            _ = Task.Delay(1500).ContinueWith(_ => DispatcherQueue.TryEnqueue(() => MoreButton.Flyout.ShowAt(MoreButton)));
+#endif
     }
 
     void Heard(IReadOnlyList<Event> batch)
@@ -229,6 +243,9 @@ public sealed partial class TitlePage : Page, IPageKeys
                     break;
                 case Event.Episodes ep when ep.Id == id:
                     ShowEpisodes();
+                    // The button plays the first episode after the next that a source lists.
+                    if (ctx.Known.Entry(id) is { } known)
+                        ShowAction(known);
                     break;
                 case Event.Downloads d:
                     ShowDownloads(d.V1);
@@ -257,22 +274,31 @@ public sealed partial class TitlePage : Page, IPageKeys
         Meta.Text = AnistreamFfiMethods.MetaLine(entry);
         Synopsis.Text = entry.Synopsis;
 
-        action = AnistreamFfiMethods.QueueItem(entry, Casing.Sentence);
-        PrimaryAction.Content = action.Button;
-        PrimaryAction.Visibility = action.Button is not null ? Visibility.Visible : Visibility.Collapsed;
-        WaitingLine.Text = action.Waiting ?? "";
-        WaitingLine.Visibility = action.Waiting is not null ? Visibility.Visible : Visibility.Collapsed;
+        ShowAction(entry);
 
         StatusButton.Content = entry.ListStatus is { } status ? status.ToString() : "Add to list";
         foreach (var item in StatusMenu.Items.OfType<RadioMenuFlyoutItem>())
             item.IsChecked = item.Tag is LibrarySegment s && s == entry.ListStatus;
         TrailerItem.IsEnabled = entry.TrailerUrl is not null;
-        // A party plays the episode the primary action would.
-        PartyItem.IsEnabled = action is { Playable: true };
-        TvAction.Visibility = action is { Playable: true } && ctx.Tv.Available ? Visibility.Visible : Visibility.Collapsed;
 
         ShowSeasons(entry);
         ShowDetails(entry);
+    }
+
+    /// <summary>
+    /// The one amber action and what depends on it: the engine's next episode, or once the table
+    /// is loaded the first after it that some source lists. With none, a line says so in its place.
+    /// </summary>
+    void ShowAction(Entry entry)
+    {
+        action = PlayableNext.Item(entry, ctx.Known.Episodes.GetValueOrDefault(id), Casing.Sentence);
+        PrimaryAction.Content = action.Button;
+        PrimaryAction.Visibility = action.Button is not null ? Visibility.Visible : Visibility.Collapsed;
+        WaitingLine.Text = action.Waiting ?? "";
+        WaitingLine.Visibility = action.Waiting is not null ? Visibility.Visible : Visibility.Collapsed;
+        // A party plays the episode the primary action would.
+        PartyItem.IsEnabled = action is { Playable: true };
+        TvAction.Visibility = action is { Playable: true } && ctx.Tv.Available ? Visibility.Visible : Visibility.Collapsed;
     }
 
     IReadOnlyList<Anistream.App.TitleSeasons.Choice> seasons = [];
@@ -456,7 +482,7 @@ public sealed partial class TitlePage : Page, IPageKeys
 
     void OnEpisodeClick(object sender, ItemClickEventArgs e)
     {
-        if (e.ClickedItem is EpisodeItem item && !item.Row.MetadataOnly)
+        if (e.ClickedItem is EpisodeItem { Playable: true } item)
             ctx.Play(id, item.Row.Number);
     }
 
@@ -522,6 +548,14 @@ public sealed partial class TitlePage : Page, IPageKeys
 
     void OnShowSettings(object sender, RoutedEventArgs e) => OpenShowSettings();
 
+    void OnPickSource(object sender, RoutedEventArgs e) => OpenSourcePicker();
+
+    void OpenSourcePicker()
+    {
+        if (ctx.Known.Entry(id) is { } entry && XamlRoot is { } root)
+            _ = SourcePickerDialog.Open(ctx, id, entry.Title, root);
+    }
+
     void OnWatchTogether(object sender, RoutedEventArgs e)
     {
         if (action is { Playable: true })
@@ -539,7 +573,8 @@ public sealed partial class TitlePage : Page, IPageKeys
     {
         if (XamlRoot is not { } root || !ctx.Known.Episodes.TryGetValue(id, out var rows))
             return;
-        var playable = rows.Where(r => !r.MetadataOnly).Select(r => r.Number).ToArray();
+        // A range skips what no source lists: nothing could play it.
+        var playable = EpisodeSources.Downloadable(rows);
         if (playable.Length == 0)
             return;
         var next = action?.Episode.ToString();
