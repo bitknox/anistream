@@ -35,6 +35,8 @@ import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.ShowSettingKey
 import tv.anistream.engine.model.ShowSettingRow
 import tv.anistream.engine.model.ShowSettingsView
+import androidx.compose.ui.platform.LocalContext
+import tv.anistream.i18n.Strings
 import tv.anistream.store.AppStore
 
 /** The Show settings panel for [id], titled by the show. */
@@ -79,7 +81,7 @@ private fun ShowSettingsBody(store: AppStore, id: AnilistId, title: String) {
             // The subtitles go with the audio: what the player remembers for it, chosen there.
             if (choice.key == ShowSettingKey.TRANSLATION) SubtitlesRow(store, view)
         }
-        item(key = "source") { SourceRow(store, id, view) }
+        item(key = "source") { SourceRow(store, id, title, view) }
         item(key = "reset") {
             TvListRow(
                 "Reset to defaults",
@@ -121,35 +123,23 @@ private fun SubtitlesRow(store: AppStore, view: ShowSettingsView?) {
 }
 
 /**
- * The source the show keeps: Automatic, or one of the sources on, in the order failover tries
- * them. Picking one pins it for this show; Automatic gives the show back to the order.
+ * The source the show keeps, as its value; Center opens the one source picker, with each source's
+ * coverage and the releases under it.
  */
 @Composable
-private fun SourceRow(store: AppStore, id: AnilistId, view: ShowSettingsView?) {
+private fun SourceRow(store: AppStore, id: AnilistId, name: String, view: ShowSettingsView?) {
     val host = LocalActions.current
+    val context = LocalContext.current
     val rows by store.providers.rows.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { if (rows.isEmpty()) store.checkProviders() }
     val sources = remember(rows) { store.orderedProviders().filter { !it.disabled } }
     val kept = view?.source
-    val name = { source: String -> sources.firstOrNull { it.id == source }?.let(::sourceName) ?: source }
+    val label = Strings.sourcePickerTitle(context)
     TvListRow(
         "Source",
-        onClick = {
-            val pick = { source: String? ->
-                store.setProviderPreference(id, source)
-                // The panel says the show's source as the engine now keeps it.
-                store.loadShowSettings(id)
-            }
-            host?.open(
-                ActionSheet(
-                    "Source",
-                    listOf(CardAction("Automatic", selected = kept == null) { pick(null) }) +
-                        sources.map { source -> CardAction(sourceName(source), selected = source.id == kept) { pick(source.id) } },
-                ),
-            )
-        },
+        onClick = { host?.open(sourcePickerSheet(store, id, name, label)) },
         supporting = "Automatic tries your sources in order",
-        value = kept?.let(name) ?: "Automatic",
+        value = kept?.let { source -> sources.firstOrNull { it.id == source }?.let(::sourceName) ?: source } ?: "Automatic",
         enabled = view != null && sources.isNotEmpty(),
     )
 }

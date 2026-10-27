@@ -153,7 +153,7 @@ class WatchNext(
                 store.continuing.list.state,
                 store.continuing.hidden,
                 store.titles.episodes,
-            ) { entries, _, _, episodes -> WatchNextCard.of(store.continuing.queue(entries), episodes) }
+            ) { entries, _, _, episodes -> WatchNextCard.of(store.continuing.queue(entries, episodes), episodes) }
                 .distinctUntilChanged()
                 .debounce(SETTLE_MILLIS)
                 .collect { cards ->

@@ -9,6 +9,7 @@ import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.ffi.episodeLine
 import tv.anistream.engine.model.ContentList
 import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.engine.model.ResumePoint
 
 /** One row of the queue: a title and the episode it plays next. */
@@ -20,6 +21,8 @@ data class ContinueItem(
     val resume: ResumePoint?,
     /** How many seconds ago that episode aired, when it is the newest out and aired this week. */
     val airedAgo: Long?,
+    /** Nothing from the next episode on has a source, so there is nothing to play. */
+    val unsourced: Boolean = false,
 ) {
     val id: AnilistId get() = entry.id
 
@@ -29,8 +32,11 @@ data class ContinueItem(
     /** Whether the episode is out: one left part-way is, and otherwise the title's broadcasts say. */
     val airing: EpisodeAiring get() = if (resume == null) entry.airing(episode) else EpisodeAiring.Aired
 
-    /** Whether the row has an episode to play: not when everything out is watched. */
-    val playable: Boolean get() = airing.hasAired
+    /**
+     * Whether the row has an episode to play: not when everything out is watched and the next
+     * one is still to air, and not when no source lists what is left.
+     */
+    val playable: Boolean get() = airing.hasAired && !unsourced
 
     /**
      * What the row says it plays: "Resume E7 · 10:06", "Start E4", "Start E9 · out 2h ago", or
@@ -39,6 +45,7 @@ data class ContinueItem(
     val action: String
         get() = when {
             resume != null -> "Resume $shortEpisode · ${resume.clock()}"
+            unsourced -> shortEpisode
             !playable -> "Caught up · E$episode " + (airing.airs() ?: "not out yet")
             airedAgo != null -> "Start $shortEpisode · out ${Wording.ago(airedAgo)}"
             else -> "Start $shortEpisode"
@@ -66,12 +73,13 @@ data class ContinueItem(
         /** What counts as this week. */
         const val WEEK: Long = 7 * 86_400
 
-        fun of(entry: Entry): ContinueItem {
-            val episode = entry.progress?.next ?: 1u
+        fun of(entry: Entry, rows: List<EpisodeRow>? = null): ContinueItem {
+            val target = entry.playableNext(rows)
+            val episode = target.episode
             val aired = entry.latestAired()
             val airedAgo = aired?.takeIf { entry.resume == null && it.episode == episode }
                 ?.ago?.takeIf { it < WEEK }
-            return ContinueItem(entry, episode, entry.resume, airedAgo)
+            return ContinueItem(entry, episode, entry.resume, airedAgo, target.unsourced)
         }
     }
 }
@@ -100,8 +108,12 @@ data class ContinueQueue(
         const val ROWS = 5
 
         /** The queue of [ids], newest watch first as the engine orders them, rows from [titles]. */
-        fun of(ids: List<AnilistId>, titles: Map<AnilistId, Entry>): ContinueQueue {
-            val items = ids.mapNotNull { titles[it] }.take(ROWS).map(ContinueItem::of)
+        fun of(
+            ids: List<AnilistId>,
+            titles: Map<AnilistId, Entry>,
+            episodes: Map<AnilistId, List<EpisodeRow>> = emptyMap(),
+        ): ContinueQueue {
+            val items = ids.mapNotNull { titles[it] }.take(ROWS).map { ContinueItem.of(it, episodes[it.id]) }
             return ContinueQueue(items.filterNot { it.isNew }, items.filter { it.isNew })
         }
     }
@@ -117,8 +129,8 @@ class ContinueModel {
     val hidden: StateFlow<Set<AnilistId>> = _hidden.asStateFlow()
 
     /** The queue as it stands. */
-    fun queue(titles: Map<AnilistId, Entry>): ContinueQueue =
-        ContinueQueue.of(list.state.value.ids.filterNot { it in _hidden.value }, titles)
+    fun queue(titles: Map<AnilistId, Entry>, episodes: Map<AnilistId, List<EpisodeRow>> = emptyMap()): ContinueQueue =
+        ContinueQueue.of(list.state.value.ids.filterNot { it in _hidden.value }, titles, episodes)
 
     internal fun apply(content: ContentList, titles: TitleCache) {
         list.apply(content, titles)
