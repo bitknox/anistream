@@ -332,7 +332,7 @@ impl Page {
 
         let id = item.entry.id.get();
         let menu = gio::Menu::new();
-        let play = format!("(uint32 {id}, '{}')", item.episode);
+        let play = format!("(uint32 {id}, '{}')", item.episode); // i18n-skip
         let n = item.episode;
         let first = gio::Menu::new();
         if let Some(label) = item.button.as_deref().filter(|_| item.playable) {
@@ -344,7 +344,7 @@ impl Page {
                 );
             }
         }
-        first.append(Some(&t::title_open()), Some(&format!("win.open-title(uint32 {id})")));
+        first.append(Some(&t::title_open()), Some(&format!("win.open-title(uint32 {id})"))); // i18n-skip
         menu.append_section(None, &first);
         let second = gio::Menu::new();
         second.append(
@@ -353,9 +353,9 @@ impl Page {
         );
         second.append(
             Some(&t::continue_hide()),
-            Some(&format!("win.hide-continue(uint32 {id})")),
+            Some(&format!("win.hide-continue(uint32 {id})")), // i18n-skip
         );
-        second.append(Some(&t::continue_drop()), Some(&format!("win.drop(uint32 {id})")));
+        second.append(Some(&t::continue_drop()), Some(&format!("win.drop(uint32 {id})"))); // i18n-skip
         menu.append_section(None, &second);
         widgets::context_menu(&row, &menu);
         row

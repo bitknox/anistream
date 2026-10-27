@@ -633,6 +633,117 @@ notice-episodes-queued =
        *[other] [Ǫüéüéð { $count } éþîšöðéš.~~~~~~]
     }
 
+# Note under the connection-check group of the torrents dialog: what the check does.
+torrents-linux-check-note = [àñîšţŕéàɱ çĥéçķš ŵĥéŕé ţöŕŕéñţ ţŕàƒƒîç ļéàṽéš ƒŕöɱ ŵĥéñ à ţöŕŕéñţ šţàŕţš àñð éṽéŕý ɱîñüţé ŵĥîļé îţ ŕüñš, àñð þàüšéš ţöŕŕéñţš îƒ ţĥàţ çĥéçķ ƒàîļš. Ýöüŕ ṼÞÑ öŕ þŕöẋý îš ŵĥàţ þŕöţéçţš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Confirmation text when choosing "Warn only" for a failed check.
+torrents-linux-warn-confirm = [àñîšţŕéàɱ ŵîļļ ŵàŕñ ýöü îñšţéàð öƒ þàüšîñĝ. Îƒ ýöüŕ ṼÞÑ öŕ þŕöẋý îš ðöŵñ, öţĥéŕ þéöþļé çàñ šéé ýöüŕ ÎÞ àððŕéšš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Status line once the protection has been checked and saved.
+torrents-linux-protection-saved = [Ţöŕŕéñţ þŕöţéçţîöñ šàṽéð~~~~~~~~]
+
+# Title of the dialog that turns torrents on.
+torrents-linux-turn-on-title = [Ţüŕñ öñ ţöŕŕéñţš~~~~~]
+
+# Title of the dialog that changes what protects torrents.
+torrents-linux-protect-title = [Þŕöţéçţ ţöŕŕéñţš~~~~~]
+
+# Title of the dialog that edits the proxy.
+torrents-linux-edit-proxy-title = [Éðîţ þŕöẋý~~~]
+
+# Button that turns torrents on in the dialog.
+torrents-linux-turn-on-button = [Ţüŕñ öñ~~~]
+
+# Seeding row: time left until the goal, in a span already worded ("18h", "1d 6h").
+downloads-linux-seed-left = [{ $span } ļéƒţ~~~]
+
+# Seeding row: less than an hour left until the goal.
+downloads-linux-seed-left-soon = [Ļéšš ţĥàñ àñ ĥöüŕ ļéƒţ~~~~~~~]
+
+# Storage row: free space, the disk's size and what downloads take. All three are sizes already formatted.
+downloads-linux-space-free = [{ $free } öƒ { $total } ƒŕéé · ðöŵñļöàðš ţàķé { $taken }~~~~~~~~~~~]
+
+# Placeholder of the search field. It also finds settings.
+search-linux-placeholder = [Šéàŕçĥ ţîţļéš àñð šéţţîñĝš~~~~~~~~]
+
+# Tooltip of the button that clears the recent searches.
+search-linux-clear-recent = [Çļéàŕ ŕéçéñţ šéàŕçĥéš~~~~~~~]
+
+# Title of the state when a browse with no filters lists nothing.
+search-linux-nothing-found = [Ñöţĥîñĝ ƒöüñð~~~~]
+
+# Title of the state when a typed search waits for Enter.
+search-linux-press-enter = [Þŕéšš Éñţéŕ ţö šéàŕçĥ~~~~~~~]
+
+# Line under the Enter title: why results do not come as you type. The tracker is a name.
+search-linux-paused = [Šéàŕçĥîñĝ àš ýöü ţýþé îš þàüšéð ƒöŕ à ɱöɱéñţ, ţö šţàý ŵîţĥîñ { $tracker }'š ļîɱîţš.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Menu title over the sort choices of the filter row.
+filter-linux-sort-by = [Šöŕţ ƀý~~~]
+
+# Sort choice: what is rising now.
+filter-linux-sort-trending = [Ţŕéñðîñĝ~~~]
+
+# Sort choice: the most recent first.
+filter-linux-sort-newest = [Ñéŵéšţ~~]
+
+# Sort choice: the earliest first.
+filter-linux-sort-oldest = [Öļðéšţ~~]
+
+# Sort choice: the most favourited first.
+filter-linux-sort-favourites = [Ƒàṽöüŕîţéš~~~]
+
+# Genre filter button when several genres are set.
+filter-linux-genres-count =
+    { $count ->
+        [one] [{ $count } ĝéñŕé~~~]
+       *[other] [{ $count } ĝéñŕéš~~~]
+    }
+
+# Format filter button when several formats are set.
+filter-linux-formats-count =
+    { $count ->
+        [one] [{ $count } ƒöŕɱàţ~~~]
+       *[other] [{ $count } ƒöŕɱàţš~~~~]
+    }
+
+# Status filter button when several statuses are set.
+filter-linux-statuses-count =
+    { $count ->
+        [one] [{ $count } šţàţüš~~~]
+       *[other] [{ $count } šţàţüšéš~~~~]
+    }
+
+# Chip for a genre that is left out of the results. The genre is already named.
+filter-linux-not = [Ñöţ { $genre }~~~]
+
+# Button that takes off every filter chip.
+filter-linux-clear-all = [Çļéàŕ àļļ~~~]
+
+# Tooltip of the arrow that scrolls the filter row back.
+filter-linux-earlier = [Éàŕļîéŕ ƒîļţéŕš~~~~~]
+
+# Tooltip of the arrow that scrolls the filter row on.
+filter-linux-more = [Ṁöŕé ƒîļţéŕš~~~~]
+
+# What a screen reader says for a broadcast whose time is an estimate. The time is already formatted.
+calendar-linux-about = [àƀöüţ { $time }~~~]
+
+# What a screen reader says for a broadcast that is the dub's.
+calendar-linux-dubbed = [ðüƀƀéð~~]
+
+# Title of the menu, and tooltip of its button, that orders a list.
+library-linux-order = [Öŕðéŕ~~]
+
+# A list's tab: its name and how many titles it holds.
+library-linux-list-count = [{ $list } { $count }~~~]
+
+# Description read by a screen reader on the button that plays the shown episode on a TV.
+title-linux-play-on-tv-help = [Þļàý ţĥîš éþîšöðé öñ à ŢṼ ŵîţĥ àñîšţŕéàɱ~~~~~~~~~~~~]
+
+# Description read by a screen reader on an episode's watched check box.
+title-linux-episode-watched = [Éþîšöðé { $episode } ŵàţçĥéð~~~~~~]
+
 # Foot of the watch party form while the device is offline.
 party-needs-connection = [Å ŵàţçĥ þàŕţý ñééðš à çöññéçţîöñ. Ýöü'ŕé öƒƒļîñé.~~~~~~~~~~~~~~~]
 

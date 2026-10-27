@@ -633,6 +633,117 @@ notice-episodes-queued =
        *[other] Queued { $count } episodes.
     }
 
+# Note under the connection-check group of the torrents dialog: what the check does.
+torrents-linux-check-note = anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.
+
+# Confirmation text when choosing "Warn only" for a failed check.
+torrents-linux-warn-confirm = anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.
+
+# Status line once the protection has been checked and saved.
+torrents-linux-protection-saved = Torrent protection saved
+
+# Title of the dialog that turns torrents on.
+torrents-linux-turn-on-title = Turn on torrents
+
+# Title of the dialog that changes what protects torrents.
+torrents-linux-protect-title = Protect torrents
+
+# Title of the dialog that edits the proxy.
+torrents-linux-edit-proxy-title = Edit proxy
+
+# Button that turns torrents on in the dialog.
+torrents-linux-turn-on-button = Turn on
+
+# Seeding row: time left until the goal, in a span already worded ("18h", "1d 6h").
+downloads-linux-seed-left = { $span } left
+
+# Seeding row: less than an hour left until the goal.
+downloads-linux-seed-left-soon = Less than an hour left
+
+# Storage row: free space, the disk's size and what downloads take. All three are sizes already formatted.
+downloads-linux-space-free = { $free } of { $total } free · downloads take { $taken }
+
+# Placeholder of the search field. It also finds settings.
+search-linux-placeholder = Search titles and settings
+
+# Tooltip of the button that clears the recent searches.
+search-linux-clear-recent = Clear recent searches
+
+# Title of the state when a browse with no filters lists nothing.
+search-linux-nothing-found = Nothing found
+
+# Title of the state when a typed search waits for Enter.
+search-linux-press-enter = Press Enter to search
+
+# Line under the Enter title: why results do not come as you type. The tracker is a name.
+search-linux-paused = Searching as you type is paused for a moment, to stay within { $tracker }'s limits.
+
+# Menu title over the sort choices of the filter row.
+filter-linux-sort-by = Sort by
+
+# Sort choice: what is rising now.
+filter-linux-sort-trending = Trending
+
+# Sort choice: the most recent first.
+filter-linux-sort-newest = Newest
+
+# Sort choice: the earliest first.
+filter-linux-sort-oldest = Oldest
+
+# Sort choice: the most favourited first.
+filter-linux-sort-favourites = Favourites
+
+# Genre filter button when several genres are set.
+filter-linux-genres-count =
+    { $count ->
+        [one] { $count } genre
+       *[other] { $count } genres
+    }
+
+# Format filter button when several formats are set.
+filter-linux-formats-count =
+    { $count ->
+        [one] { $count } format
+       *[other] { $count } formats
+    }
+
+# Status filter button when several statuses are set.
+filter-linux-statuses-count =
+    { $count ->
+        [one] { $count } status
+       *[other] { $count } statuses
+    }
+
+# Chip for a genre that is left out of the results. The genre is already named.
+filter-linux-not = Not { $genre }
+
+# Button that takes off every filter chip.
+filter-linux-clear-all = Clear all
+
+# Tooltip of the arrow that scrolls the filter row back.
+filter-linux-earlier = Earlier filters
+
+# Tooltip of the arrow that scrolls the filter row on.
+filter-linux-more = More filters
+
+# What a screen reader says for a broadcast whose time is an estimate. The time is already formatted.
+calendar-linux-about = about { $time }
+
+# What a screen reader says for a broadcast that is the dub's.
+calendar-linux-dubbed = dubbed
+
+# Title of the menu, and tooltip of its button, that orders a list.
+library-linux-order = Order
+
+# A list's tab: its name and how many titles it holds.
+library-linux-list-count = { $list } { $count }
+
+# Description read by a screen reader on the button that plays the shown episode on a TV.
+title-linux-play-on-tv-help = Play this episode on a TV with anistream
+
+# Description read by a screen reader on an episode's watched check box.
+title-linux-episode-watched = Episode { $episode } watched
+
 # Foot of the watch party form while the device is offline.
 party-needs-connection = A watch party needs a connection. You're offline.
 

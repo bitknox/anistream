@@ -7,7 +7,7 @@ use std::ops::Deref;
 use anistream_i18n::t;
 use anistream_model::{
     Cause, Msg, Size, SizeUnit, Span,
-    catalog::{Entry, Season},
+    catalog::{AiringStatus, Entry, RelationKind, Season, SourceMaterial},
     episodes::EpisodeRow,
     present::{QUEUE_ROWS, QueueItem},
 };
@@ -158,12 +158,110 @@ pub fn cover_caption(entry: &Entry) -> String {
 /// A tracker's name as the app shows it: "AniList" for `anilist`. Names are not translated.
 pub fn tracker_name(id: &str) -> &str {
     match id {
-        "anilist" => "AniList",
-        "kitsu" => "Kitsu",
-        "mal" | "myanimelist" => "MyAnimeList",
-        "simkl" => "Simkl",
-        "trakt" => "Trakt",
+        "anilist" => "AniList", // i18n-skip
+        "kitsu" => "Kitsu", // i18n-skip
+        "mal" | "myanimelist" => "MyAnimeList", // i18n-skip
+        "simkl" => "Simkl", // i18n-skip
+        "trakt" => "Trakt", // i18n-skip
         other => other,
+    }
+}
+
+/// An episode's number as the catalogue's messages take it. The engine keeps numbers as text, so
+/// a fractional one (a recap numbered 5.5) is counted as the episode it follows.
+pub fn episode_n(number: &str) -> i64 {
+    number
+        .parse::<i64>()
+        .ok()
+        .or_else(|| number.parse::<f64>().ok().map(|n| n.floor() as i64))
+        .unwrap_or(0)
+}
+
+/// What a source adapted a title from, by name in the language in use.
+pub fn material(source: SourceMaterial) -> String {
+    match source {
+        SourceMaterial::Original => t::material_original(),
+        SourceMaterial::Manga => t::material_manga(),
+        SourceMaterial::LightNovel => t::material_light_novel(),
+        SourceMaterial::VisualNovel => t::material_visual_novel(),
+        SourceMaterial::VideoGame => t::material_video_game(),
+        SourceMaterial::Novel => t::material_novel(),
+        SourceMaterial::Doujinshi => t::material_doujinshi(),
+        SourceMaterial::Anime => t::material_anime(),
+        SourceMaterial::WebNovel => t::material_web_novel(),
+        SourceMaterial::LiveAction => t::material_live_action(),
+        SourceMaterial::Game => t::material_game(),
+        SourceMaterial::Comic => t::material_comic(),
+        SourceMaterial::MultimediaProject => t::material_multimedia(),
+        SourceMaterial::PictureBook => t::material_picture_book(),
+        SourceMaterial::Other => t::relation_other(),
+    }
+}
+
+/// How a linked title relates to this one.
+pub fn relation(kind: RelationKind) -> String {
+    match kind {
+        RelationKind::Prequel => t::relation_prequel(),
+        RelationKind::Sequel => t::relation_sequel(),
+        RelationKind::Parent => t::relation_parent(),
+        RelationKind::SideStory => t::relation_side_story(),
+        RelationKind::SpinOff => t::relation_spin_off(),
+        RelationKind::Alternative => t::relation_alternative(),
+        RelationKind::Summary => t::relation_summary(),
+        RelationKind::Compilation => t::relation_compilation(),
+        RelationKind::Contains => t::relation_contains(),
+        RelationKind::SameUniverse => t::relation_same_universe(),
+        RelationKind::Character => t::relation_shares_characters(),
+        RelationKind::Adaptation => t::relation_adaptation(),
+        RelationKind::Source => t::relation_original_work(),
+        RelationKind::Other => t::relation_other(),
+    }
+}
+
+/// Where a title is in its run, by name in the language in use.
+pub fn airing_status(status: AiringStatus) -> String {
+    match status {
+        AiringStatus::Releasing => t::media_status_airing(),
+        AiringStatus::Finished => t::media_status_aired(),
+        AiringStatus::NotYetReleased => t::media_status_upcoming(),
+        AiringStatus::Cancelled => t::media_status_cancelled(),
+        AiringStatus::Hiatus => t::media_status_hiatus(),
+    }
+}
+
+/// The title page's line on its dub: "Dubbed to episode 6", or "Dubbed" when it has all of it.
+pub fn dub_line(dub: Option<&anistream_model::episodes::DubExtent>) -> Option<String> {
+    let dub = dub?;
+    Some(if dub.complete {
+        t::audio_dubbed()
+    } else {
+        t::title_dubbed_to(i64::from(dub.through))
+    })
+}
+
+/// A genre by its name in the language in use. AniList's names are the keys; a genre the
+/// catalogue has no word for reads as AniList names it.
+pub fn genre(name: &str) -> String {
+    match name {
+        "Action" => t::genre_action(),
+        "Adventure" => t::genre_adventure(),
+        "Comedy" => t::genre_comedy(),
+        "Drama" => t::genre_drama(),
+        "Ecchi" => t::genre_ecchi(),
+        "Fantasy" => t::genre_fantasy(),
+        "Horror" => t::genre_horror(),
+        "Mahou Shoujo" => t::genre_mahou_shoujo(),
+        "Mecha" => t::genre_mecha(),
+        "Music" => t::genre_music(),
+        "Mystery" => t::genre_mystery(),
+        "Psychological" => t::genre_psychological(),
+        "Romance" => t::genre_romance(),
+        "Sci-Fi" => t::genre_sci_fi(),
+        "Slice of Life" => t::genre_slice_of_life(),
+        "Sports" => t::genre_sports(),
+        "Supernatural" => t::genre_supernatural(),
+        "Thriller" => t::genre_thriller(),
+        _ => name.to_owned(),
     }
 }
 
@@ -402,7 +500,7 @@ mod tests {
         e.resume = Some(ResumePoint { position: 606.0, fraction: Some(606.0 / 1440.0) });
         e.watched_in = Some(Translation::Dub);
         let item = queue_item(&e, None);
-        assert_eq!(item.action, "Continue E7 Dubbed · 10:06");
+        assert_eq!(item.action, "Continue E7 dubbed · 10:06");
         assert_eq!(item.button.as_deref(), Some("Resume episode 7 · 10:06 · Dubbed"));
         assert_eq!(item.left.as_deref(), Some("14 min left"));
         for watched_in in [Some(Translation::Sub), None] {

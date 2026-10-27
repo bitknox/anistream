@@ -90,20 +90,20 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     let episodes = gtk::ListBox::new();
     episodes.add_css_class("boxed-list");
     episodes.set_selection_mode(gtk::SelectionMode::None);
-    let none = widgets::haze("No episodes are listed for this title yet.", "");
+    let none = widgets::haze(&t::title_no_episodes(), "");
     none.set_valign(gtk::Align::Start);
     let shape = Shape::Rows { count: 4, width: 128, height: 72 };
     let episodes_state =
-        States::new(&ctx.hub, &episodes, shape, &none, "Couldn't List Episodes");
+        States::new(&ctx.hub, &episodes, shape, &none, &t::title_episodes_load_failed());
     episodes_state.widget.set_vhomogeneous(false);
     episodes_state.widget.set_vexpand(false);
-    episodes_state.loading(Command::LoadEpisodes(id).activity());
+    episodes_state.loading(Some(t::activity_episodes()));
     episodes_state.on_retry({
         let hub = Rc::downgrade(&ctx.hub);
         let state = Rc::downgrade(&episodes_state);
         move || {
             if let (Some(hub), Some(state)) = (hub.upgrade(), state.upgrade()) {
-                state.loading(Command::LoadEpisodes(id).activity());
+                state.loading(Some(t::activity_episodes()));
                 hub.send(Command::LoadEpisodes(id));
             }
         }
@@ -113,7 +113,7 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     main.set_hexpand(true);
     main.append(&synopsis);
     main.append(&seasons);
-    let heading = widgets::heading("Episodes");
+    let heading = widgets::heading(&t::title_episodes());
     heading.set_margin_top(12);
     main.append(&heading);
     main.append(&episodes_state.widget);
@@ -163,9 +163,9 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     // The heading says the title; the header bar says it only once the heading has gone.
     header.set_show_title(false);
     let tv_button = gtk::Button::from_icon_name("video-display-symbolic");
-    tv_button.set_tooltip_text(Some("Play on TV"));
+    tv_button.set_tooltip_text(Some(&t::tv_play_on()));
     tv_button.update_property(&[gtk::accessible::Property::Description(
-        "Play this episode on a TV with anistream",
+        &t::title_linux_play_on_tv_help(),
     )]);
     tv_button.set_action_name(Some("win.play-on-tv"));
     tv_button.set_visible(false);
@@ -294,7 +294,7 @@ impl Page {
                 }
             }
             Event::TitleDub { id, dub } if *id == self.id => {
-                self.dubbed_to.replace(anistream_model::present::dub_line(dub.as_ref()));
+                self.dubbed_to.replace(say::dub_line(dub.as_ref()));
                 if let Some(entry) = self.ctx.hub.entry(self.id) {
                     self.fill(&entry);
                 }
@@ -492,7 +492,7 @@ impl Page {
         let status_menu = gio::Menu::new();
         for segment in LibrarySegment::ALL {
             status_menu.append(
-                Some(&catalog::shown(segment.label())),
+                Some(&super::library::segment_title(segment)),
                 Some(&format!("title.status::{}", segment.label())),
             );
         }
@@ -500,7 +500,7 @@ impl Page {
             .label(
                 entry
                     .list_status
-                    .map_or("Add to List".to_owned(), |s| catalog::shown(s.label())),
+                    .map_or_else(t::library_add_to_list, super::library::segment_title),
             )
             .menu_model(&status_menu)
             .valign(gtk::Align::Center)
@@ -526,39 +526,42 @@ impl Page {
         // A party plays the episode the primary action would.
         if item.button.is_some() {
             first.append(
-                Some("Watch Together…"),
-                Some(&format!("win.watch-together((uint32 {id}, '{}'))", item.episode)),
+                Some(&t::party_open()),
+                Some(&format!("win.watch-together((uint32 {id}, '{}'))", item.episode)), // i18n-skip
             );
         }
         if playable {
             if !unsourced {
                 first.append(
-                    Some(&format!("Download Episode {}", item.episode)),
-                    Some(&format!("win.download((uint32 {id}, '{}'))", item.episode)),
+                    Some(&t::episode_download_n(i64::from(item.episode))),
+                    Some(&format!("win.download((uint32 {id}, '{}'))", item.episode)), // i18n-skip
                 );
             }
             if unwatched(&self.rows.borrow()).len() > 1 {
                 first.append(
-                    Some("Download Unwatched Episodes"),
+                    Some(&t::episode_download_unwatched()),
                     Some("title.download-unwatched"),
                 );
             }
         }
-        first.append(Some("Mark All Previous Watched"), Some("title.mark-previous"));
+        first.append(Some(&t::episode_mark_previous_watched()), Some("title.mark-previous"));
         more_menu.append_section(None, &first);
         let second = gio::Menu::new();
         if entry.trailer_url.is_some() {
-            second.append(Some("Play Trailer"), Some("title.trailer"));
+            second.append(Some(&t::title_play_trailer()), Some("title.trailer"));
         }
-        second.append(Some("Open on AniList"), Some(&format!("win.open-anilist(uint32 {id})")));
+        second.append(
+            Some(&t::title_open_anilist()),
+            Some(&format!("win.open-anilist(uint32 {id})")), // i18n-skip
+        );
         more_menu.append_section(None, &second);
         let third = gio::Menu::new();
         third.append(Some(&t::source_picker_title()), Some("title.source-picker"));
-        third.append(Some("Show Settings…"), Some("title.show-settings"));
+        third.append(Some(&t::show_settings_title()), Some("title.show-settings"));
         more_menu.append_section(None, &third);
         let more = gtk::MenuButton::builder()
             .icon_name("view-more-symbolic")
-            .tooltip_text("More")
+            .tooltip_text(t::action_more())
             .menu_model(&more_menu)
             .valign(gtk::Align::Center)
             .build();
@@ -606,10 +609,10 @@ impl Page {
         if seasons.len() < 2 {
             return;
         }
-        let names: Vec<String> = (1..=seasons.len()).map(|n| format!("Season {n}")).collect();
+        let names: Vec<String> = (1..=seasons.len()).map(|n| t::season_number(n as i64)).collect();
         let refs: Vec<&str> = names.iter().map(String::as_str).collect();
         let picker = gtk::DropDown::from_strings(&refs);
-        picker.set_tooltip_text(Some("Season"));
+        picker.set_tooltip_text(Some(&t::filter_season()));
         if let Some(at) = seasons.iter().position(|s| s.id == entry.id) {
             picker.set_selected(at as u32);
         }
@@ -628,23 +631,26 @@ impl Page {
     fn fill_side(&self, entry: &Entry, size: Size) {
         clear(&self.side);
         let details = gtk::Box::new(gtk::Orientation::Vertical, 6);
-        details.append(&widgets::heading("Details"));
-        let mut facts: Vec<(&str, String)> = Vec::new();
+        details.append(&widgets::heading(&t::title_details()));
+        let mut facts: Vec<(String, String)> = Vec::new();
         if let Some(studio) = &entry.studio {
-            facts.push(("Studio", studio.clone()));
+            facts.push((t::title_studio(), studio.clone()));
         }
         if !entry.genres.is_empty() {
-            facts.push(("Genres", entry.genres.join(", ")));
+            facts.push((
+                t::filter_genres(),
+                entry.genres.iter().map(|g| say::genre(g)).collect::<Vec<_>>().join(", "),
+            ));
         }
         if let Some(source) = entry.source {
-            facts.push(("Source", spaced(&format!("{source:?}"))));
+            facts.push((t::title_based_on(), say::material(source)));
         }
         if let Some(status) = entry.status {
-            facts.push(("Status", spaced(&format!("{status:?}"))));
+            facts.push((t::filter_status(), say::airing_status(status)));
         }
         for (name, value) in facts {
             let line = gtk::Box::new(gtk::Orientation::Vertical, 0);
-            line.append(&widgets::haze(name, "caption"));
+            line.append(&widgets::haze(&name, "caption"));
             let value = gtk::Label::new(Some(&value));
             value.set_xalign(0.0);
             value.set_wrap(true);
@@ -694,7 +700,7 @@ impl Page {
             let label = widgets::haze(
                 &linked
                     .relation
-                    .map_or_else(|| linked.title.clone(), |r| spaced(&format!("{r:?}"))),
+                    .map_or_else(|| linked.title.clone(), say::relation),
                 "caption",
             );
             label.set_wrap(false);
@@ -708,16 +714,16 @@ impl Page {
             button.set_tooltip_text(Some(&linked.title));
             button.set_action_name(Some("win.open-title"));
             button.set_action_target_value(Some(&id.to_variant()));
-            let relation = linked.relation.map(|r| spaced(&format!("{r:?}")));
+            let relation = linked.relation.map(say::relation);
             button.update_property(&[gtk::accessible::Property::Label(&match relation {
-                Some(relation) => format!("{}, {relation}", linked.title),
+                Some(relation) => format!("{}, {relation}", linked.title), // i18n-skip
                 None => linked.title.clone(),
             })]);
             widgets::title_menu(&button, id, linked.list_status.is_none());
             box_.append(&button);
         }
         let column = gtk::Box::new(gtk::Orientation::Vertical, 8);
-        column.append(&widgets::heading("Related"));
+        column.append(&widgets::heading(&t::title_related()));
         column.append(&box_);
         self.side.append(&column);
     }
@@ -752,8 +758,10 @@ impl Page {
             text.set_valign(gtk::Align::Center);
             text.set_hexpand(true);
             let name = match &row.title {
-                Some(t) if !t.is_empty() => format!("{} · {t}", row.number),
-                _ => format!("Episode {}", row.number),
+                Some(title) if !title.is_empty() => {
+                    t::episode_with_title(say::episode_n(&row.number), title)
+                }
+                _ => t::episode_number(say::episode_n(&row.number)),
             };
             let label = gtk::Label::new(Some(&name));
             label.set_xalign(0.0);
@@ -771,9 +779,8 @@ impl Page {
 
             let check = gtk::CheckButton::new();
             check.set_valign(gtk::Align::Center);
-            check.update_property(&[gtk::accessible::Property::Label(&format!(
-                "Episode {} watched",
-                row.number
+            check.update_property(&[gtk::accessible::Property::Label(&t::title_linux_episode_watched(
+                say::episode_n(&row.number),
             ))]);
             let episode = row.number.clone();
             let toggled = check.connect_toggled(move |check| {
@@ -787,7 +794,7 @@ impl Page {
             let menu = gio::Menu::new();
             let more = gtk::MenuButton::builder()
                 .icon_name("view-more-symbolic")
-                .tooltip_text("Episode Menu")
+                .tooltip_text(t::episode_options())
                 .menu_model(&menu)
                 .valign(gtk::Align::Center)
                 .build();
@@ -862,10 +869,10 @@ impl Page {
         line.check.block_signal(&line.toggled);
         line.check.set_active(row.completed);
         line.check.unblock_signal(&line.toggled);
-        line.check.set_tooltip_text(Some(if row.completed {
-            "Mark Unwatched"
+        line.check.set_tooltip_text(Some(&if row.completed {
+            t::episode_mark_unwatched()
         } else {
-            "Mark Watched"
+            t::episode_mark_watched()
         }));
         if row.completed {
             line.name.add_css_class("haze");
@@ -891,10 +898,10 @@ impl Page {
             _ if row.unsourced => t::episode_unsourced(),
             (true, Some(d)) => {
                 let left = (d as f64 * (1.0 - row.watched)).max(60.0);
-                format!("{} min left", (left / 60.0).round() as u64)
+                t::time_minutes_left((left / 60.0).round() as i64)
             }
             (false, Some(d)) => say::minutes(d),
-            _ if row.metadata_only => "Not out yet".to_owned(),
+            _ if row.metadata_only => t::episode_row_not_out(),
             _ => String::new(),
         };
         line.sub.set_label(&sub);
@@ -904,18 +911,21 @@ impl Page {
 
         let id = self.id.get();
         let n = &row.number;
-        let target = format!("(uint32 {id}, '{n}')");
+        let target = format!("(uint32 {id}, '{n}')"); // i18n-skip
         line.menu.remove_all();
         let first = gio::Menu::new();
         if choices::playable(row) {
-            let verb = if part_way { "Resume" } else { "Play" };
-            first.append(
-                Some(&format!("{verb} Episode {n}")),
-                Some(&format!("win.play({target})")),
-            );
+            let episode = say::episode_n(n);
+            let label = match (part_way, row.duration_secs) {
+                (true, Some(d)) => {
+                    t::title_button_resume(episode, &say::clock(d as f64 * row.watched))
+                }
+                _ => t::downloads_play_episode(episode),
+            };
+            first.append(Some(&label), Some(&format!("win.play({target})")));
             if part_way {
                 first.append(
-                    Some("Play from the Beginning"),
+                    Some(&t::episode_play_from_beginning()),
                     Some(&format!("win.play-from-start({target})")),
                 );
             }
@@ -926,8 +936,8 @@ impl Page {
                     _ => 0.0,
                 };
                 first.append(
-                    Some("Play on TV…"),
-                    Some(&format!("win.play-on-tv((uint32 {id}, '{n}', {from:.1}))")),
+                    Some(&t::tv_play_on_menu()),
+                    Some(&format!("win.play-on-tv((uint32 {id}, '{n}', {from:.1}))")), // i18n-skip
                 );
             }
         }
@@ -935,12 +945,12 @@ impl Page {
         let second = gio::Menu::new();
         if row.completed {
             second.append(
-                Some(&format!("Mark Episode {n} as Unwatched")),
+                Some(&t::episode_mark_n_unwatched(say::episode_n(n))),
                 Some(&format!("win.mark-unwatched({target})")),
             );
         } else {
             second.append(
-                Some(&format!("Mark Episode {n} as Watched")),
+                Some(&t::episode_mark_n_watched(say::episode_n(n))),
                 Some(&format!("win.mark-watched({target})")),
             );
         }
@@ -948,7 +958,7 @@ impl Page {
         if choices::playable(row) {
             let third = gio::Menu::new();
             third.append(
-                Some(&format!("Download Episode {n}")),
+                Some(&t::episode_download_n(say::episode_n(n))),
                 Some(&format!("win.download({target})")),
             );
             line.menu.append_section(None, &third);
@@ -976,20 +986,6 @@ fn clear(container: &gtk::Box) {
 
 fn clear_list(list: &gtk::ListBox) {
     list.remove_all();
-}
-
-/// An enum's name as words: "LightNovel" is "Light novel".
-fn spaced(name: &str) -> String {
-    let mut out = String::new();
-    for (i, c) in name.chars().enumerate() {
-        if c.is_uppercase() && i > 0 {
-            out.push(' ');
-            out.extend(c.to_lowercase());
-        } else {
-            out.push(c);
-        }
-    }
-    out
 }
 
 #[cfg(test)]
@@ -1021,12 +1017,5 @@ mod tests {
             row("4", false, true),
         ];
         assert_eq!(unwatched(&rows), ["1", "3"]);
-    }
-
-    #[test]
-    fn enum_names_read_as_words() {
-        assert_eq!(spaced("LightNovel"), "Light novel");
-        assert_eq!(spaced("Manga"), "Manga");
-        assert_eq!(spaced("NotYetReleased"), "Not yet released");
     }
 }

@@ -10,6 +10,7 @@ use anistream_model::{
     command::Command,
     event::Event,
 };
+use anistream_i18n::t;
 use gtk::{gio, glib};
 
 use crate::{
@@ -47,13 +48,13 @@ impl Order {
     }
 }
 
-fn segment_title(segment: LibrarySegment) -> &'static str {
+pub fn segment_title(segment: LibrarySegment) -> String {
     match segment {
-        LibrarySegment::Watching => "Watching",
-        LibrarySegment::Planning => "Planning",
-        LibrarySegment::Completed => "Completed",
-        LibrarySegment::Paused => "Paused",
-        LibrarySegment::Dropped => "Dropped",
+        LibrarySegment::Watching => t::library_status_watching(),
+        LibrarySegment::Planning => t::library_status_planning(),
+        LibrarySegment::Completed => t::library_status_completed(),
+        LibrarySegment::Paused => t::library_status_paused(),
+        LibrarySegment::Dropped => t::library_status_dropped(),
     }
 }
 
@@ -77,28 +78,28 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
             .child(&grid.widget)
             .build();
         let empty = states::plain(
-            &format!("Nothing in {}", segment_title(segment)),
-            "Titles you set to this status on AniList show here.",
+            &t::library_list_empty(&segment_title(segment).to_lowercase()),
+            &t::library_list_empty_detail(),
         );
         let list = States::new(
             &ctx.hub,
             &scroll,
             Shape::Grid,
             &empty,
-            &format!("Couldn't Load {}", segment_title(segment)),
+            &t::library_list_load_failed(&segment_title(segment).to_lowercase()),
         );
         list.on_retry({
             let hub = Rc::downgrade(&ctx.hub);
             let list = Rc::downgrade(&list);
             move || {
                 if let (Some(hub), Some(list)) = (hub.upgrade(), list.upgrade()) {
-                    list.loading(Some("loading your lists".into()));
+                    list.loading(Some(t::library_loading()));
                     hub.send(Command::LoadLibrary(segment));
                 }
             }
         });
         let page =
-            views.add_titled(&list.widget, Some(segment.label()), segment_title(segment));
+            views.add_titled(&list.widget, Some(segment.label()), &segment_title(segment));
         lists.push((segment, grid, page, list));
     }
 
@@ -106,7 +107,8 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     switcher.set_stack(Some(&views));
     switcher.set_halign(gtk::Align::Center);
     switcher.add_css_class("round");
-    let names: Vec<&str> = LibrarySegment::ALL.iter().map(|s| segment_title(*s)).collect();
+    let names: Vec<String> = LibrarySegment::ALL.iter().map(|s| segment_title(*s)).collect();
+    let names: Vec<&str> = names.iter().map(String::as_str).collect();
     let picker = gtk::DropDown::from_strings(&names);
     picker.set_halign(gtk::Align::Start);
     picker.connect_selected_notify({
@@ -146,35 +148,43 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     lists_view.append(&bar);
     lists_view.append(&views);
 
-    let connect = gtk::Button::with_label("Sign In to AniList");
+    let connect = gtk::Button::with_label(&t::library_signed_out_action());
     connect.add_css_class("pill");
     connect.add_css_class("suggested-action");
     connect.set_halign(gtk::Align::Center);
     connect.set_action_name(Some("win.connect"));
     connect.set_action_target_value(Some(&"anilist".to_variant()));
     let signed_out =
-        nagare::status_page("Library", "Your lists come from AniList.", Some(&connect));
+        nagare::status_page(
+        &t::library_signed_out_title(),
+        &t::library_signed_out_detail(),
+        Some(&connect),
+    );
 
     let body = gtk::Stack::new();
     body.add_named(&lists_view, Some("lists"));
     body.add_named(&signed_out, Some("signed-out"));
 
     let order_menu = gio::Menu::new();
-    for (label, name) in [("Last Updated", "updated"), ("Title", "title"), ("Score", "score")] {
-        order_menu.append(Some(label), Some(&format!("library.order::{name}")));
+    for (label, name) in [
+        (t::library_sort_updated(), "updated"),
+        (t::library_sort_title(), "title"),
+        (t::library_sort_score(), "score"),
+    ] {
+        order_menu.append(Some(&label), Some(&format!("library.order::{name}")));
     }
     let menu = gio::Menu::new();
-    menu.append_section(Some("Order"), &order_menu);
+    menu.append_section(Some(&t::library_linux_order()), &order_menu);
     let order_button = gtk::MenuButton::builder()
         .icon_name("view-sort-descending-symbolic")
-        .tooltip_text("Order")
+        .tooltip_text(t::library_linux_order())
         .menu_model(&menu)
         .build();
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
     header.pack_start(&crate::window::tv_session_button(ctx));
     header.pack_end(&order_button);
-    let navigation = widgets::content_page("Library", &header, &body);
+    let navigation = widgets::content_page(&t::nav_library(), &header, &body);
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
@@ -225,7 +235,7 @@ impl Page {
             Event::Content { view: ContentFor::Library(segment), content } => match content {
                 ContentList::Loading => {
                     if let Some(list) = self.list(*segment) {
-                        list.loading(Some("loading your lists".into()));
+                        list.loading(Some(t::library_loading()));
                     }
                 }
                 ContentList::Failed(why) => {
@@ -274,7 +284,7 @@ impl Page {
     fn load(&self) {
         for segment in LibrarySegment::ALL {
             if let Some(list) = self.list(segment) {
-                list.loading(Some("loading your lists".into()));
+                list.loading(Some(t::library_loading()));
             }
             self.ctx.hub.send(Command::LoadLibrary(segment));
         }
@@ -294,7 +304,7 @@ impl Page {
         };
         self.order.borrow().sort(&mut entries);
         grid.set(&entries);
-        page.set_title(Some(&format!("{} {}", segment_title(segment), entries.len())));
+        page.set_title(Some(&t::library_linux_list_count(&segment_title(segment), &entries.len().to_string())));
         if entries.is_empty() {
             list.empty();
         } else {
