@@ -6,6 +6,7 @@
 use std::rc::Rc;
 
 use adw::prelude::*;
+use anistream_i18n::t;
 
 use crate::{nagare, pages::join, widgets, window::Ctx};
 
@@ -13,7 +14,7 @@ use crate::{nagare, pages::join, widgets, window::Ctx};
 pub fn open(ctx: &Rc<Ctx>) {
     let pages = adw::NavigationView::new();
     let dialog = adw::Dialog::builder()
-        .title("Welcome to anistream")
+        .title(t::onboarding_welcome_to())
         .content_width(560)
         .content_height(480)
         .child(&pages)
@@ -73,28 +74,26 @@ fn welcome(pages: &adw::NavigationView) -> adw::NavigationPage {
     nagare.set_halign(gtk::Align::Center);
     nagare.set_margin_bottom(6);
     column.append(&nagare);
-    column.append(&centred("anistream", "title-1"));
-    column.append(&centred("Keep track of anime and play it from sources you choose.", "body"));
-    let legal = centred("anistream hosts no content.", "haze");
+    column.append(&centred("anistream", "title-1")); // i18n-skip
+    column.append(&centred(&t::onboarding_tagline(), "body"));
+    let legal = centred(&t::legal_hosts_no_content(), "haze");
     column.append(&legal);
-    let next = pill("Continue", true);
+    let next = pill(&t::onboarding_continue(), true);
     next.set_margin_top(12);
     next.connect_clicked({
         let pages = pages.clone();
         move |_| pages.push_by_tag("anilist")
     });
     column.append(&next);
-    step("welcome", "Welcome", &column)
+    step("welcome", &t::onboarding_welcome(), &column)
 }
 
 fn anilist(ctx: &Rc<Ctx>, pages: &adw::NavigationView) -> adw::NavigationPage {
     let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    column.append(&centred("AniList", "title-1"));
-    column.append(&centred(
-        "Sign in to AniList to sync your list and where you stopped.",
-        "body",
-    ));
-    let sign_in = pill("Sign In to AniList", true);
+    let tracker = crate::say::tracker_name("anilist"); // i18n-skip
+    column.append(&centred(tracker, "title-1"));
+    column.append(&centred(&t::accounts_welcome_detail(tracker), "body"));
+    let sign_in = pill(&t::library_signed_out_action(), true);
     sign_in.set_margin_top(12);
     sign_in.connect_clicked({
         let (pages, window) = (pages.clone(), ctx.window.clone());
@@ -108,29 +107,26 @@ fn anilist(ctx: &Rc<Ctx>, pages: &adw::NavigationView) -> adw::NavigationPage {
         }
     });
     column.append(&sign_in);
-    let later = pill("Not Now", false);
+    let later = pill(&t::onboarding_not_now(), false);
     later.add_css_class("flat");
     later.connect_clicked({
         let pages = pages.clone();
         move |_| pages.push_by_tag("sources")
     });
     column.append(&later);
-    let other = centred("Other trackers are in Settings, under Accounts.", "caption");
+    let other = centred(&t::accounts_other_trackers_note(), "caption");
     other.add_css_class("haze");
     other.set_margin_top(6);
     column.append(&other);
-    step("anilist", "AniList", &column)
+    step("anilist", tracker, &column)
 }
 
 fn sources(ctx: &Rc<Ctx>, dialog: &adw::Dialog) -> adw::NavigationPage {
     let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    column.append(&centred("Sources", "title-1"));
-    column.append(&centred(
-        "Sources are plugins, shared through plugin stores by invite.",
-        "body",
-    ));
-    let link = adw::EntryRow::builder().title("Invite link").build();
-    let join = gtk::Button::with_label("Join");
+    column.append(&centred(&t::onboarding_sources_title(), "title-1"));
+    column.append(&centred(&t::onboarding_sources_detail(), "body"));
+    let link = adw::EntryRow::builder().title(t::onboarding_invite_hint()).build();
+    let join = gtk::Button::with_label(&t::onboarding_join());
     join.add_css_class("suggested-action");
     join.set_valign(gtk::Align::Center);
     join.set_sensitive(false);
@@ -143,14 +139,10 @@ fn sources(ctx: &Rc<Ctx>, dialog: &adw::Dialog) -> adw::NavigationPage {
     list.set_margin_top(6);
     list.append(&link);
     column.append(&list);
-    let risk = centred(
-        "Each plugin is someone else's code connecting to someone else's service. Use them at \
-         your own risk.",
-        "caption",
-    );
+    let risk = centred(&t::plugin_risk_warning(), "caption");
     risk.add_css_class("haze");
     column.append(&risk);
-    let skip = pill("Skip for Now", false);
+    let skip = pill(&t::onboarding_skip_for_now(), false);
     skip.add_css_class("flat");
     skip.set_margin_top(6);
     skip.connect_clicked({
@@ -176,5 +168,5 @@ fn sources(ctx: &Rc<Ctx>, dialog: &adw::Dialog) -> adw::NavigationPage {
         move |_| go()
     });
     link.connect_entry_activated(move |_| go());
-    step("sources", "Sources", &column)
+    step("sources", &t::onboarding_sources_title(), &column)
 }

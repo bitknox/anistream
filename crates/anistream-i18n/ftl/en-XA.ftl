@@ -911,6 +911,85 @@ tv-problem-gone = [Ţĥàţ ŢṼ îš ñö ļöñĝéŕ öñ ţĥé ñéţŵö�
 # What was typed or scanned is not a TV's code or address.
 tv-problem-not-a-link = [Ţĥàţ îšñ'ţ à ŢṼ'š þàîŕîñĝ çöðé öŕ àððŕéšš.~~~~~~~~~~~~~]
 
+# Count of devices on a member's row in the members dialog, and after "Owner ·".
+stores-device-count =
+    { $count ->
+        [one] [{ $count } ðéṽîçé~~~]
+       *[other] [{ $count } ðéṽîçéš~~~~]
+    }
+
+# Accessible name of an owner's dialog: what the dialog does, then the plugin store it is for.
+stores-dialog-title = [{ $title }, { $store }~~~]
+
+# Title of the status page in an owner's dialog when the plugin store could not be reached. The reason is not shown here.
+stores-owner-unreachable = [Çöüļðñ'ţ ŕéàçĥ ţĥé þļüĝîñ šţöŕé~~~~~~~~~~]
+
+# Title of the status page in an owner's dialog when the plugin store did not answer in time.
+stores-owner-no-answer = [Ţĥé þļüĝîñ šţöŕé ðîðñ'ţ àñšŵéŕ~~~~~~~~~]
+
+# Line under it.
+stores-owner-no-answer-detail = [Îţ ɱàý ƀé ƀüšý, öŕ îţš çöɱþüţéŕ ɱàý ƀé öƒƒ.~~~~~~~~~~~~~]
+
+# Title of the status page in an owner's dialog when this device is offline.
+stores-owner-needs-connection = [Ţĥé þļüĝîñ šţöŕé ñééðš à çöññéçţîöñ~~~~~~~~~~~]
+
+# Line under it.
+stores-owner-needs-connection-detail = [Ţŕý àĝàîñ öñçé ţĥîš ðéṽîçé îš ƀàçķ öñļîñé.~~~~~~~~~~~~~]
+
+# Red line in the invite dialog when this device is offline and a link cannot be made.
+stores-owner-link-offline = [Ṁàķîñĝ à ļîñķ ñééðš à çöññéçţîöñ ţö ţĥé þļüĝîñ šţöŕé.~~~~~~~~~~~~~~~~]
+
+# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+stores-copy-link = [Çöþý ļîñķ~~~]
+
+# Line over a new invite link made for a named person. The time is the one the link stops working.
+stores-send-link-until = [Šéñð ţĥîš ļîñķ. Îţ ŵöŕķš öñçé, üñţîļ { $until }.~~~~~~~~~~~~~]
+
+# Row title in who-can-join: switching on lets anyone with the link join. Shown while it is on.
+stores-open-on-detail = [Ţĥéý ĵöîñ ŵîţĥöüţ à ñàɱé. Ţüŕñîñĝ ţĥîš öƒƒ šţöþš ţĥé ļîñķ; ţüŕñîñĝ îţ öñ àĝàîñ ɱàķéš à ñéŵ öñé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Row subtitle in who-can-join while it is off.
+stores-open-off-detail = [Öñļý þéöþļé ýöü îñṽîţé çàñ ĵöîñ. Ţüŕñéð öñ, àñýöñé ŵîţĥ ţĥé ļîñķ ĵöîñš, ŵîţĥöüţ à ñàɱé.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on the summary row of devices that joined with the link, when joining is on.
+stores-open-no-names = [Ñö ñàɱéš àŕé ķéþţ.~~~~~~]
+
+# Line on the summary row of devices that joined with the link, when joining is off.
+stores-open-keep-working = [Ţĥéý ķééþ ŵöŕķîñĝ üñţîļ ýöü ŕéɱöṽé ţĥéɱ.~~~~~~~~~~~~]
+
+# Button on the summary row that removes every device that joined with the link.
+stores-remove-all = [Ŕéɱöṽé àļļ~~~]
+
+# Line under a device that joined with the link: when the store last saw it.
+stores-device-seen = [Šééñ { $when }~~~]
+
+# Line under a device that joined with the link and has not been seen since.
+stores-device-never-seen = [Ñöţ šééñ šîñçé ĵöîñîñĝ~~~~~~~]
+
+# Short title of the publish dialog, over the plugin store's name.
+stores-publish-short = [Þüƀļîšĥ à þļüĝîñ~~~~~]
+
+# Line in the publish dialog when this device has no plugin to offer. Follows stores-publish-none.
+stores-publish-none-hint = [Å þļüĝîñ ýöü ƀüîļð öŕ îñšţàļļ šĥöŵš ĥéŕé.~~~~~~~~~~~~~]
+
+# Line under a plugin in the publish dialog that the store does not have yet.
+stores-not-published = [Ñöţ îñ ţĥé þļüĝîñ šţöŕé ýéţ~~~~~~~~~]
+
+# Line under a plugin in the publish dialog that the store has in another version.
+stores-store-offers = [Ţĥé þļüĝîñ šţöŕé öƒƒéŕš { $version }~~~~~~~~~]
+
+# Line under a plugin in the publish dialog whose version the store already has.
+stores-published-current = [Ûþ ţö ðàţé îñ ţĥé þļüĝîñ šţöŕé~~~~~~~~~]
+
+# Word at the end of that row.
+stores-published-state = [Þüƀļîšĥéð~~~]
+
+# Accessible name of a row's Publish button.
+stores-publish-label = [Þüƀļîšĥ { $name } { $version }~~~~~]
+
+# Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
+sources-torrents-note = [Ţöŕŕéñţš àŕé þàŕţ öƒ àñîšţŕéàɱ, ñöţ à þļüĝîñ. Ŵĥàţ þŕöţéçţš ţĥéîŕ ţŕàƒƒîç, ţĥé çöññéçţîöñ çĥéçķ àñð šééðîñĝ àŕé šéţ îñ Šéţţîñĝš, üñðéŕ Šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
 # Under a release in the source picker: how many people share it right now.
 source-picker-seeders-linux =
     { $count ->

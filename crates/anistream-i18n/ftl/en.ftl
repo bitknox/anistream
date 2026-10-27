@@ -911,6 +911,85 @@ tv-problem-gone = That TV is no longer on the network.
 # What was typed or scanned is not a TV's code or address.
 tv-problem-not-a-link = That isn't a TV's pairing code or address.
 
+# Count of devices on a member's row in the members dialog, and after "Owner ·".
+stores-device-count =
+    { $count ->
+        [one] { $count } device
+       *[other] { $count } devices
+    }
+
+# Accessible name of an owner's dialog: what the dialog does, then the plugin store it is for.
+stores-dialog-title = { $title }, { $store }
+
+# Title of the status page in an owner's dialog when the plugin store could not be reached. The reason is not shown here.
+stores-owner-unreachable = Couldn't reach the plugin store
+
+# Title of the status page in an owner's dialog when the plugin store did not answer in time.
+stores-owner-no-answer = The plugin store didn't answer
+
+# Line under it.
+stores-owner-no-answer-detail = It may be busy, or its computer may be off.
+
+# Title of the status page in an owner's dialog when this device is offline.
+stores-owner-needs-connection = The plugin store needs a connection
+
+# Line under it.
+stores-owner-needs-connection-detail = Try again once this device is back online.
+
+# Red line in the invite dialog when this device is offline and a link cannot be made.
+stores-owner-link-offline = Making a link needs a connection to the plugin store.
+
+# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+stores-copy-link = Copy link
+
+# Line over a new invite link made for a named person. The time is the one the link stops working.
+stores-send-link-until = Send this link. It works once, until { $until }.
+
+# Row title in who-can-join: switching on lets anyone with the link join. Shown while it is on.
+stores-open-on-detail = They join without a name. Turning this off stops the link; turning it on again makes a new one.
+
+# Row subtitle in who-can-join while it is off.
+stores-open-off-detail = Only people you invite can join. Turned on, anyone with the link joins, without a name.
+
+# Line on the summary row of devices that joined with the link, when joining is on.
+stores-open-no-names = No names are kept.
+
+# Line on the summary row of devices that joined with the link, when joining is off.
+stores-open-keep-working = They keep working until you remove them.
+
+# Button on the summary row that removes every device that joined with the link.
+stores-remove-all = Remove all
+
+# Line under a device that joined with the link: when the store last saw it.
+stores-device-seen = Seen { $when }
+
+# Line under a device that joined with the link and has not been seen since.
+stores-device-never-seen = Not seen since joining
+
+# Short title of the publish dialog, over the plugin store's name.
+stores-publish-short = Publish a plugin
+
+# Line in the publish dialog when this device has no plugin to offer. Follows stores-publish-none.
+stores-publish-none-hint = A plugin you build or install shows here.
+
+# Line under a plugin in the publish dialog that the store does not have yet.
+stores-not-published = Not in the plugin store yet
+
+# Line under a plugin in the publish dialog that the store has in another version.
+stores-store-offers = The plugin store offers { $version }
+
+# Line under a plugin in the publish dialog whose version the store already has.
+stores-published-current = Up to date in the plugin store
+
+# Word at the end of that row.
+stores-published-state = Published
+
+# Accessible name of a row's Publish button.
+stores-publish-label = Publish { $name } { $version }
+
+# Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
+sources-torrents-note = Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.
+
 # Under a release in the source picker: how many people share it right now.
 source-picker-seeders-linux =
     { $count ->

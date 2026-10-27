@@ -1410,6 +1410,131 @@ pub fn tv_problem_not_a_link() -> String {
     text("tv-problem-not-a-link", &[])
 }
 
+/// Count of devices on a member's row in the members dialog, and after "Owner ·".
+pub fn stores_device_count(count: i64) -> String {
+    text("stores-device-count", &[("count", Arg::Int(count))])
+}
+
+/// Accessible name of an owner's dialog: what the dialog does, then the plugin store it is for.
+pub fn stores_dialog_title(title: &str, store: &str) -> String {
+    text("stores-dialog-title", &[("title", Arg::Text(title)), ("store", Arg::Text(store))])
+}
+
+/// Title of the status page in an owner's dialog when the plugin store could not be reached. The reason is not shown here.
+pub fn stores_owner_unreachable() -> String {
+    text("stores-owner-unreachable", &[])
+}
+
+/// Title of the status page in an owner's dialog when the plugin store did not answer in time.
+pub fn stores_owner_no_answer() -> String {
+    text("stores-owner-no-answer", &[])
+}
+
+/// Line under it.
+pub fn stores_owner_no_answer_detail() -> String {
+    text("stores-owner-no-answer-detail", &[])
+}
+
+/// Title of the status page in an owner's dialog when this device is offline.
+pub fn stores_owner_needs_connection() -> String {
+    text("stores-owner-needs-connection", &[])
+}
+
+/// Line under it.
+pub fn stores_owner_needs_connection_detail() -> String {
+    text("stores-owner-needs-connection-detail", &[])
+}
+
+/// Red line in the invite dialog when this device is offline and a link cannot be made.
+pub fn stores_owner_link_offline() -> String {
+    text("stores-owner-link-offline", &[])
+}
+
+/// Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+pub fn stores_copy_link() -> String {
+    text("stores-copy-link", &[])
+}
+
+/// Line over a new invite link made for a named person. The time is the one the link stops working.
+pub fn stores_send_link_until(until: &str) -> String {
+    text("stores-send-link-until", &[("until", Arg::Text(until))])
+}
+
+/// Row title in who-can-join: switching on lets anyone with the link join. Shown while it is on.
+pub fn stores_open_on_detail() -> String {
+    text("stores-open-on-detail", &[])
+}
+
+/// Row subtitle in who-can-join while it is off.
+pub fn stores_open_off_detail() -> String {
+    text("stores-open-off-detail", &[])
+}
+
+/// Line on the summary row of devices that joined with the link, when joining is on.
+pub fn stores_open_no_names() -> String {
+    text("stores-open-no-names", &[])
+}
+
+/// Line on the summary row of devices that joined with the link, when joining is off.
+pub fn stores_open_keep_working() -> String {
+    text("stores-open-keep-working", &[])
+}
+
+/// Button on the summary row that removes every device that joined with the link.
+pub fn stores_remove_all() -> String {
+    text("stores-remove-all", &[])
+}
+
+/// Line under a device that joined with the link: when the store last saw it.
+pub fn stores_device_seen(when: &str) -> String {
+    text("stores-device-seen", &[("when", Arg::Text(when))])
+}
+
+/// Line under a device that joined with the link and has not been seen since.
+pub fn stores_device_never_seen() -> String {
+    text("stores-device-never-seen", &[])
+}
+
+/// Short title of the publish dialog, over the plugin store's name.
+pub fn stores_publish_short() -> String {
+    text("stores-publish-short", &[])
+}
+
+/// Line in the publish dialog when this device has no plugin to offer. Follows stores-publish-none.
+pub fn stores_publish_none_hint() -> String {
+    text("stores-publish-none-hint", &[])
+}
+
+/// Line under a plugin in the publish dialog that the store does not have yet.
+pub fn stores_not_published() -> String {
+    text("stores-not-published", &[])
+}
+
+/// Line under a plugin in the publish dialog that the store has in another version.
+pub fn stores_store_offers(version: &str) -> String {
+    text("stores-store-offers", &[("version", Arg::Text(version))])
+}
+
+/// Line under a plugin in the publish dialog whose version the store already has.
+pub fn stores_published_current() -> String {
+    text("stores-published-current", &[])
+}
+
+/// Word at the end of that row.
+pub fn stores_published_state() -> String {
+    text("stores-published-state", &[])
+}
+
+/// Accessible name of a row's Publish button.
+pub fn stores_publish_label(name: &str, version: &str) -> String {
+    text("stores-publish-label", &[("name", Arg::Text(name)), ("version", Arg::Text(version))])
+}
+
+/// Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
+pub fn sources_torrents_note() -> String {
+    text("sources-torrents-note", &[])
+}
+
 /// Under a release in the source picker: how many people share it right now.
 pub fn source_picker_seeders_linux(count: i64) -> String {
     text("source-picker-seeders-linux", &[("count", Arg::Int(count))])
