@@ -3,6 +3,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// Continue in a wide window: the queue, grouped In progress and New this week, and a preview of
@@ -287,7 +288,7 @@ struct QueueMenu: View {
             }
         } else {
             // Nothing to play yet: when it airs, said and not offered.
-            Button(item.airing.airs().map { cased(mac: "Episode \(n) Airs \($0)", touch: "Episode \(n) airs \($0)") }
+            Button(item.unsourced ? L.episodeUnsourced : item.airing.airs().map { cased(mac: "Episode \(n) Airs \($0)", touch: "Episode \(n) airs \($0)") }
                    ?? cased(mac: "Episode \(n) Is Not Out Yet", touch: "Episode \(n) is not out yet")) {}
                 .disabled(true)
         }
@@ -389,7 +390,7 @@ struct ContinuePreview: View {
                             .buttonStyle(SecondaryCapsuleStyle())
                     } else {
                         // Caught up: when the next episode airs, and the episodes to go back to.
-                        AirsStatus(text: item.buttonTitle)
+                        AirsStatus(text: item.statusTitle)
                         Button("Episodes") { navigator.openTitle(entry.id, fromPreview: true) }
                             .buttonStyle(SecondaryCapsuleStyle())
                             .keyboardShortcut(.defaultAction)

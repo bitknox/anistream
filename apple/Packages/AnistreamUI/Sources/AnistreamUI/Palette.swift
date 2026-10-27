@@ -3,6 +3,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// One line in the palette.
@@ -54,6 +55,7 @@ func paletteItems(query: String, store: AppStore, navigator: Navigator) -> (titl
         }
         command("Hide from Continue", "eye.slash", detail: "Progress is kept", shortcut: "⌘⌫",
                 enabled: entry.progress != nil) { store.hideFromContinue(id) }
+        command(L.sourcePickerTitle, "arrow.triangle.branch") { navigator.sourcePicker = id }
         command("Show Settings for This Show…", "slider.horizontal.3",
                 detail: "Audio, subtitles, auto-skip, source", shortcut: "⌘I") { navigator.showSettings = id }
     }
@@ -186,8 +188,8 @@ struct PaletteOverlay: View {
         case .title(let entry):
             if play, entry.progress == nil, entry.listStatus == nil {
                 store.setStatus(entry.id, .planning)
-            } else if play, TitleAction(entry).playable {
-                store.send(.play(id: entry.id, episode: String(TitleAction(entry).episode)))
+            } else if play, TitleAction(entry, episodes: store.titles.episodes[entry.id]).playable {
+                store.send(.play(id: entry.id, episode: String(TitleAction(entry, episodes: store.titles.episodes[entry.id]).episode)))
             } else {
                 // ↩, or ⌘↩ with nothing out to play: the page, which says when the next one airs.
                 navigator.openTitle(entry.id)
@@ -209,6 +211,7 @@ struct PaletteOverlay: View {
 /// A line in the palette: a title with its cover and what its action plays, a command with its
 /// shortcut, a recent search with when.
 struct PaletteRow: View {
+    @Environment(AppStore.self) private var store
     let item: PaletteItem
     let selected: Bool
     let action: () -> Void
@@ -270,7 +273,10 @@ struct PaletteRow: View {
         guard let progress = entry.progress else {
             return entry.listStatus == nil ? "Add to Planning" : "Start E1"
         }
-        return entry.resume != nil ? "Resume E\(progress.next)" : "Start E\(progress.next)"
+        let next = entry.playableNext(in: store.titles.episodes[entry.id])
+        // Nothing from here on has a source: the page, rather than a play that cannot start.
+        if next.unsourced { return "Open" }
+        return entry.resume != nil ? "Resume E\(next.episode)" : "Start E\(next.episode)"
     }
 }
 

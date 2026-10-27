@@ -37,6 +37,8 @@ public final class AppStore {
     public let showSettings = ShowSettingsModel()
     public let accounts = AccountsModel()
     public let providers = ProvidersModel()
+    /// The source picker's options per title.
+    public let sourceChoices = SourceChoiceModel()
     public let stores = StoresModel()
     public let downloads = DownloadsModel()
     /// New-episode notifications: the week coming up, permission, and each show's switch.
@@ -641,6 +643,10 @@ public final class AppStore {
             providers.sourcesChanged()
         case .providerPreference(let provider):
             providers.preference(provider)
+        case .sourceOptions(let id, let options):
+            sourceChoices.apply(id: id, options: options)
+        case .pinUnavailable(let id, let providerId, let name):
+            sourceChoices.pinUnavailable(id: id, providerId: providerId, name: name)
         case .vpn(let view):
             providers.guardSaid(view)
         case .protectionChecked(let view):

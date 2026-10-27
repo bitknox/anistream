@@ -915,6 +915,10 @@
     <value>{value} GB</value>
     <comment>A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.</comment>
   </data>
+  <data name="ActionDone" xml:space="preserve">
+    <value>Done</value>
+    <comment>Button that closes a sheet whose changes have already been made.</comment>
+  </data>
   <data name="QueueEpisodesLeft_one" xml:space="preserve">
     <value>One episode left in {title}</value>
     <comment>Continue row subtitle. The show's title is cut first when the row is short.</comment>

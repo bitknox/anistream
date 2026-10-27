@@ -639,6 +639,9 @@ public static partial class T
     /// <summary>A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.</summary>
     public static string SizeGigabyte(string value) => Fill(Get("SizeGigabyte"), ("value", value));
 
+    /// <summary>Button that closes a sheet whose changes have already been made.</summary>
+    public static string ActionDone => Get("ActionDone");
+
     /// <summary>Continue row subtitle. The show's title is cut first when the row is short.</summary>
     public static string QueueEpisodesLeft(long count, string title) => Fill(GetPlural("QueueEpisodesLeft", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
 
@@ -966,6 +969,7 @@ public static partial class T
         ["SizeKilobyte"] = "{value} kB",
         ["SizeMegabyte"] = "{value} MB",
         ["SizeGigabyte"] = "{value} GB",
+        ["ActionDone"] = "Done",
         ["QueueEpisodesLeft_one"] = "One episode left in {title}",
         ["QueueEpisodesLeft_other"] = "{count} episodes left in {title}",
         ["EpisodesCount_one"] = "{count} episode",

@@ -456,6 +456,8 @@
     <string name="size_megabyte">%1$s MB</string>
     <!-- A file size in gigabytes (1,000,000,000 bytes). The number is already formatted. -->
     <string name="size_gigabyte">%1$s GB</string>
+    <!-- Button that closes a sheet whose changes have already been made. -->
+    <string name="action_done">Done</string>
     <!-- Continue row subtitle. The show's title is cut first when the row is short. -->
     <plurals name="queue_episodes_left">
         <item quantity="one">One episode left in %2$s</item>
