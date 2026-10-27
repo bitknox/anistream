@@ -1,13 +1,15 @@
 //! The Downloads screen: the queue with a meter per row and what each one waits on, the line about
 //! the selected download, and the torrents still seeding after they were watched.
 
-use anistream_model::{downloads::DownloadState, wording::human_bytes};
+use anistream_i18n::t;
+use anistream_model::{Size, SizeUnit, downloads::DownloadState};
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
 use crate::{
     app::App,
+    keymap::Action,
     nav::Section,
-    theme::{Role, glyph},
+    theme::Role,
     widgets::{Hairline, truncate},
 };
 
@@ -24,7 +26,13 @@ use super::{
 /// rather than making you go and find it.
 pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
     if area.height < MIN_TABLE_HEIGHT || area.width < 40 {
-        render_placeholder(buf, app, area, "DOWNLOADS", "needs a larger terminal");
+        render_placeholder(
+            buf,
+            app,
+            area,
+            &t::downloads_screen_title(),
+            &t::lists_terminal_too_small(),
+        );
         return;
     }
     // What is still seeding after watching takes the bottom of the screen, so the queue above
@@ -35,12 +43,19 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
     }
     let area = Rect { height: area.height - seeding, ..area };
     let mut y = area.top();
-    buf.set_string(area.left(), y, glyph::eyebrow("title"), app.palette.style(Role::TextDim));
+    buf.set_string(
+        area.left(),
+        y,
+        t::downloads_column_title(),
+        app.palette.style(Role::TextDim),
+    );
     let state_x = area.left() + (area.width * 2 / 5).min(46);
     let meter_x = state_x + 14;
-    for (label, x) in [("state", state_x), ("progress", meter_x)] {
+    for (label, x) in
+        [(t::downloads_column_state(), state_x), (t::downloads_column_progress(), meter_x)]
+    {
         if x < area.right() {
-            buf.set_string(x, y, glyph::eyebrow(label), app.palette.style(Role::TextDim));
+            buf.set_string(x, y, label, app.palette.style(Role::TextDim));
         }
     }
     y += 1;
@@ -51,13 +66,16 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
         buf.set_string(
             area.left(),
             y,
-            glyph::eyebrow("nothing queued"),
+            t::downloads_empty_heading(),
             app.palette.style(Role::TextDim),
         );
         buf.set_string(
             area.left(),
             y + 2,
-            truncate("d on a title or episode queues it for offline", area.width as usize),
+            truncate(
+                &t::downloads_empty_hint(&app.key_for(Action::Download)),
+                area.width as usize,
+            ),
             app.palette.style(Role::TextDim),
         );
         return;
@@ -93,13 +111,19 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
         // Two cells short of the state column, so the number never runs into the state.
         let room = state_x.saturating_sub(area.left() + 4) as usize;
         // Queued by keep next rather than asked for, said beside the episode it is.
-        let ahead = if row.ahead { " · ahead" } else { "" };
-        let episode = format!("  ep {}{ahead}", row.episode);
+        let episode = format!(
+            "  {}",
+            if row.ahead {
+                t::downloads_row_episode_ahead(&row.episode)
+            } else {
+                t::downloads_row_episode(&row.episode)
+            }
+        );
         let label = match room.checked_sub(episode.chars().count()) {
             Some(title_room) if title_room >= 4 => {
-                format!("{}{episode}", truncate(&row.title, title_room))
+                format!("{}{}", truncate(&row.title, title_room), episode)
             }
-            _ => truncate(&format!("{}{episode}", row.title), room),
+            _ => truncate(&format!("{}{}", row.title, episode), room),
         };
         buf.set_string(
             area.left() + 2,
@@ -123,7 +147,7 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
             buf.set_string(
                 state_x,
                 y,
-                truncate(download_state_label(row.state), (meter_x - state_x - 1) as usize),
+                truncate(&download_state_label(row.state), (meter_x - state_x - 1) as usize),
                 app.palette.style(role),
             );
         }
@@ -168,26 +192,31 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
 /// "1.2 GB / 1.9 GB", and a stalled download is obvious from bytes that stop moving.
 fn download_note(app: &App, row: &anistream_model::downloads::DownloadRow) -> String {
     if row.total > 0 {
-        return format!("  {} / {}", human_bytes(row.downloaded), human_bytes(row.total));
+        return format!(
+            "  {}",
+            t::downloads_note_sizes(&bytes_text(row.downloaded), &bytes_text(row.total))
+        );
     }
     match row.state {
-        DownloadState::Active => "  waiting for metadata".into(),
+        DownloadState::Active => format!("  {}", t::downloads_note_waiting_metadata()),
         // Downloads come through the torrent session, so with torrents off a queued row will
-        // never start. "waiting for metadata" said so forever.
-        DownloadState::Queued if !app.settings.sources.torrent => "  torrents are off".into(),
-        DownloadState::Queued => "  waiting to start".into(),
+        // never start. "Waiting for metadata" said so forever.
+        DownloadState::Queued if !app.settings.sources.torrent => {
+            format!("  {}", t::downloads_note_torrents_off())
+        }
+        DownloadState::Queued => format!("  {}", t::downloads_note_waiting_start()),
         _ => String::new(),
     }
 }
 
 /// What a download's row calls the state it is in.
-pub fn download_state_label(state: DownloadState) -> &'static str {
+pub fn download_state_label(state: DownloadState) -> String {
     match state {
-        DownloadState::Queued => "queued",
-        DownloadState::Active => "downloading",
-        DownloadState::Paused => "paused",
-        DownloadState::Done => "complete",
-        DownloadState::Failed => "failed",
+        DownloadState::Queued => t::downloads_state_queued(),
+        DownloadState::Active => t::downloads_state_active(),
+        DownloadState::Paused => t::downloads_state_paused(),
+        DownloadState::Done => t::downloads_state_done(),
+        DownloadState::Failed => t::downloads_state_failed(),
     }
 }
 
@@ -196,14 +225,11 @@ pub fn download_state_label(state: DownloadState) -> &'static str {
 fn download_detail(app: &App, row: &anistream_model::downloads::DownloadRow) -> (String, Role) {
     let (text, role) = download_standing(app, row);
     match (row.ahead, role) {
-        (true, Role::TextDim) if text.is_empty() => (AHEAD.into(), role),
-        (true, Role::TextDim) => (format!("{text} · {AHEAD}"), role),
+        (true, Role::TextDim) if text.is_empty() => (t::downloads_detail_ahead(), role),
+        (true, Role::TextDim) => (t::downloads_detail_with_ahead(&text), role),
         _ => (text, role),
     }
 }
-
-/// What becomes of a download keep next queued.
-const AHEAD: &str = "downloaded ahead, removed a day after you watch it";
 
 /// Where the selected download stands: the path, the failure, or what it waits for.
 fn download_standing(
@@ -218,18 +244,15 @@ fn download_standing(
     }
     let text = match row.state {
         // Paused is not resolving anything: it stopped where the bytes say.
-        DownloadState::Paused if row.total > 0 => format!(
-            "paused at {} of {} — it carries on from there",
-            human_bytes(row.downloaded),
-            human_bytes(row.total)
-        ),
-        DownloadState::Paused => "paused before it started".into(),
-        DownloadState::Queued if !app.settings.sources.torrent => format!(
-            "downloads need torrents, which are off — press {} for Settings",
-            app.section_key(Section::Settings)
-        ),
-        DownloadState::Queued => "queued — it starts when a download slot is free".into(),
-        DownloadState::Active => "waiting for the torrent's metadata".into(),
+        DownloadState::Paused if row.total > 0 => {
+            t::downloads_detail_paused_at(&bytes_text(row.downloaded), &bytes_text(row.total))
+        }
+        DownloadState::Paused => t::downloads_detail_paused_early(),
+        DownloadState::Queued if !app.settings.sources.torrent => {
+            t::downloads_detail_torrents_off(&app.section_key(Section::Settings))
+        }
+        DownloadState::Queued => t::downloads_detail_queued(),
+        DownloadState::Active => t::downloads_detail_waiting_metadata(),
         _ => String::new(),
     };
     (text, Role::TextDim)
@@ -254,7 +277,7 @@ fn render_seeding(buf: &mut Buffer, app: &App, area: Rect) {
     buf.set_string(
         area.left(),
         y,
-        glyph::eyebrow("seeding after watching"),
+        t::downloads_seeding_heading(),
         app.palette.style(Role::TextDim),
     );
     y += 1;
@@ -273,11 +296,13 @@ fn render_seeding(buf: &mut Buffer, app: &App, area: Rect) {
             let fraction =
                 if seed.goal > 0.0 { (seed.ratio / seed.goal).min(1.0) } else { 0.0 };
             let detail = format!(
-                "  {:.1} of {:.1} · {} left · {} up",
-                seed.ratio,
-                seed.goal,
-                time_left(seed.left_secs),
-                human_bytes(seed.uploaded_bytes)
+                "  {}",
+                t::downloads_seeding_detail(
+                    &format!("{:.1}", seed.ratio),
+                    &format!("{:.1}", seed.goal),
+                    &time_left(seed.left_secs),
+                    &bytes_text(seed.uploaded_bytes),
+                )
             );
             let room = area.right().saturating_sub(state_x) as usize;
             let meter_width = room.saturating_sub(detail.chars().count()).min(12);
@@ -296,9 +321,21 @@ fn render_seeding(buf: &mut Buffer, app: &App, area: Rect) {
 /// Seeding time left at the scale it runs on: hours, then minutes in the last one.
 fn time_left(secs: u64) -> String {
     if secs >= 3600 {
-        format!("{} h", secs.div_ceil(3600))
+        t::duration_hours(secs.div_ceil(3600) as i64)
     } else {
-        format!("{} min", secs.div_ceil(60))
+        t::duration_minutes(secs.div_ceil(60) as i64)
+    }
+}
+
+/// A byte count at human scale, in the units the catalogue names (`700 MB`, `1.4 GB`).
+fn bytes_text(bytes: u64) -> String {
+    let size = Size::of(bytes);
+    let number = format!("{:.*}", usize::from(size.decimals), size.value);
+    match size.unit {
+        SizeUnit::Byte => t::size_byte(&number),
+        SizeUnit::Kilobyte => t::size_kilobyte(&number),
+        SizeUnit::Megabyte => t::size_megabyte(&number),
+        SizeUnit::Gigabyte => t::size_gigabyte(&number),
     }
 }
 
@@ -325,12 +362,9 @@ mod tests {
             left_secs: 18 * 3600,
         }]));
         let screen = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(
-            screen.contains("SEEDING AFTER WATCHING")
-                || screen.contains("seeding after watching")
-        );
+        assert!(screen.contains("Seeding after watching"), "{screen}");
         assert!(screen.contains("Show - 05.mkv"), "{screen}");
-        assert!(screen.contains("0.4 of 1.0 · 18 h left"), "{screen}");
+        assert!(screen.contains("0.4 of 1.0 · 18h left"), "{screen}");
     }
 
     #[test]
@@ -346,19 +380,19 @@ mod tests {
             ahead,
         ]));
         let lines = lines_of(&mut app, 120, 30);
-        assert!(lines.iter().any(|l| l.contains("Show  ep 6 · ahead")), "{lines:#?}");
-        assert!(lines.iter().any(|l| l.contains("ep 5") && !l.contains("ahead")), "{lines:#?}");
+        assert!(lines.iter().any(|l| l.contains("Show  E6 · ahead")), "{lines:#?}");
+        assert!(lines.iter().any(|l| l.contains("E5") && !l.contains("ahead")), "{lines:#?}");
         assert!(!lines.iter().any(|l| l.contains("removed a day")), "ep 5 is selected");
 
         // Selected, it says what becomes of it, after where it stands.
         app.cursors.downloads.selected = 1;
         let lines = lines_of(&mut app, 120, 30);
-        let detail = lines.iter().find(|l| l.contains("· downloaded ahead")).expect("said");
-        assert!(detail.contains("downloads need torrents"), "{detail}");
+        let detail = lines.iter().find(|l| l.contains("· Downloaded ahead")).expect("said");
+        assert!(detail.contains("Downloads need torrents"), "{detail}");
         assert_eq!(
             download_detail(&app, &app.downloads[1]).0,
             format!(
-                "downloads need torrents, which are off — press {} for Settings · downloaded \
+                "Downloads need torrents, which are off (press {} for Settings) · Downloaded \
                  ahead, removed a day after you watch it",
                 app.section_key(Section::Settings)
             )
@@ -370,8 +404,8 @@ mod tests {
         let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Downloads);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("NOTHING QUEUED"), "got {text:?}");
-        assert!(text.contains("queues it for offline"), "an empty screen needs a way in");
+        assert!(text.contains("Nothing queued"), "got {text:?}");
+        assert!(text.contains("to queue it for offline"), "an empty screen needs a way in");
     }
 
     #[test]
@@ -396,8 +430,8 @@ mod tests {
             },
         ]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("Hoshikuzu  ep 5"), "got {text:?}");
-        assert!(text.contains("downloading"));
+        assert!(text.contains("Hoshikuzu  E5"), "got {text:?}");
+        assert!(text.contains("Downloading"));
         assert!(text.contains("700 MB / 1.4 GB"), "sizes at human scale: {text:?}");
         assert!(text.contains('█'), "no progress meter");
         assert!(text.contains("/downloads/Hoshikuzu - 05.mkv"), "the path belongs on screen");
@@ -423,7 +457,7 @@ mod tests {
             },
         ]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("failed"));
+        assert!(text.contains("Failed"));
         assert!(text.contains("no peers after 60s"), "the reason must survive the toast");
     }
 
@@ -452,7 +486,7 @@ mod tests {
         app.handle(crate::keymap::Action::Bottom, 20);
         assert_eq!(app.cursor(), 39);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("Invented Show  ep 40"), "got {text:?}");
+        assert!(text.contains("Invented Show  E40"), "got {text:?}");
     }
 
     #[test]
@@ -467,14 +501,14 @@ mod tests {
         ]));
         let lines = lines_of(&mut app, 80, 24);
         let text = lines.join("\n");
-        for ep in ["ep 4", "ep 3", "ep 2"] {
+        for ep in ["E4", "E3", "E2"] {
             assert!(text.contains(ep), "{ep} cut away:\n{text}");
         }
         // Torrents are off by default, so a queued row will never start.
-        assert!(text.contains("torrents are off"), "{text}");
-        assert!(text.contains("waiting for metadata"), "only an active row waits on that");
-        assert_eq!(text.matches("waiting for metadata").count(), 1, "{text}");
-        assert!(text.contains("downloads need torrents, which are off — press 9"), "{text}");
+        assert!(text.contains("Torrents are off"), "{text}");
+        assert!(text.contains("Waiting for metadata"), "only an active row waits on that");
+        assert_eq!(text.matches("Waiting for metadata").count(), 1, "{text}");
+        assert!(text.contains("Downloads need torrents, which are off (press 9"), "{text}");
 
         // The bars are one column of one width.
         let bars: Vec<(usize, usize)> = lines
@@ -493,7 +527,7 @@ mod tests {
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Down, 20);
         let text = text_of(&render_to_buffer(&mut app, 80, 24));
-        assert!(text.contains("paused at 734 MB of 1.5 GB"), "{text}");
+        assert!(text.contains("Paused at 734 MB of 1.5 GB"), "{text}");
         assert!(!text.contains("resolving a source"), "{text}");
     }
 }

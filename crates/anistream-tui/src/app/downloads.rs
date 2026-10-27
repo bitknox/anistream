@@ -1,12 +1,12 @@
 //! The download queue's screen.
 
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
     downloads::{DownloadRow, DownloadState},
-    notice::Notice,
 };
 
-use super::App;
+use super::{App, alert, info};
 use crate::nav::{Focus, Section, StageView};
 
 impl App {
@@ -43,13 +43,13 @@ impl App {
             }
             (_, DownloadState::Failed) => {
                 // The reason is on the row; surfacing it is more use than a dead keypress.
-                let reason = row.error.clone().unwrap_or_else(|| "no reason recorded".into());
-                self.push_toast(Notice::raw_alert(reason));
+                let reason = row.error.clone().unwrap_or_else(t::downloads_failed_no_reason);
+                self.push_toast(alert(reason));
             }
             (_, DownloadState::Queued | DownloadState::Paused) => {
                 return Some(Command::DownloadStartNow { id: row.id });
             }
-            _ => self.push_toast(Notice::raw_info("not finished yet")),
+            _ => self.push_toast(info(t::downloads_not_finished())),
         }
         None
     }
@@ -77,7 +77,8 @@ impl App {
         };
         // Listed from AniList alone: no source here has it to download.
         if self.unlisted(id) {
-            self.say_add_a_source("download");
+            let sources = self.section_key(Section::Providers);
+            self.push_toast(info(t::downloads_needs_source(&sources)));
             return None;
         }
         Some(Command::DownloadEpisode { id, episode })

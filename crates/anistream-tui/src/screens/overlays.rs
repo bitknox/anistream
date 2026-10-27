@@ -30,11 +30,11 @@ use super::{
 };
 
 fn search_filter_rows(app: &App) -> Vec<(String, String)> {
-    use crate::app::{SEARCH_FILTER_ROWS, search_filter_value};
-    SEARCH_FILTER_ROWS
-        .iter()
+    use crate::app::{search_filter_labels, search_filter_value};
+    search_filter_labels()
+        .into_iter()
         .enumerate()
-        .map(|(row, name)| (search_filter_value(&app.search_filter, row), glyph::eyebrow(name)))
+        .map(|(row, name)| (search_filter_value(&app.search_filter, row), name))
         .collect()
 }
 
