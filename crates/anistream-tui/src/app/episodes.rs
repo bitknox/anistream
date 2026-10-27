@@ -2,17 +2,17 @@
 //! downloads asked for from it, and the provider's match for the title.
 
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
+use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentList, ResumePoint},
     command::Command,
     episodes::{DubExtent, EpisodeRow},
     event::Event,
-    notice::Notice,
     progress::{EpisodeProgress, TitleProgress},
     sources::MatchCandidate,
 };
 
-use super::{App, Field};
+use super::{App, Field, info};
 use crate::nav::{Overlay, StageView};
 
 /// `"4"` → one episode, `"1-12"` → inclusive range, `"7-"` → everything from 7 on.
@@ -43,12 +43,43 @@ pub enum EpisodeFilter {
     NoFiller,
 }
 
+/// A wait in the largest unit that still reads at a glance (`6d 17h`, `1h 5m`, `7m`), in the
+/// language in use.
+pub(crate) fn countdown_text(seconds: i64) -> String {
+    let span = anistream_model::Span::countdown(seconds);
+    let int = |v: u64| v as i64;
+    if span.days > 0 {
+        if span.hours > 0 {
+            t::duration_days_hours(int(span.days.into()), int(span.hours.into()))
+        } else {
+            t::duration_days(int(span.days.into()))
+        }
+    } else if span.hours > 0 {
+        if span.minutes > 0 {
+            t::duration_hours_minutes(int(span.hours.into()), int(span.minutes.into()))
+        } else {
+            t::duration_hours(int(span.hours.into()))
+        }
+    } else {
+        t::duration_minutes(int(span.minutes.into()))
+    }
+}
+
 impl EpisodeFilter {
-    pub const fn label(self) -> &'static str {
+    pub fn label(self) -> String {
         match self {
-            Self::All => "all episodes",
-            Self::Unwatched => "unwatched",
-            Self::NoFiller => "no filler",
+            Self::All => t::episodes_filter_all(),
+            Self::Unwatched => t::episodes_filter_unwatched(),
+            Self::NoFiller => t::episodes_filter_no_filler(),
+        }
+    }
+
+    /// What the toast says when the filter changes to this one.
+    fn showing(self) -> String {
+        match self {
+            Self::All => t::episodes_showing_all(),
+            Self::Unwatched => t::episodes_showing_unwatched(),
+            Self::NoFiller => t::episodes_showing_no_filler(),
         }
     }
 
@@ -112,7 +143,7 @@ impl App {
         }
         if candidates.is_empty() {
             self.source_context = None;
-            self.push_toast(Notice::raw_info("no selectable sources for this episode"));
+            self.push_toast(info(t::episodes_no_releases()));
             return;
         }
         self.sources = candidates;
@@ -174,7 +205,12 @@ impl App {
     /// The Episodes screen's line on the dub of title `id`: "Dub to episode 6", or `None`.
     pub fn dub_line(&self, id: AnilistId) -> Option<String> {
         let dub = self.dub.filter(|(kept, _)| *kept == id).map(|(_, dub)| dub);
-        anistream_model::present::dub_line(dub.as_ref())
+        let dub = dub?;
+        Some(if dub.complete {
+            t::episodes_dub_complete()
+        } else {
+            t::episodes_dub_through(i64::from(dub.through))
+        })
     }
 
     /// Where a title stands, and each of its episodes, as the engine says once a watch or a mark
@@ -251,11 +287,9 @@ impl App {
     }
 
     /// Said for a download asked of a table listed from AniList alone, in place of asking.
-    pub(super) fn say_add_a_source(&mut self, to: &str) {
-        let providers = self.section_key(crate::nav::Section::Providers);
-        self.push_toast(Notice::raw_info(format!(
-            "add a source to {to}: press {providers} for the Providers screen"
-        )));
+    pub(super) fn say_add_a_source(&mut self) {
+        let sources = self.section_key(crate::nav::Section::Providers);
+        self.push_toast(info(t::episodes_add_source_to_download(&sources)));
     }
 
     /// Sources became ready where none were: a table listed from AniList alone while there were
@@ -331,29 +365,24 @@ impl App {
             // Three different nothings, each said as what it is: "nothing before this
             // episode" over an empty table pointed at an episode that was not there.
             let why = match self.episodes.get(self.cursors.episodes.selected) {
-                None => "no episodes listed to mark".to_owned(),
+                None => t::episodes_mark_none_listed(),
                 Some(_) if self.cursors.episodes.selected == 0 => {
-                    "nothing comes before the first episode".to_owned()
+                    t::episodes_mark_nothing_before()
                 }
-                Some(row) => {
-                    format!("everything before ep {} is already watched", row.number)
-                }
+                Some(row) => t::episodes_mark_already_watched(&row.number),
             };
-            self.push_toast(Notice::raw_info(why));
+            self.push_toast(info(why));
             return None;
         }
         self.marking = Some(id);
-        self.push_toast(Notice::raw_info(format!(
-            "marked {} watched",
-            anistream_model::wording::plural(marked.len(), "episode")
-        )));
+        self.push_toast(info(t::episodes_marked_watched(marked.len() as i64)));
         Some(Command::SetWatched { id, episodes: marked, watched: true })
     }
 
     /// The prompt for a range of episodes to download, empty.
     pub(super) fn open_download_range(&mut self) {
         if self.title_on_screen().is_some_and(|id| self.unlisted(id)) {
-            self.say_add_a_source("download");
+            self.say_add_a_source();
             return;
         }
         self.field_mut(Field::Range).clear();
@@ -373,7 +402,7 @@ impl App {
             // Cleared, with the prompt left open for another try. Kept, the retry's
             // keys were appended to the refused text and refused again.
             self.field_mut(Field::Range).clear();
-            self.push_toast(Notice::raw_info("ranges look like 4, 1-12 or 7-"));
+            self.push_toast(info(t::episodes_range_invalid()));
             return None;
         };
         let episodes: Vec<String> = self
@@ -389,14 +418,11 @@ impl App {
             .collect();
         if episodes.is_empty() {
             self.field_mut(Field::Range).clear();
-            self.push_toast(Notice::raw_info("no episodes in that range"));
+            self.push_toast(info(t::episodes_range_empty()));
             return None;
         }
         self.nav.close_overlay();
-        self.push_toast(Notice::raw_info(format!(
-            "queueing {}…",
-            anistream_model::wording::plural(episodes.len(), "episode")
-        )));
+        self.push_toast(info(t::episodes_queueing(episodes.len() as i64)));
         Some(Command::DownloadMany { id, episodes })
     }
 
@@ -404,7 +430,7 @@ impl App {
     pub(super) fn cycle_episode_filter(&mut self) {
         self.episode_filter = self.episode_filter.next();
         self.apply_episode_filter();
-        self.push_toast(Notice::raw_info(format!("showing {}", self.episode_filter.label())));
+        self.push_toast(info(self.episode_filter.showing()));
     }
 
     /// The prompt for a provider's search by hand, for a title it matched wrongly.
@@ -418,11 +444,11 @@ impl App {
         // earlier, applied to that title instead of the highlighted one.
         let Some(id) = self.title_on_screen() else {
             let hint = if self.target().is_some() {
-                "a match is fixed from the title's page"
+                t::episodes_match_off_page()
             } else {
-                "nothing selected to re-match"
+                t::episodes_match_nothing()
             };
-            self.push_toast(Notice::raw_info(hint));
+            self.push_toast(info(hint));
             return None;
         };
         self.manual_target = Some(id);
@@ -455,7 +481,7 @@ impl App {
         self.match_candidates.clear();
         self.match_context = None;
         self.episodes_loading = true;
-        self.push_toast(Notice::raw_info(format!("matched to {}", candidate.title)));
+        self.push_toast(info(t::episodes_matched(&candidate.title)));
         Some(Command::FixMatch { id, provider_id, key: candidate.key })
     }
 
@@ -768,7 +794,7 @@ mod tests {
         a.type_char('4');
         let task = a.handle(Action::Open, 20).expect("one episode is a range too");
         assert!(
-            a.toasts.iter().any(|t| t.notice.text == "queueing 1 episode…"),
+            a.toasts.iter().any(|t| t.notice.text == t::episodes_queueing(1)),
             "{:?}",
             a.toasts
         );
@@ -779,23 +805,19 @@ mod tests {
     fn mark_all_previous_says_which_nothing_it_found() {
         let mut a = app_at_episodes();
         a.handle(Action::MarkAllPrevious, 20);
-        assert!(
-            a.toasts.iter().any(|t| t.notice.text == "nothing comes before the first episode")
-        );
+        assert!(a.toasts.iter().any(|t| t.notice.text == t::episodes_mark_nothing_before()));
 
         a.set_episode_cursor(3);
         let task = a.handle(Action::MarkAllPrevious, 20);
         answer_mark(&mut a, task);
         assert!(
-            a.toasts.iter().any(|t| t.notice.text == "marked 3 episodes watched"),
+            a.toasts.iter().any(|t| t.notice.text == t::episodes_marked_watched(3)),
             "{:?}",
             a.toasts
         );
         a.handle(Action::MarkAllPrevious, 20);
         assert!(
-            a.toasts
-                .iter()
-                .any(|t| t.notice.text == "everything before ep 4 is already watched")
+            a.toasts.iter().any(|t| t.notice.text == t::episodes_mark_already_watched("4"))
         );
 
         // An empty table has no episode to be before.
@@ -803,7 +825,7 @@ mod tests {
         a.set_episode_cursor(0);
         a.handle(Action::MarkAllPrevious, 20);
         assert!(
-            a.toasts.iter().any(|t| t.notice.text == "no episodes listed to mark"),
+            a.toasts.iter().any(|t| t.notice.text == t::episodes_mark_none_listed()),
             "{:?}",
             a.toasts
         );
@@ -1178,7 +1200,7 @@ mod tests {
         assert!(a.nav.overlay().is_none(), "no range is asked for either");
         // Said once, as the same toast twice is.
         let said: Vec<_> = a.toasts.iter().map(|t| t.notice.text.as_str()).collect();
-        assert_eq!(said, ["add a source to download: press 7 for the Providers screen"]);
+        assert_eq!(said, [t::episodes_add_source_to_download("7")]);
     }
 
     #[test]

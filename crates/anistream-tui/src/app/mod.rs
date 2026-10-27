@@ -56,7 +56,6 @@ mod title;
 
 pub(crate) use self::lists::air_date;
 use self::title::TitleFrame;
-pub(crate) use self::title::watch_order;
 pub use self::{
     accounts::sync_badge,
     cursor::{Cursor, Cursors},
@@ -71,6 +70,10 @@ pub use self::{
     settings::SettingLine,
     stores::{MemberLine, PluginChoice, StoreConfirm, StoreLine},
     text::{Field, TextField},
+};
+pub(crate) use self::{
+    episodes::countdown_text,
+    title::{push_detail, status_text, watch_order},
 };
 
 /// The whole application state.

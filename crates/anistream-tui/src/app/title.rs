@@ -2,14 +2,14 @@
 //! from, and the pickers and lists that ride its record.
 
 use anistream_core::ids::AnilistId;
+use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentList, Entry, LibrarySegment},
     command::Command,
     episodes::EpisodeRow,
-    notice::Notice,
 };
 
-use super::App;
+use super::{App, info};
 use crate::nav::{Overlay, StageView};
 
 /// One row of a title's watch order.
@@ -19,7 +19,7 @@ pub(crate) struct WatchStep {
     pub title: String,
     pub format: Option<String>,
     /// What it is to the title here: "season 2", as every one of the franchise's pages numbers
-    /// it, or the relation, "prequel", "parent" or "sequel".
+    /// it, or the relation, "prequel", "parent" or "sequel", as the language in use says it.
     pub place: String,
 }
 
@@ -34,7 +34,7 @@ pub(crate) fn watch_order(entry: &Entry) -> Vec<WatchStep> {
             id: season.id,
             title: season.title.clone(),
             format: season.format.clone(),
-            place: format!("season {}", at + 1),
+            place: t::title_season(at as i64 + 1),
         })
         .collect();
     let rest = entry
@@ -45,9 +45,31 @@ pub(crate) fn watch_order(entry: &Entry) -> Vec<WatchStep> {
         id: related.id,
         title: related.title.clone(),
         format: related.format.clone(),
-        place: related.relation.clone(),
+        place: relation_text(&related.relation),
     }));
     steps
+}
+
+/// A relation the model names in English, said in the language in use. One it does not know is
+/// shown as it came.
+fn relation_text(relation: &str) -> String {
+    match relation {
+        "prequel" => t::title_relation_prequel(),
+        "parent" => t::title_relation_parent(),
+        "sequel" => t::title_relation_sequel(),
+        other => other.to_owned(),
+    }
+}
+
+/// A list status in the language in use.
+pub(crate) fn status_text(status: LibrarySegment) -> String {
+    match status {
+        LibrarySegment::Watching => t::title_status_watching(),
+        LibrarySegment::Planning => t::title_status_planning(),
+        LibrarySegment::Completed => t::title_status_completed(),
+        LibrarySegment::Paused => t::title_status_paused(),
+        LibrarySegment::Dropped => t::title_status_dropped(),
+    }
 }
 
 /// Where the watch order opens on `entry`'s page: on the season after it, the one to watch next,
@@ -110,13 +132,13 @@ impl App {
         }
     }
 
-    /// "… from the title's page", when the screen is not one — said for what rides the detail
+    /// Says to open the title's page, when the screen is not one — said for what rides the detail
     /// fetch and came back empty here, as `m` and `P` say it for what only that page can do.
     ///
     /// A list row never opened carries no relations, recommendations or trailer, so "none known
     /// for this title" off the page was a guess that read as a fact.
-    fn off_the_page(&self, what: &str) -> Option<String> {
-        self.title_on_screen().is_none().then(|| format!("{what} from the title's page"))
+    fn off_the_page(&self, said: fn() -> String) -> Option<String> {
+        self.title_on_screen().is_none().then(said)
     }
 
     /// The title whose page or episode table is on top, by the view's own id.
@@ -130,10 +152,11 @@ impl App {
     /// The title here, on AniList in a browser.
     pub(super) fn open_in_browser(&mut self) -> Option<Command> {
         let Some(id) = self.target().map(|e| e.id) else {
-            self.push_toast(Notice::raw_info("nothing selected"));
+            self.push_toast(info(t::title_nothing_selected()));
             return None;
         };
-        Some(Command::OpenExternal { url: format!("https://anilist.co/anime/{}", id.get()) })
+        let url = format!("https://anilist.co/anime/{}", id.get()); // i18n-skip
+        Some(Command::OpenExternal { url })
     }
 
     /// The source picker for the title on screen, opened on the choice in force.
@@ -144,17 +167,17 @@ impl App {
         // pin the user made.
         if self.title_on_screen().is_none() {
             let hint = if self.target().is_some() {
-                "a source is pinned from the title's page"
+                t::title_pin_off_page()
             } else {
-                "nothing selected"
+                t::title_nothing_selected()
             };
-            self.push_toast(Notice::raw_info(hint));
+            self.push_toast(info(hint));
             return None;
         }
         if self.providers.is_empty() {
             // Plugins register a moment after launch, so "none yet" is a real state
             // rather than a misconfiguration.
-            self.push_toast(Notice::raw_info("no sources registered yet"));
+            self.push_toast(info(t::title_no_sources_yet()));
             return None;
         }
         // Start on the current choice, so the overlay opens showing where you are.
@@ -224,17 +247,17 @@ impl App {
         else {
             return Vec::new();
         };
-        let mut choices = vec![(None, "Whichever release the source ranks first".to_string())];
+        let mut choices = vec![(None, t::title_release_first())];
         choices.extend(option.releases.iter().map(|release| {
             let mut label = release.title.clone();
             if let Some(quality) = release.quality {
-                label.push_str(&format!("  ·  {quality}p"));
+                push_detail(&mut label, &format!("{}p", quality));
             }
             if let Some(size) = &release.size {
-                label.push_str(&format!("  ·  {size}"));
+                push_detail(&mut label, size);
             }
             if let Some(seeders) = release.seeders {
-                label.push_str(&format!("  ·  {seeders} seeders"));
+                push_detail(&mut label, &t::title_release_seeders(i64::from(seeders)));
             }
             (Some(release.id.clone()), label)
         }));
@@ -244,16 +267,16 @@ impl App {
     /// The title's trailer, when its record has one.
     pub(super) fn play_trailer(&mut self) -> Option<Command> {
         let Some(entry) = self.target() else {
-            self.push_toast(Notice::raw_info("nothing selected"));
+            self.push_toast(info(t::title_nothing_selected()));
             return None;
         };
         let Some(url) = entry.trailer_url.clone() else {
             // Rides the detail fetch, so a list row answers after the title has
             // been opened once — and some titles genuinely have no trailer.
             let why = self
-                .off_the_page("the trailer is found")
-                .unwrap_or_else(|| "no trailer on record for this title".into());
-            self.push_toast(Notice::raw_info(why));
+                .off_the_page(t::title_trailer_off_page)
+                .unwrap_or_else(t::title_no_trailer);
+            self.push_toast(info(why));
             return None;
         };
         Some(Command::PlayTrailer { url, title: entry.title.clone() })
@@ -262,16 +285,16 @@ impl App {
     /// What AniList recommends after the title here, when its record says.
     pub(super) fn show_recommendations(&mut self) -> Option<Command> {
         let Some(entry) = self.target() else {
-            self.push_toast(Notice::raw_info("nothing selected"));
+            self.push_toast(info(t::title_nothing_selected()));
             return None;
         };
         if entry.recommended.is_empty() {
             // Like relations, recommendations ride the detail fetch — and some
             // titles genuinely have none.
             let why = self
-                .off_the_page("recommendations are listed")
-                .unwrap_or_else(|| "no recommendations known for this title".into());
-            self.push_toast(Notice::raw_info(why));
+                .off_the_page(t::title_recommendations_off_page)
+                .unwrap_or_else(t::title_no_recommendations);
+            self.push_toast(info(why));
             return None;
         }
         self.cursors.overlay.selected = 0;
@@ -295,16 +318,16 @@ impl App {
     /// The titles connected to the one here, when its record says.
     pub(super) fn show_watch_order(&mut self) -> Option<Command> {
         let Some(entry) = self.target() else {
-            self.push_toast(Notice::raw_info("nothing selected"));
+            self.push_toast(info(t::title_nothing_selected()));
             return None;
         };
         if watch_order(entry).is_empty() {
             // Empty on list rows too — the relations ride the detail fetch. From a
             // list this still answers after opening the title once.
             let why = self
-                .off_the_page("connected seasons are listed")
-                .unwrap_or_else(|| "no connected seasons known for this title".into());
-            self.push_toast(Notice::raw_info(why));
+                .off_the_page(t::title_seasons_off_page)
+                .unwrap_or_else(t::title_no_seasons);
+            self.push_toast(info(why));
             return None;
         }
         self.cursors.overlay.selected = watch_from(entry);
@@ -331,9 +354,7 @@ impl App {
         if self.signed_in_trackers().is_empty() {
             // Nothing keeps a list status but a tracker. Offering the picker anyway
             // ended in "marked watching" for a choice that went nowhere.
-            self.push_toast(Notice::raw_info(
-                "list status is kept on a tracker, and none is signed in — :accounts",
-            ));
+            self.push_toast(info(t::title_status_needs_tracker()));
         } else if let Some(entry) = self.target() {
             // Preselect what the title is already on, so the common case is one
             // keystroke to confirm rather than a hunt. The title's own status, where it
@@ -345,23 +366,21 @@ impl App {
                 .unwrap_or(0);
             self.nav.open_overlay(Overlay::ListStatus);
         } else {
-            self.push_toast(Notice::raw_info("nothing selected"));
+            self.push_toast(info(t::title_nothing_selected()));
         }
     }
 
     /// The rating picker for the title here.
     pub(super) fn pick_rating(&mut self) {
         if self.signed_in_trackers().is_empty() {
-            self.push_toast(Notice::raw_info(
-                "ratings are kept on a tracker, and none is signed in — :accounts",
-            ));
+            self.push_toast(info(t::title_rating_needs_tracker()));
         } else if self.target().is_some() {
             // No local record of an existing score to preselect, so the cursor
             // starts at the top and every row is one or two keystrokes away.
             self.cursors.overlay.selected = 0;
             self.nav.open_overlay(Overlay::Rate);
         } else {
-            self.push_toast(Notice::raw_info("nothing selected"));
+            self.push_toast(info(t::title_nothing_selected()));
         }
     }
 
@@ -371,10 +390,9 @@ impl App {
         let id = entry.id;
         let status = *LibrarySegment::ALL.get(self.cursors.overlay.selected)?;
         self.nav.close_overlay();
-        self.push_toast(Notice::raw_info(format!(
-            "now on your {} list — queued for {}",
-            status.label(),
-            self.signed_in_trackers().join(", ")
+        self.push_toast(info(t::title_status_set(
+            &status_text(status),
+            &self.signed_in_trackers().join(", "),
         )));
         // Remembered on every copy of the title on screen, and past the next reload,
         // so asking again opens on the answer just given.
@@ -398,9 +416,9 @@ impl App {
         // Rows run 10 down to 1, so the row index is the distance from 10.
         let score = (10 - self.cursors.overlay.selected.min(9)) as f32;
         self.nav.close_overlay();
-        self.push_toast(Notice::raw_info(format!(
-            "rated {score}/10 — queued for {}",
-            self.signed_in_trackers().join(", ")
+        self.push_toast(info(t::title_rated(
+            score as i64,
+            &self.signed_in_trackers().join(", "),
         )));
         Some(Command::SetScore { id, score })
     }
@@ -472,26 +490,28 @@ impl App {
     /// state, and hiding a source that is briefly failing would make the choice look impossible
     /// rather than temporarily unavailable — the row says so instead.
     pub fn provider_choices(&self) -> Vec<(Option<String>, String)> {
-        let mut choices = vec![(None, "Automatic — best available source".to_string())];
+        let mut choices = vec![(None, t::title_source_automatic())];
         choices.extend(self.providers.iter().map(|row| {
             let mut label = row.id.clone();
             if !row.kind.is_empty() {
-                label.push_str(&format!("  ·  {}", row.kind));
+                push_detail(&mut label, &row.kind);
             }
             if row.held_back {
-                label.push_str("  ·  held back");
+                push_detail(&mut label, &t::source_note_held_back());
             } else if !row.usable {
-                label.push_str("  ·  failing");
+                push_detail(&mut label, &t::title_source_failing());
             } else if let Some(option) =
                 self.source_options.iter().find(|option| option.provider_id == row.id)
             {
                 // What it has of this title, so the choice is an informed one.
-                match &option.note {
-                    Some(note) => label.push_str(&format!("  ·  {}", source_note(note))),
-                    None => {
-                        label.push_str(&format!("  ·  {} of {}", option.covered, option.of))
-                    }
-                }
+                let detail = match &option.note {
+                    Some(note) => source_note(note),
+                    None => t::source_picker_coverage(
+                        i64::from(option.covered),
+                        i64::from(option.of),
+                    ),
+                };
+                push_detail(&mut label, &detail);
             }
             (Some(row.id.clone()), label)
         }));
@@ -499,14 +519,20 @@ impl App {
     }
 }
 
+/// A row's name with one more detail after it.
+pub(crate) fn push_detail(label: &mut String, detail: &str) {
+    label.push_str("  ·  ");
+    label.push_str(detail);
+}
+
 /// How the terminal words why a source has no episode count.
 fn source_note(note: &anistream_model::sources::SourceNote) -> String {
     use anistream_model::sources::SourceNote;
     match note {
-        SourceNote::Off => "switched off".into(),
-        SourceNote::Gone => "not installed".into(),
-        SourceNote::Resting => "resting after failures".into(),
-        SourceNote::Ambiguous => "could not tell which title this is".into(),
+        SourceNote::Off => t::source_note_off(),
+        SourceNote::Gone => t::source_note_gone(),
+        SourceNote::Resting => t::source_note_resting(),
+        SourceNote::Ambiguous => t::source_note_ambiguous(),
         SourceNote::Failed { reason } => reason.clone(),
     }
 }
@@ -515,6 +541,7 @@ fn source_note(note: &anistream_model::sources::SourceNote) -> String {
 mod tests {
     use super::watch_from;
     use crate::app::fixtures::*;
+    use anistream_i18n::t;
 
     #[test]
     fn a_list_status_is_confirmed_as_the_list_it_is_on() {
@@ -530,9 +557,8 @@ mod tests {
             Some(Command::SetStatus { status: LibrarySegment::Completed, .. })
         ));
         assert!(
-            a.toasts
-                .iter()
-                .any(|t| t.notice.text == "now on your completed list — queued for anilist"),
+            a.toasts.iter().any(|t| t.notice.text
+                == t::title_status_set(&t::title_status_completed(), "anilist")),
             "{:?}",
             a.toasts
         );
@@ -647,7 +673,7 @@ mod tests {
 
         // A list row never opened: the trailer is on the record its page fetches.
         a.handle(Action::PlayTrailer, 20);
-        assert!(a.toasts.iter().any(|t| t.notice.text.contains("from the title's page")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("Open the title's page")));
 
         let mut detail = Entry::new(AnilistId::new(1), "Hoshikuzu");
         detail.trailer_url = Some("https://www.youtube.com/watch?v=x".into());
@@ -668,7 +694,7 @@ mod tests {
         a.apply(a.content_here(entries(1)));
         a.handle(Action::Recommendations, 20);
         assert!(!a.nav.has_overlay());
-        assert!(a.toasts.iter().any(|t| t.notice.text.contains("from the title's page")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("Open the title's page")));
     }
 
     #[test]
@@ -698,7 +724,7 @@ mod tests {
         a.handle(Action::SetListStatus, 20);
         a.handle(Action::Open, 20);
         let said = &a.toasts.last().unwrap().notice.text;
-        assert!(said.ends_with("queued for anilist, mal"), "{said}");
+        assert_eq!(said, &t::title_status_set(&t::title_status_watching(), "anilist, mal"));
     }
 
     #[test]
@@ -707,7 +733,11 @@ mod tests {
         a.apply(Event::Sync(Box::new(connected(0))));
         assert_eq!(a.handle(Action::RateTitle, 20), None);
         assert!(!a.nav.has_overlay());
-        assert!(a.toasts.iter().any(|t| t.notice.text.contains("nothing selected")));
+        assert!(
+            a.toasts.iter().any(|t| t.notice.text.to_lowercase().contains("nothing")),
+            "{:?}",
+            a.toasts
+        );
     }
 
     #[test]
@@ -841,7 +871,8 @@ mod tests {
         });
         let labels: Vec<_> = a.provider_choices().into_iter().map(|(_, l)| l).collect();
         assert!(
-            labels[1].ends_with("6 of 13") && labels[2].ends_with("13 of 13"),
+            labels[1].ends_with(&t::source_picker_coverage(6, 13))
+                && labels[2].ends_with(&t::source_picker_coverage(13, 13)),
             "{labels:?}"
         );
 
@@ -991,9 +1022,9 @@ mod tests {
         let mut a = home_list(3);
         let last = |a: &App| a.toasts.last().map(|t| t.notice.text.clone()).unwrap_or_default();
         for (action, said) in [
-            (Action::WatchOrder, "connected seasons are listed from the title's page"),
-            (Action::Recommendations, "recommendations are listed from the title's page"),
-            (Action::PlayTrailer, "the trailer is found from the title's page"),
+            (Action::WatchOrder, t::title_seasons_off_page()),
+            (Action::Recommendations, t::title_recommendations_off_page()),
+            (Action::PlayTrailer, t::title_trailer_off_page()),
         ] {
             assert_eq!(a.handle(action, 5), None);
             assert_eq!(last(&a), said);
@@ -1001,7 +1032,7 @@ mod tests {
         // On the page itself, empty is the answer.
         a.handle(Action::Open, 5);
         a.handle(Action::WatchOrder, 5);
-        assert_eq!(last(&a), "no connected seasons known for this title");
+        assert_eq!(last(&a), t::title_no_seasons());
     }
 
     #[test]
@@ -1041,7 +1072,7 @@ mod tests {
         let mut a = app();
         a.handle(Action::WatchOrder, 10);
         assert_eq!(a.toasts.len(), 1);
-        assert!(a.toasts[0].notice.text.contains("nothing selected"));
+        assert!(a.toasts[0].notice.text.to_lowercase().contains("nothing"));
     }
 
     #[test]
@@ -1112,18 +1143,22 @@ mod tests {
         page.detail = Some(anistream_model::catalog::TitleDetail::default());
         assert_eq!(
             places(&page),
-            [(2, "prequel".into()), (11, "prequel".into()), (4, "sequel".into())]
+            [
+                (2, t::title_relation_prequel()),
+                (11, t::title_relation_prequel()),
+                (4, t::title_relation_sequel())
+            ]
         );
         // Walked: the five, numbered from the first, this one left out, then the film.
         page.detail.as_mut().unwrap().seasons = Some((1..=5).map(season).collect());
         assert_eq!(
             places(&page),
             [
-                (1, "season 1".into()),
-                (2, "season 2".into()),
-                (4, "season 4".into()),
-                (5, "season 5".into()),
-                (11, "prequel".into()),
+                (1, t::title_season(1)),
+                (2, t::title_season(2)),
+                (4, t::title_season(4)),
+                (5, t::title_season(5)),
+                (11, t::title_relation_prequel()),
             ]
         );
 
@@ -1151,12 +1186,12 @@ mod tests {
             let order = watch_order(&page);
             order[watch_from(&page)].place.clone()
         };
-        assert_eq!(on(9, 12), "season 10");
-        assert_eq!(on(1, 12), "season 2");
+        assert_eq!(on(9, 12), t::title_season(10));
+        assert_eq!(on(1, 12), t::title_season(2));
         // The last has none after it: the one before.
-        assert_eq!(on(12, 12), "season 11");
-        assert_eq!(on(2, 2), "season 1");
+        assert_eq!(on(12, 12), t::title_season(11));
+        assert_eq!(on(2, 2), t::title_season(1));
         // A film, which is none of the seasons, opens on the first row.
-        assert_eq!(on(40, 3), "season 1");
+        assert_eq!(on(40, 3), t::title_season(1));
     }
 }
