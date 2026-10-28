@@ -464,6 +464,31 @@ pub enum Command {
         #[cfg_attr(feature = "ffi", uniffi(default))]
         offline: bool,
     },
+    /// What the device says about itself, once at launch and on every change: the system's
+    /// Reduce Motion, iOS's Auto-Play Video Previews (`true` where the system has none), Low
+    /// Power Mode or a battery saver, a serious thermal state, a screen reader running, and a
+    /// low-memory device. With [`Command::NetworkPath`] and the Play trailers setting it decides
+    /// whether trailers start by themselves, which the engine says with
+    /// [`Event::Autoplay`](crate::event::Event::Autoplay). Shared with what else reads the
+    /// device: Picture in Picture and the gamepad read `screen_reader` and `low_power` too.
+    ///
+    /// The engine assumes a device that holds nothing back until told, so a front end that
+    /// plays trailers says this before its first title page settles. A field added later takes
+    /// a default, so a front end that does not know it keeps building.
+    DeviceState {
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        reduce_motion: bool,
+        #[cfg_attr(feature = "ffi", uniffi(default = true))]
+        autoplay_previews: bool,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        low_power: bool,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        thermal_serious: bool,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        screen_reader: bool,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        low_memory: bool,
+    },
     /// Protect torrent traffic with `mode`, through `proxy` when it is one, and have a failed
     /// connection check do `on_failure`: written to the file as one change, the proxy's
     /// password to the host's secret store and never to the file. No protection and warn only

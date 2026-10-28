@@ -107,7 +107,7 @@ impl Operation {
             Self::LastAired
         } else if has("airingSchedules(") {
             Self::Schedule
-        } else if has("media(id_in:") && has("relations {") {
+        } else if has("media(id_in:") && has("relations {") && !has("prequels:") {
             Self::Relations
         } else if has("media(id_in:") {
             Self::Many

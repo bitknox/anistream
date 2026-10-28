@@ -3585,6 +3585,16 @@ pub fn settings_value_titles_romaji() -> String {
     text("settings-value-titles-romaji", &[])
 }
 
+/// Value of the trailers setting: trailers play by themselves on any network.
+pub fn settings_value_trailers_always() -> String {
+    text("settings-value-trailers-always", &[])
+}
+
+/// Value of the trailers setting: trailers play by themselves only on Wi-Fi.
+pub fn settings_value_trailers_wifi_only() -> String {
+    text("settings-value-trailers-wifi-only", &[])
+}
+
 /// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 pub fn settings_value_upscaling_natural() -> String {
     text("settings-value-upscaling-natural", &[])
@@ -3688,6 +3698,11 @@ pub fn settings_label_motion() -> String {
 /// Settings row: which language titles are shown in.
 pub fn settings_label_titles() -> String {
     text("settings-label-titles", &[])
+}
+
+/// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+pub fn settings_label_trailers() -> String {
+    text("settings-label-trailers", &[])
 }
 
 /// Settings row: subbed or dubbed audio.
@@ -3903,6 +3918,11 @@ pub fn settings_label_adult_titles() -> String {
 /// Note under the titles row.
 pub fn settings_note_titles() -> String {
     text("settings-note-titles", &[])
+}
+
+/// Note under the trailers row. The terminal never plays trailers by itself; the setting is shared with the apps.
+pub fn settings_note_trailers() -> String {
+    text("settings-note-trailers", &[])
 }
 
 /// Note under the subtitles row.

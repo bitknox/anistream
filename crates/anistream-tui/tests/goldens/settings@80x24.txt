@@ -4,11 +4,12 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ▤│    Theme                       Adaptive
   ▦│    Motion                      On
   /│    Titles                      AniList's choice
-  ▥│
-  ↓│  Playback  ─────────────────────────────────────────────────────────────
-  ◇│    Audio                       Subbed · Dubbed this session
-  ◎│    Quality                     1080p
-▌ ⚙│    Subtitles                   eng
+  ▥│    Play trailers               Always
+  ↓│
+  ◇│  Playback  ─────────────────────────────────────────────────────────────
+  ◎│    Audio                       Subbed · Dubbed this session
+▌ ⚙│    Quality                     1080p
+   │    Subtitles                   eng
    │    Counts as watched at        85%
    │    Auto-play next              On
    │    Skip opening automatically  On
@@ -17,7 +18,6 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │    Show skip button            On
    │    Start fullscreen            Off
    │  ▌ Upscaling                   Natural · ArtCNN
-   │    Player interface            anistream
    │  ────────────────────────────────────────────────────────────────────────
    │    Adapts to the video and your graphics card. Applies from the next e…
 ─────────────────────────────────────── ▌ Using dubbed audio for this session. ─
@@ -50,51 +50,51 @@ r05 c08-13 fg=text-dim
 r05 c36-51 fg=text
 r06 c02-02 fg=text-dim
 r06 c03-03 fg=rule
+r06 c08-20 fg=text-dim
+r06 c36-41 fg=text
 r07 c02-02 fg=text-dim
 r07 c03-03 fg=rule
-r07 c06-13 fg=text
-r07 c16-76 fg=rule
 r08 c02-02 fg=text-dim
 r08 c03-03 fg=rule
-r08 c08-12 fg=text-dim
-r08 c36-63 fg=text
+r08 c06-13 fg=text
+r08 c16-76 fg=rule
 r09 c02-02 fg=text-dim
 r09 c03-03 fg=rule
-r09 c08-14 fg=text-dim
-r09 c36-40 fg=text
+r09 c08-12 fg=text-dim
+r09 c36-63 fg=text
 r10 c00-00 fg=text-dim
 r10 c02-02 fg=text
 r10 c03-03 fg=rule
-r10 c08-16 fg=text-dim
-r10 c36-38 fg=text
+r10 c08-14 fg=text-dim
+r10 c36-40 fg=text
 r11 c03-03 fg=rule
-r11 c08-27 fg=text-dim
+r11 c08-16 fg=text-dim
 r11 c36-38 fg=text
 r12 c03-03 fg=rule
-r12 c08-21 fg=text-dim
-r12 c36-37 fg=text
+r12 c08-27 fg=text-dim
+r12 c36-38 fg=text
 r13 c03-03 fg=rule
-r13 c08-33 fg=text-dim
+r13 c08-21 fg=text-dim
 r13 c36-37 fg=text
 r14 c03-03 fg=rule
-r14 c08-32 fg=text-dim
-r14 c36-38 fg=text
+r14 c08-33 fg=text-dim
+r14 c36-37 fg=text
 r15 c03-03 fg=rule
-r15 c08-30 fg=text-dim
-r15 c36-37 fg=text
+r15 c08-32 fg=text-dim
+r15 c36-38 fg=text
 r16 c03-03 fg=rule
-r16 c08-23 fg=text-dim
+r16 c08-30 fg=text-dim
 r16 c36-37 fg=text
 r17 c03-03 fg=rule
 r17 c08-23 fg=text-dim
-r17 c36-38 fg=text
+r17 c36-37 fg=text
 r18 c03-03 fg=rule
-r18 c06-06 fg=obi
-r18 c08-16 fg=text
-r18 c36-51 fg=text mod=BOLD
+r18 c08-23 fg=text-dim
+r18 c36-38 fg=text
 r19 c03-03 fg=rule
-r19 c08-23 fg=text-dim
-r19 c36-44 fg=text
+r19 c06-06 fg=obi
+r19 c08-16 fg=text
+r19 c36-51 fg=text mod=BOLD
 r20 c03-03 fg=rule
 r20 c06-77 fg=rule
 r21 c03-03 fg=rule
