@@ -76,6 +76,7 @@ import tv.anistream.engine.model.LinkedTitle
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.AppStore
 import tv.anistream.store.label
+import tv.anistream.store.line
 import tv.anistream.tv.PlayAction
 import tv.anistream.tv.cardLine
 import tv.anistream.tv.cardTitle
@@ -198,7 +199,7 @@ fun TitleScreen(
                 item(key = "episodes", contentType = "row") {
                     // Each season's row starts at its own next episode.
                     key(shownId) {
-                        Episodes(entry, rows, if (switching) "Loading" else dubs[shownId], action, spoilers, memory, onPlay, onPlayFromStart, swapFade().settlesAt(list, scope, "episodes", rowTop))
+                        Episodes(entry, rows, if (switching) stringResource(R.string.state_loading) else dubs[shownId]?.line(LocalContext.current), action, spoilers, memory, onPlay, onPlayFromStart, swapFade().settlesAt(list, scope, "episodes", rowTop))
                     }
                 }
             }

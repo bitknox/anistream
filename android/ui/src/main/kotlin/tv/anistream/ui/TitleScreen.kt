@@ -111,6 +111,7 @@ import tv.anistream.store.AppClock
 import tv.anistream.store.HeroArt
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.label
+import tv.anistream.store.line
 import tv.anistream.store.TvPlayRequest
 import androidx.compose.ui.platform.LocalContext
 
@@ -722,6 +723,7 @@ private fun SeasonPage(
     val unfolded by store.episodeFolds.unfolded.collectAsStateWithLifecycle()
     val fold = rememberEpisodeFold(entry.id, list)
     val dubs by store.titles.dubLines.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val failedIds by store.titles.failed.collectAsStateWithLifecycle()
     val failed = !loaded && entry.id in failedIds
     androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
@@ -775,7 +777,7 @@ private fun SeasonPage(
             }
             val related = entry.relatedCards()
             if (related.isNotEmpty()) item(key = "related", contentType = "related") { Box(itemMotion()) { RelatedRail(related) } }
-            episodeRows(entry, episodes, actions, unfolded = entry.id in unfolded, onFold = fold, wait = !ahead, dub = dubs[entry.id])
+            episodeRows(entry, episodes, actions, unfolded = entry.id in unfolded, onFold = fold, wait = !ahead, dub = dubs[entry.id]?.line(context))
         }
     }
 }
