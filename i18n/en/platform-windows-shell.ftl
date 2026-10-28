@@ -41,14 +41,6 @@ close-seeding = { $count ->
 # @only windows
 close-ask = Keep them going after the window closes, or stop them?
 
-# The close dialog's check box: remember the answer.
-# @only windows
-close-dont-ask = Don't ask again
-
-# The close dialog's main button: the window goes, the downloads go on.
-# @only windows
-close-keep-going = Keep going
-
 # The close dialog's second button: stops the downloads and quits.
 # @only windows
 close-stop = Stop and close
@@ -113,14 +105,6 @@ updates-progress-name = Update progress
 # @arg version: text
 updates-notes-title = In version { $version }
 
-# Button: installs the downloaded update and opens the app again.
-# @only windows
-updates-restart = Restart to update
-
-# Button in About: downloads the new version.
-# @only windows
-updates-download = Download update
-
 # Button in About when this copy can't install updates itself: opens the new version's download page.
 # @only windows
 updates-open-page = Open the download page
@@ -136,10 +120,6 @@ updates-why-fixture = A test run installs nothing.
 # Screen reader name of the mascot drawn in empty states.
 # @only windows
 nagare-name = Nagare, the { -app-name } mascot
-
-# The keyboard shortcuts dialog's title, and its own line in the list.
-# @only windows
-shortcuts-title = Keyboard shortcuts
 
 # Heading in the shortcuts dialog over the window's keys.
 # @only windows
@@ -165,14 +145,6 @@ shortcuts-keys-back = { $key }, mouse back button
 # @arg key: text
 shortcuts-keys-menu = { $key }, Menu key
 
-# Shortcut: opens the focused item's context menu.
-# @only windows
-shortcuts-context-menu = Context menu
-
-# Shortcut in the player.
-# @only windows
-shortcuts-play-pause = Play or pause
-
 # Shortcut in the player: the arrow keys seek 5 seconds, 30 with Shift held.
 # @only windows
 shortcuts-seek = Back or forward 5 s, 30 s with Shift
@@ -181,21 +153,13 @@ shortcuts-seek = Back or forward 5 s, 30 s with Shift
 # @only windows
 shortcuts-seek-ten = Back or forward 10 s
 
-# Shortcut in the player.
-# @only windows
-shortcuts-mute = Mute
-
 # Shortcut in the player: skips an opening or ending, and a second key undoes it.
 # @only windows
-shortcuts-skip = Skip, undo the skip
-
-# Shortcut in the player.
-# @only windows
-shortcuts-next-previous = Next or previous episode
+shortcuts-skip-undo = Skip, undo the skip
 
 # Shortcut in the player: three keys for playback speed.
 # @only windows
-shortcuts-speed = Slower, faster, normal speed
+shortcuts-speed-reset = Slower, faster, normal speed
 
 # Shortcut in the player: presses the button on the card in the corner, such as Up next.
 # @only windows

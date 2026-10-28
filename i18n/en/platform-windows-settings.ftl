@@ -260,7 +260,3 @@ torrents-dialog-turn-on-action = Turn on
 torrents-choice-spoken = { $label }. { $detail }
 
 ## Seeding
-
-# Line under the Seeding heading: seeding stops when the app closes. Same words as Android's downloads-seeding-open-only, which is limited to Android.
-# @only windows
-settings-seeding-open-only = Seeding runs only while { -app-name } is open.

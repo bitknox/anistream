@@ -19,39 +19,59 @@ use anistream_model::{
 
 use anistream_i18n::t;
 
-use crate::{pages::providers, widgets, window::Ctx, words};
+use crate::{pages::providers, say, widgets, window::Ctx};
 
 /// The rows the sheet shows, as the Mac's sheet has them, by group.
-const GROUPS: [(&str, &[S]); 3] = [
-    ("Audio and Subtitles", &[S::Translation]),
-    ("Episodes", &[S::SkipOpening, S::SkipFiller, S::SpoilerProtection]),
-    ("Notifications", &[S::NotifyNewEpisodes]),
+const GROUPS: [(Group, &[S]); 3] = [
+    (Group::AudioSubtitles, &[S::Translation]),
+    (Group::Episodes, &[S::SkipOpening, S::SkipFiller, S::SpoilerProtection]),
+    (Group::Notifications, &[S::NotifyNewEpisodes]),
 ];
 
-/// A row's value in the sheet's words: Japanese or English for the audio, On or Off.
-pub fn shown(key: S, value: &str) -> &'static str {
+#[derive(Clone, Copy)]
+enum Group {
+    AudioSubtitles,
+    Episodes,
+    Notifications,
+}
+
+impl Group {
+    fn title(self) -> String {
+        match self {
+            Self::AudioSubtitles => t::show_settings_audio_subtitles(),
+            Self::Episodes => t::settings_group_episodes(),
+            Self::Notifications => t::settings_group_notifications(),
+        }
+    }
+}
+
+/// A row's value in the sheet's words: Subbed or Dubbed for the audio, On or Off.
+pub fn shown(key: S, value: &str) -> String {
     match key {
-        S::Translation if value.starts_with("dub") => "English",
-        S::Translation => "Japanese",
-        _ if value == "on" || value == "true" => "On",
-        _ => "Off",
+        S::Translation if value.starts_with("dub") => t::audio_dubbed(),
+        S::Translation => t::audio_subbed(),
+        _ if value == "on" || value == "true" => t::value_on(),
+        _ => t::value_off(),
     }
 }
 
 /// Following Settings: "Use default · On".
 pub fn use_default(row: &ShowSettingRow) -> String {
-    format!("Use default · {}", shown(row.key, &row.default))
+    t::value_use_default_is(&shown(row.key, &row.default))
 }
 
 /// What a show can set a row to, beside following Settings.
-pub fn choices(key: S) -> Vec<(SettingValue, &'static str)> {
+pub fn choices(key: S) -> Vec<(SettingValue, String)> {
     if key == S::Translation {
         vec![
-            (SettingValue::Str("sub".into()), "Japanese"),
-            (SettingValue::Str("dub".into()), "English"),
+            (SettingValue::Str("sub".into()), t::audio_subbed()),
+            (SettingValue::Str("dub".into()), t::audio_dubbed()),
         ]
     } else {
-        vec![(SettingValue::Bool(true), "On"), (SettingValue::Bool(false), "Off")]
+        vec![
+            (SettingValue::Bool(true), t::value_on()),
+            (SettingValue::Bool(false), t::value_off()),
+        ]
     }
 }
 
@@ -69,12 +89,12 @@ pub fn subtitles(view: &ShowSettingsView, settings: &str) -> String {
         .find(|r| r.translation == translation)
         .and_then(|r| r.subtitles.as_ref());
     match remembered {
-        Some(RememberedSubtitles::Off) => "Off".to_owned(),
+        Some(RememberedSubtitles::Off) => t::value_off(),
         Some(RememberedSubtitles::Track { track }) => {
-            words::track(track.language.as_deref(), &track.title)
+            say::track(track.language.as_deref(), &track.title)
         }
-        None if settings.is_empty() => "Use default".to_owned(),
-        None => format!("Use default · {}", words::language(settings)),
+        None if settings.is_empty() => t::value_use_default(),
+        None => t::value_use_default_is(&say::language(settings)),
     }
 }
 
@@ -96,24 +116,24 @@ pub fn open(ctx: &Rc<Ctx>, id: AnilistId, title: &str) {
     let mut rows = Vec::new();
     let mut subtitles = None;
     for (heading, keys) in GROUPS {
-        let group = adw::PreferencesGroup::builder().title(heading).build();
+        let group = adw::PreferencesGroup::builder().title(heading.title()).build();
         for key in keys {
             let row = adw::ComboRow::builder()
                 .title(title_of(*key))
-                .model(&gtk::StringList::new(&["Use default"]))
+                .model(&gtk::StringList::new(&[t::value_use_default().as_str()]))
                 .build();
             if *key == S::SpoilerProtection {
-                row.set_subtitle("Blurs stills after the next episode.");
+                row.set_subtitle(&t::show_settings_spoiler_detail());
             }
             group.add(&row);
             rows.push((*key, row));
         }
         if *keys == [S::Translation] {
             let row = adw::ActionRow::builder()
-                .title("Subtitles")
-                .subtitle("Remembered from your last episode.")
+                .title(t::player_subtitles())
+                .subtitle(t::show_settings_subs_remembered())
                 .build();
-            let value = widgets::haze("Use default", "");
+            let value = widgets::haze(&t::value_use_default(), "");
             value.set_wrap(false);
             value.set_ellipsize(gtk::pango::EllipsizeMode::End);
             value.set_valign(gtk::Align::Center);
@@ -139,15 +159,14 @@ pub fn open(ctx: &Rc<Ctx>, id: AnilistId, title: &str) {
     group.add(&source);
     page.add(&group);
 
-    let reset = adw::ButtonRow::builder().title("Reset to Defaults").build();
-    let group = adw::PreferencesGroup::builder()
-        .description("Also clears the remembered audio and subtitles.")
-        .build();
+    let reset = adw::ButtonRow::builder().title(t::show_settings_reset()).build();
+    let group =
+        adw::PreferencesGroup::builder().description(t::show_settings_reset_detail()).build();
     group.add(&reset);
     page.add(&group);
 
     let header = adw::HeaderBar::new();
-    header.set_title_widget(Some(&adw::WindowTitle::new(title, "Settings for this show")));
+    header.set_title_widget(Some(&adw::WindowTitle::new(title, &t::show_settings_title())));
     let view = adw::ToolbarView::new();
     view.add_top_bar(&header);
     view.set_content(Some(&page));
@@ -235,16 +254,16 @@ pub fn open(ctx: &Rc<Ctx>, id: AnilistId, title: &str) {
     dialog.present(Some(&ctx.window));
 }
 
-fn title_of(key: S) -> &'static str {
+fn title_of(key: S) -> String {
     match key {
-        S::Translation => "Audio",
-        S::SkipOpening => "Skip opening",
-        S::SkipFiller => "Skip filler",
-        S::SpoilerProtection => "Spoiler protection",
-        S::NotifyNewEpisodes => "New episodes",
-        S::Quality => "Quality",
-        S::DownloadQuality => "Download quality",
-        S::KeepNext => "Keep next episodes",
+        S::Translation => t::settings_audio(),
+        S::SkipOpening => t::show_settings_skip_opening(),
+        S::SkipFiller => t::show_settings_skip_filler(),
+        S::SpoilerProtection => t::settings_spoiler(),
+        S::NotifyNewEpisodes => t::settings_new_episodes(),
+        S::Quality => t::settings_quality(),
+        S::DownloadQuality => t::downloads_quality(),
+        S::KeepNext => t::settings_keep_next(),
     }
 }
 
@@ -255,7 +274,7 @@ impl Sheet {
         for (key, combo) in &self.rows {
             let Some(row) = view.rows.iter().find(|r| r.key == *key) else { continue };
             let mut labels = vec![use_default(row)];
-            labels.extend(choices(*key).into_iter().map(|(_, label)| label.to_owned()));
+            labels.extend(choices(*key).into_iter().map(|(_, label)| label));
             let refs: Vec<&str> = labels.iter().map(String::as_str).collect();
             combo.set_model(Some(&gtk::StringList::new(&refs)));
             let at = row
@@ -300,8 +319,8 @@ mod tests {
 
     #[test]
     fn rows_read_as_the_sheet_says_them() {
-        assert_eq!(shown(S::Translation, "dub"), "English");
-        assert_eq!(shown(S::Translation, "sub"), "Japanese");
+        assert_eq!(shown(S::Translation, "dub"), "Dubbed");
+        assert_eq!(shown(S::Translation, "sub"), "Subbed");
         assert_eq!(shown(S::SkipOpening, "on"), "On");
         assert_eq!(use_default(&row(S::SkipFiller, "off", "off")), "Use default · Off");
     }

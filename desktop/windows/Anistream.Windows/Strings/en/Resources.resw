@@ -35,6 +35,42 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DiscussionAgeNow" xml:space="preserve">
+    <value>now</value>
+    <comment>A comment's age, beside its author, when it was written under a minute ago.</comment>
+  </data>
+  <data name="DiscussionAgeMinutes" xml:space="preserve">
+    <value>{minutes} min</value>
+    <comment>A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeHours" xml:space="preserve">
+    <value>{hours} h</value>
+    <comment>A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeDays" xml:space="preserve">
+    <value>{days} d</value>
+    <comment>A comment's age, beside its author, in days. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeWeeks" xml:space="preserve">
+    <value>{weeks} w</value>
+    <comment>A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeYears" xml:space="preserve">
+    <value>{years} y</value>
+    <comment>A comment's age, beside its author, in years. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="NoticeCommentLikeFailed" xml:space="preserve">
+    <value>Couldn't like the comment. Try again.</value>
+    <comment>Toast when a like on a comment did not reach AniList. The like is taken back.</comment>
+  </data>
+  <data name="NoticeCommentDeleteFailed" xml:space="preserve">
+    <value>Couldn't delete the comment. Try again.</value>
+    <comment>Toast when a comment could not be deleted on AniList. The comment stays.</comment>
+  </data>
+  <data name="NoticeDiscussionSignIn" xml:space="preserve">
+    <value>Sign in with AniList to like and reply.</value>
+    <comment>Toast when the viewer tried to like or post in a discussion without signing in to AniList.</comment>
+  </data>
   <data name="NoticeReason" xml:space="preserve">
     <value>{reason}</value>
     <comment>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</comment>
@@ -1303,10 +1339,6 @@
     <value>{label}. {detail}</value>
     <comment>Screen reader name of a protection choice: its name, then what it does.</comment>
   </data>
-  <data name="SettingsSeedingOpenOnly" xml:space="preserve">
-    <value>Seeding runs only while anistream is open.</value>
-    <comment>Line under the Seeding heading: seeding stops when the app closes. Same words as Android's downloads-seeding-open-only, which is limited to Android.</comment>
-  </data>
   <data name="TrayStillDownloading" xml:space="preserve">
     <value>anistream is still downloading</value>
     <comment>The notification area icon's balloon, the first time the window closes with downloads running: its title.</comment>
@@ -1346,14 +1378,6 @@
   <data name="CloseAsk" xml:space="preserve">
     <value>Keep them going after the window closes, or stop them?</value>
     <comment>The close dialog's question, after the counts.</comment>
-  </data>
-  <data name="CloseDontAsk" xml:space="preserve">
-    <value>Don't ask again</value>
-    <comment>The close dialog's check box: remember the answer.</comment>
-  </data>
-  <data name="CloseKeepGoing" xml:space="preserve">
-    <value>Keep going</value>
-    <comment>The close dialog's main button: the window goes, the downloads go on.</comment>
   </data>
   <data name="CloseStop" xml:space="preserve">
     <value>Stop and close</value>
@@ -1411,14 +1435,6 @@
     <value>In version {version}</value>
     <comment>Heading over a new version's notes in About.</comment>
   </data>
-  <data name="UpdatesRestart" xml:space="preserve">
-    <value>Restart to update</value>
-    <comment>Button: installs the downloaded update and opens the app again.</comment>
-  </data>
-  <data name="UpdatesDownload" xml:space="preserve">
-    <value>Download update</value>
-    <comment>Button in About: downloads the new version.</comment>
-  </data>
   <data name="UpdatesOpenPage" xml:space="preserve">
     <value>Open the download page</value>
     <comment>Button in About when this copy can't install updates itself: opens the new version's download page.</comment>
@@ -1434,10 +1450,6 @@
   <data name="NagareName" xml:space="preserve">
     <value>Nagare, the anistream mascot</value>
     <comment>Screen reader name of the mascot drawn in empty states.</comment>
-  </data>
-  <data name="ShortcutsTitle" xml:space="preserve">
-    <value>Keyboard shortcuts</value>
-    <comment>The keyboard shortcuts dialog's title, and its own line in the list.</comment>
   </data>
   <data name="ShortcutsWindow" xml:space="preserve">
     <value>Window</value>
@@ -1459,14 +1471,6 @@
     <value>{key}, Menu key</value>
     <comment>Keys for the context menu: a key, then the keyboard's Menu key.</comment>
   </data>
-  <data name="ShortcutsContextMenu" xml:space="preserve">
-    <value>Context menu</value>
-    <comment>Shortcut: opens the focused item's context menu.</comment>
-  </data>
-  <data name="ShortcutsPlayPause" xml:space="preserve">
-    <value>Play or pause</value>
-    <comment>Shortcut in the player.</comment>
-  </data>
   <data name="ShortcutsSeek" xml:space="preserve">
     <value>Back or forward 5 s, 30 s with Shift</value>
     <comment>Shortcut in the player: the arrow keys seek 5 seconds, 30 with Shift held.</comment>
@@ -1475,19 +1479,11 @@
     <value>Back or forward 10 s</value>
     <comment>Shortcut in the player: J and L seek 10 seconds.</comment>
   </data>
-  <data name="ShortcutsMute" xml:space="preserve">
-    <value>Mute</value>
-    <comment>Shortcut in the player.</comment>
-  </data>
-  <data name="ShortcutsSkip" xml:space="preserve">
+  <data name="ShortcutsSkipUndo" xml:space="preserve">
     <value>Skip, undo the skip</value>
     <comment>Shortcut in the player: skips an opening or ending, and a second key undoes it.</comment>
   </data>
-  <data name="ShortcutsNextPrevious" xml:space="preserve">
-    <value>Next or previous episode</value>
-    <comment>Shortcut in the player.</comment>
-  </data>
-  <data name="ShortcutsSpeed" xml:space="preserve">
+  <data name="ShortcutsSpeedReset" xml:space="preserve">
     <value>Slower, faster, normal speed</value>
     <comment>Shortcut in the player: three keys for playback speed.</comment>
   </data>
@@ -1515,17 +1511,9 @@
     <value>Connecting to the TV</value>
     <comment>Title of the pairing sheet while it connects to a TV whose name it does not know yet.</comment>
   </data>
-  <data name="TvPairedSeen" xml:space="preserve">
-    <value>{paired} · seen {ago}</value>
-    <comment>Under a paired TV's name in Settings: when it was paired, then how long ago this { -device } last saw it. Both are already formatted, as in "Paired 12 Oct · seen 5m ago".</comment>
-  </data>
   <data name="TvDeviceCode" xml:space="preserve">
     <value>A TV lists this device with the code {code}. Forget a TV here and it forgets this device too.</value>
     <comment>Under the paired TVs in Settings. The code is a few letters and digits the TV shows beside this { -device }.</comment>
-  </data>
-  <data name="TvVolumeOf" xml:space="preserve">
-    <value>{volume} of 100</value>
-    <comment>The TV's volume on the remote, out of 100.</comment>
   </data>
   <data name="TvUnnamed" xml:space="preserve">
     <value>TV</value>
@@ -1538,14 +1526,6 @@
   <data name="TvVolumeLabel" xml:space="preserve">
     <value>TV volume</value>
     <comment>Label of the row on the remote with the TV's volume buttons.</comment>
-  </data>
-  <data name="TvVolumeDown" xml:space="preserve">
-    <value>Volume down</value>
-    <comment>Name read by a screen reader for the remote's button that turns the TV down.</comment>
-  </data>
-  <data name="TvVolumeUp" xml:space="preserve">
-    <value>Volume up</value>
-    <comment>Name read by a screen reader for the remote's button that turns the TV up.</comment>
   </data>
   <data name="TvWaiting" xml:space="preserve">
     <value>Waiting for the TV</value>
@@ -1575,10 +1555,6 @@
     <value>{setting}, {value}</value>
     <comment>Name read by a screen reader for a track button on the remote: the setting, then the track chosen, as in "Subtitles, English".</comment>
   </data>
-  <data name="PartyOpenSources" xml:space="preserve">
-    <value>Open sources</value>
-    <comment>Button that opens the Sources page, in the dialog shown when this { -device } has no { -source-pl } for the room's episode.</comment>
-  </data>
   <data name="PartyChooseSourceFor" xml:space="preserve">
     <value>Choose a source for episode {episode}</value>
     <comment>Title of the dialog once it lists what each { -source } has for the room's episode. The episode is its label, such as 5 or 5.5.</comment>
@@ -1586,10 +1562,6 @@
   <data name="PartyPlayWith" xml:space="preserve">
     <value>Play with the watch party</value>
     <comment>Button that plays the chosen { -source } in step with the room.</comment>
-  </data>
-  <data name="PartyLookingSources" xml:space="preserve">
-    <value>Looking through your sources…</value>
-    <comment>While the dialog asks every { -source } for the room's episode.</comment>
   </data>
   <data name="PartyNoSourceLists" xml:space="preserve">
     <value>No source lists episode {episode}. Sources come from plugins, which a plugin store adds.</value>
@@ -1602,10 +1574,6 @@
   <data name="PartyNosourceUnairedWhen" xml:space="preserve">
     <value>{when} Your sources won't have it before then. It plays with the room once one of them does.</value>
     <comment>Under that title: when it airs, as the schedule says it in full sentences, then what happens next.</comment>
-  </data>
-  <data name="PartyNeedsConnection" xml:space="preserve">
-    <value>A watch party needs a connection. You're offline.</value>
-    <comment>In the watch party's dialog when this { -device } has no connection. Shown in place of the form's status.</comment>
   </data>
   <data name="SourcesCheck" xml:space="preserve">
     <value>Check sources</value>
@@ -1715,49 +1683,9 @@
     <value>proxy.example</value>
     <comment>Greyed example inside the torrent proxy's host box. Keep it an address on a reserved example domain.</comment>
   </data>
-  <data name="TvProblemWrongCode" xml:space="preserve">
-    <value>That code didn't match. Check the code on the TV and try again.</value>
-    <comment>Under the code box when the six digits typed do not match the TV's.</comment>
-  </data>
   <data name="TvProblemNoCode" xml:space="preserve">
     <value>That code has expired. Ask the TV for a new one.</value>
     <comment>When the TV's code has run out. The pairing starts again with a new code.</comment>
-  </data>
-  <data name="TvProblemFull" xml:space="preserve">
-    <value>This TV has as many devices paired as it can keep. Remove one in the TV's Settings, under Remotes.</value>
-    <comment>When the TV cannot keep another paired { -device }.</comment>
-  </data>
-  <data name="TvProblemBusy" xml:space="preserve">
-    <value>The TV is connected to as many devices as it can. Try again soon.</value>
-    <comment>When the TV is already connected to as many devices as it can serve.</comment>
-  </data>
-  <data name="TvProblemVersion" xml:space="preserve">
-    <value>The TV runs another version of anistream. Update both to the same one.</value>
-    <comment>When the TV and this app run different versions.</comment>
-  </data>
-  <data name="TvProblemNotNow" xml:space="preserve">
-    <value>Nothing is playing on the TV.</value>
-    <comment>When a remote control action needs something playing and nothing is.</comment>
-  </data>
-  <data name="TvProblemUnpaired" xml:space="preserve">
-    <value>The TV doesn't know this device anymore. Pair again.</value>
-    <comment>When the TV has forgotten this { -device }.</comment>
-  </data>
-  <data name="TvProblemKeyChanged" xml:space="preserve">
-    <value>The TV was reset or reinstalled since you paired. Pair again.</value>
-    <comment>When the TV's key changed since pairing, as after a reset or reinstall.</comment>
-  </data>
-  <data name="TvProblemUnreachable" xml:space="preserve">
-    <value>Can't reach the TV. Check that it's on, with anistream open, on the same network.</value>
-    <comment>When the TV does not answer.</comment>
-  </data>
-  <data name="TvProblemGone" xml:space="preserve">
-    <value>That TV is no longer on the network.</value>
-    <comment>When a TV picked from the list has left the network.</comment>
-  </data>
-  <data name="TvProblemNotALink" xml:space="preserve">
-    <value>That isn't a TV's pairing code or address.</value>
-    <comment>When the typed text or scanned code is not a TV's pairing code or address.</comment>
   </data>
   <data name="SourcePickerSeeders_one" xml:space="preserve">
     <value>One seeder</value>
@@ -1767,13 +1695,9 @@
     <value>{count} seeders</value>
     <comment>Under a release in the source picker: how many people share it right now.</comment>
   </data>
-  <data name="TimeJustNow" xml:space="preserve">
+  <data name="TimeJustNowInline" xml:space="preserve">
     <value>just now</value>
     <comment>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</comment>
-  </data>
-  <data name="EpisodeLineDubbed" xml:space="preserve">
-    <value>{label} · Dubbed</value>
-    <comment>An episode line for a dubbed episode: the episode as the line names it, then the mark.</comment>
   </data>
   <data name="RatePerSecond" xml:space="preserve">
     <value>{size}/s</value>
@@ -2250,6 +2174,114 @@
   <data name="StateLoading" xml:space="preserve">
     <value>Loading</value>
     <comment>Short placeholder while something loads.</comment>
+  </data>
+  <data name="CloseDontAsk" xml:space="preserve">
+    <value>Don't ask again</value>
+    <comment>Checkbox of the close question.</comment>
+  </data>
+  <data name="CloseKeepGoing" xml:space="preserve">
+    <value>Keep going</value>
+    <comment>Response of the close question: keep it running in the background.</comment>
+  </data>
+  <data name="PartyLookingSources" xml:space="preserve">
+    <value>Looking through your sources…</value>
+    <comment>Line while the sources are searched for the watch party's episode.</comment>
+  </data>
+  <data name="PartyNeedsConnection" xml:space="preserve">
+    <value>A watch party needs a connection. You're offline.</value>
+    <comment>Foot of the watch party form while the device is offline.</comment>
+  </data>
+  <data name="PartyOpenSources" xml:space="preserve">
+    <value>Open sources</value>
+    <comment>Button that goes to the Sources page, when the watch party's episode has no source because none are set up.</comment>
+  </data>
+  <data name="SettingsSeedingOpenOnly" xml:space="preserve">
+    <value>Seeding runs only while anistream is open.</value>
+    <comment>Line under the seeding group in Settings: seeding stops when the app closes.</comment>
+  </data>
+  <data name="ShortcutsContextMenu" xml:space="preserve">
+    <value>Context menu</value>
+    <comment>Shortcut: open the context menu of the title that has focus.</comment>
+  </data>
+  <data name="ShortcutsMute" xml:space="preserve">
+    <value>Mute</value>
+    <comment>Shortcut: mute the sound.</comment>
+  </data>
+  <data name="ShortcutsNextPrevious" xml:space="preserve">
+    <value>Next or previous episode</value>
+    <comment>Shortcut: move between episodes.</comment>
+  </data>
+  <data name="ShortcutsPlayPause" xml:space="preserve">
+    <value>Play or pause</value>
+    <comment>Shortcut: pause or resume.</comment>
+  </data>
+  <data name="ShortcutsTitle" xml:space="preserve">
+    <value>Keyboard shortcuts</value>
+    <comment>Title of the keyboard shortcuts window.</comment>
+  </data>
+  <data name="TvPairedSeen" xml:space="preserve">
+    <value>{paired} · seen {ago}</value>
+    <comment>Settings line of a paired TV: paired on a date, last seen a while ago.</comment>
+  </data>
+  <data name="TvProblemBusy" xml:space="preserve">
+    <value>The TV is connected to as many devices as it can. Try again soon.</value>
+    <comment>The TV cannot take another connection now.</comment>
+  </data>
+  <data name="TvProblemGone" xml:space="preserve">
+    <value>That TV is no longer on the network.</value>
+    <comment>The TV picked in the list has left the network.</comment>
+  </data>
+  <data name="TvProblemKeyChanged" xml:space="preserve">
+    <value>The TV was reset or reinstalled since you paired. Pair again.</value>
+    <comment>The TV's key changed since pairing.</comment>
+  </data>
+  <data name="TvProblemNotALink" xml:space="preserve">
+    <value>That isn't a TV's pairing code or address.</value>
+    <comment>What was typed or scanned is not a TV's code or address.</comment>
+  </data>
+  <data name="TvProblemNotNow" xml:space="preserve">
+    <value>Nothing is playing on the TV.</value>
+    <comment>A command needs something playing and nothing is.</comment>
+  </data>
+  <data name="TvProblemUnreachable" xml:space="preserve">
+    <value>Can't reach the TV. Check that it's on, with anistream open, on the same network.</value>
+    <comment>The TV did not answer.</comment>
+  </data>
+  <data name="TvProblemVersion" xml:space="preserve">
+    <value>The TV runs another version of anistream. Update both to the same one.</value>
+    <comment>The TV and this app speak different versions.</comment>
+  </data>
+  <data name="TvProblemWrongCode" xml:space="preserve">
+    <value>That code didn't match. Check the code on the TV and try again.</value>
+    <comment>The pairing code typed did not match.</comment>
+  </data>
+  <data name="TvVolumeDown" xml:space="preserve">
+    <value>Volume down</value>
+    <comment>Accessible label of the button that turns the TV down.</comment>
+  </data>
+  <data name="TvVolumeOf" xml:space="preserve">
+    <value>{volume} of 100</value>
+    <comment>The TV's volume as a value of 100.</comment>
+  </data>
+  <data name="TvVolumeUp" xml:space="preserve">
+    <value>Volume up</value>
+    <comment>Accessible label of the button that turns the TV up.</comment>
+  </data>
+  <data name="UpdatesDownload" xml:space="preserve">
+    <value>Download update</value>
+    <comment>Button that downloads the new version of the app.</comment>
+  </data>
+  <data name="UpdatesRestart" xml:space="preserve">
+    <value>Restart to update</value>
+    <comment>Button that closes the app and opens the new version it has put in place.</comment>
+  </data>
+  <data name="TvProblemFull" xml:space="preserve">
+    <value>This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.</value>
+    <comment>The TV cannot take another paired device.</comment>
+  </data>
+  <data name="TvProblemUnpaired" xml:space="preserve">
+    <value>The TV doesn't know this device any more. Pair again.</value>
+    <comment>The TV has forgotten this computer.</comment>
   </data>
   <data name="DownloadsTitle" xml:space="preserve">
     <value>Downloads</value>
@@ -5502,6 +5534,10 @@
   <data name="MoreShowSpoilerTags_other" xml:space="preserve">
     <value>Show {count} spoiler tags</value>
     <comment>Button that shows the spoiler tags.</comment>
+  </data>
+  <data name="EpisodeLineDubbed" xml:space="preserve">
+    <value>{line} · Dubbed</value>
+    <comment>An episode's line with the audio it was watched in marked, as Continue and the title page word it.</comment>
   </data>
   <data name="TorrentsTitle" xml:space="preserve">
     <value>Torrents</value>

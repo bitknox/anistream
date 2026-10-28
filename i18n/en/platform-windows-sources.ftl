@@ -21,21 +21,10 @@ episode-label-of = Episode { $episode } of { $title }
 # @only windows
 tv-connecting-to-tv = Connecting to the TV
 
-# Under a paired TV's name in Settings: when it was paired, then how long ago this { -device } last saw it. Both are already formatted, as in "Paired 12 Oct · seen 5m ago".
-# @only windows
-# @arg paired: text
-# @arg ago: text
-tv-paired-seen = { $paired } · seen { $ago }
-
 # Under the paired TVs in Settings. The code is a few letters and digits the TV shows beside this { -device }.
 # @only windows
 # @arg code: text
 tv-device-code = A TV lists this { -device } with the code { $code }. Forget a TV here and it forgets this { -device } too.
-
-# The TV's volume on the remote, out of 100.
-# @only windows
-# @arg volume: int
-tv-volume-of = { $volume } of 100
 
 # What the remote calls a TV that has not said its name yet. Title of the remote.
 # @only windows
@@ -49,14 +38,6 @@ tv-another-short = Another TV…
 # Label of the row on the remote with the TV's volume buttons.
 # @only windows
 tv-volume-label = TV volume
-
-# Name read by a screen reader for the remote's button that turns the TV down.
-# @only windows
-tv-volume-down = Volume down
-
-# Name read by a screen reader for the remote's button that turns the TV up.
-# @only windows
-tv-volume-up = Volume up
 
 # While pairing, until the TV answers and before its name is known.
 # @only windows
@@ -97,10 +78,6 @@ tv-setting-value = { $setting }, { $value }
 
 ## Watch party, when no source has the room's episode
 
-# Button that opens the Sources page, in the dialog shown when this { -device } has no { -source-pl } for the room's episode.
-# @only windows
-party-open-sources = Open { -source-pl }
-
 # Title of the dialog once it lists what each { -source } has for the room's episode. The episode is its label, such as 5 or 5.5.
 # @only windows
 # @arg episode: text
@@ -109,10 +86,6 @@ party-choose-source-for = Choose a { -source } for episode { $episode }
 # Button that plays the chosen { -source } in step with the room.
 # @only windows
 party-play-with = Play with the { -watch-party }
-
-# While the dialog asks every { -source } for the room's episode.
-# @only windows
-party-looking-sources = Looking through your { -source-pl }…
 
 # When no { -source } lists the room's episode. The episode is its label, such as 5 or 5.5.
 # @only windows
@@ -128,10 +101,6 @@ party-nosource-unaired-title = Episode { $episode } isn't out yet
 # @only windows
 # @arg when: text
 party-nosource-unaired-when = { $when } Your { -source-pl } won't have it before then. It plays with the room once one of them does.
-
-# In the watch party's dialog when this { -device } has no connection. Shown in place of the form's status.
-# @only windows
-party-needs-connection = A { -watch-party } needs a connection. You're offline.
 
 ## Sources page
 
@@ -270,46 +239,6 @@ torrents-proxy-host-example = proxy.example
 
 ## Play on TV: why the link failed
 
-# Under the code box when the six digits typed do not match the TV's.
-# @only windows
-tv-problem-wrong-code = That code didn't match. Check the code on the TV and try again.
-
 # When the TV's code has run out. The pairing starts again with a new code.
 # @only windows
 tv-problem-no-code = That code has expired. Ask the TV for a new one.
-
-# When the TV cannot keep another paired { -device }.
-# @only windows
-tv-problem-full = This TV has as many { -device-pl } paired as it can keep. Remove one in the TV's Settings, under Remotes.
-
-# When the TV is already connected to as many devices as it can serve.
-# @only windows
-tv-problem-busy = The TV is connected to as many { -device-pl } as it can. Try again soon.
-
-# When the TV and this app run different versions.
-# @only windows
-tv-problem-version = The TV runs another version of { -app-name }. Update both to the same one.
-
-# When a remote control action needs something playing and nothing is.
-# @only windows
-tv-problem-not-now = Nothing is playing on the TV.
-
-# When the TV has forgotten this { -device }.
-# @only windows
-tv-problem-unpaired = The TV doesn't know this { -device } anymore. Pair again.
-
-# When the TV's key changed since pairing, as after a reset or reinstall.
-# @only windows
-tv-problem-key-changed = The TV was reset or reinstalled since you paired. Pair again.
-
-# When the TV does not answer.
-# @only windows
-tv-problem-unreachable = Can't reach the TV. Check that it's on, with { -app-name } open, on the same network.
-
-# When a TV picked from the list has left the network.
-# @only windows
-tv-problem-gone = That TV is no longer on the network.
-
-# When the typed text or scanned code is not a TV's pairing code or address.
-# @only windows
-tv-problem-not-a-link = That isn't a TV's pairing code or address.

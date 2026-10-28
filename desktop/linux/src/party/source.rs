@@ -1,13 +1,14 @@
 //! A party's episode that none of this device's sources found: the viewer is in the room with
 //! nothing playing. The alert says why and offers what fits: nothing to choose before the
-//! episode airs, Providers when there are no sources, and Choose Source otherwise, which lists
-//! what each source has for the episode, the one picked playing with the room. Not Now stays in
-//! the room, and Leave Party leaves it.
+//! episode airs, Open sources when there are none, and Choose source otherwise, which lists
+//! what each source has for the episode, the one picked playing with the room. Not now stays in
+//! the room, and Leave watch party leaves it.
 
 use std::{cell::Cell, rc::Rc};
 
 use adw::prelude::*;
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
+use anistream_i18n::t;
 use anistream_model::{command::Command, event::Event, notice::NoticeKind, party::NoSourceWhy};
 
 use crate::{
@@ -19,17 +20,17 @@ use crate::{
 pub fn open(ctx: &Rc<Ctx>, id: AnilistId, episode: &str, why: NoSourceWhy, reason: &str) {
     let (heading, body) = words(ctx, id, episode, why, reason);
     let dialog = adw::AlertDialog::new(Some(&heading), Some(&body));
-    dialog.add_responses(&[("later", "Not Now"), ("leave", "Leave Party")]);
+    dialog.add_responses(&[("later", &t::party_not_now()), ("leave", &t::party_leave())]);
     dialog.set_close_response("later");
     match why {
         NoSourceWhy::NotAired => dialog.set_default_response(Some("later")),
         NoSourceWhy::NoSources => {
-            dialog.add_response("providers", "Open Providers");
+            dialog.add_response("providers", &t::party_open_sources());
             dialog.set_response_appearance("providers", adw::ResponseAppearance::Suggested);
             dialog.set_default_response(Some("providers"));
         }
         NoSourceWhy::NotFound => {
-            dialog.add_response("choose", "Choose Source");
+            dialog.add_response("choose", &t::player_choose_source());
             dialog.set_response_appearance("choose", adw::ResponseAppearance::Suggested);
             dialog.set_default_response(Some("choose"));
         }
@@ -66,67 +67,30 @@ fn words(
     reason: &str,
 ) -> (String, String) {
     let place = match ctx.hub.known.borrow().party.as_ref() {
-        Some(party) => {
-            format!("You're in {} on {}, with nothing playing.", party.room, party.server)
-        }
-        None => "You're in the room, with nothing playing.".into(),
+        Some(party) => t::party_in_room_idle(&party.room, &party.server),
+        None => t::party_in_room_idle_plain(),
     };
     let what = super::episode_of(ctx, id, episode);
     match why {
-        NoSourceWhy::NotAired => {
-            // The schedule's own words lead: "Episode 6 airs Tuesday at 13:05", or the episode
-            // not out yet with when the next one is.
-            let said = at_time(reason);
-            match said.split_once("; ") {
-                Some((first, then)) => (
-                    crate::catalog::shown(first),
-                    format!(
-                        "{place} {}. Your sources won't have episode {episode} before it's out.",
-                        crate::catalog::shown(then)
-                    ),
-                ),
-                None => (
-                    crate::catalog::shown(&said),
-                    format!(
-                        "{place} Your sources won't have it before then. It plays with the room \
-                         once one of them does."
-                    ),
-                ),
-            }
-        }
+        // The schedule's own words lead: "Episode 6 airs Tuesday at 13:05", or the episode not
+        // out yet with when the next one is.
+        NoSourceWhy::NotAired => (
+            reason.trim_end_matches('.').to_owned(),
+            [place.as_str(), &t::party_nosource_unaired_plain()].join(" "),
+        ),
         NoSourceWhy::NoSources => (
-            "You have no sources yet".into(),
-            format!(
-                "{place} Sources come from plugins, which Providers adds. {what} plays with the \
-                 room once one of them has it."
-            ),
+            t::party_nosource_none_title(),
+            [place.as_str(), &t::party_nosource_none_detail(&what)].join(" "),
         ),
         NoSourceWhy::NotFound => (
-            "None of your sources has this episode".into(),
-            format!(
-                "{place} {}. {what} plays with the room once you choose a source that has it.",
-                crate::catalog::shown(reason.trim_end_matches('.'))
-            ),
+            t::party_nosource_missing_title(),
+            [
+                place.as_str(),
+                &t::party_nosource_missing_detail(reason.trim_end_matches('.'), &what),
+            ]
+            .join(" "),
         ),
     }
-}
-
-/// A schedule's time read as one: "airs Tuesday 13:05" as "airs Tuesday at 13:05".
-fn at_time(text: &str) -> String {
-    let is_time = |word: &str| {
-        let Some((hours, minutes)) = word.split_once(':') else { return false };
-        let digits = |s: &str| s.bytes().all(|b| b.is_ascii_digit());
-        (1..=2).contains(&hours.len()) && minutes.len() == 2 && digits(hours) && digits(minutes)
-    };
-    let mut out: Vec<&str> = Vec::new();
-    for word in text.split(' ') {
-        let bare = word.trim_end_matches([';', '.', ',']);
-        if is_time(bare) && out.last() != Some(&"at") {
-            out.push("at");
-        }
-        out.push(word);
-    }
-    out.join(" ")
 }
 
 /// Close `dialog` when the party ends.
@@ -169,13 +133,13 @@ pub fn choose(ctx: &Rc<Ctx>, id: AnilistId, episode: &str) {
     let header = adw::HeaderBar::new();
     header.set_show_end_title_buttons(false);
     header.set_show_start_title_buttons(false);
-    let cancel = gtk::Button::with_label("Cancel");
+    let cancel = gtk::Button::with_label(&t::action_cancel());
     header.pack_start(&cancel);
-    let again = gtk::Button::with_label("Try Again");
+    let again = gtk::Button::with_label(&t::action_try_again());
     again.add_css_class("suggested-action");
     again.set_visible(false);
     header.pack_end(&again);
-    let providers = gtk::Button::with_label("Open Providers");
+    let providers = gtk::Button::with_label(&t::party_open_sources());
     providers.add_css_class("suggested-action");
     providers.set_visible(false);
     header.pack_end(&providers);
@@ -195,7 +159,7 @@ pub fn choose(ctx: &Rc<Ctx>, id: AnilistId, episode: &str) {
     let mark = gtk::Image::from_icon_name("dialog-error-symbolic");
     mark.add_css_class("error");
     mark.set_visible(false);
-    let line = widgets::haze("Looking through your sources…", "");
+    let line = widgets::haze(&t::party_looking_sources(), "");
     line.set_hexpand(true);
     let waiting = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     waiting.append(&spinner);
@@ -204,7 +168,7 @@ pub fn choose(ctx: &Rc<Ctx>, id: AnilistId, episode: &str) {
     column.append(&waiting);
     let list = widgets::boxed_list();
     list.set_visible(false);
-    list.update_property(&[gtk::accessible::Property::Label("Sources for this episode")]);
+    list.update_property(&[gtk::accessible::Property::Label(&t::party_sources_label())]);
     column.append(&list);
     if ctx.size() != Size::Narrow {
         column.set_size_request(460, -1);
@@ -219,7 +183,7 @@ pub fn choose(ctx: &Rc<Ctx>, id: AnilistId, episode: &str) {
     view.add_top_bar(&header);
     view.set_content(Some(&scroll));
     let dialog = adw::Dialog::builder()
-        .title("Choose a Source")
+        .title(t::party_choose_a_source())
         .follows_content_size(true)
         .child(&view)
         .build();
@@ -277,7 +241,7 @@ pub fn choose(ctx: &Rc<Ctx>, id: AnilistId, episode: &str) {
                 Event::Toast(notice)
                     if state.looking.get() && notice.kind == NoticeKind::Alert =>
                 {
-                    state.failed(&notice.text);
+                    state.failed(&notice.msg.as_ref().map(crate::say::msg).unwrap_or_default());
                 }
                 _ => {}
             }
@@ -306,7 +270,7 @@ impl Choose {
         self.spinner.set_visible(true);
         self.mark.set_visible(false);
         self.line.add_css_class("haze");
-        self.line.set_label("Looking through your sources…");
+        self.line.set_label(&t::party_looking_sources());
         self.list.set_visible(false);
         self.ctx.hub.send(Command::LoadSources { id: self.id, episode: self.episode.clone() });
     }
@@ -317,7 +281,7 @@ impl Choose {
         self.mark.set_visible(true);
         // The reason in silk beside the mark.
         self.line.remove_css_class("haze");
-        self.line.set_label(&crate::catalog::shown(why));
+        self.line.set_label(why);
         self.again.set_visible(true);
     }
 
@@ -328,18 +292,11 @@ impl Choose {
             self.list.remove(&row);
         }
         if found.is_empty() {
-            self.line.set_label(&format!(
-                "No source lists episode {}. Sources come from plugins, which Providers adds.",
-                self.episode
-            ));
+            self.line.set_label(&t::party_sources_none_listed(super::number(&self.episode)));
             self.providers.set_visible(true);
             return;
         }
-        self.line.set_label(&if found.len() == 1 {
-            "1 source has it. The one you choose plays with the party.".to_owned()
-        } else {
-            format!("{} sources have it. The one you choose plays with the party.", found.len())
-        });
+        self.line.set_label(&t::party_sources_found_line(found.len() as i64));
         for candidate in found {
             let row = adw::ActionRow::builder()
                 .title(gtk::glib::markup_escape_text(&candidate.title))
@@ -379,23 +336,7 @@ fn detail(candidate: &SourceCandidate) -> String {
         parts.push(size.to_owned());
     }
     if let Some(seeders) = candidate.seeders {
-        parts.push(anistream_model::wording::plural(seeders as usize, "seeder"));
+        parts.push(t::source_picker_seeders_linux(i64::from(seeders)));
     }
     parts.join(" · ")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_time_in_the_schedule_reads_with_at() {
-        assert_eq!(at_time("episode 4 airs today 18:30"), "episode 4 airs today at 18:30");
-        assert_eq!(
-            at_time("episode 6 hasn't aired yet; episode 5 airs Monday 2 November 9:05"),
-            "episode 6 hasn't aired yet; episode 5 airs Monday 2 November at 9:05"
-        );
-        assert_eq!(at_time("airs at 18:30"), "airs at 18:30");
-        assert_eq!(at_time("could not match 1:2"), "could not match 1:2");
-    }
 }

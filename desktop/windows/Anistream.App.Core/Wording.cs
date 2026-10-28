@@ -59,7 +59,7 @@ public static class Wording
     }
 
     /// <summary>"2d ago", or "just now" under a minute.</summary>
-    public static string Ago(long seconds) => seconds < 60 ? T.TimeJustNow : T.TimeAgo(Countdown(seconds));
+    public static string Ago(long seconds) => seconds < 60 ? T.TimeJustNowInline : T.TimeAgo(Countdown(seconds));
 
     /// <summary>"in 4d 20h".</summary>
     public static string In(long seconds) => T.TimeIn(Countdown(seconds));

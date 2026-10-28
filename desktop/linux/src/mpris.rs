@@ -14,6 +14,9 @@ pub const NAME: &str = "org.mpris.MediaPlayer2.anistream";
 const PATH: &str = "/org/mpris/MediaPlayer2";
 const ROOT: &str = "org.mpris.MediaPlayer2";
 const PLAYER: &str = "org.mpris.MediaPlayer2.Player";
+/// The two properties a client may set.
+const VOLUME: &str = "Volume"; // i18n-skip
+const RATE: &str = "Rate"; // i18n-skip
 
 const INTERFACES: &str = r#"<node>
   <interface name="org.mpris.MediaPlayer2">
@@ -55,7 +58,7 @@ const INTERFACES: &str = r#"<node>
     <property name="CanSeek" type="b" access="read"/>
     <property name="CanControl" type="b" access="read"/>
   </interface>
-</node>"#;
+</node>"#; // i18n-skip
 
 /// What the media controls ask the player to do.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -111,9 +114,9 @@ pub struct Media {
 impl Media {
     pub fn status(&self) -> &'static str {
         match (&self.track, self.paused) {
-            (None, _) => "Stopped",
-            (Some(_), true) => "Paused",
-            (Some(_), false) => "Playing",
+            (None, _) => "Stopped",        // i18n-skip
+            (Some(_), true) => "Paused",   // i18n-skip
+            (Some(_), false) => "Playing", // i18n-skip
         }
     }
 
@@ -147,17 +150,17 @@ impl Media {
     fn player_property(&self, name: &str) -> Option<glib::Variant> {
         let playing = self.track.is_some();
         Some(match name {
-            "PlaybackStatus" => self.status().to_variant(),
-            "Rate" => self.rate.to_variant(),
+            "PlaybackStatus" => self.status().to_variant(), // i18n-skip
+            "Rate" => self.rate.to_variant(),               // i18n-skip
             "MinimumRate" => RATES.0.to_variant(),
             "MaximumRate" => RATES.1.to_variant(),
-            "Metadata" => self.metadata(),
-            "Volume" => self.volume.to_variant(),
+            "Metadata" => self.metadata(),        // i18n-skip
+            "Volume" => self.volume.to_variant(), // i18n-skip
             "Position" => micros(self.position).to_variant(),
-            "CanGoNext" => (playing && self.has_next).to_variant(),
-            "CanGoPrevious" => (playing && self.has_previous).to_variant(),
-            "CanPlay" | "CanPause" => playing.to_variant(),
-            "CanSeek" => (playing && self.length.is_some()).to_variant(),
+            "CanGoNext" => (playing && self.has_next).to_variant(), // i18n-skip
+            "CanGoPrevious" => (playing && self.has_previous).to_variant(), // i18n-skip
+            "CanPlay" | "CanPause" => playing.to_variant(),         // i18n-skip
+            "CanSeek" => (playing && self.length.is_some()).to_variant(), // i18n-skip
             "CanControl" => true.to_variant(),
             _ => return None,
         })
@@ -166,13 +169,13 @@ impl Media {
 
 /// The properties a new track or its end changes.
 const EVERYTHING: [&str; 7] = [
-    "Metadata",
-    "PlaybackStatus",
-    "CanGoNext",
-    "CanGoPrevious",
-    "CanPlay",
-    "CanPause",
-    "CanSeek",
+    "Metadata",       // i18n-skip
+    "PlaybackStatus", // i18n-skip
+    "CanGoNext",      // i18n-skip
+    "CanGoPrevious",  // i18n-skip
+    "CanPlay",        // i18n-skip
+    "CanPause",       // i18n-skip
+    "CanSeek",        // i18n-skip
 ];
 
 /// The desktop entry the controls take the app's name and icon from: the AppImage's own when
@@ -288,13 +291,13 @@ impl Mpris {
             .set_property(move |_, _, _, _, name, value| {
                 let Some(mpris) = set_media.upgrade() else { return false };
                 match (name, value.get::<f64>()) {
-                    ("Volume", Some(volume)) => {
+                    (VOLUME, Some(volume)) => {
                         let volume = volume.clamp(0.0, 1.0);
                         mpris.media.borrow_mut().volume = volume;
                         set_act(Action::Volume(volume));
                         true
                     }
-                    ("Rate", Some(rate)) if rate > 0.0 => {
+                    (RATE, Some(rate)) if rate > 0.0 => {
                         set_act(Action::Rate(rate.clamp(RATES.0, RATES.1)));
                         true
                     }
@@ -332,7 +335,7 @@ impl Mpris {
             track.show = show.to_owned();
             track.title = title.to_owned();
         }
-        self.changed(&["Metadata"]);
+        self.changed(&["Metadata"]); // i18n-skip
     }
 
     /// Where the player stands: paused or not, the position and the length. Says what changed,
@@ -347,13 +350,13 @@ impl Mpris {
             }
             if media.paused != paused {
                 media.paused = paused;
-                said.push("PlaybackStatus");
+                said.push("PlaybackStatus"); // i18n-skip
             }
             if let Some(length) = length
                 && media.length.is_none_or(|l| (l - length).abs() > 0.5)
             {
                 media.length = Some(length);
-                said.extend(["Metadata", "CanSeek"]);
+                said.extend(["Metadata", "CanSeek"]); // i18n-skip
             }
             if let Some(position) = position {
                 // mpv reports a few times a second: more than 2 s from the last is a seek.
@@ -372,7 +375,7 @@ impl Mpris {
                 None,
                 PATH,
                 PLAYER,
-                "Seeked",
+                "Seeked", // i18n-skip
                 Some(&(micros(position),).to_variant()),
             );
         }
@@ -387,7 +390,7 @@ impl Mpris {
             }
             media.rate = rate;
         }
-        self.changed(&["Rate"]);
+        self.changed(&["Rate"]); // i18n-skip
     }
 
     /// Whether there is an episode after the one playing, and one before it, for the controls'
@@ -401,7 +404,7 @@ impl Mpris {
             media.has_next = next;
             media.has_previous = previous;
         }
-        self.changed(&["CanGoNext", "CanGoPrevious"]);
+        self.changed(&["CanGoNext", "CanGoPrevious"]); // i18n-skip
     }
 
     /// Nothing plays any more.
@@ -429,7 +432,7 @@ impl Mpris {
             None,
             PATH,
             "org.freedesktop.DBus.Properties",
-            "PropertiesChanged",
+            "PropertiesChanged", // i18n-skip
             Some(&body),
         ) {
             tracing::debug!(%error, "media controls not told");

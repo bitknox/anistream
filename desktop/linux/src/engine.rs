@@ -70,7 +70,7 @@ pub async fn start(paths: Paths, host: Arc<dyn Host>) -> Result<Started, String>
     options.saved = Some(config);
     options.hosted_player = true;
     options.app_clients = app_clients();
-    "Linux computer".clone_into(&mut options.device_label);
+    "Linux computer".clone_into(&mut options.device_label); // i18n-skip
     let (engine, events) = Engine::start(options, host).await.map_err(|e| e.to_string())?;
     Ok(Started { engine, events, keep: None, rebuilt: None })
 }
@@ -105,8 +105,8 @@ pub fn open(paths: &Paths) -> Result<(Config, Store), String> {
     for dir in [config_dir, paths.data_dir.clone(), paths.cache_dir.clone()] {
         std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     }
-    let config = Config::read(paths).map_err(|e| format!("config: {e:?}"))?;
-    let store = Store::open(paths.database()).map_err(|e| format!("database: {e}"))?;
+    let config = Config::read(paths).map_err(|e| format!("config: {e:?}"))?; // i18n-skip
+    let store = Store::open(paths.database()).map_err(|e| format!("database: {e}"))?; // i18n-skip
     Ok((config, store))
 }
 
@@ -119,7 +119,7 @@ pub fn theme() -> PlayerTheme {
         state: "#7FC7D9".into(),
         alert: "#E06B54".into(),
         ground: "#161A2E".into(),
-        font: "Zen Kaku Gothic New".into(),
+        font: "Zen Kaku Gothic New".into(), // i18n-skip
     }
 }
 

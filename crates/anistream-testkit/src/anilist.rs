@@ -38,6 +38,9 @@ use tokio::{
 
 use crate::fixtures::{self, FIXTURE_NOW};
 
+mod threads;
+pub use threads::comment;
+
 /// A request body larger than this is not one the app sends, and is not read.
 const MAX_BODY: usize = 1 << 20;
 
@@ -75,6 +78,16 @@ pub enum Operation {
     SaveEntry,
     /// `query::DELETE_ENTRY`.
     DeleteEntry,
+    /// `query::EPISODE_THREADS`: the forum threads that may be an episode's discussion.
+    EpisodeThreads,
+    /// `query::thread_comments`: one page of a thread's comments.
+    ThreadComments,
+    /// `query::save_thread_comment`: a comment posted, or edited.
+    SaveThreadComment,
+    /// `query::DELETE_THREAD_COMMENT`.
+    DeleteThreadComment,
+    /// `query::TOGGLE_COMMENT_LIKE`.
+    ToggleCommentLike,
     /// A request to the empty Tenrai.
     Tenrai,
     /// Anything else. Answered with an error, and recorded, so a test can catch a query the
@@ -93,6 +106,16 @@ impl Operation {
         let has = |needle: &str| document.contains(needle);
         if has("DeleteMediaListEntry") {
             Self::DeleteEntry
+        } else if has("DeleteThreadComment") {
+            Self::DeleteThreadComment
+        } else if has("SaveThreadComment") {
+            Self::SaveThreadComment
+        } else if has("ToggleLikeV2") {
+            Self::ToggleCommentLike
+        } else if has("threadComments(") {
+            Self::ThreadComments
+        } else if has("threads(mediaCategoryId") {
+            Self::EpisodeThreads
         } else if has("SaveMediaListEntry") {
             Self::SaveEntry
         } else if has("MediaListCollection") {
@@ -190,6 +213,10 @@ struct State {
     art_trouble: ArtTrouble,
     /// How often each image has been asked for, and in which order they first were.
     art_asked: HashMap<String, (usize, u32)>,
+    /// Forum threads a test made up: see [`FakeAniList::add_thread`].
+    threads: Vec<threads::FakeThread>,
+    /// How many comments have been posted to them, for the new comments' ids.
+    posted: u64,
 }
 
 /// Art served badly, as a busy CDN serves it.
@@ -222,6 +249,8 @@ impl FakeAniList {
             art: None,
             art_trouble: ArtTrouble::default(),
             art_asked: HashMap::new(),
+            threads: Vec::new(),
+            posted: 0,
         }));
         let accept = tokio::spawn({
             let state = Arc::clone(&state);
@@ -604,8 +633,21 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         None => {
             let clock = Clock { shift: now - FIXTURE_NOW, now: now + ahead };
             let catalogue = Catalogue { extra: &extra, added: &pool };
-            let mut reply =
-                respond(operation, &variables, head.authorization.is_some(), clock, catalogue);
+            let authorized = head.authorization.is_some();
+            let writes = matches!(
+                operation,
+                Operation::SaveThreadComment
+                    | Operation::DeleteThreadComment
+                    | Operation::ToggleCommentLike
+            );
+            let thread = if writes && !authorized {
+                Some(Reply::errors(401, "Invalid token", Value::Null))
+            } else {
+                threads::respond(&mut lock(state), operation, &variables, clock.now)
+            };
+            let mut reply = thread.unwrap_or_else(|| {
+                respond(operation, &variables, authorized, clock, catalogue)
+            });
             if let Reply::Answer { body, .. } = &mut reply {
                 retitle(body, &titles);
                 if let Some(language) = viewer_language
@@ -817,7 +859,14 @@ fn respond(
             let known = entries().any(|e| e["id"] == vars["id"]);
             Reply::ok(json!({ "DeleteMediaListEntry": { "deleted": known } }))
         }
-        Operation::Tenrai | Operation::Unknown => {
+        // Answered from the threads a test made up, before this is reached.
+        Operation::EpisodeThreads
+        | Operation::ThreadComments
+        | Operation::SaveThreadComment
+        | Operation::DeleteThreadComment
+        | Operation::ToggleCommentLike
+        | Operation::Tenrai
+        | Operation::Unknown => {
             Reply::errors(400, "the fake AniList was never taught this query", Value::Null)
         }
     }
@@ -1322,6 +1371,11 @@ mod tests {
             (query::VIEWER.to_owned(), Operation::Viewer),
             (query::SAVE_PROGRESS.to_owned(), Operation::SaveEntry),
             (query::DELETE_ENTRY.to_owned(), Operation::DeleteEntry),
+            (query::EPISODE_THREADS.to_owned(), Operation::EpisodeThreads),
+            (query::thread_comments(), Operation::ThreadComments),
+            (query::save_thread_comment(), Operation::SaveThreadComment),
+            (query::DELETE_THREAD_COMMENT.to_owned(), Operation::DeleteThreadComment),
+            (query::TOGGLE_COMMENT_LIKE.to_owned(), Operation::ToggleCommentLike),
         ] {
             assert_eq!(Operation::of(&document), operation, "{document}");
         }

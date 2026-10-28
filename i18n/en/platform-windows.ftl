@@ -11,12 +11,7 @@ source-picker-seeders = { $count ->
 
 # How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
 # @only windows
-time-just-now = just now
-
-# An episode line for a dubbed episode: the episode as the line names it, then the mark.
-# @only windows
-# @arg label: text
-episode-line-dubbed = { $label } · { -dubbed-cap }
+time-just-now-inline = just now
 
 # A transfer rate. The size is already formatted, such as "1.2 MB".
 # @only windows

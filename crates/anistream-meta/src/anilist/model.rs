@@ -563,6 +563,31 @@ pub struct DescriptionSpan {
     pub spoiler: bool,
 }
 
+/// AniList's text cut at its spoiler marks, `~!` opening one and `!~` closing it: each run,
+/// and whether it is a spoiler. Runs come as written, empty ones included, markup and all.
+///
+/// A spoiler left open runs to the end, hidden: guessing where it was meant to stop would show
+/// what it was meant to hide. Descriptions and forum comments mark spoilers alike.
+pub fn spoiler_runs(raw: &str) -> Vec<(&str, bool)> {
+    let mut runs = Vec::new();
+    let mut rest = raw;
+    let mut spoiler = false;
+    loop {
+        let marker = if spoiler { "!~" } else { "~!" };
+        match rest.find(marker) {
+            Some(at) => {
+                runs.push((&rest[..at], spoiler));
+                rest = &rest[at + marker.len()..];
+                spoiler = !spoiler;
+            }
+            None => {
+                runs.push((rest, spoiler));
+                return runs;
+            }
+        }
+    }
+}
+
 /// AniList's HTML as plain text: tags out, the entities it uses put back, every run of
 /// whitespace one space.
 fn plain_text(raw: &str) -> String {
@@ -698,24 +723,11 @@ impl Media {
     /// show what it was meant to hide.
     pub fn description_spans(&self) -> Vec<DescriptionSpan> {
         let Some(raw) = &self.description else { return Vec::new() };
-        let mut spans = Vec::new();
-        let mut rest = raw.as_str();
-        let mut spoiler = false;
-        loop {
-            let marker = if spoiler { "!~" } else { "~!" };
-            let (run, next) = match rest.find(marker) {
-                Some(at) => (&rest[..at], Some(&rest[at + marker.len()..])),
-                None => (rest, None),
-            };
-            let text = plain_text(run);
-            if !text.is_empty() {
-                spans.push(DescriptionSpan { text, spoiler });
-            }
-            let Some(next) = next else { break };
-            rest = next;
-            spoiler = !spoiler;
-        }
-        spans
+        spoiler_runs(raw)
+            .into_iter()
+            .map(|(run, spoiler)| DescriptionSpan { text: plain_text(run), spoiler })
+            .filter(|span| !span.text.is_empty())
+            .collect()
     }
 
     /// Every title string a provider search should try, widest first.

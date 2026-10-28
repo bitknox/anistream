@@ -35,6 +35,42 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DiscussionAgeNow" xml:space="preserve">
+    <value>[ñöŵ~]</value>
+    <comment>A comment's age, beside its author, when it was written under a minute ago.</comment>
+  </data>
+  <data name="DiscussionAgeMinutes" xml:space="preserve">
+    <value>[{minutes} ɱîñ~~~]</value>
+    <comment>A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeHours" xml:space="preserve">
+    <value>[{hours} ĥ~~]</value>
+    <comment>A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeDays" xml:space="preserve">
+    <value>[{days} ð~~]</value>
+    <comment>A comment's age, beside its author, in days. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeWeeks" xml:space="preserve">
+    <value>[{weeks} ŵ~~]</value>
+    <comment>A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeYears" xml:space="preserve">
+    <value>[{years} ý~~]</value>
+    <comment>A comment's age, beside its author, in years. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="NoticeCommentLikeFailed" xml:space="preserve">
+    <value>[Çöüļðñ'ţ ļîķé ţĥé çöɱɱéñţ. Ţŕý àĝàîñ.~~~~~~~~~~~~]</value>
+    <comment>Toast when a like on a comment did not reach AniList. The like is taken back.</comment>
+  </data>
+  <data name="NoticeCommentDeleteFailed" xml:space="preserve">
+    <value>[Çöüļðñ'ţ ðéļéţé ţĥé çöɱɱéñţ. Ţŕý àĝàîñ.~~~~~~~~~~~~]</value>
+    <comment>Toast when a comment could not be deleted on AniList. The comment stays.</comment>
+  </data>
+  <data name="NoticeDiscussionSignIn" xml:space="preserve">
+    <value>[Šîĝñ îñ ŵîţĥ ÅñîĻîšţ ţö ļîķé àñð ŕéþļý.~~~~~~~~~~~~]</value>
+    <comment>Toast when the viewer tried to like or post in a discussion without signing in to AniList.</comment>
+  </data>
   <data name="NoticeReason" xml:space="preserve">
     <value>[{reason}~]</value>
     <comment>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</comment>
@@ -1303,10 +1339,6 @@
     <value>[{label}. {detail}~~~]</value>
     <comment>Screen reader name of a protection choice: its name, then what it does.</comment>
   </data>
-  <data name="SettingsSeedingOpenOnly" xml:space="preserve">
-    <value>[Šééðîñĝ ŕüñš öñļý ŵĥîļé àñîšţŕéàɱ îš öþéñ.~~~~~~~~~~~~~]</value>
-    <comment>Line under the Seeding heading: seeding stops when the app closes. Same words as Android's downloads-seeding-open-only, which is limited to Android.</comment>
-  </data>
   <data name="TrayStillDownloading" xml:space="preserve">
     <value>[àñîšţŕéàɱ îš šţîļļ ðöŵñļöàðîñĝ~~~~~~~~~]</value>
     <comment>The notification area icon's balloon, the first time the window closes with downloads running: its title.</comment>
@@ -1346,14 +1378,6 @@
   <data name="CloseAsk" xml:space="preserve">
     <value>[Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~]</value>
     <comment>The close dialog's question, after the counts.</comment>
-  </data>
-  <data name="CloseDontAsk" xml:space="preserve">
-    <value>[Ðöñ'ţ àšķ àĝàîñ~~~~~]</value>
-    <comment>The close dialog's check box: remember the answer.</comment>
-  </data>
-  <data name="CloseKeepGoing" xml:space="preserve">
-    <value>[Ķééþ ĝöîñĝ~~~]</value>
-    <comment>The close dialog's main button: the window goes, the downloads go on.</comment>
   </data>
   <data name="CloseStop" xml:space="preserve">
     <value>[Šţöþ àñð çļöšé~~~~~]</value>
@@ -1411,14 +1435,6 @@
     <value>[Îñ ṽéŕšîöñ {version}~~~~~]</value>
     <comment>Heading over a new version's notes in About.</comment>
   </data>
-  <data name="UpdatesRestart" xml:space="preserve">
-    <value>[Ŕéšţàŕţ ţö üþðàţé~~~~~~]</value>
-    <comment>Button: installs the downloaded update and opens the app again.</comment>
-  </data>
-  <data name="UpdatesDownload" xml:space="preserve">
-    <value>[Ðöŵñļöàð üþðàţé~~~~~]</value>
-    <comment>Button in About: downloads the new version.</comment>
-  </data>
   <data name="UpdatesOpenPage" xml:space="preserve">
     <value>[Öþéñ ţĥé ðöŵñļöàð þàĝé~~~~~~~]</value>
     <comment>Button in About when this copy can't install updates itself: opens the new version's download page.</comment>
@@ -1434,10 +1450,6 @@
   <data name="NagareName" xml:space="preserve">
     <value>[Ñàĝàŕé, ţĥé àñîšţŕéàɱ ɱàšçöţ~~~~~~~~~]</value>
     <comment>Screen reader name of the mascot drawn in empty states.</comment>
-  </data>
-  <data name="ShortcutsTitle" xml:space="preserve">
-    <value>[Ķéýƀöàŕð šĥöŕţçüţš~~~~~~]</value>
-    <comment>The keyboard shortcuts dialog's title, and its own line in the list.</comment>
   </data>
   <data name="ShortcutsWindow" xml:space="preserve">
     <value>[Ŵîñðöŵ~~]</value>
@@ -1459,14 +1471,6 @@
     <value>[{key}, Ṁéñü ķéý~~~~]</value>
     <comment>Keys for the context menu: a key, then the keyboard's Menu key.</comment>
   </data>
-  <data name="ShortcutsContextMenu" xml:space="preserve">
-    <value>[Çöñţéẋţ ɱéñü~~~~]</value>
-    <comment>Shortcut: opens the focused item's context menu.</comment>
-  </data>
-  <data name="ShortcutsPlayPause" xml:space="preserve">
-    <value>[Þļàý öŕ þàüšé~~~~]</value>
-    <comment>Shortcut in the player.</comment>
-  </data>
   <data name="ShortcutsSeek" xml:space="preserve">
     <value>[Ɓàçķ öŕ ƒöŕŵàŕð 5 š, 30 š ŵîţĥ Šĥîƒţ~~~~~~~~~~~]</value>
     <comment>Shortcut in the player: the arrow keys seek 5 seconds, 30 with Shift held.</comment>
@@ -1475,19 +1479,11 @@
     <value>[Ɓàçķ öŕ ƒöŕŵàŕð 10 š~~~~~~]</value>
     <comment>Shortcut in the player: J and L seek 10 seconds.</comment>
   </data>
-  <data name="ShortcutsMute" xml:space="preserve">
-    <value>[Ṁüţé~~]</value>
-    <comment>Shortcut in the player.</comment>
-  </data>
-  <data name="ShortcutsSkip" xml:space="preserve">
+  <data name="ShortcutsSkipUndo" xml:space="preserve">
     <value>[Šķîþ, üñðö ţĥé šķîþ~~~~~~]</value>
     <comment>Shortcut in the player: skips an opening or ending, and a second key undoes it.</comment>
   </data>
-  <data name="ShortcutsNextPrevious" xml:space="preserve">
-    <value>[Ñéẋţ öŕ þŕéṽîöüš éþîšöðé~~~~~~~~]</value>
-    <comment>Shortcut in the player.</comment>
-  </data>
-  <data name="ShortcutsSpeed" xml:space="preserve">
+  <data name="ShortcutsSpeedReset" xml:space="preserve">
     <value>[Šļöŵéŕ, ƒàšţéŕ, ñöŕɱàļ šþééð~~~~~~~~~]</value>
     <comment>Shortcut in the player: three keys for playback speed.</comment>
   </data>
@@ -1515,17 +1511,9 @@
     <value>[Çöññéçţîñĝ ţö ţĥé ŢṼ~~~~~~]</value>
     <comment>Title of the pairing sheet while it connects to a TV whose name it does not know yet.</comment>
   </data>
-  <data name="TvPairedSeen" xml:space="preserve">
-    <value>[{paired} · šééñ {ago}~~~~~]</value>
-    <comment>Under a paired TV's name in Settings: when it was paired, then how long ago this { -device } last saw it. Both are already formatted, as in "Paired 12 Oct · seen 5m ago".</comment>
-  </data>
   <data name="TvDeviceCode" xml:space="preserve">
     <value>[Å ŢṼ ļîšţš ţĥîš ðéṽîçé ŵîţĥ ţĥé çöðé {code}. Ƒöŕĝéţ à ŢṼ ĥéŕé àñð îţ ƒöŕĝéţš ţĥîš ðéṽîçé ţöö.~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Under the paired TVs in Settings. The code is a few letters and digits the TV shows beside this { -device }.</comment>
-  </data>
-  <data name="TvVolumeOf" xml:space="preserve">
-    <value>[{volume} öƒ 100~~~]</value>
-    <comment>The TV's volume on the remote, out of 100.</comment>
   </data>
   <data name="TvUnnamed" xml:space="preserve">
     <value>[ŢṼ~]</value>
@@ -1538,14 +1526,6 @@
   <data name="TvVolumeLabel" xml:space="preserve">
     <value>[ŢṼ ṽöļüɱé~~~]</value>
     <comment>Label of the row on the remote with the TV's volume buttons.</comment>
-  </data>
-  <data name="TvVolumeDown" xml:space="preserve">
-    <value>[Ṽöļüɱé ðöŵñ~~~~]</value>
-    <comment>Name read by a screen reader for the remote's button that turns the TV down.</comment>
-  </data>
-  <data name="TvVolumeUp" xml:space="preserve">
-    <value>[Ṽöļüɱé üþ~~~]</value>
-    <comment>Name read by a screen reader for the remote's button that turns the TV up.</comment>
   </data>
   <data name="TvWaiting" xml:space="preserve">
     <value>[Ŵàîţîñĝ ƒöŕ ţĥé ŢṼ~~~~~~]</value>
@@ -1575,10 +1555,6 @@
     <value>[{setting}, {value}~~~]</value>
     <comment>Name read by a screen reader for a track button on the remote: the setting, then the track chosen, as in "Subtitles, English".</comment>
   </data>
-  <data name="PartyOpenSources" xml:space="preserve">
-    <value>[Öþéñ šöüŕçéš~~~~]</value>
-    <comment>Button that opens the Sources page, in the dialog shown when this { -device } has no { -source-pl } for the room's episode.</comment>
-  </data>
   <data name="PartyChooseSourceFor" xml:space="preserve">
     <value>[Çĥööšé à šöüŕçé ƒöŕ éþîšöðé {episode}~~~~~~~~~~]</value>
     <comment>Title of the dialog once it lists what each { -source } has for the room's episode. The episode is its label, such as 5 or 5.5.</comment>
@@ -1586,10 +1562,6 @@
   <data name="PartyPlayWith" xml:space="preserve">
     <value>[Þļàý ŵîţĥ ţĥé ŵàţçĥ þàŕţý~~~~~~~~]</value>
     <comment>Button that plays the chosen { -source } in step with the room.</comment>
-  </data>
-  <data name="PartyLookingSources" xml:space="preserve">
-    <value>[Ļööķîñĝ ţĥŕöüĝĥ ýöüŕ šöüŕçéš…~~~~~~~~~]</value>
-    <comment>While the dialog asks every { -source } for the room's episode.</comment>
   </data>
   <data name="PartyNoSourceLists" xml:space="preserve">
     <value>[Ñö šöüŕçé ļîšţš éþîšöðé {episode}. Šöüŕçéš çöɱé ƒŕöɱ þļüĝîñš, ŵĥîçĥ à þļüĝîñ šţöŕé àððš.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
@@ -1602,10 +1574,6 @@
   <data name="PartyNosourceUnairedWhen" xml:space="preserve">
     <value>[{when} Ýöüŕ šöüŕçéš ŵöñ'ţ ĥàṽé îţ ƀéƒöŕé ţĥéñ. Îţ þļàýš ŵîţĥ ţĥé ŕööɱ öñçé öñé öƒ ţĥéɱ ðöéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Under that title: when it airs, as the schedule says it in full sentences, then what happens next.</comment>
-  </data>
-  <data name="PartyNeedsConnection" xml:space="preserve">
-    <value>[Å ŵàţçĥ þàŕţý ñééðš à çöññéçţîöñ. Ýöü'ŕé öƒƒļîñé.~~~~~~~~~~~~~~~]</value>
-    <comment>In the watch party's dialog when this { -device } has no connection. Shown in place of the form's status.</comment>
   </data>
   <data name="SourcesCheck" xml:space="preserve">
     <value>[Çĥéçķ šöüŕçéš~~~~]</value>
@@ -1715,49 +1683,9 @@
     <value>[þŕöẋý.éẋàɱþļé~~~~]</value>
     <comment>Greyed example inside the torrent proxy's host box. Keep it an address on a reserved example domain.</comment>
   </data>
-  <data name="TvProblemWrongCode" xml:space="preserve">
-    <value>[Ţĥàţ çöðé ðîðñ'ţ ɱàţçĥ. Çĥéçķ ţĥé çöðé öñ ţĥé ŢṼ àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>Under the code box when the six digits typed do not match the TV's.</comment>
-  </data>
   <data name="TvProblemNoCode" xml:space="preserve">
     <value>[Ţĥàţ çöðé ĥàš éẋþîŕéð. Åšķ ţĥé ŢṼ ƒöŕ à ñéŵ öñé.~~~~~~~~~~~~~~~]</value>
     <comment>When the TV's code has run out. The pairing starts again with a new code.</comment>
-  </data>
-  <data name="TvProblemFull" xml:space="preserve">
-    <value>[Ţĥîš ŢṼ ĥàš àš ɱàñý ðéṽîçéš þàîŕéð àš îţ çàñ ķééþ. Ŕéɱöṽé öñé îñ ţĥé ŢṼ'š Šéţţîñĝš, üñðéŕ Ŕéɱöţéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>When the TV cannot keep another paired { -device }.</comment>
-  </data>
-  <data name="TvProblemBusy" xml:space="preserve">
-    <value>[Ţĥé ŢṼ îš çöññéçţéð ţö àš ɱàñý ðéṽîçéš àš îţ çàñ. Ţŕý àĝàîñ šööñ.~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>When the TV is already connected to as many devices as it can serve.</comment>
-  </data>
-  <data name="TvProblemVersion" xml:space="preserve">
-    <value>[Ţĥé ŢṼ ŕüñš àñöţĥéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ. Ûþðàţé ƀöţĥ ţö ţĥé šàɱé öñé.~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>When the TV and this app run different versions.</comment>
-  </data>
-  <data name="TvProblemNotNow" xml:space="preserve">
-    <value>[Ñöţĥîñĝ îš þļàýîñĝ öñ ţĥé ŢṼ.~~~~~~~~~]</value>
-    <comment>When a remote control action needs something playing and nothing is.</comment>
-  </data>
-  <data name="TvProblemUnpaired" xml:space="preserve">
-    <value>[Ţĥé ŢṼ ðöéšñ'ţ ķñöŵ ţĥîš ðéṽîçé àñýɱöŕé. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~]</value>
-    <comment>When the TV has forgotten this { -device }.</comment>
-  </data>
-  <data name="TvProblemKeyChanged" xml:space="preserve">
-    <value>[Ţĥé ŢṼ ŵàš ŕéšéţ öŕ ŕéîñšţàļļéð šîñçé ýöü þàîŕéð. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>When the TV's key changed since pairing, as after a reset or reinstall.</comment>
-  </data>
-  <data name="TvProblemUnreachable" xml:space="preserve">
-    <value>[Çàñ'ţ ŕéàçĥ ţĥé ŢṼ. Çĥéçķ ţĥàţ îţ'š öñ, ŵîţĥ àñîšţŕéàɱ öþéñ, öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>When the TV does not answer.</comment>
-  </data>
-  <data name="TvProblemGone" xml:space="preserve">
-    <value>[Ţĥàţ ŢṼ îš ñö ļöñĝéŕ öñ ţĥé ñéţŵöŕķ.~~~~~~~~~~~]</value>
-    <comment>When a TV picked from the list has left the network.</comment>
-  </data>
-  <data name="TvProblemNotALink" xml:space="preserve">
-    <value>[Ţĥàţ îšñ'ţ à ŢṼ'š þàîŕîñĝ çöðé öŕ àððŕéšš.~~~~~~~~~~~~~]</value>
-    <comment>When the typed text or scanned code is not a TV's pairing code or address.</comment>
   </data>
   <data name="SourcePickerSeeders_one" xml:space="preserve">
     <value>[Öñé šééðéŕ~~~]</value>
@@ -1767,13 +1695,9 @@
     <value>[{count} šééðéŕš~~~~]</value>
     <comment>Under a release in the source picker: how many people share it right now.</comment>
   </data>
-  <data name="TimeJustNow" xml:space="preserve">
+  <data name="TimeJustNowInline" xml:space="preserve">
     <value>[ĵüšţ ñöŵ~~~]</value>
     <comment>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</comment>
-  </data>
-  <data name="EpisodeLineDubbed" xml:space="preserve">
-    <value>[{label} · Ðüƀƀéð~~~~]</value>
-    <comment>An episode line for a dubbed episode: the episode as the line names it, then the mark.</comment>
   </data>
   <data name="RatePerSecond" xml:space="preserve">
     <value>[{size}/š~~]</value>
@@ -2250,6 +2174,114 @@
   <data name="StateLoading" xml:space="preserve">
     <value>[Ļöàðîñĝ~~~]</value>
     <comment>Short placeholder while something loads.</comment>
+  </data>
+  <data name="CloseDontAsk" xml:space="preserve">
+    <value>[Ðöñ'ţ àšķ àĝàîñ~~~~~]</value>
+    <comment>Checkbox of the close question.</comment>
+  </data>
+  <data name="CloseKeepGoing" xml:space="preserve">
+    <value>[Ķééþ ĝöîñĝ~~~]</value>
+    <comment>Response of the close question: keep it running in the background.</comment>
+  </data>
+  <data name="PartyLookingSources" xml:space="preserve">
+    <value>[Ļööķîñĝ ţĥŕöüĝĥ ýöüŕ šöüŕçéš…~~~~~~~~~]</value>
+    <comment>Line while the sources are searched for the watch party's episode.</comment>
+  </data>
+  <data name="PartyNeedsConnection" xml:space="preserve">
+    <value>[Å ŵàţçĥ þàŕţý ñééðš à çöññéçţîöñ. Ýöü'ŕé öƒƒļîñé.~~~~~~~~~~~~~~~]</value>
+    <comment>Foot of the watch party form while the device is offline.</comment>
+  </data>
+  <data name="PartyOpenSources" xml:space="preserve">
+    <value>[Öþéñ šöüŕçéš~~~~]</value>
+    <comment>Button that goes to the Sources page, when the watch party's episode has no source because none are set up.</comment>
+  </data>
+  <data name="SettingsSeedingOpenOnly" xml:space="preserve">
+    <value>[Šééðîñĝ ŕüñš öñļý ŵĥîļé àñîšţŕéàɱ îš öþéñ.~~~~~~~~~~~~~]</value>
+    <comment>Line under the seeding group in Settings: seeding stops when the app closes.</comment>
+  </data>
+  <data name="ShortcutsContextMenu" xml:space="preserve">
+    <value>[Çöñţéẋţ ɱéñü~~~~]</value>
+    <comment>Shortcut: open the context menu of the title that has focus.</comment>
+  </data>
+  <data name="ShortcutsMute" xml:space="preserve">
+    <value>[Ṁüţé~~]</value>
+    <comment>Shortcut: mute the sound.</comment>
+  </data>
+  <data name="ShortcutsNextPrevious" xml:space="preserve">
+    <value>[Ñéẋţ öŕ þŕéṽîöüš éþîšöðé~~~~~~~~]</value>
+    <comment>Shortcut: move between episodes.</comment>
+  </data>
+  <data name="ShortcutsPlayPause" xml:space="preserve">
+    <value>[Þļàý öŕ þàüšé~~~~]</value>
+    <comment>Shortcut: pause or resume.</comment>
+  </data>
+  <data name="ShortcutsTitle" xml:space="preserve">
+    <value>[Ķéýƀöàŕð šĥöŕţçüţš~~~~~~]</value>
+    <comment>Title of the keyboard shortcuts window.</comment>
+  </data>
+  <data name="TvPairedSeen" xml:space="preserve">
+    <value>[{paired} · šééñ {ago}~~~~~]</value>
+    <comment>Settings line of a paired TV: paired on a date, last seen a while ago.</comment>
+  </data>
+  <data name="TvProblemBusy" xml:space="preserve">
+    <value>[Ţĥé ŢṼ îš çöññéçţéð ţö àš ɱàñý ðéṽîçéš àš îţ çàñ. Ţŕý àĝàîñ šööñ.~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV cannot take another connection now.</comment>
+  </data>
+  <data name="TvProblemGone" xml:space="preserve">
+    <value>[Ţĥàţ ŢṼ îš ñö ļöñĝéŕ öñ ţĥé ñéţŵöŕķ.~~~~~~~~~~~]</value>
+    <comment>The TV picked in the list has left the network.</comment>
+  </data>
+  <data name="TvProblemKeyChanged" xml:space="preserve">
+    <value>[Ţĥé ŢṼ ŵàš ŕéšéţ öŕ ŕéîñšţàļļéð šîñçé ýöü þàîŕéð. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV's key changed since pairing.</comment>
+  </data>
+  <data name="TvProblemNotALink" xml:space="preserve">
+    <value>[Ţĥàţ îšñ'ţ à ŢṼ'š þàîŕîñĝ çöðé öŕ àððŕéšš.~~~~~~~~~~~~~]</value>
+    <comment>What was typed or scanned is not a TV's code or address.</comment>
+  </data>
+  <data name="TvProblemNotNow" xml:space="preserve">
+    <value>[Ñöţĥîñĝ îš þļàýîñĝ öñ ţĥé ŢṼ.~~~~~~~~~]</value>
+    <comment>A command needs something playing and nothing is.</comment>
+  </data>
+  <data name="TvProblemUnreachable" xml:space="preserve">
+    <value>[Çàñ'ţ ŕéàçĥ ţĥé ŢṼ. Çĥéçķ ţĥàţ îţ'š öñ, ŵîţĥ àñîšţŕéàɱ öþéñ, öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV did not answer.</comment>
+  </data>
+  <data name="TvProblemVersion" xml:space="preserve">
+    <value>[Ţĥé ŢṼ ŕüñš àñöţĥéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ. Ûþðàţé ƀöţĥ ţö ţĥé šàɱé öñé.~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV and this app speak different versions.</comment>
+  </data>
+  <data name="TvProblemWrongCode" xml:space="preserve">
+    <value>[Ţĥàţ çöðé ðîðñ'ţ ɱàţçĥ. Çĥéçķ ţĥé çöðé öñ ţĥé ŢṼ àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The pairing code typed did not match.</comment>
+  </data>
+  <data name="TvVolumeDown" xml:space="preserve">
+    <value>[Ṽöļüɱé ðöŵñ~~~~]</value>
+    <comment>Accessible label of the button that turns the TV down.</comment>
+  </data>
+  <data name="TvVolumeOf" xml:space="preserve">
+    <value>[{volume} öƒ 100~~~]</value>
+    <comment>The TV's volume as a value of 100.</comment>
+  </data>
+  <data name="TvVolumeUp" xml:space="preserve">
+    <value>[Ṽöļüɱé üþ~~~]</value>
+    <comment>Accessible label of the button that turns the TV up.</comment>
+  </data>
+  <data name="UpdatesDownload" xml:space="preserve">
+    <value>[Ðöŵñļöàð üþðàţé~~~~~]</value>
+    <comment>Button that downloads the new version of the app.</comment>
+  </data>
+  <data name="UpdatesRestart" xml:space="preserve">
+    <value>[Ŕéšţàŕţ ţö üþðàţé~~~~~~]</value>
+    <comment>Button that closes the app and opens the new version it has put in place.</comment>
+  </data>
+  <data name="TvProblemFull" xml:space="preserve">
+    <value>[Ţĥîš ŢṼ ĥàš àš ɱàñý ðéṽîçéš þàîŕéð àš îţ çàñ ķééþ. Ŕéɱöṽé öñé îñ ţĥé ŢṼ'š šéţţîñĝš, üñðéŕ Ŕéɱöţéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV cannot take another paired device.</comment>
+  </data>
+  <data name="TvProblemUnpaired" xml:space="preserve">
+    <value>[Ţĥé ŢṼ ðöéšñ'ţ ķñöŵ ţĥîš ðéṽîçé àñý ɱöŕé. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV has forgotten this computer.</comment>
   </data>
   <data name="DownloadsTitle" xml:space="preserve">
     <value>[Ðöŵñļöàðš~~~]</value>
@@ -5502,6 +5534,10 @@
   <data name="MoreShowSpoilerTags_other" xml:space="preserve">
     <value>[Šĥöŵ {count} šþöîļéŕ ţàĝš~~~~~~~]</value>
     <comment>Button that shows the spoiler tags.</comment>
+  </data>
+  <data name="EpisodeLineDubbed" xml:space="preserve">
+    <value>[{line} · Ðüƀƀéð~~~~]</value>
+    <comment>An episode's line with the audio it was watched in marked, as Continue and the title page word it.</comment>
   </data>
   <data name="TorrentsTitle" xml:space="preserve">
     <value>[Ţöŕŕéñţš~~~]</value>

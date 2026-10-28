@@ -10,6 +10,7 @@
 
 pub mod model;
 pub mod query;
+pub mod threads;
 
 use std::sync::Arc;
 
@@ -19,8 +20,9 @@ use serde::de::DeserializeOwned;
 
 pub use model::{
     Broadcast, DescriptionSpan, ExternalLink, FuzzyDate, LastAired, Media, Ranking, Relation,
-    SourceMaterial, StreamingEpisode, Tag, Title, TitleLanguage, Viewer,
+    SourceMaterial, StreamingEpisode, Tag, Title, TitleLanguage, Viewer, spoiler_runs,
 };
+pub use threads::{Liked, Thread, ThreadComment};
 
 const ENDPOINT: &str = "https://graphql.anilist.co";
 

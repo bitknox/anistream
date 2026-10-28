@@ -1201,12 +1201,12 @@ public sealed partial class MainWindow : Window
         Line(T.PlayerVolume, "Up, Down");
         Line(T.ShortcutsMute, "M");
         Line(T.PlayerFullscreen, "F, F11");
-        Line(T.ShortcutsSkip, "S, U");
+        Line(T.ShortcutsSkipUndo, "S, U");
         Line(T.ShortcutsNextPrevious, "N, Shift+N");
         Line(T.PlayerEpisodes, "E");
         Line(T.PlayerSubtitlesAndAudio, "T");
         Line(T.PlayerStats, "I");
-        Line(T.ShortcutsSpeed, "[, ], Backspace");
+        Line(T.ShortcutsSpeedReset, "[, ], Backspace");
         Line(T.PlayerMiniPlayer, "P");
         Line(T.ShortcutsCornerCard, "Enter");
         Line(T.ShortcutsClosePlayer, "Esc, Alt+Left");

@@ -13,6 +13,15 @@ public static class MsgText
 {
     public static string Text(this Msg message) => message switch
     {
+        Msg.DiscussionAgeNow => T.DiscussionAgeNow,
+        Msg.DiscussionAgeMinutes x => T.DiscussionAgeMinutes(x.Minutes),
+        Msg.DiscussionAgeHours x => T.DiscussionAgeHours(x.Hours),
+        Msg.DiscussionAgeDays x => T.DiscussionAgeDays(x.Days),
+        Msg.DiscussionAgeWeeks x => T.DiscussionAgeWeeks(x.Weeks),
+        Msg.DiscussionAgeYears x => T.DiscussionAgeYears(x.Years),
+        Msg.NoticeCommentLikeFailed => T.NoticeCommentLikeFailed,
+        Msg.NoticeCommentDeleteFailed => T.NoticeCommentDeleteFailed,
+        Msg.NoticeDiscussionSignIn => T.NoticeDiscussionSignIn,
         Msg.NoticeReason x => T.NoticeReason(x.Reason.Text()),
         Msg.NoticeNotAired x => T.NoticeNotAired(x.Episode, x.When.Text()),
         Msg.NoticeNotAiredYet x => T.NoticeNotAiredYet(x.Episode, x.Next, x.When.Text()),

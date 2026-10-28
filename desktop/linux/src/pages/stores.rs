@@ -1,11 +1,12 @@
-//! Plugin Stores: the stores this computer joined, as a boxed list, each opening its own page
+//! Plugin stores: the stores this device joined, as a boxed list, each opening its own page
 //! with who runs it, its key and its plugins, and its menu: an owner's tools (see
-//! [`store_owner`]), Link Another Device and Leave Store. Join Store in the header bar; the legal
+//! [`store_owner`]), Link another device and Leave. Join in the header bar; the legal
 //! line at the foot of the list.
 
 use std::{cell::Cell, rc::Rc};
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
     event::Event,
@@ -20,26 +21,19 @@ use crate::{
     window::{Ctx, Size},
 };
 
-const WHO: &str = "Plugin stores are run by people you know. Join one with the invite link its owner sends you.";
-
 /// Who runs a store and where it answers: "Run by Ren · plugins.example", or its host alone.
 pub fn run_by(owners: &[String], host: &str) -> String {
-    if owners.is_empty() {
-        host.into()
-    } else {
-        format!("Run by {} · {host}", owners.join(", "))
-    }
+    if owners.is_empty() { host.into() } else { t::stores_run_by(&owners.join(", "), host) }
 }
 
 /// The word beside a store, and its mark: access removed, offline, or updates waiting.
 pub fn standing_words(store: &StoreRow) -> Option<(String, &'static str)> {
     match &store.state {
-        StoreState::Revoked => Some(("Access removed".into(), "vermilion")),
-        StoreState::Offline(_) => Some(("Offline".into(), "ring")),
+        StoreState::Revoked => Some((t::stores_status_access_ended(), "vermilion")),
+        StoreState::Offline(_) => Some((t::stores_status_offline(), "ring")),
         StoreState::Ready => match store.updates() {
             0 => None,
-            1 => Some(("1 update".into(), "water")),
-            n => Some((format!("{n} updates"), "water")),
+            n => Some((t::stores_state_updates(n as i64), "water")),
         },
     }
 }
@@ -48,9 +42,7 @@ pub fn standing_words(store: &StoreRow) -> Option<(String, &'static str)> {
 fn plugin_line(plugin: &StorePluginRow) -> String {
     let contacts = plugin::contacts_line(&plugin.hosts);
     match plugin.status {
-        StorePluginStatus::AddedByHand => {
-            format!("Added by hand · {}", contacts.replacen("Contacts", "contacts", 1))
-        }
+        StorePluginStatus::AddedByHand => t::stores_added_by_hand(&contacts),
         _ => contacts,
     }
 }
@@ -64,7 +56,7 @@ struct Page {
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
-    let join = gtk::Button::with_label("Join Store…");
+    let join = gtk::Button::with_label(&t::stores_join_menu());
     join.set_action_name(Some("win.join-store"));
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
@@ -73,22 +65,26 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
 
     let list = widgets::boxed_list();
     let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    column.append(&widgets::heading("Joined"));
+    column.append(&widgets::heading(&t::stores_joined()));
     column.append(&list);
-    column.append(&widgets::haze(WHO, "caption"));
-    let legal = widgets::haze("anistream hosts no content.", "caption");
+    column.append(&widgets::haze(&t::stores_not_from_app(), "caption"));
+    let legal = widgets::haze(&t::legal_hosts_no_content(), "caption");
     legal.set_margin_top(12);
     column.append(&legal);
 
-    let empty_join = gtk::Button::with_label("Join Store…");
+    let empty_join = gtk::Button::with_label(&t::stores_join_menu());
     empty_join.add_css_class("pill");
     empty_join.add_css_class("suggested-action");
     empty_join.set_action_name(Some("win.join-store"));
-    let empty = nagare::status_page("No Plugin Stores Yet", WHO, Some(&empty_join));
+    let empty = nagare::status_page(
+        &t::stores_empty_title(),
+        &t::stores_empty_detail(),
+        Some(&empty_join),
+    );
     let body = gtk::Stack::new();
     body.add_named(&widgets::column_page(&column, 720), Some("list"));
     body.add_named(&empty, Some("empty"));
-    let navigation = widgets::content_page("Plugin Stores", &header, &body);
+    let navigation = widgets::content_page(&t::nav_plugin_stores(), &header, &body);
 
     let page = Rc::new(Page { ctx: Rc::clone(ctx), body, list, join, shown: Cell::new(false) });
     let open = gio::SimpleAction::new("open", Some(glib::VariantTy::STRING));
@@ -128,9 +124,9 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
             if let Some(page) = weak.upgrade() {
                 if size == Size::Narrow {
                     page.join.set_icon_name("list-add-symbolic");
-                    page.join.set_tooltip_text(Some("Join Store…"));
+                    page.join.set_tooltip_text(Some(&t::stores_join_menu()));
                 } else {
-                    page.join.set_label("Join Store…");
+                    page.join.set_label(&t::stores_join_menu());
                     page.join.set_tooltip_text(None);
                 }
             }
@@ -188,26 +184,26 @@ pub fn push_store(ctx: &Rc<Ctx>, id: &str) {
     if let Some(row) = row.filter(|row| row.state != StoreState::Revoked) {
         if row.owner {
             let owner = gio::Menu::new();
-            owner.append(Some("Invite Someone…"), Some("store.invite"));
-            owner.append(Some("Show Members"), Some("store.members"));
-            owner.append(Some("Who Can Join…"), Some("store.joining"));
-            owner.append(Some("Publish a Plugin…"), Some("store.publish"));
-            owner.append(Some("Open Admin Page"), Some("store.admin"));
+            owner.append(Some(&t::stores_invite_someone()), Some("store.invite"));
+            owner.append(Some(&t::stores_show_members()), Some("store.members"));
+            owner.append(Some(&t::stores_who_can_join_menu()), Some("store.joining"));
+            owner.append(Some(&t::stores_publish_menu()), Some("store.publish"));
+            owner.append(Some(&t::stores_open_admin()), Some("store.admin"));
             menu.append_section(None, &owner);
         }
         // A device that joined with the store's link joins another the same way.
         if !row.anonymous {
             let device = gio::Menu::new();
-            device.append(Some("Link Another Device…"), Some("store.device"));
+            device.append(Some(&t::stores_link_device()), Some("store.device"));
             menu.append_section(None, &device);
         }
     }
     let leave = gio::Menu::new();
-    leave.append(Some("Leave Store…"), Some("store.leave"));
+    leave.append(Some(&t::stores_leave()), Some("store.leave"));
     menu.append_section(None, &leave);
     let more = gtk::MenuButton::builder()
         .icon_name("view-more-symbolic")
-        .tooltip_text("More")
+        .tooltip_text(t::action_more())
         .menu_model(&menu)
         .build();
     let header = adw::HeaderBar::new();
@@ -269,7 +265,7 @@ pub fn push_store(ctx: &Rc<Ctx>, id: &str) {
                     page.set_title(&store.name);
                     fill(&ctx, &column, &store);
                 }
-                None => column.append(&widgets::haze("This store is no longer joined.", "")),
+                None => column.append(&widgets::haze(&t::stores_no_longer_joined(), "")),
             }
         }
     };
@@ -298,21 +294,13 @@ fn fill(ctx: &Rc<Ctx>, column: &gtk::Box, store: &StoreRow) {
     by.set_margin_top(2);
     column.append(&by);
     if store.open {
-        let open = widgets::haze("Anyone with the link can join", "caption");
+        let open = widgets::haze(&t::stores_anyone_with_link(), "caption");
         open.set_margin_top(2);
         column.append(&open);
     }
     let problem = match &store.state {
-        StoreState::Offline(reason) => Some((
-            format!("Offline: {reason}. The plugins below are the last list that was checked."),
-            "ring",
-        )),
-        StoreState::Revoked => Some((
-            "This store no longer lets this computer in. Its plugins stay installed until you \
-             remove them."
-                .to_owned(),
-            "vermilion",
-        )),
+        StoreState::Offline(reason) => Some((t::stores_offline_last_list(reason), "ring")),
+        StoreState::Revoked => Some((t::stores_access_ended_page(), "vermilion")),
         StoreState::Ready => None,
     };
     if let Some((line, mark)) = problem {
@@ -329,7 +317,7 @@ fn fill(ctx: &Rc<Ctx>, column: &gtk::Box, store: &StoreRow) {
         column.append(&state);
     }
 
-    let plugins = widgets::heading("Plugins");
+    let plugins = widgets::heading(&t::stores_plugins());
     plugins.set_margin_top(24);
     plugins.set_margin_bottom(12);
     column.append(&plugins);
@@ -339,21 +327,17 @@ fn fill(ctx: &Rc<Ctx>, column: &gtk::Box, store: &StoreRow) {
         list.append(&plugin_row(ctx, store, plugin, live));
     }
     column.append(&list);
-    let note = widgets::haze(
-        "Each plugin can contact only the hosts listed with it and cannot read your files.",
-        "caption",
-    );
+    let note = widgets::haze(&t::stores_plugin_limits(), "caption");
     note.set_margin_top(8);
     column.append(&note);
     let key = widgets::haze(
-        &format!(
-            "Store key {} · {}",
-            store.fingerprint,
-            if store.anonymous {
-                "joined without a name".to_owned()
+        &t::stores_key_line(
+            &store.fingerprint,
+            &if store.anonymous {
+                t::stores_joined_nameless()
             } else {
-                format!("joined as {}", store.member)
-            }
+                t::stores_device_joined_as(&store.member)
+            },
         ),
         "caption",
     );
@@ -375,30 +359,48 @@ fn plugin_row(
         .build();
     row.set_title_lines(1);
     row.set_subtitle_lines(1);
-    let action = |label: &str, amber: bool| {
+    let action = |label: &str, tip: String, amber: bool| {
         let button = gtk::Button::with_label(label);
         button.set_valign(gtk::Align::Center);
         if amber {
             button.add_css_class("suggested-action");
         }
         let ctx = Rc::clone(ctx);
-        button.set_tooltip_text(Some(&format!("{label} {}", plugin.name)));
+        button.set_tooltip_text(Some(&tip));
         let (store, plugin) = (store.clone(), plugin.clone());
         button.connect_clicked(move |_| plugin::install(&ctx, &store, &plugin));
         button
     };
     let word = |text: &str| widgets::haze(text, "caption");
     match &plugin.status {
-        StorePluginStatus::Installed => row.add_suffix(&word("Installed")),
-        StorePluginStatus::OtherStore(other) => row.add_suffix(&word(&format!("From {other}"))),
-        _ if !live => row.add_suffix(&word(if matches!(store.state, StoreState::Offline(_)) {
-            "Offline"
-        } else {
-            "Not available"
-        })),
-        StorePluginStatus::Update { .. } => row.add_suffix(&action("Update", true)),
-        StorePluginStatus::Available => row.add_suffix(&action("Install", false)),
-        StorePluginStatus::AddedByHand => row.add_suffix(&action("Replace", false)),
+        StorePluginStatus::Installed => {
+            row.add_suffix(&word(&t::stores_plugin_state_installed()))
+        }
+        StorePluginStatus::OtherStore(other) => {
+            row.add_suffix(&word(&t::stores_plugin_from(other)))
+        }
+        _ if !live => {
+            row.add_suffix(&word(&if matches!(store.state, StoreState::Offline(_)) {
+                t::stores_plugin_offline()
+            } else {
+                t::stores_plugin_unavailable()
+            }))
+        }
+        StorePluginStatus::Update { .. } => row.add_suffix(&action(
+            &t::action_update(),
+            t::stores_update_label(&plugin.name, &plugin.version),
+            true,
+        )),
+        StorePluginStatus::Available => row.add_suffix(&action(
+            &t::action_install(),
+            t::stores_install_label(&plugin.name),
+            false,
+        )),
+        StorePluginStatus::AddedByHand => row.add_suffix(&action(
+            &t::action_replace(),
+            t::stores_replace_label(&plugin.name),
+            false,
+        )),
     }
     row.add_suffix(&widgets::chevron());
     let ctx = Rc::downgrade(ctx);
@@ -422,14 +424,11 @@ fn confirm_leave(ctx: &Rc<Ctx>, id: &str) {
         .map(|s| s.name.clone())
         .unwrap_or_else(|| id.into());
     let dialog = adw::AlertDialog::new(
-        Some(&format!("Leave {name}?")),
-        Some(
-            "This computer can no longer install or update its plugins. Plugins already \
-             installed stay.",
-        ),
+        Some(&t::stores_leave_title(&name)),
+        Some(&t::stores_leave_detail()),
     );
-    dialog.add_response("cancel", "Cancel");
-    dialog.add_response("leave", "Leave Store");
+    dialog.add_response("cancel", &t::action_cancel());
+    dialog.add_response("leave", &t::action_leave());
     dialog.set_response_appearance("leave", adw::ResponseAppearance::Destructive);
     dialog.set_default_response(Some("cancel"));
     dialog.set_close_response("cancel");
@@ -468,7 +467,7 @@ mod tests {
             open: false,
             anonymous: false,
         };
-        assert_eq!(standing_words(&store), Some(("Access removed".into(), "vermilion")));
+        assert_eq!(standing_words(&store), Some(("Access ended".into(), "vermilion")));
         store.state = StoreState::Ready;
         assert_eq!(standing_words(&store), None);
         let by_hand = StorePluginRow {
@@ -478,6 +477,6 @@ mod tests {
             hosts: vec!["films.example".into()],
             status: StorePluginStatus::AddedByHand,
         };
-        assert_eq!(plugin_line(&by_hand), "Added by hand · contacts films.example");
+        assert_eq!(plugin_line(&by_hand), "Added by hand · Contacts films.example");
     }
 }

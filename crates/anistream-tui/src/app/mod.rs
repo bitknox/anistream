@@ -477,6 +477,8 @@ impl App {
             // A native app's notifications and widgets, which the terminal never asks for: what
             // aired while it was closed is the digest's to say, at launch.
             Event::NewEpisodes(_) | Event::WidgetSnapshot(_) | Event::UpcomingNotices(_) => {}
+            // The native apps' discussion sheet; the terminal opens a thread in the browser.
+            Event::DiscussionFound { .. } | Event::Discussion(_) => {}
             // What the update check found, for an app's Settings: the terminal's own notice
             // comes as a toast, naming `anistream --update`.
             Event::Update(_) => {}
