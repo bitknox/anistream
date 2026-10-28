@@ -34,6 +34,8 @@ impl Command {
             Self::LoadSeasonal => "loading this season".into(),
             Self::LoadCalendar => "loading the calendar".into(),
             Self::LoadCalendarPast { .. } => "loading earlier broadcasts".into(),
+            Self::RefreshCalendar => "loading the calendar".into(),
+            Self::LoadCalendarAhead { .. } => "loading later broadcasts".into(),
             // A live search has no job: it is sent on every keystroke, and most are replaced
             // before they ask anything.
             Self::Search { query } | Self::SearchMore { query, .. } if query.is_browse() => {
@@ -114,14 +116,37 @@ pub enum Command {
     LoadContinue,
     LoadSeasonal,
     LoadCalendar,
+    /// [`Command::LoadCalendar`] that skips the window the engine keeps for ten minutes and asks
+    /// AniList again: for a refresh the person asked for.
+    RefreshCalendar,
     /// One page further back in the calendar, asked for because the user scrolled near the top.
     ///
     /// Carries the anchor the screen was loaded against rather than letting the fetch read the
     /// clock again. Page numbers only mean anything relative to a fixed upper bound: re-reading
     /// `now` between pages would shift every boundary and let a broadcast appear twice.
+    ///
+    /// With `through`, the job keeps walking back from `page` until a broadcast at or before that
+    /// instant (epoch seconds) is loaded, the floor is reached or AniList has no more, and
+    /// answers once with every page it fetched: [`Event::CalendarBackfill::page`] is the last.
+    /// A week grid passes the Monday it is stepping to. At most 16 pages are walked a job; the
+    /// answer says whether more is behind.
+    ///
+    /// [`Event::CalendarBackfill::page`]: crate::event::Event::CalendarBackfill
     LoadCalendarPast {
         anchor: i64,
         page: u32,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        through: Option<i64>,
+    },
+    /// One page further ahead in the calendar, mirroring [`Command::LoadCalendarPast`]. The
+    /// ceiling is fixed at `anchor` plus 28 days, so page numbers stay stable for as long as the
+    /// anchor holds. `through` walks pages until a broadcast at or after that instant is loaded,
+    /// the ceiling is reached or AniList has no more.
+    LoadCalendarAhead {
+        anchor: i64,
+        page: u32,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        through: Option<i64>,
     },
     /// Search now: Return in the field, a recent search, a rail's See All. Always runs, even
     /// when the AniList budget is low. Answered with [`Event::SearchPaging`] and then the

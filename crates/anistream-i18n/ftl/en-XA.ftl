@@ -1834,6 +1834,15 @@ keys-action-right = [Ṁöṽé ŕîĝĥţ~~~]
 keys-action-top = [Ĵüɱþ ţö ţöþ~~~~]
 
 # Action label in the help overlay and the command palette.
+keys-action-today = [Ĵüɱþ ţö ţöðàý~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-previous-day = [Ĵüɱþ ţö þŕéṽîöüš ðàý~~~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-next-day = [Ĵüɱþ ţö ñéẋţ ðàý~~~~~]
+
+# Action label in the help overlay and the command palette.
 keys-action-bottom = [Ĵüɱþ ţö ƀöţţöɱ~~~~~]
 
 # Action label in the help overlay and the command palette.
@@ -3146,6 +3155,9 @@ settings-label-episode-discussions = [Éþîšöðé ðîšçüššîöñš~~~~~
 
 # Settings row: whether images in discussion comments load inline.
 settings-label-comment-images = [Ļöàð îɱàĝéš îñ çöɱɱéñţš~~~~~~~]
+
+# Settings row: whether Calendar shows only the shows on the person's list.
+settings-label-calendar-mine = [Çàļéñðàŕ šĥöŵš öñļý ɱý ļîšţ~~~~~~~~~]
 
 # Note under the titles row.
 settings-note-titles = [ÅñîĻîšţ'š çĥöîçé ƒöļļöŵš ýöüŕ ÅñîĻîšţ àççöüñţ, àñð îš Éñĝļîšĥ ŵĥéñ ýöü'ŕé šîĝñéð öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]

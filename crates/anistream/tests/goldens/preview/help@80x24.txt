@@ -6,19 +6,19 @@ anistream                                       torrent ○  plugins ·  ·  kit
   Global                                Move right                 l / →
     Show keys                      ?    Jump to top                    g
     Run a command         : / ctrl+k    Jump to bottom                 G
-    Quit                  Q / ctrl+c    Page up                   ctrl+u
-    Back                     q / esc    Page down                 ctrl+d
-    Toggle rail width            tab  Lists and grids
-    Refresh this view              r    Open                           ↵
-    Force a full resync            R    Play next unwatched        space
-    Subbed or dubbed               t    Set list status                a
-    Go to section                1–9    Rate this title                *
-    Search                         /    Expand synopsis                i
-    Recent messages                L    Remove from Continue           x
-  Movement                              Search filters            ctrl+f
-    Move up                    k / ↑  Title
-    Move down                  j / ↓    Episodes                       e
-    Move left                  h / ←    Sources                        s
+    Quit                  Q / ctrl+c    Jump to today                  T
+    Back                     q / esc    Jump to previous day           {
+    Toggle rail width            tab    Jump to next day               }
+    Refresh this view              r    Page up                   ctrl+u
+    Force a full resync            R    Page down                 ctrl+d
+    Subbed or dubbed               t  Lists and grids
+    Go to section                1–9    Open                           ↵
+    Search                         /    Play next unwatched        space
+    Recent messages                L    Set list status                a
+  Movement                              Rate this title                *
+    Move up                    k / ↑    Expand synopsis                i
+    Move down                  j / ↓    Remove from Continue           x
+    Move left                  h / ←    Search filters            ctrl+f
 
 ────────────────────────────────────────────────────────────────────────────────
 plugins · Subbed · 1080p                                     ↑↓ page   esc close

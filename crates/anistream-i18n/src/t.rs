@@ -2861,6 +2861,21 @@ pub fn keys_action_top() -> String {
 }
 
 /// Action label in the help overlay and the command palette.
+pub fn keys_action_today() -> String {
+    text("keys-action-today", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_previous_day() -> String {
+    text("keys-action-previous-day", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_next_day() -> String {
+    text("keys-action-next-day", &[])
+}
+
+/// Action label in the help overlay and the command palette.
 pub fn keys_action_bottom() -> String {
     text("keys-action-bottom", &[])
 }
@@ -5008,6 +5023,11 @@ pub fn settings_label_episode_discussions() -> String {
 /// Settings row: whether images in discussion comments load inline.
 pub fn settings_label_comment_images() -> String {
     text("settings-label-comment-images", &[])
+}
+
+/// Settings row: whether Calendar shows only the shows on the person's list.
+pub fn settings_label_calendar_mine() -> String {
+    text("settings-label-calendar-mine", &[])
 }
 
 /// Note under the titles row.

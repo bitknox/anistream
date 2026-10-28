@@ -128,6 +128,7 @@ impl App {
         }
 
         self.backfill_calendar_if_near_top();
+        self.more_calendar_if_near_end();
         self.more_search_if_near_end();
     }
 
@@ -234,6 +235,7 @@ impl App {
                     let offset = last.saturating_sub(visible_rows.saturating_sub(1));
                     *self.cursors.section_mut(self.nav.section()) =
                         Cursor { selected: last, offset };
+                    self.more_calendar_if_near_end();
                 }
                 _ => self.move_selection(delta, visible_rows),
             }

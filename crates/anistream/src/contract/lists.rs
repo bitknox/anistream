@@ -173,7 +173,7 @@ async fn the_calendar_sends_its_window_before_its_entries() {
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["CalendarWindow", "Content", "JobDone"]);
-    let Event::CalendarWindow { anchor, pages, more_past } = &updates[0] else {
+    let Event::CalendarWindow { anchor, pages, more_past, .. } = &updates[0] else {
         unreachable!()
     };
     assert!((before..=anistream_store::now()).contains(anchor));
@@ -205,7 +205,7 @@ async fn earlier_broadcasts_come_as_a_backfill_and_a_failed_one_says_nothing() {
     let mut h = Harness::with(no_fallback()).await;
     let anchor = anistream_store::now();
     h.server().set_now(anchor);
-    let job = h.send(Command::LoadCalendarPast { anchor, page: 2 });
+    let job = h.send(Command::LoadCalendarPast { anchor, page: 2, through: None });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["CalendarBackfill", "JobDone"]);
     let Event::CalendarBackfill { page, entries, more_past } = &updates[0] else {
@@ -216,7 +216,7 @@ async fn earlier_broadcasts_come_as_a_backfill_and_a_failed_one_says_nothing() {
 
     // Not a toast: nobody asked for the page by name, and the next scroll asks again.
     h.server().fail_always(Failure::Status(500));
-    let job = h.send(Command::LoadCalendarPast { anchor, page: 2 });
+    let job = h.send(Command::LoadCalendarPast { anchor, page: 2, through: None });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["CalendarBackfill", "JobDone"]);
     let Event::CalendarBackfill { page, entries, more_past } = &updates[0] else {
@@ -224,6 +224,248 @@ async fn earlier_broadcasts_come_as_a_backfill_and_a_failed_one_says_nothing() {
     };
     assert_eq!((*page, entries.len(), *more_past), (None, 0, true), "tried again next time");
     ends(&updates, job);
+}
+
+const DAY: i64 = 86_400;
+
+/// Broadcasts of one title beside the fixtures' schedule, at these distances from now.
+fn crowd(h: &Harness, first_episode: u32, offsets: impl IntoIterator<Item = i64>) {
+    h.server().add_broadcasts(
+        offsets
+            .into_iter()
+            .zip(first_episode..)
+            .map(|(offset, episode)| (FINISHED, episode, FIXTURE_NOW + offset)),
+    );
+}
+
+/// A fake AniList with more broadcasts than a page holds either way: 160 from ten days out
+/// and five past the ceiling, 120 from thirty days back and five before the floor. The
+/// episodes of the title are numbered apart, so a row says which group it came from.
+async fn crowded() -> (Harness, i64) {
+    let h = Harness::with(no_fallback()).await;
+    let anchor = anistream_store::now();
+    h.server().set_now(anchor);
+    crowd(&h, 1_000, (0..160).map(|i| 10 * DAY + i * 60));
+    crowd(&h, 2_000, (0..5).map(|i| 29 * DAY + i * 60));
+    crowd(&h, 3_000, (0..120).map(|i| -30 * DAY - i * 60));
+    crowd(&h, 4_000, (0..5).map(|i| -95 * DAY - i * 60));
+    (h, anchor)
+}
+
+fn episodes(updates: &[Event]) -> Vec<u32> {
+    let entries = match &updates[0] {
+        Event::CalendarBackfill { entries, .. } | Event::CalendarAhead { entries, .. } => {
+            entries
+        }
+        Event::CalendarWindow { .. } => match content(updates) {
+            ContentList::Entries(entries) => entries,
+            other => panic!("{other:?}"),
+        },
+        other => panic!("{other:?}"),
+    };
+    entries.iter().filter_map(|e| e.airing_episode).collect()
+}
+
+#[tokio::test]
+async fn the_window_says_how_far_the_calendar_reaches_and_what_is_loaded() {
+    let (mut h, _) = crowded().await;
+    h.send(Command::LoadCalendar);
+    let updates = h.settle().await;
+
+    assert_eq!(names(&updates), ["CalendarWindow", "Content", "JobDone"]);
+    let Event::CalendarWindow {
+        anchor,
+        pages,
+        more_past,
+        floor,
+        ceiling,
+        ahead_pages,
+        more_ahead,
+    } = &updates[0]
+    else {
+        unreachable!()
+    };
+    assert_eq!((*floor, *ceiling), (anchor - 90 * DAY, anchor + 28 * DAY));
+    assert_eq!((*pages, *more_past), (3, false), "the past fits in three pages");
+    assert_eq!((*ahead_pages, *more_ahead), (3, true), "and the days ahead do not");
+    let ContentList::Entries(entries) = content(&updates) else { panic!("{updates:?}") };
+    let times: Vec<i64> = entries.iter().filter_map(|e| e.airing_in).collect();
+    assert!(times.is_sorted());
+    assert!(times.iter().all(|t| *t > floor - anchor && *t < ceiling - anchor));
+    let eps = episodes(&updates);
+    assert!(!eps.iter().any(|e| (2_000..3_000).contains(e)), "none past the ceiling");
+    assert!(!eps.iter().any(|e| *e >= 4_000), "none before the floor");
+}
+
+#[tokio::test]
+async fn later_broadcasts_come_a_page_at_a_time_up_to_a_fixed_ceiling() {
+    let (mut h, _) = crowded().await;
+    h.send(Command::LoadCalendar);
+    let first = h.settle().await;
+    let Event::CalendarWindow { anchor, ceiling, .. } = first[0] else { unreachable!() };
+    let loaded = episodes(&first);
+    h.server().clear_requests();
+
+    let job = h.send(Command::LoadCalendarAhead { anchor, page: 4, through: None });
+    let updates = h.settle().await;
+    assert_eq!(names(&updates), ["CalendarAhead", "JobDone"]);
+    let Event::CalendarAhead { page, entries, more_ahead } = &updates[0] else {
+        unreachable!()
+    };
+    assert_eq!((*page, *more_ahead), (Some(4), false));
+    assert!(!entries.is_empty() && entries.len() <= 50);
+    let later = episodes(&updates);
+    assert!(later.iter().all(|e| !loaded.contains(e)), "no row twice");
+    assert!(!later.iter().any(|e| (2_000..3_000).contains(e)), "the ceiling holds");
+    ends(&updates, job);
+
+    // Every query ahead is bounded by the same two instants, whatever the page.
+    let asked = h.server().requests_for(Operation::Schedule);
+    assert_eq!(asked.len(), 1);
+    assert_eq!(asked[0].variables["from"], anchor);
+    assert_eq!(asked[0].variables["to"], ceiling);
+
+    // Past the last page there is nothing, and it says so.
+    h.send(Command::LoadCalendarAhead { anchor, page: 5, through: None });
+    let updates = h.settle().await;
+    let Event::CalendarAhead { page, entries, more_ahead } = &updates[0] else {
+        unreachable!()
+    };
+    assert_eq!((*page, entries.len(), *more_ahead), (Some(5), 0, false));
+}
+
+#[tokio::test]
+async fn earlier_broadcasts_stop_at_the_floor() {
+    let (mut h, anchor) = crowded().await;
+    h.send(Command::LoadCalendarPast { anchor, page: 4, through: None });
+    let updates = h.settle().await;
+    let Event::CalendarBackfill { page, entries, more_past } = &updates[0] else {
+        unreachable!()
+    };
+    assert_eq!((*page, entries.len(), *more_past), (Some(4), 0, false), "all in three pages");
+    let asked = h.server().requests_for(Operation::Schedule);
+    assert_eq!(asked[0].variables["from"], anchor - 90 * DAY);
+    assert_eq!(asked[0].variables["to"], anchor);
+
+    h.send(Command::LoadCalendarPast { anchor, page: 3, through: None });
+    let updates = h.settle().await;
+    assert!(!episodes(&updates).iter().any(|e| *e >= 4_000), "nothing before the floor");
+}
+
+#[tokio::test]
+async fn a_through_walks_pages_until_that_instant_is_covered() {
+    let (mut h, anchor) = crowded().await;
+
+    // Back to an hour past the sixtieth extra: two pages of fifty, answered together.
+    let through = anchor - 30 * DAY - 60 * 60;
+    let job = h.send(Command::LoadCalendarPast { anchor, page: 1, through: Some(through) });
+    let updates = h.settle().await;
+    assert_eq!(names(&updates), ["CalendarBackfill", "JobDone"]);
+    let Event::CalendarBackfill { page, entries, more_past } = &updates[0] else {
+        unreachable!()
+    };
+    assert_eq!((*page, entries.len(), *more_past), (Some(2), 100, true));
+    let times: Vec<i64> = entries.iter().filter_map(|e| e.airing_in).collect();
+    assert!(times.is_sorted(), "oldest first, as one backfill reads");
+    assert!(anchor + times[0] <= through, "the instant is covered");
+    ends(&updates, job);
+    assert_eq!(h.server().requests_for(Operation::Schedule).len(), 2);
+
+    // Forward, three pages reach ten days and two hours out.
+    h.server().clear_requests();
+    let through = anchor + 10 * DAY + 120 * 60;
+    h.send(Command::LoadCalendarAhead { anchor, page: 1, through: Some(through) });
+    let updates = h.settle().await;
+    let Event::CalendarAhead { page, entries, more_ahead } = &updates[0] else {
+        unreachable!()
+    };
+    assert_eq!((*page, entries.len(), *more_ahead), (Some(3), 150, true));
+    assert!(anchor + entries.last().and_then(|e| e.airing_in).unwrap() >= through);
+
+    // An instant past the end walks to the end and stops there, not at the ceiling's say-so
+    // alone.
+    h.send(Command::LoadCalendarAhead { anchor, page: 1, through: Some(anchor + 40 * DAY) });
+    let updates = h.settle().await;
+    let Event::CalendarAhead { page, more_ahead, .. } = &updates[0] else { unreachable!() };
+    assert_eq!((*page, *more_ahead), (Some(4), false));
+    h.send(Command::LoadCalendarPast { anchor, page: 1, through: Some(anchor - 100 * DAY) });
+    let updates = h.settle().await;
+    let Event::CalendarBackfill { page, more_past, .. } = &updates[0] else { unreachable!() };
+    assert_eq!((*page, *more_past), (Some(3), false), "the floor ends the walk");
+}
+
+#[tokio::test]
+async fn a_failing_page_in_a_walk_keeps_what_came_before_it() {
+    let (mut h, anchor) = crowded().await;
+    h.server().fail_next(Failure::Status(500));
+    h.send(Command::LoadCalendarAhead { anchor, page: 1, through: Some(anchor + 20 * DAY) });
+    let updates = h.settle().await;
+    let Event::CalendarAhead { page, entries, more_ahead } = &updates[0] else {
+        unreachable!()
+    };
+    assert_eq!((*page, entries.len(), *more_ahead), (None, 0, true), "nothing, and ask again");
+}
+
+#[tokio::test]
+async fn the_last_window_is_kept_for_ten_minutes_and_costs_no_queries() {
+    let (mut h, _) = crowded().await;
+    h.send(Command::LoadCalendar);
+    let first = h.settle().await;
+    let Event::CalendarWindow { anchor, .. } = first[0] else { unreachable!() };
+    assert!(!h.server().requests_for(Operation::Schedule).is_empty());
+
+    // A page fetched later joins the window, so coming back shows it too.
+    h.send(Command::LoadCalendarAhead { anchor, page: 4, through: None });
+    h.settle().await;
+    h.server().clear_requests();
+
+    h.advance_engine_clock(9 * 60);
+    let job = h.send(Command::LoadCalendar);
+    let again = h.settle().await;
+    assert_eq!(names(&again), ["CalendarWindow", "Content", "JobDone"]);
+    assert!(h.server().requests().is_empty(), "nothing asked: {:?}", h.server().requests());
+    let Event::CalendarWindow { anchor: kept, ahead_pages, more_ahead, .. } = again[0] else {
+        unreachable!()
+    };
+    assert_eq!(
+        (kept, ahead_pages, more_ahead),
+        (anchor, 4, false),
+        "the same pages, numbered alike"
+    );
+    let ContentList::Entries(was) = content(&first) else { panic!() };
+    let ContentList::Entries(now) = content(&again) else { panic!() };
+    assert!(now.len() > was.len(), "with the page that came after");
+    ends(&again, job);
+
+    // Asking by hand is asking again.
+    h.send(Command::RefreshCalendar);
+    h.settle().await;
+    assert!(!h.server().requests_for(Operation::Schedule).is_empty());
+    h.server().clear_requests();
+
+    // Once the ten minutes are up, so is the window.
+    h.advance_engine_clock(11 * 60);
+    h.send(Command::LoadCalendar);
+    let later = h.settle().await;
+    assert_eq!(names(&later), ["CalendarWindow", "Content", "JobDone"]);
+    assert!(!h.server().requests_for(Operation::Schedule).is_empty(), "fetched afresh");
+}
+
+#[tokio::test]
+async fn a_calendar_that_failed_is_not_kept() {
+    let mut h = Harness::with(no_fallback()).await;
+    h.server().set_now(anistream_store::now());
+    h.server().fail_always(Failure::Status(500));
+    h.send(Command::LoadCalendar);
+    let updates = h.settle().await;
+    assert_eq!(names(&updates), ["Content", "JobDone"]);
+
+    h.server().heal();
+    h.server().clear_requests();
+    h.send(Command::LoadCalendar);
+    let updates = h.settle().await;
+    assert_eq!(names(&updates), ["CalendarWindow", "Content", "JobDone"]);
+    assert!(!h.server().requests_for(Operation::Schedule).is_empty());
 }
 
 #[tokio::test]

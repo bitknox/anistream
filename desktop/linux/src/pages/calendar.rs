@@ -270,7 +270,7 @@ impl Page {
 
     fn heard(&self, event: &Event) {
         match event {
-            Event::CalendarWindow { anchor, pages, more_past } => {
+            Event::CalendarWindow { anchor, pages, more_past, .. } => {
                 self.anchor.set(Some(*anchor));
                 self.pages.set(*pages);
                 self.more_past.set(*more_past);
