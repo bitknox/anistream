@@ -19,6 +19,8 @@ val native = System.getenv("ANISTREAM_PLAYER_NATIVE") != "off"
 android {
     namespace = "tv.anistream.player"
     ndkVersion = libs.versions.ndk.get()
+    // The tests read the words the person would, from the catalogue.
+    testOptions { unitTests.isIncludeAndroidResources = true }
 
     defaultConfig {
         // The TV app plays here too, on Android 11 and on the 32-bit userspace most TV boxes run.

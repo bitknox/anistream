@@ -1,6 +1,10 @@
 package tv.anistream.ui
 
 import org.junit.Assert.assertEquals
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import org.junit.Test
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeRow
@@ -9,7 +13,10 @@ import tv.anistream.engine.model.TitleProgress
 import tv.anistream.testkit.Scene
 
 /** Which watched episodes a title page folds, and how the row over them reads. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class EpisodeFoldTest {
+    private val context = RuntimeEnvironment.getApplication()
     private val scene = Scene.named("watching")
 
     /** 900001's page and its twelve episodes as the engine sends them. */
@@ -55,7 +62,7 @@ class EpisodeFoldTest {
     @Test
     fun the_row_names_the_range_it_folds() {
         val (title, episodes) = watched(6)
-        assertEquals("Episodes 1 to 5 watched", watchedRangeWords(title.foldedEpisodes(episodes)))
-        assertEquals("Episodes 1 to 2 watched", watchedRangeWords(episodes.take(2)))
+        assertEquals("Episodes 1 to 5 watched", watchedRangeWords(context, title.foldedEpisodes(episodes)))
+        assertEquals("Episodes 1 to 2 watched", watchedRangeWords(context, episodes.take(2)))
     }
 }

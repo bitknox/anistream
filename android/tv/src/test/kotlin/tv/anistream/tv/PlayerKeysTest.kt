@@ -1,6 +1,10 @@
 package tv.anistream.tv
 
 import org.junit.Assert.assertEquals
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import org.junit.Test
 import tv.anistream.player.SeekSegment
 import tv.anistream.tv.player.ScrubHead
@@ -9,7 +13,10 @@ import tv.anistream.tv.player.clockTime
 import tv.anistream.tv.player.remainingTime
 import tv.anistream.tv.player.signedSeconds
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class PlayerKeysTest {
+    private val context = RuntimeEnvironment.getApplication()
     /** The board's episode: the opening 2:10 to 3:40, the ending 21:31 to 23:01, of 24:02. */
     private val segments = listOf(
         SeekSegment(SeekSegment.Kind.Plain, 0.0, 130.0),
@@ -23,13 +30,13 @@ class PlayerKeysTest {
     fun presses_count_up_and_seek_once() {
         val run = SeekRun()
         repeat(3) { run.press(forward = true) }
-        assertEquals("+30 s", run.label)
+        assertEquals("+30 s", run.label(context))
         run.press(forward = false)
-        assertEquals("+20 s", run.label)
+        assertEquals("+20 s", run.label(context))
         assertEquals(20.0, run.take(), 0.0)
         assertEquals(0, run.presses)
         run.press(forward = false)
-        assertEquals("−10 s", run.label)
+        assertEquals("−10 s", run.label(context))
     }
 
     @Test
@@ -69,6 +76,6 @@ class PlayerKeysTest {
         assertEquals("10:29", clockTime(629.0))
         assertEquals("1:02:03", clockTime(3723.0))
         assertEquals("−13:31", remainingTime(631.0, 1442.0))
-        assertEquals("0 s", signedSeconds(0.0))
+        assertEquals("0 s", signedSeconds(context, 0.0))
     }
 }

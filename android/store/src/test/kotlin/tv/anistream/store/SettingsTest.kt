@@ -1,6 +1,10 @@
 package tv.anistream.store
 
 import org.junit.Assert.assertEquals
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -14,7 +18,10 @@ import tv.anistream.engine.model.SettingRow
 import tv.anistream.engine.model.SyncState
 
 /** The ports of the engine's settings and source-order rules, and what the accounts keep. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class SettingsTest {
+    private val context = RuntimeEnvironment.getApplication()
     private fun row(id: String, kind: String) = ProviderRow(
         id = id, kind = kind, state = "ready", latencyMs = null, lastError = null, usable = true,
         heldBack = false, name = id, version = null, hosts = emptyList(), origin = ProviderOrigin.BuiltIn,
@@ -85,10 +92,10 @@ class SettingsTest {
 
     @Test
     fun sizes_read_as_the_terminal_says_them() {
-        assertEquals("0 B", Wording.bytes(0))
-        assertEquals("140 MB", Wording.bytes(140_300_000))
-        assertEquals("9.4 GB", Wording.bytes(9_400_000_000))
-        assertEquals("3.4 GB", Wording.bytes(3_400_000_000))
+        assertEquals("0 B", Wording.bytes(context, 0))
+        assertEquals("140 MB", Wording.bytes(context, 140_300_000))
+        assertEquals("9.4 GB", Wording.bytes(context, 9_400_000_000))
+        assertEquals("3.4 GB", Wording.bytes(context, 3_400_000_000))
     }
 
     @Test

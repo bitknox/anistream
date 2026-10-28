@@ -1,5 +1,6 @@
 package tv.anistream.tv
 
+import tv.anistream.i18n.R
 import android.content.ComponentName
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -102,7 +103,6 @@ import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.shell.TvRoot
 import tv.anistream.tv.signin.LocalPageHost
 import tv.anistream.tv.signin.SignInPage
-import tv.anistream.tv.ui.OFFLINE_LINE
 import tv.anistream.tv.ui.TV_ART_BUDGET
 import tv.anistream.tv.ui.TvArtDecoder
 import tv.anistream.tv.ui.TvTheme
@@ -118,6 +118,7 @@ import tv.anistream.tv.ui.TvTheme
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [36], qualifiers = TvShots.TV)
 class TvShots {
+    private val context = RuntimeEnvironment.getApplication()
     val compose = createAndroidComposeRule<ComponentActivity>()
 
     /**
@@ -369,7 +370,7 @@ class TvShots {
     /** Continue offline: the quiet line under the hero, what was there kept. */
     @Test
     fun continue_offline() = shoot("tv-continue-offline", offline = true) {
-        assertTrue(compose.onAllNodesWithText(OFFLINE_LINE).fetchSemanticsNodes().isNotEmpty())
+        assertTrue(compose.onAllNodesWithText(context.getString(R.string.accounts_offline_changes_tv)).fetchSemanticsNodes().isNotEmpty())
     }
 
     /** Settings › Add a plugin store, from Settings: the QR code for a phone, and Type the link. */

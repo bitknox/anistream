@@ -12,6 +12,8 @@ android {
     namespace = "tv.anistream.store"
     // Shared with the TV app.
     defaultConfig { minSdk = AnistreamSdk.TV_MIN }
+    // The tests read the words the person would, from the catalogue.
+    testOptions { unitTests.isIncludeAndroidResources = true }
 }
 
 dependencies {
