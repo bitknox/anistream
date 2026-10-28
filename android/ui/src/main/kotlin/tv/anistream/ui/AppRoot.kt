@@ -17,6 +17,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -388,8 +389,12 @@ private fun BarLabel(text: String) {
     val style = LocalTextStyle.current
     Text(
         text,
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         maxLines = 1,
         softWrap = false,
+        // At the smallest size a longer label ends in an ellipsis rather than running off the bar.
+        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
             minFontSize = 8.sp,
             maxFontSize = if (style.fontSize.isSpecified) style.fontSize else 12.sp,
