@@ -5,6 +5,10 @@
 
 package tv.anistream.tv.screens
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.R
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -158,8 +162,8 @@ fun TitleScreen(
         if (id in failed) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 StateBlock(
-                    "Couldn't load this title.",
-                    action = "Try again",
+                    stringResource(R.string.title_load_failed),
+                    action = stringResource(R.string.action_try_again),
                     onAction = { store.loadDetail(id) },
                     actionModifier = Modifier.firstFocus(memory, "retry"),
                 )
@@ -241,31 +245,31 @@ private fun Header(
     val context = LocalContext.current
     HeroHeader(entry, rows, modifier) {
         Spacer(Modifier.height(6.dp))
-        Text(entry.metadataLine, style = MaterialTheme.typography.labelSmall, color = ObiSilk.Haze, maxLines = 1)
+        Text(entry.metadataLine(context), style = MaterialTheme.typography.labelSmall, color = ObiSilk.Haze, maxLines = 1)
         Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (noSources) {
-                AmberButton(onClick = onAddStore, icon = null, modifier = Modifier.firstFocus(memory, "play")) { ButtonLabel("Add a plugin store to play") }
+                AmberButton(onClick = onAddStore, icon = null, modifier = Modifier.firstFocus(memory, "play")) { ButtonLabel(stringResource(R.string.tv_add_store_to_play)) }
             } else {
                 AmberButton(
                     onClick = { onPlay(entry.id, action.episode) },
                     // Still focusable while it waits for the episode, so it can say when it is out.
                     enabled = action.playable,
                     modifier = Modifier.firstFocus(memory, "play"),
-                ) { ButtonLabel(if (action.unsourced) Strings.episodeUnsourced(context) else action.label()) }
+                ) { ButtonLabel(if (action.unsourced) Strings.episodeUnsourced(context) else action.label(context)) }
             }
             Spacer(Modifier.width(16.dp))
             val status = entry.listStatus
             TonalButton(
-                onClick = { actions?.open(statusSheet(store, entry.id, entry.title, status)) },
+                onClick = { actions?.open(statusSheet(context, store, entry.id, entry.title, status)) },
                 icon = if (status == null) TvIcons.Library else TvIcons.Check,
                 modifier = Modifier.remembered(memory, "status"),
-            ) { ButtonLabel(status?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list") }
+            ) { ButtonLabel(status?.label(context) ?: stringResource(R.string.library_add_to_list)) }
             Spacer(Modifier.width(16.dp))
             TonalIconButton(
                 TvIcons.More,
-                "More",
-                onClick = { actions?.open(titleSheet(store, entry, rows, action, Strings.sourcePickerTitle(context))) },
+                stringResource(R.string.action_more),
+                onClick = { actions?.open(titleSheet(context, store, entry, rows, action, Strings.sourcePickerTitle(context))) },
                 modifier = Modifier.remembered(memory, "more"),
             )
         }
@@ -290,17 +294,17 @@ private fun Seasons(
     val state = rememberLazyListState(initialFirstVisibleItemIndex = (at - 1).coerceAtLeast(0))
     val selected = remember { FocusRequester() }
     BrowseRow(
-        "Seasons",
+        stringResource(R.string.title_seasons),
         modifier = modifier,
         state = state,
-        subtitle = if (at >= 0) "${at + 1} of ${seasons.size}" else "${seasons.size} seasons",
+        subtitle = if (at >= 0) stringResource(R.string.tv_seasons_position, at + 1, seasons.size) else pluralStringResource(R.plurals.tv_seasons_count, seasons.size, seasons.size),
         fallback = if (at >= 0) selected else FocusRequester.Default,
     ) {
         items(seasons.size, key = { seasons[it].id.toLong() }, contentType = { "season" }) { index ->
             val season = seasons[index]
             val chosen = season.id == id
             TvTab(
-                "Season ${index + 1}",
+                stringResource(R.string.season_number, index + 1),
                 selected = chosen,
                 onSelect = { if (!chosen) onSeason(season.id) },
                 settle = null,
@@ -333,7 +337,7 @@ private fun Episodes(
     val state = rememberLazyListState(initialFirstVisibleItemIndex = next)
     val nextRequester = remember { FocusRequester() }
     val placeholders = placeholdersAfterWait(rows == null)
-    BrowseRow("Episodes", modifier = modifier, subtitle = dub, state = state, fallback = nextRequester) {
+    BrowseRow(stringResource(R.string.title_episodes), modifier = modifier, subtitle = dub, state = state, fallback = nextRequester) {
         if (rows == null) {
             if (placeholders) {
                 items(PLACEHOLDER_CARDS, key = { "placeholder/$it" }) { Box(swapFade()) { tv.anistream.tv.ui.CardPlaceholder(Canvas.CardWidth, Canvas.CardHeight) } }
@@ -347,17 +351,17 @@ private fun Episodes(
             EpisodeCard(
                 row = row,
                 entry = entry,
-                line = if (row.unsourced) Strings.episodeUnsourced(context) else row.cardLine(entry.resume, playsNext),
+                line = if (row.unsourced) Strings.episodeUnsourced(context) else row.cardLine(context, entry.resume, playsNext),
                 progress = if (playsNext) entry.resume?.fraction?.toFloat() else null,
                 // Unwatched stills after the next one keep their colours and none of their detail.
                 // Only an episode's own still can spoil; the show's banner in its place cannot.
                 spoiler = spoilers && index > next && !row.completed && row.thumbnail != null,
                 // One no source lists plays nothing: Center offers what can be done instead.
                 onClick = {
-                    if (row.unsourced) host?.open(episodeSheet(store, entry, rows, row, onPlayFromStart))
+                    if (row.unsourced) host?.open(episodeSheet(context, store, entry, rows, row, onPlayFromStart))
                     else row.number.toUIntOrNull()?.let { onPlay(entry.id, it) }
                 },
-                sheet = { episodeSheet(store, entry, rows, row, onPlayFromStart) },
+                sheet = { episodeSheet(context, store, entry, rows, row, onPlayFromStart) },
                 modifier = Modifier
                     .then(if (playsNext) Modifier.focusRequester(nextRequester) else Modifier)
                     .remembered(memory, "episode/${row.number}"),
@@ -378,7 +382,9 @@ private fun EpisodeCard(
     sheet: () -> ActionSheet,
     modifier: Modifier,
 ) {
-    val label = cardLabel(row.cardTitle, line, progress) + if (row.completed) ", watched" else ""
+    val context = LocalContext.current
+    val base = cardLabel(context, row.cardTitle(context), line, progress)
+    val label = if (row.completed) Strings.tvCardLabelWatched(context, base) else base
     Column(Modifier.width(Canvas.CardWidth)) {
         ArtCard(onClick, Canvas.CardWidth, Canvas.CardHeight, modifier, sheet, label) {
             // One no source lists is dimmed under its focus ring, which stays as bright as any.
@@ -399,7 +405,7 @@ private fun EpisodeCard(
                 }
             }
         }
-        CardText(row.cardTitle, line, titleColor = if (row.completed || row.unsourced) ObiSilk.Haze else ObiSilk.Silk)
+        CardText(row.cardTitle(context), line, titleColor = if (row.completed || row.unsourced) ObiSilk.Haze else ObiSilk.Silk)
     }
 }
 
@@ -409,7 +415,7 @@ private fun Details(entry: Entry, memory: FocusMemory, modifier: Modifier) {
     Column(modifier.padding(start = Canvas.Keyline - 16.dp, end = Canvas.SafeX)) {
         val actions = LocalActions.current
         Text(
-            "Details",
+            stringResource(R.string.title_details),
             style = MaterialTheme.typography.titleMedium,
             color = ObiSilk.Silk,
             modifier = Modifier.padding(start = 16.dp, bottom = Canvas.HeaderGap).semantics { heading() },
@@ -435,9 +441,9 @@ private fun Details(entry: Entry, memory: FocusMemory, modifier: Modifier) {
                     Spacer(Modifier.height(16.dp))
                 }
                 listOfNotNull(
-                    entry.studio?.let { "Studio" to it },
-                    entry.genres.takeIf { it.isNotEmpty() }?.let { "Genres" to it.joinToString(", ") },
-                    entry.source?.let { "Source" to it.name.lowercase().replace('_', ' ').replaceFirstChar { c -> c.uppercase() } },
+                    entry.studio?.let { stringResource(R.string.title_studio) to it },
+                    entry.genres.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.filter_genres) to it.joinToString(", ") }, // i18n-skip
+                    entry.source?.let { stringResource(R.string.title_based_on) to it.name.lowercase().replace('_', ' ').replaceFirstChar { c -> c.uppercase() } },
                 ).forEach { (label, value) ->
                     Row(Modifier.padding(vertical = 2.dp)) {
                         Text(label, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, modifier = Modifier.width(96.dp))
@@ -495,6 +501,7 @@ private const val PLACEHOLDER_CARDS = 5
  * choose the release it plays from. One AniList alone lists has nothing to play.
  */
 fun episodeSheet(
+    context: Context,
     store: AppStore,
     entry: Entry,
     rows: List<EpisodeRow>,
@@ -503,19 +510,19 @@ fun episodeSheet(
 ): ActionSheet {
     val upTo = rows.takeWhile { it.number != row.number }.map { it.number } + row.number
     val number = row.number.toUIntOrNull()?.takeIf { !row.metadataOnly && !row.unsourced }
-    val title = "${entry.title} · ${row.cardTitle}"
+    val title = "${entry.title} · ${row.cardTitle(context)}" // i18n-skip
     return ActionSheet(
         title,
         listOfNotNull(
-            number?.let { CardAction("Play from the start") { onPlayFromStart(entry.id, it) } },
+            number?.let { CardAction(Strings.episodePlayFromBeginning(context)) { onPlayFromStart(entry.id, it) } },
             if (row.completed) {
-                CardAction("Mark unwatched") { store.setWatched(entry.id, listOf(row.number), watched = false) }
+                CardAction(Strings.episodeMarkUnwatched(context)) { store.setWatched(entry.id, listOf(row.number), watched = false) }
             } else {
-                CardAction("Mark watched") { store.setWatched(entry.id, listOf(row.number)) }
+                CardAction(Strings.episodeMarkWatched(context)) { store.setWatched(entry.id, listOf(row.number)) }
             },
-            CardAction("Mark watched up to here") { store.setWatched(entry.id, upTo) },
+            CardAction(Strings.tvEpisodeMarkUpToHere(context)) { store.setWatched(entry.id, upTo) },
             number?.let {
-                CardAction("Choose source", then = ActionSheet(title, body = { EpisodeReleases(store, entry.id, row.number) }))
+                CardAction(Strings.playerChooseSource(context), then = ActionSheet(title, body = { EpisodeReleases(store, entry.id, row.number) }))
             },
         ),
     )
@@ -525,18 +532,18 @@ fun episodeSheet(
  * The title page's More: Show settings, Mark watched up to the episode it would play, Hide from
  * Continue, Drop (keeps progress).
  */
-fun titleSheet(store: AppStore, entry: Entry, rows: List<EpisodeRow>?, action: PlayAction, sourcesLabel: String): ActionSheet {
+fun titleSheet(context: Context, store: AppStore, entry: Entry, rows: List<EpisodeRow>?, action: PlayAction, sourcesLabel: String): ActionSheet {
     val before = rows?.takeWhile { it.number != action.episode.toString() }?.filter { !it.completed }?.map { it.number }.orEmpty()
     return ActionSheet(
         entry.title,
         listOfNotNull(
-            CardAction("Show settings", then = showSettingsSheet(store, entry.id, entry.title)),
+            CardAction(Strings.showSettingsTitle(context), then = showSettingsSheet(context, store, entry.id, entry.title)),
             CardAction(sourcesLabel, then = sourcePickerSheet(store, entry, sourcesLabel)),
             before.takeIf { it.isNotEmpty() }?.let { upTo ->
-                CardAction("Mark all watched up to episode ${action.episode - 1u}") { store.setWatched(entry.id, upTo) }
+                CardAction(Strings.episodeMarkUpTo(context, (action.episode - 1u).toInt())) { store.setWatched(entry.id, upTo) }
             },
-            CardAction("Hide from Continue") { store.hideFromContinue(entry.id) },
-            CardAction("Drop") { store.setStatus(entry.id, LibrarySegment.DROPPED) },
+            CardAction(Strings.continueHide(context)) { store.hideFromContinue(entry.id) },
+            CardAction(Strings.continueDrop(context)) { store.setStatus(entry.id, LibrarySegment.DROPPED) },
         ),
     )
 }

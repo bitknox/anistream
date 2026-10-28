@@ -58,14 +58,14 @@ class MpvBackend(private val context: Context, private val extra: List<Pair<Stri
     override suspend fun perform(call: MpvCall): List<PlayerReport> {
         when (call) {
             is MpvCall.Load -> {
-                val arguments = mutableMapOf<String, MpvValue>("url" to MpvValue.Text(call.url), "flags" to MpvValue.Text("replace"))
+                val arguments = mutableMapOf<String, MpvValue>("url" to MpvValue.Text(call.url), "flags" to MpvValue.Text("replace")) // i18n-skip
                 if (call.options.isNotEmpty()) {
                     arguments["options"] = MpvValue.Map(call.options.mapValues { MpvValue.Text(it.value) })
                 }
                 mpv.command("loadfile", arguments)
             }
             is MpvCall.AddSubtitle -> {
-                val arguments = mutableMapOf<String, MpvValue>("url" to MpvValue.Text(call.url), "flags" to MpvValue.Text("auto"))
+                val arguments = mutableMapOf<String, MpvValue>("url" to MpvValue.Text(call.url), "flags" to MpvValue.Text("auto")) // i18n-skip
                 call.title?.let { arguments["title"] = MpvValue.Text(it) }
                 call.language?.let { arguments["lang"] = MpvValue.Text(it) }
                 mpv.command("sub-add", arguments)

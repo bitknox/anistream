@@ -50,7 +50,7 @@ class SeekPreview(private val context: Context, private val scope: CoroutineScop
         scope.launch {
             try {
                 mpv.start(MpvSetup.baseOptions(context) + options(), emptyList(), logLevel = "error")
-                val arguments = mutableMapOf<String, MpvValue>("url" to MpvValue.Text(of.url), "flags" to MpvValue.Text("replace"))
+                val arguments = mutableMapOf<String, MpvValue>("url" to MpvValue.Text(of.url), "flags" to MpvValue.Text("replace")) // i18n-skip
                 arguments["options"] = MpvValue.Map((of.options + ("start" to seconds.toString())).mapValues { MpvValue.Text(it.value) })
                 mpv.command("loadfile", arguments)
                 withTimeoutOrNull(OPEN_MS) { restarts.receive() }

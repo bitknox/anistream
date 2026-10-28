@@ -4,6 +4,11 @@
 
 package tv.anistream.tv.screens
 
+import tv.anistream.store.SearchWords
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -76,10 +81,7 @@ import tv.anistream.engine.model.FilterKey
 import tv.anistream.engine.model.Pick
 import tv.anistream.engine.model.SearchQuery
 import tv.anistream.engine.model.Season
-import tv.anistream.engine.model.mediaFormatLabel
 import tv.anistream.engine.model.searchFormats
-import tv.anistream.engine.model.searchSeasonLabel
-import tv.anistream.engine.model.searchSortLabel
 import tv.anistream.engine.model.searchSorts
 import tv.anistream.store.AppStore
 import tv.anistream.store.ListState
@@ -221,7 +223,7 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
                     },
                     icon = TvIcons.Keyboard,
                     modifier = Modifier.remembered(memory, "key/system"),
-                ) { ButtonLabel("System keyboard") }
+                ) { ButtonLabel(stringResource(R.string.tv_search_system_keyboard)) }
             }
             Spacer(Modifier.width(32.dp))
             Results(status.query.copy(text = text.trim()), status, results, seasonal, entries, memory, onOpen)
@@ -250,7 +252,7 @@ private fun QueryField(value: TextFieldValue, onText: (TextFieldValue) -> Unit, 
             Spacer(Modifier.width(16.dp))
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (text.isEmpty()) {
-                    Text("Search titles", style = MaterialTheme.typography.bodyLarge, color = quiet)
+                    Text(stringResource(R.string.search_placeholder), style = MaterialTheme.typography.bodyLarge, color = quiet)
                 }
                 BasicTextField(
                     value = value,
@@ -267,7 +269,7 @@ private fun QueryField(value: TextFieldValue, onText: (TextFieldValue) -> Unit, 
                 Spacer(Modifier.width(16.dp))
                 Icon(TvIcons.Phone, contentDescription = null, tint = quiet, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Typing from a phone", style = MaterialTheme.typography.bodyMedium, color = quiet, maxLines = 1)
+                Text(stringResource(R.string.tv_search_typing_phone), style = MaterialTheme.typography.bodyMedium, color = quiet, maxLines = 1)
             }
         }
     }
@@ -291,9 +293,9 @@ private fun Keyboard(memory: FocusMemory, onKey: (SearchKeys.Key) -> Unit) {
             }
         }
         Row {
-            KeyCap("Space", KeySize * 2, onClick = { onKey(SearchKeys.Key.Space) }, modifier = Modifier.remembered(memory, "key/space"))
+            KeyCap(stringResource(R.string.tv_search_space), KeySize * 2, onClick = { onKey(SearchKeys.Key.Space) }, modifier = Modifier.remembered(memory, "key/space"))
             KeyCap(
-                "Delete",
+                stringResource(R.string.action_delete),
                 KeySize * 2,
                 onClick = { onKey(SearchKeys.Key.Delete) },
                 icon = TvIcons.Delete,
@@ -310,7 +312,7 @@ private fun Keyboard(memory: FocusMemory, onKey: (SearchKeys.Key) -> Unit) {
                     }
                     .remembered(memory, "key/delete"),
             )
-            KeyCap("Clear", KeySize * 2, onClick = { onKey(SearchKeys.Key.Clear) }, modifier = Modifier.remembered(memory, "key/clear"))
+            KeyCap(stringResource(R.string.action_clear), KeySize * 2, onClick = { onKey(SearchKeys.Key.Clear) }, modifier = Modifier.remembered(memory, "key/clear"))
         }
     }
 }
@@ -366,6 +368,7 @@ private fun Results(
     onOpen: (AnilistId) -> Unit,
 ) {
     val store = LocalAppStore.current
+    val context = LocalContext.current
     val leading = with(LocalDensity.current) { (Canvas.FocusRoom * 2 + RingRoom).toPx() }
     val trailing = with(LocalDensity.current) { 120.dp.toPx() }
     val spec = remember(leading, trailing) { SafeSpec(leading, trailing) }
@@ -378,7 +381,7 @@ private fun Results(
     // One line over the posters, always there, so results arriving never move the chips. It
     // changes with them: a new heading over the last search's posters would name the wrong ones.
     val asked = when {
-        !searching -> "This season"
+        !searching -> stringResource(R.string.continue_this_season)
         query.isBrowse() -> query.headline()
         else -> query.summary()
     }
@@ -425,10 +428,10 @@ private fun Results(
                 when (results) {
                     is ListState.Failed -> item(key = "failed", span = { GridItemSpan(maxLineSpan) }, contentType = "state") {
                         StateBlock(
-                            "Search isn't reachable right now.",
+                            stringResource(R.string.search_unreachable),
                             Modifier.padding(top = 48.dp),
                             detail = plainReason(LocalContext.current, results.reason),
-                            action = "Try again",
+                            action = stringResource(R.string.action_try_again),
                             onAction = { store.retrySearch() },
                             actionModifier = Modifier.remembered(memory, "result/retry"),
                         )
@@ -445,7 +448,7 @@ private fun Results(
                                         store.searchLive(SearchFilters.settle(store.search.status.value.query.copy(text = query.text).cleared().copy(sort = null)))
                                     },
                                     modifier = Modifier.remembered(memory, "result/clear"),
-                                ) { ButtonLabel("Clear filters") }
+                                ) { ButtonLabel(stringResource(R.string.search_clear_filters)) }
                             }
                         }
                     }
@@ -460,8 +463,8 @@ private fun Results(
                 PosterCard(
                     entry,
                     onClick = { onOpen(entry.id) },
-                    line = entry.posterLine,
-                    sheet = { planSheet(store, entry, onOpen) },
+                    line = entry.posterLine(LocalContext.current),
+                    sheet = { planSheet(context, store, entry, onOpen) },
                     modifier = Modifier.remembered(memory, "result/${entry.id}"),
                 )
             }
@@ -499,7 +502,7 @@ private fun FilterChips(store: AppStore, query: SearchQuery, status: tv.anistrea
         // Clear leads, where it is seen, once anything is set.
         if (query.hasFilters() || query.sort != null) {
             TvTab(
-                "Clear",
+                stringResource(R.string.action_clear),
                 selected = false,
                 onSelect = {
                     memory.focus("chip/sort")
@@ -511,12 +514,13 @@ private fun FilterChips(store: AppStore, query: SearchQuery, status: tv.anistrea
             )
         }
         val sort = query.sortInEffect()
+        val context = LocalContext.current
         TvTab(
-            "Sort: ${searchSortLabel(sort)}",
+            Strings.sortButton(context, SearchWords.sort(context, sort)),
             selected = query.sort != null,
             onSelect = {
                 actions?.open(
-                    ActionSheet("Sort", searchSorts(!query.isBrowse()).map { each -> CardAction(searchSortLabel(each), selected = each == sort) { filter { it.copy(sort = each) } } }),
+                    ActionSheet(Strings.tvSortTitle(context), searchSorts(!query.isBrowse()).map { each -> CardAction(SearchWords.sort(context, each), selected = each == sort) { filter { it.copy(sort = each) } } }),
                 )
             },
             settle = null,
@@ -527,22 +531,22 @@ private fun FilterChips(store: AppStore, query: SearchQuery, status: tv.anistrea
         )
         val genres = query.genres.size + query.genresExcluded.size
         TvTab(
-            SearchFilters.genresChip(query),
+            SearchFilters.genresChip(context, query),
             selected = genres > 0,
-            onSelect = { actions?.open(ActionSheet("Genres", body = { GenrePanel(store, filter) })) },
+            onSelect = { actions?.open(ActionSheet(Strings.searchGenres(context), body = { GenrePanel(store, filter) })) },
             settle = null,
             chip = true,
             modifier = Modifier.remembered(memory, "chip/genres"),
         )
         val year = SearchFilters.singleYear(query)
         TvTab(
-            query.active().firstOrNull { it.key == FilterKey.Years }?.label ?: "Year",
+            query.active().firstOrNull { it.key == FilterKey.Years }?.label ?: stringResource(R.string.filter_year),
             selected = year != null,
             onSelect = {
                 actions?.open(
                     ActionSheet(
-                        "Year",
-                        listOf(CardAction("Any year", selected = year == null) { filter { it.inYear(null) } }) +
+                        Strings.filterYear(context),
+                        listOf(CardAction(Strings.filterAnyYear(context), selected = year == null) { filter { it.inYear(null) } }) +
                             SearchFilters.years().map { each -> CardAction(each.toString(), selected = year == each.toUInt()) { filter { it.inYear(each.toUInt()) } } },
                     ),
                 )
@@ -553,15 +557,15 @@ private fun FilterChips(store: AppStore, query: SearchQuery, status: tv.anistrea
         )
         val chosen = query.season
         TvTab(
-            chosen?.let { searchSeasonLabel(it) } ?: "Season",
+            chosen?.let { SearchWords.season(context, it) } ?: stringResource(R.string.filter_season),
             selected = chosen != null,
             onSelect = {
                 // A season is a season of one year: without one, the year comes first.
                 actions?.open(
                     if (year != null) {
-                        seasonSheet(year, chosen, filter)
+                        seasonSheet(context, year, chosen, filter)
                     } else {
-                        ActionSheet("Year", SearchFilters.years().map { each -> CardAction(each.toString(), then = seasonSheet(each.toUInt(), null, filter)) })
+                        ActionSheet(Strings.filterYear(context), SearchFilters.years().map { each -> CardAction(each.toString(), then = seasonSheet(context, each.toUInt(), null, filter)) })
                     },
                 )
             },
@@ -570,9 +574,9 @@ private fun FilterChips(store: AppStore, query: SearchQuery, status: tv.anistrea
             modifier = Modifier.remembered(memory, "chip/season"),
         )
         TvTab(
-            SearchFilters.formatChip(query),
+            SearchFilters.formatChip(context, query),
             selected = query.formats.isNotEmpty(),
-            onSelect = { actions?.open(ActionSheet("Format", body = { FormatPanel(store, filter) })) },
+            onSelect = { actions?.open(ActionSheet(Strings.filterFormat(context), body = { FormatPanel(store, filter) })) },
             settle = null,
             chip = true,
             modifier = Modifier.remembered(memory, "chip/format"),
@@ -583,20 +587,21 @@ private fun FilterChips(store: AppStore, query: SearchQuery, status: tv.anistrea
 /** The Sort chip's width with its longest label: the label, the dot's slot and the padding. */
 @Composable
 private fun sortChipWidth(): Dp {
+    val context = LocalContext.current
     val measurer = rememberTextMeasurer()
     val style = MaterialTheme.typography.labelLarge
     val density = LocalDensity.current
-    return remember(measurer, style, density) {
-        val widest = (searchSorts(true) + searchSorts(false)).maxOf { measurer.measure("Sort: ${searchSortLabel(it)}", style, maxLines = 1).size.width }
+    return remember(measurer, style, density, context) {
+        val widest = (searchSorts(true) + searchSorts(false)).maxOf { measurer.measure(Strings.sortButton(context, SearchWords.sort(context, it)), style, maxLines = 1).size.width }
         with(density) { widest.toDp() } + 32.dp + 14.dp
     }
 }
 
 /** The four seasons of [year]. */
-private fun seasonSheet(year: UInt, chosen: Season?, filter: ((SearchQuery) -> SearchQuery) -> Unit): ActionSheet = ActionSheet(
-    "Season in $year",
-    listOf(CardAction("Any season", selected = chosen == null) { filter { it.copy(season = null) } }) +
-        SearchFilters.SEASONS.map { each -> CardAction(searchSeasonLabel(each), selected = each == chosen) { filter { it.inYear(year).copy(season = each) } } },
+private fun seasonSheet(context: Context, year: UInt, chosen: Season?, filter: ((SearchQuery) -> SearchQuery) -> Unit): ActionSheet = ActionSheet(
+    Strings.tvSearchSeasonIn(context, year.toInt()),
+    listOf(CardAction(Strings.filterAnySeason(context), selected = chosen == null) { filter { it.copy(season = null) } }) +
+        SearchFilters.SEASONS.map { each -> CardAction(SearchWords.season(context, each), selected = each == chosen) { filter { it.inYear(year).copy(season = each) } } },
 )
 
 /**
@@ -613,7 +618,7 @@ private fun GenrePanel(store: AppStore, filter: ((SearchQuery) -> SearchQuery) -
     androidx.compose.foundation.lazy.LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item(key = "any") {
             TvListRow(
-                "Any genre",
+                stringResource(R.string.filter_any_genre),
                 onClick = { filter { it.copy(genres = emptyList(), genresExcluded = emptyList()) } },
                 selected = query.genres.isEmpty() && query.genresExcluded.isEmpty(),
                 modifier = Modifier.focusRequester(first),
@@ -621,7 +626,7 @@ private fun GenrePanel(store: AppStore, filter: ((SearchQuery) -> SearchQuery) -
         }
         item(key = "note") {
             Text(
-                "Press once to include, twice to leave out.",
+                stringResource(R.string.filter_hint_remote),
                 style = MaterialTheme.typography.bodyMedium,
                 color = ObiSilk.Haze,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -631,7 +636,7 @@ private fun GenrePanel(store: AppStore, filter: ((SearchQuery) -> SearchQuery) -
             // A quiet line, not a row, so focus has nothing row-shaped to skip.
             item(key = "waiting") {
                 Text(
-                    if (offline) "Genres load once the TV is online" else "Loading genres",
+                    if (offline) stringResource(R.string.tv_search_genres_offline) else stringResource(R.string.search_loading_genres),
                     style = MaterialTheme.typography.bodyMedium,
                     color = ObiSilk.Haze,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -644,7 +649,7 @@ private fun GenrePanel(store: AppStore, filter: ((SearchQuery) -> SearchQuery) -
             TvListRow(
                 name,
                 onClick = { filter { it.pickingGenre(name, SearchFilters.next(it.genrePick(name))) } },
-                value = SearchFilters.pickWords(pick),
+                value = SearchFilters.pickWords(LocalContext.current, pick),
                 selected = pick == Pick.INCLUDE,
             )
         }
@@ -666,7 +671,7 @@ private fun FormatPanel(store: AppStore, filter: ((SearchQuery) -> SearchQuery) 
     androidx.compose.foundation.lazy.LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item(key = "any") {
             TvListRow(
-                "Any format",
+                stringResource(R.string.filter_any_format),
                 onClick = { filter { it.copy(formats = emptyList()) } },
                 selected = query.formats.isEmpty(),
                 modifier = Modifier.focusRequester(first),
@@ -676,7 +681,7 @@ private fun FormatPanel(store: AppStore, filter: ((SearchQuery) -> SearchQuery) 
         items(formats.size, key = { "format/${formats[it].name}" }) { index ->
             val format = formats[index]
             TvListRow(
-                mediaFormatLabel(format),
+                SearchWords.format(LocalContext.current, format),
                 onClick = { filter { it.togglingFormat(format) } },
                 selected = format in query.formats,
             )
@@ -713,29 +718,30 @@ object SearchFilters {
         Pick.EXCLUDE -> Pick.OFF
     }
 
-    fun pickWords(pick: Pick): String? = when (pick) {
+    fun pickWords(context: Context, pick: Pick): String? = when (pick) {
         Pick.OFF -> null
-        Pick.INCLUDE -> "Included"
-        Pick.EXCLUDE -> "Left out"
+        Pick.INCLUDE -> Strings.filterIncluded(context)
+        Pick.EXCLUDE -> Strings.filterLeftOut(context)
     }
 
     /** "Genres", the one genre's words, or "3 genres". */
-    fun genresChip(query: SearchQuery): String {
+    fun genresChip(context: Context, query: SearchQuery): String {
         val set = query.genres.size + query.genresExcluded.size
+        val resources = context.resources
         return when (set) {
-            0 -> "Genres"
-            1 -> query.active().firstOrNull { it.key is FilterKey.Genre || it.key is FilterKey.NotGenre }?.label ?: "1 genre"
-            else -> "$set genres"
+            0 -> Strings.filterGenres(context)
+            1 -> query.active().firstOrNull { it.key is FilterKey.Genre || it.key is FilterKey.NotGenre }?.label ?: resources.getQuantityString(R.plurals.search_genres_picked, 1, 1)
+            else -> resources.getQuantityString(R.plurals.search_genres_picked, set, set)
         }
     }
 
     /** "Format", one or two formats' words, or "3 formats". */
-    fun formatChip(query: SearchQuery): String {
+    fun formatChip(context: Context, query: SearchQuery): String {
         val count = query.formats.size
         return when {
-            count == 0 -> "Format"
-            count <= 2 -> query.active().firstOrNull { it.key == FilterKey.Formats }?.label ?: "Format"
-            else -> "$count formats"
+            count == 0 -> Strings.filterFormat(context)
+            count <= 2 -> query.active().firstOrNull { it.key == FilterKey.Formats }?.label ?: Strings.filterFormat(context)
+            else -> context.resources.getQuantityString(R.plurals.search_formats_picked, count, count)
         }
     }
 }

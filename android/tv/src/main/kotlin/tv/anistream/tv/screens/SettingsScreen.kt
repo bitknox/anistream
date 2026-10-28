@@ -3,6 +3,12 @@
 
 package tv.anistream.tv.screens
 
+import tv.anistream.store.percentText
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import androidx.annotation.StringRes
+import android.content.Context
 import android.provider.Settings as SystemSettings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -94,36 +100,36 @@ import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.remembered
 
 /** The sections, top to bottom. */
-enum class SettingsSection(val label: String) {
-    General("General"),
-    Playback("Playback"),
-    Sources("Sources"),
-    PluginStores("Plugin stores"),
-    Accounts("Accounts"),
-    Remotes("Remotes"),
-    ThisTv("This TV"),
-    About("About"),
+enum class SettingsSection(@StringRes val label: Int) {
+    General(R.string.settings_group_general),
+    Playback(R.string.settings_group_playback),
+    Sources(R.string.sources_title),
+    PluginStores(R.string.nav_plugin_stores),
+    Accounts(R.string.accounts_title),
+    Remotes(R.string.tv_remotes),
+    ThisTv(R.string.tv_section_this_tv),
+    About(R.string.about_title),
 }
 
 /** Playback's rows: the phone's, less what does not apply on a TV (upscaling, fullscreen). */
-val PlaybackRows: List<Pair<SettingKey, String>> = listOf(
-    SettingKey.TRANSLATION to "Translation",
-    SettingKey.SUBTITLES to "Subtitles",
-    SettingKey.QUALITY to "Quality",
-    SettingKey.AUTO_NEXT to "Auto-play next",
-    SettingKey.SKIP_OPENING to "Skip opening automatically",
-    SettingKey.SKIP_FILLER to "Skip filler automatically",
-    SettingKey.MARK_CHAPTERS to "Mark opening and ending",
-    SettingKey.COMMIT_THRESHOLD to "Counts as watched at",
-    SettingKey.SPOILER_PROTECTION to "Spoiler protection",
-    SettingKey.NIGHT_MODE to "Night mode",
+val PlaybackRows: List<Pair<SettingKey, Int>> = listOf(
+    SettingKey.TRANSLATION to R.string.settings_audio,
+    SettingKey.SUBTITLES to R.string.player_subtitles,
+    SettingKey.QUALITY to R.string.settings_quality,
+    SettingKey.AUTO_NEXT to R.string.settings_auto_play,
+    SettingKey.SKIP_OPENING to R.string.settings_skip_opening,
+    SettingKey.SKIP_FILLER to R.string.settings_skip_filler,
+    SettingKey.MARK_CHAPTERS to R.string.settings_mark_opening,
+    SettingKey.COMMIT_THRESHOLD to R.string.settings_counts_watched,
+    SettingKey.SPOILER_PROTECTION to R.string.settings_spoiler,
+    SettingKey.NIGHT_MODE to R.string.player_night_mode,
 )
 
 /**
  * The trackers a TV signs in to, in the phone's order: their engine ids and names. MyAnimeList is
  * left out, as rows that only work elsewhere are: it has no sign-in a TV can finish.
  */
-private val Trackers = listOf(
+private val Trackers = listOf( // i18n-skip
     "anilist" to "AniList",
     "kitsu" to "Kitsu",
     "simkl" to "Simkl",
@@ -144,11 +150,11 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
 
     Row(Modifier.fillMaxSize().padding(start = Canvas.Keyline, top = Canvas.SafeY, end = Canvas.SafeX)) {
         Column(Modifier.width(256.dp).fillMaxHeight().focusRestorer(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Settings", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 16.dp).semantics { heading() })
+            Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 16.dp).semantics { heading() })
             // Eight sections at 48 each end inside the safe area, under the heading.
             SettingsSection.entries.forEach { each ->
                 TvListRow(
-                    each.label,
+                    stringResource(each.label),
                     onClick = {},
                     selected = each == section,
                     height = 48.dp,
@@ -197,13 +203,15 @@ private fun LazyListScope.general(store: AppStore, view: SettingsView?, memory: 
 }
 
 private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
-    PlaybackRows.forEachIndexed { index, (key, label) ->
+    PlaybackRows.forEachIndexed { index, (key, labelRes) ->
         item(key = key.name, contentType = "setting") {
             val actions = LocalActions.current
+            val context = LocalContext.current
+            val label = stringResource(labelRes)
             val row = store.settings.row(key, view)
             val switch = SettingsCatalog.isSwitch(key)
-            val overridden = store.settings.overridden(key, view)
-            val options = settingChoices(key, row)
+            val overridden = store.settings.overridden(context, key, view)
+            val options = settingChoices(context, key, row)
             TvListRow(
                 label,
                 onClick = {
@@ -217,7 +225,7 @@ private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory:
                     }
                 },
                 supporting = overridden,
-                value = if (switch) null else row?.let { settingWords(key, SettingsCatalog.current(it)?.label ?: it.value) },
+                value = if (switch) null else settingValue(context, key, row),
                 switch = if (switch) store.settings.isOn(key, view) else null,
                 enabled = SettingsCatalog.editable(row),
                 modifier = (if (index == 0) first else Modifier).remembered(memory, "row/${key.name}"),
@@ -230,26 +238,22 @@ private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory:
 private val SubtitleLanguages = listOf("en", "ja", "es", "pt", "fr", "de", "it", "ru", "ar", "id", "ko", "zh")
 
 /** A setting's radio panel: each value, its words, and whether the row stands on it. */
-private fun settingChoices(key: SettingKey, row: SettingRow?): List<Triple<SettingValue, String, Boolean>> {
+private fun settingChoices(context: Context, key: SettingKey, row: SettingRow?): List<Triple<SettingValue, String, Boolean>> {
     if (key == SettingKey.SUBTITLES) {
         val code = SettingsCatalog.typedText(row) ?: row?.value ?: ""
         return (SubtitleLanguages + listOf(code).filter { it.isNotEmpty() && it !in SubtitleLanguages })
             .map { Triple(SettingValue.Str(it), languageName(it), it == code) }
     }
     val current = SettingsCatalog.current(row)
-    return SettingsCatalog.options(key).map { Triple(it.value, settingWords(key, it.label), it == current) }
+    return SettingsCatalog.options(key).map { Triple(it.value, SettingsCatalog.words(context, key, it), it == current) }
 }
 
 /**
- * A value as a row says it, in the phone's words: "Subtitled" or "Dubbed" for sub or dub, a
+ * A row's value as it says it, in the phone's words: "Subbed" or "Dubbed" for sub or dub, a
  * language by its name, anything else in sentence case: "Off", "1080p".
  */
-internal fun settingWords(key: SettingKey, value: String): String = when {
-    key == SettingKey.TRANSLATION && value.substringBefore(" · ") == "sub" -> "Subtitled"
-    key == SettingKey.TRANSLATION && value.substringBefore(" · ") == "dub" -> "Dubbed"
-    key == SettingKey.SUBTITLES -> languageName(value)
-    else -> value.replaceFirstChar { it.titlecase(java.util.Locale.UK) }
-}
+internal fun settingValue(context: Context, key: SettingKey, row: SettingRow?): String? =
+    if (key == SettingKey.SUBTITLES) row?.let { languageName(it.value) } else SettingsCatalog.words(context, row)
 
 /**
  * Title language, General's row, worded as the phone's: AniList's choice, English or Romaji, in a
@@ -261,54 +265,62 @@ private fun TitleLanguageRow(store: AppStore, view: SettingsView?, memory: Focus
     val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
     val viewer by store.accounts.viewerTitleLanguage.collectAsStateWithLifecycle()
     val signedIn = trackers["anilist"]?.connected == true
+    val context = LocalContext.current
     val row = store.settings.row(SettingKey.TITLES, view)
     val choice = TitleChoice.of(SettingsCatalog.current(row)?.value)
     TvListRow(
-        "Title language",
+        stringResource(R.string.settings_title_language),
         onClick = {
             actions?.open(
                 ActionSheet(
-                    "Title language",
+                    Strings.settingsTitleLanguage(context),
                     TitleChoice.entries.map { each ->
-                        CardAction(each.label, selected = each == choice) {
+                        CardAction(each.label(context), selected = each == choice) {
                             if (each != choice) store.setSetting(SettingKey.TITLES, SettingValue.Str(each.value))
                         }
                     },
                 ),
             )
         },
-        supporting = TitleChoice.line(choice, signedIn, viewer),
-        value = choice.label,
+        supporting = TitleChoice.line(context, choice, signedIn, viewer),
+        value = choice.label(context),
         enabled = row != null,
         modifier = first.remembered(memory, "row/titles"),
     )
 }
 
 /** The three forms a title can be named in, as the settings file names them. */
-enum class TitleChoice(val value: String, val label: String) {
-    AniList("anilist", "AniList's choice"),
-    English("english", "English"),
-    Romaji("romaji", "Romaji"),
+enum class TitleChoice(val value: String) {
+    AniList("anilist"),
+    English("english"),
+    Romaji("romaji"),
     ;
+
+    /** The choice as the menu names it. */
+    fun label(context: Context): String = when (this) {
+        AniList -> Strings.settingsTitleTracker(context, "AniList") // i18n-skip
+        English -> Strings.settingsTitleEnglish(context)
+        Romaji -> Strings.settingsTitleRomaji(context)
+    }
 
     companion object {
         fun of(value: SettingValue?): TitleChoice = entries.firstOrNull { (value as? SettingValue.Str)?.v1 == it.value } ?: AniList
 
         /** The line under the label: what the choice does now, the phone's words. */
-        fun line(choice: TitleChoice, signedIn: Boolean, viewer: TitleLanguage?): String = when (choice) {
+        fun line(context: Context, choice: TitleChoice, signedIn: Boolean, viewer: TitleLanguage?): String = when (choice) {
             AniList -> when {
-                !signedIn -> "English while signed out of AniList"
-                viewer != null -> "${name(viewer)}, from your AniList account"
-                else -> "Follows your AniList account"
+                !signedIn -> Strings.settingsTitlesLineSignedOut(context)
+                viewer != null -> Strings.settingsTitlesLineAccountLanguage(context, name(context, viewer))
+                else -> Strings.settingsTitlesLineFollows(context)
             }
-            English -> "Romaji where there is no English title"
-            Romaji -> "Japanese titles in Latin letters"
+            English -> Strings.settingsTitlesLineEnglish(context)
+            Romaji -> Strings.settingsTitlesLineRomaji(context)
         }
 
-        private fun name(language: TitleLanguage): String = when (language) {
-            TitleLanguage.ROMAJI -> "Romaji"
-            TitleLanguage.ENGLISH -> "English"
-            TitleLanguage.NATIVE -> "Native"
+        private fun name(context: Context, language: TitleLanguage): String = when (language) {
+            TitleLanguage.ROMAJI -> Strings.settingsTitleRomaji(context)
+            TitleLanguage.ENGLISH -> Strings.settingsTitleEnglish(context)
+            TitleLanguage.NATIVE -> Strings.settingsTitleNative(context)
         }
     }
 }
@@ -333,16 +345,17 @@ private fun LazyListScope.sources(nav: TvNavigator, store: AppStore, view: Setti
         val rows by store.providers.rows.collectAsStateWithLifecycle()
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (rows.isEmpty()) {
-                Quiet("No sources yet. Plugins from a plugin store add them.")
+                Quiet(stringResource(R.string.sources_empty))
             }
             val actions = LocalActions.current
+            val context = LocalContext.current
             rows.forEachIndexed { index, provider ->
                 TvListRow(
                     provider.name.ifEmpty { provider.id },
-                    onClick = { actions?.open(providerSheet(provider)) },
-                    supporting = providerOrigin(provider),
+                    onClick = { actions?.open(providerSheet(context, provider)) },
+                    supporting = providerOrigin(context, provider),
                     // A word only for a problem.
-                    value = providerProblem(provider),
+                    value = providerProblem(context, provider),
                     modifier = (if (index == 0) first else Modifier).remembered(memory, "provider/${provider.id}"),
                 )
             }
@@ -355,18 +368,19 @@ private fun LazyListScope.pluginStores(nav: TvNavigator, memory: FocusMemory, fi
     item(key = "stores", contentType = "list") {
         val store = LocalAppStore.current
         val actions = LocalActions.current
+        val context = LocalContext.current
         val stores by store.stores.stores.collectAsStateWithLifecycle()
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             stores.forEachIndexed { index, row ->
                 TvListRow(
                     row.name,
-                    onClick = { actions?.open(storeSheet(store, row)) },
-                    supporting = storeLine(row),
+                    onClick = { actions?.open(storeSheet(context, store, row)) },
+                    supporting = storeLine(context, row),
                     modifier = (if (index == 0) first else Modifier).remembered(memory, "store/${row.id}"),
                 )
             }
             TvListRow(
-                "Add a plugin store",
+                stringResource(R.string.stores_add_title),
                 onClick = nav::openJoinStore,
                 modifier = (if (stores.isEmpty()) first else Modifier).remembered(memory, "store/add"),
             )
@@ -383,30 +397,31 @@ private fun LazyListScope.torrents(nav: TvNavigator, store: AppStore, view: Sett
     val on = store.settings.isOn(SettingKey.TORRENTS, view)
     item(key = "torrents", contentType = "list") {
         val actions = LocalActions.current
+        val context = LocalContext.current
         val torrent = view?.torrent
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            GroupLabel("Torrents")
+            GroupLabel(stringResource(R.string.sources_torrents))
             TvListRow(
-                "Torrent source",
+                stringResource(R.string.sources_torrent_source),
                 onClick = { if (on) store.setSwitch(SettingKey.TORRENTS, false) else nav.openTorrents(TorrentMode.TurnOn) },
                 switch = on,
                 modifier = Modifier.remembered(memory, "torrent/source"),
             )
             if (on) {
                 TvListRow(
-                    "Torrent index",
+                    stringResource(R.string.torrents_index),
                     onClick = { nav.openTorrents(TorrentMode.Index) },
-                    supporting = view?.sources?.index ?: "None set",
+                    supporting = view?.sources?.index ?: stringResource(R.string.settings_index_none),
                     modifier = Modifier.remembered(memory, "torrent/index"),
                 )
                 TvListRow(
-                    "Protect with",
+                    stringResource(R.string.torrents_protect_with),
                     onClick = {
                         actions?.open(
                             ActionSheet(
-                                "Protect with",
+                                Strings.torrentsProtectWith(context),
                                 TorrentProtections.map { each ->
-                                    CardAction(TorrentWords.protection(each), selected = each == torrent?.protection) {
+                                    CardAction(TorrentWords.protection(context, each), selected = each == torrent?.protection) {
                                         // Another protection asks for what it needs before it applies.
                                         if (each != torrent?.protection) nav.openTorrents(TorrentMode.Change, each)
                                     }
@@ -414,33 +429,35 @@ private fun LazyListScope.torrents(nav: TvNavigator, store: AppStore, view: Sett
                             ),
                         )
                     },
-                    value = TorrentWords.protection(torrent?.protection),
+                    value = TorrentWords.protection(context, torrent?.protection),
                     modifier = Modifier.remembered(memory, "torrent/protect"),
                 )
                 // Beside the choice, once a proxy is saved: its details, applied only once they pass the check.
                 val proxy = torrent?.proxy
                 if (torrent?.protection == TorrentProtection.PROXY && proxy != null) {
                     TvListRow(
-                        "Edit proxy…",
+                        stringResource(R.string.settings_edit_proxy),
                         onClick = { nav.openTorrents(TorrentMode.EditProxy) },
-                        supporting = TorrentWords.proxyLine(proxy.host, proxy.port.toString(), proxy.user.orEmpty()),
+                        supporting = TorrentWords.proxyLine(context, proxy.host, proxy.port.toString(), proxy.user.orEmpty()),
                         modifier = Modifier.remembered(memory, "torrent/proxy"),
                     )
                 }
                 LastCheckRow(store, view, memory)
                 FailedCheckRow(store, view, memory)
             }
-            Quiet(if (on) TorrentWords.checkNote(torrent?.onFailure, torrent?.protection) else TorrentWords.OFF_NOTE)
+            Quiet(if (on) TorrentWords.checkNote(context, torrent?.onFailure, torrent?.protection) else stringResource(TorrentWords.OFF_NOTE))
         }
     }
     if (on) {
         item(key = "seeding", contentType = "list") {
             val actions = LocalActions.current
+            val context = LocalContext.current
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                GroupLabel("Seeding")
-                SeedingRows.forEach { (key, label) ->
+                GroupLabel(stringResource(R.string.downloads_seeding_title))
+                SeedingRows.forEach { (key, labelRes) ->
+                    val label = stringResource(labelRes)
                     val row = store.settings.row(key, view)
-                    val options = settingChoices(key, row)
+                    val options = settingChoices(context, key, row)
                     TvListRow(
                         label,
                         onClick = {
@@ -448,12 +465,12 @@ private fun LazyListScope.torrents(nav: TvNavigator, store: AppStore, view: Sett
                                 CardAction(words, selected = selected) { store.setSetting(key, value) }
                             }))
                         },
-                        value = row?.let { settingWords(key, SettingsCatalog.current(it)?.label ?: it.value) },
+                        value = settingValue(context, key, row),
                         enabled = SettingsCatalog.editable(row) && options.isNotEmpty(),
                         modifier = Modifier.remembered(memory, "row/${key.name}"),
                     )
                 }
-                Quiet("Best effort on this TV: seeding runs only while anistream is open.")
+                Quiet(stringResource(R.string.tv_seeding_note))
             }
         }
     }
@@ -464,9 +481,9 @@ private val TorrentProtections = listOf(TorrentProtection.PROXY, TorrentProtecti
 
 /** Seeding's rows, the phone's. */
 private val SeedingRows = listOf(
-    SettingKey.SEED_RATIO to "Seed after watching",
-    SettingKey.SEED_HOURS to "Seed for at most",
-    SettingKey.UPLOAD_LIMIT to "Upload limit",
+    SettingKey.SEED_RATIO to R.string.settings_seed_after,
+    SettingKey.SEED_HOURS to R.string.settings_seed_for,
+    SettingKey.UPLOAD_LIMIT to R.string.settings_upload_limit,
 )
 
 /**
@@ -476,10 +493,11 @@ private val SeedingRows = listOf(
 @Composable
 private fun LastCheckRow(store: AppStore, view: SettingsView?, memory: FocusMemory) {
     val check by store.providers.check.collectAsStateWithLifecycle()
-    val words = TorrentWords.check(check, now = AppClock.now().toEpochMilli(), onFailure = view?.torrent?.onFailure)
+    val context = LocalContext.current
+    val words = TorrentWords.check(context, check, now = AppClock.now().toEpochMilli(), onFailure = view?.torrent?.onFailure)
     val checking = check?.view == GuardView.Checking
     TvListRow(
-        "Last check",
+        stringResource(R.string.torrents_last_check),
         onClick = { if (!checking) store.checkProviders() },
         supporting = listOfNotNull(words.status, words.note).joinToString(" · "),
         supportingLines = 2,
@@ -489,7 +507,7 @@ private fun LastCheckRow(store: AppStore, view: SettingsView?, memory: FocusMemo
             words.passed -> ObiSilk.Water
             else -> null
         },
-        value = if (checking) null else "Check now",
+        value = if (checking) null else stringResource(R.string.action_check_now),
         modifier = Modifier.remembered(memory, "torrent/check"),
     )
 }
@@ -503,15 +521,16 @@ private fun FailedCheckRow(store: AppStore, view: SettingsView?, memory: FocusMe
     val actions = LocalActions.current
     val torrent = view?.torrent
     val current = torrent?.onFailure ?: FailedCheck.PAUSE
+    val context = LocalContext.current
     var warning by remember { mutableStateOf(false) }
     TvListRow(
-        "If a check fails",
+        stringResource(R.string.torrents_if_check_fails),
         onClick = {
             actions?.open(
                 ActionSheet(
-                    "If a check fails",
+                    Strings.torrentsIfCheckFails(context),
                     FailedCheck.entries.map { each ->
-                        CardAction(TorrentWords.failed(each), selected = each == current) {
+                        CardAction(TorrentWords.failed(context, each), selected = each == current) {
                             when (each) {
                                 current -> {}
                                 FailedCheck.WARN -> warning = true
@@ -523,15 +542,15 @@ private fun FailedCheckRow(store: AppStore, view: SettingsView?, memory: FocusMe
                 ),
             )
         },
-        value = TorrentWords.failed(current),
+        value = TorrentWords.failed(context, current),
         enabled = torrent != null,
         modifier = Modifier.remembered(memory, "torrent/failed"),
     )
     if (warning && torrent != null) {
         ConfirmDialog(
-            title = TorrentWords.WARN_TITLE,
-            body = TorrentWords.WARN_BODY,
-            action = "Warn only",
+            title = stringResource(TorrentWords.WARN_TITLE),
+            body = stringResource(TorrentWords.WARN_BODY),
+            action = stringResource(R.string.torrents_fail_warn),
             onConfirm = {
                 warning = false
                 store.setTorrentProtection(
@@ -562,53 +581,53 @@ private fun GroupLabel(text: String) {
 }
 
 /** Where a source came from: its store, by hand, or built in. */
-private fun providerOrigin(row: ProviderRow): String = when (val origin = row.origin) {
-    is ProviderOrigin.Store -> origin.name ?: "A store you left"
-    ProviderOrigin.ByHand -> "Added by hand"
-    ProviderOrigin.BuiltIn -> "Built in"
+private fun providerOrigin(context: Context, row: ProviderRow): String = when (val origin = row.origin) {
+    is ProviderOrigin.Store -> origin.name ?: Strings.sourcesOriginLeftStore(context)
+    ProviderOrigin.ByHand -> Strings.sourcesOriginByHand(context)
+    ProviderOrigin.BuiltIn -> Strings.sourcesOriginBuiltIn(context)
 }
 
 /** A source's word, only for a problem: "Not answering", "Held back". */
-private fun providerProblem(row: ProviderRow): String? = when (row.standing) {
-    ProviderStanding.Failing -> "Not answering"
-    ProviderStanding.HeldBack -> "Held back"
+private fun providerProblem(context: Context, row: ProviderRow): String? = when (row.standing) {
+    ProviderStanding.Failing -> Strings.sourcesStatusNotAnswering(context)
+    ProviderStanding.HeldBack -> Strings.sourcesStatusHeldBack(context)
     else -> null
 }
 
 /** A source's page as a panel: its version, its hosts and how fast it answers. */
-private fun providerSheet(row: ProviderRow): ActionSheet = ActionSheet(
+private fun providerSheet(context: Context, row: ProviderRow): ActionSheet = ActionSheet(
     row.name.ifEmpty { row.id },
     body = {
         InfoLines(
             listOfNotNull(
-                "From" to providerOrigin(row),
-                row.version?.let { "Version" to it },
-                row.hosts.takeIf { it.isNotEmpty() }?.let { "Contacts" to it.joinToString(", ") },
-                row.latencyMs?.let { "Answers in" to "$it ms" },
-                providerProblem(row)?.let { "State" to it },
+                Strings.tvInfoFrom(context) to providerOrigin(context, row),
+                row.version?.let { Strings.sourcesVersion(context) to it },
+                row.hosts.takeIf { it.isNotEmpty() }?.let { Strings.sourcesContactsLabel(context) to it.joinToString(", ") }, // i18n-skip
+                row.latencyMs?.let { Strings.sourcesResponseTime(context) to Strings.sourcesResponseMs(context, it.toInt()) },
+                providerProblem(context, row)?.let { Strings.tvInfoState(context) to it },
             ),
         )
     },
 )
 
 /** A store's line: its host, then why it is not answering. */
-private fun storeLine(row: StoreRow): String = listOfNotNull(
+private fun storeLine(context: Context, row: StoreRow): String = listOfNotNull(
     row.host,
     when (row.state) {
-        is StoreState.Offline -> "Not answering"
-        StoreState.Revoked -> "No longer lets this TV in"
+        is StoreState.Offline -> Strings.sourcesStatusNotAnswering(context)
+        StoreState.Revoked -> Strings.tvStoreRevoked(context)
         StoreState.Ready -> null
     },
 ).joinToString(" · ")
 
 /** A store's page as a panel: its plugins with their hosts, its key, and Leave. */
-private fun storeSheet(store: AppStore, row: StoreRow): ActionSheet = ActionSheet(
+private fun storeSheet(context: Context, store: AppStore, row: StoreRow): ActionSheet = ActionSheet(
     row.name,
     body = {
         InfoLines(
-            listOf("Address" to row.host, "Key" to row.fingerprint) +
-                row.plugins.map { plugin -> plugin.name to listOf("Version ${plugin.version}", plugin.hosts.joinToString(", ")).filter { it.isNotEmpty() }.joinToString(" · ") },
-            action = "Leave this store",
+            listOf(Strings.storesAddress(context) to row.host, Strings.storesKeyFingerprint(context) to row.fingerprint) +
+                row.plugins.map { plugin -> plugin.name to listOf(Strings.aboutVersion(context, plugin.version), plugin.hosts.joinToString(", ")).filter { it.isNotEmpty() }.joinToString(" · ") }, // i18n-skip
+            action = Strings.storesLeave(context),
             onAction = { store.leaveStore(row.id) },
         )
     },
@@ -619,12 +638,13 @@ private fun LazyListScope.accounts(nav: TvNavigator, memory: FocusMemory, first:
         val store = LocalAppStore.current
         val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
         var signingOut by remember { mutableStateOf<String?>(null) }
+        val context = LocalContext.current
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Trackers.forEachIndexed { index, (id, name) ->
                 TvListRow(
                     name,
                     onClick = { if (trackers[id]?.connected == true) signingOut = id else nav.openSignIn(id) },
-                    supporting = accountLine(trackers[id]),
+                    supporting = accountLine(context, trackers[id]),
                     modifier = (if (index == 0) first else Modifier).remembered(memory, "account/$id"),
                 )
             }
@@ -632,9 +652,9 @@ private fun LazyListScope.accounts(nav: TvNavigator, memory: FocusMemory, first:
         signingOut?.let { id ->
             val name = AccountsModel.name(id)
             ConfirmDialog(
-                title = "Sign out of $name?",
-                body = "This TV stops syncing with $name. Your list stays on $name.",
-                action = "Sign out",
+                title = stringResource(R.string.tv_sign_out_title, name),
+                body = stringResource(R.string.accounts_sign_out_tv_detail, name),
+                action = stringResource(R.string.action_sign_out),
                 onConfirm = {
                     store.disconnect(id)
                     signingOut = null
@@ -646,10 +666,10 @@ private fun LazyListScope.accounts(nav: TvNavigator, memory: FocusMemory, first:
 }
 
 /** "Signed in as Mika", or "Not signed in". */
-fun accountLine(state: SyncState?): String = when {
-    state == null || !state.connected -> "Not signed in"
-    state.user != null -> "Signed in as ${state.user}"
-    else -> "Signed in"
+fun accountLine(context: Context, state: SyncState?): String = when {
+    state == null || !state.connected -> Strings.tvAccountNotSignedIn(context)
+    state.user != null -> Strings.tvAccountSignedInAs(context, state.user!!)
+    else -> Strings.accountsSignedInPlain(context)
 }
 
 private fun LazyListScope.remotes(memory: FocusMemory, first: Modifier) {
@@ -659,19 +679,19 @@ private fun LazyListScope.remotes(memory: FocusMemory, first: Modifier) {
         val name = remember {
             remote?.name
                 ?: runCatching { SystemSettings.Global.getString(context.contentResolver, SystemSettings.Global.DEVICE_NAME) }.getOrNull()
-                ?: "This TV"
+                ?: Strings.tvSectionThisTv(context)
         }
         var removing by remember { mutableStateOf<FfiPairedPhone?>(null) }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            InfoRow("This TV's name for phones", name)
+            InfoRow(stringResource(R.string.tv_remote_name_label), name)
             TvListRow(
-                "Pair a phone",
+                stringResource(R.string.tv_pair_phone),
                 onClick = { remote?.openPairing() },
                 enabled = remote != null,
                 modifier = first.remembered(memory, "remote/pair"),
             )
             TvListRow(
-                "Let phones on this network find this TV",
+                stringResource(R.string.tv_remote_findable),
                 onClick = { remote?.let { it.allowFinding(!it.findable) } },
                 switch = remote?.findable ?: false,
                 enabled = remote != null,
@@ -681,7 +701,7 @@ private fun LazyListScope.remotes(memory: FocusMemory, first: Modifier) {
                 TvListRow(
                     phone.name,
                     onClick = { removing = phone },
-                    supporting = phoneLine(phone, System.currentTimeMillis() / 1000),
+                    supporting = phoneLine(context, phone, System.currentTimeMillis() / 1000),
                     icon = TvIcons.Phone,
                     modifier = Modifier.remembered(memory, "remote/phone/${phone.fingerprint}"),
                 )
@@ -702,16 +722,20 @@ private fun LazyListScope.remotes(memory: FocusMemory, first: Modifier) {
 }
 
 /** "Used today", "Used 3 days ago", or when it paired if it never connected again. */
-fun phoneLine(phone: FfiPairedPhone, now: Long): String {
+fun phoneLine(context: Context, phone: FfiPairedPhone, now: Long): String {
     val days = { at: Long -> ((now - at).coerceAtLeast(0) / 86_400).toInt() }
-    val ago = { d: Int ->
-        when (d) {
-            0 -> "today"
-            1 -> "yesterday"
-            else -> "$d days ago"
+    val resources = context.resources
+    return phone.lastSeen?.let { seen ->
+        when (val d = days(seen)) {
+            0 -> Strings.tvPhoneUsedToday(context)
+            1 -> Strings.tvPhoneUsedYesterday(context)
+            else -> resources.getQuantityString(R.plurals.tv_phone_used_days, d, d)
         }
+    } ?: when (val d = days(phone.pairedAt)) {
+        0 -> Strings.tvPhonePairedToday(context)
+        1 -> Strings.tvPhonePairedYesterday(context)
+        else -> resources.getQuantityString(R.plurals.tv_phone_paired_days, d, d)
     }
-    return phone.lastSeen?.let { "Used ${ago(days(it))}" } ?: "Paired ${ago(days(phone.pairedAt))}"
 }
 
 private fun LazyListScope.thisTv(memory: FocusMemory, first: Modifier) {
@@ -719,9 +743,9 @@ private fun LazyListScope.thisTv(memory: FocusMemory, first: Modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             val watchNext = LocalWatchNext.current
             TvListRow(
-                "Show anistream on the home screen",
+                stringResource(R.string.tv_watch_next_row),
                 onClick = { watchNext?.let { it.enable(!it.enabled) } },
-                supporting = "Watch Next",
+                supporting = stringResource(R.string.tv_watch_next_name),
                 switch = watchNext?.enabled ?: false,
                 enabled = watchNext != null,
                 modifier = first.remembered(memory, "tv/watch-next"),
@@ -735,12 +759,13 @@ private fun LazyListScope.thisTv(memory: FocusMemory, first: Modifier) {
 @Composable
 private fun ImageCacheRow(memory: FocusMemory) {
     val store = LocalAppStore.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var bytes by remember { mutableStateOf<Long?>(null) }
     var clearing by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { bytes = store.imageCacheBytes() }
     TvListRow(
-        "Clear the image cache",
+        stringResource(R.string.tv_image_cache_clear),
         onClick = {
             if (!clearing) {
                 clearing = true
@@ -751,19 +776,19 @@ private fun ImageCacheRow(memory: FocusMemory) {
                 }
             }
         },
-        value = if (clearing) "Clearing" else bytes?.let(::megabytes),
+        value = if (clearing) stringResource(R.string.tv_image_cache_clearing) else bytes?.let { megabytes(context, it) },
         modifier = Modifier.remembered(memory, "tv/cache"),
     )
 }
 
 /** "84 MB", to the nearest megabyte. */
-fun megabytes(bytes: Long): String = "${(bytes + (1L shl 19)) shr 20} MB"
+fun megabytes(context: Context, bytes: Long): String = Strings.sizeMegabyte(context, ((bytes + (1L shl 19)) shr 20).toString())
 
 private fun LazyListScope.about(nav: TvNavigator, memory: FocusMemory, first: Modifier) {
     item(key = "about", contentType = "list") {
         val context = LocalContext.current
         val version = remember {
-            runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "unknown"
+            runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: Strings.valueUnknown(context)
         }
         val actions = LocalActions.current
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -771,17 +796,17 @@ private fun LazyListScope.about(nav: TvNavigator, memory: FocusMemory, first: Mo
                 Nagare(cell = 4)
                 Spacer(Modifier.width(16.dp))
                 Column {
-                    Text("anistream", style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk)
-                    Text("Version $version", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+                    Text("anistream", style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk) // i18n-skip
+                    Text(stringResource(R.string.about_version, version), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
                 }
             }
             val updating = UpdateRows(nav, memory, first)
             TvListRow(
-                "Licences",
-                onClick = { actions?.open(ActionSheet("Licences", body = { InfoLines(Licences) })) },
+                stringResource(R.string.about_licences),
+                onClick = { actions?.open(ActionSheet(Strings.aboutLicences(context), body = { InfoLines(licences(context)) })) },
                 modifier = (if (updating) Modifier else first).remembered(memory, "about/licences"),
             )
-            Quiet("anistream hosts no content.")
+            Quiet(stringResource(R.string.legal_hosts_no_content))
         }
     }
 }
@@ -797,34 +822,35 @@ private fun UpdateRows(nav: TvNavigator, memory: FocusMemory, first: Modifier): 
     val state by store.updates.state.collectAsStateWithLifecycle()
     val check by store.updates.check.collectAsStateWithLifecycle()
     val view by store.settings.view.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val offer = state.offer
     if (offer == null && !store.updates.updatesItself) return false
     if (offer != null) {
         TvListRow(
-            "Update to ${offer.name}",
+            stringResource(R.string.updates_update_to, offer.name),
             onClick = nav::openUpdate,
-            supporting = updateLine(state),
+            supporting = updateLine(context, state),
             icon = TvIcons.Update,
             modifier = first.remembered(memory, "about/update"),
         )
     } else {
         TvListRow(
-            "Check now",
+            stringResource(R.string.action_check_now),
             onClick = { if (check != UpdateCheck.Checking) store.checkForUpdates() },
             supporting = when (val now = check) {
                 UpdateCheck.Unknown, UpdateCheck.Found -> null
-                UpdateCheck.Checking -> "Checking"
-                UpdateCheck.UpToDate -> "anistream is up to date"
-                is UpdateCheck.Failed -> "Not checked. ${plainReason(LocalContext.current, now.reason)}"
+                UpdateCheck.Checking -> stringResource(R.string.updates_checking)
+                UpdateCheck.UpToDate -> stringResource(R.string.updates_up_to_date)
+                is UpdateCheck.Failed -> stringResource(R.string.updates_check_failed, plainReason(context, now.reason))
             },
             modifier = first.remembered(memory, "about/check"),
         )
     }
     if (store.updates.updatesItself) {
         TvListRow(
-            "Check for updates automatically",
+            stringResource(R.string.tv_update_auto_check),
             onClick = { store.setSwitch(SettingKey.UPDATE_CHECK, !store.settings.isOn(SettingKey.UPDATE_CHECK, view)) },
-            supporting = "Once a day, from anistream's releases",
+            supporting = stringResource(R.string.tv_update_auto_check_detail),
             switch = store.settings.isOn(SettingKey.UPDATE_CHECK, view),
             enabled = store.settings.row(SettingKey.UPDATE_CHECK, view) != null,
             modifier = Modifier.remembered(memory, "about/auto-check"),
@@ -834,24 +860,24 @@ private fun UpdateRows(nav: TvNavigator, memory: FocusMemory, first: Modifier): 
 }
 
 /** The update row's line, as the phone's: "Available · 48 MB", "Downloading 34 %", "Installing", or why it stopped. */
-fun updateLine(state: UpdateState): String = when (state) {
+fun updateLine(context: Context, state: UpdateState): String = when (state) {
     UpdateState.None -> ""
-    is UpdateState.Available -> listOfNotNull("Available", state.offer.bytes.takeIf { it > 0 }?.let(Wording::bytes)).joinToString(" · ")
-    is UpdateState.Allowing -> "Waiting for Android to allow installs"
-    is UpdateState.Downloading -> state.fraction?.let { "Downloading ${(it * 100).toInt()} %" } ?: "Downloading"
-    is UpdateState.Verifying -> "Checking the download"
-    is UpdateState.Installing -> "Installing"
-    is UpdateState.Done -> "Updated to ${state.offer.name}"
-    is UpdateState.Failed -> state.failure.text
+    is UpdateState.Available -> listOfNotNull(Strings.tvUpdateAvailable(context), state.offer.bytes.takeIf { it > 0 }?.let { Wording.bytes(context, it) }).joinToString(" · ") // i18n-skip
+    is UpdateState.Allowing -> Strings.tvUpdateWaitingInstall(context)
+    is UpdateState.Downloading -> state.fraction?.let { Strings.updatesDownloadingPercent(context, percentText((it * 100).toInt())) } ?: Strings.downloadsCaptionRunningPlain(context)
+    is UpdateState.Verifying -> Strings.updatesCheckingDownloadShort(context)
+    is UpdateState.Installing -> Strings.updatesInstallingPlain(context)
+    is UpdateState.Done -> Strings.updatesUpdated(context, state.offer.version)
+    is UpdateState.Failed -> state.failure.text(context)
 }
 
 /** What anistream is under, and what it uses, as the phone's About lists them. */
-private val Licences = listOf(
-    "Licence" to "MIT, open source and non-commercial",
-    "Typefaces" to "Roboto Flex and Zen Kaku Gothic New, under the SIL Open Font License 1.1",
-    "Libraries" to "JNA and AndroidX, under the Apache License 2.0",
+private fun licences(context: Context) = listOf(
+    Strings.settingsLicenceTitle(context) to Strings.settingsLicenceValue(context),
+    Strings.settingsTypefaces(context) to Strings.settingsTypefacesValue(context),
+    Strings.settingsLibraries(context) to Strings.settingsLibrariesValue(context),
     // Shipped in the TV's QR pages, which a phone's browser runs; the phone app serves no pages.
-    "Page encryption" to "noble-ciphers, under the MIT License",
+    Strings.tvLicencePageEncryption(context) to Strings.tvLicencePageEncryptionValue(context),
 )
 
 /** A row that only says something: its label and its value, not focusable. */

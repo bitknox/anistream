@@ -4,6 +4,10 @@
 
 package tv.anistream.tv.player
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.activity.compose.BackHandler
@@ -145,6 +149,7 @@ fun TvPlayerScreen(
     video: @Composable (Modifier) -> Unit = { VideoSurface(model, it) },
 ) {
     val root = remember { FocusRequester() }
+    val context = LocalContext.current
     // The corner card's button (Play now, or Switch source), which keeps focus as the chrome goes.
     val cardFocus = remember { FocusRequester() }
     val playFocus = remember { FocusRequester() }
@@ -388,13 +393,13 @@ fun TvPlayerScreen(
                 },
             )
         }
-        if (!chrome && runShown) SeekCount(model, run.label)
+        if (!chrome && runShown) SeekCount(model, run.label(context))
         // Mid-episode waiting: the indicator at the centre, until playback goes on.
         Fading(model.showsBuffering && !chrome && model.stall == null, Modifier.align(Alignment.Center)) { Spinner() }
         val pill = when {
             chrome -> null
-            model.corner == PlayerModel.Corner.Undo -> model.undo?.let { "${it.label} · Undo" }
-            skip != null -> skip.label
+            model.corner == PlayerModel.Corner.Undo -> model.undo?.let { Strings.tvPlayerUndoPill(context, it.label(context)) }
+            skip != null -> skip.label(context)
             else -> null
         }
         var lastPill by remember { mutableStateOf(pill) }
@@ -478,13 +483,13 @@ private fun StartingLayer(model: PlayerModel, up: Boolean, onClose: () -> Unit) 
             // Why, as the engine said it; with no source at all, the way to one instead.
             val addStore = LocalAddStore.current
             val first = remember { FocusRequester() }
-            Text("Couldn't play episode ${failure.episode}", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
+            Text(stringResource(R.string.player_failed_title, failure.episode.toInt()), style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
             Spacer(Modifier.height(8.dp))
             Text(
                 when {
-                    addStore != null -> "This TV has no sources yet. Add a plugin store to play."
-                    failure.reason != null -> "${failure.reason}."
-                    else -> "No source had a stream that played. Another may."
+                    addStore != null -> stringResource(R.string.player_failed_no_sources)
+                    failure.reason != null -> "${failure.reason}." // i18n-skip
+                    else -> stringResource(R.string.player_failed_detail)
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 color = ObiSilk.Haze,
@@ -494,17 +499,17 @@ private fun StartingLayer(model: PlayerModel, up: Boolean, onClose: () -> Unit) 
             Spacer(Modifier.height(24.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 if (addStore != null) {
-                    AmberButton(onClick = addStore, icon = null, modifier = Modifier.focusRequester(first)) { ButtonLabel("Add a plugin store") }
+                    AmberButton(onClick = addStore, icon = null, modifier = Modifier.focusRequester(first)) { ButtonLabel(stringResource(R.string.player_add_plugin_store)) }
                 } else {
-                    TonalButton(onClick = { model.chooseSource() }, modifier = Modifier.focusRequester(first)) { ButtonLabel("Choose another source") }
+                    TonalButton(onClick = { model.chooseSource() }, modifier = Modifier.focusRequester(first)) { ButtonLabel(stringResource(R.string.player_choose_another_source)) }
                 }
-                TonalButton(onClick = onClose) { ButtonLabel("Back") }
+                TonalButton(onClick = onClose) { ButtonLabel(stringResource(R.string.action_back)) }
             }
             LaunchedEffect(failure) { first.focusSoon() }
             return@Column
         }
         Text(
-            model.startingLine() ?: model.startingEpisode?.let { "Starting episode $it" }.orEmpty(),
+            model.startingLine(LocalContext.current) ?: model.startingEpisode?.let { stringResource(R.string.player_starting, it.toInt()) }.orEmpty(),
             style = MaterialTheme.typography.bodyLarge,
             color = ObiSilk.Haze,
         )
@@ -514,8 +519,8 @@ private fun StartingLayer(model: PlayerModel, up: Boolean, onClose: () -> Unit) 
             val first = remember { FocusRequester() }
             Spacer(Modifier.height(24.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                TonalButton(onClick = { model.chooseSource() }, modifier = Modifier.focusRequester(first)) { ButtonLabel("Choose another source") }
-                TonalButton(onClick = onClose) { ButtonLabel("Back") }
+                TonalButton(onClick = { model.chooseSource() }, modifier = Modifier.focusRequester(first)) { ButtonLabel(stringResource(R.string.player_choose_another_source)) }
+                TonalButton(onClick = onClose) { ButtonLabel(stringResource(R.string.action_back)) }
             }
             LaunchedEffect(Unit) { first.focusSoon() }
         }
@@ -555,7 +560,7 @@ private fun Chrome(
         // Top left, the show and the episode; top right, the clock and when it ends.
         Column(Modifier.align(Alignment.TopStart).padding(start = 48.dp, top = 27.dp).width(560.dp)) {
             Text(model.showTitle, style = TvTitle.player, color = ObiSilk.Silk, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(model.episodeLine, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(model.episodeLine(LocalContext.current), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Column(Modifier.align(Alignment.TopEnd).padding(end = 48.dp, top = 27.dp), horizontalAlignment = Alignment.End) {
             // Read afresh each time; the minute's turn only makes sure that happens while paused.
@@ -564,7 +569,7 @@ private fun Chrome(
             Text(AirTime.clock(now), style = MaterialTheme.typography.labelMedium, color = ObiSilk.Haze)
             if (duration > 0) {
                 val left = ((duration - position) / model.speed.coerceAtLeast(0.1)).toLong()
-                Text("Ends at ${AirTime.clock(now.plusSeconds(left))}", style = MaterialTheme.typography.labelMedium, color = ObiSilk.Haze)
+                Text(stringResource(R.string.player_ends_at, AirTime.clock(now.plusSeconds(left))), style = MaterialTheme.typography.labelMedium, color = ObiSilk.Haze)
             }
         }
         // Bottom: the times over the seek bar, then the buttons, which end on the safe area's edge.
@@ -582,15 +587,15 @@ private fun Chrome(
                     onClick = { model.togglePause() },
                     icon = if (model.paused) TvIcons.Play else TvIcons.Pause,
                     modifier = Modifier.focusRequester(playFocus),
-                ) { ButtonLabel(if (model.paused) "Play" else "Pause") }
+                ) { ButtonLabel(stringResource(if (model.paused) R.string.action_play else R.string.action_pause)) }
                 TonalButton(onClick = { onPanel(PlayerPanel.Episodes) }, icon = TvIcons.Episodes, modifier = Modifier.focusRequester(episodesFocus)) {
-                    ButtonLabel("Episodes")
+                    ButtonLabel(stringResource(R.string.player_episodes))
                 }
-                TonalButton(onClick = { onPanel(PlayerPanel.Tracks) }, icon = TvIcons.Subtitles) { ButtonLabel("Subtitles and audio") }
-                TonalButton(onClick = { onPanel(PlayerPanel.Sources) }, icon = TvIcons.Source) { ButtonLabel("Source") }
-                TonalButton(onClick = { onPanel(PlayerPanel.Info) }, icon = TvIcons.Info) { ButtonLabel("Info") }
+                TonalButton(onClick = { onPanel(PlayerPanel.Tracks) }, icon = TvIcons.Subtitles) { ButtonLabel(stringResource(R.string.player_subtitles_and_audio)) }
+                TonalButton(onClick = { onPanel(PlayerPanel.Sources) }, icon = TvIcons.Source) { ButtonLabel(stringResource(R.string.show_settings_source)) }
+                TonalButton(onClick = { onPanel(PlayerPanel.Info) }, icon = TvIcons.Info) { ButtonLabel(stringResource(R.string.player_info)) }
                 Spacer(Modifier.weight(1f))
-                if (hasNext) TonalButton(onClick = onNext, icon = TvIcons.SkipNext) { ButtonLabel("Next episode") }
+                if (hasNext) TonalButton(onClick = onNext, icon = TvIcons.SkipNext) { ButtonLabel(stringResource(R.string.player_next_episode)) }
             }
         }
     }
@@ -709,25 +714,25 @@ private fun Panel(model: PlayerModel, panel: PlayerPanel, onDone: () -> Unit, mo
             .background(ObiSilk.RaisedHigh)
             .padding(start = 16.dp, end = PANEL_END, top = 27.dp, bottom = 27.dp),
     ) {
-        val title = when (panel) {
-            PlayerPanel.Episodes -> "Episodes"
-            PlayerPanel.Tracks -> "Subtitles and audio"
-            PlayerPanel.Sources -> "Source"
-            PlayerPanel.Info -> "Info"
-        }
+        val title = stringResource(when (panel) {
+            PlayerPanel.Episodes -> R.string.player_episodes
+            PlayerPanel.Tracks -> R.string.player_subtitles_and_audio
+            PlayerPanel.Sources -> R.string.show_settings_source
+            PlayerPanel.Info -> R.string.player_info
+        })
         Text(title, style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() })
         LazyColumn(Modifier.focusRequester(list).focusGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             when (panel) {
                 PlayerPanel.Episodes -> items(model.menus?.episodes.orEmpty(), key = { it.number }) { episode ->
                     TvListRow(
-                        episode.title?.let { "E${episode.number} · $it" } ?: episode.label,
+                        episode.title?.let { stringResource(R.string.tv_player_episode_row, episode.number, it) } ?: episode.label,
                         onClick = {
                             if (!episode.current) model.choose(PlayerChoice.Episode(episode.number))
                             onDone()
                         },
                         supporting = when {
-                            episode.current -> "Playing"
-                            episode.watched -> "Watched"
+                            episode.current -> stringResource(R.string.tv_player_episode_playing)
+                            episode.watched -> stringResource(R.string.episode_watched)
                             else -> null
                         },
                         selected = episode.current,
@@ -737,26 +742,26 @@ private fun Panel(model: PlayerModel, panel: PlayerPanel, onDone: () -> Unit, mo
                 PlayerPanel.Tracks -> {
                     val audio = model.tracks.filter { it.kind == Track.Kind.Audio }
                     val subtitles = model.tracks.filter { it.kind == Track.Kind.Subtitle }
-                    item(key = "audio") { PanelHeading("Audio") }
+                    item(key = "audio") { PanelHeading(stringResource(R.string.player_audio)) }
                     items(audio, key = { "audio/${it.id}" }) { track ->
                         TvListRow(
-                            track.name,
+                            track.name(LocalContext.current),
                             onClick = { model.selectAudio(track.id) },
                             selected = track.selected,
                             modifier = if (track.selected) Modifier.focusRequester(current) else Modifier,
                         )
                     }
-                    item(key = "subtitles") { PanelHeading("Subtitles") }
+                    item(key = "subtitles") { PanelHeading(stringResource(R.string.player_subtitles)) }
                     item(key = "subtitles/off") {
                         val off = subtitles.none { it.selected }
-                        TvListRow("Off", onClick = { model.selectSubtitle(null) }, selected = off)
+                        TvListRow(stringResource(R.string.value_off), onClick = { model.selectSubtitle(null) }, selected = off)
                     }
                     items(subtitles, key = { "sub/${it.id}" }) { track ->
-                        TvListRow(track.name, onClick = { model.selectSubtitle(track.id) }, selected = track.selected)
+                        TvListRow(track.name(LocalContext.current), onClick = { model.selectSubtitle(track.id) }, selected = track.selected)
                     }
                     item(key = "style") {
                         Text(
-                            "Style follows the system's caption settings",
+                            stringResource(R.string.tv_player_caption_note),
                             style = MaterialTheme.typography.bodyMedium,
                             color = ObiSilk.Haze,
                             modifier = Modifier.padding(16.dp),
@@ -816,11 +821,11 @@ private fun StallPrompt(model: PlayerModel, stall: tv.anistream.player.StallCard
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Source is buffering · ${stall.held(model.clock)} s", style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk)
-        Text("Another stream may play without waiting.", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+        Text(stringResource(R.string.player_stall_title, stall.held(model.clock).toInt()), style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk)
+        Text(stringResource(R.string.player_stall_detail), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
         Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TonalButton(onClick = { model.switchSource() }, modifier = Modifier.focusRequester(switch)) { ButtonLabel("Switch source") }
-            TonalButton(onClick = { model.keepWaiting() }) { ButtonLabel("Keep waiting") }
+            TonalButton(onClick = { model.switchSource() }, modifier = Modifier.focusRequester(switch)) { ButtonLabel(stringResource(R.string.player_switch_source)) }
+            TonalButton(onClick = { model.keepWaiting() }) { ButtonLabel(stringResource(R.string.player_keep_waiting)) }
         }
     }
 }
@@ -853,21 +858,21 @@ private fun UpNextCard(model: PlayerModel, next: NextEpisode, play: FocusRequest
         )
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                next.title?.let { "Next: E${next.number} · $it" } ?: "Next: E${next.number}",
+                next.title?.let { stringResource(R.string.tv_player_up_next_line, next.number, it) } ?: stringResource(R.string.tv_player_up_next_bare, next.number),
                 style = TvTitle.player,
                 color = ObiSilk.Silk,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             model.countdown?.let { (left, progress) ->
-                Text("Plays in $left s", style = MaterialTheme.typography.labelMedium, color = ObiSilk.Haze)
+                Text(stringResource(R.string.player_plays_in, left.toInt()), style = MaterialTheme.typography.labelMedium, color = ObiSilk.Haze)
                 Box(Modifier.fillMaxWidth().height(4.dp).background(ObiSilk.Rule, CircleShape)) {
                     Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(ObiSilk.Amber, CircleShape))
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TonalButton(onClick = { model.playNext() }, modifier = Modifier.focusRequester(play)) { ButtonLabel("Play now") }
-                TonalButton(onClick = { model.cancelNext() }) { ButtonLabel("Cancel") }
+                TonalButton(onClick = { model.playNext() }, modifier = Modifier.focusRequester(play)) { ButtonLabel(stringResource(R.string.action_play_now)) }
+                TonalButton(onClick = { model.cancelNext() }) { ButtonLabel(stringResource(R.string.action_cancel)) }
             }
         }
     }
@@ -888,10 +893,10 @@ private fun StillWatchingDialog(model: PlayerModel) {
                 .padding(32.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            Text("Still watching?", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
+            Text(stringResource(R.string.player_still_watching), style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TonalButton(onClick = { model.continueWatching() }, modifier = Modifier.focusRequester(keep)) { ButtonLabel("Continue") }
-                TonalButton(onClick = { model.stopWatching() }) { ButtonLabel("Stop") }
+                TonalButton(onClick = { model.continueWatching() }, modifier = Modifier.focusRequester(keep)) { ButtonLabel(stringResource(R.string.nav_continue)) }
+                TonalButton(onClick = { model.stopWatching() }) { ButtonLabel(stringResource(R.string.action_stop)) }
             }
         }
     }
@@ -909,14 +914,14 @@ private fun InfoPanel(model: PlayerModel, modifier: Modifier) {
         modifier.focusable().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(model.episodeLine, style = TvTitle.player, color = ObiSilk.Silk)
+        Text(model.episodeLine(LocalContext.current), style = TvTitle.player, color = ObiSilk.Silk)
         row?.description?.takeIf { it.isNotBlank() }?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 8, overflow = TextOverflow.Ellipsis)
         }
-        Text("Stats for nerds", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze, modifier = Modifier.padding(top = 12.dp))
+        Text(stringResource(R.string.player_stats), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze, modifier = Modifier.padding(top = 12.dp))
         // The engine's lines, the same every app shows; until it knows the picture, says so.
         if (model.statsSummary.isEmpty()) {
-            Text("Waiting for the stream", style = MaterialTheme.typography.labelMedium, color = ObiSilk.Haze)
+            Text(stringResource(R.string.player_stats_waiting), style = MaterialTheme.typography.labelMedium, color = ObiSilk.Haze)
         }
         model.statsSummary.forEach { line ->
             Text(line, style = MaterialTheme.typography.labelMedium, color = ObiSilk.Silk)

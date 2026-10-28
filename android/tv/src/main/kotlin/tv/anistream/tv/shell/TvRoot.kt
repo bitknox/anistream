@@ -159,7 +159,7 @@ private fun BoxScope.Notices(store: AppStore, player: PlayerModel, remote: TvRem
     val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(current?.id) {
         val item = current ?: return@LaunchedEffect
-        val failure = (store.updates.state.value as? UpdateState.Failed)?.failure?.text
+        val failure = (store.updates.state.value as? UpdateState.Failed)?.failure?.text(context)
         val text = item.notice.text(context)
         if (!(onUpdatePage && item.notice.msg == null && item.notice.text == failure)) notices.say(text)
         store.notices.dismiss(item)

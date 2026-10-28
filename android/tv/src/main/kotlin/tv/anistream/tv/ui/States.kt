@@ -3,6 +3,10 @@
 
 package tv.anistream.tv.ui
 
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import android.content.Context
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -52,8 +56,6 @@ import tv.anistream.design.Motion
 import tv.anistream.design.Nagare
 import tv.anistream.design.ObiSilk
 
-/** What the offline line says: the TV keeps what it showed, and syncs once it is back. */
-const val OFFLINE_LINE = "Offline. Changes sync once the network is back."
 
 /** Whether the engine says the TV is offline, its one offline state. */
 @Composable
@@ -68,7 +70,7 @@ fun OfflineLine(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(Modifier.size(6.dp).background(ObiSilk.Haze, CircleShape))
-        Text(OFFLINE_LINE, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+        Text(stringResource(R.string.accounts_offline_changes_tv), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
     }
 }
 

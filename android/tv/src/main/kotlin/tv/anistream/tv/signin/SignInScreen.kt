@@ -32,6 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.R
+import tv.anistream.i18n.Strings
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,7 +75,9 @@ fun spaced(code: String): String = code.chunked(4).joinToString(" ")
 
 /** TVSignIn for [tracker], until it is signed in ([onDone]) or Back. */
 @Composable
-fun SignInScreen(tracker: String, onDone: () -> Unit, cancelLabel: String = "Cancel") {
+fun SignInScreen(tracker: String, onDone: () -> Unit, cancelLabel: String? = null) {
+    val context = LocalContext.current
+    val cancelText = cancelLabel ?: stringResource(R.string.action_cancel)
     val store = LocalAppStore.current
     val notices = LocalNotices.current
     val name = AccountsModel.name(tracker)
@@ -83,7 +88,7 @@ fun SignInScreen(tracker: String, onDone: () -> Unit, cancelLabel: String = "Can
     LaunchedEffect(signedIn) {
         if (signedIn && !wasSignedIn) {
             val user = trackers[tracker]?.user
-            notices?.say(if (user != null) "Signed in to $name as $user" else "Signed in to $name")
+            notices?.say(if (user != null) Strings.tvSigninDoneAs(context, name, user) else Strings.tvSigninDone(context, name))
             done()
         }
     }
@@ -100,19 +105,19 @@ fun SignInScreen(tracker: String, onDone: () -> Unit, cancelLabel: String = "Can
     ) {
         Box(Modifier.width(160.dp)) { Nagare(cell = 5) }
         Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Text("Sign in to $name", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
+            Text(stringResource(R.string.accounts_sign_in_to, name), style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
             when (signInWay(tracker)) {
                 SignInWay.Page -> PageWay(store, tracker, name)
-                SignInWay.DeviceCode -> DeviceCodeWay(store, tracker, cancel, onCancel = onDone, cancelLabel = cancelLabel)
+                SignInWay.DeviceCode -> DeviceCodeWay(store, tracker, cancel, onCancel = onDone, cancelLabel = cancelText)
                 SignInWay.None -> Text(
-                    "$name doesn't sign in on a TV.",
+                    stringResource(R.string.tv_signin_not_on_tv, name),
                     style = MaterialTheme.typography.bodyLarge,
                     color = ObiSilk.Haze,
                     modifier = Modifier.widthIn(max = 640.dp),
                 )
             }
             if (signInWay(tracker) != SignInWay.DeviceCode) {
-                TonalButton(onClick = onDone, modifier = Modifier.focusRequester(cancel)) { ButtonLabel(cancelLabel) }
+                TonalButton(onClick = onDone, modifier = Modifier.focusRequester(cancel)) { ButtonLabel(cancelText) }
             }
         }
     }
@@ -142,6 +147,7 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
     DisposableEffect(ready) {
         if (!ready) return@DisposableEffect onDispose {}
         val page = SignInPage(
+            context = context,
             tracker = name,
             form = if (anilist) PageForm.Code else PageForm.Password,
             authorizeUrl = asked?.url,
@@ -172,29 +178,29 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
         }
     }
     val steps = if (anilist) {
-        "Scan with your phone. Open AniList there, allow anistream, then paste the code on this page."
+        stringResource(R.string.accounts_scan_code, name)
     } else {
-        "Scan with your phone, then enter your Kitsu user name and password on the page."
+        stringResource(R.string.accounts_scan_password, name)
     }
     Text(steps, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
         val shown = link
         if (shown != null) {
-            QrCode(shown, label = "QR code for the sign-in page") // i18n-skip
+            QrCode(shown, label = stringResource(R.string.tv_signin_qr_page))
         } else {
             Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)))
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.widthIn(max = 520.dp)) {
-            Text("Or open this address", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
-            Text(shown ?: "Starting", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Silk)
+            Text(stringResource(R.string.stores_or_open_address), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
+            Text(shown ?: stringResource(R.string.downloads_notice_starting), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Silk)
             // A failure leads with the error's dot, its words in silk: vermilion is never text.
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (failed) Box(Modifier.size(8.dp).background(ObiSilk.Vermilion, CircleShape))
                 Text(
                     when {
-                        !sent -> "The page closes with this screen, or in 10 minutes."
-                        failed -> "$name did not sign in. Check the details and send them again from the page."
-                        else -> "Signing in"
+                        !sent -> stringResource(R.string.stores_page_closes)
+                        failed -> stringResource(R.string.tv_signin_did_not, name)
+                        else -> stringResource(R.string.accounts_signing_in_action)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (failed) ObiSilk.Silk else ObiSilk.Haze,
@@ -218,14 +224,14 @@ private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequeste
     var expired by remember(shown?.code) { mutableStateOf(false) }
     LaunchedEffect(expired) { if (expired) runCatching { again.requestFocus() } }
     Text(
-        "On your phone, scan the QR code or go to the address, then type this code.",
+        stringResource(R.string.tv_signin_device_steps),
         style = MaterialTheme.typography.bodyLarge,
         color = ObiSilk.Silk,
         modifier = Modifier.widthIn(max = 640.dp),
     )
     Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
         if (shown != null) {
-            QrCode(shown.url, label = "QR code for the activation address") // i18n-skip
+            QrCode(shown.url, label = stringResource(R.string.tv_signin_qr_activation))
         } else {
             Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)))
         }
@@ -238,7 +244,7 @@ private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequeste
                     color = if (expired) ObiSilk.Haze else ObiSilk.Silk,
                 )
             } else {
-                Text("Asking for a code", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                Text(stringResource(R.string.tv_signin_asking_code), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             }
             shown?.let { Text(it.url, style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze) }
             shown?.let { CodeExpiry(it, onExpired = { expired = true }) }
@@ -246,7 +252,7 @@ private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequeste
     }
     // The code waits, so focus rests on asking for a fresh one.
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        TonalButton(onClick = { store.connect(tracker) }, modifier = Modifier.focusRequester(again)) { ButtonLabel("Get a new code") }
+        TonalButton(onClick = { store.connect(tracker) }, modifier = Modifier.focusRequester(again)) { ButtonLabel(stringResource(R.string.action_new_code)) }
         TonalButton(onClick = onCancel) { ButtonLabel(cancelLabel) }
     }
 }
