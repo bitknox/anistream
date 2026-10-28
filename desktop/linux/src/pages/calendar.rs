@@ -321,7 +321,11 @@ impl Page {
             return;
         }
         self.asking_past.set(true);
-        self.ctx.hub.send(Command::LoadCalendarPast { anchor, page: self.pages.get(), through: None });
+        self.ctx.hub.send(Command::LoadCalendarPast {
+            anchor,
+            page: self.pages.get(),
+            through: None,
+        });
     }
 
     /// The broadcasts, oldest first, each title as it now stands.
