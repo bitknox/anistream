@@ -474,6 +474,7 @@ impl Page {
                 let button = gtk::Button::builder().child(&text).build();
                 button.add_css_class("pill");
                 button.add_css_class("suggested-action");
+                button.add_css_class("first-focus");
                 button.set_action_name(Some("win.play"));
                 button.set_action_target_value(Some(
                     &(id, item.episode.to_string()).to_variant(),

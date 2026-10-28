@@ -74,6 +74,7 @@ pub struct Config {
     pub syncplay: SyncplayConfig,
     pub notifications: NotificationsConfig,
     pub meta: MetaConfig,
+    pub controller: ControllerConfig,
     /// Keybinding overrides, `action = "key"`. The help overlay is generated from the
     /// resolved map so it can never drift from what the keys actually do.
     pub keys: BTreeMap<String, String>,
@@ -443,6 +444,22 @@ pub struct NotificationsConfig {
 impl Default for NotificationsConfig {
     fn default() -> Self {
         Self { airing_digest: true, desktop: false, episodes: false }
+    }
+}
+
+/// A game controller, in the apps that take one.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct ControllerConfig {
+    /// Drive the app with a connected controller. On unless switched off.
+    pub enabled: bool,
+    /// Swap A and B, for a controller laid out as Nintendo's are.
+    pub swap_face: bool,
+}
+
+impl Default for ControllerConfig {
+    fn default() -> Self {
+        Self { enabled: true, swap_face: false }
     }
 }
 

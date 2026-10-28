@@ -39,6 +39,7 @@ use SettingKey as K;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Group {
     Titles,
+    Controller,
     Watching,
     Player,
     Picture,
@@ -57,6 +58,7 @@ impl Group {
     fn title(self) -> String {
         match self {
             Self::Titles => t::settings_group_titles(),
+            Self::Controller => t::settings_group_controller(),
             Self::Watching => t::settings_group_watching(),
             Self::Player => t::settings_group_player(),
             Self::Picture => t::settings_group_picture(),
@@ -85,7 +87,10 @@ const PANES: [Pane; 9] = [
     Pane {
         name: "general",
         icon: "preferences-system-symbolic", // i18n-skip
-        groups: &[(Group::Titles, &[K::Titles])],
+        groups: &[
+            (Group::Titles, &[K::Titles]),
+            (Group::Controller, &[K::ControllerInput, K::SwapFaceButtons]),
+        ],
     },
     Pane {
         name: "playback",
@@ -479,6 +484,10 @@ impl Inner {
                 added.push((*key, widget));
                 any = true;
             }
+            if *title == Group::Controller {
+                self.controller_rows(&group, &added);
+                any = true;
+            }
             // A row that only means something while its switch is on follows that switch.
             if let Some((parent, _)) = added.first()
                 && let Some(children) = follows(*parent)
@@ -544,6 +553,32 @@ impl Inner {
         } else {
             self.built.replace(None);
         }
+    }
+
+    /// The controller group's own rows: swapping A and B once a controller has been seen, and
+    /// which controller is in use.
+    fn controller_rows(
+        self: &Rc<Self>,
+        group: &adw::PreferencesGroup,
+        added: &[(SettingKey, gtk::Widget)],
+    ) {
+        let seen = self.ctx.prefs.controller_seen();
+        for (key, widget) in added {
+            if *key == K::SwapFaceButtons {
+                widget.set_visible(seen);
+            }
+        }
+        let device = self.ctx.controller_device.borrow().clone();
+        let row = adw::ActionRow::builder()
+            .title(t::settings_controller_device())
+            .subtitle(match &device {
+                // The controller's own name, and the library that reads it.
+                Some(name) => format!("{name} · libmanette"), // i18n-skip
+                None => t::settings_controller_none(),
+            })
+            .build();
+        row.set_subtitle_selectable(false);
+        group.add(&row);
     }
 
     /// The row for one setting, and where the preview column follows it.

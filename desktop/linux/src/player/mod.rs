@@ -18,6 +18,7 @@ use anistream_core::{ids::AnilistId, media::Translation};
 use anistream_engine::engine::Engine;
 use anistream_i18n::t;
 use anistream_model::{
+    input::{PadContext, PlayerCard, PlayerFocus, PlayerPanel},
     command::{Command, PlayerCommand},
     event::Event,
     hosted::{
@@ -102,6 +103,8 @@ pub struct PlayerView {
     resumed_from: Cell<Option<f64>>,
     /// The last automatic skip, while Undo is offered for it.
     undo: Cell<Option<Undo>>,
+    /// Since when the skip offer has shown, for a controller's A to take it only while it is new.
+    skip_since: Cell<Option<Instant>>,
     /// The Subtitles and Audio menu's radio actions, set to the file's tracks as it opens.
     subtitle_action: gio::SimpleAction,
     audio_action: gio::SimpleAction,
@@ -309,6 +312,7 @@ impl PlayerView {
             starting_note: RefCell::default(),
             resumed_from: Cell::new(None),
             undo: Cell::new(None),
+            skip_since: Cell::new(None),
             subtitle_action: radio("subtitle", "off"),
             audio_action: radio("audio", "off"),
             episode_action: radio("episode", ""),
@@ -736,9 +740,15 @@ impl PlayerView {
                     SkipKind::Opening => t::player_skip_opening(),
                     SkipKind::Ending => t::player_skip_ending(),
                 });
+                if !self.ui.skip.shown() {
+                    self.skip_since.set(Some(Instant::now()));
+                }
                 self.ui.skip.set(true);
             }
-            PlayerUi::SkipCleared => self.ui.skip.set(false),
+            PlayerUi::SkipCleared => {
+                self.skip_since.set(None);
+                self.ui.skip.set(false);
+            }
             PlayerUi::AutoSkipped { kind, undo_to } => self.auto_skipped(*kind, *undo_to),
             PlayerUi::UpNext { .. } if self.hold_up_next.get() => {}
             PlayerUi::UpNext { next, countdown, auto, .. } => {
@@ -1190,7 +1200,17 @@ impl PlayerView {
             }
             return;
         }
-        self.shown.set(false);
+        self.hide_controls();
+    }
+
+    /// Take the controls away now, whatever holds them up.
+    fn hide_controls(&self) {
+        if !self.shown.replace(false) {
+            return;
+        }
+        if let Some(source) = self.idle.borrow_mut().take() {
+            source.remove();
+        }
         self.ui.page.set_cursor_from_name(Some("none"));
         self.preview.hide();
         self.lift(false);
@@ -2009,6 +2029,81 @@ impl PlayerView {
             self.wake();
         }
         true
+    }
+}
+
+impl PlayerView {
+    /// The player as a game controller's map reads it: whether the controls show, and the card
+    /// over the video that takes A and B.
+    pub fn pad_context(&self) -> PadContext {
+        let card = if self.ui.up_next.shown() {
+            Some(PlayerCard::UpNext)
+        } else if self.ui.stall.shown() {
+            Some(PlayerCard::Stall)
+        } else if self.ui.skip.shown()
+            && self.skip_since.get().is_some_and(|at| at.elapsed() < Duration::from_secs(8))
+        {
+            Some(PlayerCard::SkipFresh)
+        } else {
+            None
+        };
+        let menu_open = self.ui.menu_buttons.iter().any(|b| b.is_active());
+        PadContext::Player { controls_shown: self.shown.get() || menu_open, card }
+    }
+
+    /// A controller moved along the controls: they stay up a while longer.
+    pub fn pad_touch(&self) {
+        if self.shown.get() {
+            self.wake();
+        }
+    }
+
+    /// B: the controls away, or the player closed when they are already away.
+    pub fn pad_back(&self) {
+        if self.shown.get() {
+            self.hide_controls();
+        } else {
+            self.key(gdk::Key::Escape, gdk::ModifierType::empty());
+        }
+    }
+
+    pub fn pad_command(&self, command: PlayerCommand) {
+        self.send(command);
+    }
+
+    pub fn pad_panel(&self, panel: PlayerPanel) {
+        match panel {
+            PlayerPanel::Tracks => self.ui.tracks.popup(),
+            PlayerPanel::Episodes => self.ui.episodes.popup(),
+            PlayerPanel::More => self.ui.settings.popup(),
+            PlayerPanel::Stats => self.toggle_stats(),
+        }
+        self.wake();
+    }
+
+    pub fn pad_reveal(&self, target: PlayerFocus) {
+        self.wake();
+        match target {
+            PlayerFocus::SeekLine => self.ui.timeline.grab_focus(),
+            PlayerFocus::Episodes => self.ui.episodes.grab_focus(),
+        };
+    }
+
+    pub fn pad_play_pause(&self) {
+        self.send(PlayerCommand::TogglePause);
+        self.wake();
+    }
+
+    /// The right trigger held: twice the speed. What it was is handed back to restore.
+    pub fn pad_hold_speed(&self) -> f64 {
+        let was = self.speed.get();
+        self.send(PlayerCommand::SpeedTo(2.0));
+        self.wake();
+        was
+    }
+
+    pub fn pad_restore_speed(&self, speed: f64) {
+        self.send(PlayerCommand::SpeedTo(speed));
     }
 }
 

@@ -16,6 +16,7 @@ mod hub;
 mod motion;
 mod mpris;
 mod nagare;
+mod pad;
 mod pages;
 mod party;
 mod player;

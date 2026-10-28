@@ -148,3 +148,49 @@ nagare-description = Nagare, the { -app-name } mascot: a figure with a silk bob,
 # Line under the seeding group in Settings: seeding stops when the app closes.
 # @only linux
 settings-seeding-open-only = Seeding runs only while { -app-name } is open.
+
+# Settings row: whether a connected game controller drives the app.
+# @only linux
+# @max 30
+settings-label-controller-input = Use a controller
+
+# Settings row: swaps the A and B buttons, for a controller laid out as Nintendo's are.
+# @only linux
+# @max 30
+settings-label-swap-face-buttons = Swap A and B
+
+# Heading of the Settings group for game controllers.
+# @only linux
+# @max 24
+settings-group-controller = Controller
+
+# Settings row that names the controller in use.
+# @only linux
+# @max 24
+settings-controller-device = Controller
+
+# Value of the controller row when no controller is connected.
+# @only linux
+# @max 90
+settings-controller-none = No controller found. Steam Input's keyboard layouts still work.
+
+# Notice when a controller connects for the first time in a session.
+# @only linux
+# @arg name: text
+# @max 60
+controller-connected = Controller connected · { $name }
+
+# Notice when the controller in use disconnects.
+# @only linux
+# @max 40
+controller-disconnected = Controller disconnected
+
+# Title of the window that lists what the controller's buttons do.
+# @only linux
+# @max 30
+controller-help-title = Controller
+
+# Accessible name of the list of controller buttons in the help window.
+# @only linux
+# @max 40
+controller-help-buttons = Controller buttons

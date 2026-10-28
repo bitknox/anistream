@@ -1295,6 +1295,127 @@ public enum L {
     /// Short placeholder while something loads.
     public static var stateLoading: String { string("state-loading", fallback: "Loading") }
 
+    /// Controller help: the D-pad and left stick move focus between items.
+    public static var padHelpMove: String { string("pad-help-move", fallback: "Move focus") }
+
+    /// Controller help: the A button on a list, a button or a switch.
+    public static var padHelpSelect: String { string("pad-help-select", fallback: "Select") }
+
+    /// Controller help: the B button while browsing.
+    public static var padHelpBack: String { string("pad-help-back", fallback: "Back") }
+
+    /// Controller help: the B button while the player's controls are showing.
+    public static var padHelpHideControls: String { string("pad-help-hide-controls", fallback: "Hide the controls") }
+
+    /// Controller help: the B button while the player's controls are hidden.
+    public static var padHelpClosePlayer: String { string("pad-help-close-player", fallback: "Close the player") }
+
+    /// Controller help: opens the menu of the focused item.
+    public static var padHelpItemMenu: String { string("pad-help-item-menu", fallback: "Item menu") }
+
+    /// Controller help: goes to Search.
+    public static var padHelpSearch: String { string("pad-help-search", fallback: "Search") }
+
+    /// Controller help: opens the window's main menu.
+    public static var padHelpMainMenu: String { string("pad-help-main-menu", fallback: "Main menu") }
+
+    /// Controller help: shows or hides the sidebar.
+    public static var padHelpSidebar: String { string("pad-help-sidebar", fallback: "Show or hide the sidebar") }
+
+    /// Controller help: goes to the section before the current one.
+    public static var padHelpPreviousSection: String { string("pad-help-previous-section", fallback: "Previous section") }
+
+    /// Controller help: goes to the section after the current one.
+    public static var padHelpNextSection: String { string("pad-help-next-section", fallback: "Next section") }
+
+    /// Controller help: scrolls the focused list up by a page.
+    public static var padHelpPageUp: String { string("pad-help-page-up", fallback: "Page up") }
+
+    /// Controller help: scrolls the focused list down by a page.
+    public static var padHelpPageDown: String { string("pad-help-page-down", fallback: "Page down") }
+
+    /// Controller help: seeks back in the player.
+    public static func padHelpSeekBack(seconds: Int) -> String {
+        Self.format("pad-help-seek-back", fallback: "Back %1$lld seconds", seconds)
+    }
+
+    /// Controller help: seeks forward in the player.
+    public static func padHelpSeekForward(seconds: Int) -> String {
+        Self.format("pad-help-seek-forward", fallback: "Forward %1$lld seconds", seconds)
+    }
+
+    /// Controller help: skips the opening or ending while its offer shows.
+    public static var padHelpSkip: String { string("pad-help-skip", fallback: "Skip") }
+
+    /// Controller help: starts the next episode now, while the Up Next card shows.
+    public static var padHelpPlayNow: String { string("pad-help-play-now", fallback: "Play now") }
+
+    /// Controller help: cancels the Up Next card.
+    public static var padHelpCancel: String { string("pad-help-cancel", fallback: "Cancel") }
+
+    /// Controller help: switches to another source while the buffering card shows.
+    public static var padHelpSwitchSource: String { string("pad-help-switch-source", fallback: "Switch source") }
+
+    /// Controller help: keeps waiting while the buffering card shows.
+    public static var padHelpKeepWaiting: String { string("pad-help-keep-waiting", fallback: "Keep waiting") }
+
+    /// Controller help: opens the subtitles and audio menu.
+    public static var padHelpTracks: String { string("pad-help-tracks", fallback: "Subtitles and audio") }
+
+    /// Controller help: opens the episode list in the player.
+    public static var padHelpEpisodes: String { string("pad-help-episodes", fallback: "Episodes") }
+
+    /// Controller help: opens the player's More menu.
+    public static var padHelpMore: String { string("pad-help-more", fallback: "More") }
+
+    /// Controller help: shows the player's stats for nerds.
+    public static var padHelpStats: String { string("pad-help-stats", fallback: "Stats for nerds") }
+
+    /// Controller help: shows the player's controls with focus on the timeline.
+    public static var padHelpShowSeekLine: String { string("pad-help-show-seek-line", fallback: "Show the timeline") }
+
+    /// Controller help: shows the player's controls with focus on the episodes.
+    public static var padHelpShowEpisodes: String { string("pad-help-show-episodes", fallback: "Show the episodes") }
+
+    /// Controller help: pauses or plays the video.
+    public static var padHelpPlayPause: String { string("pad-help-play-pause", fallback: "Play or pause") }
+
+    /// Controller help: the right trigger plays at double speed while held.
+    public static var padHelpHoldSpeed: String { string("pad-help-hold-speed", fallback: "Hold for double speed") }
+
+    /// Controller help: the right stick scrolls the page without moving focus.
+    public static var padHelpScroll: String { string("pad-help-scroll", fallback: "Scroll the page") }
+
+    /// Heading in the controller help for the buttons while the player's controls are showing.
+    public static var padHelpControlsShown: String { string("pad-help-controls-shown", fallback: "Player with the controls showing") }
+
+    /// Name of the D-pad as one control, in the controller help.
+    public static var padButtonDpad: String { string("pad-button-dpad", fallback: "D-pad") }
+
+    /// Name of the D-pad's up direction, in the controller help.
+    public static var padButtonDpadUp: String { string("pad-button-dpad-up", fallback: "D-pad up") }
+
+    /// Name of the D-pad's down direction, in the controller help.
+    public static var padButtonDpadDown: String { string("pad-button-dpad-down", fallback: "D-pad down") }
+
+    /// Name of the D-pad's left direction, in the controller help.
+    public static var padButtonDpadLeft: String { string("pad-button-dpad-left", fallback: "D-pad left") }
+
+    /// Name of the D-pad's right direction, in the controller help.
+    public static var padButtonDpadRight: String { string("pad-button-dpad-right", fallback: "D-pad right") }
+
+    /// Name of the controller's menu button (three lines), in the controller help.
+    public static var padButtonMenu: String { string("pad-button-menu", fallback: "Menu") }
+
+    /// Name of the controller's view button (two squares), in the controller help.
+    public static var padButtonView: String { string("pad-button-view", fallback: "View") }
+
+    /// Name of the controller's left stick, in the controller help.
+    public static var padButtonLeftStick: String { string("pad-button-left-stick", fallback: "Left stick") }
+
+    /// Name of the controller's right stick, in the controller help.
+    public static var padButtonRightStick: String { string("pad-button-right-stick", fallback: "Right stick") }
+
     /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
     public static var downloadsTitle: String { string("downloads-title", fallback: "Downloads") }
 

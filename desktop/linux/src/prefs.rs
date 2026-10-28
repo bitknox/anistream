@@ -130,6 +130,19 @@ impl Prefs {
         self.save();
     }
 
+    /// Whether a game controller has ever been connected, so Settings offers to swap its A and
+    /// B buttons.
+    pub fn controller_seen(&self) -> bool {
+        self.keys.borrow().boolean("controller", "seen").unwrap_or(false)
+    }
+
+    pub fn set_controller_seen(&self) {
+        if !self.controller_seen() {
+            self.keys.borrow().set_boolean("controller", "seen", true);
+            self.save();
+        }
+    }
+
     /// The searches made last, newest first.
     pub fn recent_searches(&self) -> Vec<String> {
         // One per line: a search is one line of the search entry.

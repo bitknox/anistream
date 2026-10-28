@@ -207,7 +207,9 @@ impl App {
             | S::MpvOptions
             | S::AdultTitles
             | S::EpisodeDiscussions
-            | S::CommentImages => return None,
+            | S::CommentImages
+            | S::ControllerInput
+            | S::SwapFaceButtons => return None,
         })
     }
 
@@ -313,6 +315,8 @@ fn label_text(key: SettingKey) -> String {
         S::AdultTitles => t::settings_label_adult_titles(),
         S::EpisodeDiscussions => t::settings_label_episode_discussions(),
         S::CommentImages => t::settings_label_comment_images(),
+        S::ControllerInput => t::settings_label_controller_input(),
+        S::SwapFaceButtons => t::settings_label_swap_face_buttons(),
     }
 }
 

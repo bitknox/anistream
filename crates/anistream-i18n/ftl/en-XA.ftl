@@ -946,6 +946,33 @@ nagare-description = [Ñàĝàŕé, ţĥé àñîšţŕéàɱ ɱàšçöţ: à �
 # Line under the seeding group in Settings: seeding stops when the app closes.
 settings-seeding-open-only = [Šééðîñĝ ŕüñš öñļý ŵĥîļé àñîšţŕéàɱ îš öþéñ.~~~~~~~~~~~~~]
 
+# Settings row: whether a connected game controller drives the app.
+settings-label-controller-input = [Ûšé à çöñţŕöļļéŕ~~~~~]
+
+# Settings row: swaps the A and B buttons, for a controller laid out as Nintendo's are.
+settings-label-swap-face-buttons = [Šŵàþ Å àñð Ɓ~~~~]
+
+# Heading of the Settings group for game controllers.
+settings-group-controller = [Çöñţŕöļļéŕ~~~]
+
+# Settings row that names the controller in use.
+settings-controller-device = [Çöñţŕöļļéŕ~~~]
+
+# Value of the controller row when no controller is connected.
+settings-controller-none = [Ñö çöñţŕöļļéŕ ƒöüñð. Šţéàɱ Îñþüţ'š ķéýƀöàŕð ļàýöüţš šţîļļ ŵöŕķ.~~~~~~~~~~~~~~~~~~~]
+
+# Notice when a controller connects for the first time in a session.
+controller-connected = [Çöñţŕöļļéŕ çöññéçţéð · { $name }~~~~~~~~]
+
+# Notice when the controller in use disconnects.
+controller-disconnected = [Çöñţŕöļļéŕ ðîšçöññéçţéð~~~~~~~]
+
+# Title of the window that lists what the controller's buttons do.
+controller-help-title = [Çöñţŕöļļéŕ~~~]
+
+# Accessible name of the list of controller buttons in the help window.
+controller-help-buttons = [Çöñţŕöļļéŕ ƀüţţöñš~~~~~~]
+
 # Button on a notice that asks to open the plugin stores.
 shell-open-stores = [Öþéñ þļüĝîñ šţöŕéš~~~~~~]
 
@@ -4139,6 +4166,131 @@ state-working = [Ŵöŕķîñĝ~~~]
 
 # Short placeholder while something loads.
 state-loading = [Ļöàðîñĝ~~~]
+
+# Controller help: the D-pad and left stick move focus between items.
+pad-help-move = [Ṁöṽé ƒöçüš~~~]
+
+# Controller help: the A button on a list, a button or a switch.
+pad-help-select = [Šéļéçţ~~]
+
+# Controller help: the B button while browsing.
+pad-help-back = [Ɓàçķ~~]
+
+# Controller help: the B button while the player's controls are showing.
+pad-help-hide-controls = [Ĥîðé ţĥé çöñţŕöļš~~~~~~]
+
+# Controller help: the B button while the player's controls are hidden.
+pad-help-close-player = [Çļöšé ţĥé þļàýéŕ~~~~~]
+
+# Controller help: opens the menu of the focused item.
+pad-help-item-menu = [Îţéɱ ɱéñü~~~]
+
+# Controller help: goes to Search.
+pad-help-search = [Šéàŕçĥ~~]
+
+# Controller help: opens the window's main menu.
+pad-help-main-menu = [Ṁàîñ ɱéñü~~~]
+
+# Controller help: shows or hides the sidebar.
+pad-help-sidebar = [Šĥöŵ öŕ ĥîðé ţĥé šîðéƀàŕ~~~~~~~~]
+
+# Controller help: goes to the section before the current one.
+pad-help-previous-section = [Þŕéṽîöüš šéçţîöñ~~~~~]
+
+# Controller help: goes to the section after the current one.
+pad-help-next-section = [Ñéẋţ šéçţîöñ~~~~]
+
+# Controller help: scrolls the focused list up by a page.
+pad-help-page-up = [Þàĝé üþ~~~]
+
+# Controller help: scrolls the focused list down by a page.
+pad-help-page-down = [Þàĝé ðöŵñ~~~]
+
+# Controller help: seeks back in the player.
+pad-help-seek-back =
+    { $seconds ->
+        [one] [Ɓàçķ öñé šéçöñð~~~~~]
+       *[other] [Ɓàçķ { $seconds } šéçöñðš~~~~~]
+    }
+
+# Controller help: seeks forward in the player.
+pad-help-seek-forward =
+    { $seconds ->
+        [one] [Ƒöŕŵàŕð öñé šéçöñð~~~~~~]
+       *[other] [Ƒöŕŵàŕð { $seconds } šéçöñðš~~~~~~]
+    }
+
+# Controller help: skips the opening or ending while its offer shows.
+pad-help-skip = [Šķîþ~~]
+
+# Controller help: starts the next episode now, while the Up Next card shows.
+pad-help-play-now = [Þļàý ñöŵ~~~]
+
+# Controller help: cancels the Up Next card.
+pad-help-cancel = [Çàñçéļ~~]
+
+# Controller help: switches to another source while the buffering card shows.
+pad-help-switch-source = [Šŵîţçĥ šöüŕçé~~~~]
+
+# Controller help: keeps waiting while the buffering card shows.
+pad-help-keep-waiting = [Ķééþ ŵàîţîñĝ~~~~]
+
+# Controller help: opens the subtitles and audio menu.
+pad-help-tracks = [Šüƀţîţļéš àñð àüðîö~~~~~~]
+
+# Controller help: opens the episode list in the player.
+pad-help-episodes = [Éþîšöðéš~~~]
+
+# Controller help: opens the player's More menu.
+pad-help-more = [Ṁöŕé~~]
+
+# Controller help: shows the player's stats for nerds.
+pad-help-stats = [Šţàţš ƒöŕ ñéŕðš~~~~~]
+
+# Controller help: shows the player's controls with focus on the timeline.
+pad-help-show-seek-line = [Šĥöŵ ţĥé ţîɱéļîñé~~~~~~]
+
+# Controller help: shows the player's controls with focus on the episodes.
+pad-help-show-episodes = [Šĥöŵ ţĥé éþîšöðéš~~~~~~]
+
+# Controller help: pauses or plays the video.
+pad-help-play-pause = [Þļàý öŕ þàüšé~~~~]
+
+# Controller help: the right trigger plays at double speed while held.
+pad-help-hold-speed = [Ĥöļð ƒöŕ ðöüƀļé šþééð~~~~~~~]
+
+# Controller help: the right stick scrolls the page without moving focus.
+pad-help-scroll = [Šçŕöļļ ţĥé þàĝé~~~~~]
+
+# Heading in the controller help for the buttons while the player's controls are showing.
+pad-help-controls-shown = [Þļàýéŕ ŵîţĥ ţĥé çöñţŕöļš šĥöŵîñĝ~~~~~~~~~~]
+
+# Name of the D-pad as one control, in the controller help.
+pad-button-dpad = [Ð-þàð~~]
+
+# Name of the D-pad's up direction, in the controller help.
+pad-button-dpad-up = [Ð-þàð üþ~~~]
+
+# Name of the D-pad's down direction, in the controller help.
+pad-button-dpad-down = [Ð-þàð ðöŵñ~~~]
+
+# Name of the D-pad's left direction, in the controller help.
+pad-button-dpad-left = [Ð-þàð ļéƒţ~~~]
+
+# Name of the D-pad's right direction, in the controller help.
+pad-button-dpad-right = [Ð-þàð ŕîĝĥţ~~~~]
+
+# Name of the controller's menu button (three lines), in the controller help.
+pad-button-menu = [Ṁéñü~~]
+
+# Name of the controller's view button (two squares), in the controller help.
+pad-button-view = [Ṽîéŵ~~]
+
+# Name of the controller's left stick, in the controller help.
+pad-button-left-stick = [Ļéƒţ šţîçķ~~~]
+
+# Name of the controller's right stick, in the controller help.
+pad-button-right-stick = [Ŕîĝĥţ šţîçķ~~~~]
 
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = [Ðöŵñļöàðš~~~]

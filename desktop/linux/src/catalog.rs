@@ -79,6 +79,8 @@ pub fn label(key: SettingKey) -> String {
         K::AdultTitles => t::settings_label_adult_titles(),
         K::EpisodeNotifications => t::settings_label_episode_notifications(),
         K::MpvOptions => t::settings_label_mpv_options(),
+        K::ControllerInput => t::settings_label_controller_input(),
+        K::SwapFaceButtons => t::settings_label_swap_face_buttons(),
     }
 }
 
@@ -140,6 +142,8 @@ pub fn is_switch(key: SettingKey) -> bool {
             | K::DownloadsOnCellular
             | K::TorrentsOnCellular
             | K::EpisodeNotifications
+            | K::ControllerInput
+            | K::SwapFaceButtons
     )
 }
 
