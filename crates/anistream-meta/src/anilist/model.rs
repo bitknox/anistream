@@ -483,6 +483,10 @@ pub struct Media {
     /// fetch and empty on list fetches.
     #[serde(default)]
     pub relations: RelationConnection,
+    /// Every relation by kind and id alone, on list fetches and the detail fetch alike, which
+    /// [`Self::prequel_ids`] reads. AniList's relations take no filter, so the kinds are kept.
+    #[serde(default)]
+    pub prequels: RelationConnection,
     /// What people who liked this rated highest. Same availability as `relations`.
     #[serde(default)]
     pub recommendations: RecommendationConnection,
@@ -629,6 +633,16 @@ impl Media {
         };
         related.sort_by_key(rank);
         related
+    }
+
+    /// The ids of this title's prequels, from the list fields' `prequels`.
+    pub fn prequel_ids(&self) -> Vec<AnilistId> {
+        self.prequels
+            .edges
+            .iter()
+            .filter(|edge| edge.relation_type.as_deref() == Some("PREQUEL"))
+            .map(|edge| edge.node.id)
+            .collect()
     }
 
     /// Titles recommended off this one, best-rated first — AniList's order, kept.

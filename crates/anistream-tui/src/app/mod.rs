@@ -500,6 +500,8 @@ impl App {
             // A native app's network monitor, which the terminal has none of: it never says the
             // path, so the engine never says it changed.
             Event::Connectivity { .. } => {}
+            // Trailers play in the native apps' web views, and the terminal has none.
+            Event::Autoplay(_) => {}
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),

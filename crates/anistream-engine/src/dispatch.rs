@@ -333,6 +333,24 @@ pub(crate) fn dispatch(
             crate::phases::network_path(network, engine, tx);
             ahead::top_up(engine, services, tx);
         }
+        Command::DeviceState {
+            reduce_motion,
+            autoplay_previews,
+            low_power,
+            thermal_serious,
+            screen_reader,
+            low_memory,
+        } => {
+            let device = anistream_model::trailer::Device {
+                reduce_motion,
+                autoplay_previews,
+                low_power,
+                thermal_serious,
+                screen_reader,
+                low_memory,
+            };
+            crate::autoplay::device_state(device, engine, tx);
+        }
         // Taken in as it is sent by `Engine::send`; one routed here all the same lands.
         Command::PlayerReport { playback, report } => services.hosted.report(playback, report),
 

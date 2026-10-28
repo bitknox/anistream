@@ -2916,6 +2916,12 @@ settings-value-titles-english = [Éñĝļîšĥ~~~]
 # Value of the titles setting: titles in Latin letters as written in Japanese.
 settings-value-titles-romaji = [Ŕöɱàĵî~~]
 
+# Value of the trailers setting: trailers play by themselves on any network.
+settings-value-trailers-always = [Åļŵàýš~~]
+
+# Value of the trailers setting: trailers play by themselves only on Wi-Fi.
+settings-value-trailers-wifi-only = [Ŵî-Ƒî öñļý~~~]
+
 # Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 settings-value-upscaling-natural = [Ñàţüŕàļ · ÅŕţÇÑÑ~~~~~]
 
@@ -2978,6 +2984,9 @@ settings-label-motion = [Ṁöţîöñ~~]
 
 # Settings row: which language titles are shown in.
 settings-label-titles = [Ţîţļéš~~]
+
+# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+settings-label-trailers = [Þļàý ţŕàîļéŕš~~~~]
 
 # Settings row: subbed or dubbed audio.
 settings-label-translation = [Åüðîö~~]
@@ -3107,6 +3116,9 @@ settings-label-adult-titles = [Åðüļţ ţîţļéš~~~~]
 
 # Note under the titles row.
 settings-note-titles = [ÅñîĻîšţ'š çĥöîçé ƒöļļöŵš ýöüŕ ÅñîĻîšţ àççöüñţ, àñð îš Éñĝļîšĥ ŵĥéñ ýöü'ŕé šîĝñéð öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the trailers row. The terminal never plays trailers by itself; the setting is shared with the apps.
+settings-note-trailers = [Ţĥé àþþš þļàý ţŕàîļéŕš ɱüţéð îñ þļàçé öƒ ţĥé ƀàññéŕ. Ţĥé ţéŕɱîñàļ ķééþš ţĥé šéţţîñĝ àñð þļàýš ñöñé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Note under the subtitles row.
 settings-note-subtitles = [Þŕéšš Éñţéŕ ţö ţýþé à ļàñĝüàĝé çöðé. Ţĥéŕé àŕé ţöö ɱàñý ṽàļüéš ţö çýçļé ţĥŕöüĝĥ.~~~~~~~~~~~~~~~~~~~~~~~~]
