@@ -4143,6 +4143,102 @@ state-working = [Ŵöŕķîñĝ~~~]
 # Short placeholder while something loads.
 state-loading = [Ļöàðîñĝ~~~]
 
+# Menu item that opens an episode's discussion.
+discussion-open = [Ðîšçüššîöñ~~~]
+
+# Title of the discussion window or sheet when the thread has no title yet.
+discussion-title-episode = [Éþîšöðé { $episode } ðîšçüššîöñ~~~~~~~]
+
+# Quiet line under an episode that opens its discussion.
+discussion-row =
+    { $count ->
+        [one] [Ðîšçüššîöñ · öñé çöɱɱéñţ~~~~~~~~]
+       *[other] [Ðîšçüššîöñ · { $count } çöɱɱéñţš~~~~~~~~]
+    }
+
+# Count of comments in the header of the discussion.
+discussion-count =
+    { $count ->
+        [one] [Öñé çöɱɱéñţ~~~~]
+       *[other] [{ $count } çöɱɱéñţš~~~~]
+    }
+
+# Button that likes a comment, with its count after it. Also its accessible name.
+discussion-like = [Ļîķé~~]
+
+# Button that replies to a comment.
+discussion-reply = [Ŕéþļý~~]
+
+# Line under a reply that has more replies folded in it. The line opens them.
+discussion-more-replies =
+    { $count ->
+        [one] [Öñé ɱöŕé ŕéþļý~~~~~]
+       *[other] [{ $count } ɱöŕé ŕéþļîéš~~~~~]
+    }
+
+# Muted bar in place of a spoiler in a comment, until it is opened.
+discussion-spoiler = [Šþöîļéŕ~~~]
+
+# Line in place of an image in a comment. It opens the image in the browser.
+discussion-image = [Îɱàĝé~~]
+
+# Line in place of a video in a comment. It opens the video in the browser.
+discussion-video = [Ṽîðéö~~]
+
+# Placeholder in the field for a new comment.
+discussion-add-comment = [Åðð à çöɱɱéñţ~~~~]
+
+# Placeholder in the field while editing a comment.
+discussion-edit-comment = [Éðîţ ýöüŕ çöɱɱéñţ~~~~~~]
+
+# Button that sends the comment in the field.
+discussion-post = [Þöšţ~~]
+
+# Line above the field while answering a comment.
+discussion-replying-to = [Ŕéþļýîñĝ ţö { $name }~~~~~]
+
+# Accessible name of the button that stops replying or editing.
+discussion-cancel-reply = [Çàñçéļ ŕéþļý~~~~]
+
+# Line in place of the field when nobody is signed in to AniList. It opens the sign-in.
+discussion-sign-in = [Šîĝñ îñ ŵîţĥ ÅñîĻîšţ ţö ŕéþļý~~~~~~~~~]
+
+# Line in place of the field when the viewer is signed in but offline.
+discussion-offline-post = [Þöšţîñĝ ŵàîţš ƒöŕ ţĥé ñéţŵöŕķ~~~~~~~~~]
+
+# Line under a comment AniList did not accept. The button beside it sends it again.
+discussion-post-failed = [Ðîðñ'ţ þöšţ. Ţŕý àĝàîñ~~~~~~~]
+
+# Title of the question asked before deleting the viewer's own comment.
+discussion-delete-title = [Ðéļéţé ţĥîš çöɱɱéñţ?~~~~~~]
+
+# Body of the question asked before deleting the viewer's own comment.
+discussion-delete-body = [Îţ îš ŕéɱöṽéð ƒŕöɱ ÅñîĻîšţ ţöö.~~~~~~~~~~]
+
+# Line while the comments are still loading after a few seconds.
+discussion-still-loading = [Šţîļļ ļöàðîñĝ ƒŕöɱ ÅñîĻîšţ~~~~~~~~]
+
+# Line while AniList's request budget is spent. The engine waits, then goes on by itself.
+discussion-rate-limited = [ÅñîĻîšţ àšķéð ƒöŕ à þàüšé. Ɓàçķ îñ { $time }.~~~~~~~~~~~~]
+
+# Title of the state when the episode has no thread on AniList.
+discussion-no-thread = [Ñö ðîšçüššîöñ ýéţ~~~~~~]
+
+# Line under the no-thread title.
+discussion-no-thread-detail = [Ñöƀöðý ĥàš öþéñéð à ţĥŕéàð ƒöŕ ţĥîš éþîšöðé öñ ÅñîĻîšţ.~~~~~~~~~~~~~~~~~]
+
+# Title of the state when a thread has no comments.
+discussion-no-comments = [Ñö çöɱɱéñţš ýéţ~~~~~]
+
+# Title of the state when the discussion could not be read.
+discussion-failed = [Çöüļðñ'ţ ļöàð ţĥé ðîšçüššîöñ~~~~~~~~~]
+
+# Line over comments that are kept from an earlier visit while offline. The age reads "2h ago".
+discussion-offline-cached = [Öƒƒļîñé. Šĥöŵîñĝ çöɱɱéñţš ƒŕöɱ { $age }.~~~~~~~~~~~]
+
+# Heading of the Settings group for discussion rows.
+discussion-settings-group = [Ðîšçüššîöñš~~~~]
+
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = [Ðöŵñļöàðš~~~]
 

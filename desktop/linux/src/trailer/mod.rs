@@ -17,7 +17,10 @@ mod window;
 use anistream_model::{catalog::Entry, settings::SettingKey, trailer::trailer_may_autoplay};
 
 pub use banner::PageTrailer;
-pub use preview::{attach as hover_preview, close as close_preview, shot_popover as shot_preview, show as show_preview};
+pub use preview::{
+    attach as hover_preview, close as close_preview, shot_popover as shot_preview,
+    show as show_preview,
+};
 pub use stage::Stage;
 pub use window::play as play_window;
 
@@ -28,6 +31,7 @@ use crate::{catalog, hub::Hub};
 pub fn may_autoplay(hub: &Hub, entry: &Entry) -> bool {
     let known = hub.known.borrow();
     let allowed = known.autoplay.as_ref().is_some_and(|view| view.trailers);
-    let spoilers = known.setting(SettingKey::SpoilerProtection).is_some_and(|row| catalog::is_on(&row));
+    let spoilers =
+        known.setting(SettingKey::SpoilerProtection).is_some_and(|row| catalog::is_on(&row));
     allowed && trailer_may_autoplay(entry, spoilers) && webkit::available()
 }

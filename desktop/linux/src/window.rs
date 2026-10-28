@@ -551,6 +551,17 @@ impl Shell {
             }),
         );
         add(
+            "open-discussion",
+            Some(glib::VariantTy::new("(us)").expect("a type")),
+            Box::new(move |s, a| {
+                if let Some((id, episode)) = play_of(a)
+                    && let Ok(episode) = episode.parse()
+                {
+                    pages::discussion::open(&s.ctx, id, episode);
+                }
+            }),
+        );
+        add(
             "open-anilist",
             Some(glib::VariantTy::UINT32),
             Box::new(move |s, a| {
@@ -884,8 +895,7 @@ impl Shell {
             let Some(hub) = hub.upgrade() else { return };
             let reduce_motion = gtk::Settings::default()
                 .is_some_and(|settings| !settings.is_gtk_enable_animations());
-            let low_power =
-                gio::PowerProfileMonitor::get_default().is_power_saver_enabled();
+            let low_power = gio::PowerProfileMonitor::get_default().is_power_saver_enabled();
             hub.send(Command::DeviceState {
                 reduce_motion,
                 autoplay_previews: true,

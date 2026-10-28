@@ -51,11 +51,7 @@ pub fn shot_popover(window: &gtk::Window) -> Option<(gtk::Widget, f32, f32)> {
         let preview = open.as_ref()?;
         let target = preview.popover.parent()?;
         let bounds = target.compute_bounds(window)?;
-        Some((
-            preview.popover.clone().upcast(),
-            bounds.x() + bounds.width() + 6.0,
-            bounds.y(),
-        ))
+        Some((preview.popover.clone().upcast(), bounds.x() + bounds.width() + 6.0, bounds.y()))
     })
 }
 
@@ -271,11 +267,7 @@ fn open(hub: &Rc<Hub>, target: &gtk::Widget, id: u32) {
             close();
         }
     });
-    for controller in [
-        keys.upcast::<gtk::EventController>(),
-        scroll.upcast(),
-        click.upcast(),
-    ] {
+    for controller in [keys.upcast::<gtk::EventController>(), scroll.upcast(), click.upcast()] {
         window.add_controller(controller.clone());
         preview.guards.borrow_mut().push(controller);
     }

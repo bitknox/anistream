@@ -7,7 +7,7 @@
 use std::{path::PathBuf, rc::Rc, time::Duration};
 
 use adw::prelude::*;
-use anistream_model::{command::Command, sync::DeviceCodePrompt};
+use anistream_model::{command::Command, event::Event, sync::DeviceCodePrompt};
 use gtk::glib;
 
 use crate::{hub::SignIn, pages::Dest, window::Shell};
@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 62] = [
+pub const ALL: [&str; 68] = [
     "home",
     "welcome",
     "offline",
@@ -34,6 +34,11 @@ pub const ALL: [&str; 62] = [
     "title",
     "trailer-preview",
     "trailer-window",
+    "discussion",
+    "discussion-none",
+    "discussion-waiting",
+    "discussion-signed-out",
+    "title-discussion",
     "show-settings",
     "library",
     "library-focus",
@@ -60,6 +65,7 @@ pub const ALL: [&str; 62] = [
     "join-link",
     "settings",
     "settings-general",
+    "settings-integrations",
     "settings-upscaling",
     "settings-accounts",
     "accounts-kitsu",
@@ -329,9 +335,42 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         "trailer-window" => {
             shell.go(Dest::Continue);
-            if let Some(entry) = shell.ctx.hub.entry(anistream_core::ids::AnilistId::new(TITLE)) {
+            if let Some(entry) = shell.ctx.hub.entry(anistream_core::ids::AnilistId::new(TITLE))
+            {
                 crate::trailer::play_window(&shell.ctx, &entry);
             }
+            4.0
+        }
+        #[cfg(feature = "fixtures")]
+        "discussion" | "discussion-none" | "discussion-waiting" | "discussion-signed-out" => {
+            use crate::showcase::Thread;
+            shell.go(Dest::Continue);
+            crate::showcase::set_thread(match shot {
+                "discussion" => Thread::Comments,
+                "discussion-none" => Thread::Nobody,
+                "discussion-waiting" => Thread::Waiting,
+                _ => Thread::Signed,
+            });
+            crate::pages::discussion::open(
+                &shell.ctx,
+                anistream_core::ids::AnilistId::new(TITLE),
+                3,
+            );
+            3.0
+        }
+        "title-discussion" => {
+            // The episode that has a thread says so under its row.
+            shell.go(Dest::Continue);
+            let _ =
+                WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
+            let hub = Rc::clone(&shell.ctx.hub);
+            glib::timeout_add_local_once(Duration::from_millis(2500), move || {
+                hub.take(vec![Event::DiscussionFound {
+                    media: anistream_core::ids::AnilistId::new(TITLE),
+                    episode: 1,
+                    comments: 214,
+                }]);
+            });
             4.0
         }
         "show-settings" => {
@@ -406,6 +445,10 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         "settings-general" => {
             shell.settings_pane("general");
+            1.5
+        }
+        "settings-integrations" => {
+            shell.settings_pane("integrations");
             1.5
         }
         "settings-upscaling" => {
@@ -626,11 +669,15 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
 /// Leave the state a shot put the window in.
 fn unstage(shell: &Rc<Shell>, shot: &str) {
     match shot {
-        "title" => {
+        "title" | "title-discussion" => {
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
         }
         "trailer-preview" => crate::trailer::close_preview(),
-        "trailer-window" => close_dialogs(&shell.ctx.window),
+        "trailer-window"
+        | "discussion"
+        | "discussion-none"
+        | "discussion-waiting"
+        | "discussion-signed-out" => close_dialogs(&shell.ctx.window),
         "about" | "join" | "join-link" | "welcome" | "accounts-kitsu" | "torrents-setup" => {
             close_dialogs(&shell.ctx.window)
         }

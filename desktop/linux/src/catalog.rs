@@ -142,6 +142,8 @@ pub fn is_switch(key: SettingKey) -> bool {
             | K::DownloadsOnCellular
             | K::TorrentsOnCellular
             | K::EpisodeNotifications
+            | K::EpisodeDiscussions
+            | K::CommentImages
     )
 }
 

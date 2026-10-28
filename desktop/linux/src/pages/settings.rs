@@ -49,6 +49,7 @@ enum Group {
     Seeding,
     WatchParty,
     Discord,
+    Discussions,
     Updates,
     Mpv,
 }
@@ -67,6 +68,7 @@ impl Group {
             Self::Seeding => t::downloads_seeding_title(),
             Self::WatchParty => t::party_title(),
             Self::Discord => t::settings_discord(),
+            Self::Discussions => t::discussion_settings_group(),
             Self::Updates => t::updates_title(),
             // The player's own name.
             Self::Mpv => "mpv".to_owned(), // i18n-skip
@@ -141,6 +143,7 @@ const PANES: [Pane; 9] = [
         groups: &[
             (Group::WatchParty, &[K::Syncplay, K::SyncplayServer, K::SyncplayRoom]),
             (Group::Discord, &[K::Presence, K::PresenceTitle]),
+            (Group::Discussions, &[K::EpisodeDiscussions, K::CommentImages]),
             (Group::Updates, &[K::UpdateCheck]),
         ],
     },
@@ -163,6 +166,7 @@ fn follows(switch: SettingKey) -> Option<&'static [SettingKey]> {
     match switch {
         K::Syncplay => Some(&[K::SyncplayServer, K::SyncplayRoom]),
         K::Presence => Some(&[K::PresenceTitle]),
+        K::EpisodeDiscussions => Some(&[K::CommentImages]),
         _ => None,
     }
 }

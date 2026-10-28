@@ -117,6 +117,8 @@ pub struct PlayerView {
     translation_action: gio::SimpleAction,
     /// The title playing, and whether it has a dub, once the engine has said.
     title_id: Cell<Option<AnilistId>>,
+    /// Whether the episode is far enough on (85%) for the More menu to offer its discussion.
+    late: Cell<bool>,
     has_dub: Cell<Option<bool>>,
     /// The episode on screen, and its translation, for its line and the Up Next card's.
     episode_line: RefCell<(String, Option<String>, Option<Translation>)>,
@@ -323,6 +325,7 @@ impl PlayerView {
             ),
             translation_action: radio("translation", "sub"),
             title_id: Cell::new(None),
+            late: Cell::new(false),
             has_dub: Cell::new(None),
             episode_line: RefCell::default(),
             speed: Cell::new(1.0),
@@ -675,6 +678,7 @@ impl PlayerView {
                     self.ctx.hub.send(Command::LoadDub(*id));
                 }
                 self.ui.show.set_label(title);
+                self.late.set(false);
                 let translation = self.episode_line.borrow().2;
                 self.episode_line.replace((
                     episode.clone(),
@@ -702,6 +706,9 @@ impl PlayerView {
             }
             PlayerUi::Episode { number, title, show, translation, .. } => {
                 self.ui.show.set_label(show);
+                if self.episode_line.borrow().0 != *number {
+                    self.late.set(false);
+                }
                 self.episode_line.replace((number.clone(), title.clone(), Some(*translation)));
                 self.translation_action.set_state(&translation.as_str().to_variant());
                 let line = self.show_episode_line();
@@ -1019,7 +1026,25 @@ impl PlayerView {
         }
     }
 
+    fn discussions_on(&self) -> bool {
+        self.ctx
+            .hub
+            .known
+            .borrow()
+            .setting(anistream_model::settings::SettingKey::EpisodeDiscussions)
+            .is_some_and(|row| crate::catalog::is_on(&row))
+    }
+
     fn show_state(&self, state: PlayerState) {
+        // From 85% of the episode, the point it counts as watched.
+        if !self.late.get()
+            && let (Some(position), Some(duration)) = (state.position, state.duration)
+            && duration > 0.0
+            && position >= duration * 0.85
+        {
+            self.late.set(true);
+            self.rebuild_menus();
+        }
         if let Some(media) = self.media() {
             media.state(state.paused, state.position, state.duration);
         }
@@ -1417,6 +1442,11 @@ impl PlayerView {
             tv_menu.append(Some(&t::tv_play_on_menu()), Some("player.tv"));
             menu.append_section(None, &tv_menu);
         }
+        if self.late.get() && self.discussions_on() {
+            let talk = gio::Menu::new();
+            talk.append(Some(&t::discussion_open()), Some("player.discussion"));
+            menu.append_section(None, &talk);
+        }
         let stats_menu = gio::Menu::new();
         stats_menu.append(Some(&t::player_stats()), Some("player.stats"));
         menu.append_section(None, &stats_menu);
@@ -1506,6 +1536,24 @@ impl PlayerView {
             "copy-stats",
             None,
             Box::new(|v, _| v.send(PlayerCommand::CopyStats { about: stats::about() })),
+        );
+        // Discussion: playback pauses where it is, and stays paused when the sheet closes.
+        add(
+            "discussion",
+            None,
+            Box::new(|v, _| {
+                let (Some(id), number) = (v.title_id.get(), v.episode_line.borrow().0.clone())
+                else {
+                    return;
+                };
+                if !v.state.borrow().paused {
+                    v.send(PlayerCommand::TogglePause);
+                }
+                let _ = v.widget.activate_action(
+                    "win.open-discussion",
+                    Some(&(id.get(), number).to_variant()),
+                );
+            }),
         );
         add("play-next", None, Box::new(|v, _| v.send(PlayerCommand::PlayNext)));
         add("cancel-next", None, Box::new(|v, _| v.send(PlayerCommand::CancelNext)));

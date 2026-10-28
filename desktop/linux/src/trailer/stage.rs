@@ -273,4 +273,3 @@ say("ready");setTimeout(function(){say("playing")},700);
 pub fn fixture_page() -> String {
     FIXTURE_PAGE.to_owned()
 }
-

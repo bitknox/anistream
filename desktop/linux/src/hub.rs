@@ -44,6 +44,8 @@ pub struct Known {
     /// Every title seen in a list or on its page, by id, as it last stood.
     pub entries: HashMap<u32, Entry>,
     pub settings: Option<SettingsView>,
+    /// Episodes with a discussion on AniList, by title and episode, with the comments in it.
+    pub discussions: HashMap<(u32, u32), u32>,
     pub sync: HashMap<String, SyncState>,
     pub downloads: Vec<DownloadRow>,
     pub seeding: Vec<SeedRow>,
@@ -230,6 +232,9 @@ impl Known {
             }
             Event::Connectivity { offline } => self.offline = *offline,
             Event::Autoplay(view) => self.autoplay = Some(*view),
+            Event::DiscussionFound { media, episode, comments } => {
+                self.discussions.insert((media.get(), *episode), *comments);
+            }
             Event::Update(status) => self.update = Some(status.clone()),
             Event::Vpn(guard) => {
                 self.guard = guard.clone().map(|g| (g, std::time::Instant::now()));
@@ -352,6 +357,21 @@ impl Hub {
             glib::timeout_add_local_once(std::time::Duration::from_millis(300), move || {
                 if let Some(hub) = me.upgrade() {
                     hub.take(events);
+                }
+            });
+            return None;
+        }
+        // A discussion on the fixture engine has no AniList to read: the showcase's stands in.
+        #[cfg(feature = "fixtures")]
+        if crate::fixtures::active()
+            && let Command::OpenDiscussion { media, episode } = &command
+        {
+            let (me, media, episode) = (self.me.clone(), *media, *episode);
+            glib::timeout_add_local_once(std::time::Duration::from_millis(300), move || {
+                if let Some(hub) = me.upgrade() {
+                    hub.take(vec![Event::Discussion(crate::showcase::discussion(
+                        media, episode,
+                    ))]);
                 }
             });
             return None;

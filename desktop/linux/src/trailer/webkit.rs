@@ -29,7 +29,8 @@ struct Api {
     view_type: unsafe extern "C" fn() -> glib::ffi::GType,
     session_ephemeral: unsafe extern "C" fn() -> *mut gobject_ffi::GObject,
     content_manager_new: unsafe extern "C" fn() -> *mut gobject_ffi::GObject,
-    register_handler: unsafe extern "C" fn(*mut gobject_ffi::GObject, *const c_char, *const c_char) -> c_int,
+    register_handler:
+        unsafe extern "C" fn(*mut gobject_ffi::GObject, *const c_char, *const c_char) -> c_int,
     policies_new: unsafe extern "C" fn(*const c_char, ...) -> *mut gobject_ffi::GObject,
     load_html: unsafe extern "C" fn(*mut gobject_ffi::GObject, *const c_char, *const c_char),
     evaluate: unsafe extern "C" fn(
@@ -65,12 +66,16 @@ impl Api {
                 .find_map(|name| Library::new(name).ok())?;
             Some(Self {
                 view_type: *webkit.get(b"webkit_web_view_get_type\0").ok()?,
-                session_ephemeral: *webkit.get(b"webkit_network_session_new_ephemeral\0").ok()?,
+                session_ephemeral: *webkit
+                    .get(b"webkit_network_session_new_ephemeral\0")
+                    .ok()?,
                 content_manager_new: *webkit.get(b"webkit_user_content_manager_new\0").ok()?,
                 register_handler: *webkit
                     .get(b"webkit_user_content_manager_register_script_message_handler\0")
                     .ok()?,
-                policies_new: *webkit.get(b"webkit_website_policies_new_with_policies\0").ok()?,
+                policies_new: *webkit
+                    .get(b"webkit_website_policies_new_with_policies\0")
+                    .ok()?,
                 load_html: *webkit.get(b"webkit_web_view_load_html\0").ok()?,
                 evaluate: *webkit.get(b"webkit_web_view_evaluate_javascript\0").ok()?,
                 get_settings: *webkit.get(b"webkit_web_view_get_settings\0").ok()?,
@@ -162,11 +167,12 @@ impl Web {
                 if sound { AUTOPLAY_ALLOW } else { AUTOPLAY_MUTED },
                 std::ptr::null::<c_char>(),
             ));
-            let view: glib::Object = glib::Object::builder_with_type(from_glib((api.view_type)()))
-                .property("network-session", &session)
-                .property("user-content-manager", &content)
-                .property("website-policies", &policies)
-                .build();
+            let view: glib::Object =
+                glib::Object::builder_with_type(from_glib((api.view_type)()))
+                    .property("network-session", &session)
+                    .property("user-content-manager", &content)
+                    .property("website-policies", &policies)
+                    .build();
             let widget = view.clone().downcast::<gtk::Widget>().ok()?;
 
             let settings = (api.get_settings)(view.as_ptr());

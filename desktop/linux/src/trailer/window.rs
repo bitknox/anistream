@@ -103,10 +103,7 @@ pub fn play(ctx: &Rc<Ctx>, entry: &Entry) -> bool {
     true
 }
 
-fn full_page(
-    trailer: &anistream_model::catalog::Trailer,
-    app: &AppIdentity,
-) -> Option<String> {
+fn full_page(trailer: &anistream_model::catalog::Trailer, app: &AppIdentity) -> Option<String> {
     #[cfg(feature = "fixtures")]
     if crate::fixtures::active() {
         return Some(super::stage::fixture_page());
