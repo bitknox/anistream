@@ -269,6 +269,8 @@ impl Shell {
         let toasts = adw::ToastOverlay::new();
         let stack = gtk::Stack::new();
         stack.set_transition_type(gtk::StackTransitionType::None);
+        // A page shows at its own width: another page's longer words must not set the window's.
+        stack.set_hhomogeneous(false);
         let ctx = Rc::new(Ctx {
             hub: Rc::clone(&hub),
             window: window.clone(),

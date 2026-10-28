@@ -123,7 +123,10 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         .homogeneous(true)
         .build();
     for genre in filters.genres() {
-        let tile = gtk::Button::with_label(&crate::say::genre(&genre));
+        // A longer translation is cut at the end, so two tiles still fit a narrow window.
+        let name = gtk::Label::new(Some(&crate::say::genre(&genre)));
+        name.set_ellipsize(gtk::pango::EllipsizeMode::End);
+        let tile = gtk::Button::builder().child(&name).build();
         tile.add_css_class("genre-tile");
         tile.set_widget_name(&genre);
         genres.append(&tile);

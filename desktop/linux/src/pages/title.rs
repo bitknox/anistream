@@ -468,7 +468,10 @@ impl Page {
         actions.set_margin_top(10);
         match item.button.clone() {
             Some(label) => {
-                let button = gtk::Button::with_label(&label);
+                // A longer translation is cut at the end, never wider than the window.
+                let text = gtk::Label::new(Some(&label));
+                text.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                let button = gtk::Button::builder().child(&text).build();
                 button.add_css_class("pill");
                 button.add_css_class("suggested-action");
                 button.set_action_name(Some("win.play"));
