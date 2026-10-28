@@ -79,6 +79,8 @@ pub fn label(key: SettingKey) -> String {
         K::AdultTitles => t::settings_label_adult_titles(),
         K::EpisodeNotifications => t::settings_label_episode_notifications(),
         K::MpvOptions => t::settings_label_mpv_options(),
+        K::EpisodeDiscussions => t::settings_label_episode_discussions(),
+        K::CommentImages => t::settings_label_comment_images(),
     }
 }
 
