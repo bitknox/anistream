@@ -155,7 +155,7 @@ public sealed partial class MainWindow
             TvWords.DotFor(card.Phase) == TvWords.Dot.Vermilion ? Ui.Vermilion : Colours.Haze);
         var text = TvWords.BarLine(card, tv.Now is not null);
         ((TextBlock)parts[1]).Text = text;
-        var tip = $"Show the remote for {card.TvName}";
+        var tip = T.TvShowRemote(card.TvName);
         ToolTipService.SetToolTip(tvBar, tip);
         AutomationProperties.SetName(tvBar, text);
         AutomationProperties.SetHelpText(tvBar, tip);

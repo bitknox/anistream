@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Anistream.App;
 
 namespace Anistream.Windows;
 
@@ -55,8 +56,8 @@ sealed unsafe partial class Tray : IDisposable
         if (shown && tell)
         {
             var info = Data(NIF_INFO);
-            Copy("anistream is still downloading", info.szInfoTitle, 64);
-            Copy("It's in the notification area.", info.szInfo, 256);
+            Copy(T.TrayStillDownloading, info.szInfoTitle, 64);
+            Copy(T.TrayWhere, info.szInfo, 256);
             info.dwInfoFlags = NIIF_USER | NIIF_LARGE_ICON;
             info.hBalloonIcon = icon;
             Shell_NotifyIconW(NIM_MODIFY, &info);
@@ -83,7 +84,7 @@ sealed unsafe partial class Tray : IDisposable
             uCallbackMessage = CallbackMessage,
             hIcon = icon,
         };
-        Copy("anistream", data.szTip, 128);
+        Copy(T.AppName, data.szTip, 128);
         return data;
     }
 
@@ -113,10 +114,10 @@ sealed unsafe partial class Tray : IDisposable
     void Menu(int x, int y)
     {
         var menu = CreatePopupMenu();
-        Append(menu, MF_STRING, 1, "Open anistream");
-        Append(menu, AnyRunning?.Invoke() == false ? MF_STRING | MF_GRAYED : MF_STRING, 2, "Pause all downloads");
+        Append(menu, MF_STRING, 1, T.TrayOpen);
+        Append(menu, AnyRunning?.Invoke() == false ? MF_STRING | MF_GRAYED : MF_STRING, 2, T.DownloadsPauseAllLabel);
         Append(menu, MF_SEPARATOR, 0, "");
-        Append(menu, MF_STRING, 3, "Quit");
+        Append(menu, MF_STRING, 3, T.TrayQuit);
         // The menu closes when it loses focus only if the window is in front first.
         SetForegroundWindow(hwnd);
         var chosen = TrackPopupMenuEx(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_BOTTOMALIGN, x, y, hwnd, 0);

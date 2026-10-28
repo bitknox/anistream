@@ -37,12 +37,12 @@ public sealed partial class MainWindow
     {
         if (AnistreamFfiMethods.ParsePartyInvite(text) is not { } invite)
         {
-            ShowToast(InfoBarSeverity.Warning, "That party link is missing its server, room or episode");
+            ShowToast(InfoBarSeverity.Warning, T.PartyLinkIncomplete);
             return;
         }
         if (ctx.Known.Party is { } party && party.Server == invite.Server && party.Room == invite.Room)
         {
-            ShowToast(InfoBarSeverity.Informational, "You're already in this party");
+            ShowToast(InfoBarSeverity.Informational, T.PartyAlreadyIn);
             return;
         }
         if (!Player.Showing)
@@ -73,9 +73,9 @@ public sealed partial class MainWindow
                     inParty = true;
                     // The player covers the window's toasts: over the video, it says so itself.
                     if (Player.Showing)
-                        Player.Say("You're in the party. The people button has the invite link.");
+                        Player.Say(T.PartyInNote);
                     else
-                        ShowToast(InfoBarSeverity.Success, "You're in the party. The people button in the player has the invite link.");
+                        ShowToast(InfoBarSeverity.Success, T.PartyInNotePlayer);
                     break;
                 case Event.PartyLeft left:
                     // While the dialog is still joining, it says why itself, and over the video
@@ -83,14 +83,14 @@ public sealed partial class MainWindow
                     if (inParty && PartyDialog.Showing is null && !closing && !Player.Showing)
                     {
                         if (left.Reason is { } why)
-                            ShowToast(InfoBarSeverity.Warning, AnistreamFfiMethods.MsgEnglish(why)); // i18n P2: replace with the catalogue
+                            ShowToast(InfoBarSeverity.Warning, why.Text());
                         else
-                            ShowToast(InfoBarSeverity.Informational, "You left the party. What's playing goes on, just for you.");
+                            ShowToast(InfoBarSeverity.Informational, T.PartyLeftNote);
                     }
                     inParty = false;
                     break;
                 case Event.PartyNoSource none:
-                    ShowPartySource(none.Id, none.Episode, none.Why, AnistreamFfiMethods.MsgEnglish(none.Reason)); // i18n P2: replace with the catalogue
+                    ShowPartySource(none.Id, none.Episode, none.Why, none.Reason.Text());
                     break;
             }
         }
@@ -112,14 +112,14 @@ public sealed partial class MainWindow
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
-            Title = "Leave the party?",
+            Title = T.PartyLeaveTitle,
             Content = new TextBlock
             {
-                Text = $"Closing anistream leaves {party.Room}. Everyone else carries on without you.",
+                Text = T.PartyLeaveDetail(party.Room),
                 TextWrapping = TextWrapping.WrapWholeWords,
             },
-            PrimaryButtonText = "Leave and close",
-            CloseButtonText = "Stay",
+            PrimaryButtonText = T.PartyLeaveAndClose,
+            CloseButtonText = T.PartyStay,
             // Stay is the default, and the one amber button: Enter and Escape both keep the party.
             DefaultButton = ContentDialogButton.Close,
         };

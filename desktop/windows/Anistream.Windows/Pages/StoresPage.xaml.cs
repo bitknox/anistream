@@ -86,17 +86,17 @@ public sealed partial class StoresPage : Page
         {
             case StoreState.Offline:
                 state.Children.Add(Ui.Dot(Colours.Haze, ring: true));
-                state.Children.Add(Ui.Text("Offline", "HazeCaptionStyle", wrap: false));
+                state.Children.Add(Ui.Text(T.StoresStatusOffline, "HazeCaptionStyle", wrap: false));
                 break;
             case StoreState.Revoked:
                 state.Children.Add(Ui.Dot(Ui.Vermilion));
-                state.Children.Add(Ui.Text("Access ended", "HazeCaptionStyle", wrap: false));
+                state.Children.Add(Ui.Text(T.StoresStatusAccessEnded, "HazeCaptionStyle", wrap: false));
                 break;
             default:
                 if (Stores.Updates(store) is > 0 and var updates)
                 {
                     state.Children.Add(Ui.Dot(Colours.Haze));
-                    state.Children.Add(Ui.Text($"{updates} to update", "HazeCaptionStyle", wrap: false));
+                    state.Children.Add(Ui.Text(T.StoresUpdatesCount(updates), "HazeCaptionStyle", wrap: false));
                 }
                 break;
         }
@@ -111,27 +111,28 @@ public sealed partial class StoresPage : Page
             return;
         Detail.Children.Add(Ui.Text(store.Name, "SubtitleTextBlockStyle"));
         Detail.Children.Add(Ui.Haze(Stores.RunBy(store.Owners, store.Host)));
-        Detail.Children.Add(Ui.Text($"{Stores.JoinedAs(store)} · key {store.Fingerprint}", "HazeCaptionStyle"));
+        Detail.Children.Add(Ui.Text(T.StoresKeyLine(store.Fingerprint, Stores.JoinedAs(store)), "HazeCaptionStyle"));
         switch (store.State)
         {
-            case StoreState.Offline offline:
-                Detail.Children.Add(Banner(InfoBarSeverity.Warning, "Not answering", Sentence(offline.V1) + " The plugins you installed keep working."));
+            // The engine's reason is English from the network: the banner says what it means.
+            case StoreState.Offline:
+                Detail.Children.Add(Banner(InfoBarSeverity.Warning, T.StoresStatusNotAnswering, T.StoresOfflineKeepWorking));
                 break;
             case StoreState.Revoked:
-                Detail.Children.Add(Banner(InfoBarSeverity.Error, "Access ended", "This store's owner ended your access. Installed plugins keep working, and none will update."));
+                Detail.Children.Add(Banner(InfoBarSeverity.Error, T.StoresStatusAccessEnded, T.StoresAccessEndedDetail));
                 break;
         }
 
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 4, 0, 0) };
         if (store.Owner)
-            actions.Children.Add(Ui.Label("Open admin", (_, _) => ctx.Send(new Command.OpenAdmin(store.Id))));
-        actions.Children.Add(Ui.Label("Leave store", (_, _) => ConfirmLeave(store)));
+            actions.Children.Add(Ui.Label(T.StoresOpenAdmin, (_, _) => ctx.Send(new Command.OpenAdmin(store.Id))));
+        actions.Children.Add(Ui.Label(T.StoresLeave, (_, _) => ConfirmLeave(store)));
         Detail.Children.Add(actions);
 
-        Detail.Children.Add(Ui.Heading("Plugins"));
+        Detail.Children.Add(Ui.Heading(T.StoresPlugins));
         var plugins = store.Plugins ?? [];
         if (plugins.Length == 0)
-            Detail.Children.Add(Ui.Haze("This store offers no plugins yet."));
+            Detail.Children.Add(Ui.Haze(T.StoresNoPlugins));
         foreach (var plugin in plugins)
             Detail.Children.Add(Plugin(store, plugin));
 
@@ -142,8 +143,6 @@ public sealed partial class StoresPage : Page
     static InfoBar Banner(InfoBarSeverity severity, string title, string text) =>
         new() { IsOpen = true, IsClosable = false, Severity = severity, Title = title, Message = text };
 
-    static string Sentence(string text) => text.Length == 0 ? "" : char.ToUpperInvariant(text[0]) + text[1..] + (text.EndsWith('.') ? "" : ".");
-
     UIElement Plugin(StoreRow store, StorePluginRow plugin)
     {
         var grid = new Grid { ColumnSpacing = 12 };
@@ -151,27 +150,29 @@ public sealed partial class StoresPage : Page
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
         text.Children.Add(Ui.Text(plugin.Name, "BodyStrongTextBlockStyle", wrap: false));
-        var meta = $"Version {Stores.InstalledVersion(plugin)}";
-        if (Stores.Standing(plugin) is { } standing)
-            meta = plugin.Status is StorePluginStatus.Update u ? $"Version {u.From} installed, {plugin.Version} available" : $"{standing} · {meta}";
+        // The update line names both versions already; any other standing goes before the version.
+        var version = T.StoresPluginVersion(Stores.InstalledVersion(plugin));
+        var meta = Stores.Standing(plugin) is not { } standing ? version
+            : plugin.Status is StorePluginStatus.Update ? standing
+            : T.StoresStandingVersion(standing, version);
         text.Children.Add(Ui.Text(meta, "HazeCaptionStyle"));
         text.Children.Add(Ui.Text(Stores.ContactsLine(plugin), "HazeCaptionStyle"));
         if (plugin.Status is StorePluginStatus.Update { NewHosts: { Length: > 0 } added })
-            text.Children.Add(Ui.Text("Newly contacts " + string.Join(", ", added), "HazeCaptionStyle"));
+            text.Children.Add(Ui.Text(T.StoresUpdateContacts(string.Join(", ", added)), "HazeCaptionStyle"));
         grid.Children.Add(text);
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
         switch (plugin.Status)
         {
             case StorePluginStatus.Available:
-                buttons.Children.Add(Ui.Label("Install", (_, _) => ctx.Send(new Command.InstallPlugin(store.Id, plugin.Id))));
+                buttons.Children.Add(Ui.Label(T.ActionInstall, (_, _) => ctx.Send(new Command.InstallPlugin(store.Id, plugin.Id))));
                 break;
             case StorePluginStatus.Update:
-                buttons.Children.Add(Ui.Label("Update", (_, _) => Update(store, plugin)));
-                buttons.Children.Add(Ui.Label("Remove", (_, _) => RemovePlugin(plugin)));
+                buttons.Children.Add(Ui.Label(T.ActionUpdate, (_, _) => Update(store, plugin)));
+                buttons.Children.Add(Ui.Label(T.ActionRemove, (_, _) => RemovePlugin(plugin)));
                 break;
             case StorePluginStatus.Installed or StorePluginStatus.AddedByHand:
-                buttons.Children.Add(Ui.Label("Remove", (_, _) => RemovePlugin(plugin)));
+                buttons.Children.Add(Ui.Label(T.ActionRemove, (_, _) => RemovePlugin(plugin)));
                 break;
             case StorePluginStatus.OtherStore:
                 break;
@@ -183,7 +184,7 @@ public sealed partial class StoresPage : Page
 
     void Owner(StoreRow store)
     {
-        Detail.Children.Add(Ui.Heading("People"));
+        Detail.Children.Add(Ui.Heading(T.StoresPeople));
         var members = ctx.Known.Members.GetValueOrDefault(store.Id);
         if (!ctx.Known.Members.ContainsKey(store.Id))
             ctx.Send(new Command.LoadMembers(store.Id));
@@ -191,10 +192,10 @@ public sealed partial class StoresPage : Page
         var invite = new Grid { ColumnSpacing = 8 };
         invite.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         invite.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var name = new TextBox { PlaceholderText = "Who is it for? (optional)", Text = inviteName ?? "" };
+        var name = new TextBox { PlaceholderText = T.StoresInviteFor, Text = inviteName ?? "" };
         name.TextChanged += (_, _) => inviteName = name.Text;
         invite.Children.Add(name);
-        var make = Ui.Label("Make invite link", (_, _) => ctx.Send(new Command.CreateInvite(store.Id, string.IsNullOrWhiteSpace(inviteName) ? null : inviteName.Trim())));
+        var make = Ui.Label(T.StoresMakeLink, (_, _) => ctx.Send(new Command.CreateInvite(store.Id, string.IsNullOrWhiteSpace(inviteName) ? null : inviteName.Trim())));
         Grid.SetColumn(make, 1);
         invite.Children.Add(make);
         Detail.Children.Add(invite);
@@ -202,12 +203,12 @@ public sealed partial class StoresPage : Page
         if (ctx.Known.Invite is { } link && link.Store == store.Id)
         {
             var box = new TextBox { Text = link.Link, IsReadOnly = true };
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, "Invite link");
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, T.StoresInviteLink);
             var row = new Grid { ColumnSpacing = 8 };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.Children.Add(box);
-            var copy = Ui.Label("Copy", (_, _) =>
+            var copy = Ui.Label(T.ActionCopy, (_, _) =>
             {
                 var data = new global::Windows.ApplicationModel.DataTransfer.DataPackage();
                 data.SetText(link.Link);
@@ -216,7 +217,7 @@ public sealed partial class StoresPage : Page
             Grid.SetColumn(copy, 1);
             row.Children.Add(copy);
             Detail.Children.Add(row);
-            Detail.Children.Add(Ui.Text("Works once, for the person you send it to.", "HazeCaptionStyle"));
+            Detail.Children.Add(Ui.Text(T.StoresInviteOnce, "HazeCaptionStyle"));
         }
 
         foreach (var member in members.Members ?? [])
@@ -224,16 +225,17 @@ public sealed partial class StoresPage : Page
             var line = new Grid { ColumnSpacing = 8, Height = 36 };
             line.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             line.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var label = member.Name + (member.You ? " (you)" : "") + (member.Owner ? " · owner" : "");
+            var label = member.You ? T.PartyMemberYou(member.Name) : member.Name;
+            var devices = T.StoresMemberDevices(member.Devices);
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             text.Children.Add(Ui.Text(label, wrap: false));
-            text.Children.Add(Ui.Text(AnistreamFfiMethods.Plural(member.Devices, "device"), "HazeCaptionStyle", wrap: false));
+            text.Children.Add(Ui.Text(member.Owner ? T.StoresOwnerDevices(devices) : devices, "HazeCaptionStyle", wrap: false));
             line.Children.Add(text);
             if (!member.You && !member.Owner)
             {
-                var remove = Ui.Label("Remove", async (_, _) =>
+                var remove = Ui.Label(T.ActionRemove, async (_, _) =>
                 {
-                    if (await Ui.Confirm(XamlRoot, $"Remove {member.Name}?", "Their devices lose access to this store. Plugins they installed keep working but stop updating.", "Remove"))
+                    if (await Ui.Confirm(XamlRoot, T.StoresRemoveMemberTitle(member.Name), T.StoresRemoveMemberDetail, T.ActionRemove))
                         ctx.Send(new Command.RemoveMember(store.Id, member.Id));
                 });
                 Grid.SetColumn(remove, 1);
@@ -246,19 +248,19 @@ public sealed partial class StoresPage : Page
             var line = new Grid { ColumnSpacing = 8, Height = 36 };
             line.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             line.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            line.Children.Add(Ui.Haze($"Invite for {pending.Name}", wrap: false));
-            var cancel = Ui.Label("Cancel invite", (_, _) => ctx.Send(new Command.CancelInvite(store.Id, pending.Id)));
+            line.Children.Add(Ui.Haze(T.StoresInviteForName(pending.Name), wrap: false));
+            var cancel = Ui.Label(T.StoresCancelInvite, (_, _) => ctx.Send(new Command.CancelInvite(store.Id, pending.Id)));
             Grid.SetColumn(cancel, 1);
             line.Children.Add(cancel);
             Detail.Children.Add(line);
         }
 
-        var open = new ToggleSwitch { IsOn = store.Open, OnContent = "", OffContent = "", Header = "Open link" };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(open, "Open link");
-        var says = Ui.Text(store.Open ? "Anyone with the open link can join." : "Only people you invite can join.", "HazeCaptionStyle");
+        var open = new ToggleSwitch { IsOn = store.Open, OnContent = "", OffContent = "", Header = T.StoresWhoCanJoin };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(open, T.StoresWhoCanJoin);
+        var says = Ui.Text(store.Open ? T.StoresAnyoneWithLink : T.StoresOnlyInvited, "HazeCaptionStyle");
         open.Toggled += (_, _) =>
         {
-            says.Text = open.IsOn ? "Anyone with the open link can join." : "Only people you invite can join.";
+            says.Text = open.IsOn ? T.StoresAnyoneWithLink : T.StoresOnlyInvited;
             if (!quiet)
                 ctx.Send(new Command.SetOpenJoin(store.Id, open.IsOn));
         };
@@ -268,7 +270,7 @@ public sealed partial class StoresPage : Page
 
     async void RemovePlugin(StorePluginRow plugin)
     {
-        if (await Ui.Confirm(XamlRoot, $"Remove {plugin.Name}?", "It stops being tried for episodes. You can install it again from this store.", "Remove"))
+        if (await Ui.Confirm(XamlRoot, T.StoresRemovePluginTitle(plugin.Name), T.StoresRemovePluginDetail, T.ActionRemove))
             ctx.Send(new Command.RemovePlugin(plugin.Id));
     }
 
@@ -276,7 +278,7 @@ public sealed partial class StoresPage : Page
     async void Update(StoreRow store, StorePluginRow plugin)
     {
         if (plugin.Status is StorePluginStatus.Update { NewHosts: { Length: > 0 } added }
-            && !await Ui.Confirm(XamlRoot, $"Update {plugin.Name}?", $"This version would also contact {string.Join(", ", added)}.", "Update"))
+            && !await Ui.Confirm(XamlRoot, T.SourcesUpdateTitle(plugin.Name), T.StoresUpdateContacts(string.Join(", ", added)), T.ActionUpdate))
             return;
         ctx.Send(new Command.InstallPlugin(store.Id, plugin.Id));
     }
@@ -299,10 +301,10 @@ public sealed partial class StoresPage : Page
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = $"Leave {store.Name}?",
-            Content = "Its plugins stay installed but stop updating. You can join again with a new invite.",
-            PrimaryButtonText = "Leave",
-            CloseButtonText = "Cancel",
+            Title = T.StoresLeaveTitle(store.Name),
+            Content = T.StoresLeaveRejoin,
+            PrimaryButtonText = T.ActionLeave,
+            CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Close,
         };
         if (await dialog.ShowAsync() == ContentDialogResult.Primary)

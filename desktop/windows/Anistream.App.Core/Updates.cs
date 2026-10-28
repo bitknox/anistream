@@ -74,7 +74,7 @@ public static class Updates
             using (var response = await http.GetAsync(asset.Url, HttpCompletionOption.ResponseHeadersRead, cancel))
             {
                 if (!response.IsSuccessStatusCode)
-                    return Failed(version, $"The download stopped: the server answered {(int)response.StatusCode}.");
+                    return Failed(version, T.UpdatesWhyServer((int)response.StatusCode));
                 await using var body = await response.Content.ReadAsStreamAsync(cancel);
                 await using var file = File.Create(partial);
                 var buffer = new byte[81920];
@@ -109,15 +109,15 @@ public static class Updates
         }
         catch (HttpRequestException)
         {
-            return Failed(version, "The download stopped: the connection was lost.");
+            return Failed(version, T.UpdatesWhyConnection);
         }
         catch (IOException e)
         {
-            return Failed(version, $"The download couldn't be saved: {e.Message}");
+            return Failed(version, T.UpdatesWhySave(e.Message));
         }
         catch (UnauthorizedAccessException e)
         {
-            return Failed(version, $"The download couldn't be saved: {e.Message}");
+            return Failed(version, T.UpdatesWhySave(e.Message));
         }
     }
 
@@ -126,10 +126,10 @@ public static class Updates
     {
         var size = (ulong)new FileInfo(path).Length;
         if (size != asset.Size)
-            return $"The download is {Size(size)}, not the {Size(asset.Size)} the release lists.";
+            return T.UpdatesWhySize(Wording.Bytes(size), Wording.Bytes(asset.Size));
         await using var file = File.OpenRead(path);
         var hash = Convert.ToHexStringLower(await SHA256.HashDataAsync(file, cancel));
-        return hash == asset.Sha256.ToLowerInvariant() ? null : "The download doesn't match the release's SHA-256.";
+        return hash == asset.Sha256.ToLowerInvariant() ? null : T.UpdatesWhyChecksum;
     }
 
     static UpdateState Failed(string version, string reason) => new(UpdateStep.Failed, version, Reason: reason);
@@ -183,34 +183,27 @@ public static class Updates
         {
             case UpdateStep.Downloading:
                 return state.Expected > 0
-                    ? $"Downloading version {state.Version} · {Size(state.Received)} of {Size(state.Expected)}"
-                    : $"Downloading version {state.Version}";
+                    ? T.UpdatesDownloadingSize(state.Version ?? "", Wording.Bytes(state.Received), Wording.Bytes(state.Expected))
+                    : T.UpdatesDownloading(state.Version ?? "");
             case UpdateStep.Verifying:
-                return $"Checking the download of version {state.Version}…";
+                return T.UpdatesCheckingDownload(state.Version ?? "");
             case UpdateStep.Ready:
-                return $"Version {state.Version} is ready to install";
+                return T.UpdatesReady(state.Version ?? "");
             case UpdateStep.Installing:
-                return $"Installing version {state.Version}…";
+                return T.UpdatesInstalling(state.Version ?? "");
             case UpdateStep.Failed:
-                return $"The update to version {state.Version} stopped. {state.Reason}";
+                return T.UpdatesStopped(state.Version ?? "", state.Reason ?? "");
         }
         return status switch
         {
-            UpdateStatus.Checking => "Checking for a newer version…",
-            UpdateStatus.UpToDate => "Up to date",
-            UpdateStatus.Available a when installsHere => $"Version {a.Release.Version} is out",
-            UpdateStatus.Available a => $"Version {a.Release.Version} is out. Its page has the installer.",
-            UpdateStatus.Failed f => $"Couldn't check: {Capital(f.Reason)}",
-            _ when offline => "Checks once you're back online",
-            _ => "Not checked yet",
+            UpdateStatus.Checking => T.UpdatesChecking,
+            UpdateStatus.UpToDate => T.UpdatesUpToDate,
+            UpdateStatus.Available a when installsHere => T.UpdatesVersionOut(a.Release.Version),
+            UpdateStatus.Available a => T.UpdatesVersionOutPage(a.Release.Version),
+            // The engine's reason is for the log: the line says what to do.
+            UpdateStatus.Failed => T.UpdatesNotCheckedBecause(T.StateCheckConnection),
+            _ when offline => T.UpdatesChecksOnline,
+            _ => T.UpdatesNotChecked,
         };
     }
-
-    /// <summary>The engine's words, which it writes in lower case, with a capital to start.</summary>
-    static string Capital(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
-
-    /// <summary>A size in megabytes, or kilobytes under one: "34 MB".</summary>
-    public static string Size(ulong bytes) => bytes >= 1_000_000
-        ? $"{bytes / 1_000_000.0:0} MB"
-        : $"{Math.Max(1, bytes / 1000)} KB";
 }

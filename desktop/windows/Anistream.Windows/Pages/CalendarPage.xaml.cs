@@ -12,7 +12,7 @@ namespace Anistream.Windows.Pages;
 /// <summary>
 /// Calendar: the week, Monday first, Mine or All airing. Seven columns with today's raised from
 /// heading to foot while the content is wide enough; an agenda of days below that. Each
-/// broadcast says "Ep 10 · 16:30", "Ep 10 · Dub · 16:30" for a dub, "(was 23:00)" when it moved,
+/// broadcast says "E10 · 16:30", "E10 dubbed · 16:30" for a dub, "· Moved from 23:00" when it moved,
 /// and carries a water dot when it has aired and is not watched.
 /// </summary>
 public sealed partial class CalendarPage : Page
@@ -129,12 +129,12 @@ public sealed partial class CalendarPage : Page
         wide = Scroll.ActualWidth == 0 || Scroll.ActualWidth >= WeekWidth;
         if (failed is not null)
         {
-            Days.Children.Add(States.Unavailable(Words.Failure(failed), null, "Try again", Load, error: true));
+            Days.Children.Add(States.Unavailable(T.CalendarLoadFailed, T.StateCheckConnection, T.ActionTryAgain, Load, error: true));
             return;
         }
         if (!loaded && ctx.Known.Offline)
         {
-            Days.Children.Add(States.Unavailable("You're offline", "Downloaded episodes still play.", "Show downloads", () => ctx.Window.Go("downloads")));
+            Days.Children.Add(States.Unavailable(T.StateOfflineTitle, T.StateOfflineDetail, T.StateOfflineShowDownloads, () => ctx.Window.Go("downloads")));
             return;
         }
         if (wide == true)
@@ -157,13 +157,13 @@ public sealed partial class CalendarPage : Page
             column.Children.Add(DayHeading(day, today));
             if (!loaded)
             {
-                // Never "Nothing airs" before the answer: nothing for 600 ms, then plates.
+                // Never an empty day before the answer: nothing for 600 ms, then plates.
                 if (placeholders)
                     for (var p = 0; p < (i % 3) + 1; p++)
                         column.Children.Add(CellPlaceholder());
             }
             else if (broadcasts.Count == 0)
-                column.Children.Add(Haze("Nothing airs"));
+                column.Children.Add(Haze(T.CalendarDayEmpty));
             foreach (var b in broadcasts)
                 column.Children.Add(Cell(b));
             Grid.SetColumn(column, i);
@@ -189,7 +189,7 @@ public sealed partial class CalendarPage : Page
                     section.Children.Add(States.Rows(1, 96, 54));
             }
             else if (broadcasts.Count == 0)
-                section.Children.Add(Haze("Nothing airs today"));
+                section.Children.Add(Haze(T.CalendarEmptyToday));
             foreach (var b in broadcasts)
                 section.Children.Add(AgendaRow(b));
             list.Children.Add(section);
@@ -201,7 +201,7 @@ public sealed partial class CalendarPage : Page
     static TextBlock DayHeading(DateOnly day, DateOnly today)
     {
         var culture = System.Globalization.CultureInfo.CurrentCulture;
-        var text = day == today ? $"Today · {day.ToString("ddd d", culture)}" : day.ToString("ddd d", culture);
+        var text = day == today ? T.CalendarTodayHeading(day.ToString("ddd d", culture)) : day.ToString("ddd d", culture);
         var heading = new TextBlock
         {
             Text = text,
@@ -243,8 +243,8 @@ public sealed partial class CalendarPage : Page
         if (b.Watched)
         {
             // Watched: one quiet line, a dub still marked.
-            var quiet = $"{b.Entry.Title} · {b.EpisodeText}";
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, $"{b.Entry.Title}, {b.EpisodeText}, watched");
+            var quiet = T.CalendarWatchedLine(b.Entry.Title, b.EpisodeText);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, T.CalendarWatchedSpoken(b.Entry.Title, b.EpisodeText));
             button.Content = new TextBlock { Text = quiet, Style = (Style)Application.Current.Resources["HazeCaptionStyle"] };
             return button;
         }
@@ -299,7 +299,7 @@ public sealed partial class CalendarPage : Page
         var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         if (b.IsNew(Now))
             line.Children.Add(new Ellipse { Width = 6, Height = 6, Fill = (Brush)Application.Current.Resources["WaterBrush"], VerticalAlignment = VerticalAlignment.Center });
-        // A dub is marked in the line after its episode, "Ep 10 · Dub · 16:30", as every episode line is.
+        // A dub is marked in the line after its episode, "E10 dubbed · 16:30", as every episode line is.
         line.Children.Add(new TextBlock { Text = b.Line(zone), Style = (Style)Application.Current.Resources["HazeCaptionStyle"], TextWrapping = TextWrapping.WrapWholeWords });
         return line;
     }

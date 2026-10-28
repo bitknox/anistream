@@ -1,8 +1,3 @@
-# Foot of the watch party form while the device is offline.
-# @only linux
-# @max 70
-party-needs-connection = A { -watch-party } needs a connection. You're offline.
-
 # Accessible label of the line that says how the watch party form is getting on.
 # @only linux
 # @max 30
@@ -13,20 +8,10 @@ party-status = { -watch-party-cap } status
 # @max 30
 party-members = Members
 
-# Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
-# @only linux
-# @max 24
-party-open-sources = Open { -source-pl }
-
 # Title of the dialog that lists the sources that have the watch party's episode.
 # @only linux
 # @max 40
 party-choose-a-source = Choose a { -source }
-
-# Line while the sources are searched for the watch party's episode.
-# @only linux
-# @max 60
-party-looking-sources = Looking through your { -source-pl }…
 
 # Line when no source lists the watch party's episode. A plugin store adds plugins, which add sources.
 # @only linux

@@ -194,7 +194,7 @@ public sealed class Known
                     ProviderNote = null;
                 break;
             case Event.ProviderNote n:
-                ProviderNote = AnistreamFfiMethods.MsgEnglish(n.V1); // i18n P2: replace with the catalogue
+                ProviderNote = n.V1.Text();
                 break;
             case Event.SourcesChanged:
                 Rebuilding = true;

@@ -512,42 +512,49 @@ pub fn truncate(text: &str, max: usize) -> String {
     text.chars().take(max - 1).collect::<String>() + "…"
 }
 
-/// Wrap text to a width, breaking on whitespace.
+/// Wrap text to a width, breaking on whitespace. A newline in the text starts a new line and a
+/// blank line (`"\n\n"`) leaves a blank row, so a synopsis keeps its paragraphs.
 pub fn wrap(text: &str, width: usize, max_lines: usize) -> Vec<String> {
     if width == 0 || max_lines == 0 {
         return Vec::new();
     }
-    let mut lines = Vec::new();
-    let mut current = String::new();
-
-    for word in text.split_whitespace() {
-        let candidate_len = if current.is_empty() {
-            word.chars().count()
-        } else {
-            current.chars().count() + 1 + word.chars().count()
-        };
-        if candidate_len > width && !current.is_empty() {
-            lines.push(std::mem::take(&mut current));
-            if lines.len() == max_lines {
-                // Mark the truncation rather than stopping silently, so the reader knows
-                // there is more. One mark: cutting with `truncate` and then appending put a
-                // second ellipsis after the first whenever the line was already full, and a
-                // word that was itself cut short already ends in one.
-                if let Some(last) = lines.last_mut() {
-                    let kept: String = last.chars().take(width.saturating_sub(1)).collect();
-                    *last = kept.trim_end_matches('…').trim_end().to_owned() + "…";
-                }
-                return lines;
+    let mut lines: Vec<String> = Vec::new();
+    for (i, paragraph) in text.split('\n').enumerate() {
+        let mut current = String::new();
+        let before = lines.len();
+        for word in paragraph.split_whitespace() {
+            if !current.is_empty() && current.chars().count() + 1 + word.chars().count() > width
+            {
+                lines.push(std::mem::take(&mut current));
             }
+            if !current.is_empty() {
+                current.push(' ');
+            }
+            // A single word longer than the line still has to go somewhere.
+            current.push_str(&truncate(word, width));
         }
         if !current.is_empty() {
-            current.push(' ');
+            lines.push(current);
         }
-        // A single word longer than the line still has to go somewhere.
-        current.push_str(&truncate(word, width));
+        // An empty line in the text is a blank row, but not at the start or in a row.
+        if lines.len() == before && i > 0 && lines.last().is_some_and(|l| !l.is_empty()) {
+            lines.push(String::new());
+        }
     }
-    if !current.is_empty() {
-        lines.push(current);
+    while lines.last().is_some_and(String::is_empty) {
+        lines.pop();
+    }
+    if lines.len() > max_lines {
+        lines.truncate(max_lines);
+        while lines.last().is_some_and(String::is_empty) {
+            lines.pop();
+        }
+        // Mark the truncation rather than stopping silently, so the reader knows there is
+        // more. One mark: a word that was itself cut short already ends in one.
+        if let Some(last) = lines.last_mut() {
+            let kept: String = last.chars().take(width.saturating_sub(1)).collect();
+            *last = kept.trim_end_matches('…').trim_end().to_owned() + "…";
+        }
     }
     lines
 }
@@ -844,6 +851,14 @@ mod tests {
         assert_eq!(lines.len(), 1);
         assert_eq!(lines[0].matches('…').count(), 1, "got {:?}", lines[0]);
         assert!(lines[0].chars().count() <= 8);
+    }
+
+    #[test]
+    fn wrapping_keeps_line_and_paragraph_breaks() {
+        let lines = wrap("one two\n\nthree\nfour\n\n\nfive", 20, 10);
+        assert_eq!(lines, ["one two", "", "three", "four", "", "five"]);
+        // Cut at a paragraph break, the mark sits on the last text, not on a blank row.
+        assert_eq!(wrap("one\n\ntwo", 20, 2), ["one…"]);
     }
 
     #[test]
