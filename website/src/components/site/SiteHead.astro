@@ -2,6 +2,8 @@
 // The <head> the landing, apps and features pages share: their title and description, the
 // social preview, the icons, the theme colours, and the theme the docs remember, set before the
 // first paint.
+import { MULTILINGUAL, useSite } from '../../i18n/site';
+
 interface Props {
 	title: string;
 	description: string;
@@ -9,6 +11,7 @@ interface Props {
 
 const { title, description } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
+const { t, alternates } = useSite(Astro);
 ---
 
 <meta charset="utf-8" />
@@ -23,8 +26,18 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 <meta property="og:image" content={new URL('/og.png', Astro.site)} />
 <meta property="og:image:width" content="1280" />
 <meta property="og:image:height" content="640" />
-<meta property="og:image:alt" content="Browse, watch, track and sync anime in one client, over a rooftop at dusk with Nagare, anistream’s mascot" />
+<meta property="og:image:alt" content={t('site.ogAlt')} />
 <meta name="twitter:card" content="summary_large_image" />
+{
+	MULTILINGUAL && (
+		<>
+			{alternates.map((l) => (
+				<link rel="alternate" hreflang={l.lang} href={new URL(l.href, Astro.site)} />
+			))}
+			<link rel="alternate" hreflang="x-default" href={new URL(alternates[0].href, Astro.site)} />
+		</>
+	)
+}
 <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

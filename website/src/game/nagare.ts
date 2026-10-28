@@ -58,6 +58,3 @@ export const SPRITE_COLORS: Record<string, [number, number, number]> = {
 	w: [223, 245, 251],
 	B: [35, 40, 66],
 };
-
-export const NAGARE_LABEL =
-	'Nagare, the anistream mascot: a figure with a silk bob, an amber scarf and an indigo cloak, holding a staff with a water charm';

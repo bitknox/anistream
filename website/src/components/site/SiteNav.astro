@@ -1,9 +1,12 @@
 ---
 // The nav on the landing page, the apps page and the features page: the app icon and the name,
-// then Apps, Features, Docs, Releases and GitHub. A phone shows the first three; the footer has
-// the rest. Over the landing page's scene it starts clear; elsewhere it is solid.
+// then Apps, Features, Docs, Releases and GitHub, and the language picker once there is more than
+// one language. A phone shows the first three; the footer has the rest. Over the landing page's
+// scene it starts clear; elsewhere it is solid.
 import iconUrl from '../../assets/icon-32.svg?url';
+import { useSite } from '../../i18n/site';
 import { APPS, FEATURES, GITHUB, RELEASES } from '../../data/site';
+import LanguagePicker from './LanguagePicker.astro';
 
 interface Props {
 	current?: 'apps' | 'features';
@@ -12,18 +15,20 @@ interface Props {
 }
 
 const { current, overScene = false } = Astro.props;
+const { t, href } = useSite(Astro);
 ---
 
-<nav class:list={['l-nav', { 'l-nav-over': overScene }]} aria-label="Main">
-	<a class="l-brand" href="/">
+<nav class:list={['l-nav', { 'l-nav-over': overScene }]} aria-label={t('site.nav.label')}>
+	<a class="l-brand" href={href('/')}>
 		<img src={iconUrl} width="32" height="32" alt="" />
 		<span>anistream</span>
 	</a>
 	<div class="l-nav-links">
-		<a href={APPS} aria-current={current === 'apps' ? 'page' : undefined}>Apps</a>
-		<a href={FEATURES} aria-current={current === 'features' ? 'page' : undefined}>Features</a>
-		<a href="/docs/">Docs</a>
-		<a class="l-nav-releases" href={RELEASES}>Releases</a>
+		<a href={href(APPS)} aria-current={current === 'apps' ? 'page' : undefined}>{t('site.nav.apps')}</a>
+		<a href={href(FEATURES)} aria-current={current === 'features' ? 'page' : undefined}>{t('site.nav.features')}</a>
+		<a href={href('/docs/')}>{t('site.nav.docs')}</a>
+		<a class="l-nav-releases" href={RELEASES}>{t('site.nav.releases')}</a>
 		<a class="l-nav-github" href={GITHUB}>GitHub</a>
+		<LanguagePicker />
 	</div>
 </nav>

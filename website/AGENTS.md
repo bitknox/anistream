@@ -18,6 +18,14 @@ bun run dev --background
 Manage the background server with `bun run dev stop`, `bun run dev status`, and
 `bun run dev logs`.
 
+## Translations
+
+Every word a visitor reads is a key in `src/content/i18n/en.json`, read with `t()` from `useSite(Astro)` (`src/i18n/site.ts`), which wraps Starlight's `Astro.locals.t`. Keys are flat, grouped by page (`home.`, `apps.`, `features.`) and by job (`dl.` for downloads, `game.` for Nagare's run); `src/i18n/notes.json` holds notes for translators. A client script holds no copy: the page carries its strings as JSON (`words('dl.')`, read with `src/scripts/words.ts`). The custom pages are served from `src/pages/[...locale]/`, once per language.
+
+To add a language, add `src/content/i18n/<tag>.json` (BCP-47, as `sv` or `pt-BR`) with the keys it translates, including `site.language.name`; a key it leaves out falls back to English. Docs pages go in `src/content/docs/<code>/docs/...`. The picker and the language suggestion show once there are two languages. `bun test src` checks placeholders and tags against English and that every key is used.
+
+`bun run build:pseudo` builds the pseudo locale `en-XA` into `dist-pseudo` (never deployed): English accented and lengthened, so plain text left on a page is a string that skipped the setup, and clipped boxes show.
+
 ## Feature videos
 
 The features page's slots play short silent loops recorded from the Fixtures apps (made-up shows, and こうしす！ #3.1, CC BY 4.0, in the player, credited on the page). To record them again, one command per platform, from the repo root:

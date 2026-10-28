@@ -3,6 +3,9 @@
 // it. The same screen as the landing page's demo at rest (TerminalDemo.astro), with the cover as
 // the app draws it over a graphics protocol. Dark in either theme, as a terminal is.
 import coverUrl from '../../assets/covers/hoshikuzu.svg?url';
+import { useSite } from '../../i18n/site';
+
+const { t } = useSite(Astro);
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const COLOURS: Record<string, string> = { a: '#f2a64b', d: '#9298b5', w: '#7fc7d9' };
@@ -43,7 +46,7 @@ const TERMINAL_H = TOP + 14 + lines.length * 18 + 14;
 	class="term-still"
 	viewBox={`0 0 ${TERMINAL_W} ${TERMINAL_H}`}
 	role="img"
-	aria-label="The terminal app on its home screen: the sections down the side, and the show in progress with its cover and how far you are"
+	aria-label={t('features.terminalStill.alt')}
 >
 	<rect x="0.5" y="0.5" width={TERMINAL_W - 1} height={TERMINAL_H - 1} rx="10" fill="#10131f" stroke="#2f3242" />
 	<path d={`M1 ${TOP}.5 H${TERMINAL_W - 1}`} stroke="#2f3242" />
