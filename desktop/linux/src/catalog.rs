@@ -81,6 +81,8 @@ pub fn label(key: SettingKey) -> String {
         K::MpvOptions => t::settings_label_mpv_options(),
         K::ControllerInput => t::settings_label_controller_input(),
         K::SwapFaceButtons => t::settings_label_swap_face_buttons(),
+        K::EpisodeDiscussions => t::settings_label_episode_discussions(),
+        K::CommentImages => t::settings_label_comment_images(),
     }
 }
 
