@@ -1344,6 +1344,33 @@ public static partial class T
     /// <summary>Short progress under a show when the total is not known.</summary>
     public static string ProgressEpisodeShort(long done) => Fill(Get("ProgressEpisodeShort"), ("done", done.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>Heading over the suggestions under a short { -continue-cap } list.</summary>
+    public static string UpNextHeading => Get("UpNextHeading");
+
+    /// <summary>Line on a suggestion that has not started airing. The date is written out already, such as "9 January".</summary>
+    public static string UpNextStarts(string date) => Fill(Get("UpNextStarts"), ("date", date));
+
+    /// <summary>Reason on a suggestion that is a new season of a show the person finished and has not started.</summary>
+    public static string UpNextReasonNewSeason => Get("UpNextReasonNewSeason");
+
+    /// <summary>Reason on a suggestion that is on the person's Planning list.</summary>
+    public static string UpNextReasonPlanning => Get("UpNextReasonPlanning");
+
+    /// <summary>Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.</summary>
+    public static string UpNextReasonRecommended(string title) => Fill(Get("UpNextReasonRecommended"), ("title", title));
+
+    /// <summary>Reason on a recommended suggestion when the finished show is not known.</summary>
+    public static string UpNextReasonRecommendedPlain => Get("UpNextReasonRecommendedPlain");
+
+    /// <summary>Reason on a suggestion that airs today, shown when nothing else is left to suggest.</summary>
+    public static string UpNextReasonAiringToday => Get("UpNextReasonAiringToday");
+
+    /// <summary>Button on a suggestion that has not started airing. It puts the show on the Planning list.</summary>
+    public static string UpNextAddPlanning => Get("UpNextAddPlanning");
+
+    /// <summary>Menu item on a suggestion. The show stays hidden until it starts airing.</summary>
+    public static string UpNextNotInterested => Get("UpNextNotInterested");
+
     /// <summary>Format of a show: broadcast on television.</summary>
     public static string FormatTv => Get("FormatTv");
 
@@ -4641,6 +4668,15 @@ public static partial class T
         ["LibraryInYourList"] = "In your list",
         ["ProgressEpisodesShort"] = "E{done} of {total}",
         ["ProgressEpisodeShort"] = "E{done}",
+        ["UpNextHeading"] = "Up next for you",
+        ["UpNextStarts"] = "Starts {date}",
+        ["UpNextReasonNewSeason"] = "New season",
+        ["UpNextReasonPlanning"] = "On your Planning list",
+        ["UpNextReasonRecommended"] = "Because you finished {title}",
+        ["UpNextReasonRecommendedPlain"] = "Recommended for you",
+        ["UpNextReasonAiringToday"] = "Airing today",
+        ["UpNextAddPlanning"] = "Add to Planning",
+        ["UpNextNotInterested"] = "Not interested",
         ["FormatTv"] = "TV",
         ["FormatTvShort"] = "TV short",
         ["FormatMovie"] = "Movie",

@@ -2710,6 +2710,9 @@ lists-sort-trending = Trending
 # A search sort order.
 lists-sort-newest = Newest
 
+# Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
+lists-up-next-dismissed = { $title } hidden from up next for you.
+
 # Notice when the person leaves Now Playing while mpv carries on in its own window.
 playback-detached = Detached. mpv is still playing.
 
@@ -4518,6 +4521,33 @@ progress-episodes-short = E{ $done } of { $total }
 
 # Short progress under a show when the total is not known.
 progress-episode-short = E{ $done }
+
+# Heading over the suggestions under a short { -continue-cap } list.
+up-next-heading = Up next for you
+
+# Line on a suggestion that has not started airing. The date is written out already, such as "9 January".
+up-next-starts = Starts { $date }
+
+# Reason on a suggestion that is a new season of a show the person finished and has not started.
+up-next-reason-new-season = New season
+
+# Reason on a suggestion that is on the person's Planning list.
+up-next-reason-planning = On your Planning list
+
+# Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.
+up-next-reason-recommended = Because you finished { $title }
+
+# Reason on a recommended suggestion when the finished show is not known.
+up-next-reason-recommended-plain = Recommended for you
+
+# Reason on a suggestion that airs today, shown when nothing else is left to suggest.
+up-next-reason-airing-today = Airing today
+
+# Button on a suggestion that has not started airing. It puts the show on the Planning list.
+up-next-add-planning = Add to Planning
+
+# Menu item on a suggestion. The show stays hidden until it starts airing.
+up-next-not-interested = Not interested
 
 # Format of a show: broadcast on television.
 format-tv = TV

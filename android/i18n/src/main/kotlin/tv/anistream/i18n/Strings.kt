@@ -1789,6 +1789,42 @@ object Strings {
     fun progressEpisodeShort(context: Context, done: Int): String =
         context.getString(R.string.progress_episode_short, done)
 
+    /** Heading over the suggestions under a short { -continue-cap } list. */
+    fun upNextHeading(context: Context): String =
+        context.getString(R.string.up_next_heading)
+
+    /** Line on a suggestion that has not started airing. The date is written out already, such as "9 January". */
+    fun upNextStarts(context: Context, date: String): String =
+        context.getString(R.string.up_next_starts, date)
+
+    /** Reason on a suggestion that is a new season of a show the person finished and has not started. */
+    fun upNextReasonNewSeason(context: Context): String =
+        context.getString(R.string.up_next_reason_new_season)
+
+    /** Reason on a suggestion that is on the person's Planning list. */
+    fun upNextReasonPlanning(context: Context): String =
+        context.getString(R.string.up_next_reason_planning)
+
+    /** Reason on a suggestion that people who liked a finished show also rated highly. The title is that show. */
+    fun upNextReasonRecommended(context: Context, title: String): String =
+        context.getString(R.string.up_next_reason_recommended, title)
+
+    /** Reason on a recommended suggestion when the finished show is not known. */
+    fun upNextReasonRecommendedPlain(context: Context): String =
+        context.getString(R.string.up_next_reason_recommended_plain)
+
+    /** Reason on a suggestion that airs today, shown when nothing else is left to suggest. */
+    fun upNextReasonAiringToday(context: Context): String =
+        context.getString(R.string.up_next_reason_airing_today)
+
+    /** Button on a suggestion that has not started airing. It puts the show on the Planning list. */
+    fun upNextAddPlanning(context: Context): String =
+        context.getString(R.string.up_next_add_planning)
+
+    /** Menu item on a suggestion. The show stays hidden until it starts airing. */
+    fun upNextNotInterested(context: Context): String =
+        context.getString(R.string.up_next_not_interested)
+
     /** Format of a show: broadcast on television. */
     fun formatTv(context: Context): String =
         context.getString(R.string.format_tv)

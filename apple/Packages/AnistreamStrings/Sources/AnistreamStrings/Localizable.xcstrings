@@ -16219,6 +16219,114 @@
         }
       }
     },
+    "up-next-add-planning" : {
+      "comment" : "Button on a suggestion that has not started airing. It puts the show on the Planning list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to Planning"
+          }
+        }
+      }
+    },
+    "up-next-heading" : {
+      "comment" : "Heading over the suggestions under a short { -continue-cap } list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up next for you"
+          }
+        }
+      }
+    },
+    "up-next-not-interested" : {
+      "comment" : "Menu item on a suggestion. The show stays hidden until it starts airing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not interested"
+          }
+        }
+      }
+    },
+    "up-next-reason-airing-today" : {
+      "comment" : "Reason on a suggestion that airs today, shown when nothing else is left to suggest.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Airing today"
+          }
+        }
+      }
+    },
+    "up-next-reason-new-season" : {
+      "comment" : "Reason on a suggestion that is a new season of a show the person finished and has not started.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New season"
+          }
+        }
+      }
+    },
+    "up-next-reason-planning" : {
+      "comment" : "Reason on a suggestion that is on the person's Planning list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On your Planning list"
+          }
+        }
+      }
+    },
+    "up-next-reason-recommended" : {
+      "comment" : "Reason on a suggestion that people who liked a finished show also rated highly. The title is that show. Argument 1: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Because you finished %1$@"
+          }
+        }
+      }
+    },
+    "up-next-reason-recommended-plain" : {
+      "comment" : "Reason on a recommended suggestion when the finished show is not known.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended for you"
+          }
+        }
+      }
+    },
+    "up-next-starts" : {
+      "comment" : "Line on a suggestion that has not started airing. The date is written out already, such as \"9 January\". Argument 1: date (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starts %1$@"
+          }
+        }
+      }
+    },
     "updates-allow-once" : {
       "comment" : "Line the first time. The path is the Android settings path. Argument 1: path (Text).",
       "extractionState" : "manual",

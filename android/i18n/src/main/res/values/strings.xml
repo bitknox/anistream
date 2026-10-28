@@ -943,6 +943,24 @@
     <string name="progress_episodes_short">E%1$d of %2$d</string>
     <!-- Short progress under a show when the total is not known. -->
     <string name="progress_episode_short">E%1$d</string>
+    <!-- Heading over the suggestions under a short { -continue-cap } list. -->
+    <string name="up_next_heading">Up next for you</string>
+    <!-- Line on a suggestion that has not started airing. The date is written out already, such as "9 January". -->
+    <string name="up_next_starts">Starts %1$s</string>
+    <!-- Reason on a suggestion that is a new season of a show the person finished and has not started. -->
+    <string name="up_next_reason_new_season">New season</string>
+    <!-- Reason on a suggestion that is on the person's Planning list. -->
+    <string name="up_next_reason_planning">On your Planning list</string>
+    <!-- Reason on a suggestion that people who liked a finished show also rated highly. The title is that show. -->
+    <string name="up_next_reason_recommended">Because you finished %1$s</string>
+    <!-- Reason on a recommended suggestion when the finished show is not known. -->
+    <string name="up_next_reason_recommended_plain">Recommended for you</string>
+    <!-- Reason on a suggestion that airs today, shown when nothing else is left to suggest. -->
+    <string name="up_next_reason_airing_today">Airing today</string>
+    <!-- Button on a suggestion that has not started airing. It puts the show on the Planning list. -->
+    <string name="up_next_add_planning">Add to Planning</string>
+    <!-- Menu item on a suggestion. The show stays hidden until it starts airing. -->
+    <string name="up_next_not_interested">Not interested</string>
     <!-- Format of a show: broadcast on television. -->
     <string name="format_tv">TV</string>
     <!-- Format of a show: a short series on television. -->

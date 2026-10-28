@@ -4295,6 +4295,11 @@ pub fn lists_sort_newest() -> String {
     text("lists-sort-newest", &[])
 }
 
+/// Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
+pub fn lists_up_next_dismissed(title: &str) -> String {
+    text("lists-up-next-dismissed", &[("title", Arg::Text(title))])
+}
+
 /// Notice when the person leaves Now Playing while mpv carries on in its own window.
 pub fn playback_detached() -> String {
     text("playback-detached", &[])
@@ -7208,6 +7213,51 @@ pub fn progress_episodes_short(done: i64, total: i64) -> String {
 /// Short progress under a show when the total is not known.
 pub fn progress_episode_short(done: i64) -> String {
     text("progress-episode-short", &[("done", Arg::Int(done))])
+}
+
+/// Heading over the suggestions under a short { -continue-cap } list.
+pub fn up_next_heading() -> String {
+    text("up-next-heading", &[])
+}
+
+/// Line on a suggestion that has not started airing. The date is written out already, such as "9 January".
+pub fn up_next_starts(date: &str) -> String {
+    text("up-next-starts", &[("date", Arg::Text(date))])
+}
+
+/// Reason on a suggestion that is a new season of a show the person finished and has not started.
+pub fn up_next_reason_new_season() -> String {
+    text("up-next-reason-new-season", &[])
+}
+
+/// Reason on a suggestion that is on the person's Planning list.
+pub fn up_next_reason_planning() -> String {
+    text("up-next-reason-planning", &[])
+}
+
+/// Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.
+pub fn up_next_reason_recommended(title: &str) -> String {
+    text("up-next-reason-recommended", &[("title", Arg::Text(title))])
+}
+
+/// Reason on a recommended suggestion when the finished show is not known.
+pub fn up_next_reason_recommended_plain() -> String {
+    text("up-next-reason-recommended-plain", &[])
+}
+
+/// Reason on a suggestion that airs today, shown when nothing else is left to suggest.
+pub fn up_next_reason_airing_today() -> String {
+    text("up-next-reason-airing-today", &[])
+}
+
+/// Button on a suggestion that has not started airing. It puts the show on the Planning list.
+pub fn up_next_add_planning() -> String {
+    text("up-next-add-planning", &[])
+}
+
+/// Menu item on a suggestion. The show stays hidden until it starts airing.
+pub fn up_next_not_interested() -> String {
+    text("up-next-not-interested", &[])
 }
 
 /// Format of a show: broadcast on television.

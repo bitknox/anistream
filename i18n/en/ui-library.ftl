@@ -205,3 +205,38 @@ progress-episodes-short = E{ $done } of { $total }
 # @arg done: int
 # @max 12
 progress-episode-short = E{ $done }
+
+# Heading over the suggestions under a short { -continue-cap } list.
+up-next-heading = { -up-next-cap } for you
+
+# Line on a suggestion that has not started airing. The date is written out already, such as "9 January".
+# @arg date: text
+# @max 28
+up-next-starts = Starts { $date }
+
+# Reason on a suggestion that is a new season of a show the person finished and has not started.
+# @max 28
+up-next-reason-new-season = New season
+
+# Reason on a suggestion that is on the person's Planning list.
+# @max 28
+up-next-reason-planning = On your Planning list
+
+# Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.
+# @arg title: text
+# @max 40
+up-next-reason-recommended = Because you finished { $title }
+
+# Reason on a recommended suggestion when the finished show is not known.
+# @max 28
+up-next-reason-recommended-plain = Recommended for you
+
+# Reason on a suggestion that airs today, shown when nothing else is left to suggest.
+# @max 28
+up-next-reason-airing-today = Airing today
+
+# Button on a suggestion that has not started airing. It puts the show on the Planning list.
+up-next-add-planning = Add to Planning
+
+# Menu item on a suggestion. The show stays hidden until it starts airing.
+up-next-not-interested = Not interested
