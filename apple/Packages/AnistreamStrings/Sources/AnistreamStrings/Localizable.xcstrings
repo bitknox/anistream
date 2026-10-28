@@ -5695,6 +5695,18 @@
         }
       }
     },
+    "menu-enter-full-screen" : {
+      "comment" : "Mac menu bar item, Playback menu: enters full screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter Full Screen"
+          }
+        }
+      }
+    },
     "menu-episode" : {
       "comment" : "Name of the Mac menu bar menu of commands for one episode.",
       "extractionState" : "manual",
@@ -5707,6 +5719,18 @@
         }
       }
     },
+    "menu-exit-full-screen" : {
+      "comment" : "Mac menu bar item, Playback menu: leaves full screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit Full Screen"
+          }
+        }
+      }
+    },
     "menu-join-plugin-store" : {
       "comment" : "Mac menu bar item that opens the sheet for joining a plugin store.",
       "extractionState" : "manual",
@@ -5715,6 +5739,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Join Store…"
+          }
+        }
+      }
+    },
+    "menu-load-audio-file" : {
+      "comment" : "Mac menu bar item, in Playback's Subtitles and Audio: loads an audio file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load Audio File…"
+          }
+        }
+      }
+    },
+    "menu-load-subtitle-file" : {
+      "comment" : "Mac menu bar item, in Playback's Subtitles and Audio: loads a subtitle file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load Subtitle File…"
           }
         }
       }
@@ -5791,6 +5839,18 @@
         }
       }
     },
+    "menu-mute" : {
+      "comment" : "Mac menu bar item, Playback menu: mutes the sound.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute"
+          }
+        }
+      }
+    },
     "menu-next-episode" : {
       "comment" : "Mac menu bar item that plays the next episode.",
       "extractionState" : "manual",
@@ -5847,6 +5907,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pause All Downloads"
+          }
+        }
+      }
+    },
+    "menu-picture-in-picture" : {
+      "comment" : "Mac menu bar item, Window menu: floats the picture over other windows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picture in Picture"
           }
         }
       }
@@ -5983,6 +6055,18 @@
         }
       }
     },
+    "menu-skip-ending" : {
+      "comment" : "Mac menu bar item, Playback menu: skips the ending.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip Ending"
+          }
+        }
+      }
+    },
     "menu-skip-forward" : {
       "comment" : "Mac menu bar item that skips ahead ten seconds in the player.",
       "extractionState" : "manual",
@@ -6019,6 +6103,54 @@
         }
       }
     },
+    "menu-speed-normal" : {
+      "comment" : "Mac menu bar item in Playback's Speed menu: the normal speed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal"
+          }
+        }
+      }
+    },
+    "menu-speed-value" : {
+      "comment" : "A playback speed as a multiple, such as 1.25×. The number is already formatted. Argument 1: speed (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@×"
+          }
+        }
+      }
+    },
+    "menu-stats-for-nerds" : {
+      "comment" : "Mac menu bar item, Playback menu: shows the player's technical details.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stats for Nerds"
+          }
+        }
+      }
+    },
+    "menu-subtitles-and-audio" : {
+      "comment" : "Name of the Mac menu bar submenu of Playback that holds the tracks.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitles and Audio"
+          }
+        }
+      }
+    },
     "menu-sync-now" : {
       "comment" : "Mac menu bar item that syncs with the tracker accounts now.",
       "extractionState" : "manual",
@@ -6027,6 +6159,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sync Now"
+          }
+        }
+      }
+    },
+    "menu-unmute" : {
+      "comment" : "Mac menu bar item, Playback menu: turns the sound back on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unmute"
+          }
+        }
+      }
+    },
+    "menu-volume-down" : {
+      "comment" : "Mac menu bar item, Playback menu: lowers the volume.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume Down"
+          }
+        }
+      }
+    },
+    "menu-volume-up" : {
+      "comment" : "Mac menu bar item, Playback menu: raises the volume.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume Up"
           }
         }
       }
@@ -9013,6 +9181,54 @@
         }
       }
     },
+    "player-announce-plays-in" : {
+      "comment" : "VoiceOver announcement when the up next countdown has 8 seconds left. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plays in %1$lld seconds"
+          }
+        }
+      }
+    },
+    "player-announce-titled" : {
+      "comment" : "VoiceOver announcement of the up next card with the episode's name after it. Argument 1: line (Text). Argument 2: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "player-announce-up-next" : {
+      "comment" : "VoiceOver announcement when the up next card shows. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up next: episode %1$@"
+          }
+        }
+      }
+    },
+    "player-announce-up-next-dubbed" : {
+      "comment" : "VoiceOver announcement when the up next card shows for an episode that plays dubbed. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up next: episode %1$@, dubbed"
+          }
+        }
+      }
+    },
     "player-audio" : {
       "comment" : "Button and sheet for the audio tracks.",
       "extractionState" : "manual",
@@ -9109,6 +9325,18 @@
         }
       }
     },
+    "player-countdown-label" : {
+      "comment" : "VoiceOver label of the countdown bar of the up next card. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Countdown to episode %1$@"
+          }
+        }
+      }
+    },
     "player-ends-at" : {
       "comment" : "Line on the TV player: when the episode ends. The time is already formatted. Argument 1: time (Text).",
       "extractionState" : "manual",
@@ -9121,6 +9349,42 @@
         }
       }
     },
+    "player-enter-full-screen" : {
+      "comment" : "Button in the player's controls and VoiceOver label: enters full screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter full screen"
+          }
+        }
+      }
+    },
+    "player-episode-text" : {
+      "comment" : "Name of an episode whose number is text, because it may be \"7.5\" or \"OVA 2\". Argument 1: number (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@"
+          }
+        }
+      }
+    },
+    "player-episode-titled-text" : {
+      "comment" : "An episode whose number is text, and its name. Argument 1: number (Text). Argument 2: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@ · %2$@"
+          }
+        }
+      }
+    },
     "player-episodes" : {
       "comment" : "Button that opens the episode list.",
       "extractionState" : "manual",
@@ -9129,6 +9393,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Episodes"
+          }
+        }
+      }
+    },
+    "player-exit-full-screen" : {
+      "comment" : "Button in the player's controls and VoiceOver label: leaves full screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit full screen"
           }
         }
       }
@@ -9165,6 +9441,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't play episode %1$lld"
+          }
+        }
+      }
+    },
+    "player-failed-title-text" : {
+      "comment" : "Heading of the starting screen when nothing played. The episode's number is text, because it may be \"7.5\". Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't play episode %1$@"
           }
         }
       }
@@ -9213,6 +9501,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Finding a source"
+          }
+        }
+      }
+    },
+    "player-flash-back" : {
+      "comment" : "Line of the player's hint over the picture: how many seconds a jump moves the playhead back. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−%1$lld s"
+          }
+        }
+      }
+    },
+    "player-flash-forward" : {
+      "comment" : "Line of the player's hint over the picture: how many seconds a jump moves the playhead forward. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%1$lld s"
           }
         }
       }
@@ -9277,6 +9589,18 @@
         }
       }
     },
+    "player-load-prompt" : {
+      "comment" : "Button of the Mac open panel that picks a subtitle or audio file for the player.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load"
+          }
+        }
+      }
+    },
     "player-load-subtitle-file" : {
       "comment" : "Menu item that loads a subtitle file from disk.",
       "extractionState" : "manual",
@@ -9285,6 +9609,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Load subtitle file…"
+          }
+        }
+      }
+    },
+    "player-menu-audio" : {
+      "comment" : "Text of a menu in the player's controls that opens the audio panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio…"
+          }
+        }
+      }
+    },
+    "player-menu-episodes" : {
+      "comment" : "Text of a menu in the player's controls that opens the episodes panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episodes…"
+          }
+        }
+      }
+    },
+    "player-menu-picture-sound" : {
+      "comment" : "Text of a menu in the player's controls that opens the picture and sound panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picture and sound…"
+          }
+        }
+      }
+    },
+    "player-menu-subtitles" : {
+      "comment" : "Text of a menu in the player's controls that opens the subtitles and audio panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitles…"
           }
         }
       }
@@ -9309,6 +9681,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mini player"
+          }
+        }
+      }
+    },
+    "player-mute" : {
+      "comment" : "Button in the player's controls and VoiceOver label: turns the sound off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute"
           }
         }
       }
@@ -9433,6 +9817,18 @@
         }
       }
     },
+    "player-position-of" : {
+      "comment" : "VoiceOver value of the seek line: where the playhead is. Both times are already spoken in full. Argument 1: position (Text). Argument 2: duration (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ of %2$@"
+          }
+        }
+      }
+    },
     "player-previous-episode" : {
       "comment" : "Button that plays the previous episode.",
       "extractionState" : "manual",
@@ -9441,6 +9837,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previous episode"
+          }
+        }
+      }
+    },
+    "player-release-dual-audio" : {
+      "comment" : "Part of a release's detail line: a release with both the original and the dubbed audio.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "subbed and dubbed"
+          }
+        }
+      }
+    },
+    "player-release-dub" : {
+      "comment" : "Part of a release's detail line: a release in the dubbed audio.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dub"
+          }
+        }
+      }
+    },
+    "player-releases-empty" : {
+      "comment" : "Line in the list of releases of an episode, when the person's sources found none.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No releases found for this episode."
+          }
+        }
+      }
+    },
+    "player-releases-finding" : {
+      "comment" : "Line in the list of releases of an episode, while the sources are still looking.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding releases…"
+          }
+        }
+      }
+    },
+    "player-releases-none" : {
+      "comment" : "Line in the Episodes list under the playing episode when its sources found no releases.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No releases found"
           }
         }
       }
@@ -9465,6 +9921,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Resumed at %1$@"
+          }
+        }
+      }
+    },
+    "player-scrub-half" : {
+      "comment" : "Label while scrubbing the seek line at half the pace.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Half-speed scrubbing"
+          }
+        }
+      }
+    },
+    "player-scrub-quarter" : {
+      "comment" : "Label while scrubbing the seek line at a quarter of the pace.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quarter-speed scrubbing"
           }
         }
       }
@@ -9525,6 +10005,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Slower"
+          }
+        }
+      }
+    },
+    "player-sound" : {
+      "comment" : "Heading of the sound section in the picture and sound panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sound"
           }
         }
       }
@@ -9621,6 +10113,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Starting episode %1$lld"
+          }
+        }
+      }
+    },
+    "player-starting-text" : {
+      "comment" : "Heading of the starting screen. The episode's number is text, because it may be \"7.5\". Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting episode %1$@"
           }
         }
       }
@@ -9827,6 +10331,30 @@
         }
       }
     },
+    "player-title-episode-line" : {
+      "comment" : "Line under the show's name in the player when a title is staged: the show, then the episode. Argument 1: title (Text). Argument 2: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "player-track-n" : {
+      "comment" : "Name of an audio or subtitle track that has no language or title. Argument 1: id (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track %1$lld"
+          }
+        }
+      }
+    },
     "player-track-unnamed" : {
       "comment" : "Name of a track that has no name or language.",
       "extractionState" : "manual",
@@ -9835,6 +10363,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unnamed track"
+          }
+        }
+      }
+    },
+    "player-unmute" : {
+      "comment" : "Button in the player's controls and VoiceOver label: turns the sound back on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unmute"
           }
         }
       }
@@ -9851,6 +10391,18 @@
         }
       }
     },
+    "player-up-next-line" : {
+      "comment" : "The next episode's line on the up next card, with the audio it plays in after it. Argument 1: episode (Text). Argument 2: audio (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "player-upscaling" : {
       "comment" : "Row and menu item for the upscaling setting.",
       "extractionState" : "manual",
@@ -9859,6 +10411,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upscaling"
+          }
+        }
+      }
+    },
+    "player-voice-back" : {
+      "comment" : "Short word Voice Control takes for the button that goes back 10 seconds.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
+    "player-voice-forward" : {
+      "comment" : "Short word Voice Control takes for the button that skips forward 10 seconds.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forward"
           }
         }
       }
@@ -9883,6 +10459,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Volume %1$@"
+          }
+        }
+      }
+    },
+    "player-wait-note" : {
+      "comment" : "Line while an episode starts after a few seconds: what the wait is on, and for how long. Argument 1: what (Text). Argument 2: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld s"
           }
         }
       }

@@ -4,6 +4,7 @@
 import AnistreamKit
 import AnistreamStore
 import AnistreamPlayer
+import AnistreamStrings
 import Foundation
 import Testing
 
@@ -832,7 +833,7 @@ struct TrackFileTests {
         rig.mpv.state.withLock { $0.refuses = ["sub-add"] }
         rig.model.loadTrack(.sub, from: "/Users/viewer/notes.txt")
         await rig.handedOver()
-        #expect(rig.model.alert?.text == "Couldn't load that subtitle file")
+        #expect(rig.model.alert?.text == L.playerSubtitleFileFailed)
         #expect(rig.model.alert?.kind == .alert)
     }
 }

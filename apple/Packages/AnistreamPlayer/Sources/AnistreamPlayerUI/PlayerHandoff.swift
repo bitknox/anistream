@@ -3,6 +3,7 @@
 
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 
 extension PlayerModel {
     /// What plays, as Handoff carries it: the episode at mpv's place, in its translation.
@@ -11,7 +12,7 @@ extension PlayerModel {
         let name = title(staged.id) ?? staged.title
         return (
             .playing(staged.id, episode: staged.episode, position: position, translation: episode?.translation),
-            "\(name) · Episode \(staged.episode)"
+            L.playerTitleEpisodeLine(title: name, episode: L.playerEpisodeText(number: staged.episode))
         )
     }
 

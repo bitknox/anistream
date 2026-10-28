@@ -18,7 +18,7 @@ player-release-dub = dub
 player-release-dual-audio = { -subbed } and { -dubbed }
 
 # VoiceOver label of the countdown bar of the up next card.
-# @arg episode: int
+# @arg episode: text
 player-countdown-label = Countdown to episode { $episode }
 
 # VoiceOver value of the seek line: where the playhead is. Both times are already spoken in full.
@@ -38,11 +38,11 @@ player-scrub-half = Half-speed scrubbing
 player-scrub-quarter = Quarter-speed scrubbing
 
 # VoiceOver announcement when the up next card shows.
-# @arg episode: int
+# @arg episode: text
 player-announce-up-next = { -up-next-cap }: episode { $episode }
 
 # VoiceOver announcement when the up next card shows for an episode that plays dubbed.
-# @arg episode: int
+# @arg episode: text
 player-announce-up-next-dubbed = { -up-next-cap }: episode { $episode }, { -dubbed }
 
 # VoiceOver announcement when the up next countdown has 8 seconds left.
@@ -51,6 +51,9 @@ player-announce-plays-in = Plays in { $seconds } seconds
 
 # Short word Voice Control takes for the button that skips forward 10 seconds.
 player-voice-forward = Forward
+
+# Short word Voice Control takes for the button that goes back 10 seconds.
+player-voice-back = Back
 
 # Name of an audio or subtitle track that has no language or title.
 # @arg id: int
@@ -120,6 +123,51 @@ menu-load-audio-file = Load Audio File…
 # Mac menu bar item in Playback's Speed menu: the normal speed.
 menu-speed-normal = Normal
 
-# Mac menu bar item in Playback's Speed menu: a speed as a multiple, such as 1.25×. The number is already formatted.
+# A playback speed as a multiple, such as 1.25×. The number is already formatted.
 # @arg speed: text
 menu-speed-value = { $speed }×
+
+# Button in the player's controls and VoiceOver label: turns the sound off.
+player-mute = Mute
+
+# Button in the player's controls and VoiceOver label: turns the sound back on.
+player-unmute = Unmute
+
+# Button in the player's controls and VoiceOver label: enters full screen.
+player-enter-full-screen = Enter full screen
+
+# Button in the player's controls and VoiceOver label: leaves full screen.
+player-exit-full-screen = Exit full screen
+
+# Button of the Mac open panel that picks a subtitle or audio file for the player.
+player-load-prompt = Load
+
+# Name of an episode whose number is text, because it may be "7.5" or "OVA 2".
+# @arg number: text
+player-episode-text = Episode { $number }
+
+# An episode whose number is text, and its name.
+# @arg number: text
+# @arg title: text
+player-episode-titled-text = Episode { $number } · { $title }
+
+# Line under the show's name in the player when a title is staged: the show, then the episode.
+# @arg title: text
+# @arg episode: text
+player-title-episode-line = { $title } · { $episode }
+
+# Heading of the starting screen. The episode's number is text, because it may be "7.5".
+# @arg episode: text
+player-starting-text = Starting episode { $episode }
+
+# Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".
+# @arg episode: text
+player-failed-title-text = Couldn't play episode { $episode }
+
+# VoiceOver announcement of the up next card with the episode's name after it.
+# @arg line: text
+# @arg title: text
+player-announce-titled = { $line }, { $title }
+
+# Heading of the sound section in the picture and sound panel.
+player-sound = Sound

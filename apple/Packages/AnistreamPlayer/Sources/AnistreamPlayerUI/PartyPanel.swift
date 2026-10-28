@@ -30,7 +30,7 @@ struct PartyPanel: View {
                     .animation(.quick, value: party.members.map(PartyWords.readyLine))
                     .padding(.top, 8)
                 Toggle(
-                    metrics.label("I'm ready", mac: "I'm Ready"),
+                    L.partyReadyAction,
                     isOn: Binding(get: { view.ready }, set: { party.setReady($0) })
                 )
                 .toggleStyle(.switch)
@@ -50,7 +50,7 @@ struct PartyPanel: View {
                 Button {
                     party.leave()
                 } label: {
-                    Text(party.leaving ? "Leaving…" : metrics.label("Leave party", mac: "Leave Party"))
+                    Text(party.leaving ? L.partyLeaving : L.partyLeave)
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -71,7 +71,7 @@ struct PartyPanel: View {
 
     private func header(_ view: PartyView) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Watch party")
+            Text(L.partyTitle)
                 .font(.system(size: metrics.body + 2, weight: .semibold))
             HStack(spacing: 6) {
                 if case .reconnecting = view.connection {
@@ -115,7 +115,7 @@ struct PartyPanel: View {
                 copied = true
             } label: {
                 Label {
-                    Text(copied ? "Copied" : metrics.label("Copy invite link", mac: "Copy Invite Link"))
+                    Text(copied ? "Copied" : L.partyCopyInvite)
                         .contentTransition(.opacity)
                 } icon: {
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
@@ -132,8 +132,8 @@ struct PartyPanel: View {
                 copied = false
             }
             Text(view.invite == nil
-                 ? "The invite link comes once an episode plays."
-                 : "It names the room and the episode. Each friend plays it from their own sources.")
+                 ? L.partyInviteAfterPlay
+                 : L.partyInviteDetail)
                 .font(.system(size: small))
                 .foregroundStyle(.haze)
                 .fixedSize(horizontal: false, vertical: true)
@@ -145,7 +145,7 @@ struct PartyPanel: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(L.partyOtherApp)
                 .font(.system(size: small, weight: .semibold))
-            Text("Server \(view.server)\nRoom \(view.room)")
+            Text(L.partyOtherAppDetail(server: view.server, room: view.room))
                 .font(.system(size: small))
                 .foregroundStyle(.haze)
                 .textSelection(.enabled)
@@ -191,7 +191,7 @@ private struct MemberRow: View {
 /// The people button's words: what it opens.
 enum PartyButton {
     static func label(inParty: Bool) -> String {
-        inParty ? "Watch party" : "Watch together"
+        inParty ? L.partyTitle : L.partyOpen
     }
 
     static func symbol(inParty: Bool) -> String {

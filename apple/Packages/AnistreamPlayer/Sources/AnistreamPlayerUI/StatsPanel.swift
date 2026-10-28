@@ -136,7 +136,7 @@ struct StatsPanel: View {
                 .padding(.horizontal, metrics.touch ? 16 : 12)
                 .frame(height: metrics.button)
         } else {
-            Button(metrics.label("Copy stats", mac: "Copy Stats")) { model.copyStats() }
+            Button(L.playerStatsCopy) { model.copyStats() }
                 .buttonStyle(PillButtonStyle(kind: .secondary, metrics: metrics))
                 .disabled(waiting)
                 .opacity(waiting ? 0.4 : 1)

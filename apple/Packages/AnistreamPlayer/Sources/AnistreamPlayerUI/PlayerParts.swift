@@ -108,15 +108,15 @@ struct StartingCurtain: View {
                 .font(.showTitle(size: metrics.touch ? 22 : 30))
                 .lineLimit(2)
             if model.failure != nil {
-                Text("Couldn't play episode \(episode)")
+                Text(L.playerFailedTitleText(episode: episode))
                     .font(.system(size: metrics.touch ? 17 : 15, weight: .semibold))
                     .padding(.top, 10)
-                Text("No source had a stream that played. Another may.")
+                Text(L.playerFailedDetail)
                     .font(.system(size: 13))
                     .foregroundStyle(.haze)
                     .padding(.top, 4)
                 HStack(spacing: 8) {
-                    Button(metrics.label("Choose source", mac: "Choose Source")) { model.chooseSource() }
+                    Button(L.playerChooseSource) { model.chooseSource() }
                         .buttonStyle(PillButtonStyle(kind: .primary, metrics: metrics))
                         .keyboardShortcut(.defaultAction)
                     Button(L.actionClose) { model.viewerClosed() }
@@ -127,7 +127,7 @@ struct StartingCurtain: View {
             } else {
                 let starting = model.starting
                 let note = starting.flatMap { PlayerModel.startingNote(in: store.jobs.running, episode: $0.episode) }
-                Text("Starting episode \(episode)")
+                Text(L.playerStartingText(episode: episode))
                     .font(.system(size: metrics.touch ? 17 : 15, weight: .medium))
                     .padding(.top, 8)
                 LoaderLine(reduceMotion: reduceMotion)
@@ -142,7 +142,7 @@ struct StartingCurtain: View {
                     .padding(.top, 10)
                 if starting?.offersChoice(at: model.clock) == true {
                     HStack(spacing: 8) {
-                        Button(metrics.label("Choose source", mac: "Choose Source")) { model.chooseSource() }
+                        Button(L.playerChooseSource) { model.chooseSource() }
                             .buttonStyle(PillButtonStyle(kind: .secondary, metrics: metrics))
                         Button(L.actionStop) { model.viewerClosed() }
                             .buttonStyle(PillButtonStyle(kind: .quiet, metrics: metrics))
@@ -239,7 +239,7 @@ struct SourceList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Sources").font(.system(size: 13, weight: .semibold)).foregroundStyle(.haze)
+                Text(L.playerSources).font(.system(size: 13, weight: .semibold)).foregroundStyle(.haze)
                 Spacer()
                 Button(L.actionCancel) { model.cancelChoosingSource() }
                     .buttonStyle(.plain)
@@ -251,7 +251,7 @@ struct SourceList: View {
             .padding(.vertical, 8)
             if let choices = model.sourceChoices {
                 if choices.isEmpty {
-                    Text("No releases found for this episode.")
+                    Text(L.playerReleasesEmpty)
                         .font(.system(size: 13)).foregroundStyle(.haze)
                         .padding(10)
                 } else {
@@ -270,7 +270,7 @@ struct SourceList: View {
                     .frame(maxHeight: metrics.touch ? 180 : 220)
                 }
             } else {
-                Text("Finding releases…").font(.system(size: 13)).foregroundStyle(.haze).padding(10)
+                Text(L.playerReleasesFinding).font(.system(size: 13)).foregroundStyle(.haze).padding(10)
             }
         }
         .overVideo(radius: 12)
@@ -280,9 +280,9 @@ struct SourceList: View {
     static func detail(_ candidate: SourceCandidate) -> String {
         var parts: [String] = []
         if let quality = candidate.quality { parts.append("\(quality)p") }
-        if let seeders = candidate.seeders { parts.append("\(seeders) seeders") }
+        if let seeders = candidate.seeders { parts.append(L.partySourceSeeders(seeders: Int(seeders))) }
         if let size = candidate.size { parts.append(size) }
-        if candidate.dubbed { parts.append("dub") } else if candidate.dualAudio { parts.append("dual audio") }
+        if candidate.dubbed { parts.append(L.playerReleaseDub) } else if candidate.dualAudio { parts.append(L.playerReleaseDualAudio) }
         parts.append(candidate.providerId)
         return parts.joined(separator: " · ")
     }
@@ -433,7 +433,7 @@ struct SeekLine: View {
         .accessibilityElement()
         .accessibilityLabel(L.playerPosition)
         .accessibilityValue(
-            "\(PlayerClock.spoken(model.position)) of \(PlayerClock.spoken(model.duration ?? 0))")
+            L.playerPositionOf(position: PlayerClock.spoken(model.position), duration: PlayerClock.spoken(model.duration ?? 0)))
         .accessibilityAdjustableAction { direction in
             model.seek(by: direction == .increment ? 10 : -10)
         }
@@ -660,11 +660,11 @@ struct UpNextCardView: View {
                         .frame(width: metrics.still.width, height: metrics.still.height)
                         .clipShape(.rect(cornerRadius: 6))
                     VStack(alignment: .leading, spacing: metrics.touch ? 1 : 2) {
-                        Text("UP NEXT")
+                        Text(L.playerUpNext)
                             .font(.system(size: 11, weight: .medium))
                             .tracking(0.88)
                             .foregroundStyle(.haze)
-                        Text("Episode \(card.next.number)" + (model.episode?.dubMark ?? ""))
+                        Text(L.playerEpisodeText(number: card.next.number) + (model.episode?.dubMark ?? ""))
                             .font(.system(size: metrics.body, weight: .semibold))
                         if let title = card.next.title {
                             Text(title)
@@ -687,10 +687,10 @@ struct UpNextCardView: View {
                         }
                         .frame(height: 3)
                         .padding(.top, 10)
-                        .accessibilityLabel("Countdown to episode \(card.next.number)")
+                        .accessibilityLabel(L.playerCountdownLabel(episode: card.next.number))
                 }
                 HStack(spacing: 8) {
-                    Text(countdown.map { "Plays in \($0.seconds) s" } ?? "")
+                    Text(countdown.map { L.playerPlaysIn(seconds: $0.seconds) } ?? "")
                         .font(.system(size: 13))
                         .monospacedDigit()
                         .foregroundStyle(.haze)
@@ -698,7 +698,7 @@ struct UpNextCardView: View {
                     Button(L.actionCancel) { model.cancelNext() }
                         .buttonStyle(PillButtonStyle(kind: .secondary, metrics: metrics))
                         .keyboardShortcut(.cancelAction)
-                    Button(metrics.label("Play now", mac: "Play Now")) { model.playNext() }
+                    Button(L.actionPlayNow) { model.playNext() }
                         .buttonStyle(PillButtonStyle(kind: .primary, metrics: metrics))
                         .keyboardShortcut(.defaultAction)
                         .sensoryFeedback(.impact(weight: .light), trigger: card.played) { _, played in played }
@@ -802,15 +802,15 @@ struct StallCardView: View {
     var body: some View {
         if let stall = model.stall {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Source is buffering · \(stall.held(at: model.clock)) s")
+                Text(L.playerStallTitle(seconds: stall.held(at: model.clock)))
                     .font(.system(size: metrics.body, weight: .semibold))
                     .monospacedDigit()
                 HStack(spacing: 8) {
                     Spacer(minLength: 0)
-                    Button(metrics.label("Keep waiting", mac: "Keep Waiting")) { model.keepWaiting() }
+                    Button(L.playerKeepWaiting) { model.keepWaiting() }
                         .buttonStyle(PillButtonStyle(kind: .secondary, metrics: metrics))
                         .keyboardShortcut(.cancelAction)
-                    Button(metrics.label("Switch source", mac: "Switch Source")) { model.switchSource() }
+                    Button(L.playerSwitchSource) { model.switchSource() }
                         .buttonStyle(PillButtonStyle(kind: .primary, metrics: metrics))
                         .keyboardShortcut(.defaultAction)
                 }
@@ -852,7 +852,7 @@ struct ResumeNoteView: View {
         if let note = model.resume {
             HStack(spacing: 10) {
                 Text(note.label).monospacedDigit()
-                Button(metrics.label("Start over", mac: "Start Over")) { model.startOver() }
+                Button(L.playerStartOver) { model.startOver() }
                     .buttonStyle(.plain)
                     .fontWeight(.semibold)
                     .foregroundStyle(.amber)
@@ -877,7 +877,7 @@ struct StillWatchingDialog: View {
         VStack(spacing: 0) {
             Text(L.playerStillWatching)
                 .font(.system(size: 17, weight: .semibold))
-            Text("Paused after \(model.stillWatchingAfter) episodes in a row.")
+            Text(L.playerStillWatchingDetail(count: model.stillWatchingAfter))
                 .font(.system(size: 15))
                 .foregroundStyle(.haze)
                 .padding(.top, 4)
@@ -885,7 +885,7 @@ struct StillWatchingDialog: View {
                 Button(L.actionStop) { model.stopWatching() }
                     .buttonStyle(PillButtonStyle(kind: .quiet, metrics: .phone))
                 Spacer(minLength: 0)
-                Button(metrics.label("Continue watching", mac: "Continue Watching")) { model.continueWatching() }
+                Button(L.playerStillWatchingContinue) { model.continueWatching() }
                     .buttonStyle(PillButtonStyle(kind: .secondary, metrics: .phone))
                     .fontWeight(.semibold)
                     .keyboardShortcut(.defaultAction)
@@ -1121,7 +1121,7 @@ struct TrackLists: View {
             .id(Self.subtitleRow(track.id))
         }
         MenuDivider()
-        MenuHeading(title: "Audio")
+        MenuHeading(title: L.playerAudio)
         ForEach(model.audioTracks) { track in
             MenuRow(title: track.name, checked: model.audioTrack == track.id, metrics: metrics) {
                 model.selectAudio(track.id)
@@ -1129,7 +1129,7 @@ struct TrackLists: View {
         }
         // Said of the picks above, which the engine keeps; a file loaded below is this
         // episode's alone.
-        MenuNote(text: "Remembered for this show")
+        MenuNote(text: L.playerRemembered)
         #if os(macOS)
         MenuDivider()
         MenuRow(title: TrackFiles.title(.sub), checked: false, metrics: metrics) {
@@ -1158,7 +1158,7 @@ struct EpisodeList: View {
 
     var body: some View {
         let episodes = model.menus?.episodes ?? []
-        MenuHeading(title: "Episodes")
+        MenuHeading(title: L.playerEpisodes)
         ForEach(episodes, id: \.number) { row in
             if row.current {
                 // One block, which the list scrolls into view whole as it opens.
@@ -1181,7 +1181,7 @@ struct EpisodeList: View {
     private func episode(_ row: MenuEpisode) -> some View {
         MenuRow(
             title: row.title.map { "\(row.label) · \($0)" } ?? row.label,
-            detail: row.filler ? "Filler" : row.watched ? "Watched" : nil,
+            detail: row.filler ? L.episodeFiller : row.watched ? L.episodeWatched : nil,
             checked: row.current, metrics: metrics
         ) {
             model.choose(.episode(row.number))
@@ -1223,9 +1223,9 @@ struct SourceGroup: View {
             MenuHeading(title: L.showSettingsSource, indent: Self.indent)
             switch Self.listing(model.menus, starting: model.starting != nil) {
             case .finding:
-                MenuNote(text: "Finding releases…", indent: Self.indent)
+                MenuNote(text: L.playerReleasesFinding, indent: Self.indent)
             case .none:
-                MenuNote(text: "No releases found", indent: Self.indent)
+                MenuNote(text: L.playerReleasesNone, indent: Self.indent)
             case .sources(let sources):
                 ForEach(sources, id: \.id) { source in
                     MenuRow(
@@ -1273,7 +1273,7 @@ struct PictureLists: View {
                 }
             }
             MenuDivider()
-            MenuHeading(title: "Sound")
+            MenuHeading(title: L.playerSound)
             MenuRow(title: L.playerNightMode, checked: menus.nightMode, metrics: metrics) {
                 model.setNightMode(!menus.nightMode)
             }
@@ -1281,6 +1281,7 @@ struct PictureLists: View {
     }
 }
 
-func speedLabel(_ speed: Double) -> String {
-    String(format: speed == speed.rounded() ? "%.1f×" : "%g×", speed)
+func speedLabel(_ speed: Double, whole: Bool = true) -> String {
+    let places = whole && speed == speed.rounded() ? 1...1 : 0...2
+    return L.menuSpeedValue(speed: speed.formatted(.number.precision(.fractionLength(places)).locale(AirTime.locale)))
 }

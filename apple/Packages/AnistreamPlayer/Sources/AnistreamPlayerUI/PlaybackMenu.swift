@@ -28,24 +28,24 @@ public struct PlaybackMenu: View {
         let playing = model.isPresented
         // Keys with no modifier only while the player is in front.
         let keys = playing && inFront == true
-        Button(model.paused ? "Play" : "Pause") { model.togglePause() }
+        Button(model.paused ? L.actionPlay : L.actionPause) { model.togglePause() }
             .keyboardShortcut(.space, modifiers: [])
             .disabled(!keys)
         Divider()
-        Button("Skip Forward 10 Seconds") { model.seek(by: 10) }
+        Button(L.menuSkipForward) { model.seek(by: 10) }
             .keyboardShortcut(.rightArrow, modifiers: [])
             .disabled(!keys)
-        Button("Skip Back 10 Seconds") { model.seek(by: -10) }
+        Button(L.menuSkipBack) { model.seek(by: -10) }
             .keyboardShortcut(.leftArrow, modifiers: [])
             .disabled(!keys)
         Divider()
-        Button("Next Episode") { model.step(1) }
+        Button(L.menuNextEpisode) { model.step(1) }
             .keyboardShortcut(.rightArrow, modifiers: .command)
             .disabled(!playing)
-        Button("Previous Episode") { model.step(-1) }
+        Button(L.menuPreviousEpisode) { model.step(-1) }
             .keyboardShortcut(.leftArrow, modifiers: .command)
             .disabled(!playing)
-        Button(model.skip?.kind == .ending ? "Skip Ending" : "Skip Opening") { model.takeSkip() }
+        Button(model.skip?.kind == .ending ? L.menuSkipEnding : L.menuSkipOpening) { model.takeSkip() }
             .keyboardShortcut("s", modifiers: [])
             .disabled(!keys || model.skip == nil)
         Divider()
@@ -66,8 +66,8 @@ public struct PlaybackMenu: View {
             }
         }
         .disabled(!playing)
-        Menu("Subtitles and Audio") {
-            Section("Audio") {
+        Menu(L.menuSubtitlesAndAudio) {
+            Section(L.playerAudio) {
                 ForEach(model.audioTracks) { track in
                     Toggle(track.name, isOn: Binding(
                         get: { track.id == model.audioTrack },
@@ -96,20 +96,20 @@ public struct PlaybackMenu: View {
         }
         .disabled(!playing)
         Divider()
-        Button("Volume Up") { model.stepVolume(by: 5) }
+        Button(L.menuVolumeUp) { model.stepVolume(by: 5) }
             .keyboardShortcut(.upArrow, modifiers: [])
             .disabled(!keys)
-        Button("Volume Down") { model.stepVolume(by: -5) }
+        Button(L.menuVolumeDown) { model.stepVolume(by: -5) }
             .keyboardShortcut(.downArrow, modifiers: [])
             .disabled(!keys)
-        Button(model.muted ? "Unmute" : "Mute") { model.toggleMute() }
+        Button(model.muted ? L.menuUnmute : L.menuMute) { model.toggleMute() }
             .keyboardShortcut("m", modifiers: [])
             .disabled(!keys)
         Divider()
-        Button(model.fullScreen ? "Exit Full Screen" : "Enter Full Screen") { model.fullScreen.toggle() }
+        Button(model.fullScreen ? L.menuExitFullScreen : L.menuEnterFullScreen) { model.fullScreen.toggle() }
             .keyboardShortcut("f", modifiers: [.command, .control])
             .disabled(!playing)
-        Toggle("Stats for Nerds", isOn: Binding(get: { model.statsShown }, set: { model.showStats($0) }))
+        Toggle(L.menuStatsForNerds, isOn: Binding(get: { model.statsShown }, set: { model.showStats($0) }))
             .keyboardShortcut("i", modifiers: [])
             .disabled(!keys)
         // Picture in Picture is the Window menu's, PictureInPictureMenuItem below.
@@ -124,7 +124,7 @@ public struct PlaybackMenu: View {
 
     /// "Normal", "1.25×".
     static func name(_ speed: Double) -> String {
-        speed == 1 ? "Normal" : String(format: "%g×", speed)
+        speed == 1 ? L.menuSpeedNormal : speedLabel(speed, whole: false)
     }
 }
 
@@ -138,7 +138,7 @@ public struct PictureInPictureMenuItem: View {
 
     public var body: some View {
         Toggle(
-            "Picture in Picture",
+L.menuPictureInPicture,
             isOn: Binding(
                 get: { model.pictureInPicturePhase != .inline },
                 set: { _ in model.togglePictureInPicture() })

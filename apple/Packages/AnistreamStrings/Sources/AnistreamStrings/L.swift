@@ -1081,6 +1081,187 @@ public enum L {
     /// What the system shows under a group of new-episode notifications. The system fills in the count at %u.
     public static var noticeSummary: String { string("notice-summary", fallback: "%u more new episodes") }
 
+    /// Line in the list of releases of an episode, when the person's sources found none.
+    public static var playerReleasesEmpty: String { string("player-releases-empty", fallback: "No releases found for this episode.") }
+
+    /// Line in the list of releases of an episode, while the sources are still looking.
+    public static var playerReleasesFinding: String { string("player-releases-finding", fallback: "Finding releases…") }
+
+    /// Line in the Episodes list under the playing episode when its sources found no releases.
+    public static var playerReleasesNone: String { string("player-releases-none", fallback: "No releases found") }
+
+    /// Part of a release's detail line: a release in the dubbed audio.
+    public static var playerReleaseDub: String { string("player-release-dub", fallback: "dub") }
+
+    /// Part of a release's detail line: a release with both the original and the dubbed audio.
+    public static var playerReleaseDualAudio: String { string("player-release-dual-audio", fallback: "subbed and dubbed") }
+
+    /// VoiceOver label of the countdown bar of the up next card.
+    public static func playerCountdownLabel(episode: String) -> String {
+        Self.format("player-countdown-label", fallback: "Countdown to episode %1$@", episode)
+    }
+
+    /// VoiceOver value of the seek line: where the playhead is. Both times are already spoken in full.
+    public static func playerPositionOf(position: String, duration: String) -> String {
+        Self.format("player-position-of", fallback: "%1$@ of %2$@", position, duration)
+    }
+
+    /// Line while an episode starts after a few seconds: what the wait is on, and for how long.
+    public static func playerWaitNote(what: String, seconds: Int) -> String {
+        Self.format("player-wait-note", fallback: "%1$@ · %2$lld s", what, seconds)
+    }
+
+    /// Label while scrubbing the seek line at half the pace.
+    public static var playerScrubHalf: String { string("player-scrub-half", fallback: "Half-speed scrubbing") }
+
+    /// Label while scrubbing the seek line at a quarter of the pace.
+    public static var playerScrubQuarter: String { string("player-scrub-quarter", fallback: "Quarter-speed scrubbing") }
+
+    /// VoiceOver announcement when the up next card shows.
+    public static func playerAnnounceUpNext(episode: String) -> String {
+        Self.format("player-announce-up-next", fallback: "Up next: episode %1$@", episode)
+    }
+
+    /// VoiceOver announcement when the up next card shows for an episode that plays dubbed.
+    public static func playerAnnounceUpNextDubbed(episode: String) -> String {
+        Self.format("player-announce-up-next-dubbed", fallback: "Up next: episode %1$@, dubbed", episode)
+    }
+
+    /// VoiceOver announcement when the up next countdown has 8 seconds left.
+    public static func playerAnnouncePlaysIn(seconds: Int) -> String {
+        Self.format("player-announce-plays-in", fallback: "Plays in %1$lld seconds", seconds)
+    }
+
+    /// Short word Voice Control takes for the button that skips forward 10 seconds.
+    public static var playerVoiceForward: String { string("player-voice-forward", fallback: "Forward") }
+
+    /// Short word Voice Control takes for the button that goes back 10 seconds.
+    public static var playerVoiceBack: String { string("player-voice-back", fallback: "Back") }
+
+    /// Name of an audio or subtitle track that has no language or title.
+    public static func playerTrackN(id: Int) -> String {
+        Self.format("player-track-n", fallback: "Track %1$lld", id)
+    }
+
+    /// Text of a menu in the player's controls that opens the subtitles and audio panel.
+    public static var playerMenuSubtitles: String { string("player-menu-subtitles", fallback: "Subtitles…") }
+
+    /// Text of a menu in the player's controls that opens the audio panel.
+    public static var playerMenuAudio: String { string("player-menu-audio", fallback: "Audio…") }
+
+    /// Text of a menu in the player's controls that opens the episodes panel.
+    public static var playerMenuEpisodes: String { string("player-menu-episodes", fallback: "Episodes…") }
+
+    /// Text of a menu in the player's controls that opens the picture and sound panel.
+    public static var playerMenuPictureSound: String { string("player-menu-picture-sound", fallback: "Picture and sound…") }
+
+    /// Line of the player's hint over the picture: how many seconds a jump moves the playhead forward.
+    public static func playerFlashForward(seconds: Int) -> String {
+        Self.format("player-flash-forward", fallback: "+%1$lld s", seconds)
+    }
+
+    /// Line of the player's hint over the picture: how many seconds a jump moves the playhead back.
+    public static func playerFlashBack(seconds: Int) -> String {
+        Self.format("player-flash-back", fallback: "−%1$lld s", seconds)
+    }
+
+    /// The next episode's line on the up next card, with the audio it plays in after it.
+    public static func playerUpNextLine(episode: String, audio: String) -> String {
+        Self.format("player-up-next-line", fallback: "%1$@ · %2$@", episode, audio)
+    }
+
+    /// Mac menu bar item, Playback menu: skips the ending.
+    public static var menuSkipEnding: String { string("menu-skip-ending", fallback: "Skip Ending") }
+
+    /// Name of the Mac menu bar submenu of Playback that holds the tracks.
+    public static var menuSubtitlesAndAudio: String { string("menu-subtitles-and-audio", fallback: "Subtitles and Audio") }
+
+    /// Mac menu bar item, Playback menu: raises the volume.
+    public static var menuVolumeUp: String { string("menu-volume-up", fallback: "Volume Up") }
+
+    /// Mac menu bar item, Playback menu: lowers the volume.
+    public static var menuVolumeDown: String { string("menu-volume-down", fallback: "Volume Down") }
+
+    /// Mac menu bar item, Playback menu: mutes the sound.
+    public static var menuMute: String { string("menu-mute", fallback: "Mute") }
+
+    /// Mac menu bar item, Playback menu: turns the sound back on.
+    public static var menuUnmute: String { string("menu-unmute", fallback: "Unmute") }
+
+    /// Mac menu bar item, Playback menu: enters full screen.
+    public static var menuEnterFullScreen: String { string("menu-enter-full-screen", fallback: "Enter Full Screen") }
+
+    /// Mac menu bar item, Playback menu: leaves full screen.
+    public static var menuExitFullScreen: String { string("menu-exit-full-screen", fallback: "Exit Full Screen") }
+
+    /// Mac menu bar item, Playback menu: shows the player's technical details.
+    public static var menuStatsForNerds: String { string("menu-stats-for-nerds", fallback: "Stats for Nerds") }
+
+    /// Mac menu bar item, Window menu: floats the picture over other windows.
+    public static var menuPictureInPicture: String { string("menu-picture-in-picture", fallback: "Picture in Picture") }
+
+    /// Mac menu bar item, in Playback's Subtitles and Audio: loads a subtitle file.
+    public static var menuLoadSubtitleFile: String { string("menu-load-subtitle-file", fallback: "Load Subtitle File…") }
+
+    /// Mac menu bar item, in Playback's Subtitles and Audio: loads an audio file.
+    public static var menuLoadAudioFile: String { string("menu-load-audio-file", fallback: "Load Audio File…") }
+
+    /// Mac menu bar item in Playback's Speed menu: the normal speed.
+    public static var menuSpeedNormal: String { string("menu-speed-normal", fallback: "Normal") }
+
+    /// A playback speed as a multiple, such as 1.25×. The number is already formatted.
+    public static func menuSpeedValue(speed: String) -> String {
+        Self.format("menu-speed-value", fallback: "%1$@×", speed)
+    }
+
+    /// Button in the player's controls and VoiceOver label: turns the sound off.
+    public static var playerMute: String { string("player-mute", fallback: "Mute") }
+
+    /// Button in the player's controls and VoiceOver label: turns the sound back on.
+    public static var playerUnmute: String { string("player-unmute", fallback: "Unmute") }
+
+    /// Button in the player's controls and VoiceOver label: enters full screen.
+    public static var playerEnterFullScreen: String { string("player-enter-full-screen", fallback: "Enter full screen") }
+
+    /// Button in the player's controls and VoiceOver label: leaves full screen.
+    public static var playerExitFullScreen: String { string("player-exit-full-screen", fallback: "Exit full screen") }
+
+    /// Button of the Mac open panel that picks a subtitle or audio file for the player.
+    public static var playerLoadPrompt: String { string("player-load-prompt", fallback: "Load") }
+
+    /// Name of an episode whose number is text, because it may be "7.5" or "OVA 2".
+    public static func playerEpisodeText(number: String) -> String {
+        Self.format("player-episode-text", fallback: "Episode %1$@", number)
+    }
+
+    /// An episode whose number is text, and its name.
+    public static func playerEpisodeTitledText(number: String, title: String) -> String {
+        Self.format("player-episode-titled-text", fallback: "Episode %1$@ · %2$@", number, title)
+    }
+
+    /// Line under the show's name in the player when a title is staged: the show, then the episode.
+    public static func playerTitleEpisodeLine(title: String, episode: String) -> String {
+        Self.format("player-title-episode-line", fallback: "%1$@ · %2$@", title, episode)
+    }
+
+    /// Heading of the starting screen. The episode's number is text, because it may be "7.5".
+    public static func playerStartingText(episode: String) -> String {
+        Self.format("player-starting-text", fallback: "Starting episode %1$@", episode)
+    }
+
+    /// Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".
+    public static func playerFailedTitleText(episode: String) -> String {
+        Self.format("player-failed-title-text", fallback: "Couldn't play episode %1$@", episode)
+    }
+
+    /// VoiceOver announcement of the up next card with the episode's name after it.
+    public static func playerAnnounceTitled(line: String, title: String) -> String {
+        Self.format("player-announce-titled", fallback: "%1$@, %2$@", line, title)
+    }
+
+    /// Heading of the sound section in the picture and sound panel.
+    public static var playerSound: String { string("player-sound", fallback: "Sound") }
+
     /// Settings row: download over cellular data.
     public static var settingsDownloadCellular: String { string("settings-download-cellular", fallback: "Download on cellular") }
 

@@ -4,6 +4,8 @@
 
 import Accessibility
 import AnistreamDesign
+import AnistreamKit
+import AnistreamStrings
 import SwiftUI
 
 extension View {
@@ -29,12 +31,13 @@ struct PlayerAccessibility: ViewModifier {
             .accessibilityAction(.escape) { model.viewerClosed() }
             .onChange(of: model.upNextShown) { _, shown in
                 guard shown, let card = model.upNext else { return }
-                let episode = "Up next: episode \(card.next.number)"
-                    + (model.episode?.translation == .dub ? ", dub" : "")
-                announce(card.next.title.map { "\(episode), \($0)" } ?? episode)
+                let episode = model.episode?.translation == .dub
+                    ? L.playerAnnounceUpNextDubbed(episode: card.next.number)
+                    : L.playerAnnounceUpNext(episode: card.next.number)
+                announce(card.next.title.map { L.playerAnnounceTitled(line: episode, title: $0) } ?? episode)
             }
             .onChange(of: model.countdown?.seconds) { _, seconds in
-                if seconds == 8 { announce("Plays in 8 seconds") }
+                if seconds == 8 { announce(L.playerAnnouncePlaysIn(seconds: 8)) }
             }
             .onChange(of: model.skip?.kind) { _, kind in
                 if kind != nil, let skip = model.skip { announce(skip.label) }
@@ -51,9 +54,9 @@ extension View {
     /// says for it ("Subtitles", "Back").
     func voiceControlLabels(_ label: String) -> some View {
         let short: [String: String] = [
-            "Subtitles and audio": "Subtitles",
-            "Back 10 seconds": "Back",
-            "Forward 10 seconds": "Forward",
+            L.playerSubtitlesAndAudio: L.playerSubtitles,
+            L.playerBack10: L.playerVoiceBack,
+            L.playerForward10: L.playerVoiceForward,
         ]
         return accessibilityInputLabels(([label] + [short[label]].compactMap { $0 }).map { Text($0) })
     }
@@ -79,9 +82,8 @@ extension PlayerClock {
     /// minutes".
     public static func spoken(_ seconds: Double) -> String {
         let total = Int(max(0, seconds.isFinite ? seconds : 0).rounded(.down))
-        let parts = [(total / 3600, "hour"), (total / 60 % 60, "minute"), (total % 60, "second")]
-            .filter { $0.0 > 0 }
-            .map { "\($0.0) \($0.1)\($0.0 == 1 ? "" : "s")" }
-        return parts.isEmpty ? "0 seconds" : parts.joined(separator: " ")
+        let units: Set<Duration.UnitsFormatStyle.Unit> = total == 0 ? [.seconds] : [.hours, .minutes, .seconds]
+        return Duration.seconds(total).formatted(
+            .units(allowed: units, width: .wide, zeroValueUnits: .hide).locale(AirTime.locale))
     }
 }
