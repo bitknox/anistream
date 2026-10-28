@@ -36,6 +36,7 @@ pub fn label(key: SettingKey) -> String {
         K::Theme => t::settings_label_theme(),
         K::Motion => t::settings_label_motion(),
         K::Titles => t::settings_label_titles(),
+        K::Trailers => t::settings_label_trailers(),
         K::Translation => t::settings_label_translation(),
         K::Quality => t::settings_label_quality(),
         K::Subtitles => t::settings_label_subtitles(),
