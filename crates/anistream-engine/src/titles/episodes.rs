@@ -423,9 +423,17 @@ pub fn set_watched(
         engine.cache.kept(id, watch);
     }
     let said = marked.and_then(|id| engine.cache.progress(id)).unwrap_or_else(|| {
-        // Without its episode count, which only its metadata has: Continue's episode is
-        // counted on from where history stands, as it is for a title of unknown length.
-        let (progress, resume) = data::standing(store, id, None);
+        // The episode count from the cached metadata, when there is any: with it a finished
+        // show goes back to episode 1, and without it Continue counts on from history.
+        let total = store
+            .cached_media(id)
+            .ok()
+            .flatten()
+            .and_then(|(payload, _)| {
+                serde_json::from_str::<anistream_meta::Media>(&payload).ok()
+            })
+            .and_then(|media| media.episodes);
+        let (progress, resume) = data::standing(store, id, total);
         engine.cache.standing(id, progress, resume)
     });
     let _ = tx.send(said);

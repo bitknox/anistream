@@ -435,10 +435,9 @@ pub async fn load_library(
                 // The tracker's progress, not the local projection: this screen is a view of
                 // the remote list, and showing local numbers here would hide a divergence
                 // rather than reveal it.
-                let total = row.episodes.unwrap_or(0);
                 row.progress = Some(TitleProgress {
                     done: entry.progress,
-                    next: (entry.progress + 1).min(total.max(1)),
+                    next: next_after_progress(entry.progress, row.episodes),
                 });
                 // The one place the tracker's status for a title is known, so `a` opens on it.
                 row.list_status = Some(segment);
@@ -450,6 +449,15 @@ pub async fn load_library(
             answer(ContentList::Failed("sign in again on the Accounts screen".into()))
         }
         Err(e) => answer(ContentList::Failed(e.to_string())),
+    }
+}
+
+/// The episode after `progress` on the tracker's list. A finished show with a known count
+/// starts over at 1; an unknown count offers the one after the last watched.
+fn next_after_progress(progress: u32, total: Option<u32>) -> u32 {
+    match total {
+        Some(total) if total > 0 && progress >= total => 1,
+        _ => progress.saturating_add(1),
     }
 }
 
@@ -1322,6 +1330,17 @@ mod tests {
     use anistream_track::secret::Backend;
 
     use super::*;
+
+    #[test]
+    fn the_lists_next_episode_never_passes_a_known_count() {
+        assert_eq!(next_after_progress(5, Some(13)), 6);
+        assert_eq!(next_after_progress(12, Some(13)), 13);
+        assert_eq!(next_after_progress(13, Some(13)), 1, "finished, so watch again");
+        assert_eq!(next_after_progress(15, Some(13)), 1, "bad remote data");
+        assert_eq!(next_after_progress(5, None), 6, "an airing show of unknown length");
+        assert_eq!(next_after_progress(0, None), 1);
+        assert_eq!(next_after_progress(5, Some(0)), 6, "zero is no count");
+    }
 
     #[test]
     fn every_segment_maps_to_a_status() {
