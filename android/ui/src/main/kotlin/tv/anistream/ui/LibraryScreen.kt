@@ -54,21 +54,22 @@ import tv.anistream.store.label
 import tv.anistream.store.latestAired
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.Strings
+import android.content.Context
+import tv.anistream.store.Wording
 
 /** How the Library orders a list. */
-private enum class LibrarySort(val label: String) {
-    LastWatched("Last watched"),
-    Title("Title"),
-    Score("Score"),
+private enum class LibrarySort(val labelRes: Int) {
+    LastWatched(R.string.library_sort_last_watched),
+    Title(R.string.library_sort_title),
+    Score(R.string.library_sort_score),
 }
 
 /** "3.4 GB on this device", or that nothing is. */
-internal fun storageLine(bytes: Long): String {
-    if (bytes <= 0) return "Nothing on this device"
-    val gb = bytes / 1_000_000_000.0
-    return if (gb >= 1) String.format(Locale.UK, "%.1f GB on this device", gb)
-    else String.format(Locale.UK, "%d MB on this device", (bytes / 1_000_000.0).toLong().coerceAtLeast(1))
-}
+internal fun storageLine(context: Context, bytes: Long): String =
+    if (bytes <= 0) Strings.libraryStorageNone(context) else Strings.libraryStorageOnDevice(context, Wording.bytes(context, bytes))
 
 @Composable
 fun LibraryScreen(actions: AppActions) {
@@ -90,21 +91,21 @@ fun LibraryScreen(actions: AppActions) {
     val states = LibraryModel.order.associateWith { store.library.segment(it).state.collectAsStateWithLifecycle() }
 
     ScreenFrame(
-        title = "Library",
+        title = stringResource(R.string.nav_library),
         account = Account(user, actions.openSettings),
         actions = {
             if (!signedOut) {
                 Box {
                     androidx.compose.material3.IconButton(onClick = { sorting = true }) {
-                        Icon(Icons.Sort, contentDescription = "Sort: ${sort.label}")
+                        Icon(Icons.Sort, contentDescription = stringResource(R.string.sort_button, stringResource(sort.labelRes)))
                     }
                     Menu(expanded = sorting, onDismissRequest = { sorting = false }) {
                         for (each in LibrarySort.entries) {
                             DropdownMenuItem(
-                                text = { Text(each.label) },
+                                text = { Text(stringResource(each.labelRes)) },
                                 leadingIcon = {
                                     Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                                        if (each == sort) Icon(Icons.Check, contentDescription = "Current")
+                                        if (each == sort) Icon(Icons.Check, contentDescription = stringResource(R.string.library_sort_current))
                                     }
                                 },
                                 onClick = {
@@ -120,7 +121,7 @@ fun LibraryScreen(actions: AppActions) {
     ) { padding ->
         if (signedOut) {
             Column(Modifier.padding(top = padding.calculateTopPadding()).fillMaxSize()) {
-                DownloadsRow(storageLine(store.downloads.bytes(downloads)))
+                DownloadsRow(storageLine(LocalContext.current, store.downloads.bytes(downloads)))
                 SignedOutLibrary(actions, Modifier.weight(1f))
             }
             return@ScreenFrame
@@ -140,7 +141,7 @@ fun LibraryScreen(actions: AppActions) {
             // Every item moves with the rest, the rows above the posters too, so switching lists
             // never slides a poster over a line that snapped into place.
             item(span = { GridItemSpan(maxLineSpan) }, key = "downloads", contentType = "downloads") {
-                DownloadsRow(storageLine(store.downloads.bytes(downloads)), inset = false, modifier = itemMotion())
+                DownloadsRow(storageLine(LocalContext.current, store.downloads.bytes(downloads)), inset = false, modifier = itemMotion())
             }
             item(span = { GridItemSpan(maxLineSpan) }, key = "lists", contentType = "lists") {
                 LazyRow(itemMotion(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -152,13 +153,13 @@ fun LibraryScreen(actions: AppActions) {
             }
             when (val list = state) {
                 is ListState.Failed -> item(span = { GridItemSpan(maxLineSpan) }, key = "quiet", contentType = "quiet") {
-                    Box(itemMotion()) { FailedState("Couldn't load your ${segment.label(LocalContext.current)} list", list.reason, retry = { store.loadLibrary(segment) }) }
+                    Box(itemMotion()) { FailedState(stringResource(R.string.library_list_load_failed, segment.label(LocalContext.current)), list.reason, retry = { store.loadLibrary(segment) }) }
                 }
                 ListState.Empty -> item(span = { GridItemSpan(maxLineSpan) }, key = "quiet", contentType = "quiet") {
-                    Box(itemMotion()) { Quiet("Nothing on your ${segment.label(LocalContext.current)} list") }
+                    Box(itemMotion()) { Quiet(stringResource(R.string.library_list_empty, segment.label(LocalContext.current))) }
                 }
                 is ListState.Loaded -> items(entries, key = { it.id.toLong() }, contentType = { "poster" }) { entry ->
-                    PosterCell(entry, itemMotion(), from = "library", detail = libraryDetail(entry), fresh = hasNew(entry))
+                    PosterCell(entry, itemMotion(), from = "library", detail = libraryDetail(LocalContext.current, entry), fresh = hasNew(entry))
                 }
                 else -> if (offline) {
                     item(span = { GridItemSpan(maxLineSpan) }, key = "offline", contentType = "quiet") { Box(itemMotion()) { AfterWait { OfflineState() } } }
@@ -172,10 +173,10 @@ fun LibraryScreen(actions: AppActions) {
 }
 
 /** "Ep 7 of 24", or "Ep 7" while the length is unannounced. */
-private fun libraryDetail(entry: Entry): String? {
+private fun libraryDetail(context: Context, entry: Entry): String? {
     val next = entry.progress?.next ?: return entry.genreLine
     val total = entry.episodes?.takeIf { it > 0u }
-    return if (total != null) "Ep $next of $total" else "Ep $next"
+    return if (total != null) Strings.libraryDetailOf(context, next.toInt(), total.toInt()) else Strings.libraryDetailNext(context, next.toInt())
 }
 
 /** Whether the next episode to watch is out: a water dot beside the line. */
@@ -199,7 +200,7 @@ private fun DownloadsRow(detail: String, inset: Boolean = true, modifier: Modifi
     ) {
         Icon(Icons.Downloads, contentDescription = null)
         Column(Modifier.weight(1f)) {
-            Text("Downloads", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.downloads_title), style = MaterialTheme.typography.titleMedium)
             Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -243,18 +244,18 @@ private fun SignedOutLibrary(actions: AppActions, modifier: Modifier = Modifier)
     ) {
         Spacer(Modifier.weight(1f))
         Nagare(cell = 5)
-        Text("Your lists come from AniList", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
+        Text(stringResource(R.string.library_signed_out_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
         Text(
-            "Sign in to sync what you watch and where you stopped.",
+            stringResource(R.string.library_signed_out_detail),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 6.dp).width(320.dp),
         )
-        Button(onClick = actions.connectAniList, modifier = Modifier.padding(top = 20.dp)) { Text("Sign in to AniList") }
+        Button(onClick = actions.connectAniList, modifier = Modifier.padding(top = 20.dp)) { Text(stringResource(R.string.library_signed_out_action)) }
         Spacer(Modifier.weight(1f))
         Text(
-            LEGAL_LINE,
+            stringResource(R.string.legal_hosts_no_content),
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,

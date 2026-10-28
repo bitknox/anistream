@@ -63,6 +63,10 @@ import tv.anistream.engine.model.SyncState
 import tv.anistream.store.AccountsModel
 import tv.anistream.store.Wording
 import androidx.compose.ui.platform.LocalContext
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.Strings
+import android.content.Context
 
 /** The panes of Settings, in the list's order. */
 enum class SettingsPane(val route: String, val titleRes: Int) {

@@ -65,6 +65,11 @@ import tv.anistream.store.installedVersion
 import tv.anistream.store.runByLine
 import tv.anistream.store.standing
 import tv.anistream.store.updates
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import tv.anistream.i18n.Strings
+import android.content.Context
 
 internal const val STORES_ROUTE = "stores"
 

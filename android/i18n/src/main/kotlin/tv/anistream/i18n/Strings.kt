@@ -1269,6 +1269,138 @@ object Strings {
     fun settingsSummaryTorrentsOff(context: Context): String =
         context.getString(R.string.settings_summary_torrents_off)
 
+    /** Library: the downloads row, with the space the downloads use. The size is already formatted. */
+    fun libraryStorageOnDevice(context: Context, size: String): String =
+        context.getString(R.string.library_storage_on_device, size)
+
+    /** Library: the downloads row when nothing is downloaded. */
+    fun libraryStorageNone(context: Context): String =
+        context.getString(R.string.library_storage_none)
+
+    /** Library list detail: the next episode and how many there are. */
+    fun libraryDetailOf(context: Context, next: Int, total: Int): String =
+        context.getString(R.string.library_detail_of, next, total)
+
+    /** Library list detail: the next episode when the length is not announced. */
+    fun libraryDetailNext(context: Context, next: Int): String =
+        context.getString(R.string.library_detail_next, next)
+
+    /** Library sort menu: by when the title was last watched. */
+    fun librarySortLastWatched(context: Context): String =
+        context.getString(R.string.library_sort_last_watched)
+
+    /** Accessibility label of the check beside the sort in use. */
+    fun librarySortCurrent(context: Context): String =
+        context.getString(R.string.library_sort_current)
+
+    /** Settings, Notifications: the line under the group that says when the permission is asked. */
+    fun settingsNotifyPermissionNote(context: Context): String =
+        context.getString(R.string.settings_notify_permission_note)
+
+    /** Settings, Notifications: the note on the switch once Android has not let notifications go on. */
+    fun settingsNotifyRefused(context: Context): String =
+        context.getString(R.string.settings_notify_refused)
+
+    /** Settings, Notifications: the row that opens Android's channel settings. */
+    fun settingsNotifySystemTitle(context: Context): String =
+        context.getString(R.string.settings_notify_system_title)
+
+    /** Settings, Notifications: what Android's channel settings hold. */
+    fun settingsNotifySystemDetail(context: Context): String =
+        context.getString(R.string.settings_notify_system_detail)
+
+    /** Title language row: what AniList's choice does when nobody is signed in. */
+    fun settingsTitlesLineSignedOut(context: Context): String =
+        context.getString(R.string.settings_titles_line_signed_out)
+
+    /** Title language row: what AniList's choice does with the language the account asks for. */
+    fun settingsTitlesLineAccountLanguage(context: Context, language: String): String =
+        context.getString(R.string.settings_titles_line_account_language, language)
+
+    /** Title language row: what AniList's choice does before the account's language is known. */
+    fun settingsTitlesLineFollows(context: Context): String =
+        context.getString(R.string.settings_titles_line_follows)
+
+    /** Title language row: what the English choice does. */
+    fun settingsTitlesLineEnglish(context: Context): String =
+        context.getString(R.string.settings_titles_line_english)
+
+    /** Title language row: what the Romaji choice does. */
+    fun settingsTitlesLineRomaji(context: Context): String =
+        context.getString(R.string.settings_titles_line_romaji)
+
+    /** Title language note: AniList's choice, with the account's language and the signed-out fallback. */
+    fun settingsTitlesNoteAccount(context: Context, language: String): String =
+        context.getString(R.string.settings_titles_note_account, language)
+
+    /** Title language note: AniList's choice without the account's language. */
+    fun settingsTitlesNoteFollows(context: Context): String =
+        context.getString(R.string.settings_titles_note_follows)
+
+    /** Title language note: a title has no English form, so it keeps its romaji one. */
+    fun settingsTitlesNoteEnglishMissing(context: Context, title: String): String =
+        context.getString(R.string.settings_titles_note_english_missing, title)
+
+    /** Title language note: what the English choice does. */
+    fun settingsTitlesNoteEnglish(context: Context): String =
+        context.getString(R.string.settings_titles_note_english)
+
+    /** Title language note: what the Romaji choice does. */
+    fun settingsTitlesNoteRomaji(context: Context): String =
+        context.getString(R.string.settings_titles_note_romaji)
+
+    /** Settings, Sources: no torrent index address is set. */
+    fun settingsIndexNone(context: Context): String =
+        context.getString(R.string.settings_index_none)
+
+    /** Settings, Sources: how many plugin stores, and how many updates wait in them. */
+    fun settingsStoresWithUpdates(context: Context, stores: Int, updates: String): String =
+        context.getString(R.string.settings_stores_with_updates, stores, updates)
+
+    /** Settings, Sources: the note under the seeding group. */
+    fun settingsSeedingBestEffort(context: Context): String =
+        context.getString(R.string.settings_seeding_best_effort)
+
+    /** Settings, Downloads: the count of downloaded episodes. */
+    fun settingsDownloadsCount(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.settings_downloads_count, count, count)
+
+    /** Settings, Accounts: the group about the main tracker. */
+    fun settingsAnilistFooter(context: Context): String =
+        context.getString(R.string.settings_anilist_footer)
+
+    /** Settings, Accounts: the button that signs in again, in a row. */
+    fun accountsSignInAgainButton(context: Context): String =
+        context.getString(R.string.accounts_sign_in_again_button)
+
+    /** Settings, Accounts: the row that opens the list of differences between here and the tracker. */
+    fun accountsReviewDifferences(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.accounts_review_differences, count, count)
+
+    /** Settings, About: the licence row. */
+    fun settingsLicenceTitle(context: Context): String =
+        context.getString(R.string.settings_licence_title)
+
+    /** Settings, About: the licence row's value. */
+    fun settingsLicenceValue(context: Context): String =
+        context.getString(R.string.settings_licence_value)
+
+    /** Settings, About: the typefaces row's value. */
+    fun settingsTypefacesValue(context: Context): String =
+        context.getString(R.string.settings_typefaces_value)
+
+    /** Settings, About: the libraries row's value. */
+    fun settingsLibrariesValue(context: Context): String =
+        context.getString(R.string.settings_libraries_value)
+
+    /** Settings, About: the report a bug row's value. */
+    fun settingsReportBugValue(context: Context): String =
+        context.getString(R.string.settings_report_bug_value)
+
+    /** Settings, Downloads: what a screen reader says for the bar of how much the downloads take. */
+    fun downloadsStorageShareDescription(context: Context, size: String): String =
+        context.getString(R.string.downloads_storage_share_description, size)
+
     /** Name of the notification channel for download progress, shown in the system's settings. */
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)

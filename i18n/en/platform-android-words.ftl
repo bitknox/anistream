@@ -610,3 +610,156 @@ settings-summary-torrents-on = torrents on
 # Settings list, Sources row: torrents are off.
 # @only android
 settings-summary-torrents-off = torrents off
+
+# Library: the downloads row, with the space the downloads use. The size is already formatted.
+# @only android
+# @arg size: text
+library-storage-on-device = { $size } on this { -device }
+
+# Library: the downloads row when nothing is downloaded.
+# @only android
+library-storage-none = Nothing on this { -device }
+
+# Library list detail: the next episode and how many there are.
+# @only android
+# @arg next: int
+# @arg total: int
+library-detail-of = Ep { $next } of { $total }
+
+# Library list detail: the next episode when the length is not announced.
+# @only android
+# @arg next: int
+library-detail-next = Ep { $next }
+
+# Library sort menu: by when the title was last watched.
+# @only android
+# @max 20
+library-sort-last-watched = Last watched
+
+# Accessibility label of the check beside the sort in use.
+# @only android
+# @max 16
+library-sort-current = Current
+
+# Settings, Notifications: the line under the group that says when the permission is asked.
+# @only android
+settings-notify-permission-note = { -app-name } asks for permission the first time you turn this on.
+
+# Settings, Notifications: the note on the switch once Android has not let notifications go on.
+# @only android
+settings-notify-refused = Off: Android isn’t allowing { -app-name }’s notifications
+
+# Settings, Notifications: the row that opens Android's channel settings.
+# @only android
+settings-notify-system-title = Notification settings
+
+# Settings, Notifications: what Android's channel settings hold.
+# @only android
+settings-notify-system-detail = Sound, vibration and the lock screen
+
+# Title language row: what AniList's choice does when nobody is signed in.
+# @only android
+settings-titles-line-signed-out = English while signed out of AniList
+
+# Title language row: what AniList's choice does with the language the account asks for.
+# @only android
+# @arg language: text
+settings-titles-line-account-language = { $language }, from your AniList account
+
+# Title language row: what AniList's choice does before the account's language is known.
+# @only android
+settings-titles-line-follows = Follows your AniList account
+
+# Title language row: what the English choice does.
+# @only android
+settings-titles-line-english = Romaji where there is no English title
+
+# Title language row: what the Romaji choice does.
+# @only android
+settings-titles-line-romaji = Japanese titles in Latin letters
+
+# Title language note: AniList's choice, with the account's language and the signed-out fallback.
+# @only android
+# @arg language: text
+settings-titles-note-account = Follows your AniList account, which is set to { $language }. While you are signed out of AniList, titles show in English.
+
+# Title language note: AniList's choice without the account's language.
+# @only android
+settings-titles-note-follows = Follows your AniList account. While you are signed out of AniList, titles show in English.
+
+# Title language note: a title has no English form, so it keeps its romaji one.
+# @only android
+# @arg title: text
+settings-titles-note-english-missing = { $title } has no English title on AniList, so it keeps its romaji one.
+
+# Title language note: what the English choice does.
+# @only android
+settings-titles-note-english = English titles as AniList lists them, and romaji where there is none.
+
+# Title language note: what the Romaji choice does.
+# @only android
+settings-titles-note-romaji = Japanese titles written in Latin letters, as AniList lists them.
+
+# Settings, Sources: no torrent index address is set.
+# @only android
+settings-index-none = None set
+
+# Settings, Sources: how many plugin stores, and how many updates wait in them.
+# @only android
+# @arg stores: int
+# @arg updates: text
+settings-stores-with-updates = { $stores } · { $updates }
+
+# Settings, Sources: the note under the seeding group.
+# @only android
+settings-seeding-best-effort = Best effort on this { -device }: seeding runs only while { -app-name } is open.
+
+# Settings, Downloads: the count of downloaded episodes.
+# @only android
+# @arg count: int
+settings-downloads-count = { $count ->
+    [one] One episode
+   *[other] { $count } episodes
+ }
+
+# Settings, Accounts: the group about the main tracker.
+# @only android
+settings-anilist-footer = Progress and list changes sync to AniList. { -library-cap } shows your AniList lists.
+
+# Settings, Accounts: the button that signs in again, in a row.
+# @only android
+# @max 24
+accounts-sign-in-again-button = Sign in again
+
+# Settings, Accounts: the row that opens the list of differences between here and the tracker.
+# @only android
+# @arg count: int
+accounts-review-differences = { $count ->
+    [one] Review one difference
+   *[other] Review { $count } differences
+ }
+
+# Settings, About: the licence row.
+# @only android
+settings-licence-title = Licence
+
+# Settings, About: the licence row's value.
+# @only android
+settings-licence-value = MIT, open { -source } and non-commercial
+
+# Settings, About: the typefaces row's value.
+# @only android
+settings-typefaces-value = Roboto Flex and Zen Kaku Gothic New, under the SIL Open Font License 1.1
+
+# Settings, About: the libraries row's value.
+# @only android
+settings-libraries-value = JNA and AndroidX, under the Apache License 2.0
+
+# Settings, About: the report a bug row's value.
+# @only android
+settings-report-bug-value = Opens GitHub in your browser
+
+# Settings, Downloads: what a screen reader says for the bar of how much the downloads take.
+# @only android
+# @arg size: text
+downloads-storage-share-description = Downloads take { $size }

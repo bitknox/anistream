@@ -704,6 +704,78 @@
     <string name="settings_summary_torrents_on">torrents on</string>
     <!-- Settings list, Sources row: torrents are off. -->
     <string name="settings_summary_torrents_off">torrents off</string>
+    <!-- Library: the downloads row, with the space the downloads use. The size is already formatted. -->
+    <string name="library_storage_on_device">%1$s on this device</string>
+    <!-- Library: the downloads row when nothing is downloaded. -->
+    <string name="library_storage_none">Nothing on this device</string>
+    <!-- Library list detail: the next episode and how many there are. -->
+    <string name="library_detail_of">Ep %1$d of %2$d</string>
+    <!-- Library list detail: the next episode when the length is not announced. -->
+    <string name="library_detail_next">Ep %1$d</string>
+    <!-- Library sort menu: by when the title was last watched. -->
+    <string name="library_sort_last_watched">Last watched</string>
+    <!-- Accessibility label of the check beside the sort in use. -->
+    <string name="library_sort_current">Current</string>
+    <!-- Settings, Notifications: the line under the group that says when the permission is asked. -->
+    <string name="settings_notify_permission_note">anistream asks for permission the first time you turn this on.</string>
+    <!-- Settings, Notifications: the note on the switch once Android has not let notifications go on. -->
+    <string name="settings_notify_refused">Off: Android isn’t allowing anistream’s notifications</string>
+    <!-- Settings, Notifications: the row that opens Android's channel settings. -->
+    <string name="settings_notify_system_title">Notification settings</string>
+    <!-- Settings, Notifications: what Android's channel settings hold. -->
+    <string name="settings_notify_system_detail">Sound, vibration and the lock screen</string>
+    <!-- Title language row: what AniList's choice does when nobody is signed in. -->
+    <string name="settings_titles_line_signed_out">English while signed out of AniList</string>
+    <!-- Title language row: what AniList's choice does with the language the account asks for. -->
+    <string name="settings_titles_line_account_language">%1$s, from your AniList account</string>
+    <!-- Title language row: what AniList's choice does before the account's language is known. -->
+    <string name="settings_titles_line_follows">Follows your AniList account</string>
+    <!-- Title language row: what the English choice does. -->
+    <string name="settings_titles_line_english">Romaji where there is no English title</string>
+    <!-- Title language row: what the Romaji choice does. -->
+    <string name="settings_titles_line_romaji">Japanese titles in Latin letters</string>
+    <!-- Title language note: AniList's choice, with the account's language and the signed-out fallback. -->
+    <string name="settings_titles_note_account">Follows your AniList account, which is set to %1$s. While you are signed out of AniList, titles show in English.</string>
+    <!-- Title language note: AniList's choice without the account's language. -->
+    <string name="settings_titles_note_follows">Follows your AniList account. While you are signed out of AniList, titles show in English.</string>
+    <!-- Title language note: a title has no English form, so it keeps its romaji one. -->
+    <string name="settings_titles_note_english_missing">%1$s has no English title on AniList, so it keeps its romaji one.</string>
+    <!-- Title language note: what the English choice does. -->
+    <string name="settings_titles_note_english">English titles as AniList lists them, and romaji where there is none.</string>
+    <!-- Title language note: what the Romaji choice does. -->
+    <string name="settings_titles_note_romaji">Japanese titles written in Latin letters, as AniList lists them.</string>
+    <!-- Settings, Sources: no torrent index address is set. -->
+    <string name="settings_index_none">None set</string>
+    <!-- Settings, Sources: how many plugin stores, and how many updates wait in them. -->
+    <string name="settings_stores_with_updates">%1$d · %2$s</string>
+    <!-- Settings, Sources: the note under the seeding group. -->
+    <string name="settings_seeding_best_effort">Best effort on this device: seeding runs only while anistream is open.</string>
+    <!-- Settings, Downloads: the count of downloaded episodes. -->
+    <plurals name="settings_downloads_count">
+        <item quantity="one">One episode</item>
+        <item quantity="other">%1$d episodes</item>
+    </plurals>
+    <!-- Settings, Accounts: the group about the main tracker. -->
+    <string name="settings_anilist_footer">Progress and list changes sync to AniList. Library shows your AniList lists.</string>
+    <!-- Settings, Accounts: the button that signs in again, in a row. -->
+    <string name="accounts_sign_in_again_button">Sign in again</string>
+    <!-- Settings, Accounts: the row that opens the list of differences between here and the tracker. -->
+    <plurals name="accounts_review_differences">
+        <item quantity="one">Review one difference</item>
+        <item quantity="other">Review %1$d differences</item>
+    </plurals>
+    <!-- Settings, About: the licence row. -->
+    <string name="settings_licence_title">Licence</string>
+    <!-- Settings, About: the licence row's value. -->
+    <string name="settings_licence_value">MIT, open source and non-commercial</string>
+    <!-- Settings, About: the typefaces row's value. -->
+    <string name="settings_typefaces_value">Roboto Flex and Zen Kaku Gothic New, under the SIL Open Font License 1.1</string>
+    <!-- Settings, About: the libraries row's value. -->
+    <string name="settings_libraries_value">JNA and AndroidX, under the Apache License 2.0</string>
+    <!-- Settings, About: the report a bug row's value. -->
+    <string name="settings_report_bug_value">Opens GitHub in your browser</string>
+    <!-- Settings, Downloads: what a screen reader says for the bar of how much the downloads take. -->
+    <string name="downloads_storage_share_description">Downloads take %1$s</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->
