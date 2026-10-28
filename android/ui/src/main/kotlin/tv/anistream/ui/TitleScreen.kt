@@ -758,7 +758,7 @@ private fun SeasonPage(
                 // that would otherwise stand for good.
                 item(key = "failed", contentType = "failed") {
                     Box(itemMotion()) {
-                        FailedState("Couldn't load this title", TITLE_FAILED, retry = { store.loadDetail(entry.id) })
+                        FailedState(stringResource(R.string.title_load_failed), stringResource(R.string.title_fetch_failed_detail), retry = { store.loadDetail(entry.id) })
                     }
                 }
             } else {
@@ -779,9 +779,6 @@ private fun SeasonPage(
         }
     }
 }
-
-/** What a page says when its title's fetch ended without it: the engine says no more. */
-private const val TITLE_FAILED = "AniList didn't answer."
 
 /** [content] after 600 ms when [wait], else at once. */
 @Composable
@@ -937,7 +934,7 @@ private val TitleOverArt = ShowTitle.page.copy(shadow = Shadow(ObiSilk.Ground.co
 /** The facts on one line, then the top three tags on another, each cut at the end. */
 @Composable
 private fun FactsLines(entry: Entry) {
-    val facts = entry.factsLine()
+    val facts = entry.factsLine(LocalContext.current)
     val tags = entry.tagsLine()
     if (facts == null && tags == null) return
     Column(Modifier.padding(horizontal = 16.dp).padding(top = 4.dp)) {
@@ -955,11 +952,11 @@ private fun MoreAboutRow(onOpen: () -> Unit) {
             .padding(top = 4.dp)
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clickable(onClickLabel = "Open the sheet", onClick = onOpen)
+            .clickable(onClickLabel = stringResource(R.string.action_open), onClick = onOpen)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("More about this show", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+        Text(stringResource(R.string.title_more_about), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
         Icon(Icons.Chevron, contentDescription = null, modifier = Modifier.size(20.dp))
     }
 }
@@ -970,7 +967,7 @@ private fun RelatedRail(related: List<tv.anistream.engine.model.LinkedTitle>) {
     val navigator = LocalNavigator.current
     val colors = MaterialTheme.colorScheme
     Column(Modifier.padding(top = 8.dp)) {
-        Text("Related", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp).semantics { heading() })
+        Text(stringResource(R.string.title_related), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp).semantics { heading() })
         androidx.compose.foundation.lazy.LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -978,14 +975,14 @@ private fun RelatedRail(related: List<tv.anistream.engine.model.LinkedTitle>) {
         ) {
             items(related, key = { it.id.toLong() }) { linked ->
                 Row(
-                    itemMotion().clickable(onClickLabel = "Open title") { navigator.openTitle(linked.id, "related") },
+                    itemMotion().clickable(onClickLabel = stringResource(R.string.title_open)) { navigator.openTitle(linked.id, "related") },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     ArtworkImage(linked.coverUrl, plate = linked.plate(), maxPixelSize = 120, modifier = Modifier.size(40.dp, 60.dp).clip(ArtShape.cover(40.dp)))
                     Column {
                         Text(linked.title, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
-                        Text(linked.cardLine(), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1)
+                        Text(linked.cardLine(LocalContext.current), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1)
                     }
                 }
             }
@@ -1020,9 +1017,9 @@ private fun TitleHeader(entry: Entry, shared: Boolean, modifier: Modifier = Modi
                 modifier = Modifier.semantics { heading() },
             )
             OtherForms(entry, Modifier.padding(top = 2.dp))
-            if (entry.capsLine.isNotEmpty()) {
+            if (entry.headlineMeta(LocalContext.current).isNotEmpty()) {
                 Text(
-                    entry.capsLine,
+                    entry.headlineMeta(LocalContext.current),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
@@ -1082,19 +1079,19 @@ private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = M
         modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CircleIconButton(Icons.Back, "Back", onBack)
+        CircleIconButton(Icons.Back, stringResource(R.string.action_back), onBack)
         Spacer(Modifier.weight(1f))
         val action = titleAction(entry)
         if (store.tv.available && action.playable) {
-            CircleIconButton(Icons.Tv, "Play on TV", {
+            CircleIconButton(Icons.Tv, stringResource(R.string.tv_play_on), {
                 store.tv.offer(TvPlayRequest(entry.id, entry.showTitle, action.episode.toString(), action.resume?.position))
             })
         }
         Box {
-            CircleIconButton(Icons.More, "More", { more = true })
+            CircleIconButton(Icons.More, stringResource(R.string.action_more), { more = true })
             Menu(expanded = more, onDismissRequest = { more = false }) {
                 DropdownMenuItem(
-                    text = { Text("Settings for this show") },
+                    text = { Text(stringResource(R.string.show_settings_title)) },
                     leadingIcon = { Icon(Icons.Settings, null) },
                     onClick = {
                         more = false
@@ -1110,7 +1107,7 @@ private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = M
                     },
                 )
                 DropdownMenuItem(
-                    text = { Text("Hide from Continue") },
+                    text = { Text(stringResource(R.string.continue_hide)) },
                     leadingIcon = { Icon(Icons.HideRow, null) },
                     onClick = {
                         more = false
@@ -1118,7 +1115,7 @@ private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = M
                     },
                 )
                 DropdownMenuItem(
-                    text = { Text("Open on AniList") },
+                    text = { Text(stringResource(R.string.title_open_anilist)) },
                     leadingIcon = { Icon(Icons.External, null) },
                     onClick = {
                         more = false
@@ -1160,7 +1157,7 @@ private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
                 // What it plays crossfades as an episode is marked (T9).
-                Crossfade(action.label, animationSpec = Motion.standard(), label = "action") {
+                Crossfade(action.label(LocalContext.current), animationSpec = Motion.standard(), label = "action") {
                     Text(it, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
                 }
             }
@@ -1174,7 +1171,7 @@ private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
                 FilledTonalButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
                     // After a pick the label crossfades on quick, and the button keeps its size (T7).
                     androidx.compose.animation.AnimatedContent(
-                        entry.listStatus?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list",
+                        entry.listStatus?.label(LocalContext.current)?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.library_add_to_list),
                         transitionSpec = { fadeIn(Motion.quick()) togetherWith fadeOut(Motion.quick()) },
                         label = "list",
                     ) { Text(it) }
@@ -1184,10 +1181,10 @@ private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
                 Menu(expanded = open, onDismissRequest = { open = false }) {
                     for (segment in LibraryModel.order) {
                         DropdownMenuItem(
-                            text = { Text(segment.label.replaceFirstChar { it.uppercase() }) },
+                            text = { Text(segment.label(LocalContext.current).replaceFirstChar { it.uppercase() }) },
                             leadingIcon = {
                                 Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                                    if (entry.listStatus == segment) Icon(Icons.Check, contentDescription = "Current")
+                                    if (entry.listStatus == segment) Icon(Icons.Check, contentDescription = stringResource(R.string.value_current))
                                 }
                             },
                             onClick = {
@@ -1202,7 +1199,7 @@ private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
                 OutlinedButton(onClick = { store.openExternal(trailer) }, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Trailer, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Trailer")
+                    Text(stringResource(R.string.title_trailer))
                 }
             }
         }
@@ -1218,12 +1215,9 @@ private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
 internal fun AddSourceButton(modifier: Modifier = Modifier) {
     val navigator = LocalNavigator.current
     FilledTonalButton(onClick = { navigator.open(PROVIDERS_ROUTE) }, modifier = modifier, contentPadding = PaddingValues(horizontal = 24.dp)) {
-        Text(ADD_A_SOURCE, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+        Text(stringResource(R.string.title_button_add_source), style = MaterialTheme.typography.titleMedium, maxLines = 1)
     }
 }
-
-/** What a title no source has offers in Play's place. */
-internal const val ADD_A_SOURCE = "Add a source to play"
 
 /** "Episode 10 airs Thursday 16:30": a haze line with a water dot. */
 @Composable
@@ -1241,7 +1235,7 @@ internal fun CaughtUp(action: TitleAction, modifier: Modifier = Modifier) {
  * the text out again. The most recent few, on the main thread.
  */
 internal object SynopsisCuts {
-    private data class Key(val text: String, val width: Int, val style: androidx.compose.ui.text.TextStyle, val density: Float, val fontScale: Float)
+    private data class Key(val text: String, val width: Int, val style: androidx.compose.ui.text.TextStyle, val density: Float, val fontScale: Float, val more: String)
 
     /** A cut, or that the whole text fits. */
     private class Cut(val text: String?)
@@ -1250,12 +1244,12 @@ internal object SynopsisCuts {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Key, Cut>?) = size > 48
     }
 
-    fun get(text: String, width: Int, style: androidx.compose.ui.text.TextStyle, density: androidx.compose.ui.unit.Density, cut: () -> String?): String? =
-        cuts.getOrPut(Key(text, width, style, density.density, density.fontScale)) { Cut(cut()) }.text
+    fun get(text: String, width: Int, style: androidx.compose.ui.text.TextStyle, density: androidx.compose.ui.unit.Density, more: String = "", cut: () -> String?): String? = // i18n-skip
+        cuts.getOrPut(Key(text, width, style, density.density, density.fontScale, more)) { Cut(cut()) }.text
 }
 
-/** What a cut synopsis ends with to be measured: the ellipsis and More, set a little wider. */
-private const val SYNOPSIS_ENDING = "\u2026 More "
+/** What a cut synopsis ends with to be measured: the ellipsis and "More", set a little wider. */
+private fun synopsisEnding(more: String) = "\u2026 $more "
 
 /**
  * The longest start of [text] that leaves room on its two lines at [width] for "… More", with the
@@ -1264,12 +1258,13 @@ private const val SYNOPSIS_ENDING = "\u2026 More "
  * then confirmed against the next length, widening the step only when the estimate is off. A few
  * layouts in all, where the search took one for every halving of the text's length.
  */
-internal fun synopsisCut(text: String, width: Int, style: androidx.compose.ui.text.TextStyle, measurer: androidx.compose.ui.text.TextMeasurer): String? {
+internal fun synopsisCut(text: String, width: Int, style: androidx.compose.ui.text.TextStyle, measurer: androidx.compose.ui.text.TextMeasurer, more: String = "More"): String? { // i18n-skip
+    val synopsisEnding = synopsisEnding(more)
     fun layout(candidate: String) = measurer.measure(candidate, style, maxLines = 2, constraints = Constraints(maxWidth = width))
-    fun fits(length: Int) = !layout(text.take(length).trimEnd() + SYNOPSIS_ENDING).hasVisualOverflow
+    fun fits(length: Int) = !layout(text.take(length).trimEnd() + synopsisEnding).hasVisualOverflow
     val whole = layout(text)
     if (!whole.hasVisualOverflow) return null
-    val ending = measurer.measure(SYNOPSIS_ENDING, style).size.width
+    val ending = measurer.measure(synopsisEnding, style).size.width
     val line = whole.lineCount - 1
     val estimate = whole.getOffsetForPosition(
         androidx.compose.ui.geometry.Offset(
@@ -1319,6 +1314,7 @@ private fun Synopsis(text: String) {
     val colors = MaterialTheme.colorScheme
     val style = MaterialTheme.typography.bodyMedium
     val measurer = rememberTextMeasurer()
+    val more = stringResource(R.string.action_more)
     BoxWithConstraints(
         Modifier
             .padding(horizontal = 16.dp)
@@ -1330,8 +1326,8 @@ private fun Synopsis(text: String) {
     ) {
         val width = constraints.maxWidth
         val density = LocalDensity.current
-        val cut = remember(text, width, style, density) {
-            SynopsisCuts.get(text, width, style, density) { synopsisCut(text, width, style, measurer) }
+        val cut = remember(text, width, style, density, more) {
+            SynopsisCuts.get(text, width, style, density, more) { synopsisCut(text, width, style, measurer, more) }
         }
         Text(
             buildAnnotatedString {
@@ -1340,7 +1336,7 @@ private fun Synopsis(text: String) {
                 } else {
                     append(cut)
                     append(" ")
-                    withStyle(SpanStyle(color = colors.onSurface, fontWeight = FontWeight.Medium)) { append("More") }
+                    withStyle(SpanStyle(color = colors.onSurface, fontWeight = FontWeight.Medium)) { append(more) }
                 }
             },
             style = style,
@@ -1396,11 +1392,13 @@ private fun rememberSeasonGeometry(count: Int, available: Dp): SeasonGeometry {
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val style = MaterialTheme.typography.labelLarge
-    return remember(count, available, density, style) {
+    val context = LocalContext.current
+    fun seasonLabel(n: Int) = context.getString(R.string.season_number, n)
+    return remember(count, available, density, style, context.resources.configuration.locales) {
         with(density) {
             fun width(text: String, of: androidx.compose.ui.text.TextStyle = style) =
                 measurer.measure(text, of, maxLines = 1, softWrap = false).size.width.toFloat()
-            val label = (1..count).maxOfOrNull { width("Season $it") } ?: 0f
+            val label = (1..count).maxOfOrNull { width(seasonLabel(it)) } ?: 0f
             val count2 = width("00/00", style.tabular().copy(fontWeight = FontWeight.Normal))
             val check = (18.dp + 6.dp).toPx()
             val gap = 2.dp.toPx()
@@ -1495,7 +1493,7 @@ private fun Seasons(
                         enabled = !isChosen,
                     ) { color ->
                         androidx.compose.foundation.text.BasicText(
-                            "Season ${index + 1}",
+                            stringResource(R.string.season_number, index + 1),
                             style = MaterialTheme.typography.labelLarge,
                             color = color,
                             maxLines = 1,
@@ -1600,7 +1598,7 @@ private fun LazyListScope.episodeRows(
 @Composable
 private fun NoEpisodes(modifier: Modifier = Modifier) {
     Text(
-        "No episodes yet",
+        stringResource(R.string.title_no_episodes),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier.padding(vertical = 16.dp),
@@ -1669,16 +1667,20 @@ private fun rememberEpisodeFold(id: AnilistId, grid: androidx.compose.foundation
 private fun WatchedFoldRow(folded: List<EpisodeRow>, unfolded: Boolean, modifier: Modifier = Modifier, dub: String? = null, onToggle: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val turn by androidx.compose.animation.core.animateFloatAsState(if (unfolded) 180f else 0f, Motion.quick(), label = "fold")
+    val hide = stringResource(R.string.title_hide_watched)
+    val show = stringResource(R.string.title_show_watched)
+    val expanded = stringResource(R.string.state_expanded)
+    val collapsed = stringResource(R.string.state_collapsed)
     Row(
         modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clickable(onClickLabel = if (unfolded) "Hide watched episodes" else "Show watched episodes", onClick = onToggle)
-            .semantics { stateDescription = if (unfolded) "Expanded" else "Collapsed" },
+            .clickable(onClickLabel = if (unfolded) hide else show, onClick = onToggle)
+            .semantics { stateDescription = if (unfolded) expanded else collapsed },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            if (unfolded) "Hide watched episodes" else watchedRangeWords(folded),
+            if (unfolded) hide else watchedRangeWords(LocalContext.current, folded),
             style = MaterialTheme.typography.bodyLarge,
             color = colors.onSurfaceVariant,
             modifier = Modifier.weight(1f),
@@ -1814,8 +1816,8 @@ private fun TabletTitle(
                                 entry.alternateTitle?.let {
                                     Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
-                                if (entry.capsLine.isNotEmpty()) {
-                                    Text(entry.capsLine, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+                                if (entry.headlineMeta(LocalContext.current).isNotEmpty()) {
+                                    Text(entry.headlineMeta(LocalContext.current), style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
                                 }
                                 TabletActions(entry, actions, episodes?.firstOrNull()?.metadataOnly == true, Modifier.padding(top = 4.dp))
                             }
@@ -1891,6 +1893,7 @@ private fun TabletSeasons(entry: Entry, family: TitleFamily, onPick: (AnilistId)
 /** The supporting pane, 384 wide in the details column's place: About and the sheet's sections. */
 @Composable
 private fun AboutPane(entry: Entry, onClose: () -> Unit, onOpenTitle: (AnilistId) -> Unit) {
+    val close = stringResource(R.string.action_close)
     val inset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     Column(
         Modifier
@@ -1901,8 +1904,8 @@ private fun AboutPane(entry: Entry, onClose: () -> Unit, onOpenTitle: (AnilistId
             .background(MaterialTheme.colorScheme.surfaceContainer),
     ) {
         Row(Modifier.heightIn(min = 64.dp).padding(start = 24.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("More about this show", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
-            IconButton(onClick = onClose, modifier = Modifier.semantics { contentDescription = "Close" }) {
+            Text(stringResource(R.string.title_more_about), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
+            IconButton(onClick = onClose, modifier = Modifier.semantics { contentDescription = close }) {
                 Icon(Icons.Clear, contentDescription = null)
             }
         }
@@ -1933,7 +1936,7 @@ private fun TabletActions(entry: Entry, actions: AppActions, unlisted: Boolean, 
             Button(onClick = { actions.play(entry.id, action.episode.toString()) }, modifier = Modifier.heightIn(min = 56.dp), contentPadding = PaddingValues(horizontal = 24.dp)) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Crossfade(action.label, animationSpec = Motion.standard(), label = "action") {
+                Crossfade(action.label(LocalContext.current), animationSpec = Motion.standard(), label = "action") {
                     Text(it, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
                 }
             }
@@ -1943,7 +1946,7 @@ private fun TabletActions(entry: Entry, actions: AppActions, unlisted: Boolean, 
         Box {
             FilledTonalButton(onClick = { open = true }, contentPadding = PaddingValues(start = 16.dp, end = 12.dp)) {
                 androidx.compose.animation.AnimatedContent(
-                    entry.listStatus?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list",
+                    entry.listStatus?.label(LocalContext.current)?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.library_add_to_list),
                     transitionSpec = { fadeIn(Motion.quick()) togetherWith fadeOut(Motion.quick()) },
                     label = "list",
                 ) { Text(it) }
@@ -1953,10 +1956,10 @@ private fun TabletActions(entry: Entry, actions: AppActions, unlisted: Boolean, 
             Menu(expanded = open, onDismissRequest = { open = false }) {
                 for (segment in LibraryModel.order) {
                     DropdownMenuItem(
-                        text = { Text(segment.label.replaceFirstChar { it.uppercase() }) },
+                        text = { Text(segment.label(LocalContext.current).replaceFirstChar { it.uppercase() }) },
                         leadingIcon = {
                             Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                                if (entry.listStatus == segment) Icon(Icons.Check, contentDescription = "Current")
+                                if (entry.listStatus == segment) Icon(Icons.Check, contentDescription = stringResource(R.string.value_current))
                             }
                         },
                         onClick = {
@@ -1971,7 +1974,7 @@ private fun TabletActions(entry: Entry, actions: AppActions, unlisted: Boolean, 
             OutlinedButton(onClick = { store.openExternal(trailer) }, contentPadding = PaddingValues(start = 16.dp, end = 24.dp)) {
                 Icon(Icons.Trailer, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Trailer")
+                Text(stringResource(R.string.title_trailer))
             }
         }
     }
@@ -1989,12 +1992,13 @@ private fun TitleFacts(entry: Entry, modifier: Modifier = Modifier, onMore: () -
         if (synopsis.isNotEmpty()) {
             Text(synopsis, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 4, overflow = TextOverflow.Ellipsis)
         }
-        val airing = entry.airingState()
+        val context = LocalContext.current
+        val airing = entry.airingState(context)
         val facts = listOfNotNull(
-            entry.studio?.let { "STUDIO" to it },
-            entry.source?.label()?.let { "BASED ON" to it },
-            airing?.let { it.label.uppercase() to it.value },
-            entry.alsoOn()?.let { "ALSO ON" to it },
+            entry.studio?.let { context.getString(R.string.title_studio) to it },
+            entry.source?.label(context)?.let { context.getString(R.string.title_based_on) to it },
+            airing?.let { it.label to it.value },
+            entry.alsoOn(context)?.let { context.getString(R.string.title_facts_also_on) to it },
         )
         if (facts.isNotEmpty()) {
             Column(Modifier.padding(top = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2014,6 +2018,6 @@ private fun TitleFacts(entry: Entry, modifier: Modifier = Modifier, onMore: () -
         entry.tagsLine()?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 12.dp))
         }
-        FilledTonalButton(onClick = onMore, modifier = Modifier.padding(top = 12.dp)) { Text("More about this show") }
+        FilledTonalButton(onClick = onMore, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.title_more_about)) }
     }
 }

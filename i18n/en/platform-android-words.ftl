@@ -763,3 +763,85 @@ settings-report-bug-value = Opens GitHub in your browser
 # @only android
 # @arg size: text
 downloads-storage-share-description = Downloads take { $size }
+
+# Settings aside on a tablet, New episodes: what a notification carries.
+# @only android
+settings-aside-notifications = One notification when an episode of a show you follow comes out: the show and the episode’s number, never its name. A show can turn its own off in its settings.
+
+# Settings aside on a tablet, Downloads: where downloads live.
+# @only android
+settings-aside-downloads = Downloads stay in { -app-name }’s own space on this { -device }, which other apps cannot read. Removing the app removes them.
+
+# Settings aside on a tablet, Sources: the title over the connection check note.
+# @only android
+settings-aside-connection-check = Connection check
+
+# Settings aside on a tablet, Sources: how sources are tried.
+# @only android
+settings-aside-sources = { -source-cap } are tried in order, top to bottom. A show can keep its own { -source }, chosen from its title page.
+
+# Settings aside on a tablet, Accounts: what signing out keeps.
+# @only android
+settings-aside-accounts = { -app-name } works without an account. Your watch history stays on this { -device } when you sign out.
+
+# Settings aside on a tablet, upscaling picture: what a screen reader hears.
+# @only android
+# @arg mode: text
+settings-upscaling-description = The same still, the left half as the 480p source, the right half with { $mode }
+
+# Settings aside on a tablet, upscaling picture: the label over the unprocessed half.
+# @only android
+# @max 20
+settings-upscaling-source = 480p source
+
+# Settings aside on a tablet, upscaling: what no processing does.
+# @only android
+settings-upscaling-note-off = The 480p source, scaled to fit without processing.
+
+# Settings aside on a tablet, upscaling: what the sharp mode does.
+# @only android
+settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
+
+# Settings aside on a tablet, upscaling: what the natural mode does.
+# @only android
+settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
+
+# Torrent sheet: the title when torrents are being turned on.
+# @only android
+torrents-sheet-turn-on-title = Turn on torrents
+
+# Torrent sheet: the title when only the protection changes.
+# @only android
+torrents-sheet-protect-title = Protect torrent traffic
+
+# Torrent sheet: the button that turns torrents on.
+# @only android
+# @max 20
+torrents-sheet-turn-on-button = Turn on
+
+# Torrent sheet: the proxy's host field.
+# @only android
+# @max 20
+torrents-sheet-host = Host
+
+# Torrent sheet: the proxy's port field.
+# @only android
+# @max 20
+torrents-sheet-port = Port
+
+# Torrent sheet: the note under the proxy fields.
+# @only android
+torrents-sheet-proxy-auth-note = User name and password only if the proxy asks for them.
+
+# Torrent sheet: the title when a saved proxy is edited.
+# @only android
+torrents-sheet-edit-proxy-title = Edit proxy
+
+# Title page, facts: the label over the places the title can also be watched.
+# @only android
+# @max 20
+title-facts-also-on = Also on
+
+# Title page: what a failed fetch of the title says under its heading.
+# @only android
+title-fetch-failed-detail = AniList didn’t answer.

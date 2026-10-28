@@ -223,7 +223,7 @@ private fun generalSummary(context: Context, view: SettingsView?): String? {
 private fun playbackSummary(context: Context, view: SettingsView?): String? {
     val rows = view?.rows ?: return null
     val translation = rows.firstOrNull { it.key == SettingKey.TRANSLATION }?.value?.let { translationWords(context, it) }
-    val quality = rows.firstOrNull { it.key == SettingKey.QUALITY }?.let { row -> SettingsCatalog.words(context, row.key, row.value) }
+    val quality = rows.firstOrNull { it.key == SettingKey.QUALITY }?.let { row -> SettingsCatalog.words(context, row) }
     return listOfNotNull(translation, quality).joinToString(" · ").ifEmpty { null } // i18n-skip
 }
 
@@ -346,7 +346,7 @@ private fun TabletSettings(start: SettingsPane, actions: AppActions) {
                     Row(Modifier.fillMaxSize()) {
                         Column(Modifier.weight(1f).fillMaxHeight()) {
                             Box(Modifier.height(64.dp).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
-                                Text(shown.title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+                                Text(stringResource(shown.titleRes), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
                             }
                             Column(
                                 Modifier

@@ -356,7 +356,7 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
             // Nothing to play or download: marking it watched is all that is left.
         } else if (row.metadataOnly) {
             DropdownMenuItem(
-                text = { Text(ADD_A_SOURCE) },
+                text = { Text(stringResource(R.string.title_button_add_source)) },
                 leadingIcon = { Icon(Icons.Providers, contentDescription = null) },
                 onClick = {
                     onDismiss()

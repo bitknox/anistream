@@ -100,7 +100,7 @@ internal fun StoresScreen() {
     val loaded by store.stores.loaded.collectAsStateWithLifecycle()
     val offline by store.offline.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { store.loadStores() }
-    ScreenFrame(title = stringResource(R.string.stores_title), onBack = navigator::back) { padding ->
+    ScreenFrame(title = stringResource(R.string.nav_plugin_stores), onBack = navigator::back) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
@@ -199,7 +199,7 @@ internal fun StoreScreen(id: String) {
                 title = stringResource(R.string.stores_this_store),
                 footer = listOfNotNull(
                     if (row.anonymous) stringResource(R.string.stores_joined_nameless) else stringResource(R.string.stores_device_joined_as, row.member),
-                    row.checkedAt?.let { stringResource(R.string.stores_checked_ago, AccountWords.agoWords(LocalContext.current, System.currentTimeMillis() / 1000 - it)) },
+                    row.checkedAt?.let { stringResource(R.string.stores_checked_ago, Wording.ago(LocalContext.current, System.currentTimeMillis() / 1000 - it)) },
                 ).joinToString(" · "), // i18n-skip
                 rows = buildList<@Composable (Place) -> Unit> {
                     add { place -> InfoRow(place, stringResource(R.string.stores_address), row.host) }

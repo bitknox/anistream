@@ -1401,6 +1401,82 @@ object Strings {
     fun downloadsStorageShareDescription(context: Context, size: String): String =
         context.getString(R.string.downloads_storage_share_description, size)
 
+    /** Settings aside on a tablet, New episodes: what a notification carries. */
+    fun settingsAsideNotifications(context: Context): String =
+        context.getString(R.string.settings_aside_notifications)
+
+    /** Settings aside on a tablet, Downloads: where downloads live. */
+    fun settingsAsideDownloads(context: Context): String =
+        context.getString(R.string.settings_aside_downloads)
+
+    /** Settings aside on a tablet, Sources: the title over the connection check note. */
+    fun settingsAsideConnectionCheck(context: Context): String =
+        context.getString(R.string.settings_aside_connection_check)
+
+    /** Settings aside on a tablet, Sources: how sources are tried. */
+    fun settingsAsideSources(context: Context): String =
+        context.getString(R.string.settings_aside_sources)
+
+    /** Settings aside on a tablet, Accounts: what signing out keeps. */
+    fun settingsAsideAccounts(context: Context): String =
+        context.getString(R.string.settings_aside_accounts)
+
+    /** Settings aside on a tablet, upscaling picture: what a screen reader hears. */
+    fun settingsUpscalingDescription(context: Context, mode: String): String =
+        context.getString(R.string.settings_upscaling_description, mode)
+
+    /** Settings aside on a tablet, upscaling picture: the label over the unprocessed half. */
+    fun settingsUpscalingSource(context: Context): String =
+        context.getString(R.string.settings_upscaling_source)
+
+    /** Settings aside on a tablet, upscaling: what no processing does. */
+    fun settingsUpscalingNoteOff(context: Context): String =
+        context.getString(R.string.settings_upscaling_note_off)
+
+    /** Settings aside on a tablet, upscaling: what the sharp mode does. */
+    fun settingsUpscalingNoteSharp(context: Context): String =
+        context.getString(R.string.settings_upscaling_note_sharp)
+
+    /** Settings aside on a tablet, upscaling: what the natural mode does. */
+    fun settingsUpscalingNoteNatural(context: Context): String =
+        context.getString(R.string.settings_upscaling_note_natural)
+
+    /** Torrent sheet: the title when torrents are being turned on. */
+    fun torrentsSheetTurnOnTitle(context: Context): String =
+        context.getString(R.string.torrents_sheet_turn_on_title)
+
+    /** Torrent sheet: the title when only the protection changes. */
+    fun torrentsSheetProtectTitle(context: Context): String =
+        context.getString(R.string.torrents_sheet_protect_title)
+
+    /** Torrent sheet: the button that turns torrents on. */
+    fun torrentsSheetTurnOnButton(context: Context): String =
+        context.getString(R.string.torrents_sheet_turn_on_button)
+
+    /** Torrent sheet: the proxy's host field. */
+    fun torrentsSheetHost(context: Context): String =
+        context.getString(R.string.torrents_sheet_host)
+
+    /** Torrent sheet: the proxy's port field. */
+    fun torrentsSheetPort(context: Context): String =
+        context.getString(R.string.torrents_sheet_port)
+
+    /** Torrent sheet: the note under the proxy fields. */
+    fun torrentsSheetProxyAuthNote(context: Context): String =
+        context.getString(R.string.torrents_sheet_proxy_auth_note)
+
+    /** Torrent sheet: the title when a saved proxy is edited. */
+    fun torrentsSheetEditProxyTitle(context: Context): String =
+        context.getString(R.string.torrents_sheet_edit_proxy_title)
+
+    /** Title page, facts: the label over the places the title can also be watched. */
+    fun titleFactsAlsoOn(context: Context): String =
+        context.getString(R.string.title_facts_also_on)
+
+    /** Title page: what a failed fetch of the title says under its heading. */
+    fun titleFetchFailedDetail(context: Context): String =
+        context.getString(R.string.title_fetch_failed_detail)
+
     /** Name of the notification channel for download progress, shown in the system's settings. */
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)

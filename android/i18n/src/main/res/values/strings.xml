@@ -776,6 +776,44 @@
     <string name="settings_report_bug_value">Opens GitHub in your browser</string>
     <!-- Settings, Downloads: what a screen reader says for the bar of how much the downloads take. -->
     <string name="downloads_storage_share_description">Downloads take %1$s</string>
+    <!-- Settings aside on a tablet, New episodes: what a notification carries. -->
+    <string name="settings_aside_notifications">One notification when an episode of a show you follow comes out: the show and the episode’s number, never its name. A show can turn its own off in its settings.</string>
+    <!-- Settings aside on a tablet, Downloads: where downloads live. -->
+    <string name="settings_aside_downloads">Downloads stay in anistream’s own space on this device, which other apps cannot read. Removing the app removes them.</string>
+    <!-- Settings aside on a tablet, Sources: the title over the connection check note. -->
+    <string name="settings_aside_connection_check">Connection check</string>
+    <!-- Settings aside on a tablet, Sources: how sources are tried. -->
+    <string name="settings_aside_sources">Source are tried in order, top to bottom. A show can keep its own source, chosen from its title page.</string>
+    <!-- Settings aside on a tablet, Accounts: what signing out keeps. -->
+    <string name="settings_aside_accounts">anistream works without an account. Your watch history stays on this device when you sign out.</string>
+    <!-- Settings aside on a tablet, upscaling picture: what a screen reader hears. -->
+    <string name="settings_upscaling_description">The same still, the left half as the 480p source, the right half with %1$s</string>
+    <!-- Settings aside on a tablet, upscaling picture: the label over the unprocessed half. -->
+    <string name="settings_upscaling_source">480p source</string>
+    <!-- Settings aside on a tablet, upscaling: what no processing does. -->
+    <string name="settings_upscaling_note_off">The 480p source, scaled to fit without processing.</string>
+    <!-- Settings aside on a tablet, upscaling: what the sharp mode does. -->
+    <string name="settings_upscaling_note_sharp">Crisper lines and stronger edges, at some cost to texture.</string>
+    <!-- Settings aside on a tablet, upscaling: what the natural mode does. -->
+    <string name="settings_upscaling_note_natural">Faithful line work and texture, nothing restyled.</string>
+    <!-- Torrent sheet: the title when torrents are being turned on. -->
+    <string name="torrents_sheet_turn_on_title">Turn on torrents</string>
+    <!-- Torrent sheet: the title when only the protection changes. -->
+    <string name="torrents_sheet_protect_title">Protect torrent traffic</string>
+    <!-- Torrent sheet: the button that turns torrents on. -->
+    <string name="torrents_sheet_turn_on_button">Turn on</string>
+    <!-- Torrent sheet: the proxy's host field. -->
+    <string name="torrents_sheet_host">Host</string>
+    <!-- Torrent sheet: the proxy's port field. -->
+    <string name="torrents_sheet_port">Port</string>
+    <!-- Torrent sheet: the note under the proxy fields. -->
+    <string name="torrents_sheet_proxy_auth_note">User name and password only if the proxy asks for them.</string>
+    <!-- Torrent sheet: the title when a saved proxy is edited. -->
+    <string name="torrents_sheet_edit_proxy_title">Edit proxy</string>
+    <!-- Title page, facts: the label over the places the title can also be watched. -->
+    <string name="title_facts_also_on">Also on</string>
+    <!-- Title page: what a failed fetch of the title says under its heading. -->
+    <string name="title_fetch_failed_detail">AniList didn’t answer.</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->
