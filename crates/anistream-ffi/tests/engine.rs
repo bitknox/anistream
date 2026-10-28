@@ -170,6 +170,34 @@ fn a_title_comes_back_whole_with_the_source_pinned_for_it_ahead() {
     engine.shutdown();
 }
 
+#[test]
+fn trailers_are_held_by_what_the_device_and_the_network_say() {
+    use anistream_model::trailer::{AutoplayHold, AutoplayView};
+    let (engine, _root) = started();
+    let saying = |expected: AutoplayView| move |event: &Event| matches!(event, Event::Autoplay(view) if *view == expected);
+    let free = AutoplayView { trailers: true, held_by: None };
+    let held = |hold| AutoplayView { trailers: false, held_by: Some(hold) };
+
+    // Launch says trailers may start: Always is the default, and nothing is known to hold them.
+    read_until(&engine, saying(free));
+
+    let device = |screen_reader| Command::DeviceState {
+        reduce_motion: false,
+        autoplay_previews: true,
+        low_power: false,
+        thermal_serious: false,
+        screen_reader,
+        low_memory: false,
+    };
+    engine.send(device(true));
+    read_until(&engine, saying(held(AutoplayHold::ScreenReader)));
+    engine.send(device(false));
+    read_until(&engine, saying(free));
+    engine.send(Command::NetworkPath { cellular: false, constrained: true, offline: false });
+    read_until(&engine, saying(held(AutoplayHold::Network)));
+    engine.shutdown();
+}
+
 /// The path as a platform monitor says it.
 fn path(offline: bool) -> Command {
     Command::NetworkPath { cellular: false, constrained: false, offline }
@@ -185,7 +213,11 @@ fn being_offline_is_said_once_and_coming_back_loads_again_what_was_asked_meanwhi
     engine.send(path(true));
     engine.send(path(true));
     let read = read_until(&engine, connectivity);
-    assert!(matches!(read.last(), Some(Event::Connectivity { offline: true })), "{read:?}");
+    // The trailers held while offline come in the same batch, after it.
+    assert!(
+        read.iter().any(|event| matches!(event, Event::Connectivity { offline: true })),
+        "{read:?}"
+    );
 
     // Nothing is refused while offline: the screen asks, and is answered as it can be.
     let job = engine.send(Command::LoadSeasonal).expect("loading the season is a job");

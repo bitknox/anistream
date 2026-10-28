@@ -283,6 +283,8 @@ impl Engine {
         let mut launch = VecDeque::new();
         // The settings first: everything after is drawn under the config they say.
         launch.push_back(Event::Settings(state.config.view()));
+        // Whether trailers may start, on that config, before the front end says anything.
+        launch.push_back(crate::autoplay::at_launch(&mut state));
 
         // Joined stores as they were left, so Providers can count them on the first frame.
         let joined = match services.stores.rows() {
@@ -1287,7 +1289,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn launch_says_the_settings_the_stores_the_chain_and_the_trackers_in_that_order() {
+    async fn launch_says_the_settings_autoplay_the_stores_the_chain_and_the_trackers_in_order()
+    {
         let dir = tempfile::tempdir().unwrap();
         let (_engine, mut events) = quiet_engine(dir.path()).await;
         let launch: Vec<&str> = events
@@ -1296,6 +1299,7 @@ mod tests {
             .iter()
             .map(|event| match event {
                 Event::Settings(_) => "settings",
+                Event::Autoplay(view) if view.trailers => "autoplay",
                 Event::Stores(_) => "stores",
                 Event::Providers(_) => "providers",
                 Event::Sync(_) => "sync",
@@ -1303,7 +1307,8 @@ mod tests {
             })
             .collect();
         // Kitsu is the one tracker the defaults build.
-        assert_eq!(launch, ["settings", "stores", "providers", "sync"]);
+        // Trailers may start until the front end says otherwise: Always is the default.
+        assert_eq!(launch, ["settings", "autoplay", "stores", "providers", "sync"]);
         assert!(events.launch().await.is_empty(), "taken once");
     }
 

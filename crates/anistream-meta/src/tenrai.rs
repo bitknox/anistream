@@ -279,6 +279,7 @@ impl Tenrai {
             },
             relations: self.relations_from(datum),
             recommendations: Default::default(),
+            prequels: Default::default(),
             trailer: datum["trailer"]["youtube_id"]
                 .as_str()
                 .map(|id| Trailer { id: Some(id.to_owned()), site: Some("youtube".into()) }),
