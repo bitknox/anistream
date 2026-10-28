@@ -362,7 +362,7 @@ struct ReducerTests {
             .caption(view: .seasonal, text: "autumn 2026"),
             .content(view: .seasonal, content: .entries([entry(900_002, "The Library Above the Clouds")])),
             .content(view: .library(.planning), content: .entries([entry(900_003, "Moonlit Platform")])),
-            .calendarWindow(anchor: 1_800_000_000, pages: 1, morePast: true),
+            .calendarWindow(anchor: 1_800_000_000, pages: 1, morePast: true, floor: 1_792_224_000, ceiling: 1_802_419_200, aheadPages: 1, moreAhead: false),
             .content(view: .calendar, content: .entries([entry(900_006, "Summer Wind Relay")])),
             .calendarBackfill(page: 1, entries: [entry(900_002, "The Library Above the Clouds")], morePast: false),
         ])
