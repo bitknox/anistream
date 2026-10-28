@@ -787,11 +787,11 @@
     <!-- Settings aside on a tablet, Accounts: what signing out keeps. -->
     <string name="settings_aside_accounts">anistream works without an account. Your watch history stays on this device when you sign out.</string>
     <!-- Settings aside on a tablet, upscaling picture: what a screen reader hears. -->
-    <string name="settings_upscaling_description">The same still, the left half as the 480p source, the right half with %1$s</string>
+    <string name="settings_upscaling_description">The same still, the left half as the original 480p, the right half with %1$s</string>
     <!-- Settings aside on a tablet, upscaling picture: the label over the unprocessed half. -->
-    <string name="settings_upscaling_source">480p source</string>
+    <string name="settings_upscaling_source">Original 480p</string>
     <!-- Settings aside on a tablet, upscaling: what no processing does. -->
-    <string name="settings_upscaling_note_off">The 480p source, scaled to fit without processing.</string>
+    <string name="settings_upscaling_note_off">The original 480p, scaled to fit without processing.</string>
     <!-- Settings aside on a tablet, upscaling: what the sharp mode does. -->
     <string name="settings_upscaling_note_sharp">Crisper lines and stronger edges, at some cost to texture.</string>
     <!-- Settings aside on a tablet, upscaling: what the natural mode does. -->
@@ -890,6 +890,77 @@
     <string name="continue_show_season_in_seasonal">Show this season in Seasonal</string>
     <!-- Search, loading: the filters being searched when there are no words. -->
     <string name="search_searching_filters">Searching for %1$s</string>
+    <!-- Player, starting screen and header: an episode whose number is text, such as "7" or "7.5". -->
+    <string name="episode_number_text">Episode %1$s</string>
+    <!-- Player, header: the episode's number and its title. -->
+    <string name="episode_number_title_text">Episode %1$s · %2$s</string>
+    <!-- Player, starting screen: the first line. -->
+    <string name="player_starting_text">Starting episode %1$s</string>
+    <!-- Player, starting screen: what the wait is on, and for how long. -->
+    <string name="player_wait_note">%1$s · %2$d s</string>
+    <!-- Player, starting screen: the title when nothing played. -->
+    <string name="player_failed_title_text">Couldn’t play episode %1$s</string>
+    <!-- Player, track lists: a track with neither language nor title. -->
+    <string name="player_track_n">Track %1$d</string>
+    <!-- Player, seek bar: the position and the length, for a screen reader. -->
+    <string name="player_position_state">%1$s of %2$s</string>
+    <!-- Player, seek bar: the label while scrubbing at a quarter of the speed. -->
+    <string name="player_scrub_quarter">Quarter-speed scrubbing</string>
+    <!-- Player, seek bar: the label while scrubbing at half the speed. -->
+    <string name="player_scrub_half">Half-speed scrubbing</string>
+    <!-- Player, sources sheet: shown while the sources are being asked. -->
+    <string name="player_sheet_finding">Finding sources…</string>
+    <!-- Player, sources sheet: shown when no source has the episode. -->
+    <string name="player_sheet_none">No sources found for this episode.</string>
+    <!-- Player, episodes sheet: shown before the list arrives. -->
+    <string name="player_sheet_episodes_loading">The episode list is on its way.</string>
+    <!-- Player, sources sheet: a stream with both languages. -->
+    <string name="player_dual_audio">Subbed and dubbed</string>
+    <!-- Notification, new episodes: the summary's title when several shows have a new episode. -->
+    <plurals name="notif_new_episodes">
+        <item quantity="one">One new episode</item>
+        <item quantity="other">%1$d new episodes</item>
+    </plurals>
+    <!-- Notification, new episode: what the lock screen shows when previews are hidden. -->
+    <string name="notif_hidden_text">New episode</string>
+    <!-- Notification, new episode: the line under the show's title. -->
+    <string name="notif_episode_out">Episode %1$d is out.</string>
+    <!-- Notification, new episode: the same for a show watched dubbed. -->
+    <string name="notif_episode_out_dubbed">Episode %1$d is out, dubbed.</string>
+    <!-- Notification, new episode: the same for a viewer who is behind. -->
+    <string name="notif_episode_out_next">Episode %1$d is out. Next for you: episode %2$d.</string>
+    <!-- Notification, new episode: the same, dubbed, for a viewer who is behind. -->
+    <string name="notif_episode_out_dubbed_next">Episode %1$d is out, dubbed. Next for you: episode %2$d.</string>
+    <!-- Phone as remote: how this phone introduces itself to a TV. -->
+    <string name="device_name_phone">Android phone</string>
+    <!-- Phone as remote: how this tablet introduces itself to a TV. -->
+    <string name="device_name_tablet">Android tablet</string>
+    <!-- Phone as remote, media card: what the card says while the TV starts the episode. -->
+    <string name="tv_session_starting">Starting on %1$s</string>
+    <!-- Phone as remote, media card: the episode and the TV it plays on. -->
+    <string name="tv_session_line">%1$s · %2$s</string>
+    <!-- Widgets, Continue: the line under a show that has not been started. -->
+    <string name="widget_line_start">Start %1$s</string>
+    <!-- Widgets, Continue: the line under a show with time left in the episode. -->
+    <string name="widget_line_left">%1$s · %2$d min left</string>
+    <!-- Widgets, Continue: the line under a show with the episode out of the season. -->
+    <string name="widget_line_of">E%1$d of %2$d</string>
+    <!-- Widgets, Continue: the title when nothing is in progress. -->
+    <string name="widget_continue_title">Continue</string>
+    <!-- Widgets, Continue: the title and line when the viewer is up to date. -->
+    <string name="widget_caught_up_title">Caught up</string>
+    <!-- Widgets, Continue: the line when the viewer is up to date. -->
+    <string name="widget_caught_up">You’re caught up.</string>
+    <!-- Widgets, Continue: the line when the next episode has a date. -->
+    <string name="widget_caught_up_next">%1$s E%2$d airs %3$s.</string>
+    <!-- Widgets: a day word for the Updated line. -->
+    <string name="widget_day_today">today</string>
+    <!-- Widgets: a day word for the Updated line. -->
+    <string name="widget_day_yesterday">yesterday</string>
+    <!-- Widgets: the Updated line's date when it is a week or more back. -->
+    <string name="widget_day_date">%1$s</string>
+    <!-- Widgets, Continue: the play button for a screen reader, with the mark ("dubbed") after the number. -->
+    <string name="widget_play_dubbed_label">Play episode %1$d, dubbed, of %2$s</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->

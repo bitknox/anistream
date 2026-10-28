@@ -3,6 +3,8 @@
 
 package tv.anistream.player
 
+import tv.anistream.i18n.Strings
+import android.content.Context
 import android.util.Log
 import android.view.Surface
 import androidx.compose.runtime.getValue
@@ -1062,7 +1064,7 @@ class PlayerModel(
         get() = paused || assisted || holds.isNotEmpty() || clock - lastInput < PlayerTiming.CONTROLS_HIDE
 
     /** The starting screen's line: "Starting episode 7", and after a while "Finding a source · 4 s". */
-    fun startingLine(note: String? = null): String? = starting?.line(clock, note)
+    fun startingLine(context: Context, note: String? = null): String? = starting?.line(context, clock, note)
 
     /**
      * The thin buffering line along the video's top edge: mid-episode, once mpv has waited for data
@@ -1134,13 +1136,12 @@ class PlayerModel(
 
     /** The header's lines: the show, and the episode. */
     val showTitle: String get() = episode?.show ?: staged?.title ?: starting?.title ?: ""
-    val episodeLine: String
-        get() {
-            episode?.let { return it.line }
-            val number = staged?.episode ?: starting?.episode ?: ""
-            val title = staged?.episodeTitle ?: starting?.episodeTitle
-            return if (title != null) "Episode $number · $title" else "Episode $number"
-        }
+    fun episodeLine(context: Context): String {
+        episode?.let { return it.line }
+        val number = staged?.episode ?: starting?.episode ?: ""
+        val title = staged?.episodeTitle ?: starting?.episodeTitle
+        return if (title != null) Strings.episodeNumberTitleText(context, number, title) else Strings.episodeNumberText(context, number)
+    }
 
     /** The title playing, for the art and the way back. */
     val titleId: AnilistId? get() = staged?.id ?: starting?.id

@@ -61,6 +61,7 @@ android {
 
 dependencies {
     implementation(project(":store"))
+    implementation(project(":i18n"))
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.core.ktx)

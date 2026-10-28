@@ -1629,6 +1629,142 @@ object Strings {
     fun searchSearchingFilters(context: Context, filters: String): String =
         context.getString(R.string.search_searching_filters, filters)
 
+    /** Player, starting screen and header: an episode whose number is text, such as "7" or "7.5". */
+    fun episodeNumberText(context: Context, number: String): String =
+        context.getString(R.string.episode_number_text, number)
+
+    /** Player, header: the episode's number and its title. */
+    fun episodeNumberTitleText(context: Context, number: String, title: String): String =
+        context.getString(R.string.episode_number_title_text, number, title)
+
+    /** Player, starting screen: the first line. */
+    fun playerStartingText(context: Context, episode: String): String =
+        context.getString(R.string.player_starting_text, episode)
+
+    /** Player, starting screen: what the wait is on, and for how long. */
+    fun playerWaitNote(context: Context, what: String, seconds: Int): String =
+        context.getString(R.string.player_wait_note, what, seconds)
+
+    /** Player, starting screen: the title when nothing played. */
+    fun playerFailedTitleText(context: Context, episode: String): String =
+        context.getString(R.string.player_failed_title_text, episode)
+
+    /** Player, track lists: a track with neither language nor title. */
+    fun playerTrackN(context: Context, id: Int): String =
+        context.getString(R.string.player_track_n, id)
+
+    /** Player, seek bar: the position and the length, for a screen reader. */
+    fun playerPositionState(context: Context, at: String, total: String): String =
+        context.getString(R.string.player_position_state, at, total)
+
+    /** Player, seek bar: the label while scrubbing at a quarter of the speed. */
+    fun playerScrubQuarter(context: Context): String =
+        context.getString(R.string.player_scrub_quarter)
+
+    /** Player, seek bar: the label while scrubbing at half the speed. */
+    fun playerScrubHalf(context: Context): String =
+        context.getString(R.string.player_scrub_half)
+
+    /** Player, sources sheet: shown while the sources are being asked. */
+    fun playerSheetFinding(context: Context): String =
+        context.getString(R.string.player_sheet_finding)
+
+    /** Player, sources sheet: shown when no source has the episode. */
+    fun playerSheetNone(context: Context): String =
+        context.getString(R.string.player_sheet_none)
+
+    /** Player, episodes sheet: shown before the list arrives. */
+    fun playerSheetEpisodesLoading(context: Context): String =
+        context.getString(R.string.player_sheet_episodes_loading)
+
+    /** Player, sources sheet: a stream with both languages. */
+    fun playerDualAudio(context: Context): String =
+        context.getString(R.string.player_dual_audio)
+
+    /** Notification, new episodes: the summary's title when several shows have a new episode. */
+    fun notifNewEpisodes(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.notif_new_episodes, count, count)
+
+    /** Notification, new episode: what the lock screen shows when previews are hidden. */
+    fun notifHiddenText(context: Context): String =
+        context.getString(R.string.notif_hidden_text)
+
+    /** Notification, new episode: the line under the show's title. */
+    fun notifEpisodeOut(context: Context, episode: Int): String =
+        context.getString(R.string.notif_episode_out, episode)
+
+    /** Notification, new episode: the same for a show watched dubbed. */
+    fun notifEpisodeOutDubbed(context: Context, episode: Int): String =
+        context.getString(R.string.notif_episode_out_dubbed, episode)
+
+    /** Notification, new episode: the same for a viewer who is behind. */
+    fun notifEpisodeOutNext(context: Context, episode: Int, next: Int): String =
+        context.getString(R.string.notif_episode_out_next, episode, next)
+
+    /** Notification, new episode: the same, dubbed, for a viewer who is behind. */
+    fun notifEpisodeOutDubbedNext(context: Context, episode: Int, next: Int): String =
+        context.getString(R.string.notif_episode_out_dubbed_next, episode, next)
+
+    /** Phone as remote: how this phone introduces itself to a TV. */
+    fun deviceNamePhone(context: Context): String =
+        context.getString(R.string.device_name_phone)
+
+    /** Phone as remote: how this tablet introduces itself to a TV. */
+    fun deviceNameTablet(context: Context): String =
+        context.getString(R.string.device_name_tablet)
+
+    /** Phone as remote, media card: what the card says while the TV starts the episode. */
+    fun tvSessionStarting(context: Context, tv: String): String =
+        context.getString(R.string.tv_session_starting, tv)
+
+    /** Phone as remote, media card: the episode and the TV it plays on. */
+    fun tvSessionLine(context: Context, line: String, tv: String): String =
+        context.getString(R.string.tv_session_line, line, tv)
+
+    /** Widgets, Continue: the line under a show that has not been started. */
+    fun widgetLineStart(context: Context, episode: String): String =
+        context.getString(R.string.widget_line_start, episode)
+
+    /** Widgets, Continue: the line under a show with time left in the episode. */
+    fun widgetLineLeft(context: Context, episode: String, minutes: Int): String =
+        context.getString(R.string.widget_line_left, episode, minutes)
+
+    /** Widgets, Continue: the line under a show with the episode out of the season. */
+    fun widgetLineOf(context: Context, episode: Int, total: Int): String =
+        context.getString(R.string.widget_line_of, episode, total)
+
+    /** Widgets, Continue: the title when nothing is in progress. */
+    fun widgetContinueTitle(context: Context): String =
+        context.getString(R.string.widget_continue_title)
+
+    /** Widgets, Continue: the title and line when the viewer is up to date. */
+    fun widgetCaughtUpTitle(context: Context): String =
+        context.getString(R.string.widget_caught_up_title)
+
+    /** Widgets, Continue: the line when the viewer is up to date. */
+    fun widgetCaughtUp(context: Context): String =
+        context.getString(R.string.widget_caught_up)
+
+    /** Widgets, Continue: the line when the next episode has a date. */
+    fun widgetCaughtUpNext(context: Context, title: String, episode: Int, airs: String): String =
+        context.getString(R.string.widget_caught_up_next, title, episode, airs)
+
+    /** Widgets: a day word for the Updated line. */
+    fun widgetDayToday(context: Context): String =
+        context.getString(R.string.widget_day_today)
+
+    /** Widgets: a day word for the Updated line. */
+    fun widgetDayYesterday(context: Context): String =
+        context.getString(R.string.widget_day_yesterday)
+
+    /** Widgets: the Updated line's date when it is a week or more back. */
+    fun widgetDayDate(context: Context, day: String): String =
+        context.getString(R.string.widget_day_date, day)
+
+    /** Widgets, Continue: the play button for a screen reader, with the mark ("dubbed") after the number. */
+    fun widgetPlayDubbedLabel(context: Context, episode: Int, title: String): String =
+        context.getString(R.string.widget_play_dubbed_label, episode, title)
+
     /** Name of the notification channel for download progress, shown in the system's settings. */
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)

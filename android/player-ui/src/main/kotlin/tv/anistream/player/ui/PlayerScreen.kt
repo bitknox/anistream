@@ -4,6 +4,9 @@
 
 package tv.anistream.player.ui
 
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.os.Handler
@@ -241,13 +244,14 @@ fun PlayerScreen(
 
         // Waiting for data mid-episode: the thin amber line along the video's top edge, from 1 s
         // in until playback goes on. The stall prompt comes at 8 s, as ever.
+        val bufferingLabel = stringResource(R.string.player_buffering)
         AnimatedVisibility(
             model.showsBuffering && !pip,
             enter = fadeIn(Motion.fadeIn()),
             exit = fadeOut(Motion.fadeOut()),
             modifier = Modifier.offset(rect.x, rect.y).width(rect.width),
         ) {
-            BufferingLine(Modifier.fillMaxWidth().height(BUFFERING_LINE).semantics { contentDescription = "Buffering" })
+            BufferingLine(Modifier.fillMaxWidth().height(BUFFERING_LINE).semantics { contentDescription = bufferingLabel })
         }
 
         // Taps on the video: the middle third shows and hides the controls at once; the sides
@@ -330,7 +334,7 @@ fun PlayerScreen(
                 ) {
                     // "+30 s": counts up with each tap of a run, gone 0.6 s after the last.
                     val shown = run?.takeIf { it.third == third }
-                    FadingLabel(runShown && shown != null, "${if (third == Third.Start) "\u2212" else "+"}${(shown?.taps ?: 1) * SEEK_STEP.toInt()} s")
+                    FadingLabel(runShown && shown != null, (if (third == Third.Start) "\u2212" else "+") + Strings.durationSeconds(LocalContext.current, (shown?.taps ?: 1) * SEEK_STEP.toInt())) // i18n-skip
                 }
             }
         }
@@ -511,10 +515,10 @@ private fun StartingLayer(model: PlayerModel, rect: VideoRect, art: Boolean, onC
                 val failure = model.failure
                 if (failure != null) {
                     // It never played: said where the viewer is looking, with another source to choose.
-                    Text("Couldn't play episode ${failure.episode}", style = line, color = ObiSilk.Silk)
+                    Text(Strings.playerFailedTitleText(LocalContext.current, failure.episode), style = line, color = ObiSilk.Silk)
                     Text(
                         // Why, as the engine said it, when it did.
-                        failure.reason?.let { "$it." } ?: "No source had a stream that played. Another may.",
+                        failure.reason?.let { "$it." } ?: stringResource(R.string.player_failed_detail), // i18n-skip
                         style = MaterialTheme.typography.bodyMedium,
                         color = ObiSilk.Haze,
                         modifier = Modifier.padding(top = 4.dp),
@@ -527,7 +531,7 @@ private fun StartingLayer(model: PlayerModel, rect: VideoRect, art: Boolean, onC
                         trackColor = Color.Transparent,
                     )
                     Spacer(Modifier.height(16.dp))
-                    Text(model.startingLine() ?: model.startingEpisode?.let { "Starting episode $it" }.orEmpty(), style = line, color = ObiSilk.Silk)
+                    Text(model.startingLine(LocalContext.current) ?: model.startingEpisode?.let { Strings.playerStartingText(LocalContext.current, it) }.orEmpty(), style = line, color = ObiSilk.Silk)
                 }
                 StartingChoices(model, onChooseSource)
             }

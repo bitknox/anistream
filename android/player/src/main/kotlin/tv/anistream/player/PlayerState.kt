@@ -3,6 +3,8 @@
 
 package tv.anistream.player
 
+import tv.anistream.i18n.Strings
+import android.content.Context
 import java.util.Locale
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.Translation
@@ -75,11 +77,11 @@ data class StartingScreen(
     val since: Long,
 ) {
     /** "Starting episode 7", and from 3 s on what the wait is on, "Finding a source · 4 s", or the engine's note. */
-    fun line(now: Long, note: String?): String {
+    fun line(context: Context, now: Long, note: String?): String {
         val waited = now - since
-        if (waited < PlayerTiming.STARTING_WAITS) return "Starting episode $episode"
-        val what = note?.takeIf { it.isNotEmpty() }?.replaceFirstChar { it.uppercase() } ?: "Finding a source"
-        return "$what · ${waited / 1000} s"
+        if (waited < PlayerTiming.STARTING_WAITS) return Strings.playerStartingText(context, episode)
+        val what = note?.takeIf { it.isNotEmpty() }?.replaceFirstChar { it.uppercase() } ?: Strings.playerFindingSourcePlain(context)
+        return Strings.playerWaitNote(context, what, (waited / 1000).toInt())
     }
 
     /** Whether it has waited long enough to offer another source, and to stop. */
@@ -132,7 +134,7 @@ data class PlayerMenus(
 )
 
 data class SkipOffer(val kind: SkipKind, val to: Double, val since: Long) {
-    val label: String get() = if (kind == SkipKind.OPENING) "Skip opening" else "Skip ending"
+    fun label(context: Context): String = if (kind == SkipKind.OPENING) Strings.playerSkipOpening(context) else Strings.playerSkipEnding(context)
 }
 
 data class UndoOffer(
@@ -143,7 +145,7 @@ data class UndoOffer(
     val since: Long,
 ) {
     /** "Skipped opening", then Undo. */
-    val label: String get() = if (kind == SkipKind.OPENING) "Skipped opening" else "Skipped ending"
+    fun label(context: Context): String = if (kind == SkipKind.OPENING) Strings.playerSkippedOpening(context) else Strings.playerSkippedEnding(context)
 }
 
 data class UpNextCard(
@@ -194,7 +196,7 @@ data class StallCard(val seconds: Long, val since: Long) {
 
 data class ResumeNote(val position: Double) {
     /** "Resumed at 12:04". */
-    val label: String get() = "Resumed at ${PlayerClock.label(position)}"
+    fun label(context: Context): String = Strings.playerResumedAt(context, PlayerClock.label(position))
 }
 
 data class PlayerAlert(val text: String, val kind: NoticeKind, val since: Long)
@@ -230,14 +232,13 @@ data class Track(
     enum class Kind(val mpv: String) { Video("video"), Audio("audio"), Subtitle("sub") }
 
     /** "English · Signs & Songs": the language by name, its title after it. */
-    val name: String
-        get() {
+    fun name(context: Context): String {
             val language = language?.let { Locale.forLanguageTag(it).getDisplayLanguage(Locale.getDefault()).takeIf { name -> name.isNotEmpty() && name != it } ?: it }
             return when {
-                language != null && title != null -> "$language · $title"
+                language != null && title != null -> "$language · $title" // i18n-skip
                 language != null -> language
                 title != null -> title
-                else -> "Track $id"
+                else -> Strings.playerTrackN(context, id.toInt())
             }
         }
 

@@ -3,6 +3,7 @@
 
 package tv.anistream.player
 
+import tv.anistream.i18n.Strings
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
@@ -54,17 +55,17 @@ class PlayerService : MediaSessionService() {
         // Back and forward 10 s either side of play and pause, on the notification and the lock screen.
         val steps = listOf(
             CommandButton.Builder(CommandButton.ICON_SKIP_BACK_10)
-                .setDisplayName("Back 10 seconds")
+                .setDisplayName(Strings.playerBack10(this))
                 .setPlayerCommand(Player.COMMAND_SEEK_BACK)
                 .setSlots(CommandButton.SLOT_BACK)
                 .build(),
             CommandButton.Builder(CommandButton.ICON_SKIP_FORWARD_10)
-                .setDisplayName("Forward 10 seconds")
+                .setDisplayName(Strings.playerForward10(this))
                 .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
                 .setSlots(CommandButton.SLOT_FORWARD)
                 .build(),
         )
-        session = MediaSession.Builder(this, SessionPlayer(model, host::artwork))
+        session = MediaSession.Builder(this, SessionPlayer(this, model, host::artwork))
             .apply { open?.let(::setSessionActivity) }
             .setMediaButtonPreferences(steps)
             .build()

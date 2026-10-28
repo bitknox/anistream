@@ -787,16 +787,16 @@ settings-aside-accounts = { -app-name } works without an account. Your watch his
 # Settings aside on a tablet, upscaling picture: what a screen reader hears.
 # @only android
 # @arg mode: text
-settings-upscaling-description = The same still, the left half as the 480p source, the right half with { $mode }
+settings-upscaling-description = The same still, the left half as the original 480p, the right half with { $mode }
 
 # Settings aside on a tablet, upscaling picture: the label over the unprocessed half.
 # @only android
 # @max 20
-settings-upscaling-source = 480p source
+settings-upscaling-source = Original 480p
 
 # Settings aside on a tablet, upscaling: what no processing does.
 # @only android
-settings-upscaling-note-off = The 480p source, scaled to fit without processing.
+settings-upscaling-note-off = The original 480p, scaled to fit without processing.
 
 # Settings aside on a tablet, upscaling: what the sharp mode does.
 # @only android
@@ -1036,3 +1036,173 @@ continue-show-season-in-seasonal = Show this season in Seasonal
 # @only android
 # @arg filters: text
 search-searching-filters = Searching for { $filters }
+
+# Player, starting screen and header: an episode whose number is text, such as "7" or "7.5".
+# @only android
+# @arg number: text
+episode-number-text = Episode { $number }
+
+# Player, header: the episode's number and its title.
+# @only android
+# @arg number: text
+# @arg title: text
+episode-number-title-text = Episode { $number } · { $title }
+
+# Player, starting screen: the first line.
+# @only android
+# @arg episode: text
+player-starting-text = Starting episode { $episode }
+
+# Player, starting screen: what the wait is on, and for how long.
+# @only android
+# @arg what: text
+# @arg seconds: int
+player-wait-note = { $what } · { $seconds } s
+
+# Player, starting screen: the title when nothing played.
+# @only android
+# @arg episode: text
+player-failed-title-text = Couldn’t play episode { $episode }
+
+# Player, track lists: a track with neither language nor title.
+# @only android
+# @arg id: int
+player-track-n = Track { $id }
+
+# Player, seek bar: the position and the length, for a screen reader.
+# @only android
+# @arg at: text
+# @arg total: text
+player-position-state = { $at } of { $total }
+
+# Player, seek bar: the label while scrubbing at a quarter of the speed.
+# @only android
+player-scrub-quarter = Quarter-speed scrubbing
+
+# Player, seek bar: the label while scrubbing at half the speed.
+# @only android
+player-scrub-half = Half-speed scrubbing
+
+# Player, sources sheet: shown while the sources are being asked.
+# @only android
+player-sheet-finding = Finding { -source-pl }…
+
+# Player, sources sheet: shown when no source has the episode.
+# @only android
+player-sheet-none = No { -source-pl } found for this episode.
+
+# Player, episodes sheet: shown before the list arrives.
+# @only android
+player-sheet-episodes-loading = The episode list is on its way.
+
+# Player, sources sheet: a stream with both languages.
+# @only android
+player-dual-audio = { -subbed-cap } and { -dubbed }
+
+# Notification, new episodes: the summary's title when several shows have a new episode.
+# @only android
+# @arg count: int
+notif-new-episodes = { $count ->
+    [one] One new episode
+   *[other] { $count } new episodes
+ }
+
+# Notification, new episode: what the lock screen shows when previews are hidden.
+# @only android
+notif-hidden-text = New episode
+
+# Notification, new episode: the line under the show's title.
+# @only android
+# @arg episode: int
+notif-episode-out = Episode { $episode } is out.
+
+# Notification, new episode: the same for a show watched dubbed.
+# @only android
+# @arg episode: int
+notif-episode-out-dubbed = Episode { $episode } is out, { -dubbed }.
+
+# Notification, new episode: the same for a viewer who is behind.
+# @only android
+# @arg episode: int
+# @arg next: int
+notif-episode-out-next = Episode { $episode } is out. Next for you: episode { $next }.
+
+# Notification, new episode: the same, dubbed, for a viewer who is behind.
+# @only android
+# @arg episode: int
+# @arg next: int
+notif-episode-out-dubbed-next = Episode { $episode } is out, { -dubbed }. Next for you: episode { $next }.
+
+# Phone as remote: how this phone introduces itself to a TV.
+# @only android
+device-name-phone = Android phone
+
+# Phone as remote: how this tablet introduces itself to a TV.
+# @only android
+device-name-tablet = Android tablet
+
+# Phone as remote, media card: what the card says while the TV starts the episode.
+# @only android
+# @arg tv: text
+tv-session-starting = Starting on { $tv }
+
+# Phone as remote, media card: the episode and the TV it plays on.
+# @only android
+# @arg line: text
+# @arg tv: text
+tv-session-line = { $line } · { $tv }
+
+# Widgets, Continue: the line under a show that has not been started.
+# @only android
+# @arg episode: text
+widget-line-start = Start { $episode }
+
+# Widgets, Continue: the line under a show with time left in the episode.
+# @only android
+# @arg episode: text
+# @arg minutes: int
+widget-line-left = { $episode } · { $minutes } min left
+
+# Widgets, Continue: the line under a show with the episode out of the season.
+# @only android
+# @arg episode: int
+# @arg total: int
+widget-line-of = E{ $episode } of { $total }
+
+# Widgets, Continue: the title when nothing is in progress.
+# @only android
+widget-continue-title = { -continue-cap }
+
+# Widgets, Continue: the title and line when the viewer is up to date.
+# @only android
+widget-caught-up-title = Caught up
+
+# Widgets, Continue: the line when the viewer is up to date.
+# @only android
+widget-caught-up = You’re caught up.
+
+# Widgets, Continue: the line when the next episode has a date.
+# @only android
+# @arg title: text
+# @arg episode: int
+# @arg airs: text
+widget-caught-up-next = { $title } E{ $episode } airs { $airs }.
+
+# Widgets: a day word for the Updated line.
+# @only android
+widget-day-today = today
+
+# Widgets: a day word for the Updated line.
+# @only android
+widget-day-yesterday = yesterday
+
+# Widgets: the Updated line's date when it is a week or more back.
+# @only android
+# @arg day: text
+widget-day-date = { $day }
+
+# Widgets, Continue: the play button for a screen reader, with the mark ("dubbed") after the number.
+# @only android
+# @arg episode: int
+# @arg title: text
+widget-play-dubbed-label = Play episode { $episode }, { -dubbed }, of { $title }
