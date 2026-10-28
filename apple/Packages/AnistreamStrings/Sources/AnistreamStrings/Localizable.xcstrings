@@ -9877,6 +9877,18 @@
         }
       }
     },
+    "player-loading-announce" : {
+      "comment" : "Spoken by VoiceOver on the loading indicator before the video shows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting"
+          }
+        }
+      }
+    },
     "player-menu-audio" : {
       "comment" : "Text of a menu in the player's controls that opens the audio panel.",
       "extractionState" : "manual",
@@ -21471,6 +21483,30 @@
         }
       }
     },
+    "updates-feed-missing" : {
+      "comment" : "Failure shown when the update feed does not list the version being installed yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The update feed does not have this version yet."
+          }
+        }
+      }
+    },
+    "updates-fixtures-no-install" : {
+      "comment" : "Failure shown when the Fixtures app, used for screenshots, is asked to install an update.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Fixtures app does not install updates."
+          }
+        }
+      }
+    },
     "updates-flatpak" : {
       "comment" : "Line when Flatpak updates the app.",
       "extractionState" : "manual",
@@ -21491,6 +21527,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Update in SideStore"
+          }
+        }
+      }
+    },
+    "updates-installer-not-ready" : {
+      "comment" : "Failure shown when the Mac updater is not ready to install yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The updater is not ready. Try again in a moment."
           }
         }
       }

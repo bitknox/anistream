@@ -109,7 +109,7 @@ final class KeepAwake {
         #if os(macOS)
         if playing, activity == nil {
             activity = ProcessInfo.processInfo.beginActivity(
-                options: [.idleDisplaySleepDisabled, .userInitiated], reason: "Playing an episode")
+                options: [.idleDisplaySleepDisabled, .userInitiated], reason: "Playing an episode") // i18n-skip
         } else if !playing, let activity {
             ProcessInfo.processInfo.endActivity(activity)
             self.activity = nil

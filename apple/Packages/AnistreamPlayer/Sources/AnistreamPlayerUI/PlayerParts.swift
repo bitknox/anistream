@@ -170,7 +170,7 @@ struct StartingCurtain: View {
 struct LoaderLine: View {
     let reduceMotion: Bool
     /// What VoiceOver says it is.
-    var label = "Starting"
+    var label = L.playerLoadingAnnounce
     @State private var across = false
 
     var body: some View {

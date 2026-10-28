@@ -1305,6 +1305,9 @@ public enum L {
     /// Heading of the sound section in the picture and sound panel.
     public static var playerSound: String { string("player-sound", fallback: "Sound") }
 
+    /// Spoken by VoiceOver on the loading indicator before the video shows.
+    public static var playerLoadingAnnounce: String { string("player-loading-announce", fallback: "Starting") }
+
     /// Line while results wait for the rate limit to recover, on a phone where a Search key runs the search.
     public static var searchRateLimitSearch: String { string("search-rate-limit-search", fallback: "Results wait for Search while AniList’s rate limit recovers") }
 
@@ -2354,6 +2357,15 @@ public enum L {
     public static func updatesWhatsNew(version: String) -> String {
         Self.format("updates-whats-new", fallback: "What’s new in %1$@", version)
     }
+
+    /// Failure shown when the Mac updater is not ready to install yet.
+    public static var updatesInstallerNotReady: String { string("updates-installer-not-ready", fallback: "The updater is not ready. Try again in a moment.") }
+
+    /// Failure shown when the update feed does not list the version being installed yet.
+    public static var updatesFeedMissing: String { string("updates-feed-missing", fallback: "The update feed does not have this version yet.") }
+
+    /// Failure shown when the Fixtures app, used for screenshots, is asked to install an update.
+    public static var updatesFixturesNoInstall: String { string("updates-fixtures-no-install", fallback: "The Fixtures app does not install updates.") }
 
     /// Mac menu bar item. Title Case, as Apple's guidelines ask for the menu bar only.
     public static var menuShowLibrary: String { string("menu-show-library", fallback: "Show Library") }

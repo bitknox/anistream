@@ -162,3 +162,6 @@ player-announce-titled = { $line }, { $title }
 
 # Heading of the sound section in the picture and sound panel.
 player-sound = Sound
+
+# Spoken by VoiceOver on the loading indicator before the video shows.
+player-loading-announce = Starting

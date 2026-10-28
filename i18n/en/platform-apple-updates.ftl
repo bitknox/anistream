@@ -33,3 +33,12 @@ updates-release-notes = Version notes
 # Title of the update row that carries the notes of the release.
 # @arg version: text
 updates-whats-new = What’s new in { $version }
+
+# Failure shown when the Mac updater is not ready to install yet.
+updates-installer-not-ready = The updater is not ready. Try again in a moment.
+
+# Failure shown when the update feed does not list the version being installed yet.
+updates-feed-missing = The update feed does not have this version yet.
+
+# Failure shown when the Fixtures app, used for screenshots, is asked to install an update.
+updates-fixtures-no-install = The Fixtures app does not install updates.

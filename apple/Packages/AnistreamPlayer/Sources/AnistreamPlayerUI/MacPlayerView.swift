@@ -233,8 +233,8 @@ public struct MacPlayerView: View {
             Color.clear.frame(width: model.fullScreen ? 0 : 60, height: 12)
             // In the window's title bar strip outside full screen, where each of the bar's
             // controls takes its clicks this way and the rest of the strip drags the window.
-            icon("chevron.backward", "Back", lit: pointed == "Back") { back() }
-                .titleBarControl(active: visible, pointed: { point("Back", $0) }) { back() }
+            icon("chevron.backward", L.actionBack, lit: pointed == L.actionBack) { back() }
+                .titleBarControl(active: visible, pointed: { point(L.actionBack, $0) }) { back() }
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(model.showTitle)
                     .font(.showTitle(size: 15))

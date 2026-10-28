@@ -115,7 +115,7 @@ struct PartyPanel: View {
                 copied = true
             } label: {
                 Label {
-                    Text(copied ? "Copied" : L.partyCopyInvite)
+                    Text(copied ? L.actionCopied : L.partyCopyInvite)
                         .contentTransition(.opacity)
                 } icon: {
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
