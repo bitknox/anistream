@@ -4,6 +4,11 @@
 
 .DS_Store
 
+# Claude Code: personal settings, local notes and isolated checkouts stay local.
+CLAUDE.local.md
+.claude/settings.local.json
+/.claude/worktrees/
+
 # mpv writes screenshots to the working directory. They are frames of whatever was playing,
 # so they must never be committed.
 /mpv-shot*.jpg
