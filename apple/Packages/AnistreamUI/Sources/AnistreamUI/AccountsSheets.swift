@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import AuthenticationServices
 import SwiftUI
 
@@ -28,7 +29,7 @@ struct KitsuSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             VStack(alignment: .leading, spacing: 10) {
-                TextField("Email or user name", text: $username)
+                TextField(L.accountsUserOrEmail, text: $username)
                     .textContentType(.username)
                     #if os(iOS)
                     .textInputAutocapitalization(.never)
@@ -42,7 +43,7 @@ struct KitsuSheet: View {
             HStack(spacing: 10) {
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
-                Button("Cancel") { dismiss() }
+                Button(L.actionCancel) { dismiss() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
                 Button(cased(mac: "Sign In", touch: "Sign in"), action: signIn)
@@ -158,7 +159,7 @@ struct DeviceCodeSheet: View {
     }
 
     @ViewBuilder private func buttons(expired: Bool) -> some View {
-        Button("Close") { dismiss() }
+        Button(L.actionClose) { dismiss() }
             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             .keyboardShortcut(.cancelAction)
         if expired {
@@ -219,7 +220,7 @@ struct ConflictsSheet: View {
             .frame(maxHeight: 360)
             HStack {
                 Spacer()
-                Button("Done") { dismiss() }
+                Button(L.actionDone) { dismiss() }
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
             }

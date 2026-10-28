@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// What the Providers screen says of one source, from its row and the stores it came from.
@@ -66,7 +67,7 @@ struct NoSources: View {
 
     var body: some View {
         EmptyState(
-            title: "No sources yet",
+            title: L.sourcesEmptyTitle,
             line: "Sources come as plugins from a plugin store." + (legal ? " anistream hosts no content." : "")
         ) {
             Button(cased(mac: "Join a Plugin Store…", touch: "Join a plugin store")) { navigator.invite = "" }
@@ -132,7 +133,7 @@ struct SourceOrderList: View {
                     .macLineHeight(14)
                     .padding(EdgeInsets(top: 10, leading: 18, bottom: 8, trailing: 0))
                 if store.providers.rebuilding {
-                    Text("Sources are being set up again…")
+                    Text(L.sourcesRebuilding)
                         .font(.mac(12))
                         .foregroundStyle(.haze)
                         .padding(.horizontal, 18)
@@ -291,7 +292,7 @@ struct ProviderDetail: View {
         }
         .scrollIndicators(.never)
         .confirmationDialog("Remove \(info.name)?", isPresented: $removing) {
-            Button("Remove", role: .destructive) { store.removePlugin(info.row.id) }
+            Button(L.actionRemove, role: .destructive) { store.removePlugin(info.row.id) }
         } message: {
             Text("It is deleted from this \(Device.name). A store can install it again.")
         }
@@ -314,7 +315,7 @@ struct ProviderDetail: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 if store.settings.isOn(.torrents) {
-                    Button("Disable") { store.setSwitch(.torrents, on: false) }
+                    Button(L.actionDisable) { store.setSwitch(.torrents, on: false) }
                 } else {
                     Button(cased(mac: "Enable…", touch: "Enable")) { turningOn = true }
                 }
@@ -368,7 +369,7 @@ struct ProviderDetail: View {
                 Rectangle().fill(.faintRule).frame(height: 1)
                 fact("Response time") {
                     if info.row.standing == .failing {
-                        Text("No answer").foregroundStyle(.silk)
+                        Text(L.sourcesNoAnswer).foregroundStyle(.silk)
                     } else if let latency = info.row.latencyMs {
                         Text("\(latency) ms").foregroundStyle(.silk).monospacedDigit()
                     } else {

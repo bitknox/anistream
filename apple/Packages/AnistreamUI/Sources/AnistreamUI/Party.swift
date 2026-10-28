@@ -8,6 +8,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 #if os(macOS)
 import AppKit
@@ -88,7 +89,7 @@ public struct PartySheets: ViewModifier {
                 presenting: party.askingToLeave
             ) { leaving in
                 // Stay is the default: Return and Escape both keep the party.
-                Button("Stay", role: .cancel) {}
+                Button(L.partyStay, role: .cancel) {}
                     .keyboardShortcut(.defaultAction)
                 Button(leaving == .quit ? "Leave and Quit" : "Leave and Close") {
                     party.agreeToLeave()
@@ -374,7 +375,7 @@ struct MacPartyForm: View {
                     .padding(.top, 6)
             } else {
                 label("Server").padding(.top, 18)
-                field("Server", text: $model.server, prompt: "host:port")
+                field("Server", text: $model.server, prompt: L.partyServerHint)
                     .textInputSuggestions {
                         ForEach(state.recent, id: \.self) { server in
                             Text(server).textInputCompletion(server)
@@ -411,7 +412,7 @@ struct MacPartyForm: View {
                 .padding(.top, 16)
             HStack(spacing: 10) {
                 Spacer()
-                Button("Cancel") { party.closeForm() }
+                Button(L.actionCancel) { party.closeForm() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
                 Button(state.primary) { party.join() }
@@ -559,7 +560,7 @@ struct MacPartySource: View {
                 .opacity(state.candidates.isEmpty ? 0 : 1)
                 .animation(.fadeIn, value: state.candidates.isEmpty)
                 .padding(.top, state.candidates.isEmpty ? 0 : 10)
-                .accessibilityLabel("Sources for this episode")
+                .accessibilityLabel(L.partySourcesLabel)
             }
             HStack(spacing: 10) {
                 Button(cased(mac: "Leave Party", touch: "Leave party")) {
@@ -657,8 +658,8 @@ struct PhonePartyForm: View {
                 }
                 if case .invite(let invite) = start {
                     Section {
-                        LabeledContent("Room", value: invite.room)
-                        LabeledContent("Server", value: invite.server)
+                        LabeledContent(L.partyRoom, value: invite.room)
+                        LabeledContent(L.partyServer, value: invite.server)
                     } footer: {
                         Text(state.serverLine?.text ?? " ")
                     }
@@ -666,7 +667,7 @@ struct PhonePartyForm: View {
                 } else {
                     Section {
                         HStack {
-                            TextField("Server", text: $model.server, prompt: Text("host:port"))
+                            TextField(L.partyServer, text: $model.server, prompt: Text(L.partyServerHint))
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .keyboardType(.URL)
@@ -679,12 +680,12 @@ struct PhonePartyForm: View {
                                     Image(systemName: "clock.arrow.circlepath")
                                         .foregroundStyle(.haze)
                                 }
-                                .accessibilityLabel("Recent servers")
+                                .accessibilityLabel(L.partyRecentServers)
                             }
                         }
                         .disabled(locked)
                     } header: {
-                        Text("Server")
+                        Text(L.partyServer)
                     } footer: {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(state.serverLine?.text ?? " ")
@@ -703,26 +704,26 @@ struct PhonePartyForm: View {
                     }
                     .listRowBackground(Palette.raised)
                     Section {
-                        TextField("Room", text: $model.room)
+                        TextField(L.partyRoom, text: $model.room)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .disabled(locked)
                     } header: {
-                        Text("Room")
+                        Text(L.partyRoom)
                     } footer: {
                         Text(PartyFormState.roomNote)
                     }
                     .listRowBackground(Palette.raised)
                 }
                 Section {
-                    TextField("Your name in the room", text: $model.name)
+                    TextField(L.partyYourName, text: $model.name)
                         .autocorrectionDisabled()
                         .disabled(locked)
                         .onChange(of: party.name) { _, name in
                             if name.count > PartyFormState.nameLimit { party.name = String(name.prefix(PartyFormState.nameLimit)) }
                         }
                 } header: {
-                    Text("Your name in the room")
+                    Text(L.partyYourName)
                 } footer: {
                     PhoneFormFoot(status: state.status)
                 }
@@ -731,7 +732,7 @@ struct PhonePartyForm: View {
             .navigationTitle(state.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { party.closeForm() }.tint(.silk) }
+                ToolbarItem(placement: .topBarLeading) { Button(L.actionCancel) { party.closeForm() }.tint(.silk) }
             }
             .safeAreaInset(edge: .bottom) {
                 Button {
@@ -845,7 +846,7 @@ struct PhonePartySource: View {
             .navigationTitle("Watch party")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Not now") { party.closeNoSource() }.tint(.silk) }
+                ToolbarItem(placement: .topBarLeading) { Button(L.actionNotNow) { party.closeNoSource() }.tint(.silk) }
             }
             .safeAreaInset(edge: .bottom) {
                 if state.primary != .none {

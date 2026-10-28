@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// The turn-on sheet, and the same sheet asking for a proxy once torrents are on, or editing the
@@ -64,7 +65,7 @@ struct TorrentSheet: View {
 
             HStack(spacing: 10) {
                 Spacer()
-                Button("Cancel") { dismiss() }
+                Button(L.actionCancel) { dismiss() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
                 Button(turningOn ? "Turn On" : "Save") {
@@ -93,7 +94,7 @@ struct TorrentSheet: View {
             Button("No Protection", role: .destructive) {
                 send(draft.wrappedValue)
             }
-            Button("Cancel", role: .cancel) {}
+            Button(L.actionCancel, role: .cancel) {}
         } message: {
             Text(ProtectionWords.noneMessage)
         }

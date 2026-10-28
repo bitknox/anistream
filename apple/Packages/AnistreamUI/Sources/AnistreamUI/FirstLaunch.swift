@@ -6,6 +6,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// Whether first launch has been seen, kept in the app's defaults.
@@ -148,7 +149,7 @@ struct FirstLaunch: View {
                 .foregroundStyle(.silk)
                 .padding(.top, 24)
                 .accessibilityAddTraits(.isHeader)
-            Text("Keep track of anime and play it from sources you choose.")
+            Text(L.onboardingTagline)
                 .font(.plat(mac: 15, touch: 17))
                 .foregroundStyle(.silk)
                 .padding(.top, 8)

@@ -26,7 +26,7 @@ struct PhoneSettingsSheet: View {
                 }
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { dismiss() }.fontWeight(.semibold).tint(.silk)
+                        Button(L.actionDone) { dismiss() }.fontWeight(.semibold).tint(.silk)
                     }
                 }
         }
@@ -228,7 +228,7 @@ struct PhoneSettingsRoot: View {
                 link(.about, "About", "info.circle", value: AppVersion.short)
                 Link(destination: AppVersion.privacy) {
                     HStack {
-                        Label("Privacy", systemImage: "hand.raised").font(.ui(17)).foregroundStyle(.silk)
+                        Label(L.settingsPrivacy, systemImage: "hand.raised").font(.ui(17)).foregroundStyle(.silk)
                         Spacer()
                         Image(systemName: "arrow.up.forward").font(.ui(15)).foregroundStyle(.haze)
                     }
@@ -290,10 +290,10 @@ struct PhoneGeneralPage: View {
                 PhoneTitleLanguageRow()
                 PhoneSettingSwitch(key: .adultTitles, note: "Titles AniList marks adult, in Search and Seasonal")
             } header: {
-                PhoneSectionHeader("Titles")
+                PhoneSectionHeader(L.settingsGroupTitles)
             }
         }
-        .navigationTitle("General")
+        .navigationTitle(L.settingsGroupGeneral)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -322,7 +322,7 @@ struct PhonePlaybackPage: View {
             } header: {
                 PhoneSectionHeader(L.settingsLanguage)
             } footer: {
-                Text("Each show remembers its own audio and subtitles.")
+                Text(L.settingsAudioDetail)
             }
             Section {
                 PhoneSettingSwitch(key: .autoNext)
@@ -331,7 +331,7 @@ struct PhonePlaybackPage: View {
                 PhoneSettingSwitch(key: .skipOpening, note: overridden(.skipOpening))
                 PhoneSettingSwitch(key: .skipFiller, note: overridden(.skipFiller))
                 PhoneSettingSwitch(key: .markChapters)
-                PhoneSettingSwitch(key: .skipButton, note: "While the opening or ending plays, when it isn't skipped automatically")
+                PhoneSettingSwitch(key: .skipButton, note: L.settingsSkipButtonDetail)
                 PhoneSettingPicker(key: .commitThreshold)
                 PhoneSettingSwitch(key: .spoilerProtection, note: "Blurs stills after the next episode")
             } header: {
@@ -341,10 +341,10 @@ struct PhonePlaybackPage: View {
                 PhoneSettingPicker(key: .upscaling, note: upscalingNote)
                 PhoneSettingSwitch(key: .nightMode, note: "Evens out loud and quiet passages, so dialogue stays clear at low volume.")
             } header: {
-                PhoneSectionHeader("Picture and sound")
+                PhoneSectionHeader(L.playerPictureAndSound)
             }
         }
-        .navigationTitle("Playback")
+        .navigationTitle(L.settingsGroupPlayback)
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -364,10 +364,10 @@ struct PhoneSubtitlesPicker: View {
     var body: some View {
         let code = store.settings.row(.subtitles)?.typedText ?? ""
         HStack {
-            Text("Subtitles").font(.ui(17)).foregroundStyle(.silk)
+            Text(L.playerSubtitles).font(.ui(17)).foregroundStyle(.silk)
             Spacer()
             Menu {
-                Picker("Subtitles", selection: Binding(get: { code }, set: { store.setSetting(.subtitles, to: .str($0)) })) {
+                Picker(L.playerSubtitles, selection: Binding(get: { code }, set: { store.setSetting(.subtitles, to: .str($0)) })) {
                     ForEach(SubtitlesMenu.languages, id: \.self) { Text(SubtitlesMenu.name($0)).tag($0) }
                     if !code.isEmpty, !SubtitlesMenu.languages.contains(code) {
                         Text(SubtitlesMenu.name(code)).tag(code)
@@ -415,10 +415,10 @@ struct PhoneDownloadsPage: View {
                 PhoneSettingSwitch(key: .mergeSubtitles, note: "Subtitles stay with the episode wherever the file goes.")
                 PhoneSettingSwitch(key: .keepSeeding, note: "A download that keeps seeding stays in anistream’s cache.")
             } header: {
-                PhoneSectionHeader("Files")
+                PhoneSectionHeader(L.settingsGroupFiles)
             }
             Section {
-                Button("Delete watched downloads", role: .destructive) { confirmDelete = true }
+                Button(L.downloadsDeleteWatched, role: .destructive) { confirmDelete = true }
                     .disabled(watched.rows.isEmpty)
                     .listRowBackground(Palette.raised)
             } footer: {
@@ -431,7 +431,7 @@ struct PhoneDownloadsPage: View {
         .navigationTitle("Downloads")
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog("Delete \(Wording.plural(watched.rows.count, "watched download"))?", isPresented: $confirmDelete) {
-            Button("Delete", role: .destructive) { for row in watched.rows { store.deleteDownload(row.id) } }
+            Button(L.actionDelete, role: .destructive) { for row in watched.rows { store.deleteDownload(row.id) } }
         }
         .task { store.loadDownloads() }
     }
@@ -476,28 +476,28 @@ struct PhoneDownloadRow: View {
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             switch row.state {
             case .done:
-                Button("Delete", role: .destructive) { deleting = true }
+                Button(L.actionDelete, role: .destructive) { deleting = true }
             default:
-                Button("Cancel", role: .destructive) { store.cancelDownload(row.id) }
+                Button(L.actionCancel, role: .destructive) { store.cancelDownload(row.id) }
             }
         }
         // Untinted: the screen's one amber is not spent on a swipe (Johan kept these, decision 12).
         .swipeActions(edge: .leading) {
             switch row.state {
-            case .done: Button("Play") { store.playDownload(row) }
-            case .active: Button("Pause") { store.toggleDownload(row.id) }
+            case .done: Button(L.actionPlay) { store.playDownload(row) }
+            case .active: Button(L.actionPause) { store.toggleDownload(row.id) }
             case .queued:
-                Button("Start now") { store.startDownloadNow(row.id) }
-                Button("Pause") { store.toggleDownload(row.id) }
+                Button(L.downloadsStartNow) { store.startDownloadNow(row.id) }
+                Button(L.actionPause) { store.toggleDownload(row.id) }
             case .paused: Button("Resume") { store.toggleDownload(row.id) }
             case .failed: Button("Retry") { store.retryDownload(row) }
             }
         }
         .confirmationDialog("Delete episode \(row.episode)?", isPresented: $deleting, titleVisibility: .visible) {
-            Button("Delete download", role: .destructive) { store.deleteDownload(row.id) }
-            Button("Cancel", role: .cancel) {}
+            Button(L.downloadsDeleteOneTitle, role: .destructive) { store.deleteDownload(row.id) }
+            Button(L.actionCancel, role: .cancel) {}
         } message: {
-            Text("It plays again only with a connection, or once you download it again.")
+            Text(L.downloadsDeleteOneDetail)
         }
     }
 
@@ -581,7 +581,7 @@ struct PhoneSourcesPage: View {
                     PhoneSettingPicker(key: .seedHours)
                     PhoneSettingPicker(key: .uploadLimit)
                 } header: {
-                    PhoneSectionHeader("Seeding")
+                    PhoneSectionHeader(L.downloadsSeedingTitle)
                 }
             }
         }
@@ -628,7 +628,7 @@ struct PhoneGuardRow: View {
         let (note, status, color) = GuardWords.words(store.providers.guardView, at: store.providers.guardAt)
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Text("Last check").font(.ui(17)).foregroundStyle(.silk)
+                Text(L.torrentsLastCheck).font(.ui(17)).foregroundStyle(.silk)
                 Spacer()
                 HStack(spacing: 6) {
                     Circle().fill(color).frame(width: 8, height: 8)
@@ -669,7 +669,7 @@ struct PhoneAccountsPage: View {
                     }
                     .padding(.vertical, 4)
                     .listRowBackground(Palette.raised)
-                    Button("Sync now") { store.syncNow() }
+                    Button(L.accountsSyncNow) { store.syncNow() }
                         .fontWeight(.semibold)
                         .foregroundStyle(.silk)
                         .disabled(store.accounts.isWorking("sync"))
@@ -679,15 +679,15 @@ struct PhoneAccountsPage: View {
                             .foregroundStyle(.silk)
                             .listRowBackground(Palette.raised)
                     }
-                    Button("Sign out") { store.disconnect("anilist") }
+                    Button(L.actionSignOut) { store.disconnect("anilist") }
                         .fontWeight(.semibold)
                         .foregroundStyle(.silk)
                         .listRowBackground(Palette.raised)
                 } else {
                     HStack {
-                        PhoneRowTitle(title: "AniList", note: "Brings in your lists and fills Continue with what you are watching.")
+                        PhoneRowTitle(title: "AniList", note: L.accountsBringsLists)
                         Spacer()
-                        Button("Sign in") { store.connect("anilist") }
+                        Button(L.actionSignIn) { store.connect("anilist") }
                             .buttonStyle(SecondaryCapsuleStyle(height: 30, raisedSurface: true, fontSize: 15))
                             .disabled(store.accounts.isWorking("anilist"))
                     }
@@ -703,7 +703,7 @@ struct PhoneAccountsPage: View {
                     PhoneTrackerRow(tracker: tracker, kitsu: $kitsu)
                 }
             } header: {
-                PhoneSectionHeader("Other trackers")
+                PhoneSectionHeader(L.accountsOtherTrackers)
             } footer: {
                 Text(AccountWords.tokens(store.accounts))
             }
@@ -729,14 +729,14 @@ struct PhoneTrackerRow: View {
             Spacer()
             Group {
                 if state?.connected == true {
-                    Button("Sign out") { store.disconnect(tracker) }
+                    Button(L.actionSignOut) { store.disconnect(tracker) }
                 } else {
                     switch tracker {
-                    case "kitsu": Button("Sign in") { kitsu = true }
+                    case "kitsu": Button(L.actionSignIn) { kitsu = true }
                     default:
                         // MyAnimeList through the system's sign-in sheet, Simkl and Trakt with a
                         // code to type on another device.
-                        Button("Sign in") { store.connect(tracker) }.disabled(store.accounts.isWorking(tracker))
+                        Button(L.actionSignIn) { store.connect(tracker) }.disabled(store.accounts.isWorking(tracker))
                     }
                 }
             }

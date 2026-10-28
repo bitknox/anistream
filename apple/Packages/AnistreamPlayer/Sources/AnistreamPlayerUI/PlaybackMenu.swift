@@ -2,6 +2,7 @@
 // out on the player the app hosts. The app's shell puts them in its menus.
 
 import AnistreamKit
+import AnistreamStrings
 import SwiftUI
 
 extension FocusedValues {
@@ -48,11 +49,11 @@ public struct PlaybackMenu: View {
             .keyboardShortcut("s", modifiers: [])
             .disabled(!keys || model.skip == nil)
         Divider()
-        Menu("Speed") {
-            Button("Slower") { model.setSpeed(Self.step(model.speed, by: -1)) }
+        Menu(L.playerSpeed) {
+            Button(L.playerSlower) { model.setSpeed(Self.step(model.speed, by: -1)) }
                 .keyboardShortcut("[", modifiers: [])
                 .disabled(!keys || model.speed <= Self.speeds.first!)
-            Button("Faster") { model.setSpeed(Self.step(model.speed, by: 1)) }
+            Button(L.playerFaster) { model.setSpeed(Self.step(model.speed, by: 1)) }
                 .keyboardShortcut("]", modifiers: [])
                 .disabled(!keys || model.speed >= Self.speeds.last!)
             Divider()
@@ -74,8 +75,8 @@ public struct PlaybackMenu: View {
                     ))
                 }
             }
-            Section("Subtitles") {
-                Toggle("Off", isOn: Binding(
+            Section(L.playerSubtitles) {
+                Toggle(L.valueOff, isOn: Binding(
                     get: { model.subtitleTrack == nil },
                     set: { _ in model.selectSubtitle(nil) }
                 ))

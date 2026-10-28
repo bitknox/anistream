@@ -1,6 +1,7 @@
 // Airing today: the day's times, with the shows in your list marked.
 
 import AnistreamDesign
+import AnistreamStrings
 import AnistreamWidgetData
 import SwiftUI
 import WidgetKit
@@ -220,7 +221,7 @@ struct AiringSmall: View {
     var body: some View {
         let next = rows.first(where: \.isUpcoming)
         VStack(alignment: .leading, spacing: 2) {
-            AiringHeader(title: "Today", detail: next.map { "Next \(format.time($0.item.airsAt))" })
+            AiringHeader(title: L.dayToday, detail: next.map { "Next \(format.time($0.item.airsAt))" })
             Color.clear.frame(height: 4)
             ForEach(rows) { row in
                 AiringLine(row: row, marks: marks, height: 24, timeWidth: 42, showsState: false, format: format)

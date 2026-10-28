@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// What Settings says of updates under this version, and the action it offers.
@@ -40,7 +41,7 @@ struct UpdateWords: Equatable {
             self.init(note: "Downloading \(Wording.bytes(received))\(of)", action: .cancel)
             return
         case .unpacking:
-            self.init(note: "Checking the download", action: .cancel)
+            self.init(note: L.updatesCheckingDownloadShort, action: .cancel)
             return
         case .relaunching:
             self.init(note: "Restarting to finish the update", action: .none)
@@ -61,7 +62,7 @@ struct UpdateWords: Equatable {
             self.init(note: "Version \(latest.version) is available", action: action)
         } else {
             switch outcome {
-            case .upToDate: self.init(note: "Up to date", action: .checkNow)
+            case .upToDate: self.init(note: L.updatesUpToDate, action: .checkNow)
             case .failed: self.init(note: "Could not check.", problem: true, action: .checkNow)
             case nil: self.init(note: nil, action: .checkNow)
             }
@@ -136,8 +137,8 @@ struct UpdatesGroup: View {
     @Environment(AppStore.self) private var store
 
     var body: some View {
-        SettingsGroup(title: "Updates") {
-            SettingsRow(title: SettingKey.updateCheck.title, note: "Once a day. Nothing is downloaded until you choose to update.") {
+        SettingsGroup(title: L.updatesTitle) {
+            SettingsRow(title: SettingKey.updateCheck.title, note: L.updatesSchedule) {
                 SettingSwitch(key: .updateCheck)
             }
             UpdateVersionRow()
@@ -287,7 +288,7 @@ struct PhoneUpdatesCard: View {
                     Text(SettingKey.updateCheck.title)
                         .font(.ui(17))
                         .foregroundStyle(.silk)
-                    Text("Once a day. Nothing is downloaded until you choose to update.")
+                    Text(L.updatesSchedule)
                         .font(.ui(15))
                         .foregroundStyle(.haze)
                         .fixedSize(horizontal: false, vertical: true)

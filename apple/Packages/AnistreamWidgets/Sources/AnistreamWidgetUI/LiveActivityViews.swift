@@ -3,6 +3,7 @@
 // has finished.
 
 import AnistreamDesign
+import AnistreamStrings
 import AnistreamWidgetData
 import SwiftUI
 import WidgetKit
@@ -213,7 +214,7 @@ public struct DownloadsIslandTimeLeft: View {
                 .monospacedDigit()
                 .foregroundStyle(Palette.water)
         } else if state.paused {
-            Text("Paused").font(WidgetType.ui(15, weight: .semibold)).foregroundStyle(.white.opacity(0.7))
+            Text(L.libraryStatusPaused).font(WidgetType.ui(15, weight: .semibold)).foregroundStyle(.white.opacity(0.7))
         }
     }
 }

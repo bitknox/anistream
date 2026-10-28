@@ -5,6 +5,7 @@
 // update from the app.
 
 import AnistreamDesign
+import AnistreamStrings
 import AnistreamWidgetData
 import SwiftUI
 import WidgetKit
@@ -191,9 +192,9 @@ public struct PlaybackIslandTimeLeft: View {
         Group {
             if state.paused {
                 if compact {
-                    Image(systemName: "pause.fill").font(.system(size: 11)).accessibilityLabel("Paused")
+                    Image(systemName: "pause.fill").font(.system(size: 11)).accessibilityLabel(L.libraryStatusPaused)
                 } else {
-                    Text("Paused")
+                    Text(L.libraryStatusPaused)
                 }
             } else if runsTimers {
                 Text(timerInterval: state.timeline, countsDown: true)

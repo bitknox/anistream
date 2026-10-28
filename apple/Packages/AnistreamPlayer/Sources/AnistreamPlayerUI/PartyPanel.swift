@@ -7,6 +7,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 struct PartyPanel: View {
@@ -96,7 +97,7 @@ struct PartyPanel: View {
             } else {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text("Waiting for the room's members")
+                    Text(L.partyWaitingMembers)
                         .foregroundStyle(.haze)
                 }
                 .font(.system(size: metrics.body))
@@ -142,7 +143,7 @@ struct PartyPanel: View {
     /// The server and room as text, for a friend with Syncplay's own app.
     private func plain(_ view: PartyView) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("For Syncplay's own app")
+            Text(L.partyOtherApp)
                 .font(.system(size: small, weight: .semibold))
             Text("Server \(view.server)\nRoom \(view.room)")
                 .font(.system(size: small))

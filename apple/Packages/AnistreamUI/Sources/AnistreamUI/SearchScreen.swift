@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 // MARK: - Words
@@ -591,7 +592,7 @@ struct SearchFilterRow: View {
             navigator.searchFiltersShown.toggle()
         } label: {
             FilterCapsule(
-                title: "Filters", active: count > 0, compact: compact,
+                title: L.filtersTitle, active: count > 0, compact: compact,
                 symbol: "line.3.horizontal.decrease", badge: count, chevron: false
             )
         }
@@ -724,7 +725,7 @@ struct SearchResults: View {
                                 if visible { store.searchMore() }
                             }
                             .accessibilityElement()
-                            .accessibilityLabel("Loading more titles")
+                            .accessibilityLabel(L.searchLoadingMore)
                     }
                 }
             } empty: {
@@ -826,7 +827,7 @@ private struct RecentSearchList: View {
             HStack {
                 SectionHeading(compact ? "Recent searches" : "Recent Searches", compact: compact)
                 Spacer()
-                Button("Clear") { store.clearRecentSearches() }
+                Button(L.actionClear) { store.clearRecentSearches() }
                     .buttonStyle(.plain)
                     .font(compact ? .ui(15, weight: .semibold) : .mac(13, weight: .semibold))
                     .foregroundStyle(.silk)
@@ -992,7 +993,7 @@ struct SearchFiltersPanel: View {
                         choices: [Bounds(min: 1, max: 1), Bounds(min: nil, max: 12), Bounds(min: 13, max: 26), Bounds(min: 50, max: nil)],
                         current: query.episodes, words: { SearchQuery(episodes: $0).label(.episodes) }, compact: compact
                     ) { bounds in store.editSearch { $0.episodes = bounds } }
-                    RangeFields(title: "Episode length", bounds: query.minutes, unit: "min", compact: compact) { bounds in
+                    RangeFields(title: L.filterEpisodeLength, bounds: query.minutes, unit: "min", compact: compact) { bounds in
                         store.editSearch { $0.minutes = bounds }
                     }
                     Presets(
@@ -1016,7 +1017,7 @@ struct SearchFiltersPanel: View {
                                 .frame(width: 40, alignment: .trailing)
                         }
                     } label: {
-                        Text("Score at least")
+                        Text(L.filterScoreAtLeast)
                     }
                     PanelSwitch("Hide obscure titles", isOn: Binding(
                         get: { store.search.query.minPopularity != nil },
@@ -1036,7 +1037,7 @@ struct SearchFiltersPanel: View {
                     }
                     .padding(.vertical, 4)
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Country").foregroundStyle(.haze)
+                        Text(L.filterCountry).foregroundStyle(.haze)
                         FlowLayout(spacing: 6, lineSpacing: 6) {
                             ForEach(searchCountries(), id: \.self) { code in
                                 ToggleChip(name: searchCountryLabel(code: code), on: query.countries.contains(code), compact: compact) {
@@ -1066,13 +1067,13 @@ struct SearchFiltersPanel: View {
                 }
                 if store.accounts.summary.state != .signedOut {
                     PanelSection(compact: compact, "My list") {
-                        Picker("Titles on my list", selection: Binding<OnList?>(
+                        Picker(L.filterMyList, selection: Binding<OnList?>(
                             get: { store.search.query.onList },
                             set: { value in store.editSearch { $0.onList = value } }
                         )) {
-                            Text("Show").tag(OnList?.none)
-                            Text("Hide").tag(OnList?.some(.hide))
-                            Text("Only").tag(OnList?.some(.only))
+                            Text(L.filterShow).tag(OnList?.none)
+                            Text(L.filterHide).tag(OnList?.some(.hide))
+                            Text(L.filterOnly).tag(OnList?.some(.only))
                         }
                         .pickerStyle(.segmented)
                     }
@@ -1094,12 +1095,12 @@ struct SearchFiltersPanel: View {
     private func header(_ query: SearchQuery) -> some View {
         if compact {
             ZStack {
-                Text("Filters").font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
+                Text(L.filtersTitle).font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
                 HStack {
-                    Button("Reset") { reset() }
+                    Button(L.actionReset) { reset() }
                         .disabled(!query.hasFilters())
                     Spacer()
-                    Button("Done") { navigator.searchFiltersShown = false }
+                    Button(L.actionDone) { navigator.searchFiltersShown = false }
                         .fontWeight(.semibold)
                 }
                 .font(.ui(17))
@@ -1108,9 +1109,9 @@ struct SearchFiltersPanel: View {
             .frame(minHeight: 44)
         } else {
             HStack {
-                Text("Filters").font(.mac(15, weight: .semibold)).foregroundStyle(.silk)
+                Text(L.filtersTitle).font(.mac(15, weight: .semibold)).foregroundStyle(.silk)
                 Spacer()
-                Button("Reset") { reset() }
+                Button(L.actionReset) { reset() }
                     .buttonStyle(SecondaryCapsuleStyle())
                     .disabled(!query.hasFilters())
             }
@@ -1120,7 +1121,7 @@ struct SearchFiltersPanel: View {
     @ViewBuilder
     private func tags(_ query: SearchQuery, _ facets: SearchFacets?) -> some View {
         PanelSection(compact: compact, "Tags") {
-            TextField("Find a tag", text: $find)
+            TextField(L.filterTagFind, text: $find)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 10)
                 .frame(minHeight: compact ? 44 : 28)
@@ -1160,7 +1161,7 @@ struct SearchFiltersPanel: View {
                     .filter { (spoilers || !$0.spoiler) && $0.name.lowercased().contains(words) }
                     .prefix(40)
                 if found.isEmpty {
-                    Text("No tag has that in its name").foregroundStyle(.haze)
+                    Text(L.filterTagNone).foregroundStyle(.haze)
                 }
                 ForEach(Array(found), id: \.name) { tag in
                     TagRow(tag: tag, pick: query.tagPick(name: tag.name), compact: compact) { pick in
@@ -1301,7 +1302,7 @@ private struct TagRow: View {
         .contextMenu {
             Button("Include") { set(.include) }
             Button(compact ? "Leave out" : "Leave Out") { set(.exclude) }
-            Button("Off") { set(.off) }
+            Button(L.valueOff) { set(.off) }
         }
         .accessibilityValue(pick.word ?? "Off")
         .accessibilityHint("Tap to include, again to leave out")
@@ -1347,7 +1348,7 @@ private struct PickChip: View {
         .contextMenu {
             Button("Include") { set(.include) }
             Button(compact ? "Leave out" : "Leave Out") { set(.exclude) }
-            Button("Off") { set(.off) }
+            Button(L.valueOff) { set(.off) }
         }
         .accessibilityValue(pick.word ?? "Off")
     }

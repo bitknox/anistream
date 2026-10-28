@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// The words the pane and the page share.
@@ -162,9 +163,9 @@ struct NotificationsPane: View {
     @Environment(Navigator.self) private var navigator
 
     var body: some View {
-        SettingsGroup(title: "New episodes", footnote: NoticeWords.permission) {
-            SettingsRow(title: "New episodes", note: NoticeWords.line(store)) {
-                EpisodeNoticesToggle { Text("New episodes") }
+        SettingsGroup(title: L.settingsNewEpisodes, footnote: NoticeWords.permission) {
+            SettingsRow(title: L.settingsNewEpisodes, note: NoticeWords.line(store)) {
+                EpisodeNoticesToggle { Text(L.settingsNewEpisodes) }
                     .toggleStyle(.switch)
                     .labelsHidden()
             }
@@ -202,7 +203,7 @@ struct NotificationsAside: View {
 
     var body: some View {
         let on = store.settings.isOn(.episodeNotifications)
-        Text("New episodes").groupHeaderStyle().macLineHeight(14)
+        Text(L.settingsNewEpisodes).groupHeaderStyle().macLineHeight(14)
             .accessibilityAddTraits(.isHeader)
         NoticePreview(row: store.notifications.comingUp.first)
             .opacity(on ? 1 : 0.4)
@@ -216,12 +217,12 @@ struct NotificationsAside: View {
         #if os(macOS)
         Button(cased(mac: "Notification Settings…", touch: "Notification settings")) { NoticeWords.settingsURL.map { openURL($0) } }
             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-        Text("Opens System Settings, where the banner style, sound and badges are set.")
+        Text(L.settingsSystemNotificationsApple)
             .font(.mac(12))
             .foregroundStyle(.haze)
             .fixedSize(horizontal: false, vertical: true)
         #else
-        Button("Notification settings") { NoticeWords.settingsURL.map { openURL($0) } }
+        Button(L.settingsSystemNotifications) { NoticeWords.settingsURL.map { openURL($0) } }
             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
         #endif
     }
@@ -305,7 +306,7 @@ struct ShowNoticesMenu: View {
             watching: store.notifications.isWatching(id),
             capitalised: mac)
         Menu {
-            Picker("New episodes", selection: Binding(
+            Picker(L.settingsNewEpisodes, selection: Binding(
                 get: { choice },
                 set: { new in Task { await store.setShowNotices(id, to: new) } }
             )) {
@@ -350,11 +351,11 @@ struct PhoneNotificationsPage: View {
         PhoneList {
             Section {
                 EpisodeNoticesToggle {
-                    PhoneRowTitle(title: "New episodes", note: NoticeWords.line(store, counts: false))
+                    PhoneRowTitle(title: L.settingsNewEpisodes, note: NoticeWords.line(store, counts: false))
                 }
                 .listRowBackground(Palette.raised)
             } header: {
-                PhoneSectionHeader("New episodes")
+                PhoneSectionHeader(L.settingsNewEpisodes)
             } footer: {
                 Text(overrides > 0 ? "\(NoticeWords.overridden(overrides)). \(NoticeWords.permission)" : NoticeWords.permission)
             }
@@ -381,7 +382,7 @@ struct PhoneNotificationsPage: View {
                     NoticeWords.settingsURL.map { openURL($0) }
                 } label: {
                     HStack {
-                        Text("Notification settings").font(.ui(17)).foregroundStyle(.silk)
+                        Text(L.settingsSystemNotifications).font(.ui(17)).foregroundStyle(.silk)
                         Spacer()
                         Image(systemName: "arrow.up.forward").font(.ui(14, weight: .semibold)).foregroundStyle(.haze)
                     }
@@ -389,7 +390,7 @@ struct PhoneNotificationsPage: View {
                 .listRowBackground(Palette.raised)
             }
         }
-        .navigationTitle("Notifications")
+        .navigationTitle(L.settingsGroupNotifications)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await store.notifications.refreshPermission()
@@ -407,15 +408,15 @@ struct PhoneShowNoticesPage: View {
         PhoneList {
             Section {
                 HStack {
-                    PhoneRowTitle(title: "New episodes")
+                    PhoneRowTitle(title: L.settingsNewEpisodes)
                     Spacer()
                     ShowNoticesMenu(id: id)
                 }
                 .listRowBackground(Palette.raised)
             } header: {
-                PhoneSectionHeader("Notifications")
+                PhoneSectionHeader(L.settingsGroupNotifications)
             } footer: {
-                Text("When an episode of this show comes out")
+                Text(L.settingsNotifyShow)
             }
         }
         .navigationTitle(store.titles[id]?.showTitle

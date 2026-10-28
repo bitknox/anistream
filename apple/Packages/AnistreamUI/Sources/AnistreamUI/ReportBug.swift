@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// Opens the bug report for this device, with an error when the report starts from one.
@@ -33,7 +34,7 @@ struct ReportButton: View {
     var raisedSurface = false
 
     var body: some View {
-        Button("Report") { ReportBugAction(store: store, openURL: openURL)(context) }
+        Button(L.actionReport) { ReportBugAction(store: store, openURL: openURL)(context) }
             .buttonStyle(SecondaryCapsuleStyle(height: height, raisedSurface: raisedSurface, fontSize: fontSize))
             .accessibilityLabel("Report this problem")
             .accessibilityHint("Opens a bug report on GitHub in your browser")
@@ -47,11 +48,11 @@ struct AboutGroup: View {
 
     var body: some View {
         SettingsGroup(
-            title: "About",
+            title: L.aboutTitle,
             footnote: "Opens a bug report on GitHub. You sign in there. It carries your app and device versions and the last error, with no addresses, file paths or titles."
         ) {
-            SettingsRow(title: "Report a bug") {
-                Button("Report") { ReportBugAction(store: store, openURL: openURL)() }
+            SettingsRow(title: L.aboutReportBug) {
+                Button(L.actionReport) { ReportBugAction(store: store, openURL: openURL)() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
         }

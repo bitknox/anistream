@@ -1,6 +1,7 @@
 // Continue watching: the next episode, its progress, a tap to open the title and one to play.
 
 import AnistreamDesign
+import AnistreamStrings
 import AnistreamWidgetData
 import SwiftUI
 import WidgetKit
@@ -66,7 +67,7 @@ public struct ContinueWidgetView: View {
         case .signedOut:
             VStack(alignment: .leading, spacing: 2) {
                 Text("Continue watching").font(WidgetType.ui(15, weight: .semibold))
-                Text("Connect AniList to see it here.").font(WidgetType.ui(13)).foregroundStyle(.secondary)
+                Text(L.continueWidgetConnect).font(WidgetType.ui(13)).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .widgetURL(WidgetLink.accounts.url)
@@ -398,7 +399,7 @@ struct CaughtUp: View {
     var body: some View {
         if small {
             MessageWidget(
-                title: "Caught up",
+                title: L.continueRowCaughtUpPlain,
                 message: next.map { "\($0.title) E\($0.episode) airs \(format.day($0.airsAt, from: now))." }
                     ?? "You’re caught up.",
                 extra: {

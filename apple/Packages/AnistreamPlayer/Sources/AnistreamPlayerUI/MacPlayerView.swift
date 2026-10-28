@@ -7,6 +7,7 @@ import AnistreamDesign
 import AnistreamKit
 import AnistreamPlayer
 import AnistreamStore
+import AnistreamStrings
 import AppKit
 import SwiftUI
 
@@ -644,7 +645,7 @@ struct VolumeLine: View {
         }
         .frame(width: width, height: 28)
         .accessibilityElement()
-        .accessibilityLabel("Volume")
+        .accessibilityLabel(L.playerVolume)
         .accessibilityValue("\(Int(model.volume))%")
         .accessibilityAdjustableAction { model.stepVolume(by: $0 == .increment ? 5 : -5) }
     }

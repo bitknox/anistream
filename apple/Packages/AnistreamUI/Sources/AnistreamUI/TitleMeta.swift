@@ -3,6 +3,7 @@
 // order, the rankings, cast, staff and tags, and the episode still to air.
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 
 // MARK: - Titles
@@ -183,11 +184,11 @@ extension Entry {
         switch airingState(now: now, calendar: calendar) {
         case .finished:
             guard let end = endDate else { return nil }
-            guard let start = startDate, start != end else { return TitleFact(label: "Aired", value: end.words) }
+            guard let start = startDate, start != end else { return TitleFact(label: L.mediaStatusAired, value: end.words) }
             let from = start.year == end.year ? (start.dayMonth ?? start.words) : start.words
-            return TitleFact(label: "Aired", value: "\(from) – \(end.words)")
+            return TitleFact(label: L.mediaStatusAired, value: "\(from) – \(end.words)")
         case .airing:
-            return TitleFact(label: "Airing", value: startDate.map { "Since \($0.words)" } ?? "Now")
+            return TitleFact(label: L.mediaStatusAiring, value: startDate.map { "Since \($0.words)" } ?? "Now")
         case .upcoming:
             return startDate.map { TitleFact(label: "Airs", value: "From \($0.words)") }
         case nil:
@@ -220,9 +221,9 @@ extension Entry {
     /// Season, the airing fact, Also on.
     func facts(now: Date = .now) -> [TitleFact] {
         var facts: [TitleFact] = []
-        if let studio { facts.append(TitleFact(label: "Studio", value: studio)) }
-        if let basedOn { facts.append(TitleFact(label: "Based on", value: basedOn)) }
-        if let seasonWords { facts.append(TitleFact(label: "Season", value: seasonWords)) }
+        if let studio { facts.append(TitleFact(label: L.titleStudio, value: studio)) }
+        if let basedOn { facts.append(TitleFact(label: L.titleBasedOn, value: basedOn)) }
+        if let seasonWords { facts.append(TitleFact(label: L.filterSeason, value: seasonWords)) }
         if let airing = airingFact(now: now) { facts.append(airing) }
         if let alsoOnFact { facts.append(TitleFact(label: "Also on", value: alsoOnFact)) }
         return facts

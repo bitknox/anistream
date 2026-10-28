@@ -8,6 +8,7 @@
 
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import Foundation
 import SwiftUI
 
@@ -287,7 +288,7 @@ public struct AiringTodaySnippet: View {
                         if row.marked {
                             Image(systemName: "bookmark.fill")
                                 .foregroundStyle(.tint)
-                                .accessibilityLabel("On your list")
+                                .accessibilityLabel(L.libraryOnYourList)
                         }
                     }
                     .accessibilityElement(children: .combine)

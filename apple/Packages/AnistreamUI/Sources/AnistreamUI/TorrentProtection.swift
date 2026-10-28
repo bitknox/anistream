@@ -6,6 +6,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// The words for each choice, as the turn-on sheet and Sources say them.
@@ -275,7 +276,7 @@ struct TorrentIndexField: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        TextField("Torrent index", text: $text, prompt: Text("https://…/?q={query}"))
+        TextField(L.torrentsIndex, text: $text, prompt: Text("https://…/?q={query}"))
             .textFieldStyle(.plain)
             .font(phone ? .ui(17) : .mac(13, design: .monospaced))
             #if os(iOS)
@@ -318,13 +319,13 @@ struct ProtectionMenu: View {
         }
         .modifier(MenuLook(phone: phone))
         .disabled(current == nil)
-        .accessibilityLabel("Protect with")
+        .accessibilityLabel(L.torrentsProtectWith)
         .sheet(isPresented: $askingProxy) { protectionSheet }
         .confirmationDialog(ProtectionWords.noneTitle, isPresented: $confirmingNone, titleVisibility: .visible) {
             Button(cased(mac: "No Protection", touch: "No protection"), role: .destructive) {
                 store.setTorrentProtection(TorrentProtection.none, acknowledged: true)
             }
-            Button("Cancel", role: .cancel) {}
+            Button(L.actionCancel, role: .cancel) {}
         } message: {
             Text(ProtectionWords.noneMessage)
         }
@@ -366,10 +367,10 @@ struct FailedCheckMenu: View {
         }
         .modifier(MenuLook(phone: phone))
         .disabled(current == nil)
-        .accessibilityLabel("If a check fails")
+        .accessibilityLabel(L.torrentsIfCheckFails)
         .confirmationDialog(ProtectionWords.warnTitle, isPresented: $confirmingWarn, titleVisibility: .visible) {
             Button(cased(mac: "Warn Only", touch: "Warn only"), role: .destructive) { store.setFailedCheck(.warn) }
-            Button("Cancel", role: .cancel) {}
+            Button(L.actionCancel, role: .cancel) {}
         } message: {
             Text(ProtectionWords.warnMessage)
         }

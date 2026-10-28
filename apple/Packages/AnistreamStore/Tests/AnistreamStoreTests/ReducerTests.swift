@@ -48,13 +48,13 @@ struct ReducerTests {
         let queue = store.continuing.queue(store.titles)
         #expect(queue.inProgress.map(\.id) == [900_001, 900_005, 900_002])
         #expect(queue.inProgress.map(\.action) == [
-            "Resume E7 · 10:06", "Resume E2 · 13:30", "Start E4",
+            "Continue E7 · 10:06", "Continue E2 · 13:30", "Play E4",
         ])
-        #expect(queue.newThisWeek.map(\.action) == ["Start E8 · out 19h ago"])
+        #expect(queue.newThisWeek.map(\.action) == ["Play E8 · out 19h ago"])
         let first = try! #require(queue.inProgress.first)
-        #expect(first.buttonTitle == "Resume Episode 7 · 10:06")
+        #expect(first.buttonTitle == "Resume episode 7 · 10:06")
         #expect(first.minutesLeft == 14)
-        #expect(queue.inProgress[2].buttonTitle == "Start Episode 4")
+        #expect(queue.inProgress[2].buttonTitle == "Play episode 4")
     }
 
     @Test func aShowWatchedDubbedIsMarkedAndASubIsNot() {
@@ -71,20 +71,14 @@ struct ReducerTests {
         ])
         let queue = store.continuing.queue(store.titles)
         #expect(queue.inProgress.map(\.action) == [
-            "Resume E7 · 10:06", "Resume E2 · Dub · 13:30", "Start E4",
+            "Continue E7 · 10:06", "Continue E2 dubbed · 13:30", "Play E4",
         ])
         #expect(queue.inProgress.map(\.buttonTitle) == [
-            "Resume Episode 7 · 10:06", "Resume Episode 2 · Dub · 13:30", "Start Episode 4",
+            "Resume episode 7 · 10:06", "Resume episode 2 · Dubbed · 13:30", "Play episode 4",
         ])
-        #expect(queue.newThisWeek.map(\.action) == ["Start E8 · Dub · out 19h ago"])
-        #expect(queue.newThisWeek.map(\.buttonTitle) == ["Start Episode 8 · Dub"])
-        // iPhone and iPad say it in sentence case, the Mac in title case.
-        #expect(queue.inProgress.map { $0.buttonTitle(titleCase: false) } == [
-            "Resume episode 7 · 10:06", "Resume episode 2 · Dub · 13:30", "Start episode 4",
-        ])
-        #expect(queue.newThisWeek.map { $0.buttonTitle(titleCase: false) } == ["Start episode 8 · Dub"])
-        #expect(queue.inProgress.map { $0.buttonTitle(titleCase: true) } == queue.inProgress.map(\.buttonTitle))
-        #expect(queue.all.map(\.mark) == [nil, "Dub", nil, "Dub"])
+        #expect(queue.newThisWeek.map(\.action) == ["Play E8 dubbed · out 19h ago"])
+        #expect(queue.newThisWeek.map(\.buttonTitle) == ["Play episode 8 · Dubbed"])
+        #expect(queue.all.map(\.dubbed) == [false, true, false, true])
     }
 
     @Test func aDubCaughtUpIsNotMarkedAsTheEpisodeIsStillToAir() {
@@ -93,10 +87,9 @@ struct ReducerTests {
         row.progress = TitleProgress(done: 8, next: 9)
         let item = ContinueQueue.item(row)
         #expect(!item.playable)
-        #expect(item.action.hasPrefix("Caught up · E9 "), "\(item.action)")
+        #expect(item.action.hasPrefix("Caught up"), "\(item.action)")
         #expect(!item.action.contains("Dub"))
         #expect(!item.buttonTitle.contains("Dub"))
-        #expect(item.buttonTitle(titleCase: false) == item.buttonTitle(titleCase: true))
     }
 
     @Test func anEpisodeOutMoreThanAWeekAgoIsNotNew() {
@@ -107,7 +100,7 @@ struct ReducerTests {
         ])
         let queue = store.continuing.queue(store.titles)
         #expect(queue.newThisWeek.isEmpty)
-        #expect(queue.inProgress.last?.action == "Start E8")
+        #expect(queue.inProgress.last?.action == "Play E8")
     }
 
     @Test func stillsAreAskedForOnceAndOnlyForATitleWithNoBanner() {
@@ -160,7 +153,7 @@ struct ReducerTests {
         ))
         #expect(store.titles[900_002]?.progress == TitleProgress(done: 4, next: 5))
         let row = store.continuing.queue(store.titles).inProgress.first { $0.id == 900_002 }
-        #expect(row?.action == "Resume E5 · 5:00")
+        #expect(row?.action == "Continue E5 · 5:00")
         #expect(store.seasonal.state == .loaded([900_002]))
     }
 

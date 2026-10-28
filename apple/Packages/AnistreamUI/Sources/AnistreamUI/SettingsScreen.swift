@@ -351,7 +351,7 @@ enum Device {
 /// How titles read and which are listed: nothing here is about playing an episode.
 struct GeneralPane: View {
     var body: some View {
-        SettingsGroup(title: "Titles") {
+        SettingsGroup(title: L.settingsGroupTitles) {
             TitleLanguageRow()
             SettingsRow(title: SettingKey.adultTitles.title, note: "Titles AniList marks adult, in Search and Seasonal.") {
                 SettingSwitch(key: .adultTitles)
@@ -402,7 +402,7 @@ struct PlaybackPane: View {
                 SettingSwitch(key: .spoilerProtection)
             }
         }
-        SettingsGroup(title: "Picture and sound") {
+        SettingsGroup(title: L.playerPictureAndSound) {
             // Selected: the column beside the pane is about it.
             SettingsRow(title: SettingKey.upscaling.title, selected: true) {
                 SettingMenu(key: .upscaling)
@@ -430,7 +430,7 @@ struct SubtitlesMenu: View {
     var body: some View {
         let code = store.settings.row(.subtitles)?.typedText ?? store.settings.value(.subtitles) ?? ""
         Menu {
-            Picker("Subtitles", selection: Binding(
+            Picker(L.playerSubtitles, selection: Binding(
                 get: { code },
                 set: { store.setSetting(.subtitles, to: .str($0)) }
             )) {
@@ -450,7 +450,7 @@ struct SubtitlesMenu: View {
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
-        .accessibilityLabel("Subtitles")
+        .accessibilityLabel(L.playerSubtitles)
     }
 
     /// A language code as the system names it in English: "en" reads "English".
@@ -465,7 +465,7 @@ struct UpscalingPreview: View {
 
     var body: some View {
         let mode = store.settings.row(.upscaling)?.option?.label ?? "natural · ArtCNN"
-        Text("Upscaling").groupHeaderStyle().macLineHeight(14)
+        Text(L.playerUpscaling).groupHeaderStyle().macLineHeight(14)
             .accessibilityAddTraits(.isHeader)
         GeometryReader { proxy in
             let half = proxy.size.width / 2

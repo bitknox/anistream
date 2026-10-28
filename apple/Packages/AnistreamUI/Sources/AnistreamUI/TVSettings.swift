@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// What Settings says about a paired TV under its name.
@@ -35,11 +36,11 @@ struct TVsGroup: View {
             SettingsGroup(title: "Play on TV", footnote: TVSettingsWords.footnote(tv)) {
                 ForEach(tv.paired, id: \.fingerprint) { paired in
                     SettingsRow(title: paired.name, note: TVSettingsWords.note(paired, connected: tv.connected == paired.fingerprint)) {
-                        Button("Forget") { forgetting = paired }
+                        Button(L.actionForget) { forgetting = paired }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     }
                 }
-                SettingsRow(title: tv.paired.isEmpty ? "No TVs paired yet" : "Another TV", note: "Open anistream on the TV, on the same Wi-Fi, then pair with it here.") {
+                SettingsRow(title: tv.paired.isEmpty ? "No TVs paired yet" : "Another TV", note: L.tvNonePairedDetail) {
                     Button("Pair a TV…") { tv.openPicker() }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                 }
@@ -49,9 +50,9 @@ struct TVsGroup: View {
                 isPresented: Binding(get: { forgetting != nil }, set: { if !$0 { forgetting = nil } }),
                 presenting: forgetting
             ) { paired in
-                Button("Forget", role: .destructive) { tv.forget(paired.fingerprint) }
+                Button(L.actionForget, role: .destructive) { tv.forget(paired.fingerprint) }
             } message: { _ in
-                Text("To play on it again, pair with it again.")
+                Text(L.tvForgetDetail)
             }
         }
     }
@@ -67,21 +68,21 @@ struct PhoneTVsPage: View {
         PhoneList {
             Section {
                 if tv.paired.isEmpty {
-                    PhoneRowTitle(title: "No TVs paired yet", note: "Open anistream on the TV, on the same Wi-Fi, then pair with it here.")
+                    PhoneRowTitle(title: L.tvNonePaired, note: L.tvNonePairedDetail)
                         .listRowBackground(Palette.raised)
                 }
                 ForEach(tv.paired, id: \.fingerprint) { paired in
                     HStack {
                         PhoneRowTitle(title: paired.name, note: TVSettingsWords.note(paired, connected: tv.connected == paired.fingerprint))
                         Spacer()
-                        Button("Forget") { tv.forget(paired.fingerprint) }
+                        Button(L.actionForget) { tv.forget(paired.fingerprint) }
                             .font(.ui(17, weight: .semibold))
                             .foregroundStyle(.silk)
                             .buttonStyle(.borderless)
                     }
                     .listRowBackground(Palette.raised)
                     .swipeActions {
-                        Button("Forget", role: .destructive) { tv.forget(paired.fingerprint) }
+                        Button(L.actionForget, role: .destructive) { tv.forget(paired.fingerprint) }
                     }
                 }
                 Button("Pair a TV") { tv.openPicker() }
@@ -89,12 +90,12 @@ struct PhoneTVsPage: View {
                     .foregroundStyle(.silk)
                     .listRowBackground(Palette.raised)
             } header: {
-                PhoneSectionHeader("Paired TVs")
+                PhoneSectionHeader(L.tvPairedTvs)
             } footer: {
                 Text(TVSettingsWords.footnote(tv))
             }
         }
-        .navigationTitle("TVs")
+        .navigationTitle(L.tvTitleList)
         .navigationBarTitleDisplayMode(.inline)
     }
 }

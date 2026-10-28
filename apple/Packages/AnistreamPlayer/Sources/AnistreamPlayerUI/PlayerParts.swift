@@ -6,6 +6,7 @@ import AnistreamDesign
 import AnistreamKit
 import AnistreamPlayer
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 #if os(macOS)
 import AppKit
@@ -118,7 +119,7 @@ struct StartingCurtain: View {
                     Button(metrics.label("Choose source", mac: "Choose Source")) { model.chooseSource() }
                         .buttonStyle(PillButtonStyle(kind: .primary, metrics: metrics))
                         .keyboardShortcut(.defaultAction)
-                    Button("Close") { model.viewerClosed() }
+                    Button(L.actionClose) { model.viewerClosed() }
                         .buttonStyle(PillButtonStyle(kind: .secondary, metrics: metrics))
                         .keyboardShortcut(.cancelAction)
                 }
@@ -143,7 +144,7 @@ struct StartingCurtain: View {
                     HStack(spacing: 8) {
                         Button(metrics.label("Choose source", mac: "Choose Source")) { model.chooseSource() }
                             .buttonStyle(PillButtonStyle(kind: .secondary, metrics: metrics))
-                        Button("Stop") { model.viewerClosed() }
+                        Button(L.actionStop) { model.viewerClosed() }
                             .buttonStyle(PillButtonStyle(kind: .quiet, metrics: metrics))
                     }
                     .padding(.top, 16)
@@ -209,7 +210,7 @@ struct BufferingLine: View {
         GeometryReader { proxy in
             let picture = Self.picture(in: proxy.size, aspect: model.videoAspect)
             if shown {
-                LoaderLine(reduceMotion: reduceMotion, label: "Buffering")
+                LoaderLine(reduceMotion: reduceMotion, label: L.playerBuffering)
                     .frame(width: picture.width, height: 2)
                     .position(x: picture.midX, y: picture.minY + 1)
                     .transition(.opacity)
@@ -240,7 +241,7 @@ struct SourceList: View {
             HStack {
                 Text("Sources").font(.system(size: 13, weight: .semibold)).foregroundStyle(.haze)
                 Spacer()
-                Button("Cancel") { model.cancelChoosingSource() }
+                Button(L.actionCancel) { model.cancelChoosingSource() }
                     .buttonStyle(.plain)
                     .font(.system(size: 13))
                     .foregroundStyle(.haze)
@@ -430,7 +431,7 @@ struct SeekLine: View {
             #endif
         }
         .accessibilityElement()
-        .accessibilityLabel("Position")
+        .accessibilityLabel(L.playerPosition)
         .accessibilityValue(
             "\(PlayerClock.spoken(model.position)) of \(PlayerClock.spoken(model.duration ?? 0))")
         .accessibilityAdjustableAction { direction in
@@ -694,7 +695,7 @@ struct UpNextCardView: View {
                         .monospacedDigit()
                         .foregroundStyle(.haze)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Button("Cancel") { model.cancelNext() }
+                    Button(L.actionCancel) { model.cancelNext() }
                         .buttonStyle(PillButtonStyle(kind: .secondary, metrics: metrics))
                         .keyboardShortcut(.cancelAction)
                     Button(metrics.label("Play now", mac: "Play Now")) { model.playNext() }
@@ -708,7 +709,7 @@ struct UpNextCardView: View {
             .frame(width: 320)
             .overVideo(radius: metrics.cardRadius)
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Up next")
+            .accessibilityLabel(L.playerUpNext)
         }
     }
 
@@ -760,7 +761,7 @@ struct SkipButton: View {
             }
             .buttonStyle(.plain)
             .pointingHand()
-            .accessibilityInputLabels([Text(skip.label), Text("Skip")])
+            .accessibilityInputLabels([Text(skip.label), Text(L.actionSkip)])
             .opacity(model.skipDimmed && !hovering ? 0.55 : 1)
             .animation(.standard, value: model.skipDimmed)
             .onHover { hovering = $0 }
@@ -778,7 +779,7 @@ struct UndoNote: View {
             HStack(spacing: 6) {
                 Text(note.label)
                 Text("·").foregroundStyle(.haze)
-                Button("Undo") { model.undoSkip() }
+                Button(L.actionUndo) { model.undoSkip() }
                     .buttonStyle(.plain)
                     .fontWeight(.semibold)
                     .foregroundStyle(.amber)
@@ -874,14 +875,14 @@ struct StillWatchingDialog: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("Still watching?")
+            Text(L.playerStillWatching)
                 .font(.system(size: 17, weight: .semibold))
             Text("Paused after \(model.stillWatchingAfter) episodes in a row.")
                 .font(.system(size: 15))
                 .foregroundStyle(.haze)
                 .padding(.top, 4)
             HStack(spacing: 8) {
-                Button("Stop") { model.stopWatching() }
+                Button(L.actionStop) { model.stopWatching() }
                     .buttonStyle(PillButtonStyle(kind: .quiet, metrics: .phone))
                 Spacer(minLength: 0)
                 Button(metrics.label("Continue watching", mac: "Continue Watching")) { model.continueWatching() }
@@ -1108,8 +1109,8 @@ struct TrackLists: View {
     let metrics: PlayerMetrics
 
     var body: some View {
-        MenuHeading(title: "Subtitles")
-        MenuRow(title: "Off", checked: model.subtitleTrack == nil, metrics: metrics) {
+        MenuHeading(title: L.playerSubtitles)
+        MenuRow(title: L.valueOff, checked: model.subtitleTrack == nil, metrics: metrics) {
             model.selectSubtitle(nil)
         }
         .id(Self.subtitleRow(nil))
@@ -1219,7 +1220,7 @@ struct SourceGroup: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            MenuHeading(title: "Source", indent: Self.indent)
+            MenuHeading(title: L.showSettingsSource, indent: Self.indent)
             switch Self.listing(model.menus, starting: model.starting != nil) {
             case .finding:
                 MenuNote(text: "Finding releases…", indent: Self.indent)
@@ -1237,7 +1238,7 @@ struct SourceGroup: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Source")
+        .accessibilityLabel(L.showSettingsSource)
     }
 }
 
@@ -1248,7 +1249,7 @@ struct SpeedList: View {
     static let speeds: [Double] = [0.5, 0.75, 1, 1.25, 1.5, 2]
 
     var body: some View {
-        MenuHeading(title: "Speed")
+        MenuHeading(title: L.playerSpeed)
         ForEach(Self.speeds, id: \.self) { speed in
             MenuRow(title: speedLabel(speed), checked: abs(model.speed - speed) < 0.01, metrics: metrics) {
                 model.setSpeed(speed)
@@ -1265,7 +1266,7 @@ struct PictureLists: View {
 
     var body: some View {
         if let menus = model.menus {
-            MenuHeading(title: "Upscaling")
+            MenuHeading(title: L.playerUpscaling)
             ForEach(menus.upscaling.options, id: \.id) { choice in
                 MenuRow(title: choice.label, detail: choice.hint, checked: menus.upscaling.current == choice.id, metrics: metrics) {
                     model.setUpscaling(choice.id)
@@ -1273,7 +1274,7 @@ struct PictureLists: View {
             }
             MenuDivider()
             MenuHeading(title: "Sound")
-            MenuRow(title: "Night mode", checked: menus.nightMode, metrics: metrics) {
+            MenuRow(title: L.playerNightMode, checked: menus.nightMode, metrics: metrics) {
                 model.setNightMode(!menus.nightMode)
             }
         }

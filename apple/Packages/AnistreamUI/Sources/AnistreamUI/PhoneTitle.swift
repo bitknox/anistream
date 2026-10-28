@@ -106,7 +106,7 @@ struct PhoneTitle: View {
                             Button {
                                 store.send(.playTrailer(url: trailer, title: entry.title))
                             } label: {
-                                Text("Trailer").frame(maxWidth: .infinity)
+                                Text(L.titleTrailer).frame(maxWidth: .infinity)
                             }
                             .buttonStyle(SecondaryCapsuleStyle(height: 44, fontSize: 15))
                         }
@@ -242,7 +242,7 @@ struct PhoneTitle: View {
                 Menu {
                     TitleMoreItems(entry: entry)
                 } label: {
-                    Label("More", systemImage: "ellipsis")
+                    Label(L.actionMore, systemImage: "ellipsis")
                 }
             }
         }
@@ -400,7 +400,7 @@ struct PhoneEpisodeRow: View {
                         .foregroundStyle(row.completed ? .haze : .silk)
                         .rowTitle()
                         .animation(.quick, value: row.completed)
-                    if row.kind == .filler { Text("Filler").groupHeaderStyle() }
+                    if row.kind == .filler { Text(L.episodeFiller).groupHeaderStyle() }
                 }
                 if row.unsourced {
                     Text(L.episodeUnsourced).font(.ui(15)).foregroundStyle(.haze)

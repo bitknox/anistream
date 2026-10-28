@@ -7,6 +7,7 @@ import AnistreamDesign
 import AnistreamKit
 import AnistreamPlayer
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 import UIKit
 
@@ -175,7 +176,7 @@ public struct PhonePlayerView: View {
                     .contentShape(.circle)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Close player")
+            .accessibilityLabel(L.playerClose)
             VStack(alignment: .leading, spacing: 1) {
                 Text(model.showTitle)
                     .font(.showTitle(size: 15))
@@ -292,7 +293,7 @@ public struct PhonePlayerView: View {
                         MenuDivider()
                         // The Mac's More menu is this sheet here: Stats for nerds goes up over
                         // the picture, so the sheet goes down to show it.
-                        MenuRow(title: "Stats for nerds", checked: model.statsShown, metrics: metrics) {
+                        MenuRow(title: L.playerStats, checked: model.statsShown, metrics: metrics) {
                             model.toggleStats()
                             if model.statsShown { self.sheet = nil }
                         }

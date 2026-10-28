@@ -292,7 +292,7 @@ struct TitleHero: View {
                         AirsStatus(text: Self.pad ? action.sentence : action.title)
                     }
                     if let trailer = entry.trailerUrl {
-                        Button("Trailer") {
+                        Button(L.titleTrailer) {
                             store.send(.playTrailer(url: trailer, title: entry.title))
                         }
                         .buttonStyle(SecondaryCapsuleStyle(height: Self.pad ? 48 : 28, fontSize: Self.pad ? 17 : 13))
@@ -478,7 +478,7 @@ struct TitleFamilyRow: View {
 
     private func seasonsGroup(@ViewBuilder _ row: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Seasons").groupHeaderStyle().padding(.horizontal, 4)
+            Text(L.titleSeasons).groupHeaderStyle().padding(.horizontal, 4)
                 .accessibilityAddTraits(.isHeader)
             row()
         }
@@ -782,7 +782,7 @@ struct EpisodeRowView: View {
                         .lineLimit(1)
                         .animation(.quick, value: row.completed)
                     if row.kind == .filler {
-                        Text("Filler").groupHeaderStyle()
+                        Text(L.episodeFiller).groupHeaderStyle()
                     }
                 }
                 if row.unsourced {
@@ -870,7 +870,7 @@ struct EpisodeStill: View {
                         .font(.mac(12, weight: .medium))
                         .foregroundStyle(.silk)
                 }
-                .accessibilityLabel("Still hidden: spoiler protection")
+                .accessibilityLabel(L.episodeSpoilerHidden)
             } else {
                 ArtworkView(url: row.thumbnail ?? entry.bannerUrl, color: entry.plateColor, maxPixelSize: 128)
             }
@@ -950,7 +950,7 @@ struct TitleToolbar: ToolbarContent {
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
-            Button("Back", systemImage: "chevron.left") {
+            Button(L.actionBack, systemImage: "chevron.left") {
                 withAnimation(.standard) { navigator.back() }
             }
             .keyboardShortcut("[", modifiers: .command)
@@ -969,7 +969,7 @@ struct TitleToolbar: ToolbarContent {
                     TitleMoreItems(entry: entry)
                 }
             } label: {
-                Label("More", systemImage: "ellipsis")
+                Label(L.actionMore, systemImage: "ellipsis")
             }
         }
     }

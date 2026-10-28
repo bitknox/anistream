@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// What a show's sheet says of its rows.
@@ -132,7 +133,7 @@ struct ShowSettingsSheet: View {
                 CoverArt(entry: entry, width: 36)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.showTitle).font(.macShowTitle(size: 15)).foregroundStyle(.silk)
-                    Text("Settings for this show").font(.mac(13)).foregroundStyle(.haze)
+                    Text(L.showSettingsTitle).font(.mac(13)).foregroundStyle(.haze)
                 }
             }
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 12) {
@@ -182,7 +183,7 @@ struct ShowSettingsSheet: View {
             .padding(.top, 24)
             HStack {
                 Spacer()
-                Button("Done") { dismiss() }
+                Button(L.actionDone) { dismiss() }
                     .buttonStyle(PrimaryCapsuleStyle(height: 34))
                     .keyboardShortcut(.defaultAction)
             }
@@ -253,7 +254,7 @@ struct PhoneShowSettingsSheet: View {
                 Section {
                     menuRow("Audio", key: .translation)
                     HStack {
-                        Text("Subtitles").font(.ui(17)).foregroundStyle(.silk)
+                        Text(L.playerSubtitles).font(.ui(17)).foregroundStyle(.silk)
                         Spacer()
                         Text(ShowWords.subtitles(view, settings: settingsSubtitles, titleCase: false))
                             .font(.ui(17))
@@ -262,9 +263,9 @@ struct PhoneShowSettingsSheet: View {
                     .listRowBackground(Palette.raised)
                     .accessibilityElement(children: .combine)
                 } header: {
-                    PhoneSectionHeader("Audio and subtitles")
+                    PhoneSectionHeader(L.showSettingsAudioSubtitles)
                 } footer: {
-                    Text("Remembered from your last episode.")
+                    Text(L.showSettingsSubsRemembered)
                 }
                 Section {
                     menuRow("Skip opening", key: .skipOpening)
@@ -275,19 +276,19 @@ struct PhoneShowSettingsSheet: View {
                 }
                 Section {
                     HStack {
-                        PhoneRowTitle(title: "New episodes")
+                        PhoneRowTitle(title: L.settingsNewEpisodes)
                         Spacer()
                         ShowNoticesMenu(id: entry.id)
                     }
                     .listRowBackground(Palette.raised)
                 } header: {
-                    PhoneSectionHeader("Notifications")
+                    PhoneSectionHeader(L.settingsGroupNotifications)
                 } footer: {
-                    Text("When an episode of this show comes out")
+                    Text(L.settingsNotifyShow)
                 }
                 Section {
                     HStack {
-                        Text("Source").font(.ui(17)).foregroundStyle(.silk)
+                        Text(L.showSettingsSource).font(.ui(17)).foregroundStyle(.silk)
                         Spacer()
                         Menu {
                             ShowSourcePicker(id: entry.id) { EmptyView() }.pickerStyle(.inline)
@@ -297,16 +298,16 @@ struct PhoneShowSettingsSheet: View {
                     }
                     .listRowBackground(Palette.raised)
                 } footer: {
-                    Text("Automatic tries your sources in order.")
+                    Text(L.showSettingsSourceDetail)
                 }
                 Section {
-                    Button("Reset to defaults") { store.resetShowSettings(entry.id) }
+                    Button(L.showSettingsReset) { store.resetShowSettings(entry.id) }
                         .fontWeight(.semibold)
                         .foregroundStyle(.silk)
                         .disabled(view == nil)
                         .listRowBackground(Palette.raised)
                 } footer: {
-                    Text("Also clears the remembered audio and subtitles.")
+                    Text(L.showSettingsResetDetail)
                 }
             }
             .toolbar {
@@ -315,14 +316,14 @@ struct PhoneShowSettingsSheet: View {
                         CoverArt(entry: entry, width: 36)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(entry.showTitle).font(.macShowTitle(size: 17, relativeTo: .body)).foregroundStyle(.silk)
-                            Text("Settings for this show").font(.mac(15)).foregroundStyle(.haze)
+                            Text(L.showSettingsTitle).font(.mac(15)).foregroundStyle(.haze)
                         }
                         .fixedSize()
                     }
                 }
                 .sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }.fontWeight(.semibold).tint(.silk)
+                    Button(L.actionDone) { dismiss() }.fontWeight(.semibold).tint(.silk)
                 }
             }
         }

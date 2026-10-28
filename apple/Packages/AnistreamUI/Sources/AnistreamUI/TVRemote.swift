@@ -7,6 +7,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 #if canImport(VisionKit) && os(iOS)
 import VisionKit
@@ -363,7 +364,7 @@ struct TVSeekLine: View {
                 .accessibilityHidden(!reported)
             }
             .accessibilityElement()
-            .accessibilityLabel("Position")
+            .accessibilityLabel(L.playerPosition)
             .accessibilityValue(ResumePoint(position: position, fraction: nil).clock)
             .accessibilityAdjustableAction { direction in
                 store.tv.send(.seek(by: direction == .increment ? 10 : -10))
@@ -433,7 +434,7 @@ struct TVTrackMenu: View {
                 get: { off ? nil : tracks.first(where: \.selected)?.id },
                 set: { store.tv.send(.track(kind: kind, id: $0)) }
             )) {
-                if kind == .subtitle { Text("Off").tag(Int64?.none) }
+                if kind == .subtitle { Text(L.valueOff).tag(Int64?.none) }
                 ForEach(tracks, id: \.id) { track in
                     Text(TVWords.track(track)).tag(Optional(track.id))
                 }
@@ -478,7 +479,7 @@ struct TVCodeBoxes: View {
                 }
                 .onSubmit(submit)
                 .disabled(locked)
-                .accessibilityLabel("Pairing code")
+                .accessibilityLabel(L.tvPairingCode)
             HStack(spacing: touch ? 8 : 6) {
                 ForEach(0..<6, id: \.self) { index in
                     Text(index < digits.count ? String(digits[index]) : "")
@@ -521,7 +522,7 @@ struct TVRow: View {
                 Spacer(minLength: 8)
                 switch row.kind {
                 case .new:
-                    Text("Pair")
+                    Text(L.actionPair)
                         .font(phone ? .ui(17, weight: .semibold) : .mac(13, weight: .semibold))
                         .foregroundStyle(.silk)
                 case .paired, .pairedAway:
@@ -529,7 +530,7 @@ struct TVRow: View {
                         Image(systemName: "checkmark")
                             .font(phone ? .ui(15, weight: .semibold) : .mac(12, weight: .semibold))
                             .foregroundStyle(.silk)
-                            .accessibilityLabel("Connected")
+                            .accessibilityLabel(L.tvStatusConnected)
                     } else if !phone {
                         Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)
                     }
@@ -683,7 +684,7 @@ struct MacTVPicker: View {
                     .textFieldStyle(SheetFieldStyle())
                     .labelsHidden()
                     .onSubmit(connect)
-                Button("Connect", action: connect)
+                Button(L.actionConnect, action: connect)
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .disabled(address.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -699,7 +700,7 @@ struct MacTVPicker: View {
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
             Spacer()
-            Button("Done") { dismiss() }
+            Button(L.actionDone) { dismiss() }
                 .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                 .keyboardShortcut(.cancelAction)
         }
@@ -736,7 +737,7 @@ struct MacTVPairing: View {
             TVProblemLine(text: problem, touch: false).padding(.top, 12)
         }
         HStack(spacing: 10) {
-            Button("Back") { tv.cancelPairing() }
+            Button(L.actionBack) { tv.cancelPairing() }
                 .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                 .keyboardShortcut(.cancelAction)
             Spacer()
@@ -751,7 +752,7 @@ struct MacTVPairing: View {
                 Button("Get a New Code", action: newCode)
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .disabled(step.working)
-                Button("Pair", action: submit)
+                Button(L.actionPair, action: submit)
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
                     .disabled(sixDigits(code) == nil || step.working)
@@ -816,8 +817,8 @@ struct MacTVRemote: View {
             TVSeekLine(now: now, touch: false).padding(.top, 14)
             TVTransport(now: now, touch: false).padding(.top, 2)
             MacSheetRows {
-                SettingsRow(title: "Subtitles") {
-                    TVTrackMenu(title: "Subtitles", kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff, phone: false)
+                SettingsRow(title: L.playerSubtitles) {
+                    TVTrackMenu(title: L.playerSubtitles, kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff, phone: false)
                 }
                 .opacity(tv.live ? 1 : 0.4)
                 SettingsRow(title: "Audio") {
@@ -841,7 +842,7 @@ struct MacTVRemote: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 14)
         }
-        TextField("Search on the TV", text: $search, prompt: Text("Search on the TV"))
+        TextField(L.tvSearchOnTv, text: $search, prompt: Text(L.tvSearchOnTv))
             .textFieldStyle(SheetFieldStyle())
             .labelsHidden()
             .disabled(!tv.live)
@@ -859,13 +860,13 @@ struct MacTVRemote: View {
                 Button("Choose Another TV…") { tv.openPicker() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
-            Button("Disconnect") {
+            Button(L.actionDisconnect) {
                 tv.disconnect()
                 dismiss()
             }
             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             Spacer()
-            Button("Done") { dismiss() }
+            Button(L.actionDone) { dismiss() }
                 .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                 .keyboardShortcut(.cancelAction)
         }
@@ -916,7 +917,7 @@ struct PhoneTVSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }.fontWeight(.semibold)
+                    Button(L.actionDone) { dismiss() }.fontWeight(.semibold)
                 }
             }
         }
@@ -961,13 +962,13 @@ struct PhoneTVPicker: View {
                     TVRow(row: row, phone: true).listRowBackground(Palette.raised)
                 }
             } header: {
-                PhoneSectionHeader("On this network")
+                PhoneSectionHeader(L.tvSectionNetwork)
             } footer: {
                 Text(TVWords.pickerLine(tv.request))
             }
             Section {
                 if TVCodeScanner.isSupported {
-                    PhoneActionRow(title: "Scan the code on the TV", systemImage: "qrcode.viewfinder") { scanning = true }
+                    PhoneActionRow(title: L.tvScanCode, systemImage: "qrcode.viewfinder") { scanning = true }
                 }
                 TextField("Address", text: $address, prompt: Text("Type an address"))
                     .font(.ui(17))
@@ -981,7 +982,7 @@ struct PhoneTVPicker: View {
                     }
                     .listRowBackground(Palette.raised)
             } header: {
-                PhoneSectionHeader("Not listed")
+                PhoneSectionHeader(L.tvSectionNotListed)
             } footer: {
                 Text(TVWords.address)
             }
@@ -1027,7 +1028,7 @@ struct PhoneTVPairing: View {
                 // Once the code ran out, the button at the foot asks for a new one instead.
                 if !step.expired {
                     Section {
-                        PhoneActionRow(title: "Get a new code", action: newCode)
+                        PhoneActionRow(title: L.actionNewCode, action: newCode)
                             .disabled(step.working)
                     }
                 }
@@ -1044,11 +1045,11 @@ struct PhoneTVPairing: View {
                 }
             }
         }
-        .navigationTitle("Pair with a TV")
+        .navigationTitle(L.tvPairWithTv)
         .navigationBarBackButtonHidden()
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Back") { tv.cancelPairing() }
+                Button(L.actionBack) { tv.cancelPairing() }
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -1138,7 +1139,7 @@ struct PhoneTVRemote: View {
                     menuRow("Subtitles", kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff)
                     menuRow("Audio", kind: .audio, tracks: now.audio, off: false)
                     HStack(spacing: 8) {
-                        PhoneRowTitle(title: "TV volume", note: TVWords.volume(now))
+                        PhoneRowTitle(title: L.tvVolume, note: TVWords.volume(now))
                         Spacer()
                         volume("speaker.wave.1", "Volume down", -5)
                         volume("speaker.wave.3", "Volume up", 5)
@@ -1149,7 +1150,7 @@ struct PhoneTVRemote: View {
                 }
             }
             Section {
-                TextField("Search on the TV", text: $search, prompt: Text("Type a search"))
+                TextField(L.tvSearchOnTv, text: $search, prompt: Text(L.tvTypeSearch))
                     .font(.ui(17))
                     .disabled(!tv.live)
                     .autocorrectionDisabled()
@@ -1158,20 +1159,20 @@ struct PhoneTVRemote: View {
                     .onSubmit { tv.send(.text(text: search, submit: true)) }
                     .listRowBackground(Palette.raised)
             } header: {
-                PhoneSectionHeader("Search on the TV")
+                PhoneSectionHeader(L.tvSearchOnTv)
             } footer: {
                 if let problem = tv.problem { TVProblemLine(text: problem, touch: true) }
             }
             Section {
                 if TVWords.lost(card) {
-                    PhoneActionRow(title: "Pair again") {
+                    PhoneActionRow(title: L.tvPairAgain) {
                         if let fingerprint = tv.connected { tv.forget(fingerprint) }
                         tv.openPicker()
                     }
                 } else {
                     PhoneActionRow(title: "Choose another TV") { tv.openPicker() }
                 }
-                PhoneActionRow(title: "Disconnect") {
+                PhoneActionRow(title: L.actionDisconnect) {
                     tv.disconnect()
                     dismiss()
                 }

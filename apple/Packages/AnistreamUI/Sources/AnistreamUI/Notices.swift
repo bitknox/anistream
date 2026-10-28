@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// The latest notice, in a glass capsule at the foot of the window, for a few seconds: longer
@@ -183,7 +184,7 @@ struct MessagesView: View {
             }
             HStack {
                 Spacer()
-                Button("Done") { dismiss() }
+                Button(L.actionDone) { dismiss() }
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
             }
@@ -213,7 +214,7 @@ struct MessagesView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button(L.actionDone) { dismiss() }
                         .fontWeight(.semibold)
                         .tint(.silk)
                         .keyboardShortcut(.defaultAction)

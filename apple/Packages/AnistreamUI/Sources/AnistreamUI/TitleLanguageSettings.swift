@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// The three choices, as the settings file names them.
@@ -176,7 +177,7 @@ struct TitleLanguagePreview: View {
         let viewer = store.accounts.viewerTitleLanguage
         let cover = min(88, ((width - 24) / 3).rounded(.down))
         VStack(alignment: .leading, spacing: 12) {
-            Text("Title language").groupHeaderStyle().macLineHeight(14)
+            Text(L.settingsTitleLanguage).groupHeaderStyle().macLineHeight(14)
                 .accessibilityAddTraits(.isHeader)
             HStack(alignment: .top, spacing: 12) {
                 ForEach(examples, id: \.id) { entry in

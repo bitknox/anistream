@@ -123,7 +123,7 @@ public struct EpisodeOnScreen: Equatable, Sendable {
     public var show: String
     public var translation: Translation
 
-    /// "Episode 7 · Dub · The Lantern Road" for a dub, "Episode 7 · The Lantern Road" for a sub,
+    /// "Episode 7 · Dubbed · The Lantern Road" for a dub, "Episode 7 · The Lantern Road" for a sub,
     /// without the name when it has none. Only dubs are marked, wherever an episode is described.
     public var line: String {
         let episode = label + dubMark
@@ -131,7 +131,7 @@ public struct EpisodeOnScreen: Equatable, Sendable {
         return "\(episode) · \(title)"
     }
 
-    /// " · Dub" after the episode's number when it plays dubbed, or nothing.
+    /// " · Dubbed" after the episode's number when it plays dubbed, or nothing.
     public var dubMark: String {
         translation == .dub ? " · \(translation.label)" : ""
     }

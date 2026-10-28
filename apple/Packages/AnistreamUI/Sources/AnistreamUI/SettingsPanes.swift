@@ -3,6 +3,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import Network
 import SwiftUI
 
@@ -13,7 +14,7 @@ struct DownloadsPane: View {
     @State private var confirmDelete = false
 
     var body: some View {
-        SettingsGroup(title: "Files") {
+        SettingsGroup(title: L.settingsGroupFiles) {
             SettingsRow(title: SettingKey.downloadDir.title, note: DownloadFolder.note(store)) {
                 DownloadFolderMenu()
             }
@@ -57,7 +58,7 @@ struct DownloadsPane: View {
             "Delete \(Wording.plural(watched.rows.count, "watched download"))?",
             isPresented: $confirmDelete
         ) {
-            Button("Delete", role: .destructive) {
+            Button(L.actionDelete, role: .destructive) {
                 for row in watched.rows { store.deleteDownload(row.id) }
             }
         } message: {
@@ -106,7 +107,7 @@ struct DownloadFolderMenu: View {
             #if os(macOS)
             Button(cased(mac: "Choose…", touch: "Choose")) { choose() }
             if let path = store.settings.row(.downloadDir)?.typedText, !path.isEmpty {
-                Button("Show in Finder") {
+                Button(L.shellShowInFinder) {
                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
                 }
             }
@@ -120,7 +121,7 @@ struct DownloadFolderMenu: View {
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
-        .accessibilityLabel("Download folder")
+        .accessibilityLabel(L.downloadsFolder)
     }
 
     #if os(macOS)
@@ -150,7 +151,7 @@ struct HookRow: View {
                 .font(.mac(13))
                 .foregroundStyle(.silk)
                 .frame(width: 196, alignment: .leading)
-            TextField("Command", text: $text, prompt: Text("None"))
+            TextField("Command", text: $text, prompt: Text(L.valueNone))
                 .textFieldStyle(.plain)
                 .font(.mac(13, design: .monospaced))
                 .padding(.horizontal, 10)
@@ -212,7 +213,7 @@ struct StorageAside: View {
         let watched = WatchedDownloads(store).rows.reduce(UInt64(0)) { $0 + $1.bytesOnDisk }
         let total = store.downloads.bytesOnDisk
         let unwatched = total - min(watched, total)
-        Text("Storage").groupHeaderStyle().macLineHeight(14)
+        Text(L.settingsGroupStorage).groupHeaderStyle().macLineHeight(14)
             .accessibilityAddTraits(.isHeader)
         GeometryReader { proxy in
             HStack(spacing: 2) {
@@ -319,7 +320,7 @@ struct SourcesPane: View {
                     SettingsRow(title: SettingKey.torrentsOnCellular.title) { SettingSwitch(key: .torrentsOnCellular) }
                 }
                 // Beside the choice, once a proxy is set: where it is, and its form to edit.
-                SettingsRow(title: "Protect with", note: store.settings.torrent?.proxyLine) {
+                SettingsRow(title: L.torrentsProtectWith, note: store.settings.torrent?.proxyLine) {
                     HStack(spacing: 10) {
                         EditProxyButton()
                         ProtectionMenu()
@@ -330,7 +331,7 @@ struct SourcesPane: View {
             }
         }
         if on {
-            SettingsGroup(title: "Seeding", footnote: "Seeding runs only while anistream is open.") {
+            SettingsGroup(title: L.downloadsSeedingTitle, footnote: "Seeding runs only while anistream is open.") {
                 SettingsRow(title: SettingKey.seedRatio.title) { SettingMenu(key: .seedRatio) }
                 SettingsRow(title: SettingKey.seedHours.title) { SettingMenu(key: .seedHours) }
                 SettingsRow(title: SettingKey.uploadLimit.title) { SettingMenu(key: .uploadLimit) }
@@ -375,7 +376,7 @@ struct GuardRow: View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             let (note, status, color) = words(now: context.date)
             // The guard checks again on its own every minute; no command runs it sooner.
-            SettingsRow(title: "Last check", note: note) {
+            SettingsRow(title: L.torrentsLastCheck, note: note) {
                 HStack(spacing: 6) {
                     Circle().fill(color).frame(width: 6, height: 6)
                     Text(status).font(.mac(13)).foregroundStyle(.silk)
@@ -442,7 +443,7 @@ struct AccountsPane: View {
                     }
                 }
             } else {
-                SettingsRow(title: "AniList", note: "Brings in your lists and fills Continue with what you are watching.") {
+                SettingsRow(title: "AniList", note: L.accountsBringsLists) {
                     HStack(spacing: 8) {
                         Working(store.accounts.isWorking("anilist"))
                         Button(cased(mac: "Sign In…", touch: "Sign in")) { store.connect("anilist") }
@@ -452,13 +453,13 @@ struct AccountsPane: View {
                 }
             }
         }
-        SettingsGroup(title: "Other trackers", footnote: AccountWords.tokens(store.accounts)) {
+        SettingsGroup(title: L.accountsOtherTrackers, footnote: AccountWords.tokens(store.accounts)) {
             ForEach(["mal", "kitsu", "simkl", "trakt"], id: \.self) { tracker in
                 TrackerRow(tracker: tracker, sheet: $sheet)
             }
         }
         SettingsGroup {
-            SettingsRow(title: "Privacy", note: "What anistream sends, and what stays on this \(Device.name)") {
+            SettingsRow(title: L.settingsPrivacy, note: "What anistream sends, and what stays on this \(Device.name)") {
                 Button(cased(mac: "Read Online", touch: "Read online")) { openURL(AppVersion.privacy) }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
@@ -597,7 +598,7 @@ struct IntegrationsPane: View {
         // Only where the engine has a presence to show: a phone's has none.
         if store.settings.hasPresence {
             SettingsGroup(
-                title: "Discord",
+                title: L.settingsDiscord,
                 footnote: "Rich presence shows the cover, a progress bar and a link to the show on AniList. Discord fetches the cover from AniList itself. It needs the title shown."
             ) {
                 SettingsRow(title: SettingKey.presence.title) { SettingSwitch(key: .presence) }
@@ -670,7 +671,7 @@ struct PresencePreview: View {
             episode: Int(example?.progress?.next ?? 7), total: example?.episodes.map(Int.init)
         )
         VStack(alignment: .leading, spacing: 12) {
-            Text("Discord presence").groupHeaderStyle().macLineHeight(14)
+            Text(L.settingsDiscordPresence).groupHeaderStyle().macLineHeight(14)
                 .accessibilityAddTraits(.isHeader)
             HStack(alignment: .top, spacing: 10) {
                 if sketch.cover {

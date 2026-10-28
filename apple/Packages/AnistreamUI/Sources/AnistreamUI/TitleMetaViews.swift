@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 // MARK: - On the page
@@ -59,7 +60,7 @@ struct InlineMoreText: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 if !expanded, full > shown + 1 {
-                    Button("More") { withAnimation(.standard) { expanded = true } }
+                    Button(L.actionMore) { withAnimation(.standard) { expanded = true } }
                         .buttonStyle(.plain)
                         .font(font.weight(.semibold))
                         .foregroundStyle(.silk)
@@ -69,7 +70,7 @@ struct InlineMoreText: View {
                                     .init(color: Palette.ground, location: 0.45)],
                             startPoint: .leading, endPoint: .trailing))
                         .contentShape(.rect.inset(by: -12))
-                        .accessibilityHint("Shows the whole synopsis")
+                        .accessibilityHint(L.titleSynopsisHint)
                 }
             }
     }
@@ -136,7 +137,7 @@ struct MoreAboutRow: View {
             navigator.moreAbout = entry.id
         } label: {
             HStack {
-                Text("More about this show").font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
+                Text(L.titleMoreAbout).font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
                 Spacer()
                 Image(systemName: "chevron.right").font(.ui(15, weight: .semibold)).foregroundStyle(.haze)
             }
@@ -255,7 +256,7 @@ struct MoreAboutSheet: View {
                 Text(sheetName).font(.mac(15)).foregroundStyle(.haze).lineLimit(1)
             }
             Spacer(minLength: 12)
-            Button("Done") { close() }
+            Button(L.actionDone) { close() }
                 .buttonStyle(SecondaryCapsuleStyle(height: phone ? 44 : 32, raisedSurface: true, fontSize: phone ? 17 : 13))
                 .keyboardShortcut(.cancelAction)
         }
@@ -602,7 +603,7 @@ struct MoreAboutSheet: View {
     private var emptyState: some View {
         VStack(spacing: 16) {
             Nagare(cell: 4)
-            Text("AniList has no cast, staff or recommendations for this show yet.")
+            Text(L.moreEmpty)
                 .font(phone ? .ui(17) : .mac(13))
                 .foregroundStyle(.haze)
                 .multilineTextAlignment(.center)
