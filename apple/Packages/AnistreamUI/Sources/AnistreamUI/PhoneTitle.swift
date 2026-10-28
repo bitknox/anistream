@@ -466,7 +466,7 @@ struct FromStartItem: View {
 
     var body: some View {
         if action.resume != nil, action.playable {
-            Button(cased(mac: "Play from the Beginning", touch: "Play from the beginning")) {
+            Button(L.episodePlayFromBeginning) {
                 store.send(.play(id: id, episode: String(action.episode), fromStart: true))
             }
         }

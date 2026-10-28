@@ -2,6 +2,7 @@
 // notify, each show's own switch, and turning them on, which asks for permission the first time.
 
 import AnistreamKit
+import AnistreamStrings
 import AnistreamWidgetData
 import Foundation
 import Observation
@@ -180,24 +181,23 @@ public enum ShowNoticeChoice: Hashable, Sendable, CaseIterable {
 
     /// What the show's settings sheet says of it, given whether Settings has notifications on
     /// and whether the show is being watched. A show not being watched that follows Settings is
-    /// not notified of, so it says off, and why. `capitalised` for the Mac's title case.
-    public func label(settingOn: Bool, watching: Bool, capitalised: Bool) -> String {
-        let useDefault = capitalised ? "Use Default" : "Use default"
+    /// not notified of, so it says off, and why.
+    public func label(settingOn: Bool, watching: Bool) -> String {
         switch self {
-        case .on: return "On"
-        case .off: return "Off"
+        case .on: return L.valueOn
+        case .off: return L.valueOff
         case .followSettings:
-            guard watching else { return "Off · not watching" }
-            return "\(useDefault) · \(settingOn ? "On" : "Off")"
+            guard watching else { return L.settingsShowOffNotWatching }
+            return L.valueUseDefaultIs(value: settingOn ? L.valueOn : L.valueOff)
         }
     }
 
     /// What the menu offers it as.
-    public func name(capitalised: Bool) -> String {
+    public var name: String {
         switch self {
-        case .followSettings: capitalised ? "Use Default" : "Use default"
-        case .on: "On"
-        case .off: "Off"
+        case .followSettings: L.valueUseDefault
+        case .on: L.valueOn
+        case .off: L.valueOff
         }
     }
 }

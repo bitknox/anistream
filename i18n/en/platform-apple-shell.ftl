@@ -143,3 +143,18 @@ shell-resume-episode = Resume episode { $episode }
 
 # Context menu item that opens the settings of one title.
 shell-show-settings = Show settings for this show
+
+# Sync status in the toolbar when no tracker account is signed in.
+shell-sync-none = Not connected
+
+# Sync status in the toolbar when the account needs to be signed in again.
+# @arg tracker: text
+shell-sync-sign-in-again = Sign in to { $tracker } again
+
+# Sync status in the toolbar when the last sync failed.
+# @arg tracker: text
+shell-sync-failed = { $tracker } not synced
+
+# Sync status in the toolbar when everything is synced.
+# @arg tracker: text
+shell-sync-synced = { $tracker } synced

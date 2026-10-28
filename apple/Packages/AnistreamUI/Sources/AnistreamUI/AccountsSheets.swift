@@ -46,7 +46,7 @@ struct KitsuSheet: View {
                 Button(L.actionCancel) { dismiss() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
-                Button(cased(mac: "Sign In", touch: "Sign in"), action: signIn)
+                Button(L.actionSignIn, action: signIn)
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
                     .disabled(username.isEmpty || password.isEmpty || working)
@@ -163,7 +163,7 @@ struct DeviceCodeSheet: View {
             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             .keyboardShortcut(.cancelAction)
         if expired {
-            Button(cased(mac: "Get a New Code", touch: "Get a new code")) {
+            Button(L.actionNewCode) {
                 asked = true
                 store.connect(prompt.tracker)
             }

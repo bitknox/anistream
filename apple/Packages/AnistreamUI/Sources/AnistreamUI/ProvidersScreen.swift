@@ -317,7 +317,7 @@ struct ProviderDetail: View {
                 if store.settings.isOn(.torrents) {
                     Button(L.actionDisable) { store.setSwitch(.torrents, on: false) }
                 } else {
-                    Button(cased(mac: "Enable…", touch: "Enable")) { turningOn = true }
+                    Button(L.actionEnable) { turningOn = true }
                 }
                 Button(cased(mac: "Open Sources Settings", touch: "Open sources settings")) { navigator.openSettings(.sources) }
             }
@@ -339,7 +339,7 @@ struct ProviderDetail: View {
             }
             if info.row.standing == .failing {
                 let checking = store.jobs.running.contains { $0.activity == "checking providers" }
-                Button(cased(mac: "Check Again", touch: "Check again")) { store.checkProviders() }
+                Button(L.actionCheckAgain) { store.checkProviders() }
                     .buttonStyle(SecondaryCapsuleStyle())
                     .disabled(checking)
                 Working(checking)
@@ -348,7 +348,7 @@ struct ProviderDetail: View {
             let disabled = store.isPluginDisabled(info.row.id)
             Button(disabled ? "Enable" : "Disable") { store.setPluginDisabled(info.row.id, !disabled) }
                 .buttonStyle(SecondaryCapsuleStyle())
-            Button(cased(mac: "Remove…", touch: "Remove")) { removing = true }
+            Button(L.actionRemove) { removing = true }
                 .buttonStyle(SecondaryCapsuleStyle())
                 .disabled(store.stores.isWorking(.remove(plugin: info.row.id)))
         }

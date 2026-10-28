@@ -322,7 +322,7 @@ struct ProtectionMenu: View {
         .accessibilityLabel(L.torrentsProtectWith)
         .sheet(isPresented: $askingProxy) { protectionSheet }
         .confirmationDialog(ProtectionWords.noneTitle, isPresented: $confirmingNone, titleVisibility: .visible) {
-            Button(cased(mac: "No Protection", touch: "No protection"), role: .destructive) {
+            Button(L.torrentsProtectNone, role: .destructive) {
                 store.setTorrentProtection(TorrentProtection.none, acknowledged: true)
             }
             Button(L.actionCancel, role: .cancel) {}
@@ -369,7 +369,7 @@ struct FailedCheckMenu: View {
         .disabled(current == nil)
         .accessibilityLabel(L.torrentsIfCheckFails)
         .confirmationDialog(ProtectionWords.warnTitle, isPresented: $confirmingWarn, titleVisibility: .visible) {
-            Button(cased(mac: "Warn Only", touch: "Warn only"), role: .destructive) { store.setFailedCheck(.warn) }
+            Button(L.torrentsFailWarn, role: .destructive) { store.setFailedCheck(.warn) }
             Button(L.actionCancel, role: .cancel) {}
         } message: {
             Text(ProtectionWords.warnMessage)

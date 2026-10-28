@@ -157,7 +157,7 @@ struct PartyFormState {
     }
 
     var primary: String {
-        if party.failure != nil { return cased(mac: "Try Again", touch: "Try again") }
+        if party.failure != nil { return L.actionTryAgain }
         return start.isInvite ? cased(mac: "Join Party", touch: "Join party") : cased(mac: "Start Party", touch: "Start party")
     }
 
@@ -248,9 +248,9 @@ struct PartySourceState {
         switch primary {
         case .none: ""
         case .providers: cased(mac: "Open Providers", touch: "Open Providers")
-        case .choose: cased(mac: "Choose Source", touch: "Choose source")
+        case .choose: L.playerChooseSource
         case .play: cased(mac: "Play with the Party", touch: "Play with the party")
-        case .again: cased(mac: "Try Again", touch: "Try again")
+        case .again: L.actionTryAgain
         }
     }
 
@@ -385,7 +385,7 @@ struct MacPartyForm: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     hint(state.serverLine?.text ?? " ", problem: state.serverLine?.problem ?? false)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Button(cased(mac: "Use It", touch: "Use it")) {
+                    Button(L.partyUseIt) {
                         if let form = party.form { party.server = form.suggestedServer }
                     }
                     .controlSize(.small)
@@ -568,7 +568,7 @@ struct MacPartySource: View {
                 }
                 .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                 Spacer()
-                Button(cased(mac: "Not Now", touch: "Not now")) { party.closeNoSource() }
+                Button(L.actionNotNow) { party.closeNoSource() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
                 if state.primary != .none {

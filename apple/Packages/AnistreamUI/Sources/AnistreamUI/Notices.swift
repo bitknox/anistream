@@ -111,7 +111,7 @@ struct NoticeCapsule: View {
         switch hint {
         case .stopPlayback: "Stop"
         case .openStores: cased(mac: "Open Stores", touch: "Open stores")
-        case .kitsuCredentials: cased(mac: "Sign In", touch: "Sign in")
+        case .kitsuCredentials: L.actionSignIn
         }
     }
 

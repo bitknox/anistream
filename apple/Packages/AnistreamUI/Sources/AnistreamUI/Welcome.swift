@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// Continue with nothing watched yet.
@@ -126,7 +127,7 @@ struct ThisSeason: View {
                         navigator.open(.seasonal)
                     } label: {
                         HStack(spacing: 8) {
-                            Text(compact ? "This season" : cased(mac: "This Season", touch: "This season"))
+                            Text(compact ? "This season" : L.continueThisSeason)
                                 .font(compact ? .ui(20, weight: .semibold) : .mac(15, weight: .semibold))
                                 .foregroundStyle(.silk)
                             Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)

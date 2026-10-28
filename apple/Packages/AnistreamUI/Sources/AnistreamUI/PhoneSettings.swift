@@ -149,12 +149,12 @@ struct PhoneSettingPicker: View {
                         set: { value in if let value { store.setSetting(key, to: value) } }
                     )) {
                         ForEach(key.options, id: \.value) { option in
-                            Text(key.display(option.label)).tag(Optional(option.value))
+                            Text(key.display(option)).tag(Optional(option.value))
                         }
                     }
                     .pickerStyle(.inline)
                 } label: {
-                    PhoneMenuValue(text: row.map { key.display(current?.label ?? $0.value) } ?? "–")
+                    PhoneMenuValue(text: row.map { r in current.map { key.display($0) } ?? key.display(r.value) } ?? "–")
                 }
                 .disabled(row == nil)
             }
@@ -194,15 +194,15 @@ struct PhoneSettingsRoot: View {
                     HStack(spacing: 14) {
                         Avatar(name: anilist?.user, size: 48)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(anilist?.connected == true ? (anilist?.user ?? "Signed in") : "Not signed in")
+                            Text(anilist?.connected == true ? (anilist?.user ?? L.settingsSignedIn) : L.accountsStateSignedOut)
                                 .font(.ui(17, weight: .semibold))
                                 .foregroundStyle(.silk)
                             HStack(spacing: 6) {
                                 if let anilist, anilist.connected {
                                     StateDot(state: AccountWords.dot(anilist, store.accounts))
-                                    Text("AniList · " + AccountWords.status(anilist, store.accounts))
+                                    Text(AccountsModel.name("anilist") + " · " + AccountWords.status(anilist, store.accounts))
                                 } else {
-                                    Text("Library and sync need an AniList account")
+                                    Text(L.accountsLibraryNeeds(tracker: AccountsModel.name("anilist")))
                                 }
                             }
                             .font(.ui(15))
@@ -214,18 +214,18 @@ struct PhoneSettingsRoot: View {
                 .listRowBackground(Palette.raised)
             }
             Section {
-                link(.general, "General", "gearshape", value: store.titleChoice.label)
-                link(.playback, "Playback", "play.rectangle", value: playbackValue)
-                link(.downloads, "Downloads", "arrow.down.to.line", value: Wording.bytes(store.downloads.bytesOnDisk))
-                link(.notifications, "Notifications", "bell", value: store.settings.isOn(.episodeNotifications) ? "On" : "Off")
-                link(.sources, "Sources", "powerplug", value: store.settings.isOn(.torrents) ? "Torrents on" : "Torrents off")
-                link(.accounts, "Accounts", "person", value: anilist?.connected == true ? "AniList" : "None")
+                link(.general, L.settingsGroupGeneral, "gearshape", value: store.titleChoice.label)
+                link(.playback, L.settingsGroupPlayback, "play.rectangle", value: playbackValue)
+                link(.downloads, L.navDownloads, "arrow.down.to.line", value: Wording.bytes(store.downloads.bytesOnDisk))
+                link(.notifications, L.settingsGroupNotifications, "bell", value: store.settings.isOn(.episodeNotifications) ? L.valueOn : L.valueOff)
+                link(.sources, L.sourcesTitle, "powerplug", value: store.settings.isOn(.torrents) ? L.settingsTorrentsValueOn : L.settingsTorrentsValueOff)
+                link(.accounts, L.navAccounts, "person", value: anilist?.connected == true ? AccountsModel.name("anilist") : L.valueNone)
                 if store.tv.available {
-                    link(.tvs, "TVs", "tv", value: store.tv.paired.isEmpty ? "None" : "\(store.tv.paired.count)")
+                    link(.tvs, L.tvTitleList, "tv", value: store.tv.paired.isEmpty ? L.valueNone : store.tv.paired.count.formatted(.number.locale(AirTime.locale)))
                 }
             }
             Section {
-                link(.about, "About", "info.circle", value: AppVersion.short)
+                link(.about, L.aboutTitle, "info.circle", value: AppVersion.short)
                 Link(destination: AppVersion.privacy) {
                     HStack {
                         Label(L.settingsPrivacy, systemImage: "hand.raised").font(.ui(17)).foregroundStyle(.silk)
@@ -235,10 +235,10 @@ struct PhoneSettingsRoot: View {
                 }
                 .listRowBackground(Palette.raised)
             } footer: {
-                Text("anistream hosts no content.")
+                Text(L.legalHostsNoContent)
             }
         }
-        .navigationTitle("Settings")
+        .navigationTitle(L.settingsTitle)
         .navigationBarTitleDisplayMode(.large)
         .task {
             store.loadDownloads()
@@ -288,7 +288,7 @@ struct PhoneGeneralPage: View {
         PhoneList {
             Section {
                 PhoneTitleLanguageRow()
-                PhoneSettingSwitch(key: .adultTitles, note: "Titles AniList marks adult, in Search and Seasonal")
+                PhoneSettingSwitch(key: .adultTitles, note: L.settingsAdultDetail(tracker: AccountsModel.name("anilist")))
             } header: {
                 PhoneSectionHeader(L.settingsGroupTitles)
             }
@@ -313,8 +313,8 @@ struct PhonePlaybackPage: View {
                 // Kept on this device: the style it follows is this device's.
                 Toggle(isOn: $followCaptions) {
                     PhoneRowTitle(
-                        title: "Subtitles follow your system caption style",
-                        note: "Font, size, colours and edges from Accessibility › Subtitles & Captioning. Styled subtitles keep their own look.")
+                        title: L.settingsSystemCaptions,
+                        note: L.settingsSystemCaptionsDetail)
                 }
                 .tint(.amber)
                 .listRowBackground(Palette.raised)
@@ -333,13 +333,13 @@ struct PhonePlaybackPage: View {
                 PhoneSettingSwitch(key: .markChapters)
                 PhoneSettingSwitch(key: .skipButton, note: L.settingsSkipButtonDetail)
                 PhoneSettingPicker(key: .commitThreshold)
-                PhoneSettingSwitch(key: .spoilerProtection, note: "Blurs stills after the next episode")
+                PhoneSettingSwitch(key: .spoilerProtection, note: L.showSettingsSpoilerDetail)
             } header: {
-                PhoneSectionHeader("Episodes")
+                PhoneSectionHeader(L.settingsGroupEpisodes)
             }
             Section {
                 PhoneSettingPicker(key: .upscaling, note: upscalingNote)
-                PhoneSettingSwitch(key: .nightMode, note: "Evens out loud and quiet passages, so dialogue stays clear at low volume.")
+                PhoneSettingSwitch(key: .nightMode, note: L.playerNightModeDetail)
             } header: {
                 PhoneSectionHeader(L.playerPictureAndSound)
             }
@@ -350,9 +350,9 @@ struct PhonePlaybackPage: View {
 
     private var upscalingNote: String {
         switch store.settings.row(.upscaling)?.option?.label {
-        case "off": "The source, scaled to fit without processing."
-        case "sharp · Anime4K": "Crisper lines and stronger edges, at some cost to texture."
-        default: "Faithful line work and texture, nothing restyled."
+        case "off": L.settingsUpscalingNoteOff
+        case "sharp · Anime4K": L.settingsUpscalingNoteSharp
+        default: L.settingsUpscalingNoteNatural
         }
     }
 }
@@ -409,11 +409,11 @@ struct PhoneDownloadsPage: View {
                 }
             }
             Section {
-                PhoneSettingPicker(key: .downloadQuality, note: "Higher takes the best version a source offers, and more space.")
-                PhoneSettingPicker(key: .keepNextEpisodes, note: "Downloads the episodes after the one you are on, for each show you watch.")
+                PhoneSettingPicker(key: .downloadQuality, note: L.settingsQualityDetail)
+                PhoneSettingPicker(key: .keepNextEpisodes, note: L.settingsKeepNextDetail)
                 PhoneSettingSwitch(key: .downloadsOnCellular)
-                PhoneSettingSwitch(key: .mergeSubtitles, note: "Subtitles stay with the episode wherever the file goes.")
-                PhoneSettingSwitch(key: .keepSeeding, note: "A download that keeps seeding stays in anistream’s cache.")
+                PhoneSettingSwitch(key: .mergeSubtitles, note: L.settingsMergeSubtitlesDetail)
+                PhoneSettingSwitch(key: .keepSeeding, note: L.settingsKeepSeedingDetail)
             } header: {
                 PhoneSectionHeader(L.settingsGroupFiles)
             }
@@ -422,15 +422,15 @@ struct PhoneDownloadsPage: View {
                     .disabled(watched.rows.isEmpty)
                     .listRowBackground(Palette.raised)
             } footer: {
-                Text("\(Wording.bytes(store.downloads.bytesOnDisk)) in downloads"
-                     + (FreeSpace.bytes.map { ". \(Wording.bytes($0)) free on this \(Device.name)." } ?? "."))
+                Text(FreeSpace.bytes.map { L.settingsStorageUsedFree(size: Wording.bytes(store.downloads.bytesOnDisk), free: Wording.bytes($0)) }
+                     ?? L.settingsStorageUsed(size: Wording.bytes(store.downloads.bytesOnDisk)))
             }
         }
         .inProgressRotor(store.downloads.groups, titles: store.titles, in: rotor)
         .pullToRefresh(store, .downloads)
-        .navigationTitle("Downloads")
+        .navigationTitle(L.navDownloads)
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("Delete \(Wording.plural(watched.rows.count, "watched download"))?", isPresented: $confirmDelete) {
+        .confirmationDialog(L.settingsDeleteWatchedTitle(count: watched.rows.count), isPresented: $confirmDelete) {
             Button(L.actionDelete, role: .destructive) { for row in watched.rows { store.deleteDownload(row.id) } }
         }
         .task { store.loadDownloads() }
@@ -447,7 +447,7 @@ struct PhoneDownloadRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("Episode \(row.episode)").font(.ui(17)).foregroundStyle(.silk)
+                Text(L.downloadsEpisodeName(episode: Int(episode: row.episode))).font(.ui(17)).foregroundStyle(.silk)
                 Spacer()
                 if row.total > 0 {
                     Text(Wording.bytes(row.total)).font(.ui(15)).foregroundStyle(.haze).monospacedDigit()
@@ -489,11 +489,11 @@ struct PhoneDownloadRow: View {
             case .queued:
                 Button(L.downloadsStartNow) { store.startDownloadNow(row.id) }
                 Button(L.actionPause) { store.toggleDownload(row.id) }
-            case .paused: Button("Resume") { store.toggleDownload(row.id) }
-            case .failed: Button("Retry") { store.retryDownload(row) }
+            case .paused: Button(L.settingsSwipeResume) { store.toggleDownload(row.id) }
+            case .failed: Button(L.settingsSwipeRetry) { store.retryDownload(row) }
             }
         }
-        .confirmationDialog("Delete episode \(row.episode)?", isPresented: $deleting, titleVisibility: .visible) {
+        .confirmationDialog(L.downloadsDeleteTitle(name: L.downloadsEpisodeName(episode: Int(episode: row.episode))), isPresented: $deleting, titleVisibility: .visible) {
             Button(L.downloadsDeleteOneTitle, role: .destructive) { store.deleteDownload(row.id) }
             Button(L.actionCancel, role: .cancel) {}
         } message: {
@@ -503,14 +503,15 @@ struct PhoneDownloadRow: View {
 
     private var status: String {
         switch row.state {
-        case .done: "Downloaded"
-        case .active where row.total == 0: "Waiting for metadata"
+        case .done: L.downloadsCaptionDone
+        case .active where row.total == 0: L.downloadsCaptionMetadata
         case .active:
-            "\(Wording.bytes(row.downloaded)) of \(Wording.bytes(row.total))"
-                + (store.downloads.secondsLeft(row).map { " · \(Wording.countdown($0)) left" } ?? "")
-        case .paused: "Paused at \(Wording.bytes(row.downloaded)) of \(Wording.bytes(row.total))"
-        case .queued: "Queued · starts when a download slot is free"
-        case .failed: "The download stopped"
+            ([L.downloadsOfTotal(done: Wording.bytes(row.downloaded), total: Wording.bytes(row.total))]
+                + (store.downloads.secondsLeft(row).map { [L.downloadsTimeLeft(left: Wording.countdown($0))] } ?? []))
+                .joined(separator: " · ")
+        case .paused: L.downloadsCaptionPaused(percent: row.fraction.formatted(.percent.precision(.fractionLength(0)).locale(AirTime.locale)))
+        case .queued: L.downloadsCaptionQueuedSlot
+        case .failed: L.downloadsCaptionFailed
         }
     }
 }
@@ -528,11 +529,11 @@ struct PhoneSourcesPage: View {
         PhoneList {
             Section {
                 NavigationLink(value: PhoneSettingsPage.providers) {
-                    valueRow("Source order", Wording.plural(store.providers.rows.count, "source"))
+                    valueRow(L.sourcesSourceOrderRow, L.settingsSourceCount(count: store.providers.rows.count))
                 }
                 .listRowBackground(Palette.raised)
                 NavigationLink(value: PhoneSettingsPage.stores) {
-                    valueRow("Plugin stores", storesValue)
+                    valueRow(L.navPluginStores, storesValue)
                 }
                 .listRowBackground(Palette.raised)
             }
@@ -552,11 +553,11 @@ struct PhoneSourcesPage: View {
                     }
                     .listRowBackground(Palette.raised)
                     PhoneSettingSwitch(key: .torrentsOnCellular)
-                    menuRow("Protect with") { ProtectionMenu(phone: true) }
+                    menuRow(L.torrentsProtectWith) { ProtectionMenu(phone: true) }
                     if let line = store.settings.torrent?.proxyLine {
                         Button { editingProxy = true } label: {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Edit proxy…").font(.ui(17)).foregroundStyle(.silk)
+                                Text(L.settingsEditProxy).font(.ui(17)).foregroundStyle(.silk)
                                 Text(line).font(.ui(13)).foregroundStyle(.haze)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -569,15 +570,13 @@ struct PhoneSourcesPage: View {
                     PhoneGuardRow()
                 }
             } header: {
-                PhoneSectionHeader("Torrents")
+                PhoneSectionHeader(L.torrentsTitle)
             } footer: {
-                Text(on
-                     ? "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you."
-                     : "Off by default. Turning this on asks how to protect your connection first.")
+                Text(on ? L.torrentsCheckNote : L.torrentsOffDetail)
             }
             if on {
                 Section {
-                    PhoneSettingPicker(key: .seedRatio, note: "Best effort on \(Device.name): only while anistream is open")
+                    PhoneSettingPicker(key: .seedRatio, note: L.settingsSeedRatioDetail)
                     PhoneSettingPicker(key: .seedHours)
                     PhoneSettingPicker(key: .uploadLimit)
                 } header: {
@@ -585,7 +584,7 @@ struct PhoneSourcesPage: View {
                 }
             }
         }
-        .navigationTitle("Sources")
+        .navigationTitle(L.sourcesTitle)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $turningOn) { PhoneTorrentSheet() }
         .sheet(isPresented: $editingProxy) { PhoneTorrentSheet(mode: .editProxy) }
@@ -599,7 +598,7 @@ struct PhoneSourcesPage: View {
     private var storesValue: String {
         let count = store.stores.stores.count
         let updates = store.stores.updates
-        return updates > 0 ? "\(count) · \(Wording.plural(updates, "update"))" : "\(count)"
+        return updates > 0 ? L.settingsStoresValueUpdates(count: count, updates: L.storesUpdatesCount(count: updates)) : count.formatted(.number.locale(AirTime.locale))
     }
 
     private func valueRow(_ title: String, _ value: String) -> some View {
@@ -658,7 +657,7 @@ struct PhoneAccountsPage: View {
                     HStack(spacing: 14) {
                         Avatar(name: anilist.user, size: 40)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(anilist.user ?? "Signed in").font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
+                            Text(anilist.user ?? L.settingsSignedIn).font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
                             HStack(spacing: 6) {
                                 StateDot(state: AccountWords.dot(anilist, store.accounts))
                                 Text(AccountWords.status(anilist, store.accounts))
@@ -675,7 +674,7 @@ struct PhoneAccountsPage: View {
                         .disabled(store.accounts.isWorking("sync"))
                         .listRowBackground(Palette.raised)
                     if !store.accounts.conflicts.isEmpty {
-                        Button("Review \(Wording.plural(store.accounts.conflicts.count, "difference"))") { conflicts = true }
+                        Button(L.settingsReviewDifferences(count: store.accounts.conflicts.count)) { conflicts = true }
                             .foregroundStyle(.silk)
                             .listRowBackground(Palette.raised)
                     }
@@ -685,7 +684,7 @@ struct PhoneAccountsPage: View {
                         .listRowBackground(Palette.raised)
                 } else {
                     HStack {
-                        PhoneRowTitle(title: "AniList", note: L.accountsBringsLists)
+                        PhoneRowTitle(title: AccountsModel.name("anilist"), note: L.accountsBringsLists)
                         Spacer()
                         Button(L.actionSignIn) { store.connect("anilist") }
                             .buttonStyle(SecondaryCapsuleStyle(height: 30, raisedSurface: true, fontSize: 15))
@@ -694,9 +693,9 @@ struct PhoneAccountsPage: View {
                     .listRowBackground(Palette.raised)
                 }
             } header: {
-                PhoneSectionHeader("AniList")
+                PhoneSectionHeader(AccountsModel.name("anilist"))
             } footer: {
-                Text("Library shows your lists from AniList.")
+                Text(L.accountsLibraryFrom(tracker: AccountsModel.name("anilist")))
             }
             Section {
                 ForEach(["mal", "kitsu", "simkl", "trakt"], id: \.self) { tracker in
@@ -708,7 +707,7 @@ struct PhoneAccountsPage: View {
                 Text(AccountWords.tokens(store.accounts))
             }
         }
-        .navigationTitle("Accounts")
+        .navigationTitle(L.navAccounts)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $kitsu) { KitsuSheet().presentationDetents([.medium]) }
         .onLaunchSheet("kitsu", navigator) { kitsu = true }

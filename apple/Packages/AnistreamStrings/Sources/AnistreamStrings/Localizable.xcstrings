@@ -6929,6 +6929,18 @@
         }
       }
     },
+    "notice-hidden-preview" : {
+      "comment" : "What the system shows instead of the body when previews are hidden.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New episode"
+          }
+        }
+      }
+    },
     "notice-keep-next-full" : {
       "comment" : "Toast when keep next found no room for another episode.",
       "extractionState" : "manual",
@@ -7213,6 +7225,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opened in your browser."
+          }
+        }
+      }
+    },
+    "notice-out" : {
+      "comment" : "Body of a new-episode notification when the viewer is caught up. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld is out."
+          }
+        }
+      }
+    },
+    "notice-out-behind" : {
+      "comment" : "Body of a new-episode notification when the viewer is behind: the episode out and the one to watch next. Argument 1: episode (Int). Argument 2: next (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld is out. Next for you: episode %2$lld."
+          }
+        }
+      }
+    },
+    "notice-out-dubbed" : {
+      "comment" : "Body of a new-episode notification for the dub the viewer watches the show in. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld is out, dubbed."
+          }
+        }
+      }
+    },
+    "notice-out-dubbed-behind" : {
+      "comment" : "Body of a new-episode notification for a dub when the viewer is behind. Argument 1: episode (Int). Argument 2: next (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld is out, dubbed. Next for you: episode %2$lld."
           }
         }
       }
@@ -7631,6 +7691,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No video from that stream. Trying %1$lld of %2$lld."
+          }
+        }
+      }
+    },
+    "notice-summary" : {
+      "comment" : "What the system shows under a group of new-episode notifications. The system fills in the count at %u.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%u more new episodes"
           }
         }
       }
@@ -10793,6 +10865,18 @@
         }
       }
     },
+    "settings-accounts-sync-note" : {
+      "comment" : "Footnote of the AniList group in Accounts. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress and list changes sync to %1$@. Library and the Calendar's My list show your %1$@ lists."
+          }
+        }
+      }
+    },
     "settings-adult" : {
       "comment" : "Row: show adult titles.",
       "extractionState" : "manual",
@@ -10817,6 +10901,30 @@
         }
       }
     },
+    "settings-advanced-none" : {
+      "comment" : "Shown in the Advanced pane while the player has no options of its own to set.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No extra options. The player runs with anistream's own."
+          }
+        }
+      }
+    },
+    "settings-after-download" : {
+      "comment" : "Group title on the Mac for the command that runs after each download.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After each download"
+          }
+        }
+      }
+    },
     "settings-artwork" : {
       "comment" : "Line about the artwork licence.",
       "extractionState" : "manual",
@@ -10837,6 +10945,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Attribution in the app's notices"
+          }
+        }
+      }
+    },
+    "settings-aside-accounts" : {
+      "comment" : "Side note in Accounts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream works without an account. Your watch history stays on this device when you sign out."
+          }
+        }
+      }
+    },
+    "settings-aside-advanced" : {
+      "comment" : "Side note in Advanced.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An option here can undo a Playback setting, such as upscaling or night mode. Most people never need this pane."
+          }
+        }
+      }
+    },
+    "settings-aside-check-title" : {
+      "comment" : "Side note title in Sources while torrents are on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection check"
+          }
+        }
+      }
+    },
+    "settings-aside-sources" : {
+      "comment" : "Side note in Sources while torrents are off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sources are tried in order, top to bottom. A show can keep its own source, chosen from its title page."
           }
         }
       }
@@ -10877,6 +11033,40 @@
         }
       }
     },
+    "settings-changes-waiting" : {
+      "comment" : "Under a tracker row: how many changes wait to sync. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One change waiting to sync"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld changes waiting to sync"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "settings-check-updates" : {
       "comment" : "Row: check for updates.",
       "extractionState" : "manual",
@@ -10913,6 +11103,40 @@
         }
       }
     },
+    "settings-conflicts" : {
+      "comment" : "Row title in Accounts: titles that differ between this device and the tracker. Argument 1: count (Int). Argument 2: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One title differs from %2$@"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld titles differ from %2$@"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "settings-counts-watched" : {
       "comment" : "Row: when an episode counts as watched.",
       "extractionState" : "manual",
@@ -10933,6 +11157,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Or when the ending starts, if it is marked"
+          }
+        }
+      }
+    },
+    "settings-delete-watched-detail" : {
+      "comment" : "Message of the dialog that deletes the watched downloads.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The files are deleted from this device. Episodes not yet watched stay."
+          }
+        }
+      }
+    },
+    "settings-delete-watched-title" : {
+      "comment" : "Title of the dialog that deletes the watched downloads. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Delete one watched download?"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Delete %1$lld watched downloads?"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -10961,6 +11231,18 @@
         }
       }
     },
+    "settings-download-cellular" : {
+      "comment" : "Settings row: download over cellular data.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download on cellular"
+          }
+        }
+      }
+    },
     "settings-edit-proxy" : {
       "comment" : "Row: edit the proxy.",
       "extractionState" : "manual",
@@ -10969,6 +11251,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit proxy…"
+          }
+        }
+      }
+    },
+    "settings-folder-default" : {
+      "comment" : "Under the download folder row while no folder is chosen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kept with the torrent cache"
           }
         }
       }
@@ -11129,6 +11423,18 @@
         }
       }
     },
+    "settings-hook-command" : {
+      "comment" : "Settings row for the command that runs after each download.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
+          }
+        }
+      }
+    },
     "settings-keep-next" : {
       "comment" : "Row: keep the next episodes.",
       "extractionState" : "manual",
@@ -11161,6 +11467,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keep seeding"
+          }
+        }
+      }
+    },
+    "settings-keep-seeding-detail" : {
+      "comment" : "Note under the keep seeding row on iPhone and iPad.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A download that keeps seeding stays in anistream's cache."
+          }
+        }
+      }
+    },
+    "settings-keep-seeding-detail-mac" : {
+      "comment" : "Note under the keep seeding row on the Mac.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A download that keeps seeding stays in anistream's cache, not the download folder."
           }
         }
       }
@@ -11225,6 +11555,30 @@
         }
       }
     },
+    "settings-merge-subtitles-detail" : {
+      "comment" : "Note under the merge subtitles row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitles stay with the episode wherever the file goes."
+          }
+        }
+      }
+    },
+    "settings-mpv-options" : {
+      "comment" : "Name of the Advanced pane's option row for the player, found by Settings search.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mpv options"
+          }
+        }
+      }
+    },
     "settings-new-downloads" : {
       "comment" : "Row: new downloads.",
       "extractionState" : "manual",
@@ -11257,6 +11611,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "For shows in your Watching list"
+          }
+        }
+      }
+    },
+    "settings-no-match" : {
+      "comment" : "Shown in Settings when a search matches no row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No setting is called that."
           }
         }
       }
@@ -11345,6 +11711,54 @@
         }
       }
     },
+    "settings-notify-explain-off" : {
+      "comment" : "Under the notification preview while New episodes is off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off. Only shows turned on in their own settings notify."
+          }
+        }
+      }
+    },
+    "settings-notify-explain-on" : {
+      "comment" : "Under the notification preview while New episodes is on. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One notification when an episode of a show in your Watching list comes out, at the time %1$@ gives. A show's own setting comes first."
+          }
+        }
+      }
+    },
+    "settings-notify-not-allowed" : {
+      "comment" : "Under the New episodes row when the system does not allow notifications. Argument 1: settings (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not allowed for anistream in %1$@"
+          }
+        }
+      }
+    },
+    "settings-notify-permission" : {
+      "comment" : "Under the New episodes group: when the system asks for permission.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream asks for permission the first time you turn this on."
+          }
+        }
+      }
+    },
     "settings-notify-show" : {
       "comment" : "Line on the show settings: when an episode comes out.",
       "extractionState" : "manual",
@@ -11353,6 +11767,126 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "When an episode of this show comes out"
+          }
+        }
+      }
+    },
+    "settings-option-adaptive" : {
+      "comment" : "Choice of the theme setting: the window follows the artwork's colours less.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adaptive"
+          }
+        }
+      }
+    },
+    "settings-option-higher" : {
+      "comment" : "Choice of the download quality setting: the best version a source offers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Higher"
+          }
+        }
+      }
+    },
+    "settings-option-immersive" : {
+      "comment" : "Choice of the theme setting: the window takes on the artwork's colours.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immersive"
+          }
+        }
+      }
+    },
+    "settings-option-mpv" : {
+      "comment" : "Choice of the player setting: the user's own mpv configuration.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your mpv setup"
+          }
+        }
+      }
+    },
+    "settings-option-natural" : {
+      "comment" : "Choice of the upscaling setting: the natural mode, named with the filter it uses.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Natural · ArtCNN"
+          }
+        }
+      }
+    },
+    "settings-option-per-second" : {
+      "comment" : "Choice of the upload limit setting: a speed. The size is already formatted, such as 524 kB. Argument 1: size (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/s"
+          }
+        }
+      }
+    },
+    "settings-option-sharp" : {
+      "comment" : "Choice of the upscaling setting: the sharp mode, named with the filter it uses.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sharp · Anime4K"
+          }
+        }
+      }
+    },
+    "settings-option-standard" : {
+      "comment" : "Choice of the download quality setting: the usual versions.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        }
+      }
+    },
+    "settings-option-unlimited" : {
+      "comment" : "Choice of the upload limit setting: no limit.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlimited"
+          }
+        }
+      }
+    },
+    "settings-option-until-ratio" : {
+      "comment" : "Choice of the seeding setting: stop seeding once the ratio is reached. The ratio is already formatted. Argument 1: ratio (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Until ratio %1$@"
           }
         }
       }
@@ -11391,6 +11925,174 @@
         }
       }
     },
+    "settings-panes-label" : {
+      "comment" : "VoiceOver label for the row of Settings panes on the Mac.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings panes"
+          }
+        }
+      }
+    },
+    "settings-presence-button" : {
+      "comment" : "Preview of the Discord presence: the button that opens the show on the tracker. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View on %1$@"
+          }
+        }
+      }
+    },
+    "settings-presence-cover" : {
+      "comment" : "Preview of the Discord presence: the label of the cover drawing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cover"
+          }
+        }
+      }
+    },
+    "settings-presence-episode" : {
+      "comment" : "Preview of the Discord presence: the episode line without a total. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld"
+          }
+        }
+      }
+    },
+    "settings-presence-episode-of" : {
+      "comment" : "Preview of the Discord presence: the episode line with the total. Argument 1: episode (Int). Argument 2: total (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "settings-presence-note" : {
+      "comment" : "Footnote of the Discord group. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rich presence shows the cover, a progress bar and a link to the show on %1$@. Discord fetches the cover from %1$@ itself. It needs the title shown."
+          }
+        }
+      }
+    },
+    "settings-presence-nothing" : {
+      "comment" : "Preview of the Discord presence when the title is kept off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watching anime"
+          }
+        }
+      }
+    },
+    "settings-presence-off" : {
+      "comment" : "Under the Discord preview while presence is off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off. When on, your Discord profile shows this while an episode plays."
+          }
+        }
+      }
+    },
+    "settings-presence-on" : {
+      "comment" : "Under the Discord preview while presence is on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Discord profile shows this while an episode plays."
+          }
+        }
+      }
+    },
+    "settings-presence-rich" : {
+      "comment" : "Settings row for Discord: the richer presence with a cover, a bar and a link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rich presence"
+          }
+        }
+      }
+    },
+    "settings-presence-title" : {
+      "comment" : "Settings row for Discord: whether the show's title goes with the presence.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presence shows the title"
+          }
+        }
+      }
+    },
+    "settings-preview-label" : {
+      "comment" : "VoiceOver label of the notification preview. Argument 1: show (Text). Argument 2: words (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A notification: %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "settings-preview-show" : {
+      "comment" : "Preview of a notification: the show's name when no show is airing soon.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A show you watch"
+          }
+        }
+      }
+    },
+    "settings-preview-words" : {
+      "comment" : "Preview of a notification: the words when no show is airing soon.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode 9 is out."
+          }
+        }
+      }
+    },
     "settings-privacy" : {
       "comment" : "Row: privacy.",
       "extractionState" : "manual",
@@ -11415,6 +12117,18 @@
         }
       }
     },
+    "settings-privacy-note" : {
+      "comment" : "Row note under Privacy in Accounts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What anistream sends, and what stays on this device"
+          }
+        }
+      }
+    },
     "settings-quality" : {
       "comment" : "Row: quality.",
       "extractionState" : "manual",
@@ -11423,6 +12137,88 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quality"
+          }
+        }
+      }
+    },
+    "settings-quality-detail" : {
+      "comment" : "Note under the download quality row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Higher takes the best version a source offers, and more space."
+          }
+        }
+      }
+    },
+    "settings-read-online" : {
+      "comment" : "Button that opens the privacy page in a browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read online"
+          }
+        }
+      }
+    },
+    "settings-results" : {
+      "comment" : "Heading over the rows that Settings search found.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Results"
+          }
+        }
+      }
+    },
+    "settings-review" : {
+      "comment" : "Button in Accounts that opens the list of differences.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review"
+          }
+        }
+      }
+    },
+    "settings-review-differences" : {
+      "comment" : "Button on the iPhone's Accounts page that opens the list of differences with the tracker. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Review one difference"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Review %1$lld differences"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -11451,6 +12247,30 @@
         }
       }
     },
+    "settings-seed-ratio-detail" : {
+      "comment" : "Note under the seed after watching row on iPhone and iPad.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best effort on this device: only while anistream is open"
+          }
+        }
+      }
+    },
+    "settings-seeding-open-only" : {
+      "comment" : "Footnote of the seeding group on the Mac: seeding stops when the app is closed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seeding runs only while anistream is open."
+          }
+        }
+      }
+    },
     "settings-show-in-files" : {
       "comment" : "Row: show the file in the file manager.",
       "extractionState" : "manual",
@@ -11459,6 +12279,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show in Files"
+          }
+        }
+      }
+    },
+    "settings-show-notices-label" : {
+      "comment" : "VoiceOver label of the menu for one show's New episodes choice. The value is its current choice. Argument 1: value (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New episodes: %1$@"
+          }
+        }
+      }
+    },
+    "settings-show-off-not-watching" : {
+      "comment" : "Value of a show's New episodes menu when the show follows Settings but is not being watched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off · not watching"
+          }
+        }
+      }
+    },
+    "settings-signed-in" : {
+      "comment" : "Shown for a signed-in account that has no name yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed in"
           }
         }
       }
@@ -11511,6 +12367,40 @@
         }
       }
     },
+    "settings-source-count" : {
+      "comment" : "Value of the source order row: how many sources are in the order. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One source"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld sources"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "settings-spoiler" : {
       "comment" : "Row: spoiler protection.",
       "extractionState" : "manual",
@@ -11531,6 +12421,174 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Blurs stills of unwatched episodes after the next one"
+          }
+        }
+      }
+    },
+    "settings-start-fullscreen" : {
+      "comment" : "Settings row on the Mac: whether the player starts in full screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start in full screen"
+          }
+        }
+      }
+    },
+    "settings-storage-unwatched" : {
+      "comment" : "Legend of the storage bar: what downloads take for episodes not yet watched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not watched yet"
+          }
+        }
+      }
+    },
+    "settings-storage-used" : {
+      "comment" : "Line under the storage bar: what downloads take. Argument 1: size (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ in downloads."
+          }
+        }
+      }
+    },
+    "settings-storage-used-free" : {
+      "comment" : "Line under the storage bar: what downloads take and what is free. Argument 1: size (Text). Argument 2: free (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ in downloads. %2$@ free on this device."
+          }
+        }
+      }
+    },
+    "settings-stores-value-updates" : {
+      "comment" : "Value of the Plugin stores row on the iPhone: how many stores, and how many plugins have updates. The updates are already counted. Argument 1: count (Int). Argument 2: updates (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld · %2$@"
+          }
+        }
+      }
+    },
+    "settings-swipe-resume" : {
+      "comment" : "Swipe action on a paused download.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume"
+          }
+        }
+      }
+    },
+    "settings-swipe-retry" : {
+      "comment" : "Swipe action on a download that stopped.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        }
+      }
+    },
+    "settings-synced-ago" : {
+      "comment" : "Under a tracker row: when the last sync finished. The span is already worded, such as \"2 hours ago\". Argument 1: ago (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synced %1$@"
+          }
+        }
+      }
+    },
+    "settings-synced-just-now" : {
+      "comment" : "Under a tracker row: when the last sync finished, a moment ago.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synced just now"
+          }
+        }
+      }
+    },
+    "settings-syncplay" : {
+      "comment" : "Settings row on the Mac: the switch for hosting a Syncplay-compatible watch party.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Syncplay watch parties"
+          }
+        }
+      }
+    },
+    "settings-syncplay-room" : {
+      "comment" : "Settings row on the Mac: the Syncplay room name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Syncplay room"
+          }
+        }
+      }
+    },
+    "settings-syncplay-server" : {
+      "comment" : "Settings row on the Mac: the Syncplay server address.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Syncplay server"
+          }
+        }
+      }
+    },
+    "settings-system-app-ios" : {
+      "comment" : "Name of the system's own settings app on iPhone and iPad, which is where notification permission is set.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
+    "settings-system-app-mac" : {
+      "comment" : "Name of the system's own settings app on the Mac, which is where notification permission is set.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Settings"
           }
         }
       }
@@ -11591,6 +12649,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sound, vibration and the lock screen"
+          }
+        }
+      }
+    },
+    "settings-this-show" : {
+      "comment" : "Title of a show's notifications page when the show has no name yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This show"
           }
         }
       }
@@ -11679,6 +12749,54 @@
         }
       }
     },
+    "settings-torrents-value-off" : {
+      "comment" : "Value of the Sources row in the iPhone's Settings when torrents are off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents off"
+          }
+        }
+      }
+    },
+    "settings-torrents-value-on" : {
+      "comment" : "Value of the Sources row in the iPhone's Settings when torrents are on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents on"
+          }
+        }
+      }
+    },
+    "settings-torrents-warn-note" : {
+      "comment" : "Footnote of the Torrents group while torrents are on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choosing Warn only asks you to confirm first, as No protection does."
+          }
+        }
+      }
+    },
+    "settings-translation" : {
+      "comment" : "Settings row for the audio translation, as the engine names the setting.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translation"
+          }
+        }
+      }
+    },
     "settings-typefaces" : {
       "comment" : "Row: typefaces.",
       "extractionState" : "manual",
@@ -11711,6 +12829,246 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upload limit"
+          }
+        }
+      }
+    },
+    "settings-upscaling-compare" : {
+      "comment" : "VoiceOver description of the upscaling preview. The mode is the chosen upscaling mode. Argument 1: mode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The 480p source beside %1$@"
+          }
+        }
+      }
+    },
+    "settings-upscaling-note-natural" : {
+      "comment" : "Under the upscaling preview for the natural mode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faithful line work and texture, nothing restyled."
+          }
+        }
+      }
+    },
+    "settings-upscaling-note-off" : {
+      "comment" : "Under the upscaling preview when the mode is off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The source, scaled to fit without processing."
+          }
+        }
+      }
+    },
+    "settings-upscaling-note-sharp" : {
+      "comment" : "Under the upscaling preview for the sharp mode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crisper lines and stronger edges, at some cost to texture."
+          }
+        }
+      }
+    },
+    "settings-upscaling-source" : {
+      "comment" : "Text on the upscaling preview, over the left half, which shows the source untouched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "480p source"
+          }
+        }
+      }
+    },
+    "settings-watched-downloads" : {
+      "comment" : "Row title for the finished downloads of episodes already watched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watched downloads"
+          }
+        }
+      }
+    },
+    "settings-watched-many" : {
+      "comment" : "Under the watched downloads row: the episodes of several shows and their size. The episodes are already counted. Argument 1: episodes (Text). Argument 2: size (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "settings-watched-one" : {
+      "comment" : "Under the watched downloads row: the episodes of one show and their size. The episodes are already counted. Argument 1: episodes (Text). Argument 2: title (Text). Argument 3: size (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ of %2$@ · %3$@"
+          }
+        }
+      }
+    },
+    "settings-week-dub-many" : {
+      "comment" : "Footnote of the week list: several shows whose dubs notify when the dubs are out. The shows are already listed. Argument 1: shows (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ notify when their dubs are out."
+          }
+        }
+      }
+    },
+    "settings-week-dub-one" : {
+      "comment" : "Footnote of the week list: a show whose dub notifies when the dub is out. Argument 1: show (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ notifies when its dub is out."
+          }
+        }
+      }
+    },
+    "settings-week-empty" : {
+      "comment" : "Shown in the week list when nothing airs in the next 7 days for the followed shows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing airs in the next 7 days for the shows you follow."
+          }
+        }
+      }
+    },
+    "settings-week-loading" : {
+      "comment" : "Shown in the week list while the week is loading.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading the week…"
+          }
+        }
+      }
+    },
+    "settings-week-off-many" : {
+      "comment" : "Footnote of the week list: several shows that are switched off in their own settings. The shows are already listed. Argument 1: shows (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ are off in their own settings."
+          }
+        }
+      }
+    },
+    "settings-week-off-one" : {
+      "comment" : "Footnote of the week list: a show that is switched off in its own settings. Argument 1: show (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is off in its own settings."
+          }
+        }
+      }
+    },
+    "settings-week-row-hint" : {
+      "comment" : "VoiceOver hint of a row of the week.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens this show's settings"
+          }
+        }
+      }
+    },
+    "settings-week-row-label" : {
+      "comment" : "VoiceOver label of a row of the week: the show, the episode and when it airs. Argument 1: title (Text). Argument 2: episode (Int). Argument 3: when (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, episode %2$lld, %3$@"
+          }
+        }
+      }
+    },
+    "settings-week-row-opens" : {
+      "comment" : "Footnote of the week list: what tapping a row does.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A row opens that show's settings."
+          }
+        }
+      }
+    },
+    "settings-when-day" : {
+      "comment" : "A row of the week: a later day, with the time. The day is a weekday name and the time is already formatted. Argument 1: day (Text). Argument 2: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "settings-when-today" : {
+      "comment" : "A row of the week: today, with the time. The time is already formatted. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today %1$@"
+          }
+        }
+      }
+    },
+    "settings-when-tomorrow" : {
+      "comment" : "A row of the week: tomorrow, with the time. The time is already formatted. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomorrow %1$@"
           }
         }
       }
@@ -11907,6 +13265,18 @@
         }
       }
     },
+    "shell-sync-failed" : {
+      "comment" : "Sync status in the toolbar when the last sync failed. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ not synced"
+          }
+        }
+      }
+    },
     "shell-sync-hint" : {
       "comment" : "VoiceOver hint of the sync status in the sidebar: it opens the list of what is running.",
       "extractionState" : "manual",
@@ -11919,6 +13289,18 @@
         }
       }
     },
+    "shell-sync-none" : {
+      "comment" : "Sync status in the toolbar when no tracker account is signed in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not connected"
+          }
+        }
+      }
+    },
     "shell-sync-not-connected" : {
       "comment" : "Sync status in the sidebar when the tracker has no account signed in. Argument 1: tracker (Text).",
       "extractionState" : "manual",
@@ -11927,6 +13309,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ not connected"
+          }
+        }
+      }
+    },
+    "shell-sync-sign-in-again" : {
+      "comment" : "Sync status in the toolbar when the account needs to be signed in again. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to %1$@ again"
+          }
+        }
+      }
+    },
+    "shell-sync-synced" : {
+      "comment" : "Sync status in the toolbar when everything is synced. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ synced"
           }
         }
       }
@@ -12035,6 +13441,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Also clears the remembered audio and subtitles."
+          }
+        }
+      }
+    },
+    "show-settings-row-label" : {
+      "comment" : "Label of a row in the Mac's sheet for one show's settings. The label is already worded. Argument 1: label (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@:"
           }
         }
       }
@@ -12155,6 +13573,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "show-settings-unnamed-track" : {
+      "comment" : "A remembered subtitle track that has neither a language nor a title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unnamed track"
           }
         }
       }

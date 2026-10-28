@@ -90,7 +90,7 @@ struct UpdateWords: Equatable {
     /// The action's label.
     var label: String? {
         switch action {
-        case .checkNow: cased(mac: "Check Now", touch: "Check now")
+        case .checkNow: L.actionCheckNow
         case .update(let version): "Update to v\(version)"
         case .updateInStore: cased(mac: "Update in SideStore", touch: "Update in SideStore")
         case .releasePage: cased(mac: "Release Page", touch: "Release page")

@@ -11,16 +11,16 @@ import SwiftUI
 /// The words the pane and the page share.
 @MainActor
 enum NoticeWords {
-    static let permission = "anistream asks for permission the first time you turn this on."
-    static let empty = "Nothing airs in the next 7 days for the shows you follow."
-    static let onInItsSettings = "On in this show’s settings"
+    static var permission: String { L.settingsNotifyPermission }
+    static var empty: String { L.settingsWeekEmpty }
+    static var onInItsSettings: String { L.settingsNotificationsShowOn }
 
     /// What the system calls its own settings here.
     static var systemSettings: String {
         #if os(macOS)
-        "System Settings"
+        L.settingsSystemAppMac
         #else
-        "Settings"
+        L.settingsSystemAppIos
         #endif
     }
 
@@ -28,15 +28,15 @@ enum NoticeWords {
     static func line(_ store: AppStore, counts: Bool = true) -> String {
         if store.notifications.declined || store.notifications.permission == .denied,
            !store.settings.isOn(.episodeNotifications) {
-            return "Not allowed for anistream in \(systemSettings)"
+            return L.settingsNotifyNotAllowed(settings: systemSettings)
         }
         let overrides = Int(store.notifications.week?.overrides ?? 0)
-        guard counts, overrides > 0 else { return "For shows in your Watching list" }
-        return "For shows in your Watching list · \(overridden(overrides))"
+        guard counts, overrides > 0 else { return L.settingsNewEpisodesDetail }
+        return "\(L.settingsNewEpisodesDetail) · \(overridden(overrides))"
     }
 
     static func overridden(_ count: Int) -> String {
-        "Overridden for \(count) \(count == 1 ? "show" : "shows")"
+        L.settingsOverridden(count: count)
     }
 
     /// The footnote under the week: what notifies later than its broadcast and why, what is
@@ -51,33 +51,33 @@ enum NoticeWords {
         var lines: [String] = []
         switch dubbed.count {
         case 0: break
-        case 1: lines.append("\(dubbed[0]) notifies when its dub is out.")
-        default: lines.append("\(names(dubbed)) notify when their dubs are out.")
+        case 1: lines.append(L.settingsWeekDubOne(show: dubbed[0]))
+        default: lines.append(L.settingsWeekDubMany(shows: names(dubbed)))
         }
         switch off.count {
         case 0: break
-        case 1: lines.append("\(off[0]) is off in its own settings.")
-        default: lines.append("\(names(off)) are off in their own settings.")
+        case 1: lines.append(L.settingsWeekOffOne(show: off[0]))
+        default: lines.append(L.settingsWeekOffMany(shows: names(off)))
         }
-        lines.append("A row opens that show’s settings.")
+        lines.append(L.settingsWeekRowOpens)
         return lines.joined(separator: " ")
     }
 
     /// "A, B and C".
     private static func names(_ titles: [String]) -> String {
-        titles.dropLast().joined(separator: ", ") + " and " + titles.last!
+        titles.formatted(.list(type: .and).locale(AirTime.locale))
     }
 
     /// When an episode airs, as a row says it: "Today 22:00", "Tomorrow 09:30", "Thursday 16:30".
     static func when(_ airsAt: Int64, now: Date = .now, calendar: Calendar = .current) -> String {
         let date = Date(timeIntervalSince1970: TimeInterval(airsAt))
         let time = date.formatted(date: .omitted, time: .shortened)
-        if calendar.isDate(date, inSameDayAs: now) { return "Today \(time)" }
+        if calendar.isDate(date, inSameDayAs: now) { return L.settingsWhenToday(time: time) }
         if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now),
            calendar.isDate(date, inSameDayAs: tomorrow) {
-            return "Tomorrow \(time)"
+            return L.settingsWhenTomorrow(time: time)
         }
-        return "\(date.formatted(.dateTime.weekday(.wide))) \(time)"
+        return L.settingsWhenDay(day: date.formatted(.dateTime.weekday(.wide).locale(AirTime.locale)), time: time)
     }
 
     /// The system's notification settings for the app.
@@ -129,7 +129,7 @@ struct ComingUpRow: View {
                     .font(.macShowTitle(size: phone ? 17 : 15))
                     .foregroundStyle(.silk)
                     .lineLimit(phone ? 2 : 1)
-                Text("\(phone ? "E" : "Episode ")\(row.episode) · \(NoticeWords.when(row.airsAt))")
+                Text("\(phone ? L.episodeNumberShort(number: Int(row.episode)) : L.episodeNumber(number: Int(row.episode))) · \(NoticeWords.when(row.airsAt))")
                     .font(phone ? .ui(15) : .mac(12))
                     .foregroundStyle(.haze)
                 if phone, row.reason == .switchedOn {
@@ -150,8 +150,8 @@ struct ComingUpRow: View {
         .opacity(store.notifications.notifies(row) ? 1 : 0.4)
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(row.title), episode \(row.episode), \(NoticeWords.when(row.airsAt))")
-        .accessibilityHint("Opens this show’s settings")
+        .accessibilityLabel(L.settingsWeekRowLabel(title: row.title, episode: Int(row.episode), when: NoticeWords.when(row.airsAt)))
+        .accessibilityHint(L.settingsWeekRowHint)
     }
 }
 
@@ -170,10 +170,10 @@ struct NotificationsPane: View {
                     .labelsHidden()
             }
         }
-        SettingsGroup(title: "Coming up · next 7 days", footnote: NoticeWords.leftOut(store)) {
+        SettingsGroup(title: L.settingsComingUp, footnote: NoticeWords.leftOut(store)) {
             let rows = store.notifications.comingUp
             if rows.isEmpty {
-                SettingsRow(title: store.notifications.week == nil ? "Loading the week…" : NoticeWords.empty)
+                SettingsRow(title: store.notifications.week == nil ? L.settingsWeekLoading : NoticeWords.empty)
             }
             ForEach(rows, id: \.rowID) { row in
                 Button {
@@ -207,15 +207,13 @@ struct NotificationsAside: View {
             .accessibilityAddTraits(.isHeader)
         NoticePreview(row: store.notifications.comingUp.first)
             .opacity(on ? 1 : 0.4)
-        Text(on
-             ? "One notification when an episode of a show in your Watching list comes out, at the time AniList gives. A show’s own setting comes first."
-             : "Off. Only shows turned on in their own settings notify.")
+        Text(on ? L.settingsNotifyExplainOn(tracker: AccountsModel.name("anilist")) : L.settingsNotifyExplainOff)
             .font(.mac(13))
             .macLineHeight(18)
             .foregroundStyle(.silk)
             .fixedSize(horizontal: false, vertical: true)
         #if os(macOS)
-        Button(cased(mac: "Notification Settings…", touch: "Notification settings")) { NoticeWords.settingsURL.map { openURL($0) } }
+        Button(L.settingsSystemNotifications) { NoticeWords.settingsURL.map { openURL($0) } }
             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
         Text(L.settingsSystemNotificationsApple)
             .font(.mac(12))
@@ -241,12 +239,12 @@ struct NoticePreview: View {
                 .frame(width: 32, height: 32)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("anistream").font(.mac(11, weight: .medium)).foregroundStyle(.haze)
-                Text(row?.title ?? "A show you watch")
+                Text("anistream").font(.mac(11, weight: .medium)) // i18n-skip: the app's name.foregroundStyle(.haze)
+                Text(row?.title ?? L.settingsPreviewShow)
                     .font(.mac(13, weight: .semibold))
                     .foregroundStyle(.silk)
                     .lineLimit(1)
-                Text(words ?? "Episode 9 is out.").font(.mac(13)).foregroundStyle(.silk)
+                Text(words ?? L.settingsPreviewWords).font(.mac(13)).foregroundStyle(.silk)
             }
             Spacer(minLength: 0)
             ArtworkView(url: row?.bannerUrl ?? row?.coverUrl, maxPixelSize: Int(40 * scale))
@@ -256,7 +254,7 @@ struct NoticePreview: View {
         .padding(12)
         .chromeGlass(in: .rect(cornerRadius: 18))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("A notification: \(row?.title ?? "a show you watch"), \(words ?? "Episode 9 is out.")")
+        .accessibilityLabel(L.settingsPreviewLabel(show: row?.title ?? L.settingsPreviewShow, words: words ?? L.settingsPreviewWords))
     }
 }
 
@@ -303,15 +301,14 @@ struct ShowNoticesMenu: View {
         let choice = store.notifications.choice(id)
         let label = choice.label(
             settingOn: store.settings.isOn(.episodeNotifications),
-            watching: store.notifications.isWatching(id),
-            capitalised: mac)
+            watching: store.notifications.isWatching(id))
         Menu {
             Picker(L.settingsNewEpisodes, selection: Binding(
                 get: { choice },
                 set: { new in Task { await store.setShowNotices(id, to: new) } }
             )) {
                 ForEach(ShowNoticeChoice.allCases, id: \.self) { option in
-                    Text(option.name(capitalised: mac)).tag(option)
+                    Text(option.name).tag(option)
                 }
             }
             .pickerStyle(.inline)
@@ -330,7 +327,7 @@ struct ShowNoticesMenu: View {
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
-        .accessibilityLabel("New episodes: \(label)")
+        .accessibilityLabel(L.settingsShowNoticesLabel(value: label))
         .task {
             store.loadShowNotices(id)
             if store.notifications.week == nil { store.refreshNotices() }
@@ -362,7 +359,7 @@ struct PhoneNotificationsPage: View {
             Section {
                 let rows = store.notifications.comingUp
                 if rows.isEmpty {
-                    Text(store.notifications.week == nil ? "Loading the week…" : NoticeWords.empty)
+                    Text(store.notifications.week == nil ? L.settingsWeekLoading : NoticeWords.empty)
                         .font(.ui(17)).foregroundStyle(.haze)
                         .listRowBackground(Palette.raised)
                 }
@@ -373,7 +370,7 @@ struct PhoneNotificationsPage: View {
                     .listRowBackground(Palette.raised)
                 }
             } header: {
-                PhoneSectionHeader("Coming up · next 7 days")
+                PhoneSectionHeader(L.settingsComingUp)
             } footer: {
                 Text(NoticeWords.leftOut(store))
             }
@@ -420,7 +417,7 @@ struct PhoneShowNoticesPage: View {
             }
         }
         .navigationTitle(store.titles[id]?.showTitle
-            ?? store.notifications.week?.airings.first { $0.id == id }?.title ?? "This show")
+            ?? store.notifications.week?.airings.first { $0.id == id }?.title ?? L.settingsThisShow)
         .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -1055,6 +1055,396 @@ public enum L {
         Self.format("downloads-seeding-uploaded", fallback: "Shared %1$@ of %2$@ · %3$@ · %4$@ up", shared, goal, left, size)
     }
 
+    /// Body of a new-episode notification when the viewer is caught up.
+    public static func noticeOut(episode: Int) -> String {
+        Self.format("notice-out", fallback: "Episode %1$lld is out.", episode)
+    }
+
+    /// Body of a new-episode notification for the dub the viewer watches the show in.
+    public static func noticeOutDubbed(episode: Int) -> String {
+        Self.format("notice-out-dubbed", fallback: "Episode %1$lld is out, dubbed.", episode)
+    }
+
+    /// Body of a new-episode notification when the viewer is behind: the episode out and the one to watch next.
+    public static func noticeOutBehind(episode: Int, next: Int) -> String {
+        Self.format("notice-out-behind", fallback: "Episode %1$lld is out. Next for you: episode %2$lld.", episode, next)
+    }
+
+    /// Body of a new-episode notification for a dub when the viewer is behind.
+    public static func noticeOutDubbedBehind(episode: Int, next: Int) -> String {
+        Self.format("notice-out-dubbed-behind", fallback: "Episode %1$lld is out, dubbed. Next for you: episode %2$lld.", episode, next)
+    }
+
+    /// What the system shows instead of the body when previews are hidden.
+    public static var noticeHiddenPreview: String { string("notice-hidden-preview", fallback: "New episode") }
+
+    /// What the system shows under a group of new-episode notifications. The system fills in the count at %u.
+    public static var noticeSummary: String { string("notice-summary", fallback: "%u more new episodes") }
+
+    /// Settings row: download over cellular data.
+    public static var settingsDownloadCellular: String { string("settings-download-cellular", fallback: "Download on cellular") }
+
+    /// Settings row on the Mac: the switch for hosting a Syncplay-compatible watch party.
+    public static var settingsSyncplay: String { string("settings-syncplay", fallback: "Syncplay watch parties") }
+
+    /// Settings row on the Mac: the Syncplay server address.
+    public static var settingsSyncplayServer: String { string("settings-syncplay-server", fallback: "Syncplay server") }
+
+    /// Settings row on the Mac: the Syncplay room name.
+    public static var settingsSyncplayRoom: String { string("settings-syncplay-room", fallback: "Syncplay room") }
+
+    /// Settings row for Discord: whether the show's title goes with the presence.
+    public static var settingsPresenceTitle: String { string("settings-presence-title", fallback: "Presence shows the title") }
+
+    /// Settings row for Discord: the richer presence with a cover, a bar and a link.
+    public static var settingsPresenceRich: String { string("settings-presence-rich", fallback: "Rich presence") }
+
+    /// Settings row on the Mac: whether the player starts in full screen.
+    public static var settingsStartFullscreen: String { string("settings-start-fullscreen", fallback: "Start in full screen") }
+
+    /// Settings row for the command that runs after each download.
+    public static var settingsHookCommand: String { string("settings-hook-command", fallback: "Command") }
+
+    /// Settings row for the audio translation, as the engine names the setting.
+    public static var settingsTranslation: String { string("settings-translation", fallback: "Translation") }
+
+    /// Shown in Settings when a search matches no row.
+    public static var settingsNoMatch: String { string("settings-no-match", fallback: "No setting is called that.") }
+
+    /// Heading over the rows that Settings search found.
+    public static var settingsResults: String { string("settings-results", fallback: "Results") }
+
+    /// VoiceOver label for the row of Settings panes on the Mac.
+    public static var settingsPanesLabel: String { string("settings-panes-label", fallback: "Settings panes") }
+
+    /// Text on the upscaling preview, over the left half, which shows the source untouched.
+    public static var settingsUpscalingSource: String { string("settings-upscaling-source", fallback: "480p source") }
+
+    /// VoiceOver description of the upscaling preview. The mode is the chosen upscaling mode.
+    public static func settingsUpscalingCompare(mode: String) -> String {
+        Self.format("settings-upscaling-compare", fallback: "The 480p source beside %1$@", mode)
+    }
+
+    /// Under the upscaling preview when the mode is off.
+    public static var settingsUpscalingNoteOff: String { string("settings-upscaling-note-off", fallback: "The source, scaled to fit without processing.") }
+
+    /// Under the upscaling preview for the sharp mode.
+    public static var settingsUpscalingNoteSharp: String { string("settings-upscaling-note-sharp", fallback: "Crisper lines and stronger edges, at some cost to texture.") }
+
+    /// Under the upscaling preview for the natural mode.
+    public static var settingsUpscalingNoteNatural: String { string("settings-upscaling-note-natural", fallback: "Faithful line work and texture, nothing restyled.") }
+
+    /// Shown in the Advanced pane while the player has no options of its own to set.
+    public static var settingsAdvancedNone: String { string("settings-advanced-none", fallback: "No extra options. The player runs with anistream's own.") }
+
+    /// Side note title in Sources while torrents are on.
+    public static var settingsAsideCheckTitle: String { string("settings-aside-check-title", fallback: "Connection check") }
+
+    /// Side note in Sources while torrents are off.
+    public static var settingsAsideSources: String { string("settings-aside-sources", fallback: "Sources are tried in order, top to bottom. A show can keep its own source, chosen from its title page.") }
+
+    /// Side note in Accounts.
+    public static var settingsAsideAccounts: String { string("settings-aside-accounts", fallback: "anistream works without an account. Your watch history stays on this device when you sign out.") }
+
+    /// Side note in Advanced.
+    public static var settingsAsideAdvanced: String { string("settings-aside-advanced", fallback: "An option here can undo a Playback setting, such as upscaling or night mode. Most people never need this pane.") }
+
+    /// Note under the download quality row.
+    public static var settingsQualityDetail: String { string("settings-quality-detail", fallback: "Higher takes the best version a source offers, and more space.") }
+
+    /// Note under the merge subtitles row.
+    public static var settingsMergeSubtitlesDetail: String { string("settings-merge-subtitles-detail", fallback: "Subtitles stay with the episode wherever the file goes.") }
+
+    /// Note under the keep seeding row on the Mac.
+    public static var settingsKeepSeedingDetailMac: String { string("settings-keep-seeding-detail-mac", fallback: "A download that keeps seeding stays in anistream's cache, not the download folder.") }
+
+    /// Note under the keep seeding row on iPhone and iPad.
+    public static var settingsKeepSeedingDetail: String { string("settings-keep-seeding-detail", fallback: "A download that keeps seeding stays in anistream's cache.") }
+
+    /// Group title on the Mac for the command that runs after each download.
+    public static var settingsAfterDownload: String { string("settings-after-download", fallback: "After each download") }
+
+    /// Row title for the finished downloads of episodes already watched.
+    public static var settingsWatchedDownloads: String { string("settings-watched-downloads", fallback: "Watched downloads") }
+
+    /// Under the watched downloads row: the episodes of one show and their size. The episodes are already counted.
+    public static func settingsWatchedOne(episodes: String, title: String, size: String) -> String {
+        Self.format("settings-watched-one", fallback: "%1$@ of %2$@ · %3$@", episodes, title, size)
+    }
+
+    /// Under the watched downloads row: the episodes of several shows and their size. The episodes are already counted.
+    public static func settingsWatchedMany(episodes: String, size: String) -> String {
+        Self.format("settings-watched-many", fallback: "%1$@ · %2$@", episodes, size)
+    }
+
+    /// Title of the dialog that deletes the watched downloads.
+    public static func settingsDeleteWatchedTitle(count: Int) -> String {
+        Self.format("settings-delete-watched-title", fallback: "Delete %1$lld watched downloads?", count)
+    }
+
+    /// Message of the dialog that deletes the watched downloads.
+    public static var settingsDeleteWatchedDetail: String { string("settings-delete-watched-detail", fallback: "The files are deleted from this device. Episodes not yet watched stay.") }
+
+    /// Under the download folder row while no folder is chosen.
+    public static var settingsFolderDefault: String { string("settings-folder-default", fallback: "Kept with the torrent cache") }
+
+    /// Legend of the storage bar: what downloads take for episodes not yet watched.
+    public static var settingsStorageUnwatched: String { string("settings-storage-unwatched", fallback: "Not watched yet") }
+
+    /// Line under the storage bar: what downloads take.
+    public static func settingsStorageUsed(size: String) -> String {
+        Self.format("settings-storage-used", fallback: "%1$@ in downloads.", size)
+    }
+
+    /// Line under the storage bar: what downloads take and what is free.
+    public static func settingsStorageUsedFree(size: String, free: String) -> String {
+        Self.format("settings-storage-used-free", fallback: "%1$@ in downloads. %2$@ free on this device.", size, free)
+    }
+
+    /// Footnote of the Torrents group while torrents are on.
+    public static var settingsTorrentsWarnNote: String { string("settings-torrents-warn-note", fallback: "Choosing Warn only asks you to confirm first, as No protection does.") }
+
+    /// Value of the source order row: how many sources are in the order.
+    public static func settingsSourceCount(count: Int) -> String {
+        Self.format("settings-source-count", fallback: "%1$lld sources", count)
+    }
+
+    /// Footnote of the AniList group in Accounts.
+    public static func settingsAccountsSyncNote(tracker: String) -> String {
+        Self.format("settings-accounts-sync-note", fallback: "Progress and list changes sync to %1$@. Library and the Calendar's My list show your %1$@ lists.", tracker)
+    }
+
+    /// Row title in Accounts: titles that differ between this device and the tracker.
+    public static func settingsConflicts(count: Int, tracker: String) -> String {
+        Self.format("settings-conflicts", fallback: "%1$lld titles differ from %2$@", count, tracker)
+    }
+
+    /// Button in Accounts that opens the list of differences.
+    public static var settingsReview: String { string("settings-review", fallback: "Review") }
+
+    /// Shown for a signed-in account that has no name yet.
+    public static var settingsSignedIn: String { string("settings-signed-in", fallback: "Signed in") }
+
+    /// Under a tracker row: how many changes wait to sync.
+    public static func settingsChangesWaiting(count: Int) -> String {
+        Self.format("settings-changes-waiting", fallback: "%1$lld changes waiting to sync", count)
+    }
+
+    /// Under a tracker row: when the last sync finished, a moment ago.
+    public static var settingsSyncedJustNow: String { string("settings-synced-just-now", fallback: "Synced just now") }
+
+    /// Under a tracker row: when the last sync finished. The span is already worded, such as "2 hours ago".
+    public static func settingsSyncedAgo(ago: String) -> String {
+        Self.format("settings-synced-ago", fallback: "Synced %1$@", ago)
+    }
+
+    /// Row note under Privacy in Accounts.
+    public static var settingsPrivacyNote: String { string("settings-privacy-note", fallback: "What anistream sends, and what stays on this device") }
+
+    /// Button that opens the privacy page in a browser.
+    public static var settingsReadOnline: String { string("settings-read-online", fallback: "Read online") }
+
+    /// Footnote of the Discord group.
+    public static func settingsPresenceNote(tracker: String) -> String {
+        Self.format("settings-presence-note", fallback: "Rich presence shows the cover, a progress bar and a link to the show on %1$@. Discord fetches the cover from %1$@ itself. It needs the title shown.", tracker)
+    }
+
+    /// Preview of the Discord presence: the label of the cover drawing.
+    public static var settingsPresenceCover: String { string("settings-presence-cover", fallback: "Cover") }
+
+    /// Preview of the Discord presence: the button that opens the show on the tracker.
+    public static func settingsPresenceButton(tracker: String) -> String {
+        Self.format("settings-presence-button", fallback: "View on %1$@", tracker)
+    }
+
+    /// Preview of the Discord presence when the title is kept off.
+    public static var settingsPresenceNothing: String { string("settings-presence-nothing", fallback: "Watching anime") }
+
+    /// Preview of the Discord presence: the episode line with the total.
+    public static func settingsPresenceEpisodeOf(episode: Int, total: Int) -> String {
+        Self.format("settings-presence-episode-of", fallback: "Episode %1$lld of %2$lld", episode, total)
+    }
+
+    /// Preview of the Discord presence: the episode line without a total.
+    public static func settingsPresenceEpisode(episode: Int) -> String {
+        Self.format("settings-presence-episode", fallback: "Episode %1$lld", episode)
+    }
+
+    /// Under the Discord preview while presence is on.
+    public static var settingsPresenceOn: String { string("settings-presence-on", fallback: "Your Discord profile shows this while an episode plays.") }
+
+    /// Under the Discord preview while presence is off.
+    public static var settingsPresenceOff: String { string("settings-presence-off", fallback: "Off. When on, your Discord profile shows this while an episode plays.") }
+
+    /// Name of the Advanced pane's option row for the player, found by Settings search.
+    public static var settingsMpvOptions: String { string("settings-mpv-options", fallback: "mpv options") }
+
+    /// Under the New episodes group: when the system asks for permission.
+    public static var settingsNotifyPermission: String { string("settings-notify-permission", fallback: "anistream asks for permission the first time you turn this on.") }
+
+    /// Shown in the week list when nothing airs in the next 7 days for the followed shows.
+    public static var settingsWeekEmpty: String { string("settings-week-empty", fallback: "Nothing airs in the next 7 days for the shows you follow.") }
+
+    /// Shown in the week list while the week is loading.
+    public static var settingsWeekLoading: String { string("settings-week-loading", fallback: "Loading the week…") }
+
+    /// Name of the system's own settings app on the Mac, which is where notification permission is set.
+    public static var settingsSystemAppMac: String { string("settings-system-app-mac", fallback: "System Settings") }
+
+    /// Name of the system's own settings app on iPhone and iPad, which is where notification permission is set.
+    public static var settingsSystemAppIos: String { string("settings-system-app-ios", fallback: "Settings") }
+
+    /// Under the New episodes row when the system does not allow notifications.
+    public static func settingsNotifyNotAllowed(settings: String) -> String {
+        Self.format("settings-notify-not-allowed", fallback: "Not allowed for anistream in %1$@", settings)
+    }
+
+    /// Footnote of the week list: a show whose dub notifies when the dub is out.
+    public static func settingsWeekDubOne(show: String) -> String {
+        Self.format("settings-week-dub-one", fallback: "%1$@ notifies when its dub is out.", show)
+    }
+
+    /// Footnote of the week list: several shows whose dubs notify when the dubs are out. The shows are already listed.
+    public static func settingsWeekDubMany(shows: String) -> String {
+        Self.format("settings-week-dub-many", fallback: "%1$@ notify when their dubs are out.", shows)
+    }
+
+    /// Footnote of the week list: a show that is switched off in its own settings.
+    public static func settingsWeekOffOne(show: String) -> String {
+        Self.format("settings-week-off-one", fallback: "%1$@ is off in its own settings.", show)
+    }
+
+    /// Footnote of the week list: several shows that are switched off in their own settings. The shows are already listed.
+    public static func settingsWeekOffMany(shows: String) -> String {
+        Self.format("settings-week-off-many", fallback: "%1$@ are off in their own settings.", shows)
+    }
+
+    /// Footnote of the week list: what tapping a row does.
+    public static var settingsWeekRowOpens: String { string("settings-week-row-opens", fallback: "A row opens that show's settings.") }
+
+    /// A row of the week: today, with the time. The time is already formatted.
+    public static func settingsWhenToday(time: String) -> String {
+        Self.format("settings-when-today", fallback: "Today %1$@", time)
+    }
+
+    /// A row of the week: tomorrow, with the time. The time is already formatted.
+    public static func settingsWhenTomorrow(time: String) -> String {
+        Self.format("settings-when-tomorrow", fallback: "Tomorrow %1$@", time)
+    }
+
+    /// A row of the week: a later day, with the time. The day is a weekday name and the time is already formatted.
+    public static func settingsWhenDay(day: String, time: String) -> String {
+        Self.format("settings-when-day", fallback: "%1$@ %2$@", day, time)
+    }
+
+    /// VoiceOver label of a row of the week: the show, the episode and when it airs.
+    public static func settingsWeekRowLabel(title: String, episode: Int, when: String) -> String {
+        Self.format("settings-week-row-label", fallback: "%1$@, episode %2$lld, %3$@", title, episode, when)
+    }
+
+    /// VoiceOver hint of a row of the week.
+    public static var settingsWeekRowHint: String { string("settings-week-row-hint", fallback: "Opens this show's settings") }
+
+    /// Under the notification preview while New episodes is on.
+    public static func settingsNotifyExplainOn(tracker: String) -> String {
+        Self.format("settings-notify-explain-on", fallback: "One notification when an episode of a show in your Watching list comes out, at the time %1$@ gives. A show's own setting comes first.", tracker)
+    }
+
+    /// Under the notification preview while New episodes is off.
+    public static var settingsNotifyExplainOff: String { string("settings-notify-explain-off", fallback: "Off. Only shows turned on in their own settings notify.") }
+
+    /// Preview of a notification: the show's name when no show is airing soon.
+    public static var settingsPreviewShow: String { string("settings-preview-show", fallback: "A show you watch") }
+
+    /// Preview of a notification: the words when no show is airing soon.
+    public static var settingsPreviewWords: String { string("settings-preview-words", fallback: "Episode 9 is out.") }
+
+    /// VoiceOver label of the notification preview.
+    public static func settingsPreviewLabel(show: String, words: String) -> String {
+        Self.format("settings-preview-label", fallback: "A notification: %1$@, %2$@", show, words)
+    }
+
+    /// VoiceOver label of the menu for one show's New episodes choice. The value is its current choice.
+    public static func settingsShowNoticesLabel(value: String) -> String {
+        Self.format("settings-show-notices-label", fallback: "New episodes: %1$@", value)
+    }
+
+    /// Title of a show's notifications page when the show has no name yet.
+    public static var settingsThisShow: String { string("settings-this-show", fallback: "This show") }
+
+    /// Value of a show's New episodes menu when the show follows Settings but is not being watched.
+    public static var settingsShowOffNotWatching: String { string("settings-show-off-not-watching", fallback: "Off · not watching") }
+
+    /// Choice of the upscaling setting: the natural mode, named with the filter it uses.
+    public static var settingsOptionNatural: String { string("settings-option-natural", fallback: "Natural · ArtCNN") }
+
+    /// Choice of the upscaling setting: the sharp mode, named with the filter it uses.
+    public static var settingsOptionSharp: String { string("settings-option-sharp", fallback: "Sharp · Anime4K") }
+
+    /// Choice of the player setting: the user's own mpv configuration.
+    public static var settingsOptionMpv: String { string("settings-option-mpv", fallback: "Your mpv setup") }
+
+    /// Choice of the seeding setting: stop seeding once the ratio is reached. The ratio is already formatted.
+    public static func settingsOptionUntilRatio(ratio: String) -> String {
+        Self.format("settings-option-until-ratio", fallback: "Until ratio %1$@", ratio)
+    }
+
+    /// Choice of the upload limit setting: no limit.
+    public static var settingsOptionUnlimited: String { string("settings-option-unlimited", fallback: "Unlimited") }
+
+    /// Choice of the upload limit setting: a speed. The size is already formatted, such as 524 kB.
+    public static func settingsOptionPerSecond(size: String) -> String {
+        Self.format("settings-option-per-second", fallback: "%1$@/s", size)
+    }
+
+    /// Choice of the download quality setting: the usual versions.
+    public static var settingsOptionStandard: String { string("settings-option-standard", fallback: "Standard") }
+
+    /// Choice of the download quality setting: the best version a source offers.
+    public static var settingsOptionHigher: String { string("settings-option-higher", fallback: "Higher") }
+
+    /// Choice of the theme setting: the window follows the artwork's colours less.
+    public static var settingsOptionAdaptive: String { string("settings-option-adaptive", fallback: "Adaptive") }
+
+    /// Choice of the theme setting: the window takes on the artwork's colours.
+    public static var settingsOptionImmersive: String { string("settings-option-immersive", fallback: "Immersive") }
+
+    /// Value of the Sources row in the iPhone's Settings when torrents are on.
+    public static var settingsTorrentsValueOn: String { string("settings-torrents-value-on", fallback: "Torrents on") }
+
+    /// Value of the Sources row in the iPhone's Settings when torrents are off.
+    public static var settingsTorrentsValueOff: String { string("settings-torrents-value-off", fallback: "Torrents off") }
+
+    /// Note under the seed after watching row on iPhone and iPad.
+    public static var settingsSeedRatioDetail: String { string("settings-seed-ratio-detail", fallback: "Best effort on this device: only while anistream is open") }
+
+    /// Button on the iPhone's Accounts page that opens the list of differences with the tracker.
+    public static func settingsReviewDifferences(count: Int) -> String {
+        Self.format("settings-review-differences", fallback: "Review %1$lld differences", count)
+    }
+
+    /// Swipe action on a paused download.
+    public static var settingsSwipeResume: String { string("settings-swipe-resume", fallback: "Resume") }
+
+    /// Swipe action on a download that stopped.
+    public static var settingsSwipeRetry: String { string("settings-swipe-retry", fallback: "Retry") }
+
+    /// Value of the Plugin stores row on the iPhone: how many stores, and how many plugins have updates. The updates are already counted.
+    public static func settingsStoresValueUpdates(count: Int, updates: String) -> String {
+        Self.format("settings-stores-value-updates", fallback: "%1$lld · %2$@", count, updates)
+    }
+
+    /// Label of a row in the Mac's sheet for one show's settings. The label is already worded.
+    public static func showSettingsRowLabel(label: String) -> String {
+        Self.format("show-settings-row-label", fallback: "%1$@:", label)
+    }
+
+    /// A remembered subtitle track that has neither a language nor a title.
+    public static var showSettingsUnnamedTrack: String { string("show-settings-unnamed-track", fallback: "Unnamed track") }
+
+    /// Footnote of the seeding group on the Mac: seeding stops when the app is closed.
+    public static var settingsSeedingOpenOnly: String { string("settings-seeding-open-only", fallback: "Seeding runs only while anistream is open.") }
+
     /// Mac menu bar item that opens Settings.
     public static var menuSettings: String { string("menu-settings", fallback: "Settings…") }
 
@@ -1200,6 +1590,24 @@ public enum L {
 
     /// Context menu item that opens the settings of one title.
     public static var shellShowSettings: String { string("shell-show-settings", fallback: "Show settings for this show") }
+
+    /// Sync status in the toolbar when no tracker account is signed in.
+    public static var shellSyncNone: String { string("shell-sync-none", fallback: "Not connected") }
+
+    /// Sync status in the toolbar when the account needs to be signed in again.
+    public static func shellSyncSignInAgain(tracker: String) -> String {
+        Self.format("shell-sync-sign-in-again", fallback: "Sign in to %1$@ again", tracker)
+    }
+
+    /// Sync status in the toolbar when the last sync failed.
+    public static func shellSyncFailed(tracker: String) -> String {
+        Self.format("shell-sync-failed", fallback: "%1$@ not synced", tracker)
+    }
+
+    /// Sync status in the toolbar when everything is synced.
+    public static func shellSyncSynced(tracker: String) -> String {
+        Self.format("shell-sync-synced", fallback: "%1$@ synced", tracker)
+    }
 
     /// Line under the heading of the sources list while the list is built again.
     public static var sourcesRebuilding: String { string("sources-rebuilding", fallback: "Sources are being set up again…") }

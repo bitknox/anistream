@@ -18,21 +18,21 @@ struct DownloadsPane: View {
             SettingsRow(title: SettingKey.downloadDir.title, note: DownloadFolder.note(store)) {
                 DownloadFolderMenu()
             }
-            SettingsRow(title: SettingKey.downloadQuality.title, note: "Higher takes the best version a source offers, and more space.") {
+            SettingsRow(title: SettingKey.downloadQuality.title, note: L.settingsQualityDetail) {
                 SettingMenu(key: .downloadQuality)
             }
-            SettingsRow(title: SettingKey.keepNextEpisodes.title, note: "Downloads the episodes after the one you are on, for each show you watch.") {
+            SettingsRow(title: SettingKey.keepNextEpisodes.title, note: L.settingsKeepNextDetail) {
                 SettingMenu(key: .keepNextEpisodes)
             }
-            SettingsRow(title: SettingKey.mergeSubtitles.title, note: "Subtitles stay with the episode wherever the file goes.") {
+            SettingsRow(title: SettingKey.mergeSubtitles.title, note: L.settingsMergeSubtitlesDetail) {
                 SettingSwitch(key: .mergeSubtitles)
             }
-            SettingsRow(title: SettingKey.keepSeeding.title, note: "A download that keeps seeding stays in anistream’s cache, not the download folder.") {
+            SettingsRow(title: SettingKey.keepSeeding.title, note: L.settingsKeepSeedingDetailMac) {
                 SettingSwitch(key: .keepSeeding)
             }
         }
         #if os(macOS)
-        SettingsGroup(title: "After each download", footnote: nil) {
+        SettingsGroup(title: L.settingsAfterDownload, footnote: nil) {
             HookRow()
         }
         SettingsFootnote(
@@ -46,8 +46,8 @@ struct DownloadsPane: View {
         #endif
         let watched = WatchedDownloads(store)
         SettingsGroup {
-            SettingsRow(title: "Watched downloads", note: watched.line) {
-                Button(cased(mac: "Delete Watched Downloads…", touch: "Delete watched downloads")) { confirmDelete = true }
+            SettingsRow(title: L.settingsWatchedDownloads, note: watched.line) {
+                Button(L.downloadsDeleteWatched) { confirmDelete = true }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     // Whole in a narrow pane, as on an iPad in portrait: the label wraps instead.
                     .fixedSize()
@@ -55,14 +55,14 @@ struct DownloadsPane: View {
             }
         }
         .confirmationDialog(
-            "Delete \(Wording.plural(watched.rows.count, "watched download"))?",
+            L.settingsDeleteWatchedTitle(count: watched.rows.count),
             isPresented: $confirmDelete
         ) {
             Button(L.actionDelete, role: .destructive) {
                 for row in watched.rows { store.deleteDownload(row.id) }
             }
         } message: {
-            Text("The files are deleted from this \(Device.name). Episodes not yet watched stay.")
+            Text(L.settingsDeleteWatchedDetail)
         }
     }
 
@@ -77,7 +77,7 @@ enum DownloadFolder {
     /// The folder's path with the home folder as `~`, or where they go when none is set.
     static func note(_ store: AppStore) -> String {
         guard let path = store.settings.row(.downloadDir)?.typedText, !path.isEmpty else {
-            return "Kept with the torrent cache"
+            return L.settingsFolderDefault
         }
         let home = NSHomeDirectory()
         return path.hasPrefix(home) ? "~" + path.dropFirst(home.count) : path
@@ -105,7 +105,7 @@ struct DownloadFolderMenu: View {
     var body: some View {
         Menu {
             #if os(macOS)
-            Button(cased(mac: "Choose…", touch: "Choose")) { choose() }
+            Button(L.settingsChoose) { choose() }
             if let path = store.settings.row(.downloadDir)?.typedText, !path.isEmpty {
                 Button(L.shellShowInFinder) {
                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
@@ -147,11 +147,11 @@ struct HookRow: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Text("Command")
+            Text(L.settingsHookCommand)
                 .font(.mac(13))
                 .foregroundStyle(.silk)
                 .frame(width: 196, alignment: .leading)
-            TextField("Command", text: $text, prompt: Text(L.valueNone))
+            TextField(L.settingsHookCommand, text: $text, prompt: Text(L.valueNone))
                 .textFieldStyle(.plain)
                 .font(.mac(13, design: .monospaced))
                 .padding(.horizontal, 10)
@@ -186,13 +186,13 @@ struct WatchedDownloads {
     init(_ store: AppStore) {
         rows = store.downloads.rows.filter { $0.state == .done && $0.isWatched(in: store.titles) }
         guard !rows.isEmpty else {
-            line = "None yet"
+            line = L.settingsNoneYet
             return
         }
         let size = Wording.bytes(rows.reduce(0) { $0 + $1.bytesOnDisk })
         let titles = Set(rows.map(\.anilistId))
-        let episodes = Wording.plural(rows.count, "episode")
-        line = titles.count == 1 ? "\(episodes) of \(rows[0].title) · \(size)" : "\(episodes) · \(size)"
+        let episodes = L.episodesCount(count: rows.count)
+        line = titles.count == 1 ? L.settingsWatchedOne(episodes: episodes, title: rows[0].title, size: size) : L.settingsWatchedMany(episodes: episodes, size: size)
     }
 }
 
@@ -228,8 +228,8 @@ struct StorageAside: View {
         }
         .frame(height: 8)
         .accessibilityHidden(true)
-        legend("Not watched yet", unwatched, .silk)
-        legend("Watched", watched, .haze)
+        legend(L.settingsStorageUnwatched, unwatched, .silk)
+        legend(L.episodeWatched, watched, .haze)
         Text(summary(total))
             .font(.mac(13))
             .macLineHeight(18)
@@ -247,9 +247,8 @@ struct StorageAside: View {
     }
 
     private func summary(_ total: UInt64) -> String {
-        let used = "\(Wording.bytes(total)) in downloads."
-        guard let free = FreeSpace.bytes else { return used }
-        return "\(used) \(Wording.bytes(free)) free on this \(Device.name)."
+        guard let free = FreeSpace.bytes else { return L.settingsStorageUsed(size: Wording.bytes(total)) }
+        return L.settingsStorageUsedFree(size: Wording.bytes(total), free: Wording.bytes(free))
     }
 }
 
@@ -273,13 +272,13 @@ struct SourcesPane: View {
 
     var body: some View {
         let on = store.settings.isOn(.torrents)
-        SettingsGroup(title: "Sources", footnote: "anistream hosts no content.") {
+        SettingsGroup(title: L.sourcesTitle, footnote: L.legalHostsNoContent) {
             Button {
                 navigator.open(.providers)
             } label: {
                 SettingsRow(title: SettingKey.sourceOrder.title, note: store.settings.overriddenNote(.sourceOrder)) {
                     HStack(spacing: 8) {
-                        Text(Wording.plural(store.providers.rows.count, "source"))
+                        Text(L.settingsSourceCount(count: store.providers.rows.count))
                             .font(.mac(13))
                             .foregroundStyle(.haze)
                         Image(systemName: "chevron.right")
@@ -292,10 +291,8 @@ struct SourcesPane: View {
             .buttonStyle(.plain)
         }
         SettingsGroup(
-            title: "Torrents",
-            footnote: on
-                ? "Choosing Warn only asks you to confirm first, as No protection does."
-                : "Off by default. Turning this on asks how to protect your connection first."
+            title: L.torrentsTitle,
+            footnote: on ? L.settingsTorrentsWarnNote : L.torrentsOffDetail
         ) {
             SettingsRow(title: SettingKey.torrents.title) {
                 Toggle(SettingKey.torrents.title, isOn: Binding(
@@ -309,7 +306,7 @@ struct SourcesPane: View {
                 .labelsHidden()
             }
             if on {
-                SettingsRow(title: SettingKey.torrentIndex.title, note: "The RSS search address anistream asks for torrents. anistream hosts no content.") {
+                SettingsRow(title: SettingKey.torrentIndex.title, note: L.torrentsIndexDetail + " " + L.legalHostsNoContent) {
                     TorrentIndexField()
                         .padding(.horizontal, 10)
                         .frame(width: 280, height: 28)
@@ -331,7 +328,7 @@ struct SourcesPane: View {
             }
         }
         if on {
-            SettingsGroup(title: L.downloadsSeedingTitle, footnote: "Seeding runs only while anistream is open.") {
+            SettingsGroup(title: L.downloadsSeedingTitle, footnote: L.settingsSeedingOpenOnly) {
                 SettingsRow(title: SettingKey.seedRatio.title) { SettingMenu(key: .seedRatio) }
                 SettingsRow(title: SettingKey.seedHours.title) { SettingMenu(key: .seedHours) }
                 SettingsRow(title: SettingKey.uploadLimit.title) { SettingMenu(key: .uploadLimit) }
@@ -397,17 +394,17 @@ enum GuardWords {
         let ago = at.map { Wording.ago(Int64(now.timeIntervalSince($0))) }
         switch view {
         case .protected(let exit)?:
-            return ("Leaving through \(exit)" + (ago.map { " · \($0)" } ?? ""), "Passed", .water)
+            return (L.torrentsCheckPassedExit(exit: exit) + (ago.map { " · \($0)" } ?? ""), L.torrentsCheckPassed, .water)
         case .checking?:
-            return ("Checking where torrent traffic leaves from", "Checking", .haze)
+            return (L.torrentsCheckRunningLine, L.torrentsCheckRunning, .haze)
         case .leaking?:
-            return ("Traffic left outside the protection. Torrents are paused.", "Failed", .vermilion)
+            return (L.torrentsCheckLeaked(then: L.torrentsFailPauseResult), L.torrentsCheckFailed, .vermilion)
         case .unreachable?:
-            return ("The check could not be made. Torrents are paused.", "Failed", .vermilion)
+            return (L.torrentsCheckUnmade(then: L.torrentsFailPauseResult), L.torrentsCheckFailed, .vermilion)
         case .unprotected?:
-            return ("No protection is set", "Unprotected", .haze)
+            return (L.torrentsCheckNoneLine, L.torrentsCheckNone, .haze)
         case nil:
-            return ("Not checked yet", "Waiting", .haze)
+            return (L.torrentsCheckWaitingLine, L.torrentsCheckWaiting, .haze)
         }
     }
 }
@@ -423,30 +420,30 @@ struct AccountsPane: View {
     var body: some View {
         let anilist = store.accounts.tracker("anilist")
         SettingsGroup(
-            title: "AniList",
-            footnote: "Progress and list changes sync to AniList. Library and the Calendar’s My List show your AniList lists."
+            title: AccountsModel.name("anilist"),
+            footnote: L.settingsAccountsSyncNote(tracker: AccountsModel.name("anilist"))
         ) {
             if let anilist, anilist.connected {
                 AccountRow(state: anilist) {
                     HStack(spacing: 8) {
                         Working(store.accounts.isWorking("sync"))
-                        Button(cased(mac: "Sync Now", touch: "Sync now")) { store.syncNow() }
+                        Button(L.accountsSyncNow) { store.syncNow() }
                             .disabled(store.accounts.isWorking("sync"))
-                        Button(cased(mac: "Sign Out", touch: "Sign out")) { store.disconnect("anilist") }
+                        Button(L.actionSignOut) { store.disconnect("anilist") }
                     }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                 }
                 if !store.accounts.conflicts.isEmpty {
-                    SettingsRow(title: "\(Wording.plural(store.accounts.conflicts.count, "title")) differ from AniList") {
-                        Button(cased(mac: "Review…", touch: "Review")) { sheet = .conflicts }
+                    SettingsRow(title: L.settingsConflicts(count: store.accounts.conflicts.count, tracker: AccountsModel.name("anilist"))) {
+                        Button(L.settingsReview) { sheet = .conflicts }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     }
                 }
             } else {
-                SettingsRow(title: "AniList", note: L.accountsBringsLists) {
+                SettingsRow(title: AccountsModel.name("anilist"), note: L.accountsBringsLists) {
                     HStack(spacing: 8) {
                         Working(store.accounts.isWorking("anilist"))
-                        Button(cased(mac: "Sign In…", touch: "Sign in")) { store.connect("anilist") }
+                        Button(L.actionSignIn) { store.connect("anilist") }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                             .disabled(store.accounts.isWorking("anilist"))
                     }
@@ -459,8 +456,8 @@ struct AccountsPane: View {
             }
         }
         SettingsGroup {
-            SettingsRow(title: L.settingsPrivacy, note: "What anistream sends, and what stays on this \(Device.name)") {
-                Button(cased(mac: "Read Online", touch: "Read online")) { openURL(AppVersion.privacy) }
+            SettingsRow(title: L.settingsPrivacy, note: L.settingsPrivacyNote) {
+                Button(L.settingsReadOnline) { openURL(AppVersion.privacy) }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
         }
@@ -486,7 +483,7 @@ struct AccountRow<Accessory: View>: View {
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 2) {
                     // The account's own name, once the tracker says it.
-                    Text(state.user ?? "Signed in")
+                    Text(state.user ?? L.settingsSignedIn)
                         .font(.mac(13, weight: .semibold))
                         .foregroundStyle(.silk)
                     HStack(spacing: 6) {
@@ -528,17 +525,17 @@ struct TrackerRow: View {
         ) {
             Group {
                 if state?.connected == true {
-                    Button(cased(mac: "Sign Out", touch: "Sign out")) { store.disconnect(tracker) }
+                    Button(L.actionSignOut) { store.disconnect(tracker) }
                 } else {
                     switch tracker {
                     case "kitsu":
-                        Button(cased(mac: "Sign In…", touch: "Sign in")) { sheet = .kitsu }
+                        Button(L.actionSignIn) { sheet = .kitsu }
                     default:
                         // MyAnimeList through the system's sign-in sheet, Simkl and Trakt with a
                         // code to type on another device.
                         HStack(spacing: 8) {
                             Working(store.accounts.isWorking(tracker))
-                            Button(cased(mac: "Sign In…", touch: "Sign in")) { store.connect(tracker) }
+                            Button(L.actionSignIn) { store.connect(tracker) }
                                 .disabled(store.accounts.isWorking(tracker))
                         }
                     }
@@ -554,16 +551,16 @@ struct TrackerRow: View {
 enum AccountWords {
     @MainActor
     static func status(_ state: SyncState, _ accounts: AccountsModel, now: Date = .now) -> String {
-        if state.needsReauth { return "Sign in again to keep syncing" }
-        if let error = state.pullError { return "Not synced: \(error.reason)" }
-        if accounts.isWorking("sync") { return "Syncing…" }
-        if state.outbox > 0 { return "\(Wording.plural(Int(state.outbox), "change")) waiting to sync" }
+        if state.needsReauth { return L.accountsStateExpiredShort }
+        if let error = state.pullError { return L.accountsSyncFailed(why: error.reason) }
+        if accounts.isWorking("sync") { return L.accountsSyncRunning }
+        if state.outbox > 0 { return L.settingsChangesWaiting(count: Int(state.outbox)) }
         if let at = accounts.syncedAt[state.tracker] {
             let seconds = Int64(now.timeIntervalSince(at))
-            return seconds < 60 ? "Synced just now" : "Synced \(Wording.ago(seconds))"
+            return seconds < 60 ? L.settingsSyncedJustNow : L.settingsSyncedAgo(ago: Wording.ago(seconds))
         }
         // Nothing waiting and nothing failed, as the sync capsule says it.
-        return "Synced"
+        return L.accountsSyncDone
     }
 
     /// The dot beside the status: water once synced, vermilion when sync is failing.
@@ -576,9 +573,7 @@ enum AccountWords {
     @MainActor
     static func tokens(_ accounts: AccountsModel) -> String {
         let storage = accounts.trackers.compactMap(\.storage).first ?? "keychain"
-        return storage.lowercased().contains("file")
-            ? "Sign-in tokens are kept in a file on this \(Device.name)."
-            : "Sign-in tokens are kept in the Keychain on this \(Device.name)."
+        return storage.lowercased().contains("file") ? L.accountsTokensFile : L.accountsTokensKeychain
     }
 }
 
@@ -599,7 +594,7 @@ struct IntegrationsPane: View {
         if store.settings.hasPresence {
             SettingsGroup(
                 title: L.settingsDiscord,
-                footnote: "Rich presence shows the cover, a progress bar and a link to the show on AniList. Discord fetches the cover from AniList itself. It needs the title shown."
+                footnote: L.settingsPresenceNote(tracker: AccountsModel.name("anilist"))
             ) {
                 SettingsRow(title: SettingKey.presence.title) { SettingSwitch(key: .presence) }
                 SettingsRow(title: SettingKey.presenceTitle.title) { SettingSwitch(key: .presenceTitle) }
@@ -623,7 +618,7 @@ enum AppVersion {
 
     static var long: String {
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
-        return "Version \(short)" + (build.map { " (\($0))" } ?? "")
+        return L.aboutVersion(version: short + (build.map { " (\($0))" } ?? ""))
     }
 
     /// The website, which About opens.
@@ -646,15 +641,18 @@ struct PresenceSketch: Equatable {
     /// Whether the cover, the bar and the AniList button go with it.
     var cover: Bool { mode == .rich }
     var bar: Bool { mode == .rich }
-    var button: String? { mode == .rich ? "View on AniList" : nil }
+    var button: String? { mode == .rich ? L.settingsPresenceButton(tracker: AccountsModel.name("anilist")) : nil }
 
     init(enabled: Bool, titled: Bool, rich: Bool, show: String, episode: Int, total: Int?) {
         // The rich presence names the show on every part of it, so it follows the title.
         mode = !enabled ? .off : (rich && titled ? .rich : .plain)
-        heading = titled ? show : "Watching anime"
+        heading = titled ? show : L.settingsPresenceNothing
         guard titled else { detail = ""; return }
-        let of = mode == .rich ? total.flatMap { episode <= $0 ? " of \($0)" : nil } ?? "" : ""
-        detail = "Episode \(episode)\(of)"
+        if mode == .rich, let total, episode <= total {
+            detail = L.settingsPresenceEpisodeOf(episode: episode, total: total)
+        } else {
+            detail = L.settingsPresenceEpisode(episode: episode)
+        }
     }
 }
 
@@ -667,7 +665,7 @@ struct PresencePreview: View {
         let example = store.continuing.queue(store.titles).all.first?.entry
         let sketch = PresenceSketch(
             enabled: store.settings.isOn(.presence), titled: store.settings.isOn(.presenceTitle),
-            rich: store.settings.isOn(.presenceRich), show: example?.showTitle ?? "Hoshikuzu no Tabibito",
+            rich: store.settings.isOn(.presenceRich), show: example?.showTitle ?? "Hoshikuzu no Tabibito", // i18n-skip: a made-up sample title
             episode: Int(example?.progress?.next ?? 7), total: example?.episodes.map(Int.init)
         )
         VStack(alignment: .leading, spacing: 12) {
@@ -678,7 +676,7 @@ struct PresencePreview: View {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(.haze.opacity(0.3))
                         .frame(width: 48, height: 68)
-                        .overlay(Text("Cover").font(.mac(11)).foregroundStyle(.haze))
+                        .overlay(Text(L.settingsPresenceCover).font(.mac(11)).foregroundStyle(.haze))
                         .accessibilityHidden(true)
                 }
                 VStack(alignment: .leading, spacing: 2) {
@@ -703,9 +701,7 @@ struct PresencePreview: View {
                 }
             }
             .opacity(sketch.mode == .off ? 0.6 : 1)
-            Text(sketch.mode != .off
-                 ? "Your Discord profile shows this while an episode plays."
-                 : "Off. When on, your Discord profile shows this while an episode plays.")
+            Text(sketch.mode != .off ? L.settingsPresenceOn : L.settingsPresenceOff)
                 .font(.mac(13))
                 .macLineHeight(18)
                 .foregroundStyle(.silk)

@@ -93,7 +93,7 @@ struct FirstLaunch: View {
             HStack {
                 Spacer()
                 if page != .sources {
-                    Button(cased(mac: "Skip", touch: "Skip")) { finish(nil) }
+                    Button(L.actionSkip) { finish(nil) }
                         .buttonStyle(.plain)
                         .font(.plat(mac: 13, touch: 17))
                         .foregroundStyle(.haze)
@@ -210,7 +210,7 @@ struct FirstLaunch: View {
                     .keyboardType(.URL)
                     #endif
                     .onSubmit { if !trimmed.isEmpty { finish(trimmed) } }
-                Button(cased(mac: "Join", touch: "Join")) { finish(trimmed) }
+                Button(L.actionJoin) { finish(trimmed) }
                     .buttonStyle(PrimaryCapsuleStyle(height: fieldHeight, fontSize: buttonFont))
                     .disabled(trimmed.isEmpty)
             }
@@ -231,7 +231,7 @@ struct FirstLaunch: View {
     // MARK: Parts
 
     private var notNow: some View {
-        Button { page = .sources } label: { Text(cased(mac: "Not Now", touch: "Not now")).touchFill() }
+        Button { page = .sources } label: { Text(L.actionNotNow).touchFill() }
             .buttonStyle(SecondaryCapsuleStyle(height: buttonHeight, fontSize: buttonFont))
     }
 
@@ -241,7 +241,7 @@ struct FirstLaunch: View {
         } label: {
             HStack(spacing: 8) {
                 if working { ProgressView().controlSize(.small) }
-                Text(cased(mac: "Sign In to AniList", touch: "Sign in to AniList"))
+                Text(L.librarySignedOutAction)
             }
             .touchFill()
         }
