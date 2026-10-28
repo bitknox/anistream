@@ -23,7 +23,7 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for Fit {
-        const NAME: &'static str = "AnistreamFit";
+        const NAME: &'static str = "AnistreamFit"; // i18n-skip
         type Type = super::Fit;
         type ParentType = gtk::Widget;
     }

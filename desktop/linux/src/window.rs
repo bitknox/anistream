@@ -9,6 +9,7 @@ use std::{
 
 use adw::prelude::*;
 use anistream_core::ids::AnilistId;
+use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentFor, ContentList, LibrarySegment},
     command::{Command, PlayerCommand},
@@ -26,7 +27,7 @@ use crate::{
     pages::{self, Dest},
     player::PlayerView,
     prefs::{CloseChoice, Prefs},
-    widgets, words,
+    say, widgets,
 };
 
 /// How wide the window is, by the brief's breakpoints.
@@ -68,7 +69,7 @@ pub struct Ctx {
 }
 
 /// A dialog's hold on the engine's alerts: given the words, it says whether it showed them.
-type Claim = Rc<dyn Fn(&str) -> bool>;
+type Claim = Rc<dyn Fn(&anistream_model::Msg, &str) -> bool>;
 
 impl Ctx {
     pub fn size(&self) -> Size {
@@ -112,29 +113,33 @@ impl Ctx {
             return;
         }
         // An alert a dialog is waiting on shows in that dialog, not as a toast under it.
+        let msg = notice.message();
+        let text = crate::say::msg(&msg);
         if notice.kind == NoticeKind::Alert {
-            let text = sentence(&notice.text);
             let claims: Vec<Claim> =
                 self.claims.borrow().iter().rev().map(|(_, c)| Rc::clone(c)).collect();
-            if claims.iter().any(|claim| claim(&text)) {
+            if claims.iter().any(|claim| claim(&msg, &text)) {
                 return;
             }
         }
         let button = notice.hint.as_ref().map(|hint| match hint {
-            NoticeHint::StopPlayback => ("Stop", "win.stop-playback", None),
-            NoticeHint::OpenStores => ("Open Stores", "win.go", Some("stores")),
-            NoticeHint::KitsuCredentials => ("Sign In", "win.settings-pane", Some("accounts")),
+            NoticeHint::StopPlayback => (t::action_stop(), "win.stop-playback", None),
+            NoticeHint::OpenStores => (t::shell_open_stores(), "win.go", Some("stores")),
+            NoticeHint::KitsuCredentials => {
+                (t::action_sign_in(), "win.settings-pane", Some("accounts"))
+            }
         });
-        self.show_notice(
-            &sentence(&notice.text),
-            matches!(notice.kind, NoticeKind::Alert),
-            button,
-        );
+        let button =
+            button.as_ref().map(|(label, action, target)| (label.as_str(), *action, *target));
+        self.show_notice(&text, matches!(notice.kind, NoticeKind::Alert), button);
     }
 
     /// Have the engine's alerts go to `claim` first, until [`Ctx::release_alerts`]: for a dialog
     /// that waits on the engine, which says only by an alert why it could not.
-    pub fn claim_alerts(&self, claim: impl Fn(&str) -> bool + 'static) -> u64 {
+    pub fn claim_alerts(
+        &self,
+        claim: impl Fn(&anistream_model::Msg, &str) -> bool + 'static,
+    ) -> u64 {
         let id = self.next_claim.get();
         self.next_claim.set(id + 1);
         self.claims.borrow_mut().push((id, Rc::new(claim)));
@@ -207,7 +212,7 @@ impl Ctx {
         if alert {
             toast.set_priority(adw::ToastPriority::High);
         }
-        toast.set_timeout(words::notice_seconds(text, alert || button.is_some()));
+        toast.set_timeout(say::notice_seconds(text, alert || button.is_some()));
         self.toasts.add_toast(toast.clone());
         toast
     }
@@ -264,6 +269,8 @@ impl Shell {
         let toasts = adw::ToastOverlay::new();
         let stack = gtk::Stack::new();
         stack.set_transition_type(gtk::StackTransitionType::None);
+        // A page shows at its own width: another page's longer words must not set the window's.
+        stack.set_hhomogeneous(false);
         let ctx = Rc::new(Ctx {
             hub: Rc::clone(&hub),
             window: window.clone(),
@@ -577,7 +584,7 @@ impl Shell {
             Box::new(move |s, a| {
                 if let Some(id) = id_of(a) {
                     s.ctx.hub.send(Command::SetStatus { id, status: LibrarySegment::Planning });
-                    s.ctx.toast("Added to Planning");
+                    s.ctx.toast(&t::library_added_planning());
                 }
             }),
         );
@@ -653,7 +660,7 @@ impl Shell {
                 let ctx = Rc::downgrade(&s.ctx);
                 s.ctx.updater.show_saved(&s.ctx.window, move || {
                     if let Some(ctx) = ctx.upgrade() {
-                        ctx.toast("Couldn't open the Downloads folder");
+                        ctx.toast(&t::downloads_folder_failed());
                     }
                 });
             }),
@@ -740,10 +747,10 @@ impl Shell {
                 let Some(ctx) = ctx.upgrade() else { return };
                 if saved {
                     let text = crate::updates::saved_notice(version);
-                    ctx.toast_with(&text, "Show in Files", "win.update-show");
+                    ctx.toast_with(&text, &t::settings_show_in_files(), "win.update-show");
                 } else {
-                    let text = format!("Version {version} is ready to install");
-                    ctx.toast_with(&text, "Restart", "win.update-install");
+                    let text = t::updates_ready(version);
+                    ctx.toast_with(&text, &t::shell_restart(), "win.update-install");
                 }
             }
         });
@@ -758,12 +765,17 @@ impl Shell {
             }
         });
         match updater.after_restart() {
-            Some((true, _)) => self
-                .ctx
-                .toast(&format!("Updated to version {}", anistream_engine::updates::CURRENT)),
+            Some((true, _)) => {
+                self.ctx.toast(&t::updates_updated(anistream_engine::updates::CURRENT))
+            }
             Some((false, version)) => {
-                let text = format!("Version {version} didn't install. About can try again.");
-                self.ctx.toast_to(&text, "Open About", "win.settings-pane", "about");
+                let text = t::updates_did_not_install(&version);
+                self.ctx.toast_to(
+                    &text,
+                    &t::updates_open_about(),
+                    "win.settings-pane",
+                    "about",
+                );
             }
             None => {}
         }
@@ -791,8 +803,8 @@ impl Shell {
                 Event::Update(UpdateStatus::Available { release, notify: true })
                     if !crate::updates::flatpak() && !shell.ctx.updater.installs(release) =>
                 {
-                    let text = format!("Version {} of anistream is out", release.version);
-                    shell.ctx.toast_with(&text, "View", "win.release-page");
+                    let text = t::updates_version_out(&release.version);
+                    shell.ctx.toast_with(&text, &t::shell_view_release(), "win.release-page");
                 }
                 Event::Authorize { url, .. } => shell.open_url(url),
                 Event::DeviceCode(prompt) => {
@@ -885,7 +897,7 @@ impl Shell {
         let ctx = Rc::downgrade(&self.ctx);
         crate::portal::open_uri(&self.ctx.window, url, move || {
             if let Some(ctx) = ctx.upgrade() {
-                ctx.toast("Couldn't open your browser");
+                ctx.toast(&t::accounts_browser_failed());
             }
         });
     }
@@ -914,7 +926,7 @@ impl Shell {
             }
             None => {
                 tracing::info!("a link this app does not open");
-                self.ctx.toast("anistream can't open that link");
+                self.ctx.toast(&t::stores_link_failed());
             }
         }
     }
@@ -982,7 +994,7 @@ impl Shell {
                 shell.player.window_closed();
                 shell.ctx.window.set_visible(false);
             } else {
-                shell.ctx.toast("anistream can't keep running in the background here");
+                shell.ctx.toast(&t::shell_no_background());
                 // A remembered Keep going that cannot keep going falls back to Stop.
                 if shell.ctx.prefs.close_choice() == CloseChoice::KeepGoing {
                     shell.ctx.prefs.set_close_choice(CloseChoice::Stop);
@@ -1028,16 +1040,11 @@ fn sign_in_return(link: &str) -> Option<String> {
     (!tracker.is_empty()).then_some(tracker)
 }
 
-/// A notice as a sentence: the engine words its notices for the terminal, in lower case.
 /// The engine's word that a setting was written, "saved · quality": the row already shows the
 /// new value, so it goes unsaid. A refusal, "not saved: …", still shows.
 fn setting_saved(notice: &Notice) -> bool {
     notice.kind == NoticeKind::Info
         && matches!(notice.msg, Some(anistream_model::Msg::NoticeSaved { .. }))
-}
-
-fn sentence(text: &str) -> String {
-    crate::catalog::shown(text)
 }
 
 /// The sidebar: the destinations, "Sources" over the last two, and the account and Settings
@@ -1099,17 +1106,17 @@ fn sidebar(ctx: &Rc<Ctx>) -> (adw::NavigationPage, gtk::ListBox, gtk::ListBox) {
 
     let menu = gio::Menu::new();
     let first = gio::Menu::new();
-    first.append(Some("Sync Now"), Some("win.sync"));
-    first.append(Some("Join Store…"), Some("win.join-store"));
+    first.append(Some(&t::accounts_sync_now()), Some("win.sync"));
+    first.append(Some(&t::stores_join_menu()), Some("win.join-store"));
     menu.append_section(None, &first);
     let second = gio::Menu::new();
-    second.append(Some("Keyboard Shortcuts"), Some("win.shortcuts"));
-    second.append(Some("About anistream"), Some("win.about"));
+    second.append(Some(&t::shortcuts_title()), Some("win.shortcuts"));
+    second.append(Some(&t::about_title_app()), Some("win.about"));
     menu.append_section(None, &second);
     let primary = gtk::MenuButton::builder()
         .icon_name("open-menu-symbolic")
         .menu_model(&menu)
-        .tooltip_text("Main Menu")
+        .tooltip_text(t::shell_main_menu())
         .primary(true)
         .build();
     let header = adw::HeaderBar::new();
@@ -1256,13 +1263,13 @@ fn link_standing(
     use anistream_engine::remote::sender::LinkPhase;
     let name = &card.tv_name;
     match card.phase {
-        LinkPhase::Connected if playing => (format!("Playing on {name}"), "water", false),
+        LinkPhase::Connected if playing => (t::tv_status_playing(name), "water", false),
         LinkPhase::Connected => (name.clone(), "water", false),
-        LinkPhase::Connecting => (format!("Connecting to {name}"), "haze", false),
-        LinkPhase::Retrying if ended => (format!("{name} not found"), "vermilion", true),
-        LinkPhase::Retrying => (format!("Reconnecting to {name}"), "haze", true),
+        LinkPhase::Connecting => (t::tv_status_connecting(name), "haze", false),
+        LinkPhase::Retrying if ended => (t::tv_status_not_found(name), "vermilion", true),
+        LinkPhase::Retrying => (t::tv_status_reconnecting(name), "haze", true),
         LinkPhase::Unpaired | LinkPhase::KeyChanged => {
-            (format!("Pair {name} again"), "vermilion", true)
+            (t::tv_pair_again_with(name), "vermilion", true)
         }
     }
 }
@@ -1270,7 +1277,7 @@ fn link_standing(
 fn dest_row(dest: Dest) -> gtk::ListBoxRow {
     let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
     line.append(&gtk::Image::from_icon_name(dest.icon()));
-    let label = gtk::Label::new(Some(dest.title()));
+    let label = gtk::Label::new(Some(&dest.title()));
     label.set_xalign(0.0);
     line.append(&label);
     let row = gtk::ListBoxRow::builder().child(&line).build();
@@ -1283,13 +1290,14 @@ fn dest_row(dest: Dest) -> gtk::ListBoxRow {
 fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
     let avatar = adw::Avatar::new(28, None, true);
     avatar.add_css_class("neutral-avatar");
-    let name = gtk::Label::new(Some("Not signed in"));
+    let name = gtk::Label::new(Some(&t::accounts_state_signed_out()));
     name.set_xalign(0.0);
     name.set_ellipsize(gtk::pango::EllipsizeMode::End);
     let dot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     dot.add_css_class("state-dot");
     dot.set_valign(gtk::Align::Center);
-    let status = widgets::haze("Connect AniList", "caption");
+    let status =
+        widgets::haze(&t::shell_connect_tracker(say::tracker_name("anilist")), "caption");
     let status_line = gtk::Box::new(gtk::Orientation::Horizontal, 6);
     status_line.append(&dot);
     status_line.append(&status);
@@ -1315,29 +1323,26 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
                     let user = state
                         .user
                         .clone()
-                        .unwrap_or_else(|| words::tracker_name(&state.tracker).into());
+                        .unwrap_or_else(|| say::tracker_name(&state.tracker).into());
                     avatar.set_text(Some(&user));
                     name.set_label(&user);
                     let waiting = state.outbox;
                     status.set_label(&if known.syncing() {
-                        "Syncing…".into()
+                        t::accounts_sync_running()
                     } else if waiting > 0 {
-                        format!(
-                            "{} waiting to sync",
-                            anistream_model::wording::plural(waiting as usize, "change")
-                        )
+                        t::shell_changes_waiting(i64::from(waiting))
                     } else if state.user.is_some() {
                         // As the Accounts pane says it, the tracker beside a name of the user's.
-                        format!("{} · Synced", words::tracker_name(&state.tracker))
+                        t::shell_tracker_synced(say::tracker_name(&state.tracker))
                     } else {
-                        "Synced".into()
+                        t::accounts_sync_done()
                     });
                     dot.set_visible(waiting == 0 && !state.needs_reauth && !known.syncing());
                 }
                 None => {
                     avatar.set_text(None);
-                    name.set_label("Not signed in");
-                    status.set_label("Connect AniList");
+                    name.set_label(&t::accounts_state_signed_out());
+                    status.set_label(&t::shell_connect_tracker(say::tracker_name("anilist")));
                     dot.set_visible(false);
                 }
             }
@@ -1387,7 +1392,7 @@ mod tests {
         );
         assert_eq!(
             said(LinkPhase::Unpaired, false, true),
-            ("Pair Living room again".into(), "vermilion", true)
+            ("Pair again with Living room".into(), "vermilion", true)
         );
     }
 

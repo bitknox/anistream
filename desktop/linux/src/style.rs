@@ -77,10 +77,10 @@ const ICONS: [(u32, &[u8]); 7] = [
 /// icon theme: written under `cache` as a hicolor tree and added to the theme's search path.
 /// The mini player's icon, which the Adwaita theme has none of: a frame with a small one in its
 /// corner.
-const MINI_PLAYER: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#222" d="M2.5 2A1.5 1.5 0 0 0 1 3.5v8A1.5 1.5 0 0 0 2.5 13H6v-1.5H2.5v-8h11V7H15V3.5A1.5 1.5 0 0 0 13.5 2z"/><rect fill="#222" x="7.5" y="8.5" width="7.5" height="5.5" rx="1"/></svg>"##;
+const MINI_PLAYER: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#222" d="M2.5 2A1.5 1.5 0 0 0 1 3.5v8A1.5 1.5 0 0 0 2.5 13H6v-1.5H2.5v-8h11V7H15V3.5A1.5 1.5 0 0 0 13.5 2z"/><rect fill="#222" x="7.5" y="8.5" width="7.5" height="5.5" rx="1"/></svg>"##; // i18n-skip
 
 /// Two people side by side, for watching together: the player's people button.
-const PARTY: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g fill="#222"><circle cx="4.5" cy="4.5" r="2.25"/><circle cx="11.5" cy="4.5" r="2.25"/><path d="M1.5 14v-2.5a3 3 0 0 1 6 0V14zM8.5 14v-2.5a3 3 0 0 1 6 0V14z"/></g></svg>"##;
+const PARTY: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g fill="#222"><circle cx="4.5" cy="4.5" r="2.25"/><circle cx="11.5" cy="4.5" r="2.25"/><path d="M1.5 14v-2.5a3 3 0 0 1 6 0V14zM8.5 14v-2.5a3 3 0 0 1 6 0V14z"/></g></svg>"##; // i18n-skip
 
 /// The icons the app draws itself, in the cache's own theme folder: the mini player's and the
 /// people button's.

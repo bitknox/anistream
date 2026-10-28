@@ -41,7 +41,7 @@ pub fn request_background(
     let id = bus.signal_subscribe(
         Some(BUS),
         Some("org.freedesktop.portal.Request"),
-        Some("Response"),
+        Some("Response"), // i18n-skip
         Some(&request),
         None,
         gio::DBusSignalFlags::NO_MATCH_RULE,
@@ -67,13 +67,13 @@ pub fn request_background(
 
     let options = glib::VariantDict::new(None);
     options.insert("handle_token", &token);
-    options.insert("reason", "Downloads keep going after the window closes");
+    options.insert("reason", anistream_i18n::t::downloads_background_keeps());
     options.insert("autostart", false);
     bus.call(
         Some(BUS),
         PATH,
         "org.freedesktop.portal.Background",
-        "RequestBackground",
+        "RequestBackground", // i18n-skip
         Some(&("", options.end()).to_variant()),
         None,
         gio::DBusCallFlags::NONE,
@@ -103,7 +103,7 @@ pub fn open_uri(window: &impl IsA<gtk::Window>, uri: &str, failed: impl FnOnce()
         Some(BUS),
         PATH,
         "org.freedesktop.portal.OpenURI",
-        "OpenURI",
+        "OpenURI", // i18n-skip
         Some(&("", uri, options.end()).to_variant()),
         None,
         gio::DBusCallFlags::NONE,

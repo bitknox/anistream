@@ -1,4 +1,4 @@
-//! A store owner's tools, from the store page's menu, as the Mac has them: an invite link for
+//! A plugin store owner's tools, from the store page's menu, as the Mac has them: an invite link for
 //! someone new or for another device of yours, the members and the invites not used yet, who can
 //! join (only people invited, or anyone with the store's link), and the plugins on this computer
 //! to publish there. Each a dialog, which a narrow window shows as a bottom sheet. The engine
@@ -11,11 +11,11 @@ use std::{
 };
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
     event::Event,
     stores::{InviteLinkView, LocalPluginRow, OpenJoinView, StoreInviteRow, StoreMemberRow},
-    wording::{ago, plural},
 };
 use gtk::glib;
 
@@ -65,7 +65,7 @@ fn frame(ctx: &Ctx, name: &str, title: &str, store: &str) -> Frame {
     view.set_content(Some(&scroll));
     let dialog = adw::Dialog::builder()
         .name(name)
-        .title(format!("{title}, {store}"))
+        .title(t::stores_dialog_title(title, store))
         .follows_content_size(true)
         .child(&view)
         .build();
@@ -74,7 +74,7 @@ fn frame(ctx: &Ctx, name: &str, title: &str, store: &str) -> Frame {
 
 /// A Done button at the header's end, which closes the dialog.
 fn done(frame: &Frame) -> gtk::Button {
-    let done = gtk::Button::with_label("Done");
+    let done = gtk::Button::with_label(&t::action_done());
     let dialog = frame.dialog.downgrade();
     done.connect_clicked(move |_| {
         if let Some(dialog) = dialog.upgrade() {
@@ -99,7 +99,7 @@ fn listen(ctx: &Ctx, dialog: &adw::Dialog, heard: impl Fn(&Event) + 'static) {
 
 /// The engine's alerts, said in the dialog while `claim` takes them, until it closes.
 fn claim(ctx: &Rc<Ctx>, dialog: &adw::Dialog, claim: impl Fn(&str) -> bool + 'static) {
-    let id = ctx.claim_alerts(claim);
+    let id = ctx.claim_alerts(move |_, why| claim(why));
     let ctx = Rc::downgrade(ctx);
     dialog.connect_closed(move |_| {
         if let Some(ctx) = ctx.upgrade() {
@@ -109,7 +109,7 @@ fn claim(ctx: &Rc<Ctx>, dialog: &adw::Dialog, claim: impl Fn(&str) -> bool + 'st
 }
 
 /// A dialog's question to the store: a spinner while it is out, and when it goes unanswered,
-/// why, with Try Again. Offline, it is not sent at all.
+/// why, with Try again. Offline, it is not sent at all.
 struct Asking {
     ctx: Rc<Ctx>,
     body: gtk::Box,
@@ -139,7 +139,7 @@ impl Asking {
                 if !asking.waiting.get() {
                     return false;
                 }
-                asking.failed("Couldn't Reach the Store", why);
+                asking.failed(&t::stores_owner_unreachable(), why);
                 true
             }
         });
@@ -175,10 +175,8 @@ impl Asking {
                 && asking.waiting.get()
                 && asking.turn.get() == turn
             {
-                asking.failed(
-                    "The Store Didn't Answer",
-                    "It may be busy, or its computer may be off.",
-                );
+                asking
+                    .failed(&t::stores_owner_no_answer(), &t::stores_owner_no_answer_detail());
             }
         });
     }
@@ -190,8 +188,8 @@ impl Asking {
 
     fn offline(self: &Rc<Self>) {
         self.failed(
-            "The Store Needs a Connection",
-            "Try again once this computer is back online.",
+            &t::stores_owner_needs_connection(),
+            &t::stores_owner_needs_connection_detail(),
         );
     }
 
@@ -199,7 +197,7 @@ impl Asking {
         self.waiting.set(false);
         self.turn.set(self.turn.get() + 1);
         empty(&self.body);
-        let again = gtk::Button::with_label("Try Again");
+        let again = gtk::Button::with_label(&t::action_try_again());
         again.add_css_class("pill");
         again.set_halign(gtk::Align::Center);
         let asking = Rc::downgrade(self);
@@ -262,16 +260,16 @@ fn link_plate(link: &str) -> gtk::Box {
     let plate = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     plate.add_css_class("link-plate");
     plate.append(&text);
-    let copy = gtk::Button::with_label("Copy Link");
+    let copy = gtk::Button::with_label(&t::stores_copy_link());
     copy.set_halign(gtk::Align::End);
     let link = link.to_owned();
     copy.connect_clicked(move |button| {
         button.clipboard().set_text(&link);
-        button.set_label("Copied");
+        button.set_label(&t::action_copied());
         let button = button.downgrade();
         glib::timeout_add_local_once(Duration::from_secs(2), move || {
             if let Some(button) = button.upgrade() {
-                button.set_label("Copy Link");
+                button.set_label(&t::stores_copy_link());
             }
         });
     });
@@ -287,7 +285,7 @@ pub fn expiry(seconds: i64) -> String {
     glib::DateTime::from_unix_local(seconds)
         .ok()
         .and_then(|when| {
-            when.format(if twelve { "%-d %b, %-l:%M %p" } else { "%-d %b, %H:%M" }).ok()
+            when.format(if twelve { "%-d %b, %-l:%M %p" } else { "%-d %b, %H:%M" }).ok() // i18n-skip
         })
         .map(|text| text.to_string())
         .unwrap_or_default()
@@ -295,7 +293,9 @@ pub fn expiry(seconds: i64) -> String {
 
 /// How long ago, from the store's seconds.
 fn since(seconds: i64) -> String {
-    ago(glib::DateTime::now_utc().map(|now| now.to_unix()).unwrap_or(seconds) - seconds)
+    crate::say::ago(
+        glib::DateTime::now_utc().map(|now| now.to_unix()).unwrap_or(seconds) - seconds,
+    )
 }
 
 fn store_name(ctx: &Ctx, store: &str) -> String {
@@ -314,24 +314,24 @@ fn store_name(ctx: &Ctx, store: &str) -> String {
 /// An invite link to make: for someone new, by name, or for another device of yours.
 pub fn invite(ctx: &Rc<Ctx>, store: &str, device: bool) {
     let name = store_name(ctx, store);
-    let title = if device { "Link Another Device" } else { "Invite Someone" };
-    let frame = frame(ctx, "store-invite", title, &name);
-    let cancel = gtk::Button::with_label("Cancel");
+    let title = if device { t::stores_link_device_title() } else { t::stores_invite_title() };
+    let frame = frame(ctx, "store-invite", &title, &name); // i18n-skip
+    let cancel = gtk::Button::with_label(&t::action_cancel());
     frame.header.pack_start(&cancel);
-    let make = gtk::Button::with_label("Make Link");
+    let make = gtk::Button::with_label(&t::stores_make_link());
     make.add_css_class("suggested-action");
     frame.header.pack_end(&make);
     let spinner = adw::Spinner::new();
     spinner.set_visible(false);
     frame.header.pack_end(&spinner);
 
-    let field = adw::EntryRow::builder().title("Their name").build();
+    let field = adw::EntryRow::builder().title(t::stores_their_name()).build();
     // Read when Make Link is pressed, so kept with the dialog even where it is not shown.
     widgets::keep(&frame.dialog, field.clone());
     let problem = problem_line("");
     problem.set_visible(false);
     if device {
-        frame.body.append(&widgets::haze("Make a link to open on your other device.", ""));
+        frame.body.append(&widgets::haze(&t::stores_link_device_detail(), ""));
     } else {
         let list = widgets::boxed_list();
         list.append(&field);
@@ -384,7 +384,7 @@ pub fn invite(ctx: &Rc<Ctx>, store: &str, device: bool) {
             };
             let name = (!device).then(|| field.text().trim().to_owned());
             if ctx.hub.known.borrow().offline {
-                problem.set_label("Making a link needs a connection to the store.");
+                problem.set_label(&t::stores_owner_link_offline());
                 problem.set_visible(true);
                 return;
             }
@@ -467,12 +467,9 @@ fn show_link(body: &gtk::Box, link: &InviteLinkView, device: bool) {
     empty(body);
     let until = expiry(link.expires_at);
     let line = if device {
-        format!("Open this link on the other device. It works once, until {until}.")
+        t::stores_link_once_until(&until)
     } else {
-        format!(
-            "Send this link to {}. It works once, until {until}.",
-            link.for_whom.as_deref().unwrap_or("them")
-        )
+        t::stores_send_link_until(&until)
     };
     body.append(&widgets::haze(&line, ""));
     body.append(&link_plate(&link.link.0));
@@ -483,7 +480,7 @@ fn show_link(body: &gtk::Box, link: &InviteLinkView, device: bool) {
 /// A store's members and the invites not used yet.
 pub fn members(ctx: &Rc<Ctx>, store: &str) {
     let name = store_name(ctx, store);
-    let frame = frame(ctx, "store-members", "Members", &name);
+    let frame = frame(ctx, "store-members", &t::stores_members(), &name); // i18n-skip
     done(&frame);
     let asking = Asking::new(ctx, &frame.dialog, &frame.body, {
         let store = store.to_owned();
@@ -519,18 +516,18 @@ fn show_members(
     empty(body);
     let list = widgets::boxed_list();
     for member in members {
-        let devices = plural(member.devices as usize, "device");
+        let devices = t::stores_device_count(i64::from(member.devices));
         let row = adw::ActionRow::builder()
             .title(if member.you {
-                format!("{} (you)", member.name)
+                t::party_member_you(&member.name)
             } else {
                 member.name.clone()
             })
-            .subtitle(if member.owner { format!("Owner · {devices}") } else { devices })
+            .subtitle(if member.owner { t::stores_owner_devices(&devices) } else { devices })
             .build();
         if !member.you {
-            let remove = row_button("Remove…");
-            remove.set_tooltip_text(Some(&format!("Remove {}", member.name)));
+            let remove = row_button(&t::action_remove());
+            remove.set_tooltip_text(Some(&t::stores_remove_member()));
             let ctx = Rc::downgrade(ctx);
             let (store, member) = (store.to_owned(), member.clone());
             remove.connect_clicked(move |button| {
@@ -544,22 +541,19 @@ fn show_members(
     }
     body.append(&list);
     if invites.is_empty() {
-        body.append(&widgets::haze(
-            "No invites waiting. An invite link shows here until it is used.",
-            "caption",
-        ));
+        body.append(&widgets::haze(&t::stores_no_invites(), "caption"));
         return;
     }
-    let heading = widgets::heading("Invites Not Used Yet");
+    let heading = widgets::heading(&t::stores_invites_unused());
     heading.set_margin_top(12);
     body.append(&heading);
     let list = widgets::boxed_list();
     for invite in invites {
         let row = adw::ActionRow::builder()
-            .title(if invite.device { "Another device" } else { &invite.name })
-            .subtitle(format!("Invited, until {}", expiry(invite.expires_at)))
+            .title(if invite.device { t::stores_invite_unnamed() } else { invite.name.clone() })
+            .subtitle(t::stores_invited_until(&expiry(invite.expires_at)))
             .build();
-        let cancel = row_button("Cancel Invite");
+        let cancel = row_button(&t::stores_cancel_invite());
         let ctx = Rc::downgrade(ctx);
         let (store, id) = (store.to_owned(), invite.id.clone());
         cancel.connect_clicked(move |button| {
@@ -577,14 +571,11 @@ fn show_members(
 
 fn confirm_remove(ctx: &Rc<Ctx>, store: &str, member: &StoreMemberRow, button: &gtk::Button) {
     let dialog = adw::AlertDialog::new(
-        Some(&format!("Remove {} from {}?", member.name, store_name(ctx, store))),
-        Some(&format!(
-            "Their {} lose access to this store.",
-            plural(member.devices as usize, "device")
-        )),
+        Some(&t::stores_remove_member_title(&member.name)),
+        Some(&t::stores_remove_member_detail()),
     );
-    dialog.add_response("cancel", "Cancel");
-    dialog.add_response("remove", "Remove Member");
+    dialog.add_response("cancel", &t::action_cancel());
+    dialog.add_response("remove", &t::stores_remove_member());
     dialog.set_response_appearance("remove", adw::ResponseAppearance::Destructive);
     dialog.set_default_response(Some("cancel"));
     dialog.set_close_response("cancel");
@@ -617,7 +608,7 @@ struct Joining {
 /// that joined with it.
 pub fn joining(ctx: &Rc<Ctx>, store: &str) {
     let name = store_name(ctx, store);
-    let frame = frame(ctx, "store-joining", "Who Can Join", &name);
+    let frame = frame(ctx, "store-joining", &t::stores_who_can_join(), &name); // i18n-skip
     done(&frame);
     let state = Rc::new(Joining {
         ctx: Rc::clone(ctx),
@@ -676,11 +667,7 @@ impl Joining {
                 asking.answered();
             }
             empty(&state.body);
-            state.body.append(&widgets::haze(
-                "This store's server is older, and lets in only people you invite. Updating it \
-                 adds the choice.",
-                "",
-            ));
+            state.body.append(&widgets::haze(&t::stores_server_older(), ""));
         });
     }
 
@@ -689,13 +676,11 @@ impl Joining {
         empty(&self.body);
         let list = widgets::boxed_list();
         let open = adw::SwitchRow::builder()
-            .title("Anyone with the store's link")
+            .title(t::stores_anyone_with_store_link())
             .subtitle(if view.open {
-                "They join without a name. Turning this off stops the link; turning it on again \
-                 makes a new one."
+                t::stores_open_on_detail()
             } else {
-                "Only people you invite can join. Turned on, anyone with the link joins, without \
-                 a name."
+                t::stores_open_off_detail()
             })
             .build();
         self.showing.set(true);
@@ -725,14 +710,18 @@ impl Joining {
         }
         let devices = widgets::boxed_list();
         let summary = adw::ActionRow::builder()
-            .title(format!("{} joined with the link", plural(view.devices as usize, "device")))
+            .title(t::stores_devices_joined(i64::from(view.devices)))
             .subtitle(if view.open {
-                "No names are kept."
+                t::stores_open_no_names()
             } else {
-                "They keep working until you remove them."
+                t::stores_open_keep_working()
             })
             .build();
-        let all = row_button(if view.devices == 1 { "Remove" } else { "Remove All" });
+        let all = row_button(&if view.devices == 1 {
+            t::action_remove()
+        } else {
+            t::stores_remove_all()
+        });
         all.connect_clicked({
             let state = Rc::downgrade(self);
             move |_| {
@@ -745,13 +734,12 @@ impl Joining {
         devices.append(&summary);
         for device in &view.recent {
             let row = adw::ActionRow::builder()
-                .title(format!("Joined {}", since(device.joined_at)))
-                .subtitle(device.last_seen.map_or_else(
-                    || "Not seen since".to_owned(),
-                    |at| format!("Seen {}", since(at)),
-                ))
+                .title(t::stores_device_joined_at(&since(device.joined_at)))
+                .subtitle(device.last_seen.map_or_else(t::stores_device_never_seen, |at| {
+                    t::stores_device_seen(&since(at))
+                }))
                 .build();
-            let remove = row_button("Remove");
+            let remove = row_button(&t::action_remove());
             let state = Rc::downgrade(self);
             let id = device.id.clone();
             remove.connect_clicked(move |button| {
@@ -770,7 +758,7 @@ impl Joining {
         self.body.append(&devices);
         if view.devices as usize > view.recent.len() {
             self.body.append(&widgets::haze(
-                &format!("The newest {} are listed.", view.recent.len()),
+                &t::stores_newest_listed(view.recent.len() as i64),
                 "caption",
             ));
         }
@@ -778,14 +766,11 @@ impl Joining {
 
     fn confirm_remove_all(self: &Rc<Self>) {
         let dialog = adw::AlertDialog::new(
-            Some("Remove the devices that joined with the link?"),
-            Some(&format!(
-                "They stop working with {} at once. Plugins already installed on them stay.",
-                store_name(&self.ctx, &self.store)
-            )),
+            Some(&t::stores_remove_devices_title()),
+            Some(&t::stores_remove_devices_detail(&store_name(&self.ctx, &self.store))),
         );
-        dialog.add_response("cancel", "Cancel");
-        dialog.add_response("remove", "Remove");
+        dialog.add_response("cancel", &t::action_cancel());
+        dialog.add_response("remove", &t::action_remove());
         dialog.set_response_appearance("remove", adw::ResponseAppearance::Destructive);
         dialog.set_default_response(Some("cancel"));
         dialog.set_close_response("cancel");
@@ -806,7 +791,7 @@ impl Joining {
 /// The plugins on this computer, to publish to the store or bring up to date there.
 pub fn publish(ctx: &Rc<Ctx>, store: &str) {
     let name = store_name(ctx, store);
-    let frame = frame(ctx, "store-publish", "Publish a Plugin", &name);
+    let frame = frame(ctx, "store-publish", &t::stores_publish_short(), &name); // i18n-skip
     done(&frame);
     let publishing = Rc::new(Publishing::default());
     let asking = Asking::new(ctx, &frame.dialog, &frame.body, {
@@ -880,30 +865,30 @@ fn show_local(
         body.append(&problem_line(&why));
     }
     if plugins.is_empty() {
-        body.append(&widgets::haze(
-            "No plugins on this computer to publish. A plugin you build or install shows here.",
-            "",
-        ));
+        body.append(&widgets::haze(&t::stores_publish_none(), ""));
+        body.append(&widgets::haze(&t::stores_publish_none_hint(), "caption"));
         return;
     }
     let list = widgets::boxed_list();
     for plugin in plugins {
         let row = adw::ActionRow::builder()
-            .title(format!("{} {}", plugin.name, plugin.version))
-            .subtitle(plugin.published.as_ref().map_or_else(
-                || "Not in the store yet".to_owned(),
-                |v| format!("The store offers {v}"),
-            ))
+            .title(t::stores_plugin_name_version(&plugin.name, &plugin.version))
+            .subtitle(
+                plugin
+                    .published
+                    .as_ref()
+                    .map_or_else(t::stores_not_published, |v| t::stores_store_offers(v)),
+            )
             .build();
         // This version already in the store: nothing to do, and said so.
         if plugin.published.as_deref() == Some(plugin.version.as_str()) {
-            row.set_subtitle("Up to date in the store");
-            row.add_suffix(&widgets::haze("Published", ""));
+            row.set_subtitle(&t::stores_published_current());
+            row.add_suffix(&widgets::haze(&t::stores_published_state(), ""));
             list.append(&row);
             continue;
         }
-        let button = row_button("Publish");
-        button.set_tooltip_text(Some(&format!("Publish {} {}", plugin.name, plugin.version)));
+        let button = row_button(&t::action_publish());
+        button.set_tooltip_text(Some(&t::stores_publish_label(&plugin.name, &plugin.version)));
         let ctx = Rc::downgrade(ctx);
         let (store, id, name, publishing) =
             (store.to_owned(), plugin.id.clone(), plugin.name.clone(), Rc::clone(publishing));

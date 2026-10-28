@@ -45,8 +45,10 @@ const ROWS: [&str; HEIGHT] = [
     "...BBB.....BBB......",
 ];
 
-pub const DESCRIPTION: &str = "Nagare, the anistream mascot: a figure with a silk bob, an amber \
-                               scarf and an indigo cloak, holding a staff with a water charm";
+/// What the picture is, for a screen reader.
+pub fn description() -> String {
+    anistream_i18n::t::nagare_description()
+}
 
 fn color(c: char) -> Option<[u8; 3]> {
     Some(match c {
@@ -121,7 +123,7 @@ pub fn picture(cell: usize) -> gtk::Image {
     // The texture is drawn at twice the size for HiDPI; the image holds it to its logical size.
     let image = gtk::Image::from_paintable(Some(&texture(cell)));
     image.set_pixel_size((HEIGHT * cell) as i32);
-    image.update_property(&[gtk::accessible::Property::Label(DESCRIPTION)]);
+    image.update_property(&[gtk::accessible::Property::Label(&description())]);
     image
 }
 

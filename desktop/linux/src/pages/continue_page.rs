@@ -11,21 +11,21 @@ use std::{
 
 use adw::prelude::*;
 use anistream_core::ids::AnilistId;
+use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentFor, ContentList, Entry},
     command::Command,
     episodes::EpisodeRow,
     event::Event,
-    present::episode_line,
 };
 use gtk::{gdk, gio, glib};
 
 use crate::{
-    nagare,
+    nagare, say,
+    say::{Queue, QueueRow},
     states::{Shape, States},
     widgets,
     window::{Ctx, Size},
-    words::{self, Queue, QueueItem},
 };
 
 struct Page {
@@ -52,8 +52,9 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         let group = row.widget_name();
         let changed = before.is_none_or(|b| b.widget_name() != group);
         if changed {
-            let text = if group == "new" { "New This Week" } else { "In Progress" };
-            let label = widgets::heading(text);
+            let text =
+                if group == "new" { t::group_new_this_week() } else { t::group_in_progress() };
+            let label = widgets::heading(&text);
             label.add_css_class("queue-heading");
             row.set_header(Some(&label));
         } else {
@@ -71,20 +72,20 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         .child(&clamp)
         .build();
 
-    let browse = gtk::Button::with_label("Browse Seasonal");
+    let browse = gtk::Button::with_label(&t::continue_empty_action());
     browse.add_css_class("pill");
     browse.add_css_class("suggested-action");
     browse.set_halign(gtk::Align::Center);
     browse.set_action_name(Some("win.go"));
     browse.set_action_target_value(Some(&"seasonal".to_variant()));
     let empty = nagare::status_page(
-        "Nothing Watched Yet",
-        "Pick something from Seasonal, or search for a title.",
+        &t::continue_empty_title(),
+        &t::continue_empty_detail(),
         Some(&browse),
     );
     let rows = Shape::Rows { count: 5, width: 36, height: 54 };
-    let body = States::new(&ctx.hub, &scroll, rows, &empty, "Couldn't Load Continue");
-    body.loading(Command::LoadContinue.activity());
+    let body = States::new(&ctx.hub, &scroll, rows, &empty, &t::continue_load_failed());
+    body.loading(Some(t::activity_continue()));
     body.on_retry({
         let hub = Rc::downgrade(&ctx.hub);
         move || {
@@ -97,7 +98,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
     header.pack_start(&crate::window::tv_session_button(ctx));
-    let sidebar_page = widgets::content_page("Continue", &header, &body.widget);
+    let sidebar_page = widgets::content_page(&t::nav_continue(), &header, &body.widget);
 
     let preview = gtk::Stack::new();
     preview.set_transition_type(gtk::StackTransitionType::Crossfade);
@@ -108,7 +109,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         .hscrollbar_policy(gtk::PolicyType::Never)
         .child(&preview)
         .build();
-    let preview_page = widgets::page("Preview", &preview_header, &preview_scroll);
+    let preview_page = widgets::page(&t::continue_preview(), &preview_header, &preview_scroll);
 
     let split = adw::NavigationSplitView::builder()
         .sidebar(&sidebar_page)
@@ -137,7 +138,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     ctx.hub.send(Command::LoadContinue);
     ctx.hub.send(Command::LoadSeasonal);
 
-    let root = adw::NavigationPage::builder().title("Continue").child(&split).build();
+    let root = adw::NavigationPage::builder().title(t::nav_continue()).child(&split).build();
     widgets::keep(&root, page);
     root
 }
@@ -224,7 +225,7 @@ impl Page {
     fn heard(self: &Rc<Self>, event: &Event) {
         match event {
             Event::Content { view: ContentFor::Continue, content } => match content {
-                ContentList::Loading => self.body.loading(Command::LoadContinue.activity()),
+                ContentList::Loading => self.body.loading(Some(t::activity_continue())),
                 ContentList::Entries(entries) => {
                     *self.ids.borrow_mut() = entries.iter().map(|e| e.id.get()).collect();
                     self.rebuild();
@@ -271,7 +272,7 @@ impl Page {
             let known = self.ctx.hub.known.borrow();
             self.ids.borrow().iter().filter_map(|id| known.entries.get(id).cloned()).collect()
         };
-        let queue = words::queue(&entries, &[], &self.episodes.borrow());
+        let queue = say::queue(&entries, &[], &self.episodes.borrow());
         let same = *self.queue.borrow() == queue;
         *self.queue.borrow_mut() = queue;
         if same && self.list.first_child().is_some() && self.body.has_answer() {
@@ -295,7 +296,7 @@ impl Page {
         self.layout();
     }
 
-    fn row(&self, group: &str, item: &QueueItem) -> gtk::ListBoxRow {
+    fn row(&self, group: &str, item: &QueueRow) -> gtk::ListBoxRow {
         let hub = &self.ctx.hub;
         let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
         line.set_widget_name(&item.entry.id.get().to_string());
@@ -331,40 +332,36 @@ impl Page {
 
         let id = item.entry.id.get();
         let menu = gio::Menu::new();
-        let play = format!("(uint32 {id}, '{}')", item.episode);
+        let play = format!("(uint32 {id}, '{}')", item.episode); // i18n-skip
         let n = item.episode;
         let first = gio::Menu::new();
-        if item.playable {
-            let verb = if item.resume.is_some() { "Resume" } else { "Play" };
-            first.append(
-                Some(&episode_line(&format!("{verb} Episode {n}"), item.entry.watched_in)),
-                Some(&format!("win.play({play})")),
-            );
+        if let Some(label) = item.button.as_deref().filter(|_| item.playable) {
+            first.append(Some(label), Some(&format!("win.play({play})")));
             if item.resume.is_some() {
                 first.append(
-                    Some("Play from the Beginning"),
+                    Some(&t::episode_play_from_beginning()),
                     Some(&format!("win.play-from-start({play})")),
                 );
             }
         }
-        first.append(Some("Go to Title"), Some(&format!("win.open-title(uint32 {id})")));
+        first.append(Some(&t::title_open()), Some(&format!("win.open-title(uint32 {id})"))); // i18n-skip
         menu.append_section(None, &first);
         let second = gio::Menu::new();
         second.append(
-            Some(&format!("Mark Episode {n} as Watched")),
+            Some(&t::episode_mark_n_watched(i64::from(n))),
             Some(&format!("win.mark-watched({play})")),
         );
         second.append(
-            Some("Hide from Continue"),
-            Some(&format!("win.hide-continue(uint32 {id})")),
+            Some(&t::continue_hide()),
+            Some(&format!("win.hide-continue(uint32 {id})")), // i18n-skip
         );
-        second.append(Some("Drop"), Some(&format!("win.drop(uint32 {id})")));
+        second.append(Some(&t::continue_drop()), Some(&format!("win.drop(uint32 {id})"))); // i18n-skip
         menu.append_section(None, &second);
         widgets::context_menu(&row, &menu);
         row
     }
 
-    fn selected_item(&self) -> Option<QueueItem> {
+    fn selected_item(&self) -> Option<QueueRow> {
         let id = self.selected.get()?;
         self.queue.borrow().all().find(|i| i.entry.id.get() == id).cloned()
     }
@@ -454,7 +451,7 @@ impl Page {
         }
     }
 
-    fn preview_of(&self, item: &QueueItem) -> gtk::Widget {
+    fn preview_of(&self, item: &QueueRow) -> gtk::Widget {
         let hub = &self.ctx.hub;
         let entry = &item.entry;
         let id = entry.id.get();
@@ -467,7 +464,7 @@ impl Page {
         banner.set_halign(gtk::Align::Fill);
         banner.set_cursor_from_name(Some("pointer"));
         banner.upcast_ref::<gtk::Widget>().update_property(&[
-            gtk::accessible::Property::Label(&format!("Open {}", entry.title)),
+            gtk::accessible::Property::Label(&t::title_open_named(&entry.title)),
         ]);
         let open = gtk::GestureClick::new();
         open.connect_released({
@@ -486,7 +483,7 @@ impl Page {
         if let Some(english) = entry.title_english.as_deref().filter(|e| *e != entry.title) {
             heading.append(&widgets::haze(english, ""));
         }
-        let meta = words::meta_line(entry);
+        let meta = say::meta_line(entry);
         if !meta.is_empty() {
             let meta = widgets::haze(&meta, "caption");
             meta.add_css_class("numeric");
@@ -504,10 +501,13 @@ impl Page {
                 rows.iter().find(|r| r.number == item.episode.to_string()).cloned()
             })
             .and_then(|r| r.title);
-        let episode = episode_line(&format!("Episode {}", item.episode), entry.watched_in);
+        let dubbed = item.mark.is_some();
         let line = match episode_title {
-            Some(name) => format!("{episode} · {name}"),
-            None => episode,
+            Some(name) if dubbed => {
+                t::episode_with_title_dubbed(i64::from(item.episode), &name)
+            }
+            Some(name) => t::episode_with_title(i64::from(item.episode), &name),
+            None => say::marked(t::episode_number(i64::from(item.episode)), dubbed),
         };
         let episode = gtk::Label::new(Some(&line));
         episode.add_css_class("title-4");

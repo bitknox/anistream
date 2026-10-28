@@ -17,6 +17,7 @@ use std::{
 
 use adw::prelude::*;
 use anistream_core::ids::AnilistId;
+use anistream_i18n::t;
 use anistream_model::{
     catalog::Entry,
     command::Command,
@@ -56,42 +57,57 @@ fn grouped(rows: &[DownloadRow]) -> Vec<Group> {
     groups
 }
 
+/// An episode's name from its number as the engine keeps it: "Episode 4", or the number as it
+/// is where it is no whole number.
+fn episode_name(episode: &str) -> String {
+    episode.parse::<i64>().map_or_else(|_| episode.to_owned(), t::downloads_episode_name)
+}
+
 /// "3 episodes · 2.1 GB": what a title's downloads come to.
 fn group_line(group: &Group) -> String {
     let bytes: u64 = group.rows.iter().map(|r| r.total.max(r.downloaded)).sum();
-    let count = anistream_model::wording::plural(group.rows.len(), "episode");
-    if bytes == 0 { count } else { format!("{count} · {}", size(bytes)) }
+    let count = t::episodes_count(group.rows.len() as i64);
+    if bytes == 0 { count } else { format!("{count} · {}", size(bytes)) } // i18n-skip
 }
 
 /// An episode's state as its row says it.
 fn state_line(row: &DownloadRow) -> String {
     let percent = (row.fraction.clamp(0.0, 1.0) * 100.0).round() as u32;
     let mut line = match row.state {
-        DownloadState::Queued => "Queued".to_owned(),
+        DownloadState::Queued => t::downloads_caption_queued(),
         DownloadState::Active if row.total > 0 => {
-            format!("Downloading · {} of {}", size(row.downloaded), size(row.total))
+            t::downloads_caption_running(&size(row.downloaded), &size(row.total))
         }
-        DownloadState::Active => "Downloading".to_owned(),
-        DownloadState::Paused => format!("Paused · {percent}%"),
-        DownloadState::Done if row.total > 0 => format!("Done · {}", size(row.total)),
-        DownloadState::Done => "Done".to_owned(),
+        DownloadState::Active => t::downloads_caption_running_plain(),
+        DownloadState::Paused => {
+            t::downloads_caption_paused(&crate::say::percent(f64::from(percent)))
+        }
+        DownloadState::Done if row.total > 0 => {
+            t::downloads_caption_done_size(&size(row.total))
+        }
+        DownloadState::Done => t::downloads_caption_done(),
         DownloadState::Failed => match &row.error {
-            Some(why) => format!("Failed · {why}"),
-            None => "Failed".to_owned(),
+            Some(why) => t::downloads_caption_failed_why(why),
+            None => t::downloads_caption_failed(),
         },
     };
     if row.ahead && row.state == DownloadState::Done {
-        line.push_str(" · Downloaded ahead");
+        line = t::downloads_caption_ahead();
     }
     line
 }
 
-/// "Shared 0.2 of 1 · 18 h left".
+/// "Shared 0.2 of 1 · 18h left".
 fn seed_line(seed: &SeedRow) -> String {
     let hours = seed.left_secs.div_ceil(3600);
-    let left =
-        if hours >= 1 { format!("{hours} h left") } else { "less than an hour left".into() };
-    format!("Shared {} of {} · {left}", ratio(seed.ratio), ratio(seed.goal))
+    let left = if hours >= 1 {
+        t::downloads_linux_seed_left(&crate::say::span(anistream_model::Span::countdown(
+            (hours * 3600) as i64,
+        )))
+    } else {
+        t::downloads_linux_seed_left_soon()
+    };
+    t::downloads_seeding_line(&ratio(seed.ratio), &ratio(seed.goal), &left)
 }
 
 fn ratio(value: f64) -> String {
@@ -115,7 +131,7 @@ fn seed_name(seed: &SeedRow, rows: &[DownloadRow]) -> String {
         })
         .map_or_else(
             || seed.name.clone(),
-            |row| format!("{} · Episode {}", row.title, row.episode),
+            |row| format!("{} · {}", row.title, episode_name(&row.episode)),
         )
 }
 
@@ -182,14 +198,14 @@ struct Page {
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
-    let pause_all = gtk::Button::with_label("Pause All");
+    let pause_all = gtk::Button::with_label(&t::downloads_pause_all());
     let open_folder = gtk::Button::from_icon_name("folder-open-symbolic");
-    open_folder.set_tooltip_text(Some("Open Folder"));
+    open_folder.set_tooltip_text(Some(&t::downloads_open_folder()));
     open_folder.set_action_name(Some("downloads.open-folder"));
     let more = gio::Menu::new();
     let menu = gtk::MenuButton::builder()
         .icon_name("view-more-symbolic")
-        .tooltip_text("More")
+        .tooltip_text(t::action_more())
         .menu_model(&more)
         .build();
     let header = adw::HeaderBar::new();
@@ -203,7 +219,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     level.set_hexpand(true);
     level.set_valign(gtk::Align::Center);
     level.set_size_request(80, -1);
-    let meter = adw::ActionRow::builder().title("Storage").build();
+    let meter = adw::ActionRow::builder().title(t::settings_group_storage()).build();
     meter.add_css_class("property");
     meter.add_suffix(&level);
     let meter_list = gtk::ListBox::new();
@@ -215,8 +231,8 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     titles.add_css_class("boxed-list");
     titles.set_selection_mode(gtk::SelectionMode::None);
     let seeding = adw::PreferencesGroup::builder()
-        .title("Seeding")
-        .description("Watched episodes shared back until they reach their goal.")
+        .title(t::downloads_seeding_title())
+        .description(t::downloads_seeding_note())
         .build();
     seeding.set_visible(false);
 
@@ -233,15 +249,12 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         .vexpand(true)
         .child(&adw::Clamp::builder().maximum_size(820).child(&column).build())
         .build();
-    let empty = nagare::status_page(
-        "No Downloads",
-        "Downloaded episodes play without a connection.",
-        None,
-    );
+    let empty =
+        nagare::status_page(&t::downloads_empty_title(), &t::downloads_empty_detail(), None);
     let rows = Shape::Rows { count: 3, width: 80, height: 45 };
-    let body = States::new(&ctx.hub, &scroll, rows, &empty, "Couldn't Load Downloads");
+    let body = States::new(&ctx.hub, &scroll, rows, &empty, &t::downloads_load_failed());
     // The app asks for the downloads as it opens.
-    body.loading(Command::LoadDownloads.activity());
+    body.loading(Some(t::activity_downloads()));
     body.on_retry({
         let hub = Rc::downgrade(&ctx.hub);
         move || {
@@ -250,7 +263,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
             }
         }
     });
-    let navigation = widgets::content_page("Downloads", &header, &body.widget);
+    let navigation = widgets::content_page(&t::downloads_title(), &header, &body.widget);
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
@@ -390,11 +403,11 @@ impl Page {
     fn confirm_delete(&self, id: i64) {
         let Some(row) = self.row(id) else { return };
         let dialog = adw::AlertDialog::new(
-            Some(&format!("Delete Episode {}?", row.episode)),
-            Some(&format!("The file for {} is removed from this computer.", row.title)),
+            Some(&t::downloads_delete_title(&episode_name(&row.episode))),
+            Some(&t::downloads_delete_detail()),
         );
-        dialog.add_response("cancel", "Cancel");
-        dialog.add_response("delete", "Delete");
+        dialog.add_response("cancel", &t::action_cancel());
+        dialog.add_response("delete", &t::action_delete());
         dialog.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
         dialog.set_default_response(Some("cancel"));
         dialog.set_close_response("cancel");
@@ -454,7 +467,7 @@ impl Page {
         launcher.launch(Some(&self.ctx.window), gio::Cancellable::NONE, move |done| {
             if let Err(e) = done {
                 tracing::warn!(error = %e, "the folder did not open");
-                toasts.add_toast(adw::Toast::new("The folder could not be opened."));
+                toasts.add_toast(adw::Toast::new(&t::downloads_folder_failed()));
             }
         });
     }
@@ -486,17 +499,16 @@ impl Page {
                 let total = info.as_ref().map(|i| i.attribute_uint64("filesystem::size"));
                 match (free, total) {
                     (Some(free), Some(total)) if total > 0 => {
-                        meter.set_subtitle(&format!(
-                            "{} of {} free · downloads take {}",
-                            size(free),
-                            size(total),
-                            size(taken)
+                        meter.set_subtitle(&t::downloads_linux_space_free(
+                            &size(free),
+                            &size(total),
+                            &size(taken),
                         ));
                         level.set_value(1.0 - free as f64 / total as f64);
                         level.set_visible(true);
                     }
                     _ => {
-                        meter.set_subtitle(&format!("Downloads take {}", size(taken)));
+                        meter.set_subtitle(&t::downloads_space_used(&size(taken)));
                         level.set_visible(false);
                     }
                 }
@@ -507,20 +519,25 @@ impl Page {
     /// The header: Pause All or Resume All, as words on wide windows; on narrow ones it and Open
     /// Folder go into the menu, so the page's name has the room.
     fn header(&self, running: bool, paused: bool) {
-        let words = if running || !paused { "Pause All" } else { "Resume All" };
+        let words = if running || !paused {
+            t::downloads_pause_all()
+        } else {
+            t::downloads_resume_all()
+        };
         let narrow = self.ctx.size() == Size::Narrow;
-        self.pause_all.set_label(words);
+        self.pause_all.set_label(&words);
         self.pause_all.set_sensitive(running || paused);
         self.pause_all.set_visible(!narrow);
         self.open_folder.set_visible(!narrow);
         self.more.remove_all();
         if narrow {
             if running || paused {
-                self.more.append(Some(words), Some("downloads.pause-all"));
+                self.more.append(Some(&words), Some("downloads.pause-all"));
             }
-            self.more.append(Some("Open Folder"), Some("downloads.open-folder"));
+            self.more.append(Some(&t::downloads_open_folder()), Some("downloads.open-folder"));
         }
-        self.more.append(Some("Clear Finished"), Some("downloads.clear-finished"));
+        self.more
+            .append(Some(&t::downloads_clear_finished()), Some("downloads.clear-finished"));
     }
 
     fn show(&self) {
@@ -678,7 +695,7 @@ fn shows_bar(row: &DownloadRow) -> bool {
 fn subtitle(row: &DownloadRow) -> String {
     let line = glib::markup_escape_text(&state_line(row)).to_string();
     if row.state == DownloadState::Failed {
-        format!("<span foreground=\"#E06B54\">●</span> {line}")
+        format!("<span foreground=\"#E06B54\">●</span> {line}") // i18n-skip
     } else {
         line
     }
@@ -689,7 +706,7 @@ fn subtitle(row: &DownloadRow) -> String {
 /// all of them in the menu.
 fn episode_row(row: &DownloadRow, narrow: bool) -> EpisodeRow {
     let line = adw::ActionRow::builder()
-        .title(format!("Episode {}", row.episode))
+        .title(episode_name(&row.episode))
         .subtitle(subtitle(row))
         .build();
     line.set_subtitle_lines(2);
@@ -732,21 +749,29 @@ fn episode_row(row: &DownloadRow, narrow: bool) -> EpisodeRow {
     };
     // The one action that fits the state: an icon where one says it, words where none does.
     enum Main {
-        Icon(&'static str, &'static str, &'static str),
-        Words(&'static str, &'static str),
+        Icon(&'static str, String, &'static str),
+        Words(String, &'static str),
     }
     let main = match row.state {
-        DownloadState::Active => {
-            Some(Main::Icon("media-playback-pause-symbolic", "Pause", "downloads.pause"))
+        DownloadState::Active => Some(Main::Icon(
+            "media-playback-pause-symbolic",
+            t::downloads_pause_one(),
+            "downloads.pause",
+        )),
+        DownloadState::Queued => {
+            Some(Main::Words(t::downloads_start_now(), "downloads.start-now"))
         }
-        DownloadState::Queued => Some(Main::Words("Start Now", "downloads.start-now")),
-        DownloadState::Paused => {
-            Some(Main::Icon("media-playback-start-symbolic", "Resume", "downloads.pause"))
-        }
-        DownloadState::Done if row.path.is_some() => {
-            Some(Main::Icon("media-playback-start-symbolic", "Play", "downloads.play"))
-        }
-        DownloadState::Failed => Some(Main::Words("Try Again", "downloads.retry")),
+        DownloadState::Paused => Some(Main::Icon(
+            "media-playback-start-symbolic",
+            t::downloads_resume_one(),
+            "downloads.pause",
+        )),
+        DownloadState::Done if row.path.is_some() => Some(Main::Icon(
+            "media-playback-start-symbolic",
+            t::action_play(),
+            "downloads.play",
+        )),
+        DownloadState::Failed => Some(Main::Words(t::action_try_again(), "downloads.retry")),
         DownloadState::Done => None,
     };
     let menu = gio::Menu::new();
@@ -757,23 +782,25 @@ fn episode_row(row: &DownloadRow, narrow: bool) -> EpisodeRow {
     };
     match main {
         Some(Main::Icon(_, label, action) | Main::Words(label, action)) if narrow => {
-            menu.append_item(&item(label, action));
+            menu.append_item(&item(&label, action));
         }
-        Some(Main::Icon(icon, tip, action)) => line.add_suffix(&icon_button(icon, tip, action)),
-        Some(Main::Words(label, action)) => line.add_suffix(&text_button(label, action)),
+        Some(Main::Icon(icon, tip, action)) => {
+            line.add_suffix(&icon_button(icon, &tip, action))
+        }
+        Some(Main::Words(label, action)) => line.add_suffix(&text_button(&label, action)),
         None => {}
     }
     if row.state == DownloadState::Queued {
         // Held back from the queue: the waiting row's second action, in its menu.
-        menu.append_item(&item("Pause", "downloads.pause"));
+        menu.append_item(&item(&t::downloads_pause_one(), "downloads.pause"));
     }
-    menu.append_item(&item("Remove from Downloads", "downloads.remove"));
+    menu.append_item(&item(&t::downloads_remove_from_list(), "downloads.remove"));
     if row.state == DownloadState::Done && row.path.is_some() {
-        menu.append_item(&item("Delete File…", "downloads.delete"));
+        menu.append_item(&item(&t::downloads_delete_file(), "downloads.delete"));
     }
     let more = gtk::MenuButton::builder()
         .icon_name("view-more-symbolic")
-        .tooltip_text("More")
+        .tooltip_text(t::action_more())
         .menu_model(&menu)
         .valign(gtk::Align::Center)
         .build();
@@ -837,7 +864,7 @@ mod tests {
             goal: 1.0,
             left_secs: 64_800,
         };
-        assert_eq!(seed_line(&seed), "Shared 0.2 of 1 · 18 h left");
+        assert_eq!(seed_line(&seed), "Shared 0.2 of 1 · 18h left");
         let mut done = row(4, 7, "6", DownloadState::Done);
         done.path = Some("/videos/anistream/a.mkv".into());
         assert_eq!(seed_name(&seed, &[done]), "Title 7 · Episode 6");
