@@ -29,7 +29,7 @@ public sealed partial class SearchPage : Page
     {
         InitializeComponent();
         State.Placeholders = () => States.Covers();
-        State.ActivityText = "Searching";
+        State.ActivityText = T.StateLoading;
         settle.Tick += (_, _) =>
         {
             settle.Stop();
@@ -69,8 +69,8 @@ public sealed partial class SearchPage : Page
         if (query.Length == 0 && !filters.Narrows && filters.Sort is null)
         {
             asked = null;
-            Heading.Text = "Search";
-            Section.Text = "This season";
+            Heading.Text = T.NavSearch;
+            Section.Text = T.ContinueThisSeason;
             Section.Visibility = Visibility.Visible;
             entries = ctx.Known.ListEntries(new ContentFor.Seasonal());
             State.Wait(hasContent: entries.Length > 0);
@@ -80,7 +80,7 @@ public sealed partial class SearchPage : Page
             return;
         }
         asked = Searches.With(query, filters);
-        Heading.Text = query.Length > 0 ? $"Results for “{query}”" : "Browse";
+        Heading.Text = query.Length > 0 ? T.SearchResultsFor(query) : T.SearchBrowse;
         Section.Visibility = Visibility.Collapsed;
         entries = ctx.Known.ListEntries(new ContentFor.Search(asked));
         State.Wait(hasContent: entries.Length > 0);
@@ -119,11 +119,11 @@ public sealed partial class SearchPage : Page
     UIElement Nothing()
     {
         if (asked is null)
-            return States.Unavailable("Nothing listed for this season yet", "AniList adds a season's titles as they're announced.");
+            return States.Unavailable(T.SeasonalEmptyTitle(Wording.SeasonWithYear(AnistreamFfiMethods.SeasonAt(DateTimeOffset.UtcNow.ToUnixTimeSeconds()))), T.SeasonalEmptyDetail);
         if (!filters.Narrows)
-            return States.Unavailable($"Nothing found for “{query}”", "Check the spelling, or try the English or Japanese title.");
-        var title = query.Length > 0 ? $"Nothing found for “{query}” with these filters" : "Nothing found with these filters";
-        return States.Unavailable(title, "Try fewer filters.", "Clear filters", Clear);
+            return States.Unavailable(T.SearchNothingFound(query), T.SearchNothingFoundDetail);
+        var title = query.Length > 0 ? T.SearchNothingFoundWithFilters(query) : T.SearchNothingWithFilters;
+        return States.Unavailable(title, T.SearchTryFewerFilters, T.SearchClearFilters, Clear);
     }
 
     // The filter row.
@@ -134,25 +134,25 @@ public sealed partial class SearchPage : Page
         FormatList.Children.Clear();
         foreach (var format in Searches.Formats)
         {
-            var box = new CheckBox { Content = AnistreamModelMethods.MediaFormatLabel(format), Tag = format, IsChecked = filters.Formats.Contains(format) };
+            var box = new CheckBox { Content = Searches.FormatName(format), Tag = format, IsChecked = filters.Formats.Contains(format) };
             box.Click += (_, _) => Change(filters.Toggle(format));
             FormatList.Children.Add(box);
         }
 
         SeasonMenu.Items.Clear();
-        SeasonMenu.Items.Add(Radio("Any season", "season", filters.Season is null, () => filters with { Season = null }));
+        SeasonMenu.Items.Add(Radio(T.FilterAnySeason, "season", filters.Season is null, () => filters with { Season = null }));
         foreach (var season in Enum.GetValues<Season>())
-            SeasonMenu.Items.Add(Radio(AnistreamModelMethods.SearchSeasonLabel(season), "season", filters.Season == season, () => filters with { Season = season }));
+            SeasonMenu.Items.Add(Radio(Wording.SeasonName(season), "season", filters.Season == season, () => filters with { Season = season }));
 
         YearMenu.Items.Clear();
-        YearMenu.Items.Add(Radio("Any year", "year", filters.Year is null, () => filters with { Year = null }));
+        YearMenu.Items.Add(Radio(T.FilterAnyYear, "year", filters.Year is null, () => filters with { Year = null }));
         foreach (var year in Searches.Years(DateTime.Now.Year))
-            YearMenu.Items.Add(Radio(year.ToString(), "year", filters.Year == year, () => filters with { Year = year }));
+            YearMenu.Items.Add(Radio(year.ToString(System.Globalization.CultureInfo.InvariantCulture), "year", filters.Year == year, () => filters with { Year = year }));
 
         SortMenu.Items.Clear();
-        SortMenu.Items.Add(Radio("Best match", "sort", filters.Sort is null, () => filters with { Sort = null }));
+        SortMenu.Items.Add(Radio(T.SortRelevance, "sort", filters.Sort is null, () => filters with { Sort = null }));
         foreach (var sort in Searches.Sorts)
-            SortMenu.Items.Add(Radio(AnistreamModelMethods.SearchSortLabel(sort), "sort", filters.Sort == sort, () => filters with { Sort = sort }));
+            SortMenu.Items.Add(Radio(Searches.SortName(sort), "sort", filters.Sort == sort, () => filters with { Sort = sort }));
     }
 
     /// <summary>The genres: the engine's list once it has one, AniList's usual ones until then.</summary>
@@ -162,7 +162,7 @@ public sealed partial class SearchPage : Page
         GenreList.Children.Clear();
         foreach (var genre in genres)
         {
-            var box = new CheckBox { Content = genre, IsChecked = filters.Genres.Contains(genre) };
+            var box = new CheckBox { Content = Searches.GenreName(genre), IsChecked = filters.Genres.Contains(genre) };
             box.Click += (_, _) => Change(filters.Toggle(genre, genres));
             GenreList.Children.Add(box);
         }
@@ -187,11 +187,11 @@ public sealed partial class SearchPage : Page
     /// <summary>Each drop-down says its name, or in amber what it has.</summary>
     void ShowFilters()
     {
-        Say(GenreButton, SearchFilters.Say("Genre", filters.Genres), filters.Genres.Length > 0);
-        Say(FormatButton, SearchFilters.Say("Format", [.. filters.Formats.Select(AnistreamModelMethods.MediaFormatLabel)]), filters.Formats.Length > 0);
-        Say(SeasonButton, filters.Season is { } s ? AnistreamModelMethods.SearchSeasonLabel(s) : "Season", filters.Season is not null);
-        Say(YearButton, filters.Year?.ToString() ?? "Year", filters.Year is not null);
-        Say(SortButton, filters.Sort is { } o ? AnistreamModelMethods.SearchSortLabel(o) : "Sort", filters.Sort is not null);
+        Say(GenreButton, SearchFilters.Say(T.FilterGenre, [.. filters.Genres.Select(Searches.GenreName)]), filters.Genres.Length > 0);
+        Say(FormatButton, SearchFilters.Say(T.FilterFormat, [.. filters.Formats.Select(Searches.FormatName)]), filters.Formats.Length > 0);
+        Say(SeasonButton, filters.Season is { } s ? Wording.SeasonName(s) : T.FilterSeason, filters.Season is not null);
+        Say(YearButton, filters.Year?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? T.FilterYear, filters.Year is not null);
+        Say(SortButton, filters.Sort is { } o ? Searches.SortName(o) : T.SearchSortName, filters.Sort is not null);
         if (filters.IsEmpty)
             Motion.Hide(ClearButton);
         else

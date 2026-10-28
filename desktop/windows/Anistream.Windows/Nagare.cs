@@ -1,3 +1,4 @@
+using Anistream.App;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -79,7 +80,7 @@ sealed partial class Nagare : Canvas
         Cell = cell;
         Width = Width_ * cell;
         Height = Height_ * cell;
-        AutomationProperties.SetName(this, "Nagare, the anistream mascot");
+        AutomationProperties.SetName(this, T.NagareName);
         var brushes = new Dictionary<char, SolidColorBrush>();
         for (var y = 0; y < Rows.Length; y++)
         {

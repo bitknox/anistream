@@ -4,7 +4,7 @@ namespace Anistream.App;
 
 /// <summary>
 /// "Still watching?": episodes that roll on by themselves with nobody there. The engine says how
-/// many in a row to allow (<c>StillWatchingAfter</c>, with Up Next); the player counts the ones
+/// many in a row to allow (<c>StillWatchingAfter</c>, with Up next); the player counts the ones
 /// that rolled on and starts over at any input from the viewer, and asks once the next episode
 /// has its first picture. Zero never asks.
 /// </summary>
