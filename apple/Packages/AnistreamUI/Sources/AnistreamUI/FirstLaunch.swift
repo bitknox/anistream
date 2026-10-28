@@ -153,7 +153,7 @@ struct FirstLaunch: View {
                 .font(.plat(mac: 15, touch: 17))
                 .foregroundStyle(.silk)
                 .padding(.top, 8)
-            Text("anistream hosts no content.")
+            Text(L.legalHostsNoContent)
                 .font(.plat(mac: 13, touch: 15))
                 .foregroundStyle(.haze)
                 .padding(.top, 6)

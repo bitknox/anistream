@@ -111,7 +111,7 @@ public final class SystemPhases {
             let offline = path.status != .satisfied
             Task { @MainActor in self?.network(expensive: expensive, constrained: constrained, offline: offline) }
         }
-        monitor.start(queue: DispatchQueue(label: "tv.anistream.network-path"))
+        monitor.start(queue: DispatchQueue(label: "tv.anistream.network-path")) // i18n-skip
         self.monitor = monitor
     }
 }

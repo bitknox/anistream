@@ -16,4 +16,4 @@ phrases = ["watch together", "mark as seen", "mark as watched", "sub or dub", "d
 [code]
 # Platforms whose hardcoded-string scan fails the build. A platform is added in the last commit
 # of its migration, when its baseline in i18n/baselines/ is empty.
-enforce = ["tui"]
+enforce = ["tui", "apple"]

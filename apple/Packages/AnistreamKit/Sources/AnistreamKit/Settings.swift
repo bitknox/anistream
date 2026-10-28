@@ -83,7 +83,7 @@ extension SettingKey {
                 .map { SettingOption(value: .str($0.0), label: $0.1) }
         default:
             isSwitch
-                ? [SettingOption(value: .bool(false), label: "off"), SettingOption(value: .bool(true), label: "on")]
+                ? [SettingOption(value: .bool(false), label: "off"), SettingOption(value: .bool(true), label: "on")] // i18n-skip
                 : []
         }
     }

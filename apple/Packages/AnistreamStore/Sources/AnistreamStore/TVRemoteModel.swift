@@ -369,7 +369,7 @@ public final class TVRemoteModel {
             guard path.status == .satisfied else { return }
             Task { @MainActor in self?.retryNow() }
         }
-        monitor.start(queue: DispatchQueue(label: "tv.anistream.tv-path"))
+        monitor.start(queue: DispatchQueue(label: "tv.anistream.tv-path")) // i18n-skip
         path = monitor
     }
 

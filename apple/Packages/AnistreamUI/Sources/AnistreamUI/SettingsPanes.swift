@@ -348,7 +348,7 @@ struct SourcesPane: View {
 enum CellularCheck {
     static func available() async -> Bool {
         let monitor = NWPathMonitor()
-        let queue = DispatchQueue(label: "anistream.cellular-check")
+        let queue = DispatchQueue(label: "anistream.cellular-check") // i18n-skip
         let path: NWPath = await withCheckedContinuation { done in
             // Called on the serial queue: the first path answers, and later ones are dropped.
             nonisolated(unsafe) var answered = false

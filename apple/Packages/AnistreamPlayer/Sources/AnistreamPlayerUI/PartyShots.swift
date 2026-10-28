@@ -111,10 +111,10 @@ extension PlayerModel {
                 // What two sources list, in before the fixture's own answer, which has none.
                 store.apply(.sources(id: 900_001, episode: "7", candidates: [
                     SourceCandidate(
-                        id: "a", providerId: "sample-source", title: "Stardust Wayfarer 07 1080p", quality: 1080,
+                        id: "a", providerId: "sample-source", title: "Stardust Wayfarer 07 1080p", quality: 1080, // i18n-skip
                         seeders: 40, size: "1.2 GiB", dualAudio: false, dubbed: false, autoPick: true),
                     SourceCandidate(
-                        id: "b", providerId: "night-index", title: "Stardust Wayfarer 07 720p", quality: 720,
+                        id: "b", providerId: "night-index", title: "Stardust Wayfarer 07 720p", quality: 720, // i18n-skip
                         seeders: 12, size: "640 MiB", dualAudio: false, dubbed: false, autoPick: false),
                 ]))
                 guard await partyWaited(20, { party.choice != .looking }) else { return false }

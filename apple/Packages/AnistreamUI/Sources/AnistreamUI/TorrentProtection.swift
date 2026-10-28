@@ -276,7 +276,7 @@ struct TorrentIndexField: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        TextField(L.torrentsIndex, text: $text, prompt: Text("https://…/?q={query}"))
+        TextField(L.torrentsIndex, text: $text, prompt: Text("https://…/?q={query}")) // i18n-skip
             .textFieldStyle(.plain)
             .font(phone ? .ui(17) : .mac(13, design: .monospaced))
             #if os(iOS)
