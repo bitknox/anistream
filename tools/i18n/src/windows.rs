@@ -428,8 +428,10 @@ fn msg_text(cat: &Catalogue) -> String {
         if is_cause { causes.push_str(&line) } else { msgs.push_str(&line) }
     }
     for (name, arms) in [("Msg", msgs), ("Cause", causes)] {
-        out.push_str(&format!("    public static string Text(this {name} message) => message switch\n    {{\n"));
-        out.push_str(&arms.replace("        ", "        "));
+        out.push_str(&format!(
+            "    public static string Text(this {name} message) => message switch\n    {{\n"
+        ));
+        out.push_str(&arms);
         out.push_str(&format!("        {name}.Verbatim x => x.Text,\n"));
         // The bindings and this file come from the same catalogue, so this is never reached.
         out.push_str("        _ => message.ToString() ?? \"\",\n    };\n\n");
