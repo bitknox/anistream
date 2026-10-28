@@ -142,7 +142,11 @@ fun EpisodeRow.cardTitle(context: Context): String =
 
 /** Synopses from AniList carry their spoilers marked; the TV shows only the text before them. */
 fun synopsisWithoutSpoilers(text: String): String =
-    text.replace(Regex("~!.*?!~", RegexOption.DOT_MATCHES_ALL), "").replace(Regex("\\s+\\n"), "\n").trim()
+    text.replace(Regex("~!.*?!~", RegexOption.DOT_MATCHES_ALL), "")
+        .replace(Regex("[^\\S\\n]+"), " ")
+        .replace(Regex(" ?\\n ?"), "\n")
+        .replace(Regex("\\n{3,}"), "\n\n")
+        .trim()
 
 /** What a Continue card says it plays; with no source for what is left, that no source has it. */
 @androidx.compose.runtime.Composable

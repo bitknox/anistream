@@ -123,4 +123,12 @@ class PresentationTest {
         assertEquals(36, SearchKeys.characters.size)
         assertEquals('0', SearchKeys.characters.last())
     }
+
+    @Test
+    fun the_synopsis_keeps_the_engines_line_and_paragraph_breaks() {
+        assertEquals(
+            "First line.\nSecond line.\n\nNew paragraph.",
+            synopsisWithoutSpoilers("First line. \nSecond  line.\n\n\n~!Hidden.!~New paragraph. "),
+        )
+    }
 }

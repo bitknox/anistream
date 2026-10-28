@@ -146,7 +146,11 @@ fun Entry.headlineMeta(context: Context): String {
 
 /** AniList's synopsis without its inline spoiler spans, which the app offers no reveal for yet. */
 fun synopsisWithoutSpoilers(text: String): String =
-    text.replace(Regex("~!.*?!~", RegexOption.DOT_MATCHES_ALL), "").replace(Regex("\\s{2,}"), " ").trim()
+    text.replace(Regex("~!.*?!~", RegexOption.DOT_MATCHES_ALL), "")
+        .replace(Regex("[^\\S\\n]+"), " ")
+        .replace(Regex(" ?\\n ?"), "\n")
+        .replace(Regex("\\n{3,}"), "\n\n")
+        .trim()
 
 /** A relation in words. */
 fun RelationKind.words(context: Context): String = when (this) {

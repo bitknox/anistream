@@ -207,4 +207,12 @@ class MetadataTest {
             synopsisWithoutSpoilers("A lamplighter walks the night roads. ~!She is the ferryman.!~ She keeps going."),
         )
     }
+
+    @Test
+    fun the_synopsis_keeps_the_engines_line_and_paragraph_breaks() {
+        assertEquals(
+            "First line.\nSecond line.\n\nNew paragraph.",
+            synopsisWithoutSpoilers("First line. \nSecond  line.\n\n\n~!Hidden.!~New paragraph. "),
+        )
+    }
 }
