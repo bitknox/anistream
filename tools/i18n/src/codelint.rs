@@ -195,10 +195,15 @@ fn walk(
                     continue;
                 }
                 // A literal that is a token, not text (an id, a symbol name, a format code).
-                if line.rsplit_once("//").is_some_and(|(_, comment)| comment.contains("i18n-skip")) {
+                if line
+                    .rsplit_once("//")
+                    .is_some_and(|(_, comment)| comment.contains("i18n-skip"))
+                {
                     continue;
                 }
-                if std::env::var_os("I18N_LIST").is_some() && patterns.iter().any(|p| p.is_match(line)) {
+                if std::env::var_os("I18N_LIST").is_some()
+                    && patterns.iter().any(|p| p.is_match(line))
+                {
                     println!("{}: {}", path.strip_prefix(root)?.display(), code);
                 }
                 if patterns.iter().any(|p| p.is_match(line)) {

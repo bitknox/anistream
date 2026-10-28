@@ -12,7 +12,8 @@ use crate::util::{Files, c_escape, camel, one_line, xcode_json};
 
 const DIR: &str = "apple/Packages/AnistreamStrings/Sources/AnistreamStrings";
 /// Where the engine's `Msg` is rendered: the store, which sees both the bindings and `L`.
-const MSG_PATH: &str = "apple/Packages/AnistreamStore/Sources/AnistreamStore/Generated/MsgText.swift";
+const MSG_PATH: &str =
+    "apple/Packages/AnistreamStore/Sources/AnistreamStore/Generated/MsgText.swift";
 
 pub fn generate(cat: &Catalogue, mode: Mode) -> Result<Files> {
     let langs = select(cat, mode, |only| only.is_none() || only == Some(Platform::Apple))?;
@@ -219,8 +220,7 @@ fn msg_text(cat: &Catalogue) -> String {
                 .iter()
                 .map(|a| {
                     let n = camel(&a.name);
-                    let n = if KEYWORDS.contains(&n.as_str()) { format!("`{n}`") } else { n };
-                    n
+                    if KEYWORDS.contains(&n.as_str()) { format!("`{n}`") } else { n }
                 })
                 .collect();
             let lets = binds.iter().map(|b| format!("let {b}")).collect::<Vec<_>>().join(", ");
