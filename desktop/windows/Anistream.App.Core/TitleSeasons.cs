@@ -18,10 +18,11 @@ public static class TitleSeasons
     /// <summary>"Season 2 · Spring 2025", "Season 3 · 2026", or "Season 4" with no date.</summary>
     public static string Label(int index, LinkedTitle season)
     {
-        var name = $"Season {index + 1}";
+        var name = T.SeasonNumber(index + 1);
         if (season.Year is not { } year)
             return name;
-        return season.Season is { } s ? $"{name} · {AnistreamModelMethods.SearchSeasonLabel(s)} {year}" : $"{name} · {year}";
+        var when = season.Season is { } s ? Wording.SeasonWithYear(s, year) : year.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return T.TitleSeasonWhen(name, when);
     }
 
     /// <summary>The related titles the picker does not already hold.</summary>

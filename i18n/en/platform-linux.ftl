@@ -79,11 +79,6 @@ spoken-seconds = { $count ->
    *[other] { $count } seconds
  }
 
-# An episode's line with the audio it was watched in marked, as Continue and the title page word it.
-# @only linux
-# @arg line: text
-episode-line-dubbed = { $line } · { -dubbed-cap }
-
 # Continue row: nothing new to watch, and the next episode airs at a known time. The time is already worded: "in 2d 3h".
 # @only linux
 # @arg episode: int

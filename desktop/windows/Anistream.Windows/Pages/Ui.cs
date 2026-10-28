@@ -1,3 +1,4 @@
+using Anistream.App;
 using Anistream.Engine.Ffi;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -88,7 +89,7 @@ static class Ui
         return frame;
     }
 
-    public static string Bytes(ulong n) => AnistreamFfiMethods.HumanBytes(n);
+    public static string Bytes(ulong n) => Wording.Bytes(n);
 
     /// <summary>
     /// A destructive action's confirmation: the action names itself and has the accent, as the
@@ -103,7 +104,7 @@ static class Ui
             Title = title,
             Content = Text(text, "BodyTextBlockStyle"),
             PrimaryButtonText = action,
-            CloseButtonText = "Cancel",
+            CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.None,
             PrimaryButtonStyle = Res<Style>("AccentButtonStyle"),
         };

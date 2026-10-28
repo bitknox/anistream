@@ -24,15 +24,16 @@ public sealed record EpisodeDownload(EpisodeDownloadKind Kind, double Fraction, 
         var mine = rows.Where(r => r.AnilistId == show && r.Episode == episode).ToList();
         var row = mine.FirstOrDefault(r => r.State == DownloadState.Done) ?? mine.MaxBy(r => r.Id);
         var percent = row is null ? 0 : (int)Math.Floor(Math.Clamp(row.Fraction, 0, 1) * 100);
+        var whole = long.TryParse(episode, out var n);
         return row?.State switch
         {
-            null => new(EpisodeDownloadKind.None, 0, $"Download episode {episode}"),
-            DownloadState.Queued => new(EpisodeDownloadKind.Queued, 0, "Queued to download"),
-            DownloadState.Active when row.Total == 0 => new(EpisodeDownloadKind.Queued, 0, "Starting the download"),
-            DownloadState.Active => new(EpisodeDownloadKind.Going, row.Fraction, $"Downloading · {percent}%"),
-            DownloadState.Paused => new(EpisodeDownloadKind.Paused, row.Fraction, $"Download paused at {percent}%"),
-            DownloadState.Done => new(EpisodeDownloadKind.Done, 1, "Downloaded"),
-            _ => new(EpisodeDownloadKind.Failed, 0, $"Couldn't download episode {episode}. Download again"),
+            null => new(EpisodeDownloadKind.None, 0, whole ? T.EpisodeDownloadOne(n) : T.EpisodeDownloadText(episode)),
+            DownloadState.Queued => new(EpisodeDownloadKind.Queued, 0, T.EpisodeDownloadQueued),
+            DownloadState.Active when row.Total == 0 => new(EpisodeDownloadKind.Queued, 0, T.EpisodeDownloadStarting),
+            DownloadState.Active => new(EpisodeDownloadKind.Going, row.Fraction, T.EpisodeDownloadRunning(Wording.Percent(percent))),
+            DownloadState.Paused => new(EpisodeDownloadKind.Paused, row.Fraction, T.EpisodeDownloadPaused(Wording.Percent(percent))),
+            DownloadState.Done => new(EpisodeDownloadKind.Done, 1, T.EpisodeDownloadDone),
+            _ => new(EpisodeDownloadKind.Failed, 0, whole ? T.EpisodeDownloadFailed(n) : T.EpisodeDownloadFailedText(episode)),
         };
     }
 }

@@ -93,16 +93,6 @@ settings-advanced-note = An option here can undo a Playback setting, such as ups
 # @max 24
 updates-view-version = View version
 
-# Button that closes the app and opens the new version it has put in place.
-# @only linux
-# @max 24
-updates-restart = Restart to update
-
-# Button that downloads the new version of the app.
-# @only linux
-# @max 24
-updates-download = Download update
-
 # Accessible name of the progress bar while the new version downloads.
 # @only linux
 updates-progress-label = Update progress
@@ -144,10 +134,6 @@ updates-why-reopen = The new version is installed but couldn't be opened. Open {
 # Accessible description of the mascot's picture. Nagare is the mascot's name.
 # @only linux
 nagare-description = Nagare, the { -app-name } mascot: a figure with a silk bob, an amber scarf and an indigo cloak, holding a staff with a water charm
-
-# Line under the seeding group in Settings: seeding stops when the app closes.
-# @only linux
-settings-seeding-open-only = Seeding runs only while { -app-name } is open.
 
 # Note under the Play trailers setting: what the trailers are and when they do not play.
 # @only linux

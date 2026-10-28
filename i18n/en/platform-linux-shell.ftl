@@ -47,11 +47,6 @@ shell-tracker-synced = { $tracker } · Synced
 
 ## Keyboard shortcuts window
 
-# Title of the keyboard shortcuts window.
-# @only linux
-# @max 32
-shortcuts-title = Keyboard shortcuts
-
 # Heading of the shortcuts that work on lists of titles.
 # @only linux
 # @max 24
@@ -77,14 +72,6 @@ shortcuts-quit = Quit
 # @only linux
 shortcuts-play-selected = Play the selected title
 
-# Shortcut: open the context menu of the title that has focus.
-# @only linux
-shortcuts-context-menu = Context menu
-
-# Shortcut: pause or resume.
-# @only linux
-shortcuts-play-pause = Play or pause
-
 # Shortcut: small steps in the player.
 # @only linux
 shortcuts-seek-5 = Back or forward 5 seconds
@@ -101,10 +88,6 @@ shortcuts-seek-10 = Back or forward 10 seconds
 # @only linux
 shortcuts-volume = Volume up or down
 
-# Shortcut: mute the sound.
-# @only linux
-shortcuts-mute = Mute
-
 # Shortcut: skip the opening or the ending.
 # @only linux
 shortcuts-skip = Skip the opening or ending
@@ -112,10 +95,6 @@ shortcuts-skip = Skip the opening or ending
 # Shortcut: undo a skip the player made by itself.
 # @only linux
 shortcuts-undo-skip = Undo an automatic skip
-
-# Shortcut: move between episodes.
-# @only linux
-shortcuts-next-previous = Next or previous episode
 
 # Shortcut: change the playback speed.
 # @only linux
@@ -135,15 +114,6 @@ shortcuts-escape = Close a card, the mini player, full screen, then the player
 # @only linux
 # @max 24
 close-stop-and-close = Stop and close
-
-# Response of the close question: keep it running in the background.
-# @only linux
-# @max 24
-close-keep-going = Keep going
-
-# Checkbox of the close question.
-# @only linux
-close-dont-ask = Don't ask again
 
 # Body of the close question when episodes download.
 # @only linux
@@ -235,12 +205,6 @@ tv-episode-titled = Episode { $episode } · { $title }
 # @arg code: text
 tv-fingerprint-note = A TV lists this { -device } with the code { $code }. Forget a TV here and it forgets this { -device } too.
 
-# Settings line of a paired TV: paired on a date, last seen a while ago.
-# @only linux
-# @arg paired: text
-# @arg ago: text
-tv-paired-seen = { $paired } · seen { $ago }
-
 # Settings line of a paired TV: paired on a date, reached in the last minute.
 # @only linux
 # @arg paired: text
@@ -250,19 +214,6 @@ tv-paired-seen-now = { $paired } · seen just now
 # @only linux
 tv-volume = TV volume
 
-# Accessible label of the button that turns the TV down.
-# @only linux
-tv-volume-down = Volume down
-
-# Accessible label of the button that turns the TV up.
-# @only linux
-tv-volume-up = Volume up
-
-# The TV's volume as a value of 100.
-# @only linux
-# @arg volume: int
-tv-volume-of = { $volume } of 100
-
 # Accessible name of a track menu: the row, then the track chosen.
 # @only linux
 # @arg row: text
@@ -270,43 +221,3 @@ tv-volume-of = { $volume } of 100
 tv-track-choice = { $row }, { $track }
 
 ## Problems with the TV
-
-# The pairing code typed did not match.
-# @only linux
-tv-problem-wrong-code = That code didn't match. Check the code on the TV and try again.
-
-# The TV cannot take another paired device.
-# @only linux
-tv-problem-full = This TV has as many { -device-pl } paired as it can keep. Remove one in the TV's settings, under Remotes.
-
-# The TV cannot take another connection now.
-# @only linux
-tv-problem-busy = The TV is connected to as many { -device-pl } as it can. Try again soon.
-
-# The TV and this app speak different versions.
-# @only linux
-tv-problem-version = The TV runs another version of { -app-name }. Update both to the same one.
-
-# A command needs something playing and nothing is.
-# @only linux
-tv-problem-not-now = Nothing is playing on the TV.
-
-# The TV has forgotten this computer.
-# @only linux
-tv-problem-unpaired = The TV doesn't know this { -device } any more. Pair again.
-
-# The TV's key changed since pairing.
-# @only linux
-tv-problem-key-changed = The TV was reset or reinstalled since you paired. Pair again.
-
-# The TV did not answer.
-# @only linux
-tv-problem-unreachable = Can't reach the TV. Check that it's on, with { -app-name } open, on the same network.
-
-# The TV picked in the list has left the network.
-# @only linux
-tv-problem-gone = That TV is no longer on the network.
-
-# What was typed or scanned is not a TV's code or address.
-# @only linux
-tv-problem-not-a-link = That isn't a TV's pairing code or address.

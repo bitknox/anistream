@@ -39,7 +39,7 @@ sealed class UpdatePanel : StackPanel
         notesBlock.Children.Add(notesTitle);
         notesBlock.Children.Add(notes);
         AutomationProperties.SetLiveSetting(line, AutomationLiveSetting.Polite);
-        AutomationProperties.SetName(bar, "Update progress");
+        AutomationProperties.SetName(bar, T.UpdatesProgressName);
         primary.Click += (_, _) => onPrimary?.Invoke();
         secondary.Click += (_, _) => onSecondary?.Invoke();
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 2, 0, 0) };
@@ -86,28 +86,28 @@ sealed class UpdatePanel : StackPanel
         bar.Value = state.Fraction ?? 0;
 
         notes.Text = release?.Notes ?? "";
-        notesTitle.Text = release is null ? "" : $"In version {release.Version}";
+        notesTitle.Text = release is null ? "" : T.UpdatesNotesTitle(release.Version);
         notesBlock.Visibility = release is { Notes.Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
 
         switch (state.Step)
         {
             case UpdateStep.Downloading or UpdateStep.Verifying:
-                Buttons(("Cancel", updater.Stop, false), null);
+                Buttons((T.ActionCancel, updater.Stop, false), null);
                 break;
             case UpdateStep.Ready:
-                Buttons(("Restart to update", updater.Install, true), WhatsNew(release));
+                Buttons((T.UpdatesRestart, updater.Install, true), WhatsNew(release));
                 break;
             case UpdateStep.Installing:
-                Buttons(("Restart to update", null, true), null);
+                Buttons((T.UpdatesRestart, null, true), null);
                 break;
             case UpdateStep.Failed:
-                Buttons(("Try again", updater.Download, false), WhatsNew(release));
+                Buttons((T.ActionTryAgain, updater.Download, false), WhatsNew(release));
                 break;
             default:
                 if (release is not null && installer is not null)
-                    Buttons(("Download update", updater.Download, true), WhatsNew(release));
+                    Buttons((T.UpdatesDownload, updater.Download, true), WhatsNew(release));
                 else if (release is not null)
-                    Buttons(("Open the release page", () => Open(release.PageUrl), true), Check(checking));
+                    Buttons((T.UpdatesOpenPage, () => Open(release.PageUrl), true), Check(checking));
                 else
                     Buttons(Check(checking), null);
                 break;
@@ -115,10 +115,10 @@ sealed class UpdatePanel : StackPanel
     }
 
     (string, Action?, bool) Check(bool checking) =>
-        ("Check for updates", checking || ctx.Known.Offline ? null : () => ctx.Send(new Command.CheckForUpdates()), false);
+        (T.SettingsCheckUpdates, checking || ctx.Known.Offline ? null : () => ctx.Send(new Command.CheckForUpdates()), false);
 
     static (string, Action?, bool)? WhatsNew(Release? release) =>
-        release is null ? null : ("What's new", () => Open(release.PageUrl), false);
+        release is null ? null : (T.UpdatesWhatsNew, () => Open(release.PageUrl), false);
 
     void Buttons((string Text, Action? Act, bool Accent) first, (string Text, Action? Act, bool Accent)? second)
     {

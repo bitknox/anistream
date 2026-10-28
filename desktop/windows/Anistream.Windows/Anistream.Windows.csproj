@@ -32,6 +32,12 @@
     <!-- SettingsCard, as Windows 11 Settings draws its rows. -->
     <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
   </ItemGroup>
+  <!-- The pseudo-locale (qps-ploc), generated beside the strings, goes only into a testing build,
+       for the layout pass (the testing build run with the qps-ploc language). -->
+  <ItemGroup>
+    <PRIResource Remove="Strings.Pseudo/**" />
+    <PRIResource Include="Strings.Pseudo/**/*.resw" Condition="'$(EngineFlavour)' == 'testing'" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Anistream.App.Core/Anistream.App.Core.csproj" />
   </ItemGroup>

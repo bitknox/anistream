@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:app="using:Anistream.Windows"
     xmlns:local="using:Anistream.Windows.Pages"
+    xmlns:s="using:Anistream.App"
     Background="{ThemeResource GroundBrush}">
   <Grid Padding="36,20,36,0" RowSpacing="12">
     <Grid.RowDefinitions>
@@ -13,7 +14,7 @@
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
     <StackPanel>
-      <TextBlock Text="Library" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+      <TextBlock Text="{x:Bind s:T.NavLibrary}" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
       <local:OfflineLine />
     </StackPanel>
     <Grid x:Name="Bar" Grid.Row="1" ColumnSpacing="12">
@@ -22,12 +23,12 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <SelectorBar x:Name="Lists" SelectionChanged="OnListChanged" Margin="-8,0,0,0" />
-      <DropDownButton x:Name="OrderButton" Grid.Column="1" Content="Last updated" Height="32" AutomationProperties.Name="Order">
+      <DropDownButton x:Name="OrderButton" Grid.Column="1" Content="{x:Bind s:T.LibrarySortUpdated}" Height="32">
         <DropDownButton.Flyout>
           <MenuFlyout Placement="BottomEdgeAlignedRight">
-            <RadioMenuFlyoutItem Text="Last updated" GroupName="order" Tag="updated" IsChecked="True" Click="OnOrder" />
-            <RadioMenuFlyoutItem Text="Title" GroupName="order" Tag="title" Click="OnOrder" />
-            <RadioMenuFlyoutItem Text="Score" GroupName="order" Tag="score" Click="OnOrder" />
+            <RadioMenuFlyoutItem Text="{x:Bind s:T.LibrarySortUpdated}" GroupName="order" Tag="updated" IsChecked="True" Click="OnOrder" />
+            <RadioMenuFlyoutItem Text="{x:Bind s:T.LibrarySortTitle}" GroupName="order" Tag="title" Click="OnOrder" />
+            <RadioMenuFlyoutItem Text="{x:Bind s:T.LibrarySortScore}" GroupName="order" Tag="score" Click="OnOrder" />
           </MenuFlyout>
         </DropDownButton.Flyout>
       </DropDownButton>

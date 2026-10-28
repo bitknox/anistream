@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text.RegularExpressions;
 using Anistream.App;
 using Anistream.Engine.Core;
 using Anistream.Engine.Model;
@@ -44,8 +42,8 @@ sealed class PartySourceDialog
         {
             XamlRoot = root,
             Content = body,
-            SecondaryButtonText = "Leave party",
-            CloseButtonText = "Not now",
+            SecondaryButtonText = T.PartyLeave,
+            CloseButtonText = T.PartyNotNow,
         };
         // The actions that fit the answer: nothing to choose before the episode is out, the
         // plugins to add when there are no sources, and the sources' list otherwise.
@@ -55,11 +53,11 @@ sealed class PartySourceDialog
                 dialog.DefaultButton = ContentDialogButton.Close;
                 break;
             case NoSourceWhy.NoSources:
-                dialog.PrimaryButtonText = "Open Providers";
+                dialog.PrimaryButtonText = T.PartyOpenSources;
                 openProviders = true;
                 break;
             default:
-                dialog.PrimaryButtonText = "Choose source";
+                dialog.PrimaryButtonText = T.PlayerChooseSource;
                 break;
         }
         if (why != NoSourceWhy.NotAired)
@@ -70,7 +68,7 @@ sealed class PartySourceDialog
         dialog.PrimaryButtonClick += OnPrimary;
         dialog.SecondaryButtonClick += (_, _) => ctx.Send(new Command.PartyLeave());
         list.SelectionChanged += (_, _) => dialog.IsPrimaryButtonEnabled = list.SelectedIndex >= 0;
-        AutomationProperties.SetName(list, "Sources for this episode");
+        AutomationProperties.SetName(list, T.PartySourcesLabel);
         AutomationProperties.SetLiveSetting(line, AutomationLiveSetting.Polite);
         First();
     }
@@ -96,34 +94,29 @@ sealed class PartySourceDialog
             ctx.Go("providers");
     }
 
-    string What => ctx.Known.Entry(id) is { } entry ? $"Episode {episode} of {entry.Title}" : $"Episode {episode}";
+    string What => ctx.Known.Entry(id) is { } entry ? T.EpisodeLabelOf(episode, entry.Title) : T.EpisodeLabel(episode);
 
     void First()
     {
         body.Children.Clear();
-        var place = ctx.Known.Party is { } party ? $"You're in {party.Room} on {party.Server}, with nothing playing." : "You're in the room, with nothing playing.";
+        var place = ctx.Known.Party is { } party ? T.PartyInRoomIdle(party.Room, party.Server) : T.PartyInRoomIdlePlain;
         switch (why)
         {
             case NoSourceWhy.NotAired:
-                // The schedule's own words lead: "Episode 6 airs Tuesday at 13:05", or the
-                // episode not out yet with when the next one is.
-                var said = Words.Notice(Regex.Replace(reason, @" (\d{1,2}:\d{2})\b", " at $1"));
-                var parts = said.Split("; ", 2);
-                dialog.Title = parts[0];
+                // The schedule's own words, already in the person's language, say when it airs.
+                dialog.Title = T.PartyNosourceUnairedTitle(episode);
                 body.Children.Add(Ui.Text(place, "BodyTextBlockStyle"));
-                body.Children.Add(Ui.Haze(parts.Length > 1
-                    ? $"{Words.Notice(parts[1])}. Your sources won't have episode {episode} before it's out."
-                    : $"Your sources won't have it before then. It plays with the room once one of them does."));
+                body.Children.Add(Ui.Haze(T.PartyNosourceUnairedWhen(reason)));
                 break;
             case NoSourceWhy.NoSources:
-                dialog.Title = "You have no sources yet";
+                dialog.Title = T.PartyNosourceNoneTitle;
                 body.Children.Add(Ui.Text(place, "BodyTextBlockStyle"));
-                body.Children.Add(Ui.Haze($"Sources come from plugins, which Providers adds. {What} plays with the room once one of them has it."));
+                body.Children.Add(Ui.Haze(T.PartyNosourceNoneDetail(What)));
                 break;
             default:
-                dialog.Title = "None of your sources has this episode";
+                dialog.Title = T.PartyNosourceMissingTitle;
                 body.Children.Add(Ui.Text(place, "BodyTextBlockStyle"));
-                body.Children.Add(Ui.Haze($"{Words.Notice(reason).TrimEnd('.')}. {What} plays with the room once you choose a source that has it."));
+                body.Children.Add(Ui.Haze(T.PartyNosourceMissingDetail(reason.TrimEnd('.'), What)));
                 break;
         }
     }
@@ -155,8 +148,8 @@ sealed class PartySourceDialog
     /// <summary>Step two: what each source lists for the episode, loading in place.</summary>
     void Choose()
     {
-        dialog.Title = $"Choose a source for episode {episode}";
-        dialog.PrimaryButtonText = "Play with the party";
+        dialog.Title = T.PartyChooseSourceFor(episode);
+        dialog.PrimaryButtonText = T.PartyPlayWith;
         dialog.IsPrimaryButtonEnabled = false;
         if (!choosing)
         {
@@ -181,7 +174,7 @@ sealed class PartySourceDialog
         ring.Opacity = 1;
         mark.Opacity = 0;
         line.Foreground = Ui.Res<Brush>("TextFillColorSecondaryBrush");
-        line.Text = "Looking through your sources…";
+        line.Text = T.PartyLookingSources;
         ctx.Send(new Command.LoadSources(id, episode));
     }
 
@@ -196,7 +189,7 @@ sealed class PartySourceDialog
                     break;
                 // The engine says why it found nothing as an alert, not as an empty list.
                 case Event.Toast t when choosing && candidates is null && !failed && t.V1.Kind == NoticeKind.Alert:
-                    Failed(t.V1.Text);
+                    Failed(t.V1.Msg is { } said ? said.Text() : T.SourcesLoadFailed);
                     break;
                 case Event.PartyLeft:
                     dialog.Hide();
@@ -217,8 +210,8 @@ sealed class PartySourceDialog
         mark.Foreground = Ui.Res<Brush>("SystemFillColorCriticalBrush");
         mark.Opacity = 1;
         line.Foreground = Ui.Res<Brush>("SystemFillColorCriticalBrush");
-        line.Text = Words.Notice(why);
-        dialog.PrimaryButtonText = "Try again";
+        line.Text = why;
+        dialog.PrimaryButtonText = T.ActionTryAgain;
         dialog.IsPrimaryButtonEnabled = true;
     }
 
@@ -234,13 +227,13 @@ sealed class PartySourceDialog
         mark.Opacity = 1;
         if (found.Length == 0)
         {
-            line.Text = $"No source lists episode {episode}. Sources come from plugins, which Providers adds.";
-            dialog.PrimaryButtonText = "Open Providers";
+            line.Text = T.PartyNoSourceLists(episode);
+            dialog.PrimaryButtonText = T.PartyOpenSources;
             dialog.IsPrimaryButtonEnabled = true;
             openProviders = true;
             return;
         }
-        line.Text = found.Length == 1 ? "1 source has it" : $"{found.Length.ToString(CultureInfo.InvariantCulture)} sources have it";
+        line.Text = T.PartySourcesFound(found.Length);
         foreach (var c in found)
         {
             var row = new StackPanel { Padding = new Thickness(0, 4, 0, 4) };
@@ -259,7 +252,7 @@ sealed class PartySourceDialog
         if (c.Size is { Length: > 0 } size)
             parts.Add(size);
         if (c.Seeders is { } seeders)
-            parts.Add($"{seeders} seeders");
+            parts.Add(T.SourcePickerSeeders(seeders));
         return string.Join(" · ", parts);
     }
 }
