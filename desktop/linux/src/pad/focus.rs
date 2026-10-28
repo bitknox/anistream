@@ -83,10 +83,20 @@ fn nearest(
         .filter_map(|w| {
             let b = w.compute_bounds(root)?;
             let (gap, off) = match direction {
-                Direction::Down => (b.y() - (origin.y() + origin.height()), (b.x() + b.width() / 2.0 - cx).abs()),
-                Direction::Up => (origin.y() - (b.y() + b.height()), (b.x() + b.width() / 2.0 - cx).abs()),
-                Direction::Right => (b.x() - (origin.x() + origin.width()), (b.y() + b.height() / 2.0 - cy).abs()),
-                Direction::Left => (origin.x() - (b.x() + b.width()), (b.y() + b.height() / 2.0 - cy).abs()),
+                Direction::Down => (
+                    b.y() - (origin.y() + origin.height()),
+                    (b.x() + b.width() / 2.0 - cx).abs(),
+                ),
+                Direction::Up => {
+                    (origin.y() - (b.y() + b.height()), (b.x() + b.width() / 2.0 - cx).abs())
+                }
+                Direction::Right => (
+                    b.x() - (origin.x() + origin.width()),
+                    (b.y() + b.height() / 2.0 - cy).abs(),
+                ),
+                Direction::Left => {
+                    (origin.x() - (b.x() + b.width()), (b.y() + b.height() / 2.0 - cy).abs())
+                }
             };
             (gap >= -2.0).then(|| (gap.max(0.0) + 2.0 * off, w))
         })
@@ -147,7 +157,8 @@ fn scroll_more(ctx: &Ctx, from: &gtk::Widget, direction: Direction) {
     let Ok(scrolled) = scrolled.downcast::<gtk::ScrolledWindow>() else { return };
     let adjustment = scrolled.vadjustment();
     let bottom = (adjustment.upper() - adjustment.page_size()).max(adjustment.lower());
-    let by = adjustment.page_size() * 0.5 * if direction == Direction::Down { 1.0 } else { -1.0 };
+    let by =
+        adjustment.page_size() * 0.5 * if direction == Direction::Down { 1.0 } else { -1.0 };
     let value = (adjustment.value() + by).clamp(adjustment.lower(), bottom);
     if (value - adjustment.value()).abs() < 1.0 {
         return;
@@ -180,9 +191,7 @@ fn focus_current_row(ctx: &Ctx) {
         ctx.split.set_show_sidebar(true);
     }
     let Some(sidebar) = ctx.split.sidebar() else { return };
-    let row = find(&sidebar, &|w| {
-        w.is::<gtk::ListBoxRow>() && w.widget_name() == dest.name()
-    });
+    let row = find(&sidebar, &|w| w.is::<gtk::ListBoxRow>() && w.widget_name() == dest.name());
     if let Some(row) = row {
         row.grab_focus();
     } else {

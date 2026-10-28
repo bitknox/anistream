@@ -18,12 +18,12 @@ use anistream_core::{ids::AnilistId, media::Translation};
 use anistream_engine::engine::Engine;
 use anistream_i18n::t;
 use anistream_model::{
-    input::{PadContext, PlayerCard, PlayerFocus, PlayerPanel},
     command::{Command, PlayerCommand},
     event::Event,
     hosted::{
         MenuChoices, MenuEpisode, MenuSource, PlayerChoice, PlayerOp, PlayerUi, TrackKind,
     },
+    input::{PadContext, PlayerCard, PlayerFocus, PlayerPanel},
     playback::{PlaybackId, SkipKind},
 };
 use anistream_mpv_host::{HostEvent, Player, PlayerOptions, PlayerState};

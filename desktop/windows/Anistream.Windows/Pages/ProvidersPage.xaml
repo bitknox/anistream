@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Anistream.Windows.Pages"
+    xmlns:app="using:Anistream.App"
     Background="{ThemeResource GroundBrush}">
   <Grid Padding="36,20,36,0" RowSpacing="12">
     <Grid.RowDefinitions>
@@ -16,11 +17,11 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <StackPanel Spacing="2">
-        <TextBlock Text="Providers" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+        <TextBlock Text="{x:Bind app:T.SourcesTitle}" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
         <local:OfflineLine />
-        <TextBlock Text="Sources are tried top to bottom. Drag one to change the order." Style="{StaticResource HazeBodyStyle}" />
+        <TextBlock Text="{x:Bind app:T.SourcesOrderDetail}" Style="{StaticResource HazeBodyStyle}" />
       </StackPanel>
-      <Button Grid.Column="1" Content="Check sources" Click="OnCheck" Height="32" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Content="{x:Bind app:T.SourcesCheck}" Click="OnCheck" Height="32" VerticalAlignment="Center" />
     </Grid>
     <!-- No sources: the empty state in place of both columns. -->
     <Border x:Name="NoSources" Grid.Row="1" Visibility="Collapsed" Margin="0,0,0,80" />
@@ -36,12 +37,12 @@
       </Grid.RowDefinitions>
       <ScrollViewer x:Name="ListScroll" VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="8" Padding="0,0,8,24">
-          <TextBlock x:Name="Rebuilding" Style="{StaticResource HazeCaptionStyle}" Text="Sources are being set up again" Visibility="Collapsed" />
+          <TextBlock x:Name="Rebuilding" Style="{StaticResource HazeCaptionStyle}" Text="{x:Bind app:T.SourcesRebuilding}" Visibility="Collapsed" />
           <ListView x:Name="Order" SelectionMode="Single" CanReorderItems="True" AllowDrop="True"
                     SelectionChanged="OnSelected" DragItemsCompleted="OnDragCompleted"
-                    AutomationProperties.Name="Source order" Margin="-12,0,0,0" />
+                    AutomationProperties.Name="{x:Bind app:T.SourcesOrder}" Margin="-12,0,0,0" />
           <TextBlock x:Name="Note" Style="{StaticResource HazeBodyStyle}" Visibility="Collapsed" />
-          <TextBlock Text="anistream hosts no content." Style="{StaticResource HazeCaptionStyle}" Margin="0,8,0,0" />
+          <TextBlock Text="{x:Bind app:T.LegalHostsNoContent}" Style="{StaticResource HazeCaptionStyle}" Margin="0,8,0,0" />
         </StackPanel>
       </ScrollViewer>
       <ScrollViewer x:Name="DetailScroll" Grid.Column="1" VerticalScrollBarVisibility="Auto">

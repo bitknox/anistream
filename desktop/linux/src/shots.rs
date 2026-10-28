@@ -386,7 +386,11 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         "pad-continue" => {
             shell.go(Dest::Continue);
-            pad_press(shell, &[PadButton::DpadDown, PadButton::DpadDown, PadButton::DpadDown], 1500);
+            pad_press(
+                shell,
+                &[PadButton::DpadDown, PadButton::DpadDown, PadButton::DpadDown],
+                1500,
+            );
             3.0
         }
         "pad-title" => {

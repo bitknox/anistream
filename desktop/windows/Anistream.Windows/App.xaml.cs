@@ -21,8 +21,9 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        StringResources.Install();
-        window = new MainWindow(Options.Parse(Environment.GetCommandLineArgs().Skip(1)));
+        var options = Options.Parse(Environment.GetCommandLineArgs().Skip(1));
+        StringResources.Install(options.Language, options.Fixture);
+        window = new MainWindow(options);
         window.Activate();
     }
 }

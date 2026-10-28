@@ -258,4 +258,3 @@ impl Manette {
         Some(Self { _handler: handler })
     }
 }
-

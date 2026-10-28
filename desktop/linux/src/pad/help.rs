@@ -10,14 +10,14 @@ use crate::window::Ctx;
 /// The button as its cap reads. The letters and shoulder names are the controller's own marks.
 fn name(button: PadButton) -> String {
     match button {
-        PadButton::South => "A".to_owned(),         // i18n-skip
-        PadButton::East => "B".to_owned(),          // i18n-skip
-        PadButton::West => "X".to_owned(),          // i18n-skip
-        PadButton::North => "Y".to_owned(),         // i18n-skip
-        PadButton::LeftShoulder => "L1".to_owned(), // i18n-skip
+        PadButton::South => "A".to_owned(),          // i18n-skip
+        PadButton::East => "B".to_owned(),           // i18n-skip
+        PadButton::West => "X".to_owned(),           // i18n-skip
+        PadButton::North => "Y".to_owned(),          // i18n-skip
+        PadButton::LeftShoulder => "L1".to_owned(),  // i18n-skip
         PadButton::RightShoulder => "R1".to_owned(), // i18n-skip
-        PadButton::LeftTrigger => "L2".to_owned(),  // i18n-skip
-        PadButton::RightTrigger => "R2".to_owned(), // i18n-skip
+        PadButton::LeftTrigger => "L2".to_owned(),   // i18n-skip
+        PadButton::RightTrigger => "R2".to_owned(),  // i18n-skip
         PadButton::DpadUp => t::pad_button_dpad_up(),
         PadButton::DpadDown => t::pad_button_dpad_down(),
         PadButton::DpadLeft => t::pad_button_dpad_left(),
@@ -33,9 +33,10 @@ fn name(button: PadButton) -> String {
 fn rows(context: &PadContext) -> Vec<(String, String)> {
     let help = pad_help(context);
     let moves = t::pad_help_move();
-    let all_move = [PadButton::DpadUp, PadButton::DpadDown, PadButton::DpadLeft, PadButton::DpadRight]
-        .iter()
-        .all(|b| help.iter().any(|(button, words)| button == b && *words == moves));
+    let all_move =
+        [PadButton::DpadUp, PadButton::DpadDown, PadButton::DpadLeft, PadButton::DpadRight]
+            .iter()
+            .all(|b| help.iter().any(|(button, words)| button == b && *words == moves));
     let mut rows = Vec::new();
     if all_move {
         rows.push((t::pad_button_dpad(), moves.clone()));
@@ -43,7 +44,10 @@ fn rows(context: &PadContext) -> Vec<(String, String)> {
     for (button, words) in help {
         let dpad = matches!(
             button,
-            PadButton::DpadUp | PadButton::DpadDown | PadButton::DpadLeft | PadButton::DpadRight
+            PadButton::DpadUp
+                | PadButton::DpadDown
+                | PadButton::DpadLeft
+                | PadButton::DpadRight
         );
         if dpad && all_move {
             continue;
@@ -72,7 +76,10 @@ pub fn show(ctx: &Ctx, context: &PadContext) {
                 t::settings_group_player(),
                 PadContext::Player { controls_shown: false, card: None },
             ),
-            (t::pad_help_controls_shown(), PadContext::Player { controls_shown: true, card: None }),
+            (
+                t::pad_help_controls_shown(),
+                PadContext::Player { controls_shown: true, card: None },
+            ),
         ],
     };
     for (title, context) in groups {

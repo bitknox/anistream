@@ -563,8 +563,9 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
     }
 
     let remaining = area.bottom().saturating_sub(y).saturating_sub(2) as usize;
-    for (i, line) in
-        wrap(&entry.synopsis, area.width as usize, remaining).into_iter().enumerate()
+    for (i, line) in wrap(&entry.synopsis.replace('\n', " "), area.width as usize, remaining)
+        .into_iter()
+        .enumerate()
     {
         buf.set_string(area.left(), y + i as u16, line, app.palette.style(Role::TextDim));
     }

@@ -2093,6 +2093,30 @@
         }
       }
     },
+    "close-dont-ask" : {
+      "comment" : "Checkbox of the close question.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't ask again"
+          }
+        }
+      }
+    },
+    "close-keep-going" : {
+      "comment" : "Response of the close question: keep it running in the background.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep going"
+          }
+        }
+      }
+    },
     "continue-airing-today" : {
       "comment" : "Header for the strip of shows that air today.",
       "extractionState" : "manual",
@@ -3407,6 +3431,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Filler"
+          }
+        }
+      }
+    },
+    "episode-line-dubbed" : {
+      "comment" : "An episode's line with the audio it was watched in marked, as Continue and the title page word it. Argument 1: line (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Dubbed"
           }
         }
       }
@@ -7949,6 +7985,18 @@
         }
       }
     },
+    "party-looking-sources" : {
+      "comment" : "Line while the sources are searched for the watch party's episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking through your sources…"
+          }
+        }
+      }
+    },
     "party-member-no-file" : {
       "comment" : "Note on a member who has nothing open.",
       "extractionState" : "manual",
@@ -8017,6 +8065,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ (you)"
+          }
+        }
+      }
+    },
+    "party-needs-connection" : {
+      "comment" : "Foot of the watch party form while the device is offline.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A watch party needs a connection. You're offline."
           }
         }
       }
@@ -8137,6 +8197,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Watch party…"
+          }
+        }
+      }
+    },
+    "party-open-sources" : {
+      "comment" : "Button that goes to the Sources page, when the watch party's episode has no source because none are set up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open sources"
           }
         }
       }
@@ -11057,6 +11129,18 @@
         }
       }
     },
+    "settings-seeding-open-only" : {
+      "comment" : "Line under the seeding group in Settings: seeding stops when the app closes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seeding runs only while anistream is open."
+          }
+        }
+      }
+    },
     "settings-show-in-files" : {
       "comment" : "Row: show the file in the file manager.",
       "extractionState" : "manual",
@@ -11341,6 +11425,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Downloads wait for Wi-Fi"
+          }
+        }
+      }
+    },
+    "shortcuts-context-menu" : {
+      "comment" : "Shortcut: open the context menu of the title that has focus.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Context menu"
+          }
+        }
+      }
+    },
+    "shortcuts-mute" : {
+      "comment" : "Shortcut: mute the sound.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute"
+          }
+        }
+      }
+    },
+    "shortcuts-next-previous" : {
+      "comment" : "Shortcut: move between episodes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next or previous episode"
+          }
+        }
+      }
+    },
+    "shortcuts-play-pause" : {
+      "comment" : "Shortcut: pause or resume.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play or pause"
+          }
+        }
+      }
+    },
+    "shortcuts-title" : {
+      "comment" : "Title of the keyboard shortcuts window.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyboard shortcuts"
           }
         }
       }
@@ -16419,6 +16563,18 @@
         }
       }
     },
+    "tv-paired-seen" : {
+      "comment" : "Settings line of a paired TV: paired on a date, last seen a while ago. Argument 1: paired (Text). Argument 2: ago (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · seen %2$@"
+          }
+        }
+      }
+    },
     "tv-pairing-code" : {
       "comment" : "Accessibility label of the pairing code field.",
       "extractionState" : "manual",
@@ -16499,6 +16655,126 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Play on TV…"
+          }
+        }
+      }
+    },
+    "tv-problem-busy" : {
+      "comment" : "The TV cannot take another connection now.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV is connected to as many devices as it can. Try again soon."
+          }
+        }
+      }
+    },
+    "tv-problem-full" : {
+      "comment" : "The TV cannot take another paired device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes."
+          }
+        }
+      }
+    },
+    "tv-problem-gone" : {
+      "comment" : "The TV picked in the list has left the network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That TV is no longer on the network."
+          }
+        }
+      }
+    },
+    "tv-problem-key-changed" : {
+      "comment" : "The TV's key changed since pairing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV was reset or reinstalled since you paired. Pair again."
+          }
+        }
+      }
+    },
+    "tv-problem-not-a-link" : {
+      "comment" : "What was typed or scanned is not a TV's code or address.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That isn't a TV's pairing code or address."
+          }
+        }
+      }
+    },
+    "tv-problem-not-now" : {
+      "comment" : "A command needs something playing and nothing is.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is playing on the TV."
+          }
+        }
+      }
+    },
+    "tv-problem-unpaired" : {
+      "comment" : "The TV has forgotten this computer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV doesn't know this device any more. Pair again."
+          }
+        }
+      }
+    },
+    "tv-problem-unreachable" : {
+      "comment" : "The TV did not answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't reach the TV. Check that it's on, with anistream open, on the same network."
+          }
+        }
+      }
+    },
+    "tv-problem-version" : {
+      "comment" : "The TV and this app speak different versions.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV runs another version of anistream. Update both to the same one."
+          }
+        }
+      }
+    },
+    "tv-problem-wrong-code" : {
+      "comment" : "The pairing code typed did not match.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That code didn't match. Check the code on the TV and try again."
           }
         }
       }
@@ -16731,6 +17007,42 @@
         }
       }
     },
+    "tv-volume-down" : {
+      "comment" : "Accessible label of the button that turns the TV down.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume down"
+          }
+        }
+      }
+    },
+    "tv-volume-of" : {
+      "comment" : "The TV's volume as a value of 100. Argument 1: volume (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of 100"
+          }
+        }
+      }
+    },
+    "tv-volume-up" : {
+      "comment" : "Accessible label of the button that turns the TV up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume up"
+          }
+        }
+      }
+    },
     "updates-allow-once" : {
       "comment" : "Line the first time. The path is the Android settings path. Argument 1: path (Text).",
       "extractionState" : "manual",
@@ -16923,6 +17235,18 @@
         }
       }
     },
+    "updates-download" : {
+      "comment" : "Button that downloads the new version of the app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download update"
+          }
+        }
+      }
+    },
     "updates-downloading" : {
       "comment" : "Line while downloading, with the version. Argument 1: version (Text).",
       "extractionState" : "manual",
@@ -17099,6 +17423,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Version %1$@ is ready to install"
+          }
+        }
+      }
+    },
+    "updates-restart" : {
+      "comment" : "Button that closes the app and opens the new version it has put in place.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart to update"
           }
         }
       }

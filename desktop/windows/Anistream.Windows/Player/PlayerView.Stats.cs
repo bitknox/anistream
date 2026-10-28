@@ -85,7 +85,7 @@ public sealed partial class PlayerView
         catch (Exception e)
         {
             AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"the clipboard refused the stats: {e.Message}");
-            Alert("Couldn't copy the stats");
+            Alert(T.PlayerStatsCopyFailed);
             return;
         }
         if (stats.Copied())
@@ -177,7 +177,7 @@ public sealed partial class PlayerView
             if (value.Text != row.Value)
             {
                 value.Text = row.Value;
-                AutomationProperties.SetName(value, $"{row.Label}: {row.Value}");
+                AutomationProperties.SetName(value, T.PlayerStatsRow(row.Label, row.Value));
                 if (value.IsTextTrimmed)
                     ToolTipService.SetToolTip(value, row.Value);
             }
@@ -218,7 +218,7 @@ public sealed partial class PlayerView
     /// <summary>Settings' Stats for nerds, a check that follows I and the close button.</summary>
     ToggleMenuFlyoutItem StatsItem()
     {
-        statsItem = new ToggleMenuFlyoutItem { Text = "Stats for nerds", IsChecked = stats.Shown, KeyboardAcceleratorTextOverride = "I" };
+        statsItem = new ToggleMenuFlyoutItem { Text = T.PlayerStats, IsChecked = stats.Shown, KeyboardAcceleratorTextOverride = "I" };
         statsItem.Click += (_, _) =>
         {
             if (statsItem.IsChecked != stats.Shown)

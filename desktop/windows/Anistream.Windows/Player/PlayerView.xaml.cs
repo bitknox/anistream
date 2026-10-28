@@ -82,6 +82,7 @@ public sealed partial class PlayerView : UserControl
     public PlayerView()
     {
         InitializeComponent();
+        ToolTips();
         click = DispatcherQueue.GetForCurrentThread().CreateTimer();
         click.Interval = TimeSpan.FromMilliseconds(GetDoubleClickTime());
         click.IsRepeating = false;
@@ -246,7 +247,7 @@ public sealed partial class PlayerView : UserControl
                     if (volumeFlash)
                     {
                         volumeFlash = false;
-                        ShowFlash(volume <= 0 ? "Muted" : $"Volume {Math.Round(volume)}%");
+                        ShowFlash(volume <= 0 ? T.PlayerMuted : T.PlayerVolumeLevel(Wording.Percent(Math.Round(volume))));
                     }
                     break;
             }
@@ -270,7 +271,7 @@ public sealed partial class PlayerView : UserControl
                 if (ctx is { } c && !c.Known.Dubbed.ContainsKey(s.Id))
                     c.Send(new Command.LoadDub(s.Id));
                 ShowTitle.Text = s.Title;
-                EpisodeTitle.Text = s.EpisodeTitle is { Length: > 0 } t ? $"Episode {s.EpisodeValue} · {t}" : $"Episode {s.EpisodeValue}";
+                EpisodeTitle.Text = Lines.EpisodeNamed(s.EpisodeValue, s.EpisodeTitle);
                 StartingShow.Text = s.Title;
                 startingEpisode = playingEpisode = s.EpisodeValue;
                 ShowTvButton();
@@ -290,9 +291,8 @@ public sealed partial class PlayerView : UserControl
                 BuildMenus();
                 break;
             case PlayerUi.Skip skip:
-                var part = Words.Sentence(skip.Kind.ToString()).ToLowerInvariant();
-                SkipCard.Content = $"Skip {part}";
-                skipDone = $"Skipped {part}";
+                SkipCard.Content = skip.Kind == SkipKind.Opening ? T.PlayerSkipOpening : T.PlayerSkipEnding;
+                skipDone = Skipped(skip.Kind);
                 skipShown = true;
                 UpdateCorner();
                 break;
@@ -301,14 +301,14 @@ public sealed partial class PlayerView : UserControl
                 UpdateCorner();
                 break;
             case PlayerUi.AutoSkipped auto:
-                undo = new Undoable(auto.UndoTo, $"Skipped {Words.Sentence(auto.Kind.ToString()).ToLowerInvariant()}");
+                undo = new Undoable(auto.UndoTo, Skipped(auto.Kind));
                 UndoLine.Text = undo.Line;
                 UpdateCorner();
                 break;
             case PlayerUi.UpNext when HoldUpNext:
                 break;
             case PlayerUi.UpNext next:
-                UpNextTitle.Text = next.Next.Title is { Length: > 0 } nt ? $"Episode {next.Next.Number} · {nt}" : $"Episode {next.Next.Number}";
+                UpNextTitle.Text = Lines.EpisodeNamed(next.Next.Number, next.Next.Title);
                 upNext = new Coming(next.Auto, next.EndingAt, next.Countdown);
                 UpNextStill.Source = null;
                 UpNextStillFrame.Visibility = next.Next.Thumbnail is null ? Visibility.Collapsed : Visibility.Visible;
@@ -323,7 +323,7 @@ public sealed partial class PlayerView : UserControl
             case PlayerUi.Stall stall:
                 stallBase = stall.Seconds;
                 stallSince.Restart();
-                StallLine.Text = $"Source is buffering · {stall.Seconds} s";
+                StallLine.Text = T.PlayerStallTitle((long)stall.Seconds);
                 stallShown = true;
                 UpdateCorner();
                 break;
@@ -363,7 +363,7 @@ public sealed partial class PlayerView : UserControl
     }
 
     /// <summary>
-    /// The corner's one card, by rank: the stall prompt, the Undo note, Up Next, the Skip button.
+    /// The corner's one card, by rank: the stall prompt, the Undo note, Up next, the Skip button.
     /// A change fades the old card out and the new one in (standard) and announces the new one once.
     /// </summary>
     void UpdateCorner()
@@ -405,7 +405,7 @@ public sealed partial class PlayerView : UserControl
     {
         startingShown = true;
         startingFrom = Stopwatch.GetTimestamp();
-        StartingLine.Text = $"Starting episode {startingEpisode}";
+        StartingLine.Text = Lines.Starting(startingEpisode);
         StartingRing.Visibility = Visibility.Visible;
         StartingChoices.Visibility = Visibility.Collapsed;
         Motion.Set(Starting, true);
@@ -418,18 +418,18 @@ public sealed partial class PlayerView : UserControl
         var waited = Stopwatch.GetElapsedTime(startingFrom).TotalSeconds;
         if (waited >= 20)
         {
-            StartingLine.Text = $"Couldn't start episode {startingEpisode}";
+            StartingLine.Text = Lines.StartFailed(startingEpisode);
             StartingRing.Visibility = Visibility.Collapsed;
             // The source menu, once the player has one; before that, the next stream, as the stall card does.
             var listed = menus is { Sources.Length: > 0 };
-            StartingChoose.Content = listed ? "Choose source" : "Switch source";
+            StartingChoose.Content = listed ? T.PlayerChooseSource : T.PlayerSwitchSource;
             StartingChoose.Flyout = listed ? StartingSources : null;
             StartingChoices.Visibility = Visibility.Visible;
             Announce(StartingLine);
             ShowPointer();
         }
         else if (waited >= 3)
-            StartingLine.Text = $"Finding a source · {(int)waited} s";
+            StartingLine.Text = T.PlayerFindingSource((long)waited);
     }
 
     void OnStartingStop(object sender, RoutedEventArgs e) => Close();
@@ -462,7 +462,7 @@ public sealed partial class PlayerView : UserControl
     void CornerClock()
     {
         if (stallShown)
-            StallLine.Text = $"Source is buffering · {stallBase + (ulong)stallSince.Elapsed.TotalSeconds} s";
+            StallLine.Text = T.PlayerStallTitle((long)(stallBase + (ulong)stallSince.Elapsed.TotalSeconds));
         if (undo is { } u)
         {
             if (paused)
@@ -597,7 +597,8 @@ public sealed partial class PlayerView : UserControl
         }
         paused = state.Paused;
         PlayPauseIcon.Glyph = paused ? "" : "";
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(PlayPause, paused ? "Play" : "Pause");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(PlayPause, paused ? T.ActionPlay : T.ActionPause);
+        ToolTipService.SetToolTip(PlayPause, T.TooltipWithKey(paused ? T.ActionPlay : T.ActionPause, "Space"));
         if (paused)
             ShowControls();
         else if (chromeShown && !idle.IsRunning)
@@ -611,7 +612,8 @@ public sealed partial class PlayerView : UserControl
         }
         Elapsed.Text = AnistreamFfiMethods.PlayClock(position);
         Remaining.Text = "-" + AnistreamFfiMethods.PlayClock(Math.Max(0, duration - position));
-        var status = $"{(paused ? "Paused" : "Playing")}, {Elapsed.Text} of {AnistreamFfiMethods.PlayClock(duration)}";
+        var total = AnistreamFfiMethods.PlayClock(duration);
+        var status = paused ? T.PlayerTimelinePaused(Elapsed.Text, total) : T.PlayerTimelinePlaying(Elapsed.Text, total);
         if (status != timelineStatus)
         {
             timelineStatus = status;
@@ -758,7 +760,7 @@ public sealed partial class PlayerView : UserControl
     void OnBarExited(object sender, PointerRoutedEventArgs e) => overBar = false;
     void OnMenuOpened(object? sender, object e) => menuOpen = true;
 
-    // Watch together.
+    // Watch party.
 
     PartyPanel? partyPanel;
 
@@ -801,13 +803,30 @@ public sealed partial class PlayerView : UserControl
         c.Tv.Offer(new TvPlay(playingId, ShowTitle.Text, playingEpisode, position > 5 ? position : null, FromPlayer: true));
     }
 
+    static string Skipped(SkipKind kind) => kind == SkipKind.Opening ? T.PlayerSkippedOpening : T.PlayerSkippedEnding;
+
+    /// <summary>The buttons' tooltips, each with its key: "Episodes (E)".</summary>
+    void ToolTips()
+    {
+        ToolTipService.SetToolTip(BackButton, T.TooltipWithKey(T.ActionBack, "Alt+Left"));
+        ToolTipService.SetToolTip(TracksButton, T.TooltipWithKey(T.PlayerSubtitlesAndAudio, "T"));
+        ToolTipService.SetToolTip(EpisodesButton, T.TooltipWithKey(T.PlayerEpisodes, "E"));
+        ToolTipService.SetToolTip(MiniButton, T.TooltipWithKey(T.PlayerMiniPlayer, "P"));
+        ToolTipService.SetToolTip(FullscreenButton, T.TooltipWithKey(T.PlayerFullscreen, "F"));
+        ToolTipService.SetToolTip(PlayPause, T.TooltipWithKey(T.ActionPause, "Space"));
+        ToolTipService.SetToolTip(Back10Button, T.TooltipWithKey(T.PlayerBack10, "J"));
+        ToolTipService.SetToolTip(Forward10Button, T.TooltipWithKey(T.PlayerForward10, "L"));
+        ToolTipService.SetToolTip(StatsClose, T.TooltipWithKey(T.ActionClose, "I"));
+        ToolTipService.SetToolTip(UndoButton, T.TooltipWithKey(T.ActionUndo, "U"));
+        MiniTip.Subtitle = T.PlayerMiniTip("P");
+    }
+
     void ShowPartyButton()
     {
         var inParty = ctx?.Known.Party is not null;
         PartyDot.Opacity = inParty ? 1 : 0;
-        var name = inParty ? "Watch party" : "Watch together";
-        ToolTipService.SetToolTip(PartyButton, name);
-        AutomationProperties.SetName(PartyButton, name);
+        ToolTipService.SetToolTip(PartyButton, T.PartyTitle);
+        AutomationProperties.SetName(PartyButton, T.PartyTitle);
     }
 
     void OnMenuClosed(object? sender, object e)
@@ -883,7 +902,7 @@ public sealed partial class PlayerView : UserControl
     void OnCancelNext(object sender, RoutedEventArgs e) => CancelNext();
 
     /// <summary>
-    /// Up Next as the engine hands it over: the card shows from where the ending starts (or near
+    /// Up next as the engine hands it over: the card shows from where the ending starts (or near
     /// the end of the file when that is not known), and its countdown runs on the playhead from
     /// there; at zero this sends PlayNext, once.
     /// </summary>
@@ -921,7 +940,7 @@ public sealed partial class PlayerView : UserControl
         if (left is { } l)
         {
             UpNextBar.Value = l / card.Countdown;
-            UpNextLine.Text = $"Plays in {Math.Ceiling(l)} s";
+            UpNextLine.Text = T.PlayerPlaysIn((long)Math.Ceiling(l));
             if (l <= 0)
                 PlayNext(auto: true);
         }
@@ -998,7 +1017,7 @@ public sealed partial class PlayerView : UserControl
         TracksMenu.Items.Clear();
         // Both, when the source says the show has a dub, or the dub is what plays.
         if (menus is { } m && (m.Translation == Engine.Core.Translation.Dub || ctx?.Known.Dubbed.GetValueOrDefault(playingId) == true))
-            foreach (var (translation, label) in new[] { (Engine.Core.Translation.Sub, "Sub"), (Engine.Core.Translation.Dub, "Dub") })
+            foreach (var (translation, label) in new[] { (Engine.Core.Translation.Sub, T.AudioSubbed), (Engine.Core.Translation.Dub, T.AudioDubbed) })
             {
                 var item = new RadioMenuFlyoutItem { Text = label, GroupName = "translation", IsChecked = m.Translation == translation };
                 item.Click += (_, _) => Send(new PlayerCommand.Choose(new PlayerChoice.Translation(translation)));
@@ -1011,8 +1030,8 @@ public sealed partial class PlayerView : UserControl
         if (TracksMenu.Items.Count > 0)
             TracksMenu.Items.Add(new MenuFlyoutSeparator());
 
-        var subs = new MenuFlyoutSubItem { Text = "Subtitles" };
-        var off = new RadioMenuFlyoutItem { Text = "Off", GroupName = "subtitles", IsChecked = !subtitles.Any(t => t.Selected) };
+        var subs = new MenuFlyoutSubItem { Text = T.PlayerSubtitles };
+        var off = new RadioMenuFlyoutItem { Text = T.ValueOff, GroupName = "subtitles", IsChecked = !subtitles.Any(t => t.Selected) };
         off.Click += (_, _) => Send(new PlayerCommand.ChooseTrack(TrackKind.Subtitle, null));
         subs.Items.Add(off);
         foreach (var track in subtitles)
@@ -1021,7 +1040,7 @@ public sealed partial class PlayerView : UserControl
         subs.Items.Add(LoadItem(TrackKind.Subtitle));
         TracksMenu.Items.Add(subs);
 
-        var sound = new MenuFlyoutSubItem { Text = "Audio" };
+        var sound = new MenuFlyoutSubItem { Text = T.PlayerAudio };
         foreach (var track in audio)
             sound.Items.Add(TrackItem(track, "audio"));
         if (audio.Length > 0)
@@ -1032,7 +1051,7 @@ public sealed partial class PlayerView : UserControl
 
     MenuFlyoutItem LoadItem(TrackKind kind)
     {
-        var item = new MenuFlyoutItem { Text = kind == TrackKind.Subtitle ? "Load Subtitle File…" : "Load Audio File…" };
+        var item = new MenuFlyoutItem { Text = kind == TrackKind.Subtitle ? T.PlayerLoadSubtitleFile : T.PlayerLoadAudioFile };
         item.Click += (_, _) => LoadTrack(kind);
         return item;
     }
@@ -1041,7 +1060,7 @@ public sealed partial class PlayerView : UserControl
     static readonly string[] AudioFiles = [".mka", ".m4a", ".aac", ".ac3", ".eac3", ".flac", ".mp3", ".ogg", ".opus", ".wav"];
 
     /// <summary>
-    /// Load Subtitle File… or Load Audio File…: the system's file picker, then mpv adds the file
+    /// Load subtitle file… or Load audio file…: the system's file picker, then mpv adds the file
     /// as a track and selects it. mpv's alone, so the next episode does not carry it. Cancelling
     /// the picker says nothing.
     /// </summary>
@@ -1055,7 +1074,7 @@ public sealed partial class PlayerView : UserControl
         {
             var picker = new Microsoft.Windows.Storage.Pickers.FileOpenPicker(ctx.Window.AppWindow.Id)
             {
-                CommitButtonText = subtitle ? "Load Subtitles" : "Load Audio",
+                CommitButtonText = subtitle ? T.PlayerLoadSubtitlesCommit : T.PlayerLoadAudioCommit,
                 SuggestedStartLocation = Microsoft.Windows.Storage.Pickers.PickerLocationId.Downloads,
             };
             foreach (var extension in subtitle ? SubtitleFiles : AudioFiles)
@@ -1065,7 +1084,7 @@ public sealed partial class PlayerView : UserControl
         catch (Exception e)
         {
             AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"the file picker failed: {e.Message}");
-            Alert("Couldn't open the file picker");
+            Alert(T.PlayerFilePickerFailed);
             return;
         }
         if (path is not { Length: > 0 })
@@ -1078,7 +1097,7 @@ public sealed partial class PlayerView : UserControl
         catch (FfiException e)
         {
             AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"mpv did not load the track: {e.Message}");
-            Alert(subtitle ? "Couldn't load that subtitle file" : "Couldn't load that audio file");
+            Alert(subtitle ? T.PlayerSubtitleFileFailed : T.PlayerAudioFileFailed);
         }
         ShowControls();
     }
@@ -1099,8 +1118,8 @@ public sealed partial class PlayerView : UserControl
     /// <summary>"English · Signs &amp; Songs": the language, then the track's own words when it has any.</summary>
     static string TrackLabel(FfiTrack track)
     {
-        var name = AnistreamFfiMethods.TrackName(track.Language, track.Title ?? "");
-        return track.External ? $"{name} · Added" : name;
+        var name = Wording.TrackName(track.Language, track.Title ?? "");
+        return track.External ? T.PlayerTrackAdded(name) : name;
     }
 
     void BuildMenus()
@@ -1112,7 +1131,7 @@ public sealed partial class PlayerView : UserControl
         {
             var item = new ToggleMenuFlyoutItem
             {
-                Text = ep.Title is { Length: > 0 } t ? $"{ep.Label} · {t}" : ep.Label,
+                Text = Lines.Episode(ep.Label, ep.Title, null),
                 IsChecked = ep.Current,
             };
             var number = ep.Number;
@@ -1126,7 +1145,7 @@ public sealed partial class PlayerView : UserControl
         SettingsMenu.Items.Clear();
         if (menus.Sources.Length > 0)
         {
-            var sources = new MenuFlyoutSubItem { Text = "Source" };
+            var sources = new MenuFlyoutSubItem { Text = T.PlayerSources };
             foreach (var source in menus.Sources)
             {
                 var item = new RadioMenuFlyoutItem { Text = source.Detail is { Length: > 0 } d ? $"{source.Label} · {d}" : source.Label, GroupName = "source", IsChecked = source.Current };
@@ -1136,7 +1155,7 @@ public sealed partial class PlayerView : UserControl
             }
             SettingsMenu.Items.Add(sources);
         }
-        var upscaling = new MenuFlyoutSubItem { Text = "Upscaling" };
+        var upscaling = new MenuFlyoutSubItem { Text = T.PlayerUpscaling };
         foreach (var choice in menus.Upscaling.Options ?? [])
         {
             var item = new RadioMenuFlyoutItem { Text = choice.Label, GroupName = "upscaling", IsChecked = choice.Id == menus.Upscaling.Current };
@@ -1145,10 +1164,10 @@ public sealed partial class PlayerView : UserControl
             upscaling.Items.Add(item);
         }
         SettingsMenu.Items.Add(upscaling);
-        var speed = new MenuFlyoutSubItem { Text = "Speed" };
+        var speed = new MenuFlyoutSubItem { Text = T.PlayerSpeed };
         foreach (var s in new[] { 0.75, 1.0, 1.25, 1.5, 2.0 })
         {
-            var item = new MenuFlyoutItem { Text = s == 1 ? "Normal" : $"{s.ToString(CultureInfo.InvariantCulture)}×" };
+            var item = new MenuFlyoutItem { Text = s == 1 ? T.PlayerSpeedNormal : T.PlayerSpeedValue(Wording.Number(s)) };
             item.Click += (_, _) =>
             {
                 this.speed = s;
@@ -1157,7 +1176,7 @@ public sealed partial class PlayerView : UserControl
             speed.Items.Add(item);
         }
         SettingsMenu.Items.Add(speed);
-        var night = new ToggleMenuFlyoutItem { Text = "Night mode", IsChecked = menus.NightMode };
+        var night = new ToggleMenuFlyoutItem { Text = T.PlayerNightMode, IsChecked = menus.NightMode };
         night.Click += (_, _) => Send(new PlayerCommand.NightMode(night.IsChecked));
         SettingsMenu.Items.Add(night);
         SettingsMenu.Items.Add(new MenuFlyoutSeparator());
@@ -1231,7 +1250,7 @@ public sealed partial class PlayerView : UserControl
     {
         speed = to;
         Send(new PlayerCommand.SpeedTo(to));
-        ShowFlash(to == 1 ? "Normal speed" : $"{to.ToString(CultureInfo.CurrentCulture)}×");
+        ShowFlash(to == 1 ? T.PlayerSpeedNormal : T.PlayerSpeedValue(Wording.Number(to)));
     }
 
     void OpenMenu(Button button)
@@ -1265,7 +1284,7 @@ public sealed partial class PlayerView : UserControl
             Send(new PlayerCommand.TakeSkip());
     });
 
-    /// <summary>Esc: cancel Up Next or the stall prompt, then leave fullscreen, then close.</summary>
+    /// <summary>Esc: cancel Up next or the stall prompt, then leave fullscreen, then close.</summary>
     void OnKeyEscape(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () =>
     {
         if (still.Asking)
@@ -1297,7 +1316,7 @@ public sealed partial class PlayerView : UserControl
 
     void AskStillWatching()
     {
-        StillLine.Text = $"Paused after {still.After} episodes in a row.";
+        StillLine.Text = T.PlayerStillWatchingDetail(still.After);
         Motion.Show(StillLayer);
         HideChrome();
         ShowPointer();
@@ -1351,7 +1370,7 @@ public sealed partial class PlayerView : UserControl
                 PreviewAtFraction(0.4);
                 break;
             case "undo":
-                undo = new Undoable(0, "Skipped opening") { Played = -600, Waited = -600 };
+                undo = new Undoable(0, T.PlayerSkippedOpening) { Played = -600, Waited = -600 };
                 UndoLine.Text = undo.Line;
                 UpdateCorner();
                 break;
@@ -1362,13 +1381,13 @@ public sealed partial class PlayerView : UserControl
                 UpdateCorner();
                 break;
             case "upnext":
-                UpNextTitle.Text = "Episode 2";
+                UpNextTitle.Text = T.EpisodeNumber(2);
                 UpNextStillFrame.Visibility = Visibility.Visible;
                 upNext = new Coming(false, position, 0);
                 ShowUpNext();
                 break;
             case "skip":
-                SkipCard.Content = "Skip opening";
+                SkipCard.Content = T.PlayerSkipOpening;
                 skipShown = true;
                 UpdateCorner();
                 break;
@@ -1432,7 +1451,7 @@ public sealed partial class PlayerView : UserControl
             case "stats-mini":
             case "subtitles":
             case "subtitles-mini":
-                // The short clip is near its end from the start: no Up Next card over the shot.
+                // The short clip is near its end from the start: no Up next card over the shot.
                 HoldUpNext = true;
                 upNext = null;
                 ShowUpNext();
@@ -1516,8 +1535,8 @@ public sealed partial class PlayerView : UserControl
         EpisodeTitle.Visibility = big;
         TopBar.Padding = on ? new Thickness(12, 6, 140, 6) : new Thickness(8, 8, 148, 8);
         MiniIcon.Glyph = on ? "\uE73F" : "\uE8A7";
-        ToolTipService.SetToolTip(MiniButton, on ? "Back to the window (P)" : "Mini player (P)");
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(MiniButton, on ? "Back to the window" : "Mini player");
+        ToolTipService.SetToolTip(MiniButton, T.TooltipWithKey(on ? T.PlayerMiniBack : T.PlayerMiniPlayer, "P"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(MiniButton, on ? T.PlayerMiniBack : T.PlayerMiniPlayer);
         if (on)
             ClosePreview();
         stats.Mini = on;

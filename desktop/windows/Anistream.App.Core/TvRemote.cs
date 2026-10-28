@@ -384,7 +384,7 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
     public FfiNowCard? Now => Starting is not { } asked
         ? Card?.Now
         : new FfiNowCard(
-            Id: asked.Id, Title: asked.Title, Episode: asked.Episode, EpisodeLine: $"Episode {asked.Episode}",
+            Id: asked.Id, Title: asked.Title, Episode: asked.Episode, EpisodeLine: T.EpisodeLabel(asked.Episode),
             Loading: true, Position: asked.From ?? 0, Duration: null, Paused: false, Speed: 1,
             Volume: Card?.Now?.Volume, Audio: [], Subtitles: [], SubtitlesOff: false, Skip: null);
 
@@ -485,42 +485,60 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
     }
 }
 
-/// <summary>What Play on TV says, in the Mac's words with this PC in place of the Mac.</summary>
+/// <summary>What Play on TV says, from the shared catalogue.</summary>
 public static class TvWords
 {
-    /// <summary>What a TV lists this PC as: the kind of device, never the name it was given, which is often its owner's.</summary>
+    /// <summary>
+    /// What a TV lists this PC as: the kind of device, never the name it was given, which is often
+    /// its owner's. Sent to the TV, which shows it as it is, so it is not translated here.
+    /// </summary>
     public const string Device = "PC";
 
-    public static string PickerTitle(TvPlay? request) => request is null ? "Pair a TV" : "Play on TV";
+    public static string PickerTitle(TvPlay? request) => request is null ? T.TvSheetTitlePair : T.TvPlayOn;
 
     public static string PickerLine(TvPlay? request) => request switch
     {
-        null => $"Open anistream on the TV. It needs to be on the same Wi-Fi as this {Device}.",
-        { Title.Length: 0 } => $"Episode {request.Episode}",
-        _ => $"{request.Title}, episode {request.Episode}",
+        null => T.TvOpenOnTv,
+        { Title.Length: 0 } => T.EpisodeLabel(request.Episode),
+        _ => T.TvPickerEpisodeOf(request.Title, request.Episode),
     };
 
     public static string PairingTitle(TvPairingStep step) =>
-        step.Typing ? $"Pair with {step.TvName}" : step.TvName.Length == 0 ? "Connecting to the TV" : $"Pairing with {step.TvName}";
+        step.Typing ? T.TvPairWith(step.TvName) : step.TvName.Length == 0 ? T.TvConnectingToTv : T.TvPairingWith(step.TvName);
 
     public static string PairingLine(TvPairingStep step) =>
-        step.Typing ? $"Type the six digits {step.TvName} shows. After this, this {Device} connects by itself." : "This takes a moment.";
+        step.Typing ? T.TvTypeCode(step.TvName) : T.TvPairingMoment;
 
-    public const string Looking = "Looking for TVs on this network";
-    public const string NoneFound = "No TVs found";
+    public static string Looking => T.TvLooking;
+    public static string NoneFound => T.TvNoneFound;
 
     /// <summary>What to check when no TV answers. The picker's line says it already when it is pairing, with nothing to play.</summary>
     public static string NoneLine(TvPlay? request) => request is null
-        ? "Check that anistream is open on the TV."
-        : $"Check that anistream is open on the TV, on the same Wi-Fi as this {Device}.";
+        ? T.TvNoneFoundShort
+        : T.TvNoneFoundDetail;
 
-    public const string Address = "The TV shows its address on its Pair a phone screen.";
-    public const string Nothing = "Choose Play on TV on an episode, or search on the TV from here.";
-    public const string StartingLine = "Starting on the TV";
+    public static string Address => T.TvAddressHint;
+    public static string Nothing => T.TvAfterPairing;
+    public static string StartingLine => T.TvStarting;
 
-    /// <summary>The engine's words for a failure, or its catch-all when it gave none.</summary>
-    public static string Of(Exception e) =>
-        e is FfiTvException.Failed failed ? failed.reason : "Something went wrong talking to the TV. Try again.";
+    /// <summary>
+    /// What to say when the TV link fails: the catalogue's line for the engine's problem.
+    /// </summary>
+    public static string Of(Exception e) => e is FfiTvException.Failed failed ? failed.problem switch
+    {
+        FfiTvProblem.WrongCode => T.TvProblemWrongCode,
+        FfiTvProblem.NoCode => T.TvProblemNoCode,
+        FfiTvProblem.Full => T.TvProblemFull,
+        FfiTvProblem.Busy => T.TvProblemBusy,
+        FfiTvProblem.Version => T.TvProblemVersion,
+        FfiTvProblem.NotNow => T.TvProblemNotNow,
+        FfiTvProblem.Unpaired => T.TvProblemUnpaired,
+        FfiTvProblem.KeyChanged => T.TvProblemKeyChanged,
+        FfiTvProblem.Unreachable => T.TvProblemUnreachable,
+        FfiTvProblem.Gone => T.TvProblemGone,
+        FfiTvProblem.NotALink => T.TvProblemNotALink,
+        _ => T.TvTalkFailed,
+    } : T.TvTalkFailed;
 
     /// <summary>A track as the card names it: its language in this PC's language, and its title.</summary>
     public static string Track(FfiTvTrack track, CultureInfo? culture = null)
@@ -528,10 +546,10 @@ public static class TvWords
         var language = Language(track.Language, culture ?? CultureInfo.CurrentUICulture);
         return (language, track.Title) switch
         {
-            ({ } l, { Length: > 0 } t) => $"{l} · {t}",
+            ({ } l, { Length: > 0 } t) => T.ShowSettingsTrackWith(l, t),
             ({ } l, _) => l,
             (null, { Length: > 0 } t) => t,
-            _ => $"Track {track.Id}",
+            _ => T.TvTrackN(track.Id),
         };
     }
 
@@ -551,12 +569,12 @@ public static class TvWords
     }
 
     public static string Chosen(FfiTvTrack[] tracks, bool off) =>
-        off ? "Off" : tracks.FirstOrDefault(t => t.Selected) is { } on ? Track(on) : "None";
+        off ? T.ValueOff : tracks.FirstOrDefault(t => t.Selected) is { } on ? Track(on) : T.ValueNone;
 
     public static string? Volume(FfiNowCard now) =>
-        now.Volume is { } v ? $"{(int)Math.Round(v)} of 100" : null;
+        now.Volume is { } v ? T.TvVolumeOf((long)Math.Round(v)) : null;
 
-    public static string Status(FfiRemoteCard? card) => card?.PhaseLine ?? "Connected";
+    public static string Status(FfiRemoteCard? card) => card?.PhaseLine ?? T.TvStatusConnected;
 
     /// <summary>
     /// What the title bar's button says: the TV and what it plays while the link is up, and how
@@ -564,14 +582,14 @@ public static class TvWords
     /// </summary>
     public static string BarLine(FfiRemoteCard card, bool playing) => card.Phase switch
     {
-        FfiLinkPhase.Connected => playing ? $"Playing on {card.TvName}" : card.TvName,
-        FfiLinkPhase.Connecting => $"Connecting to {card.TvName}",
-        FfiLinkPhase.Retrying => $"Reconnecting to {card.TvName}",
-        _ => $"Pair again with {card.TvName}",
+        FfiLinkPhase.Connected => playing ? T.TvStatusPlaying(card.TvName) : card.TvName,
+        FfiLinkPhase.Connecting => T.TvStatusConnecting(card.TvName),
+        FfiLinkPhase.Retrying => T.TvStatusReconnecting(card.TvName),
+        _ => T.TvPairAgainWith(card.TvName),
     };
 
     /// <summary>Pairing's way to a fresh code, the one way on once the code ran out.</summary>
-    public const string NewCode = "Get a new code";
+    public static string NewCode => T.ActionNewCode;
 
     /// <summary>The TV let this PC go: Pair again in place of Choose another TV.</summary>
     public static bool Lost(FfiRemoteCard? card) => card?.Phase is FfiLinkPhase.Unpaired or FfiLinkPhase.KeyChanged;
@@ -595,15 +613,15 @@ public static class TvWords
     public static string Note(FfiPairedTv tv, bool connected, DateTimeOffset now, CultureInfo? culture = null)
     {
         if (connected)
-            return $"Connected · {tv.Address}";
-        var paired = "Paired " + DateTimeOffset.FromUnixTimeSeconds(tv.PairedAt).ToLocalTime().ToString("d MMM", culture ?? CultureInfo.CurrentCulture);
-        return tv.LastSeen is { } seen ? $"{paired} · seen {AnistreamFfiMethods.Ago(Math.Max(0, now.ToUnixTimeSeconds() - seen))}" : paired;
+            return T.TvConnectedAt(tv.Address);
+        var paired = T.TvPairedOn(DateTimeOffset.FromUnixTimeSeconds(tv.PairedAt).ToLocalTime().ToString("d MMM", culture ?? CultureInfo.CurrentCulture));
+        return tv.LastSeen is { } seen ? T.TvPairedSeen(paired, Wording.Ago(Math.Max(0, now.ToUnixTimeSeconds() - seen))) : paired;
     }
 
     public static string Footnote(string shortFingerprint) =>
-        $"A TV lists this {Device} with the code {shortFingerprint}. Forget a TV here and it forgets this {Device} too.";
+        T.TvDeviceCode(shortFingerprint);
 
-    public const string PairNote = "Open anistream on the TV, on the same Wi-Fi, then pair with it here.";
+    public static string PairNote => T.TvNonePairedDetail;
 
     /// <summary>The six digits typed, once there are six.</summary>
     public static string? SixDigits(string typed)

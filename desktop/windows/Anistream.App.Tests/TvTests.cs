@@ -17,7 +17,7 @@ public class TvWordsTests
         Assert.Equal("Play on TV", TvWords.PickerTitle(new TvPlay(1, "Show", "3")));
         Assert.Equal("Show, episode 3", TvWords.PickerLine(new TvPlay(1, "Show", "3")));
         Assert.Equal("Episode 3", TvWords.PickerLine(new TvPlay(1, "", "3")));
-        Assert.Equal("Open anistream on the TV. It needs to be on the same Wi-Fi as this PC.", TvWords.PickerLine(null));
+        Assert.Equal("Open anistream on the TV. It needs to be on the same Wi-Fi as this device.", TvWords.PickerLine(null));
     }
 
     [Fact]
@@ -52,10 +52,10 @@ public class TvWordsTests
         Assert.False(TvWords.Lost(new FfiRemoteCard("TV", FfiLinkPhase.Retrying, null, new FfiScreen.Home(), null, 1)));
         FfiTvTrack[] tracks = [new(1, "ja", null, false), new(2, "en", "Signs", true)];
         var english = CultureInfo.GetCultureInfo("en-GB");
-        Assert.Equal("English · Signs", TvWords.Track(tracks[1], english));
+        Assert.Equal("English (Signs)", TvWords.Track(tracks[1], english));
         Assert.Equal("Off", TvWords.Chosen(tracks, off: true));
         Assert.Equal("Track 9", TvWords.Track(new FfiTvTrack(9, null, null, false), english));
-        Assert.Equal("A TV lists this PC with the code AB12. Forget a TV here and it forgets this PC too.", TvWords.Footnote("AB12"));
+        Assert.Equal("A TV lists this device with the code AB12. Forget a TV here and it forgets this device too.", TvWords.Footnote("AB12"));
     }
 
     [Fact]

@@ -10,7 +10,7 @@ using Microsoft.UI.Xaml.Navigation;
 namespace Anistream.Windows.Pages;
 
 /// <summary>
-/// Providers: the sources in the order failover tries them, moved by dragging or by Alt with the
+/// The Sources page: the sources in the order failover tries them, moved by dragging or by Alt with the
 /// up and down arrows, and the selected one's version, speed, what it may contact and what can be
 /// done to it: update, switch off, remove.
 /// </summary>
@@ -58,10 +58,10 @@ public sealed partial class ProvidersPage : Page
         Columns.Visibility = none ? Visibility.Collapsed : Visibility.Visible;
         if (none && NoSources.Child is null)
         {
-            var empty = States.Empty("No sources yet", "anistream ships no sources of its own. Sources come as plugins from a plugin store.", "Join a plugin store", () => ctx.Window.ShowJoinStore());
+            var empty = States.Empty(T.SourcesEmptyTitle, T.SourcesEmptyDetail, T.StoresJoinAction, () => ctx.Window.ShowJoinStore());
             if (empty.Children[^1] is Button join)
                 join.Style = Ui.Res<Style>("AccentButtonStyle");
-            var legal = Ui.Text("anistream hosts no content.", "HazeCaptionStyle");
+            var legal = Ui.Text(T.LegalHostsNoContent, "HazeCaptionStyle");
             legal.HorizontalAlignment = HorizontalAlignment.Center;
             legal.Margin = new Thickness(0, 16, 0, 0);
             empty.Children.Add(legal);
@@ -122,7 +122,7 @@ public sealed partial class ProvidersPage : Page
         else if (info.Update is not null)
         {
             line.Children.Add(Ui.Dot(Colours.Haze));
-            line.Children.Add(Ui.Text("Update", "HazeCaptionStyle", wrap: false));
+            line.Children.Add(Ui.Text(T.SourcesStatusUpdate, "HazeCaptionStyle", wrap: false));
         }
         return line;
     }
@@ -134,37 +134,35 @@ public sealed partial class ProvidersPage : Page
             return;
         var row = info.Row;
         Detail.Children.Add(Ui.Text(info.Name, "SubtitleTextBlockStyle"));
-        var meta = info.Origin;
-        if (row.Version is { Length: > 0 } version)
-            meta += $" · version {version}";
-        Detail.Children.Add(Ui.Haze(meta));
+        Detail.Children.Add(Ui.Haze(row.Version is { Length: > 0 } version ? T.SourcesOriginVersion(info.Origin, version) : info.Origin));
 
         var facts = new StackPanel { Spacing = 10 };
         var standing = Standing(info);
         var state = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        state.Children.Add(Ui.Text("Standing"));
-        state.Children.Add(standing.Children.Count > 0 ? standing : Ui.Haze("Working"));
+        state.Children.Add(Ui.Text(T.SourcesStanding));
+        state.Children.Add(standing.Children.Count > 0 ? standing : Ui.Haze(T.SourcesStatusWorking));
         facts.Children.Add(state);
-        if (row.State == "down" && row.LastError is { } error)
-            facts.Children.Add(Ui.Haze(char.ToUpperInvariant(error[0]) + error[1..]));
+        // The engine's error is English from deep in the request: the line says what it means.
+        if (row.State == "down" && row.LastError is not null)
+            facts.Children.Add(Ui.Haze(T.SourcesDetailSite));
         if (row.HeldBack)
-            facts.Children.Add(Ui.Haze("Held back until it answers again."));
+            facts.Children.Add(Ui.Haze(T.SourcesDetailHeldBack));
         if (!info.IsTorrent)
         {
             var hosts = info.Hosts.Count > 0 ? info.Hosts : row.Hosts ?? [];
-            facts.Children.Add(Ui.Haze(hosts.Count > 0 ? "Contacts " + string.Join(", ", hosts) : "Contacts no hosts"));
+            facts.Children.Add(Ui.Haze(hosts.Count > 0 ? T.SourcesContactsOne(string.Join(", ", hosts)) : T.SourcesContactsNone));
         }
         else
-            facts.Children.Add(Ui.Haze("Searches the torrent indexes you have turned on under Settings."));
+            facts.Children.Add(Ui.Haze(T.SourcesTorrentIndexes));
         Detail.Children.Add(Ui.Card(facts));
 
         if (info.Update is { } next && info.Store is { } store && info.Listing is { } listing)
         {
             var update = new StackPanel { Spacing = 8 };
-            update.Children.Add(Ui.Text($"Version {next} is ready", "BodyStrongTextBlockStyle"));
+            update.Children.Add(Ui.Text(T.SourcesVersionReady(next), "BodyStrongTextBlockStyle"));
             if (row.Update?.NewHosts is { Length: > 0 } added)
-                update.Children.Add(Ui.Haze("It would also contact " + string.Join(", ", added) + "."));
-            var install = Ui.Label("Update", (_, _) => ConfirmUpdate(info, store.Id, listing.Id, row.Update?.NewHosts ?? []), accent: true);
+                update.Children.Add(Ui.Haze(T.StoresUpdateContacts(string.Join(", ", added))));
+            var install = Ui.Label(T.ActionUpdate, (_, _) => ConfirmUpdate(info, store.Id, listing.Id, row.Update?.NewHosts ?? []), accent: true);
             install.HorizontalAlignment = HorizontalAlignment.Left;
             update.Children.Add(install);
             Detail.Children.Add(Ui.Card(update));
@@ -172,15 +170,15 @@ public sealed partial class ProvidersPage : Page
 
         if (info.IsPlugin)
         {
-            var off = new ToggleSwitch { IsOn = !row.Disabled, OnContent = "", OffContent = "", Header = "Use this source" };
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(off, $"{info.Name} on");
+            var off = new ToggleSwitch { IsOn = !row.Disabled, OnContent = "", OffContent = "", Header = T.SourcesUseThis };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(off, T.SourcesUseName(info.Name));
             off.Toggled += (_, _) =>
             {
                 if (!quiet)
                     ctx.Send(new Command.DisablePlugin(row.Id, !off.IsOn));
             };
             Detail.Children.Add(Ui.Card(off, 10));
-            var remove = Ui.Label("Remove", (_, _) => ConfirmRemove(info));
+            var remove = Ui.Label(T.ActionRemove, (_, _) => ConfirmRemove(info));
             remove.HorizontalAlignment = HorizontalAlignment.Left;
             Detail.Children.Add(remove);
         }
@@ -194,10 +192,10 @@ public sealed partial class ProvidersPage : Page
             var dialog = new ContentDialog
             {
                 XamlRoot = XamlRoot,
-                Title = $"Update {info.Name}?",
-                Content = Ui.Text($"This version would also contact {string.Join(", ", added)}.", "BodyTextBlockStyle"),
-                PrimaryButtonText = "Update",
-                CloseButtonText = "Cancel",
+                Title = T.SourcesUpdateTitle(info.Name),
+                Content = Ui.Text(T.StoresUpdateContacts(string.Join(", ", added)), "BodyTextBlockStyle"),
+                PrimaryButtonText = T.ActionUpdate,
+                CloseButtonText = T.ActionCancel,
                 DefaultButton = ContentDialogButton.Close,
             };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary)
@@ -224,10 +222,10 @@ public sealed partial class ProvidersPage : Page
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = $"Remove {info.Name}?",
-            Content = "It stops being tried for episodes. You can install it again from its store.",
-            PrimaryButtonText = "Remove",
-            CloseButtonText = "Cancel",
+            Title = T.StoresRemovePluginTitle(info.Name),
+            Content = T.SourcesRemoveDetail,
+            PrimaryButtonText = T.ActionRemove,
+            CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Close,
         };
         if (await dialog.ShowAsync() == ContentDialogResult.Primary)

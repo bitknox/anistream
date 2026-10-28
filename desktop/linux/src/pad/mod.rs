@@ -25,9 +25,7 @@ use std::{
 use adw::prelude::*;
 use anistream_i18n::t;
 use anistream_model::{
-    input::{
-        Direction, PadAction, PadButton, PadContext, StickDirections, pad_action,
-    },
+    input::{Direction, PadAction, PadButton, PadContext, StickDirections, pad_action},
     settings::SettingKey,
 };
 use gtk::{gdk, glib};
@@ -214,7 +212,8 @@ impl Pad {
             // The first motion only says where the pointer is.
             let Some((px, py)) = pad.pointer.replace(Some((x, y))) else { return };
             let moved = (x - px).abs() + (y - py).abs() > 2.0;
-            let settled = pad.entered.get().is_none_or(|at| at.elapsed() > Duration::from_millis(250));
+            let settled =
+                pad.entered.get().is_none_or(|at| at.elapsed() > Duration::from_millis(250));
             if moved && settled {
                 pad.leave(true);
             }
@@ -286,16 +285,21 @@ impl Pad {
                     return;
                 }
                 self.devices.borrow_mut().push((id, name.clone()));
-                self.ctx.controller_device.replace(self.devices.borrow().first().map(|d| d.1.clone()));
+                self.ctx
+                    .controller_device
+                    .replace(self.devices.borrow().first().map(|d| d.1.clone()));
                 self.ctx.controller_seen();
                 if !self.announced.replace(true) && self.enabled() {
                     self.ctx.toast(&t::controller_connected(&name));
                 }
             }
             Signal::Disconnected { id } => {
-                let was_in_use = self.devices.borrow().first().is_some_and(|(first, _)| *first == id);
+                let was_in_use =
+                    self.devices.borrow().first().is_some_and(|(first, _)| *first == id);
                 self.devices.borrow_mut().retain(|(known, _)| *known != id);
-                self.ctx.controller_device.replace(self.devices.borrow().first().map(|d| d.1.clone()));
+                self.ctx
+                    .controller_device
+                    .replace(self.devices.borrow().first().map(|d| d.1.clone()));
                 self.release_all();
                 if was_in_use && self.enabled() && self.in_controller_mode() {
                     self.ctx.toast(&t::controller_disconnected());
@@ -368,7 +372,11 @@ impl Pad {
                 if now != held[which] {
                     held[which] = now;
                     self.triggers.set(held);
-                    let button = if which == 0 { PadButton::LeftTrigger } else { PadButton::RightTrigger };
+                    let button = if which == 0 {
+                        PadButton::LeftTrigger
+                    } else {
+                        PadButton::RightTrigger
+                    };
                     self.button(button, now);
                 }
             }
@@ -407,7 +415,10 @@ impl Pad {
             _ => None,
         };
         if let Some(direction) = direction
-            && matches!(self.context(), PadContext::Browse | PadContext::Player { controls_shown: true, .. })
+            && matches!(
+                self.context(),
+                PadContext::Browse | PadContext::Player { controls_shown: true, .. }
+            )
         {
             self.direction(direction, pressed);
             return;
@@ -430,7 +441,9 @@ impl Pad {
     fn view_button(self: &Rc<Self>, pressed: bool) {
         let context = self.context();
         if pressed {
-            let Some(action) = pad_action(PadButton::Select, true, &context, false) else { return };
+            let Some(action) = pad_action(PadButton::Select, true, &context, false) else {
+                return;
+            };
             let weak = self.me.clone();
             let source = glib::timeout_add_local_once(HELP_AFTER, move || {
                 if let Some(pad) = weak.upgrade() {

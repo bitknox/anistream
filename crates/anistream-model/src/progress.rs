@@ -94,21 +94,37 @@ pub fn watch_entry(entry: &mut Entry, rows: Option<&[EpisodeRow]>, watch: &Watch
     let was_done = row(episode).is_some_and(|r| r.completed);
     // An episode the table knows and has never seen finished, which Continue moves to.
     let unfinished = row(episode).is_some_and(|r| !r.completed);
+    // A known episode count: past it there is nothing to offer, so a finished show starts over.
+    let total = entry.episodes.filter(|t| *t > 0);
+    let first = !was_done
+        && (entry.progress.is_none()
+            || rows_apply
+            || episode == entry.progress.map_or(1, |p| p.next).to_string());
+    let count = entry.progress.map_or(0, |p| p.done) + u32::from(first);
     let after = episode.trim().parse::<u32>().ok().map(|n| {
+        // The episode just finished counts, though the table is read before the watch lands.
+        let done = |k: u32| k == n || row(&k.to_string()).is_some_and(|r| r.completed);
         let mut next = n.saturating_add(1);
         // Bounded: an all-watched tail must still terminate.
-        while next - n < 1_000 && row(&next.to_string()).is_some_and(|r| r.completed) {
+        while next - n < 1_000 && done(next) {
             next += 1;
         }
-        // Past the table's last episode, the first one in it skipped.
-        let numbers =
-            || rows.iter().filter_map(|r| Some((r.number.trim().parse::<u32>().ok()?, r)));
-        if numbers().map(|(n, _)| n).max().is_some_and(|last| next > last)
-            && let Some((skipped, _)) = numbers().find(|(_, r)| !r.completed)
-        {
-            next = skipped;
+        let numbers = || rows.iter().filter_map(|r| r.number.trim().parse::<u32>().ok());
+        let past = numbers().max().is_some_and(|last| next > last)
+            || total.is_some_and(|total| next > total);
+        if !past {
+            return next;
         }
-        next
+        // Past the end: the first episode skipped, else (a known count) the first again.
+        match (numbers().filter(|k| !done(*k)).min(), total) {
+            (Some(skipped), _) => skipped,
+            (None, Some(total)) if rows_apply || count >= total => 1,
+            // No table to say what was skipped: stay where Continue was while that exists.
+            (None, Some(total)) => {
+                entry.progress.map_or(1, |p| if p.next <= total { p.next } else { 1 })
+            }
+            (None, None) => next,
+        }
     });
 
     let next_up = entry.progress.map_or(1, |p| p.next).to_string();
@@ -139,8 +155,7 @@ pub fn watch_entry(entry: &mut Entry, rows: Option<&[EpisodeRow]>, watch: &Watch
     // watch moves it — including the very first episode of a show with no history, and an
     // out-of-order catch-up the table can vouch for — where a rewatch leaves it alone. Continue
     // moves past the episode just finished either way.
-    let first = !was_done && (entry.progress.is_none() || rows_apply || episode == next_up);
-    let done = entry.progress.map_or(0, |p| p.done) + u32::from(first);
+    let done = count;
     let next = after.or(entry.progress.map(|p| p.next)).unwrap_or(done + 1);
     entry.progress = Some(TitleProgress { done, next });
     // Where the previous Continue episode was left is no longer what Continue offers.
