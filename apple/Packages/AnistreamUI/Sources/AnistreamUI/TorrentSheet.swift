@@ -30,13 +30,13 @@ struct TorrentSheet: View {
         let draft = Binding(get: { self.draft ?? TorrentDraft(store) }, set: { self.draft = $0 })
         let trial = store.providers.trial
         VStack(alignment: .leading, spacing: 0) {
-            Text(editing ? "Edit proxy" : turningOn ? "Turn on torrents" : "Protect torrents")
+            Text(editing ? L.torrentsSheetEditProxy : turningOn ? L.torrentsSheetTurnOn : L.torrentsSheetProtect)
                 .font(.mac(15, weight: .semibold))
                 .macLineHeight(20)
                 .foregroundStyle(.silk)
             Text(editing
                  ? ProtectionWords.editNote
-                 : "Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.")
+                 : L.torrentsRisk)
                 .font(.mac(13))
                 .macLineHeight(18)
                 .foregroundStyle(.silk)
@@ -68,7 +68,7 @@ struct TorrentSheet: View {
                 Button(L.actionCancel) { dismiss() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
-                Button(turningOn ? "Turn On" : "Save") {
+                Button(turningOn ? L.torrentsTurnOnButton : L.actionSave) {
                     if draft.wrappedValue.protection == TorrentProtection.none {
                         confirmingNone = true
                     } else {
@@ -91,7 +91,7 @@ struct TorrentSheet: View {
         }
         .modifier(TorrentSaving(checking: checking, draft: self.draft, mode: mode) { dismiss() })
         .confirmationDialog(ProtectionWords.noneTitle, isPresented: $confirmingNone, titleVisibility: .visible) {
-            Button("No Protection", role: .destructive) {
+            Button(L.torrentsProtectNone, role: .destructive) {
                 send(draft.wrappedValue)
             }
             Button(L.actionCancel, role: .cancel) {}
@@ -104,12 +104,12 @@ struct TorrentSheet: View {
     /// its choice, and what the check does.
     @ViewBuilder private func choices(_ draft: Binding<TorrentDraft>) -> some View {
         if turningOn {
-            label("Torrent index").padding(.top, 18)
-            field("https://…/?q={query}", text: draft.index).padding(.top, 6)
-            note("The RSS search address anistream asks for torrents. anistream hosts no content.").padding(.top, 6)
+            label(L.torrentsIndex).padding(.top, 18)
+            field(L.torrentsIndexHint, text: draft.index).padding(.top, 6)
+            note(L.torrentsIndexDetail + " " + L.legalHostsNoContent).padding(.top, 6)
         }
 
-        label("Protect with").padding(.top, 18)
+        label(L.torrentsProtectWith).padding(.top, 18)
         VStack(alignment: .leading, spacing: 10) {
             ForEach(ProtectionWords.order, id: \.self) { choice in
                 Button { draft.wrappedValue.protection = choice } label: {
@@ -131,12 +131,12 @@ struct TorrentSheet: View {
     private func proxyFields(_ draft: Binding<TorrentDraft>) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 12) {
-                labelled("Host") { field("proxy.example", text: draft.host) }
-                labelled("Port") { field("1080", text: draft.port) }.frame(width: 88)
+                labelled(L.torrentsProxyHost) { field("proxy.example", text: draft.host) }
+                labelled(L.torrentsProxyPort) { field("1080", text: draft.port) }.frame(width: 88)
             }
             HStack(spacing: 12) {
-                labelled("User name") { field("", text: draft.user) }
-                labelled("Password") { field("", text: draft.password, secure: true) }
+                labelled(L.torrentsProxyUser) { field("", text: draft.user) }
+                labelled(L.torrentsProxyPassword) { field("", text: draft.password, secure: true) }
             }
         }
         .disabled(store.providers.trial == .checking)

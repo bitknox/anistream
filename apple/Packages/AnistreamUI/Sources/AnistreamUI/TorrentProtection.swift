@@ -17,17 +17,17 @@ enum ProtectionWords {
     static func label(_ protection: TorrentProtection?) -> String {
         guard let protection else { return "–" }
         switch protection {
-        case .proxy: return "SOCKS5 proxy"
-        case .device: return "VPN on this device"
-        case TorrentProtection.none: return "No protection"
+        case .proxy: return L.torrentsProtectProxy
+        case .device: return L.torrentsProtectVpn
+        case TorrentProtection.none: return L.torrentsProtectNone
         }
     }
 
     static func detail(_ protection: TorrentProtection) -> String {
         switch protection {
-        case .proxy: "Torrent traffic goes through a proxy you run or rent."
-        case .device: "Uses the VPN already running on this \(Device.name)."
-        case TorrentProtection.none: "Your address is visible to everyone in the torrent."
+        case .proxy: L.torrentsProtectProxyDetail
+        case .device: L.torrentsProtectVpnDetail
+        case TorrentProtection.none: L.torrentsProtectNoneDetail
         }
     }
 
@@ -36,46 +36,46 @@ enum ProtectionWords {
     static func label(_ check: FailedCheck?) -> String {
         guard let check else { return "–" }
         switch check {
-        case .pause: return "Pause torrents"
-        case .stop: return "Stop torrents"
-        case .warn: return "Warn only"
+        case .pause: return L.torrentsFailPause
+        case .stop: return L.torrentsFailStop
+        case .warn: return L.torrentsFailWarn
         }
     }
 
-    static let checkNote = "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you."
+    static var checkNote: String { L.torrentsCheckNote }
 
     /// What confirming no protection says.
-    static let noneTitle = "Use torrents without protection?"
-    static let noneMessage = "Other people can see your IP address while you download and share a torrent, and anistream does not check the connection."
+    static var noneTitle: String { L.torrentsUnprotectedTitle }
+    static var noneMessage: String { L.torrentsUnprotectedDetail }
     /// What confirming Warn only says.
-    static let warnTitle = "Keep torrents running if a check fails?"
-    static let warnMessage = "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address."
+    static var warnTitle: String { L.torrentsKeepRunningTitle }
+    static var warnMessage: String { L.torrentsWarnOnlyDetail }
 
     /// Edit proxy's line over its form.
-    static let editNote = "Torrents keep using the saved proxy until the new one passes the connection check."
+    static var editNote: String { L.torrentsProxyKeepsSaved }
     /// Under the proxy's fields, on Edit proxy.
-    static let passwordKept = "Leave the password empty to keep the saved one."
+    static var passwordKept: String { L.torrentsPasswordKeep }
     /// While the check through a proxy runs.
-    static let checkingProxy = "Checking the proxy"
+    static var checkingProxy: String { L.torrentsCheckingProxy }
 
     /// Why a proxy was not saved, from the check's `view` of it, as the sheet open says it.
     static func notSaved(_ view: GuardView, _ mode: TorrentSheetMode) -> String {
         let why = view == .leaking
-            ? "Torrent traffic left outside this proxy"
-            : "The check could not be made through this proxy"
+            ? L.torrentsLeftOutsideProxy
+            : L.torrentsCheckNotMadeProxy
         switch mode {
-        case .turnOn: return "Torrents are still off. \(why)."
-        case .change: return "Not saved. \(why), so the saved protection stays."
-        case .editProxy: return "Not saved. \(why), so the saved proxy stays."
+        case .turnOn: return L.torrentsStillOff(why: why)
+        case .change: return L.torrentsProtectionNotSaved(why: why)
+        case .editProxy: return L.torrentsProxyNotSaved(why: why)
         }
     }
 
     /// What a sheet says once it saved and closed.
     static func saved(_ mode: TorrentSheetMode) -> String {
         switch mode {
-        case .turnOn: "Torrents are on"
-        case .change: "Torrent protection saved"
-        case .editProxy: "Proxy saved"
+        case .turnOn: L.torrentsOn
+        case .change: L.torrentsProtectionSaved
+        case .editProxy: L.torrentsProxySaved
         }
     }
 
@@ -83,7 +83,7 @@ enum ProtectionWords {
     static func proxyLine(_ proxy: ProxyView) -> String {
         let place = "\(proxy.host):\(proxy.port)"
         guard let user = proxy.user, !user.isEmpty else { return place }
-        return "\(place) · as \(user)"
+        return L.torrentsProxyLineUser(address: place, user: user)
     }
 }
 
@@ -261,7 +261,7 @@ struct EditProxyButton: View {
 
     var body: some View {
         if store.settings.torrent?.protection == .proxy {
-            Button(cased(mac: "Edit Proxy…", touch: "Edit proxy…")) { editing = true }
+            Button(L.torrentsEditProxy) { editing = true }
                 .sheet(isPresented: $editing) { TorrentSheet(mode: .editProxy) }
                 .onLaunchSheet("proxy", navigator) { editing = true }
         }
