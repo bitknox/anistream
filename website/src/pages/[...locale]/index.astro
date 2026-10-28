@@ -1,0 +1,263 @@
+---
+import '../../styles/theme.css';
+import '../../styles/landing.css';
+import DownloadSuggest from '../../components/DownloadSuggest.astro';
+import FeatureVideo from '../../components/FeatureVideo.astro';
+import Shot from '../../components/Shot.astro';
+import LanguageSuggest from '../../components/site/LanguageSuggest.astro';
+import SiteFooter from '../../components/site/SiteFooter.astro';
+import SiteHead from '../../components/site/SiteHead.astro';
+import SiteNav from '../../components/site/SiteNav.astro';
+import TerminalDemo from '../../components/TerminalDemo.astro';
+import UpscaleCompare from '../../components/UpscaleCompare.astro';
+import { APP_DOWNLOADS, APPS, FEATURES, GITHUB, INSTALL_GUIDE, LATEST } from '../../data/site';
+import { localePaths, useSite } from '../../i18n/site';
+
+// One source, served once per language: English at the root, the others under their prefix.
+export const getStaticPaths = localePaths;
+
+const { t, href, lang, dir, words } = useSite(Astro);
+
+const OPAP = 'https://opap.jp/';
+const CC = 'https://creativecommons.org/licenses/by/4.0/';
+
+const terminalRows = ['vim', 'parties', 'cli'].map((id) => [t(`home.terminal.${id}.name`), t(`home.terminal.${id}.text`)]);
+const sources = ['anilist', 'plugins', 'stores'].map((id) => [t(`home.sources.${id}.name`), t(`home.sources.${id}.text`)]);
+
+const installHtml = [
+	`<span class="c-d">${t('home.terminal.install.comment1')}</span>`,
+	'<span class="c-d">$</span> brew install mpv ffmpeg',
+	`<span class="c-d">${t('home.terminal.install.comment2')}</span>`,
+	'<span class="c-d">$</span> anistream',
+	`<span class="c-d">${t('home.terminal.install.comment3')}</span>`,
+	'<span class="c-d">$</span> anistream <span class="c-n">--update</span>',
+].join('\n');
+---
+
+<html lang={lang} dir={dir}>
+	<head>
+		<SiteHead title={t('home.title')} description={t('home.description')} />
+	</head>
+	<body class="landing">
+		<div class="ambient" aria-hidden="true"></div>
+
+		<SiteNav overScene />
+
+		<header class="hero">
+			<div class="scene" data-scene role="img" aria-label={t('home.scene.alt')}>
+				<canvas data-plane="sky"></canvas>
+				<canvas data-plane="far"></canvas>
+				<canvas data-plane="near"></canvas>
+				<canvas data-plane="front"></canvas>
+			</div>
+			<div class="wrap hero-copy">
+				<div class="hero-text">
+					<h1>{t('home.hero.title')} <span class="hero-claim">{t('home.hero.claim')}</span></h1>
+					<div class="hero-side">
+						<p class="hero-sub">{t('home.hero.sub', { platforms: t('site.platforms') })}</p>
+						<div class="actions">
+							<a class="btn btn-primary" href={href(APPS)}>{t('home.hero.getApps')}</a>
+							<a class="btn" href={href('/docs/')}>{t('home.hero.docs')}</a>
+						</div>
+						<p class="hero-note">{t('home.hero.note')}</p>
+					</div>
+				</div>
+				<div class="hero-apps">
+					<div class="hero-devices">
+						<FeatureVideo name="mac-continue" frame="window" class="hero-mac" eager alt={t('home.hero.macVideoAlt')}>
+							<Shot
+								name="mac-continue"
+								frame="window"
+								class="hero-mac"
+								sizes="(min-width: 1200px) 584px, (min-width: 900px) 700px, calc(100vw - 32px)"
+								loading="eager"
+								alt={t('home.hero.macAlt')}
+							/>
+						</FeatureVideo>
+						<Shot
+							name="iphone-title"
+							frame="phone"
+							class="hero-phone"
+							sizes="(min-width: 1200px) 160px, (min-width: 900px) 190px, 28vw"
+							loading="eager"
+							alt={t('home.hero.phoneAlt')}
+						/>
+					</div>
+					<p class="caption">{t('home.hero.caption')}</p>
+				</div>
+				<p class="hero-run-hint" aria-hidden="true">{t('home.hero.hint')}</p>
+			</div>
+		</header>
+
+		<main>
+			<section class="wrap sect" aria-label={t('home.glance.label')}>
+				<div class="glance">
+					<figure>
+						<div class="glance-media">
+							<FeatureVideo name="android-title" frame="phone" alt={t('home.glance.continue.videoAlt')}>
+								<Shot name="android-continue" frame="phone" sizes="240px" alt={t('home.glance.continue.alt')} />
+							</FeatureVideo>
+						</div>
+						<figcaption>
+							<h3>{t('home.glance.continue.title')}</h3>
+							<p>{t('home.glance.continue.text')}</p>
+						</figcaption>
+					</figure>
+					<figure>
+						<div class="glance-media">
+							<FeatureVideo name="iphone-calendar" frame="phone" alt={t('home.glance.calendar.videoAlt')}>
+								<Shot name="iphone-title" frame="phone" sizes="240px" alt={t('home.glance.calendar.alt')} />
+							</FeatureVideo>
+						</div>
+						<figcaption>
+							<h3>{t('home.glance.calendar.title')}</h3>
+							<p>{t('home.glance.calendar.text')}</p>
+						</figcaption>
+					</figure>
+					<figure>
+						<div class="glance-media">
+							<FeatureVideo name="iphone-tv-remote" frame="phone" alt={t('home.glance.tv.videoAlt')}>
+								<Shot name="iphone-tv-remote" frame="phone" sizes="240px" alt={t('home.glance.tv.alt')} />
+							</FeatureVideo>
+						</div>
+						<figcaption>
+							<h3>{t('home.glance.tv.title')}</h3>
+							<p>{t('home.glance.tv.text')}</p>
+						</figcaption>
+					</figure>
+				</div>
+				<div class="actions sect-actions">
+					<a class="btn" href={href(FEATURES)}>{t('home.glance.all')}</a>
+				</div>
+			</section>
+
+			<section class="wrap sect" aria-labelledby="apps-h">
+				<h2 id="apps-h">{t('home.apps.title')}</h2>
+				<p class="lede">{t('home.apps.lede')}</p>
+				<div class="ratio-row app-strip">
+					<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 490px, (min-width: 900px) 42vw, 490px" alt={t('home.apps.linuxAlt')} />
+					<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 540px, (min-width: 900px) 46vw, 540px" alt={t('home.apps.tvAlt')} />
+					<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 140px, (min-width: 900px) 12vw, 140px" alt={t('home.apps.androidAlt')} />
+				</div>
+				<div class="actions sect-actions">
+					<a class="btn" href={href(APPS)}>{t('home.apps.more')}</a>
+				</div>
+			</section>
+
+			<section class="wrap sect" aria-labelledby="player-h">
+				<h2 id="player-h">{t('home.player.title')}</h2>
+				<p class="lede">{t('home.player.lede')}</p>
+				<div class="player-block">
+					<UpscaleCompare
+						alt={t('player.compareAlt')}
+						off="/player/compare-off.webp"
+						looks={[
+							{ id: 'natural', label: t('player.look.natural'), note: 'ArtCNN', src: '/player/compare-natural.webp' },
+							{ id: 'sharp', label: t('player.look.sharp'), note: 'Anime4K', src: '/player/compare-sharp.webp' },
+							{ id: 'original', label: t('player.look.original'), note: '1080p', src: '/player/compare-original.webp' },
+						]}
+						width={720}
+						height={480}
+					>
+						{t('home.player.compareNote')}
+					</UpscaleCompare>
+					<div class="player-shots">
+						<figure>
+							<a href="/player/player-skip.webp">
+								<img src="/player/player-skip.webp" alt={t('home.player.skipAlt')} width="1920" height="1080" loading="lazy" decoding="async" />
+							</a>
+							<figcaption>{t('home.player.skipCaption')}</figcaption>
+						</figure>
+						<figure>
+							<a href="/player/player-menu.webp">
+								<img src="/player/player-menu.webp" alt={t('home.player.menuAlt')} width="1920" height="1080" loading="lazy" decoding="async" />
+							</a>
+							<figcaption>{t('home.player.menuCaption')}</figcaption>
+						</figure>
+						<figure>
+							<a href="/player/player-up-next.webp">
+								<img src="/player/player-up-next.webp" alt={t('home.player.nextAlt')} width="1920" height="1080" loading="lazy" decoding="async" />
+							</a>
+							<figcaption>{t('home.player.nextCaption')}</figcaption>
+						</figure>
+					</div>
+					<p class="player-credit" set:html={t('home.player.credit', { opap: OPAP, licence: CC })} />
+				</div>
+			</section>
+
+			<section class="wrap sect" aria-labelledby="terminal-h">
+				<h2 id="terminal-h">{t('home.terminal.title')}</h2>
+				<p class="lede">{t('home.terminal.lede')}</p>
+				<div class="term-block">
+					<div class="term-demo">
+						<TerminalDemo />
+						<p class="caption">{t('home.terminal.caption')}</p>
+					</div>
+					<dl class="term-rows">
+						{
+							terminalRows.map(([title, text]) => (
+								<div class="term-row">
+									<dt>{title}</dt>
+									<dd>{text}</dd>
+								</div>
+							))
+						}
+					</dl>
+				</div>
+				<pre class="code-block" tabindex="0" set:html={installHtml} />
+			</section>
+
+			<section class="wrap sect" aria-labelledby="sources-h">
+				<h2 id="sources-h">{t('home.sources.title')}</h2>
+				<p class="legal-lead">{t('site.legal')}</p>
+				<dl class="rows sources">
+					{
+						sources.map(([name, text]) => (
+							<div class="row">
+								<dt>{name}</dt>
+								<dd>{text}</dd>
+							</div>
+						))
+					}
+				</dl>
+				<p class="lede">{t('home.sources.lede')}</p>
+			</section>
+
+			<section class="wrap sect" aria-labelledby="install-h">
+				<h2 id="install-h">{t('home.install.title')}</h2>
+				<p class="lede">{t('home.install.lede')}</p>
+				<DownloadSuggest />
+				<p class="dl-others">{t('dl.others')}</p>
+				<div class="actions get-apps">
+					{
+						APP_DOWNLOADS.map((a) => (
+							<a class="btn" href={LATEST} data-asset={a.files[0].suffix} data-dl-app={a.id}>
+								{t(`dl.app.${a.id}.platform`)}
+							</a>
+						))
+					}
+				</div>
+				<p class="get-more" set:html={t('home.install.more', { latest: LATEST, guide: href(INSTALL_GUIDE) })} />
+			</section>
+
+			<section class="wrap sect" aria-labelledby="next-h">
+				<h2 id="next-h">{t('home.open.title')}</h2>
+				<p class="lede">{t('home.open.lede')}</p>
+				<div class="actions sect-actions">
+					<a class="btn" href={GITHUB}>{t('home.open.github')}</a>
+					<a class="btn" href={href('/docs/plugins/authoring/')}>{t('home.open.plugin')}</a>
+					<a class="btn" href={href('/docs/plugins/running-a-store/')}>{t('home.open.store')}</a>
+				</div>
+			</section>
+		</main>
+
+		<SiteFooter />
+		<LanguageSuggest />
+
+		<script type="application/json" data-words="game" set:html={words('game.')} />
+		<script>
+			import '../../scripts/landing-motion.ts';
+			import '../../scripts/latest-release.ts';
+		</script>
+	</body>
+</html>

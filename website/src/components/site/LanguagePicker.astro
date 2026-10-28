@@ -1,0 +1,122 @@
+---
+// The language picker in the site nav: a menu of links to this page in each language. Built from
+// the locales configured, and absent while the site has only one.
+import { MULTILINGUAL, useSite } from '../../i18n/site';
+
+const { t, locale, alternates } = useSite(Astro);
+---
+
+{
+	MULTILINGUAL && (
+		<details class="l-lang" data-lang-menu>
+			<summary aria-label={t('site.language.label')}>
+				<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true">
+					<circle cx="8" cy="8" r="6.2"></circle>
+					<path d="M1.8 8 H14.2 M8 1.8 C5.6 4.4 5.6 11.6 8 14.2 M8 1.8 C10.4 4.4 10.4 11.6 8 14.2"></path>
+				</svg>
+				<span class="l-lang-name">{locale.label}</span>
+			</summary>
+			<ul>
+				{alternates.map((l) => (
+					<li>
+						<a href={l.href} lang={l.lang} hreflang={l.lang} aria-current={l.key === locale.key ? 'true' : undefined} data-lang={l.lang}>
+							{l.label}
+						</a>
+					</li>
+				))}
+			</ul>
+		</details>
+	)
+}
+
+<style is:global>
+	.l-lang {
+		position: relative;
+	}
+
+	.l-lang summary {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		height: 44px;
+		padding: 0 3px;
+		font-size: 15px;
+		font-weight: 500;
+		list-style: none;
+		cursor: pointer;
+	}
+
+	.l-lang summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.l-lang ul {
+		position: absolute;
+		inset: 44px 0 auto auto;
+		z-index: 30;
+		min-width: 160px;
+		margin: 0;
+		padding: 6px;
+		list-style: none;
+		border: 1px solid var(--ani-rule-faint);
+		border-radius: 12px;
+		background: var(--ani-ground);
+		color: var(--ani-text);
+		box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+	}
+
+	.l-lang li a {
+		display: flex;
+		align-items: center;
+		min-height: 40px;
+		padding: 0 12px;
+		border-radius: 8px;
+		font-size: 15px;
+		text-decoration: none;
+	}
+
+	.l-lang li a:hover {
+		background: var(--ani-raised);
+	}
+
+	.l-lang li a[aria-current='true'] {
+		color: var(--ani-obi);
+		font-weight: 600;
+	}
+
+	/* A phone has room for the icon, the three links and the picker, not for the wordmark as well,
+	   whatever the words are in this language. */
+	@media (max-width: 599px) {
+		.l-lang-name {
+			display: none;
+		}
+
+		.l-nav:has(.l-lang) .l-brand span {
+			display: none;
+		}
+
+		.l-nav:has(.l-lang) .l-nav-links {
+			gap: 10px;
+		}
+	}
+</style>
+
+<script>
+	// A choice sticks: the suggestion on other pages stops asking once the visitor has picked.
+	import { remember } from '../../scripts/language-suggest';
+
+	const menu = document.querySelector<HTMLDetailsElement>('[data-lang-menu]');
+	menu?.addEventListener('click', (event) => {
+		const link = (event.target as Element).closest<HTMLAnchorElement>('a[data-lang]');
+		if (link) remember(link.dataset.lang!);
+	});
+	document.addEventListener('click', (event) => {
+		if (menu?.open && !menu.contains(event.target as Node)) menu.open = false;
+	});
+	document.addEventListener('keydown', (event) => {
+		if (event.key === 'Escape' && menu?.open) {
+			menu.open = false;
+			menu.querySelector('summary')?.focus();
+		}
+	});
+</script>
