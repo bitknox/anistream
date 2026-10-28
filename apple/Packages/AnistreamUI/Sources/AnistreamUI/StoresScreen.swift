@@ -118,7 +118,7 @@ struct StoreStanding: View {
         case .offline:
             label(L.storesStatusOffline, ring: true, color: .haze)
         case .ready where row.updates > 0:
-            label(L.storesUpdatesCount(count: Int(row.updates)), dot: .water, color: .silk)
+            label(L.storesUpdatesAvailable(count: Int(row.updates)), dot: .water, color: .silk)
         case .ready:
             EmptyView()
         }

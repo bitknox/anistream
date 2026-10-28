@@ -172,7 +172,7 @@ enum TVWords {
         guard let request else {
             return L.tvOpenOnTv
         }
-        return request.title.isEmpty ? L.episodeNumberText(number: request.episode) : L.tvPickerTitleEpisode(title: request.title, episode: request.episode)
+        return request.title.isEmpty ? L.episodeNumberString(number: request.episode) : L.tvPickerTitleEpisode(title: request.title, episode: request.episode)
     }
 
     static func pairingLine(_ name: String) -> String {

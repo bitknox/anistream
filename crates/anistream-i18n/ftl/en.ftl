@@ -890,12 +890,6 @@ settings-advanced-note = An option here can undo a Playback setting, such as ups
 # Button that opens the page of the new version of the app.
 updates-view-version = View version
 
-# Button that closes the app and opens the new version it has put in place.
-updates-restart = Restart to update
-
-# Button that downloads the new version of the app.
-updates-download = Download update
-
 # Accessible name of the progress bar while the new version downloads.
 updates-progress-label = Update progress
 
@@ -956,9 +950,6 @@ shell-changes-waiting =
 # Sidebar line under the account: the tracker, then that it is up to date.
 shell-tracker-synced = { $tracker } · Synced
 
-# Title of the keyboard shortcuts window.
-shortcuts-title = Keyboard shortcuts
-
 # Heading of the shortcuts that work on lists of titles.
 shortcuts-group-lists = Lists
 
@@ -977,12 +968,6 @@ shortcuts-quit = Quit
 # Shortcut: play the title that has focus in a list.
 shortcuts-play-selected = Play the selected title
 
-# Shortcut: open the context menu of the title that has focus.
-shortcuts-context-menu = Context menu
-
-# Shortcut: pause or resume.
-shortcuts-play-pause = Play or pause
-
 # Shortcut: small steps in the player.
 shortcuts-seek-5 = Back or forward 5 seconds
 
@@ -995,17 +980,11 @@ shortcuts-seek-10 = Back or forward 10 seconds
 # Shortcut: change the volume.
 shortcuts-volume = Volume up or down
 
-# Shortcut: mute the sound.
-shortcuts-mute = Mute
-
 # Shortcut: skip the opening or the ending.
 shortcuts-skip = Skip the opening or ending
 
 # Shortcut: undo a skip the player made by itself.
 shortcuts-undo-skip = Undo an automatic skip
-
-# Shortcut: move between episodes.
-shortcuts-next-previous = Next or previous episode
 
 # Shortcut: change the playback speed.
 shortcuts-speed = Faster or slower
@@ -1018,12 +997,6 @@ shortcuts-escape = Close a card, the mini player, full screen, then the player
 
 # Response of the close question: stop what runs and close.
 close-stop-and-close = Stop and close
-
-# Response of the close question: keep it running in the background.
-close-keep-going = Keep going
-
-# Checkbox of the close question.
-close-dont-ask = Don't ask again
 
 # Body of the close question when episodes download.
 close-body-downloading =
@@ -1214,9 +1187,6 @@ spoken-seconds =
         [one] { $count } second
        *[other] { $count } seconds
     }
-
-# An episode's line with the audio it was watched in marked, as Continue and the title page word it.
-episode-line-dubbed = { $line } · Dubbed
 
 # Continue row: nothing new to watch, and the next episode airs at a known time. The time is already worded: "in 2d 3h".
 continue-row-caught-up-airs = Caught up · E{ $episode } airs { $when }
@@ -4083,6 +4053,87 @@ state-working = Working
 # Short placeholder while something loads.
 state-loading = Loading
 
+# Checkbox of the close question.
+close-dont-ask = Don't ask again
+
+# Response of the close question: keep it running in the background.
+close-keep-going = Keep going
+
+# Line while the sources are searched for the watch party's episode.
+party-looking-sources = Looking through your sources…
+
+# Foot of the watch party form while the device is offline.
+party-needs-connection = A watch party needs a connection. You're offline.
+
+# Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
+party-open-sources = Open sources
+
+# Line under the seeding group in Settings: seeding stops when the app closes.
+settings-seeding-open-only = Seeding runs only while anistream is open.
+
+# Shortcut: open the context menu of the title that has focus.
+shortcuts-context-menu = Context menu
+
+# Shortcut: mute the sound.
+shortcuts-mute = Mute
+
+# Shortcut: move between episodes.
+shortcuts-next-previous = Next or previous episode
+
+# Shortcut: pause or resume.
+shortcuts-play-pause = Play or pause
+
+# Title of the keyboard shortcuts window.
+shortcuts-title = Keyboard shortcuts
+
+# Settings line of a paired TV: paired on a date, last seen a while ago.
+tv-paired-seen = { $paired } · seen { $ago }
+
+# The TV cannot take another connection now.
+tv-problem-busy = The TV is connected to as many devices as it can. Try again soon.
+
+# The TV picked in the list has left the network.
+tv-problem-gone = That TV is no longer on the network.
+
+# The TV's key changed since pairing.
+tv-problem-key-changed = The TV was reset or reinstalled since you paired. Pair again.
+
+# What was typed or scanned is not a TV's code or address.
+tv-problem-not-a-link = That isn't a TV's pairing code or address.
+
+# A command needs something playing and nothing is.
+tv-problem-not-now = Nothing is playing on the TV.
+
+# The TV did not answer.
+tv-problem-unreachable = Can't reach the TV. Check that it's on, with anistream open, on the same network.
+
+# The TV and this app speak different versions.
+tv-problem-version = The TV runs another version of anistream. Update both to the same one.
+
+# The pairing code typed did not match.
+tv-problem-wrong-code = That code didn't match. Check the code on the TV and try again.
+
+# Accessible label of the button that turns the TV down.
+tv-volume-down = Volume down
+
+# The TV's volume as a value of 100.
+tv-volume-of = { $volume } of 100
+
+# Accessible label of the button that turns the TV up.
+tv-volume-up = Volume up
+
+# Button that downloads the new version of the app.
+updates-download = Download update
+
+# Button that closes the app and opens the new version it has put in place.
+updates-restart = Restart to update
+
+# The TV cannot take another paired device.
+tv-problem-full = This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.
+
+# The TV has forgotten this computer.
+tv-problem-unpaired = The TV doesn't know this device any more. Pair again.
+
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = Downloads
 
@@ -4970,14 +5021,11 @@ party-sources-label = Sources for this episode
 # Line of a source: its quality and size already formatted, and the number of seeders.
 party-source-seeders = { $seeders } seeders
 
-# Foot of the watch party form while the device is offline.
-party-needs-connection = A watch party needs a connection. You're offline.
+# Line when no source lists the episode.
+party-no-source-lists = No source lists episode { $episode }. Sources come from plugins, which a plugin store adds.
 
-# Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
-party-open-sources = Open sources
-
-# Line while the sources are searched for the watch party's episode.
-party-looking-sources = Looking through your sources…
+# Button that plays the chosen source with the room.
+party-play-with = Play with the watch party
 
 # Label on the card for the episode that plays after this one.
 player-up-next = Up next
@@ -5794,8 +5842,23 @@ settings-upscaling-note-natural = Faithful line work and texture, nothing restyl
 # Preview note under the upscaling frame for the sharp look.
 settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
 
-# Line under the seeding group in Settings: seeding stops when the app closes.
-settings-seeding-open-only = Seeding runs only while anistream is open.
+# Setting: a command run after each download finishes.
+settings-after-download = After each download
+
+# Setting: extra options passed to mpv, the player. mpv stays lower case.
+settings-mpv-options = mpv options
+
+# Name screen readers give the list of panes down the side of Settings.
+settings-panes-label = Settings panes
+
+# Setting: Discord's status with the cover and a progress bar.
+settings-presence-rich = Rich presence
+
+# Setting: Discord's status names the show being watched.
+settings-presence-title = Presence shows the title
+
+# Under a tracker that is signed in, when its user name is unknown.
+settings-signed-in = Signed in
 
 # Title of the screen or section that lists sources.
 sources-title = Sources
@@ -6000,6 +6063,9 @@ sources-source-order-row = Source order
 
 # Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
 sources-torrents-note = Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.
+
+# Over the { -source } list while the { -source-pl } are set up again after a change.
+sources-rebuilding = Sources are being set up again
 
 # Short label for a joined store, on a row.
 stores-joined = Joined
@@ -6559,6 +6625,9 @@ more-show-spoiler-tags =
        *[other] Show { $count } spoiler tags
     }
 
+# An episode's line with the audio it was watched in marked, as Continue and the title page word it.
+episode-line-dubbed = { $line } · Dubbed
+
 # Title of the settings group and the screen.
 torrents-title = Torrents
 
@@ -6777,6 +6846,9 @@ torrents-page-unreadable = The TV couldn't read this. Scan the QR code on the TV
 
 # Line when the page needs script.
 torrents-page-needs-script = This page needs JavaScript to send the form to the TV safely.
+
+# Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+torrents-check-note = anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.
 
 # Title of the accounts screen. The sidebar item is nav-accounts.
 accounts-title = Accounts
@@ -7169,50 +7241,8 @@ tv-another = Another TV
 # Under a TV in the list: its version does not match.
 tv-row-needs-update = Needs the same anistream version as this device
 
-# Settings line of a paired TV: paired on a date, last seen a while ago.
-tv-paired-seen = { $paired } · seen { $ago }
-
 # Title of the remote's volume row.
 tv-volume = TV volume
-
-# Accessible label of the button that turns the TV down.
-tv-volume-down = Volume down
-
-# Accessible label of the button that turns the TV up.
-tv-volume-up = Volume up
-
-# The TV's volume as a value of 100.
-tv-volume-of = { $volume } of 100
-
-# The pairing code typed did not match.
-tv-problem-wrong-code = That code didn't match. Check the code on the TV and try again.
-
-# The TV cannot take another paired device.
-tv-problem-full = This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.
-
-# The TV cannot take another connection now.
-tv-problem-busy = The TV is connected to as many devices as it can. Try again soon.
-
-# The TV and this app speak different versions.
-tv-problem-version = The TV runs another version of anistream. Update both to the same one.
-
-# A command needs something playing and nothing is.
-tv-problem-not-now = Nothing is playing on the TV.
-
-# The TV has forgotten this computer.
-tv-problem-unpaired = The TV doesn't know this device any more. Pair again.
-
-# The TV's key changed since pairing.
-tv-problem-key-changed = The TV was reset or reinstalled since you paired. Pair again.
-
-# The TV did not answer.
-tv-problem-unreachable = Can't reach the TV. Check that it's on, with anistream open, on the same network.
-
-# The TV picked in the list has left the network.
-tv-problem-gone = That TV is no longer on the network.
-
-# What was typed or scanned is not a TV's code or address.
-tv-problem-not-a-link = That isn't a TV's pairing code or address.
 
 # Heading of the update row in settings and about.
 updates-title = Updates

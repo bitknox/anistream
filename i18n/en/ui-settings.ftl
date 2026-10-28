@@ -370,5 +370,20 @@ settings-upscaling-note-natural = Faithful line work and texture, nothing restyl
 # Preview note under the upscaling frame for the sharp look.
 settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
 
-# Line under the seeding group in Settings: seeding stops when the app closes.
-settings-seeding-open-only = Seeding runs only while { -app-name } is open.
+# Setting: a command run after each download finishes.
+settings-after-download = After each download
+
+# Setting: extra options passed to mpv, the player. mpv stays lower case.
+settings-mpv-options = mpv options
+
+# Name screen readers give the list of panes down the side of Settings.
+settings-panes-label = Settings panes
+
+# Setting: Discord's status with the cover and a progress bar.
+settings-presence-rich = Rich presence
+
+# Setting: Discord's status names the show being watched.
+settings-presence-title = Presence shows the title
+
+# Under a tracker that is signed in, when its user name is unknown.
+settings-signed-in = Signed in

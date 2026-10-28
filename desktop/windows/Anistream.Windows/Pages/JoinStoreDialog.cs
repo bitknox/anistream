@@ -15,7 +15,7 @@ sealed class JoinStoreDialog
 {
     readonly Ctx ctx;
     readonly ContentDialog dialog;
-    readonly TextBox invite = new() { PlaceholderText = "https://…/join/…", AcceptsReturn = false };
+    readonly TextBox invite = new() { PlaceholderText = T.StoresInviteLinkHint, AcceptsReturn = false };
     readonly TextBlock problem = Ui.Text("", "HazeCaptionStyle");
     readonly StackPanel body = new() { Spacing = 12, MinWidth = 420 };
     InvitedStore? preview;
@@ -24,15 +24,15 @@ sealed class JoinStoreDialog
     public JoinStoreDialog(Ctx ctx, XamlRoot root, string? pasted = null)
     {
         this.ctx = ctx;
-        AutomationProperties.SetName(invite, "Invite link");
+        AutomationProperties.SetName(invite, T.StoresInviteLink);
         invite.Text = pasted ?? "";
         dialog = new ContentDialog
         {
             XamlRoot = root,
-            Title = "Add a plugin store",
+            Title = T.StoresAddTitle,
             Content = body,
-            PrimaryButtonText = "Check invite",
-            CloseButtonText = "Cancel",
+            PrimaryButtonText = T.StoresCheckInvite,
+            CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Primary,
         };
         dialog.PrimaryButtonStyle = Ui.Res<Style>("AccentButtonStyle");
@@ -70,11 +70,11 @@ sealed class JoinStoreDialog
     {
         preview = null;
         body.Children.Clear();
-        body.Children.Add(Ui.Text("Paste the invite link a plugin store's owner sent you. You see what the store offers before anything is joined or installed.", "BodyTextBlockStyle"));
+        body.Children.Add(Ui.Text(T.StoresJoinDetailDesktop, "BodyTextBlockStyle"));
         body.Children.Add(invite);
         body.Children.Add(problem);
-        dialog.Title = "Add a plugin store";
-        dialog.PrimaryButtonText = "Check invite";
+        dialog.Title = T.StoresAddTitle;
+        dialog.PrimaryButtonText = T.StoresCheckInvite;
         Update();
     }
 
@@ -83,7 +83,7 @@ sealed class JoinStoreDialog
         if (preview is not null)
             return;
         dialog.IsPrimaryButtonEnabled = Stores.InviteIn(invite.Text) is not null;
-        problem.Text = invite.Text.Trim().Length > 0 && !dialog.IsPrimaryButtonEnabled ? "That is not an invite link." : "";
+        problem.Text = invite.Text.Trim().Length > 0 && !dialog.IsPrimaryButtonEnabled ? T.StoresNotAnInvite : "";
     }
 
     void OnPrimary(ContentDialog sender, ContentDialogButtonClickEventArgs args)
@@ -103,7 +103,7 @@ sealed class JoinStoreDialog
     {
         if (preview is not null || Stores.InviteIn(invite.Text) is not { } link)
             return;
-        problem.Text = "Checking the invite";
+        problem.Text = T.StoresCheckingLink;
         dialog.IsPrimaryButtonEnabled = false;
         ctx.Send(new Command.PreviewStore(link));
     }
@@ -118,7 +118,7 @@ sealed class JoinStoreDialog
                     SecondStep(s.V1);
                     break;
                 case Event.StorePreview { V1: InvitePreview.Failed f }:
-                    problem.Text = Words.InviteFailure(f.Reason);
+                    problem.Text = Failure(f.Reason);
                     dialog.IsPrimaryButtonEnabled = true;
                     break;
                 case Event.StoreJoined:
@@ -132,37 +132,50 @@ sealed class JoinStoreDialog
     {
         preview = store;
         body.Children.Clear();
-        dialog.Title = store.AlreadyJoined ? $"{store.Name} is already joined" : $"Join {store.Name}?";
+        dialog.Title = store.AlreadyJoined ? T.StoresAlreadyJoinedTitle(store.Name) : T.StoresJoinConfirmTitle(store.Name);
         body.Children.Add(Ui.Haze(Stores.RunBy(store.Owners, store.Host)));
-        body.Children.Add(Ui.Text($"Key {store.Fingerprint}", "HazeCaptionStyle"));
+        body.Children.Add(Ui.Text(T.StoresKeyMatches(store.Fingerprint), "HazeCaptionStyle"));
         if (store.Open)
-            body.Children.Add(Ui.Haze("Anyone with the link can join this store."));
+            body.Children.Add(Ui.Haze(T.StoresAnyoneNote));
         var plugins = store.Plugins ?? [];
         if (plugins.Length > 0)
         {
-            body.Children.Add(Ui.Text(AnistreamPlural(plugins.Length), "BodyStrongTextBlockStyle"));
+            body.Children.Add(Ui.Text(T.StoresOffersPlugins(plugins.Length), "BodyStrongTextBlockStyle"));
             var list = new StackPanel { Spacing = 8 };
             foreach (var plugin in plugins)
             {
                 var line = new StackPanel();
-                line.Children.Add(Ui.Text($"{plugin.Name} {plugin.Version}", wrap: false));
+                line.Children.Add(Ui.Text(T.StoresPluginNameVersion(plugin.Name, plugin.Version), wrap: false));
                 line.Children.Add(Ui.Text(Stores.ContactsLine(plugin), "HazeCaptionStyle", wrap: false));
                 list.Children.Add(line);
             }
             body.Children.Add(new ScrollViewer { Content = list, MaxHeight = 200, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
         }
-        body.Children.Add(Ui.Haze("Joining installs nothing. You choose which plugins to install, and each one asks for the hosts it contacts."));
+        body.Children.Add(Ui.Haze(T.StoresJoinInstallsNothing));
         if (!store.Anonymous && !store.AlreadyJoined)
         {
             deviceName = new TextBox { Text = store.DeviceLabel };
-            AutomationProperties.SetName(deviceName, "Name this device is shown under");
-            body.Children.Add(Ui.Text("The owner sees this device as", "HazeCaptionStyle"));
+            AutomationProperties.SetName(deviceName, T.StoresDeviceName);
+            body.Children.Add(Ui.Text(T.StoresOwnerSeesAs, "HazeCaptionStyle"));
             body.Children.Add(deviceName);
         }
-        dialog.PrimaryButtonText = store.AlreadyJoined ? "Open store" : "Join store";
+        dialog.PrimaryButtonText = store.AlreadyJoined ? T.StoresOpenStore : T.StoresJoinButton;
         dialog.IsPrimaryButtonEnabled = true;
         dialog.DefaultButton = ContentDialogButton.Primary;
     }
 
-    static string AnistreamPlural(int n) => Anistream.Engine.Ffi.AnistreamFfiMethods.Plural((ulong)n, "plugin");
+    /// <summary>
+    /// Why an invite would not join, in a line that says what to do next. The engine sends its
+    /// reason as English text, so the known ones are told apart by their English start.
+    /// </summary>
+    static string Failure(string reason)
+    {
+        if (reason.StartsWith("that invite was already used", StringComparison.OrdinalIgnoreCase))
+            return T.StoreInviteUnusable;
+        if (reason.StartsWith("that link no longer lets anyone join", StringComparison.OrdinalIgnoreCase))
+            return T.StoreOpenLinkUnusable;
+        if (reason.Contains("not a link", StringComparison.OrdinalIgnoreCase) || reason.Contains("invite", StringComparison.OrdinalIgnoreCase) && reason.Contains("parse", StringComparison.OrdinalIgnoreCase))
+            return T.StoresNotAnInvite;
+        return T.StoresUnreachable;
+    }
 }

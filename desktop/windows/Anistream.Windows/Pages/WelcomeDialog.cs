@@ -1,4 +1,5 @@
 using Anistream.App;
+using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -18,7 +19,7 @@ sealed class WelcomeDialog
     readonly Ctx ctx;
     readonly ContentDialog dialog;
     readonly StackPanel body = new() { Spacing = 12, MinWidth = 440, MaxWidth = 480 };
-    readonly TextBox invite = new() { PlaceholderText = "https://…/join/…", AcceptsReturn = false };
+    readonly TextBox invite = new() { PlaceholderText = T.StoresInviteLinkHint, AcceptsReturn = false };
     readonly TextBlock problem = Ui.Text("", "HazeCaptionStyle");
     int page;
 
@@ -28,7 +29,7 @@ sealed class WelcomeDialog
     public WelcomeDialog(Ctx ctx, XamlRoot root)
     {
         this.ctx = ctx;
-        AutomationProperties.SetName(invite, "Invite link");
+        AutomationProperties.SetName(invite, T.OnboardingInviteHint);
         invite.TextChanged += (_, _) => Check();
         dialog = new ContentDialog { XamlRoot = root, Content = body };
         dialog.PrimaryButtonClick += OnPrimary;
@@ -64,29 +65,30 @@ sealed class WelcomeDialog
                 var nagare = new Nagare(5) { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 4, 0, 4) };
                 AutomationProperties.SetAccessibilityView(nagare, Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw);
                 body.Children.Add(nagare);
-                var name = Ui.Text("anistream", "TitleTextBlockStyle");
+                var name = Ui.Text(T.AppName, "TitleTextBlockStyle");
                 AutomationProperties.SetHeadingLevel(name, AutomationHeadingLevel.Level1);
                 body.Children.Add(name);
-                body.Children.Add(Ui.Text("Keep track of anime and play it from sources you choose.", "BodyTextBlockStyle"));
-                body.Children.Add(Ui.Haze("anistream hosts no content. Every source is run by someone else."));
-                dialog.PrimaryButtonText = "Continue";
-                dialog.CloseButtonText = "Skip";
+                body.Children.Add(Ui.Text(T.OnboardingTagline, "BodyTextBlockStyle"));
+                body.Children.Add(Ui.Haze($"{T.LegalHostsNoContent} {T.WelcomeSourcesOthers}"));
+                dialog.PrimaryButtonText = T.OnboardingContinue;
+                dialog.CloseButtonText = T.OnboardingSkip;
                 break;
             case 1:
-                dialog.Title = "AniList";
-                body.Children.Add(Ui.Text("Sign in to AniList to sync your list and where you stopped.", "BodyTextBlockStyle"));
-                body.Children.Add(Ui.Text("Other trackers are in Settings › Accounts.", "HazeCaptionStyle"));
-                dialog.PrimaryButtonText = "Sign in to AniList";
-                dialog.SecondaryButtonText = "Not now";
+                var anilist = AnistreamFfiMethods.TrackerName("anilist");
+                dialog.Title = anilist;
+                body.Children.Add(Ui.Text(T.AccountsWelcomeDetail(anilist), "BodyTextBlockStyle"));
+                body.Children.Add(Ui.Text(T.AccountsOtherTrackersNote, "HazeCaptionStyle"));
+                dialog.PrimaryButtonText = T.AccountsSignInTo(anilist);
+                dialog.SecondaryButtonText = T.OnboardingNotNow;
                 break;
             default:
-                dialog.Title = "Sources";
-                body.Children.Add(Ui.Text("anistream ships no sources of its own. Sources are plugins, shared through plugin stores by invite.", "BodyTextBlockStyle"));
+                dialog.Title = T.OnboardingSourcesTitle;
+                body.Children.Add(Ui.Text($"{T.WelcomeNoOwnSources} {T.OnboardingSourcesDetail}", "BodyTextBlockStyle"));
                 body.Children.Add(invite);
                 body.Children.Add(problem);
-                body.Children.Add(Ui.Haze("Each plugin is someone else's code connecting to someone else's service. Use them at your own risk."));
-                dialog.PrimaryButtonText = "Join";
-                dialog.CloseButtonText = "Skip for now";
+                body.Children.Add(Ui.Haze(T.PluginRiskWarning));
+                dialog.PrimaryButtonText = T.OnboardingJoin;
+                dialog.CloseButtonText = T.OnboardingSkipForNow;
                 dialog.DefaultButton = ContentDialogButton.Primary;
                 Check();
                 break;
@@ -99,7 +101,7 @@ sealed class WelcomeDialog
             return;
         var link = Stores.InviteIn(invite.Text);
         dialog.IsPrimaryButtonEnabled = link is not null;
-        problem.Text = invite.Text.Trim().Length > 0 && link is null ? "That is not an invite link." : "";
+        problem.Text = invite.Text.Trim().Length > 0 && link is null ? T.StoresNotAnInvite : "";
         problem.Visibility = problem.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 

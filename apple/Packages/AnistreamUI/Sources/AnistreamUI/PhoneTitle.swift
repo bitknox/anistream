@@ -395,7 +395,7 @@ struct PhoneEpisodeRow: View {
                 .opacity(row.completed ? 0.7 : 1)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(row.title ?? L.episodeNumberText(number: row.number))
+                    Text(row.title ?? L.episodeNumberString(number: row.number))
                         .font(.ui(17))
                         .foregroundStyle(row.completed ? .haze : .silk)
                         .rowTitle()
@@ -441,7 +441,7 @@ struct PhoneUnairedRow: View {
                 .frame(width: 22, alignment: .trailing)
             RoundedRectangle(cornerRadius: 6).fill(Palette.artPlaceholder).frame(width: 72, height: 40)
             VStack(alignment: .leading, spacing: 4) {
-                Text(row.title ?? L.episodeNumberText(number: row.number)).font(.ui(17)).foregroundStyle(.haze).rowTitle()
+                Text(row.title ?? L.episodeNumberString(number: row.number)).font(.ui(17)).foregroundStyle(.haze).rowTitle()
                 HStack(spacing: 6) {
                     Circle().fill(.water).frame(width: 6, height: 6)
                     Text(when).monospacedDigit()
@@ -453,7 +453,7 @@ struct PhoneUnairedRow: View {
         }
         .frame(minHeight: 56)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(L.titleEpisodeRowUnaired(title: row.title.map { L.episodeTitledText(number: row.number, title: $0) } ?? L.episodeNumberText(number: row.number), when: when))
+        .accessibilityLabel(L.titleEpisodeRowUnaired(title: row.title.map { L.episodeTitledText(number: row.number, title: $0) } ?? L.episodeNumberString(number: row.number), when: when))
     }
 }
 

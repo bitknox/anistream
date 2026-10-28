@@ -245,7 +245,7 @@ extension SettingKey {
         case .skipFiller: L.settingsSkipFiller
         case .markChapters: L.settingsMarkOpening
         case .skipButton: L.settingsSkipButton
-        case .fullscreen: L.settingsStartFullscreen
+        case .fullscreen: L.settingsStartFullScreen
         case .upscaling: L.playerUpscaling
         case .nightMode: L.playerNightMode
         case .downloadDir: L.downloadsFolder

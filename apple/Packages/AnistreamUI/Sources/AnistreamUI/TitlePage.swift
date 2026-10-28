@@ -772,7 +772,7 @@ struct EpisodeRowView: View {
             .opacity(row.completed ? 0.7 : 1)
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(row.title ?? L.episodeNumberText(number: row.number))
+                    Text(row.title ?? L.episodeNumberString(number: row.number))
                         .foregroundStyle(row.completed ? .haze : .silk)
                         .lineLimit(1)
                         .animation(.quick, value: row.completed)
@@ -818,7 +818,7 @@ struct UnairedEpisodeRow: View {
     let airs: Date
 
     var body: some View {
-        let title = row.title ?? L.episodeNumberText(number: row.number)
+        let title = row.title ?? L.episodeNumberString(number: row.number)
         let when = AirsWords.airs(airs)
         HStack(spacing: 14) {
             Text(row.number)
@@ -839,7 +839,7 @@ struct UnairedEpisodeRow: View {
         .padding(.horizontal, 8)
         .frame(height: 44)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(L.titleEpisodeRowUnaired(title: row.title.map { L.episodeTitledText(number: row.number, title: $0) } ?? L.episodeNumberText(number: row.number), when: when))
+        .accessibilityLabel(L.titleEpisodeRowUnaired(title: row.title.map { L.episodeTitledText(number: row.number, title: $0) } ?? L.episodeNumberString(number: row.number), when: when))
     }
 }
 

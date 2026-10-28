@@ -26,7 +26,7 @@ title-ranking-popular = Most popular
 
 # Name of an episode whose number is text, because it may be "7.5" or "OVA 2".
 # @arg number: text
-episode-number-text = Episode { $number }
+episode-number-string = Episode { $number }
 
 # An episode whose number is text, and its name.
 # @arg number: text

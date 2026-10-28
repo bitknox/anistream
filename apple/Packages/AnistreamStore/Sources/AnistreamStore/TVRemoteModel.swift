@@ -347,7 +347,7 @@ public final class TVRemoteModel {
         guard let request = starting else { return card?.now }
         return FfiNowCard(
             id: request.id, title: request.title, episode: request.episode,
-            episodeLine: L.episodeNumberText(number: request.episode), loading: true, position: request.from ?? 0,
+            episodeLine: L.episodeNumberString(number: request.episode), loading: true, position: request.from ?? 0,
             duration: nil, paused: false, speed: 1, volume: card?.now?.volume, audio: [], subtitles: [],
             subtitlesOff: false, skip: nil)
     }

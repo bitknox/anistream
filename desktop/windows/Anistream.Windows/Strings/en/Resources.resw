@@ -899,6 +899,754 @@
     <value>Queued {count} episodes.</value>
     <comment>Toast after episodes are added to the download queue.</comment>
   </data>
+  <data name="ContinueMenuResume" xml:space="preserve">
+    <value>Continue</value>
+    <comment>Context menu item on a Continue row: plays the episode from where it stopped.</comment>
+  </data>
+  <data name="ContinueLoading" xml:space="preserve">
+    <value>Loading what you're watching</value>
+    <comment>Busy line while Continue loads.</comment>
+  </data>
+  <data name="ContinueSyncWaiting_one" xml:space="preserve">
+    <value>One change waiting to sync</value>
+    <comment>Line under Continue's heading: changes made offline that AniList has not had yet.</comment>
+  </data>
+  <data name="ContinueSyncWaiting_other" xml:space="preserve">
+    <value>{count} changes waiting to sync</value>
+    <comment>Line under Continue's heading: changes made offline that AniList has not had yet.</comment>
+  </data>
+  <data name="CalendarDayEmpty" xml:space="preserve">
+    <value>Nothing airs</value>
+    <comment>Calendar: a day column of the week view with nothing airing that day.</comment>
+  </data>
+  <data name="CalendarWeekRange" xml:space="preserve">
+    <value>{start} to {end}</value>
+    <comment>Calendar: the week shown, from its first day to its last, as dates.</comment>
+  </data>
+  <data name="CalendarTimeEstimate" xml:space="preserve">
+    <value>~{time}</value>
+    <comment>Calendar: an air time that is only an estimate, as shown in a row. The tilde means "about".</comment>
+  </data>
+  <data name="CalendarTimeAbout" xml:space="preserve">
+    <value>about {time}</value>
+    <comment>Calendar: an estimated air time as the screen reader says it.</comment>
+  </data>
+  <data name="CalendarEpisodeDubbed" xml:space="preserve">
+    <value>E{episode} dubbed</value>
+    <comment>Calendar: an episode that airs dubbed, with no time.</comment>
+  </data>
+  <data name="CalendarWatchedLine" xml:space="preserve">
+    <value>{title} · {episode}</value>
+    <comment>Calendar: the one quiet line of an episode already watched: the show, then the episode.</comment>
+  </data>
+  <data name="CalendarWatchedSpoken" xml:space="preserve">
+    <value>{title}, {episode}, watched</value>
+    <comment>Calendar: what the screen reader says for an episode already watched.</comment>
+  </data>
+  <data name="LibraryListCount" xml:space="preserve">
+    <value>{list} {count}</value>
+    <comment>Library: a list's tab with how many titles are on it, such as "Watching 12".</comment>
+  </data>
+  <data name="SearchSortName" xml:space="preserve">
+    <value>Sort</value>
+    <comment>Search: the Sort drop-down's name before a sort is picked.</comment>
+  </data>
+  <data name="SearchSortTrending" xml:space="preserve">
+    <value>Trending</value>
+    <comment>Search: sort by what is popular right now.</comment>
+  </data>
+  <data name="SearchSortNewest" xml:space="preserve">
+    <value>Newest</value>
+    <comment>Search: sort by release date, newest first.</comment>
+  </data>
+  <data name="SearchSortOldest" xml:space="preserve">
+    <value>Oldest</value>
+    <comment>Search: sort by release date, oldest first.</comment>
+  </data>
+  <data name="SearchSortTitle" xml:space="preserve">
+    <value>Title</value>
+    <comment>Search: sort by title, A to Z.</comment>
+  </data>
+  <data name="SearchSortFavourites" xml:space="preserve">
+    <value>Favourites</value>
+    <comment>Search: sort by how many people marked the title a favourite.</comment>
+  </data>
+  <data name="FilterPickedTwo" xml:space="preserve">
+    <value>{first}, {second}</value>
+    <comment>Search: a filter drop-down with two values picked, such as two genres.</comment>
+  </data>
+  <data name="FilterPickedMore" xml:space="preserve">
+    <value>{first} +{more}</value>
+    <comment>Search: a filter drop-down with three or more values picked: the first, then how many more.</comment>
+  </data>
+  <data name="TitleSeasonWhen" xml:space="preserve">
+    <value>{season} · {when}</value>
+    <comment>Title page: a season in the season picker with when it aired, such as "Season 2 · Spring 2025".</comment>
+  </data>
+  <data name="EpisodeDownloadText" xml:space="preserve">
+    <value>Download episode {episode}</value>
+    <comment>Title page: an episode row's download button, for an episode numbered other than as a whole number, such as "12.5".</comment>
+  </data>
+  <data name="EpisodeDownloadFailedText" xml:space="preserve">
+    <value>Couldn't download episode {episode}. Download again.</value>
+    <comment>Title page: an episode row's download button after a failure, for an episode numbered other than as a whole number.</comment>
+  </data>
+  <data name="EpisodeNumberText" xml:space="preserve">
+    <value>Episode {episode}</value>
+    <comment>Title page: an episode row with no name of its own, numbered other than as a whole number, such as "Episode 12.5".</comment>
+  </data>
+  <data name="EpisodeTextWithTitle" xml:space="preserve">
+    <value>Episode {episode} · {title}</value>
+    <comment>Title page: an episode row's heading with a name, for an episode numbered other than as a whole number.</comment>
+  </data>
+  <data name="EpisodeRowSpoken" xml:space="preserve">
+    <value>{heading}, {line}</value>
+    <comment>Title page: what the screen reader says for an episode row: its heading, then its runtime or what is left.</comment>
+  </data>
+  <data name="EpisodeListedByAnilist" xml:space="preserve">
+    <value>Listed by AniList</value>
+    <comment>Title page: the line of an episode that only AniList lists, so nothing can play it yet.</comment>
+  </data>
+  <data name="TitleStudioLine" xml:space="preserve">
+    <value>Studio: {studio}</value>
+    <comment>Title page details: the studio that made the show.</comment>
+  </data>
+  <data name="TitleBasedOnLine" xml:space="preserve">
+    <value>Based on: {material}</value>
+    <comment>Title page details: what the show is adapted from, such as "Based on: Manga".</comment>
+  </data>
+  <data name="TitleRelationFormat" xml:space="preserve">
+    <value>{relation} · {format}</value>
+    <comment>Title page: a related title's line, its relation and its format, such as "Sequel · TV".</comment>
+  </data>
+  <data name="TitleEpisodeOutAgo" xml:space="preserve">
+    <value>E{episode} out {ago}</value>
+    <comment>Title page details: the latest episode and how long ago it came out. The span is already worded, such as "2d ago".</comment>
+  </data>
+  <data name="TitleNextAirs" xml:space="preserve">
+    <value>Next episode airs {when}</value>
+    <comment>Title page details: when the next episode airs, when its number is not known. The time is already worded, such as "in 4d 20h".</comment>
+  </data>
+  <data name="TitleEpisodeDownload" xml:space="preserve">
+    <value>Download</value>
+    <comment>Title page: the menu item that downloads one episode, and the download dialog's button.</comment>
+  </data>
+  <data name="TitleDownloadMenu" xml:space="preserve">
+    <value>Download…</value>
+    <comment>Title page: the More menu item that opens the download dialog.</comment>
+  </data>
+  <data name="TitleShowSettingsMenu" xml:space="preserve">
+    <value>Show settings…</value>
+    <comment>Title page: the More menu item that opens this show's settings.</comment>
+  </data>
+  <data name="TitlePlayOnTvTooltip" xml:space="preserve">
+    <value>Play this episode on a TV with anistream</value>
+    <comment>Title page: the tooltip of Play on TV.</comment>
+  </data>
+  <data name="TitleListStatus" xml:space="preserve">
+    <value>List status</value>
+    <comment>Title page: the screen reader's name for the button with the show's list status.</comment>
+  </data>
+  <data name="DownloadRangeTitle" xml:space="preserve">
+    <value>Download episodes</value>
+    <comment>Download dialog: its title.</comment>
+  </data>
+  <data name="DownloadRangeFrom" xml:space="preserve">
+    <value>From</value>
+    <comment>Download dialog: the first episode of the range.</comment>
+  </data>
+  <data name="DownloadRangeTo" xml:space="preserve">
+    <value>To</value>
+    <comment>Download dialog: the last episode of the range.</comment>
+  </data>
+  <data name="DownloadRangeQualityNote" xml:space="preserve">
+    <value>Downloads use the quality in Settings › Downloads.</value>
+    <comment>Download dialog: the note under the range.</comment>
+  </data>
+  <data name="PlayerEpisodeLineTitled" xml:space="preserve">
+    <value>{line} · {title}</value>
+    <comment>An episode's line in the player's title bar and in the system media controls: the episode's label (already "Episode 10" or "Episode 10 · Dubbed"), then the episode's own title.</comment>
+  </data>
+  <data name="PlayerEpisodeFraction" xml:space="preserve">
+    <value>Episode {number}</value>
+    <comment>An episode whose number is not a whole number, like 12.5, which episode-number cannot take.</comment>
+  </data>
+  <data name="PlayerStartingFraction" xml:space="preserve">
+    <value>Starting episode {number}</value>
+    <comment>The starting screen while an episode with a number like 12.5 opens. Same as player-starting.</comment>
+  </data>
+  <data name="PlayerFailedFraction" xml:space="preserve">
+    <value>Couldn't play episode {number}</value>
+    <comment>The starting screen when an episode with a number like 12.5 did not open after 20 seconds. Same as player-failed-title.</comment>
+  </data>
+  <data name="PlayerSpeedValue" xml:space="preserve">
+    <value>{speed}×</value>
+    <comment>A playback speed in the Speed menu and in the flash when it changes: "1.25×".</comment>
+  </data>
+  <data name="PlayerTimelinePlaying" xml:space="preserve">
+    <value>Playing, {position} of {duration}</value>
+    <comment>Screen reader status of the seek bar while playing: "Playing, 3:20 of 23:40".</comment>
+  </data>
+  <data name="PlayerTimelinePaused" xml:space="preserve">
+    <value>Paused, {position} of {duration}</value>
+    <comment>Screen reader status of the seek bar while paused: "Paused, 3:20 of 23:40".</comment>
+  </data>
+  <data name="PlayerTrackAdded" xml:space="preserve">
+    <value>{name} · Added</value>
+    <comment>A subtitle or audio track the person loaded from a file, in the tracks menu: "English · Added".</comment>
+  </data>
+  <data name="PlayerLoadSubtitlesCommit" xml:space="preserve">
+    <value>Load subtitles</value>
+    <comment>The file chooser's confirm button when loading a subtitle file into the player.</comment>
+  </data>
+  <data name="PlayerLoadAudioCommit" xml:space="preserve">
+    <value>Load audio</value>
+    <comment>The file chooser's confirm button when loading an audio file into the player.</comment>
+  </data>
+  <data name="PlayerMiniTip" xml:space="preserve">
+    <value>Stays on top. Press {key} to go back.</value>
+    <comment>Tip under the mini player button the first time the small window opens. $key is the keyboard key that toggles it, "P".</comment>
+  </data>
+  <data name="PlayerStatsRow" xml:space="preserve">
+    <value>{label}: {value}</value>
+    <comment>Screen reader name of one row in Stats for nerds: "Dropped frames: 3".</comment>
+  </data>
+  <data name="SettingsLoading" xml:space="preserve">
+    <value>Loading settings</value>
+    <comment>Busy line while Settings waits for the engine's values.</comment>
+  </data>
+  <data name="SettingsGroupMpv" xml:space="preserve">
+    <value>mpv</value>
+    <comment>Heading of the group with mpv's own options, on the Advanced pane. mpv is the player's name and stays lower case.</comment>
+  </data>
+  <data name="SettingsCardState" xml:space="preserve">
+    <value>{title}, {state}</value>
+    <comment>Screen reader name of a setting card that also says its state, such as "Protect with, Proxy saved".</comment>
+  </data>
+  <data name="SettingsCardCheck" xml:space="preserve">
+    <value>{title}, {word}, {note}</value>
+    <comment>Screen reader name of the Last check card: its title, the check's word and the line under it.</comment>
+  </data>
+  <data name="SettingsClosingDetail" xml:space="preserve">
+    <value>Keep downloading leaves anistream in the notification area until they finish.</value>
+    <comment>Under the setting for what closing the window does while episodes download.</comment>
+  </data>
+  <data name="SettingsPresenceRichDetail" xml:space="preserve">
+    <value>The cover, a progress bar and a link to the show on {tracker}. Needs the title shown.</value>
+    <comment>Under the rich presence switch: what Discord shows. The tracker is the site the link goes to.</comment>
+  </data>
+  <data name="SettingsAnotherTv" xml:space="preserve">
+    <value>Another TV</value>
+    <comment>Card in the Play on TV group: pair one more TV, once at least one is paired.</comment>
+  </data>
+  <data name="SettingsTheme" xml:space="preserve">
+    <value>Theme</value>
+    <comment>Setting: the app's colour theme.</comment>
+  </data>
+  <data name="SettingsMotion" xml:space="preserve">
+    <value>Motion</value>
+    <comment>Setting: whether the app animates.</comment>
+  </data>
+  <data name="SettingsStartFullscreen" xml:space="preserve">
+    <value>Start fullscreen</value>
+    <comment>Setting: the player opens fullscreen.</comment>
+  </data>
+  <data name="SettingsPlayerInterface" xml:space="preserve">
+    <value>Player interface</value>
+    <comment>Setting: the app's own player controls, or mpv's.</comment>
+  </data>
+  <data name="SettingsVpnMode" xml:space="preserve">
+    <value>VPN mode</value>
+    <comment>Setting: how torrent traffic is protected. VPN stays in capitals: it is an abbreviation.</comment>
+  </data>
+  <data name="SettingsTokenStorage" xml:space="preserve">
+    <value>Token storage</value>
+    <comment>Setting: where sign-in tokens are kept.</comment>
+  </data>
+  <data name="SettingsWatchParties" xml:space="preserve">
+    <value>Watch parties</value>
+    <comment>Setting: whether watch parties are offered.</comment>
+  </data>
+  <data name="SettingsSourceOrder" xml:space="preserve">
+    <value>Source order</value>
+    <comment>Setting: the order the app tries sources in.</comment>
+  </data>
+  <data name="SettingsDownloadsCellular" xml:space="preserve">
+    <value>Downloads on cellular</value>
+    <comment>Setting: downloads run on a cellular connection.</comment>
+  </data>
+  <data name="SettingsEpisodeNotifications" xml:space="preserve">
+    <value>New episode notifications</value>
+    <comment>Setting: a notification when a new episode of a followed show comes out.</comment>
+  </data>
+  <data name="SettingsTorrentSource" xml:space="preserve">
+    <value>Torrent source</value>
+    <comment>Setting: the switch that turns torrents on.</comment>
+  </data>
+  <data name="SettingsUpscalingNatural" xml:space="preserve">
+    <value>Natural · ArtCNN</value>
+    <comment>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</comment>
+  </data>
+  <data name="SettingsUpscalingSharp" xml:space="preserve">
+    <value>Sharp · Anime4K</value>
+    <comment>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</comment>
+  </data>
+  <data name="SettingsThemeAdaptive" xml:space="preserve">
+    <value>Adaptive</value>
+    <comment>Value of the theme setting: follows the system's colours.</comment>
+  </data>
+  <data name="SettingsThemeImmersive" xml:space="preserve">
+    <value>Immersive</value>
+    <comment>Value of the theme setting: draws its own dark background.</comment>
+  </data>
+  <data name="SettingsPlayerUiMpv" xml:space="preserve">
+    <value>Your mpv setup</value>
+    <comment>Value of the player interface setting: mpv's own controls and the person's configuration.</comment>
+  </data>
+  <data name="SettingsPlayerUiApp" xml:space="preserve">
+    <value>anistream</value>
+    <comment>Value of the player interface setting: the app's own controls.</comment>
+  </data>
+  <data name="SettingsQualityLines" xml:space="preserve">
+    <value>{lines}p</value>
+    <comment>Value of the quality setting: a picture height in lines, as in "1080p".</comment>
+  </data>
+  <data name="SettingsSeedUntilRatio" xml:space="preserve">
+    <value>Until ratio {ratio}</value>
+    <comment>Value of the seeding setting: share until the ratio is reached. The ratio is already formatted, as in "1.5".</comment>
+  </data>
+  <data name="SettingsUploadUnlimited" xml:space="preserve">
+    <value>Unlimited</value>
+    <comment>Value of the upload limit setting when there is no limit.</comment>
+  </data>
+  <data name="SettingsTrackers" xml:space="preserve">
+    <value>Trackers</value>
+    <comment>Heading over the trackers on the Accounts pane.</comment>
+  </data>
+  <data name="SettingsSync" xml:space="preserve">
+    <value>Sync</value>
+    <comment>Heading over the sync card on the Accounts pane.</comment>
+  </data>
+  <data name="SettingsSyncDetail" xml:space="preserve">
+    <value>Sends what changed here and fetches what changed elsewhere.</value>
+    <comment>Under the Sync with trackers card.</comment>
+  </data>
+  <data name="SettingsSignedInWaiting_one" xml:space="preserve">
+    <value>Signed in · one change waiting</value>
+    <comment>Under a tracker that is signed in, when its user name is unknown and changes wait to sync.</comment>
+  </data>
+  <data name="SettingsSignedInWaiting_other" xml:space="preserve">
+    <value>Signed in · {count} changes waiting</value>
+    <comment>Under a tracker that is signed in, when its user name is unknown and changes wait to sync.</comment>
+  </data>
+  <data name="SettingsSignedOutCode" xml:space="preserve">
+    <value>Not signed in · You enter a code on its site</value>
+    <comment>Under a tracker that signs in with a code typed on its website.</comment>
+  </data>
+  <data name="SettingsLibmpvLicence" xml:space="preserve">
+    <value>Licensed under the Lesser General Public Licence, version 2.1 or later.</value>
+    <comment>Notice line for the video library the player uses.</comment>
+  </data>
+  <data name="TorrentsWarnInstead" xml:space="preserve">
+    <value>anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.</value>
+    <comment>Confirmation text before choosing Warn only for a failed check.</comment>
+  </data>
+  <data name="ShowSettingsLabel" xml:space="preserve">
+    <value>Settings for {title}</value>
+    <comment>Screen reader name of a show's settings dialog.</comment>
+  </data>
+  <data name="ShowSettingsLoading" xml:space="preserve">
+    <value>Loading this show's settings</value>
+    <comment>Line in a show's settings while its values load.</comment>
+  </data>
+  <data name="ShowSettingsFailed" xml:space="preserve">
+    <value>Couldn't load this show's settings.</value>
+    <comment>Line in a show's settings when its values did not come. Try again follows it.</comment>
+  </data>
+  <data name="ShowSettingsNoSource" xml:space="preserve">
+    <value>Add a source to keep one for this show.</value>
+    <comment>Under the source row of a show's settings, when no source is installed.</comment>
+  </data>
+  <data name="ShowSettingsKeepNextDetail" xml:space="preserve">
+    <value>Downloads the episodes after the one you watch.</value>
+    <comment>Under the keep next episodes row of a show's settings.</comment>
+  </data>
+  <data name="ShowSettingsNotifyDetail" xml:space="preserve">
+    <value>A notification when an episode comes out.</value>
+    <comment>Under the new episodes row of a show's settings.</comment>
+  </data>
+  <data name="WelcomeSourcesOthers" xml:space="preserve">
+    <value>Every source is run by someone else.</value>
+    <comment>First page of the welcome dialog: the legal line beside it, then this.</comment>
+  </data>
+  <data name="WelcomeNoOwnSources" xml:space="preserve">
+    <value>anistream ships no sources of its own.</value>
+    <comment>Sources page of the welcome dialog, before the line about plugins.</comment>
+  </data>
+  <data name="SettingsDownloadStandard" xml:space="preserve">
+    <value>Standard</value>
+    <comment>Value of the download quality setting: the usual version of an episode.</comment>
+  </data>
+  <data name="SettingsDownloadHigher" xml:space="preserve">
+    <value>Higher</value>
+    <comment>Value of the download quality setting: a larger, sharper version where a source has one.</comment>
+  </data>
+  <data name="TorrentsDialogTurnOn" xml:space="preserve">
+    <value>Turn on torrents</value>
+    <comment>Title of the dialog that turns torrents on and asks what protects them.</comment>
+  </data>
+  <data name="TorrentsDialogProtect" xml:space="preserve">
+    <value>Protect torrents</value>
+    <comment>Title of the dialog that changes what protects torrents.</comment>
+  </data>
+  <data name="TorrentsDialogEditProxy" xml:space="preserve">
+    <value>Edit proxy</value>
+    <comment>Title of the dialog that edits the saved proxy.</comment>
+  </data>
+  <data name="TorrentsDialogTurnOnAction" xml:space="preserve">
+    <value>Turn on</value>
+    <comment>The torrent dialog's main button when it turns torrents on.</comment>
+  </data>
+  <data name="TorrentsChoiceSpoken" xml:space="preserve">
+    <value>{label}. {detail}</value>
+    <comment>Screen reader name of a protection choice: its name, then what it does.</comment>
+  </data>
+  <data name="TrayStillDownloading" xml:space="preserve">
+    <value>anistream is still downloading</value>
+    <comment>The notification area icon's balloon, the first time the window closes with downloads running: its title.</comment>
+  </data>
+  <data name="TrayWhere" xml:space="preserve">
+    <value>It's in the notification area.</value>
+    <comment>The balloon's line under the title.</comment>
+  </data>
+  <data name="TrayOpen" xml:space="preserve">
+    <value>Open anistream</value>
+    <comment>The notification area icon's menu: brings the window back.</comment>
+  </data>
+  <data name="TrayQuit" xml:space="preserve">
+    <value>Quit</value>
+    <comment>The notification area icon's menu: stops everything and quits the app.</comment>
+  </data>
+  <data name="CloseTitle" xml:space="preserve">
+    <value>Downloads are still running</value>
+    <comment>The window's close dialog when downloads or seeding are still running: its title.</comment>
+  </data>
+  <data name="CloseDownloading_one" xml:space="preserve">
+    <value>One episode is downloading.</value>
+    <comment>The close dialog's line: how many episodes are downloading. A sentence of its own.</comment>
+  </data>
+  <data name="CloseDownloading_other" xml:space="preserve">
+    <value>{count} episodes are downloading.</value>
+    <comment>The close dialog's line: how many episodes are downloading. A sentence of its own.</comment>
+  </data>
+  <data name="CloseSeeding_one" xml:space="preserve">
+    <value>One episode is seeding.</value>
+    <comment>The close dialog's line: how many episodes are seeding. A sentence of its own.</comment>
+  </data>
+  <data name="CloseSeeding_other" xml:space="preserve">
+    <value>{count} episodes are seeding.</value>
+    <comment>The close dialog's line: how many episodes are seeding. A sentence of its own.</comment>
+  </data>
+  <data name="CloseAsk" xml:space="preserve">
+    <value>Keep them going after the window closes, or stop them?</value>
+    <comment>The close dialog's question, after the counts.</comment>
+  </data>
+  <data name="CloseStop" xml:space="preserve">
+    <value>Stop and close</value>
+    <comment>The close dialog's second button: stops the downloads and quits.</comment>
+  </data>
+  <data name="ToastOpenStores" xml:space="preserve">
+    <value>Open plugin stores</value>
+    <comment>Button on a toast whose message is about the plugin stores: opens them.</comment>
+  </data>
+  <data name="ToastTitled" xml:space="preserve">
+    <value>{title}: {body}</value>
+    <comment>A toast built from a notice that has a title and a body, while the window is in front.</comment>
+  </data>
+  <data name="LinkCantOpen" xml:space="preserve">
+    <value>anistream can't open that link.</value>
+    <comment>Toast when the app was opened by a link it does not handle.</comment>
+  </data>
+  <data name="AccountsPaneSignInAgain" xml:space="preserve">
+    <value>Sign in again</value>
+    <comment>The account in the navigation pane's foot, when the sign-in ran out. Short: it sits beside an icon.</comment>
+  </data>
+  <data name="StateLoadFailed" xml:space="preserve">
+    <value>Couldn't load this page</value>
+    <comment>A page that failed to load: the line above Try again. The next line says to check the connection.</comment>
+  </data>
+  <data name="NotifyEpisodeOut" xml:space="preserve">
+    <value>Episode {episode} is out.</value>
+    <comment>Notification body: a new episode is out.</comment>
+  </data>
+  <data name="NotifyEpisodeOutDubbed" xml:space="preserve">
+    <value>Episode {episode} is out, dubbed.</value>
+    <comment>Notification body: a new dubbed episode is out.</comment>
+  </data>
+  <data name="NotifyNextForYou" xml:space="preserve">
+    <value>Next for you: episode {episode}.</value>
+    <comment>Follows the line above when the viewer is behind: the episode Play starts.</comment>
+  </data>
+  <data name="NotifyDownloadedOne" xml:space="preserve">
+    <value>Episode {episode} downloaded.</value>
+    <comment>Notification body: one episode of a show finished downloading. The episode is a number such as 3 or 12.5.</comment>
+  </data>
+  <data name="NotifyDownloaded_one" xml:space="preserve">
+    <value>One episode downloaded.</value>
+    <comment>Notification body: several episodes of a show finished downloading.</comment>
+  </data>
+  <data name="NotifyDownloaded_other" xml:space="preserve">
+    <value>{count} episodes downloaded.</value>
+    <comment>Notification body: several episodes of a show finished downloading.</comment>
+  </data>
+  <data name="UpdatesProgressName" xml:space="preserve">
+    <value>Update progress</value>
+    <comment>Screen reader name of the update's progress bar in About.</comment>
+  </data>
+  <data name="UpdatesNotesTitle" xml:space="preserve">
+    <value>In version {version}</value>
+    <comment>Heading over a new version's notes in About.</comment>
+  </data>
+  <data name="UpdatesOpenPage" xml:space="preserve">
+    <value>Open the download page</value>
+    <comment>Button in About when this copy can't install updates itself: opens the new version's download page.</comment>
+  </data>
+  <data name="UpdatesWhatsNew" xml:space="preserve">
+    <value>What's new</value>
+    <comment>Button in About: opens the new version's page, which lists what changed.</comment>
+  </data>
+  <data name="UpdatesWhyFixture" xml:space="preserve">
+    <value>A test run installs nothing.</value>
+    <comment>Test runs only: why the staged update didn't install.</comment>
+  </data>
+  <data name="NagareName" xml:space="preserve">
+    <value>Nagare, the anistream mascot</value>
+    <comment>Screen reader name of the mascot drawn in empty states.</comment>
+  </data>
+  <data name="ShortcutsWindow" xml:space="preserve">
+    <value>Window</value>
+    <comment>Heading in the shortcuts dialog over the window's keys.</comment>
+  </data>
+  <data name="ShortcutsSections" xml:space="preserve">
+    <value>Sections, Continue to plugin stores</value>
+    <comment>Shortcut: the number keys go to the pane's sections, first to last.</comment>
+  </data>
+  <data name="ShortcutsKeysRange" xml:space="preserve">
+    <value>{first} to {last}</value>
+    <comment>Keys for a range, such as "Ctrl+1 to Ctrl+7". The keys keep their names.</comment>
+  </data>
+  <data name="ShortcutsKeysBack" xml:space="preserve">
+    <value>{key}, mouse back button</value>
+    <comment>Keys for Back: a key, then the mouse's back button.</comment>
+  </data>
+  <data name="ShortcutsKeysMenu" xml:space="preserve">
+    <value>{key}, Menu key</value>
+    <comment>Keys for the context menu: a key, then the keyboard's Menu key.</comment>
+  </data>
+  <data name="ShortcutsSeek" xml:space="preserve">
+    <value>Back or forward 5 s, 30 s with Shift</value>
+    <comment>Shortcut in the player: the arrow keys seek 5 seconds, 30 with Shift held.</comment>
+  </data>
+  <data name="ShortcutsSeekTen" xml:space="preserve">
+    <value>Back or forward 10 s</value>
+    <comment>Shortcut in the player: J and L seek 10 seconds.</comment>
+  </data>
+  <data name="ShortcutsSkipUndo" xml:space="preserve">
+    <value>Skip, undo the skip</value>
+    <comment>Shortcut in the player: skips an opening or ending, and a second key undoes it.</comment>
+  </data>
+  <data name="ShortcutsSpeedReset" xml:space="preserve">
+    <value>Slower, faster, normal speed</value>
+    <comment>Shortcut in the player: three keys for playback speed.</comment>
+  </data>
+  <data name="ShortcutsCornerCard" xml:space="preserve">
+    <value>Take the corner card's action</value>
+    <comment>Shortcut in the player: presses the button on the card in the corner, such as Up next.</comment>
+  </data>
+  <data name="ShortcutsClosePlayer" xml:space="preserve">
+    <value>Close the player</value>
+    <comment>Shortcut in the player.</comment>
+  </data>
+  <data name="TvPickerEpisodeOf" xml:space="preserve">
+    <value>{title}, episode {episode}</value>
+    <comment>Under the TV picker's title: the episode about to play on the TV, with its show's title.</comment>
+  </data>
+  <data name="EpisodeLabel" xml:space="preserve">
+    <value>Episode {episode}</value>
+    <comment>An episode named by its label as the show numbers it, such as 5 or 5.5. Under the TV picker's title, on the remote while it starts, and in the watch party's dialog when no source has it.</comment>
+  </data>
+  <data name="EpisodeLabelOf" xml:space="preserve">
+    <value>Episode {episode} of {title}</value>
+    <comment>An episode of a show, named by its label as the show numbers it, such as 5 or 5.5. In the watch party's dialog when no source has it, before "plays with the room".</comment>
+  </data>
+  <data name="TvConnectingToTv" xml:space="preserve">
+    <value>Connecting to the TV</value>
+    <comment>Title of the pairing sheet while it connects to a TV whose name it does not know yet.</comment>
+  </data>
+  <data name="TvDeviceCode" xml:space="preserve">
+    <value>A TV lists this device with the code {code}. Forget a TV here and it forgets this device too.</value>
+    <comment>Under the paired TVs in Settings. The code is a few letters and digits the TV shows beside this { -device }.</comment>
+  </data>
+  <data name="TvUnnamed" xml:space="preserve">
+    <value>TV</value>
+    <comment>What the remote calls a TV that has not said its name yet. Title of the remote.</comment>
+  </data>
+  <data name="TvAnotherShort" xml:space="preserve">
+    <value>Another TV…</value>
+    <comment>Short form of "Choose another TV…" on the remote's button when the window is narrow.</comment>
+  </data>
+  <data name="TvVolumeLabel" xml:space="preserve">
+    <value>TV volume</value>
+    <comment>Label of the row on the remote with the TV's volume buttons.</comment>
+  </data>
+  <data name="TvWaiting" xml:space="preserve">
+    <value>Waiting for the TV</value>
+    <comment>While pairing, until the TV answers and before its name is known.</comment>
+  </data>
+  <data name="TvWaitingFor" xml:space="preserve">
+    <value>Waiting for {name}</value>
+    <comment>While pairing, until the named TV answers.</comment>
+  </data>
+  <data name="TvRowName" xml:space="preserve">
+    <value>{name}, {detail}</value>
+    <comment>Name read by a screen reader for a TV in the picker: its name, then the line under it.</comment>
+  </data>
+  <data name="TvRowNameConnected" xml:space="preserve">
+    <value>{name}, {detail}, connected</value>
+    <comment>Name read by a screen reader for the TV in the picker that this { -device } is connected to.</comment>
+  </data>
+  <data name="TvRowPairHelp" xml:space="preserve">
+    <value>Pairs with this TV</value>
+    <comment>Help read by a screen reader for a TV in the picker that is not paired yet.</comment>
+  </data>
+  <data name="TvNoneFoundName" xml:space="preserve">
+    <value>{title}. {detail}</value>
+    <comment>Name read by a screen reader when the picker found no TVs: the heading, then what to check. Both are already sentences from the catalogue; the detail ends with its own full stop.</comment>
+  </data>
+  <data name="TvSettingValue" xml:space="preserve">
+    <value>{setting}, {value}</value>
+    <comment>Name read by a screen reader for a track button on the remote: the setting, then the track chosen, as in "Subtitles, English".</comment>
+  </data>
+  <data name="PartyChooseSourceFor" xml:space="preserve">
+    <value>Choose a source for episode {episode}</value>
+    <comment>Title of the dialog once it lists what each { -source } has for the room's episode. The episode is its label, such as 5 or 5.5.</comment>
+  </data>
+  <data name="PartyNosourceUnairedTitle" xml:space="preserve">
+    <value>Episode {episode} isn't out yet</value>
+    <comment>Title of the dialog when the room's episode has not aired yet. The episode is its label, such as 5 or 5.5.</comment>
+  </data>
+  <data name="PartyNosourceUnairedWhen" xml:space="preserve">
+    <value>{when} Your sources won't have it before then. It plays with the room once one of them does.</value>
+    <comment>Under that title: when it airs, as the schedule says it in full sentences, then what happens next.</comment>
+  </data>
+  <data name="SourcesCheck" xml:space="preserve">
+    <value>Check sources</value>
+    <comment>Button at the top of the { -source-cap-pl } page that asks every { -source } whether it answers.</comment>
+  </data>
+  <data name="SourcesOriginVersion" xml:space="preserve">
+    <value>{origin} · version {version}</value>
+    <comment>Under a { -source }'s name in its detail: where it came from, then its version. The origin is already worded, such as "From a store" or "Added by hand".</comment>
+  </data>
+  <data name="SourcesStanding" xml:space="preserve">
+    <value>Standing</value>
+    <comment>Label in a { -source }'s detail, beside how it stands: failing, slow, off, or working.</comment>
+  </data>
+  <data name="SourcesStatusWorking" xml:space="preserve">
+    <value>Working</value>
+    <comment>How a { -source } stands when nothing is wrong with it.</comment>
+  </data>
+  <data name="SourcesTorrentIndexes" xml:space="preserve">
+    <value>Searches the torrent indexes you have turned on under Settings.</value>
+    <comment>In the torrent { -source }'s detail, in place of the hosts it contacts.</comment>
+  </data>
+  <data name="SourcesVersionReady" xml:space="preserve">
+    <value>Version {version} is ready</value>
+    <comment>Heading of the card in a { -source }'s detail when a newer version can be installed.</comment>
+  </data>
+  <data name="SourcesUseThis" xml:space="preserve">
+    <value>Use this source</value>
+    <comment>Label of the switch that turns a { -source } on or off.</comment>
+  </data>
+  <data name="SourcesUseName" xml:space="preserve">
+    <value>{name} on</value>
+    <comment>Name read by a screen reader for that switch.</comment>
+  </data>
+  <data name="SourcesRemoveDetail" xml:space="preserve">
+    <value>It stops being tried for episodes. You can install it again from its plugin store.</value>
+    <comment>Under the title of the dialog that asks before a { -plugin } is removed from the { -source-cap-pl } page.</comment>
+  </data>
+  <data name="StoresUpdatesCount_one" xml:space="preserve">
+    <value>One to update</value>
+    <comment>Beside a { -plugin-store } in the list: how many of its installed { -plugin-pl } have an update.</comment>
+  </data>
+  <data name="StoresUpdatesCount_other" xml:space="preserve">
+    <value>{count} to update</value>
+    <comment>Beside a { -plugin-store } in the list: how many of its installed { -plugin-pl } have an update.</comment>
+  </data>
+  <data name="StoresOfflineKeepWorking" xml:space="preserve">
+    <value>It didn't answer when this device last asked. The plugins you installed keep working.</value>
+    <comment>In the banner when a { -plugin-store } does not answer, under its title "Not answering".</comment>
+  </data>
+  <data name="StoresStandingVersion" xml:space="preserve">
+    <value>{standing} · {version}</value>
+    <comment>Under a { -plugin }'s name in a { -plugin-store }: how it stands here, then its version. Both are already worded, as in "Installed · Version 1.2".</comment>
+  </data>
+  <data name="StoresUnreachable" xml:space="preserve">
+    <value>Couldn't reach the plugin store. Check the link and your connection, then try again.</value>
+    <comment>Under the invite link when the { -plugin-store } it names could not be reached or checked.</comment>
+  </data>
+  <data name="StoresAlreadyJoinedTitle" xml:space="preserve">
+    <value>{name} is already joined</value>
+    <comment>Title of the join dialog when this { -device } has joined that { -plugin-store } already.</comment>
+  </data>
+  <data name="StoresOffersPlugins_one" xml:space="preserve">
+    <value>One plugin</value>
+    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
+  </data>
+  <data name="StoresOffersPlugins_other" xml:space="preserve">
+    <value>{count} plugins</value>
+    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
+  </data>
+  <data name="StoresOwnerSeesAs" xml:space="preserve">
+    <value>The owner sees this device as</value>
+    <comment>Label over the box with the name this { -device } joins under.</comment>
+  </data>
+  <data name="DownloadsFreeUsed" xml:space="preserve">
+    <value>{free} free · {used} in downloads</value>
+    <comment>Under the Downloads page's title: the free space on the drive, then the space downloads take. Both sizes are already formatted.</comment>
+  </data>
+  <data name="DownloadsGroupLine" xml:space="preserve">
+    <value>{episodes} · {size}</value>
+    <comment>Under a show's title on the Downloads page: how many episodes, then the space they take. Both are already worded, as in "3 episodes · 1.2 GB".</comment>
+  </data>
+  <data name="DownloadsLineRate" xml:space="preserve">
+    <value>{line} · {rate}</value>
+    <comment>A running download's line with its speed after it. The line and the speed are already worded, as in "Downloading · 1 GB of 2 GB · 3 MB/s".</comment>
+  </data>
+  <data name="DownloadsLineLeft" xml:space="preserve">
+    <value>{line} · {left} left</value>
+    <comment>A running download's line with the time it has left after it. The time is short, such as 4m 10s.</comment>
+  </data>
+  <data name="DownloadsFailedRow" xml:space="preserve">
+    <value>Couldn't finish downloading. Try again, or remove it from the queue.</value>
+    <comment>Under an episode whose download failed.</comment>
+  </data>
+  <data name="DownloadsPlayLabel" xml:space="preserve">
+    <value>Play episode {episode}</value>
+    <comment>Name read by a screen reader for a downloaded episode's play button. The episode is its label, such as 5 or 5.5.</comment>
+  </data>
+  <data name="DownloadsProgressName" xml:space="preserve">
+    <value>{name} progress</value>
+    <comment>Name read by a screen reader for an episode's download progress bar. The name is the episode's, such as "Episode 5".</comment>
+  </data>
+  <data name="TorrentsProxyHostExample" xml:space="preserve">
+    <value>proxy.example</value>
+    <comment>Greyed example inside the torrent proxy's host box. Keep it an address on a reserved example domain.</comment>
+  </data>
+  <data name="TvProblemNoCode" xml:space="preserve">
+    <value>That code has expired. Ask the TV for a new one.</value>
+    <comment>When the TV's code has run out. The pairing starts again with a new code.</comment>
+  </data>
   <data name="SourcePickerSeeders_one" xml:space="preserve">
     <value>One seeder</value>
     <comment>Under a release in the source picker: how many people share it right now.</comment>
@@ -906,6 +1654,14 @@
   <data name="SourcePickerSeeders_other" xml:space="preserve">
     <value>{count} seeders</value>
     <comment>Under a release in the source picker: how many people share it right now.</comment>
+  </data>
+  <data name="RatePerSecond" xml:space="preserve">
+    <value>{size}/s</value>
+    <comment>A transfer rate. The size is already formatted, such as "1.2 MB".</comment>
+  </data>
+  <data name="AppName" xml:space="preserve">
+    <value>anistream</value>
+    <comment>The window's title and the title bar's name: the app's name.</comment>
   </data>
   <data name="AboutTitle" xml:space="preserve">
     <value>About</value>
@@ -1398,6 +2154,114 @@
   <data name="StateLoading" xml:space="preserve">
     <value>Loading</value>
     <comment>Short placeholder while something loads.</comment>
+  </data>
+  <data name="CloseDontAsk" xml:space="preserve">
+    <value>Don't ask again</value>
+    <comment>Checkbox of the close question.</comment>
+  </data>
+  <data name="CloseKeepGoing" xml:space="preserve">
+    <value>Keep going</value>
+    <comment>Response of the close question: keep it running in the background.</comment>
+  </data>
+  <data name="PartyLookingSources" xml:space="preserve">
+    <value>Looking through your sources…</value>
+    <comment>Line while the sources are searched for the watch party's episode.</comment>
+  </data>
+  <data name="PartyNeedsConnection" xml:space="preserve">
+    <value>A watch party needs a connection. You're offline.</value>
+    <comment>Foot of the watch party form while the device is offline.</comment>
+  </data>
+  <data name="PartyOpenSources" xml:space="preserve">
+    <value>Open sources</value>
+    <comment>Button that goes to the Sources page, when the watch party's episode has no source because none are set up.</comment>
+  </data>
+  <data name="SettingsSeedingOpenOnly" xml:space="preserve">
+    <value>Seeding runs only while anistream is open.</value>
+    <comment>Line under the seeding group in Settings: seeding stops when the app closes.</comment>
+  </data>
+  <data name="ShortcutsContextMenu" xml:space="preserve">
+    <value>Context menu</value>
+    <comment>Shortcut: open the context menu of the title that has focus.</comment>
+  </data>
+  <data name="ShortcutsMute" xml:space="preserve">
+    <value>Mute</value>
+    <comment>Shortcut: mute the sound.</comment>
+  </data>
+  <data name="ShortcutsNextPrevious" xml:space="preserve">
+    <value>Next or previous episode</value>
+    <comment>Shortcut: move between episodes.</comment>
+  </data>
+  <data name="ShortcutsPlayPause" xml:space="preserve">
+    <value>Play or pause</value>
+    <comment>Shortcut: pause or resume.</comment>
+  </data>
+  <data name="ShortcutsTitle" xml:space="preserve">
+    <value>Keyboard shortcuts</value>
+    <comment>Title of the keyboard shortcuts window.</comment>
+  </data>
+  <data name="TvPairedSeen" xml:space="preserve">
+    <value>{paired} · seen {ago}</value>
+    <comment>Settings line of a paired TV: paired on a date, last seen a while ago.</comment>
+  </data>
+  <data name="TvProblemBusy" xml:space="preserve">
+    <value>The TV is connected to as many devices as it can. Try again soon.</value>
+    <comment>The TV cannot take another connection now.</comment>
+  </data>
+  <data name="TvProblemGone" xml:space="preserve">
+    <value>That TV is no longer on the network.</value>
+    <comment>The TV picked in the list has left the network.</comment>
+  </data>
+  <data name="TvProblemKeyChanged" xml:space="preserve">
+    <value>The TV was reset or reinstalled since you paired. Pair again.</value>
+    <comment>The TV's key changed since pairing.</comment>
+  </data>
+  <data name="TvProblemNotALink" xml:space="preserve">
+    <value>That isn't a TV's pairing code or address.</value>
+    <comment>What was typed or scanned is not a TV's code or address.</comment>
+  </data>
+  <data name="TvProblemNotNow" xml:space="preserve">
+    <value>Nothing is playing on the TV.</value>
+    <comment>A command needs something playing and nothing is.</comment>
+  </data>
+  <data name="TvProblemUnreachable" xml:space="preserve">
+    <value>Can't reach the TV. Check that it's on, with anistream open, on the same network.</value>
+    <comment>The TV did not answer.</comment>
+  </data>
+  <data name="TvProblemVersion" xml:space="preserve">
+    <value>The TV runs another version of anistream. Update both to the same one.</value>
+    <comment>The TV and this app speak different versions.</comment>
+  </data>
+  <data name="TvProblemWrongCode" xml:space="preserve">
+    <value>That code didn't match. Check the code on the TV and try again.</value>
+    <comment>The pairing code typed did not match.</comment>
+  </data>
+  <data name="TvVolumeDown" xml:space="preserve">
+    <value>Volume down</value>
+    <comment>Accessible label of the button that turns the TV down.</comment>
+  </data>
+  <data name="TvVolumeOf" xml:space="preserve">
+    <value>{volume} of 100</value>
+    <comment>The TV's volume as a value of 100.</comment>
+  </data>
+  <data name="TvVolumeUp" xml:space="preserve">
+    <value>Volume up</value>
+    <comment>Accessible label of the button that turns the TV up.</comment>
+  </data>
+  <data name="UpdatesDownload" xml:space="preserve">
+    <value>Download update</value>
+    <comment>Button that downloads the new version of the app.</comment>
+  </data>
+  <data name="UpdatesRestart" xml:space="preserve">
+    <value>Restart to update</value>
+    <comment>Button that closes the app and opens the new version it has put in place.</comment>
+  </data>
+  <data name="TvProblemFull" xml:space="preserve">
+    <value>This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.</value>
+    <comment>The TV cannot take another paired device.</comment>
+  </data>
+  <data name="TvProblemUnpaired" xml:space="preserve">
+    <value>The TV doesn't know this device any more. Pair again.</value>
+    <comment>The TV has forgotten this computer.</comment>
   </data>
   <data name="DownloadsTitle" xml:space="preserve">
     <value>Downloads</value>
@@ -2575,17 +3439,13 @@
     <value>{seeders} seeders</value>
     <comment>Line of a source: its quality and size already formatted, and the number of seeders.</comment>
   </data>
-  <data name="PartyNeedsConnection" xml:space="preserve">
-    <value>A watch party needs a connection. You're offline.</value>
-    <comment>Foot of the watch party form while the device is offline.</comment>
+  <data name="PartyNoSourceLists" xml:space="preserve">
+    <value>No source lists episode {episode}. Sources come from plugins, which a plugin store adds.</value>
+    <comment>Line when no source lists the episode.</comment>
   </data>
-  <data name="PartyOpenSources" xml:space="preserve">
-    <value>Open sources</value>
-    <comment>Button that goes to the Sources page, when the watch party's episode has no source because none are set up.</comment>
-  </data>
-  <data name="PartyLookingSources" xml:space="preserve">
-    <value>Looking through your sources…</value>
-    <comment>Line while the sources are searched for the watch party's episode.</comment>
+  <data name="PartyPlayWith" xml:space="preserve">
+    <value>Play with the watch party</value>
+    <comment>Button that plays the chosen source with the room.</comment>
   </data>
   <data name="PlayerUpNext" xml:space="preserve">
     <value>Up next</value>
@@ -3671,9 +4531,29 @@
     <value>Crisper lines and stronger edges, at some cost to texture.</value>
     <comment>Preview note under the upscaling frame for the sharp look.</comment>
   </data>
-  <data name="SettingsSeedingOpenOnly" xml:space="preserve">
-    <value>Seeding runs only while anistream is open.</value>
-    <comment>Line under the seeding group in Settings: seeding stops when the app closes.</comment>
+  <data name="SettingsAfterDownload" xml:space="preserve">
+    <value>After each download</value>
+    <comment>Setting: a command run after each download finishes.</comment>
+  </data>
+  <data name="SettingsMpvOptions" xml:space="preserve">
+    <value>mpv options</value>
+    <comment>Setting: extra options passed to mpv, the player. mpv stays lower case.</comment>
+  </data>
+  <data name="SettingsPanesLabel" xml:space="preserve">
+    <value>Settings panes</value>
+    <comment>Name screen readers give the list of panes down the side of Settings.</comment>
+  </data>
+  <data name="SettingsPresenceRich" xml:space="preserve">
+    <value>Rich presence</value>
+    <comment>Setting: Discord's status with the cover and a progress bar.</comment>
+  </data>
+  <data name="SettingsPresenceTitle" xml:space="preserve">
+    <value>Presence shows the title</value>
+    <comment>Setting: Discord's status names the show being watched.</comment>
+  </data>
+  <data name="SettingsSignedIn" xml:space="preserve">
+    <value>Signed in</value>
+    <comment>Under a tracker that is signed in, when its user name is unknown.</comment>
   </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>Sources</value>
@@ -3942,6 +4822,10 @@
   <data name="SourcesTorrentsNote" xml:space="preserve">
     <value>Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.</value>
     <comment>Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.</comment>
+  </data>
+  <data name="SourcesRebuilding" xml:space="preserve">
+    <value>Sources are being set up again</value>
+    <comment>Over the { -source } list while the { -source-pl } are set up again after a change.</comment>
   </data>
   <data name="StoresJoined" xml:space="preserve">
     <value>Joined</value>
@@ -4683,6 +5567,10 @@
     <value>Show {count} spoiler tags</value>
     <comment>Button that shows the spoiler tags.</comment>
   </data>
+  <data name="EpisodeLineDubbed" xml:space="preserve">
+    <value>{line} · Dubbed</value>
+    <comment>An episode's line with the audio it was watched in marked, as Continue and the title page word it.</comment>
+  </data>
   <data name="TorrentsTitle" xml:space="preserve">
     <value>Torrents</value>
     <comment>Title of the settings group and the screen.</comment>
@@ -4974,6 +5862,10 @@
   <data name="TorrentsPageNeedsScript" xml:space="preserve">
     <value>This page needs JavaScript to send the form to the TV safely.</value>
     <comment>Line when the page needs script.</comment>
+  </data>
+  <data name="TorrentsCheckNote" xml:space="preserve">
+    <value>anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.</value>
+    <comment>Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.</comment>
   </data>
   <data name="AccountsTitle" xml:space="preserve">
     <value>Accounts</value>
@@ -5495,65 +6387,9 @@
     <value>Needs the same anistream version as this device</value>
     <comment>Under a TV in the list: its version does not match.</comment>
   </data>
-  <data name="TvPairedSeen" xml:space="preserve">
-    <value>{paired} · seen {ago}</value>
-    <comment>Settings line of a paired TV: paired on a date, last seen a while ago.</comment>
-  </data>
   <data name="TvVolume" xml:space="preserve">
     <value>TV volume</value>
     <comment>Title of the remote's volume row.</comment>
-  </data>
-  <data name="TvVolumeDown" xml:space="preserve">
-    <value>Volume down</value>
-    <comment>Accessible label of the button that turns the TV down.</comment>
-  </data>
-  <data name="TvVolumeUp" xml:space="preserve">
-    <value>Volume up</value>
-    <comment>Accessible label of the button that turns the TV up.</comment>
-  </data>
-  <data name="TvVolumeOf" xml:space="preserve">
-    <value>{volume} of 100</value>
-    <comment>The TV's volume as a value of 100.</comment>
-  </data>
-  <data name="TvProblemWrongCode" xml:space="preserve">
-    <value>That code didn't match. Check the code on the TV and try again.</value>
-    <comment>The pairing code typed did not match.</comment>
-  </data>
-  <data name="TvProblemFull" xml:space="preserve">
-    <value>This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.</value>
-    <comment>The TV cannot take another paired device.</comment>
-  </data>
-  <data name="TvProblemBusy" xml:space="preserve">
-    <value>The TV is connected to as many devices as it can. Try again soon.</value>
-    <comment>The TV cannot take another connection now.</comment>
-  </data>
-  <data name="TvProblemVersion" xml:space="preserve">
-    <value>The TV runs another version of anistream. Update both to the same one.</value>
-    <comment>The TV and this app speak different versions.</comment>
-  </data>
-  <data name="TvProblemNotNow" xml:space="preserve">
-    <value>Nothing is playing on the TV.</value>
-    <comment>A command needs something playing and nothing is.</comment>
-  </data>
-  <data name="TvProblemUnpaired" xml:space="preserve">
-    <value>The TV doesn't know this device any more. Pair again.</value>
-    <comment>The TV has forgotten this computer.</comment>
-  </data>
-  <data name="TvProblemKeyChanged" xml:space="preserve">
-    <value>The TV was reset or reinstalled since you paired. Pair again.</value>
-    <comment>The TV's key changed since pairing.</comment>
-  </data>
-  <data name="TvProblemUnreachable" xml:space="preserve">
-    <value>Can't reach the TV. Check that it's on, with anistream open, on the same network.</value>
-    <comment>The TV did not answer.</comment>
-  </data>
-  <data name="TvProblemGone" xml:space="preserve">
-    <value>That TV is no longer on the network.</value>
-    <comment>The TV picked in the list has left the network.</comment>
-  </data>
-  <data name="TvProblemNotALink" xml:space="preserve">
-    <value>That isn't a TV's pairing code or address.</value>
-    <comment>What was typed or scanned is not a TV's code or address.</comment>
   </data>
   <data name="UpdatesTitle" xml:space="preserve">
     <value>Updates</value>

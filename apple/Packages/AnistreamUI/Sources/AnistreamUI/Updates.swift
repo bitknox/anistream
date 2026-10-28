@@ -205,7 +205,7 @@ struct ReleaseNotesRow: View {
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        SettingsRow(title: L.updatesWhatsNew(version: release.version), note: release.notes) {
+        SettingsRow(title: L.updatesWhatsNewIn(version: release.version), note: release.notes) {
             if let page = URL(string: release.pageUrl) {
                 Button(L.updatesReleaseNotes) { openURL(page) }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))

@@ -2473,6 +2473,30 @@
         }
       }
     },
+    "close-dont-ask" : {
+      "comment" : "Checkbox of the close question.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't ask again"
+          }
+        }
+      }
+    },
+    "close-keep-going" : {
+      "comment" : "Response of the close question: keep it running in the background.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep going"
+          }
+        }
+      }
+    },
     "continue-airing-today" : {
       "comment" : "Header for the strip of shows that air today.",
       "extractionState" : "manual",
@@ -3981,6 +4005,18 @@
         }
       }
     },
+    "episode-line-dubbed" : {
+      "comment" : "An episode's line with the audio it was watched in marked, as Continue and the title page word it. Argument 1: line (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Dubbed"
+          }
+        }
+      }
+    },
     "episode-mark-n-unwatched" : {
       "comment" : "Menu item that marks one numbered episode as not watched. Argument 1: episode (Int).",
       "extractionState" : "manual",
@@ -4101,7 +4137,7 @@
         }
       }
     },
-    "episode-number-text" : {
+    "episode-number-string" : {
       "comment" : "Name of an episode whose number is text, because it may be \"7.5\" or \"OVA 2\". Argument 1: number (Text).",
       "extractionState" : "manual",
       "localizations" : {
@@ -12120,7 +12156,7 @@
       }
     },
     "settings-after-download" : {
-      "comment" : "Group title on the Mac for the command that runs after each download.",
+      "comment" : "Setting: a command run after each download finishes.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -12786,7 +12822,7 @@
       }
     },
     "settings-mpv-options" : {
-      "comment" : "Name of the Advanced pane's option row for the player, found by Settings search.",
+      "comment" : "Setting: extra options passed to mpv, the player. mpv stays lower case.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -13144,7 +13180,7 @@
       }
     },
     "settings-panes-label" : {
-      "comment" : "VoiceOver label for the row of Settings panes on the Mac.",
+      "comment" : "Name screen readers give the list of panes down the side of Settings.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -13252,7 +13288,7 @@
       }
     },
     "settings-presence-rich" : {
-      "comment" : "Settings row for Discord: the richer presence with a cover, a bar and a link.",
+      "comment" : "Setting: Discord's status with the cover and a progress bar.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -13264,7 +13300,7 @@
       }
     },
     "settings-presence-title" : {
-      "comment" : "Settings row for Discord: whether the show's title goes with the presence.",
+      "comment" : "Setting: Discord's status names the show being watched.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -13526,7 +13562,7 @@
       }
     },
     "settings-signed-in" : {
-      "comment" : "Shown for a signed-in account that has no name yet.",
+      "comment" : "Under a tracker that is signed in, when its user name is unknown.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -13643,7 +13679,7 @@
         }
       }
     },
-    "settings-start-fullscreen" : {
+    "settings-start-full-screen" : {
       "comment" : "Settings row on the Mac: whether the player starts in full screen.",
       "extractionState" : "manual",
       "localizations" : {
@@ -14687,6 +14723,66 @@
         }
       }
     },
+    "shortcuts-context-menu" : {
+      "comment" : "Shortcut: open the context menu of the title that has focus.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Context menu"
+          }
+        }
+      }
+    },
+    "shortcuts-mute" : {
+      "comment" : "Shortcut: mute the sound.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute"
+          }
+        }
+      }
+    },
+    "shortcuts-next-previous" : {
+      "comment" : "Shortcut: move between episodes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next or previous episode"
+          }
+        }
+      }
+    },
+    "shortcuts-play-pause" : {
+      "comment" : "Shortcut: pause or resume.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play or pause"
+          }
+        }
+      }
+    },
+    "shortcuts-title" : {
+      "comment" : "Title of the keyboard shortcuts window.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyboard shortcuts"
+          }
+        }
+      }
+    },
     "show-settings-always" : {
       "comment" : "Option: always.",
       "extractionState" : "manual",
@@ -15726,13 +15822,13 @@
       }
     },
     "sources-rebuilding" : {
-      "comment" : "Line under the heading of the sources list while the list is built again.",
+      "comment" : "Over the { -source } list while the { -source-pl } are set up again after a change.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sources are being set up again…"
+            "value" : "Sources are being set up again"
           }
         }
       }
@@ -15773,7 +15869,7 @@
         }
       }
     },
-    "sources-remove-detail" : {
+    "sources-remove-detail-device" : {
       "comment" : "Detail of the confirmation that removes a plugin.",
       "extractionState" : "manual",
       "localizations" : {
@@ -18377,7 +18473,7 @@
         }
       }
     },
-    "stores-updates-count" : {
+    "stores-updates-available" : {
       "comment" : "Short status of a plugin store: how many plugins have an update. Argument 1: count (Int).",
       "extractionState" : "manual",
       "localizations" : {
@@ -19240,7 +19336,7 @@
       }
     },
     "torrents-check-note" : {
-      "comment" : "Line under the protection choices: what the connection check does.",
+      "comment" : "Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -21519,6 +21615,18 @@
         }
       }
     },
+    "updates-download" : {
+      "comment" : "Button that downloads the new version of the app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download update"
+          }
+        }
+      }
+    },
     "updates-downloading" : {
       "comment" : "Line while downloading, with the version. Argument 1: version (Text).",
       "extractionState" : "manual",
@@ -21790,7 +21898,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Version notes"
+            "value" : "What's new"
           }
         }
       }
@@ -21803,6 +21911,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Version page"
+          }
+        }
+      }
+    },
+    "updates-restart" : {
+      "comment" : "Button that closes the app and opens the new version it has put in place.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart to update"
           }
         }
       }
@@ -22023,14 +22143,14 @@
         }
       }
     },
-    "updates-whats-new" : {
+    "updates-whats-new-in" : {
       "comment" : "Title of the update row that carries the notes of the release. Argument 1: version (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "What’s new in %1$@"
+            "value" : "What's new in %1$@"
           }
         }
       }

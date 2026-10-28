@@ -1325,6 +1325,114 @@ object Strings {
     fun stateLoading(context: Context): String =
         context.getString(R.string.state_loading)
 
+    /** Checkbox of the close question. */
+    fun closeDontAsk(context: Context): String =
+        context.getString(R.string.close_dont_ask)
+
+    /** Response of the close question: keep it running in the background. */
+    fun closeKeepGoing(context: Context): String =
+        context.getString(R.string.close_keep_going)
+
+    /** Line while the sources are searched for the watch party's episode. */
+    fun partyLookingSources(context: Context): String =
+        context.getString(R.string.party_looking_sources)
+
+    /** Foot of the watch party form while the device is offline. */
+    fun partyNeedsConnection(context: Context): String =
+        context.getString(R.string.party_needs_connection)
+
+    /** Button that goes to the Sources page, when the watch party's episode has no source because none are set up. */
+    fun partyOpenSources(context: Context): String =
+        context.getString(R.string.party_open_sources)
+
+    /** Line under the seeding group in Settings: seeding stops when the app closes. */
+    fun settingsSeedingOpenOnly(context: Context): String =
+        context.getString(R.string.settings_seeding_open_only)
+
+    /** Shortcut: open the context menu of the title that has focus. */
+    fun shortcutsContextMenu(context: Context): String =
+        context.getString(R.string.shortcuts_context_menu)
+
+    /** Shortcut: mute the sound. */
+    fun shortcutsMute(context: Context): String =
+        context.getString(R.string.shortcuts_mute)
+
+    /** Shortcut: move between episodes. */
+    fun shortcutsNextPrevious(context: Context): String =
+        context.getString(R.string.shortcuts_next_previous)
+
+    /** Shortcut: pause or resume. */
+    fun shortcutsPlayPause(context: Context): String =
+        context.getString(R.string.shortcuts_play_pause)
+
+    /** Title of the keyboard shortcuts window. */
+    fun shortcutsTitle(context: Context): String =
+        context.getString(R.string.shortcuts_title)
+
+    /** Settings line of a paired TV: paired on a date, last seen a while ago. */
+    fun tvPairedSeen(context: Context, paired: String, ago: String): String =
+        context.getString(R.string.tv_paired_seen, paired, ago)
+
+    /** The TV cannot take another connection now. */
+    fun tvProblemBusy(context: Context): String =
+        context.getString(R.string.tv_problem_busy)
+
+    /** The TV picked in the list has left the network. */
+    fun tvProblemGone(context: Context): String =
+        context.getString(R.string.tv_problem_gone)
+
+    /** The TV's key changed since pairing. */
+    fun tvProblemKeyChanged(context: Context): String =
+        context.getString(R.string.tv_problem_key_changed)
+
+    /** What was typed or scanned is not a TV's code or address. */
+    fun tvProblemNotALink(context: Context): String =
+        context.getString(R.string.tv_problem_not_a_link)
+
+    /** A command needs something playing and nothing is. */
+    fun tvProblemNotNow(context: Context): String =
+        context.getString(R.string.tv_problem_not_now)
+
+    /** The TV did not answer. */
+    fun tvProblemUnreachable(context: Context): String =
+        context.getString(R.string.tv_problem_unreachable)
+
+    /** The TV and this app speak different versions. */
+    fun tvProblemVersion(context: Context): String =
+        context.getString(R.string.tv_problem_version)
+
+    /** The pairing code typed did not match. */
+    fun tvProblemWrongCode(context: Context): String =
+        context.getString(R.string.tv_problem_wrong_code)
+
+    /** Accessible label of the button that turns the TV down. */
+    fun tvVolumeDown(context: Context): String =
+        context.getString(R.string.tv_volume_down)
+
+    /** The TV's volume as a value of 100. */
+    fun tvVolumeOf(context: Context, volume: Int): String =
+        context.getString(R.string.tv_volume_of, volume)
+
+    /** Accessible label of the button that turns the TV up. */
+    fun tvVolumeUp(context: Context): String =
+        context.getString(R.string.tv_volume_up)
+
+    /** Button that downloads the new version of the app. */
+    fun updatesDownload(context: Context): String =
+        context.getString(R.string.updates_download)
+
+    /** Button that closes the app and opens the new version it has put in place. */
+    fun updatesRestart(context: Context): String =
+        context.getString(R.string.updates_restart)
+
+    /** The TV cannot take another paired device. */
+    fun tvProblemFull(context: Context): String =
+        context.getString(R.string.tv_problem_full)
+
+    /** The TV has forgotten this computer. */
+    fun tvProblemUnpaired(context: Context): String =
+        context.getString(R.string.tv_problem_unpaired)
+
     /** Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group. */
     fun downloadsTitle(context: Context): String =
         context.getString(R.string.downloads_title)
@@ -2485,17 +2593,13 @@ object Strings {
     fun partySourceSeeders(context: Context, seeders: Int): String =
         context.getString(R.string.party_source_seeders, seeders)
 
-    /** Foot of the watch party form while the device is offline. */
-    fun partyNeedsConnection(context: Context): String =
-        context.getString(R.string.party_needs_connection)
+    /** Line when no source lists the episode. */
+    fun partyNoSourceLists(context: Context, episode: String): String =
+        context.getString(R.string.party_no_source_lists, episode)
 
-    /** Button that goes to the Sources page, when the watch party's episode has no source because none are set up. */
-    fun partyOpenSources(context: Context): String =
-        context.getString(R.string.party_open_sources)
-
-    /** Line while the sources are searched for the watch party's episode. */
-    fun partyLookingSources(context: Context): String =
-        context.getString(R.string.party_looking_sources)
+    /** Button that plays the chosen source with the room. */
+    fun partyPlayWith(context: Context): String =
+        context.getString(R.string.party_play_with)
 
     /** Label on the card for the episode that plays after this one. */
     fun playerUpNext(context: Context): String =
@@ -3573,9 +3677,29 @@ object Strings {
     fun settingsUpscalingNoteSharp(context: Context): String =
         context.getString(R.string.settings_upscaling_note_sharp)
 
-    /** Line under the seeding group in Settings: seeding stops when the app closes. */
-    fun settingsSeedingOpenOnly(context: Context): String =
-        context.getString(R.string.settings_seeding_open_only)
+    /** Setting: a command run after each download finishes. */
+    fun settingsAfterDownload(context: Context): String =
+        context.getString(R.string.settings_after_download)
+
+    /** Setting: extra options passed to mpv, the player. mpv stays lower case. */
+    fun settingsMpvOptions(context: Context): String =
+        context.getString(R.string.settings_mpv_options)
+
+    /** Name screen readers give the list of panes down the side of Settings. */
+    fun settingsPanesLabel(context: Context): String =
+        context.getString(R.string.settings_panes_label)
+
+    /** Setting: Discord's status with the cover and a progress bar. */
+    fun settingsPresenceRich(context: Context): String =
+        context.getString(R.string.settings_presence_rich)
+
+    /** Setting: Discord's status names the show being watched. */
+    fun settingsPresenceTitle(context: Context): String =
+        context.getString(R.string.settings_presence_title)
+
+    /** Under a tracker that is signed in, when its user name is unknown. */
+    fun settingsSignedIn(context: Context): String =
+        context.getString(R.string.settings_signed_in)
 
     /** Title of the screen or section that lists sources. */
     fun sourcesTitle(context: Context): String =
@@ -3832,6 +3956,10 @@ object Strings {
     /** Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin. */
     fun sourcesTorrentsNote(context: Context): String =
         context.getString(R.string.sources_torrents_note)
+
+    /** Over the { -source } list while the { -source-pl } are set up again after a change. */
+    fun sourcesRebuilding(context: Context): String =
+        context.getString(R.string.sources_rebuilding)
 
     /** Short label for a joined store, on a row. */
     fun storesJoined(context: Context): String =
@@ -4561,6 +4689,10 @@ object Strings {
     fun moreShowSpoilerTags(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.more_show_spoiler_tags, count, count)
 
+    /** An episode's line with the audio it was watched in marked, as Continue and the title page word it. */
+    fun episodeLineDubbed(context: Context, line: String): String =
+        context.getString(R.string.episode_line_dubbed, line)
+
     /** Title of the settings group and the screen. */
     fun torrentsTitle(context: Context): String =
         context.getString(R.string.torrents_title)
@@ -4852,6 +4984,10 @@ object Strings {
     /** Line when the page needs script. */
     fun torrentsPageNeedsScript(context: Context): String =
         context.getString(R.string.torrents_page_needs_script)
+
+    /** Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects. */
+    fun torrentsCheckNote(context: Context): String =
+        context.getString(R.string.torrents_check_note)
 
     /** Title of the accounts screen. The sidebar item is nav-accounts. */
     fun accountsTitle(context: Context): String =
@@ -5369,65 +5505,9 @@ object Strings {
     fun tvRowNeedsUpdate(context: Context): String =
         context.getString(R.string.tv_row_needs_update)
 
-    /** Settings line of a paired TV: paired on a date, last seen a while ago. */
-    fun tvPairedSeen(context: Context, paired: String, ago: String): String =
-        context.getString(R.string.tv_paired_seen, paired, ago)
-
     /** Title of the remote's volume row. */
     fun tvVolume(context: Context): String =
         context.getString(R.string.tv_volume)
-
-    /** Accessible label of the button that turns the TV down. */
-    fun tvVolumeDown(context: Context): String =
-        context.getString(R.string.tv_volume_down)
-
-    /** Accessible label of the button that turns the TV up. */
-    fun tvVolumeUp(context: Context): String =
-        context.getString(R.string.tv_volume_up)
-
-    /** The TV's volume as a value of 100. */
-    fun tvVolumeOf(context: Context, volume: Int): String =
-        context.getString(R.string.tv_volume_of, volume)
-
-    /** The pairing code typed did not match. */
-    fun tvProblemWrongCode(context: Context): String =
-        context.getString(R.string.tv_problem_wrong_code)
-
-    /** The TV cannot take another paired device. */
-    fun tvProblemFull(context: Context): String =
-        context.getString(R.string.tv_problem_full)
-
-    /** The TV cannot take another connection now. */
-    fun tvProblemBusy(context: Context): String =
-        context.getString(R.string.tv_problem_busy)
-
-    /** The TV and this app speak different versions. */
-    fun tvProblemVersion(context: Context): String =
-        context.getString(R.string.tv_problem_version)
-
-    /** A command needs something playing and nothing is. */
-    fun tvProblemNotNow(context: Context): String =
-        context.getString(R.string.tv_problem_not_now)
-
-    /** The TV has forgotten this computer. */
-    fun tvProblemUnpaired(context: Context): String =
-        context.getString(R.string.tv_problem_unpaired)
-
-    /** The TV's key changed since pairing. */
-    fun tvProblemKeyChanged(context: Context): String =
-        context.getString(R.string.tv_problem_key_changed)
-
-    /** The TV did not answer. */
-    fun tvProblemUnreachable(context: Context): String =
-        context.getString(R.string.tv_problem_unreachable)
-
-    /** The TV picked in the list has left the network. */
-    fun tvProblemGone(context: Context): String =
-        context.getString(R.string.tv_problem_gone)
-
-    /** What was typed or scanned is not a TV's code or address. */
-    fun tvProblemNotALink(context: Context): String =
-        context.getString(R.string.tv_problem_not_a_link)
 
     /** Heading of the update row in settings and about. */
     fun updatesTitle(context: Context): String =

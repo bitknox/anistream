@@ -85,16 +85,6 @@ settings-advanced-note = An option here can undo a Playback setting, such as ups
 # @max 24
 updates-view-version = View version
 
-# Button that closes the app and opens the new version it has put in place.
-# @only linux
-# @max 24
-updates-restart = Restart to update
-
-# Button that downloads the new version of the app.
-# @only linux
-# @max 24
-updates-download = Download update
-
 # Accessible name of the progress bar while the new version downloads.
 # @only linux
 updates-progress-label = Update progress

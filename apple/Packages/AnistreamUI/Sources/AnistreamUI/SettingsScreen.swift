@@ -199,7 +199,7 @@ struct SettingsResults: View {
         (L.settingsSkipOpening, .playback), (L.settingsSkipFiller, .playback),
         (L.settingsMarkOpening, .playback), (L.settingsCountsWatched, .playback),
         (L.settingsSpoiler, .playback), (L.playerUpscaling, .playback), (L.playerNightMode, .playback),
-        (L.settingsStartFullscreen, .playback),
+        (L.settingsStartFullScreen, .playback),
         (L.downloadsFolder, .downloads), (L.downloadsQuality, .downloads), (L.settingsMergeSubtitles, .downloads),
         (L.settingsKeepSeeding, .downloads), (L.settingsAfterDownload, .downloads), (L.settingsWatchedDownloads, .downloads),
         (L.settingsNewEpisodes, .notifications), (L.settingsSystemNotifications, .notifications),

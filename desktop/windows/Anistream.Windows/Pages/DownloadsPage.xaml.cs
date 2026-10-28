@@ -57,7 +57,7 @@ public sealed partial class DownloadsPage : Page
         var rows = queue.Rows;
         var used = queue.BytesOnDisk;
         var free = Free();
-        Subtitle.Text = (free is { } f ? $"{Ui.Bytes(f)} free · " : "") + $"downloads use {Ui.Bytes(used)}";
+        Subtitle.Text = free is { } f ? T.DownloadsFreeUsed(Wording.Bytes(f), Wording.Bytes(used)) : T.DownloadsInDownloads(Wording.Bytes(used));
         Meter.Visibility = free is null || used == 0 ? Visibility.Collapsed : Visibility.Visible;
         if (free is { } room)
             Meter.Value = Math.Min(1, (double)used / (used + room));
@@ -74,20 +74,20 @@ public sealed partial class DownloadsPage : Page
             Body.Children.Add(Group(group));
         if (ctx.Known.Seeding.Length > 0)
         {
-            Body.Children.Add(Ui.Heading("Seeding after watching"));
+            Body.Children.Add(Ui.Heading(T.DownloadsSeedingAfterWatching));
             foreach (var seed in ctx.Known.Seeding)
                 Body.Children.Add(Seed(seed));
         }
         if (rows.Any(r => r.State is DownloadState.Active or DownloadState.Queued))
             Body.Children.Add(Ui.Haze(ctx.Window.WhenClosing switch
             {
-                CloseChoice.KeepGoing => "Downloads keep going when you close the window.",
-                CloseChoice.Stop => "Closing the window stops downloads. They resume the next time anistream opens.",
-                _ => "Downloads keep going when you close the window, if you choose to.",
+                CloseChoice.KeepGoing => T.DownloadsBackgroundKeeps,
+                CloseChoice.Stop => T.DownloadsBackgroundStops,
+                _ => T.DownloadsBackgroundAsks,
             }));
     }
 
-    static StackPanel Empty() => States.Empty("No downloads", "Downloaded episodes play without a connection.");
+    static StackPanel Empty() => States.Empty(T.DownloadsEmptyTitle, T.DownloadsEmptyDetail);
 
     Border Group(DownloadGroup group)
     {
@@ -104,8 +104,8 @@ public sealed partial class DownloadsPage : Page
         var head = new StackPanel { Spacing = 1 };
         head.Children.Add(Ui.Text(entry?.Title ?? group.Title, "BodyStrongTextBlockStyle", wrap: false));
         var bytes = group.BytesOnDisk;
-        var count = AnistreamFfiMethods.Plural((ulong)group.Rows.Length, "episode");
-        head.Children.Add(Ui.Text(bytes > 0 ? $"{count} · {Ui.Bytes(bytes)}" : count, "HazeCaptionStyle", wrap: false));
+        var count = T.EpisodesCount(group.Rows.Length);
+        head.Children.Add(Ui.Text(bytes > 0 ? T.DownloadsGroupLine(count, Wording.Bytes(bytes)) : count, "HazeCaptionStyle", wrap: false));
         column.Children.Add(head);
         foreach (var row in group.Rows)
             column.Children.Add(Episode(row));
@@ -119,12 +119,12 @@ public sealed partial class DownloadsPage : Page
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var text = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
-        var name = $"Episode {row.Episode}";
+        var name = T.EpisodeLabel(row.Episode);
         var title = Ui.Text(name, wrap: false);
         var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         line.Children.Add(title);
         if (row.Ahead)
-            line.Children.Add(Ui.Text("Downloaded ahead", "HazeCaptionStyle", wrap: false));
+            line.Children.Add(Ui.Text(T.DownloadsAhead, "HazeCaptionStyle", wrap: false));
         text.Children.Add(line);
         text.Children.Add(State(row));
         if (row.State is DownloadState.Active or DownloadState.Paused && row.Total > 0)
@@ -136,7 +136,7 @@ public sealed partial class DownloadsPage : Page
                 // Water while it runs, haze while it waits: a state, never the accent.
                 Foreground = Ui.Res<Microsoft.UI.Xaml.Media.Brush>(row.State == DownloadState.Active ? "WaterBrush" : "HazeBrush"),
             };
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(bar, $"{name} progress");
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(bar, T.DownloadsProgressName(name));
             text.Children.Add(bar);
         }
         grid.Children.Add(text);
@@ -145,30 +145,30 @@ public sealed partial class DownloadsPage : Page
         switch (row.State)
         {
             case DownloadState.Done:
-                actions.Children.Add(Ui.Icon("", $"Play {name}", (_, _) =>
+                actions.Children.Add(Ui.Icon("", T.DownloadsPlayLabel(row.Episode), (_, _) =>
                 {
                     if (row.Path is { } path)
                         ctx.Send(new Command.PlayLocal(row.AnilistId, row.Episode, row.Title, path));
                 }));
-                actions.Children.Add(Ui.Icon("", "Show in folder", (_, _) => ShowInFolder(row.Path)));
-                actions.Children.Add(Ui.Icon("", "Delete", (_, _) => ConfirmDelete(row, name)));
+                actions.Children.Add(Ui.Icon("", T.DownloadsShowInFolder, (_, _) => ShowInFolder(row.Path)));
+                actions.Children.Add(Ui.Icon("", T.ActionDelete, (_, _) => ConfirmDelete(row, name)));
                 break;
             case DownloadState.Active:
-                actions.Children.Add(Ui.Icon("", "Pause", (_, _) => ctx.Send(new Command.DownloadPause(row.Id))));
-                actions.Children.Add(Ui.Icon("", "Remove from queue", (_, _) => ctx.Send(new Command.DownloadCancel(row.Id))));
+                actions.Children.Add(Ui.Icon("", T.DownloadsPauseOne, (_, _) => ctx.Send(new Command.DownloadPause(row.Id))));
+                actions.Children.Add(Ui.Icon("", T.DownloadsRemoveFromQueue, (_, _) => ctx.Send(new Command.DownloadCancel(row.Id))));
                 break;
             case DownloadState.Paused:
-                actions.Children.Add(Ui.Icon("", "Resume", (_, _) => ctx.Send(new Command.DownloadPause(row.Id))));
-                actions.Children.Add(Ui.Icon("", "Remove from queue", (_, _) => ctx.Send(new Command.DownloadCancel(row.Id))));
+                actions.Children.Add(Ui.Icon("", T.DownloadsResumeOne, (_, _) => ctx.Send(new Command.DownloadPause(row.Id))));
+                actions.Children.Add(Ui.Icon("", T.DownloadsRemoveFromQueue, (_, _) => ctx.Send(new Command.DownloadCancel(row.Id))));
                 break;
             case DownloadState.Queued:
                 // To the front of the queue, at once: the last one running waits behind it.
-                actions.Children.Add(Ui.Label("Start now", (_, _) => ctx.Send(new Command.DownloadStartNow(row.Id))));
-                actions.Children.Add(Ui.Icon("", "Remove from queue", (_, _) => ctx.Send(new Command.DownloadCancel(row.Id))));
+                actions.Children.Add(Ui.Label(T.DownloadsStartNow, (_, _) => ctx.Send(new Command.DownloadStartNow(row.Id))));
+                actions.Children.Add(Ui.Icon("", T.DownloadsRemoveFromQueue, (_, _) => ctx.Send(new Command.DownloadCancel(row.Id))));
                 break;
             case DownloadState.Failed:
-                actions.Children.Add(Ui.Label("Retry", (_, _) => ctx.Send(new Command.DownloadEpisode(row.AnilistId, row.Episode))));
-                actions.Children.Add(Ui.Icon("", "Remove from queue", (_, _) => ctx.Send(new Command.DownloadCancel(row.Id))));
+                actions.Children.Add(Ui.Label(T.ActionTryAgain, (_, _) => ctx.Send(new Command.DownloadEpisode(row.AnilistId, row.Episode))));
+                actions.Children.Add(Ui.Icon("", T.DownloadsRemoveFromQueue, (_, _) => ctx.Send(new Command.DownloadCancel(row.Id))));
                 break;
         }
         Grid.SetColumn(actions, 1);
@@ -184,33 +184,31 @@ public sealed partial class DownloadsPage : Page
             {
                 var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
                 line.Children.Add(new FontIcon { Glyph = "", FontSize = 12, Foreground = Ui.Res<Microsoft.UI.Xaml.Media.Brush>("WaterBrush") });
-                line.Children.Add(Ui.Haze(row.Ahead ? "Downloaded · Removed a day after you watch it" : "Downloaded", wrap: false));
+                line.Children.Add(Ui.Haze(row.Ahead ? T.DownloadsCaptionAhead : T.DownloadsCaptionDone, wrap: false));
                 return line;
             }
             case DownloadState.Active when row.Total == 0:
-                return Ui.Haze("Waiting for metadata", wrap: false);
+                return Ui.Haze(T.DownloadsCaptionMetadata, wrap: false);
             case DownloadState.Active:
             {
-                var text = $"{Ui.Bytes(row.Downloaded)} of {Ui.Bytes(row.Total)}";
+                var text = T.DownloadsCaptionRunning(Wording.Bytes(row.Downloaded), Wording.Bytes(row.Total));
                 if (ctx.Known.Queue.Rates.TryGetValue(row.Id, out var rate) && rate > 0)
-                    text += $" · {Ui.Bytes((ulong)rate)}/s";
+                    text = T.DownloadsLineRate(text, Wording.Rate((ulong)rate));
                 if (ctx.Known.Queue.SecondsLeft(row) is { } left)
-                    text += $" · {AnistreamFfiMethods.Countdown(left)} left";
+                    text = T.DownloadsLineLeft(text, Wording.Countdown(left));
                 return Ui.Haze(text, wrap: false);
             }
             case DownloadState.Paused:
-                return Ui.Haze($"Paused at {Ui.Bytes(row.Downloaded)} of {Ui.Bytes(row.Total)}", wrap: false);
+                return Ui.Haze(T.DownloadsCaptionPaused(Wording.Percent(row.Fraction * 100)), wrap: false);
             case DownloadState.Queued:
-                return Ui.Haze("Queued · starts when a download slot is free", wrap: false);
+                return Ui.Haze(T.DownloadsCaptionQueuedSlot, wrap: false);
             default:
             {
                 // The glyph is the one vermilion thing; the words are haze, and the engine's
                 // reason goes to the log, not the row.
                 var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
                 line.Children.Add(States.ErrorGlyph(12));
-                line.Children.Add(Ui.Haze("Couldn't finish downloading. Retry, or remove it from the queue.", wrap: false));
-                if (row.Error is { } error)
-                    ToolTipService.SetToolTip(line, Words.Failure(error));
+                line.Children.Add(Ui.Haze(T.DownloadsFailedRow, wrap: false));
                 return line;
             }
         }
@@ -224,7 +222,7 @@ public sealed partial class DownloadsPage : Page
         var text = new StackPanel { Spacing = 3 };
         text.Children.Add(Ui.Text(seed.Name, wrap: false));
         text.Children.Add(Ui.Text(
-            $"{seed.Ratio:0.0} of {seed.Goal:0.0} · {AnistreamFfiMethods.Countdown((long)seed.LeftSecs)} left · {Ui.Bytes(seed.UploadedBytes)} up",
+            T.DownloadsSeedingLine(Wording.Number(seed.Ratio, 1), Wording.Number(seed.Goal, 1), Wording.Countdown((long)seed.LeftSecs)),
             "HazeCaptionStyle", wrap: false));
         text.Children.Add(new ProgressBar
         {
@@ -234,7 +232,7 @@ public sealed partial class DownloadsPage : Page
         grid.Children.Add(text);
         if (seed.Size() is { } size)
         {
-            var label = Ui.Haze(Ui.Bytes(size), wrap: false);
+            var label = Ui.Haze(Wording.Bytes(size), wrap: false);
             label.VerticalAlignment = VerticalAlignment.Center;
             Grid.SetColumn(label, 1);
             grid.Children.Add(label);
@@ -247,10 +245,10 @@ public sealed partial class DownloadsPage : Page
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = $"Delete {name}?",
-            Content = "The file is deleted from this computer.",
-            PrimaryButtonText = "Delete",
-            CloseButtonText = "Cancel",
+            Title = T.DownloadsDeleteTitle(name),
+            Content = T.DownloadsDeleteDetail,
+            PrimaryButtonText = T.ActionDelete,
+            CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Close,
         };
         if (await dialog.ShowAsync() == ContentDialogResult.Primary)

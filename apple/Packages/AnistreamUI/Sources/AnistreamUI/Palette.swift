@@ -49,7 +49,7 @@ func paletteItems(query: String, store: AppStore, navigator: Navigator) -> (titl
         let next = entry.progress?.next ?? 1
         let episodeName = store.titles.episodes[id]?.first { $0.number == String(next) }?.title
         command(L.menuMarkWatched, "checkmark",
-                detail: episodeName.map { L.episodeTitledText(number: String(next), title: $0) } ?? L.episodeNumberText(number: String(next)),
+                detail: episodeName.map { L.episodeTitledText(number: String(next), title: $0) } ?? L.episodeNumberString(number: String(next)),
                 shortcut: "⇧⌘U") {
             store.send(.setWatched(id: id, episodes: [String(next)], watched: true))
         }

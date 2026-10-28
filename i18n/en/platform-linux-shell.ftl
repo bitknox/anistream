@@ -47,11 +47,6 @@ shell-tracker-synced = { $tracker } · Synced
 
 ## Keyboard shortcuts window
 
-# Title of the keyboard shortcuts window.
-# @only linux
-# @max 32
-shortcuts-title = Keyboard shortcuts
-
 # Heading of the shortcuts that work on lists of titles.
 # @only linux
 # @max 24
@@ -77,14 +72,6 @@ shortcuts-quit = Quit
 # @only linux
 shortcuts-play-selected = Play the selected title
 
-# Shortcut: open the context menu of the title that has focus.
-# @only linux
-shortcuts-context-menu = Context menu
-
-# Shortcut: pause or resume.
-# @only linux
-shortcuts-play-pause = Play or pause
-
 # Shortcut: small steps in the player.
 # @only linux
 shortcuts-seek-5 = Back or forward 5 seconds
@@ -101,10 +88,6 @@ shortcuts-seek-10 = Back or forward 10 seconds
 # @only linux
 shortcuts-volume = Volume up or down
 
-# Shortcut: mute the sound.
-# @only linux
-shortcuts-mute = Mute
-
 # Shortcut: skip the opening or the ending.
 # @only linux
 shortcuts-skip = Skip the opening or ending
@@ -112,10 +95,6 @@ shortcuts-skip = Skip the opening or ending
 # Shortcut: undo a skip the player made by itself.
 # @only linux
 shortcuts-undo-skip = Undo an automatic skip
-
-# Shortcut: move between episodes.
-# @only linux
-shortcuts-next-previous = Next or previous episode
 
 # Shortcut: change the playback speed.
 # @only linux
@@ -135,15 +114,6 @@ shortcuts-escape = Close a card, the mini player, full screen, then the player
 # @only linux
 # @max 24
 close-stop-and-close = Stop and close
-
-# Response of the close question: keep it running in the background.
-# @only linux
-# @max 24
-close-keep-going = Keep going
-
-# Checkbox of the close question.
-# @only linux
-close-dont-ask = Don't ask again
 
 # Body of the close question when episodes download.
 # @only linux

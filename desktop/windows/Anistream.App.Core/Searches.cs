@@ -52,6 +52,55 @@ public static class Searches
         "Mystery", "Psychological", "Romance", "Sci-Fi", "Slice of Life", "Sports", "Supernatural", "Thriller",
     ];
 
+    /// <summary>A genre as the filter shows it, in the app's language. AniList's name is what a search sends; a genre the catalogue has no word for shows as it came.</summary>
+    public static string GenreName(string genre) => genre switch
+    {
+        "Action" => T.GenreAction,
+        "Adventure" => T.GenreAdventure,
+        "Comedy" => T.GenreComedy,
+        "Drama" => T.GenreDrama,
+        "Ecchi" => T.GenreEcchi,
+        "Fantasy" => T.GenreFantasy,
+        "Horror" => T.GenreHorror,
+        "Mahou Shoujo" => T.GenreMahouShoujo,
+        "Mecha" => T.GenreMecha,
+        "Music" => T.GenreMusic,
+        "Mystery" => T.GenreMystery,
+        "Psychological" => T.GenrePsychological,
+        "Romance" => T.GenreRomance,
+        "Sci-Fi" => T.GenreSciFi,
+        "Slice of Life" => T.GenreSliceOfLife,
+        "Sports" => T.GenreSports,
+        "Supernatural" => T.GenreSupernatural,
+        "Thriller" => T.GenreThriller,
+        _ => genre,
+    };
+
+    /// <summary>A format as the Format filter names it: "TV", "Movie", "OVA".</summary>
+    public static string FormatName(MediaFormat format) => format switch
+    {
+        MediaFormat.Tv => T.FormatTv,
+        MediaFormat.TvShort => T.FormatTvShort,
+        MediaFormat.Movie => T.FormatMovie,
+        MediaFormat.Special => T.FormatSpecial,
+        MediaFormat.Ova => T.FormatOva,
+        MediaFormat.Ona => T.FormatOna,
+        _ => T.FormatMusic,
+    };
+
+    /// <summary>A sort as the Sort filter names it.</summary>
+    public static string SortName(SearchSort sort) => sort switch
+    {
+        SearchSort.Relevance => T.SortRelevance,
+        SearchSort.Trending => T.SearchSortTrending,
+        SearchSort.Popularity => T.SortPopularity,
+        SearchSort.Score => T.SortScore,
+        SearchSort.Newest => T.SearchSortNewest,
+        SearchSort.Oldest => T.SearchSortOldest,
+        SearchSort.Title => T.SearchSortTitle,
+        _ => T.SearchSortFavourites,
+    };
+
     /// <summary>The formats the Format filter offers, by the engine's names for them.</summary>
     public static readonly MediaFormat[] Formats =
         [MediaFormat.Tv, MediaFormat.Movie, MediaFormat.Ona, MediaFormat.Ova, MediaFormat.Special, MediaFormat.TvShort];
@@ -110,7 +159,8 @@ public sealed record SearchFilters(string[] Genres, MediaFormat[] Formats, Seaso
     public static string Say(string name, IReadOnlyList<string> picked) => picked.Count switch
     {
         0 => name,
-        1 or 2 => string.Join(", ", picked),
-        _ => $"{picked[0]} +{picked.Count - 1}",
+        1 => picked[0],
+        2 => T.FilterPickedTwo(picked[0], picked[1]),
+        _ => T.FilterPickedMore(picked[0], picked.Count - 1),
     };
 }

@@ -1375,16 +1375,6 @@ pub fn updates_view_version() -> String {
     text("updates-view-version", &[])
 }
 
-/// Button that closes the app and opens the new version it has put in place.
-pub fn updates_restart() -> String {
-    text("updates-restart", &[])
-}
-
-/// Button that downloads the new version of the app.
-pub fn updates_download() -> String {
-    text("updates-download", &[])
-}
-
 /// Accessible name of the progress bar while the new version downloads.
 pub fn updates_progress_label() -> String {
     text("updates-progress-label", &[])
@@ -1465,11 +1455,6 @@ pub fn shell_tracker_synced(tracker: &str) -> String {
     text("shell-tracker-synced", &[("tracker", Arg::Text(tracker))])
 }
 
-/// Title of the keyboard shortcuts window.
-pub fn shortcuts_title() -> String {
-    text("shortcuts-title", &[])
-}
-
 /// Heading of the shortcuts that work on lists of titles.
 pub fn shortcuts_group_lists() -> String {
     text("shortcuts-group-lists", &[])
@@ -1500,16 +1485,6 @@ pub fn shortcuts_play_selected() -> String {
     text("shortcuts-play-selected", &[])
 }
 
-/// Shortcut: open the context menu of the title that has focus.
-pub fn shortcuts_context_menu() -> String {
-    text("shortcuts-context-menu", &[])
-}
-
-/// Shortcut: pause or resume.
-pub fn shortcuts_play_pause() -> String {
-    text("shortcuts-play-pause", &[])
-}
-
 /// Shortcut: small steps in the player.
 pub fn shortcuts_seek_5() -> String {
     text("shortcuts-seek-5", &[])
@@ -1530,11 +1505,6 @@ pub fn shortcuts_volume() -> String {
     text("shortcuts-volume", &[])
 }
 
-/// Shortcut: mute the sound.
-pub fn shortcuts_mute() -> String {
-    text("shortcuts-mute", &[])
-}
-
 /// Shortcut: skip the opening or the ending.
 pub fn shortcuts_skip() -> String {
     text("shortcuts-skip", &[])
@@ -1543,11 +1513,6 @@ pub fn shortcuts_skip() -> String {
 /// Shortcut: undo a skip the player made by itself.
 pub fn shortcuts_undo_skip() -> String {
     text("shortcuts-undo-skip", &[])
-}
-
-/// Shortcut: move between episodes.
-pub fn shortcuts_next_previous() -> String {
-    text("shortcuts-next-previous", &[])
 }
 
 /// Shortcut: change the playback speed.
@@ -1568,16 +1533,6 @@ pub fn shortcuts_escape() -> String {
 /// Response of the close question: stop what runs and close.
 pub fn close_stop_and_close() -> String {
     text("close-stop-and-close", &[])
-}
-
-/// Response of the close question: keep it running in the background.
-pub fn close_keep_going() -> String {
-    text("close-keep-going", &[])
-}
-
-/// Checkbox of the close question.
-pub fn close_dont_ask() -> String {
-    text("close-dont-ask", &[])
 }
 
 /// Body of the close question when episodes download.
@@ -1848,11 +1803,6 @@ pub fn spoken_minutes(count: i64) -> String {
 /// A length of time said for a screen reader, in seconds.
 pub fn spoken_seconds(count: i64) -> String {
     text("spoken-seconds", &[("count", Arg::Int(count))])
-}
-
-/// An episode's line with the audio it was watched in marked, as Continue and the title page word it.
-pub fn episode_line_dubbed(line: &str) -> String {
-    text("episode-line-dubbed", &[("line", Arg::Text(line))])
 }
 
 /// Continue row: nothing new to watch, and the next episode airs at a known time. The time is already worded: "in 2d 3h".
@@ -6510,6 +6460,141 @@ pub fn state_loading() -> String {
     text("state-loading", &[])
 }
 
+/// Checkbox of the close question.
+pub fn close_dont_ask() -> String {
+    text("close-dont-ask", &[])
+}
+
+/// Response of the close question: keep it running in the background.
+pub fn close_keep_going() -> String {
+    text("close-keep-going", &[])
+}
+
+/// Line while the sources are searched for the watch party's episode.
+pub fn party_looking_sources() -> String {
+    text("party-looking-sources", &[])
+}
+
+/// Foot of the watch party form while the device is offline.
+pub fn party_needs_connection() -> String {
+    text("party-needs-connection", &[])
+}
+
+/// Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
+pub fn party_open_sources() -> String {
+    text("party-open-sources", &[])
+}
+
+/// Line under the seeding group in Settings: seeding stops when the app closes.
+pub fn settings_seeding_open_only() -> String {
+    text("settings-seeding-open-only", &[])
+}
+
+/// Shortcut: open the context menu of the title that has focus.
+pub fn shortcuts_context_menu() -> String {
+    text("shortcuts-context-menu", &[])
+}
+
+/// Shortcut: mute the sound.
+pub fn shortcuts_mute() -> String {
+    text("shortcuts-mute", &[])
+}
+
+/// Shortcut: move between episodes.
+pub fn shortcuts_next_previous() -> String {
+    text("shortcuts-next-previous", &[])
+}
+
+/// Shortcut: pause or resume.
+pub fn shortcuts_play_pause() -> String {
+    text("shortcuts-play-pause", &[])
+}
+
+/// Title of the keyboard shortcuts window.
+pub fn shortcuts_title() -> String {
+    text("shortcuts-title", &[])
+}
+
+/// Settings line of a paired TV: paired on a date, last seen a while ago.
+pub fn tv_paired_seen(paired: &str, ago: &str) -> String {
+    text("tv-paired-seen", &[("paired", Arg::Text(paired)), ("ago", Arg::Text(ago))])
+}
+
+/// The TV cannot take another connection now.
+pub fn tv_problem_busy() -> String {
+    text("tv-problem-busy", &[])
+}
+
+/// The TV picked in the list has left the network.
+pub fn tv_problem_gone() -> String {
+    text("tv-problem-gone", &[])
+}
+
+/// The TV's key changed since pairing.
+pub fn tv_problem_key_changed() -> String {
+    text("tv-problem-key-changed", &[])
+}
+
+/// What was typed or scanned is not a TV's code or address.
+pub fn tv_problem_not_a_link() -> String {
+    text("tv-problem-not-a-link", &[])
+}
+
+/// A command needs something playing and nothing is.
+pub fn tv_problem_not_now() -> String {
+    text("tv-problem-not-now", &[])
+}
+
+/// The TV did not answer.
+pub fn tv_problem_unreachable() -> String {
+    text("tv-problem-unreachable", &[])
+}
+
+/// The TV and this app speak different versions.
+pub fn tv_problem_version() -> String {
+    text("tv-problem-version", &[])
+}
+
+/// The pairing code typed did not match.
+pub fn tv_problem_wrong_code() -> String {
+    text("tv-problem-wrong-code", &[])
+}
+
+/// Accessible label of the button that turns the TV down.
+pub fn tv_volume_down() -> String {
+    text("tv-volume-down", &[])
+}
+
+/// The TV's volume as a value of 100.
+pub fn tv_volume_of(volume: i64) -> String {
+    text("tv-volume-of", &[("volume", Arg::Int(volume))])
+}
+
+/// Accessible label of the button that turns the TV up.
+pub fn tv_volume_up() -> String {
+    text("tv-volume-up", &[])
+}
+
+/// Button that downloads the new version of the app.
+pub fn updates_download() -> String {
+    text("updates-download", &[])
+}
+
+/// Button that closes the app and opens the new version it has put in place.
+pub fn updates_restart() -> String {
+    text("updates-restart", &[])
+}
+
+/// The TV cannot take another paired device.
+pub fn tv_problem_full() -> String {
+    text("tv-problem-full", &[])
+}
+
+/// The TV has forgotten this computer.
+pub fn tv_problem_unpaired() -> String {
+    text("tv-problem-unpaired", &[])
+}
+
 /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 pub fn downloads_title() -> String {
     text("downloads-title", &[])
@@ -7955,19 +8040,14 @@ pub fn party_source_seeders(seeders: i64) -> String {
     text("party-source-seeders", &[("seeders", Arg::Int(seeders))])
 }
 
-/// Foot of the watch party form while the device is offline.
-pub fn party_needs_connection() -> String {
-    text("party-needs-connection", &[])
+/// Line when no source lists the episode.
+pub fn party_no_source_lists(episode: &str) -> String {
+    text("party-no-source-lists", &[("episode", Arg::Text(episode))])
 }
 
-/// Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
-pub fn party_open_sources() -> String {
-    text("party-open-sources", &[])
-}
-
-/// Line while the sources are searched for the watch party's episode.
-pub fn party_looking_sources() -> String {
-    text("party-looking-sources", &[])
+/// Button that plays the chosen source with the room.
+pub fn party_play_with() -> String {
+    text("party-play-with", &[])
 }
 
 /// Label on the card for the episode that plays after this one.
@@ -9315,9 +9395,34 @@ pub fn settings_upscaling_note_sharp() -> String {
     text("settings-upscaling-note-sharp", &[])
 }
 
-/// Line under the seeding group in Settings: seeding stops when the app closes.
-pub fn settings_seeding_open_only() -> String {
-    text("settings-seeding-open-only", &[])
+/// Setting: a command run after each download finishes.
+pub fn settings_after_download() -> String {
+    text("settings-after-download", &[])
+}
+
+/// Setting: extra options passed to mpv, the player. mpv stays lower case.
+pub fn settings_mpv_options() -> String {
+    text("settings-mpv-options", &[])
+}
+
+/// Name screen readers give the list of panes down the side of Settings.
+pub fn settings_panes_label() -> String {
+    text("settings-panes-label", &[])
+}
+
+/// Setting: Discord's status with the cover and a progress bar.
+pub fn settings_presence_rich() -> String {
+    text("settings-presence-rich", &[])
+}
+
+/// Setting: Discord's status names the show being watched.
+pub fn settings_presence_title() -> String {
+    text("settings-presence-title", &[])
+}
+
+/// Under a tracker that is signed in, when its user name is unknown.
+pub fn settings_signed_in() -> String {
+    text("settings-signed-in", &[])
 }
 
 /// Title of the screen or section that lists sources.
@@ -9638,6 +9743,11 @@ pub fn sources_source_order_row() -> String {
 /// Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
 pub fn sources_torrents_note() -> String {
     text("sources-torrents-note", &[])
+}
+
+/// Over the { -source } list while the { -source-pl } are set up again after a change.
+pub fn sources_rebuilding() -> String {
+    text("sources-rebuilding", &[])
 }
 
 /// Short label for a joined store, on a row.
@@ -10550,6 +10660,11 @@ pub fn more_show_spoiler_tags(count: i64) -> String {
     text("more-show-spoiler-tags", &[("count", Arg::Int(count))])
 }
 
+/// An episode's line with the audio it was watched in marked, as Continue and the title page word it.
+pub fn episode_line_dubbed(line: &str) -> String {
+    text("episode-line-dubbed", &[("line", Arg::Text(line))])
+}
+
 /// Title of the settings group and the screen.
 pub fn torrents_title() -> String {
     text("torrents-title", &[])
@@ -10913,6 +11028,11 @@ pub fn torrents_page_unreadable() -> String {
 /// Line when the page needs script.
 pub fn torrents_page_needs_script() -> String {
     text("torrents-page-needs-script", &[])
+}
+
+/// Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+pub fn torrents_check_note() -> String {
+    text("torrents-check-note", &[])
 }
 
 /// Title of the accounts screen. The sidebar item is nav-accounts.
@@ -11560,79 +11680,9 @@ pub fn tv_row_needs_update() -> String {
     text("tv-row-needs-update", &[])
 }
 
-/// Settings line of a paired TV: paired on a date, last seen a while ago.
-pub fn tv_paired_seen(paired: &str, ago: &str) -> String {
-    text("tv-paired-seen", &[("paired", Arg::Text(paired)), ("ago", Arg::Text(ago))])
-}
-
 /// Title of the remote's volume row.
 pub fn tv_volume() -> String {
     text("tv-volume", &[])
-}
-
-/// Accessible label of the button that turns the TV down.
-pub fn tv_volume_down() -> String {
-    text("tv-volume-down", &[])
-}
-
-/// Accessible label of the button that turns the TV up.
-pub fn tv_volume_up() -> String {
-    text("tv-volume-up", &[])
-}
-
-/// The TV's volume as a value of 100.
-pub fn tv_volume_of(volume: i64) -> String {
-    text("tv-volume-of", &[("volume", Arg::Int(volume))])
-}
-
-/// The pairing code typed did not match.
-pub fn tv_problem_wrong_code() -> String {
-    text("tv-problem-wrong-code", &[])
-}
-
-/// The TV cannot take another paired device.
-pub fn tv_problem_full() -> String {
-    text("tv-problem-full", &[])
-}
-
-/// The TV cannot take another connection now.
-pub fn tv_problem_busy() -> String {
-    text("tv-problem-busy", &[])
-}
-
-/// The TV and this app speak different versions.
-pub fn tv_problem_version() -> String {
-    text("tv-problem-version", &[])
-}
-
-/// A command needs something playing and nothing is.
-pub fn tv_problem_not_now() -> String {
-    text("tv-problem-not-now", &[])
-}
-
-/// The TV has forgotten this computer.
-pub fn tv_problem_unpaired() -> String {
-    text("tv-problem-unpaired", &[])
-}
-
-/// The TV's key changed since pairing.
-pub fn tv_problem_key_changed() -> String {
-    text("tv-problem-key-changed", &[])
-}
-
-/// The TV did not answer.
-pub fn tv_problem_unreachable() -> String {
-    text("tv-problem-unreachable", &[])
-}
-
-/// The TV picked in the list has left the network.
-pub fn tv_problem_gone() -> String {
-    text("tv-problem-gone", &[])
-}
-
-/// What was typed or scanned is not a TV's code or address.
-pub fn tv_problem_not_a_link() -> String {
-    text("tv-problem-not-a-link", &[])
 }
 
 /// Heading of the update row in settings and about.

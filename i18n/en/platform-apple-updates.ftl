@@ -28,11 +28,11 @@ updates-in-sidestore = Update in SideStore
 updates-release-page = Version page
 
 # Button on the update row that opens the notes of the release in the browser.
-updates-release-notes = Version notes
+updates-release-notes = What's new
 
 # Title of the update row that carries the notes of the release.
 # @arg version: text
-updates-whats-new = What’s new in { $version }
+updates-whats-new-in = What's new in { $version }
 
 # Failure shown when the Mac updater is not ready to install yet.
 updates-installer-not-ready = The updater is not ready. Try again in a moment.

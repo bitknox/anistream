@@ -699,6 +699,60 @@
     <string name="state_working">Working</string>
     <!-- Short placeholder while something loads. -->
     <string name="state_loading">Loading</string>
+    <!-- Checkbox of the close question. -->
+    <string name="close_dont_ask">Don\'t ask again</string>
+    <!-- Response of the close question: keep it running in the background. -->
+    <string name="close_keep_going">Keep going</string>
+    <!-- Line while the sources are searched for the watch party's episode. -->
+    <string name="party_looking_sources">Looking through your sources…</string>
+    <!-- Foot of the watch party form while the device is offline. -->
+    <string name="party_needs_connection">A watch party needs a connection. You\'re offline.</string>
+    <!-- Button that goes to the Sources page, when the watch party's episode has no source because none are set up. -->
+    <string name="party_open_sources">Open sources</string>
+    <!-- Line under the seeding group in Settings: seeding stops when the app closes. -->
+    <string name="settings_seeding_open_only">Seeding runs only while anistream is open.</string>
+    <!-- Shortcut: open the context menu of the title that has focus. -->
+    <string name="shortcuts_context_menu">Context menu</string>
+    <!-- Shortcut: mute the sound. -->
+    <string name="shortcuts_mute">Mute</string>
+    <!-- Shortcut: move between episodes. -->
+    <string name="shortcuts_next_previous">Next or previous episode</string>
+    <!-- Shortcut: pause or resume. -->
+    <string name="shortcuts_play_pause">Play or pause</string>
+    <!-- Title of the keyboard shortcuts window. -->
+    <string name="shortcuts_title">Keyboard shortcuts</string>
+    <!-- Settings line of a paired TV: paired on a date, last seen a while ago. -->
+    <string name="tv_paired_seen">%1$s · seen %2$s</string>
+    <!-- The TV cannot take another connection now. -->
+    <string name="tv_problem_busy">The TV is connected to as many devices as it can. Try again soon.</string>
+    <!-- The TV picked in the list has left the network. -->
+    <string name="tv_problem_gone">That TV is no longer on the network.</string>
+    <!-- The TV's key changed since pairing. -->
+    <string name="tv_problem_key_changed">The TV was reset or reinstalled since you paired. Pair again.</string>
+    <!-- What was typed or scanned is not a TV's code or address. -->
+    <string name="tv_problem_not_a_link">That isn\'t a TV\'s pairing code or address.</string>
+    <!-- A command needs something playing and nothing is. -->
+    <string name="tv_problem_not_now">Nothing is playing on the TV.</string>
+    <!-- The TV did not answer. -->
+    <string name="tv_problem_unreachable">Can\'t reach the TV. Check that it\'s on, with anistream open, on the same network.</string>
+    <!-- The TV and this app speak different versions. -->
+    <string name="tv_problem_version">The TV runs another version of anistream. Update both to the same one.</string>
+    <!-- The pairing code typed did not match. -->
+    <string name="tv_problem_wrong_code">That code didn\'t match. Check the code on the TV and try again.</string>
+    <!-- Accessible label of the button that turns the TV down. -->
+    <string name="tv_volume_down">Volume down</string>
+    <!-- The TV's volume as a value of 100. -->
+    <string name="tv_volume_of">%1$d of 100</string>
+    <!-- Accessible label of the button that turns the TV up. -->
+    <string name="tv_volume_up">Volume up</string>
+    <!-- Button that downloads the new version of the app. -->
+    <string name="updates_download">Download update</string>
+    <!-- Button that closes the app and opens the new version it has put in place. -->
+    <string name="updates_restart">Restart to update</string>
+    <!-- The TV cannot take another paired device. -->
+    <string name="tv_problem_full">This TV has as many devices paired as it can keep. Remove one in the TV\'s settings, under Remotes.</string>
+    <!-- The TV has forgotten this computer. -->
+    <string name="tv_problem_unpaired">The TV doesn\'t know this device any more. Pair again.</string>
     <!-- Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group. -->
     <string name="downloads_title">Downloads</string>
     <!-- Button that pauses every running download. -->
@@ -1294,12 +1348,10 @@
     <string name="party_sources_label">Sources for this episode</string>
     <!-- Line of a source: its quality and size already formatted, and the number of seeders. -->
     <string name="party_source_seeders">%1$d seeders</string>
-    <!-- Foot of the watch party form while the device is offline. -->
-    <string name="party_needs_connection">A watch party needs a connection. You\'re offline.</string>
-    <!-- Button that goes to the Sources page, when the watch party's episode has no source because none are set up. -->
-    <string name="party_open_sources">Open sources</string>
-    <!-- Line while the sources are searched for the watch party's episode. -->
-    <string name="party_looking_sources">Looking through your sources…</string>
+    <!-- Line when no source lists the episode. -->
+    <string name="party_no_source_lists">No source lists episode %1$s. Sources come from plugins, which a plugin store adds.</string>
+    <!-- Button that plays the chosen source with the room. -->
+    <string name="party_play_with">Play with the watch party</string>
     <!-- Label on the card for the episode that plays after this one. -->
     <string name="player_up_next">Up next</string>
     <!-- Label before the name of the work a show is based on. -->
@@ -1844,8 +1896,18 @@
     <string name="settings_upscaling_note_natural">Faithful line work and texture, nothing restyled.</string>
     <!-- Preview note under the upscaling frame for the sharp look. -->
     <string name="settings_upscaling_note_sharp">Crisper lines and stronger edges, at some cost to texture.</string>
-    <!-- Line under the seeding group in Settings: seeding stops when the app closes. -->
-    <string name="settings_seeding_open_only">Seeding runs only while anistream is open.</string>
+    <!-- Setting: a command run after each download finishes. -->
+    <string name="settings_after_download">After each download</string>
+    <!-- Setting: extra options passed to mpv, the player. mpv stays lower case. -->
+    <string name="settings_mpv_options">mpv options</string>
+    <!-- Name screen readers give the list of panes down the side of Settings. -->
+    <string name="settings_panes_label">Settings panes</string>
+    <!-- Setting: Discord's status with the cover and a progress bar. -->
+    <string name="settings_presence_rich">Rich presence</string>
+    <!-- Setting: Discord's status names the show being watched. -->
+    <string name="settings_presence_title">Presence shows the title</string>
+    <!-- Under a tracker that is signed in, when its user name is unknown. -->
+    <string name="settings_signed_in">Signed in</string>
     <!-- Title of the screen or section that lists sources. -->
     <string name="sources_title">Sources</string>
     <!-- Shown on the sources screen when none is installed. -->
@@ -1983,6 +2045,8 @@
     <string name="sources_source_order_row">Source order</string>
     <!-- Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin. -->
     <string name="sources_torrents_note">Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.</string>
+    <!-- Over the { -source } list while the { -source-pl } are set up again after a change. -->
+    <string name="sources_rebuilding">Sources are being set up again</string>
     <!-- Short label for a joined store, on a row. -->
     <string name="stores_joined">Joined</string>
     <!-- Title of the empty list. -->
@@ -2356,6 +2420,8 @@
         <item quantity="one">Show one spoiler tag</item>
         <item quantity="other">Show %1$d spoiler tags</item>
     </plurals>
+    <!-- An episode's line with the audio it was watched in marked, as Continue and the title page word it. -->
+    <string name="episode_line_dubbed">%1$s · Dubbed</string>
     <!-- Title of the settings group and the screen. -->
     <string name="torrents_title">Torrents</string>
     <!-- Label and short value for the switch. -->
@@ -2502,6 +2568,8 @@
     <string name="torrents_page_unreadable">The TV couldn\'t read this. Scan the QR code on the TV again.</string>
     <!-- Line when the page needs script. -->
     <string name="torrents_page_needs_script">This page needs JavaScript to send the form to the TV safely.</string>
+    <!-- Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects. -->
+    <string name="torrents_check_note">anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.</string>
     <!-- Title of the accounts screen. The sidebar item is nav-accounts. -->
     <string name="accounts_title">Accounts</string>
     <!-- Heading over the trackers other than the first. -->
@@ -2763,36 +2831,8 @@
     <string name="tv_another">Another TV</string>
     <!-- Under a TV in the list: its version does not match. -->
     <string name="tv_row_needs_update">Needs the same anistream version as this device</string>
-    <!-- Settings line of a paired TV: paired on a date, last seen a while ago. -->
-    <string name="tv_paired_seen">%1$s · seen %2$s</string>
     <!-- Title of the remote's volume row. -->
     <string name="tv_volume">TV volume</string>
-    <!-- Accessible label of the button that turns the TV down. -->
-    <string name="tv_volume_down">Volume down</string>
-    <!-- Accessible label of the button that turns the TV up. -->
-    <string name="tv_volume_up">Volume up</string>
-    <!-- The TV's volume as a value of 100. -->
-    <string name="tv_volume_of">%1$d of 100</string>
-    <!-- The pairing code typed did not match. -->
-    <string name="tv_problem_wrong_code">That code didn\'t match. Check the code on the TV and try again.</string>
-    <!-- The TV cannot take another paired device. -->
-    <string name="tv_problem_full">This TV has as many devices paired as it can keep. Remove one in the TV\'s settings, under Remotes.</string>
-    <!-- The TV cannot take another connection now. -->
-    <string name="tv_problem_busy">The TV is connected to as many devices as it can. Try again soon.</string>
-    <!-- The TV and this app speak different versions. -->
-    <string name="tv_problem_version">The TV runs another version of anistream. Update both to the same one.</string>
-    <!-- A command needs something playing and nothing is. -->
-    <string name="tv_problem_not_now">Nothing is playing on the TV.</string>
-    <!-- The TV has forgotten this computer. -->
-    <string name="tv_problem_unpaired">The TV doesn\'t know this device any more. Pair again.</string>
-    <!-- The TV's key changed since pairing. -->
-    <string name="tv_problem_key_changed">The TV was reset or reinstalled since you paired. Pair again.</string>
-    <!-- The TV did not answer. -->
-    <string name="tv_problem_unreachable">Can\'t reach the TV. Check that it\'s on, with anistream open, on the same network.</string>
-    <!-- The TV picked in the list has left the network. -->
-    <string name="tv_problem_gone">That TV is no longer on the network.</string>
-    <!-- What was typed or scanned is not a TV's code or address. -->
-    <string name="tv_problem_not_a_link">That isn\'t a TV\'s pairing code or address.</string>
     <!-- Heading of the update row in settings and about. -->
     <string name="updates_title">Updates</string>
     <!-- Line while the app checks. -->

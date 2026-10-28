@@ -1433,14 +1433,8 @@ public enum L {
     /// Settings row on the Mac: the Syncplay room name.
     public static var settingsSyncplayRoom: String { string("settings-syncplay-room", fallback: "Syncplay room") }
 
-    /// Settings row for Discord: whether the show's title goes with the presence.
-    public static var settingsPresenceTitle: String { string("settings-presence-title", fallback: "Presence shows the title") }
-
-    /// Settings row for Discord: the richer presence with a cover, a bar and a link.
-    public static var settingsPresenceRich: String { string("settings-presence-rich", fallback: "Rich presence") }
-
     /// Settings row on the Mac: whether the player starts in full screen.
-    public static var settingsStartFullscreen: String { string("settings-start-fullscreen", fallback: "Start in full screen") }
+    public static var settingsStartFullScreen: String { string("settings-start-full-screen", fallback: "Start in full screen") }
 
     /// Settings row for the command that runs after each download.
     public static var settingsHookCommand: String { string("settings-hook-command", fallback: "Command") }
@@ -1453,9 +1447,6 @@ public enum L {
 
     /// Heading over the rows that Settings search found.
     public static var settingsResults: String { string("settings-results", fallback: "Results") }
-
-    /// VoiceOver label for the row of Settings panes on the Mac.
-    public static var settingsPanesLabel: String { string("settings-panes-label", fallback: "Settings panes") }
 
     /// Text on the upscaling preview, over the left half, which shows the source untouched.
     public static var settingsUpscalingSource: String { string("settings-upscaling-source", fallback: "480p source") }
@@ -1494,9 +1485,6 @@ public enum L {
 
     /// Note under the keep seeding row on iPhone and iPad.
     public static var settingsKeepSeedingDetail: String { string("settings-keep-seeding-detail", fallback: "A download that keeps seeding stays in anistream's cache.") }
-
-    /// Group title on the Mac for the command that runs after each download.
-    public static var settingsAfterDownload: String { string("settings-after-download", fallback: "After each download") }
 
     /// Row title for the finished downloads of episodes already watched.
     public static var settingsWatchedDownloads: String { string("settings-watched-downloads", fallback: "Watched downloads") }
@@ -1556,9 +1544,6 @@ public enum L {
     /// Button in Accounts that opens the list of differences.
     public static var settingsReview: String { string("settings-review", fallback: "Review") }
 
-    /// Shown for a signed-in account that has no name yet.
-    public static var settingsSignedIn: String { string("settings-signed-in", fallback: "Signed in") }
-
     /// Under a tracker row: how many changes wait to sync.
     public static func settingsChangesWaiting(count: Int) -> String {
         Self.format("settings-changes-waiting", fallback: "%1$lld changes waiting to sync", count)
@@ -1609,9 +1594,6 @@ public enum L {
 
     /// Under the Discord preview while presence is off.
     public static var settingsPresenceOff: String { string("settings-presence-off", fallback: "Off. When on, your Discord profile shows this while an episode plays.") }
-
-    /// Name of the Advanced pane's option row for the player, found by Settings search.
-    public static var settingsMpvOptions: String { string("settings-mpv-options", fallback: "mpv options") }
 
     /// Under the New episodes group: when the system asks for permission.
     public static var settingsNotifyPermission: String { string("settings-notify-permission", fallback: "anistream asks for permission the first time you turn this on.") }
@@ -1992,9 +1974,6 @@ public enum L {
     /// Title of the page shown instead of the app when the engine could not start. The reason follows.
     public static var shellStartFailed: String { string("shell-start-failed", fallback: "anistream could not start") }
 
-    /// Line under the heading of the sources list while the list is built again.
-    public static var sourcesRebuilding: String { string("sources-rebuilding", fallback: "Sources are being set up again…") }
-
     /// Line under the heading of the sources list on a phone, where the order is changed with Edit.
     public static var sourcesOrderDetailEdit: String { string("sources-order-detail-edit", fallback: "Sources are tried top to bottom. Tap Edit to change the order.") }
 
@@ -2022,8 +2001,8 @@ public enum L {
     }
 
     /// Short status of a plugin store: how many plugins have an update.
-    public static func storesUpdatesCount(count: Int) -> String {
-        Self.format("stores-updates-count", fallback: "%1$lld updates", count)
+    public static func storesUpdatesAvailable(count: Int) -> String {
+        Self.format("stores-updates-available", fallback: "%1$lld updates", count)
     }
 
     /// Line on a plugin's row: the version installed, when an update is offered or the plugin came from here.
@@ -2092,9 +2071,6 @@ public enum L {
     /// Hint inside the optional proxy fields.
     public static var torrentsProxyOptional: String { string("torrents-proxy-optional", fallback: "Optional") }
 
-    /// Line under the protection choices: what the connection check does.
-    public static var torrentsCheckNote: String { string("torrents-check-note", fallback: "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.") }
-
     /// Line under the question that asks whether torrents may keep running when a check fails.
     public static var torrentsWarnOnlyDetail: String { string("torrents-warn-only-detail", fallback: "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.") }
 
@@ -2121,14 +2097,6 @@ public enum L {
 
     /// Button that lists what each source has for the episode.
     public static var partyChooseSource: String { string("party-choose-source", fallback: "Choose a source") }
-
-    /// Button that plays the chosen source with the room.
-    public static var partyPlayWith: String { string("party-play-with", fallback: "Play with the watch party") }
-
-    /// Line when no source lists the episode.
-    public static func partyNoSourceLists(episode: String) -> String {
-        Self.format("party-no-source-lists", fallback: "No source lists episode %1$@. Sources come from plugins, which a plugin store adds.", episode)
-    }
 
     /// Fallback name of a TV that has none.
     public static var tvGenericName: String { string("tv-generic-name", fallback: "TV") }
@@ -2218,7 +2186,7 @@ public enum L {
     }
 
     /// Detail of the confirmation that removes a plugin.
-    public static var sourcesRemoveDetail: String { string("sources-remove-detail", fallback: "It is deleted from this device. A plugin store can install it again.") }
+    public static var sourcesRemoveDetailDevice: String { string("sources-remove-detail-device", fallback: "It is deleted from this device. A plugin store can install it again.") }
 
     /// Name of the fact on the title page that lists where else a show can be watched.
     public static var titleFactAlsoOn: String { string("title-fact-also-on", fallback: "Also on") }
@@ -2246,8 +2214,8 @@ public enum L {
     public static var titleRankingPopular: String { string("title-ranking-popular", fallback: "Most popular") }
 
     /// Name of an episode whose number is text, because it may be "7.5" or "OVA 2".
-    public static func episodeNumberText(number: String) -> String {
-        Self.format("episode-number-text", fallback: "Episode %1$@", number)
+    public static func episodeNumberString(number: String) -> String {
+        Self.format("episode-number-string", fallback: "Episode %1$@", number)
     }
 
     /// An episode whose number is text, and its name.
@@ -2309,11 +2277,11 @@ public enum L {
     public static var updatesReleasePage: String { string("updates-release-page", fallback: "Version page") }
 
     /// Button on the update row that opens the notes of the release in the browser.
-    public static var updatesReleaseNotes: String { string("updates-release-notes", fallback: "Version notes") }
+    public static var updatesReleaseNotes: String { string("updates-release-notes", fallback: "What's new") }
 
     /// Title of the update row that carries the notes of the release.
-    public static func updatesWhatsNew(version: String) -> String {
-        Self.format("updates-whats-new", fallback: "What’s new in %1$@", version)
+    public static func updatesWhatsNewIn(version: String) -> String {
+        Self.format("updates-whats-new-in", fallback: "What's new in %1$@", version)
     }
 
     /// Failure shown when the Mac updater is not ready to install yet.
@@ -3073,6 +3041,91 @@ public enum L {
 
     /// Short placeholder while something loads.
     public static var stateLoading: String { string("state-loading", fallback: "Loading") }
+
+    /// Checkbox of the close question.
+    public static var closeDontAsk: String { string("close-dont-ask", fallback: "Don't ask again") }
+
+    /// Response of the close question: keep it running in the background.
+    public static var closeKeepGoing: String { string("close-keep-going", fallback: "Keep going") }
+
+    /// Line while the sources are searched for the watch party's episode.
+    public static var partyLookingSources: String { string("party-looking-sources", fallback: "Looking through your sources…") }
+
+    /// Foot of the watch party form while the device is offline.
+    public static var partyNeedsConnection: String { string("party-needs-connection", fallback: "A watch party needs a connection. You're offline.") }
+
+    /// Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
+    public static var partyOpenSources: String { string("party-open-sources", fallback: "Open sources") }
+
+    /// Line under the seeding group in Settings: seeding stops when the app closes.
+    public static var settingsSeedingOpenOnly: String { string("settings-seeding-open-only", fallback: "Seeding runs only while anistream is open.") }
+
+    /// Shortcut: open the context menu of the title that has focus.
+    public static var shortcutsContextMenu: String { string("shortcuts-context-menu", fallback: "Context menu") }
+
+    /// Shortcut: mute the sound.
+    public static var shortcutsMute: String { string("shortcuts-mute", fallback: "Mute") }
+
+    /// Shortcut: move between episodes.
+    public static var shortcutsNextPrevious: String { string("shortcuts-next-previous", fallback: "Next or previous episode") }
+
+    /// Shortcut: pause or resume.
+    public static var shortcutsPlayPause: String { string("shortcuts-play-pause", fallback: "Play or pause") }
+
+    /// Title of the keyboard shortcuts window.
+    public static var shortcutsTitle: String { string("shortcuts-title", fallback: "Keyboard shortcuts") }
+
+    /// Settings line of a paired TV: paired on a date, last seen a while ago.
+    public static func tvPairedSeen(paired: String, ago: String) -> String {
+        Self.format("tv-paired-seen", fallback: "%1$@ · seen %2$@", paired, ago)
+    }
+
+    /// The TV cannot take another connection now.
+    public static var tvProblemBusy: String { string("tv-problem-busy", fallback: "The TV is connected to as many devices as it can. Try again soon.") }
+
+    /// The TV picked in the list has left the network.
+    public static var tvProblemGone: String { string("tv-problem-gone", fallback: "That TV is no longer on the network.") }
+
+    /// The TV's key changed since pairing.
+    public static var tvProblemKeyChanged: String { string("tv-problem-key-changed", fallback: "The TV was reset or reinstalled since you paired. Pair again.") }
+
+    /// What was typed or scanned is not a TV's code or address.
+    public static var tvProblemNotALink: String { string("tv-problem-not-a-link", fallback: "That isn't a TV's pairing code or address.") }
+
+    /// A command needs something playing and nothing is.
+    public static var tvProblemNotNow: String { string("tv-problem-not-now", fallback: "Nothing is playing on the TV.") }
+
+    /// The TV did not answer.
+    public static var tvProblemUnreachable: String { string("tv-problem-unreachable", fallback: "Can't reach the TV. Check that it's on, with anistream open, on the same network.") }
+
+    /// The TV and this app speak different versions.
+    public static var tvProblemVersion: String { string("tv-problem-version", fallback: "The TV runs another version of anistream. Update both to the same one.") }
+
+    /// The pairing code typed did not match.
+    public static var tvProblemWrongCode: String { string("tv-problem-wrong-code", fallback: "That code didn't match. Check the code on the TV and try again.") }
+
+    /// Accessible label of the button that turns the TV down.
+    public static var tvVolumeDown: String { string("tv-volume-down", fallback: "Volume down") }
+
+    /// The TV's volume as a value of 100.
+    public static func tvVolumeOf(volume: Int) -> String {
+        Self.format("tv-volume-of", fallback: "%1$lld of 100", volume)
+    }
+
+    /// Accessible label of the button that turns the TV up.
+    public static var tvVolumeUp: String { string("tv-volume-up", fallback: "Volume up") }
+
+    /// Button that downloads the new version of the app.
+    public static var updatesDownload: String { string("updates-download", fallback: "Download update") }
+
+    /// Button that closes the app and opens the new version it has put in place.
+    public static var updatesRestart: String { string("updates-restart", fallback: "Restart to update") }
+
+    /// The TV cannot take another paired device.
+    public static var tvProblemFull: String { string("tv-problem-full", fallback: "This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.") }
+
+    /// The TV has forgotten this computer.
+    public static var tvProblemUnpaired: String { string("tv-problem-unpaired", fallback: "The TV doesn't know this device any more. Pair again.") }
 
     /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
     public static var downloadsTitle: String { string("downloads-title", fallback: "Downloads") }
@@ -4073,14 +4126,13 @@ public enum L {
         Self.format("party-source-seeders", fallback: "%1$lld seeders", seeders)
     }
 
-    /// Foot of the watch party form while the device is offline.
-    public static var partyNeedsConnection: String { string("party-needs-connection", fallback: "A watch party needs a connection. You're offline.") }
+    /// Line when no source lists the episode.
+    public static func partyNoSourceLists(episode: String) -> String {
+        Self.format("party-no-source-lists", fallback: "No source lists episode %1$@. Sources come from plugins, which a plugin store adds.", episode)
+    }
 
-    /// Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
-    public static var partyOpenSources: String { string("party-open-sources", fallback: "Open sources") }
-
-    /// Line while the sources are searched for the watch party's episode.
-    public static var partyLookingSources: String { string("party-looking-sources", fallback: "Looking through your sources…") }
+    /// Button that plays the chosen source with the room.
+    public static var partyPlayWith: String { string("party-play-with", fallback: "Play with the watch party") }
 
     /// Label on the card for the episode that plays after this one.
     public static var playerUpNext: String { string("player-up-next", fallback: "Up next") }
@@ -4955,8 +5007,23 @@ public enum L {
     /// Preview note under the upscaling frame for the sharp look.
     public static var settingsUpscalingNoteSharp: String { string("settings-upscaling-note-sharp", fallback: "Crisper lines and stronger edges, at some cost to texture.") }
 
-    /// Line under the seeding group in Settings: seeding stops when the app closes.
-    public static var settingsSeedingOpenOnly: String { string("settings-seeding-open-only", fallback: "Seeding runs only while anistream is open.") }
+    /// Setting: a command run after each download finishes.
+    public static var settingsAfterDownload: String { string("settings-after-download", fallback: "After each download") }
+
+    /// Setting: extra options passed to mpv, the player. mpv stays lower case.
+    public static var settingsMpvOptions: String { string("settings-mpv-options", fallback: "mpv options") }
+
+    /// Name screen readers give the list of panes down the side of Settings.
+    public static var settingsPanesLabel: String { string("settings-panes-label", fallback: "Settings panes") }
+
+    /// Setting: Discord's status with the cover and a progress bar.
+    public static var settingsPresenceRich: String { string("settings-presence-rich", fallback: "Rich presence") }
+
+    /// Setting: Discord's status names the show being watched.
+    public static var settingsPresenceTitle: String { string("settings-presence-title", fallback: "Presence shows the title") }
+
+    /// Under a tracker that is signed in, when its user name is unknown.
+    public static var settingsSignedIn: String { string("settings-signed-in", fallback: "Signed in") }
 
     /// Title of the screen or section that lists sources.
     public static var sourcesTitle: String { string("sources-title", fallback: "Sources") }
@@ -5175,6 +5242,9 @@ public enum L {
 
     /// Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
     public static var sourcesTorrentsNote: String { string("sources-torrents-note", fallback: "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.") }
+
+    /// Over the { -source } list while the { -source-pl } are set up again after a change.
+    public static var sourcesRebuilding: String { string("sources-rebuilding", fallback: "Sources are being set up again") }
 
     /// Short label for a joined store, on a row.
     public static var storesJoined: String { string("stores-joined", fallback: "Joined") }
@@ -5816,6 +5886,11 @@ public enum L {
         Self.format("more-show-spoiler-tags", fallback: "Show %1$lld spoiler tags", count)
     }
 
+    /// An episode's line with the audio it was watched in marked, as Continue and the title page word it.
+    public static func episodeLineDubbed(line: String) -> String {
+        Self.format("episode-line-dubbed", fallback: "%1$@ · Dubbed", line)
+    }
+
     /// Title of the settings group and the screen.
     public static var torrentsTitle: String { string("torrents-title", fallback: "Torrents") }
 
@@ -6052,6 +6127,9 @@ public enum L {
 
     /// Line when the page needs script.
     public static var torrentsPageNeedsScript: String { string("torrents-page-needs-script", fallback: "This page needs JavaScript to send the form to the TV safely.") }
+
+    /// Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+    public static var torrentsCheckNote: String { string("torrents-check-note", fallback: "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.") }
 
     /// Title of the accounts screen. The sidebar item is nav-accounts.
     public static var accountsTitle: String { string("accounts-title", fallback: "Accounts") }
@@ -6550,54 +6628,8 @@ public enum L {
     /// Under a TV in the list: its version does not match.
     public static var tvRowNeedsUpdate: String { string("tv-row-needs-update", fallback: "Needs the same anistream version as this device") }
 
-    /// Settings line of a paired TV: paired on a date, last seen a while ago.
-    public static func tvPairedSeen(paired: String, ago: String) -> String {
-        Self.format("tv-paired-seen", fallback: "%1$@ · seen %2$@", paired, ago)
-    }
-
     /// Title of the remote's volume row.
     public static var tvVolume: String { string("tv-volume", fallback: "TV volume") }
-
-    /// Accessible label of the button that turns the TV down.
-    public static var tvVolumeDown: String { string("tv-volume-down", fallback: "Volume down") }
-
-    /// Accessible label of the button that turns the TV up.
-    public static var tvVolumeUp: String { string("tv-volume-up", fallback: "Volume up") }
-
-    /// The TV's volume as a value of 100.
-    public static func tvVolumeOf(volume: Int) -> String {
-        Self.format("tv-volume-of", fallback: "%1$lld of 100", volume)
-    }
-
-    /// The pairing code typed did not match.
-    public static var tvProblemWrongCode: String { string("tv-problem-wrong-code", fallback: "That code didn't match. Check the code on the TV and try again.") }
-
-    /// The TV cannot take another paired device.
-    public static var tvProblemFull: String { string("tv-problem-full", fallback: "This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.") }
-
-    /// The TV cannot take another connection now.
-    public static var tvProblemBusy: String { string("tv-problem-busy", fallback: "The TV is connected to as many devices as it can. Try again soon.") }
-
-    /// The TV and this app speak different versions.
-    public static var tvProblemVersion: String { string("tv-problem-version", fallback: "The TV runs another version of anistream. Update both to the same one.") }
-
-    /// A command needs something playing and nothing is.
-    public static var tvProblemNotNow: String { string("tv-problem-not-now", fallback: "Nothing is playing on the TV.") }
-
-    /// The TV has forgotten this computer.
-    public static var tvProblemUnpaired: String { string("tv-problem-unpaired", fallback: "The TV doesn't know this device any more. Pair again.") }
-
-    /// The TV's key changed since pairing.
-    public static var tvProblemKeyChanged: String { string("tv-problem-key-changed", fallback: "The TV was reset or reinstalled since you paired. Pair again.") }
-
-    /// The TV did not answer.
-    public static var tvProblemUnreachable: String { string("tv-problem-unreachable", fallback: "Can't reach the TV. Check that it's on, with anistream open, on the same network.") }
-
-    /// The TV picked in the list has left the network.
-    public static var tvProblemGone: String { string("tv-problem-gone", fallback: "That TV is no longer on the network.") }
-
-    /// What was typed or scanned is not a TV's code or address.
-    public static var tvProblemNotALink: String { string("tv-problem-not-a-link", fallback: "That isn't a TV's pairing code or address.") }
 
     /// Heading of the update row in settings and about.
     public static var updatesTitle: String { string("updates-title", fallback: "Updates") }

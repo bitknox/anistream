@@ -1,3 +1,4 @@
+using Anistream.App;
 using Anistream.Engine.Model;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -13,11 +14,11 @@ public sealed partial class LibraryPage : Page
 {
     static readonly (LibrarySegment Segment, string Name)[] Segments =
     [
-        (LibrarySegment.Watching, "Watching"),
-        (LibrarySegment.Planning, "Planning"),
-        (LibrarySegment.Completed, "Completed"),
-        (LibrarySegment.Paused, "Paused"),
-        (LibrarySegment.Dropped, "Dropped"),
+        (LibrarySegment.Watching, T.LibraryStatusWatching),
+        (LibrarySegment.Planning, T.LibraryStatusPlanning),
+        (LibrarySegment.Completed, T.LibraryStatusCompleted),
+        (LibrarySegment.Paused, T.LibraryStatusPaused),
+        (LibrarySegment.Dropped, T.LibraryStatusDropped),
     ];
 
     readonly Ctx ctx = Ctx.Current;
@@ -27,11 +28,12 @@ public sealed partial class LibraryPage : Page
     public LibraryPage()
     {
         InitializeComponent();
-        SignedOut.Child = States.Empty("Your lists come from AniList", "Sign in to see what you're watching, planning and have finished.", "Sign in to AniList", () => ctx.Send(new Command.Connect("anilist")));
+        SignedOut.Child = States.Empty(T.LibrarySignedOutTitle, T.LibrarySignedOutDetail, T.LibrarySignedOutAction, () => ctx.Send(new Command.Connect("anilist")));
         if (SignedOut.Child is StackPanel panel && panel.Children[^1] is Button signIn)
             signIn.Style = Ui.Res<Style>("AccentButtonStyle");
         State.Placeholders = () => States.Covers();
-        State.ActivityText = "Loading your lists";
+        State.ActivityText = T.LibraryLoading;
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(OrderButton, T.LibrarySortLabel(T.LibrarySortUpdated));
         foreach (var (s, name) in Segments)
             Lists.Items.Add(new SelectorBarItem { Text = name, Tag = s, IsSelected = s == segment });
         // Heard from the start: what arrives before the page is loaded is not missed.
@@ -65,7 +67,7 @@ public sealed partial class LibraryPage : Page
             var s = (LibrarySegment)item.Tag;
             var name = Segments.First(x => x.Segment == s).Name;
             var count = ctx.Known.Lists.TryGetValue(new ContentFor.Library(s), out var list) && list is ContentList.Entries e ? e.V1.Length : (int?)null;
-            item.Text = count is { } n ? $"{name} {n}" : name;
+            item.Text = count is { } n ? T.LibraryListCount(name, n) : name;
         }
         IEnumerable<Entry> entries = ctx.Known.ListEntries(new ContentFor.Library(segment));
         entries = order switch
@@ -82,7 +84,7 @@ public sealed partial class LibraryPage : Page
         else if (shown is ContentList.Failed f)
             State.Failed(f.V1, () => ctx.Send(new Command.LoadLibrary(segment)));
         else if (shown is ContentList.Entries or ContentList.Empty)
-            State.Empty(States.Unavailable($"Nothing on {Segments.First(x => x.Segment == segment).Name} yet", "Titles you add on AniList show up here."));
+            State.Empty(States.Unavailable(T.LibraryListEmpty(Segments.First(x => x.Segment == segment).Name.ToLower(System.Globalization.CultureInfo.CurrentCulture)), T.LibraryListEmptyDetail));
         else
             State.Wait();
     }
@@ -102,6 +104,7 @@ public sealed partial class LibraryPage : Page
         {
             order = (string)item.Tag;
             OrderButton.Content = item.Text;
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(OrderButton, T.LibrarySortLabel(item.Text));
             Show();
         }
     }

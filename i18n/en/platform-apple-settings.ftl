@@ -13,14 +13,8 @@ settings-syncplay-server = Syncplay server
 # Settings row on the Mac: the Syncplay room name.
 settings-syncplay-room = Syncplay room
 
-# Settings row for Discord: whether the show's title goes with the presence.
-settings-presence-title = Presence shows the title
-
-# Settings row for Discord: the richer presence with a cover, a bar and a link.
-settings-presence-rich = Rich presence
-
 # Settings row on the Mac: whether the player starts in full screen.
-settings-start-fullscreen = Start in full screen
+settings-start-full-screen = Start in full screen
 
 # Settings row for the command that runs after each download.
 settings-hook-command = Command
@@ -33,9 +27,6 @@ settings-no-match = No setting is called that.
 
 # Heading over the rows that Settings search found.
 settings-results = Results
-
-# VoiceOver label for the row of Settings panes on the Mac.
-settings-panes-label = Settings panes
 
 # Text on the upscaling preview, over the left half, which shows the source untouched.
 # @max 20
@@ -74,9 +65,6 @@ settings-keep-seeding-detail-mac = A download that keeps seeding stays in { -app
 
 # Note under the keep seeding row on iPhone and iPad.
 settings-keep-seeding-detail = A download that keeps seeding stays in { -app-name }'s cache.
-
-# Group title on the Mac for the command that runs after each download.
-settings-after-download = After each download
 
 # Row title for the finished downloads of episodes already watched.
 settings-watched-downloads = Watched downloads
@@ -142,9 +130,6 @@ settings-conflicts = { $count ->
 # Button in Accounts that opens the list of differences.
 settings-review = Review
 
-# Shown for a signed-in account that has no name yet.
-settings-signed-in = Signed in
-
 # Under a tracker row: how many changes wait to sync.
 # @arg count: int
 settings-changes-waiting = { $count ->
@@ -193,9 +178,6 @@ settings-presence-on = Your Discord profile shows this while an episode plays.
 
 # Under the Discord preview while presence is off.
 settings-presence-off = Off. When on, your Discord profile shows this while an episode plays.
-
-# Name of the Advanced pane's option row for the player, found by Settings search.
-settings-mpv-options = mpv options
 
 # Under the New episodes group: when the system asks for permission.
 settings-notify-permission = { -app-name } asks for permission the first time you turn this on.

@@ -207,50 +207,5 @@ tv-another = Another TV
 # Under a TV in the list: its version does not match.
 tv-row-needs-update = Needs the same { -app-name } version as this { -device }
 
-# Settings line of a paired TV: paired on a date, last seen a while ago.
-# @arg paired: text
-# @arg ago: text
-tv-paired-seen = { $paired } · seen { $ago }
-
 # Title of the remote's volume row.
 tv-volume = TV volume
-
-# Accessible label of the button that turns the TV down.
-tv-volume-down = Volume down
-
-# Accessible label of the button that turns the TV up.
-tv-volume-up = Volume up
-
-# The TV's volume as a value of 100.
-# @arg volume: int
-tv-volume-of = { $volume } of 100
-
-# The pairing code typed did not match.
-tv-problem-wrong-code = That code didn't match. Check the code on the TV and try again.
-
-# The TV cannot take another paired device.
-tv-problem-full = This TV has as many { -device-pl } paired as it can keep. Remove one in the TV's settings, under Remotes.
-
-# The TV cannot take another connection now.
-tv-problem-busy = The TV is connected to as many { -device-pl } as it can. Try again soon.
-
-# The TV and this app speak different versions.
-tv-problem-version = The TV runs another version of { -app-name }. Update both to the same one.
-
-# A command needs something playing and nothing is.
-tv-problem-not-now = Nothing is playing on the TV.
-
-# The TV has forgotten this computer.
-tv-problem-unpaired = The TV doesn't know this { -device } any more. Pair again.
-
-# The TV's key changed since pairing.
-tv-problem-key-changed = The TV was reset or reinstalled since you paired. Pair again.
-
-# The TV did not answer.
-tv-problem-unreachable = Can't reach the TV. Check that it's on, with { -app-name } open, on the same network.
-
-# The TV picked in the list has left the network.
-tv-problem-gone = That TV is no longer on the network.
-
-# What was typed or scanned is not a TV's code or address.
-tv-problem-not-a-link = That isn't a TV's pairing code or address.

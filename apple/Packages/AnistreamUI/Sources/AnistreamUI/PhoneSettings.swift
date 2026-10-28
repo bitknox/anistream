@@ -598,7 +598,7 @@ struct PhoneSourcesPage: View {
     private var storesValue: String {
         let count = store.stores.stores.count
         let updates = store.stores.updates
-        return updates > 0 ? L.settingsStoresValueUpdates(count: count, updates: L.storesUpdatesCount(count: updates)) : count.formatted(.number.locale(AirTime.locale))
+        return updates > 0 ? L.settingsStoresValueUpdates(count: count, updates: L.storesUpdatesAvailable(count: updates)) : count.formatted(.number.locale(AirTime.locale))
     }
 
     private func valueRow(_ title: String, _ value: String) -> some View {

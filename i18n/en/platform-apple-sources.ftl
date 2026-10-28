@@ -3,9 +3,6 @@
 
 ## Sources screen
 
-# Line under the heading of the sources list while the list is built again.
-sources-rebuilding = { -source-cap-pl } are being set up again…
-
 # Line under the heading of the sources list on a phone, where the order is changed with Edit.
 sources-order-detail-edit = { -source-cap-pl } are tried top to bottom. Tap Edit to change the order.
 
@@ -32,7 +29,7 @@ stores-checked-at = Checked { $when }
 
 # Short status of a plugin store: how many plugins have an update.
 # @arg count: int
-stores-updates-count = { $count ->
+stores-updates-available = { $count ->
     [one] One update
    *[other] { $count } updates
  }
@@ -108,9 +105,6 @@ torrents-edit-proxy = Edit proxy
 # Hint inside the optional proxy fields.
 torrents-proxy-optional = Optional
 
-# Line under the protection choices: what the connection check does.
-torrents-check-note = { -app-name } checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.
-
 # Line under the question that asks whether torrents may keep running when a check fails.
 torrents-warn-only-detail = { -app-name } will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.
 
@@ -139,14 +133,6 @@ party-choose-source-title = Choose a { -source } for episode { $episode }
 # Button that lists what each source has for the episode.
 # @max 28
 party-choose-source = Choose a { -source }
-
-# Button that plays the chosen source with the room.
-# @max 36
-party-play-with = Play with the { -watch-party }
-
-# Line when no source lists the episode.
-# @arg episode: text
-party-no-source-lists = No { -source } lists episode { $episode }. { -source-cap-pl } come from { -plugin-pl }, which a { -plugin-store } adds.
 
 ## Play on TV
 
@@ -231,5 +217,5 @@ stores-link-send-once-anyone = Send this link to the person it is for. It works 
 sources-remove-title = Remove { $name }?
 
 # Detail of the confirmation that removes a plugin.
-sources-remove-detail = It is deleted from this { -device }. A { -plugin-store } can install it again.
+sources-remove-detail-device = It is deleted from this { -device }. A { -plugin-store } can install it again.
 

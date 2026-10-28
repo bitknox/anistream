@@ -95,7 +95,7 @@ public struct PlaybackActivityText: Equatable, Sendable {
 
     public init(_ state: PlaybackActivityState) {
         title = state.title
-        episode = L.episodeNumberText(number: state.episode)
+        episode = L.episodeNumberString(number: state.episode)
         let left = Self.clock(state.remaining / (state.rate > 0 ? state.rate : 1))
         pausedLine = L.widgetPausedLine(left: left)
         let minutes = max(1, Int((state.remaining / (state.rate > 0 ? state.rate : 1) / 60).rounded(.up)))

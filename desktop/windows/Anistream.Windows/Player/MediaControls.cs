@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Dispatching;
@@ -143,10 +144,10 @@ sealed partial class MediaControls
             {
                 case Event.PlayerUi { Ui: PlayerUi.Starting s }:
                     Open(true);
-                    Now(s.Title, s.EpisodeTitle is { Length: > 0 } t ? $"Episode {s.EpisodeValue} · {t}" : $"Episode {s.EpisodeValue}", s.BannerUrl ?? s.CoverUrl);
+                    Now(s.Title, Lines.EpisodeNamed(s.EpisodeValue, s.EpisodeTitle), s.BannerUrl ?? s.CoverUrl);
                     break;
                 case Event.PlayerUi { Ui: PlayerUi.Episode ep }:
-                    Now(ep.Show, ep.Title is { Length: > 0 } title ? $"{ep.Label} · {title}" : ep.Label, null);
+                    Now(ep.Show, Lines.Episode(ep.Label, ep.Title, ep.Translation), null);
                     break;
             }
         }
@@ -347,14 +348,14 @@ sealed partial class MediaControls
             Tip = tip,
             State = hidden ? Taskbar.ThumbButton.Hidden : Taskbar.ThumbButton.Enabled,
         };
-        var previous = Button(PreviousId, Glyph.Previous, "Previous episode");
+        var previous = Button(PreviousId, Glyph.Previous, T.PlayerPreviousEpisode);
         if (OnTv)
             previous.State = Taskbar.ThumbButton.Hidden;
         return
         [
             previous,
-            paused ? Button(PlayPauseId, Glyph.Play, "Play") : Button(PlayPauseId, Glyph.Pause, "Pause"),
-            Button(NextId, Glyph.Next, "Next episode"),
+            paused ? Button(PlayPauseId, Glyph.Play, T.ActionPlay) : Button(PlayPauseId, Glyph.Pause, T.ActionPause),
+            Button(NextId, Glyph.Next, T.PlayerNextEpisode),
         ];
     }
 

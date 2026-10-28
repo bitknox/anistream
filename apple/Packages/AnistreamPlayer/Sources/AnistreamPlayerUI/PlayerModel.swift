@@ -1202,7 +1202,7 @@ public final class PlayerModel {
         if let episode { return episode.line }
         let number = staged?.episode ?? starting?.episode ?? ""
         let title = staged?.episodeTitle ?? starting?.episodeTitle
-        return title.map { L.episodeTitledText(number: number, title: $0) } ?? L.episodeNumberText(number: number)
+        return title.map { L.episodeTitledText(number: number, title: $0) } ?? L.episodeNumberString(number: number)
     }
 
     // MARK: When it could not play

@@ -85,7 +85,7 @@ struct AiringToday: View {
                     .lineLimit(1)
                     .padding(.top, 8)
                 HStack(spacing: 8) {
-                    Text(L.welcomeBroadcast(episode: L.episodeNumberText(number: String(broadcast.episode)) + broadcast.markSuffix, clock: broadcast.clock)).monospacedDigit()
+                    Text(L.welcomeBroadcast(episode: L.episodeNumberString(number: String(broadcast.episode)) + broadcast.markSuffix, clock: broadcast.clock)).monospacedDigit()
                     Spacer(minLength: 0)
                     let seconds = Int64(broadcast.airs.timeIntervalSince(now))
                     if seconds <= 0 {

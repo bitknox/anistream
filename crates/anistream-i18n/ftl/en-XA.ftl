@@ -890,12 +890,6 @@ settings-advanced-note = [Åñ öþţîöñ ĥéŕé çàñ üñðö à Þļàý
 # Button that opens the page of the new version of the app.
 updates-view-version = [Ṽîéŵ ṽéŕšîöñ~~~~]
 
-# Button that closes the app and opens the new version it has put in place.
-updates-restart = [Ŕéšţàŕţ ţö üþðàţé~~~~~~]
-
-# Button that downloads the new version of the app.
-updates-download = [Ðöŵñļöàð üþðàţé~~~~~]
-
 # Accessible name of the progress bar while the new version downloads.
 updates-progress-label = [Ûþðàţé þŕöĝŕéšš~~~~~]
 
@@ -956,9 +950,6 @@ shell-changes-waiting =
 # Sidebar line under the account: the tracker, then that it is up to date.
 shell-tracker-synced = [{ $tracker } · Šýñçéð~~~~]
 
-# Title of the keyboard shortcuts window.
-shortcuts-title = [Ķéýƀöàŕð šĥöŕţçüţš~~~~~~]
-
 # Heading of the shortcuts that work on lists of titles.
 shortcuts-group-lists = [Ļîšţš~~]
 
@@ -977,12 +968,6 @@ shortcuts-quit = [Ǫüîţ~~]
 # Shortcut: play the title that has focus in a list.
 shortcuts-play-selected = [Þļàý ţĥé šéļéçţéð ţîţļé~~~~~~~]
 
-# Shortcut: open the context menu of the title that has focus.
-shortcuts-context-menu = [Çöñţéẋţ ɱéñü~~~~]
-
-# Shortcut: pause or resume.
-shortcuts-play-pause = [Þļàý öŕ þàüšé~~~~]
-
 # Shortcut: small steps in the player.
 shortcuts-seek-5 = [Ɓàçķ öŕ ƒöŕŵàŕð 5 šéçöñðš~~~~~~~~]
 
@@ -995,17 +980,11 @@ shortcuts-seek-10 = [Ɓàçķ öŕ ƒöŕŵàŕð 10 šéçöñðš~~~~~~~~]
 # Shortcut: change the volume.
 shortcuts-volume = [Ṽöļüɱé üþ öŕ ðöŵñ~~~~~~]
 
-# Shortcut: mute the sound.
-shortcuts-mute = [Ṁüţé~~]
-
 # Shortcut: skip the opening or the ending.
 shortcuts-skip = [Šķîþ ţĥé öþéñîñĝ öŕ éñðîñĝ~~~~~~~~]
 
 # Shortcut: undo a skip the player made by itself.
 shortcuts-undo-skip = [Ûñðö àñ àüţöɱàţîç šķîþ~~~~~~~]
-
-# Shortcut: move between episodes.
-shortcuts-next-previous = [Ñéẋţ öŕ þŕéṽîöüš éþîšöðé~~~~~~~~]
 
 # Shortcut: change the playback speed.
 shortcuts-speed = [Ƒàšţéŕ öŕ šļöŵéŕ~~~~~]
@@ -1018,12 +997,6 @@ shortcuts-escape = [Çļöšé à çàŕð, ţĥé ɱîñî þļàýéŕ, ƒüļ
 
 # Response of the close question: stop what runs and close.
 close-stop-and-close = [Šţöþ àñð çļöšé~~~~~]
-
-# Response of the close question: keep it running in the background.
-close-keep-going = [Ķééþ ĝöîñĝ~~~]
-
-# Checkbox of the close question.
-close-dont-ask = [Ðöñ'ţ àšķ àĝàîñ~~~~~]
 
 # Body of the close question when episodes download.
 close-body-downloading =
@@ -1214,9 +1187,6 @@ spoken-seconds =
         [one] [{ $count } šéçöñð~~~]
        *[other] [{ $count } šéçöñðš~~~~]
     }
-
-# An episode's line with the audio it was watched in marked, as Continue and the title page word it.
-episode-line-dubbed = [{ $line } · Ðüƀƀéð~~~~]
 
 # Continue row: nothing new to watch, and the next episode airs at a known time. The time is already worded: "in 2d 3h".
 continue-row-caught-up-airs = [Çàüĝĥţ üþ · É{ $episode } àîŕš { $when }~~~~~~~~]
@@ -4083,6 +4053,87 @@ state-working = [Ŵöŕķîñĝ~~~]
 # Short placeholder while something loads.
 state-loading = [Ļöàðîñĝ~~~]
 
+# Checkbox of the close question.
+close-dont-ask = [Ðöñ'ţ àšķ àĝàîñ~~~~~]
+
+# Response of the close question: keep it running in the background.
+close-keep-going = [Ķééþ ĝöîñĝ~~~]
+
+# Line while the sources are searched for the watch party's episode.
+party-looking-sources = [Ļööķîñĝ ţĥŕöüĝĥ ýöüŕ šöüŕçéš…~~~~~~~~~]
+
+# Foot of the watch party form while the device is offline.
+party-needs-connection = [Å ŵàţçĥ þàŕţý ñééðš à çöññéçţîöñ. Ýöü'ŕé öƒƒļîñé.~~~~~~~~~~~~~~~]
+
+# Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
+party-open-sources = [Öþéñ šöüŕçéš~~~~]
+
+# Line under the seeding group in Settings: seeding stops when the app closes.
+settings-seeding-open-only = [Šééðîñĝ ŕüñš öñļý ŵĥîļé àñîšţŕéàɱ îš öþéñ.~~~~~~~~~~~~~]
+
+# Shortcut: open the context menu of the title that has focus.
+shortcuts-context-menu = [Çöñţéẋţ ɱéñü~~~~]
+
+# Shortcut: mute the sound.
+shortcuts-mute = [Ṁüţé~~]
+
+# Shortcut: move between episodes.
+shortcuts-next-previous = [Ñéẋţ öŕ þŕéṽîöüš éþîšöðé~~~~~~~~]
+
+# Shortcut: pause or resume.
+shortcuts-play-pause = [Þļàý öŕ þàüšé~~~~]
+
+# Title of the keyboard shortcuts window.
+shortcuts-title = [Ķéýƀöàŕð šĥöŕţçüţš~~~~~~]
+
+# Settings line of a paired TV: paired on a date, last seen a while ago.
+tv-paired-seen = [{ $paired } · šééñ { $ago }~~~~~]
+
+# The TV cannot take another connection now.
+tv-problem-busy = [Ţĥé ŢṼ îš çöññéçţéð ţö àš ɱàñý ðéṽîçéš àš îţ çàñ. Ţŕý àĝàîñ šööñ.~~~~~~~~~~~~~~~~~~~~]
+
+# The TV picked in the list has left the network.
+tv-problem-gone = [Ţĥàţ ŢṼ îš ñö ļöñĝéŕ öñ ţĥé ñéţŵöŕķ.~~~~~~~~~~~]
+
+# The TV's key changed since pairing.
+tv-problem-key-changed = [Ţĥé ŢṼ ŵàš ŕéšéţ öŕ ŕéîñšţàļļéð šîñçé ýöü þàîŕéð. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~~~~]
+
+# What was typed or scanned is not a TV's code or address.
+tv-problem-not-a-link = [Ţĥàţ îšñ'ţ à ŢṼ'š þàîŕîñĝ çöðé öŕ àððŕéšš.~~~~~~~~~~~~~]
+
+# A command needs something playing and nothing is.
+tv-problem-not-now = [Ñöţĥîñĝ îš þļàýîñĝ öñ ţĥé ŢṼ.~~~~~~~~~]
+
+# The TV did not answer.
+tv-problem-unreachable = [Çàñ'ţ ŕéàçĥ ţĥé ŢṼ. Çĥéçķ ţĥàţ îţ'š öñ, ŵîţĥ àñîšţŕéàɱ öþéñ, öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# The TV and this app speak different versions.
+tv-problem-version = [Ţĥé ŢṼ ŕüñš àñöţĥéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ. Ûþðàţé ƀöţĥ ţö ţĥé šàɱé öñé.~~~~~~~~~~~~~~~~~~~~~]
+
+# The pairing code typed did not match.
+tv-problem-wrong-code = [Ţĥàţ çöðé ðîðñ'ţ ɱàţçĥ. Çĥéçķ ţĥé çöðé öñ ţĥé ŢṼ àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~]
+
+# Accessible label of the button that turns the TV down.
+tv-volume-down = [Ṽöļüɱé ðöŵñ~~~~]
+
+# The TV's volume as a value of 100.
+tv-volume-of = [{ $volume } öƒ 100~~~]
+
+# Accessible label of the button that turns the TV up.
+tv-volume-up = [Ṽöļüɱé üþ~~~]
+
+# Button that downloads the new version of the app.
+updates-download = [Ðöŵñļöàð üþðàţé~~~~~]
+
+# Button that closes the app and opens the new version it has put in place.
+updates-restart = [Ŕéšţàŕţ ţö üþðàţé~~~~~~]
+
+# The TV cannot take another paired device.
+tv-problem-full = [Ţĥîš ŢṼ ĥàš àš ɱàñý ðéṽîçéš þàîŕéð àš îţ çàñ ķééþ. Ŕéɱöṽé öñé îñ ţĥé ŢṼ'š šéţţîñĝš, üñðéŕ Ŕéɱöţéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# The TV has forgotten this computer.
+tv-problem-unpaired = [Ţĥé ŢṼ ðöéšñ'ţ ķñöŵ ţĥîš ðéṽîçé àñý ɱöŕé. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~]
+
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = [Ðöŵñļöàðš~~~]
 
@@ -4970,14 +5021,11 @@ party-sources-label = [Šöüŕçéš ƒöŕ ţĥîš éþîšöðé~~~~~~~~]
 # Line of a source: its quality and size already formatted, and the number of seeders.
 party-source-seeders = [{ $seeders } šééðéŕš~~~~]
 
-# Foot of the watch party form while the device is offline.
-party-needs-connection = [Å ŵàţçĥ þàŕţý ñééðš à çöññéçţîöñ. Ýöü'ŕé öƒƒļîñé.~~~~~~~~~~~~~~~]
+# Line when no source lists the episode.
+party-no-source-lists = [Ñö šöüŕçé ļîšţš éþîšöðé { $episode }. Šöüŕçéš çöɱé ƒŕöɱ þļüĝîñš, ŵĥîçĥ à þļüĝîñ šţöŕé àððš.~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
-party-open-sources = [Öþéñ šöüŕçéš~~~~]
-
-# Line while the sources are searched for the watch party's episode.
-party-looking-sources = [Ļööķîñĝ ţĥŕöüĝĥ ýöüŕ šöüŕçéš…~~~~~~~~~]
+# Button that plays the chosen source with the room.
+party-play-with = [Þļàý ŵîţĥ ţĥé ŵàţçĥ þàŕţý~~~~~~~~]
 
 # Label on the card for the episode that plays after this one.
 player-up-next = [Ûþ ñéẋţ~~~]
@@ -5794,8 +5842,23 @@ settings-upscaling-note-natural = [Ƒàîţĥƒüļ ļîñé ŵöŕķ àñð ţ�
 # Preview note under the upscaling frame for the sharp look.
 settings-upscaling-note-sharp = [Çŕîšþéŕ ļîñéš àñð šţŕöñĝéŕ éðĝéš, àţ šöɱé çöšţ ţö ţéẋţüŕé.~~~~~~~~~~~~~~~~~~]
 
-# Line under the seeding group in Settings: seeding stops when the app closes.
-settings-seeding-open-only = [Šééðîñĝ ŕüñš öñļý ŵĥîļé àñîšţŕéàɱ îš öþéñ.~~~~~~~~~~~~~]
+# Setting: a command run after each download finishes.
+settings-after-download = [Åƒţéŕ éàçĥ ðöŵñļöàð~~~~~~]
+
+# Setting: extra options passed to mpv, the player. mpv stays lower case.
+settings-mpv-options = [ɱþṽ öþţîöñš~~~~]
+
+# Name screen readers give the list of panes down the side of Settings.
+settings-panes-label = [Šéţţîñĝš þàñéš~~~~~]
+
+# Setting: Discord's status with the cover and a progress bar.
+settings-presence-rich = [Ŕîçĥ þŕéšéñçé~~~~]
+
+# Setting: Discord's status names the show being watched.
+settings-presence-title = [Þŕéšéñçé šĥöŵš ţĥé ţîţļé~~~~~~~~]
+
+# Under a tracker that is signed in, when its user name is unknown.
+settings-signed-in = [Šîĝñéð îñ~~~]
 
 # Title of the screen or section that lists sources.
 sources-title = [Šöüŕçéš~~~]
@@ -6000,6 +6063,9 @@ sources-source-order-row = [Šöüŕçé öŕðéŕ~~~~]
 
 # Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
 sources-torrents-note = [Ţöŕŕéñţš àŕé þàŕţ öƒ àñîšţŕéàɱ, ñöţ à þļüĝîñ. Ŵĥàţ þŕöţéçţš ţĥéîŕ ţŕàƒƒîç, ţĥé çöññéçţîöñ çĥéçķ àñð šééðîñĝ àŕé šéţ îñ Šéţţîñĝš, üñðéŕ Šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Over the { -source } list while the { -source-pl } are set up again after a change.
+sources-rebuilding = [Šöüŕçéš àŕé ƀéîñĝ šéţ üþ àĝàîñ~~~~~~~~~]
 
 # Short label for a joined store, on a row.
 stores-joined = [Ĵöîñéð~~]
@@ -6559,6 +6625,9 @@ more-show-spoiler-tags =
        *[other] [Šĥöŵ { $count } šþöîļéŕ ţàĝš~~~~~~~]
     }
 
+# An episode's line with the audio it was watched in marked, as Continue and the title page word it.
+episode-line-dubbed = [{ $line } · Ðüƀƀéð~~~~]
+
 # Title of the settings group and the screen.
 torrents-title = [Ţöŕŕéñţš~~~]
 
@@ -6777,6 +6846,9 @@ torrents-page-unreadable = [Ţĥé ŢṼ çöüļðñ'ţ ŕéàð ţĥîš. Šç
 
 # Line when the page needs script.
 torrents-page-needs-script = [Ţĥîš þàĝé ñééðš ĴàṽàŠçŕîþţ ţö šéñð ţĥé ƒöŕɱ ţö ţĥé ŢṼ šàƒéļý.~~~~~~~~~~~~~~~~~~~]
+
+# Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+torrents-check-note = [àñîšţŕéàɱ çĥéçķš ŵĥéŕé ţöŕŕéñţ ţŕàƒƒîç ļéàṽéš ƒŕöɱ ŵĥéñ à ţöŕŕéñţ šţàŕţš àñð éṽéŕý ɱîñüţé ŵĥîļé îţ ŕüñš, àñð þàüšéš ţöŕŕéñţš îƒ ţĥàţ çĥéçķ ƒàîļš. Ýöüŕ ṼÞÑ öŕ þŕöẋý îš ŵĥàţ þŕöţéçţš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Title of the accounts screen. The sidebar item is nav-accounts.
 accounts-title = [Åççöüñţš~~~]
@@ -7169,50 +7241,8 @@ tv-another = [Åñöţĥéŕ ŢṼ~~~]
 # Under a TV in the list: its version does not match.
 tv-row-needs-update = [Ñééðš ţĥé šàɱé àñîšţŕéàɱ ṽéŕšîöñ àš ţĥîš ðéṽîçé~~~~~~~~~~~~~~~]
 
-# Settings line of a paired TV: paired on a date, last seen a while ago.
-tv-paired-seen = [{ $paired } · šééñ { $ago }~~~~~]
-
 # Title of the remote's volume row.
 tv-volume = [ŢṼ ṽöļüɱé~~~]
-
-# Accessible label of the button that turns the TV down.
-tv-volume-down = [Ṽöļüɱé ðöŵñ~~~~]
-
-# Accessible label of the button that turns the TV up.
-tv-volume-up = [Ṽöļüɱé üþ~~~]
-
-# The TV's volume as a value of 100.
-tv-volume-of = [{ $volume } öƒ 100~~~]
-
-# The pairing code typed did not match.
-tv-problem-wrong-code = [Ţĥàţ çöðé ðîðñ'ţ ɱàţçĥ. Çĥéçķ ţĥé çöðé öñ ţĥé ŢṼ àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~]
-
-# The TV cannot take another paired device.
-tv-problem-full = [Ţĥîš ŢṼ ĥàš àš ɱàñý ðéṽîçéš þàîŕéð àš îţ çàñ ķééþ. Ŕéɱöṽé öñé îñ ţĥé ŢṼ'š šéţţîñĝš, üñðéŕ Ŕéɱöţéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
-
-# The TV cannot take another connection now.
-tv-problem-busy = [Ţĥé ŢṼ îš çöññéçţéð ţö àš ɱàñý ðéṽîçéš àš îţ çàñ. Ţŕý àĝàîñ šööñ.~~~~~~~~~~~~~~~~~~~~]
-
-# The TV and this app speak different versions.
-tv-problem-version = [Ţĥé ŢṼ ŕüñš àñöţĥéŕ ṽéŕšîöñ öƒ àñîšţŕéàɱ. Ûþðàţé ƀöţĥ ţö ţĥé šàɱé öñé.~~~~~~~~~~~~~~~~~~~~~]
-
-# A command needs something playing and nothing is.
-tv-problem-not-now = [Ñöţĥîñĝ îš þļàýîñĝ öñ ţĥé ŢṼ.~~~~~~~~~]
-
-# The TV has forgotten this computer.
-tv-problem-unpaired = [Ţĥé ŢṼ ðöéšñ'ţ ķñöŵ ţĥîš ðéṽîçé àñý ɱöŕé. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~]
-
-# The TV's key changed since pairing.
-tv-problem-key-changed = [Ţĥé ŢṼ ŵàš ŕéšéţ öŕ ŕéîñšţàļļéð šîñçé ýöü þàîŕéð. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~~~~]
-
-# The TV did not answer.
-tv-problem-unreachable = [Çàñ'ţ ŕéàçĥ ţĥé ŢṼ. Çĥéçķ ţĥàţ îţ'š öñ, ŵîţĥ àñîšţŕéàɱ öþéñ, öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~]
-
-# The TV picked in the list has left the network.
-tv-problem-gone = [Ţĥàţ ŢṼ îš ñö ļöñĝéŕ öñ ţĥé ñéţŵöŕķ.~~~~~~~~~~~]
-
-# What was typed or scanned is not a TV's code or address.
-tv-problem-not-a-link = [Ţĥàţ îšñ'ţ à ŢṼ'š þàîŕîñĝ çöðé öŕ àððŕéšš.~~~~~~~~~~~~~]
 
 # Heading of the update row in settings and about.
 updates-title = [Ûþðàţéš~~~]

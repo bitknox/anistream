@@ -195,3 +195,7 @@ more-show-spoiler-tags = { $count ->
     [one] Show one spoiler tag
    *[other] Show { $count } spoiler tags
  }
+
+# An episode's line with the audio it was watched in marked, as Continue and the title page word it.
+# @arg line: text
+episode-line-dubbed = { $line } · { -dubbed-cap }

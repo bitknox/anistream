@@ -294,7 +294,7 @@ struct ProviderDetail: View {
         .confirmationDialog(L.sourcesRemoveTitle(name: info.name), isPresented: $removing) {
             Button(L.actionRemove, role: .destructive) { store.removePlugin(info.row.id) }
         } message: {
-            Text(L.sourcesRemoveDetail)
+            Text(L.sourcesRemoveDetailDevice)
         }
         .sheet(item: $updating) { plugin in
             if let listing = info.listing { UpdatePluginSheet(store: listing.store, plugin: plugin) }
