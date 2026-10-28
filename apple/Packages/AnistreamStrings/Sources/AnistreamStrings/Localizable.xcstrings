@@ -2833,6 +2833,18 @@
         }
       }
     },
+    "discussion-add-comment" : {
+      "comment" : "Placeholder in the field for a new comment.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a comment"
+          }
+        }
+      }
+    },
     "discussion-age-days" : {
       "comment" : "A comment's age, beside its author, in days. Abbreviated, as a timeline shows it. Argument 1: days (Int).",
       "extractionState" : "manual",
@@ -2901,6 +2913,396 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld y"
+          }
+        }
+      }
+    },
+    "discussion-cancel-reply" : {
+      "comment" : "Accessible name of the button that stops replying or editing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel reply"
+          }
+        }
+      }
+    },
+    "discussion-count" : {
+      "comment" : "Count of comments in the header of the discussion. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One comment"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld comments"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "discussion-delete-body" : {
+      "comment" : "Body of the question asked before deleting the viewer's own comment.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It is removed from AniList too."
+          }
+        }
+      }
+    },
+    "discussion-delete-title" : {
+      "comment" : "Title of the question asked before deleting the viewer's own comment.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this comment?"
+          }
+        }
+      }
+    },
+    "discussion-edit-comment" : {
+      "comment" : "Placeholder in the field while editing a comment.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit your comment"
+          }
+        }
+      }
+    },
+    "discussion-failed" : {
+      "comment" : "Title of the state when the discussion could not be read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load the discussion"
+          }
+        }
+      }
+    },
+    "discussion-image" : {
+      "comment" : "Line in place of an image in a comment. It opens the image in the browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image"
+          }
+        }
+      }
+    },
+    "discussion-like" : {
+      "comment" : "Button that likes a comment, with its count after it. Also its accessible name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Like"
+          }
+        }
+      }
+    },
+    "discussion-more-replies" : {
+      "comment" : "Line under a reply that has more replies folded in it. The line opens them. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One more reply"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld more replies"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "discussion-no-comments" : {
+      "comment" : "Title of the state when a thread has no comments.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No comments yet"
+          }
+        }
+      }
+    },
+    "discussion-no-thread" : {
+      "comment" : "Title of the state when the episode has no thread on AniList.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No discussion yet"
+          }
+        }
+      }
+    },
+    "discussion-no-thread-detail" : {
+      "comment" : "Line under the no-thread title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nobody has opened a thread for this episode on AniList."
+          }
+        }
+      }
+    },
+    "discussion-offline-cached" : {
+      "comment" : "Line over comments that are kept from an earlier visit while offline. The age reads \"2h ago\". Argument 1: age (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline. Showing comments from %1$@."
+          }
+        }
+      }
+    },
+    "discussion-offline-post" : {
+      "comment" : "Line in place of the field when the viewer is signed in but offline.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posting waits for the network"
+          }
+        }
+      }
+    },
+    "discussion-open" : {
+      "comment" : "Menu item that opens an episode's discussion.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discussion"
+          }
+        }
+      }
+    },
+    "discussion-post" : {
+      "comment" : "Button that sends the comment in the field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post"
+          }
+        }
+      }
+    },
+    "discussion-post-failed" : {
+      "comment" : "Line under a comment AniList did not accept. The button beside it sends it again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Didn't post. Try again"
+          }
+        }
+      }
+    },
+    "discussion-rate-limited" : {
+      "comment" : "Line while AniList's request budget is spent. The engine waits, then goes on by itself. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AniList asked for a pause. Back in %1$@."
+          }
+        }
+      }
+    },
+    "discussion-reply" : {
+      "comment" : "Button that replies to a comment.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reply"
+          }
+        }
+      }
+    },
+    "discussion-replying-to" : {
+      "comment" : "Line above the field while answering a comment. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replying to %1$@"
+          }
+        }
+      }
+    },
+    "discussion-row" : {
+      "comment" : "Quiet line under an episode that opens its discussion. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Discussion · one comment"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Discussion · %1$lld comments"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "discussion-settings-group" : {
+      "comment" : "Heading of the Settings group for discussion rows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discussions"
+          }
+        }
+      }
+    },
+    "discussion-sign-in" : {
+      "comment" : "Line in place of the field when nobody is signed in to AniList. It opens the sign-in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with AniList to reply"
+          }
+        }
+      }
+    },
+    "discussion-spoiler" : {
+      "comment" : "Muted bar in place of a spoiler in a comment, until it is opened.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spoiler"
+          }
+        }
+      }
+    },
+    "discussion-still-loading" : {
+      "comment" : "Line while the comments are still loading after a few seconds.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still loading from AniList"
+          }
+        }
+      }
+    },
+    "discussion-title-episode" : {
+      "comment" : "Title of the discussion window or sheet when the thread has no title yet. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld discussion"
+          }
+        }
+      }
+    },
+    "discussion-video" : {
+      "comment" : "Line in place of a video in a comment. It opens the video in the browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video"
           }
         }
       }
@@ -19151,6 +19553,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trailer"
+          }
+        }
+      }
+    },
+    "title-trailer-sound" : {
+      "comment" : "Name and tooltip of the button beside a playing trailer that turns its sound on or off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trailer sound"
           }
         }
       }

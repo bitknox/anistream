@@ -3127,6 +3127,104 @@ public enum L {
     /// The TV has forgotten this computer.
     public static var tvProblemUnpaired: String { string("tv-problem-unpaired", fallback: "The TV doesn't know this device any more. Pair again.") }
 
+    /// Menu item that opens an episode's discussion.
+    public static var discussionOpen: String { string("discussion-open", fallback: "Discussion") }
+
+    /// Title of the discussion window or sheet when the thread has no title yet.
+    public static func discussionTitleEpisode(episode: Int) -> String {
+        Self.format("discussion-title-episode", fallback: "Episode %1$lld discussion", episode)
+    }
+
+    /// Quiet line under an episode that opens its discussion.
+    public static func discussionRow(count: Int) -> String {
+        Self.format("discussion-row", fallback: "Discussion · %1$lld comments", count)
+    }
+
+    /// Count of comments in the header of the discussion.
+    public static func discussionCount(count: Int) -> String {
+        Self.format("discussion-count", fallback: "%1$lld comments", count)
+    }
+
+    /// Button that likes a comment, with its count after it. Also its accessible name.
+    public static var discussionLike: String { string("discussion-like", fallback: "Like") }
+
+    /// Button that replies to a comment.
+    public static var discussionReply: String { string("discussion-reply", fallback: "Reply") }
+
+    /// Line under a reply that has more replies folded in it. The line opens them.
+    public static func discussionMoreReplies(count: Int) -> String {
+        Self.format("discussion-more-replies", fallback: "%1$lld more replies", count)
+    }
+
+    /// Muted bar in place of a spoiler in a comment, until it is opened.
+    public static var discussionSpoiler: String { string("discussion-spoiler", fallback: "Spoiler") }
+
+    /// Line in place of an image in a comment. It opens the image in the browser.
+    public static var discussionImage: String { string("discussion-image", fallback: "Image") }
+
+    /// Line in place of a video in a comment. It opens the video in the browser.
+    public static var discussionVideo: String { string("discussion-video", fallback: "Video") }
+
+    /// Placeholder in the field for a new comment.
+    public static var discussionAddComment: String { string("discussion-add-comment", fallback: "Add a comment") }
+
+    /// Placeholder in the field while editing a comment.
+    public static var discussionEditComment: String { string("discussion-edit-comment", fallback: "Edit your comment") }
+
+    /// Button that sends the comment in the field.
+    public static var discussionPost: String { string("discussion-post", fallback: "Post") }
+
+    /// Line above the field while answering a comment.
+    public static func discussionReplyingTo(name: String) -> String {
+        Self.format("discussion-replying-to", fallback: "Replying to %1$@", name)
+    }
+
+    /// Accessible name of the button that stops replying or editing.
+    public static var discussionCancelReply: String { string("discussion-cancel-reply", fallback: "Cancel reply") }
+
+    /// Line in place of the field when nobody is signed in to AniList. It opens the sign-in.
+    public static var discussionSignIn: String { string("discussion-sign-in", fallback: "Sign in with AniList to reply") }
+
+    /// Line in place of the field when the viewer is signed in but offline.
+    public static var discussionOfflinePost: String { string("discussion-offline-post", fallback: "Posting waits for the network") }
+
+    /// Line under a comment AniList did not accept. The button beside it sends it again.
+    public static var discussionPostFailed: String { string("discussion-post-failed", fallback: "Didn't post. Try again") }
+
+    /// Title of the question asked before deleting the viewer's own comment.
+    public static var discussionDeleteTitle: String { string("discussion-delete-title", fallback: "Delete this comment?") }
+
+    /// Body of the question asked before deleting the viewer's own comment.
+    public static var discussionDeleteBody: String { string("discussion-delete-body", fallback: "It is removed from AniList too.") }
+
+    /// Line while the comments are still loading after a few seconds.
+    public static var discussionStillLoading: String { string("discussion-still-loading", fallback: "Still loading from AniList") }
+
+    /// Line while AniList's request budget is spent. The engine waits, then goes on by itself.
+    public static func discussionRateLimited(time: String) -> String {
+        Self.format("discussion-rate-limited", fallback: "AniList asked for a pause. Back in %1$@.", time)
+    }
+
+    /// Title of the state when the episode has no thread on AniList.
+    public static var discussionNoThread: String { string("discussion-no-thread", fallback: "No discussion yet") }
+
+    /// Line under the no-thread title.
+    public static var discussionNoThreadDetail: String { string("discussion-no-thread-detail", fallback: "Nobody has opened a thread for this episode on AniList.") }
+
+    /// Title of the state when a thread has no comments.
+    public static var discussionNoComments: String { string("discussion-no-comments", fallback: "No comments yet") }
+
+    /// Title of the state when the discussion could not be read.
+    public static var discussionFailed: String { string("discussion-failed", fallback: "Couldn't load the discussion") }
+
+    /// Line over comments that are kept from an earlier visit while offline. The age reads "2h ago".
+    public static func discussionOfflineCached(age: String) -> String {
+        Self.format("discussion-offline-cached", fallback: "Offline. Showing comments from %1$@.", age)
+    }
+
+    /// Heading of the Settings group for discussion rows.
+    public static var discussionSettingsGroup: String { string("discussion-settings-group", fallback: "Discussions") }
+
     /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
     public static var downloadsTitle: String { string("downloads-title", fallback: "Downloads") }
 
@@ -5701,6 +5799,9 @@ public enum L {
 
     /// Menu item that plays the trailer.
     public static var titlePlayTrailer: String { string("title-play-trailer", fallback: "Play trailer") }
+
+    /// Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+    public static var titleTrailerSound: String { string("title-trailer-sound", fallback: "Trailer sound") }
 
     /// Menu item that opens the title on the AniList website.
     public static var titleOpenAnilist: String { string("title-open-anilist", fallback: "Open on AniList") }

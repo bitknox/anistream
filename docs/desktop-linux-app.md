@@ -82,6 +82,57 @@ Play on TV added:
   a lost TV and no TVs found. The shots run against fake TVs on loopback
   (`anistream-remote`'s `fake`); nothing leaves the machine.
 
+Trailers added:
+
+- The title page plays its trailer, muted, behind the banner once the page has settled. The
+  banner clears over it only when a frame is playing, the title steps down below the video, and a
+  sound button appears at the end of the actions. Scrolling more than 8 px pauses it and brings the
+  banner back; leaving the page, starting an episode, opening a dialog or the window losing focus
+  lets it go.
+- Resting the pointer on a cover in Seasonal, Search, Library or Related for 800 ms opens a preview
+  in a popover: the banner, the title, the facts, two lines of synopsis and the main action, with
+  the trailer under the banner where one plays. It closes 150 ms after the pointer leaves, and at
+  once on a scroll, a key, a click elsewhere or the window losing focus.
+- Play trailer opens the trailer in a window with YouTube's controls and sound. If the embed
+  refuses the video, or there is no web view, the watch URL opens in the browser as before.
+- Settings, General: Play trailers (Always, Wi-Fi only, Off). The engine decides whether a trailer
+  starts by itself from that, the network and the device state the window reports (animations off,
+  power saver, a screen reader, under 4 GB of memory).
+- The web view is WebKitGTK 6, looked up with `dlopen` when a trailer is about to play, so nothing
+  links against it and the app starts the same without it. It runs on an ephemeral network session,
+  loads the engine's embed page under `https://tv.anistream.desktop/` (the Referer) and takes no
+  pointer input outside the Play trailer window.
+- WebKitGTK stops the whole app when its sandbox cannot start, so the app first tries
+  `bwrap --unshare-user --unshare-pid` in a process of its own and plays no trailer where that
+  fails. Inside a Flatpak the portal starts the web process and the check is skipped.
+- Packaging: a Flatpak on the GNOME runtime has WebKitGTK 6 and the GStreamer plugins. A
+  distribution package should recommend WebKitGTK 6 with bubblewrap and xdg-dbus-proxy, and
+  depend on GStreamer's libav and good plugins, or YouTube serves nothing playable and the trailer
+  fails without a sound. The build box has them for the shots, but its container cannot start the
+  sandbox, so the shots show the banner and the preview without a video.
+
+Episode discussions added:
+
+- The discussion of an episode opens in an `AdwDialog` (`pages/discussion.rs`), which is a bottom
+  sheet below the narrow size. The header has the thread title, the comment count and Open on
+  AniList. Comments are drawn again whenever the engine says the discussion, keeping the scroll
+  place, the spoilers the viewer opened and the replies they unfolded.
+- It opens from the episode's menu on the title page (when Episode discussions is on, and with
+  spoiler protection only for episodes the viewer has watched), from the quiet "Discussion · N
+  comments" line under an episode once the engine has found its thread, and from the player's More
+  menu from 85% of the episode. Opening it from the player pauses playback and closing it does not
+  resume.
+- Comment text is built from the engine's spans as Pango markup: bold, italic, strike-through,
+  links, spoilers as a muted bar that toggles, and quotes set in. Images and videos are a line
+  that opens in the browser, or an inline picture for images when Settings, Integrations, Load
+  images in comments is on.
+- Posting uses the field at the foot. Reply puts "Replying to name" above it, Edit starts from the
+  comment's own text, Delete asks once, and a comment AniList refused stays dimmed with "Didn't
+  post. Try again". Signed out, a line opens Settings, Accounts in place of the field.
+- Settings, Integrations has Episode discussions and Load images in comments.
+- The fixture build answers an opened discussion from `showcase.rs`, so the shots show a thread
+  without AniList.
+
 The engine runs in-process on a tokio runtime of its own. The window only queues commands, and
 the engine's events reach GTK's main loop over a channel, where `hub.rs` hands them out.
 

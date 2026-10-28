@@ -7,7 +7,7 @@
 use std::{path::PathBuf, rc::Rc, time::Duration};
 
 use adw::prelude::*;
-use anistream_model::{command::Command, sync::DeviceCodePrompt};
+use anistream_model::{command::Command, event::Event, sync::DeviceCodePrompt};
 use gtk::glib;
 
 use crate::{hub::SignIn, pages::Dest, window::Shell};
@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 60] = [
+pub const ALL: [&str; 68] = [
     "home",
     "welcome",
     "offline",
@@ -32,6 +32,13 @@ pub const ALL: [&str; 60] = [
     "search-failed",
     "search-paging",
     "title",
+    "trailer-preview",
+    "trailer-window",
+    "discussion",
+    "discussion-none",
+    "discussion-waiting",
+    "discussion-signed-out",
+    "title-discussion",
     "show-settings",
     "library",
     "library-focus",
@@ -58,6 +65,7 @@ pub const ALL: [&str; 60] = [
     "join-link",
     "settings",
     "settings-general",
+    "settings-integrations",
     "settings-upscaling",
     "settings-accounts",
     "accounts-kitsu",
@@ -302,6 +310,69 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
                 WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
             3.5
         }
+        "trailer-preview" => {
+            // The pointer rests on a cover in Seasonal: its preview opens, and its trailer plays.
+            shell.go(Dest::Seasonal);
+            let shell = Rc::clone(shell);
+            glib::timeout_add_local_once(Duration::from_millis(2500), move || {
+                let cover = mapped_grid(shell.ctx.window.upcast_ref())
+                    .and_then(|grid| first_cover(grid.upcast_ref()))
+                    .and_then(|fit| fit.parent());
+                let id = shell
+                    .ctx
+                    .hub
+                    .known
+                    .borrow()
+                    .entries
+                    .values()
+                    .find(|entry| entry.title == "The Library Above the Clouds")
+                    .map(|entry| entry.id.get());
+                if let (Some(cover), Some(id)) = (cover, id) {
+                    crate::trailer::show_preview(&shell.ctx.hub, &cover, id);
+                }
+            });
+            6.0
+        }
+        "trailer-window" => {
+            shell.go(Dest::Continue);
+            if let Some(entry) = shell.ctx.hub.entry(anistream_core::ids::AnilistId::new(TITLE))
+            {
+                crate::trailer::play_window(&shell.ctx, &entry);
+            }
+            4.0
+        }
+        #[cfg(feature = "fixtures")]
+        "discussion" | "discussion-none" | "discussion-waiting" | "discussion-signed-out" => {
+            use crate::showcase::Thread;
+            shell.go(Dest::Continue);
+            crate::showcase::set_thread(match shot {
+                "discussion" => Thread::Comments,
+                "discussion-none" => Thread::Nobody,
+                "discussion-waiting" => Thread::Waiting,
+                _ => Thread::Signed,
+            });
+            crate::pages::discussion::open(
+                &shell.ctx,
+                anistream_core::ids::AnilistId::new(TITLE),
+                3,
+            );
+            3.0
+        }
+        "title-discussion" => {
+            // The episode that has a thread says so under its row.
+            shell.go(Dest::Continue);
+            let _ =
+                WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
+            let hub = Rc::clone(&shell.ctx.hub);
+            glib::timeout_add_local_once(Duration::from_millis(2500), move || {
+                hub.take(vec![Event::DiscussionFound {
+                    media: anistream_core::ids::AnilistId::new(TITLE),
+                    episode: 1,
+                    comments: 214,
+                }]);
+            });
+            4.0
+        }
         "show-settings" => {
             shell.go(Dest::Continue);
             let _ =
@@ -374,6 +445,10 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         "settings-general" => {
             shell.settings_pane("general");
+            1.5
+        }
+        "settings-integrations" => {
+            shell.settings_pane("integrations");
             1.5
         }
         "settings-upscaling" => {
@@ -594,9 +669,15 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
 /// Leave the state a shot put the window in.
 fn unstage(shell: &Rc<Shell>, shot: &str) {
     match shot {
-        "title" => {
+        "title" | "title-discussion" => {
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
         }
+        "trailer-preview" => crate::trailer::close_preview(),
+        "trailer-window"
+        | "discussion"
+        | "discussion-none"
+        | "discussion-waiting"
+        | "discussion-signed-out" => close_dialogs(&shell.ctx.window),
         "about" | "join" | "join-link" | "welcome" | "accounts-kitsu" | "torrents-setup" => {
             close_dialogs(&shell.ctx.window)
         }
@@ -1014,6 +1095,7 @@ async fn painted(shell: &Rc<Shell>, path: &std::path::Path, shot: &str) -> Resul
                 "player-marks" => player.shot_popover(),
                 "player-tracks" => player.shot_tracks_popover(),
                 "party-title-menu" | "store-menu" => title_menu_popover(&window),
+                "trailer-preview" => crate::trailer::shot_preview(window.upcast_ref()),
                 party if party.starts_with("party-") => player.shot_party_popover(),
                 _ => None,
             };
@@ -1391,6 +1473,21 @@ fn party_stage(_: &Rc<Shell>, _: &str) -> f64 {
 fn party_unstage(_: &Rc<Shell>, _: &str) {}
 
 /// The poster grid on screen.
+/// The first cover under `widget`.
+fn first_cover(widget: &gtk::Widget) -> Option<gtk::Widget> {
+    if widget.is::<crate::fit::Fit>() {
+        return Some(widget.clone());
+    }
+    let mut child = widget.first_child();
+    while let Some(next) = child {
+        if let Some(found) = first_cover(&next) {
+            return Some(found);
+        }
+        child = next.next_sibling();
+    }
+    None
+}
+
 fn mapped_grid(widget: &gtk::Widget) -> Option<gtk::GridView> {
     if let Some(grid) = widget.downcast_ref::<gtk::GridView>()
         && grid.is_mapped()
