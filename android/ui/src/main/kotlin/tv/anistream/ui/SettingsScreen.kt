@@ -65,19 +65,19 @@ import tv.anistream.store.Wording
 import androidx.compose.ui.platform.LocalContext
 
 /** The panes of Settings, in the list's order. */
-enum class SettingsPane(val route: String, val title: String) {
-    General("general", "General"),
-    Playback("playback", "Playback"),
-    Notifications("notifications", "Notifications"),
-    Downloads("downloads", "Downloads"),
-    Sources("sources", "Sources"),
-    Accounts("accounts", "Accounts"),
-    About("about", "About");
+enum class SettingsPane(val route: String, val titleRes: Int) {
+    General("general", R.string.settings_group_general),
+    Playback("playback", R.string.settings_group_playback),
+    Notifications("notifications", R.string.settings_group_notifications),
+    Downloads("downloads", R.string.downloads_title),
+    Sources("sources", R.string.sources_title),
+    Accounts("accounts", R.string.accounts_title),
+    About("about", R.string.about_title);
 
     companion object {
-        /** The pane [name] names, by its route or title, case aside. */
+        /** The pane [name] names, by its route, case aside. */
         fun named(name: String?): SettingsPane? =
-            entries.firstOrNull { it.route.equals(name, ignoreCase = true) || it.title.equals(name, ignoreCase = true) }
+            entries.firstOrNull { it.route.equals(name, ignoreCase = true) }
     }
 }
 
@@ -138,7 +138,7 @@ private fun PhoneSettingsList(actions: AppActions) {
 @Composable
 private fun PhonePane(pane: SettingsPane, actions: AppActions) {
     val navigator = LocalNavigator.current
-    ScreenFrame(title = pane.title, onBack = navigator::back) { padding ->
+    ScreenFrame(title = stringResource(pane.titleRes), onBack = navigator::back) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
@@ -170,22 +170,22 @@ internal fun SettingsList(selected: SettingsPane?, open: (SettingsPane) -> Unit)
     val update by store.updates.state.collectAsStateWithLifecycle()
     AccountCard(trackers["anilist"], AccountWords.status(trackers["anilist"], syncedAt, working)) { open(SettingsPane.Accounts) }
     val panes = listOf(
-        SettingsPane.General to generalSummary(view),
-        SettingsPane.Playback to playbackSummary(view),
-        SettingsPane.Notifications to notificationsSummary(view),
-        SettingsPane.Downloads to storageLine(store.downloads.bytes(downloads)),
-        SettingsPane.Sources to sourcesSummary(view, providers.size.takeIf { providersLoaded }),
-        SettingsPane.Accounts to AccountWords.connected(trackers),
+        SettingsPane.General to generalSummary(LocalContext.current, view),
+        SettingsPane.Playback to playbackSummary(LocalContext.current, view),
+        SettingsPane.Notifications to notificationsSummary(LocalContext.current, view),
+        SettingsPane.Downloads to storageLine(LocalContext.current, store.downloads.bytes(downloads)),
+        SettingsPane.Sources to sourcesSummary(LocalContext.current, view, providers.size.takeIf { providersLoaded }),
+        SettingsPane.Accounts to AccountWords.connected(LocalContext.current, trackers),
     )
     SettingsGroup(
         rows = panes.map { (pane, line) ->
-            @Composable { place: Place -> LinkRow(place, pane.title, line, pane.icon, selected = pane == selected) { open(pane) } }
+            @Composable { place: Place -> LinkRow(place, stringResource(pane.titleRes), line, pane.icon, selected = pane == selected) { open(pane) } }
         },
     )
     SettingsGroup(
         rows = listOf({ place ->
-            val version = listOfNotNull("Version ${appVersion()}", update.offer?.let { "${it.name} is out" }).joinToString(" · ")
-            LinkRow(place, SettingsPane.About.title, version, SettingsPane.About.icon, selected = selected == SettingsPane.About) {
+            val version = listOfNotNull(stringResource(R.string.about_version, appVersion()), update.offer?.let { stringResource(R.string.updates_version_out, it.version) }).joinToString(" · ") // i18n-skip
+            LinkRow(place, stringResource(SettingsPane.About.titleRes), version, SettingsPane.About.icon, selected = selected == SettingsPane.About) {
                 open(SettingsPane.About)
             }
         }),
@@ -204,32 +204,32 @@ private val SettingsPane.icon
     }
 
 /** "New episodes on", or off. */
-private fun notificationsSummary(view: SettingsView?): String? {
+private fun notificationsSummary(context: Context, view: SettingsView?): String? {
     val row = view?.let { (it.rows + it.nativeRows).firstOrNull { row -> row.key == SettingKey.EPISODE_NOTIFICATIONS } } ?: return null
-    return if (SettingsCatalog.isOn(row)) "New episodes on" else "New episodes off"
+    return if (SettingsCatalog.isOn(row)) Strings.settingsSummaryNotifyOn(context) else Strings.settingsSummaryNotifyOff(context)
 }
 
 /** The title language's choice: "AniList's choice", "English" or "Romaji". */
-private fun generalSummary(view: SettingsView?): String? {
+private fun generalSummary(context: Context, view: SettingsView?): String? {
     val row = view?.rows?.firstOrNull { it.key == SettingKey.TITLES } ?: return null
-    return TitleChoice.of(SettingsCatalog.current(row)?.value).label
+    return TitleChoice.of(SettingsCatalog.current(row)?.value).label(context)
 }
 
 /** "Subtitled · 1080p". */
-private fun playbackSummary(view: SettingsView?): String? {
+private fun playbackSummary(context: Context, view: SettingsView?): String? {
     val rows = view?.rows ?: return null
-    val translation = rows.firstOrNull { it.key == SettingKey.TRANSLATION }?.value?.let(::translationWords)
-    val quality = rows.firstOrNull { it.key == SettingKey.QUALITY }?.value
-    return listOfNotNull(translation, quality).joinToString(" · ").ifEmpty { null }
+    val translation = rows.firstOrNull { it.key == SettingKey.TRANSLATION }?.value?.let { translationWords(context, it) }
+    val quality = rows.firstOrNull { it.key == SettingKey.QUALITY }?.let { row -> SettingsCatalog.words(context, row.key, row.value) }
+    return listOfNotNull(translation, quality).joinToString(" · ").ifEmpty { null } // i18n-skip
 }
 
 /** "5 sources · torrents on": the providers on screen, and whether torrents are. */
-private fun sourcesSummary(view: SettingsView?, providers: Int?): String? {
+private fun sourcesSummary(context: Context, view: SettingsView?, providers: Int?): String? {
     val sources = view?.sources ?: return null
     // Before the engine has said its providers, the summary says nothing of them.
     providers ?: return null
-    val count = if (providers > 0) Wording.plural(providers, "source") else "No sources yet"
-    return "$count · torrents ${if (sources.torrent) "on" else "off"}"
+    val count = if (providers > 0) context.resources.getQuantityString(R.plurals.settings_summary_sources, providers, providers) else Strings.settingsSummaryNoSources(context)
+    return count + " · " + (if (sources.torrent) Strings.settingsSummaryTorrentsOn(context) else Strings.settingsSummaryTorrentsOff(context)) // i18n-skip
 }
 
 /**
@@ -241,7 +241,8 @@ private fun AccountCard(anilist: SyncState?, status: AccountStatus, onOpen: () -
     val colors = MaterialTheme.colorScheme
     val signedIn = anilist?.connected == true
     val user = anilist?.user
-    val line = if (signedIn) "AniList · ${status.text.replaceFirstChar { it.lowercase() }}" else "Library and sync need an AniList account"
+    val line = if (signedIn) Strings.accountsCardLine(LocalContext.current, AccountsModel.name("anilist"), status.text.replaceFirstChar { it.lowercase() }) else Strings.accountsLibraryNeeds(LocalContext.current, AccountsModel.name("anilist"))
+    val described = if (signedIn) stringResource(R.string.accounts_card_description, user ?: stringResource(R.string.accounts_signed_in_plain), line) else stringResource(R.string.accounts_card_description_signed_out)
     Row(
         Modifier
             .fillMaxWidth()
@@ -251,14 +252,14 @@ private fun AccountCard(anilist: SyncState?, status: AccountStatus, onOpen: () -
             .clickable(onClick = onOpen)
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .semantics(mergeDescendants = true) {
-                contentDescription = if (signedIn) "${user ?: "Signed in"}, $line. Opens Accounts" else "Not signed in. Opens Accounts"
+                contentDescription = described
             },
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Avatar(if (signedIn) user else null, 48)
         Column(Modifier.weight(1f)) {
-            Text(if (signedIn) user ?: "Signed in" else "Not signed in", style = MaterialTheme.typography.titleMedium)
+            Text(if (signedIn) user ?: stringResource(R.string.accounts_signed_in_plain) else stringResource(R.string.accounts_state_signed_out), style = MaterialTheme.typography.titleMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (signedIn) StateDot(status.dot)
                 Text(line, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
@@ -317,8 +318,8 @@ private fun TabletSettings(start: SettingsPane, actions: AppActions) {
         Row(Modifier.fillMaxSize()) {
             Column(Modifier.width(344.dp).fillMaxHeight()) {
                 Row(Modifier.height(64.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = navigator::back) { Icon(Icons.Back, contentDescription = "Back") }
-                    Text("Settings", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp).semantics { heading() })
+                    IconButton(onClick = navigator::back) { Icon(Icons.Back, contentDescription = stringResource(R.string.action_back)) }
+                    Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp).semantics { heading() })
                 }
                 Column(
                     Modifier
@@ -398,28 +399,22 @@ internal object AccountWords {
     @Composable
     fun status(state: SyncState?, syncedAt: Map<String, Long>, working: Map<tv.anistream.engine.model.JobId, String>): AccountStatus {
         val colors = MaterialTheme.colorScheme
-        state ?: return AccountStatus("Not signed in", null)
-        if (!state.connected) return AccountStatus("Not signed in", null)
-        if (state.needsReauth) return AccountStatus("Sign in again to keep syncing", colors.error)
-        state.pullError?.let { return AccountStatus("Not synced. ${plainReason(LocalContext.current, it.reason)}", colors.error) }
-        if ("sync" in working.values) return AccountStatus("Syncing", colors.onSurfaceVariant)
-        if (state.outbox > 0u) return AccountStatus("${Wording.plural(state.outbox.toInt(), "change")} waiting to sync", colors.onSurfaceVariant)
+        val context = LocalContext.current
+        state ?: return AccountStatus(Strings.accountsStateSignedOut(context), null)
+        if (!state.connected) return AccountStatus(Strings.accountsStateSignedOut(context), null)
+        if (state.needsReauth) return AccountStatus(Strings.accountsStateExpiredShort(context), colors.error)
+        state.pullError?.let { return AccountStatus(Strings.accountsSyncFailed(context, plainReason(context, it.reason)), colors.error) }
+        if ("sync" in working.values) return AccountStatus(Strings.accountsSyncRunning(context), colors.onSurfaceVariant)
+        if (state.outbox > 0u) return AccountStatus(context.resources.getQuantityString(R.plurals.accounts_changes_waiting, state.outbox.toInt(), state.outbox.toInt()), colors.onSurfaceVariant)
         val at = syncedAt[state.tracker]
         if (at != null) {
             val seconds = (System.currentTimeMillis() - at) / 1000
-            return AccountStatus(if (seconds < 60) "Synced just now" else "Synced ${agoWords(seconds)}", colors.secondary)
+            return AccountStatus(if (seconds < 60) Strings.accountsSyncDone(context) + " " + Strings.timeJustNow(context) else Strings.accountsSyncedAgo(context, Wording.ago(context, seconds)), colors.secondary) // i18n-skip
         }
-        return AccountStatus("Synced", colors.secondary)
-    }
-
-    /** "2 min ago", "3 h ago", "2 days ago": the boards' spelling of a short wait. */
-    fun agoWords(seconds: Long): String = when {
-        seconds < 3_600 -> "${seconds / 60} min ago"
-        seconds < 86_400 -> "${seconds / 3_600} h ago"
-        else -> Wording.plural((seconds / 86_400).toInt(), "day") + " ago"
+        return AccountStatus(Strings.accountsSyncDone(context), colors.secondary)
     }
 
     /** The signed-in trackers by name, "AniList, Kitsu", or "None". */
-    fun connected(trackers: Map<String, SyncState>): String =
-        AccountsModel.order.filter { trackers[it]?.connected == true }.joinToString(", ") { AccountsModel.name(it) }.ifEmpty { "None" }
+    fun connected(context: Context, trackers: Map<String, SyncState>): String =
+        Wording.list(AccountsModel.order.filter { trackers[it]?.connected == true }.map { AccountsModel.name(it) }).ifEmpty { Strings.valueNone(context) }
 }

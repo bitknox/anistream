@@ -646,6 +646,64 @@
     <string name="reason_source_no_address">Its address could not be found.</string>
     <!-- A source's failure in plain words: it could not be reached. -->
     <string name="reason_source_unreachable">It could not be reached.</string>
+    <!-- Plugin store line: how many updates wait in it. -->
+    <plurals name="stores_updates_waiting">
+        <item quantity="one">One update</item>
+        <item quantity="other">%1$d updates</item>
+    </plurals>
+    <!-- Plugin store page: when the store was last checked, after "Joined as" and a dot. -->
+    <string name="stores_checked_ago">checked %1$s</string>
+    <!-- Join sheet: the store's key matches the key in a link anyone can use. -->
+    <string name="stores_preview_key_link">Key matches the link</string>
+    <!-- Join sheet: the store's key matches the key in an invite. -->
+    <string name="stores_preview_key_invite">Key matches the invite</string>
+    <!-- Accessibility label of the shield beside a matching key. -->
+    <string name="stores_key_verified">Verified</string>
+    <!-- Join sheet: how many plugins the store offers. -->
+    <plurals name="stores_offers_plugins">
+        <item quantity="one">One plugin</item>
+        <item quantity="other">%1$d plugins</item>
+    </plurals>
+    <!-- Fallback title of a plugin store page before it loads. -->
+    <string name="stores_fallback_title">Plugin store</string>
+    <!-- Fallback title of a plugin page before it loads. -->
+    <string name="stores_fallback_plugin">Plugin</string>
+    <!-- Fallback name of a plugin store in a sentence, before it is known. -->
+    <string name="stores_fallback_name">the plugin store</string>
+    <!-- Button on the invite link sheet: copy the link. -->
+    <string name="stores_copy_link">Copy link</string>
+    <!-- Invite link sheet: what the link does. -->
+    <string name="stores_link_sheet_detail">Open this link on your other device to join the plugin store there. It works once.</string>
+    <!-- Settings list: how long ago the last sync was, with Synced in front. -->
+    <string name="accounts_synced_ago">Synced %1$s</string>
+    <!-- Account status: changes made here that wait for a connection to sync. -->
+    <plurals name="accounts_changes_waiting">
+        <item quantity="one">One change waiting to sync</item>
+        <item quantity="other">%1$d changes waiting to sync</item>
+    </plurals>
+    <!-- Account card on the settings list: the tracker's name and its status. -->
+    <string name="accounts_card_line">%1$s · %2$s</string>
+    <!-- Account card, spoken: who is signed in, how it stands, and what it opens. -->
+    <string name="accounts_card_description">%1$s, %2$s. Opens Accounts</string>
+    <!-- Account card, spoken, when nobody is signed in. -->
+    <string name="accounts_card_description_signed_out">Not signed in. Opens Accounts</string>
+    <!-- Account card title when the tracker gave no name. -->
+    <string name="accounts_signed_in_plain">Signed in</string>
+    <!-- Settings list, Notifications row: new episode notifications are on. -->
+    <string name="settings_summary_notify_on">New episodes on</string>
+    <!-- Settings list, Notifications row: new episode notifications are off. -->
+    <string name="settings_summary_notify_off">New episodes off</string>
+    <!-- Settings list, Sources row: how many sources there are. -->
+    <plurals name="settings_summary_sources">
+        <item quantity="one">One source</item>
+        <item quantity="other">%1$d sources</item>
+    </plurals>
+    <!-- Settings list, Sources row: no sources yet. -->
+    <string name="settings_summary_no_sources">No sources yet</string>
+    <!-- Settings list, Sources row: torrents are on. -->
+    <string name="settings_summary_torrents_on">torrents on</string>
+    <!-- Settings list, Sources row: torrents are off. -->
+    <string name="settings_summary_torrents_off">torrents off</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->

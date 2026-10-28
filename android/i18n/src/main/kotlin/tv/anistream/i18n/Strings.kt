@@ -1177,6 +1177,98 @@ object Strings {
     fun reasonSourceUnreachable(context: Context): String =
         context.getString(R.string.reason_source_unreachable)
 
+    /** Plugin store line: how many updates wait in it. */
+    fun storesUpdatesWaiting(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.stores_updates_waiting, count, count)
+
+    /** Plugin store page: when the store was last checked, after "Joined as" and a dot. */
+    fun storesCheckedAgo(context: Context, ago: String): String =
+        context.getString(R.string.stores_checked_ago, ago)
+
+    /** Join sheet: the store's key matches the key in a link anyone can use. */
+    fun storesPreviewKeyLink(context: Context): String =
+        context.getString(R.string.stores_preview_key_link)
+
+    /** Join sheet: the store's key matches the key in an invite. */
+    fun storesPreviewKeyInvite(context: Context): String =
+        context.getString(R.string.stores_preview_key_invite)
+
+    /** Accessibility label of the shield beside a matching key. */
+    fun storesKeyVerified(context: Context): String =
+        context.getString(R.string.stores_key_verified)
+
+    /** Join sheet: how many plugins the store offers. */
+    fun storesOffersPlugins(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.stores_offers_plugins, count, count)
+
+    /** Fallback title of a plugin store page before it loads. */
+    fun storesFallbackTitle(context: Context): String =
+        context.getString(R.string.stores_fallback_title)
+
+    /** Fallback title of a plugin page before it loads. */
+    fun storesFallbackPlugin(context: Context): String =
+        context.getString(R.string.stores_fallback_plugin)
+
+    /** Fallback name of a plugin store in a sentence, before it is known. */
+    fun storesFallbackName(context: Context): String =
+        context.getString(R.string.stores_fallback_name)
+
+    /** Button on the invite link sheet: copy the link. */
+    fun storesCopyLink(context: Context): String =
+        context.getString(R.string.stores_copy_link)
+
+    /** Invite link sheet: what the link does. */
+    fun storesLinkSheetDetail(context: Context): String =
+        context.getString(R.string.stores_link_sheet_detail)
+
+    /** Settings list: how long ago the last sync was, with Synced in front. */
+    fun accountsSyncedAgo(context: Context, ago: String): String =
+        context.getString(R.string.accounts_synced_ago, ago)
+
+    /** Account status: changes made here that wait for a connection to sync. */
+    fun accountsChangesWaiting(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.accounts_changes_waiting, count, count)
+
+    /** Account card on the settings list: the tracker's name and its status. */
+    fun accountsCardLine(context: Context, tracker: String, status: String): String =
+        context.getString(R.string.accounts_card_line, tracker, status)
+
+    /** Account card, spoken: who is signed in, how it stands, and what it opens. */
+    fun accountsCardDescription(context: Context, name: String, line: String): String =
+        context.getString(R.string.accounts_card_description, name, line)
+
+    /** Account card, spoken, when nobody is signed in. */
+    fun accountsCardDescriptionSignedOut(context: Context): String =
+        context.getString(R.string.accounts_card_description_signed_out)
+
+    /** Account card title when the tracker gave no name. */
+    fun accountsSignedInPlain(context: Context): String =
+        context.getString(R.string.accounts_signed_in_plain)
+
+    /** Settings list, Notifications row: new episode notifications are on. */
+    fun settingsSummaryNotifyOn(context: Context): String =
+        context.getString(R.string.settings_summary_notify_on)
+
+    /** Settings list, Notifications row: new episode notifications are off. */
+    fun settingsSummaryNotifyOff(context: Context): String =
+        context.getString(R.string.settings_summary_notify_off)
+
+    /** Settings list, Sources row: how many sources there are. */
+    fun settingsSummarySources(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.settings_summary_sources, count, count)
+
+    /** Settings list, Sources row: no sources yet. */
+    fun settingsSummaryNoSources(context: Context): String =
+        context.getString(R.string.settings_summary_no_sources)
+
+    /** Settings list, Sources row: torrents are on. */
+    fun settingsSummaryTorrentsOn(context: Context): String =
+        context.getString(R.string.settings_summary_torrents_on)
+
+    /** Settings list, Sources row: torrents are off. */
+    fun settingsSummaryTorrentsOff(context: Context): String =
+        context.getString(R.string.settings_summary_torrents_off)
+
     /** Name of the notification channel for download progress, shown in the system's settings. */
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)

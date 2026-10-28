@@ -491,3 +491,122 @@ reason-source-no-address = Its address could not be found.
 # A source's failure in plain words: it could not be reached.
 # @only android
 reason-source-unreachable = It could not be reached.
+
+# Plugin store line: how many updates wait in it.
+# @only android
+# @arg count: int
+stores-updates-waiting = { $count ->
+    [one] One update
+   *[other] { $count } updates
+ }
+
+# Plugin store page: when the store was last checked, after "Joined as" and a dot.
+# @only android
+# @arg ago: text
+stores-checked-ago = checked { $ago }
+
+# Join sheet: the store's key matches the key in a link anyone can use.
+# @only android
+stores-preview-key-link = Key matches the link
+
+# Join sheet: the store's key matches the key in an invite.
+# @only android
+stores-preview-key-invite = Key matches the invite
+
+# Accessibility label of the shield beside a matching key.
+# @only android
+# @max 16
+stores-key-verified = Verified
+
+# Join sheet: how many plugins the store offers.
+# @only android
+# @arg count: int
+stores-offers-plugins = { $count ->
+    [one] One { -plugin }
+   *[other] { $count } { -plugin-pl }
+ }
+
+# Fallback title of a plugin store page before it loads.
+# @only android
+# @max 24
+stores-fallback-title = { -plugin-store-cap }
+
+# Fallback title of a plugin page before it loads.
+# @only android
+# @max 24
+stores-fallback-plugin = { -plugin-cap }
+
+# Fallback name of a plugin store in a sentence, before it is known.
+# @only android
+# @max 24
+stores-fallback-name = the { -plugin-store }
+
+# Button on the invite link sheet: copy the link.
+# @only android
+# @max 24
+stores-copy-link = Copy link
+
+# Invite link sheet: what the link does.
+# @only android
+stores-link-sheet-detail = Open this link on your other { -device } to join the { -plugin-store } there. It works once.
+
+# Settings list: how long ago the last sync was, with Synced in front.
+# @only android
+# @arg ago: text
+accounts-synced-ago = Synced { $ago }
+
+# Account status: changes made here that wait for a connection to sync.
+# @only android
+# @arg count: int
+accounts-changes-waiting = { $count ->
+    [one] One change waiting to sync
+   *[other] { $count } changes waiting to sync
+ }
+
+# Account card on the settings list: the tracker's name and its status.
+# @only android
+# @arg tracker: text
+# @arg status: text
+accounts-card-line = { $tracker } · { $status }
+
+# Account card, spoken: who is signed in, how it stands, and what it opens.
+# @only android
+# @arg name: text
+# @arg line: text
+accounts-card-description = { $name }, { $line }. Opens Accounts
+
+# Account card, spoken, when nobody is signed in.
+# @only android
+accounts-card-description-signed-out = Not signed in. Opens Accounts
+
+# Account card title when the tracker gave no name.
+# @only android
+accounts-signed-in-plain = Signed in
+
+# Settings list, Notifications row: new episode notifications are on.
+# @only android
+settings-summary-notify-on = New episodes on
+
+# Settings list, Notifications row: new episode notifications are off.
+# @only android
+settings-summary-notify-off = New episodes off
+
+# Settings list, Sources row: how many sources there are.
+# @only android
+# @arg count: int
+settings-summary-sources = { $count ->
+    [one] One { -source }
+   *[other] { $count } { -source-pl }
+ }
+
+# Settings list, Sources row: no sources yet.
+# @only android
+settings-summary-no-sources = No { -source-pl } yet
+
+# Settings list, Sources row: torrents are on.
+# @only android
+settings-summary-torrents-on = torrents on
+
+# Settings list, Sources row: torrents are off.
+# @only android
+settings-summary-torrents-off = torrents off
