@@ -4,6 +4,9 @@
 
 package tv.anistream.ui
 
+import android.os.Build
+import tv.anistream.i18n.Language
+import tv.anistream.store.AppLanguage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -254,6 +257,10 @@ private fun ComingRow(place: Place, episode: UpcomingNotice, onClick: () -> Unit
 internal fun GeneralPane() {
     Pane {
         SettingsGroup(
+            title = stringResource(R.string.settings_language_app),
+            rows = listOf({ place -> LanguageRow(place) }),
+        )
+        SettingsGroup(
             title = stringResource(R.string.settings_group_titles),
             rows = listOf(
                 { place -> TitleLanguageRow(place) },
@@ -438,6 +445,33 @@ private fun TitleLanguageRow(place: Place) {
         focus = FOCUS_TITLES,
         menuWidth = 300,
     ) { if (it != choice) store.setSetting(SettingKey.TITLES, SettingValue.Str(it.value)) }
+}
+
+/**
+ * The app's language: the system's per-app setting from Android 13, the app's own choice below.
+ * Only the languages this build ships are listed, a draft one labelled so; it follows the
+ * system's until one is chosen.
+ */
+@Composable
+private fun LanguageRow(place: Place) {
+    val context = LocalContext.current
+    var chosen by remember { mutableStateOf(AppLanguage.chosen(context)) }
+    val follow = stringResource(R.string.language_follow_system)
+    val draft = stringResource(R.string.language_draft_label)
+    fun name(language: Language) = if (language.draft) "${language.name} · $draft" else language.name // i18n-skip
+    MenuRow(
+        place = place,
+        title = stringResource(R.string.settings_language),
+        value = chosen?.let(::name) ?: follow,
+        choices = listOf(MenuChoice<Language?>(null, follow)) + AppLanguage.shipped.map { MenuChoice<Language?>(it, name(it)) },
+        current = chosen,
+        note = if (chosen?.draft == true) stringResource(R.string.language_draft_note) else null,
+    ) { picked ->
+        chosen = picked
+        AppLanguage.choose(context, picked)
+        // From Android 13 the system recreates the activity; below, the app does.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) generateSequence(context) { (it as? android.content.ContextWrapper)?.baseContext }.filterIsInstance<android.app.Activity>().firstOrNull()?.recreate()
+    }
 }
 
 /** The subtitle language, by name, from the languages people pick most; any other is typed in the file. */

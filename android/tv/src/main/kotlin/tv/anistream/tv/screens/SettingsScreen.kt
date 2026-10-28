@@ -3,6 +3,11 @@
 
 package tv.anistream.tv.screens
 
+import tv.anistream.store.AppLanguage
+import tv.anistream.i18n.Language
+import android.os.Build
+import android.content.ContextWrapper
+import android.app.Activity
 import tv.anistream.store.percentText
 import androidx.compose.ui.res.stringResource
 import tv.anistream.i18n.Strings
@@ -200,6 +205,44 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
 /** General: how titles are named, which is about every screen rather than playback. */
 private fun LazyListScope.general(store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
     item(key = "titles", contentType = "setting") { TitleLanguageRow(store, view, memory, first) }
+    item(key = "language", contentType = "setting") { AppLanguageRow(memory) }
+}
+
+/**
+ * The app's language: the system's per-app setting from Android 13, the app's own choice below.
+ * Only the languages this build ships are listed, a draft one labelled so.
+ */
+@Composable
+private fun AppLanguageRow(memory: FocusMemory) {
+    val actions = LocalActions.current
+    val context = LocalContext.current
+    var chosen by remember { mutableStateOf(AppLanguage.chosen(context)) }
+    val follow = stringResource(R.string.language_follow_system)
+    val draft = stringResource(R.string.language_draft_label)
+    fun name(language: Language) = if (language.draft) "${language.name} · $draft" else language.name // i18n-skip
+    fun pick(language: Language?) {
+        chosen = language
+        AppLanguage.choose(context, language)
+        // From Android 13 the system recreates the activity; below, the app does.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            generateSequence(context) { (it as? ContextWrapper)?.baseContext }.filterIsInstance<Activity>().firstOrNull()?.recreate()
+        }
+    }
+    TvListRow(
+        stringResource(R.string.settings_language),
+        onClick = {
+            actions?.open(
+                ActionSheet(
+                    Strings.settingsLanguageApp(context),
+                    listOf(CardAction(follow, selected = chosen == null) { pick(null) }) +
+                        AppLanguage.shipped.map { each -> CardAction(name(each), selected = chosen == each) { pick(each) } },
+                ),
+            )
+        },
+        supporting = if (chosen?.draft == true) stringResource(R.string.language_draft_note) else null,
+        value = chosen?.let(::name) ?: follow,
+        modifier = Modifier.remembered(memory, "row/language"),
+    )
 }
 
 private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
