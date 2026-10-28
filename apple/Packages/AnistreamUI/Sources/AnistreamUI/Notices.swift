@@ -73,13 +73,13 @@ struct NoticeCapsule: View {
                 .onHover { hovering = $0 }
                 .contextMenu {
                     if !inSettingsSheet {
-                        Button("Messages", systemImage: "text.bubble") { navigator.messagesShown = true }
+                        Button(L.menuMessages, systemImage: "text.bubble") { navigator.messagesShown = true }
                     }
                 }
                 .transition(.opacity)
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(item.notice.words.firstCapitalized)
-                .accessibilityAction(named: "Dismiss") { store.notices.dismiss(item) }
+                .accessibilityAction(named: L.noticeDismiss) { store.notices.dismiss(item) }
                 .accessibilityFocused($focused)
                 .task(id: item.id) {
                     pull = 0
@@ -109,8 +109,8 @@ struct NoticeCapsule: View {
     /// The hint's button, in the platform's casing.
     static func words(_ hint: NoticeHint) -> String {
         switch hint {
-        case .stopPlayback: "Stop"
-        case .openStores: cased(mac: "Open Stores", touch: "Open stores")
+        case .stopPlayback: L.actionStop
+        case .openStores: L.noticeOpenStores
         case .kitsuCredentials: L.actionSignIn
         }
     }
@@ -157,7 +157,7 @@ struct MessagesView: View {
         // One surface, as the Mac's other sheets are: its title, the notices, and Done, with no
         // toolbar bands above and below and no list chrome between.
         VStack(alignment: .leading, spacing: 0) {
-            Text("Messages")
+            Text(L.menuMessages)
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
                 .accessibilityAddTraits(.isHeader)
@@ -210,7 +210,7 @@ struct MessagesView: View {
                 }
             }
             .background(.ground)
-            .navigationTitle("Messages")
+            .navigationTitle(L.menuMessages)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -225,7 +225,7 @@ struct MessagesView: View {
     }
 
     private var empty: some View {
-        Text("No messages yet")
+        Text(L.messagesEmpty)
             .font(Self.font(13))
             .foregroundStyle(.haze)
             .frame(maxWidth: .infinity, maxHeight: .infinity)

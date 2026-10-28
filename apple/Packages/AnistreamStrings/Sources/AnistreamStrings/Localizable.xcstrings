@@ -6235,6 +6235,18 @@
         }
       }
     },
+    "messages-empty" : {
+      "comment" : "Line of the Messages page when there are no messages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No messages yet"
+          }
+        }
+      }
+    },
     "more-cast" : {
       "comment" : "Heading of the cast list.",
       "extractionState" : "manual",
@@ -6721,6 +6733,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't open that. %1$@"
+          }
+        }
+      }
+    },
+    "notice-dismiss" : {
+      "comment" : "VoiceOver action of a notice that dismisses it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dismiss"
           }
         }
       }
@@ -7417,6 +7441,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't save that setting. %1$@"
+          }
+        }
+      }
+    },
+    "notice-open-stores" : {
+      "comment" : "Button of a notice that opens the plugin stores page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open plugin stores"
           }
         }
       }
@@ -8135,6 +8171,114 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Welcome to anistream"
+          }
+        }
+      }
+    },
+    "palette-commands" : {
+      "comment" : "Heading of the commands in the command palette.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commands"
+          }
+        }
+      }
+    },
+    "palette-hint-open" : {
+      "comment" : "Hint at the foot of the command palette: what Return does.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open"
+          }
+        }
+      }
+    },
+    "palette-placeholder" : {
+      "comment" : "Placeholder of the command palette's field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titles and commands"
+          }
+        }
+      }
+    },
+    "palette-progress-kept" : {
+      "comment" : "Detail of the hide from Continue command.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress is kept"
+          }
+        }
+      }
+    },
+    "palette-recent" : {
+      "comment" : "Heading of the recent searches in the command palette.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent"
+          }
+        }
+      }
+    },
+    "palette-resume-episode" : {
+      "comment" : "Right-hand label of a title in the command palette whose episode has a resume point. The episode number is text. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume E%1$@"
+          }
+        }
+      }
+    },
+    "palette-search-for" : {
+      "comment" : "Line of the command palette when nothing matches. Return runs the search. Argument 1: query (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return searches for “%1$@”"
+          }
+        }
+      }
+    },
+    "palette-show-settings-detail" : {
+      "comment" : "Detail of the show settings command: what the settings hold.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio, subtitles, auto-skip, source"
+          }
+        }
+      }
+    },
+    "palette-titles" : {
+      "comment" : "Heading of the titles in the command palette.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titles"
           }
         }
       }
@@ -13861,6 +14005,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show settings for this show"
+          }
+        }
+      }
+    },
+    "shell-start-failed" : {
+      "comment" : "Title of the page shown instead of the app when the engine could not start. The reason follows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream could not start"
           }
         }
       }
@@ -20697,6 +20853,30 @@
         }
       }
     },
+    "updates-could-not-check" : {
+      "comment" : "Status line when the check for a newer version could not be made.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not check."
+          }
+        }
+      }
+    },
+    "updates-did-not-finish" : {
+      "comment" : "Status line after an update that stopped before it was done.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The update did not finish."
+          }
+        }
+      }
+    },
     "updates-did-not-install" : {
       "comment" : "Notice when the new version did not install. Argument 1: version (Text).",
       "extractionState" : "manual",
@@ -20717,6 +20897,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Downloading version %1$@"
+          }
+        }
+      }
+    },
+    "updates-downloading-bytes" : {
+      "comment" : "Status line while the downloaded update is being downloaded. The size is already written. Argument 1: done (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading %1$@"
+          }
+        }
+      }
+    },
+    "updates-downloading-bytes-of" : {
+      "comment" : "Status line while the update downloads and its size is known. Both sizes are already written. Argument 1: done (Text). Argument 2: total (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading %1$@ of %2$@"
           }
         }
       }
@@ -20765,6 +20969,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Flatpak keeps anistream up to date"
+          }
+        }
+      }
+    },
+    "updates-in-sidestore" : {
+      "comment" : "Button that opens the app's page in SideStore, where the update is made.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update in SideStore"
           }
         }
       }
@@ -20877,6 +21093,18 @@
         }
       }
     },
+    "updates-preparing" : {
+      "comment" : "Status line while the update is being fetched ahead of the download.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing the update"
+          }
+        }
+      }
+    },
     "updates-ready" : {
       "comment" : "Line when the download is ready. Argument 1: version (Text).",
       "extractionState" : "manual",
@@ -20885,6 +21113,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Version %1$@ is ready to install"
+          }
+        }
+      }
+    },
+    "updates-release-notes" : {
+      "comment" : "Button on the update row that opens the notes of the release in the browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version notes"
+          }
+        }
+      }
+    },
+    "updates-release-page" : {
+      "comment" : "Button that opens the page of the release in the browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version page"
+          }
+        }
+      }
+    },
+    "updates-restarting" : {
+      "comment" : "Status line while the app closes to finish the update.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restarting to finish the update"
           }
         }
       }
@@ -21089,6 +21353,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Version %1$@ is out. Software installs it."
+          }
+        }
+      }
+    },
+    "updates-whats-new" : {
+      "comment" : "Title of the update row that carries the notes of the release. Argument 1: version (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What’s new in %1$@"
           }
         }
       }
@@ -21401,6 +21677,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Use default · %1$@"
+          }
+        }
+      }
+    },
+    "welcome-airing-today-label" : {
+      "comment" : "Accessibility label of the Airing today heading on the Welcome page, which opens the calendar.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Airing today, show in Calendar"
+          }
+        }
+      }
+    },
+    "welcome-broadcast" : {
+      "comment" : "Line of the next broadcast on the Welcome page: the episode, then its time. Argument 1: episode (Text). Argument 2: clock (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
           }
         }
       }

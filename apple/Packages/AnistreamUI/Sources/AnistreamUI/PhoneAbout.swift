@@ -27,7 +27,7 @@ struct PhoneAboutPage: View {
                     .monospacedDigit()
                     .foregroundStyle(.haze)
                     .padding(.top, 4)
-                Text("Open source under the MIT licence.")
+                Text(L.aboutLicence)
                     .font(.ui(15))
                     .foregroundStyle(.haze)
                     .multilineTextAlignment(.center)

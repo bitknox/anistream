@@ -24,3 +24,9 @@ notice-hidden-preview = New episode
 
 # What the system shows under a group of new-episode notifications. The system fills in the count at %u.
 notice-summary = %u more new episodes
+
+# Button of a notice that opens the plugin stores page.
+notice-open-stores = Open { -plugin-store-pl }
+
+# VoiceOver action of a notice that dismisses it.
+notice-dismiss = Dismiss

@@ -158,3 +158,6 @@ shell-sync-failed = { $tracker } not synced
 # Sync status in the toolbar when everything is synced.
 # @arg tracker: text
 shell-sync-synced = { $tracker } synced
+
+# Title of the page shown instead of the app when the engine could not start. The reason follows.
+shell-start-failed = { -app-name } could not start

@@ -1081,6 +1081,54 @@ public enum L {
     /// What the system shows under a group of new-episode notifications. The system fills in the count at %u.
     public static var noticeSummary: String { string("notice-summary", fallback: "%u more new episodes") }
 
+    /// Button of a notice that opens the plugin stores page.
+    public static var noticeOpenStores: String { string("notice-open-stores", fallback: "Open plugin stores") }
+
+    /// VoiceOver action of a notice that dismisses it.
+    public static var noticeDismiss: String { string("notice-dismiss", fallback: "Dismiss") }
+
+    /// Placeholder of the command palette's field.
+    public static var palettePlaceholder: String { string("palette-placeholder", fallback: "Titles and commands") }
+
+    /// Heading of the titles in the command palette.
+    public static var paletteTitles: String { string("palette-titles", fallback: "Titles") }
+
+    /// Heading of the commands in the command palette.
+    public static var paletteCommands: String { string("palette-commands", fallback: "Commands") }
+
+    /// Heading of the recent searches in the command palette.
+    public static var paletteRecent: String { string("palette-recent", fallback: "Recent") }
+
+    /// Line of the command palette when nothing matches. Return runs the search.
+    public static func paletteSearchFor(query: String) -> String {
+        Self.format("palette-search-for", fallback: "Return searches for “%1$@”", query)
+    }
+
+    /// Hint at the foot of the command palette: what Return does.
+    public static var paletteHintOpen: String { string("palette-hint-open", fallback: "Open") }
+
+    /// Right-hand label of a title in the command palette whose episode has a resume point. The episode number is text.
+    public static func paletteResumeEpisode(episode: String) -> String {
+        Self.format("palette-resume-episode", fallback: "Resume E%1$@", episode)
+    }
+
+    /// Detail of the hide from Continue command.
+    public static var paletteProgressKept: String { string("palette-progress-kept", fallback: "Progress is kept") }
+
+    /// Detail of the show settings command: what the settings hold.
+    public static var paletteShowSettingsDetail: String { string("palette-show-settings-detail", fallback: "Audio, subtitles, auto-skip, source") }
+
+    /// Accessibility label of the Airing today heading on the Welcome page, which opens the calendar.
+    public static var welcomeAiringTodayLabel: String { string("welcome-airing-today-label", fallback: "Airing today, show in Calendar") }
+
+    /// Line of the next broadcast on the Welcome page: the episode, then its time.
+    public static func welcomeBroadcast(episode: String, clock: String) -> String {
+        Self.format("welcome-broadcast", fallback: "%1$@ · %2$@", episode, clock)
+    }
+
+    /// Line of the Messages page when there are no messages.
+    public static var messagesEmpty: String { string("messages-empty", fallback: "No messages yet") }
+
     /// Line in the list of releases of an episode, when the person's sources found none.
     public static var playerReleasesEmpty: String { string("player-releases-empty", fallback: "No releases found for this episode.") }
 
@@ -1780,6 +1828,9 @@ public enum L {
         Self.format("shell-sync-synced", fallback: "%1$@ synced", tracker)
     }
 
+    /// Title of the page shown instead of the app when the engine could not start. The reason follows.
+    public static var shellStartFailed: String { string("shell-start-failed", fallback: "anistream could not start") }
+
     /// Line under the heading of the sources list while the list is built again.
     public static var sourcesRebuilding: String { string("sources-rebuilding", fallback: "Sources are being set up again…") }
 
@@ -2126,6 +2177,42 @@ public enum L {
 
     /// Option of the episode list's filter that shows the episodes not yet watched.
     public static var titleEpisodesUnwatched: String { string("title-episodes-unwatched", fallback: "Unwatched") }
+
+    /// Status line while the update is being fetched ahead of the download.
+    public static var updatesPreparing: String { string("updates-preparing", fallback: "Preparing the update") }
+
+    /// Status line while the downloaded update is being downloaded. The size is already written.
+    public static func updatesDownloadingBytes(done: String) -> String {
+        Self.format("updates-downloading-bytes", fallback: "Downloading %1$@", done)
+    }
+
+    /// Status line while the update downloads and its size is known. Both sizes are already written.
+    public static func updatesDownloadingBytesOf(done: String, total: String) -> String {
+        Self.format("updates-downloading-bytes-of", fallback: "Downloading %1$@ of %2$@", done, total)
+    }
+
+    /// Status line while the app closes to finish the update.
+    public static var updatesRestarting: String { string("updates-restarting", fallback: "Restarting to finish the update") }
+
+    /// Status line after an update that stopped before it was done.
+    public static var updatesDidNotFinish: String { string("updates-did-not-finish", fallback: "The update did not finish.") }
+
+    /// Status line when the check for a newer version could not be made.
+    public static var updatesCouldNotCheck: String { string("updates-could-not-check", fallback: "Could not check.") }
+
+    /// Button that opens the app's page in SideStore, where the update is made.
+    public static var updatesInSidestore: String { string("updates-in-sidestore", fallback: "Update in SideStore") }
+
+    /// Button that opens the page of the release in the browser.
+    public static var updatesReleasePage: String { string("updates-release-page", fallback: "Version page") }
+
+    /// Button on the update row that opens the notes of the release in the browser.
+    public static var updatesReleaseNotes: String { string("updates-release-notes", fallback: "Version notes") }
+
+    /// Title of the update row that carries the notes of the release.
+    public static func updatesWhatsNew(version: String) -> String {
+        Self.format("updates-whats-new", fallback: "What’s new in %1$@", version)
+    }
 
     /// Mac menu bar item. Title Case, as Apple's guidelines ask for the menu bar only.
     public static var menuShowLibrary: String { string("menu-show-library", fallback: "Show Library") }

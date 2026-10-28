@@ -36,8 +36,8 @@ struct ReportButton: View {
     var body: some View {
         Button(L.actionReport) { ReportBugAction(store: store, openURL: openURL)(context) }
             .buttonStyle(SecondaryCapsuleStyle(height: height, raisedSurface: raisedSurface, fontSize: fontSize))
-            .accessibilityLabel("Report this problem")
-            .accessibilityHint("Opens a bug report on GitHub in your browser")
+            .accessibilityLabel(L.aboutReportBug)
+            .accessibilityHint(L.aboutReportBugDetail)
     }
 }
 
@@ -49,7 +49,7 @@ struct AboutGroup: View {
     var body: some View {
         SettingsGroup(
             title: L.aboutTitle,
-            footnote: "Opens a bug report on GitHub. You sign in there. It carries your app and device versions and the last error, with no addresses, file paths or titles."
+            footnote: L.aboutReportBugDetail
         ) {
             SettingsRow(title: L.aboutReportBug) {
                 Button(L.actionReport) { ReportBugAction(store: store, openURL: openURL)() }

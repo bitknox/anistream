@@ -92,7 +92,7 @@ struct PhoneSectionHeader: View {
     }
 
     var body: some View {
-        Text(text.uppercased())
+        Text(text).textCase(.uppercase)
             .font(.ui(13, weight: .medium))
             .kerning(13 * 0.04)
             .foregroundStyle(.haze)
