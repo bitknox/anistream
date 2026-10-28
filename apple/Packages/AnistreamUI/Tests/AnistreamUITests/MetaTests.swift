@@ -104,9 +104,9 @@ struct MetaTests {
         #expect(e.topTags == ["Travel", "Found Family", "Lamplighters"])
         #expect(e.safeTags.count == 4)
         #expect(e.spoilerTags == ["Twist Ending"])
-        #expect(SpoilerWords.reveal(1, shown: false, titleCase: false) == "Show 1 spoiler tag")
-        #expect(SpoilerWords.reveal(3, shown: false, titleCase: true) == "Show 3 Spoiler Tags")
-        #expect(SpoilerWords.reveal(3, shown: true, titleCase: false) == "Hide spoiler tags")
+        #expect(SpoilerWords.reveal(1, shown: false) == "Show one spoiler tag")
+        #expect(SpoilerWords.reveal(3, shown: false) == "Show 3 spoiler tags")
+        #expect(SpoilerWords.reveal(3, shown: true) == "Hide spoiler tags")
     }
 
     @Test func theSynopsisLosesItsInlineSpoilers() {

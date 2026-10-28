@@ -414,11 +414,11 @@ struct ReducerTests {
         store.apply(.metaStatus([down]))
         #expect(store.accounts.summary == SyncSummary(text: "Offline", state: .waiting, tracker: "anilist"))
         store.apply(.progressQueued)
-        #expect(store.accounts.summary.text == "1 change waiting to sync")
+        #expect(store.accounts.summary.text == "One change waiting to sync")
         var up = down
         up.healthy = true
         store.apply(.metaStatus([up]))
-        #expect(store.accounts.summary.text == "1 change waiting to sync")
+        #expect(store.accounts.summary.text == "One change waiting to sync")
         #expect(!store.accounts.offline)
     }
 }

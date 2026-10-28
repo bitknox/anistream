@@ -11,7 +11,7 @@ struct SettingsWordsTests {
     @Test func aChoiceReadsWithACapitalAndSubOrDubAsTheBoardsSayIt() {
         #expect(SettingKey.upscaling.display("natural · ArtCNN") == "Natural · ArtCNN")
         #expect(SettingKey.seedRatio.display("until ratio 1.0") == "Until ratio 1.0")
-        #expect(SettingKey.translation.display("sub") == "Subtitled")
+        #expect(SettingKey.translation.display("sub") == "Subbed")
         #expect(SettingKey.translation.display("dub · sub this session") == "Dubbed")
         #expect(SettingKey.commitThreshold.title == "Counts as watched at")
     }
@@ -79,11 +79,13 @@ struct SettingsWordsTests {
     }
 
     @Test func theWeeksFootnoteSaysWhatWaitsForItsDubAndWhatIsOff() {
-        #expect(NoticeWords.leftOut(dubbed: [], off: []) == "A row opens that show’s settings.")
+        #expect(NoticeWords.leftOut(dubbed: [], off: []) == "A row opens that show's settings.")
         #expect(NoticeWords.leftOut(dubbed: ["Summer Wind Relay"], off: ["Amber Forest"])
-            == "Summer Wind Relay notifies when its dub is out. Amber Forest is off in its own settings. A row opens that show’s settings.")
-        #expect(NoticeWords.leftOut(dubbed: ["One", "Two", "Three"], off: [])
-            == "One, Two and Three notify when their dubs are out. A row opens that show’s settings.")
+            == "Summer Wind Relay notifies when its dub is out. Amber Forest is off in its own settings. A row opens that show's settings.")
+        AirTime.$locale.withValue(Locale(identifier: "en_GB")) {
+            #expect(NoticeWords.leftOut(dubbed: ["One", "Two", "Three"], off: [])
+                == "One, Two and Three notify when their dubs are out. A row opens that show's settings.")
+        }
     }
 
     @Test func aTitleLanguageIsNamedWithItsCapitalInEverySentence() {
@@ -96,8 +98,8 @@ struct SettingsWordsTests {
     }
 
     @Test func theProtectionIsNamedAsTheTurnOnSheetNamesIt() {
-        #expect(ProtectionWords.label(TorrentProtection.proxy) == "SOCKS5 proxy")
-        #expect(ProtectionWords.label(TorrentProtection.device) == "VPN on this device")
+        #expect(ProtectionWords.label(TorrentProtection.proxy) == "Proxy")
+        #expect(ProtectionWords.label(TorrentProtection.device) == "VPN")
         #expect(ProtectionWords.label(TorrentProtection.none) == "No protection")
         #expect(ProtectionWords.label(Optional<TorrentProtection>.none) == "–", "nothing said yet")
         #expect(ProtectionWords.failedChecks.map { ProtectionWords.label($0) }
@@ -186,8 +188,7 @@ struct SettingsWordsTests {
 
     @Test func aShowsRowSaysTheDefaultItFollowsOrWhatItSets() {
         let follows = ShowSettingRow(key: .skipOpening, own: nil, value: "on", default: "on")
-        #expect(ShowWords.useDefault(follows, titleCase: true) == "Use Default · On")
-        #expect(ShowWords.useDefault(follows, titleCase: false) == "Use default · On")
+        #expect(ShowWords.useDefault(follows) == "Use default · On")
         #expect(ShowWords.shown(.translation, "dub") == "English")
         #expect(ShowWords.shown(.translation, "sub · dub this session") == "Japanese")
         #expect(ShowWords.choices(.spoilerProtection).map(\.label) == ["On", "Off"])

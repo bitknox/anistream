@@ -240,3 +240,44 @@ struct PhoneTitleLanguageRow: View {
     }
 }
 #endif
+
+// MARK: - App language
+
+/// The language of the app's own text. It follows the system, which keeps one language for each
+/// app: the row says which of the shipped languages is in use and opens that setting.
+struct AppLanguageRow: View {
+    @Environment(\.openURL) private var openURL
+
+    /// The shipped language the system picked for the app.
+    static var current: L.Language {
+        let tags = Bundle.main.preferredLocalizations
+        return tags.lazy.compactMap { tag in L.languages.first { $0.tag == tag || tag.hasPrefix($0.tag + "-") } }.first
+            ?? L.languages[0]
+    }
+
+    /// Where the system keeps the app's language.
+    static var settingsURL: URL? {
+        #if os(macOS)
+        URL(string: "x-apple.systempreferences:com.apple.Localization-Settings.extension")
+        #else
+        URL(string: UIApplication.openSettingsURLString)
+        #endif
+    }
+
+    var body: some View {
+        let language = Self.current
+        SettingsRow(
+            title: L.settingsLanguageApp,
+            note: language.draft ? L.languageDraftNote : nil
+        ) {
+            HStack(spacing: 10) {
+                Text(language.draft ? "\(language.name) · \(L.languageDraftLabel)" : language.name)
+                    .font(.mac(13))
+                    .foregroundStyle(.haze)
+                if let url = Self.settingsURL {
+                    Button(L.actionOpenSettings) { openURL(url) }
+                }
+            }
+        }
+    }
+}

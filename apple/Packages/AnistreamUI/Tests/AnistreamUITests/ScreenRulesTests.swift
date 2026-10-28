@@ -41,11 +41,11 @@ struct ScreenRulesTests {
             $0.progress = TitleProgress(done: 6, next: 7)
             $0.resume = ResumePoint(position: 606, fraction: 0.42)
         }
-        #expect(TitleAction(resuming).title == "Resume Episode 7 · 10:06")
+        #expect(TitleAction(resuming).title == "Resume episode 7 · 10:06")
         #expect(TitleAction(resuming).sentence == "Resume episode 7 · 10:06")
         let starting = entry { $0.progress = TitleProgress(done: 3, next: 4) }
-        #expect(TitleAction(starting).title == "Start Episode 4")
-        #expect(TitleAction(entry { _ in }).title == "Start Episode 1")
+        #expect(TitleAction(starting).title == "Play episode 4")
+        #expect(TitleAction(entry { _ in }).title == "Play episode 1")
     }
 
     @Test func anEpisodeStillToAirIsSaidAndNotOffered() {
@@ -101,8 +101,10 @@ struct ScreenRulesTests {
     }
 
     @Test func aTitlesPageSaysItsScore() {
-        #expect(entry { _ in }.titleMetadata == "TV · 12 episodes · 2024 · Kujaku Animation Works · 82%")
-        #expect(entry { _ in }.phoneMetadata == "TV · 12 ep · 2024 · 82%")
+        AirTime.$locale.withValue(Locale(identifier: "en_GB")) {
+            #expect(entry { _ in }.titleMetadata == "TV · 12 episodes · 2024 · Kujaku Animation Works · 82%")
+            #expect(entry { _ in }.phoneMetadata == "TV · 12 ep · 2024 · 82%")
+        }
     }
 
     @Test func settingsKeepsItsColumnBesideThePaneWhileThePaneHas440() {

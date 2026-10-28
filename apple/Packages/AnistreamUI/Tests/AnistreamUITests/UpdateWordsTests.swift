@@ -24,17 +24,17 @@ struct UpdateWordsTests {
     @Test func withNothingNewItSaysSoAndOffersCheckNow() {
         #expect(words() == UpdateWords(note: nil, action: .checkNow))
         #expect(words(outcome: .upToDate) == UpdateWords(note: "Up to date", action: .checkNow))
-        #expect(words(checking: true) == UpdateWords(note: "Checking…", action: .checkNow, disabled: true))
+        #expect(words(checking: true) == UpdateWords(note: "Checking for a newer version…", action: .checkNow, disabled: true))
         let failed = words(outcome: .failed("GitHub could not be reached"))
         // The reason stays out of the words (copy rule 5).
         #expect(failed.note == "Could not check.")
         #expect(failed.problem)
-        #expect(failed.label == "Check Now")
+        #expect(failed.label == "Check now")
     }
 
     @Test func aReleaseIsOfferedTheWayThisDeviceTakesIt() {
         let mac = words(latest: release, installsHere: true)
-        #expect(mac.note == "Version 2.0.3 is available")
+        #expect(mac.note == "Version 2.0.3 is out")
         #expect(mac.label == "Update to v2.0.3")
         #expect(words(latest: release, mobile: true).label == "Update in SideStore")
         // A Mac release without its file: the page.

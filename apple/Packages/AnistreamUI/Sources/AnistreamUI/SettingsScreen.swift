@@ -359,6 +359,9 @@ struct GeneralPane: View {
                 SettingSwitch(key: .adultTitles)
             }
         }
+        SettingsGroup(title: L.settingsLanguage) {
+            AppLanguageRow()
+        }
     }
 }
 
