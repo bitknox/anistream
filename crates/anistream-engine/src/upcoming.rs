@@ -56,6 +56,12 @@ struct Week<'a> {
 }
 
 impl Week<'_> {
+    /// Whether episode `episode` of `id` is watched here already.
+    fn watched(&self, id: AnilistId, episode: u32) -> bool {
+        let completed = self.store.completed_episodes(id).unwrap_or_default();
+        completed.iter().any(|done| done.trim().parse::<u32>() == Ok(episode))
+    }
+
     fn notices(&self, enabled: bool, broadcasts: &[AiringEntry]) -> UpcomingNotices {
         let name = ShowSettingKey::NotifyNewEpisodes.name();
         let switched = |value| -> HashSet<AnilistId> {
@@ -98,21 +104,23 @@ impl Week<'_> {
                     progress.map_or(1, |progress| progress.next)
                 });
                 // Watched here already, ahead of the broadcast: nothing to say of it.
-                (row.episode >= next_to_watch).then(|| UpcomingNotice {
-                    id,
-                    title: self.titles.pick(&row.media.title).to_owned(),
-                    episode: row.episode,
-                    airs_at: row.airing_at,
-                    reason,
-                    next_to_watch,
-                    cover_url: row.media.cover_image.best().map(str::to_owned),
-                    banner_url: row.media.banner_image.clone(),
-                    notifies,
-                    translation: Some(
-                        show_settings::for_show(self.config, self.store, id)
-                            .playback
-                            .translation,
-                    ),
+                (row.episode >= next_to_watch && !self.watched(id, row.episode)).then(|| {
+                    UpcomingNotice {
+                        id,
+                        title: self.titles.pick(&row.media.title).to_owned(),
+                        episode: row.episode,
+                        airs_at: row.airing_at,
+                        reason,
+                        next_to_watch,
+                        cover_url: row.media.cover_image.best().map(str::to_owned),
+                        banner_url: row.media.banner_image.clone(),
+                        notifies,
+                        translation: Some(
+                            show_settings::for_show(self.config, self.store, id)
+                                .playback
+                                .translation,
+                        ),
+                    }
                 })
             })
             .collect();
@@ -257,5 +265,26 @@ mod tests {
             notices.airings.iter().map(|row| (row.episode, row.next_to_watch)).collect();
         assert_eq!(rows, [(7, 7)], "watched here lately, so followed signed out too");
         assert_eq!(notices.watching, [WATCHED]);
+    }
+
+    #[test]
+    fn a_finished_show_watched_ahead_of_its_last_broadcast_is_left_out() {
+        // All twelve watched before the finale aired: Continue is episode 1 again, which must
+        // not make the finale's broadcast read as unwatched.
+        let store = Store::open_in_memory().unwrap();
+        for episode in 1..=12 {
+            watch(&store, WATCHED, episode, NOW - HOUR);
+        }
+        let (titles, config) = (Titles::default(), Config::default());
+        let week = Week {
+            store: &store,
+            titles: &titles,
+            config: &config,
+            signed_in: false,
+            now: NOW,
+            end: NOW + 7 * DAY,
+        };
+        let notices = week.notices(true, &[broadcast(WATCHED, 12, NOW + HOUR)]);
+        assert!(notices.airings.is_empty());
     }
 }
