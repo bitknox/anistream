@@ -124,6 +124,9 @@ pub struct Options {
     /// How long a title page waits for the season walk before it is sent without its seasons,
     /// or `None` for as long as the app waits.
     pub season_hold: Option<Duration>,
+    /// The engine's clock, kept by the test to move it on or to read days in a zone of its own,
+    /// or `None` for the system's.
+    pub clock: Option<anistream_engine::clock::Clock>,
 }
 
 impl Default for Options {
@@ -138,6 +141,7 @@ impl Default for Options {
             keep_next: false,
             before_start: None,
             season_hold: None,
+            clock: None,
         }
     }
 }
@@ -151,6 +155,7 @@ pub struct Harness {
     size: (u16, u16),
     // The engine and what it says, held as the event loop holds them.
     engine: Engine,
+    clock: anistream_engine::clock::Clock,
     events: EventStream,
     jobs: Jobs,
     /// How many commands the engine had routed when it last said it had nothing left to do.
@@ -257,6 +262,7 @@ impl Harness {
         // Started from the parts above rather than its own: it would point the metadata source
         // at AniList itself, and keep tokens wherever the user's are. With the chain whole and
         // nothing of its own to do, it does no more than it is sent.
+        let clock = options.clock.unwrap_or_default();
         let mut start = EngineOptions::new(
             paths.clone(),
             config,
@@ -271,7 +277,7 @@ impl Harness {
             meta,
             sync,
             stores,
-            clock: Default::default(),
+            clock: clock.clone(),
             fixture_exit: Some(anistream_providers::vpn::VpnGuard::fixture_egress()),
         });
         start.free_space = Some(1_000_000_000_000);
@@ -292,6 +298,7 @@ impl Harness {
             secrets,
             size: options.size,
             engine,
+            clock,
             events,
             jobs: Jobs::default(),
             idle: 0,
@@ -542,6 +549,11 @@ impl Harness {
     }
 
     /// The fake AniList: what it was asked, and how it should fail.
+    /// The engine's clock, to move it on.
+    pub fn clock(&self) -> &anistream_engine::clock::Clock {
+        &self.clock
+    }
+
     pub fn server(&self) -> &FakeAniList {
         &self.server
     }
@@ -748,6 +760,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::SearchMore { .. } => "SearchMore",
         Event::LiveSearch { .. } => "LiveSearch",
         Event::Browse(_) => "Browse",
+        Event::UpNext(_) => "UpNext",
         Event::Facets(_) => "Facets",
         Event::RecentSearches(_) => "RecentSearches",
         Event::CalendarWindow { .. } => "CalendarWindow",
@@ -867,6 +880,7 @@ fn copy(update: &Event) -> Event {
         },
         Event::LiveSearch { paused } => Event::LiveSearch { paused: *paused },
         Event::Browse(rails) => Event::Browse(rails.clone()),
+        Event::UpNext(items) => Event::UpNext(items.clone()),
         Event::Facets(facets) => Event::Facets(facets.clone()),
         Event::RecentSearches(recent) => Event::RecentSearches(recent.clone()),
         Event::CalendarWindow { anchor, pages, more_past } => {

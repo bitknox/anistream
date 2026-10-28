@@ -111,7 +111,7 @@ impl App {
     }
 
     fn move_selection(&mut self, delta: isize, visible_rows: usize) {
-        let len = self.content.len();
+        let len = self.rows_len();
         if len == 0 {
             return;
         }
@@ -141,7 +141,7 @@ impl App {
         if self.content_view().is_none() {
             return;
         }
-        let len = self.content.len();
+        let len = self.rows_len();
         let cursor = self.cursors.section_mut(self.nav.section());
         if len == 0 {
             cursor.offset = 0;
@@ -225,7 +225,7 @@ impl App {
                 self.search_in_results = false;
                 return None;
             }
-            let last = self.content.len().saturating_sub(1);
+            let last = self.rows_len().saturating_sub(1);
             match action {
                 Action::Top => {
                     *self.cursors.section_mut(self.nav.section()) = Cursor::default()

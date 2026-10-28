@@ -197,6 +197,7 @@ impl PreviewRun {
         let loads = matches!(
             task,
             Command::LoadContinue
+                | Command::LoadUpNext
                 | Command::LoadSeasonal
                 | Command::LoadCalendar
                 | Command::LoadCalendarPast { .. }
