@@ -152,7 +152,7 @@ public class CalendarTests
         };
         var broadcasts = Calendar.Broadcasts(rows, anchor, new Known(), mine: false);
         Assert.Equal([2u, 1u], broadcasts.Select(b => b.Entry.Id));
-        Assert.Equal("Ep 10 · 16:30 (was 23:00)", broadcasts[1].Line(Utc));
+        Assert.Equal("E10 · 16:30 · Moved from 23:00", broadcasts[1].Line(Utc));
         var week = Calendar.Week(new DateOnly(2026, 10, 19), broadcasts, Utc);
         Assert.Equal(2u, week[0].Broadcasts.Single().Entry.Id);
         Assert.Equal(1u, week[1].Broadcasts.Single().Entry.Id);
@@ -174,14 +174,14 @@ public class CalendarTests
         var broadcasts = Calendar.Broadcasts(rows, anchor, new Known(), mine: false);
         Func<uint, Broadcast> broadcast = id => broadcasts.Single(b => b.Entry.Id == id);
         // The dub's mark is in the line after its episode; a sub row, or one not known, has none.
-        Assert.Equal("Ep 10 · Dub · ~16:30", broadcast(1).Line(Utc));
-        Assert.Equal("Ep 10 · Dub · about 16:30", broadcast(1).Spoken(Utc));
-        Assert.Equal("Ep 10 · Dub", broadcast(1).EpisodeText);
-        Assert.Equal("Dub", broadcast(1).Mark);
-        Assert.Null(broadcast(2).Mark);
-        Assert.Null(broadcast(3).Mark);
-        Assert.Equal("Ep 8", broadcast(2).EpisodeText);
-        Assert.Equal("Ep 3 · 14:00", broadcast(3).Line(Utc));
+        Assert.Equal("E10 dubbed · ~16:30", broadcast(1).Line(Utc));
+        Assert.Equal("E10 dubbed · about 16:30", broadcast(1).Spoken(Utc));
+        Assert.Equal("E10 dubbed", broadcast(1).EpisodeText);
+        Assert.True(broadcast(1).Dubbed);
+        Assert.False(broadcast(2).Dubbed);
+        Assert.False(broadcast(3).Dubbed);
+        Assert.Equal("E8", broadcast(2).EpisodeText);
+        Assert.Equal("E3 · 14:00", broadcast(3).Line(Utc));
     }
 }
 
@@ -194,9 +194,10 @@ public class SharedWordsTests
             Id: 900_001, Title: "Stardust Wayfarer", Episodes: 12,
             Progress: new TitleProgress(Done: 6, Next: 7),
             Resume: new ResumePoint(Position: 606, Fraction: 606.0 / 1440));
-        var queue = AnistreamFfiMethods.ContinueQueue([entry], [], Casing.Sentence);
+        var queue = Wording.Said(AnistreamFfiMethods.ContinueQueue([entry], [], Casing.Sentence));
         Assert.Equal("Resume episode 7 · 10:06", queue.InProgress[0].Button);
-        Assert.Equal("Resume E7 · 10:06", queue.InProgress[0].Action);
+        Assert.Equal("Continue E7 · 10:06", queue.InProgress[0].Action);
+        Assert.Equal("14 min left", queue.InProgress[0].Left);
         Assert.Equal("4:05", AnistreamFfiMethods.PlayClock(245.4));
         Assert.Equal("auto-play next", AnistreamFfiMethods.SettingLabel(SettingKey.AutoNext));
         Assert.Equal("Expires in 15 min", AnistreamFfiMethods.DeviceCodeExpiry(899));
@@ -210,8 +211,8 @@ public class LinesTests
     [Fact]
     public void ADubSaysSoAfterTheEpisodeAndASubSaysNothing()
     {
-        Assert.Equal("Episode 10 · Dub", Lines.Episode("Episode 10", null, Translation.Dub));
-        Assert.Equal("Episode 10 · Dub · The Return", Lines.Episode("Episode 10", "The Return", Translation.Dub));
+        Assert.Equal("Episode 10 · Dubbed", Lines.Episode("Episode 10", null, Translation.Dub));
+        Assert.Equal("Episode 10 · Dubbed · The Return", Lines.Episode("Episode 10", "The Return", Translation.Dub));
         Assert.Equal("Episode 10 · The Return", Lines.Episode("Episode 10", "The Return", Translation.Sub));
         Assert.Equal("Episode 10", Lines.Episode("Episode 10", "", Translation.Sub));
         // Continue's preview, for a show whose translation is not known yet.
@@ -491,13 +492,13 @@ public class StoresTests
             Listed("a", new StorePluginStatus.Update("1.0.0", ["new.example"]), "1.1.0", "x.example", "new.example"),
             Listed("b", new StorePluginStatus.Installed()));
         Assert.Equal(1, Stores.Updates(store));
-        Assert.Equal("Contacts x.example and 1 more", Stores.ContactsLine(store.Plugins[0]));
+        Assert.Equal("Contacts x.example and one more", Stores.ContactsLine(store.Plugins[0]));
         Assert.Equal("Contacts no hosts", Stores.ContactsLine(store.Plugins[1]));
         Assert.Equal("1.0.0", Stores.InstalledVersion(store.Plugins[0]));
-        Assert.Equal("1.0.0 installed", Stores.Standing(store.Plugins[0]));
+        Assert.Equal("Version 1.0.0 installed, 1.1.0 available", Stores.Standing(store.Plugins[0]));
         Assert.Equal("Run by Ren, Aki · one.example", Stores.RunBy(["Ren", "Aki"], "one.example"));
         Assert.Equal("one.example", Stores.RunBy([], "one.example"));
-        Assert.Equal("joined without a name", Stores.JoinedAs(store with { Anonymous = true }));
+        Assert.Equal("Joined without a name", Stores.JoinedAs(store with { Anonymous = true }));
     }
 
     [Fact]
@@ -708,7 +709,7 @@ public class SceneTests
                 lock (gate) entries = session.Known.ListEntries(new ContentFor.Continue());
             }
             Assert.Equal(4, entries.Length);
-            var queue = AnistreamFfiMethods.ContinueQueue([.. entries], [], Casing.Sentence);
+            var queue = Wording.Said(AnistreamFfiMethods.ContinueQueue([.. entries], [], Casing.Sentence));
             var first = queue.InProgress[0];
             Assert.Equal(900_001u, first.Entry.Id);
             Assert.Equal("Resume episode 7 · 10:06", first.Button);
@@ -825,7 +826,7 @@ public class ShowSettingsTests
     {
         foreach (var key in Enum.GetValues<ShowSettingKey>())
             Assert.NotEmpty(ShowSettingsCatalog.Choices(key));
-        Assert.Equal(["Japanese", "English"], ShowSettingsCatalog.Choices(ShowSettingKey.Translation).Select(c => c.Label));
+        Assert.Equal(["Subbed", "Dubbed"], ShowSettingsCatalog.Choices(ShowSettingKey.Translation).Select(c => c.Label));
         Assert.Equal(["480p", "720p", "1080p", "2160p"], ShowSettingsCatalog.Choices(ShowSettingKey.Quality).Select(c => c.Label));
         Assert.Equal(["Standard", "Higher"], ShowSettingsCatalog.Choices(ShowSettingKey.DownloadQuality).Select(c => c.Label));
         Assert.Equal("Off", ShowSettingsCatalog.Choices(ShowSettingKey.KeepNext)[0].Label);
@@ -844,7 +845,7 @@ public class ShowSettingsTests
     [Fact]
     public void ARowSaysItsValueInTheSheetsWords()
     {
-        Assert.Equal("English", ShowSettingsCatalog.Shown(ShowSettingKey.Translation, "dub"));
+        Assert.Equal("Dubbed", ShowSettingsCatalog.Shown(ShowSettingKey.Translation, "dub"));
         Assert.Equal("On", ShowSettingsCatalog.Shown(ShowSettingKey.SkipOpening, "on"));
         Assert.Equal("720p", ShowSettingsCatalog.Shown(ShowSettingKey.Quality, "720p"));
         Assert.Equal("Standard", ShowSettingsCatalog.Shown(ShowSettingKey.DownloadQuality, "standard"));
@@ -1123,12 +1124,12 @@ public class UpdateTests
 
             var wrong = await Updates.Fetch(new HttpClient(new Serve(Body)), Asset("arm64", (ulong)Body.Length, sha: new string('0', 64)), "2.1.0", dir, _ => { }, default);
             Assert.Equal(UpdateStep.Failed, wrong.Step);
-            Assert.Equal("The download doesn't match the release's SHA-256.", wrong.Reason);
+            Assert.Equal("The download doesn't match the checksum listed for this version.", wrong.Reason);
             Assert.False(File.Exists(Path.Combine(dir, Asset("arm64", 1).Name)), "a file that does not match is not kept");
 
             var shorter = await Updates.Fetch(new HttpClient(new Serve(Body[..1000])), Asset("x64", (ulong)Body.Length) with { Name = "short.exe" }, "2.1.0", dir, _ => { }, default);
             Assert.Equal(UpdateStep.Failed, shorter.Step);
-            Assert.StartsWith("The download is 1 KB, not the", shorter.Reason);
+            Assert.StartsWith("The download is 1.0 kB, not the", shorter.Reason);
 
             var refused = await Updates.Fetch(new HttpClient(new Serve([], System.Net.HttpStatusCode.NotFound)), Asset("x64", 5) with { Name = "gone.exe" }, "2.1.0", dir, _ => { }, default);
             Assert.Equal("The download stopped: the server answered 404.", refused.Reason);
@@ -1168,7 +1169,7 @@ public class UpdateTests
         Assert.Equal("Not checked yet", Updates.Line(null, UpdateState.Idle, false, false));
         Assert.Equal("Checks once you're back online", Updates.Line(null, UpdateState.Idle, true, false));
         Assert.Equal("Up to date", Updates.Line(new UpdateStatus.UpToDate(), UpdateState.Idle, false, false));
-        Assert.Equal("Couldn't check: GitHub could not be reached", Updates.Line(new UpdateStatus.Failed("gitHub could not be reached"), UpdateState.Idle, false, false));
+        Assert.Equal("Not checked. Check your connection and try again.", Updates.Line(new UpdateStatus.Failed("gitHub could not be reached"), UpdateState.Idle, false, false));
         Assert.Equal("Version 2.1.0 is out", Updates.Line(available, UpdateState.Idle, false, true));
         Assert.Equal("Version 2.1.0 is out. Its page has the installer.", Updates.Line(available, UpdateState.Idle, false, false));
         Assert.Equal("Downloading version 2.1.0 · 34 MB of 71 MB",

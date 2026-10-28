@@ -465,7 +465,7 @@ fn resume_point(
 /// The episode Continue offers, from where the viewer actually is rather than a count.
 ///
 /// The last episode touched, when it is unfinished; otherwise the first after it not yet
-/// watched, and past the season's last episode the first one skipped. "Episodes done plus one"
+/// watched, and past the season's last episode the first one skipped (episode 1 when none was). "Episodes done plus one"
 /// only holds for someone who never watches out of order: a catch-up, a rewatch or a skipped
 /// recap and it named an episode already finished, or one never started while another sat half
 /// watched.
@@ -488,7 +488,10 @@ pub fn continue_from(
         next += 1;
     }
     match total {
-        Some(total) if next > total => (1..=total).find(|n| !done(*n)).unwrap_or(next),
+        // Every episode watched: the show is finished and the next one is the first again.
+        Some(total) if total > 0 && next > total => {
+            (1..=total).find(|n| !done(*n)).unwrap_or(1)
+        }
         _ => next,
     }
 }
@@ -1360,6 +1363,54 @@ mod tests {
             entry_from(&media(), Some(&store)).progress,
             Some(TitleProgress { done: 7, next: 7 })
         );
+    }
+
+    fn thirteen(last: &str, done: &[u32]) -> (anistream_store::Progress, Vec<String>) {
+        let progress = anistream_store::Progress {
+            anilist_id: AnilistId::new(7),
+            last_episode: last.into(),
+            last_position: 0.0,
+            last_duration: None,
+            episodes_done: done.len() as u32,
+            updated_at: 0,
+        };
+        (progress, done.iter().map(u32::to_string).collect())
+    }
+
+    #[test]
+    fn a_finished_show_with_a_known_count_starts_over() {
+        let all: Vec<u32> = (1..=13).collect();
+        let (progress, completed) = thirteen("13", &all);
+        assert_eq!(continue_from(&progress, &completed, Some(13)), 1, "not episode 14");
+        // The last one touched need not be the finale.
+        let (progress, completed) = thirteen("5", &all);
+        assert_eq!(continue_from(&progress, &completed, Some(13)), 1);
+    }
+
+    #[test]
+    fn a_gap_before_the_end_is_offered_before_starting_over() {
+        let done: Vec<u32> = (1..=13).filter(|n| *n != 6).collect();
+        let (progress, completed) = thirteen("13", &done);
+        assert_eq!(continue_from(&progress, &completed, Some(13)), 6);
+    }
+
+    #[test]
+    fn an_unknown_count_counts_on_from_the_last_episode() {
+        let all: Vec<u32> = (1..=13).collect();
+        let (progress, completed) = thirteen("13", &all);
+        assert_eq!(continue_from(&progress, &completed, None), 14, "an airing show");
+        assert_eq!(continue_from(&progress, &completed, Some(0)), 14, "zero is no count");
+    }
+
+    #[test]
+    fn standing_of_a_finished_show_is_episode_one() {
+        let store = Store::open_in_memory().unwrap();
+        for (at, episode) in (1..=28).enumerate() {
+            watch(&store, &episode.to_string(), 1400.0, true, at as i64);
+        }
+        let id = AnilistId::new(154_587);
+        assert_eq!(standing(&store, id, Some(28)).0, Some(TitleProgress { done: 28, next: 1 }));
+        assert_eq!(standing(&store, id, None).0, Some(TitleProgress { done: 28, next: 29 }));
     }
 
     #[test]

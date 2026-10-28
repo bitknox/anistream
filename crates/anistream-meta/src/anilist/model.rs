@@ -588,34 +588,65 @@ pub fn spoiler_runs(raw: &str) -> Vec<(&str, bool)> {
     }
 }
 
-/// AniList's HTML as plain text: tags out, the entities it uses put back, every run of
-/// whitespace one space.
+/// AniList's HTML as plain text, keeping its line structure: tags out, the entities it uses put
+/// back, spaces collapsed within a line and trimmed at its ends.
+///
+/// `<br>` (any form and case), `<p>`, `</p>` and AniList's own newlines are line breaks. A run of them
+/// is one `"\n"` when it holds a single break and one `"\n\n"` (a paragraph break) when it holds
+/// two or more. A newline next to a `<br>` is formatting for it, not another break, so
+/// `"\n<br>\n"` is one. Any other tag becomes a space where it separated words.
+///
+/// The result keeps the breaks at its own ends, so the caller can place them between runs.
 fn plain_text(raw: &str) -> String {
-    let mut out = String::with_capacity(raw.len());
-    let mut in_tag = false;
+    const HARD: char = '\u{1}';
+    let mut marked = String::with_capacity(raw.len());
+    let mut tag: Option<String> = None;
     for ch in raw.chars() {
-        match ch {
-            '<' => in_tag = true,
-            '>' => {
-                in_tag = false;
-                // A closed tag was acting as a separator; keep one space so words do not run
-                // together where markup was doing the spacing.
-                if !out.ends_with(' ') && !out.is_empty() {
-                    out.push(' ');
-                }
+        match (&mut tag, ch) {
+            (None, '<') => tag = Some(String::new()),
+            (None, c) => marked.push(c),
+            (Some(name), '>') => {
+                let name = name.trim().to_ascii_lowercase();
+                let is_br = name
+                    .strip_prefix("br")
+                    .is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', ' ']));
+                marked.push(if is_br || name == "/p" || name == "p" { HARD } else { ' ' });
+                tag = None;
             }
-            c if !in_tag => out.push(c),
-            _ => {}
+            (Some(name), c) => name.push(c),
         }
     }
-    out.replace("&amp;", "&")
+    let marked = marked
+        .replace("&amp;", "&")
         .replace("&quot;", "\"")
         .replace("&#039;", "'")
         .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
+        .replace("&gt;", ">");
+
+    let break_text = |hard: usize, soft: usize| match if hard > 0 { hard } else { soft } {
+        0 => "",
+        1 => "\n",
+        _ => "\n\n",
+    };
+    let mut out = String::with_capacity(marked.len());
+    let (mut hard, mut soft, mut space) = (0, 0, false);
+    for c in marked.chars() {
+        match c {
+            HARD => hard += 1,
+            '\n' => soft += 1,
+            c if c.is_whitespace() => space = true,
+            c => {
+                out.push_str(break_text(hard, soft));
+                if space && !out.is_empty() && !out.ends_with('\n') {
+                    out.push(' ');
+                }
+                (hard, soft, space) = (0, 0, false);
+                out.push(c);
+            }
+        }
+    }
+    out.push_str(break_text(hard, soft));
+    out
 }
 
 /// The most recent broadcast of one title.
@@ -709,35 +740,68 @@ impl Media {
     }
 
     /// Strip AniList's HTML description down to plain text for the terminal, with what AniList
-    /// marks a spoiler left out: [`Self::description_spans`]' text that is not a spoiler, a
-    /// space between.
+    /// marks a spoiler left out: [`Self::description_spans`]' text that is not a spoiler.
+    /// Paragraphs stay apart: lines are separated by `"\n"` and paragraphs by `"\n\n"`.
     ///
     /// Descriptions contain `<br>`, `<i>` and occasional `<a>`, none of which a TUI can
     /// render. Left in place they would show as literal tag soup in the synopsis panel. And
     /// `~!…!~` around a spoiler, which showed as it was, spoiler and markers both.
     pub fn plain_description(&self) -> String {
-        let shown: Vec<String> = self
-            .description_spans()
-            .into_iter()
-            .filter(|span| !span.spoiler)
-            .map(|span| span.text)
-            .collect();
-        shown.join(" ")
+        let mut out = String::new();
+        for span in self.description_spans() {
+            if !out.is_empty() && !out.ends_with('\n') && !span.spoiler {
+                out.push(' ');
+            }
+            if span.spoiler {
+                // Hidden, but the break it ended with still parts what is shown.
+                let tail = span.text.len() - span.text.trim_end_matches('\n').len();
+                if !out.is_empty() && !out.ends_with('\n') && tail > 0 {
+                    out.push_str(if tail >= 2 { "\n\n" } else { "\n" });
+                }
+            } else {
+                out.push_str(&span.text);
+            }
+        }
+        out.trim_end().to_owned()
     }
 
     /// The description as plain text, in runs, each marked whether AniList's `~!…!~` says it
-    /// gives the story away. A front end shows the runs one after another with a space between,
-    /// and hides the spoilers.
+    /// gives the story away. A front end shows the runs one after another and hides the spoilers.
+    ///
+    /// Line structure rides in the text: `"\n"` ends a line and `"\n\n"` a paragraph (see
+    /// `plain_text`). A break between two runs is kept at the end of the earlier run, never at
+    /// the start of the later one, so a run never starts with whitespace and the description
+    /// never starts or ends with a break. A front end puts a space between runs unless the
+    /// earlier one ends with a break.
     ///
     /// A spoiler left open runs to the end, hidden: guessing where it was meant to stop would
     /// show what it was meant to hide.
     pub fn description_spans(&self) -> Vec<DescriptionSpan> {
         let Some(raw) = &self.description else { return Vec::new() };
-        spoiler_runs(raw)
-            .into_iter()
-            .map(|(run, spoiler)| DescriptionSpan { text: plain_text(run), spoiler })
-            .filter(|span| !span.text.is_empty())
-            .collect()
+        let mut spans: Vec<DescriptionSpan> = Vec::new();
+        let mut pending = 0;
+        for (run, spoiler) in spoiler_runs(raw) {
+            let text = plain_text(run);
+            let body = text.trim_matches('\n');
+            let lead = text.len() - text.trim_start_matches('\n').len();
+            let trail = text.len() - text.trim_end_matches('\n').len();
+            pending = pending.max(lead);
+            if body.is_empty() {
+                continue;
+            }
+            if let Some(prev) = spans.last_mut() {
+                prev.text.push_str(if pending >= 2 {
+                    "\n\n"
+                } else if pending == 1 {
+                    "\n"
+                } else {
+                    ""
+                });
+            }
+            spans.push(DescriptionSpan { text: body.to_owned(), spoiler });
+            pending = trail;
+        }
+        spans
     }
 
     /// Every title string a provider search should try, widest first.
@@ -1246,14 +1310,14 @@ mod tests {
         assert_eq!(
             spans,
             [
-                ("The lamplighter walks on.".into(), false),
+                ("The lamplighter walks on.\n\n".into(), false),
                 ("She was the lantern all along.".into(), true),
                 ("The road goes on .".into(), false),
             ]
         );
         assert_eq!(
             m.plain_description(),
-            "The lamplighter walks on. The road goes on .",
+            "The lamplighter walks on.\n\nThe road goes on .",
             "no spoiler, and no markers"
         );
 
@@ -1267,14 +1331,66 @@ mod tests {
         assert!(hoshikuzu().description_spans().iter().all(|s| !s.spoiler), "none marked");
     }
 
+    fn described(raw: &str) -> Media {
+        serde_json::from_value(serde_json::json!({"id": 1, "description": raw})).unwrap()
+    }
+
     #[test]
-    fn description_stripping_does_not_run_words_together() {
-        let m: Media = serde_json::from_value(serde_json::json!({
-            "id": 1,
-            "description": "first line<br>second line"
-        }))
-        .unwrap();
-        assert_eq!(m.plain_description(), "first line second line");
+    fn a_br_is_a_line_break_in_every_form() {
+        for tag in ["<br>", "<br/>", "<br />", "<BR>", "<Br />"] {
+            let m = described(&format!("first line{tag}second line"));
+            assert_eq!(m.plain_description(), "first line\nsecond line", "{tag}");
+        }
+        // Other tags still part words, and spaces collapse within a line.
+        assert_eq!(described("a<i>b</i>   c <b>d</b>").plain_description(), "a b c d");
+        assert_eq!(described("<brx>word").plain_description(), "word");
+    }
+
+    #[test]
+    fn two_breaks_make_a_paragraph() {
+        let m = described("one<br><br>two<br> <br>three</p><p>four");
+        assert_eq!(m.plain_description(), "one\n\ntwo\n\nthree\n\nfour");
+        assert_eq!(described("one\n\ntwo\nthree").plain_description(), "one\n\ntwo\nthree");
+    }
+
+    #[test]
+    fn a_newline_beside_a_br_is_not_another_break() {
+        assert_eq!(described("one\n<br>\ntwo").plain_description(), "one\ntwo");
+        assert_eq!(described("one\n<br>\n<br>\ntwo").plain_description(), "one\n\ntwo");
+    }
+
+    #[test]
+    fn a_trailing_source_line_stays_its_own_paragraph() {
+        let m = described("Mira keeps the tower.<br><br>(Source: Example Press)\n<br>\n");
+        assert_eq!(m.plain_description(), "Mira keeps the tower.\n\n(Source: Example Press)");
+        assert_eq!(described("<br>\n lead<br><br>").plain_description(), "lead");
+    }
+
+    #[test]
+    fn spoilers_across_a_break_keep_it_and_never_start_or_end_with_whitespace() {
+        let m = described("Open.<br><br>~!Hidden one.!~<br>~!Hidden two.!~<br><br>Close.");
+        let spans: Vec<_> =
+            m.description_spans().into_iter().map(|s| (s.text, s.spoiler)).collect();
+        assert_eq!(
+            spans,
+            [
+                ("Open.\n\n".into(), false),
+                ("Hidden one.\n".into(), true),
+                ("Hidden two.\n\n".into(), true),
+                ("Close.".into(), false),
+            ]
+        );
+        assert_eq!(m.plain_description(), "Open.\n\nClose.");
+        // A break inside the spoiler's own edge moves out, and the end keeps none.
+        let m = described("Before ~!\n<br>secret<br>!~ after.<br>");
+        let spans: Vec<_> =
+            m.description_spans().into_iter().map(|s| (s.text, s.spoiler)).collect();
+        assert_eq!(
+            spans,
+            [("Before\n".into(), false), ("secret\n".into(), true), ("after.".into(), false),]
+        );
+        // A break that only a hidden spoiler carries still parts what is shown.
+        assert_eq!(described("A. ~!S!~<br><br>B.").plain_description(), "A.\n\nB.");
     }
 
     #[test]

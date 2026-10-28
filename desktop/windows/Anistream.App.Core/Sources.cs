@@ -66,7 +66,7 @@ public static class SourceOrder
     }
 }
 
-/// <summary>How a provider stands, in the words and the dot the Providers list gives it.</summary>
+/// <summary>How a source stands, in the words and the dot the Sources list gives it.</summary>
 public enum ProviderStanding
 {
     Working,
@@ -93,15 +93,15 @@ public static class ProviderRows
     /// <summary>The words beside a source's name when it needs saying, or null for one that works.</summary>
     public static string? StandingLine(this ProviderStanding standing) => standing switch
     {
-        ProviderStanding.Failing => "Not answering",
-        ProviderStanding.HeldBack => "Held back",
-        ProviderStanding.Off => "Off",
-        ProviderStanding.Slow => "Slow",
+        ProviderStanding.Failing => T.SourcesStatusNotAnswering,
+        ProviderStanding.HeldBack => T.SourcesStatusHeldBack,
+        ProviderStanding.Off => T.SourceNoteOff,
+        ProviderStanding.Slow => T.SourcesStatusSlow,
         _ => null,
     };
 }
 
-/// <summary>What the Providers page says of one source, from its row and the stores it came from.</summary>
+/// <summary>What the Sources page says of one source, from its row and the stores it came from.</summary>
 public sealed record ProviderInfo(ProviderRow Row, string Name, string Origin, StoreRow? Store, StorePluginRow? Listing)
 {
     public bool IsTorrent => Row.Kind == "torrent";
@@ -118,13 +118,13 @@ public sealed record ProviderInfo(ProviderRow Row, string Name, string Origin, S
         switch (row.Kind)
         {
             case "torrent":
-                return new(row, "Torrents", "Built in", null, null);
+                return new(row, T.SourcesTorrents, T.SourcesOriginBuiltIn, null, null);
             case "remote":
-                return new(row, "Remote", "Set in the config file", null, null);
+                return new(row, T.SourcesRemote, T.SourcesOriginConfig, null, null);
         }
         var name = listing?.Plugin.Name ?? row.Id;
         var origin = listing is null || listing.Value.Plugin.Status is StorePluginStatus.AddedByHand
-            ? "Added by hand"
+            ? T.SourcesOriginByHand
             : listing.Value.Store.Name;
         return new(row, name, origin, listing?.Store, listing?.Plugin);
     }
@@ -159,10 +159,10 @@ public static class Stores
 
     public static int Updates(StoreRow store) => store.Plugins?.Count(p => p.Status is StorePluginStatus.Update) ?? 0;
 
-    /// <summary>What a plugin may contact, in a line: "Contacts open-archive.example and 1 more".</summary>
+    /// <summary>What a plugin may contact, in a line: "Contacts open-archive.example and one more".</summary>
     public static string ContactsLine(StorePluginRow plugin) => plugin.Hosts is { Length: > 0 } hosts
-        ? hosts.Length > 1 ? $"Contacts {hosts[0]} and {hosts.Length - 1} more" : $"Contacts {hosts[0]}"
-        : "Contacts no hosts";
+        ? hosts.Length > 1 ? T.SourcesContactsLine(hosts[0], hosts.Length - 1) : T.SourcesContactsOne(hosts[0])
+        : T.SourcesContactsNone;
 
     /// <summary>The version installed here: the one an update replaces, or the store's own.</summary>
     public static string InstalledVersion(StorePluginRow plugin) =>
@@ -171,19 +171,19 @@ public static class Stores
     /// <summary>Where a plugin stands on this device in a word or two, when it is here at all.</summary>
     public static string? Standing(StorePluginRow plugin) => plugin.Status switch
     {
-        StorePluginStatus.Installed => "Installed",
-        StorePluginStatus.Update u => $"{u.From} installed",
-        StorePluginStatus.AddedByHand => "Added by hand",
-        StorePluginStatus.OtherStore o => $"From {o.V1}",
+        StorePluginStatus.Installed => T.StoresPluginStateInstalled,
+        StorePluginStatus.Update u => T.StoresPluginUpdateLine(u.From, plugin.Version),
+        StorePluginStatus.AddedByHand => T.SourcesOriginByHand,
+        StorePluginStatus.OtherStore o => T.StoresPluginFrom(o.V1),
         _ => null,
     };
 
     /// <summary>Who runs a store and where it answers: "Run by Ren · plugins.example", or the host alone.</summary>
     public static string RunBy(string[]? owners, string host) =>
-        owners is { Length: > 0 } ? $"Run by {string.Join(", ", owners)} · {host}" : host;
+        owners is { Length: > 0 } ? T.StoresRunBy(string.Join(", ", owners), host) : host;
 
     /// <summary>Who this device joined as: a name, or none for one that joined with the store's open link.</summary>
-    public static string JoinedAs(StoreRow store) => store.Anonymous ? "joined without a name" : $"joined as {store.Member}";
+    public static string JoinedAs(StoreRow store) => store.Anonymous ? T.StoresJoinedNameless : T.StoresDeviceJoinedAs(store.Member);
 
     /// <summary>An invite link inside what was pasted: the https invite, or one wrapped in the app's scheme.</summary>
     public static string? InviteIn(string pasted)

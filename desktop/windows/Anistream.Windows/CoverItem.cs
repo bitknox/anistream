@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI;
@@ -18,7 +19,7 @@ public sealed partial class CoverItem : INotifyPropertyChanged
     public CoverItem(Entry entry, string? caption = null)
     {
         Entry = entry;
-        Caption = caption ?? AnistreamFfiMethods.CoverCaption(entry);
+        Caption = caption ?? Wording.CoverCaption(entry);
         Placeholder = new SolidColorBrush(Colours.Parse(entry.CoverColor) ?? Colours.Raised);
     }
 

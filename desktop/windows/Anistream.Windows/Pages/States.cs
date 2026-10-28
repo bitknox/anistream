@@ -1,3 +1,5 @@
+using Anistream.App;
+using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -45,7 +47,7 @@ public sealed partial class StateHost : Grid
     public Func<UIElement>? Placeholders { get; set; }
 
     /// <summary>The job's activity line past 4 s: "Loading this season".</summary>
-    public string ActivityText { get; set; } = "Loading";
+    public string ActivityText { get; set; } = T.StateLoading;
 
     UIElement? Content => Children.Count > 0 && Children[0] != waiting && Children[0] != message ? Children[0] : null;
 
@@ -137,7 +139,7 @@ public sealed partial class StateHost : Grid
         Say(state);
     }
 
-    /// <summary>Failed to load: the reason's first clause and Try again.</summary>
+    /// <summary>Failed to load: a plain line and Try again. The engine's reason goes to the log.</summary>
     public void Failed(string reason, Action retry)
     {
         if (Ctx.Current.Known.Offline)
@@ -151,7 +153,8 @@ public sealed partial class StateHost : Grid
         Done();
         if (Content is { } content)
             content.Visibility = Visibility.Collapsed;
-        Say(States.Unavailable(Words.Failure(reason), null, "Try again", () =>
+        AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"a page didn't load: {reason}");
+        Say(States.Unavailable(T.StateLoadFailed, T.StateCheckConnection, T.ActionTryAgain, () =>
         {
             Wait();
             retry();
@@ -166,7 +169,7 @@ public sealed partial class StateHost : Grid
         activity.Stop();
         Motion.Set(waiting, false);
         placeholdersShown = false;
-        Say(States.Unavailable("You're offline", "Downloaded episodes still play.", "Show downloads", () => Ctx.Current.Window.Go("downloads")));
+        Say(States.Unavailable(T.StateOfflineTitle, T.StateOfflineDetail, T.StateOfflineShowDownloads, () => Ctx.Current.Window.Go("downloads")));
     }
 
     void Say(UIElement state)

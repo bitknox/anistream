@@ -561,8 +561,12 @@ fn as_rows(episodes: &[EpisodeProgress]) -> Vec<EpisodeRow> {
 impl Title {
     /// Work on this title's progress as an entry, which is what the rules are written over.
     fn with_entry(&mut self, id: AnilistId, work: impl FnOnce(&mut Entry)) {
-        let mut entry =
-            Entry { progress: self.progress, resume: self.resume, ..Entry::new(id, "") };
+        let mut entry = Entry {
+            progress: self.progress,
+            resume: self.resume,
+            episodes: self.episode_total,
+            ..Entry::new(id, "")
+        };
         work(&mut entry);
         (self.progress, self.resume) = (entry.progress, entry.resume);
     }
@@ -954,6 +958,25 @@ mod tests {
         let played = play(&mut cache, "12");
         say(&mut cache, &played, finished(None));
         assert_eq!(standing(&cache, SHOW).0, Some((11, 4)));
+    }
+
+    #[test]
+    fn finishing_the_last_episode_of_a_known_count_goes_back_to_one() {
+        let done: Vec<u32> = (1..=11).collect();
+        let mut cache = at_episodes(Some((11, 12)), &done);
+        cache.titles.get_mut(&SHOW).unwrap().episode_total = Some(12);
+        let played = play(&mut cache, "12");
+        say(&mut cache, &played, finished(None));
+        assert_eq!(standing(&cache, SHOW).0, Some((12, 1)), "not episode 13");
+    }
+
+    #[test]
+    fn finishing_the_last_listed_episode_of_an_unknown_count_counts_on() {
+        let done: Vec<u32> = (1..=11).collect();
+        let mut cache = at_episodes(Some((11, 12)), &done);
+        let played = play(&mut cache, "12");
+        say(&mut cache, &played, finished(None));
+        assert_eq!(standing(&cache, SHOW).0, Some((12, 13)), "an airing show");
     }
 
     #[test]

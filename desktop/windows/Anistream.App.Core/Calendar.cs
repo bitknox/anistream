@@ -14,15 +14,13 @@ public sealed record Broadcast(Entry Entry, uint Episode, long Airs, long? Was)
     public bool IsNew(long now) => Airs <= now && !Watched;
 
     /// <summary>
-    /// "Ep 10 · Dub · 16:30" for a dub row, "Ep 10 · 16:30" for any other, "~16:30" when the time
-    /// is an estimate, with "(was 23:00)" when the schedule moved it. The engine's
-    /// <c>episode_line</c> and <c>air_time</c>.
+    /// "E10 dubbed · 16:30" for a dub row, "E10 · 16:30" for any other, "~16:30" when the time
+    /// is an estimate, with "· Moved from 23:00" when the schedule moved it.
     /// </summary>
     public string Line(TimeZoneInfo zone, CultureInfo? culture = null)
     {
-        var time = AnistreamFfiMethods.AirTime(Calendar.Time(Airs, zone, culture), Entry.AiringApproximate);
-        var line = $"{EpisodeText} · {time}";
-        return Was is { } was ? $"{line} (was {Calendar.Time(was, zone, culture)})" : line;
+        var shown = Calendar.Time(Airs, zone, culture);
+        return Said(Entry.AiringApproximate ? T.CalendarTimeEstimate(shown) : shown, zone, culture);
     }
 
     /// <summary>
@@ -32,18 +30,26 @@ public sealed record Broadcast(Entry Entry, uint Episode, long Airs, long? Was)
     public string Spoken(TimeZoneInfo zone, CultureInfo? culture = null)
     {
         var shown = Calendar.Time(Airs, zone, culture);
-        var line = $"{EpisodeText} · {(Entry.AiringApproximate ? $"about {shown}" : shown)}";
-        return Was is { } was ? $"{line} (was {Calendar.Time(was, zone, culture)})" : line;
+        return Said(Entry.AiringApproximate ? T.CalendarTimeAbout(shown) : shown, zone, culture);
+    }
+
+    string Said(string time, TimeZoneInfo zone, CultureInfo? culture)
+    {
+        var line = Dubbed ? T.CalendarRowTimeDubbed(Episode, time) : T.CalendarRowTime(Episode, time);
+        return Was is { } was ? $"{line} · {T.CalendarMovedFrom(Calendar.Time(was, zone, culture))}" : line;
     }
 
     /// <summary>
-    /// The episode with the row's mark after it, as every episode line ends its episode: "Ep 10 ·
-    /// Dub" for a dub row, "Ep 10" for a sub row, which is not marked.
+    /// The episode with the row's mark after it, as every episode line ends its episode: "E10
+    /// dubbed" for a dub row, "E10" for a sub row, which is not marked.
     /// </summary>
-    public string EpisodeText => AnistreamFfiMethods.EpisodeLine($"Ep {Episode}", Mark is null ? null : Translation.Dub);
+    public string EpisodeText => Dubbed ? T.CalendarEpisodeDubbed(Episode) : T.EpisodeNumberShort(Episode);
 
-    /// <summary>"Dub" for a dub row, else null (a sub row is not marked): the engine's <c>calendar_mark</c>.</summary>
-    public string? Mark => AnistreamFfiMethods.CalendarMark(Entry);
+    /// <summary>
+    /// A row of the dub's own time, or of an episode out in the dub: the model's
+    /// <c>calendar_mark</c>. Only dubs are marked, so a sub row says nothing.
+    /// </summary>
+    public bool Dubbed => Entry.AiringTranslation == Translation.Dub || Entry.AiringDubbed;
 }
 
 /// <summary>The calendar's week: Monday first, in the viewer's time zone.</summary>
@@ -99,17 +105,17 @@ public static class Calendar
 
     /// <summary>
     /// "19 to 25 October 2026", or across months "28 September to 4 October 2026", with the
-    /// month names of the system's locale.
+    /// month names of the system's locale and the catalogue's word between them.
     /// </summary>
     public static string WeekTitle(DateOnly monday, CultureInfo? culture = null)
     {
         culture ??= CultureInfo.CurrentCulture;
         var sunday = monday.AddDays(6);
         if (monday.Year != sunday.Year)
-            return $"{monday.ToString("d MMMM yyyy", culture)} to {sunday.ToString("d MMMM yyyy", culture)}";
+            return T.CalendarWeekRange(monday.ToString("d MMMM yyyy", culture), sunday.ToString("d MMMM yyyy", culture));
         if (monday.Month != sunday.Month)
-            return $"{monday.ToString("d MMMM", culture)} to {sunday.ToString("d MMMM yyyy", culture)}";
-        return $"{monday.Day} to {sunday.ToString("d MMMM yyyy", culture)}";
+            return T.CalendarWeekRange(monday.ToString("d MMMM", culture), sunday.ToString("d MMMM yyyy", culture));
+        return T.CalendarWeekRange(monday.Day.ToString(culture), sunday.ToString("d MMMM yyyy", culture));
     }
 
     /// <summary>A clock time on the system's clock: "16:30", or "4:30 PM" where the locale says so.</summary>

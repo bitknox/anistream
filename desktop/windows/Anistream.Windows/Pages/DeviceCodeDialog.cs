@@ -1,3 +1,4 @@
+using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Text;
@@ -87,8 +88,8 @@ sealed class DeviceCodeDialog
         {
             XamlRoot = root,
             Content = body,
-            SecondaryButtonText = "Copy code",
-            CloseButtonText = "Close",
+            SecondaryButtonText = T.AccountsCopyCode,
+            CloseButtonText = T.ActionClose,
             DefaultButton = ContentDialogButton.Primary,
         };
         dialog.PrimaryButtonStyle = Ui.Res<Style>("AccentButtonStyle");
@@ -112,7 +113,7 @@ sealed class DeviceCodeDialog
             var data = new global::Windows.ApplicationModel.DataTransfer.DataPackage();
             data.SetText(this.prompt.Code);
             global::Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(data);
-            dialog.SecondaryButtonText = "Copied";
+            dialog.SecondaryButtonText = T.ActionCopied;
         };
         Fill(prompt);
     }
@@ -122,13 +123,13 @@ sealed class DeviceCodeDialog
         prompt = now;
         var name = AnistreamFfiMethods.TrackerName(now.Tracker);
         var host = Uri.TryCreate(now.Url, UriKind.Absolute, out var url) ? url.Host : now.Url;
-        dialog.Title = $"Sign in to {name}";
-        line.Text = $"Go to {host} and enter this code. anistream signs in once you have.";
+        dialog.Title = T.AccountsSignInTo(name);
+        line.Text = T.AccountsCodeDetail(host);
         code.Text = now.Code;
-        AutomationProperties.SetName(code, "Code " + string.Join(' ', now.Code.ToCharArray()));
-        waiting.Text = $"Waiting for {name}";
-        dialog.PrimaryButtonText = $"Open {host}";
-        dialog.SecondaryButtonText = "Copy code";
+        AutomationProperties.SetName(code, T.AccountsCodeLabel(string.Join(' ', now.Code.ToCharArray())));
+        waiting.Text = T.AccountsCodeWaiting(name);
+        dialog.PrimaryButtonText = T.AccountsOpenHost(host);
+        dialog.SecondaryButtonText = T.AccountsCopyCode;
         dialog.IsSecondaryButtonEnabled = true;
         ShowExpiry();
     }
@@ -143,7 +144,7 @@ sealed class DeviceCodeDialog
             return;
         }
         var left = at - DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        expiry.Text = AnistreamFfiMethods.DeviceCodeExpiry(left);
+        expiry.Text = Wording.CodeExpiry(left);
         var expired = left <= 0;
         code.Opacity = expired ? 0.4 : 1;
         ring.IsActive = !expired;
@@ -151,8 +152,8 @@ sealed class DeviceCodeDialog
         if (expired)
         {
             tick.Stop();
-            if (dialog.SecondaryButtonText == "Copy code" || dialog.SecondaryButtonText == "Copied")
-                dialog.SecondaryButtonText = "Get a new code";
+            if (dialog.SecondaryButtonText == T.AccountsCopyCode || dialog.SecondaryButtonText == T.ActionCopied)
+                dialog.SecondaryButtonText = T.ActionNewCode;
         }
         else if (!tick.IsRunning)
             tick.Start();

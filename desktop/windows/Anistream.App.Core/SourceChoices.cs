@@ -211,16 +211,16 @@ public readonly record struct PlayableNext(uint Episode, bool Unsourced)
     {
         var target = Of(entry, rows);
         if (target.Episode == (entry.Progress?.Next ?? 1) && !target.Unsourced)
-            return AnistreamFfiMethods.QueueItem(entry, casing);
+            return Wording.Said(AnistreamFfiMethods.QueueItem(entry, casing));
         if (target.Unsourced)
-            return AnistreamFfiMethods.QueueItem(entry, casing) with
+            return Wording.Said(AnistreamFfiMethods.QueueItem(entry, casing)) with
             {
                 Playable = false,
                 Action = T.EpisodeUnsourced,
                 Button = null,
                 Waiting = T.EpisodeUnsourced,
             };
-        return AnistreamFfiMethods.QueueItem(entry with { Progress = new TitleProgress(entry.Progress?.Done ?? 0, target.Episode) }, casing);
+        return Wording.Said(AnistreamFfiMethods.QueueItem(entry with { Progress = new TitleProgress(entry.Progress?.Done ?? 0, target.Episode) }, casing));
     }
 
     /// <summary>A Continue row, worked out again for the episode that can be played.</summary>

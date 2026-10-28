@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Anistream.Windows.Pages"
     xmlns:app="using:Anistream.Windows"
+    xmlns:s="using:Anistream.App"
     Background="{ThemeResource GroundBrush}">
   <Page.Resources>
     <CollectionViewSource x:Name="Groups" IsSourceGrouped="True" />
@@ -16,7 +17,7 @@
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
     <StackPanel>
-      <TextBlock Text="Continue" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+      <TextBlock Text="{x:Bind s:T.NavContinue}" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
       <local:OfflineLine />
     </StackPanel>
     <TextBlock x:Name="SyncLine" Grid.Row="1" Style="{StaticResource HazeCaptionStyle}" Visibility="Collapsed" />
@@ -32,7 +33,7 @@
       <ListView x:Name="Queue" SelectionMode="Single" ItemClick="OnQueueItemClick"
                 SelectionChanged="OnSelectionChanged" DoubleTapped="OnQueueDoubleTapped"
                 KeyDown="OnQueueKeyDown" Margin="-12,0,0,0" Padding="0,0,0,24"
-                AutomationProperties.Name="Continue watching">
+                AutomationProperties.Name="{x:Bind s:T.ContinueHeading}">
         <ListView.GroupStyle>
           <GroupStyle>
             <GroupStyle.HeaderTemplate>
@@ -50,21 +51,21 @@
                   <MenuFlyoutItem Text="{x:Bind MenuPlay}" Click="OnMenuPlay" Tag="{x:Bind}" IsEnabled="{x:Bind Item.Playable}">
                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE768;" /></MenuFlyoutItem.Icon>
                   </MenuFlyoutItem>
-                  <MenuFlyoutItem Text="Play from the beginning" Click="OnMenuFromStart" Tag="{x:Bind}"
+                  <MenuFlyoutItem Text="{x:Bind s:T.EpisodePlayFromBeginning}" Click="OnMenuFromStart" Tag="{x:Bind}"
                                   Visibility="{x:Bind FromStartShown}" IsEnabled="{x:Bind Item.Playable}">
                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72C;" /></MenuFlyoutItem.Icon>
                   </MenuFlyoutItem>
-                  <MenuFlyoutItem Text="Mark as watched" Click="OnMenuWatched" Tag="{x:Bind}" KeyboardAcceleratorTextOverride="Ctrl+Shift+M">
+                  <MenuFlyoutItem Text="{x:Bind s:T.EpisodeMarkWatched}" Click="OnMenuWatched" Tag="{x:Bind}" KeyboardAcceleratorTextOverride="Ctrl+Shift+M">
                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE73E;" /></MenuFlyoutItem.Icon>
                   </MenuFlyoutItem>
-                  <MenuFlyoutItem Text="Hide from Continue" Click="OnMenuHide" Tag="{x:Bind}" KeyboardAcceleratorTextOverride="Delete">
+                  <MenuFlyoutItem Text="{x:Bind s:T.ContinueHide}" Click="OnMenuHide" Tag="{x:Bind}" KeyboardAcceleratorTextOverride="Delete">
                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xED1A;" /></MenuFlyoutItem.Icon>
                   </MenuFlyoutItem>
-                  <MenuFlyoutItem Text="Drop" Click="OnMenuDrop" Tag="{x:Bind}">
+                  <MenuFlyoutItem Text="{x:Bind s:T.ContinueDrop}" Click="OnMenuDrop" Tag="{x:Bind}">
                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE711;" /></MenuFlyoutItem.Icon>
                   </MenuFlyoutItem>
                   <MenuFlyoutSeparator />
-                  <MenuFlyoutItem Text="Open title" Click="OnMenuOpen" Tag="{x:Bind}">
+                  <MenuFlyoutItem Text="{x:Bind s:T.TitleOpen}" Click="OnMenuOpen" Tag="{x:Bind}">
                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8A7;" /></MenuFlyoutItem.Icon>
                   </MenuFlyoutItem>
                 </MenuFlyout>
@@ -88,7 +89,7 @@
       <ScrollViewer Grid.Column="1" x:Name="Preview" VerticalScrollBarVisibility="Auto" Padding="0,0,0,24">
         <StackPanel x:Name="PreviewBody" Spacing="12" MaxWidth="720" HorizontalAlignment="Stretch">
           <Grid x:Name="Banner" CornerRadius="8" Background="{ThemeResource RaisedBrush}" MaxHeight="360"
-                Tapped="OnBannerTapped" SizeChanged="OnBannerSizeChanged" AutomationProperties.Name="Open the title page">
+                Tapped="OnBannerTapped" SizeChanged="OnBannerSizeChanged" AutomationProperties.Name="{x:Bind s:T.TitleOpen}">
             <Image x:Name="BannerImage" Stretch="UniformToFill" />
           </Grid>
           <TextBlock x:Name="PreviewTitle" Style="{StaticResource ShowTitleLargeStyle}" Margin="0,8,0,0" />

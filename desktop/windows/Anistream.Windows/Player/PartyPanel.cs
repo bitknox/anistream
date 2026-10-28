@@ -24,13 +24,13 @@ sealed class PartyPanel
     readonly ProgressRing reconnecting = new() { Width = 12, Height = 12, IsActive = false, Opacity = 0 };
     readonly StackPanel members = new() { Spacing = 2 };
     readonly TextBlock readyLine = Ui.Text("", "HazeCaptionStyle");
-    readonly ToggleSwitch ready = new() { OnContent = "I'm ready", OffContent = "I'm ready" };
+    readonly ToggleSwitch ready = new() { OnContent = T.PartyReadyAction, OffContent = T.PartyReadyAction };
     readonly Button copy = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
-    readonly TextBlock copyText = new() { Text = "Copy invite link" };
+    readonly TextBlock copyText = new() { Text = T.PartyCopyInvite };
     readonly TextBlock inviteNote = Ui.Text("", "HazeCaptionStyle");
     readonly TextBlock place = new() { IsTextSelectionEnabled = true, TextWrapping = TextWrapping.Wrap };
     readonly TextBlock motd = Ui.Text("", "HazeCaptionStyle");
-    readonly Button leave = new() { Content = "Leave party", HorizontalAlignment = HorizontalAlignment.Stretch };
+    readonly Button leave = new() { Content = T.PartyLeave, HorizontalAlignment = HorizontalAlignment.Stretch };
     bool fromEngine, leaving;
     int copied;
 
@@ -40,7 +40,7 @@ sealed class PartyPanel
         var body = new StackPanel { Spacing = 10, Width = 320 };
 
         var head = new StackPanel { Spacing = 2 };
-        head.Children.Add(Ui.Text("Watch party", "BodyStrongTextBlockStyle"));
+        head.Children.Add(Ui.Text(T.PartyTitle, "BodyStrongTextBlockStyle"));
         // The ring follows the line, so the line starts where the title does.
         var status = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         status.Children.Add(connection);
@@ -52,7 +52,7 @@ sealed class PartyPanel
         body.Children.Add(members);
         body.Children.Add(readyLine);
         AutomationProperties.SetLiveSetting(readyLine, AutomationLiveSetting.Polite);
-        AutomationProperties.SetName(ready, "I'm ready");
+        AutomationProperties.SetName(ready, T.PartyReadyAction);
         ready.Toggled += (_, _) =>
         {
             if (!fromEngine)
@@ -71,7 +71,7 @@ sealed class PartyPanel
         body.Children.Add(inviteNote);
 
         var plain = new StackPanel { Spacing = 2 };
-        plain.Children.Add(Ui.Text("For Syncplay's own app", "CaptionTextBlockStyle"));
+        plain.Children.Add(Ui.Text(T.PartyOtherApp, "CaptionTextBlockStyle"));
         place.Style = Ui.Res<Style>("HazeCaptionStyle");
         plain.Children.Add(place);
         body.Children.Add(plain);
@@ -80,7 +80,7 @@ sealed class PartyPanel
         leave.Click += (_, _) =>
         {
             leaving = true;
-            leave.Content = "Leaving…";
+            leave.Content = T.PartyLeaving;
             leave.IsEnabled = false;
             ctx.Send(new Command.PartyLeave());
         };
@@ -90,7 +90,7 @@ sealed class PartyPanel
         Flyout.Opening += (_, _) =>
         {
             leaving = false;
-            leave.Content = "Leave party";
+            leave.Content = T.PartyLeave;
             Show();
             ctx.Batch += Heard;
         };
@@ -129,7 +129,7 @@ sealed class PartyPanel
             // Before the room lists its members: one row's height, waiting.
             var wait = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, MinHeight = 36 };
             wait.Children.Add(new ProgressRing { Width = 16, Height = 16, IsActive = true });
-            wait.Children.Add(Ui.Text("Waiting for the room's members", "HazeBodyStyle"));
+            wait.Children.Add(Ui.Text(T.PartyWaitingMembers, "HazeBodyStyle"));
             members.Children.Add(wait);
             readyLine.Text = "";
         }
@@ -141,9 +141,9 @@ sealed class PartyPanel
 
         copy.IsEnabled = party.Invite is not null && !leaving;
         inviteNote.Text = party.Invite is null
-            ? "The invite link comes once an episode plays."
-            : "It names the room and the episode. Each friend plays it from their own sources.";
-        place.Text = $"Server {party.Server}\nRoom {party.Room}";
+            ? T.PartyInviteAfterPlay
+            : T.PartyInviteDetail;
+        place.Text = T.PartyOtherAppDetail(party.Server, party.Room);
         motd.Text = party.Motd ?? "";
         motd.Visibility = party.Motd is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
         leave.IsEnabled = !leaving;
@@ -187,9 +187,9 @@ sealed class PartyPanel
         package.SetText(link);
         global::Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
         var mine = ++copied;
-        copyText.Text = "Copied";
+        copyText.Text = T.ActionCopied;
         await Task.Delay(2000);
         if (mine == copied)
-            copyText.Text = "Copy invite link";
+            copyText.Text = T.PartyCopyInvite;
     }
 }
