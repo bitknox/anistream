@@ -142,15 +142,6 @@ player-exit-full-screen = Exit full screen
 # Button of the Mac open panel that picks a subtitle or audio file for the player.
 player-load-prompt = Load
 
-# Name of an episode whose number is text, because it may be "7.5" or "OVA 2".
-# @arg number: text
-player-episode-text = Episode { $number }
-
-# An episode whose number is text, and its name.
-# @arg number: text
-# @arg title: text
-player-episode-titled-text = Episode { $number } · { $title }
-
 # Line under the show's name in the player when a title is staged: the show, then the episode.
 # @arg title: text
 # @arg episode: text

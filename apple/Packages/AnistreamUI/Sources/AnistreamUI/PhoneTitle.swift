@@ -96,7 +96,7 @@ struct PhoneTitle: View {
                             StatusItems(id: entry.id)
                         } label: {
                             HStack(spacing: 6) {
-                                Text(entry.listStatus.map { $0.label.capitalizedSentence } ?? "Add to list")
+                                Text(entry.listStatus.map { $0.label.capitalizedSentence } ?? L.libraryAddToList)
                                 Image(systemName: "chevron.up.chevron.down").font(.ui(11, weight: .semibold))
                             }
                             .frame(maxWidth: .infinity)
@@ -117,7 +117,7 @@ struct PhoneTitle: View {
                                 Image(systemName: "tv").frame(width: 20)
                             }
                             .buttonStyle(SecondaryCapsuleStyle(height: 44, fontSize: 15))
-                            .accessibilityLabel("Play on TV")
+                            .accessibilityLabel(L.tvPlayOn)
                         }
                     }
 
@@ -166,7 +166,7 @@ struct PhoneTitle: View {
                         let cards = entry.relatedCards(excluding: family.picked)
                         if !cards.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Related").font(.ui(15)).foregroundStyle(.haze)
+                                Text(L.titleRelated).font(.ui(15)).foregroundStyle(.haze)
                                     .accessibilityAddTraits(.isHeader)
                                 ScrollView(.horizontal) {
                                     HStack(spacing: 4) {
@@ -182,13 +182,13 @@ struct PhoneTitle: View {
                         }
                     } else if !family.related.isEmpty {
                         HStack(spacing: 8) {
-                            Text("Related").font(.ui(13)).foregroundStyle(.haze)
+                            Text(L.titleRelated).font(.ui(13)).foregroundStyle(.haze)
                             ForEach(family.related, id: \.id) { related in
                                 Button {
                                     navigator.openTitle(related.id)
                                 } label: {
                                     HStack(spacing: 6) {
-                                        Text(related.format?.capitalizedSentence ?? related.title)
+                                        Text(related.format.map(TitleWords.format) ?? related.title)
                                             .fontWeight(.medium)
                                             .foregroundStyle(.silk)
                                         Text(related.relation.capitalizedSentence).foregroundStyle(.haze)
@@ -262,7 +262,7 @@ struct PhoneTitle: View {
             if !season.isThis { navigator.openTitle(season.id) }
         } label: {
             HStack(spacing: 6) {
-                Text("Season \(index + 1)").fontWeight(season.isThis ? .semibold : .medium)
+                Text(L.seasonNumber(number: index + 1)).fontWeight(season.isThis ? .semibold : .medium)
                     .foregroundStyle(season.isThis ? .amber : .silk)
                 if season.isThis, let done = entry.progress?.done, let of = entry.progressOf {
                     Text("\(done) / \(of.total)").foregroundStyle(.haze)
@@ -395,7 +395,7 @@ struct PhoneEpisodeRow: View {
                 .opacity(row.completed ? 0.7 : 1)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(row.title ?? "Episode \(row.number)")
+                    Text(row.title ?? L.episodeNumberText(number: row.number))
                         .font(.ui(17))
                         .foregroundStyle(row.completed ? .haze : .silk)
                         .rowTitle()
@@ -411,7 +411,7 @@ struct PhoneEpisodeRow: View {
                         Held(value: left) { MinutesLeft(minutes: $0, size: 15) }
                     }
                 } else if let seconds = row.durationSecs {
-                    Text("\(max(1, Int((Double(seconds) / 60).rounded()))) min")
+                    Text(L.timeMinutes(minutes: max(1, Int((Double(seconds) / 60).rounded()))))
                         .font(.ui(15))
                         .foregroundStyle(.haze)
                 }
@@ -441,7 +441,7 @@ struct PhoneUnairedRow: View {
                 .frame(width: 22, alignment: .trailing)
             RoundedRectangle(cornerRadius: 6).fill(Palette.artPlaceholder).frame(width: 72, height: 40)
             VStack(alignment: .leading, spacing: 4) {
-                Text(row.title ?? "Episode \(row.number)").font(.ui(17)).foregroundStyle(.haze).rowTitle()
+                Text(row.title ?? L.episodeNumberText(number: row.number)).font(.ui(17)).foregroundStyle(.haze).rowTitle()
                 HStack(spacing: 6) {
                     Circle().fill(.water).frame(width: 6, height: 6)
                     Text(when).monospacedDigit()
@@ -453,7 +453,7 @@ struct PhoneUnairedRow: View {
         }
         .frame(minHeight: 56)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Episode \(row.number)" + (row.title.map { ", \($0)" } ?? "") + ". \(when), not out yet")
+        .accessibilityLabel(L.titleEpisodeRowUnaired(title: row.title.map { L.episodeTitledText(number: row.number, title: $0) } ?? L.episodeNumberText(number: row.number), when: when))
     }
 }
 
@@ -476,7 +476,7 @@ struct FromStartItem: View {
 extension TitleAction {
     /// The capsule's words, with no clock: "Resume episode 7", "Start episode 4".
     var short: String {
-        resume == nil ? "Start episode \(episode)" : "Resume episode \(episode)"
+        resume == nil ? L.titleButtonPlay(episode: Int(episode)) : L.shellResumeEpisode(episode: Int(episode))
     }
 }
 #endif

@@ -45,72 +45,72 @@ extension LinkedTitle {
 enum TitleWords {
     static func season(_ season: Season) -> String {
         switch season {
-        case .winter: "Winter"
-        case .spring: "Spring"
-        case .summer: "Summer"
-        case .fall: "Fall"
+        case .winter: L.seasonWinter
+        case .spring: L.seasonSpring
+        case .summer: L.seasonSummer
+        case .fall: L.seasonAutumn
         }
     }
 
     /// What a title was adapted from, or `nil` for Other and none, which are left out.
     static func source(_ source: SourceMaterial) -> String? {
         switch source {
-        case .original: "Original story"
-        case .manga: "Manga"
-        case .lightNovel: "Light novel"
-        case .webNovel: "Web novel"
-        case .visualNovel: "Visual novel"
-        case .videoGame: "Video game"
-        case .novel: "Novel"
-        case .doujinshi: "Doujinshi"
-        case .anime: "Anime"
-        case .liveAction: "Live action"
-        case .game: "Game"
-        case .comic: "Comic"
-        case .multimediaProject: "Multimedia project"
-        case .pictureBook: "Picture book"
+        case .original: L.materialOriginal
+        case .manga: L.materialManga
+        case .lightNovel: L.materialLightNovel
+        case .webNovel: L.materialWebNovel
+        case .visualNovel: L.materialVisualNovel
+        case .videoGame: L.materialVideoGame
+        case .novel: L.materialNovel
+        case .doujinshi: L.materialDoujinshi
+        case .anime: L.materialAnime
+        case .liveAction: L.materialLiveAction
+        case .game: L.materialGame
+        case .comic: L.materialComic
+        case .multimediaProject: L.materialMultimedia
+        case .pictureBook: L.materialPictureBook
         case .other: nil
         }
     }
 
     static func relation(_ relation: RelationKind) -> String {
         switch relation {
-        case .parent: "Parent story"
-        case .prequel: "Prequel"
-        case .sequel: "Sequel"
-        case .sideStory: "Side story"
-        case .spinOff: "Spin-off"
-        case .alternative: "Alternative"
-        case .summary: "Summary"
-        case .compilation: "Compilation"
-        case .contains: "Contains"
-        case .sameUniverse: "Same universe"
-        case .character: "Shares characters"
-        case .adaptation: "Adaptation"
-        case .source: "Source"
-        case .other: "Related"
+        case .parent: L.relationParent
+        case .prequel: L.relationPrequel
+        case .sequel: L.relationSequel
+        case .sideStory: L.relationSideStory
+        case .spinOff: L.relationSpinOff
+        case .alternative: L.relationAlternative
+        case .summary: L.relationSummary
+        case .compilation: L.relationCompilation
+        case .contains: L.relationContains
+        case .sameUniverse: L.relationSameUniverse
+        case .character: L.relationSharesCharacters
+        case .adaptation: L.relationAdaptation
+        case .source: L.showSettingsSource
+        case .other: L.relationOther
         }
     }
 
     /// AniList's format as a card says it: TV, TV short, Movie, Special, OVA, ONA, Music.
     static func format(_ format: String) -> String {
         switch format.uppercased() {
-        case "TV": "TV"
-        case "TV_SHORT", "TV SHORT": "TV short"
-        case "MOVIE": "Movie"
-        case "SPECIAL": "Special"
-        case "OVA": "OVA"
-        case "ONA": "ONA"
-        case "MUSIC": "Music"
+        case "TV": L.formatTv
+        case "TV_SHORT", "TV SHORT": L.formatTvShort
+        case "MOVIE": L.formatMovie
+        case "SPECIAL": L.formatSpecial
+        case "OVA": L.formatOva
+        case "ONA": L.formatOna
+        case "MUSIC": L.formatMusic
         default: format.capitalizedSentence
         }
     }
 
     static func role(_ role: CastRole) -> String {
         switch role {
-        case .main: "Main"
-        case .supporting: "Supporting"
-        case .background: "Background"
+        case .main: L.moreRoleMain
+        case .supporting: L.moreRoleSupporting
+        case .background: L.moreRoleBackground
         }
     }
 }
@@ -131,19 +131,20 @@ enum AiringState: Equatable {
 extension FuzzyDate {
     /// "20 Aug 2026", "Aug 2026" without the day, "2026" with the year alone.
     var words: String {
-        var parts: [String] = []
-        if let month, (1...12).contains(month) {
-            if let day { parts.append(String(day)) }
-            parts.append(Self.months[Int(month) - 1])
+        guard let month, (1...12).contains(month), let date = Self.date(Int(year), Int(month), day.map(Int.init) ?? 1) else {
+            return String(year)
         }
-        parts.append(String(year))
-        return parts.joined(separator: " ")
+        let style = Date.FormatStyle(locale: AirTime.locale, timeZone: Self.utc).month(.abbreviated).year()
+        return day == nil ? date.formatted(style) : date.formatted(style.day())
     }
 
     /// "20 Aug", without the year, for the start of a range within one year.
     fileprivate var dayMonth: String? {
-        guard let month, (1...12).contains(month) else { return nil }
-        return [day.map(String.init), Self.months[Int(month) - 1]].compactMap { $0 }.joined(separator: " ")
+        guard let month, (1...12).contains(month), let date = Self.date(Int(year), Int(month), day.map(Int.init) ?? 1) else {
+            return nil
+        }
+        let style = Date.FormatStyle(locale: AirTime.locale, timeZone: Self.utc).month(.abbreviated)
+        return day == nil ? date.formatted(style) : date.formatted(style.day())
     }
 
     /// The first moment it can mean, and the last: a year alone runs from its first day to its
@@ -156,14 +157,21 @@ extension FuzzyDate {
         return (first, next)
     }
 
-    private static let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    private static let utc = TimeZone(identifier: "UTC") ?? .gmt
+
+    /// A day with no time zone, so the date reads the same wherever the person is.
+    private static func date(_ year: Int, _ month: Int, _ day: Int) -> Date? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = utc
+        return calendar.date(from: DateComponents(year: year, month: month, day: day))
+    }
 }
 
 extension Entry {
     /// "Summer 2026", or "2026" with only the year.
     var seasonWords: String? {
         guard let year else { return nil }
-        return season.map { "\(TitleWords.season($0)) \(year)" } ?? String(year)
+        return season.map { L.seasonWithYear(season: TitleWords.season($0), year: String(year)) } ?? String(year)
     }
 
     var basedOn: String? {
@@ -188,9 +196,9 @@ extension Entry {
             let from = start.year == end.year ? (start.dayMonth ?? start.words) : start.words
             return TitleFact(label: L.mediaStatusAired, value: "\(from) – \(end.words)")
         case .airing:
-            return TitleFact(label: L.mediaStatusAiring, value: startDate.map { "Since \($0.words)" } ?? "Now")
+            return TitleFact(label: L.mediaStatusAiring, value: startDate.map { L.mediaAiringSince(date: $0.words) } ?? L.titleAiringNow)
         case .upcoming:
-            return startDate.map { TitleFact(label: "Airs", value: "From \($0.words)") }
+            return startDate.map { TitleFact(label: L.titleFactAirs, value: L.mediaAiringFrom(date: $0.words)) }
         case nil:
             return nil
         }
@@ -199,7 +207,7 @@ extension Entry {
     /// "Hikari Stream", or "Hikari Stream and 1 more" with more than one.
     var alsoOnFact: String? {
         guard let first = availableOn.first else { return nil }
-        return availableOn.count > 1 ? "\(first) and \(availableOn.count - 1) more" : first
+        return availableOn.count > 1 ? L.titleAlsoOnMore(first: first, count: availableOn.count - 1) : first
     }
 
     /// The top three tags by rank that give nothing away.
@@ -225,7 +233,7 @@ extension Entry {
         if let basedOn { facts.append(TitleFact(label: L.titleBasedOn, value: basedOn)) }
         if let seasonWords { facts.append(TitleFact(label: L.filterSeason, value: seasonWords)) }
         if let airing = airingFact(now: now) { facts.append(airing) }
-        if let alsoOnFact { facts.append(TitleFact(label: "Also on", value: alsoOnFact)) }
+        if let alsoOnFact { facts.append(TitleFact(label: L.titleFactAlsoOn, value: alsoOnFact)) }
         return facts
     }
 
@@ -275,10 +283,15 @@ extension Entry {
 extension Ranking {
     /// "Highest rated, Summer 2026", "Most popular, all time": what follows the rank.
     var words: String {
-        let list = kind == .rated ? "Highest rated" : "Most popular"
-        if allTime { return "\(list), all time" }
-        if let season, let year { return "\(list), \(TitleWords.season(season)) \(year)" }
-        return year.map { "\(list), \($0)" } ?? list
+        func said(_ scope: String) -> String {
+            kind == .rated ? L.rankingHighestRated(scope: scope) : L.rankingMostPopular(scope: scope)
+        }
+        if allTime { return said(L.rankingAllTime) }
+        if let season, let year {
+            return said(L.seasonWithYear(season: TitleWords.season(season), year: String(year)))
+        }
+        return year.map { said(String($0)) }
+            ?? (kind == .rated ? L.titleRankingRated : L.titleRankingPopular)
     }
 
     /// Season before year before all time; rated before popular within each.
@@ -314,12 +327,9 @@ extension CastMember {
 }
 
 enum SpoilerWords {
-    /// "Show 1 spoiler tag", "Show 3 spoiler tags", or with `shown`, "Hide spoiler tag(s)". On
-    /// the Mac in title case.
-    static func reveal(_ count: Int, shown: Bool, titleCase: Bool) -> String {
-        let tags = count == 1 ? "spoiler tag" : "spoiler tags"
-        let words = shown ? "Hide \(tags)" : "Show \(count) \(tags)"
-        return titleCase ? words.split(separator: " ").map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ") : words
+    /// "Show 1 spoiler tag", "Show 3 spoiler tags", or with `shown`, "Hide spoiler tags".
+    static func reveal(_ count: Int, shown: Bool) -> String {
+        shown ? L.moreHideSpoilerTags : L.moreShowSpoilerTags(count: count)
     }
 }
 
@@ -377,15 +387,22 @@ extension EpisodeRow {
 /// 16:30" (`AirTime`).
 enum AirsWords {
     static func airs(_ date: Date, now: Date = .now) -> String {
-        "Airs " + AirTime.words(date, now: now)
+        L.episodeRowAirs(when: AirTime.words(date, now: now))
     }
 
     /// "Aired Thursday 15 October 2026", the Mac's help tag on an aired row.
     static func aired(_ date: Date) -> String {
-        "Aired " + AirTime.day(date)
+        L.episodeAiredHelp(day: AirTime.day(date))
     }
 
     static func clock(_ date: Date) -> String {
         AirTime.clock(date)
+    }
+}
+
+/// An AniList score out of 100, written as a percentage in the person's language: "82%".
+enum Score {
+    static func text(_ score: some BinaryInteger) -> String {
+        (Double(score) / 100).formatted(.percent.precision(.fractionLength(0)).locale(AirTime.locale))
     }
 }

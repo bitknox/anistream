@@ -12,7 +12,7 @@ extension PlayerModel {
         let name = title(staged.id) ?? staged.title
         return (
             .playing(staged.id, episode: staged.episode, position: position, translation: episode?.translation),
-            L.playerTitleEpisodeLine(title: name, episode: L.playerEpisodeText(number: staged.episode))
+            L.playerTitleEpisodeLine(title: name, episode: L.episodeNumberText(number: staged.episode))
         )
     }
 

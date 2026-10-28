@@ -3753,6 +3753,18 @@
         }
       }
     },
+    "episode-aired-help" : {
+      "comment" : "Help tag on an episode row that has aired. The day is already written in full. Argument 1: day (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aired %1$@"
+          }
+        }
+      }
+    },
     "episode-airs" : {
       "comment" : "Line saying when an episode airs. The time is already worded: \"in 1h 30m\", \"Thursday 16:30\". Argument 1: episode (Int). Argument 2: when (Text).",
       "extractionState" : "manual",
@@ -4005,6 +4017,18 @@
         }
       }
     },
+    "episode-number-text" : {
+      "comment" : "Name of an episode whose number is text, because it may be \"7.5\" or \"OVA 2\". Argument 1: number (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@"
+          }
+        }
+      }
+    },
     "episode-options" : {
       "comment" : "Accessibility label of the button that opens an episode's menu.",
       "extractionState" : "manual",
@@ -4061,6 +4085,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Still hidden: spoiler protection"
+          }
+        }
+      }
+    },
+    "episode-titled-text" : {
+      "comment" : "An episode whose number is text, and its name. Argument 1: number (Text). Argument 2: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@ · %2$@"
           }
         }
       }
@@ -9357,30 +9393,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter full screen"
-          }
-        }
-      }
-    },
-    "player-episode-text" : {
-      "comment" : "Name of an episode whose number is text, because it may be \"7.5\" or \"OVA 2\". Argument 1: number (Text).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Episode %1$@"
-          }
-        }
-      }
-    },
-    "player-episode-titled-text" : {
-      "comment" : "An episode whose number is text, and its name. Argument 1: number (Text). Argument 2: title (Text).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Episode %1$@ · %2$@"
           }
         }
       }
@@ -17721,6 +17733,30 @@
         }
       }
     },
+    "title-airing-now" : {
+      "comment" : "Value of the Airing fact for a show that has begun but whose start date is unknown.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now"
+          }
+        }
+      }
+    },
+    "title-all-watched" : {
+      "comment" : "Line in the episode list of a title when the list is filtered to unwatched episodes and there are none.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every episode is watched"
+          }
+        }
+      }
+    },
     "title-also-on" : {
       "comment" : "Line on the title page and in a Continue preview: where else the show streams. The places are already joined, such as \"Lantern Stream and Hikari Stream\". Argument 1: places (Text).",
       "extractionState" : "manual",
@@ -17729,6 +17765,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Also on %1$@"
+          }
+        }
+      }
+    },
+    "title-also-on-more" : {
+      "comment" : "Value of the Also on fact when more than one place has the show. The first is already named. Argument 1: first (Text). Argument 2: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ and %2$lld more"
           }
         }
       }
@@ -17853,6 +17901,18 @@
         }
       }
     },
+    "title-episode-row-unaired" : {
+      "comment" : "VoiceOver label of an episode row that has not aired. The title is already worded, and so is when it airs. Argument 1: title (Text). Argument 2: when (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@. %2$@, not out yet"
+          }
+        }
+      }
+    },
     "title-episode-short-dubbed" : {
       "comment" : "Short episode name for a dubbed episode, in a row or a widget. Argument 1: episode (Int).",
       "extractionState" : "manual",
@@ -17877,6 +17937,18 @@
         }
       }
     },
+    "title-episodes-all" : {
+      "comment" : "Option of the episode list's filter that shows every episode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
+          }
+        }
+      }
+    },
     "title-episodes-load-failed" : {
       "comment" : "Line when the episodes could not be listed.",
       "extractionState" : "manual",
@@ -17897,6 +17969,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Episodes come from AniList. Add a source to play them."
+          }
+        }
+      }
+    },
+    "title-episodes-short" : {
+      "comment" : "Episode count on a phone's title line, such as \"24 ep\". Kept short. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld ep"
+          }
+        }
+      }
+    },
+    "title-episodes-unwatched" : {
+      "comment" : "Option of the episode list's filter that shows the episodes not yet watched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unwatched"
+          }
+        }
+      }
+    },
+    "title-fact-airs" : {
+      "comment" : "Name of the fact on the title page that says when an unaired show starts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Airs"
+          }
+        }
+      }
+    },
+    "title-fact-also-on" : {
+      "comment" : "Name of the fact on the title page that lists where else a show can be watched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also on"
           }
         }
       }
@@ -17961,6 +18081,18 @@
         }
       }
     },
+    "title-no-answer-short" : {
+      "comment" : "Line on the title page when the detail did not arrive in time. A Try again button follows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AniList did not answer."
+          }
+        }
+      }
+    },
     "title-no-episodes" : {
       "comment" : "State of a title with no episodes listed yet.",
       "extractionState" : "manual",
@@ -17997,6 +18129,18 @@
         }
       }
     },
+    "title-play-on-tv-help" : {
+      "comment" : "Help tag on the Play on TV button of the title page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play this episode on a TV with anistream"
+          }
+        }
+      }
+    },
     "title-play-trailer" : {
       "comment" : "Menu item that plays the trailer.",
       "extractionState" : "manual",
@@ -18005,6 +18149,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Play trailer"
+          }
+        }
+      }
+    },
+    "title-ranking-popular" : {
+      "comment" : "Ranking that has no period, such as \"Most popular\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Most popular"
+          }
+        }
+      }
+    },
+    "title-ranking-rated" : {
+      "comment" : "Ranking that has no period, such as \"Highest rated\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highest rated"
           }
         }
       }

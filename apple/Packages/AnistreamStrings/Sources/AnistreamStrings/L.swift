@@ -1229,16 +1229,6 @@ public enum L {
     /// Button of the Mac open panel that picks a subtitle or audio file for the player.
     public static var playerLoadPrompt: String { string("player-load-prompt", fallback: "Load") }
 
-    /// Name of an episode whose number is text, because it may be "7.5" or "OVA 2".
-    public static func playerEpisodeText(number: String) -> String {
-        Self.format("player-episode-text", fallback: "Episode %1$@", number)
-    }
-
-    /// An episode whose number is text, and its name.
-    public static func playerEpisodeTitledText(number: String, title: String) -> String {
-        Self.format("player-episode-titled-text", fallback: "Episode %1$@ · %2$@", number, title)
-    }
-
     /// Line under the show's name in the player when a title is staged: the show, then the episode.
     public static func playerTitleEpisodeLine(title: String, episode: String) -> String {
         Self.format("player-title-episode-line", fallback: "%1$@ · %2$@", title, episode)
@@ -2076,6 +2066,66 @@ public enum L {
     public static func storesLinkSendOnceAnyone(until: String) -> String {
         Self.format("stores-link-send-once-anyone", fallback: "Send this link to the person it is for. It works once, until %1$@.", until)
     }
+
+    /// Name of the fact on the title page that lists where else a show can be watched.
+    public static var titleFactAlsoOn: String { string("title-fact-also-on", fallback: "Also on") }
+
+    /// Value of the Also on fact when more than one place has the show. The first is already named.
+    public static func titleAlsoOnMore(first: String, count: Int) -> String {
+        Self.format("title-also-on-more", fallback: "%1$@ and %2$lld more", first, count)
+    }
+
+    /// Value of the Airing fact for a show that has begun but whose start date is unknown.
+    public static var titleAiringNow: String { string("title-airing-now", fallback: "Now") }
+
+    /// Help tag on an episode row that has aired. The day is already written in full.
+    public static func episodeAiredHelp(day: String) -> String {
+        Self.format("episode-aired-help", fallback: "Aired %1$@", day)
+    }
+
+    /// Name of the fact on the title page that says when an unaired show starts.
+    public static var titleFactAirs: String { string("title-fact-airs", fallback: "Airs") }
+
+    /// Ranking that has no period, such as "Highest rated".
+    public static var titleRankingRated: String { string("title-ranking-rated", fallback: "Highest rated") }
+
+    /// Ranking that has no period, such as "Most popular".
+    public static var titleRankingPopular: String { string("title-ranking-popular", fallback: "Most popular") }
+
+    /// Name of an episode whose number is text, because it may be "7.5" or "OVA 2".
+    public static func episodeNumberText(number: String) -> String {
+        Self.format("episode-number-text", fallback: "Episode %1$@", number)
+    }
+
+    /// An episode whose number is text, and its name.
+    public static func episodeTitledText(number: String, title: String) -> String {
+        Self.format("episode-titled-text", fallback: "Episode %1$@ · %2$@", number, title)
+    }
+
+    /// Help tag on the Play on TV button of the title page.
+    public static var titlePlayOnTvHelp: String { string("title-play-on-tv-help", fallback: "Play this episode on a TV with anistream") }
+
+    /// Episode count on a phone's title line, such as "24 ep". Kept short.
+    public static func titleEpisodesShort(count: Int) -> String {
+        Self.format("title-episodes-short", fallback: "%1$lld ep", count)
+    }
+
+    /// VoiceOver label of an episode row that has not aired. The title is already worded, and so is when it airs.
+    public static func titleEpisodeRowUnaired(title: String, when: String) -> String {
+        Self.format("title-episode-row-unaired", fallback: "%1$@. %2$@, not out yet", title, when)
+    }
+
+    /// Line in the episode list of a title when the list is filtered to unwatched episodes and there are none.
+    public static var titleAllWatched: String { string("title-all-watched", fallback: "Every episode is watched") }
+
+    /// Line on the title page when the detail did not arrive in time. A Try again button follows.
+    public static var titleNoAnswerShort: String { string("title-no-answer-short", fallback: "AniList did not answer.") }
+
+    /// Option of the episode list's filter that shows every episode.
+    public static var titleEpisodesAll: String { string("title-episodes-all", fallback: "All") }
+
+    /// Option of the episode list's filter that shows the episodes not yet watched.
+    public static var titleEpisodesUnwatched: String { string("title-episodes-unwatched", fallback: "Unwatched") }
 
     /// Mac menu bar item. Title Case, as Apple's guidelines ask for the menu bar only.
     public static var menuShowLibrary: String { string("menu-show-library", fallback: "Show Library") }

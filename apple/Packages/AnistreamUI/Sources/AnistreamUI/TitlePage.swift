@@ -51,26 +51,21 @@ struct TitleAction: Equatable {
     /// Whether there is an episode to play: never one still to air, which nothing could find.
     var playable: Bool { airing.hasAired && !unsourced }
 
-    /// "Resume Episode 7 · 10:06", "Start Episode 4": title case, as a Mac button says it. With
-    /// the episode still to air, the status in the button's place: "Airs Saturday 18:30".
+    /// "Resume episode 7 · 10:06", "Play episode 4". With the episode still to air, the status in
+    /// the button's place: "Episode 10 airs Thursday 16:30".
     var title: String {
-        if let resume { return "Resume Episode \(episode) · \(resume.clock)" }
+        if let resume { return L.titleButtonResume(episode: Int(episode), time: resume.clock) }
         if unsourced { return L.episodeUnsourced }
         if !playable { return airsLine }
-        return "Start Episode \(episode)"
+        return L.titleButtonPlay(episode: Int(episode))
     }
 
-    /// The same in sentence case, as iPhone says it: "Resume episode 7 · 10:06".
-    var sentence: String {
-        if let resume { return "Resume episode \(episode) · \(resume.clock)" }
-        if unsourced { return L.episodeUnsourced }
-        if !playable { return airsLine }
-        return "Start episode \(episode)"
-    }
+    /// The same words; iPhone and the Mac no longer differ in case.
+    var sentence: String { title }
 
     /// "Episode 10 airs Thursday 16:30", or "Episode 10 is not out yet" when nothing dates it.
     private var airsLine: String {
-        "Episode \(episode) " + (airing.airs().map { "airs \($0)" } ?? "is not out yet")
+        airing.airs().map { L.episodeAirs(episode: Int(episode), when: $0) } ?? L.episodeNotOut(episode: Int(episode))
     }
 }
 
@@ -301,10 +296,10 @@ struct TitleHero: View {
                         Button {
                             store.playOnTV(entry.id, episode: String(action.episode), from: action.resume?.position)
                         } label: {
-                            Label("Play on TV", systemImage: "tv")
+                            Label(L.tvPlayOn, systemImage: "tv")
                         }
                         .buttonStyle(SecondaryCapsuleStyle(height: Self.pad ? 48 : 28, fontSize: Self.pad ? 17 : 13))
-                        .help("Play this episode on a TV with anistream")
+                        .help(L.titlePlayOnTvHelp)
                     }
                     #if os(iOS)
                     // The list's menu, in the header where a narrow window's bar has no room.
@@ -312,7 +307,7 @@ struct TitleHero: View {
                         StatusItems(id: entry.id)
                     } label: {
                         HStack(spacing: 8) {
-                            Text(entry.listStatus.map { $0.label.capitalizedSentence } ?? "Add to list")
+                            Text(entry.listStatus.map { $0.label.capitalizedSentence } ?? L.libraryAddToList)
                             Image(systemName: "chevron.up.chevron.down").font(.ui(13, weight: .semibold))
                         }
                     }
@@ -334,7 +329,7 @@ extension Entry {
     /// The page's metadata line: format, episodes, year, studio and score.
     var titleMetadata: String {
         var line = metadataLine
-        if let score { line += (line.isEmpty ? "" : " · ") + "\(score)%" }
+        if let score { line += (line.isEmpty ? "" : " · ") + Score.text(score) }
         return line
     }
 
@@ -343,9 +338,9 @@ extension Entry {
     var phoneMetadata: String {
         var parts: [String] = adult ? ["18+"] : []
         if let format { parts.append(TitleWords.format(format)) }
-        if let episodes, episodes > 0, format != "MOVIE" { parts.append("\(episodes) ep") }
+        if let episodes, episodes > 0, format != "MOVIE" { parts.append(L.titleEpisodesShort(count: Int(episodes))) }
         if let seasonWords { parts.append(seasonWords) }
-        if let score { parts.append("\(score)%") }
+        if let score { parts.append(Score.text(score)) }
         return parts.joined(separator: " · ")
     }
 
@@ -487,7 +482,7 @@ struct TitleFamilyRow: View {
     private func seasonCell(_ index: Int, _ season: TitleFamily.Season) -> some View {
         familyCell(
             id: season.id,
-            name: "Season \(index + 1)",
+            name: L.seasonNumber(number: index + 1),
             detail: seasonDetail(season),
             fraction: season.id == entry.id ? entry.watchedFraction : nil,
             selected: season.isThis
@@ -499,7 +494,7 @@ struct TitleFamilyRow: View {
             let cards = entry.relatedCards(excluding: family.picked)
             if !cards.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Related").groupHeaderStyle().padding(.horizontal, 4)
+                    Text(L.titleRelated).groupHeaderStyle().padding(.horizontal, 4)
                         .accessibilityAddTraits(.isHeader)
                     // A row that scrolls sideways, its last card cut by the edge to say so.
                     ScrollView(.horizontal) {
@@ -516,14 +511,14 @@ struct TitleFamilyRow: View {
             }
         } else if !family.related.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Related").groupHeaderStyle().padding(.horizontal, 4)
+                Text(L.titleRelated).groupHeaderStyle().padding(.horizontal, 4)
                     .accessibilityAddTraits(.isHeader)
                 HStack(spacing: 8) {
                     ForEach(family.related, id: \.id) { related in
                         familyCell(
                             id: related.id,
                             name: related.title,
-                            detail: [related.format?.capitalizedSentence, related.relation.capitalizedSentence]
+                            detail: [related.format.map(TitleWords.format), related.relation.capitalizedSentence]
                                 .compactMap { $0 }.joined(separator: " · "),
                             fraction: nil,
                             selected: false
@@ -541,9 +536,9 @@ struct TitleFamilyRow: View {
         if let known = store.titles[season.id], let words = known.seasonWords { return words }
         // The page's own card dates a season the app has not loaded: "Spring 2027".
         if let linked = card(season.id), let year = linked.year {
-            return linked.season.map { "\(TitleWords.season($0)) \(year)" } ?? String(year)
+            return linked.season.map { L.seasonWithYear(season: TitleWords.season($0), year: String(year)) } ?? String(year)
         }
-        return season.isThis ? "This season" : "TV"
+        return season.isThis ? L.continueThisSeason : L.formatTv
     }
 
     private func familyCell(
@@ -639,7 +634,7 @@ struct EpisodeList: View {
         let rows = episodeRows
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
-                Text("Episodes")
+                Text(L.titleEpisodes)
                     .font(.mac(15, weight: .semibold))
                     .foregroundStyle(.silk)
                     .accessibilityAddTraits(.isHeader)
@@ -652,7 +647,7 @@ struct EpisodeList: View {
                         .transition(.opacity.animation(.fadeIn))
                 }
                 Spacer()
-                SegmentedCapsule(selection: $unwatchedOnly, options: [(false, "All"), (true, "Unwatched")])
+                SegmentedCapsule(selection: $unwatchedOnly, options: [(false, L.titleEpisodesAll), (true, L.titleEpisodesUnwatched)])
             }
             .frame(height: 28)
             .padding(.bottom, 6)
@@ -665,7 +660,7 @@ struct EpisodeList: View {
                     if loaded {
                         VStack(alignment: .leading, spacing: 0) {
                             if rows.isEmpty {
-                                QuietLine(unwatchedOnly ? "Every episode is watched" : "No episodes yet")
+                                QuietLine(unwatchedOnly ? L.titleAllWatched : L.titleNoEpisodes)
                             }
                             // The watched run folds away above the last episode watched; Unwatched
                             // has none.
@@ -777,7 +772,7 @@ struct EpisodeRowView: View {
             .opacity(row.completed ? 0.7 : 1)
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(row.title ?? "Episode \(row.number)")
+                    Text(row.title ?? L.episodeNumberText(number: row.number))
                         .foregroundStyle(row.completed ? .haze : .silk)
                         .lineLimit(1)
                         .animation(.quick, value: row.completed)
@@ -811,7 +806,7 @@ struct EpisodeRowView: View {
             let left = max(1, Int(((resume.position / fraction - resume.position) / 60).rounded()))
             Held(value: left) { MinutesLeft(minutes: $0) }
         } else if let seconds = row.durationSecs {
-            Text("\(max(1, Int((Double(seconds) / 60).rounded()))) min").foregroundStyle(.haze)
+            Text(L.timeMinutes(minutes: max(1, Int((Double(seconds) / 60).rounded())))).foregroundStyle(.haze)
         }
     }
 }
@@ -823,7 +818,7 @@ struct UnairedEpisodeRow: View {
     let airs: Date
 
     var body: some View {
-        let title = row.title ?? "Episode \(row.number)"
+        let title = row.title ?? L.episodeNumberText(number: row.number)
         let when = AirsWords.airs(airs)
         HStack(spacing: 14) {
             Text(row.number)
@@ -844,7 +839,7 @@ struct UnairedEpisodeRow: View {
         .padding(.horizontal, 8)
         .frame(height: 44)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Episode \(row.number)" + (row.title.map { ", \($0)" } ?? "") + ". \(when), not out yet")
+        .accessibilityLabel(L.titleEpisodeRowUnaired(title: row.title.map { L.episodeTitledText(number: row.number, title: $0) } ?? L.episodeNumberText(number: row.number), when: when))
     }
 }
 
@@ -898,9 +893,9 @@ struct EpisodePlaceholderRow: View {
         HStack(spacing: 14) {
             Text("7").frame(width: 22, alignment: .trailing)
             RoundedRectangle(cornerRadius: 6).fill(.raised).frame(width: 64, height: 36)
-            Text("The Lantern Road")
+            Text("The Lantern Road") // i18n-skip
             Spacer()
-            Text("24 min")
+            Text("24 min") // i18n-skip
         }
         .font(.mac(13))
         .foregroundStyle(.haze)
@@ -959,7 +954,7 @@ struct TitleToolbar: ToolbarContent {
             Menu {
                 StatusItems(id: id)
             } label: {
-                Text(store.titles[id]?.listStatus.map { $0.label.capitalizedSentence } ?? "Add to List")
+                Text(store.titles[id]?.listStatus.map { $0.label.capitalizedSentence } ?? L.libraryAddToList)
             }
             .fixedSize()
         }
