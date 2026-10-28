@@ -133,7 +133,7 @@ pub struct Pad {
     last_input: Cell<Option<Instant>>,
     /// When controller mode began, so the pointer's first move after it is not its end.
     entered: Cell<Option<Instant>>,
-    pointer: Cell<(f64, f64)>,
+    pointer: Cell<Option<(f64, f64)>>,
     /// Speed before the right trigger doubled it.
     held_speed: Cell<Option<f64>>,
 }
@@ -157,7 +157,7 @@ impl Pad {
             view: RefCell::default(),
             last_input: Cell::new(None),
             entered: Cell::new(None),
-            pointer: Cell::new((0.0, 0.0)),
+            pointer: Cell::new(None),
             held_speed: Cell::new(None),
         });
         pad.watch_window();
@@ -211,7 +211,8 @@ impl Pad {
         let weak = Rc::downgrade(self);
         motion.connect_motion(move |_, x, y| {
             let Some(pad) = weak.upgrade() else { return };
-            let (px, py) = pad.pointer.replace((x, y));
+            // The first motion only says where the pointer is.
+            let Some((px, py)) = pad.pointer.replace(Some((x, y))) else { return };
             let moved = (x - px).abs() + (y - py).abs() > 2.0;
             let settled = pad.entered.get().is_none_or(|at| at.elapsed() > Duration::from_millis(250));
             if moved && settled {
@@ -256,10 +257,14 @@ impl Pad {
         let window = &self.ctx.window;
         window.set_focus_visible(true);
         window.set_cursor_from_name(Some("none"));
-        // Something has to be focused for the first press to move from.
-        let nothing = GtkWindowExt::focus(window).is_none_or(|w| w.is::<gtk::Window>());
-        if nothing {
-            self.first_focus();
+        // The first press shows the ring where focus belongs: on the page's first control, not on
+        // the sidebar row the window starts with.
+        let in_page = GtkWindowExt::focus(window).is_some_and(|w| {
+            !w.is::<gtk::Window>()
+                && self.ctx.split.sidebar().is_none_or(|s| w != s && !w.is_ancestor(&s))
+        });
+        if !in_page {
+            focus::first(&self.ctx);
         }
     }
 
@@ -330,7 +335,7 @@ impl Pad {
 
     fn hat(self: &Rc<Self>, axis: u8, value: i8) {
         // Hat 0 is the D-pad: x is the even axis, y the odd.
-        let (negative, positive) = if axis % 2 == 0 {
+        let (negative, positive) = if axis.is_multiple_of(2) {
             (PadButton::DpadLeft, PadButton::DpadRight)
         } else {
             (PadButton::DpadUp, PadButton::DpadDown)
@@ -379,7 +384,12 @@ impl Pad {
     /// A direction pressed or released, with focus to move.
     fn direction(self: &Rc<Self>, direction: Direction, pressed: bool) {
         if pressed {
+            let was = self.in_controller_mode();
             self.enter();
+            if !was {
+                // The press that woke the controller only shows where focus is.
+                return;
+            }
             self.start_repeat(direction);
         } else {
             self.end_repeat(direction);
@@ -646,13 +656,11 @@ impl Pad {
 }
 
 /// For the shots: a controller that presses what it is told, for the screens it drives.
-#[cfg(feature = "fixtures")]
+#[allow(dead_code)]
 impl Pad {
     pub fn shot_press(self: &Rc<Self>, button: PadButton) {
         self.button(button, true);
         self.button(button, false);
-        let focus = GtkWindowExt::focus(&self.ctx.window);
-        tracing::warn!(?button, focus = ?focus.map(|f| (f.type_().name().to_owned(), f.widget_name().to_string(), f.css_classes())), "PADDEBUG");
     }
 
     pub fn shot_enter(&self) {

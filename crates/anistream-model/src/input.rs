@@ -386,7 +386,10 @@ mod tests {
             hidden(PadButton::DpadLeft),
             Some(PadAction::Player(PlayerCommand::Seek(-10.0)))
         );
-        assert_eq!(hidden(PadButton::DpadRight), Some(PadAction::Player(PlayerCommand::Seek(10.0))));
+        assert_eq!(
+            hidden(PadButton::DpadRight),
+            Some(PadAction::Player(PlayerCommand::Seek(10.0)))
+        );
         assert_eq!(hidden(PadButton::DpadUp), Some(PadAction::Reveal(PlayerFocus::SeekLine)));
         assert_eq!(hidden(PadButton::DpadDown), Some(PadAction::Reveal(PlayerFocus::Episodes)));
         assert_eq!(
@@ -449,7 +452,8 @@ mod tests {
 
     #[test]
     fn swapped_face_buttons_answer_a_card_too() {
-        let context = PadContext::Player { controls_shown: false, card: Some(PlayerCard::UpNext) };
+        let context =
+            PadContext::Player { controls_shown: false, card: Some(PlayerCard::UpNext) };
         assert_eq!(
             pad_action(PadButton::East, true, &context, true),
             Some(PadAction::Player(PlayerCommand::PlayNext))

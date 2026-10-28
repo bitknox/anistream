@@ -36,39 +36,133 @@ fn in_sidebar(ctx: &Ctx, widget: &gtk::Widget) -> bool {
     ctx.split.sidebar().is_some_and(|sidebar| within(widget, &sidebar))
 }
 
+/// Widgets that hold focusable children and are no stop of their own.
+fn is_container(widget: &gtk::Widget) -> bool {
+    widget.is::<gtk::ListBox>()
+        || widget.is::<gtk::GridView>()
+        || widget.is::<gtk::ListView>()
+        || widget.is::<gtk::FlowBox>()
+        || widget.is::<gtk::ScrolledWindow>()
+        || widget.is::<gtk::Viewport>()
+        || widget.is::<gtk::Window>()
+        || widget.is::<gtk::Popover>()
+}
+
+fn stops(root: &gtk::Widget, out: &mut Vec<gtk::Widget>) {
+    let mut child = root.first_child();
+    while let Some(widget) = child {
+        if widget.is_visible() && widget.is_child_visible() {
+            if widget.is_focusable()
+                && widget.is_sensitive()
+                && widget.is_mapped()
+                && widget.can_target()
+                && !is_container(&widget)
+            {
+                out.push(widget.clone());
+            }
+            stops(&widget, out);
+        }
+        child = widget.next_sibling();
+    }
+}
+
+/// The stop nearest `from` in `direction`: strictly beyond it along that axis, and among those
+/// the one with the least gap, with a pull towards the one most in line. Rows and the controls
+/// inside them are both stops; the gap prefers the row beside, not the control within.
+fn nearest(
+    root: &gtk::Widget,
+    from: &gtk::Widget,
+    direction: Direction,
+) -> Option<gtk::Widget> {
+    let origin = from.compute_bounds(root)?;
+    let mut all = Vec::new();
+    stops(root, &mut all);
+    let (cx, cy) = (origin.x() + origin.width() / 2.0, origin.y() + origin.height() / 2.0);
+    all.into_iter()
+        .filter(|w| w != from && !from.is_ancestor(w) && !w.is_ancestor(from))
+        .filter_map(|w| {
+            let b = w.compute_bounds(root)?;
+            let (gap, off) = match direction {
+                Direction::Down => (b.y() - (origin.y() + origin.height()), (b.x() + b.width() / 2.0 - cx).abs()),
+                Direction::Up => (origin.y() - (b.y() + b.height()), (b.x() + b.width() / 2.0 - cx).abs()),
+                Direction::Right => (b.x() - (origin.x() + origin.width()), (b.y() + b.height() / 2.0 - cy).abs()),
+                Direction::Left => (origin.x() - (b.x() + b.width()), (b.y() + b.height() / 2.0 - cy).abs()),
+            };
+            (gap >= -2.0).then(|| (gap.max(0.0) + 2.0 * off, w))
+        })
+        .min_by(|a, b| a.0.total_cmp(&b.0))
+        .map(|(_, w)| w)
+}
+
 /// Move focus one step. Within a popover or dialog the move stays there; between the sidebar
 /// and the page it crosses only at an edge, to the sidebar's current row and back to where the
 /// page last had focus. Nothing wraps.
 pub fn step(ctx: &Ctx, direction: Direction) {
     let window = &ctx.window;
-    let before = GtkWindowExt::focus(window);
-    let kind = match direction {
-        Direction::Up => gtk::DirectionType::Up,
-        Direction::Down => gtk::DirectionType::Down,
-        Direction::Left => gtk::DirectionType::Left,
-        Direction::Right => gtk::DirectionType::Right,
+    let Some(before) = GtkWindowExt::focus(window) else {
+        first(ctx);
+        return;
     };
-    let overlay =
-        before.as_ref().and_then(|w| w.ancestor(gtk::Popover::static_type()));
-    let from_sidebar = before.as_ref().is_some_and(|w| in_sidebar(ctx, w));
+    let overlay = before.ancestor(gtk::Popover::static_type());
+    let from_sidebar = in_sidebar(ctx, &before);
     if from_sidebar && direction == Direction::Right {
         if !restore_content_focus(ctx) {
             first(ctx);
         }
         return;
     }
-    let root: gtk::Widget = overlay.clone().unwrap_or_else(|| window.clone().upcast());
-    let moved = root.child_focus(kind);
-    tracing::warn!(moved, root = ?root.type_().name(), "PADDEBUG step");
-    let after = GtkWindowExt::focus(window);
-    if overlay.is_none() && !from_sidebar && direction == Direction::Left {
-        let landed_in_sidebar = moved && after.as_ref().is_some_and(|w| in_sidebar(ctx, w));
-        // A page whose leftmost item has nothing beside it opens the sidebar that a narrow
-        // window keeps away.
-        if landed_in_sidebar || !moved {
-            focus_current_row(ctx);
+    let root: gtk::Widget = overlay.clone().unwrap_or_else(|| match window.visible_dialog() {
+        Some(dialog) => dialog.upcast(),
+        None => window.clone().upcast(),
+    });
+    // Within the page, the sidebar is another place, reached only by its own edge.
+    let mut moved = nearest(&root, &before, direction);
+    if let Some(target) = &moved
+        && overlay.is_none()
+        && !from_sidebar
+        && in_sidebar(ctx, target)
+    {
+        moved = None;
+    }
+    match moved {
+        Some(target) => {
+            target.grab_focus();
+        }
+        None => {
+            if overlay.is_none() && !from_sidebar && direction == Direction::Left {
+                // A page whose leftmost item has nothing beside it goes to the sidebar, which a
+                // narrow window keeps away until now.
+                focus_current_row(ctx);
+            } else if matches!(direction, Direction::Up | Direction::Down) {
+                scroll_more(ctx, &before, direction);
+            }
         }
     }
+}
+
+/// Nothing further in view: a long grid or list scrolls a little and looks again, as its
+/// unseen items are not built yet.
+fn scroll_more(ctx: &Ctx, from: &gtk::Widget, direction: Direction) {
+    let Some(scrolled) = from.ancestor(gtk::ScrolledWindow::static_type()) else { return };
+    let Ok(scrolled) = scrolled.downcast::<gtk::ScrolledWindow>() else { return };
+    let adjustment = scrolled.vadjustment();
+    let bottom = (adjustment.upper() - adjustment.page_size()).max(adjustment.lower());
+    let by = adjustment.page_size() * 0.5 * if direction == Direction::Down { 1.0 } else { -1.0 };
+    let value = (adjustment.value() + by).clamp(adjustment.lower(), bottom);
+    if (value - adjustment.value()).abs() < 1.0 {
+        return;
+    }
+    adjustment.set_value(value);
+    let window = ctx.window.clone();
+    let from = from.clone();
+    glib::timeout_add_local_once(Duration::from_millis(80), move || {
+        if GtkWindowExt::focus(&window).as_ref() != Some(&from) {
+            return;
+        }
+        if let Some(target) = nearest(window.upcast_ref(), &from, direction) {
+            target.grab_focus();
+        }
+    });
 }
 
 fn restore_content_focus(ctx: &Ctx) -> bool {
@@ -128,11 +222,11 @@ pub fn open_keyboard() {
 /// B on a popover, menu or dialog closes it. Whether there was one.
 pub fn close_overlay(window: &adw::ApplicationWindow) -> bool {
     let Some(focus) = GtkWindowExt::focus(window) else { return false };
-    if let Some(popover) = focus.ancestor(gtk::Popover::static_type()) {
-        if let Ok(popover) = popover.downcast::<gtk::Popover>() {
-            popover.popdown();
-            return true;
-        }
+    if let Some(popover) = focus.ancestor(gtk::Popover::static_type())
+        && let Ok(popover) = popover.downcast::<gtk::Popover>()
+    {
+        popover.popdown();
+        return true;
     }
     if let Some(dialog) = focus.ancestor(adw::Dialog::static_type())
         && let Ok(dialog) = dialog.downcast::<adw::Dialog>()
@@ -207,7 +301,7 @@ pub fn first(ctx: &Ctx) {
         find(&page, &|w| {
             w.is_focusable()
                 && w.is_sensitive()
-                && !w.is::<gtk::Window>()
+                && !is_container(w)
                 && w.ancestor(adw::HeaderBar::static_type()).is_none()
                 && w.ancestor(gtk::HeaderBar::static_type()).is_none()
         })
