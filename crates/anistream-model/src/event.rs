@@ -7,6 +7,7 @@ use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 use crate::{
     Msg,
     catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired, TitleLanguage},
+    discussion::DiscussionView,
     downloads::{DownloadRow, SeedRow},
     episodes::{DubExtent, EpisodeRow},
     hosted::{PlayerOp, PlayerStats, PlayerUi},
@@ -410,6 +411,21 @@ pub enum Event {
     /// which titles came back. The list renders immediately without it and gains the line when
     /// it lands, rather than the whole screen waiting on an embellishment.
     LastAired(Vec<TitleAired>),
+    /// An episode has a discussion on AniList: said once the engine knows, after the episode
+    /// counts as watched, never before. The episode's row offers Discussion and the quiet
+    /// "Discussion · 214 comments" line under it. Nothing is said for an episode with none.
+    DiscussionFound {
+        media: AnilistId,
+        episode: u32,
+        /// Every comment in the thread, replies included.
+        comments: u32,
+    },
+    /// The discussion [`Command::OpenDiscussion`] opened, whole, on every change until
+    /// [`Command::CloseDiscussion`].
+    ///
+    /// [`Command::OpenDiscussion`]: crate::command::Command::OpenDiscussion
+    /// [`Command::CloseDiscussion`]: crate::command::Command::CloseDiscussion
+    Discussion(DiscussionView),
     /// Every joined plugin store, replacing whatever was there.
     Stores(Vec<StoreRow>),
     /// What a pasted invite link leads to, or why it leads nowhere.

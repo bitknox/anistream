@@ -493,6 +493,12 @@ settings-label-mpv-options = mpv options
 # Settings row: whether titles marked adult are shown.
 settings-label-adult-titles = Adult titles
 
+# Settings row: whether an episode's AniList forum thread is looked up and opened in the app.
+settings-label-episode-discussions = Episode discussions
+
+# Settings row: whether images in discussion comments load inline.
+settings-label-comment-images = Load images in comments
+
 ## Settings: the note under the selected row
 
 # Note under the titles row.

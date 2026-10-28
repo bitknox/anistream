@@ -808,6 +808,8 @@ pub fn name(update: &Event) -> &'static str {
         Event::Seeding(_) => "Seeding",
         Event::DeviceCode(_) => "DeviceCode",
         Event::LastAired(_) => "LastAired",
+        Event::DiscussionFound { .. } => "DiscussionFound",
+        Event::Discussion(_) => "Discussion",
         Event::Stores(_) => "Stores",
         Event::StorePreview(_) => "StorePreview",
         Event::StoreJoined { .. } => "StoreJoined",
@@ -990,6 +992,10 @@ fn copy(update: &Event) -> Event {
         Event::Seeding(rows) => Event::Seeding(rows.clone()),
         Event::DeviceCode(prompt) => Event::DeviceCode(prompt.clone()),
         Event::LastAired(rows) => Event::LastAired(rows.clone()),
+        Event::DiscussionFound { media, episode, comments } => {
+            Event::DiscussionFound { media: *media, episode: *episode, comments: *comments }
+        }
+        Event::Discussion(view) => Event::Discussion(view.clone()),
         Event::Stores(rows) => Event::Stores(rows.clone()),
         Event::StorePreview(preview) => Event::StorePreview(preview.clone()),
         Event::StoreJoined { store } => Event::StoreJoined { store: store.clone() },

@@ -35,6 +35,42 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DiscussionAgeNow" xml:space="preserve">
+    <value>now</value>
+    <comment>A comment's age, beside its author, when it was written under a minute ago.</comment>
+  </data>
+  <data name="DiscussionAgeMinutes" xml:space="preserve">
+    <value>{minutes} min</value>
+    <comment>A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeHours" xml:space="preserve">
+    <value>{hours} h</value>
+    <comment>A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeDays" xml:space="preserve">
+    <value>{days} d</value>
+    <comment>A comment's age, beside its author, in days. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeWeeks" xml:space="preserve">
+    <value>{weeks} w</value>
+    <comment>A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeYears" xml:space="preserve">
+    <value>{years} y</value>
+    <comment>A comment's age, beside its author, in years. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="NoticeCommentLikeFailed" xml:space="preserve">
+    <value>Couldn't like the comment. Try again.</value>
+    <comment>Toast when a like on a comment did not reach AniList. The like is taken back.</comment>
+  </data>
+  <data name="NoticeCommentDeleteFailed" xml:space="preserve">
+    <value>Couldn't delete the comment. Try again.</value>
+    <comment>Toast when a comment could not be deleted on AniList. The comment stays.</comment>
+  </data>
+  <data name="NoticeDiscussionSignIn" xml:space="preserve">
+    <value>Sign in with AniList to like and reply.</value>
+    <comment>Toast when the viewer tried to like or post in a discussion without signing in to AniList.</comment>
+  </data>
   <data name="NoticeReason" xml:space="preserve">
     <value>{reason}</value>
     <comment>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</comment>

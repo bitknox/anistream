@@ -5,6 +5,51 @@
 
 use crate::{Arg, text};
 
+/// A comment's age, beside its author, when it was written under a minute ago.
+pub fn discussion_age_now() -> String {
+    text("discussion-age-now", &[])
+}
+
+/// A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.
+pub fn discussion_age_minutes(minutes: i64) -> String {
+    text("discussion-age-minutes", &[("minutes", Arg::Int(minutes))])
+}
+
+/// A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it.
+pub fn discussion_age_hours(hours: i64) -> String {
+    text("discussion-age-hours", &[("hours", Arg::Int(hours))])
+}
+
+/// A comment's age, beside its author, in days. Abbreviated, as a timeline shows it.
+pub fn discussion_age_days(days: i64) -> String {
+    text("discussion-age-days", &[("days", Arg::Int(days))])
+}
+
+/// A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it.
+pub fn discussion_age_weeks(weeks: i64) -> String {
+    text("discussion-age-weeks", &[("weeks", Arg::Int(weeks))])
+}
+
+/// A comment's age, beside its author, in years. Abbreviated, as a timeline shows it.
+pub fn discussion_age_years(years: i64) -> String {
+    text("discussion-age-years", &[("years", Arg::Int(years))])
+}
+
+/// Toast when a like on a comment did not reach AniList. The like is taken back.
+pub fn notice_comment_like_failed() -> String {
+    text("notice-comment-like-failed", &[])
+}
+
+/// Toast when a comment could not be deleted on AniList. The comment stays.
+pub fn notice_comment_delete_failed() -> String {
+    text("notice-comment-delete-failed", &[])
+}
+
+/// Toast when the viewer tried to like or post in a discussion without signing in to AniList.
+pub fn notice_discussion_sign_in() -> String {
+    text("notice-discussion-sign-in", &[])
+}
+
 /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
 pub fn notice_reason(reason: &str) -> String {
     text("notice-reason", &[("reason", Arg::Text(reason))])
@@ -3913,6 +3958,16 @@ pub fn settings_label_mpv_options() -> String {
 /// Settings row: whether titles marked adult are shown.
 pub fn settings_label_adult_titles() -> String {
     text("settings-label-adult-titles", &[])
+}
+
+/// Settings row: whether an episode's AniList forum thread is looked up and opened in the app.
+pub fn settings_label_episode_discussions() -> String {
+    text("settings-label-episode-discussions", &[])
+}
+
+/// Settings row: whether images in discussion comments load inline.
+pub fn settings_label_comment_images() -> String {
+    text("settings-label-comment-images", &[])
 }
 
 /// Note under the titles row.

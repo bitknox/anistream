@@ -5,6 +5,43 @@ import Foundation
 
 /// Every string the apps show, by catalogue id. A missing translation falls back to English per string.
 public enum L {
+    /// A comment's age, beside its author, when it was written under a minute ago.
+    public static var discussionAgeNow: String { string("discussion-age-now", fallback: "now") }
+
+    /// A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.
+    public static func discussionAgeMinutes(minutes: Int) -> String {
+        Self.format("discussion-age-minutes", fallback: "%1$lld min", minutes)
+    }
+
+    /// A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it.
+    public static func discussionAgeHours(hours: Int) -> String {
+        Self.format("discussion-age-hours", fallback: "%1$lld h", hours)
+    }
+
+    /// A comment's age, beside its author, in days. Abbreviated, as a timeline shows it.
+    public static func discussionAgeDays(days: Int) -> String {
+        Self.format("discussion-age-days", fallback: "%1$lld d", days)
+    }
+
+    /// A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it.
+    public static func discussionAgeWeeks(weeks: Int) -> String {
+        Self.format("discussion-age-weeks", fallback: "%1$lld w", weeks)
+    }
+
+    /// A comment's age, beside its author, in years. Abbreviated, as a timeline shows it.
+    public static func discussionAgeYears(years: Int) -> String {
+        Self.format("discussion-age-years", fallback: "%1$lld y", years)
+    }
+
+    /// Toast when a like on a comment did not reach AniList. The like is taken back.
+    public static var noticeCommentLikeFailed: String { string("notice-comment-like-failed", fallback: "Couldn't like the comment. Try again.") }
+
+    /// Toast when a comment could not be deleted on AniList. The comment stays.
+    public static var noticeCommentDeleteFailed: String { string("notice-comment-delete-failed", fallback: "Couldn't delete the comment. Try again.") }
+
+    /// Toast when the viewer tried to like or post in a discussion without signing in to AniList.
+    public static var noticeDiscussionSignIn: String { string("notice-discussion-sign-in", fallback: "Sign in with AniList to like and reply.") }
+
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     public static func noticeReason(reason: String) -> String {
         Self.format("notice-reason", fallback: "%1$@", reason)

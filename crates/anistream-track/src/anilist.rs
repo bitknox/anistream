@@ -145,6 +145,23 @@ impl AniListTracker {
         Ok(self.viewer().await.map_err(to_core)?.title_language)
     }
 
+    /// A client for the viewer's own writes outside the list, such as a discussion's replies and
+    /// likes: this tracker's token, asking against `base`'s budget, which every screen shares.
+    /// `None` while nobody is signed in.
+    pub fn acting_on(&self, base: &AniList) -> Option<AniList> {
+        self.is_authenticated().then(|| self.client.on_budget_of(base))
+    }
+
+    /// The signed-in viewer, asked once and kept: their id tells their own comments apart, and
+    /// their name signs a comment on its way. `None` while nobody is signed in, or when AniList
+    /// could not say.
+    pub async fn signed_in_viewer(&self) -> Option<Viewer> {
+        if !self.is_authenticated() {
+            return None;
+        }
+        self.viewer().await.ok()
+    }
+
     async fn viewer(&self) -> Result<Viewer, AniListError> {
         let mut cached = self.viewer.lock().await;
         if let Some(viewer) = cached.as_ref() {
