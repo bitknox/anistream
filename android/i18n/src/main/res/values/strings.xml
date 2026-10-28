@@ -874,6 +874,22 @@
     <string name="tv_sheet_footer">A TV lists this device with the code %1$s. Forget a TV here and it forgets this device too.</string>
     <!-- TV sheet, remote: the sheet's title when the TV has no name yet. -->
     <string name="tv_sheet_title_fallback">TV</string>
+    <!-- Episode row, second line: the episode's number, then a detail such as its length or air time. -->
+    <string name="episode_line_detail">E%1$d · %2$s</string>
+    <!-- Calendar, day strip: what a screen reader hears on a day. -->
+    <string name="calendar_day_label">%1$s</string>
+    <!-- Calendar, day strip: the same for today. -->
+    <string name="calendar_day_label_today">%1$s, today</string>
+    <!-- Calendar, day strip: the same for a day with episodes airing. -->
+    <string name="calendar_day_label_airing">%1$s, episodes airing</string>
+    <!-- Calendar, day strip: the same for today with episodes airing. -->
+    <string name="calendar_day_label_today_airing">%1$s, today, episodes airing</string>
+    <!-- Continue, heading link: what a screen reader hears on the Airing today heading. -->
+    <string name="continue_show_airing_in_calendar">Show airing today in Calendar</string>
+    <!-- Continue, heading link: what a screen reader hears on the This season heading. -->
+    <string name="continue_show_season_in_seasonal">Show this season in Seasonal</string>
+    <!-- Search, loading: the filters being searched when there are no words. -->
+    <string name="search_searching_filters">Searching for %1$s</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->

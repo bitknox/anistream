@@ -318,7 +318,7 @@ internal fun PluginScreen(storeId: String, pluginId: String) {
                             },
                         )
                     },
-                    { place -> InfoRow(place, "Contacts", plugin.hosts.ifEmpty { listOf("No hosts") }.joinToString("\n")) },
+                    { place -> InfoRow(place, stringResource(R.string.sources_contacts_label), plugin.hosts.ifEmpty { listOf(stringResource(R.string.sources_no_hosts)) }.joinToString("\n")) },
                 ),
             )
         }

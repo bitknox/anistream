@@ -611,9 +611,9 @@ private fun searchOverdue(status: SearchModel.Status): Boolean {
 private const val SEARCH_QUIET_MILLIS = 600L
 
 /** The search as a job, said where its results will land: Searching for “lantern”. */
-private fun SearchQuery.searchingLine(): String {
+private fun SearchQuery.searchingLine(context: Context): String {
     val words = text.trim()
-    return if (words.isEmpty()) "Searching for ${headline()}" else "Searching for “$words”"
+    return if (words.isEmpty()) Strings.searchSearchingFilters(context, headline()) else Strings.searchSearching(context, words)
 }
 
 /**
@@ -629,6 +629,7 @@ private fun SearchResults(query: SearchQuery, overdue: Boolean) {
     val status by store.search.status.collectAsStateWithLifecycle()
     val titles by store.titles.entries.collectAsStateWithLifecycle()
     val grid = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp)
+    val searching = status.asked?.searchingLine(LocalContext.current)
     val answered = state.takeIf { !overdue && (it is ListState.Loaded || it is ListState.Empty || it is ListState.Failed) }
     Loading(
         answered,
@@ -636,7 +637,7 @@ private fun SearchResults(query: SearchQuery, overdue: Boolean) {
         waited = overdue,
         placeholders = {
             PosterGrid(grid) {
-                resultsHeader(query, status.asked?.searchingLine(), status.livePaused)
+                resultsHeader(query, searching, status.livePaused)
                 items(9, contentType = { "placeholder" }) { PosterPlaceholder() }
             }
         },

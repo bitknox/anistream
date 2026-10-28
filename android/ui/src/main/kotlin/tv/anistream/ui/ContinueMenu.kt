@@ -116,8 +116,8 @@ internal fun Modifier.openOrMenu(menu: ContinueMenuActions, onMenu: () -> Unit):
     return this
         .semantics { customActions = menu.accessibility }
         .combinedClickable(
-            onClickLabel = "Open title",
-            onLongClickLabel = "More",
+            onClickLabel = stringResource(R.string.title_open),
+            onLongClickLabel = stringResource(R.string.action_more),
             onLongClick = {
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 onMenu()
@@ -134,8 +134,8 @@ internal fun Modifier.openOrMenu(menu: ContinueMenuActions, onMenu: () -> Unit):
 internal fun SwipeRow(item: ContinueItem, actions: AppActions, leave: (ContinueItem) -> Unit, content: @Composable () -> Unit) {
     val menu = continueMenuActions(item, actions, "new", hide = leave)
     Swipeable(
-        start = SwipeAction("Watched", Icons.Check, menu.markWatched),
-        end = SwipeAction("Hide", Icons.HideRow, menu.hide),
+        start = SwipeAction(stringResource(R.string.episode_watched), Icons.Check, menu.markWatched),
+        end = SwipeAction(stringResource(R.string.filter_hide), Icons.HideRow, menu.hide),
         content = content,
     )
 }

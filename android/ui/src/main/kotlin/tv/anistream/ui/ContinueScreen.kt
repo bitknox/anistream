@@ -3,6 +3,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.Strings
 import tv.anistream.i18n.R
 import androidx.compose.ui.res.stringResource
 import tv.anistream.store.text
@@ -117,7 +118,7 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
                 when (val list = state) {
                     ListState.Empty -> welcome(openCalendar, openSeasonal)
                     is ListState.Failed -> item(key = "failed") {
-                        FailedState("Couldn't load Continue", list.reason, retry = { store.loadContinue(force = true) })
+                        FailedState(stringResource(R.string.continue_load_failed), list.reason, retry = { store.loadContinue(force = true) })
                     }
                     is ListState.Loaded -> queue(store.continuing.queue(titles, tables).without(leaving), actions, leave)
                     // Nothing cached: offline says so, and a slow load draws the layout to come.
@@ -141,15 +142,17 @@ private fun rememberLeave(leaving: MutableList<AnilistId>): (ContinueItem) -> Un
     val store = LocalAppStore.current
     val snackbars = LocalSnackbars.current
     val scope = rememberCoroutineScope()
-    return remember(store, snackbars) {
+    val hiddenText = stringResource(R.string.continue_hidden)
+    val undoText = stringResource(R.string.action_undo)
+    return remember(store, snackbars, hiddenText, undoText) {
         { item ->
             leaving += item.id
             scope.launch {
                 var undone = false
                 try {
-                    val result = kotlinx.coroutines.withTimeoutOrNull(snackbarMillis("Hidden from Continue", true)) {
+                    val result = kotlinx.coroutines.withTimeoutOrNull(snackbarMillis(hiddenText, true)) {
                         snackbars.host.currentSnackbarData?.dismiss()
-                        snackbars.host.showSnackbar("Hidden from Continue", actionLabel = "Undo", duration = SnackbarDuration.Indefinite)
+                        snackbars.host.showSnackbar(hiddenText, actionLabel = undoText, duration = SnackbarDuration.Indefinite)
                     }
                     if (result == null) snackbars.host.currentSnackbarData?.dismiss()
                     undone = result == SnackbarResult.ActionPerformed
@@ -210,7 +213,7 @@ private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions, leave
     if (rail.isNotEmpty()) {
         item(key = "rail", contentType = "rail") {
             Column(itemMotion().padding(top = 16.dp)) {
-                Heading("In progress")
+                Heading(stringResource(R.string.group_in_progress))
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -443,7 +446,7 @@ private fun AiringToday(openCalendar: () -> Unit) {
     }
     if (today.isEmpty()) return
     Column(Modifier.padding(top = 16.dp)) {
-        SectionHeading("Airing today", "Show airing today in Calendar", openCalendar)
+        SectionHeading(stringResource(R.string.continue_airing_today), stringResource(R.string.continue_show_airing_in_calendar), openCalendar)
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -468,7 +471,7 @@ private fun AiringCard(broadcast: Broadcast, now: Instant) {
         Modifier
             .width(208.dp)
             .shared(Shared.Page, id, "airing")
-            .clickable(onClickLabel = "Open title") { navigator.openTitle(id, "airing") },
+            .clickable(onClickLabel = stringResource(R.string.title_open)) { navigator.openTitle(id, "airing") },
     ) {
         BannerArt(broadcast.entry, Modifier.size(208.dp, 117.dp).shared(Shared.Art, id, "airing").clip(ArtShape.banner))
         Text(
@@ -501,7 +504,7 @@ private fun ThisSeason(openSeasonal: () -> Unit) {
     val season = state.ids.mapNotNull { titles[it] }.take(if (wideWindow()) 12 else 6)
     if (season.isEmpty()) return
     Column(Modifier.padding(top = 16.dp)) {
-        SectionHeading("This season", "Show this season in Seasonal", openSeasonal)
+        SectionHeading(stringResource(R.string.continue_this_season), stringResource(R.string.continue_show_season_in_seasonal), openSeasonal)
         PosterRows(season, columns = if (wideWindow()) 6 else 3)
     }
 }
@@ -537,7 +540,7 @@ internal fun PosterCell(
     Column(
         modifier
             .shared(Shared.Page, entry.id, from)
-            .clickable(onClickLabel = "Open title") {
+            .clickable(onClickLabel = stringResource(R.string.title_open)) {
                 onOpen?.invoke()
                 navigator.openTitle(entry.id, from)
             },

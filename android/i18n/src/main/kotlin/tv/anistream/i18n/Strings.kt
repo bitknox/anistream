@@ -1597,6 +1597,38 @@ object Strings {
     fun tvSheetTitleFallback(context: Context): String =
         context.getString(R.string.tv_sheet_title_fallback)
 
+    /** Episode row, second line: the episode's number, then a detail such as its length or air time. */
+    fun episodeLineDetail(context: Context, number: Int, detail: String): String =
+        context.getString(R.string.episode_line_detail, number, detail)
+
+    /** Calendar, day strip: what a screen reader hears on a day. */
+    fun calendarDayLabel(context: Context, day: String): String =
+        context.getString(R.string.calendar_day_label, day)
+
+    /** Calendar, day strip: the same for today. */
+    fun calendarDayLabelToday(context: Context, day: String): String =
+        context.getString(R.string.calendar_day_label_today, day)
+
+    /** Calendar, day strip: the same for a day with episodes airing. */
+    fun calendarDayLabelAiring(context: Context, day: String): String =
+        context.getString(R.string.calendar_day_label_airing, day)
+
+    /** Calendar, day strip: the same for today with episodes airing. */
+    fun calendarDayLabelTodayAiring(context: Context, day: String): String =
+        context.getString(R.string.calendar_day_label_today_airing, day)
+
+    /** Continue, heading link: what a screen reader hears on the Airing today heading. */
+    fun continueShowAiringInCalendar(context: Context): String =
+        context.getString(R.string.continue_show_airing_in_calendar)
+
+    /** Continue, heading link: what a screen reader hears on the This season heading. */
+    fun continueShowSeasonInSeasonal(context: Context): String =
+        context.getString(R.string.continue_show_season_in_seasonal)
+
+    /** Search, loading: the filters being searched when there are no words. */
+    fun searchSearchingFilters(context: Context, filters: String): String =
+        context.getString(R.string.search_searching_filters, filters)
+
     /** Name of the notification channel for download progress, shown in the system's settings. */
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)

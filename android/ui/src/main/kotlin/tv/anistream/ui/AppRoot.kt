@@ -475,9 +475,10 @@ private fun Rail(current: Destination?, route: String?, navigator: Navigator, ac
                 modalScrimColor = Color.Black.copy(alpha = 0.32f),
             ),
             header = {
+                val collapseLabel = stringResource(if (expanded) R.string.nav_collapse else R.string.nav_expand)
                 IconButton(
                     onClick = { scope.launch { rail.toggle() } },
-                    modifier = Modifier.semantics { contentDescription = if (expanded) "Collapse navigation" else "Expand navigation" },
+                    modifier = Modifier.semantics { contentDescription = collapseLabel },
                 ) {
                     Icon(if (expanded) Icons.MenuOpen else Icons.Menu, contentDescription = null)
                 }
@@ -501,7 +502,7 @@ private fun Rail(current: Destination?, route: String?, navigator: Navigator, ac
                 val downloads = DrawerPage.Downloads
                 DrawerItem(downloads, route, itemColors) { close(); navigator.open(downloads.route) }
                 Text(
-                    "Sources",
+                    stringResource(R.string.sources_title),
                     style = MaterialTheme.typography.labelLarge,
                     color = colors.onSurfaceVariant,
                     modifier = Modifier.padding(start = 28.dp, top = 8.dp).height(32.dp).semantics { heading() },

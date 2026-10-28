@@ -196,7 +196,7 @@ private fun ProtectSheet(mode: TorrentSheetMode, start: TorrentProtection?, onDi
                     protection = TorrentProtection.NONE
                 }) { Text(stringResource(R.string.torrents_protect_none)) }
             },
-            dismissButton = { QuietButton("Cancel") { asking = false } },
+            dismissButton = { QuietButton(stringResource(R.string.action_cancel)) { asking = false } },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         )
     }

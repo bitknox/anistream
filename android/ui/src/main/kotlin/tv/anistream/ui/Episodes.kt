@@ -4,6 +4,8 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.Strings
+import android.content.Context
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
@@ -110,7 +112,8 @@ val LocalUserMarks = compositionLocalOf { UserMarks() }
 private const val UNSOURCED_ALPHA = 0.55f
 
 /** "24 min", from the row's duration. */
-internal fun minutes(row: EpisodeRow): String? = row.durationSecs?.let { "${maxOf(1, (it.toDouble() / 60).roundToInt())} min" }
+internal fun minutes(context: Context, row: EpisodeRow): String? =
+    row.durationSecs?.let { Strings.timeMinutes(context, maxOf(1, (it.toDouble() / 60).roundToInt())) }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -156,6 +159,19 @@ internal fun EpisodeLine(
     }
     val context = androidx.compose.ui.platform.LocalContext.current
     val airs = row.airsAt?.takeIf { unaired }?.let { airsWords(context, java.time.Instant.ofEpochSecond(it)) }
+    val unairedLabel = if (unaired) {
+        val number = row.number.toString()
+        when {
+            row.title != null && airs != null -> Strings.episodeUnairedAirsLabel(context, number, row.title!!, airs)
+            row.title != null -> Strings.episodeUnairedLabel(context, number, row.title!!)
+            airs != null -> Strings.episodeUnairedAirsLabelPlain(context, number, airs)
+            else -> Strings.episodeUnairedLabelPlain(context, number)
+        }
+    } else {
+        null
+    }
+    val optionsLabel = stringResource(R.string.episode_options)
+    val playLabel = stringResource(R.string.action_play)
     Row(
         Modifier
             .fillMaxWidth()
@@ -166,15 +182,14 @@ internal fun EpisodeLine(
             .then(
                 if (unaired) {
                     Modifier.semantics(mergeDescendants = true) {
-                        contentDescription = "Episode ${row.number}" + (row.title?.let { ", $it" } ?: "") +
-                            (airs?.let { ". Airs $it, not out yet" } ?: ". Not out yet")
+                        contentDescription = unairedLabel.orEmpty()
                     }
                 } else {
                     Modifier
                         .combinedClickable(
                             // One no source has opens its options, which offer to add a source.
-                            onClickLabel = if (row.metadataOnly || row.unsourced) "Episode options" else "Play",
-                            onLongClickLabel = "Episode options",
+                            onClickLabel = if (row.metadataOnly || row.unsourced) optionsLabel else playLabel,
+                            onLongClickLabel = optionsLabel,
                             onClick = onPlay,
                             onLongClick = onMenu,
                         )
@@ -196,7 +211,7 @@ internal fun EpisodeLine(
         Column(Modifier.weight(1f)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
                 Text(
-                    row.title ?: "Episode ${row.number}",
+                    row.title ?: stringResource(R.string.episode_number, row.number.toInt()),
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (unaired) colors.onSurfaceVariant else lerp(colors.onSurface, colors.onSurfaceVariant, dim.value),
                     maxLines = 1,
@@ -226,9 +241,9 @@ internal fun EpisodeLine(
                 }
                 if (unaired) Box(Modifier.size(6.dp).background(colors.secondary, androidx.compose.foundation.shape.CircleShape))
                 Text(
-                    if (unaired) "E${row.number} \u00b7 " + (airs?.let { "Airs $it" } ?: "Not out yet")
-                    else if (row.unsourced) "E${row.number} \u00b7 " + stringResource(R.string.episode_unsourced)
-                    else episodeDetail(row, resume = resume.takeIf { !row.completed }, unaired = false),
+                    if (unaired) Strings.episodeLineDetail(context, row.number.toInt(), airs?.let { Strings.episodeRowAirs(context, it) } ?: Strings.episodeRowNotOut(context))
+                    else if (row.unsourced) Strings.episodeLineDetail(context, row.number.toInt(), Strings.episodeUnsourced(context))
+                    else episodeDetail(context, row, resume = resume.takeIf { !row.completed }),
                     style = MaterialTheme.typography.bodyMedium.tabular(),
                     color = colors.onSurfaceVariant,
                     maxLines = 1,
@@ -242,25 +257,23 @@ internal fun EpisodeLine(
     }
 }
 
-/** "E7 · 14 min left", "E6 · 24 min", or "E10 · Airs Thursday 16:30" for one still to air. */
-private fun episodeDetail(row: EpisodeRow, resume: tv.anistream.engine.model.ResumePoint?, unaired: Boolean): String {
-    val number = "E${row.number}"
-    if (unaired) {
-        val airs = row.airsAt?.let { AirTime.words(java.time.Instant.ofEpochSecond(it)) }
-        return if (airs != null) "$number · Airs $airs" else "$number · Not out yet"
-    }
+/** "E7 · 14 min left" or "E6 · 24 min". */
+private fun episodeDetail(context: Context, row: EpisodeRow, resume: tv.anistream.engine.model.ResumePoint?): String {
     val fraction = resume?.fraction
-    if (resume != null && fraction != null && fraction > 0) {
+    val detail = if (resume != null && fraction != null && fraction > 0) {
         val left = maxOf(1, ((resume.position / fraction - resume.position) / 60).roundToInt())
-        return "$number · $left min left"
+        Strings.timeMinutesLeft(context, left)
+    } else {
+        minutes(context, row)
     }
-    return minutes(row)?.let { "$number · $it" } ?: number
+    return if (detail != null) Strings.episodeLineDetail(context, row.number.toInt(), detail) else Strings.episodeNumberShort(context, row.number.toInt())
 }
 
 /** The check, drawn along its path to [progress], as the brief's trimPathEnd draw-on does it. */
 @Composable
 private fun DrawnCheck(progress: Float, color: androidx.compose.ui.graphics.Color) {
-    Canvas(Modifier.size(24.dp).semantics { contentDescription = "Watched" }) {
+    val watchedWord = stringResource(R.string.episode_watched)
+    Canvas(Modifier.size(24.dp).semantics { contentDescription = watchedWord }) {
         val unit = size.width / 24f
         val path = Path().apply {
             moveTo(5f * unit, 12.5f * unit)
@@ -314,7 +327,7 @@ internal fun EpisodeStill(entry: Entry, row: EpisodeRow, hidden: Boolean, unaire
                     )
                     Icon(
                         Icons.Hidden,
-                        contentDescription = "Still hidden: spoiler protection",
+                        contentDescription = stringResource(R.string.episode_spoiler_hidden),
                         modifier = Modifier.align(Alignment.Center).size(20.dp),
                     )
                 }
@@ -335,17 +348,19 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
     val marks = LocalUserMarks.current
     val snackbars = LocalSnackbars.current
     val navigator = LocalNavigator.current
+    val markedWatched = stringResource(R.string.episode_marked_watched, row.number.toInt())
+    val undoWord = stringResource(R.string.action_undo)
     Menu(expanded = expanded, onDismissRequest = onDismiss) {
         val watched = row.completed
         DropdownMenuItem(
-            text = { Text(if (watched) "Mark as unwatched" else "Mark as watched") },
+            text = { Text(stringResource(if (watched) R.string.episode_mark_unwatched else R.string.episode_mark_watched)) },
             leadingIcon = { Icon(Icons.Check, contentDescription = null) },
             onClick = {
                 onDismiss()
                 marks.mark(row.number)
                 store.setWatched(entry.id, listOf(row.number), watched = !watched)
                 if (!watched) {
-                    snackbars.show("Episode ${row.number} marked as watched", "Undo") {
+                    snackbars.show(markedWatched, undoWord) {
                         marks.mark(row.number)
                         store.setWatched(entry.id, listOf(row.number), watched = false)
                     }
@@ -367,7 +382,7 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
             DownloadMenuItem(entry, row.number, onDismiss)
             if (store.tv.available) {
                 DropdownMenuItem(
-                    text = { Text("Play on TV") },
+                    text = { Text(stringResource(R.string.tv_play_on)) },
                     leadingIcon = { Icon(Icons.Tv, contentDescription = null) },
                     onClick = {
                         onDismiss()
@@ -376,7 +391,7 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
                 )
             }
             DropdownMenuItem(
-                text = { Text("Play from the beginning") },
+                text = { Text(stringResource(R.string.episode_play_from_beginning)) },
                 leadingIcon = { Icon(Icons.Restart, contentDescription = null) },
                 onClick = {
                     onDismiss()

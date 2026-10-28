@@ -997,3 +997,42 @@ tv-sheet-footer = A TV lists this { -device } with the code { $code }. Forget a 
 # @only android
 # @max 12
 tv-sheet-title-fallback = TV
+
+# Episode row, second line: the episode's number, then a detail such as its length or air time.
+# @only android
+# @arg number: int
+# @arg detail: text
+episode-line-detail = E{ $number } · { $detail }
+
+# Calendar, day strip: what a screen reader hears on a day.
+# @only android
+# @arg day: text
+calendar-day-label = { $day }
+
+# Calendar, day strip: the same for today.
+# @only android
+# @arg day: text
+calendar-day-label-today = { $day }, today
+
+# Calendar, day strip: the same for a day with episodes airing.
+# @only android
+# @arg day: text
+calendar-day-label-airing = { $day }, episodes airing
+
+# Calendar, day strip: the same for today with episodes airing.
+# @only android
+# @arg day: text
+calendar-day-label-today-airing = { $day }, today, episodes airing
+
+# Continue, heading link: what a screen reader hears on the Airing today heading.
+# @only android
+continue-show-airing-in-calendar = Show airing today in Calendar
+
+# Continue, heading link: what a screen reader hears on the This season heading.
+# @only android
+continue-show-season-in-seasonal = Show this season in Seasonal
+
+# Search, loading: the filters being searched when there are no words.
+# @only android
+# @arg filters: text
+search-searching-filters = Searching for { $filters }

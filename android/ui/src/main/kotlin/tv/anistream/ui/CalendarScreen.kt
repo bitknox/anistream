@@ -441,6 +441,14 @@ private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: () -> L
             val name = day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale)
             // The pill moves from day to day on quick, as the page scrolls past them or one is
             // tapped: drawn, so it redraws the pill alone.
+            val dayText = dayHeading.format(day)
+            val context = LocalContext.current
+            val dayLabel = when {
+                day == today && day in aired -> Strings.calendarDayLabelTodayAiring(context, dayText)
+                day == today -> Strings.calendarDayLabelToday(context, dayText)
+                day in aired -> Strings.calendarDayLabelAiring(context, dayText)
+                else -> Strings.calendarDayLabel(context, dayText)
+            }
             val on by animateFloatAsState(if (day == chosenDay) 1f else 0f, Motion.quick(), label = "day") // i18n-skip
             Column(
                 Modifier
@@ -450,8 +458,7 @@ private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: () -> L
                     .drawBehind { drawRect(colors.primaryContainer.copy(alpha = on)) }
                     .clickable { onDay(day) }
                     .semantics {
-                        contentDescription = dayHeading.format(day) + (if (day == today) ", today" else "") +
-                            (if (day in aired) ", episodes airing" else "")
+                        contentDescription = dayLabel
                     },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),

@@ -364,7 +364,7 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
                 Column {
                     row.title?.let { Text(it, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     Text(
-                        listOfNotNull("E${row.number}", "Up next", minutes(row)).joinToString(" · "),
+                        listOfNotNull(stringResource(R.string.episode_number_short, row.number.toInt()), stringResource(R.string.player_up_next), minutes(LocalContext.current, row)).joinToString(" · "),
                         style = MaterialTheme.typography.bodyMedium.tabular(),
                         color = colors.onSurfaceVariant,
                         maxLines = 1,
@@ -378,7 +378,7 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
         }
         if (item.entry.availableOn.isNotEmpty()) {
             Text(
-                "Also on " + item.entry.availableOn.joinToString(", "),
+                stringResource(R.string.title_facts_also_on) + " " + item.entry.availableOn.joinToString(", "), // i18n-skip
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),

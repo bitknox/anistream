@@ -125,7 +125,7 @@ fun SettingsScreen(pane: SettingsPane?, actions: AppActions) {
 @Composable
 private fun PhoneSettingsList(actions: AppActions) {
     val navigator = LocalNavigator.current
-    ScreenFrame(title = "Settings", onBack = navigator::back) { padding ->
+    ScreenFrame(title = stringResource(R.string.nav_settings), onBack = navigator::back) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
