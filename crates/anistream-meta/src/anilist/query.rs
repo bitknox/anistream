@@ -29,6 +29,8 @@ pub const MEDIA_FIELDS: &str = r"
     bannerImage
     nextAiringEpisode { episode airingAt timeUntilAiring }
     studios(isMain: true) { nodes { name } }
+    trailer { id site }
+    prequels: relations { edges { relationType node { id } } }
 ";
 
 /// Extra fields only the Title screen needs. Excluded from list queries because
@@ -41,7 +43,6 @@ pub const MEDIA_FIELDS: &str = r"
 pub const MEDIA_DETAIL_FIELDS: &str = r"
     externalLinks { site url type language }
     streamingEpisodes { title url site thumbnail }
-    trailer { id site }
     tags { name rank isMediaSpoiler isGeneralSpoiler category }
     upcoming: airingSchedule(notYetAired: true, perPage: 50) { nodes { episode airingAt } }
     rankings { rank type context allTime season year }
@@ -483,7 +484,9 @@ mod tests {
         let walk = relations();
         assert_eq!(walk.matches("relations {").count(), 2, "{walk}");
         assert!(walk.contains("media(id_in: $ids"), "every title at the walk's edge at once");
-        assert_eq!(by_id().matches("relations {").count(), 2, "the page sees two steps");
+        // The list fields' `prequels` alias is a third, by id alone, and not a step.
+        let page = by_id().replace("prequels: relations {", "");
+        assert_eq!(page.matches("relations {").count(), 2, "the page sees two steps");
         // A card's fields, for the picker; nothing only a page shows.
         for heavy in
             ["description", "streamingEpisodes", "tags {", "characters(", "bannerImage"]
@@ -557,6 +560,15 @@ mod tests {
         for heavy in ["description", "streamingEpisodes", "nextAiringEpisode", "MEDIA_FIELDS"] {
             assert!(!AIRED_SINCE.contains(heavy), "{heavy} in:\n{AIRED_SINCE}");
         }
+    }
+
+    #[test]
+    fn the_list_fields_ask_for_prequels_by_id_alone() {
+        assert!(
+            MEDIA_FIELDS.contains("prequels: relations { edges { relationType node { id } } }")
+        );
+        // One request for the list as before: the ids ride in it, no query of their own.
+        assert_eq!(by_ids().matches("media(").count(), 1);
     }
 
     #[test]

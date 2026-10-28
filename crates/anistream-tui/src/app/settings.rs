@@ -149,6 +149,8 @@ impl App {
         Some(match key {
             // What "AniList's choice" is, which the value alone cannot say.
             S::Titles => t::settings_note_titles(),
+            // The terminal plays no trailer by itself, which the value alone would not say.
+            S::Trailers => t::settings_note_trailers(),
             S::Subtitles => t::settings_note_subtitles(),
             S::MarkChapters => t::settings_note_mark_chapters(),
             S::SkipButton => t::settings_note_skip_button(),
@@ -266,6 +268,7 @@ fn label_text(key: SettingKey) -> String {
         S::Theme => t::settings_label_theme(),
         S::Motion => t::settings_label_motion(),
         S::Titles => t::settings_label_titles(),
+        S::Trailers => t::settings_label_trailers(),
         S::Translation => t::settings_label_translation(),
         S::Quality => t::settings_label_quality(),
         S::Subtitles => t::settings_label_subtitles(),
@@ -363,6 +366,8 @@ fn known_value(key: SettingKey, raw: &str) -> String {
         (S::Titles, "AniList's choice") => t::settings_value_titles_anilist(), // i18n-skip
         (S::Titles, "English") => t::settings_value_titles_english(), // i18n-skip
         (S::Titles, "Romaji") => t::settings_value_titles_romaji(),   // i18n-skip
+        (S::Trailers, "always") => t::settings_value_trailers_always(), // i18n-skip
+        (S::Trailers, "Wi-Fi only") => t::settings_value_trailers_wifi_only(), // i18n-skip
         (S::Translation, "sub") => t::audio_subbed(),                 // i18n-skip
         (S::Translation, "dub") => t::audio_dubbed(),                 // i18n-skip
         (S::Upscaling, "natural · ArtCNN") => t::settings_value_upscaling_natural(), // i18n-skip

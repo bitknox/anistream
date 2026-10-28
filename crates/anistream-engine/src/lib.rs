@@ -93,6 +93,7 @@
 pub type SharedConfig = std::sync::Arc<std::sync::RwLock<anistream_core::config::Config>>;
 
 pub mod artwork;
+pub mod autoplay;
 pub mod background;
 pub mod cache;
 pub mod catalog;

@@ -4,15 +4,16 @@ anistream                                                                       
   ▤  Calendar               │    Theme                       Adaptive
   ▦  Seasonal               │    Motion                      On
   /  Search                 │    Titles                      AniList's choice
-  ▥  Library                │
-  ↓  Downloads              │  Playback  ────────────────────────────────────────────────────────────────────────────
-  ◇  Sources                │    Audio                       Subbed
-  ◎  Accounts               │    Quality                     1080p
+  ▥  Library                │    Play trailers               Always
+  ↓  Downloads              │
+  ◇  Sources                │  Playback  ────────────────────────────────────────────────────────────────────────────
+  ◎  Accounts               │    Audio                       Subbed
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Edit   spa,en▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   subtitles. Enter saves, Esc leaves it as it is.
 
+                            │    Skip filler automatically   Off
                             │    Mark opening and ending     On
                             │    Show skip button            On
                             │    Start fullscreen            Off
@@ -27,7 +28,6 @@ anistream                                                                       
                             │    After each download         None
                             │
                             │  Sources  ─────────────────────────────────────────────────────────────────────────────
-                            │    Torrent source              Off
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    Press Enter to type a language code. There are too many values to cycle through.
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -47,13 +47,13 @@ r08 c00-119 fg=rule
 r09 c00-119 fg=rule
 r10 c00-04 fg=rule bg=ground
 r10 c05-12 fg=rule bg=ground mod=BOLD
-r10 c13-60 fg=rule bg=ground
-r10 c61-63 fg=rule bg=ground mod=BOLD
-r10 c64-119 fg=rule bg=ground
+r10 c13-119 fg=rule bg=ground
 r11 c00-00 fg=obi bg=ground
 r11 c01-01 fg=rule bg=ground
 r11 c02-15 fg=text bg=ground mod=BOLD
-r11 c16-119 fg=rule bg=ground
+r11 c16-60 fg=rule bg=ground
+r11 c61-63 fg=rule bg=ground mod=BOLD
+r11 c64-119 fg=rule bg=ground
 r12 c00-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
 r13 c02-48 fg=text-dim bg=ground

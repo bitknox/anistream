@@ -289,6 +289,12 @@ settings-value-titles-english = English
 # Value of the titles setting: titles in Latin letters as written in Japanese.
 settings-value-titles-romaji = Romaji
 
+# Value of the trailers setting: trailers play by themselves on any network.
+settings-value-trailers-always = Always
+
+# Value of the trailers setting: trailers play by themselves only on Wi-Fi.
+settings-value-trailers-wifi-only = Wi-Fi only
+
 # Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 settings-value-upscaling-natural = Natural · ArtCNN
 
@@ -357,6 +363,9 @@ settings-label-motion = Motion
 
 # Settings row: which language titles are shown in.
 settings-label-titles = Titles
+
+# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+settings-label-trailers = Play trailers
 
 # Settings row: subbed or dubbed audio.
 settings-label-translation = Audio
@@ -494,6 +503,9 @@ settings-label-comment-images = Load images in comments
 
 # Note under the titles row.
 settings-note-titles = AniList's choice follows your AniList account, and is English when you're signed out.
+
+# Note under the trailers row. The terminal never plays trailers by itself; the setting is shared with the apps.
+settings-note-trailers = The apps play trailers muted in place of the banner. The terminal keeps the setting and plays none.
 
 # Note under the subtitles row.
 settings-note-subtitles = Press Enter to type a language code. There are too many values to cycle through.

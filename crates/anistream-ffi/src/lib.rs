@@ -42,6 +42,7 @@ mod sender;
 mod start;
 #[cfg(feature = "testing")]
 mod testing;
+mod trailer;
 mod words;
 
 pub use bug_report::bug_report_url;

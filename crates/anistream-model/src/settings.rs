@@ -5,7 +5,7 @@
 //! a command and is told the outcome as a [`SettingsView`]: the config itself never crosses.
 
 use anistream_core::{
-    config::{Config, ThemeMode, TitleChoice},
+    config::{Config, ThemeMode, TitleChoice, TrailerAutoplay},
     media::Translation,
     settings::SettingValue,
 };
@@ -27,6 +27,9 @@ pub enum SettingKey {
     /// Which form of each title is shown: the signed-in AniList account's own choice, English
     /// or romaji. One setting for every front end, which shows what the engine names.
     Titles,
+    /// When a title's trailer plays by itself in place of its banner: always, on Wi-Fi only, or
+    /// never. The terminal shows it and plays none. See [`crate::trailer::autoplay`].
+    Trailers,
     Translation,
     Quality,
     Subtitles,
@@ -112,10 +115,11 @@ impl SettingKey {
     /// The Settings screen's rows, in display order. Grouped by [`Self::category`] — the
     /// renderer draws a heading each time the category changes, so rows of one category must
     /// be contiguous here.
-    pub const ROWS: [Self; 33] = [
+    pub const ROWS: [Self; 34] = [
         Self::Theme,
         Self::Motion,
         Self::Titles,
+        Self::Trailers,
         Self::Translation,
         Self::Quality,
         Self::Subtitles,
@@ -174,6 +178,7 @@ impl SettingKey {
             Self::Theme => (&["theme"], "mode"),
             Self::Motion => (&["theme"], "motion"),
             Self::Titles => (&["meta"], "title_language"),
+            Self::Trailers => (&["theme"], "trailers"),
             Self::AdultTitles => (&["meta"], "adult"),
             Self::EpisodeDiscussions => (&["meta"], "discussions"),
             Self::CommentImages => (&["meta"], "discussion_images"),
@@ -255,6 +260,7 @@ impl SettingKey {
             Self::Theme => to.theme.mode = from.theme.mode,
             Self::Motion => to.theme.motion = from.theme.motion,
             Self::Titles => to.meta.title_language = from.meta.title_language,
+            Self::Trailers => to.theme.trailers = from.theme.trailers,
             Self::Translation => dst.translation = src.translation,
             Self::Quality => dst.quality = src.quality,
             Self::Subtitles => dst.subtitle_language.clone_from(&src.subtitle_language),
@@ -325,7 +331,9 @@ impl SettingKey {
     /// whole list, so nothing is ever hidden behind a tab.
     pub const fn category(self) -> &'static str {
         match self {
-            Self::Theme | Self::Motion | Self::Titles | Self::AdultTitles => "appearance",
+            Self::Theme | Self::Motion | Self::Titles | Self::Trailers | Self::AdultTitles => {
+                "appearance"
+            }
             Self::Translation
             | Self::Quality
             | Self::Subtitles
@@ -377,6 +385,7 @@ impl SettingKey {
             Self::Theme => "theme",
             Self::Motion => "motion",
             Self::Titles => "titles",
+            Self::Trailers => "play trailers",
             Self::Translation => "translation",
             Self::Quality => "quality",
             Self::Subtitles => "subtitles",
@@ -640,6 +649,11 @@ pub fn step(
             let at = LADDER.iter().position(|c| *c == current).unwrap_or(0) as i64;
             V::Str(LADDER[(at + delta).clamp(0, 2) as usize].name().into())
         }
+        SettingKey::Trailers => {
+            const LADDER: [TrailerAutoplay; 3] = TrailerAutoplay::ALL;
+            let at = LADDER.iter().position(|c| *c == effective.theme.trailers).unwrap_or(0);
+            V::Str(LADDER[(at as i64 + delta).clamp(0, 2) as usize].name().into())
+        }
         SettingKey::Translation => V::Str(
             match saved.playback.translation {
                 Translation::Sub => Translation::Dub,
@@ -766,6 +780,10 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         (SettingKey::Titles, V::Str(name)) => {
             let Some(choice) = TitleChoice::from_name(name) else { return false };
             config.meta.title_language = choice;
+        }
+        (SettingKey::Trailers, V::Str(name)) => {
+            let Some(choice) = TrailerAutoplay::from_name(name) else { return false };
+            config.theme.trailers = choice;
         }
         (SettingKey::Translation, V::Str(name)) => {
             let Some(translation) =
@@ -910,6 +928,12 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
             TitleChoice::Anilist => "AniList's choice",
             TitleChoice::English => "English",
             TitleChoice::Romaji => "Romaji",
+        }
+        .into(),
+        SettingKey::Trailers => match effective.theme.trailers {
+            TrailerAutoplay::Always => "always",
+            TrailerAutoplay::WifiOnly => "Wi-Fi only",
+            TrailerAutoplay::Off => "off",
         }
         .into(),
         SettingKey::Translation => session_marked(
@@ -1085,6 +1109,7 @@ fn ladder_value(effective: &Config, key: SettingKey) -> Option<SettingValue> {
         S::CommitThreshold => V::Float((playback.commit_threshold * 100.0).round() / 100.0),
         S::Upscaling => V::Str(playback.upscaling.name().into()),
         S::Titles => V::Str(effective.meta.title_language.name().into()),
+        S::Trailers => V::Str(effective.theme.trailers.name().into()),
         S::SeedRatio => V::Float(seeding.ratio),
         S::SeedHours => V::Int(i64::from(seeding.hours)),
         S::UploadLimit => V::Int(i64::from(seeding.upload_limit_kib)),
@@ -1215,6 +1240,42 @@ mod tests {
         let mut copied = Config::default();
         SettingKey::Titles.copy(&romaji, &mut copied);
         assert_eq!(titles(&copied), "English");
+    }
+
+    #[test]
+    fn trailers_step_from_always_to_wifi_only_to_off_under_the_titles_row() {
+        let default = Config::default();
+        let trailers = |config: &Config| value(config, config, SettingKey::Trailers);
+        assert_eq!(trailers(&default), "always");
+        assert_eq!(SettingKey::at(&["theme"], "trailers"), Some(SettingKey::Trailers));
+        let at = |key| SettingKey::ROWS.iter().position(|row| *row == key);
+        assert_eq!(at(SettingKey::Trailers), at(SettingKey::Titles).map(|i| i + 1));
+        assert_eq!(SettingKey::Trailers.category(), "appearance");
+
+        let step_to =
+            |config: &Config, delta| step(config, config, SettingKey::Trailers, delta);
+        assert_eq!(step_to(&default, 1), Some(SettingValue::Str("wifi-only".into())));
+        assert_eq!(step_to(&default, -1), Some(SettingValue::Str("always".into())), "an end");
+        assert_eq!(
+            change(&default, &default, SettingKey::Trailers),
+            SettingChange::Steps { back: false, forward: true }
+        );
+
+        let mut off = Config::default();
+        assert!(put(&mut off, SettingKey::Trailers, &SettingValue::Str("wifi-only".into())));
+        assert_eq!(trailers(&off), "Wi-Fi only");
+        assert!(put(&mut off, SettingKey::Trailers, &SettingValue::Str("off".into())));
+        assert_eq!(trailers(&off), "off");
+        assert_eq!(
+            change(&off, &off, SettingKey::Trailers),
+            SettingChange::Steps { back: true, forward: false }
+        );
+        assert!(!put(&mut off, SettingKey::Trailers, &SettingValue::Str("sometimes".into())));
+        assert_eq!(trailers(&off), "off", "a value it does not take changes nothing");
+
+        let mut copied = Config::default();
+        SettingKey::Trailers.copy(&off, &mut copied);
+        assert_eq!(trailers(&copied), "off");
     }
 
     #[test]

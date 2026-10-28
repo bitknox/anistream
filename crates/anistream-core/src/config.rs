@@ -536,11 +536,51 @@ pub struct ThemeConfig {
     /// Unicode, and requiring a patched font is both a portability hazard and one of the
     /// clearest templated-TUI tells.
     pub nerd_font: bool,
+    /// When a title's trailer plays by itself, muted, in place of its banner: on any network
+    /// (`always`), off cellular and Low Data Mode (`wifi-only`), or never (`off`). The native
+    /// apps play them; the terminal keeps the setting and plays none.
+    pub trailers: TrailerAutoplay,
 }
 
 impl Default for ThemeConfig {
     fn default() -> Self {
-        Self { mode: ThemeMode::Adaptive, motion: true, nerd_font: false }
+        Self {
+            mode: ThemeMode::Adaptive,
+            motion: true,
+            nerd_font: false,
+            trailers: TrailerAutoplay::Always,
+        }
+    }
+}
+
+/// When trailers play by themselves. See [`ThemeConfig::trailers`]. Whatever it says, Low Data
+/// Mode, Reduce Motion, power saving and a screen reader still hold a trailer back, and Play
+/// trailer plays one because the viewer asked.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TrailerAutoplay {
+    /// On any network but a constrained one.
+    #[default]
+    Always,
+    /// Only on a network that is neither cellular nor constrained.
+    WifiOnly,
+    Off,
+}
+
+impl TrailerAutoplay {
+    pub const ALL: [Self; 3] = [Self::Always, Self::WifiOnly, Self::Off];
+
+    /// The name the config file uses.
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Always => "always",
+            Self::WifiOnly => "wifi-only",
+            Self::Off => "off",
+        }
+    }
+
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|choice| choice.name() == name)
     }
 }
 
@@ -1216,6 +1256,17 @@ mod tests {
         assert_eq!(Config::default().language, None);
         let cfg = Config::from_toml("language = \"da\"\n[theme]\nmotion = false").unwrap();
         assert_eq!(cfg.language.as_deref(), Some("da"));
+    }
+
+    #[test]
+    fn trailers_play_always_until_the_file_says_otherwise() {
+        assert_eq!(Config::default().theme.trailers, TrailerAutoplay::Always);
+        let cfg = Config::from_toml("[theme]\ntrailers = \"wifi-only\"").unwrap();
+        assert_eq!(cfg.theme.trailers, TrailerAutoplay::WifiOnly);
+        assert!(Config::from_toml("[theme]\ntrailers = \"sometimes\"").is_err());
+        for choice in TrailerAutoplay::ALL {
+            assert_eq!(TrailerAutoplay::from_name(choice.name()), Some(choice));
+        }
     }
 
     #[test]

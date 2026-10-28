@@ -27,6 +27,7 @@ use crate::{
         StoreMemberRow, StoreRow,
     },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
+    trailer::AutoplayView,
     updates::UpdateStatus,
     widgets::WidgetData,
 };
@@ -266,6 +267,15 @@ pub enum Event {
     Connectivity {
         offline: bool,
     },
+    /// Whether trailers may start by themselves now, from the Play trailers setting, the network
+    /// ([`Command::NetworkPath`]) and the device ([`Command::DeviceState`]): said once at launch
+    /// and again each time the answer changes. A trailer starts only while this says so and
+    /// [`crate::trailer::trailer_may_autoplay`] allows that title's; Play trailer plays whatever
+    /// it says.
+    ///
+    /// [`Command::NetworkPath`]: crate::command::Command::NetworkPath
+    /// [`Command::DeviceState`]: crate::command::Command::DeviceState
+    Autoplay(AutoplayView),
     /// Playback started from a stored position rather than the beginning.
     Resumed {
         position: f64,
