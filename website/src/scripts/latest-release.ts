@@ -3,9 +3,10 @@
  * release's page, which works without this script and before a release has the file. Once GitHub
  * says which release is the latest, a link whose `data-asset` names the end of a file's name points
  * at that file, and a `data-release-tag` element shows the release's tag in its own words, where
- * `{tag}` stands for it.
+ * `{{tag}}` stands for it.
  */
-import { latest, megabytes } from './release';
+import { latest } from './release';
+import { formatMegabytes } from './words';
 
 async function fill() {
 	const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[data-asset]'));
@@ -20,12 +21,12 @@ async function fill() {
 		found++;
 		link.href = asset.browser_download_url;
 		const size = link.querySelector<HTMLElement>('[data-asset-size]');
-		if (size) size.textContent = megabytes(asset.size);
+		if (size) size.textContent = formatMegabytes(asset.size);
 	}
 	// A page of download links names the release only when the release has its files.
 	if (links.length > 0 && found === 0) return;
 	for (const tag of tags) {
-		tag.textContent = (tag.dataset.releaseTag || '{tag}').replace('{tag}', release.tag_name);
+		tag.textContent = (tag.dataset.releaseTag || '{{tag}}').replace('{{tag}}', release.tag_name);
 		tag.hidden = false;
 	}
 }

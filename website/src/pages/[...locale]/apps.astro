@@ -1,0 +1,261 @@
+---
+import '../../styles/theme.css';
+import '../../styles/landing.css';
+import '../../styles/apps.css';
+import iconUrl from '../../assets/icon-32.svg?url';
+import DownloadSuggest from '../../components/DownloadSuggest.astro';
+import Shot from '../../components/Shot.astro';
+import LanguageSuggest from '../../components/site/LanguageSuggest.astro';
+import SiteFooter from '../../components/site/SiteFooter.astro';
+import SiteHead from '../../components/site/SiteHead.astro';
+import SiteNav from '../../components/site/SiteNav.astro';
+import { APP_DOWNLOADS, FEATURES, INSTALL_APPS, LATEST, PRIVACY, TOOLKITS } from '../../data/site';
+import { localePaths, useSite } from '../../i18n/site';
+
+export const getStaticPaths = localePaths;
+
+const { t, href, lang, dir } = useSite(Astro);
+
+const OPAP = 'https://opap.jp/';
+const CC = 'https://creativecommons.org/licenses/by/4.0/';
+const platforms = t('site.platforms');
+
+const toolkits = TOOLKITS.map((id) => [t(`apps.toolkit.${id}.platform`), t(`apps.toolkit.${id}.toolkit`)]);
+const across = ['widgets', 'alerts', 'live', 'pip', 'downloads', 'stores', 'handoff'].map((id) => [
+	t(`apps.across.${id}.name`),
+	t(`apps.across.${id}.text`),
+]);
+---
+
+<html lang={lang} dir={dir}>
+	<head>
+		<SiteHead title={t('apps.title', { platforms })} description={t('apps.description', { platforms })} />
+	</head>
+	<body class="landing apps-page">
+		<SiteNav current="apps" />
+
+		<main>
+			<header class="wrap apps-head">
+				<img class="apps-icon" src={iconUrl} width="96" height="96" alt={t('apps.head.iconAlt')} />
+				<h1>{t('apps.head.title', { platforms })}</h1>
+				<p class="lede">{t('apps.head.lede')}</p>
+				<div class="actions">
+					<a class="btn btn-primary" href="#download">{t('apps.head.download')}</a>
+					<a class="btn" href={href(INSTALL_APPS)}>{t('apps.head.steps')}</a>
+				</div>
+				<p class="hero-note">{t('apps.head.note')}<span data-release-tag={t('apps.head.release', { tag: '{{tag}}' })} hidden></span>
+				</p>
+			</header>
+
+			<section class="wrap apps-sect" aria-labelledby="native-h">
+				<div class="apps-text">
+					<h2 id="native-h">{t('apps.toolkits.title')}</h2>
+					<p>{t('apps.toolkits.text')}</p>
+				</div>
+				<dl class="rows toolkits">
+					{
+						toolkits.map(([platform, toolkit]) => (
+							<div class="row">
+								<dt>{platform}</dt>
+								<dd>{toolkit}</dd>
+							</div>
+						))
+					}
+				</dl>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="mac-h">
+				<div class="apps-text">
+					<h2 id="mac-h">{t('apps.mac.title')}</h2>
+					<p>{t('apps.mac.text')}</p>
+					<p class="apps-needs">{t('apps.mac.needs')}</p>
+				</div>
+				<div class="apps-shots">
+					<Shot name="mac-continue" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt={t('apps.mac.continueAlt')} />
+					<div class="apps-pair">
+						<Shot name="mac-title" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.mac.titleAlt')} />
+						<Shot name="mac-calendar" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.mac.calendarAlt')} />
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap apps-sect apps-side" aria-labelledby="iphone-h">
+				<div class="apps-text">
+					<h2 id="iphone-h">{t('apps.iphone.title')}</h2>
+					<p>{t('apps.iphone.text')}</p>
+					<p class="apps-needs">{t('apps.iphone.needs')}</p>
+				</div>
+				<div class="ratio-row apps-row">
+					<Shot name="iphone-continue" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.iphone.continueAlt')} />
+					<Shot name="iphone-title" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.iphone.titleAlt')} />
+					<Shot name="iphone-calendar" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.iphone.calendarAlt')} />
+				</div>
+			</section>
+
+			<section class="wrap apps-sect apps-side" aria-labelledby="ipad-h">
+				<div class="apps-text">
+					<h2 id="ipad-h">{t('apps.ipad.title')}</h2>
+					<p>{t('apps.ipad.text')}</p>
+					<p class="apps-needs">{t('apps.ipad.needs')}</p>
+				</div>
+				<div class="apps-shots">
+					<Shot name="ipad-continue" frame="tablet" sizes="(min-width: 1200px) 780px, calc(100vw - 32px)" alt={t('apps.ipad.continueAlt')} />
+					<div class="apps-pair">
+						<Shot name="ipad-title" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt={t('apps.ipad.titleAlt')} />
+						<Shot name="ipad-calendar" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt={t('apps.ipad.calendarAlt')} />
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap apps-sect apps-side" aria-labelledby="android-h">
+				<div class="apps-text">
+					<h2 id="android-h">{t('apps.android.title')}</h2>
+					<p>{t('apps.android.text')}</p>
+					<p class="apps-needs">{t('apps.android.needs')}</p>
+				</div>
+				<div class="ratio-row apps-row">
+					<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.android.continueAlt')} />
+					<Shot name="android-title" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.android.titleAlt')} />
+					<Shot name="android-calendar" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.android.calendarAlt')} />
+				</div>
+			</section>
+
+			<section class="wrap apps-sect apps-side" aria-labelledby="tablet-h">
+				<div class="apps-text">
+					<h2 id="tablet-h">{t('apps.tablet.title')}</h2>
+					<p>{t('apps.tablet.text')}</p>
+					<p class="apps-needs">{t('apps.tablet.needs')}</p>
+				</div>
+				<div class="apps-shots">
+					<Shot name="tablet-continue" frame="tablet" sizes="(min-width: 1200px) 780px, calc(100vw - 32px)" alt={t('apps.tablet.continueAlt')} />
+					<div class="apps-pair">
+						<Shot name="tablet-title" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt={t('apps.tablet.titleAlt')} />
+						<Shot name="tablet-calendar" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt={t('apps.tablet.calendarAlt')} />
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="tv-h">
+				<div class="apps-text">
+					<h2 id="tv-h">{t('apps.tv.title')}</h2>
+					<p>{t('apps.tv.text')}</p>
+					<p class="apps-needs">{t('apps.tv.needs')}</p>
+				</div>
+				<div class="ratio-row apps-row">
+					<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 588px, 48vw" alt={t('apps.tv.continueAlt')} />
+					<Shot name="tv-search" frame="screen" sizes="(min-width: 1200px) 588px, 48vw" alt={t('apps.tv.searchAlt')} />
+				</div>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="play-tv-h">
+				<div class="apps-text">
+					<h2 id="play-tv-h">{t('apps.playTv.title')}</h2>
+					<p>{t('apps.playTv.text')}</p>
+				</div>
+				<div class="ratio-row apps-row">
+					<Shot name="tv-title" frame="screen" sizes="(min-width: 1200px) 900px, 70vw" alt={t('apps.playTv.titleAlt')} />
+					<Shot name="iphone-tv-remote" frame="phone" sizes="(min-width: 1200px) 230px, 30vw" alt={t('apps.playTv.remoteAlt')} />
+				</div>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="windows-h">
+				<div class="apps-text">
+					<h2 id="windows-h">{t('apps.windows.title')}</h2>
+					<p>{t('apps.windows.text')}</p>
+					<p class="apps-needs">{t('apps.windows.needs')}</p>
+				</div>
+				<div class="apps-shots apps-shots-narrow">
+					<Shot name="windows-title" frame="window" sizes="(min-width: 1200px) 1030px, calc(100vw - 32px)" alt={t('apps.windows.titleAlt')} />
+					<div class="apps-pair">
+						<Shot name="windows-search" frame="window" sizes="(min-width: 1200px) 507px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.windows.searchAlt')} />
+						<Shot name="windows-stores" frame="window" sizes="(min-width: 1200px) 507px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.windows.storesAlt')} />
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="linux-h">
+				<div class="apps-text">
+					<h2 id="linux-h">{t('apps.linux.title')}</h2>
+					<p>{t('apps.linux.text')}</p>
+					<p class="apps-needs">{t('apps.linux.needs')}</p>
+				</div>
+				<div class="apps-shots">
+					<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt={t('apps.linux.continueAlt')} />
+					<div class="apps-pair">
+						<Shot name="linux-title" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.linux.titleAlt')} />
+						<Shot name="linux-calendar" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.linux.calendarAlt')} />
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="player-h">
+				<div class="apps-text">
+					<h2 id="player-h">{t('apps.player.title')}</h2>
+					<p>{t('apps.player.text')}</p>
+				</div>
+				<div class="apps-shots">
+					<Shot name="mac-player" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt={t('apps.player.macAlt')} />
+					<div class="ratio-row">
+						<Shot name="iphone-player" frame="phone" sizes="(min-width: 1200px) 588px, 48vw" alt={t('apps.player.iphoneAlt')} />
+						<Shot name="android-player" frame="phone" sizes="(min-width: 1200px) 588px, 48vw" alt={t('apps.player.androidAlt')} />
+					</div>
+				</div>
+				<p class="apps-credit" set:html={t('apps.player.credit', { opap: OPAP, licence: CC })} />
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="across-h">
+				<h2 id="across-h">{t('apps.across.title')}</h2>
+				<dl class="rows apps-rows">
+					{
+						across.map(([name, text]) => (
+							<div class="row">
+								<dt>{name}</dt>
+								<dd>{text}</dd>
+							</div>
+						))
+					}
+				</dl>
+				<div class="actions apps-compare">
+					<a class="btn" href={href(`${FEATURES}#platforms`)}>{t('apps.across.compare')}</a>
+				</div>
+			</section>
+
+			<section class="wrap apps-sect" id="download" aria-labelledby="get-h">
+				<h2 id="get-h">{t('apps.download.title')}</h2>
+				<p class="lede">{t('apps.download.lede')}</p>
+				<DownloadSuggest />
+				<h3 class="dl-others">{t('dl.others')}</h3>
+				<ul class="downloads">
+					{
+						APP_DOWNLOADS.map((a) => (
+							<li data-dl-app={a.id}>
+								<div class="dl-name">
+									<span class="dl-platform">{t(`dl.app.${a.id}.platform`)}</span>
+									<span class="dl-needs">{t(`dl.app.${a.id}.needs`)}</span>
+									<a class="dl-guide" href={href(a.guide)}>{t('dl.howTo')}</a>
+								</div>
+								<span class="dl-btns">
+									{a.files.map((f) => (
+										<a class="btn dl-btn" href={LATEST} data-asset={f.suffix}>
+											{f.arch ? t('dl.downloadArch', { arch: f.arch }) : t('dl.download')} <span class="dl-size" data-asset-size></span>
+										</a>
+									))}
+								</span>
+							</li>
+						))
+					}
+				</ul>
+				<p class="legal-lead apps-legal">{t('site.legal')}</p>
+				<p class="lede">{t('apps.download.legal')}</p>
+				<p class="lede apps-privacy" set:html={t('apps.download.privacy', { privacy: href(PRIVACY) })} />
+			</section>
+		</main>
+
+		<SiteFooter />
+		<LanguageSuggest />
+
+		<script>
+			import '../../scripts/latest-release.ts';
+		</script>
+	</body>
+</html>

@@ -5,6 +5,9 @@
  * {w|…} water, {r|…} vermilion, {k|…} a loading skeleton. Every title is invented.
  */
 import coverUrl from '../assets/covers/hoshikuzu.svg?url';
+import { useSite } from '../i18n/site';
+
+const { t } = useSite(Astro);
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const mk = (src: string) =>
@@ -107,7 +110,7 @@ const playBottom = [
 	.join('\n');
 ---
 
-<div class="term" role="img" aria-label="anistream running in a terminal: the home screen, a search, an episode list and an episode playing">
+<div class="term" role="img" aria-label={t('home.terminal.alt')}>
 	<div class="term-chrome" aria-hidden="true">anistream · ghostty</div>
 	<div class="term-body" aria-hidden="true" data-term-body>
 		<div class="term-canvas">

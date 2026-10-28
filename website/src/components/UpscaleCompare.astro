@@ -4,6 +4,8 @@
 // it works from the keyboard and reads as a slider to a screen reader without any of its own
 // event handling.
 
+import { useSite } from '../i18n/site';
+
 interface Look {
 	id: string;
 	label: string;
@@ -22,10 +24,11 @@ interface Props {
 }
 
 const { alt, off, looks, width, height } = Astro.props;
+const { t } = useSite(Astro);
 ---
 
-<figure class="compare" data-compare>
-	<div class="compare-choice" role="radiogroup" aria-label="Compare with">
+<figure class="compare" data-compare data-range-label={t('compare.range', { look: '{{look}}' })}>
+	<div class="compare-choice" role="radiogroup" aria-label={t('compare.group')}>
 		{
 			looks.map((look, i) => (
 				<button
@@ -42,17 +45,17 @@ const { alt, off, looks, width, height } = Astro.props;
 		}
 	</div>
 	<div class="compare-frame" style={`aspect-ratio: ${width} / ${height}`}>
-		<img class="compare-off" src={off} alt={`${alt}, with no upscaling`} width={width} height={height} loading="lazy" decoding="async" />
+		<img class="compare-off" src={off} alt={t('compare.offAlt', { alt })} width={width} height={height} loading="lazy" decoding="async" />
 		<img
 			class="compare-look"
 			src={looks[0].src}
-			alt={`${alt}, upscaled`}
+			alt={t('compare.lookAlt', { alt })}
 			width={width}
 			height={height}
 			loading="lazy"
 			decoding="async"
 		/>
-		<span class="compare-tag compare-tag-off" aria-hidden="true">Off</span>
+		<span class="compare-tag compare-tag-off" aria-hidden="true">{t('compare.off')}</span>
 		<span class="compare-tag compare-tag-look" aria-hidden="true">{looks[0].label}</span>
 		<span class="compare-divider" aria-hidden="true">
 			<span class="compare-handle">
@@ -68,7 +71,7 @@ const { alt, off, looks, width, height } = Astro.props;
 			max="100"
 			value="50"
 			step="0.5"
-			aria-label={`Divide the picture between no upscaling and ${looks[0].label}`}
+			aria-label={t('compare.range', { look: looks[0].label })}
 		/>
 	</div>
 	<figcaption><slot /></figcaption>
@@ -257,7 +260,7 @@ const { alt, off, looks, width, height } = Astro.props;
 			}
 			look.src = button.dataset.src!;
 			tag.textContent = button.dataset.label!;
-			range.setAttribute('aria-label', `Divide the picture between no upscaling and ${button.dataset.label}`);
+			range.setAttribute('aria-label', (figure.dataset.rangeLabel ?? '').replace('{{look}}', button.dataset.label!));
 		};
 		buttons.forEach((button, i) => {
 			button.addEventListener('click', () => choose(button));
