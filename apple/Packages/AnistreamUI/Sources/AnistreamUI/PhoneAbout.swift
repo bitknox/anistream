@@ -18,7 +18,7 @@ struct PhoneAboutPage: View {
             VStack(spacing: 0) {
                 Nagare(cell: 5)
                     .accessibilityHidden(true)
-                Text("anistream")
+                Text("anistream") // i18n-skip
                     .font(.ui(22, weight: .bold))
                     .foregroundStyle(.silk)
                     .padding(.top, 20)

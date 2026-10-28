@@ -20,10 +20,10 @@ struct KitsuSheet: View {
         let working = store.accounts.isWorking("kitsu")
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Sign in to Kitsu")
+                Text(L.accountsSignInTo(tracker: AccountsModel.name("kitsu")))
                     .font(.mac(15, weight: .semibold))
                     .foregroundStyle(.silk)
-                Text("Your password goes to Kitsu once, for a token kept on this \(Device.name).")
+                Text(L.accountsFormDetail(tracker: AccountsModel.name("kitsu")))
                     .font(.mac(13))
                     .foregroundStyle(.haze)
                     .fixedSize(horizontal: false, vertical: true)
@@ -35,7 +35,7 @@ struct KitsuSheet: View {
                     .textInputAutocapitalization(.never)
                     #endif
                     .autocorrectionDisabled()
-                SecureField("Password", text: $password)
+                SecureField(L.accountsPassword, text: $password)
                     .textContentType(.password)
                     .onSubmit(signIn)
             }
@@ -92,12 +92,12 @@ struct DeviceCodeSheet: View {
         let name = AccountsModel.name(prompt.tracker)
         let expired = AccountsModel.expired(prompt, at: now)
         return VStack(alignment: .leading, spacing: 16) {
-            Text("Sign in to \(name)")
+            Text(L.accountsSignInTo(tracker: name))
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             Text(expired
-                 ? "This code has expired. Get a new one to sign in to \(name)."
-                 : "Go to \(host) and enter this code. anistream signs in once you have.")
+                 ? L.accountsCodeExpiredDetail(tracker: name)
+                 : L.accountsCodeDetail(host: host))
                 .font(.mac(13))
                 .foregroundStyle(.haze)
                 .fixedSize(horizontal: false, vertical: true)
@@ -107,7 +107,7 @@ struct DeviceCodeSheet: View {
                     .kerning(4)
                     .foregroundStyle(expired ? .haze : .silk)
                     .textSelection(.enabled)
-                    .accessibilityLabel("Code \(prompt.code.map(String.init).joined(separator: " "))")
+                    .accessibilityLabel(L.accountsCodeLabel(code: prompt.code.map(String.init).joined(separator: " ")))
                 if let expiry = expiry(now: now) {
                     Text(expiry)
                         .font(.mac(12))
@@ -151,7 +151,7 @@ struct DeviceCodeSheet: View {
         if !expired || asked {
             HStack(spacing: 10) {
                 ProgressView().controlSize(.small)
-                Text(expired ? "Getting a new code" : "Waiting for \(name)")
+                Text(expired ? L.accountsGettingCode : L.accountsCodeWaiting(tracker: name))
                     .font(.mac(12))
                     .foregroundStyle(.haze)
             }
@@ -172,7 +172,7 @@ struct DeviceCodeSheet: View {
             .fixedSize()
             .disabled(asked)
         } else {
-            Button("Open \(host)") {
+            Button(L.accountsOpenHost(host: host)) {
                 if let url = URL(string: prompt.url) { openURL(url) }
             }
             .buttonStyle(PrimaryCapsuleStyle(height: 28))
@@ -189,10 +189,10 @@ struct ConflictsSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Different on AniList")
+            Text(L.accountsClashTitle(tracker: AccountsModel.name("anilist")))
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
-            Text("These changed on AniList and here since the last sync. Keep one side of each.")
+            Text(L.accountsClashDetail(tracker: AccountsModel.name("anilist")))
                 .font(.mac(13))
                 .foregroundStyle(.haze)
             ScrollView {
@@ -202,13 +202,13 @@ struct ConflictsSheet: View {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(row.title).font(.mac(13, weight: .medium)).foregroundStyle(.silk)
-                                Text("\(row.field.firstCapitalized): \(row.local) here, \(row.remote) on AniList")
+                                Text(L.accountsClashRow(field: row.field.firstCapitalized, local: row.local, remote: row.remote, tracker: AccountsModel.name("anilist")))
                                     .font(.mac(12))
                                     .foregroundStyle(.haze)
                             }
                             Spacer()
-                            Button(cased(mac: "Keep This \(Device.name)’s", touch: "Keep this \(Device.name)’s")) { store.resolveConflict(row.anilistId, keepLocal: true) }
-                            Button("Keep AniList’s") { store.resolveConflict(row.anilistId, keepLocal: false) }
+                            Button(L.accountsKeepMine) { store.resolveConflict(row.anilistId, keepLocal: true) }
+                            Button(L.accountsKeepTheirs(tracker: AccountsModel.name("anilist"))) { store.resolveConflict(row.anilistId, keepLocal: false) }
                         }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                         .padding(.vertical, 10)

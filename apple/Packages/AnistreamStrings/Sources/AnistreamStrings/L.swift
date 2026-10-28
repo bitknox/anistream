@@ -1087,6 +1087,11 @@ public enum L {
     /// VoiceOver action of a notice that dismisses it.
     public static var noticeDismiss: String { string("notice-dismiss", fallback: "Dismiss") }
 
+    /// Line of the device sign-in sheet when the code ran out.
+    public static func accountsCodeExpiredDetail(tracker: String) -> String {
+        Self.format("accounts-code-expired-detail", fallback: "This code has expired. Get a new one to sign in to %1$@.", tracker)
+    }
+
     /// Placeholder of the command palette's field.
     public static var palettePlaceholder: String { string("palette-placeholder", fallback: "Titles and commands") }
 
@@ -2117,6 +2122,17 @@ public enum L {
     public static func storesLinkSendOnceAnyone(until: String) -> String {
         Self.format("stores-link-send-once-anyone", fallback: "Send this link to the person it is for. It works once, until %1$@.", until)
     }
+
+    /// Title of the confirmation that removes a plugin. The name is the plugin's.
+    public static func sourcesRemoveTitle(name: String) -> String {
+        Self.format("sources-remove-title", fallback: "Remove %1$@?", name)
+    }
+
+    /// Detail of the confirmation that removes a plugin.
+    public static var sourcesRemoveDetail: String { string("sources-remove-detail", fallback: "It is deleted from this device. A plugin store can install it again.") }
+
+    /// Note under the torrents' actions on the sources page.
+    public static var sourcesTorrentsNote: String { string("sources-torrents-note", fallback: "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings › Sources.") }
 
     /// Name of the fact on the title page that lists where else a show can be watched.
     public static var titleFactAlsoOn: String { string("title-fact-also-on", fallback: "Also on") }

@@ -292,3 +292,14 @@ stores-link-send-once = Send this link to { $who }. It works once, until { $unti
 # Line over an invite link made for nobody in particular: it works once, and says until when.
 # @arg until: text
 stores-link-send-once-anyone = Send this link to the person it is for. It works once, until { $until }.
+
+# Title of the confirmation that removes a plugin. The name is the plugin's.
+# @arg name: text
+sources-remove-title = Remove { $name }?
+
+# Detail of the confirmation that removes a plugin.
+sources-remove-detail = It is deleted from this { -device }. A { -plugin-store } can install it again.
+
+# Note under the torrents' actions on the sources page.
+sources-torrents-note = Torrents are part of { -app-name }, not a { -plugin }. What protects their traffic, the connection check and seeding are set in Settings › { -source-cap-pl }.
+

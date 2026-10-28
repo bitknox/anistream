@@ -513,6 +513,18 @@
         }
       }
     },
+    "accounts-code-expired-detail" : {
+      "comment" : "Line of the device sign-in sheet when the code ran out. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This code has expired. Get a new one to sign in to %1$@."
+          }
+        }
+      }
+    },
     "accounts-code-expires" : {
       "comment" : "Line telling when the code ends. The time is already formatted. Argument 1: time (Text).",
       "extractionState" : "manual",
@@ -15179,6 +15191,30 @@
         }
       }
     },
+    "sources-remove-detail" : {
+      "comment" : "Detail of the confirmation that removes a plugin.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It is deleted from this device. A plugin store can install it again."
+          }
+        }
+      }
+    },
+    "sources-remove-title" : {
+      "comment" : "Title of the confirmation that removes a plugin. The name is the plugin's. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %1$@?"
+          }
+        }
+      }
+    },
     "sources-replace-detail" : {
       "comment" : "Line under the replace question. Argument 1: version (Text). Argument 2: store (Text). Argument 3: detail (Text).",
       "extractionState" : "manual",
@@ -15319,6 +15355,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Torrents"
+          }
+        }
+      }
+    },
+    "sources-torrents-note" : {
+      "comment" : "Note under the torrents' actions on the sources page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings › Sources."
           }
         }
       }

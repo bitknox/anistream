@@ -35,15 +35,15 @@ extension AppStore {
         let origin: String
         switch row.kind {
         case "torrent":
-            (name, origin) = ("Torrents", "Built in")
+            (name, origin) = (L.sourcesTorrents, L.sourcesOriginBuiltIn)
         case "remote":
-            (name, origin) = ("Remote", "Set in the config file")
+            (name, origin) = (L.sourcesRemote, L.sourcesOriginConfig)
         default:
             name = listing?.row.name ?? row.id
             if case .addedByHand = listing?.row.status {
-                origin = "Added by hand"
+                origin = L.sourcesOriginByHand
             } else {
-                origin = listing.map { $0.store.name } ?? "Added by hand"
+                origin = listing.map { $0.store.name } ?? L.sourcesOriginByHand
             }
         }
         return ProviderInfo(row: row, name: name, origin: origin, listing: listing.map { ($0.store, $0.row) })
@@ -68,9 +68,9 @@ struct NoSources: View {
     var body: some View {
         EmptyState(
             title: L.sourcesEmptyTitle,
-            line: "Sources come as plugins from a plugin store." + (legal ? " anistream hosts no content." : "")
+            line: L.sourcesEmptyDetail + (legal ? " " + L.legalHostsNoContent : "")
         ) {
-            Button(cased(mac: "Join a Plugin Store…", touch: "Join a plugin store")) { navigator.invite = "" }
+            Button(L.storesJoinAction) { navigator.invite = "" }
                 .buttonStyle(SecondaryCapsuleStyle(height: ScreenFailed.buttonHeight, fontSize: ScreenFailed.buttonFont))
         }
     }
@@ -127,7 +127,7 @@ struct SourceOrderList: View {
         let current = selection ?? rows.first?.id
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Source order")
+                Text(L.sourcesOrder)
                     .groupHeaderStyle()
                     .accessibilityAddTraits(.isHeader)
                     .macLineHeight(14)
@@ -142,8 +142,8 @@ struct SourceOrderList: View {
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                     SourceLine(info: store.info(row), selected: row.id == current)
                         .onTapGesture { selection = row.id }
-                        .accessibilityAction(named: "Move Up") { store.moveSource(row.id, by: -1) }
-                        .accessibilityAction(named: "Move Down") { store.moveSource(row.id, by: 1) }
+                        .accessibilityAction(named: L.sourcesMoveUp) { store.moveSource(row.id, by: -1) }
+                        .accessibilityAction(named: L.sourcesMoveDown) { store.moveSource(row.id, by: 1) }
                         .draggable(row.id)
                         .dropDestination(for: String.self) { ids, _ in
                             guard let id = ids.first, id != row.id else { return false }
@@ -153,8 +153,8 @@ struct SourceOrderList: View {
                         }
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Sources are tried top to bottom. Drag one to change the order.")
-                    Text("anistream hosts no content.")
+                    Text(L.sourcesOrderDetail)
+                    Text(L.legalHostsNoContent)
                 }
                 .font(.mac(12))
                 .macLineHeight(17)
@@ -180,7 +180,7 @@ struct SourceOrderList: View {
             return .handled
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Source order")
+        .accessibilityLabel(L.sourcesOrder)
     }
 }
 
@@ -228,16 +228,16 @@ struct ProviderStandingLabel: View {
         case .failing:
             // Silk words beside the vermilion dot, as the boards have it: the dot says what is
             // wrong, and red text would only shout it.
-            label("Not answering", dot: .vermilion, color: .silk)
+            label(L.sourcesStatusNotAnswering, dot: .vermilion, color: .silk)
         case .heldBack:
-            label("Held back", ring: true, color: .haze)
+            label(L.sourcesStatusHeldBack, ring: true, color: .haze)
         case .off:
-            label("Off", ring: true, color: .silk)
+            label(L.valueOff, ring: true, color: .silk)
         case .slow:
-            label("Slow", dot: .haze, color: .haze)
+            label(L.sourcesStatusSlow, dot: .haze, color: .haze)
         case .working:
             if info.update != nil {
-                label("Update available", dot: .water, color: .silk)
+                label(L.sourcesStatusUpdate, dot: .water, color: .silk)
             }
         }
     }
@@ -271,7 +271,7 @@ struct ProviderDetail: View {
                     .macLineHeight(28)
                     .foregroundStyle(.silk)
                     .accessibilityAddTraits(.isHeader)
-                Text(info.isPlugin && info.origin != "Added by hand" ? "From \(info.origin)" : info.origin)
+                Text(info.isPlugin && info.origin != L.sourcesOriginByHand ? L.sourcesOriginFrom(name: info.origin) : info.origin)
                     .font(.mac(13))
                     .foregroundStyle(.haze)
                     .padding(.top, 2)
@@ -291,10 +291,10 @@ struct ProviderDetail: View {
             .padding(EdgeInsets(top: 18, leading: 24, bottom: 24, trailing: 24))
         }
         .scrollIndicators(.never)
-        .confirmationDialog("Remove \(info.name)?", isPresented: $removing) {
+        .confirmationDialog(L.sourcesRemoveTitle(name: info.name), isPresented: $removing) {
             Button(L.actionRemove, role: .destructive) { store.removePlugin(info.row.id) }
         } message: {
-            Text("It is deleted from this \(Device.name). A store can install it again.")
+            Text(L.sourcesRemoveDetail)
         }
         .sheet(item: $updating) { plugin in
             if let listing = info.listing { UpdatePluginSheet(store: listing.store, plugin: plugin) }
@@ -305,8 +305,8 @@ struct ProviderDetail: View {
     private var stateLine: String? {
         switch info.row.standing {
         // The site's own error is in Messages and the bug report, not here (copy rule 5).
-        case .failing: "Not answering."
-        case .heldBack: "Held back until the connection check passes."
+        case .failing: L.sourcesDetailNotAnsweringPlain
+        case .heldBack: L.sourcesDetailHeldBack
         default: nil
         }
     }
@@ -319,10 +319,10 @@ struct ProviderDetail: View {
                 } else {
                     Button(L.actionEnable) { turningOn = true }
                 }
-                Button(cased(mac: "Open Sources Settings", touch: "Open sources settings")) { navigator.openSettings(.sources) }
+                Button(L.sourcesOpenSettings) { navigator.openSettings(.sources) }
             }
             .buttonStyle(SecondaryCapsuleStyle())
-            Text("Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings › Sources.")
+            Text(L.sourcesTorrentsNote)
                 .font(.mac(13))
                 .macLineHeight(18)
                 .foregroundStyle(.haze)
@@ -334,7 +334,7 @@ struct ProviderDetail: View {
     private var pluginActions: some View {
         HStack(spacing: 8) {
             if let version = info.update, let plugin = info.listing?.plugin {
-                Button("Update to \(version)") { updating = plugin }
+                Button(L.sourcesUpdateTo(version: version)) { updating = plugin }
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
             }
             if info.row.standing == .failing {
@@ -346,7 +346,7 @@ struct ProviderDetail: View {
             }
             // Off without removing it: its source leaves the chain until it is on again.
             let disabled = store.isPluginDisabled(info.row.id)
-            Button(disabled ? "Enable" : "Disable") { store.setPluginDisabled(info.row.id, !disabled) }
+            Button(disabled ? L.actionEnable : L.actionDisable) { store.setPluginDisabled(info.row.id, !disabled) }
                 .buttonStyle(SecondaryCapsuleStyle())
             Button(L.actionRemove) { removing = true }
                 .buttonStyle(SecondaryCapsuleStyle())
@@ -358,29 +358,29 @@ struct ProviderDetail: View {
     private var facts: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(spacing: 0) {
-                fact("Version") {
+                fact(L.sourcesVersion) {
                     if let listing = info.listing {
                         Text(listing.plugin.installedVersion).foregroundStyle(.silk)
-                        if let update = info.update { Text("\(update) available").foregroundStyle(.haze) }
+                        if let update = info.update { Text(L.sourcesUpdateAvailableVersion(version: update)).foregroundStyle(.haze) }
                     } else {
-                        Text("Not from a store").foregroundStyle(.haze)
+                        Text(L.sourcesOriginNoStore).foregroundStyle(.haze)
                     }
                 }
                 Rectangle().fill(.faintRule).frame(height: 1)
-                fact("Response time") {
+                fact(L.sourcesResponseTime) {
                     if info.row.standing == .failing {
                         Text(L.sourcesNoAnswer).foregroundStyle(.silk)
                     } else if let latency = info.row.latencyMs {
-                        Text("\(latency) ms").foregroundStyle(.silk).monospacedDigit()
+                        Text(L.sourcesResponseMs(ms: Int(latency))).foregroundStyle(.silk).monospacedDigit()
                     } else {
-                        Text("Not checked yet").foregroundStyle(.haze)
+                        Text(L.sourcesNotChecked).foregroundStyle(.haze)
                     }
                 }
                 Rectangle().fill(.faintRule).frame(height: 1)
-                fact("Contacts") {
+                fact(L.sourcesContactsLabel) {
                     VStack(alignment: .leading, spacing: 6) {
                         if info.hosts.isEmpty {
-                            Text("Listed by its store").foregroundStyle(.haze)
+                            Text(L.sourcesListedByStore).foregroundStyle(.haze)
                         }
                         ForEach(info.hosts, id: \.self) { Text($0).foregroundStyle(.silk) }
                     }

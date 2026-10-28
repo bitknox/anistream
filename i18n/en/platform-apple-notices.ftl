@@ -30,3 +30,7 @@ notice-open-stores = Open { -plugin-store-pl }
 
 # VoiceOver action of a notice that dismisses it.
 notice-dismiss = Dismiss
+
+# Line of the device sign-in sheet when the code ran out.
+# @arg tracker: text
+accounts-code-expired-detail = This code has expired. Get a new one to sign in to { $tracker }.
