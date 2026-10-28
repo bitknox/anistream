@@ -6,7 +6,6 @@
       "Read(./crates/anistream-store-core/assets/admin/**)",
       "Read(./assets/shaders/**)",
       "Read(./assets/mpv/fonts/**)",
-      "Read(./**/.shots/**)",
       "Read(./android/.engine/**)",
       "Read(./apple/.engine/**)",
       "Read(./android/testkit/src/main/resources/tv/anistream/testkit/scenes/**)"
