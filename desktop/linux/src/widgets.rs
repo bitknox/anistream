@@ -393,7 +393,7 @@ impl PosterGrid {
     }
 }
 
-fn poster(hub: &Hub, entry: &Entry, caption: fn(&Entry) -> String) -> gtk::Box {
+fn poster(hub: &Rc<Hub>, entry: &Entry, caption: fn(&Entry) -> String) -> gtk::Box {
     let column = gtk::Box::new(gtk::Orientation::Vertical, 6);
     column.set_size_request(120, -1);
     column.append(&cover_fill(hub, entry, 148));
@@ -408,6 +408,7 @@ fn poster(hub: &Hub, entry: &Entry, caption: fn(&Entry) -> String) -> gtk::Box {
     caption.set_ellipsize(gtk::pango::EllipsizeMode::End);
     column.append(&caption);
     title_menu(&column, entry.id.get(), true);
+    crate::trailer::hover_preview(hub, &column, entry.id.get());
     column
 }
 

@@ -1425,6 +1425,11 @@ pub fn nagare_description() -> String {
     text("nagare-description", &[])
 }
 
+/// Note under the Play trailers setting: what the trailers are and when they do not play.
+pub fn settings_note_trailers_linux() -> String {
+    text("settings-note-trailers-linux", &[])
+}
+
 /// Button on a notice that asks to open the plugin stores.
 pub fn shell_open_stores() -> String {
     text("shell-open-stores", &[])
@@ -6600,6 +6605,146 @@ pub fn tv_problem_unpaired() -> String {
     text("tv-problem-unpaired", &[])
 }
 
+/// Menu item that opens an episode's discussion.
+pub fn discussion_open() -> String {
+    text("discussion-open", &[])
+}
+
+/// Title of the discussion window or sheet when the thread has no title yet.
+pub fn discussion_title_episode(episode: i64) -> String {
+    text("discussion-title-episode", &[("episode", Arg::Int(episode))])
+}
+
+/// Quiet line under an episode that opens its discussion.
+pub fn discussion_row(count: i64) -> String {
+    text("discussion-row", &[("count", Arg::Int(count))])
+}
+
+/// Count of comments in the header of the discussion.
+pub fn discussion_count(count: i64) -> String {
+    text("discussion-count", &[("count", Arg::Int(count))])
+}
+
+/// Button that likes a comment, with its count after it. Also its accessible name.
+pub fn discussion_like() -> String {
+    text("discussion-like", &[])
+}
+
+/// Button that replies to a comment.
+pub fn discussion_reply() -> String {
+    text("discussion-reply", &[])
+}
+
+/// Line under a reply that has more replies folded in it. The line opens them.
+pub fn discussion_more_replies(count: i64) -> String {
+    text("discussion-more-replies", &[("count", Arg::Int(count))])
+}
+
+/// Muted bar in place of a spoiler in a comment, until it is opened.
+pub fn discussion_spoiler() -> String {
+    text("discussion-spoiler", &[])
+}
+
+/// Line in place of an image in a comment. It opens the image in the browser.
+pub fn discussion_image() -> String {
+    text("discussion-image", &[])
+}
+
+/// Line in place of a video in a comment. It opens the video in the browser.
+pub fn discussion_video() -> String {
+    text("discussion-video", &[])
+}
+
+/// Placeholder in the field for a new comment.
+pub fn discussion_add_comment() -> String {
+    text("discussion-add-comment", &[])
+}
+
+/// Placeholder in the field while editing a comment.
+pub fn discussion_edit_comment() -> String {
+    text("discussion-edit-comment", &[])
+}
+
+/// Button that sends the comment in the field.
+pub fn discussion_post() -> String {
+    text("discussion-post", &[])
+}
+
+/// Line above the field while answering a comment.
+pub fn discussion_replying_to(name: &str) -> String {
+    text("discussion-replying-to", &[("name", Arg::Text(name))])
+}
+
+/// Accessible name of the button that stops replying or editing.
+pub fn discussion_cancel_reply() -> String {
+    text("discussion-cancel-reply", &[])
+}
+
+/// Line in place of the field when nobody is signed in to AniList. It opens the sign-in.
+pub fn discussion_sign_in() -> String {
+    text("discussion-sign-in", &[])
+}
+
+/// Line in place of the field when the viewer is signed in but offline.
+pub fn discussion_offline_post() -> String {
+    text("discussion-offline-post", &[])
+}
+
+/// Line under a comment AniList did not accept. The button beside it sends it again.
+pub fn discussion_post_failed() -> String {
+    text("discussion-post-failed", &[])
+}
+
+/// Title of the question asked before deleting the viewer's own comment.
+pub fn discussion_delete_title() -> String {
+    text("discussion-delete-title", &[])
+}
+
+/// Body of the question asked before deleting the viewer's own comment.
+pub fn discussion_delete_body() -> String {
+    text("discussion-delete-body", &[])
+}
+
+/// Line while the comments are still loading after a few seconds.
+pub fn discussion_still_loading() -> String {
+    text("discussion-still-loading", &[])
+}
+
+/// Line while AniList's request budget is spent. The engine waits, then goes on by itself.
+pub fn discussion_rate_limited(time: &str) -> String {
+    text("discussion-rate-limited", &[("time", Arg::Text(time))])
+}
+
+/// Title of the state when the episode has no thread on AniList.
+pub fn discussion_no_thread() -> String {
+    text("discussion-no-thread", &[])
+}
+
+/// Line under the no-thread title.
+pub fn discussion_no_thread_detail() -> String {
+    text("discussion-no-thread-detail", &[])
+}
+
+/// Title of the state when a thread has no comments.
+pub fn discussion_no_comments() -> String {
+    text("discussion-no-comments", &[])
+}
+
+/// Title of the state when the discussion could not be read.
+pub fn discussion_failed() -> String {
+    text("discussion-failed", &[])
+}
+
+/// Line over comments that are kept from an earlier visit while offline. The age reads "2h ago".
+pub fn discussion_offline_cached(age: &str) -> String {
+    text("discussion-offline-cached", &[("age", Arg::Text(age))])
+}
+
+/// Heading of the Settings group for discussion rows.
+pub fn discussion_settings_group() -> String {
+    text("discussion-settings-group", &[])
+}
+
 /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 pub fn downloads_title() -> String {
     text("downloads-title", &[])
@@ -10338,6 +10483,11 @@ pub fn title_trailer() -> String {
 /// Menu item that plays the trailer.
 pub fn title_play_trailer() -> String {
     text("title-play-trailer", &[])
+}
+
+/// Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+pub fn title_trailer_sound() -> String {
+    text("title-trailer-sound", &[])
 }
 
 /// Menu item that opens the title on the AniList website.

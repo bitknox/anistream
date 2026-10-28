@@ -1409,6 +1409,118 @@ object Strings {
     fun tvProblemUnpaired(context: Context): String =
         context.getString(R.string.tv_problem_unpaired)
 
+    /** Menu item that opens an episode's discussion. */
+    fun discussionOpen(context: Context): String =
+        context.getString(R.string.discussion_open)
+
+    /** Title of the discussion window or sheet when the thread has no title yet. */
+    fun discussionTitleEpisode(context: Context, episode: Int): String =
+        context.getString(R.string.discussion_title_episode, episode)
+
+    /** Quiet line under an episode that opens its discussion. */
+    fun discussionRow(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.discussion_row, count, count)
+
+    /** Count of comments in the header of the discussion. */
+    fun discussionCount(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.discussion_count, count, count)
+
+    /** Button that likes a comment, with its count after it. Also its accessible name. */
+    fun discussionLike(context: Context): String =
+        context.getString(R.string.discussion_like)
+
+    /** Button that replies to a comment. */
+    fun discussionReply(context: Context): String =
+        context.getString(R.string.discussion_reply)
+
+    /** Line under a reply that has more replies folded in it. The line opens them. */
+    fun discussionMoreReplies(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.discussion_more_replies, count, count)
+
+    /** Muted bar in place of a spoiler in a comment, until it is opened. */
+    fun discussionSpoiler(context: Context): String =
+        context.getString(R.string.discussion_spoiler)
+
+    /** Line in place of an image in a comment. It opens the image in the browser. */
+    fun discussionImage(context: Context): String =
+        context.getString(R.string.discussion_image)
+
+    /** Line in place of a video in a comment. It opens the video in the browser. */
+    fun discussionVideo(context: Context): String =
+        context.getString(R.string.discussion_video)
+
+    /** Placeholder in the field for a new comment. */
+    fun discussionAddComment(context: Context): String =
+        context.getString(R.string.discussion_add_comment)
+
+    /** Placeholder in the field while editing a comment. */
+    fun discussionEditComment(context: Context): String =
+        context.getString(R.string.discussion_edit_comment)
+
+    /** Button that sends the comment in the field. */
+    fun discussionPost(context: Context): String =
+        context.getString(R.string.discussion_post)
+
+    /** Line above the field while answering a comment. */
+    fun discussionReplyingTo(context: Context, name: String): String =
+        context.getString(R.string.discussion_replying_to, name)
+
+    /** Accessible name of the button that stops replying or editing. */
+    fun discussionCancelReply(context: Context): String =
+        context.getString(R.string.discussion_cancel_reply)
+
+    /** Line in place of the field when nobody is signed in to AniList. It opens the sign-in. */
+    fun discussionSignIn(context: Context): String =
+        context.getString(R.string.discussion_sign_in)
+
+    /** Line in place of the field when the viewer is signed in but offline. */
+    fun discussionOfflinePost(context: Context): String =
+        context.getString(R.string.discussion_offline_post)
+
+    /** Line under a comment AniList did not accept. The button beside it sends it again. */
+    fun discussionPostFailed(context: Context): String =
+        context.getString(R.string.discussion_post_failed)
+
+    /** Title of the question asked before deleting the viewer's own comment. */
+    fun discussionDeleteTitle(context: Context): String =
+        context.getString(R.string.discussion_delete_title)
+
+    /** Body of the question asked before deleting the viewer's own comment. */
+    fun discussionDeleteBody(context: Context): String =
+        context.getString(R.string.discussion_delete_body)
+
+    /** Line while the comments are still loading after a few seconds. */
+    fun discussionStillLoading(context: Context): String =
+        context.getString(R.string.discussion_still_loading)
+
+    /** Line while AniList's request budget is spent. The engine waits, then goes on by itself. */
+    fun discussionRateLimited(context: Context, time: String): String =
+        context.getString(R.string.discussion_rate_limited, time)
+
+    /** Title of the state when the episode has no thread on AniList. */
+    fun discussionNoThread(context: Context): String =
+        context.getString(R.string.discussion_no_thread)
+
+    /** Line under the no-thread title. */
+    fun discussionNoThreadDetail(context: Context): String =
+        context.getString(R.string.discussion_no_thread_detail)
+
+    /** Title of the state when a thread has no comments. */
+    fun discussionNoComments(context: Context): String =
+        context.getString(R.string.discussion_no_comments)
+
+    /** Title of the state when the discussion could not be read. */
+    fun discussionFailed(context: Context): String =
+        context.getString(R.string.discussion_failed)
+
+    /** Line over comments that are kept from an earlier visit while offline. The age reads "2h ago". */
+    fun discussionOfflineCached(context: Context, age: String): String =
+        context.getString(R.string.discussion_offline_cached, age)
+
+    /** Heading of the Settings group for discussion rows. */
+    fun discussionSettingsGroup(context: Context): String =
+        context.getString(R.string.discussion_settings_group)
+
     /** Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group. */
     fun downloadsTitle(context: Context): String =
         context.getString(R.string.downloads_title)
@@ -4404,6 +4516,10 @@ object Strings {
     /** Menu item that plays the trailer. */
     fun titlePlayTrailer(context: Context): String =
         context.getString(R.string.title_play_trailer)
+
+    /** Name and tooltip of the button beside a playing trailer that turns its sound on or off. */
+    fun titleTrailerSound(context: Context): String =
+        context.getString(R.string.title_trailer_sound)
 
     /** Menu item that opens the title on the AniList website. */
     fun titleOpenAnilist(context: Context): String =

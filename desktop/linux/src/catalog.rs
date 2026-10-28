@@ -142,6 +142,8 @@ pub fn is_switch(key: SettingKey) -> bool {
             | K::DownloadsOnCellular
             | K::TorrentsOnCellular
             | K::EpisodeNotifications
+            | K::EpisodeDiscussions
+            | K::CommentImages
     )
 }
 
@@ -171,6 +173,11 @@ pub fn choices(key: SettingKey) -> Vec<Choice> {
             ("anilist", "AniList's choice", t::settings_value_titles_anilist()), // i18n-skip
             ("english", "English", t::settings_value_titles_english()),          // i18n-skip
             ("romaji", "Romaji", t::settings_value_titles_romaji()),             // i18n-skip
+        ]),
+        K::Trailers => strs(&[
+            ("always", "always", t::settings_value_trailers_always()), // i18n-skip
+            ("wifi-only", "Wi-Fi only", t::settings_value_trailers_wifi_only()), // i18n-skip
+            ("off", "off", t::value_off()),
         ]),
         K::Quality => ints(&[480, 720, 1080, 2160], &|q| plain(format!("{q}p"))),
         K::CommitThreshold => [70, 80, 85, 90, 95]
