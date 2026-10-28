@@ -79,7 +79,7 @@ class SignInPageTest {
         val url = start(PageForm.Password)
         val plain = postRaw(url, "username=mika&password=secret")
         assertEquals(400, plain.first)
-        assertTrue(plain.second.contains(context.getString(R.string.torrents_page_unreadable)))
+        assertTrue(plain.second.contains(SignInPage.json(context.getString(R.string.torrents_page_unreadable))))
         // Sealed with another key, or for another page, it opens no better.
         val other = PageKey().seal(page!!.path, "username=mika&password=secret")
         assertEquals(400, postRaw(url, other).first)

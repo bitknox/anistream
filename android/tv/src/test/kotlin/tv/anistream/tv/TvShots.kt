@@ -52,6 +52,7 @@ import org.junit.rules.ExternalResource
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import tv.anistream.store.TorrentWords
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
@@ -464,7 +465,7 @@ class TvShots {
         compose.mainClock.advanceTimeBy(1_000)
         settle()
         assertEquals("Turn on", focusedText())
-        compose.onNodeWithText("Checking the proxy").assertExists()
+        compose.onNodeWithText(context.getString(TorrentWords.CHECKING_PROXY)).assertExists()
         compose.onNodeWithText("Type it").assertIsNotEnabled()
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-turn-on-checking.png")
 
@@ -560,7 +561,7 @@ class TvShots {
         compose.mainClock.advanceTimeBy(1_000)
         settle()
         assertEquals("Save", focusedText())
-        compose.onNodeWithText("Checking the proxy").assertExists()
+        compose.onNodeWithText(context.getString(TorrentWords.CHECKING_PROXY)).assertExists()
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-edit-proxy-checking.png")
 
         compose.runOnUiThread { shot.apply(listOf(Event.ProtectionChecked(GuardView.Leaking))) }
@@ -621,7 +622,7 @@ class TvShots {
         // A slow network: half a minute in, still checking.
         compose.mainClock.advanceTimeBy(30_000)
         settle()
-        compose.onNodeWithText("Checking the proxy").assertExists()
+        compose.onNodeWithText(context.getString(TorrentWords.CHECKING_PROXY)).assertExists()
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-edit-proxy-slow.png")
         compose.runOnUiThread { shot.apply(listOf(Event.ProtectionChecked(GuardView.Unreachable))) }
         settle()

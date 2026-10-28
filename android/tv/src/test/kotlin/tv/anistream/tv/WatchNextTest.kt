@@ -46,7 +46,7 @@ class WatchNextTest {
     @Test
     fun a_dub_is_marked_on_the_episode_line_and_a_sub_is_not() {
         val dub = cards(entry(1u).copy(watchedIn = Translation.DUB)).single()
-        assertEquals("Episode 4 · Dub", dub.description)
+        assertEquals("Episode 4 · Dubbed", dub.description)
         val sub = cards(entry(2u).copy(watchedIn = Translation.SUB)).single()
         assertEquals("Episode 4", sub.description)
     }

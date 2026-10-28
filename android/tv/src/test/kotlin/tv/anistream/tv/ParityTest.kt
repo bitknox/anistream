@@ -91,7 +91,7 @@ class ParityTest {
     fun the_update_row_says_where_the_update_is() {
         val offer = UpdateOffer("2.1.0", "https://updates.example/a.apk", "ab".repeat(32), 0)
         assertEquals("Available", updateLine(context, UpdateState.Available(offer)))
-        assertEquals("Downloading 40 %", updateLine(context, UpdateState.Downloading(offer, 40, 100)))
+        assertEquals("Downloading 40%", updateLine(context, UpdateState.Downloading(offer, 40, 100)))
         assertEquals("", updateLine(context, UpdateState.None))
     }
 

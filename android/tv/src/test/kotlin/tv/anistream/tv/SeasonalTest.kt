@@ -25,9 +25,9 @@ class SeasonalTest {
     @Test
     fun the_tabs_are_two_seasons_back_the_current_and_the_next() {
         val labels = SeasonTab.around(LocalDate.of(2026, 10, 20)).map { it.label(context) }
-        assertEquals(listOf("Spring 2026", "Summer 2026", "Fall 2026", "Winter 2027"), labels)
+        assertEquals(listOf("Spring 2026", "Summer 2026", "Autumn 2026", "Winter 2027"), labels)
         val winter = SeasonTab.around(LocalDate.of(2027, 1, 5)).map { it.label(context) }
-        assertEquals(listOf("Summer 2026", "Fall 2026", "Winter 2027", "Spring 2027"), winter)
+        assertEquals(listOf("Summer 2026", "Autumn 2026", "Winter 2027", "Spring 2027"), winter)
     }
 
     @Test

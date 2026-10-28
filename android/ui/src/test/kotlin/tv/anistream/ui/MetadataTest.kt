@@ -197,7 +197,7 @@ class MetadataTest {
         assertEquals("tomorrow at 16:30", airs("2026-10-22T14:30:00Z"))
         assertEquals("on Monday at 16:30", airs("2026-10-26T15:30:00Z"))
         assertEquals("on 29 Oct at 16:30", airs("2026-10-29T15:30:00Z"))
-        assertEquals("today at 4:30 pm", airs("2026-10-21T14:30:00Z", twentyFour = false).lowercase(Locale.UK))
+        assertEquals("today at 4:30 pm", airs("2026-10-21T14:30:00Z", twentyFour = false).lowercase(Locale.UK).replace('\u202f', ' '))
     }
 
     @Test

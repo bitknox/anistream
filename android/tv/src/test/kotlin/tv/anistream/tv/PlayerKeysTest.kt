@@ -30,13 +30,13 @@ class PlayerKeysTest {
     fun presses_count_up_and_seek_once() {
         val run = SeekRun()
         repeat(3) { run.press(forward = true) }
-        assertEquals("+30 s", run.label(context))
+        assertEquals("+30s", run.label(context))
         run.press(forward = false)
-        assertEquals("+20 s", run.label(context))
+        assertEquals("+20s", run.label(context))
         assertEquals(20.0, run.take(), 0.0)
         assertEquals(0, run.presses)
         run.press(forward = false)
-        assertEquals("−10 s", run.label(context))
+        assertEquals("−10s", run.label(context))
     }
 
     @Test
@@ -76,6 +76,6 @@ class PlayerKeysTest {
         assertEquals("10:29", clockTime(629.0))
         assertEquals("1:02:03", clockTime(3723.0))
         assertEquals("−13:31", remainingTime(631.0, 1442.0))
-        assertEquals("0 s", signedSeconds(context, 0.0))
+        assertEquals("0s", signedSeconds(context, 0.0))
     }
 }

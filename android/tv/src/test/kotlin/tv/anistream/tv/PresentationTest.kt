@@ -61,9 +61,9 @@ class PresentationTest {
     fun a_dub_is_marked_on_the_action_and_a_sub_is_not() {
         val progress = TitleProgress(6u, 7u)
         val resume = ResumePoint(606.0, 0.42)
-        assertEquals("Resume episode 7 · Dub", PlayAction.of(entry(progress, resume).copy(watchedIn = Translation.DUB)).label(context))
+        assertEquals("Resume episode 7 · Dubbed", PlayAction.of(entry(progress, resume).copy(watchedIn = Translation.DUB)).label(context))
         assertEquals("Resume episode 7", PlayAction.of(entry(progress, resume).copy(watchedIn = Translation.SUB)).label(context))
-        assertEquals("Play episode 7 · Dub", PlayAction.of(entry(progress).copy(watchedIn = Translation.DUB)).label(context))
+        assertEquals("Play episode 7 · Dubbed", PlayAction.of(entry(progress).copy(watchedIn = Translation.DUB)).label(context))
     }
 
     @Test
@@ -81,7 +81,7 @@ class PresentationTest {
     }
 
     @Test
-    fun the_metadata_line_is_in_capitals() {
+    fun the_metadata_line_is_in_sentence_case() {
         val entry = Entry(
             id = 900001u,
             title = "Stardust Wayfarer",
@@ -92,7 +92,7 @@ class PresentationTest {
             score = 79u,
             studio = "Atelier Hotaru",
         )
-        assertEquals("TV · SUMMER 2026 · 24 EPS · 79 % · ATELIER HOTARU", entry.metadataLine(context))
+        assertEquals("TV · Summer 2026 · 24 episodes · 79% · Atelier Hotaru", entry.metadataLine(context))
     }
 
     @Test
@@ -102,7 +102,7 @@ class PresentationTest {
 
     @Test
     fun seasons_and_days_read_as_the_rows_have_them() {
-        assertEquals("Fall 2026", seasonLabel(context, LocalDate.of(2026, 10, 20)))
+        assertEquals("Autumn 2026", seasonLabel(context, LocalDate.of(2026, 10, 20)))
         assertEquals("Winter 2027", seasonLabel(context, LocalDate.of(2026, 12, 3)))
         val today = LocalDate.of(2026, 10, 20)
         assertEquals("Today", dayLabel(context, today, today))

@@ -227,7 +227,7 @@ class NewEpisodesTest {
         val summary = summary()!!
         assertEquals("3 new episodes", summary.extras.getString(Notification.EXTRA_TITLE))
         assertEquals(
-            "The Library Above the Clouds, Summer Wind Relay and Stardust Wayfarer",
+            "The Library Above the Clouds, Summer Wind Relay, and Stardust Wayfarer",
             summary.extras.getCharSequence(Notification.EXTRA_TEXT).toString(),
         )
         assertEquals(
@@ -377,7 +377,7 @@ class NewEpisodesTest {
         assertEquals(setOf(tag(relay)), episodeTags())
         // The summary stays while the group has an episode in it: the system would take the
         // episode away with it.
-        assertEquals("1 new episode", summary()?.extras?.getString(Notification.EXTRA_TITLE))
+        assertEquals("One new episode", summary()?.extras?.getString(Notification.EXTRA_TITLE))
 
         EpisodeActionReceiver().onReceive(context, shadowOf(posted(tag(relay)).actions[1].actionIntent).savedIntent)
         shadowOf(Looper.getMainLooper()).idle()
