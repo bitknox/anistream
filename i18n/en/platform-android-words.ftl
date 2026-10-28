@@ -974,7 +974,7 @@ player-wait-note = { $what } · { $seconds } s
 # Player, starting screen: the title when nothing played.
 # @only android
 # @arg episode: text
-player-failed-title-text = Couldn’t play episode { $episode }
+player-failed-title-text = Couldn't play episode { $episode }
 
 # Player, track lists: a track with neither language nor title.
 # @only android

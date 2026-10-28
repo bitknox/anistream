@@ -1104,7 +1104,7 @@
     <!-- Player, starting screen: what the wait is on, and for how long. -->
     <string name="player_wait_note">%1$s · %2$d s</string>
     <!-- Player, starting screen: the title when nothing played. -->
-    <string name="player_failed_title_text">Couldn’t play episode %1$s</string>
+    <string name="player_failed_title_text">Couldn\'t play episode %1$s</string>
     <!-- Player, track lists: a track with neither language nor title. -->
     <string name="player_track_n">Track %1$d</string>
     <!-- Player, seek bar: the position and the length, for a screen reader. -->
