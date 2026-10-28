@@ -81,7 +81,7 @@ struct TVNowPlayingButton: View {
             } label: {
                 #if os(macOS)
                 if card.phase == .connected {
-                    Label(store.tv.now == nil ? card.tvName : "Playing on \(card.tvName)", systemImage: "tv")
+                    Label(store.tv.now == nil ? card.tvName : L.tvStatusPlaying(name: card.tvName), systemImage: "tv")
                         .labelStyle(.titleAndIcon)
                 } else {
                     // While the link is down it says so in the same place, with the app's dots.
@@ -91,10 +91,10 @@ struct TVNowPlayingButton: View {
                     }
                 }
                 #else
-                Label(store.tv.now == nil ? card.tvName : "Playing on \(card.tvName)", systemImage: "tv")
+                Label(store.tv.now == nil ? card.tvName : L.tvStatusPlaying(name: card.tvName), systemImage: "tv")
                 #endif
             }
-            .help("Show the remote for \(card.tvName)")
+            .help(L.tvShowRemote(name: card.tvName))
         }
     }
 }
@@ -130,7 +130,7 @@ struct TVNowPlayingBar: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(now.title).font(.showTitle(size: 15)).foregroundStyle(.silk).lineLimit(1)
                     if placement != .inline {
-                        Text(card.phase == .connected ? "Playing on \(card.tvName)" : TVWords.status(card))
+                        Text(card.phase == .connected ? L.tvStatusPlaying(name: card.tvName) : TVWords.status(card))
                             .font(.ui(13)).foregroundStyle(.haze).lineLimit(1)
                     }
                 }
@@ -147,14 +147,14 @@ struct TVNowPlayingBar: View {
                 .buttonStyle(.plain)
                 .disabled(now.loading || !store.tv.live)
                 .opacity(now.loading || !store.tv.live ? 0.4 : 1)
-                .accessibilityLabel(now.paused ? "Play" : "Pause")
+                .accessibilityLabel(now.paused ? L.actionPlay : L.actionPause)
             }
             .padding(.leading, 16)
             .padding(.trailing, 4)
             .contentShape(.rect)
             .onTapGesture { store.tv.openRemote() }
             .accessibilityElement(children: .contain)
-            .accessibilityAction(named: "Show the remote") { store.tv.openRemote() }
+            .accessibilityAction(named: L.tvRemoteAction) { store.tv.openRemote() }
         }
     }
 }
@@ -165,31 +165,31 @@ struct TVNowPlayingBar: View {
 /// What the sheets say that both platforms share.
 enum TVWords {
     static func pickerTitle(_ request: TVPlayRequest?) -> String {
-        request == nil ? "Pair a TV" : "Play on TV"
+        request == nil ? L.tvPairAction : L.tvPlayOn
     }
 
     static func pickerLine(_ request: TVPlayRequest?) -> String {
         guard let request else {
-            return "Open anistream on the TV. It needs to be on the same Wi-Fi as this \(Device.name)."
+            return L.tvOpenOnTv
         }
-        return request.title.isEmpty ? "Episode \(request.episode)" : "\(request.title), episode \(request.episode)"
+        return request.title.isEmpty ? L.episodeNumberText(number: request.episode) : L.tvPickerTitleEpisode(title: request.title, episode: request.episode)
     }
 
     static func pairingLine(_ name: String) -> String {
-        "Type the six digits \(name) shows. After this, this \(Device.name) connects by itself."
+        L.tvTypeCode(name: name)
     }
 
-    static let empty = "Looking for TVs on this network"
-    static let noneFound = "No TVs found"
+    static var empty: String { L.tvLooking }
+    static var noneFound: String { L.tvNoneFound }
     /// What to check when no TV answers. The picker's own line says it already when it is
     /// pairing, with nothing to play.
     static func noneLine(_ request: TVPlayRequest?) -> String {
         request == nil
-            ? "Check that anistream is open on the TV."
-            : "Check that anistream is open on the TV, on the same Wi-Fi as this \(Device.name)."
+            ? L.tvNoneFoundShort
+            : L.tvNoneFoundDetail
     }
-    static let address = "The TV shows its address on its Pair a phone screen."
-    static let nothing = "Choose Play on TV on an episode, or search on the TV from here."
+    static var address: String { L.tvAddressHint }
+    static var nothing: String { L.tvAfterPairing }
 
     /// A track as the card names it: its language in this device's language, and its title.
     static func track(_ track: FfiTvTrack) -> String {
@@ -198,16 +198,16 @@ enum TVWords {
         case (let language?, let title?) where !title.isEmpty: return "\(language) · \(title)"
         case (let language?, _): return language
         case (nil, let title?) where !title.isEmpty: return title
-        default: return "Track \(track.id)"
+        default: return L.tvTrackN(id: Int(track.id))
         }
     }
 
     static func chosen(_ tracks: [FfiTvTrack], off: Bool) -> String {
-        off ? "Off" : tracks.first(where: \.selected).map(track) ?? "None"
+        off ? L.valueOff : tracks.first(where: \.selected).map(track) ?? L.valueNone
     }
 
     static func volume(_ now: FfiNowCard) -> String? {
-        now.volume.map { "\(Int($0.rounded())) of 100" }
+        now.volume.map { L.tvVolumeOf(volume: Int($0.rounded())) }
     }
 
     /// The dot beside the link's line: water while connected, vermilion when the TV let this
@@ -221,7 +221,7 @@ enum TVWords {
     }
 
     static func status(_ card: FfiRemoteCard?) -> String {
-        card?.phaseLine ?? "Connected"
+        card?.phaseLine ?? L.tvStatusConnected
     }
 
     /// What the toolbar's button says while the link is down: "Reconnecting to Living room",
@@ -231,10 +231,10 @@ enum TVWords {
         let name = card.tvName
         switch card.phase {
         case .connected: return name
-        case .connecting: return card.reached ? "Reconnecting to \(name)" : "Connecting to \(name)…"
-        case .retrying where !card.reached: return "Can't reach \(name)"
-        case .retrying: return card.over ? "\(name) not found" : "Reconnecting to \(name)"
-        case .unpaired, .keyChanged: return "Pair \(name) again"
+        case .connecting: return card.reached ? L.tvStatusReconnecting(name: name) : L.tvStatusConnecting(name: name)
+        case .retrying where !card.reached: return L.tvBarCantReach(name: name)
+        case .retrying: return card.over ? L.tvBarNotFound(name: name) : L.tvStatusReconnecting(name: name)
+        case .unpaired, .keyChanged: return L.tvPairAgainWith(name: name)
         }
     }
 
@@ -391,13 +391,13 @@ struct TVTransport: View {
 
     var body: some View {
         HStack(spacing: touch ? 24 : 16) {
-            glyph("gobackward.10", "Back 10 seconds", size: touch ? 24 : 18) { store.tv.send(.seek(by: -10)) }
-            glyph(now.paused ? "play.fill" : "pause.fill", now.paused ? "Play" : "Pause", size: touch ? 34 : 24) {
+            glyph("gobackward.10", L.playerBack10, size: touch ? 24 : 18) { store.tv.send(.seek(by: -10)) }
+            glyph(now.paused ? "play.fill" : "pause.fill", now.paused ? L.actionPlay : L.actionPause, size: touch ? 34 : 24) {
                 store.tv.send(.togglePause)
             }
             .keyboardShortcut(.space, modifiers: [])
-            glyph("goforward.10", "Forward 10 seconds", size: touch ? 24 : 18) { store.tv.send(.seek(by: 10)) }
-            glyph("forward.end.fill", "Next episode", size: touch ? 20 : 15) { store.tv.send(.next) }
+            glyph("goforward.10", L.playerForward10, size: touch ? 24 : 18) { store.tv.send(.seek(by: 10)) }
+            glyph("forward.end.fill", L.playerNextEpisode, size: touch ? 20 : 15) { store.tv.send(.next) }
         }
         .frame(maxWidth: .infinity)
         // Starting on the TV, or the link lost: there, but nothing to press.
@@ -546,7 +546,7 @@ struct TVRow: View {
         .disabled(row.kind == .needsUpdate)
         .opacity(row.kind == .needsUpdate ? 0.55 : 1)
         .accessibilityElement(children: .combine)
-        .accessibilityHint(row.kind == .new ? "Pairs with this TV" : "")
+        .accessibilityHint(row.kind == .new ? L.tvRowPairHint : "")
     }
 }
 
@@ -680,7 +680,7 @@ struct MacTVPicker: View {
         .padding(.top, 16)
         if typing {
             HStack(spacing: 10) {
-                TextField("Address", text: $address, prompt: Text("192.168.1.20:47811"))
+                TextField(L.tvAddress, text: $address, prompt: Text("192.168.1.20:47811")) // i18n-skip
                     .textFieldStyle(SheetFieldStyle())
                     .labelsHidden()
                     .onSubmit(connect)
@@ -696,7 +696,7 @@ struct MacTVPicker: View {
         }
         HStack(spacing: 10) {
             if !typing {
-                Button("Type an Address…") { typing = true }
+                Button(L.tvTypeAddress) { typing = true }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
             Spacer()
@@ -725,13 +725,13 @@ struct MacTVPairing: View {
         let tv = store.tv
         let typing = step.needsCode && !step.tvName.isEmpty
         if typing {
-            MacSheetHeading(title: "Pair with \(step.tvName)", line: TVWords.pairingLine(step.tvName))
+            MacSheetHeading(title: L.tvPairWith(name: step.tvName), line: TVWords.pairingLine(step.tvName))
             TVCodeBoxes(code: $code, focused: $focused, touch: false, locked: step.expired, submit: submit)
                 .padding(.top, 18)
         } else {
             MacSheetHeading(
-                title: step.tvName.isEmpty ? "Connecting to the TV" : "Pairing with \(step.tvName)",
-                line: "This takes a moment.")
+                title: step.tvName.isEmpty ? L.tvConnectingGeneric : L.tvPairingWith(name: step.tvName),
+                line: L.tvPairingMoment)
         }
         if let problem = step.problem {
             TVProblemLine(text: problem, touch: false).padding(.top, 12)
@@ -744,12 +744,12 @@ struct MacTVPairing: View {
             if step.working { ProgressView().controlSize(.small) }
             if typing, step.expired {
                 // The one way on once the code ran out.
-                Button("Get a New Code", action: newCode)
+                Button(L.actionNewCode, action: newCode)
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
                     .disabled(step.working)
             } else if typing {
-                Button("Get a New Code", action: newCode)
+                Button(L.actionNewCode, action: newCode)
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .disabled(step.working)
                 Button(L.actionPair, action: submit)
@@ -802,7 +802,7 @@ struct MacTVRemote: View {
                 if let entry = store.titles[now.id] { CoverArt(entry: entry, width: 36) }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(now.title).font(.showTitle(size: 15)).foregroundStyle(.silk).lineLimit(1)
-                    Text(now.loading ? "Starting on the TV" : now.episodeLine)
+                    Text(now.loading ? L.tvStarting : now.episodeLine)
                         .font(.mac(12)).foregroundStyle(.haze).lineLimit(1)
                 }
                 Spacer(minLength: 8)
@@ -821,14 +821,14 @@ struct MacTVRemote: View {
                     TVTrackMenu(title: L.playerSubtitles, kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff, phone: false)
                 }
                 .opacity(tv.live ? 1 : 0.4)
-                SettingsRow(title: "Audio") {
-                    TVTrackMenu(title: "Audio", kind: .audio, tracks: now.audio, off: false, phone: false)
+                SettingsRow(title: L.playerAudio) {
+                    TVTrackMenu(title: L.playerAudio, kind: .audio, tracks: now.audio, off: false, phone: false)
                 }
                 .opacity(tv.live ? 1 : 0.4)
-                SettingsRow(title: "TV Volume", note: TVWords.volume(now)) {
+                SettingsRow(title: L.tvVolume, note: TVWords.volume(now)) {
                     HStack(spacing: 6) {
-                        volume("speaker.wave.1", "Volume Down", -5)
-                        volume("speaker.wave.3", "Volume Up", 5)
+                        volume("speaker.wave.1", L.tvVolumeDown, -5)
+                        volume("speaker.wave.3", L.tvVolumeUp, 5)
                     }
                     .disabled(!tv.live)
                     .opacity(tv.live ? 1 : 0.4)
@@ -854,10 +854,10 @@ struct MacTVRemote: View {
         }
         HStack(spacing: 10) {
             if TVWords.lost(card) {
-                Button("Pair Again") { pairAgain() }
+                Button(L.tvPairAgain) { pairAgain() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             } else {
-                Button("Choose Another TV…") { tv.openPicker() }
+                Button(L.tvChooseAnother) { tv.openPicker() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
             Button(L.actionDisconnect) {
@@ -970,7 +970,7 @@ struct PhoneTVPicker: View {
                 if TVCodeScanner.isSupported {
                     PhoneActionRow(title: L.tvScanCode, systemImage: "qrcode.viewfinder") { scanning = true }
                 }
-                TextField("Address", text: $address, prompt: Text("Type an address"))
+                TextField(L.tvAddress, text: $address, prompt: Text(L.tvTypeAddress))
                     .font(.ui(17))
                     .keyboardType(.numbersAndPunctuation)
                     .textInputAutocapitalization(.never)
@@ -1017,7 +1017,7 @@ struct PhoneTVPairing: View {
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4))
                 } header: {
-                    PhoneSectionHeader("Code on \(step.tvName)")
+                    PhoneSectionHeader(L.tvCodeOn(name: step.tvName))
                 } footer: {
                     if let problem = step.problem {
                         TVProblemLine(text: problem, touch: true)
@@ -1036,7 +1036,7 @@ struct PhoneTVPairing: View {
                 Section {
                     HStack(spacing: 12) {
                         ProgressView()
-                        Text(step.tvName.isEmpty ? "Connecting to the TV" : "Pairing with \(step.tvName)")
+                        Text(step.tvName.isEmpty ? L.tvConnectingGeneric : L.tvPairingWith(name: step.tvName))
                             .font(.ui(17)).foregroundStyle(.haze)
                     }
                     .listRowBackground(Palette.raised)
@@ -1058,7 +1058,7 @@ struct PhoneTVPairing: View {
                     if step.expired { newCode() } else { submit() }
                 } label: {
                     // The label stays centred; the spinner sits beside it without moving it.
-                    Text(step.expired ? "Get a new code" : "Pair")
+                    Text(step.expired ? L.actionNewCode : L.tvPair)
                         .overlay(alignment: .leading) {
                             if step.working { ProgressView().tint(.ground).offset(x: -28) }
                         }
@@ -1105,7 +1105,7 @@ struct PhoneTVRemote: View {
                             if let entry = store.titles[now.id] { CoverArt(entry: entry, width: 40) }
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(now.title).font(.showTitle(size: 17)).foregroundStyle(.silk).lineLimit(2)
-                                Text(now.loading ? "Starting on the TV" : now.episodeLine)
+                                Text(now.loading ? L.tvStarting : now.episodeLine)
                                     .font(.ui(15)).foregroundStyle(.haze).lineLimit(2)
                             }
                         }
@@ -1123,7 +1123,7 @@ struct PhoneTVRemote: View {
                     // What to do from here is said only while the TV can hear it; otherwise the
                     // header's line says what the link is doing.
                     PhoneRowTitle(
-                        title: tv.live ? "Nothing playing" : (card?.tvName ?? "TV"),
+                        title: tv.live ? L.tvNothingPlaying : (card?.tvName ?? L.tvGenericName),
                         note: tv.live ? TVWords.nothing : nil)
                         .padding(.vertical, 6)
                         .listRowBackground(Palette.raised)
@@ -1136,13 +1136,13 @@ struct PhoneTVRemote: View {
             }
             if let now = tv.now {
                 Section {
-                    menuRow("Subtitles", kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff)
-                    menuRow("Audio", kind: .audio, tracks: now.audio, off: false)
+                    menuRow(L.playerSubtitles, kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff)
+                    menuRow(L.playerAudio, kind: .audio, tracks: now.audio, off: false)
                     HStack(spacing: 8) {
                         PhoneRowTitle(title: L.tvVolume, note: TVWords.volume(now))
                         Spacer()
-                        volume("speaker.wave.1", "Volume down", -5)
-                        volume("speaker.wave.3", "Volume up", 5)
+                        volume("speaker.wave.1", L.tvVolumeDown, -5)
+                        volume("speaker.wave.3", L.tvVolumeUp, 5)
                     }
                     .disabled(!tv.live)
                     .opacity(tv.live ? 1 : 0.4)
@@ -1170,7 +1170,7 @@ struct PhoneTVRemote: View {
                         tv.openPicker()
                     }
                 } else {
-                    PhoneActionRow(title: "Choose another TV") { tv.openPicker() }
+                    PhoneActionRow(title: L.tvChooseAnother) { tv.openPicker() }
                 }
                 PhoneActionRow(title: L.actionDisconnect) {
                     tv.disconnect()

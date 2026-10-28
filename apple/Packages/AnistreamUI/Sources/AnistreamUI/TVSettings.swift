@@ -11,16 +11,16 @@ import SwiftUI
 @MainActor
 enum TVSettingsWords {
     static func note(_ tv: FfiPairedTv, connected: Bool, now: Date = .now) -> String {
-        if connected { return "Connected · \(tv.address)" }
+        if connected { return L.tvConnectedAt(address: tv.address) }
         let paired = Date(timeIntervalSince1970: TimeInterval(tv.pairedAt))
-        let pairedWords = "Paired " + paired.formatted(.dateTime.day().month(.abbreviated))
+        let pairedWords = L.tvPairedOn(when: paired.formatted(.dateTime.day().month(.abbreviated).locale(AirTime.locale)))
         guard let seen = tv.lastSeen else { return pairedWords }
         let ago = Int64(now.timeIntervalSince1970) - seen
-        return pairedWords + " · seen " + (ago < 60 ? "just now" : Wording.ago(ago))
+        return L.tvPairedSeen(paired: pairedWords, when: ago < 60 ? L.tvSeenJustNow : Wording.ago(ago))
     }
 
     static func footnote(_ tv: TVRemoteModel) -> String {
-        "A TV lists this \(Device.name) with the code \(tv.shortFingerprint). Forget a TV here and it forgets this \(Device.name) too."
+        L.tvSettingsFootnote(code: tv.shortFingerprint)
     }
 }
 
@@ -33,20 +33,20 @@ struct TVsGroup: View {
     var body: some View {
         let tv = store.tv
         if tv.available {
-            SettingsGroup(title: "Play on TV", footnote: TVSettingsWords.footnote(tv)) {
+            SettingsGroup(title: L.tvPlayOn, footnote: TVSettingsWords.footnote(tv)) {
                 ForEach(tv.paired, id: \.fingerprint) { paired in
                     SettingsRow(title: paired.name, note: TVSettingsWords.note(paired, connected: tv.connected == paired.fingerprint)) {
                         Button(L.actionForget) { forgetting = paired }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     }
                 }
-                SettingsRow(title: tv.paired.isEmpty ? "No TVs paired yet" : "Another TV", note: L.tvNonePairedDetail) {
-                    Button("Pair a TV…") { tv.openPicker() }
+                SettingsRow(title: tv.paired.isEmpty ? L.tvNonePaired : L.tvAnother, note: L.tvNonePairedDetail) {
+                    Button(L.tvPairMenu) { tv.openPicker() }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                 }
             }
             .confirmationDialog(
-                "Forget \(forgetting?.name ?? "this TV")?",
+                L.tvForgetTitle(name: forgetting?.name ?? L.tvGenericName),
                 isPresented: Binding(get: { forgetting != nil }, set: { if !$0 { forgetting = nil } }),
                 presenting: forgetting
             ) { paired in
@@ -85,7 +85,7 @@ struct PhoneTVsPage: View {
                         Button(L.actionForget, role: .destructive) { tv.forget(paired.fingerprint) }
                     }
                 }
-                Button("Pair a TV") { tv.openPicker() }
+                Button(L.tvPairAction) { tv.openPicker() }
                     .font(.ui(17, weight: .semibold))
                     .foregroundStyle(.silk)
                     .listRowBackground(Palette.raised)
