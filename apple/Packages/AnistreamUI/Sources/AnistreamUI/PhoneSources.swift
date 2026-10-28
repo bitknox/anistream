@@ -453,7 +453,7 @@ struct PhoneJoinStoreSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(L.storesAnyoneWithLink).font(.ui(17)).foregroundStyle(.silk)
                             if invited.anonymous {
-                                Text(L.storesJoinNameless).font(.ui(15)).foregroundStyle(.haze)
+                                Text(L.storesAnyoneNote).font(.ui(15)).foregroundStyle(.haze)
                             }
                         }
                     }
