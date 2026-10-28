@@ -314,7 +314,7 @@ struct PhonePluginPage: View {
             }
             Section {
                 let disabled = store.isPluginDisabled(id)
-                Button(disabled ? "Enable" : "Disable") { store.setPluginDisabled(id, !disabled) }
+                Button(disabled ? L.actionEnable : L.actionDisable) { store.setPluginDisabled(id, !disabled) }
                     .listRowBackground(Palette.raised)
                 Button(L.actionRemove, role: .destructive) { removing = true }
                     .fontWeight(.semibold)

@@ -93,7 +93,7 @@ enum DownloadFolder {
 
     /// The folder's own name, for the menu.
     static func name(_ store: AppStore) -> String {
-        guard let path = store.settings.row(.downloadDir)?.typedText, !path.isEmpty else { return "Default" }
+        guard let path = store.settings.row(.downloadDir)?.typedText, !path.isEmpty else { return L.valueDefault }
         return URL(fileURLWithPath: path).lastPathComponent
     }
 }
@@ -130,7 +130,7 @@ struct DownloadFolderMenu: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
-        panel.prompt = "Choose"
+        panel.prompt = L.settingsFolderChoose
         if panel.runModal() == .OK, let url = panel.url {
             store.setSetting(.downloadDir, to: .str(url.path))
         }

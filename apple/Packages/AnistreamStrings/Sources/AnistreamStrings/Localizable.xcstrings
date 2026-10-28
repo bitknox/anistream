@@ -4279,6 +4279,18 @@
         }
       }
     },
+    "filter-any" : {
+      "comment" : "Value of the score slider when no minimum is set.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Any"
+          }
+        }
+      }
+    },
     "filter-any-format" : {
       "comment" : "Choice meaning no format filter.",
       "extractionState" : "manual",
@@ -4411,6 +4423,30 @@
         }
       }
     },
+    "filter-group-closes" : {
+      "comment" : "VoiceOver hint of a filter group that is open.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Closes the group"
+          }
+        }
+      }
+    },
+    "filter-group-opens" : {
+      "comment" : "VoiceOver hint of a filter group that is closed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the group"
+          }
+        }
+      }
+    },
     "filter-hide" : {
       "comment" : "Value of a three-way filter: leave the titles out.",
       "extractionState" : "manual",
@@ -4519,6 +4555,18 @@
         }
       }
     },
+    "filter-minutes-unit" : {
+      "comment" : "Unit shown after the bounds of the episode length filter.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "min"
+          }
+        }
+      }
+    },
     "filter-my-list" : {
       "comment" : "Filter name: how titles already on the person's list are treated.",
       "extractionState" : "manual",
@@ -4551,6 +4599,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Origin"
+          }
+        }
+      }
+    },
+    "filter-range-between" : {
+      "comment" : "Word between the two bounds of a range filter, small and lower case.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "to"
+          }
+        }
+      }
+    },
+    "filter-range-from" : {
+      "comment" : "Prompt of the lower bound of a range filter.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From"
+          }
+        }
+      }
+    },
+    "filter-range-to" : {
+      "comment" : "Prompt of the upper bound of a range filter.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To"
           }
         }
       }
@@ -4731,6 +4815,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Year"
+          }
+        }
+      }
+    },
+    "filter-years" : {
+      "comment" : "Label of the years range in the Released section.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Years"
           }
         }
       }
@@ -11225,6 +11321,18 @@
         }
       }
     },
+    "search-clear-all" : {
+      "comment" : "Button that clears every filter chip at once.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all"
+          }
+        }
+      }
+    },
     "search-clear-filters" : {
       "comment" : "Button that removes every filter.",
       "extractionState" : "manual",
@@ -11249,6 +11357,64 @@
         }
       }
     },
+    "search-filters-help" : {
+      "comment" : "Tooltip of the All filters button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags, length, score, origin and where to watch"
+          }
+        }
+      }
+    },
+    "search-filters-set" : {
+      "comment" : "VoiceOver value of the All filters button: how many advanced filters are set. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld set"
+          }
+        }
+      }
+    },
+    "search-formats-count" : {
+      "comment" : "Title of the format filter when more than two formats are chosen. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld format"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld formats"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "search-genres" : {
       "comment" : "Heading over the genre shortcuts.",
       "extractionState" : "manual",
@@ -11257,6 +11423,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Genres"
+          }
+        }
+      }
+    },
+    "search-genres-count" : {
+      "comment" : "Title of the genre filter when more than one genre is chosen. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld genre"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld genres"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "search-include" : {
+      "comment" : "Context menu item that includes a tag or genre in the results.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Include"
+          }
+        }
+      }
+    },
+    "search-leave-out" : {
+      "comment" : "Submenu and context menu item that leaves a genre or tag out of the results.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave out"
           }
         }
       }
@@ -11281,6 +11505,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Search needs a connection"
+          }
+        }
+      }
+    },
+    "search-no-results" : {
+      "comment" : "Title of the empty state when the filters match nothing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No results"
           }
         }
       }
@@ -11345,6 +11581,30 @@
         }
       }
     },
+    "search-rate-limit-return" : {
+      "comment" : "Line while results wait for the rate limit to recover, on a Mac where Return runs the search.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Results wait for Return while AniList’s rate limit recovers"
+          }
+        }
+      }
+    },
+    "search-rate-limit-search" : {
+      "comment" : "Line while results wait for the rate limit to recover, on a phone where a Search key runs the search.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Results wait for Search while AniList’s rate limit recovers"
+          }
+        }
+      }
+    },
     "search-recent" : {
       "comment" : "Heading over the searches a person made lately.",
       "extractionState" : "manual",
@@ -11393,6 +11653,18 @@
         }
       }
     },
+    "search-searching-browse" : {
+      "comment" : "Line while a browse is slow to answer. The headline names what is browsed, such as \"Trending now\". Argument 1: what (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching for %1$@"
+          }
+        }
+      }
+    },
     "search-see-all" : {
       "comment" : "Button that shows every title in a group.",
       "extractionState" : "manual",
@@ -11401,6 +11673,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "See all"
+          }
+        }
+      }
+    },
+    "search-sort-by" : {
+      "comment" : "Title of the sort picker in the filter bar.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort by"
+          }
+        }
+      }
+    },
+    "search-statuses-count" : {
+      "comment" : "Title of the status filter when more than one status is chosen. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld status"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld statuses"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "search-trending-now" : {
+      "comment" : "Heading of the placeholder rail shown while the search page loads.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trending now"
           }
         }
       }
@@ -12007,6 +12337,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit proxy…"
+          }
+        }
+      }
+    },
+    "settings-folder-choose" : {
+      "comment" : "Confirm button of the folder picker for the downloads folder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose"
           }
         }
       }
@@ -13457,6 +13799,54 @@
         }
       }
     },
+    "settings-title-line-english" : {
+      "comment" : "Line under the English option of Title language.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Romaji where there is no English title"
+          }
+        }
+      }
+    },
+    "settings-title-line-from-account" : {
+      "comment" : "Line under the tracker's choice option of Title language: which language the account asks for. Argument 1: language (Text). Argument 2: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, from your %2$@ account"
+          }
+        }
+      }
+    },
+    "settings-title-line-romaji" : {
+      "comment" : "Line under the Romaji option of Title language.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Japanese titles in Latin letters"
+          }
+        }
+      }
+    },
+    "settings-title-line-signed-out" : {
+      "comment" : "Line under the AniList's choice option of Title language when signed out. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English while signed out of %1$@"
+          }
+        }
+      }
+    },
     "settings-title-native" : {
       "comment" : "Option: Japanese titles in Japanese.",
       "extractionState" : "manual",
@@ -13465,6 +13855,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Native"
+          }
+        }
+      }
+    },
+    "settings-title-note-english" : {
+      "comment" : "Note under the examples for the English option. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English titles as %1$@ lists them, and romaji where there is none."
+          }
+        }
+      }
+    },
+    "settings-title-note-follows" : {
+      "comment" : "Note under the examples when the tracker's choice is picked and nobody is signed in. Argument 1: tracker (Text). Argument 2: then (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follows your %1$@ account. %2$@"
+          }
+        }
+      }
+    },
+    "settings-title-note-follows-set" : {
+      "comment" : "Note under the examples when the tracker's choice is picked and the account has a language. Argument 1: tracker (Text). Argument 2: language (Text). Argument 3: then (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follows your %1$@ account, which is set to %2$@. %3$@"
+          }
+        }
+      }
+    },
+    "settings-title-note-kept" : {
+      "comment" : "Note under the examples when a show has no English title. Argument 1: title (Text). Argument 2: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ has no English title on %2$@, so it keeps its romaji one."
+          }
+        }
+      }
+    },
+    "settings-title-note-romaji" : {
+      "comment" : "Note under the examples for the Romaji option. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Japanese titles written in Latin letters, as %1$@ lists them."
+          }
+        }
+      }
+    },
+    "settings-title-note-signed-out" : {
+      "comment" : "Note under the examples of Title language: what titles do while signed out. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "While you are signed out of %1$@, titles show in English."
           }
         }
       }

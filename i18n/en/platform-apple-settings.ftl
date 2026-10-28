@@ -359,3 +359,49 @@ show-settings-unnamed-track = Unnamed track
 
 # Footnote of the seeding group on the Mac: seeding stops when the app is closed.
 settings-seeding-open-only = Seeding runs only while { -app-name } is open.
+
+# Line under the AniList's choice option of Title language when signed out.
+# @arg tracker: text
+settings-title-line-signed-out = English while signed out of { $tracker }
+
+# Line under the tracker's choice option of Title language: which language the account asks for.
+# @arg language: text
+# @arg tracker: text
+settings-title-line-from-account = { $language }, from your { $tracker } account
+
+# Line under the English option of Title language.
+settings-title-line-english = Romaji where there is no English title
+
+# Line under the Romaji option of Title language.
+settings-title-line-romaji = Japanese titles in Latin letters
+
+# Note under the examples of Title language: what titles do while signed out.
+# @arg tracker: text
+settings-title-note-signed-out = While you are signed out of { $tracker }, titles show in English.
+
+# Note under the examples when the tracker's choice is picked and nobody is signed in.
+# @arg tracker: text
+# @arg then: text
+settings-title-note-follows = Follows your { $tracker } account. { $then }
+
+# Note under the examples when the tracker's choice is picked and the account has a language.
+# @arg tracker: text
+# @arg language: text
+# @arg then: text
+settings-title-note-follows-set = Follows your { $tracker } account, which is set to { $language }. { $then }
+
+# Note under the examples when a show has no English title.
+# @arg title: text
+# @arg tracker: text
+settings-title-note-kept = { $title } has no English title on { $tracker }, so it keeps its romaji one.
+
+# Note under the examples for the English option.
+# @arg tracker: text
+settings-title-note-english = English titles as { $tracker } lists them, and romaji where there is none.
+
+# Note under the examples for the Romaji option.
+# @arg tracker: text
+settings-title-note-romaji = Japanese titles written in Latin letters, as { $tracker } lists them.
+
+# Confirm button of the folder picker for the downloads folder.
+settings-folder-choose = Choose

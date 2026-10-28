@@ -1305,6 +1305,82 @@ public enum L {
     /// Heading of the sound section in the picture and sound panel.
     public static var playerSound: String { string("player-sound", fallback: "Sound") }
 
+    /// Line while results wait for the rate limit to recover, on a phone where a Search key runs the search.
+    public static var searchRateLimitSearch: String { string("search-rate-limit-search", fallback: "Results wait for Search while AniList’s rate limit recovers") }
+
+    /// Line while results wait for the rate limit to recover, on a Mac where Return runs the search.
+    public static var searchRateLimitReturn: String { string("search-rate-limit-return", fallback: "Results wait for Return while AniList’s rate limit recovers") }
+
+    /// Line while a browse is slow to answer. The headline names what is browsed, such as "Trending now".
+    public static func searchSearchingBrowse(what: String) -> String {
+        Self.format("search-searching-browse", fallback: "Searching for %1$@", what)
+    }
+
+    /// Title of the genre filter when more than one genre is chosen.
+    public static func searchGenresCount(count: Int) -> String {
+        Self.format("search-genres-count", fallback: "%1$lld genres", count)
+    }
+
+    /// Title of the format filter when more than two formats are chosen.
+    public static func searchFormatsCount(count: Int) -> String {
+        Self.format("search-formats-count", fallback: "%1$lld formats", count)
+    }
+
+    /// Title of the status filter when more than one status is chosen.
+    public static func searchStatusesCount(count: Int) -> String {
+        Self.format("search-statuses-count", fallback: "%1$lld statuses", count)
+    }
+
+    /// Submenu and context menu item that leaves a genre or tag out of the results.
+    public static var searchLeaveOut: String { string("search-leave-out", fallback: "Leave out") }
+
+    /// Context menu item that includes a tag or genre in the results.
+    public static var searchInclude: String { string("search-include", fallback: "Include") }
+
+    /// Tooltip of the All filters button.
+    public static var searchFiltersHelp: String { string("search-filters-help", fallback: "Tags, length, score, origin and where to watch") }
+
+    /// VoiceOver value of the All filters button: how many advanced filters are set.
+    public static func searchFiltersSet(count: Int) -> String {
+        Self.format("search-filters-set", fallback: "%1$lld set", count)
+    }
+
+    /// Title of the sort picker in the filter bar.
+    public static var searchSortBy: String { string("search-sort-by", fallback: "Sort by") }
+
+    /// Button that clears every filter chip at once.
+    public static var searchClearAll: String { string("search-clear-all", fallback: "Clear all") }
+
+    /// Title of the empty state when the filters match nothing.
+    public static var searchNoResults: String { string("search-no-results", fallback: "No results") }
+
+    /// Heading of the placeholder rail shown while the search page loads.
+    public static var searchTrendingNow: String { string("search-trending-now", fallback: "Trending now") }
+
+    /// Prompt of the lower bound of a range filter.
+    public static var filterRangeFrom: String { string("filter-range-from", fallback: "From") }
+
+    /// Prompt of the upper bound of a range filter.
+    public static var filterRangeTo: String { string("filter-range-to", fallback: "To") }
+
+    /// Word between the two bounds of a range filter, small and lower case.
+    public static var filterRangeBetween: String { string("filter-range-between", fallback: "to") }
+
+    /// Value of the score slider when no minimum is set.
+    public static var filterAny: String { string("filter-any", fallback: "Any") }
+
+    /// Unit shown after the bounds of the episode length filter.
+    public static var filterMinutesUnit: String { string("filter-minutes-unit", fallback: "min") }
+
+    /// Label of the years range in the Released section.
+    public static var filterYears: String { string("filter-years", fallback: "Years") }
+
+    /// VoiceOver hint of a filter group that is open.
+    public static var filterGroupCloses: String { string("filter-group-closes", fallback: "Closes the group") }
+
+    /// VoiceOver hint of a filter group that is closed.
+    public static var filterGroupOpens: String { string("filter-group-opens", fallback: "Opens the group") }
+
     /// Settings row: download over cellular data.
     public static var settingsDownloadCellular: String { string("settings-download-cellular", fallback: "Download on cellular") }
 
@@ -1668,6 +1744,55 @@ public enum L {
 
     /// Footnote of the seeding group on the Mac: seeding stops when the app is closed.
     public static var settingsSeedingOpenOnly: String { string("settings-seeding-open-only", fallback: "Seeding runs only while anistream is open.") }
+
+    /// Line under the AniList's choice option of Title language when signed out.
+    public static func settingsTitleLineSignedOut(tracker: String) -> String {
+        Self.format("settings-title-line-signed-out", fallback: "English while signed out of %1$@", tracker)
+    }
+
+    /// Line under the tracker's choice option of Title language: which language the account asks for.
+    public static func settingsTitleLineFromAccount(language: String, tracker: String) -> String {
+        Self.format("settings-title-line-from-account", fallback: "%1$@, from your %2$@ account", language, tracker)
+    }
+
+    /// Line under the English option of Title language.
+    public static var settingsTitleLineEnglish: String { string("settings-title-line-english", fallback: "Romaji where there is no English title") }
+
+    /// Line under the Romaji option of Title language.
+    public static var settingsTitleLineRomaji: String { string("settings-title-line-romaji", fallback: "Japanese titles in Latin letters") }
+
+    /// Note under the examples of Title language: what titles do while signed out.
+    public static func settingsTitleNoteSignedOut(tracker: String) -> String {
+        Self.format("settings-title-note-signed-out", fallback: "While you are signed out of %1$@, titles show in English.", tracker)
+    }
+
+    /// Note under the examples when the tracker's choice is picked and nobody is signed in.
+    public static func settingsTitleNoteFollows(tracker: String, then: String) -> String {
+        Self.format("settings-title-note-follows", fallback: "Follows your %1$@ account. %2$@", tracker, then)
+    }
+
+    /// Note under the examples when the tracker's choice is picked and the account has a language.
+    public static func settingsTitleNoteFollowsSet(tracker: String, language: String, then: String) -> String {
+        Self.format("settings-title-note-follows-set", fallback: "Follows your %1$@ account, which is set to %2$@. %3$@", tracker, language, then)
+    }
+
+    /// Note under the examples when a show has no English title.
+    public static func settingsTitleNoteKept(title: String, tracker: String) -> String {
+        Self.format("settings-title-note-kept", fallback: "%1$@ has no English title on %2$@, so it keeps its romaji one.", title, tracker)
+    }
+
+    /// Note under the examples for the English option.
+    public static func settingsTitleNoteEnglish(tracker: String) -> String {
+        Self.format("settings-title-note-english", fallback: "English titles as %1$@ lists them, and romaji where there is none.", tracker)
+    }
+
+    /// Note under the examples for the Romaji option.
+    public static func settingsTitleNoteRomaji(tracker: String) -> String {
+        Self.format("settings-title-note-romaji", fallback: "Japanese titles written in Latin letters, as %1$@ lists them.", tracker)
+    }
+
+    /// Confirm button of the folder picker for the downloads folder.
+    public static var settingsFolderChoose: String { string("settings-folder-choose", fallback: "Choose") }
 
     /// Mac menu bar item that opens Settings.
     public static var menuSettings: String { string("menu-settings", fallback: "Settings…") }

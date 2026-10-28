@@ -452,7 +452,7 @@ struct UpdatePluginSheet: View {
     }
 
     private var confirm: String {
-        byHand ? "Replace" : "Update"
+        byHand ? L.actionReplace : L.actionUpdate
     }
 }
 

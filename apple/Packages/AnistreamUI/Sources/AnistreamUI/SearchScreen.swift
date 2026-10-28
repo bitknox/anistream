@@ -43,8 +43,8 @@ extension Pick {
     var word: String? {
         switch self {
         case .off: nil
-        case .include: "Included"
-        case .exclude: "Left out"
+        case .include: L.filterIncluded
+        case .exclude: L.filterLeftOut
         }
     }
 }
@@ -171,7 +171,7 @@ extension SearchModel {
     /// “hoshi”". `nil` otherwise.
     var searchingLine: String? {
         guard overdue, let asked else { return nil }
-        return asked.isBrowse() ? "Searching for \(asked.headline())" : "Searching for “\(asked.text)”"
+        return asked.isBrowse() ? L.searchSearchingBrowse(what: asked.headline()) : L.searchSearching(query: asked.text)
     }
 
     /// Whether Search's start stays on screen: before anything is asked, and while the first
@@ -326,8 +326,7 @@ private struct LivePaused: View {
 
     var body: some View {
         Text(
-            compact ? "Results wait for Search while AniList’s rate limit recovers"
-                    : "Results wait for Return while AniList’s rate limit recovers"
+            compact ? L.searchRateLimitSearch : L.searchRateLimitReturn
         )
         .font(compact ? .ui(15) : .mac(13))
         .foregroundStyle(.haze)
@@ -465,17 +464,17 @@ struct SearchFilterRow: View {
     private func genres(_ query: SearchQuery) -> some View {
         let names = store.search.facets?.genres ?? []
         let set = query.genres.count + query.genresExcluded.count
-        let title = set == 0 ? words("Genres", "Genres")
-            : set == 1 ? (query.active().first?.label ?? "1 genre")
-            : words("\(set) Genres", "\(set) genres")
+        let title = set == 0 ? L.searchGenres
+            : set == 1 ? (query.active().first?.label ?? L.searchGenresCount(count: 1))
+            : L.searchGenresCount(count: set)
         return Menu {
-            if names.isEmpty { Text("Loading genres") }
+            if names.isEmpty { Text(L.stateLoading) }
             ForEach(names, id: \.self) { name in
                 Toggle(name, isOn: pick(name, .include))
             }
             if !names.isEmpty {
                 Divider()
-                Menu(words("Leave Out", "Leave out")) {
+                Menu(L.searchLeaveOut) {
                     ForEach(names, id: \.self) { name in
                         Toggle(name, isOn: pick(name, .exclude))
                     }
@@ -483,7 +482,7 @@ struct SearchFilterRow: View {
             }
             if set > 0 {
                 Divider()
-                Button(words("Any Genre", "Any genre")) {
+                Button(L.filterAnyGenre) {
                     store.editSearch { $0.genres = []; $0.genresExcluded = [] }
                 }
             }
@@ -504,7 +503,7 @@ struct SearchFilterRow: View {
         let now = UInt32(Calendar(identifier: .gregorian).component(.year, from: .now))
         let label = query.label(.years)
         return Menu {
-            Button(words("Any Year", "Any year")) { store.searchLive(query.inYear(year: nil)) }
+            Button(L.filterAnyYear) { store.searchLive(query.inYear(year: nil)) }
             Divider()
             ForEach(Array(stride(from: now + 1, through: 1970, by: -1)), id: \.self) { year in
                 Toggle(String(year), isOn: Binding(
@@ -513,14 +512,14 @@ struct SearchFilterRow: View {
                 ))
             }
         } label: {
-            FilterCapsule(title: label ?? words("Year", "Year"), active: label != nil, compact: compact)
+            FilterCapsule(title: label ?? L.filterYear, active: label != nil, compact: compact)
         }
         .filterMenu()
     }
 
     private func season(_ query: SearchQuery) -> some View {
         Menu {
-            Button(words("Any Season", "Any season")) { store.editSearch { $0.season = nil } }
+            Button(L.filterAnySeason) { store.editSearch { $0.season = nil } }
             Divider()
             ForEach(searchSeasons, id: \.self) { season in
                 Toggle(searchSeasonLabel(season: season), isOn: Binding(
@@ -530,14 +529,14 @@ struct SearchFilterRow: View {
             }
         } label: {
             FilterCapsule(
-                title: query.season.map { searchSeasonLabel(season: $0) } ?? words("Season", "Season"),
+                title: query.season.map { searchSeasonLabel(season: $0) } ?? L.filterSeason,
                 active: query.season != nil, compact: compact
             )
         }
         .filterMenu()
         // A season is a season of one year.
         .disabled(query.singleYear == nil && query.season == nil)
-        .help(query.singleYear == nil ? "Choose a year first" : "")
+        .help(query.singleYear == nil ? L.filterSeasonPickYear : "")
     }
 
     private func formats(_ query: SearchQuery) -> some View {
@@ -551,12 +550,12 @@ struct SearchFilterRow: View {
             }
             if count > 0 {
                 Divider()
-                Button(words("Any Format", "Any format")) { store.editSearch { $0.formats = [] } }
+                Button(L.filterAnyFormat) { store.editSearch { $0.formats = [] } }
             }
         } label: {
             FilterCapsule(
-                title: count == 0 ? "Format" : count <= 2 ? (query.label(.formats) ?? "Format")
-                    : words("\(count) Formats", "\(count) formats"),
+                title: count == 0 ? L.filterFormat : count <= 2 ? (query.label(.formats) ?? L.filterFormat)
+                    : L.searchFormatsCount(count: count),
                 active: count > 0, compact: compact
             )
         }
@@ -574,12 +573,12 @@ struct SearchFilterRow: View {
             }
             if count > 0 {
                 Divider()
-                Button(words("Any Status", "Any status")) { store.editSearch { $0.statuses = [] } }
+                Button(L.filterAnyStatus) { store.editSearch { $0.statuses = [] } }
             }
         } label: {
             FilterCapsule(
-                title: count == 0 ? "Status" : count == 1 ? (query.label(.statuses) ?? "Status")
-                    : words("\(count) Statuses", "\(count) statuses"),
+                title: count == 0 ? L.filterStatus : count == 1 ? (query.label(.statuses) ?? L.filterStatus)
+                    : L.searchStatusesCount(count: count),
                 active: count > 0, compact: compact
             )
         }
@@ -598,14 +597,14 @@ struct SearchFilterRow: View {
         }
         .buttonStyle(.plain)
         .pointerHover()
-        .accessibilityValue(count == 0 ? "" : "\(count) set")
-        .help("Tags, length, score, origin and where to watch")
+        .accessibilityValue(count == 0 ? "" : L.searchFiltersSet(count: Int(count)))
+        .help(L.searchFiltersHelp)
     }
 
     private func sort(_ query: SearchQuery) -> some View {
         let current = query.sortInEffect()
         return Menu {
-            Picker(words("Sort By", "Sort by"), selection: Binding(
+            Picker(L.searchSortBy, selection: Binding(
                 get: { store.search.query.sortInEffect() },
                 set: { sort in store.editSearch { $0.sort = sort } }
             )) {
@@ -621,7 +620,7 @@ struct SearchFilterRow: View {
             )
         }
         .filterMenu()
-        .accessibilityLabel("Sort by \(searchSortLabel(sort: current))")
+        .accessibilityLabel(L.sortLabel(sort: searchSortLabel(sort: current)))
     }
 }
 
@@ -666,10 +665,10 @@ struct ActiveFilters: View {
                     }
                     .buttonStyle(.plain)
                     .pointerHover()
-                    .accessibilityLabel("Remove \(filter.label)")
+                    .accessibilityLabel(L.filterRemove(filter: filter.label))
                 }
                 if active.count > 1 {
-                    Button(compact ? "Clear all" : "Clear All") {
+                    Button(L.searchClearAll) {
                         store.searchLive(store.search.query.cleared())
                     }
                     .buttonStyle(.plain)
@@ -755,11 +754,11 @@ private struct NothingFound: View {
         Group {
             if query.hasFilters() {
                 ContentUnavailableView {
-                    Label(compact ? "No results" : "No Results", systemImage: "magnifyingglass")
+                    Label(L.searchNoResults, systemImage: "magnifyingglass")
                 } description: {
                     Text(query.nothingFound())
                 } actions: {
-                    Button(compact ? "Clear filters" : "Clear Filters") {
+                    Button(L.searchClearFilters) {
                         store.searchLive(store.search.query.cleared())
                     }
                     .buttonStyle(SecondaryCapsuleStyle(height: compact ? 44 : 28, fontSize: compact ? 17 : 13))
@@ -801,7 +800,7 @@ struct SearchStart: View {
             .animation(.standard, value: store.search.rails == nil)
             if let genres = store.search.facets?.genres, !genres.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
-                    SectionHeading("Genres", compact: compact)
+                    SectionHeading(L.searchGenres, compact: compact)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: compact ? 100 : 140), spacing: 8)], spacing: 8) {
                         ForEach(genres, id: \.self) { genre in
                             Button(genre) {
@@ -825,7 +824,7 @@ private struct RecentSearchList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 0 : 4) {
             HStack {
-                SectionHeading(compact ? "Recent searches" : "Recent Searches", compact: compact)
+                SectionHeading(L.searchRecent, compact: compact)
                 Spacer()
                 Button(L.actionClear) { store.clearRecentSearches() }
                     .buttonStyle(.plain)
@@ -846,7 +845,7 @@ private struct RecentSearchList: View {
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    Button("Remove \(query.recentLine)", systemImage: "xmark") {
+                    Button(L.searchRecentRemove(query: query.recentLine), systemImage: "xmark") {
                         store.forgetRecentSearch(query)
                     }
                     .labelStyle(.iconOnly)
@@ -878,7 +877,7 @@ private struct RailRow: View {
                     Text(detail).font(compact ? .ui(15) : .mac(13)).foregroundStyle(.haze)
                 }
                 Spacer()
-                Button(compact ? "See all" : "See All") {
+                Button(L.searchSeeAll) {
                     navigator.search(rail.query, in: store)
                 }
                 .buttonStyle(.plain)
@@ -917,7 +916,7 @@ private struct RailPlaceholder: View {
         VStack(alignment: .leading, spacing: 28) {
             ForEach(0..<3, id: \.self) { _ in
                 VStack(alignment: .leading, spacing: 12) {
-                    SectionHeading("Trending Now", compact: compact)
+                    SectionHeading(L.searchTrendingNow, compact: compact)
                         .frame(minHeight: compact ? 44 : 28)
                     HStack(alignment: .top, spacing: compact ? 12 : 20) {
                         ForEach(0..<8, id: \.self) { _ in
@@ -966,7 +965,7 @@ struct SearchFiltersPanel: View {
         return ScrollView {
             VStack(alignment: .leading, spacing: compact ? 28 : 24) {
                 header(query)
-                PanelSection(compact: compact, "Genres") {
+                PanelSection(compact: compact, L.filterGenres) {
                     FlowLayout(spacing: 6, lineSpacing: 6) {
                         ForEach(facets?.genres ?? [], id: \.self) { name in
                             PickChip(name: name, pick: query.genrePick(name: name), compact: compact) { pick in
@@ -977,23 +976,23 @@ struct SearchFiltersPanel: View {
                     .padding(.vertical, 4)
                 }
                 tags(query, facets)
-                PanelSection(compact: compact, "Released") {
-                    RangeFields(title: "Years", bounds: query.years, unit: nil, compact: compact) { bounds in
+                PanelSection(compact: compact, L.filterReleased) {
+                    RangeFields(title: L.filterYears, bounds: query.years, unit: nil, compact: compact) { bounds in
                         store.editSearch {
                             $0.years = bounds
                             if $0.singleYear == nil { $0.season = nil }
                         }
                     }
                 }
-                PanelSection(compact: compact, "Length") {
-                    RangeFields(title: "Episodes", bounds: query.episodes, unit: nil, compact: compact) { bounds in
+                PanelSection(compact: compact, L.filterLength) {
+                    RangeFields(title: L.filterEpisodes, bounds: query.episodes, unit: nil, compact: compact) { bounds in
                         store.editSearch { $0.episodes = bounds }
                     }
                     Presets(
                         choices: [Bounds(min: 1, max: 1), Bounds(min: nil, max: 12), Bounds(min: 13, max: 26), Bounds(min: 50, max: nil)],
                         current: query.episodes, words: { SearchQuery(episodes: $0).label(.episodes) }, compact: compact
                     ) { bounds in store.editSearch { $0.episodes = bounds } }
-                    RangeFields(title: L.filterEpisodeLength, bounds: query.minutes, unit: "min", compact: compact) { bounds in
+                    RangeFields(title: L.filterEpisodeLength, bounds: query.minutes, unit: L.filterMinutesUnit, compact: compact) { bounds in
                         store.editSearch { $0.minutes = bounds }
                     }
                     Presets(
@@ -1001,7 +1000,7 @@ struct SearchFiltersPanel: View {
                         current: query.minutes, words: { SearchQuery(minutes: $0).label(.minutes) }, compact: compact
                     ) { bounds in store.editSearch { $0.minutes = bounds } }
                 }
-                PanelSection(compact: compact, "Reception") {
+                PanelSection(compact: compact, L.filterReception) {
                     LabeledContent {
                         HStack(spacing: 10) {
                             Slider(
@@ -1011,7 +1010,7 @@ struct SearchFiltersPanel: View {
                                 ),
                                 in: 0...95, step: 5
                             )
-                            Text(query.minScore.map { "\($0)%" } ?? "Any")
+                            Text(query.minScore.map { Score.text($0) } ?? L.filterAny)
                                 .monospacedDigit()
                                 .foregroundStyle(.haze)
                                 .frame(width: 40, alignment: .trailing)
@@ -1019,14 +1018,14 @@ struct SearchFiltersPanel: View {
                     } label: {
                         Text(L.filterScoreAtLeast)
                     }
-                    PanelSwitch("Hide obscure titles", isOn: Binding(
+                    PanelSwitch(L.filterHideObscure, isOn: Binding(
                         get: { store.search.query.minPopularity != nil },
                         set: { on in store.editSearch { $0.minPopularity = on ? obscureBelow : nil } }
                     ))
                 }
-                PanelSection(compact: compact, "Origin") {
+                PanelSection(compact: compact, L.filterOrigin) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Source material").foregroundStyle(.haze)
+                        Text(L.titleBasedOn).foregroundStyle(.haze)
                         FlowLayout(spacing: 6, lineSpacing: 6) {
                             ForEach(searchSources(), id: \.self) { source in
                                 ToggleChip(name: searchSourceLabel(source: source), on: query.sources.contains(source), compact: compact) {
@@ -1048,7 +1047,7 @@ struct SearchFiltersPanel: View {
                     }
                     .padding(.vertical, 4)
                 }
-                PanelSection(compact: compact, "Where to watch") {
+                PanelSection(compact: compact, L.filterWhereToWatch) {
                     let sites = facets?.streamingSites ?? []
                     if !sites.isEmpty {
                         FlowLayout(spacing: 6, lineSpacing: 6) {
@@ -1060,13 +1059,13 @@ struct SearchFiltersPanel: View {
                         }
                         .padding(.vertical, 4)
                     }
-                    PanelSwitch("Licensed only", isOn: Binding(
+                    PanelSwitch(L.filterLicensedOnly, isOn: Binding(
                         get: { store.search.query.licensedOnly },
                         set: { on in store.editSearch { $0.licensedOnly = on } }
                     ))
                 }
                 if store.accounts.summary.state != .signedOut {
-                    PanelSection(compact: compact, "My list") {
+                    PanelSection(compact: compact, L.filterMyList) {
                         Picker(L.filterMyList, selection: Binding<OnList?>(
                             get: { store.search.query.onList },
                             set: { value in store.editSearch { $0.onList = value } }
@@ -1078,7 +1077,7 @@ struct SearchFiltersPanel: View {
                         .pickerStyle(.segmented)
                     }
                 }
-                Text("Updates as you change it.")
+                Text(L.filterLiveNote)
                     .font(compact ? .ui(13) : .mac(11))
                     .foregroundStyle(.haze)
             }
@@ -1120,7 +1119,7 @@ struct SearchFiltersPanel: View {
 
     @ViewBuilder
     private func tags(_ query: SearchQuery, _ facets: SearchFacets?) -> some View {
-        PanelSection(compact: compact, "Tags") {
+        PanelSection(compact: compact, L.filterTags) {
             TextField(L.filterTagFind, text: $find)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 10)
@@ -1132,7 +1131,7 @@ struct SearchFiltersPanel: View {
                     store.editSearch { $0.minTagRank = rank == Int(defaultTagRank) ? nil : UInt8(rank) }
                 }
             ), in: 0...100, step: 10) {
-                Text("Tag rank at least \(Int(query.minTagRank ?? defaultTagRank))%")
+                Text(L.filterTagRank(rank: Score.text(Int(query.minTagRank ?? defaultTagRank))))
                     .monospacedDigit()
             }
             .disabled(query.tags.isEmpty && query.tagsExcluded.isEmpty)
@@ -1169,7 +1168,7 @@ struct SearchFiltersPanel: View {
                     }
                 }
             }
-            PanelSwitch("Show spoiler tags", isOn: $spoilers)
+            PanelSwitch(L.filterSpoilerTags, isOn: $spoilers)
         }
     }
 }
@@ -1221,8 +1220,8 @@ private struct PanelDisclosureStyle: DisclosureGroupStyle {
             }
             .buttonStyle(.plain)
             .pointerHover()
-            .accessibilityValue(configuration.isExpanded ? "Expanded" : "Collapsed")
-            .accessibilityHint(configuration.isExpanded ? "Closes the group" : "Opens the group")
+            .accessibilityValue(configuration.isExpanded ? L.stateExpanded : L.stateCollapsed)
+            .accessibilityHint(configuration.isExpanded ? L.filterGroupCloses : L.filterGroupOpens)
             if configuration.isExpanded {
                 VStack(alignment: .leading, spacing: 10) {
                     configuration.content
@@ -1300,12 +1299,12 @@ private struct TagRow: View {
         .buttonStyle(.plain)
         .help(tag.description)
         .contextMenu {
-            Button("Include") { set(.include) }
-            Button(compact ? "Leave out" : "Leave Out") { set(.exclude) }
+            Button(L.searchInclude) { set(.include) }
+            Button(L.searchLeaveOut) { set(.exclude) }
             Button(L.valueOff) { set(.off) }
         }
-        .accessibilityValue(pick.word ?? "Off")
-        .accessibilityHint("Tap to include, again to leave out")
+        .accessibilityValue(pick.word ?? L.valueOff)
+        .accessibilityHint(L.filterHintTouch)
     }
 
     private var symbol: String {
@@ -1346,11 +1345,11 @@ private struct PickChip: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button("Include") { set(.include) }
-            Button(compact ? "Leave out" : "Leave Out") { set(.exclude) }
+            Button(L.searchInclude) { set(.include) }
+            Button(L.searchLeaveOut) { set(.exclude) }
             Button(L.valueOff) { set(.off) }
         }
-        .accessibilityValue(pick.word ?? "Off")
+        .accessibilityValue(pick.word ?? L.valueOff)
     }
 
     private var background: Color {
@@ -1396,10 +1395,10 @@ private struct RangeFields: View {
     var body: some View {
         LabeledContent(title) {
             HStack(spacing: 6) {
-                field("From", \.min)
+                field(L.filterRangeFrom, \.min)
                 // Never broken a letter to a line where the panel is narrow.
-                Text("to").foregroundStyle(.haze).fixedSize()
-                field("To", \.max)
+                Text(L.filterRangeBetween).foregroundStyle(.haze).fixedSize()
+                field(L.filterRangeTo, \.max)
                 if let unit { Text(unit).foregroundStyle(.haze).fixedSize() }
             }
         }

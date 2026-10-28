@@ -341,9 +341,9 @@ struct SettingsAside: View {
 enum Device {
     static var name: String {
         #if os(macOS)
-        "Mac"
+        "Mac" // i18n-skip
         #else
-        UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
+        UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone" // i18n-skip
         #endif
     }
 }
