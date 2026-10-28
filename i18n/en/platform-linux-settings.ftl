@@ -148,3 +148,8 @@ nagare-description = Nagare, the { -app-name } mascot: a figure with a silk bob,
 # Line under the seeding group in Settings: seeding stops when the app closes.
 # @only linux
 settings-seeding-open-only = Seeding runs only while { -app-name } is open.
+
+# Note under the Play trailers setting: what the trailers are and when they do not play.
+# @only linux
+# @max 230
+settings-note-trailers-linux = Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animations off, in power saver mode or with a screen reader running.

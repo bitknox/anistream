@@ -53,6 +53,8 @@ struct Page {
     navigation: glib::WeakRef<adw::NavigationPage>,
     banner: gtk::Box,
     banner_filled: Cell<bool>,
+    /// The trailer behind the banner, made with the banner.
+    trailer: RefCell<Option<Rc<crate::trailer::PageTrailer>>>,
     head: gtk::Box,
     side: gtk::Box,
     seasons: gtk::Box,
@@ -182,6 +184,7 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
         navigation: navigation.downgrade(),
         banner: banner_slot,
         banner_filled: Cell::new(false),
+        trailer: RefCell::default(),
         head,
         side,
         seasons,
@@ -210,6 +213,10 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
         move |adjustment| {
             if let Some(page) = weak.upgrade() {
                 page.title_shown(adjustment.value());
+                let trailer = page.trailer.borrow().clone();
+                if let Some(trailer) = trailer {
+                    trailer.scrolled(adjustment.value());
+                }
             }
         }
     });
@@ -241,6 +248,9 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     navigation.connect_destroy(move |_| {
         if let Some(id) = page.listening.borrow_mut().take() {
             page.ctx.hub.forget(id);
+        }
+        if let Some(trailer) = page.trailer.borrow_mut().take() {
+            trailer.release();
         }
     });
     navigation
@@ -360,13 +370,11 @@ impl Page {
         group.add_action(status);
         let trailer = gio::SimpleAction::new("trailer", None);
         trailer.connect_activate({
-            let hub = hub.clone();
+            let ctx = Rc::downgrade(&self.ctx);
             move |_, _| {
-                let Some(hub) = hub.upgrade() else { return };
-                let Some(entry) = hub.entry(id) else { return };
-                if let Some(url) = entry.trailer_url.clone() {
-                    hub.send(Command::PlayTrailer { url, title: entry.title });
-                }
+                let Some(ctx) = ctx.upgrade() else { return };
+                let Some(entry) = ctx.hub.entry(id) else { return };
+                crate::trailer::play_window(&ctx, &entry);
             }
         });
         group.add_action(&trailer);
@@ -440,7 +448,22 @@ impl Page {
         let hub = &self.ctx.hub;
         // The banner, once: its art does not change with the detail.
         if !self.banner_filled.replace(true) {
-            self.banner.append(&widgets::faded_banner(hub, entry, 360));
+            let fit = widgets::faded_banner(hub, entry, 360);
+            let trailer = self.navigation.upgrade().map(|navigation| {
+                crate::trailer::PageTrailer::new(
+                    &self.ctx,
+                    entry.id.get(),
+                    &fit,
+                    &self.head,
+                    &self.header,
+                    &navigation,
+                )
+            });
+            match &trailer {
+                Some(trailer) => self.banner.append(&trailer.stage.widget),
+                None => self.banner.append(&fit),
+            }
+            self.trailer.replace(trailer);
         }
         let id = entry.id.get();
 
@@ -571,6 +594,13 @@ impl Page {
         if !narrow {
             actions.append(&status);
             actions.append(&more);
+        }
+        // The trailer's sound button, at the trailing end, while one plays.
+        if let Some(trailer) = self.trailer.borrow().as_ref() {
+            if trailer.sound.parent().is_some() {
+                trailer.sound.unparent();
+            }
+            actions.append(&trailer.sound);
         }
         text.append(&actions);
         if narrow {
@@ -721,6 +751,7 @@ impl Page {
                 None => linked.title.clone(),
             })]);
             widgets::title_menu(&button, id, linked.list_status.is_none());
+            crate::trailer::hover_preview(&self.ctx.hub, &button, id);
             box_.append(&button);
         }
         let column = gtk::Box::new(gtk::Orientation::Vertical, 8);

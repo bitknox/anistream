@@ -1455,6 +1455,11 @@ pub fn settings_seeding_open_only() -> String {
     text("settings-seeding-open-only", &[])
 }
 
+/// Note under the Play trailers setting: what the trailers are and when they do not play.
+pub fn settings_note_trailers_linux() -> String {
+    text("settings-note-trailers-linux", &[])
+}
+
 /// Button on a notice that asks to open the plugin stores.
 pub fn shell_open_stores() -> String {
     text("shell-open-stores", &[])
@@ -10343,6 +10348,11 @@ pub fn title_trailer() -> String {
 /// Menu item that plays the trailer.
 pub fn title_play_trailer() -> String {
     text("title-play-trailer", &[])
+}
+
+/// Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+pub fn title_trailer_sound() -> String {
+    text("title-trailer-sound", &[])
 }
 
 /// Menu item that opens the title on the AniList website.

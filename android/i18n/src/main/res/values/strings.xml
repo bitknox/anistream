@@ -2221,6 +2221,8 @@
     <string name="title_trailer">Trailer</string>
     <!-- Menu item that plays the trailer. -->
     <string name="title_play_trailer">Play trailer</string>
+    <!-- Name and tooltip of the button beside a playing trailer that turns its sound on or off. -->
+    <string name="title_trailer_sound">Trailer sound</string>
     <!-- Menu item that opens the title on the AniList website. -->
     <string name="title_open_anilist">Open on AniList</string>
     <!-- Menu item that opens the title page of the show a row belongs to. -->

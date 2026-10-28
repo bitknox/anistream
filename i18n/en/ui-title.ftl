@@ -15,6 +15,10 @@ title-trailer = Trailer
 # Menu item that plays the trailer.
 title-play-trailer = Play trailer
 
+# Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+# @max 24
+title-trailer-sound = Trailer sound
+
 # Menu item that opens the title on the AniList website.
 title-open-anilist = Open on AniList
 

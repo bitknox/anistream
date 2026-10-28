@@ -946,6 +946,9 @@ nagare-description = [Ñàĝàŕé, ţĥé àñîšţŕéàɱ ɱàšçöţ: à �
 # Line under the seeding group in Settings: seeding stops when the app closes.
 settings-seeding-open-only = [Šééðîñĝ ŕüñš öñļý ŵĥîļé àñîšţŕéàɱ îš öþéñ.~~~~~~~~~~~~~]
 
+# Note under the Play trailers setting: what the trailers are and when they do not play.
+settings-note-trailers-linux = [Ţŕàîļéŕš þļàý ɱüţéð ƒŕöɱ ÝöüŢüƀé, ŵĥîçĥ šééš ýöüŕ ÎÞ àððŕéšš. Ţĥéý ðöñ'ţ þļàý öñ à ɱéţéŕéð çöññéçţîöñ, ŵîţĥ àñîɱàţîöñš öƒƒ, îñ þöŵéŕ šàṽéŕ ɱöðé öŕ ŵîţĥ à šçŕééñ ŕéàðéŕ ŕüññîñĝ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
 # Button on a notice that asks to open the plugin stores.
 shell-open-stores = [Öþéñ þļüĝîñ šţöŕéš~~~~~~]
 
@@ -6431,6 +6434,9 @@ title-trailer = [Ţŕàîļéŕ~~~]
 
 # Menu item that plays the trailer.
 title-play-trailer = [Þļàý ţŕàîļéŕ~~~~]
+
+# Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+title-trailer-sound = [Ţŕàîļéŕ šöüñð~~~~]
 
 # Menu item that opens the title on the AniList website.
 title-open-anilist = [Öþéñ öñ ÅñîĻîšţ~~~~~]

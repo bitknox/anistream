@@ -51,6 +51,8 @@ pub struct Known {
     pub stores: Vec<StoreRow>,
     /// Whether the device has no network, as the engine last said.
     pub offline: bool,
+    /// Whether trailers may start by themselves, as the engine last said.
+    pub autoplay: Option<anistream_model::trailer::AutoplayView>,
     /// Whether the engine has said what is downloading yet.
     pub downloads_said: bool,
     /// Whether the engine has said which providers there are yet.
@@ -184,11 +186,11 @@ impl Known {
         match event {
             Event::Content { content, .. } => {
                 for entry in content.entries() {
-                    self.entries.insert(entry.id.get(), entry.clone());
+                    self.entries.insert(entry.id.get(), with_fixture_trailer(entry.clone()));
                 }
             }
             Event::Detail(entry) => {
-                self.entries.insert(entry.id.get(), (**entry).clone());
+                self.entries.insert(entry.id.get(), with_fixture_trailer((**entry).clone()));
             }
             Event::Progress { id, progress, resume, .. } => {
                 if let Some(entry) = self.entries.get_mut(&id.get()) {
@@ -227,6 +229,7 @@ impl Known {
                 self.source_options.insert(id.get(), options.clone());
             }
             Event::Connectivity { offline } => self.offline = *offline,
+            Event::Autoplay(view) => self.autoplay = Some(*view),
             Event::Update(status) => self.update = Some(status.clone()),
             Event::Vpn(guard) => {
                 self.guard = guard.clone().map(|g| (g, std::time::Instant::now()));
@@ -539,6 +542,23 @@ fn showcase_kind(event: &Event) -> Option<&'static str> {
         Event::StorePreview(_) => "store-preview",
         _ => return None,
     })
+}
+
+/// The fixture scene's titles carry no trailer of their own: most are given a made-up one, so the
+/// banner and the preview have a video to play, and one in five none, so the state shows too.
+#[cfg(feature = "fixtures")]
+fn with_fixture_trailer(mut entry: Entry) -> Entry {
+    use anistream_model::catalog::{Trailer, TrailerHost};
+    if entry.trailer.is_none() && entry.id.get() % 5 != 4 {
+        entry.trailer = Some(Trailer { host: TrailerHost::YouTube, id: "fixtureclip1".into() });
+        entry.trailer_url = Some("https://video.example/watch?v=fixtureclip1".into());
+    }
+    entry
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn with_fixture_trailer(entry: Entry) -> Entry {
+    entry
 }
 
 #[cfg(test)]

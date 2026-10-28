@@ -4297,6 +4297,10 @@ object Strings {
     fun titlePlayTrailer(context: Context): String =
         context.getString(R.string.title_play_trailer)
 
+    /** Name and tooltip of the button beside a playing trailer that turns its sound on or off. */
+    fun titleTrailerSound(context: Context): String =
+        context.getString(R.string.title_trailer_sound)
+
     /** Menu item that opens the title on the AniList website. */
     fun titleOpenAnilist(context: Context): String =
         context.getString(R.string.title_open_anilist)

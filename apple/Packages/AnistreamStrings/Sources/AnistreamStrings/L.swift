@@ -3829,6 +3829,9 @@ public enum L {
     /// Menu item that plays the trailer.
     public static var titlePlayTrailer: String { string("title-play-trailer", fallback: "Play trailer") }
 
+    /// Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+    public static var titleTrailerSound: String { string("title-trailer-sound", fallback: "Trailer sound") }
+
     /// Menu item that opens the title on the AniList website.
     public static var titleOpenAnilist: String { string("title-open-anilist", fallback: "Open on AniList") }
 

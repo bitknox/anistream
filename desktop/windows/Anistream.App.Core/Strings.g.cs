@@ -3225,6 +3225,9 @@ public static partial class T
     /// <summary>Menu item that plays the trailer.</summary>
     public static string TitlePlayTrailer => Get("TitlePlayTrailer");
 
+    /// <summary>Name and tooltip of the button beside a playing trailer that turns its sound on or off.</summary>
+    public static string TitleTrailerSound => Get("TitleTrailerSound");
+
     /// <summary>Menu item that opens the title on the AniList website.</summary>
     public static string TitleOpenAnilist => Get("TitleOpenAnilist");
 
@@ -5276,6 +5279,7 @@ public static partial class T
         ["TitleLoading"] = "Loading this title",
         ["TitleTrailer"] = "Trailer",
         ["TitlePlayTrailer"] = "Play trailer",
+        ["TitleTrailerSound"] = "Trailer sound",
         ["TitleOpenAnilist"] = "Open on AniList",
         ["TitleOpen"] = "Open title",
         ["TitleSeasons"] = "Seasons",

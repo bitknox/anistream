@@ -4415,6 +4415,10 @@
     <value>Play trailer</value>
     <comment>Menu item that plays the trailer.</comment>
   </data>
+  <data name="TitleTrailerSound" xml:space="preserve">
+    <value>Trailer sound</value>
+    <comment>Name and tooltip of the button beside a playing trailer that turns its sound on or off.</comment>
+  </data>
   <data name="TitleOpenAnilist" xml:space="preserve">
     <value>Open on AniList</value>
     <comment>Menu item that opens the title on the AniList website.</comment>

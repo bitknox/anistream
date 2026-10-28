@@ -946,6 +946,9 @@ nagare-description = Nagare, the anistream mascot: a figure with a silk bob, an 
 # Line under the seeding group in Settings: seeding stops when the app closes.
 settings-seeding-open-only = Seeding runs only while anistream is open.
 
+# Note under the Play trailers setting: what the trailers are and when they do not play.
+settings-note-trailers-linux = Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animations off, in power saver mode or with a screen reader running.
+
 # Button on a notice that asks to open the plugin stores.
 shell-open-stores = Open plugin stores
 
@@ -6431,6 +6434,9 @@ title-trailer = Trailer
 
 # Menu item that plays the trailer.
 title-play-trailer = Play trailer
+
+# Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+title-trailer-sound = Trailer sound
 
 # Menu item that opens the title on the AniList website.
 title-open-anilist = Open on AniList

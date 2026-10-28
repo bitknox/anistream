@@ -85,7 +85,7 @@ const PANES: [Pane; 9] = [
     Pane {
         name: "general",
         icon: "preferences-system-symbolic", // i18n-skip
-        groups: &[(Group::Titles, &[K::Titles])],
+        groups: &[(Group::Titles, &[K::Titles, K::Trailers])],
     },
     Pane {
         name: "playback",
@@ -601,7 +601,10 @@ impl Inner {
             .settings
             .as_ref()
             .and_then(|v| v.overridden.iter().find(|o| o.key == key).map(|o| o.shows));
-        let subtitle = overridden.map(|n| t::settings_overridden(n as i64));
+        let subtitle = overridden.map(|n| t::settings_overridden(n as i64)).or_else(|| {
+            // The footnote: what trailers are, and when they do not play.
+            (key == K::Trailers).then(t::settings_note_trailers_linux)
+        });
 
         if !catalog::editable(row) {
             let line = adw::ActionRow::builder().title(&title).build();

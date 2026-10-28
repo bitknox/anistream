@@ -14539,6 +14539,18 @@
         }
       }
     },
+    "title-trailer-sound" : {
+      "comment" : "Name and tooltip of the button beside a playing trailer that turns its sound on or off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trailer sound"
+          }
+        }
+      }
+    },
     "title-watched-range" : {
       "comment" : "Row that stands for several watched episodes in a row, such as \"Episodes 1 to 5 watched\". Argument 1: first (Int). Argument 2: last (Int).",
       "extractionState" : "manual",
