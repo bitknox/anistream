@@ -845,3 +845,155 @@ title-facts-also-on = Also on
 # Title page: what a failed fetch of the title says under its heading.
 # @only android
 title-fetch-failed-detail = AniList didn’t answer.
+
+# Continue on a tablet: what a screen reader hears on the handle between the queue and the preview.
+# @only android
+continue-resize-queue = Resize the queue
+
+# Continue row menu: opens the title page.
+# @only android
+# @max 24
+continue-go-to-title = Go to title
+
+# Continue row: the short episode and how long is left, such as "E4 · 12 min left".
+# @only android
+# @arg episode: text
+# @arg left: text
+continue-short-left = { $episode } · { $left }
+
+# Continue, airing card: an episode that has aired, with its time and how long ago.
+# @only android
+# @arg episode: int
+# @arg time: text
+# @arg ago: text
+continue-airing-out = E{ $episode } · { $time } · out { $ago }
+
+# Continue, airing card: an episode still to air, with its time and how long to wait.
+# @only android
+# @arg episode: int
+# @arg time: text
+# @arg countdown: text
+continue-airing-in = E{ $episode } · { $time } · in { $countdown }
+
+# Calendar row: an episode that has aired, with how long ago.
+# @only android
+# @arg episode: text
+# @arg ago: text
+calendar-line-out = { $episode } out { $ago }
+
+# Calendar row: an episode still to air, with how long to wait.
+# @only android
+# @arg episode: text
+# @arg countdown: text
+calendar-line-in = { $episode } in { $countdown }
+
+# Navigation rail: what a screen reader hears on the account button, with the signed-in user's name.
+# @only android
+# @arg user: text
+nav-accounts-and-settings-user = { $user }, accounts and settings
+
+# Episode row: what a screen reader hears on an episode still to air, with no time known.
+# @only android
+# @arg number: text
+# @arg title: text
+episode-unaired-label = Episode { $number }, { $title }. Not out yet
+
+# Episode row: the same for an episode that has no title.
+# @only android
+# @arg number: text
+episode-unaired-label-plain = Episode { $number }. Not out yet
+
+# Episode row: what a screen reader hears on an episode still to air, with its time.
+# @only android
+# @arg number: text
+# @arg title: text
+# @arg airs: text
+episode-unaired-airs-label = Episode { $number }, { $title }. Airs { $airs }, not out yet
+
+# Episode row: the same for an episode that has no title.
+# @only android
+# @arg number: text
+# @arg airs: text
+episode-unaired-airs-label-plain = Episode { $number }. Airs { $airs }, not out yet
+
+# TV sheet, picker: the heading over the TVs found on the network.
+# @only android
+tv-sheet-on-network = On this network
+
+# TV sheet, picker: the heading over the ways to add a TV that did not show up.
+# @only android
+tv-sheet-not-listed = Not listed
+
+# TV sheet, picker: the row that opens the camera to scan the code on the TV.
+# @only android
+tv-sheet-scan = Scan the code on the TV
+
+# TV sheet, pairing: the heading over the six digits, naming the TV that shows them.
+# @only android
+# @arg name: text
+tv-sheet-code-on = Code on { $name }
+
+# TV sheet, pairing: the button while the code is being checked.
+# @only android
+# @max 20
+tv-sheet-pairing-button = Pairing
+
+# TV sheet, pairing: the row while the phone reaches for a TV that has no name yet.
+# @only android
+tv-sheet-connecting = Connecting to the TV
+
+# TV sheet, pairing: what a screen reader offers on the digit boxes.
+# @only android
+tv-sheet-type-code = Type the code
+
+# TV sheet, remote: the row for the TV's volume.
+# @only android
+tv-sheet-volume = TV volume
+
+# TV sheet, remote: the volume down button.
+# @only android
+tv-sheet-volume-down = Volume down
+
+# TV sheet, remote: the volume up button.
+# @only android
+tv-sheet-volume-up = Volume up
+
+# TV sheet, remote: the volume as a number out of 100.
+# @only android
+# @arg value: int
+tv-sheet-volume-value = { $value } of 100
+
+# TV sheet, remote: the row when the TV plays nothing.
+# @only android
+tv-sheet-nothing-playing = Nothing playing
+
+# TV sheet, remote: the seek bar's name for a screen reader.
+# @only android
+tv-sheet-position = Position on the TV
+
+# TV sheet, remote: the seek bar's state for a screen reader, two times.
+# @only android
+# @arg at: text
+# @arg total: text
+tv-sheet-position-state = { $at } of { $total }
+
+# TV sheet, picker: the episode a play request is for, with the show.
+# @only android
+# @arg title: text
+# @arg episode: text
+tv-sheet-request-titled = { $title }, episode { $episode }
+
+# TV sheet, picker: the episode a play request is for, with no show.
+# @only android
+# @arg episode: text
+tv-sheet-request-plain = Episode { $episode }
+
+# Settings, Play on TV: the note under the paired TVs.
+# @only android
+# @arg code: text
+tv-sheet-footer = A TV lists this { -device } with the code { $code }. Forget a TV here and it forgets this { -device } too.
+
+# TV sheet, remote: the sheet's title when the TV has no name yet.
+# @only android
+# @max 12
+tv-sheet-title-fallback = TV

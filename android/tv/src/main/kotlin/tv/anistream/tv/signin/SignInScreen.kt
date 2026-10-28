@@ -180,7 +180,7 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
         val shown = link
         if (shown != null) {
-            QrCode(shown, label = "QR code for the sign-in page")
+            QrCode(shown, label = "QR code for the sign-in page") // i18n-skip
         } else {
             Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)))
         }
@@ -225,7 +225,7 @@ private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequeste
     )
     Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
         if (shown != null) {
-            QrCode(shown.url, label = "QR code for the activation address")
+            QrCode(shown.url, label = "QR code for the activation address") // i18n-skip
         } else {
             Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)))
         }

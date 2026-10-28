@@ -144,7 +144,7 @@ private fun TopBar(
                 transitionSpec = {
                     androidx.compose.animation.fadeIn(Motion.standard()) togetherWith androidx.compose.animation.fadeOut(Motion.standard())
                 },
-                label = "episode line",
+                label = "episode line", // i18n-skip
             ) { line ->
                 Text(
                     line,
@@ -223,8 +223,8 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
     val pressed by touch.collectIsPressedAsState()
     val dragged by touch.collectIsDraggedAsState()
     val active = pressed || dragged
-    val trackHeight by animateDpAsState(if (active) 24.dp else 16.dp, Motion.quick(), label = "track")
-    val handleWidth by animateDpAsState(if (active) 2.dp else 4.dp, label = "handle")
+    val trackHeight by animateDpAsState(if (active) 24.dp else 16.dp, Motion.quick(), label = "track") // i18n-skip
+    val handleWidth by animateDpAsState(if (active) 2.dp else 4.dp, label = "handle") // i18n-skip
     val duration = model.duration?.takeIf { it > 0 } ?: 1.0
     // The stretches as a value that changes only with the chapters or the length, not with each
     // tick of the position, so the tick below is not started again and the track can skip.

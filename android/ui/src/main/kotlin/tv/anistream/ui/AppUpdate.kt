@@ -168,7 +168,7 @@ internal fun CheckNowRow(place: Place) {
 @Composable
 private fun UpdateBar(fraction: Float, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
-    val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), Motion.standard(), label = "update")
+    val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), Motion.standard(), label = "update") // i18n-skip
     LinearProgressIndicator(
         progress = { shown },
         modifier = modifier.fillMaxWidth().height(4.dp),

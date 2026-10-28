@@ -4,6 +4,8 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -33,14 +35,16 @@ internal class ContinueMenuActions(
     val open: () -> Unit,
     val hide: () -> Unit,
     val drop: () -> Unit,
+    val hideLabel: String,
+    val dropLabel: String,
 ) {
     /** The menu's items as TalkBack's actions on the row. */
     val accessibility: List<CustomAccessibilityAction>
         get() = listOfNotNull(
             play?.let { CustomAccessibilityAction(playLabel) { it(); true } },
             CustomAccessibilityAction(markLabel) { markWatched(); true },
-            CustomAccessibilityAction("Hide from Continue") { hide(); true },
-            CustomAccessibilityAction("Drop") { drop(); true },
+            CustomAccessibilityAction(hideLabel) { hide(); true },
+            CustomAccessibilityAction(dropLabel) { drop(); true },
         )
 }
 
@@ -58,10 +62,12 @@ internal fun continueMenuActions(item: ContinueItem, actions: AppActions, from: 
             haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
             store.setWatched(item.id, listOf(item.episode.toString()))
         },
-        markLabel = "Mark E${item.episode} watched",
+        markLabel = stringResource(R.string.episode_mark_n_watched, item.episode.toInt()),
         open = { navigator.openTitle(item.id, from) },
         hide = { hide?.invoke(item) ?: store.hideFromContinue(item.id) },
         drop = { store.setStatus(item.id, LibrarySegment.DROPPED) },
+        hideLabel = stringResource(R.string.continue_hide),
+        dropLabel = stringResource(R.string.continue_drop),
     )
 }
 
@@ -81,18 +87,18 @@ internal fun ContinueMenu(menu: ContinueMenuActions, expanded: Boolean, onDismis
             onClick = { onDismiss(); menu.markWatched() },
         )
         DropdownMenuItem(
-            text = { Text("Go to title") },
+            text = { Text(stringResource(R.string.continue_go_to_title)) },
             leadingIcon = { Icon(Icons.External, contentDescription = null) },
             onClick = { onDismiss(); menu.open() },
         )
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
         DropdownMenuItem(
-            text = { Text("Hide from Continue") },
+            text = { Text(stringResource(R.string.continue_hide)) },
             leadingIcon = { Icon(Icons.HideRow, contentDescription = null) },
             onClick = { onDismiss(); menu.hide() },
         )
         DropdownMenuItem(
-            text = { Text("Drop") },
+            text = { Text(stringResource(R.string.continue_drop)) },
             leadingIcon = { Icon(Icons.Clear, contentDescription = null) },
             onClick = { onDismiss(); menu.drop() },
         )

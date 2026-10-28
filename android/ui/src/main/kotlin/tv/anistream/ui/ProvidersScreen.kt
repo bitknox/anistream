@@ -222,7 +222,7 @@ private fun SourceList(
                 else -> 0f
             }
             // Read where it is placed, not here, so making way moves the row and composes nothing.
-            val shiftPx = animateFloatAsState(shift, animationSpec = tv.anistream.design.Motion.standard(), label = "shift")
+            val shiftPx = animateFloatAsState(shift, animationSpec = tv.anistream.design.Motion.standard(), label = "shift") // i18n-skip
             val lifted = dragging == row.id
             Box(
                 Modifier

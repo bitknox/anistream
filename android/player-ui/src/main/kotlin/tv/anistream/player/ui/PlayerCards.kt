@@ -81,7 +81,7 @@ fun CornerCard(model: PlayerModel, chromeVisible: Boolean, throughGround: () -> 
         transitionSpec = {
             fadeIn(Motion.standard()) togetherWith fadeOut(if (targetState == null) Motion.quick() else Motion.standard())
         },
-        label = "corner",
+        label = "corner", // i18n-skip
     ) { card ->
         when (card) {
             Corner.Skip -> SkipButton(model)
@@ -101,7 +101,7 @@ private fun SkipButton(model: PlayerModel) {
     val touch = remember { MutableInteractionSource() }
     val down by touch.collectIsPressedAsState()
     val dim = model.skipDimmed && !down
-    val strength by animateFloatAsState(if (dim) 0.4f else 1f, if (dim) Motion.fadeOut() else Motion.fadeIn(), label = "skip")
+    val strength by animateFloatAsState(if (dim) 0.4f else 1f, if (dim) Motion.fadeOut() else Motion.fadeIn(), label = "skip") // i18n-skip
     Box(
         Modifier
             .height(48.dp)

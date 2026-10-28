@@ -303,7 +303,7 @@ internal fun EpisodeStill(entry: Entry, row: EpisodeRow, hidden: Boolean, unaire
             Box(Modifier.fillMaxSize().background(ObiSilk.Raised))
             return@Box
         }
-        Crossfade(hidden, animationSpec = Motion.standard(), label = "still") { blurred ->
+        Crossfade(hidden, animationSpec = Motion.standard(), label = "still") { blurred -> // i18n-skip
             if (blurred) {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer)) {
                     ArtworkImage(
@@ -402,7 +402,7 @@ fun RollingCount(value: Int, style: androidx.compose.ui.text.TextStyle, color: a
                     (slideInVertically(Motion.standard()) { if (up) it / 2 else -it / 2 } + fadeIn(Motion.standard())) togetherWith
                         (slideOutVertically(Motion.standard()) { if (up) -it / 2 else it / 2 } + fadeOut(Motion.standard()))
                 },
-                label = "digit-$index",
+                label = "digit-$index", // i18n-skip
             ) { Text(it.toString(), style = style, color = color) }
         }
     }

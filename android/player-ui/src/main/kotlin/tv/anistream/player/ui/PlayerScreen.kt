@@ -159,7 +159,7 @@ fun PlayerScreen(
     LaunchedEffect(model.upNext?.played) { if (model.upNext?.played == true) through = true }
     LaunchedEffect(model.hasPicture, model.playback) { if (model.hasPicture) through = false }
     // Read in the layers that draw it, so the fade redraws them and composes nothing.
-    val ground = animateFloatAsState(if (through) 1f else 0f, if (through) ThroughGround else Motion.fadeIn(), label = "ground")
+    val ground = animateFloatAsState(if (through) 1f else 0f, if (through) ThroughGround else Motion.fadeIn(), label = "ground") // i18n-skip
     val groundUp by remember { derivedStateOf { ground.value > 0f } }
 
     Immersive()
@@ -489,7 +489,7 @@ fun VideoSurface(model: PlayerModel, modifier: Modifier, view: (SurfaceView?) ->
 @Composable
 private fun StartingLayer(model: PlayerModel, rect: VideoRect, art: Boolean, onChooseSource: () -> Unit) {
     val up = model.isPresented && (model.starting != null || !model.hasPicture || model.failure != null)
-    val shown by animateFloatAsState(if (up) 1f else 0f, Motion.fadeIn(), label = "starting")
+    val shown by animateFloatAsState(if (up) 1f else 0f, Motion.fadeIn(), label = "starting") // i18n-skip
     if (shown == 0f) return
     val store = LocalAppStore.current
     val entries by store.titles.entries.collectAsStateWithLifecycle()

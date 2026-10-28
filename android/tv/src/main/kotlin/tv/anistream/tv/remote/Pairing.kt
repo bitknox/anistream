@@ -177,7 +177,7 @@ fun PairPage(name: String, code: String?, link: String?, address: String?, onClo
             )
             Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (link != null) {
-                    QrCode(link, label = "QR code for pairing")
+                    QrCode(link, label = "QR code for pairing") // i18n-skip
                 } else {
                     Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)))
                 }

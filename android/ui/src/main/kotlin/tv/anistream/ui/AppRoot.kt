@@ -3,6 +3,10 @@
 
 package tv.anistream.ui
 
+import androidx.annotation.StringRes
+import tv.anistream.i18n.R
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
@@ -85,17 +89,17 @@ import tv.anistream.engine.model.NoticeHint
 import tv.anistream.engine.model.SearchQuery
 
 /** The top-level destinations, in the navigation bar's order. */
-enum class Destination(val route: String, val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {
-    Continue("continue", "Continue", Icons.Continue, Icons.ContinueSelected),
-    Calendar("calendar", "Calendar", Icons.Calendar, Icons.CalendarSelected),
-    Seasonal("seasonal", "Seasonal", Icons.Seasonal, Icons.SeasonalSelected),
-    Library("library", "Library", Icons.Library, Icons.LibrarySelected),
-    Search("search", "Search", Icons.Search, Icons.SearchSelected);
+enum class Destination(val route: String, @StringRes val label: Int, val icon: ImageVector, val selectedIcon: ImageVector) {
+    Continue("continue", R.string.nav_continue, Icons.Continue, Icons.ContinueSelected),
+    Calendar("calendar", R.string.nav_calendar, Icons.Calendar, Icons.CalendarSelected),
+    Seasonal("seasonal", R.string.nav_seasonal, Icons.Seasonal, Icons.SeasonalSelected),
+    Library("library", R.string.nav_library, Icons.Library, Icons.LibrarySelected),
+    Search("search", R.string.nav_search, Icons.Search, Icons.SearchSelected);
 
     companion object {
-        /** The destination [name] names, by its route or label, case aside. */
+        /** The destination [name] names, by its route, case aside. */
         fun named(name: String): Destination? =
-            entries.firstOrNull { it.route.equals(name, ignoreCase = true) || it.label.equals(name, ignoreCase = true) }
+            entries.firstOrNull { it.route.equals(name, ignoreCase = true) }
     }
 }
 
@@ -411,7 +415,7 @@ private fun PhoneBar(current: Destination, go: (Destination) -> Unit) {
                 icon = { DestinationIcon(destination, selected) },
                 // One line however large the text: five labels share the width, so each shrinks
                 // to fit before it would break mid-word.
-                label = { BarLabel(destination.label) },
+                label = { BarLabel(stringResource(destination.label)) },
                 colors = ShortNavigationBarItemDefaults.colors(
                     selectedIconColor = colors.onPrimaryContainer,
                     selectedTextColorTopIconPosition = colors.primary,
@@ -428,10 +432,10 @@ private fun PhoneBar(current: Destination, go: (Destination) -> Unit) {
  * The drawer's pages beyond the five destinations (AT1): Downloads, then Providers and Plugin
  * stores under a Sources header.
  */
-internal enum class DrawerPage(val label: String, val icon: ImageVector, val route: String) {
-    Downloads("Downloads", Icons.DownloadsPage, DOWNLOADS_ROUTE),
-    Providers("Providers", Icons.Providers, PROVIDERS_ROUTE),
-    Stores("Plugin stores", Icons.Stores, STORES_ROUTE),
+internal enum class DrawerPage(@StringRes val label: Int, val icon: ImageVector, val route: String) {
+    Downloads(R.string.nav_downloads, Icons.DownloadsPage, DOWNLOADS_ROUTE),
+    Providers(R.string.sources_title, Icons.Providers, PROVIDERS_ROUTE),
+    Stores(R.string.nav_plugin_stores, Icons.Stores, STORES_ROUTE),
 }
 
 /**
@@ -488,7 +492,7 @@ private fun Rail(current: Destination?, route: String?, navigator: Navigator, ac
                         navigator.go(destination)
                     },
                     icon = { DestinationIcon(destination, selected) },
-                    label = { Text(destination.label) },
+                    label = { Text(stringResource(destination.label)) },
                     railExpanded = expanded,
                     colors = itemColors,
                 )
@@ -513,19 +517,20 @@ private fun Rail(current: Destination?, route: String?, navigator: Navigator, ac
                         actions.openSettings()
                     },
                     icon = { RailAvatar(user, 32) },
-                    label = { Text("Accounts and settings") },
+                    label = { Text(stringResource(R.string.nav_accounts_and_settings)) },
                     railExpanded = true,
                     colors = itemColors,
                 )
             }
         }
         if (!expanded) {
+            val accountsAndSettings = user?.let { stringResource(R.string.nav_accounts_and_settings_user, it) } ?: stringResource(R.string.nav_accounts_and_settings)
             IconButton(
                 onClick = actions.openSettings,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 16.dp)
-                    .semantics { contentDescription = user?.let { "$it, accounts and settings" } ?: "Accounts and settings" },
+                    .semantics { contentDescription = accountsAndSettings },
             ) {
                 RailAvatar(user, 40)
             }
@@ -541,7 +546,7 @@ private fun DrawerItem(page: DrawerPage, route: String?, colors: androidx.compos
         selected = route == page.route && !page.route.startsWith(SETTINGS_ROUTE),
         onClick = onClick,
         icon = { Icon(page.icon, contentDescription = null) },
-        label = { Text(page.label) },
+        label = { Text(stringResource(page.label)) },
         railExpanded = true,
         colors = colors,
     )

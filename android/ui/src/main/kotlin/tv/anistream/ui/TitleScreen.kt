@@ -741,7 +741,7 @@ private fun SeasonPage(
                             else androidx.compose.animation.EnterTransition.None togetherWith androidx.compose.animation.ExitTransition.None
                         },
                         contentAlignment = Alignment.TopStart,
-                        label = "stand-in",
+                        label = "stand-in", // i18n-skip
                         contentKey = { it.id },
                     ) { TitleHead(it, episodes, list, inset, shared) }
                 }
@@ -832,7 +832,7 @@ private fun SeasonFade(entry: Entry, modifier: Modifier = Modifier, content: @Co
                 .using(androidx.compose.animation.SizeTransform(clip = false) { _, _ -> Motion.standard() })
         },
         contentAlignment = Alignment.TopStart,
-        label = "season",
+        label = "season", // i18n-skip
         contentKey = { it.id },
     ) { content(it) }
 }
@@ -1157,7 +1157,7 @@ private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
                 // What it plays crossfades as an episode is marked (T9).
-                Crossfade(action.label(LocalContext.current), animationSpec = Motion.standard(), label = "action") {
+                Crossfade(action.label(LocalContext.current), animationSpec = Motion.standard(), label = "action") { // i18n-skip
                     Text(it, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
                 }
             }
@@ -1173,7 +1173,7 @@ private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
                     androidx.compose.animation.AnimatedContent(
                         entry.listStatus?.label(LocalContext.current)?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.library_add_to_list),
                         transitionSpec = { fadeIn(Motion.quick()) togetherWith fadeOut(Motion.quick()) },
-                        label = "list",
+                        label = "list", // i18n-skip
                     ) { Text(it) }
                     Spacer(Modifier.width(8.dp))
                     Icon(Icons.Down, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1465,7 +1465,7 @@ private fun Seasons(
     // How far each season is chosen, on the shape's spring: its width follows, read as the group
     // is laid out, so the morph recomposes nothing.
     val chosen = seasons.map { season ->
-        key(season.id) { androidx.compose.animation.core.animateFloatAsState(if (season.id == chosenId) 1f else 0f, motion.defaultSpatialSpec(), label = "width") }
+        key(season.id) { androidx.compose.animation.core.animateFloatAsState(if (season.id == chosenId) 1f else 0f, motion.defaultSpatialSpec(), label = "width") } // i18n-skip
     }
     val row = if (geometry.scrolls) {
         Modifier.fillMaxWidth().horizontalScroll(scroll).padding(horizontal = with(LocalDensity.current) { geometry.pad.toDp() })
@@ -1666,7 +1666,7 @@ private fun rememberEpisodeFold(id: AnilistId, grid: androidx.compose.foundation
 @Composable
 private fun WatchedFoldRow(folded: List<EpisodeRow>, unfolded: Boolean, modifier: Modifier = Modifier, dub: String? = null, onToggle: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    val turn by androidx.compose.animation.core.animateFloatAsState(if (unfolded) 180f else 0f, Motion.quick(), label = "fold")
+    val turn by androidx.compose.animation.core.animateFloatAsState(if (unfolded) 180f else 0f, Motion.quick(), label = "fold") // i18n-skip
     val hide = stringResource(R.string.title_hide_watched)
     val show = stringResource(R.string.title_show_watched)
     val expanded = stringResource(R.string.state_expanded)
@@ -1936,7 +1936,7 @@ private fun TabletActions(entry: Entry, actions: AppActions, unlisted: Boolean, 
             Button(onClick = { actions.play(entry.id, action.episode.toString()) }, modifier = Modifier.heightIn(min = 56.dp), contentPadding = PaddingValues(horizontal = 24.dp)) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Crossfade(action.label(LocalContext.current), animationSpec = Motion.standard(), label = "action") {
+                Crossfade(action.label(LocalContext.current), animationSpec = Motion.standard(), label = "action") { // i18n-skip
                     Text(it, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
                 }
             }
@@ -1948,7 +1948,7 @@ private fun TabletActions(entry: Entry, actions: AppActions, unlisted: Boolean, 
                 androidx.compose.animation.AnimatedContent(
                     entry.listStatus?.label(LocalContext.current)?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.library_add_to_list),
                     transitionSpec = { fadeIn(Motion.quick()) togetherWith fadeOut(Motion.quick()) },
-                    label = "list",
+                    label = "list", // i18n-skip
                 ) { Text(it) }
                 Spacer(Modifier.width(8.dp))
                 Icon(Icons.Down, contentDescription = null, modifier = Modifier.size(18.dp))

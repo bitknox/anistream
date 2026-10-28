@@ -3,6 +3,8 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
 import tv.anistream.store.text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -106,8 +108,8 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
     val leaving = remember { mutableStateListOf<AnilistId>() }
     val leave = rememberLeave(leaving)
     ScreenFrame(
-        title = "Continue",
-        subtitle = status?.text(LocalContext.current) ?: if (empty) "Nothing watched yet" else null,
+        title = stringResource(R.string.nav_continue),
+        subtitle = status?.text(LocalContext.current) ?: if (empty) stringResource(R.string.continue_empty_title) else null,
         account = Account(user, actions.openSettings),
     ) { padding ->
         Refreshable({ store.loadContinue(force = true) }, top = padding.calculateTopPadding()) {
@@ -281,7 +283,7 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
             Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item.fraction?.let { Meter(it) }
                 item.minutesLeft?.let {
-                    Text("$it min left", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                    Text(stringResource(R.string.time_minutes_left, it), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                 }
             }
         }
@@ -351,7 +353,7 @@ private fun ProgressCard(item: ContinueItem, actions: AppActions) {
             modifier = Modifier.padding(top = 4.dp),
         )
         Text(
-            item.minutesLeft?.let { "${item.shortEpisode(LocalContext.current)} · $it min left" } ?: item.actionText(),
+            item.minutesLeft?.let { stringResource(R.string.continue_short_left, item.shortEpisode(LocalContext.current), stringResource(R.string.time_minutes_left, it)) } ?: item.actionText(),
             style = MaterialTheme.typography.bodyMedium.tabular(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -458,7 +460,8 @@ private fun AiringCard(broadcast: Broadcast, now: Instant) {
     val seconds = broadcast.airs.epochSecond - now.epochSecond
     val time = AirTime.clock(broadcast.airs)
     val out = seconds <= 0
-    val line = "E${broadcast.episode} · $time · " + if (out) "out ${Wording.ago(LocalContext.current, -seconds)}" else "in ${Wording.countdown(LocalContext.current, seconds)}"
+    val line = if (out) stringResource(R.string.continue_airing_out, broadcast.episode.toInt(), time, Wording.ago(LocalContext.current, -seconds))
+        else stringResource(R.string.continue_airing_in, broadcast.episode.toInt(), time, Wording.countdown(LocalContext.current, seconds))
     val navigator = LocalNavigator.current
     val id = broadcast.entry.id
     Column(

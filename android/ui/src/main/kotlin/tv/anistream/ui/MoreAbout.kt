@@ -109,7 +109,7 @@ fun MoreAboutContent(
             entry.id in failed -> 2
             else -> 0
         }
-        androidx.compose.animation.Crossfade(phase, animationSpec = Motion.standard(), label = "about") { shown ->
+        androidx.compose.animation.Crossfade(phase, animationSpec = Motion.standard(), label = "about") { shown -> // i18n-skip
         Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         when (shown) {
             1 -> if (detail != null) {

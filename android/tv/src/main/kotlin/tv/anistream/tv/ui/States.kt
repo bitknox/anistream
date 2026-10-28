@@ -160,7 +160,7 @@ fun NoticeView(shown: ShownNotice?, modifier: Modifier = Modifier) {
     var last by remember { mutableStateOf(shown) }
     if (shown != null) last = shown
     AnimatedVisibility(shown != null, modifier, enter = enterFade(), exit = exitFade()) {
-        Crossfade(last, animationSpec = if (LocalReducedMotion.current) snap() else Motion.fadeIn(), label = "notice") { notice ->
+        Crossfade(last, animationSpec = if (LocalReducedMotion.current) snap() else Motion.fadeIn(), label = "notice") { notice -> // i18n-skip
             Box(
                 Modifier
                     .padding(top = Canvas.SafeY, end = Canvas.SafeX)

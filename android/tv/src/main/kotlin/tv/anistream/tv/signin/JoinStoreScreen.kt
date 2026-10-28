@@ -195,7 +195,7 @@ private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () ->
     Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
         val shown = address.takeIf { !expired }
         if (shown != null) {
-            QrCode(shown, label = "QR code for the page that takes the link")
+            QrCode(shown, label = "QR code for the page that takes the link") // i18n-skip
         } else {
             Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
                 if (expired) Text("Code expired", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)

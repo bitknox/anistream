@@ -268,7 +268,7 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit, playFromSt
                     transitionSpec = {
                         if (reduced) EnterTransition.None togetherWith ExitTransition.None else fadeIn(Motion.quick()) togetherWith fadeOut(Motion.quick())
                     },
-                    label = "screen",
+                    label = "screen", // i18n-skip
                 ) { target ->
                     val key = (target as? Page)?.key ?: (target as Destination).name
                     screens.SaveableStateProvider(key) {

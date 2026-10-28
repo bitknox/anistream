@@ -814,6 +814,66 @@
     <string name="title_facts_also_on">Also on</string>
     <!-- Title page: what a failed fetch of the title says under its heading. -->
     <string name="title_fetch_failed_detail">AniList didn’t answer.</string>
+    <!-- Continue on a tablet: what a screen reader hears on the handle between the queue and the preview. -->
+    <string name="continue_resize_queue">Resize the queue</string>
+    <!-- Continue row menu: opens the title page. -->
+    <string name="continue_go_to_title">Go to title</string>
+    <!-- Continue row: the short episode and how long is left, such as "E4 · 12 min left". -->
+    <string name="continue_short_left">%1$s · %2$s</string>
+    <!-- Continue, airing card: an episode that has aired, with its time and how long ago. -->
+    <string name="continue_airing_out">E%1$d · %2$s · out %3$s</string>
+    <!-- Continue, airing card: an episode still to air, with its time and how long to wait. -->
+    <string name="continue_airing_in">E%1$d · %2$s · in %3$s</string>
+    <!-- Calendar row: an episode that has aired, with how long ago. -->
+    <string name="calendar_line_out">%1$s out %2$s</string>
+    <!-- Calendar row: an episode still to air, with how long to wait. -->
+    <string name="calendar_line_in">%1$s in %2$s</string>
+    <!-- Navigation rail: what a screen reader hears on the account button, with the signed-in user's name. -->
+    <string name="nav_accounts_and_settings_user">%1$s, accounts and settings</string>
+    <!-- Episode row: what a screen reader hears on an episode still to air, with no time known. -->
+    <string name="episode_unaired_label">Episode %1$s, %2$s. Not out yet</string>
+    <!-- Episode row: the same for an episode that has no title. -->
+    <string name="episode_unaired_label_plain">Episode %1$s. Not out yet</string>
+    <!-- Episode row: what a screen reader hears on an episode still to air, with its time. -->
+    <string name="episode_unaired_airs_label">Episode %1$s, %2$s. Airs %3$s, not out yet</string>
+    <!-- Episode row: the same for an episode that has no title. -->
+    <string name="episode_unaired_airs_label_plain">Episode %1$s. Airs %2$s, not out yet</string>
+    <!-- TV sheet, picker: the heading over the TVs found on the network. -->
+    <string name="tv_sheet_on_network">On this network</string>
+    <!-- TV sheet, picker: the heading over the ways to add a TV that did not show up. -->
+    <string name="tv_sheet_not_listed">Not listed</string>
+    <!-- TV sheet, picker: the row that opens the camera to scan the code on the TV. -->
+    <string name="tv_sheet_scan">Scan the code on the TV</string>
+    <!-- TV sheet, pairing: the heading over the six digits, naming the TV that shows them. -->
+    <string name="tv_sheet_code_on">Code on %1$s</string>
+    <!-- TV sheet, pairing: the button while the code is being checked. -->
+    <string name="tv_sheet_pairing_button">Pairing</string>
+    <!-- TV sheet, pairing: the row while the phone reaches for a TV that has no name yet. -->
+    <string name="tv_sheet_connecting">Connecting to the TV</string>
+    <!-- TV sheet, pairing: what a screen reader offers on the digit boxes. -->
+    <string name="tv_sheet_type_code">Type the code</string>
+    <!-- TV sheet, remote: the row for the TV's volume. -->
+    <string name="tv_sheet_volume">TV volume</string>
+    <!-- TV sheet, remote: the volume down button. -->
+    <string name="tv_sheet_volume_down">Volume down</string>
+    <!-- TV sheet, remote: the volume up button. -->
+    <string name="tv_sheet_volume_up">Volume up</string>
+    <!-- TV sheet, remote: the volume as a number out of 100. -->
+    <string name="tv_sheet_volume_value">%1$d of 100</string>
+    <!-- TV sheet, remote: the row when the TV plays nothing. -->
+    <string name="tv_sheet_nothing_playing">Nothing playing</string>
+    <!-- TV sheet, remote: the seek bar's name for a screen reader. -->
+    <string name="tv_sheet_position">Position on the TV</string>
+    <!-- TV sheet, remote: the seek bar's state for a screen reader, two times. -->
+    <string name="tv_sheet_position_state">%1$s of %2$s</string>
+    <!-- TV sheet, picker: the episode a play request is for, with the show. -->
+    <string name="tv_sheet_request_titled">%1$s, episode %2$s</string>
+    <!-- TV sheet, picker: the episode a play request is for, with no show. -->
+    <string name="tv_sheet_request_plain">Episode %1$s</string>
+    <!-- Settings, Play on TV: the note under the paired TVs. -->
+    <string name="tv_sheet_footer">A TV lists this device with the code %1$s. Forget a TV here and it forgets this device too.</string>
+    <!-- TV sheet, remote: the sheet's title when the TV has no name yet. -->
+    <string name="tv_sheet_title_fallback">TV</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->

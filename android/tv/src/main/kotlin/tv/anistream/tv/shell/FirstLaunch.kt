@@ -108,7 +108,7 @@ private fun Pages(start: FirstLaunchPage, finish: () -> Unit) {
     BackHandler(enabled = page == FirstLaunchPage.Sources) { page = FirstLaunchPage.AniList }
     val enter = enterFade()
     val exit = exitFade()
-    AnimatedContent(page, transitionSpec = { enter togetherWith exit }, label = "first launch") { shown ->
+    AnimatedContent(page, transitionSpec = { enter togetherWith exit }, label = "first launch") { shown -> // i18n-skip
         when (shown) {
             FirstLaunchPage.Welcome -> Welcome(onNext = { page = FirstLaunchPage.AniList })
             // Signed in or Not now, Sources follows.

@@ -3,6 +3,10 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.Strings
+import android.content.Context
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -95,16 +99,13 @@ import tv.anistream.engine.model.LibrarySegment
 fun Entry.isMine(): Boolean =
     progress != null || listStatus == LibrarySegment.WATCHING || listStatus == LibrarySegment.PLANNING
 
-/** Calendar's two choices: the titles of yours, or everything airing. */
-private val SHOW_CHOICES = listOf("My list", "All airing")
-
 private val dayHeading = DateTimeFormatter.ofPattern("EEEE d MMMM", AirTime.locale)
 
 /** "Today", "Tomorrow", "Yesterday", or "Thursday 22 October". */
-private fun dayName(day: LocalDate, today: LocalDate): String = when (day) {
-    today -> "Today"
-    today.plusDays(1) -> "Tomorrow"
-    today.minusDays(1) -> "Yesterday"
+private fun dayName(context: Context, day: LocalDate, today: LocalDate): String = when (day) {
+    today -> Strings.dayToday(context)
+    today.plusDays(1) -> Strings.dayTomorrow(context)
+    today.minusDays(1) -> Strings.dayYesterday(context)
     else -> dayHeading.format(day)
 }
 
@@ -221,11 +222,11 @@ fun CalendarScreen() {
         }
     }
 
-    ScreenFrame(title = "Calendar") { padding ->
+    ScreenFrame(title = stringResource(R.string.nav_calendar)) { padding ->
         Column(Modifier.padding(top = padding.calculateTopPadding())) {
             // Pinned above the days: which broadcasts, and the week's days to jump to.
             ConnectedChoice(
-                choices = SHOW_CHOICES,
+                choices = listOf(stringResource(R.string.calendar_filter_mine), stringResource(R.string.calendar_filter_all)),
                 selected = if (showMine) 0 else 1,
                 onSelect = { mine = it == 0 },
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -240,7 +241,7 @@ fun CalendarScreen() {
             // says so in place of the placeholders.
             val failed = state as? ListState.Failed
             if (failed != null) {
-                FailedState("Couldn't load the calendar", failed.reason, retry = { store.loadCalendar(force = true) })
+                FailedState(stringResource(R.string.calendar_load_failed), failed.reason, retry = { store.loadCalendar(force = true) })
             } else {
                 Loading(
                     page.takeIf { answered },
@@ -266,7 +267,7 @@ private fun CalendarDays(page: CalendarPage, list: LazyListState, onOpen: (Anili
         for (day in page.days) {
             item(key = "day-$day", contentType = "day") {
                 Text(
-                    dayName(day, page.today),
+                    dayName(LocalContext.current, day, page.today),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = itemMotion().padding(horizontal = 16.dp, vertical = 8.dp).semantics { heading() },
                 )
@@ -275,7 +276,7 @@ private fun CalendarDays(page: CalendarPage, list: LazyListState, onOpen: (Anili
             if (rows.isEmpty()) {
                 item(key = "none-$day", contentType = "none") {
                     Text(
-                        "Nothing airing",
+                        stringResource(R.string.calendar_empty_title),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = itemMotion().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
@@ -377,8 +378,8 @@ internal fun ConnectedButtonContent(
     val colors = MaterialTheme.colorScheme
     val motion = MaterialTheme.motionScheme
     // How far chosen, 0 to 1: one spring for the shape, one for the colours.
-    val shape = animateFloatAsState(if (chosen) 1f else 0f, motion.defaultSpatialSpec(), label = "shape")
-    val tone = animateFloatAsState(if (chosen) 1f else 0f, motion.defaultEffectsSpec(), label = "tone")
+    val shape = animateFloatAsState(if (chosen) 1f else 0f, motion.defaultSpatialSpec(), label = "shape") // i18n-skip
+    val tone = animateFloatAsState(if (chosen) 1f else 0f, motion.defaultEffectsSpec(), label = "tone") // i18n-skip
     val color = remember(colors, tone) { ColorProducer { lerp(colors.onSurface, colors.onPrimaryContainer, tone.value) } }
     Row(
         modifier
@@ -440,7 +441,7 @@ private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: () -> L
             val name = day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale)
             // The pill moves from day to day on quick, as the page scrolls past them or one is
             // tapped: drawn, so it redraws the pill alone.
-            val on by animateFloatAsState(if (day == chosenDay) 1f else 0f, Motion.quick(), label = "day")
+            val on by animateFloatAsState(if (day == chosenDay) 1f else 0f, Motion.quick(), label = "day") // i18n-skip
             Column(
                 Modifier
                     .widthIn(min = 48.dp)
@@ -485,14 +486,15 @@ private fun BroadcastRow(broadcast: Broadcast, now: Instant, onOpen: () -> Unit)
     val seconds = broadcast.airs.epochSecond - now.epochSecond
     val out = seconds <= 0
     // Dub, the only mark, goes with the episode it is about: "Episode 10 · Dub out 2 hours ago".
-    val episode = listOfNotNull("Episode ${broadcast.episode}", calendarMark(entry)).joinToString(" · ")
+    val context = LocalContext.current
+    val episode = if (calendarMark(entry) != null) Strings.episodeLongDubbed(context, broadcast.episode.toInt()) else Strings.episodeNumber(context, broadcast.episode.toInt())
     val line = when {
         seen -> episode
-        out -> "$episode out ${Wording.ago(LocalContext.current, -seconds)}"
-        else -> "$episode in ${Wording.countdown(LocalContext.current, seconds)}"
+        out -> Strings.calendarLineOut(context, episode, Wording.ago(context, -seconds))
+        else -> Strings.calendarLineIn(context, episode, Wording.countdown(context, seconds))
     }
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 72.dp).shared(Shared.Page, entry.id, "calendar").clickable(onClickLabel = "Open title", onClick = onOpen).padding(start = 16.dp, end = 24.dp, top = 6.dp, bottom = 6.dp),
+        Modifier.fillMaxWidth().heightIn(min = 72.dp).shared(Shared.Page, entry.id, "calendar").clickable(onClickLabel = stringResource(R.string.title_open), onClick = onOpen).padding(start = 16.dp, end = 24.dp, top = 6.dp, bottom = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -507,7 +509,7 @@ private fun BroadcastRow(broadcast: Broadcast, now: Instant, onOpen: () -> Unit)
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 when {
-                    seen -> Icon(Icons.Check, contentDescription = "Watched", tint = colors.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                    seen -> Icon(Icons.Check, contentDescription = stringResource(R.string.episode_watched), tint = colors.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     out -> Box(Modifier.size(6.dp).background(colors.secondary, CircleShape))
                 }
                 Text(line, style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)

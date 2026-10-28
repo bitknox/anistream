@@ -29,7 +29,7 @@ android/ui/src/main/kotlin/tv/anistream/ui/ContinueScreen.kt: 3
 android/ui/src/main/kotlin/tv/anistream/ui/ContinueTablet.kt: 7
 android/ui/src/main/kotlin/tv/anistream/ui/Episodes.kt: 7
 android/ui/src/main/kotlin/tv/anistream/ui/FirstLaunch.kt: 5
-android/ui/src/main/kotlin/tv/anistream/ui/MoreAbout.kt: 4
+android/ui/src/main/kotlin/tv/anistream/ui/MoreAbout.kt: 1
 android/ui/src/main/kotlin/tv/anistream/ui/ProvidersScreen.kt: 1
 android/ui/src/main/kotlin/tv/anistream/ui/ReportBug.kt: 1
 android/ui/src/main/kotlin/tv/anistream/ui/SearchScreen.kt: 1
@@ -37,8 +37,7 @@ android/ui/src/main/kotlin/tv/anistream/ui/SeasonalScreen.kt: 1
 android/ui/src/main/kotlin/tv/anistream/ui/SettingsScreen.kt: 2
 android/ui/src/main/kotlin/tv/anistream/ui/ShowSettings.kt: 7
 android/ui/src/main/kotlin/tv/anistream/ui/States.kt: 6
-android/ui/src/main/kotlin/tv/anistream/ui/TitleScreen.kt: 20
-android/ui/src/main/kotlin/tv/anistream/ui/TorrentSheet.kt: 5
+android/ui/src/main/kotlin/tv/anistream/ui/TitleScreen.kt: 8
 android/ui/src/main/kotlin/tv/anistream/ui/TvSheets.kt: 7
 android/widgets/src/main/kotlin/tv/anistream/widgets/AiringWidget.kt: 5
 android/widgets/src/main/kotlin/tv/anistream/widgets/ContinueWidget.kt: 1

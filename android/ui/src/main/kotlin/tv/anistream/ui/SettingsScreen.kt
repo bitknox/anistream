@@ -339,7 +339,7 @@ private fun TabletSettings(start: SettingsPane, actions: AppActions) {
                 transitionSpec = { fadeIn(Motion.fadeIn()) togetherWith fadeOut(Motion.fadeIn()) },
                 contentKey = { it },
                 modifier = Modifier.weight(1f).fillMaxHeight(),
-                label = "pane",
+                label = "pane", // i18n-skip
             ) { shown ->
                 val focus = remember(shown) { RowFocus(shown.defaultFocus) }
                 CompositionLocalProvider(LocalRowFocus provides focus) {

@@ -301,7 +301,7 @@ fun TvPlayerScreen(
     val lift by animateFloatAsState(
         if (chrome) SUBTITLES_UP else SUBTITLES_DOWN,
         if (LocalReducedMotion.current) snap() else Motion.standard(),
-        label = "subtitles",
+        label = "subtitles", // i18n-skip
     )
     LaunchedEffect(height) {
         if (height == 0) return@LaunchedEffect
@@ -461,7 +461,7 @@ fun VideoSurface(model: PlayerModel, modifier: Modifier) {
  */
 @Composable
 private fun StartingLayer(model: PlayerModel, up: Boolean, onClose: () -> Unit) {
-    val shown by animateFloatAsState(if (up) 1f else 0f, if (LocalReducedMotion.current) snap() else Motion.fadeIn(), label = "starting")
+    val shown by animateFloatAsState(if (up) 1f else 0f, if (LocalReducedMotion.current) snap() else Motion.fadeIn(), label = "starting") // i18n-skip
     if (shown == 0f) return
     val starting = model.starting
     Column(Modifier.fillMaxSize().alpha(shown).background(ObiSilk.Ground), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -527,8 +527,8 @@ private fun StartingLayer(model: PlayerModel, up: Boolean, onClose: () -> Unit) 
 internal fun Spinner() {
     // A preview, and a screenshot, draws it still.
     val still = androidx.compose.ui.platform.LocalInspectionMode.current || LocalReducedMotion.current
-    val turning = rememberInfiniteTransition(label = "spinner")
-    val turned by turning.animateFloat(0f, 360f, infiniteRepeatable(tween(1000, easing = LinearEasing)), label = "angle")
+    val turning = rememberInfiniteTransition(label = "spinner") // i18n-skip
+    val turned by turning.animateFloat(0f, 360f, infiniteRepeatable(tween(1000, easing = LinearEasing)), label = "angle") // i18n-skip
     val angle = if (still) 0f else turned
     Canvas(Modifier.size(32.dp)) {
         val stroke = 3.dp.toPx()

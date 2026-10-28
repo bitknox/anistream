@@ -1477,6 +1477,126 @@ object Strings {
     fun titleFetchFailedDetail(context: Context): String =
         context.getString(R.string.title_fetch_failed_detail)
 
+    /** Continue on a tablet: what a screen reader hears on the handle between the queue and the preview. */
+    fun continueResizeQueue(context: Context): String =
+        context.getString(R.string.continue_resize_queue)
+
+    /** Continue row menu: opens the title page. */
+    fun continueGoToTitle(context: Context): String =
+        context.getString(R.string.continue_go_to_title)
+
+    /** Continue row: the short episode and how long is left, such as "E4 · 12 min left". */
+    fun continueShortLeft(context: Context, episode: String, left: String): String =
+        context.getString(R.string.continue_short_left, episode, left)
+
+    /** Continue, airing card: an episode that has aired, with its time and how long ago. */
+    fun continueAiringOut(context: Context, episode: Int, time: String, ago: String): String =
+        context.getString(R.string.continue_airing_out, episode, time, ago)
+
+    /** Continue, airing card: an episode still to air, with its time and how long to wait. */
+    fun continueAiringIn(context: Context, episode: Int, time: String, countdown: String): String =
+        context.getString(R.string.continue_airing_in, episode, time, countdown)
+
+    /** Calendar row: an episode that has aired, with how long ago. */
+    fun calendarLineOut(context: Context, episode: String, ago: String): String =
+        context.getString(R.string.calendar_line_out, episode, ago)
+
+    /** Calendar row: an episode still to air, with how long to wait. */
+    fun calendarLineIn(context: Context, episode: String, countdown: String): String =
+        context.getString(R.string.calendar_line_in, episode, countdown)
+
+    /** Navigation rail: what a screen reader hears on the account button, with the signed-in user's name. */
+    fun navAccountsAndSettingsUser(context: Context, user: String): String =
+        context.getString(R.string.nav_accounts_and_settings_user, user)
+
+    /** Episode row: what a screen reader hears on an episode still to air, with no time known. */
+    fun episodeUnairedLabel(context: Context, number: String, title: String): String =
+        context.getString(R.string.episode_unaired_label, number, title)
+
+    /** Episode row: the same for an episode that has no title. */
+    fun episodeUnairedLabelPlain(context: Context, number: String): String =
+        context.getString(R.string.episode_unaired_label_plain, number)
+
+    /** Episode row: what a screen reader hears on an episode still to air, with its time. */
+    fun episodeUnairedAirsLabel(context: Context, number: String, title: String, airs: String): String =
+        context.getString(R.string.episode_unaired_airs_label, number, title, airs)
+
+    /** Episode row: the same for an episode that has no title. */
+    fun episodeUnairedAirsLabelPlain(context: Context, number: String, airs: String): String =
+        context.getString(R.string.episode_unaired_airs_label_plain, number, airs)
+
+    /** TV sheet, picker: the heading over the TVs found on the network. */
+    fun tvSheetOnNetwork(context: Context): String =
+        context.getString(R.string.tv_sheet_on_network)
+
+    /** TV sheet, picker: the heading over the ways to add a TV that did not show up. */
+    fun tvSheetNotListed(context: Context): String =
+        context.getString(R.string.tv_sheet_not_listed)
+
+    /** TV sheet, picker: the row that opens the camera to scan the code on the TV. */
+    fun tvSheetScan(context: Context): String =
+        context.getString(R.string.tv_sheet_scan)
+
+    /** TV sheet, pairing: the heading over the six digits, naming the TV that shows them. */
+    fun tvSheetCodeOn(context: Context, name: String): String =
+        context.getString(R.string.tv_sheet_code_on, name)
+
+    /** TV sheet, pairing: the button while the code is being checked. */
+    fun tvSheetPairingButton(context: Context): String =
+        context.getString(R.string.tv_sheet_pairing_button)
+
+    /** TV sheet, pairing: the row while the phone reaches for a TV that has no name yet. */
+    fun tvSheetConnecting(context: Context): String =
+        context.getString(R.string.tv_sheet_connecting)
+
+    /** TV sheet, pairing: what a screen reader offers on the digit boxes. */
+    fun tvSheetTypeCode(context: Context): String =
+        context.getString(R.string.tv_sheet_type_code)
+
+    /** TV sheet, remote: the row for the TV's volume. */
+    fun tvSheetVolume(context: Context): String =
+        context.getString(R.string.tv_sheet_volume)
+
+    /** TV sheet, remote: the volume down button. */
+    fun tvSheetVolumeDown(context: Context): String =
+        context.getString(R.string.tv_sheet_volume_down)
+
+    /** TV sheet, remote: the volume up button. */
+    fun tvSheetVolumeUp(context: Context): String =
+        context.getString(R.string.tv_sheet_volume_up)
+
+    /** TV sheet, remote: the volume as a number out of 100. */
+    fun tvSheetVolumeValue(context: Context, value: Int): String =
+        context.getString(R.string.tv_sheet_volume_value, value)
+
+    /** TV sheet, remote: the row when the TV plays nothing. */
+    fun tvSheetNothingPlaying(context: Context): String =
+        context.getString(R.string.tv_sheet_nothing_playing)
+
+    /** TV sheet, remote: the seek bar's name for a screen reader. */
+    fun tvSheetPosition(context: Context): String =
+        context.getString(R.string.tv_sheet_position)
+
+    /** TV sheet, remote: the seek bar's state for a screen reader, two times. */
+    fun tvSheetPositionState(context: Context, at: String, total: String): String =
+        context.getString(R.string.tv_sheet_position_state, at, total)
+
+    /** TV sheet, picker: the episode a play request is for, with the show. */
+    fun tvSheetRequestTitled(context: Context, title: String, episode: String): String =
+        context.getString(R.string.tv_sheet_request_titled, title, episode)
+
+    /** TV sheet, picker: the episode a play request is for, with no show. */
+    fun tvSheetRequestPlain(context: Context, episode: String): String =
+        context.getString(R.string.tv_sheet_request_plain, episode)
+
+    /** Settings, Play on TV: the note under the paired TVs. */
+    fun tvSheetFooter(context: Context, code: String): String =
+        context.getString(R.string.tv_sheet_footer, code)
+
+    /** TV sheet, remote: the sheet's title when the TV has no name yet. */
+    fun tvSheetTitleFallback(context: Context): String =
+        context.getString(R.string.tv_sheet_title_fallback)
+
     /** Name of the notification channel for download progress, shown in the system's settings. */
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)

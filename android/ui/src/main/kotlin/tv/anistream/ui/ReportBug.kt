@@ -4,6 +4,8 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
 import tv.anistream.store.text
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -70,6 +72,6 @@ internal fun FailedQuiet(reason: String) {
             onClick = { openBugReport(context, store, BugContext("load", reason)) },
             colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
             modifier = Modifier.padding(horizontal = 8.dp),
-        ) { Text("Report") }
+        ) { Text(stringResource(R.string.action_report)) }
     }
 }

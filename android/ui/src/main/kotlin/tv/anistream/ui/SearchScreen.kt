@@ -257,7 +257,7 @@ fun SearchScreen(
         // The start stays while a first search is under 600 ms away, then gives way to the
         // results or their placeholders in one crossfade.
         val startShown = status.atStart || (status.answered == null && status.pending && !overdue)
-        Crossfade(startShown, Modifier.weight(1f), animationSpec = Motion.standard(), label = "search") { start ->
+        Crossfade(startShown, Modifier.weight(1f), animationSpec = Motion.standard(), label = "search") { start -> // i18n-skip
             if (start) SearchStart() else SearchResults(status.query, overdue)
         }
     }
