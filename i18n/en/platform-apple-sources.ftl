@@ -283,3 +283,12 @@ tv-paired-seen = { $paired } · seen { $when }
 
 # Time of the last sighting of a paired TV, within the last minute.
 tv-seen-just-now = just now
+
+# Line over an invite link made for someone by name: it works once, and says until when. The time is already formatted.
+# @arg who: text
+# @arg until: text
+stores-link-send-once = Send this link to { $who }. It works once, until { $until }.
+
+# Line over an invite link made for nobody in particular: it works once, and says until when.
+# @arg until: text
+stores-link-send-once-anyone = Send this link to the person it is for. It works once, until { $until }.

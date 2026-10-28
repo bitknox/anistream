@@ -14641,6 +14641,30 @@
         }
       }
     },
+    "stores-link-send-once" : {
+      "comment" : "Line over an invite link made for someone by name: it works once, and says until when. The time is already formatted. Argument 1: who (Text). Argument 2: until (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send this link to %1$@. It works once, until %2$@."
+          }
+        }
+      }
+    },
+    "stores-link-send-once-anyone" : {
+      "comment" : "Line over an invite link made for nobody in particular: it works once, and says until when. Argument 1: until (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send this link to the person it is for. It works once, until %1$@."
+          }
+        }
+      }
+    },
     "stores-make-link" : {
       "comment" : "Button that makes an invite.",
       "extractionState" : "manual",

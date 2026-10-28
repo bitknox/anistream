@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 // MARK: - Providers
@@ -24,9 +25,9 @@ private struct PluginUpdateAlert: ViewModifier {
     let plugin: StorePluginRow
 
     func body(content: Content) -> some View {
-        content.alert("Update \(plugin.name)?", isPresented: $isPresented) {
-            Button("Update") { appStore.installPlugin(plugin.id, from: store.id) }
-            Button("Cancel", role: .cancel) {}
+        content.alert(L.sourcesUpdateTitle(name: plugin.name), isPresented: $isPresented) {
+            Button(L.actionUpdate) { appStore.installPlugin(plugin.id, from: store.id) }
+            Button(L.actionCancel, role: .cancel) {}
         } message: {
             Text(message)
         }
@@ -34,9 +35,9 @@ private struct PluginUpdateAlert: ViewModifier {
 
     private var message: String {
         guard case .update(let from, let added) = plugin.status else { return "" }
-        var words = "Version \(plugin.version) from \(store.name) replaces \(from)."
-        if !added.isEmpty { words += " This update also contacts \(added.joined(separator: ", "))." }
-        return words
+        let hosts = added.formatted(.list(type: .and).locale(AirTime.locale))
+        let replaces = L.sourcesUpdateDetail(version: plugin.version, store: store.name, from: from)
+        return added.isEmpty ? replaces : replaces + " " + L.storesUpdateContacts(hosts: hosts)
     }
 }
 
@@ -64,12 +65,12 @@ struct PhoneProvidersPage: View {
                 }
             } footer: {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Sources are tried top to bottom. Tap Edit to change the order.")
-                    Text("anistream hosts no content.")
+                    Text(L.sourcesOrderDetailEdit)
+                    Text(L.legalHostsNoContent)
                 }
             }
         }
-        .navigationTitle("Providers")
+        .navigationTitle(L.sourcesTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { EditButton() }
         .sheet(isPresented: $turningOn) { PhoneTorrentSheet() }
@@ -95,7 +96,7 @@ struct PhoneProviderRow: View {
             }
             if info.isTorrent {
                 Spacer()
-                Toggle("Torrents", isOn: Binding(
+                Toggle(L.sourcesTorrents, isOn: Binding(
                     get: { store.settings.isOn(.torrents) },
                     set: { wanted in if wanted { turningOn = true } else { store.setSwitch(.torrents, on: false) } }
                 ))
@@ -147,13 +148,13 @@ struct PhoneStoresPage: View {
                     .listRowBackground(Palette.raised)
                 }
             } footer: {
-                Text("Plugin stores are run by people you know. Join one with the invite link its owner sends you.")
+                Text(L.storesEmptyDetail)
             }
         }
-        .navigationTitle("Plugin stores")
+        .navigationTitle(L.navPluginStores)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { Button("Join store") { joining = true } }
+            ToolbarItem(placement: .topBarTrailing) { Button(L.storesJoinButton) { joining = true } }
         }
         .sheet(isPresented: $joining) { PhoneJoinStoreSheet(link: "") }
         .task { store.loadStores() }
@@ -185,39 +186,39 @@ struct PhoneStorePage: View {
                         .listRowBackground(Palette.raised)
                     }
                 } header: {
-                    PhoneSectionHeader("Plugins")
+                    PhoneSectionHeader(L.storesPlugins)
                 } footer: {
-                    Text("Each plugin can contact only the hosts listed with it and cannot read your files.")
+                    Text(L.storesPluginLimits)
                 }
                 Section {
                     // A device that joined with the store's link joins another the same way.
                     if row.state != .revoked, !row.anonymous {
-                        Button("Link another device") { inviting = true }
+                        Button(L.storesLinkDeviceTitle) { inviting = true }
                             .fontWeight(.semibold)
                             .foregroundStyle(.silk)
                             .listRowBackground(Palette.raised)
                     }
-                    Button("Leave store", role: .destructive) { leaving = true }
+                    Button(L.storesLeave, role: .destructive) { leaving = true }
                         .fontWeight(.semibold)
                         .listRowBackground(Palette.raised)
                 } footer: {
                     // Who can join is changed on the Mac, an iPad or the store's admin page.
-                    let about = [StoreWords.meta(row), row.open ? "anyone with the link can join" : nil]
-                    let key = ["Key \(row.fingerprint)", row.joinedAs, StoreWords.checked(row)]
+                    let about = [StoreWords.meta(row), row.open ? L.storesAnyoneShort : nil]
+                    let key = [L.storesKeyLine(key: row.fingerprint, joined: row.joinedAs), StoreWords.checked(row)]
                     Text(about.compactMap { $0 }.joined(separator: " · ") + "\n"
                          + key.compactMap { $0 }.joined(separator: " · "))
                 }
             }
             .navigationTitle(row.name)
             .navigationBarTitleDisplayMode(.inline)
-            .confirmationDialog("Leave \(row.name)?", isPresented: $leaving, titleVisibility: .visible) {
-                Button("Leave store", role: .destructive) { appStore.leaveStore(row.id) }
+            .confirmationDialog(L.storesLeaveTitle(name: row.name), isPresented: $leaving, titleVisibility: .visible) {
+                Button(L.storesLeave, role: .destructive) { appStore.leaveStore(row.id) }
             } message: {
-                Text("This \(Device.name) can no longer install or update its plugins. Plugins already installed stay.")
+                Text(L.storesLeaveDetail)
             }
             .sheet(isPresented: $inviting) { InviteSheet(store: row, device: true) }
         } else {
-            Text("This store has been left.").foregroundStyle(.haze)
+            Text(L.storesNoLongerJoined).foregroundStyle(.haze)
         }
     }
 }
@@ -236,20 +237,20 @@ struct PhonePluginAction: View {
         case .installed:
             HStack(spacing: 6) {
                 Image(systemName: "checkmark").foregroundStyle(.water)
-                Text("Installed").foregroundStyle(.haze)
+                Text(L.storesPluginStateInstalled).foregroundStyle(.haze)
             }
             .font(.ui(15))
         case .update where store.state != .revoked:
-            Button("Update") { confirming = true }
+            Button(L.actionUpdate) { confirming = true }
                 .buttonStyle(PrimaryCapsuleStyle(height: 30, fontSize: 15))
                 .disabled(working)
                 .pluginUpdateAlert(isPresented: $confirming, store: store, plugin: plugin)
         case .available where store.state == .ready:
-            Button("Install") { appStore.installPlugin(plugin.id, from: store.id) }
+            Button(L.actionInstall) { appStore.installPlugin(plugin.id, from: store.id) }
                 .buttonStyle(SecondaryCapsuleStyle(height: 30, raisedSurface: true, fontSize: 15))
                 .disabled(working)
         case .otherStore(let other):
-            Text("From \(other)").font(.ui(15)).foregroundStyle(.haze)
+            Text(L.storesPluginFrom(other: other)).font(.ui(15)).foregroundStyle(.haze)
         default:
             EmptyView()
         }
@@ -269,27 +270,27 @@ struct PhonePluginPage: View {
         let listing = store.stores.origin(of: id)
         PhoneList {
             Section {
-                value("Version", listing?.row.installedVersion ?? "Not from a store")
+                value(L.sourcesVersion, listing?.row.installedVersion ?? L.sourcesOriginNoStore)
                 if let listing {
                     NavigationLink(value: PhoneSettingsPage.store(listing.store.id)) {
                         HStack {
-                            Text("Store").font(.ui(17)).foregroundStyle(.silk)
+                            Text(L.storesStoreLabel).font(.ui(17)).foregroundStyle(.silk)
                             Spacer()
                             Text(listing.store.name).font(.ui(17)).foregroundStyle(.haze)
                         }
                     }
                     .listRowBackground(Palette.raised)
                 }
-                value("Response time", row.map { r in
-                    r.standing == .failing ? "No answer" : r.latencyMs.map { "\($0) ms" } ?? "Not checked yet"
-                } ?? "Not installed")
+                value(L.sourcesResponseTime, row.map { r in
+                    r.standing == .failing ? L.sourcesNoAnswer : r.latencyMs.map { L.sourcesResponseMs(ms: Int($0)) } ?? L.sourcesNotChecked
+                } ?? L.sourceNoteGone)
             }
             if let listing, case .update(_, let added) = listing.row.status {
                 Section {
                     Button {
                         confirmingUpdate = true
                     } label: {
-                        Text("Update to \(listing.row.version)").frame(maxWidth: .infinity)
+                        Text(L.sourcesUpdateTo(version: listing.row.version)).frame(maxWidth: .infinity)
                     }
                     .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
                     .disabled(store.stores.isWorking(.install(store: listing.store.id, plugin: id)))
@@ -298,7 +299,7 @@ struct PhonePluginPage: View {
                     .listRowInsets(EdgeInsets())
                 } footer: {
                     if !added.isEmpty {
-                        Text("This update also contacts \(Text(added.joined(separator: ", ")).foregroundStyle(.silk)).")
+                        Text(L.storesUpdateContacts(hosts: added.formatted(.list(type: .and).locale(AirTime.locale))))
                     }
                 }
             }
@@ -307,23 +308,23 @@ struct PhonePluginPage: View {
                     Text(host).font(.ui(17)).foregroundStyle(.silk).listRowBackground(Palette.raised)
                 }
             } header: {
-                PhoneSectionHeader("Contacts")
+                PhoneSectionHeader(L.sourcesContactsLabel)
             } footer: {
-                Text("\(listing?.row.name ?? id) can contact only these hosts and cannot read your files.")
+                Text(L.storesPluginLimits)
             }
             Section {
                 let disabled = store.isPluginDisabled(id)
                 Button(disabled ? "Enable" : "Disable") { store.setPluginDisabled(id, !disabled) }
                     .listRowBackground(Palette.raised)
-                Button("Remove", role: .destructive) { removing = true }
+                Button(L.actionRemove, role: .destructive) { removing = true }
                     .fontWeight(.semibold)
                     .listRowBackground(Palette.raised)
             }
         }
         .navigationTitle(listing?.row.name ?? id)
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("Remove \(listing?.row.name ?? id)?", isPresented: $removing, titleVisibility: .visible) {
-            Button("Remove", role: .destructive) { store.removePlugin(id) }
+        .confirmationDialog(L.storesRemovePluginTitle(name: listing?.row.name ?? id), isPresented: $removing, titleVisibility: .visible) {
+            Button(L.actionRemove, role: .destructive) { store.removePlugin(id) }
         }
     }
 
@@ -350,41 +351,41 @@ struct PhoneJoinStoreSheet: View {
         NavigationStack {
             PhoneList {
                 Section {
-                    TextField("Invite link", text: $link, prompt: Text("https://…/join/…"))
+                    TextField(L.storesInviteLink, text: $link, prompt: Text(L.storesInviteLinkHint))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
                         .listRowBackground(Palette.raised)
                 } header: {
-                    PhoneSectionHeader("Invite link")
+                    PhoneSectionHeader(L.storesInviteLink)
                 } footer: {
-                    Text("Paste the link the store's owner sent you. An anistream:// invite link opened from Messages fills this sheet in directly.")
+                    Text(L.storesJoinDetailOpened)
                 }
                 preview
                 if case .store(let invited)? = store.stores.preview, !invited.anonymous {
                     Section {
-                        TextField("Device name",
+                        TextField(L.storesDeviceName,
                                   text: Binding(get: { store.stores.deviceName }, set: { store.stores.deviceName = $0 }),
                                   prompt: Text(Device.name))
                             .autocorrectionDisabled()
                             .listRowBackground(Palette.raised)
                     } header: {
-                        PhoneSectionHeader("Device name")
+                        PhoneSectionHeader(L.storesDeviceName)
                     } footer: {
-                        Text("The store's owner sees this \(Device.name) by this name.")
+                        Text(L.storesDeviceNameDetail)
                     }
                 }
             }
-            .navigationTitle("Join a plugin store")
+            .navigationTitle(L.storesJoinTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() }.tint(.silk) }
+                ToolbarItem(placement: .topBarLeading) { Button(L.actionCancel) { dismiss() }.tint(.silk) }
             }
             .safeAreaInset(edge: .bottom) {
                 Button {
                     store.joinStore(link)
                 } label: {
-                    Text("Join store").frame(maxWidth: .infinity)
+                    Text(L.storesJoinButton).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
                 .disabled(!canJoin || store.stores.isWorking(.join))
@@ -416,7 +417,7 @@ struct PhoneJoinStoreSheet: View {
             Section {
                 HStack(spacing: 8) {
                     ProgressView()
-                    Text("Checking the link…").foregroundStyle(.haze)
+                    Text(L.storesCheckingLink).foregroundStyle(.haze)
                 }
                 .listRowBackground(Palette.raised)
             }
@@ -433,7 +434,7 @@ struct PhoneJoinStoreSheet: View {
                     }
                     Spacer(minLength: 0)
                     if !invited.plugins.isEmpty {
-                        Text(Wording.plural(invited.plugins.count, "plugin"))
+                        Text(L.storesPluginsCount(count: invited.plugins.count))
                             .font(.ui(15)).monospacedDigit().foregroundStyle(.haze)
                     }
                 }
@@ -441,7 +442,7 @@ struct PhoneJoinStoreSheet: View {
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark").font(.ui(15, weight: .semibold)).foregroundStyle(.water)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Key matches the \(invited.anonymous ? "link" : "invite")").font(.ui(15)).foregroundStyle(.silk)
+                        Text(L.storesKeyMatches(key: invited.fingerprint)).font(.ui(15)).foregroundStyle(.silk)
                         Text(invited.fingerprint).font(.ui(13, design: .monospaced)).foregroundStyle(.haze)
                     }
                 }
@@ -450,9 +451,9 @@ struct PhoneJoinStoreSheet: View {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: "person.2").foregroundStyle(.haze)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Anyone with the link can join").font(.ui(17)).foregroundStyle(.silk)
+                            Text(L.storesAnyoneWithLink).font(.ui(17)).foregroundStyle(.silk)
                             if invited.anonymous {
-                                Text("You join without a name.").font(.ui(15)).foregroundStyle(.haze)
+                                Text(L.storesJoinNameless).font(.ui(15)).foregroundStyle(.haze)
                             }
                         }
                     }
@@ -473,8 +474,8 @@ struct PhoneJoinStoreSheet: View {
                 }
             } footer: {
                 Text(invited.alreadyJoined
-                     ? "This iPhone has joined this store already."
-                     : "Plugins come from the store's owner, not from anistream. You can leave a store at any time.")
+                     ? L.storesAlreadyJoinedNote
+                     : L.storesNotFromApp)
             }
         case nil:
             EmptyView()
@@ -506,7 +507,7 @@ struct PhoneTorrentSheet: View {
                 Section {
                     Text(editing
                          ? ProtectionWords.editNote
-                         : "Other people can see your IP address while you download and share a torrent.")
+                         : L.torrentsRisk)
                         .font(.ui(17))
                         .foregroundStyle(.silk)
                         .fixedSize(horizontal: false, vertical: true)
@@ -516,15 +517,15 @@ struct PhoneTorrentSheet: View {
                 }
                 if turningOn {
                     Section {
-                        TextField("Torrent index", text: draft.index, prompt: Text("https://…/?q={query}"))
+                        TextField(L.torrentsIndex, text: draft.index, prompt: Text(L.torrentsIndexHint))
                             .keyboardType(.URL)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .listRowBackground(Palette.raised)
                     } header: {
-                        PhoneSectionHeader("Torrent index")
+                        PhoneSectionHeader(L.torrentsIndex)
                     } footer: {
-                        Text("The RSS search address anistream asks for torrents. anistream hosts no content.")
+                        Text(L.torrentsIndexDetail + " " + L.legalHostsNoContent)
                     }
                 }
                 if !editing {
@@ -536,40 +537,40 @@ struct PhoneTorrentSheet: View {
                             .listRowBackground(Palette.raised)
                         }
                     } header: {
-                        PhoneSectionHeader("Protect with")
+                        PhoneSectionHeader(L.torrentsProtectWith)
                     } footer: {
                         // With none, nothing checks the connection, so the check's note would mislead.
                         Text(draft.wrappedValue.protection == TorrentProtection.none
-                             ? "With no protection, anistream does not check the connection."
+                             ? L.torrentsProtectNoneNote
                              : ProtectionWords.checkNote)
                     }
                 }
                 if draft.wrappedValue.protection == .proxy {
                     // Each field named beside it, so a filled-in one still says what it is.
                     Section {
-                        LabeledContent("Host") {
-                            TextField("Host", text: draft.host, prompt: Text("proxy.example"))
+                        LabeledContent(L.torrentsProxyHost) {
+                            TextField(L.torrentsProxyHost, text: draft.host, prompt: Text("proxy.example")) // i18n-skip
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .multilineTextAlignment(.trailing)
                         }
-                        LabeledContent("Port") {
-                            TextField("Port", text: draft.port, prompt: Text("1080"))
+                        LabeledContent(L.torrentsProxyPort) {
+                            TextField(L.torrentsProxyPort, text: draft.port, prompt: Text("1080"))
                                 .keyboardType(.numberPad)
                                 .multilineTextAlignment(.trailing)
                         }
-                        LabeledContent("User name") {
-                            TextField("User name", text: draft.user, prompt: Text("Optional"))
+                        LabeledContent(L.torrentsProxyUser) {
+                            TextField(L.torrentsProxyUser, text: draft.user, prompt: Text(L.torrentsProxyOptional))
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .multilineTextAlignment(.trailing)
                         }
-                        LabeledContent("Password") {
-                            SecureField("Password", text: draft.password, prompt: Text("Optional"))
+                        LabeledContent(L.torrentsProxyPassword) {
+                            SecureField(L.torrentsProxyPassword, text: draft.password, prompt: Text(L.torrentsProxyOptional))
                                 .multilineTextAlignment(.trailing)
                         }
                     } header: {
-                        PhoneSectionHeader("Proxy")
+                        PhoneSectionHeader(L.torrentsProtectProxy)
                     } footer: {
                         if editing { Text(ProtectionWords.passwordKept) }
                     }
@@ -578,10 +579,10 @@ struct PhoneTorrentSheet: View {
             }
             // Held still while the check through the proxy runs.
             .disabled(trial == .checking)
-            .navigationTitle(editing ? "Edit proxy" : turningOn ? "Turn on torrents" : "Protect torrents")
+            .navigationTitle(editing ? L.torrentsSheetEditProxy : turningOn ? L.torrentsSheetTurnOn : L.torrentsSheetProtect)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() }.tint(.silk) }
+                ToolbarItem(placement: .topBarLeading) { Button(L.actionCancel) { dismiss() }.tint(.silk) }
             }
             .safeAreaInset(edge: .bottom) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -595,7 +596,7 @@ struct PhoneTorrentSheet: View {
                             send(draft.wrappedValue)
                         }
                     } label: {
-                        Text(turningOn ? "Turn on" : "Save").frame(maxWidth: .infinity)
+                        Text(turningOn ? L.torrentsTurnOnButton : L.actionSave).frame(maxWidth: .infinity)
                     }
                     .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
                     .disabled(!draft.wrappedValue.complete || trial == .checking)
@@ -612,10 +613,10 @@ struct PhoneTorrentSheet: View {
         }
         .modifier(TorrentSaving(checking: checking, draft: self.draft, mode: mode) { dismiss() })
         .confirmationDialog(ProtectionWords.noneTitle, isPresented: $confirmingNone, titleVisibility: .visible) {
-            Button("No protection", role: .destructive) {
+            Button(L.torrentsProtectNone, role: .destructive) {
                 send(draft.wrappedValue)
             }
-            Button("Cancel", role: .cancel) {}
+            Button(L.actionCancel, role: .cancel) {}
         } message: {
             Text(ProtectionWords.noneMessage)
         }

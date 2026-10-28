@@ -1478,6 +1478,16 @@ public enum L {
     /// Time of the last sighting of a paired TV, within the last minute.
     public static var tvSeenJustNow: String { string("tv-seen-just-now", fallback: "just now") }
 
+    /// Line over an invite link made for someone by name: it works once, and says until when. The time is already formatted.
+    public static func storesLinkSendOnce(who: String, until: String) -> String {
+        Self.format("stores-link-send-once", fallback: "Send this link to %1$@. It works once, until %2$@.", who, until)
+    }
+
+    /// Line over an invite link made for nobody in particular: it works once, and says until when.
+    public static func storesLinkSendOnceAnyone(until: String) -> String {
+        Self.format("stores-link-send-once-anyone", fallback: "Send this link to the person it is for. It works once, until %1$@.", until)
+    }
+
     /// Mac menu bar item. Title Case, as Apple's guidelines ask for the menu bar only.
     public static var menuShowLibrary: String { string("menu-show-library", fallback: "Show Library") }
 
