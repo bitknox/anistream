@@ -25,7 +25,7 @@ use anistream_meta::Meta;
 use anistream_net::HttpClient;
 use anistream_store::Store;
 
-pub use anilist::{Failure, FakeAniList, Operation, Request};
+pub use anilist::{COMPLEXITY_LIMIT, Failure, FakeAniList, Operation, Request, complexity};
 pub use golden::{BLESS_VAR, assert_golden, check_golden};
 
 /// The AniList budget a test client gets, per minute.

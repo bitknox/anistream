@@ -32,6 +32,9 @@ pub fn retitle(event: &mut Event, language: TitleLanguage) {
             .iter_mut()
             .flat_map(|rail| &mut rail.entries)
             .for_each(|entry| retitle_entry(entry, language)),
+        Event::UpNext(items) => {
+            items.iter_mut().for_each(|item| retitle_entry(&mut item.entry, language))
+        }
         Event::Detail(entry) => retitle_entry(entry, language),
         _ => {}
     }

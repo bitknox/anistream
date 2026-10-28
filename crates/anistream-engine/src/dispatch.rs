@@ -21,6 +21,7 @@ use crate::{
         detail::{load_detail, open_external, play_trailer},
         lists::{hide_from_continue, load_continue, load_seasonal},
         recents, search,
+        up_next::{self, Ask},
     },
     data,
     downloads::{
@@ -171,6 +172,18 @@ pub(crate) fn dispatch(
             spawn(job, services, tx, move |lent| load_seasonal(lent, adult))
         }
         Command::HideFromContinue { id } => hide_from_continue(id, services, tx),
+        Command::LoadUpNext => {
+            let ask = Ask {
+                listed: downloads::ahead::listed(services),
+                adult: engine.config.effective().meta.adult,
+                now: services.clock.now(),
+                zone: services.clock.zone(),
+            };
+            spawn(job, services, tx, move |lent| up_next::load_up_next(lent, ask))
+        }
+        Command::DismissUpNext { id } => {
+            spawn(job, services, tx, move |lent| up_next::dismiss(lent, id))
+        }
         // Each row marked with its dub where a title page found it: see `Entry::airing_dubbed`.
         Command::LoadCalendar => {
             let dubs = engine.dubs.clone();

@@ -135,6 +135,34 @@ pub fn by_ids() -> String {
     )
 }
 
+/// What people who liked each of these titles rated highest, by id alone: "Up next for you"
+/// asks it of the titles the viewer finished, then looks the answers up with [`by_ids`].
+///
+/// Cost, counted as AniList documents it (one for a field, a list's fields times its page
+/// size), which the fake AniList in the testkit counts and refuses past 500: 133 for the most
+/// this asks, [`RECOMMENDED_FROM`] titles with [`RECOMMENDED_EACH`] recommendations each, and 23
+/// for one title. That is a quarter of AniList's limit of 500. The count is an estimate of the
+/// rule, not a measurement of the live service.
+pub fn recommended_from() -> String {
+    format!(
+        r"query ($ids: [Int], $perPage: Int) {{
+            Page(perPage: $perPage) {{
+                media(id_in: $ids, type: ANIME) {{
+                    id title {{ romaji english native }}
+                    recommendations(perPage: {RECOMMENDED_EACH}, sort: RATING_DESC) {{
+                        nodes {{ mediaRecommendation {{ id }} }}
+                    }}
+                }}
+            }}
+        }}"
+    )
+}
+
+/// The most titles one [`recommended_from`] request asks about.
+pub const RECOMMENDED_FROM: usize = 6;
+/// The most recommendations it asks for under each.
+pub const RECOMMENDED_EACH: usize = 5;
+
 /// One title, with everything its page shows.
 ///
 /// The episodes already broadcast are a second root field, `aired`, newest first: the title's

@@ -80,6 +80,7 @@ fn refreshes(command: &Command) -> bool {
             | Command::LoadCalendar
             | Command::Search { .. }
             | Command::LoadBrowse
+            | Command::LoadUpNext
             | Command::LoadSearchFacets
             | Command::LoadDetail(_)
             | Command::LoadEpisodes(_)

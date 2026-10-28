@@ -694,6 +694,15 @@ impl Meta {
         Ok(assembled)
     }
 
+    /// The titles recommended off each of `ids` (at most six), with each one's name. AniList
+    /// only: nothing else has recommendations, and absent beats guessed.
+    pub async fn recommended_from(
+        &self,
+        ids: &[AnilistId],
+    ) -> Result<Vec<(AnilistId, String, Vec<AnilistId>)>> {
+        self.weathered(self.anilist.recommended_from(ids)).await
+    }
+
     /// One page of a search for `term` with `filter`, or a browse when `term` is empty.
     /// Tenrai applies what MAL can express; the rest is named in [`Found::unapplied`], not
     /// faked.
