@@ -226,7 +226,7 @@ private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions, leave
     }
     val fresh = if (queue.inProgress.isEmpty()) queue.newThisWeek.drop(1) else queue.newThisWeek
     if (fresh.isNotEmpty()) {
-        item(key = "new", contentType = "heading") { Heading("New this week", itemMotion().padding(top = 16.dp)) }
+        item(key = "new", contentType = "heading") { Heading(stringResource(R.string.group_new_this_week), itemMotion().padding(top = 16.dp)) }
         items(fresh, key = { "new-${it.id}" }, contentType = { "new-row" }) { Box(itemMotion()) { SwipeRow(it, actions, leave) { NewRow(it, actions) } } }
     }
 }

@@ -205,7 +205,7 @@ fun TitleScreen(
             val related = entry.detail?.relations.orEmpty()
             if (related.isNotEmpty()) {
                 item(key = "related", contentType = "row") {
-                    BrowseRow("Related", modifier = swapFade().settlesAt(list, scope, "related", rowTop)) {
+                    BrowseRow(stringResource(R.string.title_related), modifier = swapFade().settlesAt(list, scope, "related", rowTop)) {
                         items(related, key = { it.id.toLong() }, contentType = { "poster" }) { linked ->
                             PosterCard(
                                 linked.title,

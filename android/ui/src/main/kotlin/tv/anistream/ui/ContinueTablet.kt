@@ -208,11 +208,11 @@ private fun QueueList(
             }
         }
         if (queue.inProgress.isNotEmpty()) {
-            item(key = "progress", contentType = "heading") { ListHeading("In progress", itemMotion()) }
+            item(key = "progress", contentType = "heading") { ListHeading(stringResource(R.string.group_in_progress), itemMotion()) }
             items(queue.inProgress, key = { "p-${it.id}" }, contentType = { "row" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
         }
         if (queue.newThisWeek.isNotEmpty()) {
-            item(key = "new", contentType = "heading") { ListHeading("New this week", itemMotion().padding(top = 16.dp)) }
+            item(key = "new", contentType = "heading") { ListHeading(stringResource(R.string.group_new_this_week), itemMotion().padding(top = 16.dp)) }
             items(queue.newThisWeek, key = { "n-${it.id}" }, contentType = { "row" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
         }
     }
