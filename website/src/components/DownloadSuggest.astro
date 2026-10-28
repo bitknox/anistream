@@ -2,11 +2,17 @@
 /**
  * The download that fits the visitor's device, filled in by download-suggest.ts above the page's
  * full list. Empty without scripts. The inline check keeps the slot's room on a device that will
- * likely get a suggestion, so the list below does not move when it fades in.
+ * likely get a suggestion, so the list below does not move when it fades in. The suggestion's
+ * words are the page's `dl.` strings, carried as JSON beside the slot.
  */
+
+import { useSite } from '../i18n/site';
+
+const { words, href } = useSite(Astro);
 ---
 
-<div class="dl-sg" data-dl-suggest></div>
+<script type="application/json" data-words="dl" set:html={words('dl.')} />
+<div class="dl-sg" data-dl-suggest data-prefix={href('/').slice(0, -1) || undefined}></div>
 <script is:inline>
 	(function () {
 		var slot = document.currentScript.previousElementSibling;

@@ -14,6 +14,7 @@ import gsap from 'gsap';
 import { SPRITE_W } from '../game/nagare';
 import { type Geometry, Run } from '../game/run';
 import type { PlaneName, SceneState } from './scene';
+import { formatNumber, readWords, say } from './words';
 
 export interface HeroContext {
 	box: HTMLElement;
@@ -138,6 +139,7 @@ class Game {
 	private readonly pace: number;
 	private readonly hero: HTMLElement;
 	private readonly hint: HTMLElement | null;
+	private readonly words = readWords('game');
 	private readonly fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 	private mode: Mode = 'intro';
 	private overlay: HTMLCanvasElement | null = null;
@@ -252,7 +254,7 @@ class Game {
 			this.run.start({ ramp: 0.9 });
 		}
 		this.mode = 'running';
-		this.say("Nagare's run. Space jumps, the down arrow slides, Escape leaves.");
+		this.say(this.word('game.start'));
 		window.setTimeout(() => this.hud?.classList.add('is-on'), reduced ? 0 : 500);
 	}
 
@@ -342,7 +344,7 @@ class Game {
 		ctx.putImageData(r.image, 0, 0);
 		if (this.scoreEl && r.score !== this.shown) {
 			this.shown = r.score;
-			this.scoreEl.textContent = String(r.score);
+			this.scoreEl.textContent = formatNumber(r.score);
 		}
 	}
 
@@ -353,7 +355,7 @@ class Game {
 		hud.className = 'hero-run-hud';
 		hud.innerHTML =
 			'<p class="hero-run-score"><span aria-hidden="true"></span><span class="hero-run-best"></span>' +
-			'<button type="button" class="hero-run-leave">Leave</button></p>' +
+			'<button type="button" class="hero-run-leave"></button></p>' +
 			'<p class="hero-run-msg" aria-hidden="true"></p><p class="sr-only" aria-live="polite"></p>';
 		box.append(hud);
 		this.hud = hud;
@@ -361,12 +363,19 @@ class Game {
 		this.bestEl = hud.querySelector('.hero-run-best');
 		this.msgEl = hud.querySelector('.hero-run-msg');
 		this.liveEl = hud.querySelector('[aria-live]');
-		hud.querySelector('button')?.addEventListener('click', () => void this.leave());
+		const leave = hud.querySelector('button');
+		if (leave) leave.textContent = this.word('game.leave');
+		leave?.addEventListener('click', () => void this.leave());
 		this.showBest();
 	}
 
 	private showBest() {
-		if (this.bestEl) this.bestEl.textContent = this.best > 0 ? `Best ${this.best}` : '';
+		if (this.bestEl) this.bestEl.textContent = this.best > 0 ? this.word('game.best', { score: formatNumber(this.best) }) : '';
+	}
+
+	/** A string of the game's, in the page's language (see words.ts). */
+	private word(id: string, vars: Record<string, string | number> = {}) {
+		return say(this.words, id, vars);
 	}
 
 	private message(text: string) {
@@ -393,11 +402,10 @@ class Game {
 			keepBest(score);
 			this.showBest();
 		}
-		const again = this.fine ? 'Space runs again, Esc leaves.' : 'Tap to run again.';
-		this.message(
-			`Nagare stumbled at ${score}${record && score > 0 ? ', a new best' : ''}. ${again}`,
-		);
-		this.say(`Nagare stumbled. Score ${score}, best ${this.best}.`);
+		const again = this.word(this.fine ? 'game.againKeys' : 'game.againTap');
+		const shown = formatNumber(score);
+		this.message(this.word(record && score > 0 ? 'game.stumbledBest' : 'game.stumbled', { score: shown, again }));
+		this.say(this.word('game.over', { score: shown, best: formatNumber(this.best) }));
 		// One more frame for the stumble, then nothing moves until she runs again.
 		window.setTimeout(() => {
 			if (this.mode === 'over') this.halt();
@@ -418,7 +426,7 @@ class Game {
 		this.run.release();
 		this.run.unduck();
 		this.halt();
-		this.message(this.fine ? 'Paused. Space carries on.' : 'Paused. Tap to carry on.');
+		this.message(this.word(this.fine ? 'game.pausedKeys' : 'game.pausedTap'));
 	}
 
 	private resume() {

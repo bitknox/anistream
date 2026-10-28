@@ -38,5 +38,3 @@ async function lookup(): Promise<Release | null> {
 /** The latest release; both scripts on a page share one request. */
 let pending: Promise<Release | null> | undefined;
 export const latest = () => (pending ??= lookup());
-
-export const megabytes = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
