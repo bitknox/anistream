@@ -1,13 +1,27 @@
 # anistream
 
-A Rust engine with a terminal app and native apps on top of it: SwiftUI for Mac, iPhone and iPad
-(`apple/`), Kotlin and Compose for Android (`android/`). The apps call the engine through UniFFI
-(`crates/anistream-ffi`). Plugin stores share provider plugins (`anistream-store-*`,
-`docs/plugin-stores.md`). The website is `website/` (its own `CLAUDE.md`).
-
-Folder guides: `crates/CLAUDE.md`, `apple/CLAUDE.md`, `android/CLAUDE.md`. Any app UI work follows
+Folder guides: `crates/CLAUDE.md`, `apple/CLAUDE.md`, `android/CLAUDE.md`, `website/CLAUDE.md`;
+`.claude/rules/` adds plugin and store checks when those files are touched. Any app UI work follows
 `docs/native-ux.md`, the behaviour spec for every native client. Procedures are skills:
 `local-checks`, `merge-train`, `ci-triage`, `app-shots`.
+
+## Checks
+
+- One test: `cargo test -p <crate> <test_name>`. One integration file:
+  `cargo test -p <crate> --test <file_stem>`. CI runs `cargo nextest run --workspace`.
+- Lint and format: `cargo clippy -p <crate> --all-targets -- -D warnings`,
+  `cargo fmt --all -- --check`. Platform builds and the HOME guard: the `local-checks` skill.
+- Live probes under `examples/` can use real credentials, playback, VPN traffic or tracker
+  writes; run them only when the task calls for that integration. `ANISTREAM_TEST_STORE` opts
+  the store journey test into a real endpoint. Report skipped coverage and checks you could not run.
+
+## Easy to miss
+
+- `anistream-store` is local watch history. The plugin store's server logic is
+  `anistream-store-core`, with native and WASM adapters.
+- Provider plugins under `plugins/` are separate builds outside the workspace. Most are local and
+  ignored; only the two examples and the hostile test fixture are tracked.
+- `website/` uses Bun; the JS reference plugin uses npm and its `package-lock.json`.
 
 ## Rules that always apply
 
@@ -52,7 +66,7 @@ Folder guides: `crates/CLAUDE.md`, `apple/CLAUDE.md`, `android/CLAUDE.md`. Any a
   measurements, logs) in a file in the scratchpad and give its path.
 - Wait for your own long commands in the foreground (or an until-loop), rather than ending your
   turn while background work runs; each hand-back wakes the orchestrator.
-- Disk fills fast with several builds. Keep it above 10 GB (`df -h /`); delete your own build
+- Disk fills fast with several builds. Keep it above 15 GB (`df -h /`); delete your own build
   output first.
 
 # Compact instructions
