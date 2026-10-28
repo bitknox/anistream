@@ -545,3 +545,57 @@ async fn checking_providers_reports_the_ladder_then_the_sources() {
     assert_eq!(checked, [("fixture", "ready")]);
     ends(&updates, job);
 }
+
+/// Seasonal as the app loads it, with `AIRING` made a sequel of `FINISHED` and both airing
+/// titles given a trailer. `FINISHED` is on the viewer's list as `status`, when it is.
+async fn seasonal_with_trailers(
+    status: Option<&str>,
+) -> (Vec<anistream_model::catalog::Entry>, Harness) {
+    use anistream_testkit::fixtures::media;
+    let mut h = Harness::new().await;
+    let mut sequel = serde_json::to_value(media(AIRING)).unwrap();
+    sequel["relations"] = serde_json::json!({ "edges": [
+        { "relationType": "PREQUEL", "node": { "id": FINISHED.get() } },
+        { "relationType": "SIDE_STORY", "node": { "id": MOVIE.get() } },
+    ] });
+    sequel["trailer"] = serde_json::json!({ "id": "abc123", "site": "youtube" });
+    let mut standalone = serde_json::to_value(media(AIRING_NO_MAL)).unwrap();
+    standalone["trailer"] = serde_json::json!({ "id": "def456", "site": "youtube" });
+    h.server().add_titles([sequel, standalone]);
+    if let Some(status) = status {
+        h.store()
+            .replace_library_statuses("anilist", &[(FINISHED, status)], FIXTURE_NOW)
+            .unwrap();
+    }
+    h.send(Command::LoadSeasonal);
+    let updates = h.settle().await;
+    let ContentList::Entries(rows) = content(&updates).clone() else { panic!("no rows") };
+    (rows, h)
+}
+
+#[tokio::test]
+async fn a_list_row_knows_its_prequels_and_holds_back_a_sequels_trailer() {
+    use anistream_model::trailer::trailer_may_autoplay;
+    let (rows, h) = seasonal_with_trailers(Some("CURRENT")).await;
+    let (sequel, standalone) = (&rows[0], &rows[1]);
+    assert_eq!((sequel.id, standalone.id), (AIRING, AIRING_NO_MAL));
+    assert!(sequel.detail.is_none(), "a list row carries no page");
+    assert!(!trailer_may_autoplay(sequel, true), "its prequel is unfinished");
+    assert!(trailer_may_autoplay(sequel, false), "protection off");
+    assert!(trailer_may_autoplay(standalone, true), "no prequel");
+    assert!(standalone.prequels.is_empty());
+    // The same fetch carried the prequels: nothing was asked of AniList beside it.
+    assert_eq!(h.server().requests_for(Operation::Seasonal).len(), 1);
+    assert!(h.server().requests_for(Operation::Detail).is_empty());
+    assert!(h.server().requests_for(Operation::Relations).is_empty());
+}
+
+#[tokio::test]
+async fn a_sequels_trailer_plays_once_its_prequel_is_watched_or_off_the_list() {
+    use anistream_model::trailer::trailer_may_autoplay;
+    for status in [Some("COMPLETED"), None] {
+        let (rows, _h) = seasonal_with_trailers(status).await;
+        assert_eq!(rows[0].prequels.len(), 1, "{status:?}");
+        assert!(trailer_may_autoplay(&rows[0], true), "{status:?}");
+    }
+}
