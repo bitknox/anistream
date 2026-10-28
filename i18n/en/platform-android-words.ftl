@@ -1206,3 +1206,38 @@ widget-day-date = { $day }
 # @arg episode: int
 # @arg title: text
 widget-play-dubbed-label = Play episode { $episode }, { -dubbed }, of { $title }
+
+# TV, title page: the amber action when the viewer has started the episode.
+# @only android
+# @arg episode: int
+tv-action-resume = Resume episode { $episode }
+
+# TV, title page: the same when the viewer watches dubbed.
+# @only android
+# @arg episode: int
+tv-action-resume-dubbed = Resume episode { $episode } · { -dubbed-cap }
+
+# TV, title page: the disabled action for an episode that is not out, with the day it comes out.
+# @only android
+# @arg episode: int
+# @arg day: text
+tv-action-out = Play episode { $episode } (out { $day })
+
+# TV, title page: the disabled action for an episode with no air date.
+# @only android
+# @arg episode: int
+tv-action-not-out = Play episode { $episode } (not out yet)
+
+# TV, title page: the day word for an episode that comes out later today.
+# @only android
+tv-out-today = today
+
+# TV, Continue hero: the amber action for an episode the viewer has started.
+# @only android
+# @arg episode: text
+tv-hero-resume = Resume { $episode }
+
+# TV, Continue hero: the amber action for an episode the viewer has not started.
+# @only android
+# @arg episode: text
+tv-hero-start = Start { $episode }

@@ -801,6 +801,442 @@ object Strings {
     fun tvPairRequestHeld(context: Context, phone: String, code: String): String =
         context.getString(R.string.tv_pair_request_held, phone, code)
 
+    /** TV, Continue hero: the action when no source can play yet. */
+    fun tvAddStoreToPlay(context: Context): String =
+        context.getString(R.string.tv_add_store_to_play)
+
+    /** TV, Continue hero: the button that opens the title page. */
+    fun tvTitlePage(context: Context): String =
+        context.getString(R.string.tv_title_page)
+
+    /** TV, Continue: the line when nothing could be loaded. */
+    fun tvContinueOfflineFailed(context: Context): String =
+        context.getString(R.string.tv_continue_offline_failed)
+
+    /** TV, Continue: the line when there is nothing to continue. */
+    fun tvContinueEmpty(context: Context): String =
+        context.getString(R.string.tv_continue_empty)
+
+    /** TV, Continue: the button that opens Seasonal when the queue is empty. */
+    fun tvContinueBrowse(context: Context): String =
+        context.getString(R.string.tv_continue_browse)
+
+    /** TV, card actions: opens the title page. */
+    fun tvOpenTitlePage(context: Context): String =
+        context.getString(R.string.tv_open_title_page)
+
+    /** TV, Seasonal: the sheet title over the sorts. */
+    fun tvSortTitle(context: Context): String =
+        context.getString(R.string.tv_sort_title)
+
+    /** TV, Seasonal: the chip that keeps only titles on the viewer's lists. */
+    fun tvOnMyList(context: Context): String =
+        context.getString(R.string.tv_on_my_list)
+
+    /** TV, Seasonal: the line when no title of the season is on the viewer's lists. */
+    fun tvSeasonalUnlisted(context: Context, season: String): String =
+        context.getString(R.string.tv_seasonal_unlisted, season)
+
+    /** TV, Seasonal and Library: the line when a season or a list could not be loaded. */
+    fun tvLoadFailedNamed(context: Context, name: String): String =
+        context.getString(R.string.tv_load_failed_named, name)
+
+    /** TV, Library: the line over an empty list. */
+    fun tvLibraryEmpty(context: Context, name: String): String =
+        context.getString(R.string.tv_library_empty, name)
+
+    /** TV, Library: the line when no tracker is connected. */
+    fun tvListsSignedOut(context: Context): String =
+        context.getString(R.string.tv_lists_signed_out)
+
+    /** TV, Library: the button that opens Accounts. */
+    fun tvConnectTracker(context: Context): String =
+        context.getString(R.string.tv_connect_tracker)
+
+    /** TV, Library card actions: opens the list of statuses. */
+    fun tvChangeStatus(context: Context): String =
+        context.getString(R.string.tv_change_status)
+
+    /** TV, card actions: adds the title to Planning. */
+    fun tvAddToPlanning(context: Context): String =
+        context.getString(R.string.tv_add_to_planning)
+
+    /** TV, Library poster: how far along, out of the total. */
+    fun tvProgressOf(context: Context, done: Int, total: Int): String =
+        context.getString(R.string.tv_progress_of, done, total)
+
+    /** TV, Library poster: how far along when the total is not known. */
+    fun tvProgressUnknown(context: Context, done: Int): String =
+        context.getString(R.string.tv_progress_unknown, done)
+
+    /** Beside the calendar chips when signed out */
+    fun tvCalendarSignedOutNote(context: Context): String =
+        context.getString(R.string.tv_calendar_signed_out_note)
+
+    /** Air time with the time it moved from */
+    fun tvCalendarTimeWas(context: Context, time: String, was: String): String =
+        context.getString(R.string.tv_calendar_time_was, time, was)
+
+    /** Pill on the TV player after a skip, naming what it did and offering undo */
+    fun tvPlayerUndoPill(context: Context, what: String): String =
+        context.getString(R.string.tv_player_undo_pill, what)
+
+    /** An episode in the TV player's episode panel, number then title */
+    fun tvPlayerEpisodeRow(context: Context, number: String, title: String): String =
+        context.getString(R.string.tv_player_episode_row, number, title)
+
+    /** Marks the episode that is playing in the TV player's episode panel */
+    fun tvPlayerEpisodePlaying(context: Context): String =
+        context.getString(R.string.tv_player_episode_playing)
+
+    /** Title line on the TV player's up next card */
+    fun tvPlayerUpNextLine(context: Context, number: String, title: String): String =
+        context.getString(R.string.tv_player_up_next_line, number, title)
+
+    /** Title line on the TV player's up next card when the episode has no title */
+    fun tvPlayerUpNextBare(context: Context, number: String): String =
+        context.getString(R.string.tv_player_up_next_bare, number)
+
+    /** Note under the TV player's subtitle list */
+    fun tvPlayerCaptionNote(context: Context): String =
+        context.getString(R.string.tv_player_caption_note)
+
+    /** Shown in the TV search field while a phone is typing into it */
+    fun tvSearchTypingPhone(context: Context): String =
+        context.getString(R.string.tv_search_typing_phone)
+
+    /** Button on the TV search screen that opens the system keyboard */
+    fun tvSearchSystemKeyboard(context: Context): String =
+        context.getString(R.string.tv_search_system_keyboard)
+
+    /** Space key on the TV search keyboard */
+    fun tvSearchSpace(context: Context): String =
+        context.getString(R.string.tv_search_space)
+
+    /** Title of the season picker on the TV once a year is chosen */
+    fun tvSearchSeasonIn(context: Context, year: Int): String =
+        context.getString(R.string.tv_search_season_in, year)
+
+    /** Under the genre list on the TV when it is offline and the genres have not loaded */
+    fun tvSearchGenresOffline(context: Context): String =
+        context.getString(R.string.tv_search_genres_offline)
+
+    /** Under the seasons row on the TV title page: which season this is among the franchise's. */
+    fun tvSeasonsPosition(context: Context, at: Int, total: Int): String =
+        context.getString(R.string.tv_seasons_position, at, total)
+
+    /** Under the seasons row on the TV title page when this title is none of its seasons. */
+    fun tvSeasonsCount(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.tv_seasons_count, count, count)
+
+    /** Action on an episode's sheet: marks it and every episode before it watched. */
+    fun tvEpisodeMarkUpToHere(context: Context): String =
+        context.getString(R.string.tv_episode_mark_up_to_here)
+
+    /** The spoken label of an episode card once it is watched: the card's own label, then this. */
+    fun tvCardLabelWatched(context: Context, label: String): String =
+        context.getString(R.string.tv_card_label_watched, label)
+
+    /** TV settings section and fallback name of the TV */
+    fun tvSectionThisTv(context: Context): String =
+        context.getString(R.string.tv_section_this_tv)
+
+    /** Label on a TV source's panel for where it came from */
+    fun tvInfoFrom(context: Context): String =
+        context.getString(R.string.tv_info_from)
+
+    /** Label on a TV source's panel for its problem */
+    fun tvInfoState(context: Context): String =
+        context.getString(R.string.tv_info_state)
+
+    /** Line under a plugin store on the TV that has ended this device's access */
+    fun tvStoreRevoked(context: Context): String =
+        context.getString(R.string.tv_store_revoked)
+
+    /** Note under the seeding rows in TV settings */
+    fun tvSeedingNote(context: Context): String =
+        context.getString(R.string.tv_seeding_note)
+
+    /** Title of the TV sign-out confirmation */
+    fun tvSignOutTitle(context: Context, name: String): String =
+        context.getString(R.string.tv_sign_out_title, name)
+
+    /** Line under a tracker on the TV when nobody is signed in */
+    fun tvAccountNotSignedIn(context: Context): String =
+        context.getString(R.string.tv_account_not_signed_in)
+
+    /** Line under a tracker on the TV when someone is signed in */
+    fun tvAccountSignedInAs(context: Context, name: String): String =
+        context.getString(R.string.tv_account_signed_in_as, name)
+
+    /** Row on the TV showing the name phones see */
+    fun tvRemoteNameLabel(context: Context): String =
+        context.getString(R.string.tv_remote_name_label)
+
+    /** Switch on the TV that lets phones find it on the network */
+    fun tvRemoteFindable(context: Context): String =
+        context.getString(R.string.tv_remote_findable)
+
+    /** Line under a paired phone used today */
+    fun tvPhoneUsedToday(context: Context): String =
+        context.getString(R.string.tv_phone_used_today)
+
+    /** Line under a paired phone used yesterday */
+    fun tvPhoneUsedYesterday(context: Context): String =
+        context.getString(R.string.tv_phone_used_yesterday)
+
+    /** Line under a paired phone that never connected again, paired today */
+    fun tvPhonePairedToday(context: Context): String =
+        context.getString(R.string.tv_phone_paired_today)
+
+    /** Line under a paired phone that never connected again, paired yesterday */
+    fun tvPhonePairedYesterday(context: Context): String =
+        context.getString(R.string.tv_phone_paired_yesterday)
+
+    /** Switch on the TV that shows the app on the home screen */
+    fun tvWatchNextRow(context: Context): String =
+        context.getString(R.string.tv_watch_next_row)
+
+    /** Android's name for the home screen row */
+    fun tvWatchNextName(context: Context): String =
+        context.getString(R.string.tv_watch_next_name)
+
+    /** Row on the TV that clears the cached images */
+    fun tvImageCacheClear(context: Context): String =
+        context.getString(R.string.tv_image_cache_clear)
+
+    /** Value of the clear-cache row while it clears */
+    fun tvImageCacheClearing(context: Context): String =
+        context.getString(R.string.tv_image_cache_clearing)
+
+    /** Row in TV About for the library used in the pairing pages */
+    fun tvLicencePageEncryption(context: Context): String =
+        context.getString(R.string.tv_licence_page_encryption)
+
+    /** Value of that row */
+    fun tvLicencePageEncryptionValue(context: Context): String =
+        context.getString(R.string.tv_licence_page_encryption_value)
+
+    /** Line under the TV's update row when an update can be fetched */
+    fun tvUpdateAvailable(context: Context): String =
+        context.getString(R.string.tv_update_available)
+
+    /** Line under the TV's update row while Android has not allowed installs yet */
+    fun tvUpdateWaitingInstall(context: Context): String =
+        context.getString(R.string.tv_update_waiting_install)
+
+    /** Switch in TV About for the daily update check */
+    fun tvUpdateAutoCheck(context: Context): String =
+        context.getString(R.string.tv_update_auto_check)
+
+    /** Line under that switch */
+    fun tvUpdateAutoCheckDetail(context: Context): String =
+        context.getString(R.string.tv_update_auto_check_detail)
+
+    /** Line under a paired phone on the TV: it was last used this many days ago. */
+    fun tvPhoneUsedDays(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.tv_phone_used_days, count, count)
+
+    /** Line under a paired phone that never connected again: it paired this many days ago. */
+    fun tvPhonePairedDays(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.tv_phone_paired_days, count, count)
+
+    /** Line on the TV's update page naming the version it runs now */
+    fun tvUpdateInstalled(context: Context, version: String): String =
+        context.getString(R.string.tv_update_installed, version)
+
+    /** Body of the TV's phone page when its address is wrong */
+    fun tvPageNotFoundText(context: Context): String =
+        context.getString(R.string.tv_page_not_found_text)
+
+    /** Body of the TV's phone page when it is asked for something else */
+    fun tvPageNotAllowedText(context: Context): String =
+        context.getString(R.string.tv_page_not_allowed_text)
+
+    /** What the TV does next once the phone sent a plugin store link, for the line telling to look at the TV */
+    fun tvPageNextLink(context: Context): String =
+        context.getString(R.string.tv_page_next_link)
+
+    /** What the TV does next once the phone sent the torrent details */
+    fun tvPageNextTorrent(context: Context): String =
+        context.getString(R.string.tv_page_next_torrent)
+
+    /** What the TV does next once the phone sent a proxy */
+    fun tvPageNextProxy(context: Context): String =
+        context.getString(R.string.tv_page_next_proxy)
+
+    /** What the TV does next once the phone sent a sign-in */
+    fun tvPageNextSignin(context: Context, tracker: String): String =
+        context.getString(R.string.tv_page_next_signin, tracker)
+
+    /** Link text on the phone page that opens a tracker's authorisation page */
+    fun tvPageOpenLink(context: Context, tracker: String): String =
+        context.getString(R.string.tv_page_open_link, tracker)
+
+    /** First step on the phone page: the link, then what to do there */
+    fun tvPageStepOpen(context: Context, link: String): String =
+        context.getString(R.string.tv_page_step_open, link)
+
+    /** Second step on the phone page */
+    fun tvPageStepCopy(context: Context): String =
+        context.getString(R.string.tv_page_step_copy)
+
+    /** Third step on the phone page */
+    fun tvPageStepPaste(context: Context): String =
+        context.getString(R.string.tv_page_step_paste)
+
+    /** Intro on the phone page that takes a user name and password */
+    fun tvPagePassword(context: Context, tracker: String): String =
+        context.getString(R.string.tv_page_password, tracker)
+
+    /** Intro on the phone page that takes a plugin store link */
+    fun tvPageLink(context: Context): String =
+        context.getString(R.string.tv_page_link)
+
+    /** Intro on the phone page that takes the torrent index */
+    fun tvPageTorrent(context: Context): String =
+        context.getString(R.string.tv_page_torrent)
+
+    /** Intro on the phone page that takes the torrent index and a proxy */
+    fun tvPageTorrentProxy(context: Context): String =
+        context.getString(R.string.tv_page_torrent_proxy)
+
+    /** Intro on the phone page that takes a proxy */
+    fun tvPageProxy(context: Context, kept: String): String =
+        context.getString(R.string.tv_page_proxy, kept)
+
+    /** Label of the code field on the phone page */
+    fun tvPageLabelCode(context: Context): String =
+        context.getString(R.string.tv_page_label_code)
+
+    /** Title of the phone page that takes torrent details */
+    fun tvPageTitleTorrents(context: Context): String =
+        context.getString(R.string.tv_page_title_torrents)
+
+    /** Button on the phone page */
+    fun tvPageSend(context: Context): String =
+        context.getString(R.string.tv_page_send)
+
+    /** Title on the phone page when its address lost the key */
+    fun tvPageScanAgain(context: Context): String =
+        context.getString(R.string.tv_page_scan_again)
+
+    /** Title on the phone page once the TV took the form */
+    fun tvPageSentTitle(context: Context): String =
+        context.getString(R.string.tv_page_sent_title)
+
+    /** Line on the phone page when the TV did not answer */
+    fun tvPageNoAnswer(context: Context): String =
+        context.getString(R.string.tv_page_no_answer)
+
+    /** Last sentence of the phone page's intro. */
+    fun tvPageClosesOnceSent(context: Context): String =
+        context.getString(R.string.tv_page_closes_once_sent)
+
+    /** Button on the TV's torrent form that asks for the details again from a phone */
+    fun tvUsePhone(context: Context): String =
+        context.getString(R.string.tv_use_phone)
+
+    /** Button on the TV's torrent form that types the details with the system keyboard */
+    fun tvTypeIt(context: Context): String =
+        context.getString(R.string.tv_type_it)
+
+    /** Spoken label of the QR code for the proxy page */
+    fun tvQrLabelProxy(context: Context): String =
+        context.getString(R.string.tv_qr_label_proxy)
+
+    /** Spoken label of the QR code for the torrent index page */
+    fun tvQrLabelIndex(context: Context): String =
+        context.getString(R.string.tv_qr_label_index)
+
+    /** Beside the QR code on the TV */
+    fun tvScanTorrentProxy(context: Context): String =
+        context.getString(R.string.tv_scan_torrent_proxy)
+
+    /** Beside the QR code on the TV */
+    fun tvScanProxy(context: Context): String =
+        context.getString(R.string.tv_scan_proxy)
+
+    /** Beside the QR code on the TV */
+    fun tvScanTorrent(context: Context): String =
+        context.getString(R.string.tv_scan_torrent)
+
+    /** Name of the proxy user field on the TV */
+    fun tvFieldUserOptional(context: Context): String =
+        context.getString(R.string.tv_field_user_optional)
+
+    /** Name of the proxy password field on the TV */
+    fun tvFieldPasswordOptional(context: Context): String =
+        context.getString(R.string.tv_field_password_optional)
+
+    /** Spoken label of the QR code for the plugin store link page */
+    fun tvQrLabelLink(context: Context): String =
+        context.getString(R.string.tv_qr_label_link)
+
+    /** Key line under a plugin store's name before joining on the TV */
+    fun tvPreviewKey(context: Context, fingerprint: String): String =
+        context.getString(R.string.tv_preview_key, fingerprint)
+
+    /** Line under the first plugins of a plugin store about the rest */
+    fun tvPreviewMore(context: Context, count: Int): String =
+        context.getString(R.string.tv_preview_more, count)
+
+    /** Button on the TV's plugin store preview when this device joined already */
+    fun tvAlreadyJoined(context: Context): String =
+        context.getString(R.string.tv_already_joined)
+
+    /** Label of the Join button while it works */
+    fun tvJoining(context: Context): String =
+        context.getString(R.string.tv_joining)
+
+    /** Notice after a TV account sign-in, with the user name */
+    fun tvSigninDoneAs(context: Context, name: String, user: String): String =
+        context.getString(R.string.tv_signin_done_as, name, user)
+
+    /** Notice after a TV account sign-in */
+    fun tvSigninDone(context: Context, name: String): String =
+        context.getString(R.string.tv_signin_done, name)
+
+    /** Said when a tracker has no TV sign-in */
+    fun tvSigninNotOnTv(context: Context, name: String): String =
+        context.getString(R.string.tv_signin_not_on_tv, name)
+
+    /** Shown under the sign-in page address when the answer was turned down */
+    fun tvSigninDidNot(context: Context, name: String): String =
+        context.getString(R.string.tv_signin_did_not, name)
+
+    /** Steps for a device-code sign-in on the TV */
+    fun tvSigninDeviceSteps(context: Context): String =
+        context.getString(R.string.tv_signin_device_steps)
+
+    /** Shown while the TV asks a service for a device code */
+    fun tvSigninAskingCode(context: Context): String =
+        context.getString(R.string.tv_signin_asking_code)
+
+    /** Spoken label of the sign-in page QR code */
+    fun tvSigninQrPage(context: Context): String =
+        context.getString(R.string.tv_signin_qr_page)
+
+    /** Spoken label of the activation address QR code */
+    fun tvSigninQrActivation(context: Context): String =
+        context.getString(R.string.tv_signin_qr_activation)
+
+    /** Spoken label of the pairing QR code */
+    fun tvQrLabelPairing(context: Context): String =
+        context.getString(R.string.tv_qr_label_pairing)
+
+    /** Spoken label of a QR code with no more specific label */
+    fun tvQrLabelDefault(context: Context): String =
+        context.getString(R.string.tv_qr_label_default)
+
+    /** Supporting line of the reset row after it was pressed in a show's settings panel */
+    fun tvShowBackToDefaults(context: Context): String =
+        context.getString(R.string.tv_show_back_to_defaults)
+
+    /** Spoken progress on a card for TalkBack, with the formatted percentage */
+    fun tvCardProgressSpoken(context: Context, percent: String): String =
+        context.getString(R.string.tv_card_progress_spoken, percent)
+
     /** A countdown that has run out. */
     fun timeNow(context: Context): String =
         context.getString(R.string.time_now)
@@ -1764,6 +2200,34 @@ object Strings {
     /** Widgets, Continue: the play button for a screen reader, with the mark ("dubbed") after the number. */
     fun widgetPlayDubbedLabel(context: Context, episode: Int, title: String): String =
         context.getString(R.string.widget_play_dubbed_label, episode, title)
+
+    /** TV, title page: the amber action when the viewer has started the episode. */
+    fun tvActionResume(context: Context, episode: Int): String =
+        context.getString(R.string.tv_action_resume, episode)
+
+    /** TV, title page: the same when the viewer watches dubbed. */
+    fun tvActionResumeDubbed(context: Context, episode: Int): String =
+        context.getString(R.string.tv_action_resume_dubbed, episode)
+
+    /** TV, title page: the disabled action for an episode that is not out, with the day it comes out. */
+    fun tvActionOut(context: Context, episode: Int, day: String): String =
+        context.getString(R.string.tv_action_out, episode, day)
+
+    /** TV, title page: the disabled action for an episode with no air date. */
+    fun tvActionNotOut(context: Context, episode: Int): String =
+        context.getString(R.string.tv_action_not_out, episode)
+
+    /** TV, title page: the day word for an episode that comes out later today. */
+    fun tvOutToday(context: Context): String =
+        context.getString(R.string.tv_out_today)
+
+    /** TV, Continue hero: the amber action for an episode the viewer has started. */
+    fun tvHeroResume(context: Context, episode: String): String =
+        context.getString(R.string.tv_hero_resume, episode)
+
+    /** TV, Continue hero: the amber action for an episode the viewer has not started. */
+    fun tvHeroStart(context: Context, episode: String): String =
+        context.getString(R.string.tv_hero_start, episode)
 
     /** Name of the notification channel for download progress, shown in the system's settings. */
     fun channelDownloadsName(context: Context): String =

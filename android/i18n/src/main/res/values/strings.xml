@@ -434,6 +434,233 @@
     <string name="notice_open_stores">Open plugin stores</string>
     <!-- Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. -->
     <string name="tv_pair_request_held">%1$s wants to pair. Code %2$s</string>
+    <!-- TV, Continue hero: the action when no source can play yet. -->
+    <string name="tv_add_store_to_play">Add a plugin store to play</string>
+    <!-- TV, Continue hero: the button that opens the title page. -->
+    <string name="tv_title_page">Title page</string>
+    <!-- TV, Continue: the line when nothing could be loaded. -->
+    <string name="tv_continue_offline_failed">anistream can’t reach AniList right now.</string>
+    <!-- TV, Continue: the line when there is nothing to continue. -->
+    <string name="tv_continue_empty">Nothing to continue yet.</string>
+    <!-- TV, Continue: the button that opens Seasonal when the queue is empty. -->
+    <string name="tv_continue_browse">Browse this season</string>
+    <!-- TV, card actions: opens the title page. -->
+    <string name="tv_open_title_page">Open the title page</string>
+    <!-- TV, Seasonal: the sheet title over the sorts. -->
+    <string name="tv_sort_title">Sort</string>
+    <!-- TV, Seasonal: the chip that keeps only titles on the viewer's lists. -->
+    <string name="tv_on_my_list">On my list</string>
+    <!-- TV, Seasonal: the line when no title of the season is on the viewer's lists. -->
+    <string name="tv_seasonal_unlisted">Nothing from %1$s is on your lists yet.</string>
+    <!-- TV, Seasonal and Library: the line when a season or a list could not be loaded. -->
+    <string name="tv_load_failed_named">Couldn’t load %1$s.</string>
+    <!-- TV, Library: the line over an empty list. -->
+    <string name="tv_library_empty">Nothing in %1$s.</string>
+    <!-- TV, Library: the line when no tracker is connected. -->
+    <string name="tv_lists_signed_out">Your lists live in a tracker. Sign in to see them here.</string>
+    <!-- TV, Library: the button that opens Accounts. -->
+    <string name="tv_connect_tracker">Connect a tracker</string>
+    <!-- TV, Library card actions: opens the list of statuses. -->
+    <string name="tv_change_status">Change status</string>
+    <!-- TV, card actions: adds the title to Planning. -->
+    <string name="tv_add_to_planning">Add to Planning</string>
+    <!-- TV, Library poster: how far along, out of the total. -->
+    <string name="tv_progress_of">%1$d / %2$d</string>
+    <!-- TV, Library poster: how far along when the total is not known. -->
+    <string name="tv_progress_unknown">%1$d / ?</string>
+    <!-- Beside the calendar chips when signed out -->
+    <string name="tv_calendar_signed_out_note">Sign in to see only your shows</string>
+    <!-- Air time with the time it moved from -->
+    <string name="tv_calendar_time_was">%1$s (was %2$s)</string>
+    <!-- Pill on the TV player after a skip, naming what it did and offering undo -->
+    <string name="tv_player_undo_pill">%1$s · Undo</string>
+    <!-- An episode in the TV player's episode panel, number then title -->
+    <string name="tv_player_episode_row">E%1$s · %2$s</string>
+    <!-- Marks the episode that is playing in the TV player's episode panel -->
+    <string name="tv_player_episode_playing">Playing</string>
+    <!-- Title line on the TV player's up next card -->
+    <string name="tv_player_up_next_line">Up next: E%1$s · %2$s</string>
+    <!-- Title line on the TV player's up next card when the episode has no title -->
+    <string name="tv_player_up_next_bare">Up next: E%1$s</string>
+    <!-- Note under the TV player's subtitle list -->
+    <string name="tv_player_caption_note">Style follows the system\'s caption settings</string>
+    <!-- Shown in the TV search field while a phone is typing into it -->
+    <string name="tv_search_typing_phone">Typing from a phone</string>
+    <!-- Button on the TV search screen that opens the system keyboard -->
+    <string name="tv_search_system_keyboard">System keyboard</string>
+    <!-- Space key on the TV search keyboard -->
+    <string name="tv_search_space">Space</string>
+    <!-- Title of the season picker on the TV once a year is chosen -->
+    <string name="tv_search_season_in">Season in %1$d</string>
+    <!-- Under the genre list on the TV when it is offline and the genres have not loaded -->
+    <string name="tv_search_genres_offline">Genres load once the TV is online</string>
+    <!-- Under the seasons row on the TV title page: which season this is among the franchise's. -->
+    <string name="tv_seasons_position">%1$d of %2$d</string>
+    <!-- Under the seasons row on the TV title page when this title is none of its seasons. -->
+    <plurals name="tv_seasons_count">
+        <item quantity="one">%1$d season</item>
+        <item quantity="other">%1$d seasons</item>
+    </plurals>
+    <!-- Action on an episode's sheet: marks it and every episode before it watched. -->
+    <string name="tv_episode_mark_up_to_here">Mark watched up to here</string>
+    <!-- The spoken label of an episode card once it is watched: the card's own label, then this. -->
+    <string name="tv_card_label_watched">%1$s, watched</string>
+    <!-- TV settings section and fallback name of the TV -->
+    <string name="tv_section_this_tv">This TV</string>
+    <!-- Label on a TV source's panel for where it came from -->
+    <string name="tv_info_from">From</string>
+    <!-- Label on a TV source's panel for its problem -->
+    <string name="tv_info_state">State</string>
+    <!-- Line under a plugin store on the TV that has ended this device's access -->
+    <string name="tv_store_revoked">No longer lets this TV in</string>
+    <!-- Note under the seeding rows in TV settings -->
+    <string name="tv_seeding_note">Best effort on this TV: seeding runs only while anistream is open.</string>
+    <!-- Title of the TV sign-out confirmation -->
+    <string name="tv_sign_out_title">Sign out of %1$s?</string>
+    <!-- Line under a tracker on the TV when nobody is signed in -->
+    <string name="tv_account_not_signed_in">Not signed in</string>
+    <!-- Line under a tracker on the TV when someone is signed in -->
+    <string name="tv_account_signed_in_as">Signed in as %1$s</string>
+    <!-- Row on the TV showing the name phones see -->
+    <string name="tv_remote_name_label">This TV\'s name for phones</string>
+    <!-- Switch on the TV that lets phones find it on the network -->
+    <string name="tv_remote_findable">Let phones on this network find this TV</string>
+    <!-- Line under a paired phone used today -->
+    <string name="tv_phone_used_today">Used today</string>
+    <!-- Line under a paired phone used yesterday -->
+    <string name="tv_phone_used_yesterday">Used yesterday</string>
+    <!-- Line under a paired phone that never connected again, paired today -->
+    <string name="tv_phone_paired_today">Paired today</string>
+    <!-- Line under a paired phone that never connected again, paired yesterday -->
+    <string name="tv_phone_paired_yesterday">Paired yesterday</string>
+    <!-- Switch on the TV that shows the app on the home screen -->
+    <string name="tv_watch_next_row">Show anistream on the home screen</string>
+    <!-- Android's name for the home screen row -->
+    <string name="tv_watch_next_name">Watch Next</string>
+    <!-- Row on the TV that clears the cached images -->
+    <string name="tv_image_cache_clear">Clear the image cache</string>
+    <!-- Value of the clear-cache row while it clears -->
+    <string name="tv_image_cache_clearing">Clearing</string>
+    <!-- Row in TV About for the library used in the pairing pages -->
+    <string name="tv_licence_page_encryption">Page encryption</string>
+    <!-- Value of that row -->
+    <string name="tv_licence_page_encryption_value">noble-ciphers, under the MIT License</string>
+    <!-- Line under the TV's update row when an update can be fetched -->
+    <string name="tv_update_available">Available</string>
+    <!-- Line under the TV's update row while Android has not allowed installs yet -->
+    <string name="tv_update_waiting_install">Waiting for Android to allow installs</string>
+    <!-- Switch in TV About for the daily update check -->
+    <string name="tv_update_auto_check">Check for updates automatically</string>
+    <!-- Line under that switch -->
+    <string name="tv_update_auto_check_detail">Once a day, from anistream\'s releases</string>
+    <!-- Line under a paired phone on the TV: it was last used this many days ago. -->
+    <plurals name="tv_phone_used_days">
+        <item quantity="one">Used %1$d day ago</item>
+        <item quantity="other">Used %1$d days ago</item>
+    </plurals>
+    <!-- Line under a paired phone that never connected again: it paired this many days ago. -->
+    <plurals name="tv_phone_paired_days">
+        <item quantity="one">Paired %1$d day ago</item>
+        <item quantity="other">Paired %1$d days ago</item>
+    </plurals>
+    <!-- Line on the TV's update page naming the version it runs now -->
+    <string name="tv_update_installed">This TV has v%1$s</string>
+    <!-- Body of the TV's phone page when its address is wrong -->
+    <string name="tv_page_not_found_text">This page is not here.</string>
+    <!-- Body of the TV's phone page when it is asked for something else -->
+    <string name="tv_page_not_allowed_text">This page only takes its own form.</string>
+    <!-- What the TV does next once the phone sent a plugin store link, for the line telling to look at the TV -->
+    <string name="tv_page_next_link">it shows the plugin store, to join there</string>
+    <!-- What the TV does next once the phone sent the torrent details -->
+    <string name="tv_page_next_torrent">check the details there, then Turn on</string>
+    <!-- What the TV does next once the phone sent a proxy -->
+    <string name="tv_page_next_proxy">check the proxy there, then Save</string>
+    <!-- What the TV does next once the phone sent a sign-in -->
+    <string name="tv_page_next_signin">it signs in to %1$s now</string>
+    <!-- Link text on the phone page that opens a tracker's authorisation page -->
+    <string name="tv_page_open_link">Open %1$s</string>
+    <!-- First step on the phone page: the link, then what to do there -->
+    <string name="tv_page_step_open">%1$s and allow anistream.</string>
+    <!-- Second step on the phone page -->
+    <string name="tv_page_step_copy">Copy the code it shows, or the whole address the page ends on.</string>
+    <!-- Third step on the phone page -->
+    <string name="tv_page_step_paste">Paste it here and send it to the TV.</string>
+    <!-- Intro on the phone page that takes a user name and password -->
+    <string name="tv_page_password">Your %1$s user name or email, and password. They go to the TV, which signs in to %1$s with them and keeps only the token.</string>
+    <!-- Intro on the phone page that takes a plugin store link -->
+    <string name="tv_page_link">Paste the plugin store\'s invite link. The TV shows the plugin store before it joins.</string>
+    <!-- Intro on the phone page that takes the torrent index -->
+    <string name="tv_page_torrent">The torrent index anistream asks for torrents.</string>
+    <!-- Intro on the phone page that takes the torrent index and a proxy -->
+    <string name="tv_page_torrent_proxy">The torrent index anistream asks for torrents, and the SOCKS5 proxy torrent traffic goes through.</string>
+    <!-- Intro on the phone page that takes a proxy -->
+    <string name="tv_page_proxy">The SOCKS5 proxy torrent traffic goes through. %1$s The TV checks the proxy before it saves it.</string>
+    <!-- Label of the code field on the phone page -->
+    <string name="tv_page_label_code">Code</string>
+    <!-- Title of the phone page that takes torrent details -->
+    <string name="tv_page_title_torrents">Torrents for anistream</string>
+    <!-- Button on the phone page -->
+    <string name="tv_page_send">Send to the TV</string>
+    <!-- Title on the phone page when its address lost the key -->
+    <string name="tv_page_scan_again">Scan the code again</string>
+    <!-- Title on the phone page once the TV took the form -->
+    <string name="tv_page_sent_title">Sent to the TV</string>
+    <!-- Line on the phone page when the TV did not answer -->
+    <string name="tv_page_no_answer">The TV did not answer. Check that it is on and on the same network as this phone, then send it again.</string>
+    <!-- Last sentence of the phone page's intro. -->
+    <string name="tv_page_closes_once_sent">The page closes once it is sent.</string>
+    <!-- Button on the TV's torrent form that asks for the details again from a phone -->
+    <string name="tv_use_phone">Use a phone</string>
+    <!-- Button on the TV's torrent form that types the details with the system keyboard -->
+    <string name="tv_type_it">Type it</string>
+    <!-- Spoken label of the QR code for the proxy page -->
+    <string name="tv_qr_label_proxy">QR code for the page that takes the proxy</string>
+    <!-- Spoken label of the QR code for the torrent index page -->
+    <string name="tv_qr_label_index">QR code for the page that takes the torrent index</string>
+    <!-- Beside the QR code on the TV -->
+    <string name="tv_scan_torrent_proxy">Scan with your phone, then fill in the torrent index and the proxy on the page that opens.</string>
+    <!-- Beside the QR code on the TV -->
+    <string name="tv_scan_proxy">Scan with your phone, then change the proxy on the page that opens.</string>
+    <!-- Beside the QR code on the TV -->
+    <string name="tv_scan_torrent">Scan with your phone, then fill in the torrent index on the page that opens.</string>
+    <!-- Name of the proxy user field on the TV -->
+    <string name="tv_field_user_optional">User name, if asked</string>
+    <!-- Name of the proxy password field on the TV -->
+    <string name="tv_field_password_optional">Password, if asked</string>
+    <!-- Spoken label of the QR code for the plugin store link page -->
+    <string name="tv_qr_label_link">QR code for the page that takes the link</string>
+    <!-- Key line under a plugin store's name before joining on the TV -->
+    <string name="tv_preview_key">Key %1$s</string>
+    <!-- Line under the first plugins of a plugin store about the rest -->
+    <string name="tv_preview_more">and %1$d more</string>
+    <!-- Button on the TV's plugin store preview when this device joined already -->
+    <string name="tv_already_joined">Already joined</string>
+    <!-- Label of the Join button while it works -->
+    <string name="tv_joining">Joining</string>
+    <!-- Notice after a TV account sign-in, with the user name -->
+    <string name="tv_signin_done_as">Signed in to %1$s as %2$s</string>
+    <!-- Notice after a TV account sign-in -->
+    <string name="tv_signin_done">Signed in to %1$s</string>
+    <!-- Said when a tracker has no TV sign-in -->
+    <string name="tv_signin_not_on_tv">%1$s doesn\'t sign in on a TV.</string>
+    <!-- Shown under the sign-in page address when the answer was turned down -->
+    <string name="tv_signin_did_not">%1$s did not sign in. Check the details and send them again from the page.</string>
+    <!-- Steps for a device-code sign-in on the TV -->
+    <string name="tv_signin_device_steps">On your phone, scan the QR code or go to the address, then type this code.</string>
+    <!-- Shown while the TV asks a service for a device code -->
+    <string name="tv_signin_asking_code">Asking for a code</string>
+    <!-- Spoken label of the sign-in page QR code -->
+    <string name="tv_signin_qr_page">QR code for the sign-in page</string>
+    <!-- Spoken label of the activation address QR code -->
+    <string name="tv_signin_qr_activation">QR code for the activation address</string>
+    <!-- Spoken label of the pairing QR code -->
+    <string name="tv_qr_label_pairing">QR code for pairing</string>
+    <!-- Spoken label of a QR code with no more specific label -->
+    <string name="tv_qr_label_default">QR code</string>
+    <!-- Supporting line of the reset row after it was pressed in a show's settings panel -->
+    <string name="tv_show_back_to_defaults">Back to defaults</string>
+    <!-- Spoken progress on a card for TalkBack, with the formatted percentage -->
+    <string name="tv_card_progress_spoken">%1$s watched</string>
     <!-- A countdown that has run out. -->
     <string name="time_now">now</string>
     <!-- How long ago, when it was under a minute. -->
@@ -961,6 +1188,20 @@
     <string name="widget_day_date">%1$s</string>
     <!-- Widgets, Continue: the play button for a screen reader, with the mark ("dubbed") after the number. -->
     <string name="widget_play_dubbed_label">Play episode %1$d, dubbed, of %2$s</string>
+    <!-- TV, title page: the amber action when the viewer has started the episode. -->
+    <string name="tv_action_resume">Resume episode %1$d</string>
+    <!-- TV, title page: the same when the viewer watches dubbed. -->
+    <string name="tv_action_resume_dubbed">Resume episode %1$d · Dubbed</string>
+    <!-- TV, title page: the disabled action for an episode that is not out, with the day it comes out. -->
+    <string name="tv_action_out">Play episode %1$d (out %2$s)</string>
+    <!-- TV, title page: the disabled action for an episode with no air date. -->
+    <string name="tv_action_not_out">Play episode %1$d (not out yet)</string>
+    <!-- TV, title page: the day word for an episode that comes out later today. -->
+    <string name="tv_out_today">today</string>
+    <!-- TV, Continue hero: the amber action for an episode the viewer has started. -->
+    <string name="tv_hero_resume">Resume %1$s</string>
+    <!-- TV, Continue hero: the amber action for an episode the viewer has not started. -->
+    <string name="tv_hero_start">Start %1$s</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->
