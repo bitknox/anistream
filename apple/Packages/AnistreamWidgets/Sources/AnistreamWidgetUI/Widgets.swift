@@ -1,6 +1,7 @@
 // The two widgets, their timelines and Airing today's edit sheet.
 
 import AnistreamDesign
+import AnistreamStrings
 import AnistreamWidgetData
 import AppIntents
 import SwiftUI
@@ -50,8 +51,8 @@ public struct ContinueWatchingWidget: Widget {
         StaticConfiguration(kind: Self.kind, provider: ContinueProvider()) { entry in
             ContinueEntryView(entry: entry)
         }
-        .configurationDisplayName("Continue watching")
-        .description("The next episode of what you’re watching.")
+        .configurationDisplayName(L.widgetContinueTitle)
+        .description(L.widgetContinueDescription)
         .supportedFamilies(WidgetFamilies.supported)
         .contentMarginsDisabled()
     }
@@ -75,10 +76,10 @@ public enum AiringShow: String, AppEnum {
     case all
     case myList
 
-    public static let typeDisplayRepresentation: TypeDisplayRepresentation = "Show"
+    public static let typeDisplayRepresentation: TypeDisplayRepresentation = "Show"  // i18n-skip
     public static let caseDisplayRepresentations: [AiringShow: DisplayRepresentation] = [
-        .all: "All airing",
-        .myList: "My list",
+        .all: "All airing", // i18n-skip
+        .myList: "My list", // i18n-skip
     ]
 
     var filter: AiringFilter {
@@ -90,10 +91,10 @@ public enum AiringShow: String, AppEnum {
 }
 
 public struct AiringTodayConfiguration: WidgetConfigurationIntent {
-    public static let title: LocalizedStringResource = "Airing today"
-    public static let description = IntentDescription("Today’s episodes, with the shows in your list marked.")
+    public static let title: LocalizedStringResource = "Airing today" // i18n-skip
+    public static let description = IntentDescription("Today’s episodes, with the shows in your list marked.") // i18n-skip
 
-    @Parameter(title: "Show", default: .all)
+    @Parameter(title: "Show", default: .all) // i18n-skip
     public var show: AiringShow
 
     public init() {}
@@ -164,8 +165,8 @@ public struct AiringTodayWidget: Widget {
         AppIntentConfiguration(kind: Self.kind, intent: AiringTodayConfiguration.self, provider: AiringProvider()) { entry in
             AiringEntryView(entry: entry)
         }
-        .configurationDisplayName("Airing today")
-        .description("Today’s episodes, with the shows in your list marked.")
+        .configurationDisplayName(L.widgetAiringToday)
+        .description(L.widgetAiringDescription)
         .supportedFamilies(WidgetFamilies.supported)
         .contentMarginsDisabled()
     }

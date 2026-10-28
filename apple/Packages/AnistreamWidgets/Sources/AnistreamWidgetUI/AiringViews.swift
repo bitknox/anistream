@@ -51,8 +51,8 @@ public struct AiringWidgetView: View {
             }
         case .nothingToday(let next):
             MessageWidget(
-                title: small ? "Today" : "Airing today",
-                message: small ? "Nothing airing." : "Nothing airing today.",
+                title: small ? L.widgetAiringTitleSmall : L.widgetAiringToday,
+                message: small ? L.widgetNothingAiringShort : L.widgetNothingToday,
                 extra: {
                     if let next {
                         Text(small ? format.nextLineShort(next, from: now) : format.nextLine(next, from: now))
@@ -63,8 +63,8 @@ public struct AiringWidgetView: View {
                 })
         case .noSchedule:
             MessageWidget(
-                title: small ? "Today" : "Airing today",
-                message: "No schedule for today yet. Open anistream to update it.")
+                title: small ? L.widgetAiringTitleSmall : L.widgetAiringToday,
+                message: L.widgetNoSchedule)
         }
     }
 
@@ -97,7 +97,7 @@ public struct AiringWidgetView: View {
             .widgetURL(WidgetLink.calendar.url)
         case .nothingToday(let next):
             VStack(alignment: .leading, spacing: 2) {
-                Text("Nothing airing today").font(WidgetType.ui(15, weight: .semibold))
+                Text(L.widgetNothingToday).font(WidgetType.ui(15, weight: .semibold))
                 if let next {
                     Text(format.nextLineShort(next, from: now)).font(WidgetType.ui(13)).foregroundStyle(.secondary).lineLimit(2)
                 }
@@ -105,8 +105,8 @@ public struct AiringWidgetView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         case .noSchedule:
             VStack(alignment: .leading, spacing: 2) {
-                Text("Airing today").font(WidgetType.ui(15, weight: .semibold))
-                Text("Open anistream to update it.").font(WidgetType.ui(13)).foregroundStyle(.secondary)
+                Text(L.widgetAiringToday).font(WidgetType.ui(15, weight: .semibold))
+                Text(L.widgetOpenToUpdate).font(WidgetType.ui(13)).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -116,15 +116,15 @@ public struct AiringWidgetView: View {
         switch content {
         case .rows(_, let rows, _, _):
             if let next = AiringPresentation.nextUp(rows) {
-                Label("\(format.time(next.item.airsAt)) · \(next.item.title) E\(next.item.episode)", systemImage: "calendar")
+                Label("\(format.time(next.item.airsAt)) · \(next.item.title) \(L.widgetEpisodeShort(episode: next.item.episode))", systemImage: "calendar")
                     .widgetURL(WidgetLink.title(next.item.id).url)
             } else {
-                Label("Nothing more today", systemImage: "calendar")
+                Label(L.widgetNothingMoreToday, systemImage: "calendar")
             }
         case .nothingToday:
-            Label("Nothing airing today", systemImage: "calendar")
+            Label(L.widgetNothingToday, systemImage: "calendar")
         case .noSchedule:
-            Label("Airing today", systemImage: "calendar")
+            Label(L.widgetAiringToday, systemImage: "calendar")
         }
     }
 }
@@ -221,7 +221,7 @@ struct AiringSmall: View {
     var body: some View {
         let next = rows.first(where: \.isUpcoming)
         VStack(alignment: .leading, spacing: 2) {
-            AiringHeader(title: L.dayToday, detail: next.map { "Next \(format.time($0.item.airsAt))" })
+            AiringHeader(title: L.dayToday, detail: next.map { L.widgetNextTime(time: format.time($0.item.airsAt)) })
             Color.clear.frame(height: 4)
             ForEach(rows) { row in
                 AiringLine(row: row, marks: marks, height: 24, timeWidth: 42, showsState: false, format: format)
@@ -243,7 +243,7 @@ struct AiringMedium: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            AiringHeader(title: "Airing today", detail: format.weekday(day))
+            AiringHeader(title: L.widgetAiringToday, detail: format.weekday(day))
             Color.clear.frame(height: 3)
             ForEach(rows) { row in
                 AiringLine(row: row, marks: marks, height: 22, timeWidth: 46, showsState: true, format: format)
@@ -266,7 +266,7 @@ struct AiringLarge: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            AiringHeader(title: "Airing today", detail: format.longDay(day))
+            AiringHeader(title: L.widgetAiringToday, detail: format.longDay(day))
             Color.clear.frame(height: 4)
             ForEach(rows) { row in
                 AiringLargeRow(row: row, marks: marks, now: now, format: format)
@@ -288,9 +288,12 @@ struct AiringLarge: View {
     /// "Tomorrow: nothing airing", "Tomorrow: 16:30 · Hoshikuzu no Tabibito and 2 more".
     private func tomorrowLine(_ rows: [SnapshotAiring]) -> String {
         let first = rows.first { !marks || $0.onList } ?? rows.first
-        guard let first else { return "Tomorrow: nothing airing" }
+        guard let first else { return L.widgetTomorrowNone }
         let more = rows.count - 1
-        return "Tomorrow: \(format.time(first.airsAt)) · \(first.title)" + (more > 0 ? " and \(more) more" : "")
+        let time = format.time(first.airsAt)
+        return more > 0
+            ? L.widgetTomorrowMore(time: time, title: first.title, count: more)
+            : L.widgetTomorrowFirst(time: time, title: first.title)
     }
 }
 
@@ -355,17 +358,17 @@ struct AiringLargeRow: View {
         case .watched:
             HStack(spacing: 4) {
                 WatchedCheck()
-                Text("Watched")
+                Text(L.widgetWatched)
             }
         case .out:
             HStack(spacing: 5) {
                 WaterDot()
-                HStack(spacing: 0) { Text("Out "); RelativeTime(date: row.item.airsAt); Text(" ago") }
+                TimedLine(date: row.item.airsAt) { L.widgetOutAgo(time: $0) }
             }
         case .aired:
-            HStack(spacing: 0) { Text("Out "); RelativeTime(date: row.item.airsAt); Text(" ago") }
+            TimedLine(date: row.item.airsAt) { L.widgetOutAgo(time: $0) }
         case .upcoming:
-            HStack(spacing: 0) { Text("In "); RelativeTime(date: row.item.airsAt) }
+            TimedLine(date: row.item.airsAt) { L.widgetInTime(time: $0) }
         }
     }
 }

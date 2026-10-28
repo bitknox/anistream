@@ -1,6 +1,7 @@
 // What each widget shows at a moment, worked out from the snapshot: its state, its rows and its
 // copy. The views only lay these out.
 
+import AnistreamStrings
 import Foundation
 
 // MARK: - Continue watching
@@ -34,27 +35,29 @@ public enum ContinuePresentation {
     /// The episode as a row names it, "E7", with the mark the engine gave it: "E7 · Dub". Only
     /// dubs are marked, as in the app.
     public static func episodeShort(_ item: SnapshotContinue) -> String {
-        marked("E\(item.episode)", item)
+        marked(L.widgetEpisodeShort(episode: item.episode), item)
     }
 
     /// What plays, as Continue says it: "E7 · 14 min left", "Resume E7" or "Start E4", and for a
     /// dub "E7 · Dub · 14 min left".
     public static func line(_ item: SnapshotContinue) -> String {
         let episode = episodeShort(item)
-        guard item.resumes else { return "Start \(episode)" }
-        if let minutes = item.minutesLeft { return "\(episode) · \(minutes) min left" }
-        return "Resume \(episode)"
+        guard item.resumes else { return L.widgetLineStart(episode: episode) }
+        if let minutes = item.minutesLeft {
+            return L.widgetLineLeft(episode: episode, left: L.timeMinutesLeft(minutes: minutes))
+        }
+        return L.widgetLineResume(episode: episode)
     }
 
     /// The large widget's one action: "Resume E7" or "Start E4", "Resume E7 · Dub" for a dub.
     public static func action(_ item: SnapshotContinue) -> String {
-        (item.resumes ? "Resume " : "Start ") + episodeShort(item)
+        item.resumes ? L.widgetActionResume(episode: episodeShort(item)) : L.widgetActionStart(episode: episodeShort(item))
     }
 
     /// The large widget's episode line: "Episode 7 · The Lantern Road", or for a dub
     /// "Episode 7 · Dub · The Lantern Road".
     public static func episodeLine(_ item: SnapshotContinue) -> String {
-        let episode = marked("Episode \(item.episode)", item)
+        let episode = marked(L.widgetEpisodeLong(episode: item.episode), item)
         if let name = item.episodeTitle, !name.isEmpty { return "\(episode) · \(name)" }
         return episode
     }
@@ -67,20 +70,21 @@ public enum ContinuePresentation {
     /// "14 min left" under the large widget's progress.
     public static func timeLeft(_ item: SnapshotContinue) -> String? {
         guard item.resumes, let minutes = item.minutesLeft else { return nil }
-        return "\(minutes) min left"
+        return L.timeMinutesLeft(minutes: minutes)
     }
 
     /// What VoiceOver reads for a show.
     public static func accessibilityLabel(_ item: SnapshotContinue) -> String {
         // The mark read as the row shows it: "episode 7, Dub, 14 minutes left".
-        let episode = "episode \(item.episode)" + (item.mark.map { ", \($0)" } ?? "")
+        let number = L.widgetA11yEpisode(episode: item.episode)
+        let episode = item.mark.map { L.widgetA11yEpisodeMarked(episode: number, mark: $0) } ?? number
         let what: String
         if item.resumes {
-            what = item.minutesLeft.map { "\(episode), \($0) minutes left" } ?? episode
+            what = item.minutesLeft.map { L.widgetA11yResume(episode: episode, minutes: $0) } ?? episode
         } else {
-            what = "start \(episode)"
+            what = L.widgetA11yStart(episode: episode)
         }
-        return "\(item.title), \(what)"
+        return L.widgetA11yRow(title: item.title, what: what)
     }
 }
 
@@ -222,28 +226,26 @@ public enum AiringPresentation {
 
     /// "E9", "E9 · Dub". Only dubs are marked: a subbed episode is the usual case.
     public static func episodeShort(_ item: SnapshotAiring) -> String {
-        "E\(item.episode)" + dubMark(item)
+        item.translation == .dub
+            ? L.titleEpisodeShortDubbed(episode: item.episode) : L.widgetEpisodeShort(episode: item.episode)
     }
 
     /// "Episode 9", "Episode 9 · Dub".
     public static func episodeLong(_ item: SnapshotAiring) -> String {
-        "Episode \(item.episode)" + dubMark(item)
-    }
-
-    /// " · Dub" for a dub's broadcast, or nothing.
-    static func dubMark(_ item: SnapshotAiring) -> String {
-        item.translation == .dub ? " · Dub" : ""
+        item.translation == .dub
+            ? L.titleEpisodeLongDubbed(episode: item.episode) : L.widgetEpisodeLong(episode: item.episode)
     }
 
     /// What VoiceOver reads for a row.
     public static func accessibilityLabel(_ row: AiringRow, format: WidgetFormat) -> String {
-        var label = "\(row.item.title), episode \(row.item.episode), \(format.time(row.item.airsAt))"
+        var label = L.widgetA11yAiring(
+            title: row.item.title, episode: row.item.episode, time: format.time(row.item.airsAt))
         switch row.status {
-        case .watched: label += ", watched"
-        case .out: label += ", out"
+        case .watched: label = L.widgetA11yThenWatched(label: label)
+        case .out: label = L.widgetA11yThenOut(label: label)
         case .aired, .upcoming: break
         }
-        if row.marked { label += ", in your list" }
+        if row.marked { label = L.widgetA11yThenList(label: label) }
         return label
     }
 }
@@ -288,9 +290,9 @@ public struct WidgetFormat: Sendable {
         let day = calendar.startOfDay(for: date)
         let days = calendar.dateComponents([.day], from: today, to: day).day ?? 0
         switch days {
-        case 0: return "today"
-        case 1: return "tomorrow"
-        case -1: return "yesterday"
+        case 0: return L.widgetDayToday
+        case 1: return L.widgetDayTomorrow
+        case -1: return L.widgetDayYesterday
         case 2...6, -6 ... -2: return weekday(date)
         default: return date.formatted(style().day().month(.wide))
         }
@@ -298,27 +300,27 @@ public struct WidgetFormat: Sendable {
 
     /// "Thursday 16:30", "tomorrow 16:30".
     public func dayAndTime(_ date: Date, from now: Date) -> String {
-        "\(day(date, from: now)) \(time(date))"
+        L.whenWeekday(day: day(date, from: now), time: time(date))
     }
 
     /// "Updated Sunday", "Updated yesterday".
     public func updated(_ date: Date, from now: Date) -> String {
-        "Updated \(day(date, from: now))"
+        L.widgetUpdated(when: day(date, from: now))
     }
 
     /// "Episode 10 airs Thursday 16:30".
     public func airs(_ next: SnapshotNextAiring, from now: Date) -> String {
-        "Episode \(next.episode) airs \(dayAndTime(next.airsAt, from: now))"
+        L.episodeAirs(episode: next.episode, when: dayAndTime(next.airsAt, from: now))
     }
 
     /// "Next: Thursday 16:30 · Hoshikuzu no Tabibito · Episode 10".
     public func nextLine(_ next: SnapshotNextAiring, from now: Date) -> String {
-        "Next: \(capitalized(dayAndTime(next.airsAt, from: now))) · \(next.title) · Episode \(next.episode)"
+        L.widgetNextLine(when: capitalized(dayAndTime(next.airsAt, from: now)), title: next.title, episode: next.episode)
     }
 
     /// The same, shorter, for the small size: "Next: Thursday 16:30, Hoshikuzu no Tabibito E10".
     public func nextLineShort(_ next: SnapshotNextAiring, from now: Date) -> String {
-        "Next: \(capitalized(dayAndTime(next.airsAt, from: now))), \(next.title) E\(next.episode)"
+        L.widgetNextLineShort(when: capitalized(dayAndTime(next.airsAt, from: now)), title: next.title, episode: next.episode)
     }
 
     public func capitalized(_ text: String) -> String {

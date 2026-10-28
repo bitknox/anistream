@@ -106,7 +106,7 @@ struct PlaybackButton: View {
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(Palette.silk.opacity(0.14)))
                 .frame(width: 44, height: 44)
-            let label = state.paused ? "Play" : "Pause"
+            let label = state.paused ? L.actionPlay : L.actionPause
             #if os(iOS)
             if drawsTaps {
                 if state.paused {

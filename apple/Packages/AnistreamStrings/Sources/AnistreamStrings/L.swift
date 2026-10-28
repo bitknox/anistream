@@ -2367,6 +2367,311 @@ public enum L {
     /// Failure shown when the Fixtures app, used for screenshots, is asked to install an update.
     public static var updatesFixturesNoInstall: String { string("updates-fixtures-no-install", fallback: "The Fixtures app does not install updates.") }
 
+    /// Short episode name in a widget.
+    public static func widgetEpisodeShort(episode: Int) -> String {
+        Self.format("widget-episode-short", fallback: "E%1$lld", episode)
+    }
+
+    /// Long episode name in a widget.
+    public static func widgetEpisodeLong(episode: Int) -> String {
+        Self.format("widget-episode-long", fallback: "Episode %1$lld", episode)
+    }
+
+    /// Today, inside a line such as "Thursday 16:30".
+    public static var widgetDayToday: String { string("widget-day-today", fallback: "today") }
+
+    /// Tomorrow, inside a line.
+    public static var widgetDayTomorrow: String { string("widget-day-tomorrow", fallback: "tomorrow") }
+
+    /// Yesterday, inside a line.
+    public static var widgetDayYesterday: String { string("widget-day-yesterday", fallback: "yesterday") }
+
+    /// Under a widget: the next episode and when it airs.
+    public static func widgetNextLine(when: String, title: String, episode: Int) -> String {
+        Self.format("widget-next-line", fallback: "Next: %1$@ · %2$@ · Episode %3$lld", when, title, episode)
+    }
+
+    /// The same line, shorter, for the small size.
+    public static func widgetNextLineShort(when: String, title: String, episode: Int) -> String {
+        Self.format("widget-next-line-short", fallback: "Next: %1$@, %2$@ E%3$lld", when, title, episode)
+    }
+
+    /// Header detail on the large Airing today widget: when the next episode airs.
+    public static func widgetNextTime(time: String) -> String {
+        Self.format("widget-next-time", fallback: "Next %1$@", time)
+    }
+
+    /// Small widget line: the show, its episode and the day it airs.
+    public static func widgetAirsDay(title: String, episode: Int, day: String) -> String {
+        Self.format("widget-airs-day", fallback: "%1$@ E%2$lld airs %3$@.", title, episode, day)
+    }
+
+    /// Row state: an episode came out a while ago. The span is already worded, and counts up as time passes.
+    public static func widgetOutAgo(time: String) -> String {
+        Self.format("widget-out-ago", fallback: "Out %1$@ ago", time)
+    }
+
+    /// Row state: an episode comes out in a while. The span is already worded, and counts down.
+    public static func widgetInTime(time: String) -> String {
+        Self.format("widget-in-time", fallback: "In %1$@", time)
+    }
+
+    /// Short title of the small Airing today widget.
+    public static var widgetAiringTitleSmall: String { string("widget-airing-title-small", fallback: "Today") }
+
+    /// Line of the small widget when nothing airs.
+    public static var widgetNothingAiringShort: String { string("widget-nothing-airing-short", fallback: "Nothing airing.") }
+
+    /// Second line of the medium widget when it has no schedule.
+    public static var widgetOpenToUpdate: String { string("widget-open-to-update", fallback: "Open anistream to update it.") }
+
+    /// Line on the Lock Screen when nothing more airs today.
+    public static var widgetNothingMoreToday: String { string("widget-nothing-more-today", fallback: "Nothing more today") }
+
+    /// Line when nothing airs tomorrow.
+    public static var widgetTomorrowNone: String { string("widget-tomorrow-none", fallback: "Tomorrow: nothing airing") }
+
+    /// Line for tomorrow: the first episode and the time.
+    public static func widgetTomorrowFirst(time: String, title: String) -> String {
+        Self.format("widget-tomorrow-first", fallback: "Tomorrow: %1$@ · %2$@", time, title)
+    }
+
+    /// Line for tomorrow: the first episode and how many more follow.
+    public static func widgetTomorrowMore(time: String, title: String, count: Int) -> String {
+        Self.format("widget-tomorrow-more", fallback: "Tomorrow: %1$@ · %2$@ and %3$lld more", time, title, count)
+    }
+
+    /// Name of the Continue widget, in the gallery and its title.
+    public static var widgetContinueTitle: String { string("widget-continue-title", fallback: "Continue watching") }
+
+    /// Description of the Continue widget in the gallery.
+    public static var widgetContinueDescription: String { string("widget-continue-description", fallback: "The next episode of what you're watching.") }
+
+    /// Description of the Airing today widget in the gallery.
+    public static var widgetAiringDescription: String { string("widget-airing-description", fallback: "Today's episodes, with the shows in your list marked.") }
+
+    /// Line on the Continue widget when nothing is connected, for the medium and large sizes.
+    public static func widgetConnectDetailLong(tracker: String) -> String {
+        Self.format("widget-connect-detail-long", fallback: "Connect %1$@, or play an episode, to see what you're watching here.", tracker)
+    }
+
+    /// Line on the Continue widget when nothing is connected, for the small size.
+    public static func widgetConnectDetailShort(tracker: String) -> String {
+        Self.format("widget-connect-detail-short", fallback: "Connect %1$@, or play an episode, to see it here.", tracker)
+    }
+
+    /// Button on the Continue widget that connects the tracker.
+    public static func widgetConnectTracker(tracker: String) -> String {
+        Self.format("widget-connect-tracker", fallback: "Connect %1$@", tracker)
+    }
+
+    /// Title of the Continue widget when nothing is left to watch.
+    public static var widgetCaughtUpTitle: String { string("widget-caught-up-title", fallback: "You're caught up") }
+
+    /// Line under that title when the next episode is not known.
+    public static var widgetCaughtUpNone: String { string("widget-caught-up-none", fallback: "Nothing more to continue.") }
+
+    /// Line under that title when the next episode is on the person's list.
+    public static var widgetCaughtUpNext: String { string("widget-caught-up-next", fallback: "Next from your list:") }
+
+    /// Line of the Continue widget: what plays next, with the episode already named.
+    public static func widgetLineStart(episode: String) -> String {
+        Self.format("widget-line-start", fallback: "Start %1$@", episode)
+    }
+
+    /// Line of the Continue widget: an episode left part-way and the time left.
+    public static func widgetLineLeft(episode: String, left: String) -> String {
+        Self.format("widget-line-left", fallback: "%1$@ · %2$@", episode, left)
+    }
+
+    /// Line of the Continue widget: resume an episode.
+    public static func widgetLineResume(episode: String) -> String {
+        Self.format("widget-line-resume", fallback: "Resume %1$@", episode)
+    }
+
+    /// Button of the large Continue widget: carry on with an episode that was part-watched.
+    public static func widgetActionResume(episode: String) -> String {
+        Self.format("widget-action-resume", fallback: "Resume %1$@", episode)
+    }
+
+    /// Button of the large Continue widget: start an episode.
+    public static func widgetActionStart(episode: String) -> String {
+        Self.format("widget-action-start", fallback: "Start %1$@", episode)
+    }
+
+    /// VoiceOver, an episode in a Continue row: the episode number.
+    public static func widgetA11yEpisode(episode: Int) -> String {
+        Self.format("widget-a11y-episode", fallback: "episode %1$lld", episode)
+    }
+
+    /// VoiceOver, an episode with its mark such as Dub. The first part is already worded.
+    public static func widgetA11yEpisodeMarked(episode: String, mark: String) -> String {
+        Self.format("widget-a11y-episode-marked", fallback: "%1$@, %2$@", episode, mark)
+    }
+
+    /// VoiceOver, an episode left part-way. The first part is already worded.
+    public static func widgetA11yResume(episode: String, minutes: Int) -> String {
+        Self.format("widget-a11y-resume", fallback: "%1$@, %2$lld minutes left", episode, minutes)
+    }
+
+    /// VoiceOver, an episode to start. The first part is already worded.
+    public static func widgetA11yStart(episode: String) -> String {
+        Self.format("widget-a11y-start", fallback: "start %1$@", episode)
+    }
+
+    /// VoiceOver, a Continue row: the show and what happens when it is pressed.
+    public static func widgetA11yRow(title: String, what: String) -> String {
+        Self.format("widget-a11y-row", fallback: "%1$@, %2$@", title, what)
+    }
+
+    /// VoiceOver, an Airing today row: the show, episode and time.
+    public static func widgetA11yAiring(title: String, episode: Int, time: String) -> String {
+        Self.format("widget-a11y-airing", fallback: "%1$@, episode %2$lld, %3$@", title, episode, time)
+    }
+
+    /// Added to an Airing today row that was watched.
+    public static func widgetA11yThenWatched(label: String) -> String {
+        Self.format("widget-a11y-then-watched", fallback: "%1$@, watched", label)
+    }
+
+    /// Added to an Airing today row that is out.
+    public static func widgetA11yThenOut(label: String) -> String {
+        Self.format("widget-a11y-then-out", fallback: "%1$@, out", label)
+    }
+
+    /// Added to an Airing today row that is in the person's list.
+    public static func widgetA11yThenList(label: String) -> String {
+        Self.format("widget-a11y-then-list", fallback: "%1$@, in your list", label)
+    }
+
+    /// Line of the airing activity once the episode is out.
+    public static var widgetOutNow: String { string("widget-out-now", fallback: "Out now") }
+
+    /// Line of the airing activity before it is out. The time is the device's clock.
+    public static func widgetAirsAt(time: String) -> String {
+        Self.format("widget-airs-at", fallback: "Airs at %1$@", time)
+    }
+
+    /// Line of the airing activity once the episode is out. The time is the device's clock.
+    public static func widgetAiredAt(time: String) -> String {
+        Self.format("widget-aired-at", fallback: "Aired at %1$@", time)
+    }
+
+    /// VoiceOver, the airing activity before the episode is out.
+    public static func widgetA11yAirsAt(title: String, episode: Int, time: String) -> String {
+        Self.format("widget-a11y-airs-at", fallback: "%1$@, episode %2$lld, airs at %3$@", title, episode, time)
+    }
+
+    /// VoiceOver, the airing activity once the episode is out.
+    public static func widgetA11yOutNow(title: String, episode: Int) -> String {
+        Self.format("widget-a11y-out-now", fallback: "%1$@, episode %2$lld, out now", title, episode)
+    }
+
+    /// Line of the downloads activity when an episode finished.
+    public static func widgetDownloadedLine(episode: String) -> String {
+        Self.format("widget-downloaded-line", fallback: "Episode %1$@ downloaded", episode)
+    }
+
+    /// Second line of the downloads activity when an episode finished.
+    public static var widgetDownloadedReady: String { string("widget-downloaded-ready", fallback: "Ready to watch offline") }
+
+    /// Title of the downloads activity while several episodes download.
+    public static func widgetDownloadingTitle(count: Int) -> String {
+        Self.format("widget-downloading-title", fallback: "Downloading %1$lld episodes", count)
+    }
+
+    /// Line of the downloads activity while paused.
+    public static var widgetDownloadsPaused: String { string("widget-downloads-paused", fallback: "Paused") }
+
+    /// Line of the downloads activity: the first show, then how many more follow.
+    public static func widgetDownloadsThenMore(title: String, episode: String, count: Int) -> String {
+        Self.format("widget-downloads-then-more", fallback: "%1$@ E%2$@, then %3$lld more", title, episode, count)
+    }
+
+    /// Line of the downloads activity: the size still to download.
+    public static func widgetSizeLeft(size: String) -> String {
+        Self.format("widget-size-left", fallback: "%1$@ left", size)
+    }
+
+    /// Line of the downloads activity: the time still to wait.
+    public static func widgetTimeLeft(time: String) -> String {
+        Self.format("widget-time-left", fallback: "%1$@ left", time)
+    }
+
+    /// Line of the downloads activity when the app has not updated it for a while.
+    public static var widgetContinuesWhenOpen: String { string("widget-continues-when-open", fallback: "Continues when you open anistream") }
+
+    /// Line of the downloads activity: the size done and the size in all.
+    public static func widgetBytesOf(done: String, total: String) -> String {
+        Self.format("widget-bytes-of", fallback: "%1$@ of %2$@", done, total)
+    }
+
+    /// Download speed, such as "2.4 MB/s". The size is already formatted.
+    public static func widgetSpeed(size: String) -> String {
+        Self.format("widget-speed", fallback: "%1$@/s", size)
+    }
+
+    /// Line of the downloads activity: an episode that is downloading.
+    public static func widgetDownloadsEpisode(episode: String) -> String {
+        Self.format("widget-downloads-episode", fallback: "Episode %1$@", episode)
+    }
+
+    /// VoiceOver, the downloads activity once an episode finished.
+    public static func widgetA11yDownloaded(title: String, episode: String) -> String {
+        Self.format("widget-a11y-downloaded", fallback: "%1$@, episode %2$@, downloaded", title, episode)
+    }
+
+    /// VoiceOver, the downloads activity while it runs.
+    public static func widgetA11yDownloading(title: String, episode: String, percent: String) -> String {
+        Self.format("widget-a11y-downloading", fallback: "%1$@, episode %2$@, %3$@", title, episode, percent)
+    }
+
+    /// Added to the VoiceOver line of the downloads activity when it is paused.
+    public static func widgetA11yThenPaused(label: String) -> String {
+        Self.format("widget-a11y-then-paused", fallback: "%1$@, paused", label)
+    }
+
+    /// Added to the VoiceOver line of the downloads activity: the time left.
+    public static func widgetA11yThenTimeLeft(label: String, time: String) -> String {
+        Self.format("widget-a11y-then-time-left", fallback: "%1$@, %2$@ left", label, time)
+    }
+
+    /// Added to the VoiceOver line of the downloads activity: how many episodes are downloading.
+    public static func widgetA11yThenCount(label: String, count: Int) -> String {
+        Self.format("widget-a11y-then-count", fallback: "%1$@, %2$lld episodes downloading", label, count)
+    }
+
+    /// Button of the downloads activity that starts an episode that finished.
+    public static func widgetPlayEpisodeShort(episode: String) -> String {
+        Self.format("widget-play-episode-short", fallback: "Play E%1$@", episode)
+    }
+
+    /// VoiceOver, the button of the downloads activity that plays an episode that finished.
+    public static func widgetPlayEpisodeLong(episode: String) -> String {
+        Self.format("widget-play-episode-long", fallback: "Play episode %1$@", episode)
+    }
+
+    /// VoiceOver, the button that continues the downloads.
+    public static var widgetResumeDownloads: String { string("widget-resume-downloads", fallback: "Resume downloads") }
+
+    /// VoiceOver, the button that pauses the downloads.
+    public static var widgetPauseDownloads: String { string("widget-pause-downloads", fallback: "Pause downloads") }
+
+    /// Line of the playback activity while paused. The time is the time left, such as "18:20".
+    public static func widgetPausedLine(left: String) -> String {
+        Self.format("widget-paused-line", fallback: "Paused · %1$@ left", left)
+    }
+
+    /// VoiceOver, the playback activity while paused.
+    public static func widgetA11yPlaybackPaused(title: String, episode: String, minutes: Int) -> String {
+        Self.format("widget-a11y-playback-paused", fallback: "%1$@, episode %2$@, paused, %3$lld minutes left", title, episode, minutes)
+    }
+
+    /// VoiceOver, the playback activity while it plays.
+    public static func widgetA11yPlaybackPlaying(title: String, episode: String, minutes: Int) -> String {
+        Self.format("widget-a11y-playback-playing", fallback: "%1$@, episode %2$@, playing, %3$lld minutes left", title, episode, minutes)
+    }
+
     /// Mac menu bar item. Title Case, as Apple's guidelines ask for the menu bar only.
     public static var menuShowLibrary: String { string("menu-show-library", fallback: "Show Library") }
 

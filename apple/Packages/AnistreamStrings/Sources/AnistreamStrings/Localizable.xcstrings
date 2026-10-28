@@ -22311,6 +22311,370 @@
         }
       }
     },
+    "widget-a11y-airing" : {
+      "comment" : "VoiceOver, an Airing today row: the show, episode and time. Argument 1: title (Text). Argument 2: episode (Int). Argument 3: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, episode %2$lld, %3$@"
+          }
+        }
+      }
+    },
+    "widget-a11y-airs-at" : {
+      "comment" : "VoiceOver, the airing activity before the episode is out. Argument 1: title (Text). Argument 2: episode (Int). Argument 3: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, episode %2$lld, airs at %3$@"
+          }
+        }
+      }
+    },
+    "widget-a11y-downloaded" : {
+      "comment" : "VoiceOver, the downloads activity once an episode finished. Argument 1: title (Text). Argument 2: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, episode %2$@, downloaded"
+          }
+        }
+      }
+    },
+    "widget-a11y-downloading" : {
+      "comment" : "VoiceOver, the downloads activity while it runs. Argument 1: title (Text). Argument 2: episode (Text). Argument 3: percent (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, episode %2$@, %3$@"
+          }
+        }
+      }
+    },
+    "widget-a11y-episode" : {
+      "comment" : "VoiceOver, an episode in a Continue row: the episode number. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "episode %1$lld"
+          }
+        }
+      }
+    },
+    "widget-a11y-episode-marked" : {
+      "comment" : "VoiceOver, an episode with its mark such as Dub. The first part is already worded. Argument 1: episode (Text). Argument 2: mark (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "widget-a11y-out-now" : {
+      "comment" : "VoiceOver, the airing activity once the episode is out. Argument 1: title (Text). Argument 2: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, episode %2$lld, out now"
+          }
+        }
+      }
+    },
+    "widget-a11y-playback-paused" : {
+      "comment" : "VoiceOver, the playback activity while paused. Argument 1: title (Text). Argument 2: episode (Text). Argument 3: minutes (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@minutes@"
+          },
+          "substitutions" : {
+            "minutes" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$@, episode %2$@, paused, one minute left"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$@, episode %2$@, paused, %3$lld minutes left"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget-a11y-playback-playing" : {
+      "comment" : "VoiceOver, the playback activity while it plays. Argument 1: title (Text). Argument 2: episode (Text). Argument 3: minutes (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@minutes@"
+          },
+          "substitutions" : {
+            "minutes" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$@, episode %2$@, playing, one minute left"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$@, episode %2$@, playing, %3$lld minutes left"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget-a11y-resume" : {
+      "comment" : "VoiceOver, an episode left part-way. The first part is already worded. Argument 1: episode (Text). Argument 2: minutes (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@minutes@"
+          },
+          "substitutions" : {
+            "minutes" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$@, one minute left"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$@, %2$lld minutes left"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget-a11y-row" : {
+      "comment" : "VoiceOver, a Continue row: the show and what happens when it is pressed. Argument 1: title (Text). Argument 2: what (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "widget-a11y-start" : {
+      "comment" : "VoiceOver, an episode to start. The first part is already worded. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "start %1$@"
+          }
+        }
+      }
+    },
+    "widget-a11y-then-count" : {
+      "comment" : "Added to the VoiceOver line of the downloads activity: how many episodes are downloading. Argument 1: label (Text). Argument 2: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$@, one episode downloading"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$@, %2$lld episodes downloading"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget-a11y-then-list" : {
+      "comment" : "Added to an Airing today row that is in the person's list. Argument 1: label (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, in your list"
+          }
+        }
+      }
+    },
+    "widget-a11y-then-out" : {
+      "comment" : "Added to an Airing today row that is out. Argument 1: label (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, out"
+          }
+        }
+      }
+    },
+    "widget-a11y-then-paused" : {
+      "comment" : "Added to the VoiceOver line of the downloads activity when it is paused. Argument 1: label (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, paused"
+          }
+        }
+      }
+    },
+    "widget-a11y-then-time-left" : {
+      "comment" : "Added to the VoiceOver line of the downloads activity: the time left. Argument 1: label (Text). Argument 2: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@ left"
+          }
+        }
+      }
+    },
+    "widget-a11y-then-watched" : {
+      "comment" : "Added to an Airing today row that was watched. Argument 1: label (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, watched"
+          }
+        }
+      }
+    },
+    "widget-action-resume" : {
+      "comment" : "Button of the large Continue widget: carry on with an episode that was part-watched. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume %1$@"
+          }
+        }
+      }
+    },
+    "widget-action-start" : {
+      "comment" : "Button of the large Continue widget: start an episode. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start %1$@"
+          }
+        }
+      }
+    },
+    "widget-aired-at" : {
+      "comment" : "Line of the airing activity once the episode is out. The time is the device's clock. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aired at %1$@"
+          }
+        }
+      }
+    },
+    "widget-airing-description" : {
+      "comment" : "Description of the Airing today widget in the gallery.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today's episodes, with the shows in your list marked."
+          }
+        }
+      }
+    },
+    "widget-airing-title-small" : {
+      "comment" : "Short title of the small Airing today widget.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        }
+      }
+    },
     "widget-airing-today" : {
       "comment" : "Title of the airing widget.",
       "extractionState" : "manual",
@@ -22319,6 +22683,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Airing today"
+          }
+        }
+      }
+    },
+    "widget-airs-at" : {
+      "comment" : "Line of the airing activity before it is out. The time is the device's clock. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Airs at %1$@"
+          }
+        }
+      }
+    },
+    "widget-airs-day" : {
+      "comment" : "Small widget line: the show, its episode and the day it airs. Argument 1: title (Text). Argument 2: episode (Int). Argument 3: day (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ E%2$lld airs %3$@."
+          }
+        }
+      }
+    },
+    "widget-bytes-of" : {
+      "comment" : "Line of the downloads activity: the size done and the size in all. Argument 1: done (Text). Argument 2: total (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ of %2$@"
+          }
+        }
+      }
+    },
+    "widget-caught-up-next" : {
+      "comment" : "Line under that title when the next episode is on the person's list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next from your list:"
+          }
+        }
+      }
+    },
+    "widget-caught-up-none" : {
+      "comment" : "Line under that title when the next episode is not known.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing more to continue."
+          }
+        }
+      }
+    },
+    "widget-caught-up-title" : {
+      "comment" : "Title of the Continue widget when nothing is left to watch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're caught up"
           }
         }
       }
@@ -22347,6 +22783,244 @@
         }
       }
     },
+    "widget-connect-detail-long" : {
+      "comment" : "Line on the Continue widget when nothing is connected, for the medium and large sizes. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect %1$@, or play an episode, to see what you're watching here."
+          }
+        }
+      }
+    },
+    "widget-connect-detail-short" : {
+      "comment" : "Line on the Continue widget when nothing is connected, for the small size. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect %1$@, or play an episode, to see it here."
+          }
+        }
+      }
+    },
+    "widget-connect-tracker" : {
+      "comment" : "Button on the Continue widget that connects the tracker. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect %1$@"
+          }
+        }
+      }
+    },
+    "widget-continue-description" : {
+      "comment" : "Description of the Continue widget in the gallery.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The next episode of what you're watching."
+          }
+        }
+      }
+    },
+    "widget-continue-title" : {
+      "comment" : "Name of the Continue widget, in the gallery and its title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue watching"
+          }
+        }
+      }
+    },
+    "widget-continues-when-open" : {
+      "comment" : "Line of the downloads activity when the app has not updated it for a while.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continues when you open anistream"
+          }
+        }
+      }
+    },
+    "widget-day-today" : {
+      "comment" : "Today, inside a line such as \"Thursday 16:30\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "today"
+          }
+        }
+      }
+    },
+    "widget-day-tomorrow" : {
+      "comment" : "Tomorrow, inside a line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tomorrow"
+          }
+        }
+      }
+    },
+    "widget-day-yesterday" : {
+      "comment" : "Yesterday, inside a line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "yesterday"
+          }
+        }
+      }
+    },
+    "widget-downloaded-line" : {
+      "comment" : "Line of the downloads activity when an episode finished. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@ downloaded"
+          }
+        }
+      }
+    },
+    "widget-downloaded-ready" : {
+      "comment" : "Second line of the downloads activity when an episode finished.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready to watch offline"
+          }
+        }
+      }
+    },
+    "widget-downloading-title" : {
+      "comment" : "Title of the downloads activity while several episodes download. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Downloading one episode"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Downloading %1$lld episodes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "widget-downloads-episode" : {
+      "comment" : "Line of the downloads activity: an episode that is downloading. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@"
+          }
+        }
+      }
+    },
+    "widget-downloads-paused" : {
+      "comment" : "Line of the downloads activity while paused.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
+          }
+        }
+      }
+    },
+    "widget-downloads-then-more" : {
+      "comment" : "Line of the downloads activity: the first show, then how many more follow. Argument 1: title (Text). Argument 2: episode (Text). Argument 3: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ E%2$@, then %3$lld more"
+          }
+        }
+      }
+    },
+    "widget-episode-long" : {
+      "comment" : "Long episode name in a widget. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld"
+          }
+        }
+      }
+    },
+    "widget-episode-short" : {
+      "comment" : "Short episode name in a widget. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E%1$lld"
+          }
+        }
+      }
+    },
+    "widget-in-time" : {
+      "comment" : "Row state: an episode comes out in a while. The span is already worded, and counts down. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In %1$@"
+          }
+        }
+      }
+    },
     "widget-in-your-list" : {
       "comment" : "Heading of the section that shows what is in the library.",
       "extractionState" : "manual",
@@ -22359,6 +23033,78 @@
         }
       }
     },
+    "widget-line-left" : {
+      "comment" : "Line of the Continue widget: an episode left part-way and the time left. Argument 1: episode (Text). Argument 2: left (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "widget-line-resume" : {
+      "comment" : "Line of the Continue widget: resume an episode. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume %1$@"
+          }
+        }
+      }
+    },
+    "widget-line-start" : {
+      "comment" : "Line of the Continue widget: what plays next, with the episode already named. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start %1$@"
+          }
+        }
+      }
+    },
+    "widget-next-line" : {
+      "comment" : "Under a widget: the next episode and when it airs. Argument 1: when (Text). Argument 2: title (Text). Argument 3: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next: %1$@ · %2$@ · Episode %3$lld"
+          }
+        }
+      }
+    },
+    "widget-next-line-short" : {
+      "comment" : "The same line, shorter, for the small size. Argument 1: when (Text). Argument 2: title (Text). Argument 3: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next: %1$@, %2$@ E%3$lld"
+          }
+        }
+      }
+    },
+    "widget-next-time" : {
+      "comment" : "Header detail on the large Airing today widget: when the next episode airs. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next %1$@"
+          }
+        }
+      }
+    },
     "widget-no-schedule" : {
       "comment" : "Line when there is no schedule yet.",
       "extractionState" : "manual",
@@ -22367,6 +23113,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No schedule for today yet. Open anistream to update it."
+          }
+        }
+      }
+    },
+    "widget-nothing-airing-short" : {
+      "comment" : "Line of the small widget when nothing airs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing airing."
+          }
+        }
+      }
+    },
+    "widget-nothing-more-today" : {
+      "comment" : "Line on the Lock Screen when nothing more airs today.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing more today"
           }
         }
       }
@@ -22395,6 +23165,102 @@
         }
       }
     },
+    "widget-open-to-update" : {
+      "comment" : "Second line of the medium widget when it has no schedule.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open anistream to update it."
+          }
+        }
+      }
+    },
+    "widget-out-ago" : {
+      "comment" : "Row state: an episode came out a while ago. The span is already worded, and counts up as time passes. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Out %1$@ ago"
+          }
+        }
+      }
+    },
+    "widget-out-now" : {
+      "comment" : "Line of the airing activity once the episode is out.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Out now"
+          }
+        }
+      }
+    },
+    "widget-pause-downloads" : {
+      "comment" : "VoiceOver, the button that pauses the downloads.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause downloads"
+          }
+        }
+      }
+    },
+    "widget-paused-line" : {
+      "comment" : "Line of the playback activity while paused. The time is the time left, such as \"18:20\". Argument 1: left (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused · %1$@ left"
+          }
+        }
+      }
+    },
+    "widget-play-episode-long" : {
+      "comment" : "VoiceOver, the button of the downloads activity that plays an episode that finished. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play episode %1$@"
+          }
+        }
+      }
+    },
+    "widget-play-episode-short" : {
+      "comment" : "Button of the downloads activity that starts an episode that finished. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play E%1$@"
+          }
+        }
+      }
+    },
+    "widget-resume-downloads" : {
+      "comment" : "VoiceOver, the button that continues the downloads.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume downloads"
+          }
+        }
+      }
+    },
     "widget-resume-dubbed-label" : {
       "comment" : "Accessibility label of a widget row: continue a dubbed episode. Argument 1: episode (Int). Argument 2: title (Text).",
       "extractionState" : "manual",
@@ -22419,6 +23285,30 @@
         }
       }
     },
+    "widget-size-left" : {
+      "comment" : "Line of the downloads activity: the size still to download. Argument 1: size (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ left"
+          }
+        }
+      }
+    },
+    "widget-speed" : {
+      "comment" : "Download speed, such as \"2.4 MB/s\". The size is already formatted. Argument 1: size (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/s"
+          }
+        }
+      }
+    },
     "widget-start-label" : {
       "comment" : "Accessibility label of a widget row: start an episode. Argument 1: episode (Int). Argument 2: title (Text).",
       "extractionState" : "manual",
@@ -22427,6 +23317,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Play episode %1$lld of %2$@"
+          }
+        }
+      }
+    },
+    "widget-time-left" : {
+      "comment" : "Line of the downloads activity: the time still to wait. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ left"
+          }
+        }
+      }
+    },
+    "widget-tomorrow-first" : {
+      "comment" : "Line for tomorrow: the first episode and the time. Argument 1: time (Text). Argument 2: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomorrow: %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "widget-tomorrow-more" : {
+      "comment" : "Line for tomorrow: the first episode and how many more follow. Argument 1: time (Text). Argument 2: title (Text). Argument 3: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomorrow: %1$@ · %2$@ and %3$lld more"
+          }
+        }
+      }
+    },
+    "widget-tomorrow-none" : {
+      "comment" : "Line when nothing airs tomorrow.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomorrow: nothing airing"
           }
         }
       }

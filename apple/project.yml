@@ -245,6 +245,9 @@ targets:
     templates: [Framework]
     templateAttributes: { module: AnistreamWidgetData }
     sources: [Packages/AnistreamWidgets/Sources/AnistreamWidgetData]
+    dependencies:
+      - target: AnistreamStrings
+        embed: false
   AnistreamStrings:
     templates: [Strings]
     templateAttributes: { module: AnistreamStrings }
@@ -302,6 +305,9 @@ targets:
     templates: [Framework, Fixtures]
     templateAttributes: { module: AnistreamWidgetData }
     sources: [Packages/AnistreamWidgets/Sources/AnistreamWidgetData]
+    dependencies:
+      - target: AnistreamStringsFixtures
+        embed: false
   AnistreamStringsFixtures:
     templates: [Strings, Fixtures]
     templateAttributes: { module: AnistreamStrings }
