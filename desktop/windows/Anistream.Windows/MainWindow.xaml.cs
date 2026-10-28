@@ -64,6 +64,12 @@ public sealed partial class MainWindow : Window
         string[] names = [T.NavContinue, T.NavCalendar, T.NavSeasonal, T.NavLibrary, T.NavDownloads, T.SourcesTitle, T.NavPluginStores];
         foreach (var (item, n) in Nav.MenuItems.OfType<NavigationViewItem>().Select((item, i) => (item, i)))
             ToolTipService.SetToolTip(item, T.TooltipWithKey(names[n], $"Ctrl+{n + 1}"));
+        // The built-in Settings item reads the system language, so it takes the catalogue's word.
+        Nav.Loaded += (_, _) =>
+        {
+            if (Nav.SettingsItem is NavigationViewItem settingsItem)
+                settingsItem.Content = T.NavSettings;
+        };
         ui = DispatcherQueue.GetForCurrentThread();
 
         ExtendsContentIntoTitleBar = true;

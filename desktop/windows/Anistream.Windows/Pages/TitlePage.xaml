@@ -41,22 +41,28 @@
               <TextBlock x:Name="Secondary" Style="{StaticResource HazeBodyStyle}" />
               <TextBlock x:Name="Meta" Style="{StaticResource HazeCaptionStyle}" />
               <local:OfflineLine />
-              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
+              <Grid ColumnSpacing="8" Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
                 <Button x:Name="PrimaryAction" Style="{StaticResource PrimaryActionStyle}" Click="OnPrimary" />
                 <!-- Play on TV: the episode the primary action plays, on a TV with anistream. -->
-                <Button x:Name="TvAction" Height="40" Visibility="Collapsed" Click="OnPlayOnTv"
+                <Button x:Name="TvAction" Grid.Column="1" HorizontalAlignment="Left" Height="40" MinWidth="96" Visibility="Collapsed" Click="OnPlayOnTv"
                         ToolTipService.ToolTip="{x:Bind s:T.TitlePlayOnTvTooltip}">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE7F4;" FontSize="16" />
-                    <TextBlock Text="{x:Bind s:T.TvPlayOn}" />
+                    <TextBlock Text="{x:Bind s:T.TvPlayOn}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                 </Button>
-                <DropDownButton x:Name="StatusButton" Height="40" AutomationProperties.Name="{x:Bind s:T.TitleListStatus}">
+                <DropDownButton x:Name="StatusButton" Grid.Column="2" Height="40" AutomationProperties.Name="{x:Bind s:T.TitleListStatus}">
                   <DropDownButton.Flyout>
                     <MenuFlyout x:Name="StatusMenu" Placement="BottomEdgeAlignedLeft" />
                   </DropDownButton.Flyout>
                 </DropDownButton>
-                <Button x:Name="MoreButton" Height="40" Width="40" Padding="0" ToolTipService.ToolTip="{x:Bind s:T.ActionMore}" AutomationProperties.Name="{x:Bind s:T.ActionMore}">
+                <Button x:Name="MoreButton" Grid.Column="3" Height="40" Width="40" Padding="0" ToolTipService.ToolTip="{x:Bind s:T.ActionMore}" AutomationProperties.Name="{x:Bind s:T.ActionMore}">
                   <FontIcon Glyph="&#xE712;" />
                   <Button.Flyout>
                     <MenuFlyout x:Name="MoreMenu" Placement="BottomEdgeAlignedLeft">
@@ -85,7 +91,7 @@
                     </MenuFlyout>
                   </Button.Flyout>
                 </Button>
-              </StackPanel>
+              </Grid>
               <TextBlock x:Name="WaitingLine" Style="{StaticResource HazeBodyStyle}" Visibility="Collapsed" />
             </StackPanel>
           </Grid>
@@ -94,18 +100,23 @@
 
           <StackPanel Spacing="4">
             <!-- The season picker and the dub line sit beside the heading, so their arriving moves nothing. -->
-            <StackPanel Orientation="Horizontal" Spacing="16" MinHeight="36">
+            <Grid ColumnSpacing="16" MinHeight="36">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
               <TextBlock Text="{x:Bind s:T.TitleEpisodes}" Style="{StaticResource SectionTitleStyle}" VerticalAlignment="Center" />
-              <ComboBox x:Name="SeasonPicker" MinWidth="220" VerticalAlignment="Center" Visibility="Collapsed"
+              <ComboBox x:Name="SeasonPicker" Grid.Column="1" MinWidth="220" VerticalAlignment="Center" Visibility="Collapsed"
                         AutomationProperties.Name="{x:Bind s:T.FilterSeason}" SelectionChanged="OnSeasonPicked" />
               <!-- How far the dub goes. Faded in when the engine says. -->
-              <TextBlock x:Name="DubLine" Style="{StaticResource HazeCaptionStyle}" VerticalAlignment="Center"
+              <TextBlock x:Name="DubLine" Style="{StaticResource HazeCaptionStyle}" Grid.Column="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                          Margin="0,4,0,0" Opacity="0">
                 <TextBlock.OpacityTransition>
                   <ScalarTransition Duration="0:0:0.2" />
                 </TextBlock.OpacityTransition>
               </TextBlock>
-            </StackPanel>
+            </Grid>
             <TextBlock x:Name="EpisodesNote" Style="{StaticResource HazeCaptionStyle}" Visibility="Collapsed" />
             <ListView x:Name="EpisodeList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnEpisodeClick"
                       ContainerContentChanging="OnEpisodeContainer"
