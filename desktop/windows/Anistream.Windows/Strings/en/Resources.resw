@@ -35,6 +35,42 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DiscussionAgeNow" xml:space="preserve">
+    <value>now</value>
+    <comment>A comment's age, beside its author, when it was written under a minute ago.</comment>
+  </data>
+  <data name="DiscussionAgeMinutes" xml:space="preserve">
+    <value>{minutes} min</value>
+    <comment>A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeHours" xml:space="preserve">
+    <value>{hours} h</value>
+    <comment>A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeDays" xml:space="preserve">
+    <value>{days} d</value>
+    <comment>A comment's age, beside its author, in days. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeWeeks" xml:space="preserve">
+    <value>{weeks} w</value>
+    <comment>A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="DiscussionAgeYears" xml:space="preserve">
+    <value>{years} y</value>
+    <comment>A comment's age, beside its author, in years. Abbreviated, as a timeline shows it.</comment>
+  </data>
+  <data name="NoticeCommentLikeFailed" xml:space="preserve">
+    <value>Couldn't like the comment. Try again.</value>
+    <comment>Toast when a like on a comment did not reach AniList. The like is taken back.</comment>
+  </data>
+  <data name="NoticeCommentDeleteFailed" xml:space="preserve">
+    <value>Couldn't delete the comment. Try again.</value>
+    <comment>Toast when a comment could not be deleted on AniList. The comment stays.</comment>
+  </data>
+  <data name="NoticeDiscussionSignIn" xml:space="preserve">
+    <value>Sign in with AniList to like and reply.</value>
+    <comment>Toast when the viewer tried to like or post in a discussion without signing in to AniList.</comment>
+  </data>
   <data name="NoticeReason" xml:space="preserve">
     <value>{reason}</value>
     <comment>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</comment>
@@ -1287,11 +1323,11 @@
     <value>{minutes} min</value>
     <comment>A length in minutes, for an episode.</comment>
   </data>
-  <data name="TimeNow" xml:space="preserve">
+  <data name="TimeNowInline" xml:space="preserve">
     <value>now</value>
     <comment>A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.</comment>
   </data>
-  <data name="TimeJustNow" xml:space="preserve">
+  <data name="TimeJustNowInline" xml:space="preserve">
     <value>just now</value>
     <comment>How long ago, under a minute. Lower case, as it stands inside a line.</comment>
   </data>
@@ -2539,6 +2575,18 @@
     <value>{seeders} seeders</value>
     <comment>Line of a source: its quality and size already formatted, and the number of seeders.</comment>
   </data>
+  <data name="PartyNeedsConnection" xml:space="preserve">
+    <value>A watch party needs a connection. You're offline.</value>
+    <comment>Foot of the watch party form while the device is offline.</comment>
+  </data>
+  <data name="PartyOpenSources" xml:space="preserve">
+    <value>Open sources</value>
+    <comment>Button that goes to the Sources page, when the watch party's episode has no source because none are set up.</comment>
+  </data>
+  <data name="PartyLookingSources" xml:space="preserve">
+    <value>Looking through your sources…</value>
+    <comment>Line while the sources are searched for the watch party's episode.</comment>
+  </data>
   <data name="PlayerUpNext" xml:space="preserve">
     <value>Up next</value>
     <comment>Label on the card for the episode that plays after this one.</comment>
@@ -3615,6 +3663,18 @@
     <value>Resume episode {episode}, dubbed, of {title}</value>
     <comment>Accessibility label of a widget row: continue a dubbed episode.</comment>
   </data>
+  <data name="SettingsUpscalingNoteNatural" xml:space="preserve">
+    <value>Faithful line work and texture, nothing restyled.</value>
+    <comment>Preview note under the upscaling frame for the natural look.</comment>
+  </data>
+  <data name="SettingsUpscalingNoteSharp" xml:space="preserve">
+    <value>Crisper lines and stronger edges, at some cost to texture.</value>
+    <comment>Preview note under the upscaling frame for the sharp look.</comment>
+  </data>
+  <data name="SettingsSeedingOpenOnly" xml:space="preserve">
+    <value>Seeding runs only while anistream is open.</value>
+    <comment>Line under the seeding group in Settings: seeding stops when the app closes.</comment>
+  </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>Sources</value>
     <comment>Title of the screen or section that lists sources.</comment>
@@ -3878,6 +3938,10 @@
   <data name="SourcesSourceOrderRow" xml:space="preserve">
     <value>Source order</value>
     <comment>Row: where the plugin's page stands.</comment>
+  </data>
+  <data name="SourcesTorrentsNote" xml:space="preserve">
+    <value>Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.</value>
+    <comment>Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.</comment>
   </data>
   <data name="StoresJoined" xml:space="preserve">
     <value>Joined</value>
@@ -4382,6 +4446,10 @@
   <data name="StoresPluginNameVersion" xml:space="preserve">
     <value>{name} {version}</value>
     <comment>Version line of a plugin in the publish sheet.</comment>
+  </data>
+  <data name="StoresRemoveAll" xml:space="preserve">
+    <value>Remove all</value>
+    <comment>Button on the summary row that removes every device that joined with the link.</comment>
   </data>
   <data name="TitleLoadFailed" xml:space="preserve">
     <value>Couldn't load this title</value>
@@ -5418,6 +5486,74 @@
   <data name="TvRemotes" xml:space="preserve">
     <value>Remotes</value>
     <comment>Heading of the settings group on the TV that lists the remotes.</comment>
+  </data>
+  <data name="TvAnother" xml:space="preserve">
+    <value>Another TV</value>
+    <comment>Row title of the button that pairs another TV once one is paired.</comment>
+  </data>
+  <data name="TvRowNeedsUpdate" xml:space="preserve">
+    <value>Needs the same anistream version as this device</value>
+    <comment>Under a TV in the list: its version does not match.</comment>
+  </data>
+  <data name="TvPairedSeen" xml:space="preserve">
+    <value>{paired} · seen {ago}</value>
+    <comment>Settings line of a paired TV: paired on a date, last seen a while ago.</comment>
+  </data>
+  <data name="TvVolume" xml:space="preserve">
+    <value>TV volume</value>
+    <comment>Title of the remote's volume row.</comment>
+  </data>
+  <data name="TvVolumeDown" xml:space="preserve">
+    <value>Volume down</value>
+    <comment>Accessible label of the button that turns the TV down.</comment>
+  </data>
+  <data name="TvVolumeUp" xml:space="preserve">
+    <value>Volume up</value>
+    <comment>Accessible label of the button that turns the TV up.</comment>
+  </data>
+  <data name="TvVolumeOf" xml:space="preserve">
+    <value>{volume} of 100</value>
+    <comment>The TV's volume as a value of 100.</comment>
+  </data>
+  <data name="TvProblemWrongCode" xml:space="preserve">
+    <value>That code didn't match. Check the code on the TV and try again.</value>
+    <comment>The pairing code typed did not match.</comment>
+  </data>
+  <data name="TvProblemFull" xml:space="preserve">
+    <value>This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.</value>
+    <comment>The TV cannot take another paired device.</comment>
+  </data>
+  <data name="TvProblemBusy" xml:space="preserve">
+    <value>The TV is connected to as many devices as it can. Try again soon.</value>
+    <comment>The TV cannot take another connection now.</comment>
+  </data>
+  <data name="TvProblemVersion" xml:space="preserve">
+    <value>The TV runs another version of anistream. Update both to the same one.</value>
+    <comment>The TV and this app speak different versions.</comment>
+  </data>
+  <data name="TvProblemNotNow" xml:space="preserve">
+    <value>Nothing is playing on the TV.</value>
+    <comment>A command needs something playing and nothing is.</comment>
+  </data>
+  <data name="TvProblemUnpaired" xml:space="preserve">
+    <value>The TV doesn't know this device any more. Pair again.</value>
+    <comment>The TV has forgotten this computer.</comment>
+  </data>
+  <data name="TvProblemKeyChanged" xml:space="preserve">
+    <value>The TV was reset or reinstalled since you paired. Pair again.</value>
+    <comment>The TV's key changed since pairing.</comment>
+  </data>
+  <data name="TvProblemUnreachable" xml:space="preserve">
+    <value>Can't reach the TV. Check that it's on, with anistream open, on the same network.</value>
+    <comment>The TV did not answer.</comment>
+  </data>
+  <data name="TvProblemGone" xml:space="preserve">
+    <value>That TV is no longer on the network.</value>
+    <comment>The TV picked in the list has left the network.</comment>
+  </data>
+  <data name="TvProblemNotALink" xml:space="preserve">
+    <value>That isn't a TV's pairing code or address.</value>
+    <comment>What was typed or scanned is not a TV's code or address.</comment>
   </data>
   <data name="UpdatesTitle" xml:space="preserve">
     <value>Updates</value>

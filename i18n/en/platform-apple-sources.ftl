@@ -72,9 +72,6 @@ stores-open-join-no-names = No names are kept.
 # Line under the count of devices that joined with the link, while the link is closed.
 stores-open-join-keep-working = They keep working until you remove them.
 
-# Button that removes every device that joined with the link.
-stores-remove-all = Remove all
-
 # Line of a device that joined with the link: when it was last seen. The time is relative.
 # @arg when: text
 stores-device-seen-at = Seen { $when }
@@ -135,16 +132,9 @@ party-leave-and-quit = Leave and quit
 # @arg room: text
 party-leave-detail-window = Closing the window leaves { $room }. Everyone else carries on without you.
 
-# Line on the form when the device is offline.
-party-needs-connection = A { -watch-party } needs a connection. You're offline.
-
 # Title of the sheet that lists sources for the party's episode. The episode is a number.
 # @arg episode: text
 party-choose-source-title = Choose a { -source } for episode { $episode }
-
-# Button that opens the sources screen.
-# @max 28
-party-open-sources = Open { -source-cap-pl }
 
 # Button that lists what each source has for the episode.
 # @max 28
@@ -153,9 +143,6 @@ party-choose-source = Choose a { -source }
 # Button that plays the chosen source with the room.
 # @max 36
 party-play-with = Play with the { -watch-party }
-
-# Line while the sources are asked about the episode.
-party-looking-sources = Looking through your { -source-pl }…
 
 # Line when no source lists the episode.
 # @arg episode: text
@@ -174,9 +161,6 @@ tv-row-paired-away = Paired, not seen on this network
 
 # Line under the name of a TV in the picker: found, not paired yet.
 tv-row-not-paired = Not paired yet
-
-# Line under the name of a TV in the picker: it runs another version of the app.
-tv-row-needs-update = Needs the same { -app-name } version as this { -device }
 
 # Accessibility hint of a TV's row that pairs.
 tv-row-pair-hint = Pairs with this TV
@@ -205,19 +189,6 @@ tv-code-on = Code on { $name }
 # Title of the remote when nothing plays on the TV.
 tv-nothing-playing = Nothing playing
 
-# Label of the TV's volume.
-tv-volume = TV volume
-
-# Accessibility label of the button that lowers the volume.
-tv-volume-down = Volume down
-
-# Accessibility label of the button that raises the volume.
-tv-volume-up = Volume up
-
-# Value under the TV's volume. The volume is a number from 0 to 100.
-# @arg volume: int
-tv-volume-of = { $volume } of 100
-
 # Accessibility action that opens the remote.
 tv-remote-action = Show the remote
 
@@ -233,39 +204,6 @@ tv-bar-cant-reach = Can't reach { $name }
 # @arg name: text
 tv-bar-not-found = { $name } not found
 
-# Why a code was not accepted.
-tv-problem-wrong-code = That code didn't match. Check the code on the TV and try again.
-
-# Why a TV cannot be paired: it keeps as many devices as it can.
-tv-problem-full = This TV has as many { -device-pl } paired as it can keep. Remove one in the TV's settings, under Remotes.
-
-# Why a TV cannot be connected: too many devices are connected.
-tv-problem-busy = The TV is connected to as many { -device-pl } as it can. Try again soon.
-
-# Why a TV cannot be used: another version of the app.
-tv-problem-version = The TV runs another version of { -app-name }. Update both to the same one.
-
-# Why a command was not sent: nothing plays on the TV.
-tv-problem-not-now = Nothing is playing on the TV.
-
-# Status and problem: the TV no longer knows this device.
-tv-problem-unpaired = The TV doesn't know this { -device } any more. Pair again.
-
-# Status and problem: the TV was reset or reinstalled after pairing.
-tv-problem-key-changed = The TV was reset or reinstalled since you paired. Pair again.
-
-# Why a TV could not be reached.
-tv-problem-unreachable = Can't reach the TV. Check that it is on, with { -app-name } open, on the same network.
-
-# Why a TV could not be used: it left the network.
-tv-problem-gone = That TV is no longer on the network.
-
-# Why an address or code was not used: it is not a TV's.
-tv-problem-not-a-link = That isn't a TV's pairing code or address.
-
-# Row title in the settings for pairing one more TV when some are paired.
-tv-another = Another TV
-
 # Title of the list of paired TVs on a phone.
 tv-paired-tvs = Paired TVs
 
@@ -275,11 +213,6 @@ tv-title-list = TVs
 # Line under the settings group of paired TVs. The code is a short fingerprint.
 # @arg code: text
 tv-settings-footnote = A TV lists this { -device } with the code { $code }. Forget a TV here and it forgets this { -device } too.
-
-# Line of a paired TV in the settings: when it was paired and when it was last seen.
-# @arg paired: text
-# @arg when: text
-tv-paired-seen = { $paired } · seen { $when }
 
 # Time of the last sighting of a paired TV, within the last minute.
 tv-seen-just-now = just now
@@ -299,7 +232,4 @@ sources-remove-title = Remove { $name }?
 
 # Detail of the confirmation that removes a plugin.
 sources-remove-detail = It is deleted from this { -device }. A { -plugin-store } can install it again.
-
-# Note under the torrents' actions on the sources page.
-sources-torrents-note = Torrents are part of { -app-name }, not a { -plugin }. What protects their traffic, the connection check and seeding are set in Settings › { -source-cap-pl }.
 

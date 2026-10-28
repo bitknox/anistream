@@ -212,6 +212,22 @@ pub(crate) fn dispatch(
         }
         Command::OpenExternal { url } => open_external(url, services, tx),
 
+        // An episode's discussion: off the loop, with no job, each answered with the
+        // discussion whole. See `discussion`.
+        Command::OpenDiscussion { media, episode } => {
+            crate::discussion::open(media, episode, engine, services, tx)
+        }
+        Command::MoreComments => crate::discussion::more(engine, services, tx),
+        Command::PostComment { parent, text } => {
+            crate::discussion::post(parent, text, engine, services, tx)
+        }
+        Command::EditComment { id, text } => {
+            crate::discussion::edit(id, text, engine, services, tx)
+        }
+        Command::DeleteComment { id } => crate::discussion::delete(id, engine, services, tx),
+        Command::LikeComment { id } => crate::discussion::like(id, engine, services, tx),
+        Command::CloseDiscussion => crate::discussion::close(engine),
+
         // A title's episodes, and the source match they come from.
         // Quietly, with no job, and never in the way of the table or a play: see
         // `titles::dub`.

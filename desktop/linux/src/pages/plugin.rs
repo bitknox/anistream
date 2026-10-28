@@ -1,4 +1,4 @@
-//! A source's page, pushed from Providers or from a store: what it is and where it came from,
+//! A source's page, pushed from Sources or from a store: what it is and where it came from,
 //! what can be done with it, and its version, response time and the hosts it may contact. Also
 //! the confirmations its actions ask: an update names the hosts it adds, a removal says what
 //! stays.
@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use adw::prelude::*;
 use anistream_core::settings::SettingValue;
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
     event::Event,
@@ -62,12 +63,12 @@ impl Info {
     fn origin(&self) -> String {
         if let Some(row) = &self.row {
             return match &row.origin {
-                ProviderOrigin::Store { name: Some(name), .. } => format!("From {name}"),
+                ProviderOrigin::Store { name: Some(name), .. } => t::sources_origin_from(name),
                 _ => providers::origin(row),
             };
         }
         match &self.listing {
-            Some((store, _)) => format!("In {}", store.name),
+            Some((store, _)) => t::sources_origin_in(&store.name),
             None => String::new(),
         }
     }
@@ -85,17 +86,17 @@ impl Info {
 pub fn new_hosts_line(hosts: &[String]) -> Option<String> {
     let first = hosts.first()?;
     Some(match hosts.len() {
-        1 => format!("This update also contacts {first}."),
-        n => format!("This update also contacts {first} and {} more.", n - 1),
+        1 => t::sources_update_contacts_one(first),
+        n => t::sources_update_contacts(first, n as i64 - 1),
     })
 }
 
 /// What a store's plugin may contact, in a line: "Contacts films.example and 1 more".
 pub fn contacts_line(hosts: &[String]) -> String {
     match hosts {
-        [] => "Contacts no hosts".into(),
-        [one] => format!("Contacts {one}"),
-        [first, rest @ ..] => format!("Contacts {first} and {} more", rest.len()),
+        [] => t::sources_contacts_none(),
+        [one] => t::sources_contacts_one(one),
+        [first, rest @ ..] => t::sources_contacts_line(first, rest.len() as i64),
     }
 }
 
@@ -135,7 +136,7 @@ fn push(ctx: &Rc<Ctx>, subject: Subject) {
                     page.set_title(&info.name());
                     fill(&ctx, &column, &info);
                 }
-                None => column.append(&widgets::haze("This source is no longer here.", "")),
+                None => column.append(&widgets::haze(&t::sources_detail_gone(), "")),
             }
         }
     };
@@ -168,11 +169,11 @@ fn fill(ctx: &Rc<Ctx>, column: &gtk::Box, info: &Info) {
     if let Some(row) = &info.row {
         let line = match Standing::of(row) {
             Standing::Failing => Some(match &row.last_error {
-                Some(error) => format!("Not answering. {}", capitalized(error)),
-                None => "Not answering.".into(),
+                Some(error) => t::sources_detail_not_answering(&capitalized(error)),
+                None => t::sources_detail_not_answering_plain(),
             }),
-            Standing::HeldBack => Some("Held back until the connection check passes.".into()),
-            Standing::Off => Some("Disabled. It keeps its place and is not tried.".into()),
+            Standing::HeldBack => Some(t::sources_detail_held_back()),
+            Standing::Off => Some(t::sources_detail_disabled()),
             _ => None,
         };
         if let Some(line) = line {
@@ -209,7 +210,7 @@ fn fill(ctx: &Rc<Ctx>, column: &gtk::Box, info: &Info) {
             .setting(SettingKey::Torrents)
             .is_some_and(|r| r.value == "on");
         if on {
-            let off = button("Disable");
+            let off = button(&t::action_disable());
             let hub = Rc::downgrade(&ctx.hub);
             off.connect_clicked(move |_| {
                 if let Some(hub) = hub.upgrade() {
@@ -220,15 +221,11 @@ fn fill(ctx: &Rc<Ctx>, column: &gtk::Box, info: &Info) {
                 }
             });
         }
-        let settings = button("Open Sources Settings");
+        let settings = button(&t::sources_open_settings());
         settings.set_action_name(Some("win.settings-pane"));
         settings.set_action_target_value(Some(&"sources".to_variant()));
         column.append(&buttons);
-        let note = widgets::haze(
-            "Torrents are part of anistream, not a plugin. What protects their traffic, the \
-             connection check and seeding are set in Settings, under Sources.",
-            "",
-        );
+        let note = widgets::haze(&t::sources_torrents_note(), "");
         note.set_margin_top(12);
         column.append(&note);
         return;
@@ -239,12 +236,12 @@ fn fill(ctx: &Rc<Ctx>, column: &gtk::Box, info: &Info) {
         let live = store.state == StoreState::Ready;
         let (label, amber) = match &plugin.status {
             StorePluginStatus::Update { .. } => {
-                (Some(format!("Update to {}", plugin.version)), true)
+                (Some(t::updates_update_to(&plugin.version)), true)
             }
             StorePluginStatus::Available if info.row.is_none() => {
-                (Some("Install".into()), false)
+                (Some(t::action_install()), false)
             }
-            StorePluginStatus::AddedByHand => (Some("Replace…".into()), false),
+            StorePluginStatus::AddedByHand => (Some(t::action_replace()), false),
             _ => (None, false),
         };
         if let Some(label) = label {
@@ -260,7 +257,7 @@ fn fill(ctx: &Rc<Ctx>, column: &gtk::Box, info: &Info) {
     }
     if let Some(row) = &info.row {
         if Standing::of(row) == Standing::Failing {
-            let again = button("Check Again");
+            let again = button(&t::action_check_again());
             let hub = Rc::downgrade(&ctx.hub);
             again.connect_clicked(move |_| {
                 if let Some(hub) = hub.upgrade() {
@@ -268,10 +265,11 @@ fn fill(ctx: &Rc<Ctx>, column: &gtk::Box, info: &Info) {
                 }
             });
         }
-        let toggle = button(if row.disabled { "Enable" } else { "Disable" });
+        let toggle =
+            button(&if row.disabled { t::action_enable() } else { t::action_disable() });
         let (ctx2, id) = (Rc::clone(ctx), row.id.clone());
         toggle.connect_clicked(move |_| self::toggle(&ctx2, &id));
-        let remove = button("Remove…");
+        let remove = button(&t::action_remove());
         let (ctx2, id) = (Rc::clone(ctx), row.id.clone());
         remove.connect_clicked(move |_| confirm_remove(&ctx2, &id));
     }
@@ -296,36 +294,33 @@ fn fill(ctx: &Rc<Ctx>, column: &gtk::Box, info: &Info) {
             };
             match &plugin.status {
                 StorePluginStatus::Update { .. } => {
-                    format!("{installed}, {} available", plugin.version)
+                    t::stores_plugin_update_line(&installed, &plugin.version)
                 }
                 _ => installed,
             }
         }
-        (Some(row), None) => row.version.clone().unwrap_or_else(|| "Not from a store".into()),
+        (Some(row), None) => row.version.clone().unwrap_or_else(t::sources_origin_no_store),
         (None, None) => String::new(),
     };
-    fact("Version", &version);
+    fact(&t::sources_version(), &version);
     if let Some(row) = &info.row {
         let time = if Standing::of(row) == Standing::Failing {
-            "No answer".into()
+            t::sources_no_answer()
         } else if let Some(ms) = row.latency_ms {
-            format!("{ms} ms")
+            t::sources_latency(ms as i64)
         } else {
-            "Not checked yet".into()
+            t::sources_not_checked()
         };
-        fact("Response time", &time);
+        fact(&t::sources_response_time(), &time);
     }
     let hosts = info.hosts();
     let contacts = fact(
-        "Contacts",
-        &if hosts.is_empty() { "Listed by its store".into() } else { hosts.join("\n") },
+        &t::sources_contacts_label(),
+        &if hosts.is_empty() { t::sources_listed_by_store() } else { hosts.join("\n") },
     );
     contacts.set_subtitle_lines(0);
     column.append(&facts);
-    let note = widgets::haze(
-        &format!("{name} can contact only these hosts and cannot read your files."),
-        "caption",
-    );
+    let note = widgets::haze(&t::stores_plugin_limits_short(), "caption");
     note.set_margin_top(8);
     column.append(&note);
 }
@@ -353,11 +348,11 @@ pub fn confirm_remove(ctx: &Rc<Ctx>, id: &str) {
         .map(providers::name)
         .unwrap_or_else(|| id.into());
     let dialog = adw::AlertDialog::new(
-        Some(&format!("Remove {name}?")),
-        Some("It is deleted from this computer. A store can install it again."),
+        Some(&t::stores_remove_plugin_title(&name)),
+        Some(&t::stores_remove_plugin_detail()),
     );
-    dialog.add_response("cancel", "Cancel");
-    dialog.add_response("remove", "Remove");
+    dialog.add_response("cancel", &t::action_cancel());
+    dialog.add_response("remove", &t::action_remove());
     dialog.set_response_appearance("remove", adw::ResponseAppearance::Destructive);
     dialog.set_default_response(Some("cancel"));
     dialog.set_close_response("cancel");
@@ -392,22 +387,20 @@ pub fn install(ctx: &Rc<Ctx>, store: &StoreRow, plugin: &StorePluginRow) {
     };
     let (heading, body, verb) = match &plugin.status {
         StorePluginStatus::Update { from, new_hosts } => {
-            let mut body =
-                format!("Version {} from {} replaces {from}.", plugin.version, store.name);
+            let mut body = t::sources_update_detail(&plugin.version, &store.name, from);
             if let Some(line) = new_hosts_line(new_hosts) {
-                body = format!("{body} {line}");
+                body = format!("{body} {line}"); // i18n-skip
             }
-            (format!("Update {}?", plugin.name), body, "Update")
+            (t::sources_update_title(&plugin.name), body, t::action_update())
         }
         StorePluginStatus::AddedByHand => (
-            format!("Replace {}?", plugin.name),
-            format!(
-                "Version {} from {} replaces the copy added by hand. {}.",
-                plugin.version,
-                store.name,
-                contacts_line(&plugin.hosts)
+            t::sources_replace_title(&plugin.name),
+            t::sources_replace_detail(
+                &plugin.version,
+                &store.name,
+                &contacts_line(&plugin.hosts),
             ),
-            "Replace",
+            t::action_replace(),
         ),
         _ => {
             send();
@@ -415,8 +408,8 @@ pub fn install(ctx: &Rc<Ctx>, store: &StoreRow, plugin: &StorePluginRow) {
         }
     };
     let dialog = adw::AlertDialog::new(Some(&heading), Some(&body));
-    dialog.add_response("cancel", "Cancel");
-    dialog.add_response("install", verb);
+    dialog.add_response("cancel", &t::action_cancel());
+    dialog.add_response("install", &verb);
     dialog.set_response_appearance("install", adw::ResponseAppearance::Suggested);
     dialog.set_default_response(Some("install"));
     dialog.set_close_response("cancel");

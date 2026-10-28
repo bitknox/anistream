@@ -434,3 +434,7 @@ stores-publish-none = No { -plugin-pl } on this { -device } to publish.
 # @arg name: text
 # @arg version: text
 stores-plugin-name-version = { $name } { $version }
+
+# Button on the summary row that removes every device that joined with the link.
+# @max 24
+stores-remove-all = Remove all

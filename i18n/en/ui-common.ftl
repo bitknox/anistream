@@ -235,10 +235,10 @@ time-minutes-left = { $minutes } min left
 time-minutes = { $minutes } min
 
 # A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.
-time-now = now
+time-now-inline = now
 
 # How long ago, under a minute. Lower case, as it stands inside a line.
-time-just-now = just now
+time-just-now-inline = just now
 
 ## When something airs or happens, inside a line such as "Episode 5 airs { $when }". The time is
 ## on the device's clock, already formatted.

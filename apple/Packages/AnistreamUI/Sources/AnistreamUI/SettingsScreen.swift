@@ -521,7 +521,7 @@ struct UpscalingPreview: View {
 
     private func note(_ mode: String) -> String {
         switch mode {
-        case "off": L.settingsUpscalingNoteOff
+        case "off": L.settingsUpscalingNoteNone
         case "sharp · Anime4K": L.settingsUpscalingNoteSharp
         default: L.settingsUpscalingNoteNatural
         }

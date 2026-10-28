@@ -1,7 +1,8 @@
 ---
 // Nagare at a whole number of CSS pixels per sprite pixel, drawn as crisp SVG rects, so the
 // figure needs no script and stays sharp at any zoom.
-import { NAGARE_LABEL, SPRITE, SPRITE_COLORS, SPRITE_H, SPRITE_W } from '../game/nagare';
+import { useSite } from '../i18n/site';
+import { SPRITE, SPRITE_COLORS, SPRITE_H, SPRITE_W } from '../game/nagare';
 
 interface Props {
 	/** CSS pixels per sprite pixel: 4, 5, 6 or 8. */
@@ -10,6 +11,7 @@ interface Props {
 }
 
 const { cell = 5, class: className } = Astro.props;
+const { t } = useSite(Astro);
 const hex = ([r, g, b]: [number, number, number]) =>
 	'#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
 
@@ -34,7 +36,7 @@ SPRITE.forEach((row, y) => {
 	viewBox={`0 0 ${SPRITE_W} ${SPRITE_H}`}
 	shape-rendering="crispEdges"
 	role="img"
-	aria-label={NAGARE_LABEL}
+	aria-label={t('site.nagareAlt')}
 >
 	{runs.map((r) => <rect x={r.x} y={r.y} width={r.w} height="1" fill={r.fill} />)}
 </svg>

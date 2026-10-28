@@ -232,3 +232,6 @@ sources-torrent-source = Torrent { -source }
 
 # Row: where the plugin's page stands.
 sources-source-order-row = { -source-cap } order
+
+# Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
+sources-torrents-note = Torrents are part of { -app-name }, not a { -plugin }. What protects their traffic, the connection check and seeding are set in Settings, under { -source-cap-pl }.

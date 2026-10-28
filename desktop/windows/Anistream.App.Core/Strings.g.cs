@@ -15,6 +15,33 @@ public static partial class T
     /// <summary>The language the resolver answers in, which picks plural forms. Set with the resolver.</summary>
     public static string Language { get; set; } = "en";
 
+    /// <summary>A comment's age, beside its author, when it was written under a minute ago.</summary>
+    public static string DiscussionAgeNow => Get("DiscussionAgeNow");
+
+    /// <summary>A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeMinutes(long minutes) => Fill(Get("DiscussionAgeMinutes"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeHours(long hours) => Fill(Get("DiscussionAgeHours"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in days. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeDays(long days) => Fill(Get("DiscussionAgeDays"), ("days", days.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeWeeks(long weeks) => Fill(Get("DiscussionAgeWeeks"), ("weeks", weeks.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in years. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeYears(long years) => Fill(Get("DiscussionAgeYears"), ("years", years.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Toast when a like on a comment did not reach AniList. The like is taken back.</summary>
+    public static string NoticeCommentLikeFailed => Get("NoticeCommentLikeFailed");
+
+    /// <summary>Toast when a comment could not be deleted on AniList. The comment stays.</summary>
+    public static string NoticeCommentDeleteFailed => Get("NoticeCommentDeleteFailed");
+
+    /// <summary>Toast when the viewer tried to like or post in a discussion without signing in to AniList.</summary>
+    public static string NoticeDiscussionSignIn => Get("NoticeDiscussionSignIn");
+
     /// <summary>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</summary>
     public static string NoticeReason(string reason) => Fill(Get("NoticeReason"), ("reason", reason));
 
@@ -916,10 +943,10 @@ public static partial class T
     public static string TimeMinutes(long minutes) => Fill(Get("TimeMinutes"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
     /// <summary>A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.</summary>
-    public static string TimeNow => Get("TimeNow");
+    public static string TimeNowInline => Get("TimeNowInline");
 
     /// <summary>How long ago, under a minute. Lower case, as it stands inside a line.</summary>
-    public static string TimeJustNow => Get("TimeJustNow");
+    public static string TimeJustNowInline => Get("TimeJustNowInline");
 
     /// <summary>Later today.</summary>
     public static string WhenToday(string time) => Fill(Get("WhenToday"), ("time", time));
@@ -1839,6 +1866,15 @@ public static partial class T
     /// <summary>Line of a source: its quality and size already formatted, and the number of seeders.</summary>
     public static string PartySourceSeeders(long seeders) => Fill(Get("PartySourceSeeders"), ("seeders", seeders.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>Foot of the watch party form while the device is offline.</summary>
+    public static string PartyNeedsConnection => Get("PartyNeedsConnection");
+
+    /// <summary>Button that goes to the Sources page, when the watch party's episode has no source because none are set up.</summary>
+    public static string PartyOpenSources => Get("PartyOpenSources");
+
+    /// <summary>Line while the sources are searched for the watch party's episode.</summary>
+    public static string PartyLookingSources => Get("PartyLookingSources");
+
     /// <summary>Label on the card for the episode that plays after this one.</summary>
     public static string PlayerUpNext => Get("PlayerUpNext");
 
@@ -2640,6 +2676,15 @@ public static partial class T
     /// <summary>Accessibility label of a widget row: continue a dubbed episode.</summary>
     public static string WidgetResumeDubbedLabel(long episode, string title) => Fill(Get("WidgetResumeDubbedLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
 
+    /// <summary>Preview note under the upscaling frame for the natural look.</summary>
+    public static string SettingsUpscalingNoteNatural => Get("SettingsUpscalingNoteNatural");
+
+    /// <summary>Preview note under the upscaling frame for the sharp look.</summary>
+    public static string SettingsUpscalingNoteSharp => Get("SettingsUpscalingNoteSharp");
+
+    /// <summary>Line under the seeding group in Settings: seeding stops when the app closes.</summary>
+    public static string SettingsSeedingOpenOnly => Get("SettingsSeedingOpenOnly");
+
     /// <summary>Title of the screen or section that lists sources.</summary>
     public static string SourcesTitle => Get("SourcesTitle");
 
@@ -2828,6 +2873,9 @@ public static partial class T
 
     /// <summary>Row: where the plugin's page stands.</summary>
     public static string SourcesSourceOrderRow => Get("SourcesSourceOrderRow");
+
+    /// <summary>Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.</summary>
+    public static string SourcesTorrentsNote => Get("SourcesTorrentsNote");
 
     /// <summary>Short label for a joined store, on a row.</summary>
     public static string StoresJoined => Get("StoresJoined");
@@ -3200,6 +3248,9 @@ public static partial class T
 
     /// <summary>Version line of a plugin in the publish sheet.</summary>
     public static string StoresPluginNameVersion(string name, string version) => Fill(Get("StoresPluginNameVersion"), ("name", name), ("version", version));
+
+    /// <summary>Button on the summary row that removes every device that joined with the link.</summary>
+    public static string StoresRemoveAll => Get("StoresRemoveAll");
 
     /// <summary>Title of the state when a title page could not load.</summary>
     public static string TitleLoadFailed => Get("TitleLoadFailed");
@@ -3972,6 +4023,57 @@ public static partial class T
     /// <summary>Heading of the settings group on the TV that lists the remotes.</summary>
     public static string TvRemotes => Get("TvRemotes");
 
+    /// <summary>Row title of the button that pairs another TV once one is paired.</summary>
+    public static string TvAnother => Get("TvAnother");
+
+    /// <summary>Under a TV in the list: its version does not match.</summary>
+    public static string TvRowNeedsUpdate => Get("TvRowNeedsUpdate");
+
+    /// <summary>Settings line of a paired TV: paired on a date, last seen a while ago.</summary>
+    public static string TvPairedSeen(string paired, string ago) => Fill(Get("TvPairedSeen"), ("paired", paired), ("ago", ago));
+
+    /// <summary>Title of the remote's volume row.</summary>
+    public static string TvVolume => Get("TvVolume");
+
+    /// <summary>Accessible label of the button that turns the TV down.</summary>
+    public static string TvVolumeDown => Get("TvVolumeDown");
+
+    /// <summary>Accessible label of the button that turns the TV up.</summary>
+    public static string TvVolumeUp => Get("TvVolumeUp");
+
+    /// <summary>The TV's volume as a value of 100.</summary>
+    public static string TvVolumeOf(long volume) => Fill(Get("TvVolumeOf"), ("volume", volume.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>The pairing code typed did not match.</summary>
+    public static string TvProblemWrongCode => Get("TvProblemWrongCode");
+
+    /// <summary>The TV cannot take another paired device.</summary>
+    public static string TvProblemFull => Get("TvProblemFull");
+
+    /// <summary>The TV cannot take another connection now.</summary>
+    public static string TvProblemBusy => Get("TvProblemBusy");
+
+    /// <summary>The TV and this app speak different versions.</summary>
+    public static string TvProblemVersion => Get("TvProblemVersion");
+
+    /// <summary>A command needs something playing and nothing is.</summary>
+    public static string TvProblemNotNow => Get("TvProblemNotNow");
+
+    /// <summary>The TV has forgotten this computer.</summary>
+    public static string TvProblemUnpaired => Get("TvProblemUnpaired");
+
+    /// <summary>The TV's key changed since pairing.</summary>
+    public static string TvProblemKeyChanged => Get("TvProblemKeyChanged");
+
+    /// <summary>The TV did not answer.</summary>
+    public static string TvProblemUnreachable => Get("TvProblemUnreachable");
+
+    /// <summary>The TV picked in the list has left the network.</summary>
+    public static string TvProblemGone => Get("TvProblemGone");
+
+    /// <summary>What was typed or scanned is not a TV's code or address.</summary>
+    public static string TvProblemNotALink => Get("TvProblemNotALink");
+
     /// <summary>Heading of the update row in settings and about.</summary>
     public static string UpdatesTitle => Get("UpdatesTitle");
 
@@ -4172,6 +4274,15 @@ public static partial class T
 
     static readonly Dictionary<string, string> English = new()
     {
+        ["DiscussionAgeNow"] = "now",
+        ["DiscussionAgeMinutes"] = "{minutes} min",
+        ["DiscussionAgeHours"] = "{hours} h",
+        ["DiscussionAgeDays"] = "{days} d",
+        ["DiscussionAgeWeeks"] = "{weeks} w",
+        ["DiscussionAgeYears"] = "{years} y",
+        ["NoticeCommentLikeFailed"] = "Couldn't like the comment. Try again.",
+        ["NoticeCommentDeleteFailed"] = "Couldn't delete the comment. Try again.",
+        ["NoticeDiscussionSignIn"] = "Sign in with AniList to like and reply.",
         ["NoticeReason"] = "{reason}",
         ["CauseNoSources"] = "No sources are set up. Add one on the Sources screen.",
         ["NoticeNotAired"] = "Episode {episode} airs {when}.",
@@ -4485,8 +4596,8 @@ public static partial class T
         ["TimeIn"] = "in {span}",
         ["TimeMinutesLeft"] = "{minutes} min left",
         ["TimeMinutes"] = "{minutes} min",
-        ["TimeNow"] = "now",
-        ["TimeJustNow"] = "just now",
+        ["TimeNowInline"] = "now",
+        ["TimeJustNowInline"] = "just now",
         ["WhenToday"] = "today {time}",
         ["WhenTomorrow"] = "tomorrow {time}",
         ["WhenWeekday"] = "{day} {time}",
@@ -4798,6 +4909,9 @@ public static partial class T
         ["PartySourcesFound_other"] = "{count} sources have it",
         ["PartySourcesLabel"] = "Sources for this episode",
         ["PartySourceSeeders"] = "{seeders} seeders",
+        ["PartyNeedsConnection"] = "A watch party needs a connection. You're offline.",
+        ["PartyOpenSources"] = "Open sources",
+        ["PartyLookingSources"] = "Looking through your sources…",
         ["PlayerUpNext"] = "Up next",
         ["TitleBasedOn"] = "Based on",
         ["PlayerStarting"] = "Starting episode {episode}",
@@ -5067,6 +5181,9 @@ public static partial class T
         ["WidgetResumeLabel"] = "Resume episode {episode} of {title}",
         ["WidgetStartLabel"] = "Play episode {episode} of {title}",
         ["WidgetResumeDubbedLabel"] = "Resume episode {episode}, dubbed, of {title}",
+        ["SettingsUpscalingNoteNatural"] = "Faithful line work and texture, nothing restyled.",
+        ["SettingsUpscalingNoteSharp"] = "Crisper lines and stronger edges, at some cost to texture.",
+        ["SettingsSeedingOpenOnly"] = "Seeding runs only while anistream is open.",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",
@@ -5133,6 +5250,7 @@ public static partial class T
         ["SourcesOpenSettings"] = "Open source settings",
         ["SourcesTorrentSource"] = "Torrent source",
         ["SourcesSourceOrderRow"] = "Source order",
+        ["SourcesTorrentsNote"] = "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.",
         ["StoresJoined"] = "Joined",
         ["StoresEmptyTitle"] = "No plugin stores yet",
         ["StoresEmptyDetail"] = "Plugin stores are run by people you know. Join one with the invite link its owner sends you.",
@@ -5259,6 +5377,7 @@ public static partial class T
         ["StoresPublishTitle"] = "Publish a plugin to {name}",
         ["StoresPublishNone"] = "No plugins on this device to publish.",
         ["StoresPluginNameVersion"] = "{name} {version}",
+        ["StoresRemoveAll"] = "Remove all",
         ["TitleLoadFailed"] = "Couldn't load this title",
         ["TitleNoAnswer"] = "AniList didn't answer. Try again.",
         ["TitleLoading"] = "Loading this title",
@@ -5518,6 +5637,23 @@ public static partial class T
         ["TvRemovePhoneTitle"] = "Remove {name}?",
         ["TvRemovePhoneDetail"] = "It stops working as a remote for this TV. It can pair again with a new code.",
         ["TvRemotes"] = "Remotes",
+        ["TvAnother"] = "Another TV",
+        ["TvRowNeedsUpdate"] = "Needs the same anistream version as this device",
+        ["TvPairedSeen"] = "{paired} · seen {ago}",
+        ["TvVolume"] = "TV volume",
+        ["TvVolumeDown"] = "Volume down",
+        ["TvVolumeUp"] = "Volume up",
+        ["TvVolumeOf"] = "{volume} of 100",
+        ["TvProblemWrongCode"] = "That code didn't match. Check the code on the TV and try again.",
+        ["TvProblemFull"] = "This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.",
+        ["TvProblemBusy"] = "The TV is connected to as many devices as it can. Try again soon.",
+        ["TvProblemVersion"] = "The TV runs another version of anistream. Update both to the same one.",
+        ["TvProblemNotNow"] = "Nothing is playing on the TV.",
+        ["TvProblemUnpaired"] = "The TV doesn't know this device any more. Pair again.",
+        ["TvProblemKeyChanged"] = "The TV was reset or reinstalled since you paired. Pair again.",
+        ["TvProblemUnreachable"] = "Can't reach the TV. Check that it's on, with anistream open, on the same network.",
+        ["TvProblemGone"] = "That TV is no longer on the network.",
+        ["TvProblemNotALink"] = "That isn't a TV's pairing code or address.",
         ["UpdatesTitle"] = "Updates",
         ["UpdatesChecking"] = "Checking for a newer version…",
         ["UpdatesUpToDate"] = "Up to date",

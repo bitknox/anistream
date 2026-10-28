@@ -103,6 +103,12 @@ pub enum SettingKey {
     /// Whether Search and the lists show titles AniList marks adult, with its adult genre and
     /// tags among the filters. Off by default.
     AdultTitles,
+    /// Episode discussions: an episode's AniList forum thread, looked up once it counts as
+    /// watched. On by default.
+    EpisodeDiscussions,
+    /// Whether images in discussion comments load inline rather than as a line that opens them
+    /// in the browser. Off by default; shown while discussions are on.
+    CommentImages,
 }
 
 impl SettingKey {
@@ -149,7 +155,7 @@ impl SettingKey {
     /// The native apps' own rows, which the terminal's Settings screen does not show: a front
     /// end finds the rows both show among [`Self::ROWS`]. In no order of their own, since each
     /// app lays them out on its own panes; grouped by [`Self::category`] all the same.
-    pub const NATIVE_ROWS: [Self; 10] = [
+    pub const NATIVE_ROWS: [Self; 12] = [
         Self::UpNextCountdown,
         Self::SpoilerProtection,
         Self::DownloadQuality,
@@ -160,6 +166,8 @@ impl SettingKey {
         Self::EpisodeNotifications,
         Self::MpvOptions,
         Self::AdultTitles,
+        Self::EpisodeDiscussions,
+        Self::CommentImages,
     ];
 
     /// Where the file keeps it: the containing table, as the dotted path
@@ -172,6 +180,8 @@ impl SettingKey {
             Self::Titles => (&["meta"], "title_language"),
             Self::Trailers => (&["theme"], "trailers"),
             Self::AdultTitles => (&["meta"], "adult"),
+            Self::EpisodeDiscussions => (&["meta"], "discussions"),
+            Self::CommentImages => (&["meta"], "discussion_images"),
             Self::Translation => (&["playback"], "translation"),
             Self::Quality => (&["playback"], "quality"),
             Self::Subtitles => (&["playback"], "subtitle_language"),
@@ -294,6 +304,8 @@ impl SettingKey {
             Self::SyncplayRoom => to.syncplay.room.clone_from(&from.syncplay.room),
             Self::UpdateCheck => to.updates.check = from.updates.check,
             Self::AdultTitles => to.meta.adult = from.meta.adult,
+            Self::EpisodeDiscussions => to.meta.discussions = from.meta.discussions,
+            Self::CommentImages => to.meta.discussion_images = from.meta.discussion_images,
             Self::MpvOptions => dst.mpv_args.clone_from(&src.mpv_args),
             Self::SourceOrder => to.providers.order.clone_from(&from.providers.order),
             Self::UpNextCountdown => dst.up_next_countdown = src.up_next_countdown,
@@ -360,7 +372,9 @@ impl SettingKey {
             | Self::Syncplay
             | Self::SyncplayServer
             | Self::SyncplayRoom
-            | Self::UpdateCheck => "integrations",
+            | Self::UpdateCheck
+            | Self::EpisodeDiscussions
+            | Self::CommentImages => "integrations",
             Self::EpisodeNotifications => "notifications",
             Self::MpvOptions => "advanced",
         }
@@ -416,6 +430,8 @@ impl SettingKey {
             Self::TorrentsOnCellular => "torrents on cellular",
             Self::VpnOnFailure => "if a check fails",
             Self::AdultTitles => "adult titles",
+            Self::EpisodeDiscussions => "episode discussions",
+            Self::CommentImages => "load images in comments",
             Self::EpisodeNotifications => "new episode notifications",
             Self::MpvOptions => "mpv options",
         }
@@ -716,6 +732,8 @@ pub fn step(
         SettingKey::TorrentsOnCellular => V::Bool(!effective.providers.torrent.on_cellular),
         SettingKey::EpisodeNotifications => V::Bool(!effective.notifications.episodes),
         SettingKey::AdultTitles => V::Bool(!effective.meta.adult),
+        SettingKey::EpisodeDiscussions => V::Bool(!effective.meta.discussions),
+        SettingKey::CommentImages => V::Bool(!effective.meta.discussion_images),
         // Between the two that need no confirming. Warn is never a step away: it is asked for
         // with its acknowledgement, and a step from it goes back to the default.
         SettingKey::VpnOnFailure => V::Str(
@@ -867,6 +885,8 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         (SettingKey::DownloadsOnCellular, V::Bool(on)) => config.downloads.on_cellular = *on,
         (SettingKey::EpisodeNotifications, V::Bool(on)) => config.notifications.episodes = *on,
         (SettingKey::AdultTitles, V::Bool(on)) => config.meta.adult = *on,
+        (SettingKey::EpisodeDiscussions, V::Bool(on)) => config.meta.discussions = *on,
+        (SettingKey::CommentImages, V::Bool(on)) => config.meta.discussion_images = *on,
         (SettingKey::TorrentsOnCellular, V::Bool(on)) => {
             config.providers.torrent.on_cellular = *on;
         }
@@ -999,6 +1019,8 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         SettingKey::TorrentsOnCellular => on_off(torrent.on_cellular),
         SettingKey::EpisodeNotifications => on_off(effective.notifications.episodes),
         SettingKey::AdultTitles => on_off(effective.meta.adult),
+        SettingKey::EpisodeDiscussions => on_off(effective.meta.discussions),
+        SettingKey::CommentImages => on_off(effective.meta.discussion_images),
         SettingKey::VpnOnFailure => match torrent.vpn.on_leak {
             LeakAction::Pause => "pause torrents",
             LeakAction::Stop => "stop torrents",
@@ -1066,6 +1088,8 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         S::TorrentsOnCellular => c.providers.torrent.on_cellular,
         S::EpisodeNotifications => c.notifications.episodes,
         S::AdultTitles => c.meta.adult,
+        S::EpisodeDiscussions => c.meta.discussions,
+        S::CommentImages => c.meta.discussion_images,
         // Pause, then stop; warn stands beside stop, a step back from the default.
         S::VpnOnFailure => {
             c.providers.torrent.vpn.on_leak != anistream_core::config::LeakAction::Pause
@@ -1303,6 +1327,8 @@ mod tests {
                 (SettingKey::EpisodeNotifications, "off"),
                 (SettingKey::MpvOptions, "none"),
                 (SettingKey::AdultTitles, "off"),
+                (SettingKey::EpisodeDiscussions, "on"),
+                (SettingKey::CommentImages, "off"),
             ]
         );
         assert!(view.rows.iter().all(|row| !SettingKey::NATIVE_ROWS.contains(&row.key)));

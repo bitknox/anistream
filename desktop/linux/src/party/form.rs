@@ -12,6 +12,7 @@ use std::{
 
 use adw::prelude::*;
 use anistream_core::ids::AnilistId;
+use anistream_i18n::t;
 use anistream_model::{command::Command, event::Event, party::PartyInvite};
 use gtk::gio;
 
@@ -54,8 +55,14 @@ struct Form {
 }
 
 /// What the foot says before the form can be filled in.
-const GETTING_READY: &str = "Getting things ready…";
-const OFFLINE: &str = "A party needs a connection. You're offline.";
+fn getting_ready() -> String {
+    t::party_getting_ready()
+}
+
+/// What the foot says while the device is offline.
+fn offline() -> String {
+    t::party_needs_connection()
+}
 
 thread_local! {
     /// The dialog that is up, for an invite opened while it is and for a shot's typing.
@@ -76,9 +83,10 @@ pub fn open(ctx: &Rc<Ctx>, what: For) {
     let header = adw::HeaderBar::new();
     header.set_show_end_title_buttons(false);
     header.set_show_start_title_buttons(false);
-    let cancel = gtk::Button::with_label("Cancel");
+    let cancel = gtk::Button::with_label(&t::action_cancel());
     header.pack_start(&cancel);
-    let start = gtk::Button::with_label(if invite { "Join Party" } else { "Start Party" });
+    let start =
+        gtk::Button::with_label(&if invite { t::party_join() } else { t::party_start() });
     start.add_css_class("suggested-action");
     start.set_sensitive(false);
     header.pack_end(&start);
@@ -94,11 +102,11 @@ pub fn open(ctx: &Rc<Ctx>, what: For) {
     episode.set_wrap(true);
     column.append(&episode);
 
-    let server = adw::EntryRow::builder().title("Server").build();
+    let server = adw::EntryRow::builder().title(t::party_server()).build();
     server.set_input_purpose(gtk::InputPurpose::Url);
     let recent = gtk::MenuButton::builder()
         .icon_name("document-open-recent-symbolic")
-        .tooltip_text("Servers Used Before")
+        .tooltip_text(t::party_recent_servers_heading())
         .valign(gtk::Align::Center)
         .visible(false)
         .build();
@@ -106,17 +114,18 @@ pub fn open(ctx: &Rc<Ctx>, what: For) {
     server.add_suffix(&recent);
     let hint = widgets::haze("", "caption");
     hint.set_hexpand(true);
-    let use_suggested = gtk::Button::with_label("Use It");
+    let use_suggested = gtk::Button::with_label(&t::party_use_it());
     use_suggested.add_css_class("flat");
     use_suggested.add_css_class("hint-button");
     use_suggested.set_valign(gtk::Align::Start);
-    let room = adw::EntryRow::builder().title("Room").build();
-    let name = adw::EntryRow::builder().title("Your Name in the Room").build();
+    let room = adw::EntryRow::builder().title(t::party_room()).build();
+    let name = adw::EntryRow::builder().title(t::party_your_name()).build();
     name.set_max_length(40);
     if let For::Invite(link) = &what {
         // An invite names the room: it is shown, not asked, with whose server it is.
         let place = widgets::boxed_list();
-        for (title, value) in [("Room", &link.room), ("Server", &link.server)] {
+        for (title, value) in [(t::party_room(), &link.room), (t::party_server(), &link.server)]
+        {
             let row = adw::ActionRow::builder().title(title).subtitle(value).build();
             row.add_css_class("property");
             row.set_subtitle_selectable(true);
@@ -140,11 +149,7 @@ pub fn open(ctx: &Rc<Ctx>, what: For) {
         rest.append(&room);
         rest.append(&name);
         column.append(&rest);
-        let note = widgets::haze(
-            "Anyone who knows the room's name can join it. The invite link carries it, so nobody \
-             has to read it out.",
-            "caption",
-        );
+        let note = widgets::haze(&t::party_room_hint(), "caption");
         note.set_margin_top(-6);
         column.append(&note);
     }
@@ -152,8 +157,7 @@ pub fn open(ctx: &Rc<Ctx>, what: For) {
     // The privacy note and the joining or error line share one place: the line stands in for
     // the note once Start is pressed, so the dialog keeps its height throughout.
     let privacy = widgets::haze(
-        "The server sees your name, the room, and when anyone plays, pauses or seeks. Each of you \
-         plays the episode from your own sources. anistream hosts no content.",
+        &format!("{} {}", t::party_privacy(), t::legal_hosts_no_content()),
         "caption",
     );
     let spinner = adw::Spinner::new();
@@ -168,7 +172,7 @@ pub fn open(ctx: &Rc<Ctx>, what: For) {
     status.set_wrap_mode(gtk::pango::WrapMode::WordChar);
     status.set_hexpand(true);
     status.add_css_class("caption");
-    status.update_property(&[gtk::accessible::Property::Label("Party status")]);
+    status.update_property(&[gtk::accessible::Property::Label(&t::party_status())]);
     let line = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     line.set_valign(gtk::Align::Start);
     line.append(&spinner);
@@ -197,7 +201,7 @@ pub fn open(ctx: &Rc<Ctx>, what: For) {
     view.add_top_bar(&header);
     view.set_content(Some(&scroll));
     let dialog = adw::Dialog::builder()
-        .title(if invite { "Join the Party?" } else { "Watch Together" })
+        .title(if invite { t::party_join_title() } else { t::party_title() })
         .follows_content_size(true)
         .child(&view)
         .build();
@@ -360,7 +364,7 @@ impl Form {
         let line = match &self.what {
             For::Episode(id, episode) => super::episode_of(&self.ctx, *id, episode),
             For::Invite(link) => super::episode_of(&self.ctx, link.id, &link.episode),
-            For::Playing => "What's playing now plays with the room.".into(),
+            For::Playing => t::party_form_nothing(),
         };
         self.episode.set_label(&line);
     }
@@ -399,15 +403,12 @@ impl Form {
         let (server, room) = self.place();
         let problem = super::server_problem(&server);
         if let Some(form) = form {
-            let line = match (&self.what, problem) {
+            let line = match (&self.what, &problem) {
                 (For::Invite(_), _) if super::is_suggested(&server, form) => {
                     super::server_hint(&server, form)
                 }
-                (For::Invite(_), _) => {
-                    "A server the person who invited you chose. anistream doesn't run it."
-                        .into()
-                }
-                (_, Some(problem)) => problem.into(),
+                (For::Invite(_), _) => t::party_server_invited(),
+                (_, Some(problem)) => problem.clone(),
                 _ => super::server_hint(&server, form),
             };
             self.hint.set_label(&line);
@@ -418,7 +419,7 @@ impl Form {
             self.use_suggested.set_can_focus(!suggested);
             self.use_suggested.set_sensitive(!self.joining.get());
             self.use_suggested
-                .set_tooltip_text(Some(&format!("Use {}", form.suggested_server)));
+                .set_tooltip_text(Some(&t::party_use_server(&form.suggested_server)));
         } else {
             self.use_suggested.set_opacity(0.0);
             self.use_suggested.set_can_target(false);
@@ -430,10 +431,10 @@ impl Form {
         }
         if !self.joining.get() {
             if known.offline {
-                self.say(OFFLINE, false, true);
+                self.say(&offline(), false, true);
             } else if form.is_none() {
-                self.say(GETTING_READY, true, false);
-            } else if [GETTING_READY, OFFLINE].contains(&self.status.label().as_str()) {
+                self.say(&getting_ready(), true, false);
+            } else if [getting_ready(), offline()].contains(&self.status.label().to_string()) {
                 self.say("", false, false);
             }
         }
@@ -466,7 +467,7 @@ impl Form {
         for field in [&self.server, &self.room, &self.name] {
             field.set_sensitive(false);
         }
-        self.say(&format!("Joining {room} on {server}…"), true, false);
+        self.say(&t::party_joining(&room, &server), true, false);
         self.update();
         // The room first, and the episode once in it: a server that can't be reached leaves
         // nothing playing behind the dialog.
@@ -499,12 +500,8 @@ impl Form {
                 for field in [&self.server, &self.room, &self.name] {
                     field.set_sensitive(true);
                 }
-                self.start.set_label("Try Again");
-                // i18n P2: replace with the catalogue
-                let why =
-                    reason.as_ref().map_or("The party ended before it began.".into(), |m| {
-                        crate::catalog::shown(&m.english())
-                    });
+                self.start.set_label(&t::action_try_again());
+                let why = reason.as_ref().map_or_else(t::party_ended_early, crate::say::msg);
                 self.say(&why, false, true);
             }
             Event::Detail(_) | Event::Content { .. } => self.show_episode(),

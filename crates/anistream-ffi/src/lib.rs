@@ -1002,6 +1002,81 @@ mod tests {
     }
 
     #[test]
+    fn a_discussion_crosses_with_its_comments_and_commands() {
+        use anistream_model::discussion::{
+            CommentBlock, CommentSpan, CommentView, DiscussionState, DiscussionView, MediaKind,
+            PostState,
+        };
+        let media = AnilistId::new(900_002);
+        let span = |text: &str| CommentSpan { text: text.into(), ..CommentSpan::default() };
+        let reply = CommentView {
+            id: 4_294_967_294,
+            author: "kumo".into(),
+            avatar: None,
+            created_at: 1_792_000_000,
+            age: anistream_model::Msg::DiscussionAgeMinutes { minutes: 5 },
+            body: vec![CommentBlock { spans: vec![span("agreed")], quote: true }],
+            like_count: 0,
+            liked: false,
+            own: true,
+            pending: PostState::Failed,
+            replies: Vec::new(),
+            hidden_replies: 0,
+            markdown: "agreed".into(),
+        };
+        let comment = CommentView {
+            id: 81,
+            author: "hoshi".into(),
+            avatar: Some("https://img.example/avatar/hoshi.png".into()),
+            created_at: 1_791_990_000,
+            age: anistream_model::Msg::DiscussionAgeHours { hours: 2 },
+            body: vec![CommentBlock {
+                spans: vec![
+                    CommentSpan { bold: true, spoiler: true, ..span("the lighthouse") },
+                    CommentSpan {
+                        link: Some("https://img.example/still.png".into()),
+                        media: Some(MediaKind::Image),
+                        ..span("image")
+                    },
+                ],
+                quote: false,
+            }],
+            like_count: 12,
+            liked: true,
+            own: false,
+            pending: PostState::Posted,
+            replies: vec![CommentView { hidden_replies: 3, ..reply }],
+            hidden_replies: 0,
+            markdown: "__~!the lighthouse!~__ img(https://img.example/still.png)".into(),
+        };
+        crosses_intact(Event::Discussion(DiscussionView {
+            media,
+            episode: 3,
+            title: "Lantern Harbour Episode 3 Discussion".into(),
+            comment_count: 2,
+            url: "https://anilist.co/forum/thread/60000".into(),
+            comments: vec![comment],
+            state: DiscussionState::Offline { age_minutes: 42 },
+            can_post: false,
+            signed_in: true,
+            load_images: false,
+        }));
+        crosses_intact(Event::DiscussionFound { media, episode: 3, comments: 140 });
+        let commands = [
+            Command::OpenDiscussion { media, episode: 3 },
+            Command::MoreComments,
+            Command::PostComment { parent: Some(81), text: "agreed".into() },
+            Command::EditComment { id: 81, text: "agreed, mostly".into() },
+            Command::DeleteComment { id: 81 },
+            Command::LikeComment { id: 81 },
+            Command::CloseDiscussion,
+        ];
+        for command in commands {
+            assert_eq!(crossed(command.clone()), command);
+        }
+    }
+
+    #[test]
     fn events_carrying_spans_bytes_and_boxed_rows_cross_intact() {
         crosses_intact(Event::JobNote {
             job: JobId::new(3),

@@ -53,6 +53,25 @@ impl Store {
         })
     }
 
+    /// Every text value whose key starts with `prefix`, with its key.
+    pub fn meta_texts_with_prefix(&self, prefix: &str) -> Result<Vec<(String, String)>> {
+        self.with_conn(|c| {
+            let mut stmt = c.prepare(
+                "SELECT key, value FROM app_state WHERE substr(key, 1, length(?1)) = ?1",
+            )?;
+            let rows = stmt.query_map([prefix], |r| Ok((r.get(0)?, r.get(1)?)))?;
+            Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+        })
+    }
+
+    /// Drop one value.
+    pub fn delete_meta(&self, key: &str) -> Result<()> {
+        self.with_conn(|c| {
+            c.execute("DELETE FROM app_state WHERE key = ?1", [key])?;
+            Ok(())
+        })
+    }
+
     /// Drop every cursor whose key starts with `prefix`, returning how many there were.
     pub fn clear_meta_prefix(&self, prefix: &str) -> Result<usize> {
         self.with_conn(|c| {

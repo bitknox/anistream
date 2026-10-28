@@ -267,3 +267,15 @@ party-sources-label = { -source-cap-pl } for this episode
 # Line of a source: its quality and size already formatted, and the number of seeders.
 # @arg seeders: int
 party-source-seeders = { $seeders } seeders
+
+# Foot of the watch party form while the device is offline.
+# @max 70
+party-needs-connection = A { -watch-party } needs a connection. You're offline.
+
+# Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
+# @max 24
+party-open-sources = Open { -source-pl }
+
+# Line while the sources are searched for the watch party's episode.
+# @max 60
+party-looking-sources = Looking through your { -source-pl }…

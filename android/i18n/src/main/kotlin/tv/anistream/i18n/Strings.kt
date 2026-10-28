@@ -9,6 +9,42 @@ import android.content.Context
  * `stringResource(R.string.x)` and `pluralStringResource(R.plurals.x, n, ...)` directly.
  */
 object Strings {
+    /** A comment's age, beside its author, when it was written under a minute ago. */
+    fun discussionAgeNow(context: Context): String =
+        context.getString(R.string.discussion_age_now)
+
+    /** A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it. */
+    fun discussionAgeMinutes(context: Context, minutes: Int): String =
+        context.getString(R.string.discussion_age_minutes, minutes)
+
+    /** A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it. */
+    fun discussionAgeHours(context: Context, hours: Int): String =
+        context.getString(R.string.discussion_age_hours, hours)
+
+    /** A comment's age, beside its author, in days. Abbreviated, as a timeline shows it. */
+    fun discussionAgeDays(context: Context, days: Int): String =
+        context.getString(R.string.discussion_age_days, days)
+
+    /** A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it. */
+    fun discussionAgeWeeks(context: Context, weeks: Int): String =
+        context.getString(R.string.discussion_age_weeks, weeks)
+
+    /** A comment's age, beside its author, in years. Abbreviated, as a timeline shows it. */
+    fun discussionAgeYears(context: Context, years: Int): String =
+        context.getString(R.string.discussion_age_years, years)
+
+    /** Toast when a like on a comment did not reach AniList. The like is taken back. */
+    fun noticeCommentLikeFailed(context: Context): String =
+        context.getString(R.string.notice_comment_like_failed)
+
+    /** Toast when a comment could not be deleted on AniList. The comment stays. */
+    fun noticeCommentDeleteFailed(context: Context): String =
+        context.getString(R.string.notice_comment_delete_failed)
+
+    /** Toast when the viewer tried to like or post in a discussion without signing in to AniList. */
+    fun noticeDiscussionSignIn(context: Context): String =
+        context.getString(R.string.notice_discussion_sign_in)
+
     /** A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated. */
     fun noticeReason(context: Context, reason: String): String =
         context.getString(R.string.notice_reason, reason)
@@ -1214,12 +1250,12 @@ object Strings {
         context.getString(R.string.time_minutes, minutes)
 
     /** A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line. */
-    fun timeNow(context: Context): String =
-        context.getString(R.string.time_now)
+    fun timeNowInline(context: Context): String =
+        context.getString(R.string.time_now_inline)
 
     /** How long ago, under a minute. Lower case, as it stands inside a line. */
-    fun timeJustNow(context: Context): String =
-        context.getString(R.string.time_just_now)
+    fun timeJustNowInline(context: Context): String =
+        context.getString(R.string.time_just_now_inline)
 
     /** Later today. */
     fun whenToday(context: Context, time: String): String =
@@ -2449,6 +2485,18 @@ object Strings {
     fun partySourceSeeders(context: Context, seeders: Int): String =
         context.getString(R.string.party_source_seeders, seeders)
 
+    /** Foot of the watch party form while the device is offline. */
+    fun partyNeedsConnection(context: Context): String =
+        context.getString(R.string.party_needs_connection)
+
+    /** Button that goes to the Sources page, when the watch party's episode has no source because none are set up. */
+    fun partyOpenSources(context: Context): String =
+        context.getString(R.string.party_open_sources)
+
+    /** Line while the sources are searched for the watch party's episode. */
+    fun partyLookingSources(context: Context): String =
+        context.getString(R.string.party_looking_sources)
+
     /** Label on the card for the episode that plays after this one. */
     fun playerUpNext(context: Context): String =
         context.getString(R.string.player_up_next)
@@ -3517,6 +3565,18 @@ object Strings {
     fun widgetResumeDubbedLabel(context: Context, episode: Int, title: String): String =
         context.getString(R.string.widget_resume_dubbed_label, episode, title)
 
+    /** Preview note under the upscaling frame for the natural look. */
+    fun settingsUpscalingNoteNatural(context: Context): String =
+        context.getString(R.string.settings_upscaling_note_natural)
+
+    /** Preview note under the upscaling frame for the sharp look. */
+    fun settingsUpscalingNoteSharp(context: Context): String =
+        context.getString(R.string.settings_upscaling_note_sharp)
+
+    /** Line under the seeding group in Settings: seeding stops when the app closes. */
+    fun settingsSeedingOpenOnly(context: Context): String =
+        context.getString(R.string.settings_seeding_open_only)
+
     /** Title of the screen or section that lists sources. */
     fun sourcesTitle(context: Context): String =
         context.getString(R.string.sources_title)
@@ -3768,6 +3828,10 @@ object Strings {
     /** Row: where the plugin's page stands. */
     fun sourcesSourceOrderRow(context: Context): String =
         context.getString(R.string.sources_source_order_row)
+
+    /** Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin. */
+    fun sourcesTorrentsNote(context: Context): String =
+        context.getString(R.string.sources_torrents_note)
 
     /** Short label for a joined store, on a row. */
     fun storesJoined(context: Context): String =
@@ -4264,6 +4328,10 @@ object Strings {
     /** Version line of a plugin in the publish sheet. */
     fun storesPluginNameVersion(context: Context, name: String, version: String): String =
         context.getString(R.string.stores_plugin_name_version, name, version)
+
+    /** Button on the summary row that removes every device that joined with the link. */
+    fun storesRemoveAll(context: Context): String =
+        context.getString(R.string.stores_remove_all)
 
     /** Title of the state when a title page could not load. */
     fun titleLoadFailed(context: Context): String =
@@ -5292,6 +5360,74 @@ object Strings {
     /** Heading of the settings group on the TV that lists the remotes. */
     fun tvRemotes(context: Context): String =
         context.getString(R.string.tv_remotes)
+
+    /** Row title of the button that pairs another TV once one is paired. */
+    fun tvAnother(context: Context): String =
+        context.getString(R.string.tv_another)
+
+    /** Under a TV in the list: its version does not match. */
+    fun tvRowNeedsUpdate(context: Context): String =
+        context.getString(R.string.tv_row_needs_update)
+
+    /** Settings line of a paired TV: paired on a date, last seen a while ago. */
+    fun tvPairedSeen(context: Context, paired: String, ago: String): String =
+        context.getString(R.string.tv_paired_seen, paired, ago)
+
+    /** Title of the remote's volume row. */
+    fun tvVolume(context: Context): String =
+        context.getString(R.string.tv_volume)
+
+    /** Accessible label of the button that turns the TV down. */
+    fun tvVolumeDown(context: Context): String =
+        context.getString(R.string.tv_volume_down)
+
+    /** Accessible label of the button that turns the TV up. */
+    fun tvVolumeUp(context: Context): String =
+        context.getString(R.string.tv_volume_up)
+
+    /** The TV's volume as a value of 100. */
+    fun tvVolumeOf(context: Context, volume: Int): String =
+        context.getString(R.string.tv_volume_of, volume)
+
+    /** The pairing code typed did not match. */
+    fun tvProblemWrongCode(context: Context): String =
+        context.getString(R.string.tv_problem_wrong_code)
+
+    /** The TV cannot take another paired device. */
+    fun tvProblemFull(context: Context): String =
+        context.getString(R.string.tv_problem_full)
+
+    /** The TV cannot take another connection now. */
+    fun tvProblemBusy(context: Context): String =
+        context.getString(R.string.tv_problem_busy)
+
+    /** The TV and this app speak different versions. */
+    fun tvProblemVersion(context: Context): String =
+        context.getString(R.string.tv_problem_version)
+
+    /** A command needs something playing and nothing is. */
+    fun tvProblemNotNow(context: Context): String =
+        context.getString(R.string.tv_problem_not_now)
+
+    /** The TV has forgotten this computer. */
+    fun tvProblemUnpaired(context: Context): String =
+        context.getString(R.string.tv_problem_unpaired)
+
+    /** The TV's key changed since pairing. */
+    fun tvProblemKeyChanged(context: Context): String =
+        context.getString(R.string.tv_problem_key_changed)
+
+    /** The TV did not answer. */
+    fun tvProblemUnreachable(context: Context): String =
+        context.getString(R.string.tv_problem_unreachable)
+
+    /** The TV picked in the list has left the network. */
+    fun tvProblemGone(context: Context): String =
+        context.getString(R.string.tv_problem_gone)
+
+    /** What was typed or scanned is not a TV's code or address. */
+    fun tvProblemNotALink(context: Context): String =
+        context.getString(R.string.tv_problem_not_a_link)
 
     /** Heading of the update row in settings and about. */
     fun updatesTitle(context: Context): String =

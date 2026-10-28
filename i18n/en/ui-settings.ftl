@@ -363,3 +363,12 @@ widget-start-label = Play episode { $episode } of { $title }
 # @arg episode: int
 # @arg title: text
 widget-resume-dubbed-label = Resume episode { $episode }, { -dubbed }, of { $title }
+
+# Preview note under the upscaling frame for the natural look.
+settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
+
+# Preview note under the upscaling frame for the sharp look.
+settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
+
+# Line under the seeding group in Settings: seeding stops when the app closes.
+settings-seeding-open-only = Seeding runs only while { -app-name } is open.

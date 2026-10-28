@@ -9,11 +9,12 @@ use std::{
 };
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_mpv_host::Mpv;
 use gtk::gdk;
 use serde_json::{Value, json};
 
-use crate::{fit::Fit, video, words};
+use crate::{fit::Fit, say, video};
 
 /// A stretch of the timeline the chapters name.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -415,10 +416,10 @@ impl Preview {
     /// The frame and time at `seconds`, over the timeline at `x`, labelled `segment` if it is
     /// in one.
     pub fn show(&self, x: f64, seconds: f64, segment: Option<Kind>) {
-        let clock = words::clock(seconds);
+        let clock = say::clock(seconds);
         self.time.set_label(&match segment {
-            Some(Kind::Opening) => format!("{clock} · Opening"),
-            Some(Kind::Ending) => format!("{clock} · Ending"),
+            Some(Kind::Opening) => t::player_time_opening(&clock),
+            Some(Kind::Ending) => t::player_time_ending(&clock),
             None => clock,
         });
         self.popover.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, 0, 1, 1)));

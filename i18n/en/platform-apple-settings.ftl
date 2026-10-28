@@ -46,13 +46,7 @@ settings-upscaling-source = 480p { -source }
 settings-upscaling-compare = The 480p { -source } beside { $mode }
 
 # Under the upscaling preview when the mode is off.
-settings-upscaling-note-off = The { -source }, scaled to fit without processing.
-
-# Under the upscaling preview for the sharp mode.
-settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
-
-# Under the upscaling preview for the natural mode.
-settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
+settings-upscaling-note-none = The { -source }, scaled to fit without processing.
 
 # Shown in the Advanced pane while the player has no options of its own to set.
 settings-advanced-none = No extra options. The player runs with { -app-name }'s own.
@@ -356,9 +350,6 @@ show-settings-row-label = { $label }:
 
 # A remembered subtitle track that has neither a language nor a title.
 show-settings-unnamed-track = Unnamed track
-
-# Footnote of the seeding group on the Mac: seeding stops when the app is closed.
-settings-seeding-open-only = Seeding runs only while { -app-name } is open.
 
 # Line under the AniList's choice option of Title language when signed out.
 # @arg tracker: text

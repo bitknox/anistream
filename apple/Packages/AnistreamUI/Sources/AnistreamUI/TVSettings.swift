@@ -16,7 +16,7 @@ enum TVSettingsWords {
         let pairedWords = L.tvPairedOn(when: paired.formatted(.dateTime.day().month(.abbreviated).locale(AirTime.locale)))
         guard let seen = tv.lastSeen else { return pairedWords }
         let ago = Int64(now.timeIntervalSince1970) - seen
-        return L.tvPairedSeen(paired: pairedWords, when: ago < 60 ? L.tvSeenJustNow : Wording.ago(ago))
+        return L.tvPairedSeen(paired: pairedWords, ago: ago < 60 ? L.tvSeenJustNow : Wording.ago(ago))
     }
 
     static func footnote(_ tv: TVRemoteModel) -> String {

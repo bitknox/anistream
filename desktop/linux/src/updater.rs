@@ -179,7 +179,10 @@ impl Updater {
                             },
                             || stop.load(Ordering::Relaxed),
                         )),
-                        Err(e) => Some(Err(format!("The download couldn't start: {e}."))),
+                        Err(e) => {
+                            tracing::warn!(error = %e, "no runtime for the download");
+                            Some(Err(anistream_i18n::t::updates_why_start()))
+                        }
                     };
                 // Checked, and copied to Downloads when it can't go in place.
                 let end = match (end, saving) {
@@ -272,14 +275,17 @@ impl Updater {
             let weak = Rc::downgrade(self);
             glib::timeout_add_local_once(Duration::from_millis(1500), move || {
                 if let Some(this) = weak.upgrade() {
-                    this.set(&version, Step::Failed("A fixture run installs nothing.".into()));
+                    this.set(&version, Step::Failed(anistream_i18n::t::updates_why_install()));
                 }
             });
             return;
         };
         let marker = self.dir.join("updating");
         let opened = std::fs::write(&marker, &version)
-            .map_err(|e| format!("The update couldn't be noted: {e}."))
+            .map_err(|e| {
+                tracing::warn!(error = %e, "the update was not noted");
+                anistream_i18n::t::updates_why_install()
+            })
             .and_then(|()| updates::install(&path, &appimage))
             .and_then(|()| relaunch(&appimage));
         if let Err(reason) = opened {
@@ -345,9 +351,8 @@ fn relaunch(appimage: &std::path::Path) -> Result<(), String> {
         command.env_remove(var);
     }
     command.spawn().map(drop).map_err(|e| {
-        format!(
-            "The new version is in place but couldn't be opened: {e}. Open anistream again."
-        )
+        tracing::warn!(error = %e, "the new version did not open");
+        anistream_i18n::t::updates_why_reopen()
     })
 }
 

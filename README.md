@@ -92,6 +92,7 @@ cargo clippy --workspace --all-targets
   [docs/desktop-linux-app.md](docs/desktop-linux-app.md).
 - Plugins: `rustup target add wasm32-wasip2`, then see [docs/plugins.md](docs/plugins.md).
 - The website: `cd website && bun run dev`.
+- Claude Code setup and efficient workflows: [docs/claude-code.md](docs/claude-code.md).
 - Accessibility: what each app supports and how to report a barrier is in
   [ACCESSIBILITY.md](ACCESSIBILITY.md).
 

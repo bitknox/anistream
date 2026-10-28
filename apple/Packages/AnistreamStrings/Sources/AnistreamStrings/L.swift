@@ -5,6 +5,43 @@ import Foundation
 
 /// Every string the apps show, by catalogue id. A missing translation falls back to English per string.
 public enum L {
+    /// A comment's age, beside its author, when it was written under a minute ago.
+    public static var discussionAgeNow: String { string("discussion-age-now", fallback: "now") }
+
+    /// A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.
+    public static func discussionAgeMinutes(minutes: Int) -> String {
+        Self.format("discussion-age-minutes", fallback: "%1$lld min", minutes)
+    }
+
+    /// A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it.
+    public static func discussionAgeHours(hours: Int) -> String {
+        Self.format("discussion-age-hours", fallback: "%1$lld h", hours)
+    }
+
+    /// A comment's age, beside its author, in days. Abbreviated, as a timeline shows it.
+    public static func discussionAgeDays(days: Int) -> String {
+        Self.format("discussion-age-days", fallback: "%1$lld d", days)
+    }
+
+    /// A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it.
+    public static func discussionAgeWeeks(weeks: Int) -> String {
+        Self.format("discussion-age-weeks", fallback: "%1$lld w", weeks)
+    }
+
+    /// A comment's age, beside its author, in years. Abbreviated, as a timeline shows it.
+    public static func discussionAgeYears(years: Int) -> String {
+        Self.format("discussion-age-years", fallback: "%1$lld y", years)
+    }
+
+    /// Toast when a like on a comment did not reach AniList. The like is taken back.
+    public static var noticeCommentLikeFailed: String { string("notice-comment-like-failed", fallback: "Couldn't like the comment. Try again.") }
+
+    /// Toast when a comment could not be deleted on AniList. The comment stays.
+    public static var noticeCommentDeleteFailed: String { string("notice-comment-delete-failed", fallback: "Couldn't delete the comment. Try again.") }
+
+    /// Toast when the viewer tried to like or post in a discussion without signing in to AniList.
+    public static var noticeDiscussionSignIn: String { string("notice-discussion-sign-in", fallback: "Sign in with AniList to like and reply.") }
+
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     public static func noticeReason(reason: String) -> String {
         Self.format("notice-reason", fallback: "%1$@", reason)
@@ -1429,13 +1466,7 @@ public enum L {
     }
 
     /// Under the upscaling preview when the mode is off.
-    public static var settingsUpscalingNoteOff: String { string("settings-upscaling-note-off", fallback: "The source, scaled to fit without processing.") }
-
-    /// Under the upscaling preview for the sharp mode.
-    public static var settingsUpscalingNoteSharp: String { string("settings-upscaling-note-sharp", fallback: "Crisper lines and stronger edges, at some cost to texture.") }
-
-    /// Under the upscaling preview for the natural mode.
-    public static var settingsUpscalingNoteNatural: String { string("settings-upscaling-note-natural", fallback: "Faithful line work and texture, nothing restyled.") }
+    public static var settingsUpscalingNoteNone: String { string("settings-upscaling-note-none", fallback: "The source, scaled to fit without processing.") }
 
     /// Shown in the Advanced pane while the player has no options of its own to set.
     public static var settingsAdvancedNone: String { string("settings-advanced-none", fallback: "No extra options. The player runs with anistream's own.") }
@@ -1745,9 +1776,6 @@ public enum L {
     /// A remembered subtitle track that has neither a language nor a title.
     public static var showSettingsUnnamedTrack: String { string("show-settings-unnamed-track", fallback: "Unnamed track") }
 
-    /// Footnote of the seeding group on the Mac: seeding stops when the app is closed.
-    public static var settingsSeedingOpenOnly: String { string("settings-seeding-open-only", fallback: "Seeding runs only while anistream is open.") }
-
     /// Line under the AniList's choice option of Title language when signed out.
     public static func settingsTitleLineSignedOut(tracker: String) -> String {
         Self.format("settings-title-line-signed-out", fallback: "English while signed out of %1$@", tracker)
@@ -2030,9 +2058,6 @@ public enum L {
     /// Line under the count of devices that joined with the link, while the link is closed.
     public static var storesOpenJoinKeepWorking: String { string("stores-open-join-keep-working", fallback: "They keep working until you remove them.") }
 
-    /// Button that removes every device that joined with the link.
-    public static var storesRemoveAll: String { string("stores-remove-all", fallback: "Remove all") }
-
     /// Line of a device that joined with the link: when it was last seen. The time is relative.
     public static func storesDeviceSeenAt(when: String) -> String {
         Self.format("stores-device-seen-at", fallback: "Seen %1$@", when)
@@ -2089,25 +2114,16 @@ public enum L {
         Self.format("party-leave-detail-window", fallback: "Closing the window leaves %1$@. Everyone else carries on without you.", room)
     }
 
-    /// Line on the form when the device is offline.
-    public static var partyNeedsConnection: String { string("party-needs-connection", fallback: "A watch party needs a connection. You're offline.") }
-
     /// Title of the sheet that lists sources for the party's episode. The episode is a number.
     public static func partyChooseSourceTitle(episode: String) -> String {
         Self.format("party-choose-source-title", fallback: "Choose a source for episode %1$@", episode)
     }
-
-    /// Button that opens the sources screen.
-    public static var partyOpenSources: String { string("party-open-sources", fallback: "Open Sources") }
 
     /// Button that lists what each source has for the episode.
     public static var partyChooseSource: String { string("party-choose-source", fallback: "Choose a source") }
 
     /// Button that plays the chosen source with the room.
     public static var partyPlayWith: String { string("party-play-with", fallback: "Play with the watch party") }
-
-    /// Line while the sources are asked about the episode.
-    public static var partyLookingSources: String { string("party-looking-sources", fallback: "Looking through your sources…") }
 
     /// Line when no source lists the episode.
     public static func partyNoSourceLists(episode: String) -> String {
@@ -2125,9 +2141,6 @@ public enum L {
 
     /// Line under the name of a TV in the picker: found, not paired yet.
     public static var tvRowNotPaired: String { string("tv-row-not-paired", fallback: "Not paired yet") }
-
-    /// Line under the name of a TV in the picker: it runs another version of the app.
-    public static var tvRowNeedsUpdate: String { string("tv-row-needs-update", fallback: "Needs the same anistream version as this device") }
 
     /// Accessibility hint of a TV's row that pairs.
     public static var tvRowPairHint: String { string("tv-row-pair-hint", fallback: "Pairs with this TV") }
@@ -2157,20 +2170,6 @@ public enum L {
     /// Title of the remote when nothing plays on the TV.
     public static var tvNothingPlaying: String { string("tv-nothing-playing", fallback: "Nothing playing") }
 
-    /// Label of the TV's volume.
-    public static var tvVolume: String { string("tv-volume", fallback: "TV volume") }
-
-    /// Accessibility label of the button that lowers the volume.
-    public static var tvVolumeDown: String { string("tv-volume-down", fallback: "Volume down") }
-
-    /// Accessibility label of the button that raises the volume.
-    public static var tvVolumeUp: String { string("tv-volume-up", fallback: "Volume up") }
-
-    /// Value under the TV's volume. The volume is a number from 0 to 100.
-    public static func tvVolumeOf(volume: Int) -> String {
-        Self.format("tv-volume-of", fallback: "%1$lld of 100", volume)
-    }
-
     /// Accessibility action that opens the remote.
     public static var tvRemoteAction: String { string("tv-remote-action", fallback: "Show the remote") }
 
@@ -2189,39 +2188,6 @@ public enum L {
         Self.format("tv-bar-not-found", fallback: "%1$@ not found", name)
     }
 
-    /// Why a code was not accepted.
-    public static var tvProblemWrongCode: String { string("tv-problem-wrong-code", fallback: "That code didn't match. Check the code on the TV and try again.") }
-
-    /// Why a TV cannot be paired: it keeps as many devices as it can.
-    public static var tvProblemFull: String { string("tv-problem-full", fallback: "This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.") }
-
-    /// Why a TV cannot be connected: too many devices are connected.
-    public static var tvProblemBusy: String { string("tv-problem-busy", fallback: "The TV is connected to as many devices as it can. Try again soon.") }
-
-    /// Why a TV cannot be used: another version of the app.
-    public static var tvProblemVersion: String { string("tv-problem-version", fallback: "The TV runs another version of anistream. Update both to the same one.") }
-
-    /// Why a command was not sent: nothing plays on the TV.
-    public static var tvProblemNotNow: String { string("tv-problem-not-now", fallback: "Nothing is playing on the TV.") }
-
-    /// Status and problem: the TV no longer knows this device.
-    public static var tvProblemUnpaired: String { string("tv-problem-unpaired", fallback: "The TV doesn't know this device any more. Pair again.") }
-
-    /// Status and problem: the TV was reset or reinstalled after pairing.
-    public static var tvProblemKeyChanged: String { string("tv-problem-key-changed", fallback: "The TV was reset or reinstalled since you paired. Pair again.") }
-
-    /// Why a TV could not be reached.
-    public static var tvProblemUnreachable: String { string("tv-problem-unreachable", fallback: "Can't reach the TV. Check that it is on, with anistream open, on the same network.") }
-
-    /// Why a TV could not be used: it left the network.
-    public static var tvProblemGone: String { string("tv-problem-gone", fallback: "That TV is no longer on the network.") }
-
-    /// Why an address or code was not used: it is not a TV's.
-    public static var tvProblemNotALink: String { string("tv-problem-not-a-link", fallback: "That isn't a TV's pairing code or address.") }
-
-    /// Row title in the settings for pairing one more TV when some are paired.
-    public static var tvAnother: String { string("tv-another", fallback: "Another TV") }
-
     /// Title of the list of paired TVs on a phone.
     public static var tvPairedTvs: String { string("tv-paired-tvs", fallback: "Paired TVs") }
 
@@ -2231,11 +2197,6 @@ public enum L {
     /// Line under the settings group of paired TVs. The code is a short fingerprint.
     public static func tvSettingsFootnote(code: String) -> String {
         Self.format("tv-settings-footnote", fallback: "A TV lists this device with the code %1$@. Forget a TV here and it forgets this device too.", code)
-    }
-
-    /// Line of a paired TV in the settings: when it was paired and when it was last seen.
-    public static func tvPairedSeen(paired: String, when: String) -> String {
-        Self.format("tv-paired-seen", fallback: "%1$@ · seen %2$@", paired, when)
     }
 
     /// Time of the last sighting of a paired TV, within the last minute.
@@ -2258,9 +2219,6 @@ public enum L {
 
     /// Detail of the confirmation that removes a plugin.
     public static var sourcesRemoveDetail: String { string("sources-remove-detail", fallback: "It is deleted from this device. A plugin store can install it again.") }
-
-    /// Note under the torrents' actions on the sources page.
-    public static var sourcesTorrentsNote: String { string("sources-torrents-note", fallback: "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings › Sources.") }
 
     /// Name of the fact on the title page that lists where else a show can be watched.
     public static var titleFactAlsoOn: String { string("title-fact-also-on", fallback: "Also on") }
@@ -3050,10 +3008,10 @@ public enum L {
     }
 
     /// A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.
-    public static var timeNow: String { string("time-now", fallback: "now") }
+    public static var timeNowInline: String { string("time-now-inline", fallback: "now") }
 
     /// How long ago, under a minute. Lower case, as it stands inside a line.
-    public static var timeJustNow: String { string("time-just-now", fallback: "just now") }
+    public static var timeJustNowInline: String { string("time-just-now-inline", fallback: "just now") }
 
     /// Later today.
     public static func whenToday(time: String) -> String {
@@ -4115,6 +4073,15 @@ public enum L {
         Self.format("party-source-seeders", fallback: "%1$lld seeders", seeders)
     }
 
+    /// Foot of the watch party form while the device is offline.
+    public static var partyNeedsConnection: String { string("party-needs-connection", fallback: "A watch party needs a connection. You're offline.") }
+
+    /// Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
+    public static var partyOpenSources: String { string("party-open-sources", fallback: "Open sources") }
+
+    /// Line while the sources are searched for the watch party's episode.
+    public static var partyLookingSources: String { string("party-looking-sources", fallback: "Looking through your sources…") }
+
     /// Label on the card for the episode that plays after this one.
     public static var playerUpNext: String { string("player-up-next", fallback: "Up next") }
 
@@ -4982,6 +4949,15 @@ public enum L {
         Self.format("widget-resume-dubbed-label", fallback: "Resume episode %1$lld, dubbed, of %2$@", episode, title)
     }
 
+    /// Preview note under the upscaling frame for the natural look.
+    public static var settingsUpscalingNoteNatural: String { string("settings-upscaling-note-natural", fallback: "Faithful line work and texture, nothing restyled.") }
+
+    /// Preview note under the upscaling frame for the sharp look.
+    public static var settingsUpscalingNoteSharp: String { string("settings-upscaling-note-sharp", fallback: "Crisper lines and stronger edges, at some cost to texture.") }
+
+    /// Line under the seeding group in Settings: seeding stops when the app closes.
+    public static var settingsSeedingOpenOnly: String { string("settings-seeding-open-only", fallback: "Seeding runs only while anistream is open.") }
+
     /// Title of the screen or section that lists sources.
     public static var sourcesTitle: String { string("sources-title", fallback: "Sources") }
 
@@ -5196,6 +5172,9 @@ public enum L {
 
     /// Row: where the plugin's page stands.
     public static var sourcesSourceOrderRow: String { string("sources-source-order-row", fallback: "Source order") }
+
+    /// Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
+    public static var sourcesTorrentsNote: String { string("sources-torrents-note", fallback: "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.") }
 
     /// Short label for a joined store, on a row.
     public static var storesJoined: String { string("stores-joined", fallback: "Joined") }
@@ -5634,6 +5613,9 @@ public enum L {
     public static func storesPluginNameVersion(name: String, version: String) -> String {
         Self.format("stores-plugin-name-version", fallback: "%1$@ %2$@", name, version)
     }
+
+    /// Button on the summary row that removes every device that joined with the link.
+    public static var storesRemoveAll: String { string("stores-remove-all", fallback: "Remove all") }
 
     /// Title of the state when a title page could not load.
     public static var titleLoadFailed: String { string("title-load-failed", fallback: "Couldn't load this title") }
@@ -6561,6 +6543,61 @@ public enum L {
 
     /// Heading of the settings group on the TV that lists the remotes.
     public static var tvRemotes: String { string("tv-remotes", fallback: "Remotes") }
+
+    /// Row title of the button that pairs another TV once one is paired.
+    public static var tvAnother: String { string("tv-another", fallback: "Another TV") }
+
+    /// Under a TV in the list: its version does not match.
+    public static var tvRowNeedsUpdate: String { string("tv-row-needs-update", fallback: "Needs the same anistream version as this device") }
+
+    /// Settings line of a paired TV: paired on a date, last seen a while ago.
+    public static func tvPairedSeen(paired: String, ago: String) -> String {
+        Self.format("tv-paired-seen", fallback: "%1$@ · seen %2$@", paired, ago)
+    }
+
+    /// Title of the remote's volume row.
+    public static var tvVolume: String { string("tv-volume", fallback: "TV volume") }
+
+    /// Accessible label of the button that turns the TV down.
+    public static var tvVolumeDown: String { string("tv-volume-down", fallback: "Volume down") }
+
+    /// Accessible label of the button that turns the TV up.
+    public static var tvVolumeUp: String { string("tv-volume-up", fallback: "Volume up") }
+
+    /// The TV's volume as a value of 100.
+    public static func tvVolumeOf(volume: Int) -> String {
+        Self.format("tv-volume-of", fallback: "%1$lld of 100", volume)
+    }
+
+    /// The pairing code typed did not match.
+    public static var tvProblemWrongCode: String { string("tv-problem-wrong-code", fallback: "That code didn't match. Check the code on the TV and try again.") }
+
+    /// The TV cannot take another paired device.
+    public static var tvProblemFull: String { string("tv-problem-full", fallback: "This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.") }
+
+    /// The TV cannot take another connection now.
+    public static var tvProblemBusy: String { string("tv-problem-busy", fallback: "The TV is connected to as many devices as it can. Try again soon.") }
+
+    /// The TV and this app speak different versions.
+    public static var tvProblemVersion: String { string("tv-problem-version", fallback: "The TV runs another version of anistream. Update both to the same one.") }
+
+    /// A command needs something playing and nothing is.
+    public static var tvProblemNotNow: String { string("tv-problem-not-now", fallback: "Nothing is playing on the TV.") }
+
+    /// The TV has forgotten this computer.
+    public static var tvProblemUnpaired: String { string("tv-problem-unpaired", fallback: "The TV doesn't know this device any more. Pair again.") }
+
+    /// The TV's key changed since pairing.
+    public static var tvProblemKeyChanged: String { string("tv-problem-key-changed", fallback: "The TV was reset or reinstalled since you paired. Pair again.") }
+
+    /// The TV did not answer.
+    public static var tvProblemUnreachable: String { string("tv-problem-unreachable", fallback: "Can't reach the TV. Check that it's on, with anistream open, on the same network.") }
+
+    /// The TV picked in the list has left the network.
+    public static var tvProblemGone: String { string("tv-problem-gone", fallback: "That TV is no longer on the network.") }
+
+    /// What was typed or scanned is not a TV's code or address.
+    public static var tvProblemNotALink: String { string("tv-problem-not-a-link", fallback: "That isn't a TV's pairing code or address.") }
 
     /// Heading of the update row in settings and about.
     public static var updatesTitle: String { string("updates-title", fallback: "Updates") }

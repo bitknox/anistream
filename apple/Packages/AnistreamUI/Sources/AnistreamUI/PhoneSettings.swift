@@ -350,7 +350,7 @@ struct PhonePlaybackPage: View {
 
     private var upscalingNote: String {
         switch store.settings.row(.upscaling)?.option?.label {
-        case "off": L.settingsUpscalingNoteOff
+        case "off": L.settingsUpscalingNoteNone
         case "sharp · Anime4K": L.settingsUpscalingNoteSharp
         default: L.settingsUpscalingNoteNatural
         }

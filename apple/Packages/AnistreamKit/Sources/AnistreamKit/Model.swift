@@ -134,7 +134,7 @@ public enum Wording {
     /// A countdown in the largest unit that still reads at a glance: `6d 17h`, `2h 5m`, `4m`,
     /// `now` at zero. `wording::countdown`.
     public static func countdown(_ seconds: Int64) -> String {
-        guard seconds > 0 else { return L.timeNow }
+        guard seconds > 0 else { return L.timeNowInline }
         let minutes = Int(seconds / 60)
         let hours = minutes / 60
         let days = hours / 24
@@ -151,7 +151,7 @@ public enum Wording {
 
     /// How long ago: `2d ago`, or `just now` under a minute. `wording::ago`.
     public static func ago(_ seconds: Int64) -> String {
-        seconds < 60 ? L.timeJustNow : L.timeAgo(span: countdown(seconds))
+        seconds < 60 ? L.timeJustNowInline : L.timeAgo(span: countdown(seconds))
     }
 
     /// A count and an English noun, singular at one. English only: being replaced by a catalogue

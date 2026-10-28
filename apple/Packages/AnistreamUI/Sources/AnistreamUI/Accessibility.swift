@@ -44,7 +44,7 @@ enum Spoken {
 
     /// How long ago, said in full: "out 2 hours ago", or "just now" under a minute.
     static func out(_ seconds: Int64) -> String {
-        seconds < 60 ? L.timeJustNow : L.accessOutAgo(span: span(seconds))
+        seconds < 60 ? L.timeJustNowInline : L.accessOutAgo(span: span(seconds))
     }
 
     /// Descriptions put one after the other, as a voice reads them.

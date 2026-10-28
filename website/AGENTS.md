@@ -1,12 +1,30 @@
 ## Development
 
+Use Bun and the committed `bun.lock`. From `website/`:
+
+- Install: `bun install --frozen-lockfile`.
+- Validate changes: `bun run build`.
+- Preview the production build: `bun run preview`.
+
+For layout changes, inspect the rendered page at desktop and mobile widths too.
+`website/CLAUDE.md` links to this file; keep shared instructions here.
+
 When starting the dev server, use background mode:
 
 ```
-astro dev --background
+bun run dev --background
 ```
 
-Manage the background server with `astro dev stop`, `astro dev status`, and `astro dev logs`.
+Manage the background server with `bun run dev stop`, `bun run dev status`, and
+`bun run dev logs`.
+
+## Translations
+
+Every word a visitor reads is a key in `src/content/i18n/en.json`, read with `t()` from `useSite(Astro)` (`src/i18n/site.ts`), which wraps Starlight's `Astro.locals.t`. Keys are flat, grouped by page (`home.`, `apps.`, `features.`) and by job (`dl.` for downloads, `game.` for Nagare's run); `src/i18n/notes.json` holds notes for translators. A client script holds no copy: the page carries its strings as JSON (`words('dl.')`, read with `src/scripts/words.ts`). The custom pages are served from `src/pages/[...locale]/`, once per language.
+
+To add a language, add `src/content/i18n/<tag>.json` (BCP-47, as `sv` or `pt-BR`) with the keys it translates, including `site.language.name`; a key it leaves out falls back to English. Docs pages go in `src/content/docs/<code>/docs/...`. The picker and the language suggestion show once there are two languages. `bun test src` checks placeholders and tags against English and that every key is used.
+
+`bun run build:pseudo` builds the pseudo locale `en-XA` into `dist-pseudo` (never deployed): English accented and lengthened, so plain text left on a page is a string that skipped the setup, and clipped boxes show.
 
 ## Feature videos
 
