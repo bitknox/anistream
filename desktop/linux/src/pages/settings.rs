@@ -10,6 +10,7 @@ use std::{
 
 use adw::prelude::*;
 use anistream_core::settings::SettingValue;
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
     event::Event,
@@ -34,29 +35,65 @@ use crate::{
 
 use SettingKey as K;
 
-/// A pane: its name, its title, its icon and its groups of rows.
+/// A group of rows under a heading in a pane.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Group {
+    Titles,
+    Watching,
+    Player,
+    Picture,
+    Files,
+    Ahead,
+    NewEpisodes,
+    Torrents,
+    Seeding,
+    WatchParty,
+    Discord,
+    Updates,
+    Mpv,
+}
+
+impl Group {
+    fn title(self) -> String {
+        match self {
+            Self::Titles => t::settings_group_titles(),
+            Self::Watching => t::settings_group_watching(),
+            Self::Player => t::settings_group_player(),
+            Self::Picture => t::settings_group_picture(),
+            Self::Files => t::settings_group_files(),
+            Self::Ahead => t::settings_group_ahead(),
+            Self::NewEpisodes => t::settings_new_episodes(),
+            Self::Torrents => t::torrents_title(),
+            Self::Seeding => t::downloads_seeding_title(),
+            Self::WatchParty => t::party_title(),
+            Self::Discord => t::settings_discord(),
+            Self::Updates => t::updates_title(),
+            // The player's own name.
+            Self::Mpv => "mpv".to_owned(), // i18n-skip
+        }
+    }
+}
+
+/// A pane: its name, its icon and its groups of rows.
 struct Pane {
     name: &'static str,
-    title: &'static str,
     icon: &'static str,
-    groups: &'static [(&'static str, &'static [SettingKey])],
+    groups: &'static [(Group, &'static [SettingKey])],
 }
 
 const PANES: [Pane; 9] = [
     Pane {
         name: "general",
-        title: "General",
-        icon: "preferences-system-symbolic",
-        groups: &[("Titles", &[K::Titles])],
+        icon: "preferences-system-symbolic", // i18n-skip
+        groups: &[(Group::Titles, &[K::Titles])],
     },
     Pane {
         name: "playback",
-        title: "Playback",
-        icon: "media-playback-start-symbolic",
+        icon: "media-playback-start-symbolic", // i18n-skip
         groups: &[
-            ("Watching", &[K::Translation, K::Quality, K::Subtitles, K::CommitThreshold]),
+            (Group::Watching, &[K::Translation, K::Quality, K::Subtitles, K::CommitThreshold]),
             (
-                "Player",
+                Group::Player,
                 &[
                     K::AutoNext,
                     K::UpNextCountdown,
@@ -68,56 +105,51 @@ const PANES: [Pane; 9] = [
                     K::PlayerUi,
                 ],
             ),
-            ("Picture", &[K::Upscaling, K::NightMode, K::SpoilerProtection, K::Motion]),
+            (Group::Picture, &[K::Upscaling, K::NightMode, K::SpoilerProtection, K::Motion]),
         ],
     },
     Pane {
         name: "downloads",
-        title: "Downloads",
-        icon: "folder-download-symbolic",
+        icon: "folder-download-symbolic", // i18n-skip
         groups: &[
             (
-                "Files",
+                Group::Files,
                 &[K::DownloadDir, K::DownloadQuality, K::MergeSubtitles, K::DownloadHook],
             ),
-            ("Ahead", &[K::KeepNextEpisodes]),
+            (Group::Ahead, &[K::KeepNextEpisodes]),
         ],
     },
     Pane {
         name: "notifications",
-        title: "Notifications",
-        icon: "preferences-system-notifications-symbolic",
-        groups: &[("New Episodes", &[K::EpisodeNotifications])],
+        icon: "preferences-system-notifications-symbolic", // i18n-skip
+        groups: &[(Group::NewEpisodes, &[K::EpisodeNotifications])],
     },
     Pane {
         name: "sources",
-        title: "Sources",
-        icon: "network-server-symbolic",
+        icon: "network-server-symbolic", // i18n-skip
         groups: &[
             // Laid out by `torrents_group`: the switch, the index, what protects them, the last
             // check and what a failed one does.
-            ("Torrents", &[K::Torrents, K::VpnMode, K::VpnOnFailure]),
-            ("Seeding", &[K::KeepSeeding, K::SeedRatio, K::SeedHours, K::UploadLimit]),
+            (Group::Torrents, &[K::Torrents, K::VpnMode, K::VpnOnFailure]),
+            (Group::Seeding, &[K::KeepSeeding, K::SeedRatio, K::SeedHours, K::UploadLimit]),
         ],
     },
-    Pane { name: "accounts", title: "Accounts", icon: "avatar-default-symbolic", groups: &[] },
+    Pane { name: "accounts", icon: "avatar-default-symbolic", groups: &[] }, // i18n-skip
     Pane {
         name: "integrations",
-        title: "Integrations",
-        icon: "application-x-addon-symbolic",
+        icon: "application-x-addon-symbolic", // i18n-skip
         groups: &[
-            ("Watch Together", &[K::Syncplay, K::SyncplayServer, K::SyncplayRoom]),
-            ("Discord", &[K::Presence, K::PresenceTitle]),
-            ("Updates", &[K::UpdateCheck]),
+            (Group::WatchParty, &[K::Syncplay, K::SyncplayServer, K::SyncplayRoom]),
+            (Group::Discord, &[K::Presence, K::PresenceTitle]),
+            (Group::Updates, &[K::UpdateCheck]),
         ],
     },
     Pane {
         name: "advanced",
-        title: "Advanced",
-        icon: "preferences-other-symbolic",
-        groups: &[("mpv", &[K::MpvOptions])],
+        icon: "preferences-other-symbolic", // i18n-skip
+        groups: &[(Group::Mpv, &[K::MpvOptions])],
     },
-    Pane { name: "about", title: "About", icon: "help-about-symbolic", groups: &[] },
+    Pane { name: "about", icon: "help-about-symbolic", groups: &[] }, // i18n-skip
 ];
 
 /// The pane a setting sits in, when this app shows it. The theme is dark only in this version,
@@ -143,9 +175,9 @@ const SUBTITLE_LANGUAGES: [&str; 12] =
 /// none of them ("eng" is English, "pol" another).
 fn subtitle_codes(current: &str) -> Vec<String> {
     let mut codes: Vec<String> = SUBTITLE_LANGUAGES.iter().map(|c| (*c).to_owned()).collect();
-    let name = crate::words::language(current);
+    let name = crate::say::language(current);
     if !current.trim().is_empty()
-        && !SUBTITLE_LANGUAGES.iter().any(|c| crate::words::language(c) == name)
+        && !SUBTITLE_LANGUAGES.iter().any(|c| crate::say::language(c) == name)
     {
         codes.push(current.trim().to_owned());
     }
@@ -154,12 +186,24 @@ fn subtitle_codes(current: &str) -> Vec<String> {
 
 /// Where `current` stands among `codes`, by the language they name.
 fn subtitle_at(codes: &[String], current: &str) -> u32 {
-    let name = crate::words::language(current.trim());
-    codes.iter().position(|c| crate::words::language(c) == name).unwrap_or(0) as u32
+    let name = crate::say::language(current.trim());
+    codes.iter().position(|c| crate::say::language(c) == name).unwrap_or(0) as u32
 }
 
-pub fn pane_title(name: &str) -> &'static str {
-    PANES.iter().find(|p| p.name == name).map_or("Settings", |p| p.title)
+/// A pane's title, from the catalogue.
+pub fn pane_title(name: &str) -> String {
+    match name {
+        "general" => t::settings_group_general(),
+        "playback" => t::settings_group_playback(),
+        "downloads" => t::downloads_title(),
+        "notifications" => t::settings_group_notifications(),
+        "sources" => t::sources_title(),
+        "accounts" => t::accounts_title(),
+        "integrations" => t::settings_group_integrations(),
+        "advanced" => t::settings_group_advanced(),
+        "about" => t::about_title(),
+        _ => t::settings_title(),
+    }
 }
 
 /// The Settings destination.
@@ -202,7 +246,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
     for pane in &PANES {
         let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
         line.append(&gtk::Image::from_icon_name(pane.icon));
-        let label = gtk::Label::new(Some(pane.title));
+        let label = gtk::Label::new(Some(&pane_title(pane.name)));
         label.set_xalign(0.0);
         line.append(&label);
         let row = gtk::ListBoxRow::builder().child(&line).build();
@@ -216,9 +260,10 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
         .hscrollbar_policy(gtk::PolicyType::Never)
         .child(&list)
         .build();
-    let sidebar = widgets::page("Settings", &header, &scroll);
+    let sidebar = widgets::page(&t::settings_title(), &header, &scroll);
 
-    let content = adw::NavigationPage::builder().title("General").tag("pane").build();
+    let content =
+        adw::NavigationPage::builder().title(pane_title("general")).tag("pane").build();
     let split = adw::NavigationSplitView::builder()
         .sidebar(&sidebar)
         .content(&content)
@@ -293,7 +338,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
     inner.show("general");
     inner.select_row("general");
 
-    let page = adw::NavigationPage::builder().title("Settings").child(&split).build();
+    let page = adw::NavigationPage::builder().title(t::settings_title()).child(&split).build();
     SettingsPage { page, inner }
 }
 
@@ -392,10 +437,11 @@ impl Inner {
             "accounts" => self.accounts(&page),
             "about" => {
                 about_pane(&page);
-                let group = adw::PreferencesGroup::builder().title("Updates").build();
+                let group = adw::PreferencesGroup::builder().title(t::updates_title()).build();
                 self.update_rows(&group);
                 page.add(&group);
             }
+            "general" => page.add(&self.language_group()),
             // The TVs paired for Play on TV lead Integrations, as on the Mac.
             "integrations" => {
                 if let Some(group) = crate::tv::paired::group(&self.ctx) {
@@ -407,18 +453,18 @@ impl Inner {
         let known = self.ctx.hub.known.borrow();
         let ready = known.settings.is_some();
         for (title, keys) in pane.groups {
-            if name == "sources" && *title == "Torrents" {
+            if name == "sources" && *title == Group::Torrents {
                 if let Some(group) = self.torrents_group(&known) {
                     page.add(&group);
                 }
                 continue;
             }
-            let mut group = adw::PreferencesGroup::builder().title(*title).build();
-            if *title == "Seeding" {
+            let mut group = adw::PreferencesGroup::builder().title(title.title()).build();
+            if *title == Group::Seeding {
                 // Seeding only says anything once torrents are on.
                 let on = known.setting(K::Torrents).is_some_and(|r| catalog::is_on(&r));
                 group.set_visible(on);
-                group.set_description(Some("Seeding runs only while anistream is open."));
+                group.set_description(Some(t::settings_seeding_open_only().as_str()));
                 self.keep(K::Torrents, {
                     let group = group.clone();
                     move |row| group.set_visible(catalog::is_on(row))
@@ -452,22 +498,22 @@ impl Inner {
                     }
                 });
             }
-            if *title == "Discord"
+            if *title == Group::Discord
                 && known.settings.as_ref().is_some_and(|v| !v.presence_available)
             {
                 // A build without the presence has nothing to switch on.
                 continue;
             }
-            if *title == "Updates" {
+            if *title == Group::Updates {
                 // Flatpak updates the app: no switch for a check of its own, and nothing to
                 // check now.
                 if crate::updates::flatpak() {
-                    group = adw::PreferencesGroup::builder().title(*title).build();
+                    group = adw::PreferencesGroup::builder().title(title.title()).build();
                 }
                 self.update_rows(&group);
                 any = true;
             }
-            if name == "downloads" && *title == "Files" {
+            if name == "downloads" && *title == Group::Files {
                 group.add(&self.close_choice());
                 any = true;
             }
@@ -477,9 +523,11 @@ impl Inner {
         }
         if name == "sources" {
             let legal = adw::PreferencesGroup::builder()
-                .description(
-                    "anistream hosts no content. Sources come from the plugin stores you join.",
-                )
+                .description(format!(
+                    "{} {}",
+                    t::legal_hosts_no_content(),
+                    t::settings_sources_come_from()
+                ))
                 .build();
             page.add(&legal);
         }
@@ -490,7 +538,7 @@ impl Inner {
         view.add_top_bar(&header);
         view.set_content(Some(&self.with_aside(&page, has_aside)));
         self.content.set_child(Some(&view));
-        self.content.set_title(pane.title);
+        self.content.set_title(&pane_title(pane.name));
         if ready || pane.groups.is_empty() {
             self.built.replace(Some(name));
         } else {
@@ -526,7 +574,7 @@ impl Inner {
             let open = gtk::Button::from_icon_name("go-next-symbolic");
             open.add_css_class("flat");
             open.set_valign(gtk::Align::Center);
-            open.set_tooltip_text(Some("Preview"));
+            open.set_tooltip_text(Some(&t::settings_preview()));
             let inner = Rc::downgrade(self);
             open.connect_clicked(move |_| {
                 if let Some(inner) = inner.upgrade() {
@@ -543,11 +591,8 @@ impl Inner {
     fn row_for(self: &Rc<Self>, row: &SettingRow) -> gtk::Widget {
         let key = row.key;
         // In General, under Titles, the row says which language.
-        let title = if key == K::Titles {
-            "Title language".to_owned()
-        } else {
-            catalog::shown(key.label())
-        };
+        let title =
+            if key == K::Titles { t::settings_title_language() } else { catalog::label(key) };
         let overridden = self
             .ctx
             .hub
@@ -556,18 +601,16 @@ impl Inner {
             .settings
             .as_ref()
             .and_then(|v| v.overridden.iter().find(|o| o.key == key).map(|o| o.shows));
-        let subtitle = overridden.map(|n| {
-            format!("Overridden for {}", anistream_model::wording::plural(n as usize, "show"))
-        });
+        let subtitle = overridden.map(|n| t::settings_overridden(n as i64));
 
         if !catalog::editable(row) {
             let line = adw::ActionRow::builder().title(&title).build();
-            let value = widgets::haze(&catalog::shown(&row.value), "");
+            let value = widgets::haze(&catalog::display(row), "");
             value.set_valign(gtk::Align::Center);
             line.add_suffix(&value);
             self.keep(key, {
                 let value = value.clone();
-                move |row| value.set_label(&catalog::shown(&row.value))
+                move |row| value.set_label(&catalog::display(row))
             });
             return line.upcast();
         }
@@ -670,16 +713,17 @@ impl Inner {
 
         // A ladder this app has no list of values for: back and forward along it.
         let line = adw::ActionRow::builder().title(&title).build();
-        let value = widgets::haze(&catalog::shown(&row.value), "");
+        let value = widgets::haze(&catalog::display(row), "");
         value.set_valign(gtk::Align::Center);
         line.add_suffix(&value);
-        for (icon, delta, tip) in
-            [("go-previous-symbolic", -1, "Previous"), ("go-next-symbolic", 1, "Next")]
-        {
+        for (icon, delta, tip) in [
+            ("go-previous-symbolic", -1, t::settings_previous_value()), // i18n-skip
+            ("go-next-symbolic", 1, t::settings_next_value()),          // i18n-skip
+        ] {
             let button = gtk::Button::from_icon_name(icon);
             button.add_css_class("flat");
             button.set_valign(gtk::Align::Center);
-            button.set_tooltip_text(Some(tip));
+            button.set_tooltip_text(Some(&tip));
             let hub = Rc::downgrade(&self.ctx.hub);
             button.connect_clicked(move |_| {
                 if let Some(hub) = hub.upgrade() {
@@ -691,10 +735,67 @@ impl Inner {
         if let SettingChange::Steps { .. } = row.change {
             self.keep(key, {
                 let value = value.clone();
-                move |row| value.set_label(&catalog::shown(&row.value))
+                move |row| value.set_label(&catalog::display(row))
             });
         }
         line.upcast()
+    }
+
+    /// The app's own language: following the system, or one the build ships. The choice is
+    /// written to the config file's `language` key, which the terminal app reads too, and applies
+    /// from the next start.
+    fn language_group(self: &Rc<Self>) -> adw::PreferencesGroup {
+        let group = adw::PreferencesGroup::new();
+        let languages = anistream_i18n::languages();
+        let draft = t::language_draft_label();
+        let mut names = vec![t::language_follow_system()];
+        names.extend(languages.iter().map(|l| {
+            if l.draft { format!("{} · {draft}", l.name) } else { l.name.to_owned() } // i18n-skip
+        }));
+        let names: Vec<&str> = names.iter().map(String::as_str).collect();
+        let saved = self.ctx.prefs.language();
+        let at = saved
+            .as_deref()
+            .and_then(|tag| languages.iter().position(|l| l.tag.eq_ignore_ascii_case(tag)))
+            .map_or(0, |i| i + 1);
+        let line = adw::ComboRow::builder()
+            .title(t::settings_language())
+            .model(&gtk::StringList::new(&names))
+            .selected(at as u32)
+            .build();
+        // The note under the row: that a draft may be wrong, and that a restart applies a change.
+        let note = {
+            let languages = languages.clone();
+            move |at: u32, changed: bool| {
+                let draft = at
+                    .checked_sub(1)
+                    .and_then(|i| languages.get(i as usize))
+                    .is_some_and(|l| l.draft);
+                let mut lines = Vec::new();
+                if draft {
+                    lines.push(t::language_draft_note());
+                }
+                if changed {
+                    lines.push(t::language_restart_note());
+                }
+                lines.join("\n")
+            }
+        };
+        line.set_subtitle(&note(at as u32, false));
+        let ctx = Rc::downgrade(&self.ctx);
+        line.connect_selected_notify(move |line| {
+            let Some(ctx) = ctx.upgrade() else { return };
+            let at = line.selected();
+            let tag = match at.checked_sub(1).and_then(|i| languages.get(i as usize)) {
+                Some(language) => language.tag,
+                None => "system", // i18n-skip
+            };
+            if ctx.prefs.set_language(tag) {
+                line.set_subtitle(&note(at, true));
+            }
+        });
+        group.add(&line);
+        group
     }
 
     /// The subtitle language: the common ones by name, and one typed in the file beside them.
@@ -702,7 +803,7 @@ impl Inner {
         let codes = Rc::new(RefCell::new(subtitle_codes(code)));
         let names = gtk::StringList::new(&[]);
         for code in codes.borrow().iter() {
-            names.append(&crate::words::language(code));
+            names.append(&crate::say::language(code));
         }
         let line = adw::ComboRow::builder().title(title).model(&names).build();
         line.set_selected(subtitle_at(&codes.borrow(), code));
@@ -722,7 +823,7 @@ impl Inner {
                 let wanted = subtitle_codes(code);
                 if *codes.borrow() != wanted {
                     let shown: Vec<String> =
-                        wanted.iter().map(|c| crate::words::language(c)).collect();
+                        wanted.iter().map(|c| crate::say::language(c)).collect();
                     let shown: Vec<&str> = shown.iter().map(String::as_str).collect();
                     names.splice(0, names.n_items(), &shown);
                     codes.replace(wanted);
@@ -740,13 +841,13 @@ impl Inner {
     fn folder_row(self: &Rc<Self>, title: &str, path: &str) -> gtk::Widget {
         let line = adw::ActionRow::builder().title(title).subtitle(path).build();
         line.add_css_class("property");
-        let choose = gtk::Button::with_label("Choose…");
+        let choose = gtk::Button::with_label(&t::settings_choose());
         choose.set_valign(gtk::Align::Center);
         let inner = Rc::downgrade(self);
         choose.connect_clicked(move |_| {
             let Some(inner) = inner.upgrade() else { return };
             let dialog =
-                gtk::FileDialog::builder().title("Download Folder").modal(true).build();
+                gtk::FileDialog::builder().title(t::downloads_folder()).modal(true).build();
             let weak = Rc::downgrade(&inner);
             dialog.select_folder(
                 Some(&inner.ctx.window),
@@ -773,9 +874,10 @@ impl Inner {
     /// What closing the window while downloads run does: this app's own, kept beside the
     /// window's size.
     fn close_choice(&self) -> adw::ComboRow {
-        let labels: Vec<&str> = CloseChoice::ALL.iter().map(|c| c.label()).collect();
+        let labels: Vec<String> = CloseChoice::ALL.iter().map(|c| c.label()).collect();
+        let labels: Vec<&str> = labels.iter().map(String::as_str).collect();
         let line = adw::ComboRow::builder()
-            .title("When the window closes with downloads running")
+            .title(t::downloads_background_title())
             .model(&gtk::StringList::new(&labels))
             .build();
         let now = self.ctx.prefs.close_choice();
@@ -880,7 +982,8 @@ impl Inner {
             checks.push(check);
         }
         let header = adw::HeaderBar::new();
-        let page = widgets::page("Upscaling", &header, &widgets::column_page(&column, 640));
+        let page =
+            widgets::page(&t::player_upscaling(), &header, &widgets::column_page(&column, 640));
         let fill = {
             let hub = Rc::downgrade(&self.ctx.hub);
             let shown = shown.downgrade();
@@ -935,10 +1038,10 @@ impl Inner {
         let protection =
             known.settings.as_ref().map(|v| (*v.torrent).clone()).unwrap_or_default();
         let note = |on: bool, view: &ProtectionView| {
-            if on { torrents::on_note(view) } else { torrents::OFF_NOTE.to_owned() }
+            if on { torrents::on_note(view) } else { torrents::off_note() }
         };
         let group = adw::PreferencesGroup::builder()
-            .title("Torrents")
+            .title(t::torrents_title())
             .description(note(on, &protection))
             .build();
         group.add(&self.row(&row));
@@ -947,11 +1050,11 @@ impl Inner {
 
         // The index, sent when applied.
         let entry = adw::EntryRow::builder()
-            .title("Torrent index")
+            .title(t::torrents_index())
             .text(index.as_deref().unwrap_or_default())
             .show_apply_button(true)
             .input_purpose(gtk::InputPurpose::Url)
-            .tooltip_text(torrents::INDEX_NOTE)
+            .tooltip_text(torrents::index_note())
             .build();
         entry.connect_apply({
             let hub = Rc::downgrade(&self.ctx.hub);
@@ -969,10 +1072,11 @@ impl Inner {
         while_on.push(entry.clone().upcast());
 
         // Protect with: the device's VPN at once, a proxy through the dialog, none confirmed.
-        let labels: Vec<&str> =
-            torrents::PROTECTIONS.iter().map(|p| torrents::label(*p)).collect();
+        let labels: Vec<String> =
+            torrents::PROTECTIONS.iter().map(|p| torrents::label(*p).to_string()).collect();
+        let labels: Vec<&str> = labels.iter().map(String::as_str).collect();
         let protect = adw::ComboRow::builder()
-            .title("Protect with")
+            .title(t::torrents_protect_with())
             .model(&gtk::StringList::new(&labels))
             .build();
         let at = |p| torrents::PROTECTIONS.iter().position(|c| *c == p).unwrap_or(0) as u32;
@@ -1002,7 +1106,7 @@ impl Inner {
             }
         });
         // Edit Proxy: the proxy set, checked again before it is saved.
-        let edit = gtk::Button::with_label("Edit Proxy\u{2026}");
+        let edit = gtk::Button::with_label(&t::settings_edit_proxy());
         edit.set_valign(gtk::Align::Center);
         edit.connect_clicked({
             let inner = Rc::downgrade(self);
@@ -1022,7 +1126,7 @@ impl Inner {
 
         // The last check: where traffic left through and when, and how it went.
         // A failed one: the glyph in vermilion, the word in haze, and Try Again.
-        let check = adw::ActionRow::builder().title("Last check").build();
+        let check = adw::ActionRow::builder().title(t::torrents_last_check()).build();
         let glyph = gtk::Label::new(Some("\u{25CF}"));
         glyph.add_css_class("error");
         glyph.set_valign(gtk::Align::Center);
@@ -1031,7 +1135,7 @@ impl Inner {
         let verdict = widgets::haze("", "");
         verdict.set_valign(gtk::Align::Center);
         check.add_suffix(&verdict);
-        let again = gtk::Button::with_label("Try Again");
+        let again = gtk::Button::with_label(&t::action_try_again());
         again.set_valign(gtk::Align::Center);
         again.connect_clicked({
             let hub = Rc::downgrade(&self.ctx.hub);
@@ -1052,7 +1156,7 @@ impl Inner {
                 let ago = guard.map(|(_, at)| at.elapsed().as_secs() as i64);
                 let (note, word, failed) = torrents::guard_words(guard.map(|(g, _)| g), ago);
                 check.set_subtitle(&note);
-                verdict.set_label(word);
+                verdict.set_label(&word);
                 glyph.set_visible(failed);
                 again.set_visible(failed);
             }
@@ -1074,10 +1178,13 @@ impl Inner {
         while_on.push(check.clone().upcast());
 
         // If a check fails: pause or stop at once, Warn only once confirmed.
-        let labels: Vec<&str> =
-            torrents::FAILED_CHECKS.iter().map(|c| torrents::failed_label(*c)).collect();
+        let labels: Vec<String> = torrents::FAILED_CHECKS
+            .iter()
+            .map(|c| torrents::failed_label(*c).to_string())
+            .collect();
+        let labels: Vec<&str> = labels.iter().map(String::as_str).collect();
         let failed = adw::ComboRow::builder()
-            .title(catalog::shown(K::VpnOnFailure.label()))
+            .title(catalog::label(K::VpnOnFailure))
             .model(&gtk::StringList::new(&labels))
             .build();
         let at_check =
@@ -1141,7 +1248,7 @@ impl Inner {
     fn update_rows(self: &Rc<Self>, group: &adw::PreferencesGroup) {
         let flatpak = crate::updates::flatpak();
         let row = adw::ActionRow::builder()
-            .title(format!("anistream {}", anistream_engine::updates::CURRENT))
+            .title(format!("anistream {}", anistream_engine::updates::CURRENT)) // i18n-skip
             .build();
         let spinner = adw::Spinner::new();
         spinner.set_size_request(16, 16);
@@ -1155,14 +1262,14 @@ impl Inner {
         steps.set_margin_start(12);
         steps.set_margin_end(12);
         let bar = gtk::ProgressBar::new();
-        bar.update_property(&[gtk::accessible::Property::Label("Update progress")]);
+        bar.update_property(&[gtk::accessible::Property::Label(&t::updates_progress_label())]);
         steps.append(&bar);
         let buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         buttons.set_halign(gtk::Align::End);
-        let view = gtk::Button::with_label("View Release");
+        let view = gtk::Button::with_label(&t::updates_view_version());
         view.set_action_name(Some("win.release-page"));
         buttons.append(&view);
-        let check = gtk::Button::with_label("Check Now");
+        let check = gtk::Button::with_label(&t::action_check_now());
         check.set_action_name(Some("win.check-updates"));
         buttons.append(&check);
         let next = gtk::Button::new();
@@ -1171,7 +1278,7 @@ impl Inner {
         let actions = adw::PreferencesRow::builder()
             .activatable(false)
             .selectable(false)
-            .title("Update")
+            .title(t::action_update())
             .child(&steps)
             .build();
         group.add(&actions);
@@ -1205,27 +1312,31 @@ impl Inner {
                 // The one step to take next, accented when it moves the update on.
                 let step = match &progress.step {
                     Step::Downloading { .. } | Step::Verifying => {
-                        Some(("Cancel", "win.update-cancel", false, true))
+                        Some((t::action_cancel(), "win.update-cancel", false, true)) // i18n-skip
                     }
                     Step::Ready(_) => {
-                        Some(("Restart to Update", "win.update-install", true, true))
+                        Some((t::updates_restart(), "win.update-install", true, true)) // i18n-skip
                     }
-                    Step::Saved(_) => Some(("Show in Files", "win.update-show", true, true)),
+                    Step::Saved(_) => {
+                        Some((t::settings_show_in_files(), "win.update-show", true, true)) // i18n-skip
+                    }
                     Step::Installing => {
-                        Some(("Restart to Update", "win.update-install", true, false))
+                        Some((t::updates_restart(), "win.update-install", true, false)) // i18n-skip
                     }
-                    Step::Failed(_) => Some(("Try Again", "win.update-download", false, true)),
+                    Step::Failed(_) => {
+                        Some((t::action_try_again(), "win.update-download", false, true)) // i18n-skip
+                    }
                     Step::Idle if installs => {
-                        Some(("Download Update", "win.update-download", true, true))
+                        Some((t::updates_download(), "win.update-download", true, true)) // i18n-skip
                     }
                     Step::Idle => None,
                 };
                 next.set_visible(step.is_some());
-                if let Some((label, action, accent, sensitive)) = step {
+                if let Some((label, action, accent, sensitive)) = &step {
                     next.set_label(label);
                     next.set_action_name(Some(action));
-                    next.set_sensitive(sensitive);
-                    if accent {
+                    next.set_sensitive(*sensitive);
+                    if *accent {
                         next.add_css_class("suggested-action");
                     } else {
                         next.remove_css_class("suggested-action");
@@ -1266,43 +1377,46 @@ impl Inner {
 /// About as a pane: the version, the legal line and the notices. The About dialog is the same.
 fn about_pane(page: &adw::PreferencesPage) {
     let group = adw::PreferencesGroup::new();
-    let version = adw::ActionRow::builder().title("anistream").subtitle(version()).build();
+    let version = adw::ActionRow::builder()
+        .title("anistream") // i18n-skip
+        .subtitle(version())
+        .build();
     version.add_prefix(&crate::nagare::picture(2));
     group.add(&version);
-    let legal = adw::ActionRow::builder().title("anistream hosts no content.").build();
+    let legal = adw::ActionRow::builder().title(t::legal_hosts_no_content()).build();
     group.add(&legal);
     let about =
-        adw::ButtonRow::builder().title("About anistream").action_name("win.about").build();
+        adw::ButtonRow::builder().title(t::about_title_app()).action_name("win.about").build();
     group.add(&about);
     page.add(&group);
 }
 
 fn version() -> String {
-    format!("Version {}", anistream_engine::updates::CURRENT)
+    t::about_version(anistream_engine::updates::CURRENT)
 }
 
 /// The About dialog: the app icon, the version, the legal line and the notices.
 pub fn about(ctx: &Ctx) {
     let dialog = adw::AboutDialog::builder()
-        .application_name("anistream")
-        .application_icon("tv.anistream.desktop")
+        .application_name("anistream") // i18n-skip
+        .application_icon("tv.anistream.desktop") // i18n-skip
         .version(anistream_engine::updates::CURRENT)
-        .comments("anistream hosts no content.")
+        .comments(t::legal_hosts_no_content())
         .license_type(gtk::License::MitX11)
         .build();
     dialog.add_legal_section(
-        "Zen Kaku Gothic New",
+        "Zen Kaku Gothic New", // i18n-skip
         None,
         gtk::License::Custom,
-        Some("Licensed under the SIL Open Font License 1.1."),
+        Some(&t::about_font_licence()),
     );
     dialog.add_legal_section(
-        "Artwork",
+        &t::settings_artwork(),
         None,
         gtk::License::Custom,
-        Some("Some artwork is licensed under Creative Commons BY-NC 4.0. See THIRD-PARTY.md."),
+        Some(&t::about_artwork()),
     );
-    dialog.add_legal_section("libmpv", None, gtk::License::Lgpl21, None);
+    dialog.add_legal_section("libmpv", None, gtk::License::Lgpl21, None); // i18n-skip
     dialog.present(Some(&ctx.window));
 }
 

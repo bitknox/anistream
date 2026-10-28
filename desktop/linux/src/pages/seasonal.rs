@@ -7,28 +7,40 @@ use std::{
 };
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentFor, ContentList, Entry, Season},
     command::Command,
     event::Event,
+    present::SeasonYear,
     search::SearchQuery,
 };
 use gtk::glib;
 
 use crate::{
+    say,
     states::{self, Shape, States},
     widgets::{self, PosterGrid},
     window::Ctx,
-    words,
 };
 
-/// The formats the toggle group offers: what it says, and the wire formats it keeps.
-const FORMATS: [(&str, &str, &[&str]); 4] = [
-    ("all", "All", &[]),
-    ("tv", "TV", &["TV", "TV_SHORT"]),
-    ("movie", "Movie", &["MOVIE"]),
-    ("ona", "ONA and OVA", &["ONA", "OVA", "SPECIAL"]),
+/// The formats the toggle group offers: its name, and the wire formats it keeps.
+const FORMATS: [(&str, &[&str]); 4] = [
+    ("all", &[]),
+    ("tv", &["TV", "TV_SHORT"]),
+    ("movie", &["MOVIE"]),
+    ("ona", &["ONA", "OVA", "SPECIAL"]),
 ];
+
+/// What a format toggle says.
+fn format_label(name: &str) -> String {
+    match name {
+        "tv" => t::format_tv(),
+        "movie" => t::format_movie(),
+        "ona" => t::seasonal_format_ona_ova(),
+        _ => t::seasonal_format_all(),
+    }
+}
 
 /// The seasons the picker offers: the current, the next, and the two years before.
 const BACK: i32 = 8;
@@ -38,6 +50,7 @@ struct Page {
     ctx: Rc<Ctx>,
     grid: PosterGrid,
     body: Rc<States>,
+    empty: adw::StatusPage,
     entries: RefCell<Vec<Entry>>,
     format: Cell<usize>,
     /// The seasons in the picker, newest first, and which is the current one.
@@ -47,16 +60,20 @@ struct Page {
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
-    let (season, year) = words::season_at(now());
-    let seasons: Vec<_> =
-        (-AHEAD..=BACK).map(|back| words::season_step(season, year, -back)).collect();
+    let current = SeasonYear::at(now());
+    let seasons: Vec<_> = (-AHEAD..=BACK)
+        .map(|back| {
+            let step = current.step(-back);
+            (step.season, step.year)
+        })
+        .collect();
     let now = AHEAD as usize;
 
-    let names: Vec<String> = seasons.iter().map(|(s, y)| words::season(*s, y)).collect();
+    let names: Vec<String> = seasons.iter().map(|(s, y)| say::season(*s, y)).collect();
     let refs: Vec<&str> = names.iter().map(String::as_str).collect();
     let picker = gtk::DropDown::from_strings(&refs);
     picker.set_selected(now as u32);
-    picker.set_tooltip_text(Some("Season"));
+    picker.set_tooltip_text(Some(&t::filter_season()));
     picker.add_css_class("flat");
 
     let header = adw::HeaderBar::new();
@@ -65,8 +82,8 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     header.set_title_widget(Some(&picker));
 
     let toggles = adw::ToggleGroup::new();
-    for (name, label, _) in FORMATS {
-        toggles.add(adw::Toggle::builder().name(name).label(label).build());
+    for (name, _) in FORMATS {
+        toggles.add(adw::Toggle::builder().name(name).label(format_label(name)).build());
     }
     toggles.set_active_name(Some("all"));
     toggles.set_halign(gtk::Align::Start);
@@ -78,8 +95,8 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         .vexpand(true)
         .child(&grid.widget)
         .build();
-    let empty = states::plain("Nothing This Season", "No titles in this format this season.");
-    let body = States::new(&ctx.hub, &scroll, Shape::Grid, &empty, "Couldn't Load This Season");
+    let empty = states::plain("", "");
+    let body = States::new(&ctx.hub, &scroll, Shape::Grid, &empty, &t::seasonal_load_failed());
 
     let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
     let bar = gtk::Box::new(gtk::Orientation::Horizontal, 12);
@@ -94,6 +111,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         ctx: Rc::clone(ctx),
         grid,
         body,
+        empty,
         entries: RefCell::default(),
         format: Cell::new(0),
         seasons,
@@ -101,7 +119,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         picked: Cell::new(now),
     });
     // Continue asks for this season as the app opens.
-    page.body.loading(Command::LoadSeasonal.activity());
+    page.body.loading(Some(t::seasonal_loading()));
     page.body.on_retry({
         let weak = Rc::downgrade(&page);
         move || {
@@ -120,7 +138,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         let page = Rc::clone(&page);
         move |toggles| {
             let name = toggles.active_name().unwrap_or_default();
-            page.format.set(FORMATS.iter().position(|(n, _, _)| *n == name).unwrap_or(0));
+            page.format.set(FORMATS.iter().position(|(n, _)| *n == name).unwrap_or(0));
             if page.body.has_answer() {
                 page.show();
             }
@@ -131,7 +149,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         move |picker| page.pick(picker.selected() as usize)
     });
 
-    widgets::content_page("Seasonal", &header, &column)
+    widgets::content_page(&t::nav_seasonal(), &header, &column)
 }
 
 impl Page {
@@ -143,7 +161,7 @@ impl Page {
         } else {
             Command::Search { query: self.query(at) }
         };
-        self.body.loading(Some("loading this season".into()));
+        self.body.loading(Some(t::seasonal_loading()));
         self.ctx.hub.send(command);
     }
 
@@ -172,7 +190,7 @@ impl Page {
             return;
         }
         match content {
-            ContentList::Loading => self.body.loading(Some("loading this season".into())),
+            ContentList::Loading => self.body.loading(Some(t::seasonal_loading())),
             ContentList::Failed(why) => {
                 tracing::warn!(%why, "the season did not load");
                 *self.entries.borrow_mut() = Vec::new();
@@ -186,7 +204,7 @@ impl Page {
     }
 
     fn show(&self) {
-        let (_, _, keep) = FORMATS[self.format.get()];
+        let (_, keep) = FORMATS[self.format.get()];
         let entries: Vec<Entry> = self
             .entries
             .borrow()
@@ -201,6 +219,14 @@ impl Page {
             .collect();
         self.grid.set(&entries);
         if entries.is_empty() {
+            let (season, year) = self.seasons[self.picked.get()];
+            if keep.is_empty() {
+                self.empty.set_title(&t::seasonal_empty_title(&say::season(season, year)));
+                self.empty.set_description(Some(&t::seasonal_empty_detail()));
+            } else {
+                self.empty.set_title(&t::seasonal_empty_format());
+                self.empty.set_description(Some(&t::seasonal_empty_format_detail()));
+            }
             self.body.empty();
         } else {
             self.body.content();

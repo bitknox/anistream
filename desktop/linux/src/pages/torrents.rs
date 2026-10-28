@@ -16,6 +16,7 @@ use anistream_model::{
     stores::Secret,
 };
 
+use anistream_i18n::t;
 use gtk::glib;
 
 use crate::window::Ctx;
@@ -26,72 +27,86 @@ pub const PROTECTIONS: [TorrentProtection; 3] =
 pub const FAILED_CHECKS: [FailedCheck; 3] =
     [FailedCheck::Pause, FailedCheck::Stop, FailedCheck::Warn];
 
-pub fn label(protection: TorrentProtection) -> &'static str {
+pub fn label(protection: TorrentProtection) -> String {
     match protection {
-        TorrentProtection::Proxy => "SOCKS5 proxy",
-        TorrentProtection::Device => "VPN on this device",
-        TorrentProtection::None => "No protection",
+        TorrentProtection::Proxy => t::torrents_protect_proxy(),
+        TorrentProtection::Device => t::torrents_protect_vpn(),
+        TorrentProtection::None => t::torrents_protect_none(),
     }
 }
 
-fn detail(protection: TorrentProtection) -> &'static str {
+fn detail(protection: TorrentProtection) -> String {
     match protection {
-        TorrentProtection::Proxy => "Torrent traffic goes through a proxy you run or rent.",
-        TorrentProtection::Device => "Uses the VPN already running on this computer.",
-        TorrentProtection::None => "Your address is visible to everyone in the torrent.",
+        TorrentProtection::Proxy => t::torrents_protect_proxy_detail(),
+        TorrentProtection::Device => t::torrents_protect_vpn_detail(),
+        TorrentProtection::None => t::torrents_protect_none_detail(),
     }
 }
 
-pub fn failed_label(check: FailedCheck) -> &'static str {
+pub fn failed_label(check: FailedCheck) -> String {
     match check {
-        FailedCheck::Pause => "Pause torrents",
-        FailedCheck::Stop => "Stop torrents",
-        FailedCheck::Warn => "Warn only",
+        FailedCheck::Pause => t::torrents_fail_pause(),
+        FailedCheck::Stop => t::torrents_fail_stop(),
+        FailedCheck::Warn => t::torrents_fail_warn(),
     }
 }
 
-pub const EXPOSED: &str = "Other people can see your IP address while you download and share a \
-                           torrent. Choose what protects it before torrents start.";
-pub const INDEX_NOTE: &str =
-    "The RSS search address anistream asks for torrents. anistream hosts no content.";
-pub const CHECK_NOTE: &str = "anistream checks where torrent traffic leaves from when a torrent \
-                              starts and every minute while it runs, and pauses torrents if that \
-                              check fails. Your VPN or proxy is what protects you.";
-pub const OFF_NOTE: &str =
-    "Off by default. Turning this on asks how to protect your connection first.";
+/// The risk, under the dialog's title.
+pub fn exposed() -> String {
+    t::torrents_risk()
+}
+/// What the index is, with the legal line beside it.
+pub fn index_note() -> String {
+    format!("{} {}", t::torrents_index_detail(), t::legal_hosts_no_content())
+}
+/// What the connection check does.
+pub fn check_note() -> String {
+    t::torrents_linux_check_note()
+}
+pub fn off_note() -> String {
+    t::torrents_off_detail()
+}
 /// What protects torrent traffic now, under the group's title while torrents are on.
 pub fn on_note(view: &ProtectionView) -> String {
     match (view.protection, &view.proxy) {
         (TorrentProtection::Proxy, Some(proxy)) => {
-            format!("Protected by a SOCKS5 proxy at {}:{}.", proxy.host, proxy.port)
+            t::torrents_summary_proxy_at(&proxy.host, &proxy.port.to_string())
         }
-        (TorrentProtection::Proxy, None) => "Protected by a SOCKS5 proxy.".into(),
-        (TorrentProtection::Device, _) => "Protected by the VPN on this device.".into(),
-        (TorrentProtection::None, _) => {
-            "Not protected. Your address is visible to everyone in the torrent.".into()
-        }
+        (TorrentProtection::Proxy, None) => t::torrents_summary_proxy(),
+        (TorrentProtection::Device, _) => t::torrents_summary_vpn(),
+        (TorrentProtection::None, _) => t::torrents_summary_none(),
     }
 }
 
 /// The connection check's last word: the note under "Last Check", the word beside it, and
 /// whether it failed. `ago` is how long since it was said.
-pub fn guard_words(view: Option<&GuardView>, ago: Option<i64>) -> (String, &'static str, bool) {
+pub fn guard_words(view: Option<&GuardView>, ago: Option<i64>) -> (String, String, bool) {
     match view {
         Some(GuardView::Protected { exit }) => {
-            let ago = ago.map(|s| format!(" · {}", anistream_model::wording::ago(s)));
-            (format!("Leaving through {exit}{}", ago.unwrap_or_default()), "Passed", false)
+            let ago = ago.map(|s| format!(" · {}", crate::say::ago(s)));
+            (
+                format!("{}{}", t::torrents_check_passed_exit(exit), ago.unwrap_or_default()),
+                t::torrents_check_passed(),
+                false,
+            )
         }
         Some(GuardView::Checking) => {
-            ("Checking where torrent traffic leaves from".into(), "Checking", false)
+            (t::torrents_check_running_line(), t::torrents_check_running(), false)
         }
-        Some(GuardView::Leaking) => {
-            ("Traffic left outside the protection. Torrents are paused.".into(), "Failed", true)
+        Some(GuardView::Leaking) => (
+            t::torrents_check_leaked(&t::torrents_fail_pause_result()),
+            t::torrents_check_failed(),
+            true,
+        ),
+        Some(GuardView::Unreachable) => (
+            t::torrents_check_unmade(&t::torrents_fail_pause_result()),
+            t::torrents_check_failed(),
+            true,
+        ),
+        Some(GuardView::Unprotected) => {
+            (t::torrents_check_none_line(), t::torrents_check_none(), false)
         }
-        Some(GuardView::Unreachable) => {
-            ("The check could not be made. Torrents are paused.".into(), "Failed", true)
-        }
-        Some(GuardView::Unprotected) => ("No protection is set".into(), "Unprotected", false),
-        None => ("Not checked yet".into(), "Waiting", false),
+        None => (t::torrents_check_waiting_line(), t::torrents_check_waiting(), false),
     }
 }
 
@@ -187,10 +202,9 @@ pub fn set_failed_check(ctx: &Rc<Ctx>, check: FailedCheck, cancelled: impl Fn() 
     let ctx_weak = Rc::downgrade(ctx);
     confirm(
         ctx,
-        "Keep Torrents Running if a Check Fails?",
-        "anistream will warn you instead of pausing. If your VPN or proxy is down, other people \
-         can see your IP address.",
-        "Warn Only",
+        &t::torrents_keep_running_title(),
+        &t::torrents_linux_warn_confirm(),
+        &t::torrents_fail_warn(),
         move || {
             if let Some(ctx) = ctx_weak.upgrade() {
                 protect(&ctx, current.protection, None, Some(FailedCheck::Warn), true);
@@ -226,10 +240,9 @@ pub fn choose_protection(ctx: &Rc<Ctx>, choice: TorrentProtection, cancelled: Rc
 fn confirm_none(ctx: &Ctx, confirmed: impl Fn() + 'static, cancelled: impl Fn() + 'static) {
     confirm(
         ctx,
-        "Use Torrents Without Protection?",
-        "Other people can see your IP address while you download and share a torrent, and \
-         anistream does not check the connection.",
-        "No Protection",
+        &t::torrents_unprotected_title(),
+        &t::torrents_unprotected_detail(),
+        &t::torrents_use_unprotected(),
         confirmed,
         cancelled,
     );
@@ -246,7 +259,7 @@ fn confirm(
     cancelled: impl Fn() + 'static,
 ) -> adw::AlertDialog {
     let dialog = adw::AlertDialog::new(Some(heading), Some(body));
-    dialog.add_responses(&[("cancel", "Cancel"), ("confirm", yes)]);
+    dialog.add_responses(&[("cancel", t::action_cancel().as_str()), ("confirm", yes)]);
     dialog.set_response_appearance("confirm", adw::ResponseAppearance::Destructive);
     dialog.set_default_response(Some("cancel"));
     dialog.set_close_response("cancel");
@@ -267,32 +280,37 @@ enum Purpose {
 }
 
 /// Edit Proxy's line over its form.
-pub const EDIT_NOTE: &str =
-    "Torrents keep using the saved proxy until the new one passes the connection check.";
+pub fn edit_note() -> String {
+    t::torrents_proxy_keeps_saved()
+}
 /// Under the password, while a proxy's password is kept.
-pub const PASSWORD_KEPT: &str = "Leave the password empty to keep the saved one.";
+pub fn password_kept() -> String {
+    t::torrents_password_keep()
+}
 /// While a proxy is checked before it is saved.
-pub const CHECKING_PROXY: &str = "Checking the proxy";
+pub fn checking_proxy() -> String {
+    t::torrents_checking_proxy()
+}
 
 /// Once the check passes and the form's choices are saved, before it closes.
-fn saved(purpose: Purpose) -> &'static str {
+fn saved(purpose: Purpose) -> String {
     match purpose {
-        Purpose::TurnOn => "Torrents are on",
-        Purpose::Protect => "Torrent protection saved",
-        Purpose::EditProxy => "Proxy saved",
+        Purpose::TurnOn => t::torrents_on(),
+        Purpose::Protect => t::torrents_linux_protection_saved(),
+        Purpose::EditProxy => t::torrents_proxy_saved(),
     }
 }
 
 /// Why a proxy was not saved, from the check's `view` of it, and what stays as it was.
 fn not_saved(view: &GuardView, purpose: Purpose) -> String {
     let why = match view {
-        GuardView::Leaking => "Torrent traffic left outside this proxy",
-        _ => "The check could not be made through this proxy",
+        GuardView::Leaking => t::torrents_left_outside_proxy(),
+        _ => t::torrents_check_not_made_proxy(),
     };
     match purpose {
-        Purpose::EditProxy => format!("Not saved. {why}, so the saved proxy stays."),
-        Purpose::Protect => format!("Not saved. {why}, so the saved protection stays."),
-        Purpose::TurnOn => format!("Torrents are still off. {why}."),
+        Purpose::EditProxy => t::torrents_proxy_not_saved(&why),
+        Purpose::Protect => t::torrents_protection_not_saved(&why),
+        Purpose::TurnOn => t::torrents_still_off(&why),
     }
 }
 
@@ -453,26 +471,30 @@ fn form(
     }));
 
     let title = match purpose {
-        Purpose::TurnOn => "Turn On Torrents",
-        Purpose::Protect => "Protect Torrents",
-        Purpose::EditProxy => "Edit Proxy",
+        Purpose::TurnOn => t::torrents_linux_turn_on_title(),
+        Purpose::Protect => t::torrents_linux_protect_title(),
+        Purpose::EditProxy => t::torrents_linux_edit_proxy_title(),
     };
     let dialog = adw::Dialog::builder().title(title).content_width(480).build();
     let header = adw::HeaderBar::builder().show_end_title_buttons(false).build();
-    let cancel = gtk::Button::with_label("Cancel");
-    let send = gtk::Button::with_label(if turning_on { "Turn On" } else { "Save" });
+    let cancel = gtk::Button::with_label(&t::action_cancel());
+    let send = gtk::Button::with_label(&if turning_on {
+        t::torrents_linux_turn_on_button()
+    } else {
+        t::action_save()
+    });
     send.add_css_class("suggested-action");
     header.pack_start(&cancel);
     header.pack_end(&send);
 
     let page = adw::PreferencesPage::new();
-    page.set_description(if editing { EDIT_NOTE } else { EXPOSED });
+    page.set_description(&if editing { edit_note() } else { exposed() });
     let mut index_entry = None;
     // What the viewer can change, locked while a check runs.
     let mut fields: Vec<adw::PreferencesGroup> = Vec::new();
     if turning_on {
-        let group = adw::PreferencesGroup::builder().description(INDEX_NOTE).build();
-        let entry = adw::EntryRow::builder().title("Torrent index").text(&index).build();
+        let group = adw::PreferencesGroup::builder().description(index_note()).build();
+        let entry = adw::EntryRow::builder().title(t::torrents_index()).text(&index).build();
         entry.set_input_purpose(gtk::InputPurpose::Url);
         group.add(&entry);
         index_entry = Some(entry);
@@ -480,8 +502,8 @@ fn form(
         fields.push(group);
     }
 
-    let choices = adw::PreferencesGroup::builder().title("Protect With").build();
-    let proxy = adw::PreferencesGroup::builder().title("Proxy").build();
+    let choices = adw::PreferencesGroup::builder().title(t::torrents_protect_with()).build();
+    let proxy = adw::PreferencesGroup::builder().title(t::torrents_protect_proxy()).build();
     let mut first: Option<gtk::CheckButton> = None;
     let mut checks = Vec::new();
     for choice in PROTECTIONS {
@@ -502,13 +524,13 @@ fn form(
         proxy.add(&row);
         row
     };
-    let host = field("Host", &draft.borrow().host);
-    let port = field("Port", &draft.borrow().port);
+    let host = field(&t::torrents_proxy_host(), &draft.borrow().host);
+    let port = field(&t::torrents_proxy_port(), &draft.borrow().port);
     port.set_input_purpose(gtk::InputPurpose::Digits);
-    let user = field("User name", &draft.borrow().user);
-    let password = adw::PasswordEntryRow::builder().title("Password").build();
+    let user = field(&t::torrents_proxy_user(), &draft.borrow().user);
+    let password = adw::PasswordEntryRow::builder().title(t::torrents_proxy_password()).build();
     if known.proxy.is_some() {
-        proxy.set_description(Some(PASSWORD_KEPT));
+        proxy.set_description(Some(&password_kept()));
     }
     proxy.add(&password);
 
@@ -533,7 +555,7 @@ fn form(
     status.append(&spinner);
     status.append(&dot);
     status.append(&words);
-    let note = adw::PreferencesGroup::builder().description(CHECK_NOTE).build();
+    let note = adw::PreferencesGroup::builder().description(check_note()).build();
     if !editing {
         page.add(&choices);
     }
@@ -577,14 +599,14 @@ fn form(
                     words.set_label("");
                     return;
                 }
-                Standing::Checking => CHECKING_PROXY.to_owned(),
+                Standing::Checking => checking_proxy(),
                 Standing::Failed(why) => {
                     dot.add_css_class("vermilion");
                     why
                 }
                 Standing::Saved => {
                     dot.add_css_class("water");
-                    saved(purpose).to_owned()
+                    saved(purpose)
                 }
             };
             words.set_label(&said);
@@ -654,11 +676,16 @@ fn form(
     // failure, not as a toast, for as long as the form is open.
     let claim = ctx.claim_alerts({
         let (words, dot) = (words.clone(), dot.clone());
-        move |text| {
-            if !text.starts_with("Not checked") || !dot.has_css_class("vermilion") {
+        move |msg, text| {
+            let not_checked = matches!(
+                msg,
+                anistream_model::Msg::TorrentNotChecked { .. }
+                    | anistream_model::Msg::NoticeProtectionNotChecked { .. }
+            );
+            if !not_checked || !dot.has_css_class("vermilion") {
                 return false;
             }
-            let said = format!("{} {text}.", words.label());
+            let said = format!("{} {text}.", words.label()); // i18n-skip
             words.set_label(&said);
             words
                 .upcast_ref::<gtk::Widget>()
@@ -872,7 +899,7 @@ mod tests {
         let passed = GuardView::Protected { exit: "a test network".into() };
         assert_eq!(
             guard_words(Some(&passed), Some(5)),
-            ("Leaving through a test network · just now".into(), "Passed", false)
+            ("Leaving through a test network · Just now".into(), "Passed".into(), false)
         );
         assert_eq!(guard_words(Some(&GuardView::Leaking), None).1, "Failed");
         assert!(guard_words(Some(&GuardView::Unreachable), None).2);

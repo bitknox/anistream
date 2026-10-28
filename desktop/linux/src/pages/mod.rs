@@ -24,6 +24,7 @@ pub mod torrents;
 use std::rc::Rc;
 
 use adw::prelude::*;
+use anistream_i18n::t;
 
 use crate::{
     prefs::CloseChoice,
@@ -75,17 +76,17 @@ impl Dest {
         Self::ALL.into_iter().find(|d| d.name() == name)
     }
 
-    pub fn title(self) -> &'static str {
+    pub fn title(self) -> String {
         match self {
-            Self::Continue => "Continue",
-            Self::Calendar => "Calendar",
-            Self::Seasonal => "Seasonal",
-            Self::Search => "Search",
-            Self::Library => "Library",
-            Self::Downloads => "Downloads",
-            Self::Providers => "Providers",
-            Self::Stores => "Plugin Stores",
-            Self::Settings => "Settings",
+            Self::Continue => t::nav_continue(),
+            Self::Calendar => t::nav_calendar(),
+            Self::Seasonal => t::nav_seasonal(),
+            Self::Search => t::nav_search(),
+            Self::Library => t::nav_library(),
+            Self::Downloads => t::nav_downloads(),
+            Self::Providers => t::sources_title(),
+            Self::Stores => t::nav_plugin_stores(),
+            Self::Settings => t::nav_settings(),
         }
     }
 
@@ -107,57 +108,57 @@ impl Dest {
 /// The keyboard shortcuts, as rows: Ctrl+? opens them.
 pub fn shortcuts(ctx: &Ctx) {
     let page = adw::PreferencesPage::new();
-    let groups: [(&str, &[(&str, &str)]); 3] = [
+    let groups: [(String, Vec<(String, &str)>); 3] = [
         (
-            "General",
-            &[
-                ("Go to a destination", "<Control>1...<Control>7"),
-                ("Search", "<Control>f"),
-                ("Settings", "<Control>comma"),
-                ("Sync now", "<Control>r"),
-                ("Back", "<Alt>Left"),
-                ("Keyboard shortcuts", "<Control>question"),
-                ("Close the window", "<Control>w"),
-                ("Quit", "<Control>q"),
+            t::settings_group_general(),
+            vec![
+                (t::shortcuts_go_to_section(), "<Control>1...<Control>7"), // i18n-skip
+                (t::nav_search(), "<Control>f"),                           // i18n-skip
+                (t::nav_settings(), "<Control>comma"),                     // i18n-skip
+                (t::accounts_sync_now(), "<Control>r"),                    // i18n-skip
+                (t::action_back(), "<Alt>Left"),                           // i18n-skip
+                (t::shortcuts_show(), "<Control>question"),                // i18n-skip
+                (t::shortcuts_close_window(), "<Control>w"),               // i18n-skip
+                (t::shortcuts_quit(), "<Control>q"),                       // i18n-skip
             ],
         ),
         (
-            "Lists",
-            &[
-                ("Play the selected title", "Return"),
-                ("Mark watched", "<Control><Shift>m"),
-                ("Hide from Continue", "Delete"),
-                ("Context menu", "<Shift>F10"),
+            t::shortcuts_group_lists(),
+            vec![
+                (t::shortcuts_play_selected(), "Return"), // i18n-skip
+                (t::episode_mark_watched(), "<Control><Shift>m"), // i18n-skip
+                (t::continue_hide(), "Delete"),           // i18n-skip
+                (t::shortcuts_context_menu(), "<Shift>F10"), // i18n-skip
             ],
         ),
         (
-            "Player",
-            &[
-                ("Play or pause", "space"),
-                ("Back or forward 5 seconds", "Left Right"),
-                ("Back or forward 30 seconds", "<Shift>Left <Shift>Right"),
-                ("Back or forward 10 seconds", "j l"),
-                ("Volume up or down", "Up Down"),
-                ("Mute", "m"),
-                ("Fullscreen", "f"),
-                ("Mini player", "p"),
-                ("Skip the opening or ending", "s"),
-                ("Undo an automatic skip", "u <Control>z"),
-                ("Subtitles and audio", "t"),
-                ("Next or previous episode", "n <Shift>n"),
-                ("Faster or slower", "bracketright bracketleft"),
-                ("Normal speed", "BackSpace"),
-                ("Episodes", "e"),
-                ("Stats for nerds", "i"),
-                ("Answer the card in the corner", "Return"),
-                ("Close a card, the mini player, fullscreen, then the player", "Escape"),
+            t::settings_group_player(),
+            vec![
+                (t::shortcuts_play_pause(), "space"),  // i18n-skip
+                (t::shortcuts_seek_5(), "Left Right"), // i18n-skip
+                (t::shortcuts_seek_30(), "<Shift>Left <Shift>Right"), // i18n-skip
+                (t::shortcuts_seek_10(), "j l"),       // i18n-skip
+                (t::shortcuts_volume(), "Up Down"),    // i18n-skip
+                (t::shortcuts_mute(), "m"),            // i18n-skip
+                (t::player_fullscreen(), "f"),         // i18n-skip
+                (t::player_mini_player(), "p"),        // i18n-skip
+                (t::shortcuts_skip(), "s"),            // i18n-skip
+                (t::shortcuts_undo_skip(), "u <Control>z"), // i18n-skip
+                (t::player_subtitles_and_audio(), "t"), // i18n-skip
+                (t::shortcuts_next_previous(), "n <Shift>n"), // i18n-skip
+                (t::shortcuts_speed(), "bracketright bracketleft"), // i18n-skip
+                (t::player_speed_normal(), "BackSpace"), // i18n-skip
+                (t::player_episodes(), "e"),           // i18n-skip
+                (t::player_stats(), "i"),              // i18n-skip
+                (t::shortcuts_answer_card(), "Return"), // i18n-skip
+                (t::shortcuts_escape(), "Escape"),     // i18n-skip
             ],
         ),
     ];
     for (title, rows) in groups {
         let group = adw::PreferencesGroup::builder().title(title).build();
         for (name, accel) in rows {
-            let row = adw::ActionRow::builder().title(*name).build();
+            let row = adw::ActionRow::builder().title(name).build();
             let label = gtk::ShortcutLabel::new(accel);
             label.set_valign(gtk::Align::Center);
             row.add_suffix(&label);
@@ -169,7 +170,7 @@ pub fn shortcuts(ctx: &Ctx) {
     view.add_top_bar(&adw::HeaderBar::new());
     view.set_content(Some(&page));
     let dialog = adw::Dialog::builder()
-        .title("Keyboard Shortcuts")
+        .title(t::shortcuts_title())
         .content_width(520)
         .content_height(640)
         .child(&view)
@@ -181,16 +182,16 @@ pub fn shortcuts(ctx: &Ctx) {
 /// cancel.
 pub fn close_dialog(shell: &Rc<Shell>, downloading: usize, seeding: usize) {
     let body = running_body(downloading, seeding);
-    let dialog = adw::AlertDialog::new(Some("Keep Downloads Going?"), Some(&body));
+    let dialog = adw::AlertDialog::new(Some(&t::downloads_background_question()), Some(&body));
     dialog.add_responses(&[
-        ("cancel", "Cancel"),
-        ("stop", "Stop and Close"),
-        ("keep", "Keep Going"),
+        ("cancel", &t::action_cancel()),
+        ("stop", &t::close_stop_and_close()),
+        ("keep", &t::close_keep_going()),
     ]);
     dialog.set_response_appearance("keep", adw::ResponseAppearance::Suggested);
     dialog.set_default_response(Some("keep"));
     dialog.set_close_response("cancel");
-    let again = gtk::CheckButton::with_label("Don't ask again");
+    let again = gtk::CheckButton::with_label(&t::close_dont_ask());
     dialog.set_extra_child(Some(&again));
     let weak = Rc::downgrade(shell);
     dialog.connect_response(None, move |_, response| {
@@ -215,28 +216,15 @@ pub fn close_dialog(shell: &Rc<Shell>, downloading: usize, seeding: usize) {
     dialog.present(Some(&shell.ctx.window));
 }
 
-/// "2 episodes are downloading and 1 is seeding. Keep them going after the window closes, or
-/// stop them?"
+/// "Episodes: 2 downloading and 1 seeding. Keep them going after the window closes, or stop
+/// them?"
 pub fn running_body(downloading: usize, seeding: usize) -> String {
-    let are = |n: usize| if n == 1 { "is" } else { "are" };
-    let what = match (downloading, seeding) {
-        (d, 0) => format!(
-            "{} {} downloading.",
-            anistream_model::wording::plural(d, "episode"),
-            are(d)
-        ),
-        (0, s) => {
-            format!("{} {} seeding.", anistream_model::wording::plural(s, "episode"), are(s))
-        }
-        (d, s) => format!(
-            "{} {} downloading and {s} {} seeding.",
-            anistream_model::wording::plural(d, "episode"),
-            are(d),
-            are(s)
-        ),
-    };
-    let them = if downloading + seeding == 1 { "it" } else { "them" };
-    format!("{what} Keep {them} going after the window closes, or stop {them}?")
+    let count = |n: usize| i64::try_from(n).unwrap_or(i64::MAX);
+    match (downloading, seeding) {
+        (d, 0) => t::close_body_downloading(count(d)),
+        (0, s) => t::close_body_seeding(count(s)),
+        (d, s) => t::close_body_both(count(d), count(s)),
+    }
 }
 
 #[cfg(test)]
@@ -247,12 +235,12 @@ mod tests {
     fn the_close_question_counts_what_runs() {
         assert_eq!(
             running_body(2, 1),
-            "2 episodes are downloading and 1 is seeding. Keep them going after the window \
-             closes, or stop them?"
+            "Episodes: 2 downloading and 1 seeding. Keep them going after the window closes, \
+             or stop them?"
         );
         assert_eq!(
             running_body(1, 0),
-            "1 episode is downloading. Keep it going after the window closes, or stop it?"
+            "One episode is downloading. Keep it going after the window closes, or stop it?"
         );
     }
 

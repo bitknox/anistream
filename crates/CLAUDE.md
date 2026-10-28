@@ -1,20 +1,12 @@
 # The Rust workspace
 
-- `anistream-core`: shared types and config. `anistream-model`: the engine's commands, events,
-  settings and records (FFI records live here). `anistream-engine`: the engine (dispatch, data,
-  playback, downloads, notifications, updates, background work). `anistream-ffi`: UniFFI surface
-  and the test scenes (`scenes.rs`) the apps' Fixtures builds use.
-- `anistream-meta`: AniList and fallback metadata, the franchise walk. `anistream-track`:
-  trackers (AniList, MAL, Kitsu, Simkl, Trakt). `anistream-providers` and `anistream-plugin`:
-  sources and the plugin sandbox. `anistream-net`: the HTTP client (wreq). `anistream-store`:
-  the local database and migrations.
-- `anistream-player` and `anistream-playback`: the terminal's mpv control. `anistream-tui`: the
-  terminal UI (goldens in `tests/goldens`). `anistream`: the binary and the contract tests
-  (`src/contract/`). `anistream-testkit`: the fake AniList, fixtures and scenes.
-- `anistream-remote`: the TV remote, a phone pairing with a TV and driving it
-  (`docs/remote-protocol.md`); the engine's `remote` feature holds the TV's side.
-- `anistream-store-core`, `-server`, `-wasm`: the plugin store. Changing them or their
-  dependencies needs `deploy/sync.sh` (then `deploy/sync.sh --check` passes).
+- The apps' Fixtures builds run the test scenes in `anistream-ffi/src/scenes.rs`. The fake AniList,
+  fixtures and scenes for Rust tests are in `anistream-testkit`; the contract tests are in the
+  binary crate (`crates/anistream/src/contract/`).
+- `anistream-player` and `anistream-playback` are the terminal's mpv control, not the apps' players.
+- The TV remote's protocol is `docs/remote-protocol.md`; the TV's side is the engine's `remote`
+  feature.
+- Store crates have their own checks (`deploy/sync.sh`), in `.claude/rules/plugin-store.md`.
 
 ## Rules
 

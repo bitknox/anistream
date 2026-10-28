@@ -178,30 +178,25 @@ pub fn next(entry: &Entry, rows: Option<&[EpisodeRow]>) -> Next {
     }
 }
 
-/// The row for `entry`, worked out for the episode that can be played. With nothing that can,
-/// the row says so in place of its button.
-pub fn queue_item(entry: &Entry, rows: Option<&[EpisodeRow]>) -> QueueItem {
+/// The row for `entry`, worked out for the episode that can be played, and whether every
+/// episode from the next on is one no source lists: with nothing to play, the row says so in
+/// place of its button.
+pub fn queue_item(entry: &Entry, rows: Option<&[EpisodeRow]>) -> (QueueItem, bool) {
     let target = next(entry, rows);
     let own = entry.progress.map_or(1, |p| p.next.max(1));
     if target.episode == own && !target.unsourced {
-        return QueueItem::of(entry, Casing::Header);
+        return (QueueItem::of(entry, Casing::Sentence), false);
     }
     if target.unsourced {
-        let unsourced = anistream_i18n::t::episode_unsourced();
-        return QueueItem {
-            playable: false,
-            action: unsourced.clone(),
-            button: None,
-            waiting: Some(unsourced),
-            ..QueueItem::of(entry, Casing::Header)
-        };
+        let item = QueueItem { playable: false, ..QueueItem::of(entry, Casing::Sentence) };
+        return (item, true);
     }
     let mut moved = entry.clone();
     moved.progress = Some(TitleProgress {
         done: entry.progress.map_or(0, |p| p.done),
         next: target.episode,
     });
-    QueueItem::of(&moved, Casing::Header)
+    (QueueItem::of(&moved, Casing::Sentence), false)
 }
 
 #[cfg(test)]
@@ -374,9 +369,9 @@ mod tests {
         assert_eq!(next(&entry(3), Some(&rows)), Next { episode: 3, unsourced: false });
         // No table yet: the engine's own.
         assert_eq!(next(&entry(4), None), Next { episode: 4, unsourced: false });
-        let item = queue_item(&entry(4), Some(&rows));
+        let (item, unsourced) = queue_item(&entry(4), Some(&rows));
         assert_eq!(item.episode, 6);
-        assert_eq!(item.button.as_deref(), Some("Start Episode 6"));
+        assert!(item.playable && !unsourced);
     }
 
     #[test]
@@ -392,11 +387,8 @@ mod tests {
     fn with_nothing_later_listed_the_row_says_so_and_has_no_button() {
         let rows = table(&[4, 5, 6], 6);
         assert_eq!(next(&entry(4), Some(&rows)), Next { episode: 4, unsourced: true });
-        let item = queue_item(&entry(4), Some(&rows));
-        assert!(!item.playable);
-        assert_eq!(item.button, None);
-        assert_eq!(item.waiting.as_deref(), Some("No source has this episode"));
-        assert_eq!(item.action, "No source has this episode");
+        let (item, unsourced) = queue_item(&entry(4), Some(&rows));
+        assert!(!item.playable && unsourced);
     }
 
     #[test]

@@ -2,7 +2,7 @@
 //! GitHub's latest release is never a pre-release, so the `deps-libmpv` builds are never offered.
 //!
 //! Run from an AppImage, the app updates itself: a newer release names an AppImage for this
-//! machine with its size and SHA-256, the app downloads it into its cache and checks it, and
+//! machine with its size and checksum, the app downloads it into its cache and checks it, and
 //! Restart to Update puts it in place of the running AppImage, under the same name, then opens
 //! it once this copy has quit. An AppImage in a folder the app can't write to, in /opt or on a
 //! read-only mount, can't be replaced: the checked download is saved to Downloads instead, for
@@ -15,6 +15,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anistream_i18n::t;
 use anistream_model::updates::{Release, ReleaseAsset, UpdateStatus};
 use sha2::{Digest, Sha256};
 
@@ -26,20 +27,19 @@ pub fn flatpak() -> bool {
 /// Where the check stands, as the Updates row says it under "anistream 1.0".
 pub fn words(status: Option<&UpdateStatus>, offline: bool, flatpak: bool) -> String {
     match status {
-        Some(UpdateStatus::Checking) => "Checking for a newer version…".into(),
-        Some(UpdateStatus::UpToDate) => "Up to date".into(),
+        Some(UpdateStatus::Checking) => t::updates_checking(),
+        Some(UpdateStatus::UpToDate) => t::updates_up_to_date(),
         Some(UpdateStatus::Available { release, .. }) if flatpak => {
-            format!("Version {} is out. Software installs it.", release.version)
+            t::updates_version_out_software(&release.version)
         }
         Some(UpdateStatus::Available { release, .. }) => {
-            format!("Version {} is out", release.version)
+            t::updates_version_out(&release.version)
         }
-        Some(UpdateStatus::Failed { reason }) => {
-            format!("Couldn't check: {}", crate::catalog::shown(reason))
-        }
-        None if flatpak => "Flatpak keeps anistream up to date".into(),
-        None if offline => "Checks once you're back online".into(),
-        None => "Not checked yet".into(),
+        // The engine gives the reason in English words, with no message id to translate yet.
+        Some(UpdateStatus::Failed { reason }) => t::updates_check_failed(reason),
+        None if flatpak => t::updates_flatpak(),
+        None if offline => t::updates_checks_online(),
+        None => t::updates_not_checked(),
     }
 }
 
@@ -67,7 +67,7 @@ pub enum Step {
     Idle,
     /// The AppImage is downloading: so many bytes of so many.
     Downloading { received: u64, expected: u64 },
-    /// Its size and SHA-256 are being checked.
+    /// Its size and checksum are being checked.
     Verifying,
     /// Downloaded and checked, at this path: Restart to Update puts it in place.
     Ready(PathBuf),
@@ -112,21 +112,17 @@ pub fn line(
     let version = &progress.version;
     match &progress.step {
         Step::Downloading { received, expected } if *expected > 0 => {
-            format!(
-                "Downloading version {version} · {} of {}",
-                size(*received),
-                size(*expected)
-            )
+            t::updates_downloading_size(version, &size(*received), &size(*expected))
         }
-        Step::Downloading { .. } => format!("Downloading version {version}"),
-        Step::Verifying => format!("Checking the download of version {version}…"),
-        Step::Ready(_) => format!("Version {version} is ready to install"),
+        Step::Downloading { .. } => t::updates_downloading(version),
+        Step::Verifying => t::updates_checking_download(version),
+        Step::Ready(_) => t::updates_ready(version),
         Step::Saved(_) => saved_words(version, appimage().as_deref()),
-        Step::Installing => format!("Installing version {version}…"),
-        Step::Failed(reason) => format!("The update to version {version} stopped. {reason}"),
+        Step::Installing => t::updates_installing(version),
+        Step::Failed(reason) => t::updates_stopped(version, reason),
         Step::Idle => match status {
             Some(UpdateStatus::Available { release, .. }) if !flatpak && !installs => {
-                format!("Version {} is out. Its page has the AppImage.", release.version)
+                t::updates_version_out_appimage(&release.version)
             }
             _ => words(status, offline, flatpak),
         },
@@ -137,21 +133,14 @@ pub fn line(
 /// the file it replaces is, when this copy runs from one.
 pub fn saved_words(version: &str, old: Option<&Path>) -> String {
     match old {
-        Some(old) => format!(
-            "Version {version} saved to Downloads. Replace the old file, {}, with it to update.",
-            home_short(old)
-        ),
-        None => {
-            format!(
-                "Version {version} saved to Downloads. Replace the old file with it to update."
-            )
-        }
+        Some(old) => t::updates_saved_replace(version, &home_short(old)),
+        None => t::updates_saved_replace_plain(version),
     }
 }
 
 /// The notice for a new version saved to Downloads: short, the steps are in the Updates row.
 pub fn saved_notice(version: &str) -> String {
-    format!("Version {version} saved to Downloads")
+    t::updates_saved(version)
 }
 
 /// A path with the home folder as `~`, as a file manager's path bar reads it.
@@ -175,17 +164,18 @@ pub fn writable(dir: &Path) -> bool {
 /// The viewer's Downloads folder.
 pub fn downloads_dir() -> PathBuf {
     gtk::glib::user_special_dir(gtk::glib::UserDirectory::Downloads)
-        .unwrap_or_else(|| gtk::glib::home_dir().join("Downloads"))
+        .unwrap_or_else(|| gtk::glib::home_dir().join("Downloads")) // i18n-skip
 }
 
 /// Save the checked download at `ready` into `dir` under its own name, able to run, and say
 /// where it went.
 pub fn save_to(ready: &Path, dir: &Path) -> Result<PathBuf, String> {
     use std::os::unix::fs::PermissionsExt;
-    let name = ready.file_name().ok_or("The download has no name.")?;
+    let name = ready.file_name().ok_or_else(t::updates_why_download)?;
     let path = dir.join(name);
     let failed = |e: std::io::Error| {
-        format!("The new version couldn't be saved to {}: {e}.", dir.display())
+        tracing::warn!(error = %e, dir = %dir.display(), "the new version was not saved");
+        t::updates_why_save(&e.to_string())
     };
     std::fs::create_dir_all(dir).map_err(failed)?;
     std::fs::copy(ready, &path).map_err(failed)?;
@@ -204,23 +194,16 @@ pub fn size(bytes: u64) -> String {
 
 /// What is wrong with the file at `path` for `asset`, or nothing when it matches.
 pub fn check(path: &Path, asset: &ReleaseAsset) -> Result<(), String> {
-    let saved =
-        std::fs::metadata(path).map_err(|e| format!("The download couldn't be read: {e}."))?;
+    let unread = |e: std::io::Error| t::updates_why_read(&e.to_string());
+    let saved = std::fs::metadata(path).map_err(unread)?;
     if saved.len() != asset.size {
-        return Err(format!(
-            "The download is {}, not the {} the release lists.",
-            size(saved.len()),
-            size(asset.size)
-        ));
+        return Err(t::updates_why_size(&size(saved.len()), &size(asset.size)));
     }
-    let mut file = std::fs::File::open(path)
-        .map_err(|e| format!("The download couldn't be read: {e}."))?;
+    let mut file = std::fs::File::open(path).map_err(unread)?;
     let mut hash = Sha256::new();
     let mut buffer = vec![0; 1 << 16];
     loop {
-        let read = file
-            .read(&mut buffer)
-            .map_err(|e| format!("The download couldn't be read: {e}."))?;
+        let read = file.read(&mut buffer).map_err(unread)?;
         if read == 0 {
             break;
         }
@@ -230,7 +213,7 @@ pub fn check(path: &Path, asset: &ReleaseAsset) -> Result<(), String> {
     if hex == asset.sha256.to_ascii_lowercase() {
         Ok(())
     } else {
-        Err("The download doesn't match the release's SHA-256.".into())
+        Err(t::updates_why_checksum())
     }
 }
 
@@ -244,7 +227,7 @@ pub async fn fetch(
     stopped: impl Fn() -> bool,
 ) -> Option<Result<PathBuf, String>> {
     let path = dir.join(&asset.name);
-    let saved = |e: std::io::Error| format!("The download couldn't be saved: {e}.");
+    let saved = |e: std::io::Error| t::updates_why_save(&e.to_string());
     if let Err(e) = std::fs::create_dir_all(dir) {
         return Some(Err(saved(e)));
     }
@@ -260,14 +243,17 @@ pub async fn fetch(
         .build()
     {
         Ok(client) => client,
-        Err(e) => return Some(Err(format!("The download couldn't start: {e}."))),
+        Err(e) => {
+            tracing::warn!(error = %e, "the download client did not build");
+            return Some(Err(t::updates_why_start()));
+        }
     };
-    let lost = |_| "The download stopped: the connection was lost.".to_owned();
+    let lost = |_| t::updates_why_connection();
     let mut response = match client.get(&asset.url).send().await {
         Ok(response) if response.status().is_success() => response,
         Ok(response) => {
             let code = response.status().as_u16();
-            return Some(Err(format!("The download stopped: the server answered {code}.")));
+            return Some(Err(t::updates_why_server(i64::from(code))));
         }
         Err(e) => return Some(Err(lost(e))),
     };
@@ -318,11 +304,12 @@ pub async fn fetch(
 /// or the new one whole, and the copy running goes on running the old one until it quits.
 pub fn install(ready: &Path, appimage: &Path) -> Result<(), String> {
     use std::os::unix::fs::PermissionsExt;
-    let dir = appimage.parent().ok_or("The AppImage has no folder.")?;
-    let name = appimage.file_name().ok_or("The AppImage has no name.")?;
+    let dir = appimage.parent().ok_or_else(t::updates_why_install)?;
+    let name = appimage.file_name().ok_or_else(t::updates_why_install)?;
     let beside = dir.join(format!(".{}.update", name.to_string_lossy()));
     let wrote = |e: std::io::Error| {
-        format!("The new version couldn't be written to {}: {e}.", dir.display())
+        tracing::warn!(error = %e, dir = %dir.display(), "the new version was not written");
+        t::updates_why_save(&e.to_string())
     };
     std::fs::copy(ready, &beside).map_err(wrote)?;
     let placed = std::fs::set_permissions(&beside, std::fs::Permissions::from_mode(0o755))
@@ -336,7 +323,7 @@ pub fn install(ready: &Path, appimage: &Path) -> Result<(), String> {
 
 /// The script that opens the new version: it waits for the copy that started it to quit, at
 /// most half a minute, and then runs what it is given.
-pub const RELAUNCH: &str = "pid=$1; shift; i=0; while kill -0 \"$pid\" 2>/dev/null && [ $i -lt 150 ]; do sleep 0.2; i=$((i+1)); done; exec \"$@\"";
+pub const RELAUNCH: &str = "pid=$1; shift; i=0; while kill -0 \"$pid\" 2>/dev/null && [ $i -lt 150 ]; do sleep 0.2; i=$((i+1)); done; exec \"$@\""; // i18n-skip
 
 /// The arguments the app opens again with after an update: the ones it started with, less the
 /// links it was opened by.
@@ -431,7 +418,7 @@ mod tests {
         assert_eq!(words(None, true, false), "Checks once you're back online");
         assert_eq!(words(None, false, true), "Flatpak keeps anistream up to date");
         let failed = UpdateStatus::Failed { reason: "no answer".into() };
-        assert_eq!(words(Some(&failed), false, false), "Couldn't check: No answer");
+        assert_eq!(words(Some(&failed), false, false), "Couldn't check: no answer");
     }
 
     fn asset(bytes: &[u8]) -> ReleaseAsset {
@@ -495,7 +482,7 @@ mod tests {
     }
 
     #[test]
-    fn a_download_is_checked_by_its_size_and_sha256() {
+    fn a_download_is_checked_by_its_size_and_checksum() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("new.AppImage");
         std::fs::write(&path, b"the new version").unwrap();
@@ -503,12 +490,12 @@ mod tests {
         let longer = ReleaseAsset { size: 3_000_000, ..asset(b"the new version") };
         assert_eq!(
             check(&path, &longer),
-            Err("The download is 1 KB, not the 3 MB the release lists.".into())
+            Err("The download is 1 KB, not the 3 MB listed for this version.".into())
         );
         let other = asset(b"the old version");
         assert_eq!(
             check(&path, &other),
-            Err("The download doesn't match the release's SHA-256.".into())
+            Err("The download doesn't match the checksum listed for this version.".into())
         );
     }
 
@@ -626,7 +613,12 @@ mod tests {
             ..asset(body)
         };
         let end = runtime.block_on(fetch(&tampered, dir.path(), |_| {}, || false));
-        assert_eq!(end, Some(Err("The download doesn't match the release's SHA-256.".into())));
+        assert_eq!(
+            end,
+            Some(
+                Err("The download doesn't match the checksum listed for this version.".into())
+            )
+        );
         assert!(!dir.path().join("other.AppImage").exists());
 
         let stopped = ReleaseAsset {

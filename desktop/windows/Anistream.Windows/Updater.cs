@@ -127,7 +127,7 @@ sealed class Updater
         if (staged)
         {
             await Task.Delay(1500);
-            Set(new UpdateState(UpdateStep.Failed, version, Reason: "A fixture run installs nothing."));
+            Set(new UpdateState(UpdateStep.Failed, version, Reason: T.UpdatesWhyFixture));
             return;
         }
         try
@@ -146,7 +146,7 @@ sealed class Updater
         catch (Exception e) when (e is Win32Exception or IOException or UnauthorizedAccessException)
         {
             File.Delete(marker);
-            Set(new UpdateState(UpdateStep.Failed, version, Reason: $"The installer couldn't start: {e.Message}"));
+            Set(new UpdateState(UpdateStep.Failed, version, Reason: T.UpdatesWhyInstaller(e.Message)));
             return;
         }
         Quit?.Invoke();

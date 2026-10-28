@@ -140,13 +140,15 @@ impl Browse {
                 TIMEOUT_MS,
             )
         };
-        let (path, prepared) = match call(SERVER2, "ServiceBrowserPrepare").await {
+        const PREPARE: &str = "ServiceBrowserPrepare"; // i18n-skip
+        const NEW: &str = "ServiceBrowserNew"; // i18n-skip
+        let (path, prepared) = match call(SERVER2, PREPARE).await {
             Ok(reply) => (object_path(&reply), true),
             // An Avahi before 0.8 starts its browser at once.
-            Err(_) => (object_path(&call(SERVER, "ServiceBrowserNew").await?), false),
+            Err(_) => (object_path(&call(SERVER, NEW).await?), false),
         };
         let path = path.ok_or_else(|| {
-            glib::Error::new(gio::IOErrorEnum::InvalidData, "Avahi named no browser")
+            glib::Error::new(gio::IOErrorEnum::InvalidData, "Avahi named no browser") // i18n-skip
         })?;
         state.path.replace(Some(path.clone()));
         let early = state.early.take();
@@ -159,7 +161,7 @@ impl Browse {
                     Some(AVAHI),
                     &path,
                     SERVICE_BROWSER,
-                    "Start",
+                    "Start", // i18n-skip
                     None,
                     None,
                     gio::DBusCallFlags::NONE,
@@ -177,7 +179,7 @@ impl Browse {
                 Some(AVAHI),
                 &path,
                 SERVICE_BROWSER,
-                "Free",
+                "Free", // i18n-skip
                 None,
                 None,
                 gio::DBusCallFlags::NONE,
@@ -249,7 +251,7 @@ impl State {
             Some(AVAHI),
             "/",
             SERVER,
-            "ResolveService",
+            "ResolveService", // i18n-skip
             Some(&args),
             glib::VariantTy::new("(iissssisqaayu)").ok(),
             gio::DBusCallFlags::NONE,

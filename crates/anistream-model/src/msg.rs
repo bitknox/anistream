@@ -11,6 +11,24 @@ use crate::msg_text::{Size, Span, Value};
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Msg {
+    /// A comment's age, beside its author, when it was written under a minute ago.
+    DiscussionAgeNow,
+    /// A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.
+    DiscussionAgeMinutes { minutes: i64 },
+    /// A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it.
+    DiscussionAgeHours { hours: i64 },
+    /// A comment's age, beside its author, in days. Abbreviated, as a timeline shows it.
+    DiscussionAgeDays { days: i64 },
+    /// A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it.
+    DiscussionAgeWeeks { weeks: i64 },
+    /// A comment's age, beside its author, in years. Abbreviated, as a timeline shows it.
+    DiscussionAgeYears { years: i64 },
+    /// Toast when a like on a comment did not reach AniList. The like is taken back.
+    NoticeCommentLikeFailed,
+    /// Toast when a comment could not be deleted on AniList. The comment stays.
+    NoticeCommentDeleteFailed,
+    /// Toast when the viewer tried to like or post in a discussion without signing in to AniList.
+    NoticeDiscussionSignIn,
     /// A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.
     NoticeReason { reason: Cause },
     /// A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date.
@@ -369,6 +387,15 @@ impl Msg {
     /// The catalogue id of the message.
     pub fn id(&self) -> &'static str {
         match self {
+            Self::DiscussionAgeNow => "discussion-age-now",
+            Self::DiscussionAgeMinutes { .. } => "discussion-age-minutes",
+            Self::DiscussionAgeHours { .. } => "discussion-age-hours",
+            Self::DiscussionAgeDays { .. } => "discussion-age-days",
+            Self::DiscussionAgeWeeks { .. } => "discussion-age-weeks",
+            Self::DiscussionAgeYears { .. } => "discussion-age-years",
+            Self::NoticeCommentLikeFailed => "notice-comment-like-failed",
+            Self::NoticeCommentDeleteFailed => "notice-comment-delete-failed",
+            Self::NoticeDiscussionSignIn => "notice-discussion-sign-in",
             Self::NoticeReason { .. } => "notice-reason",
             Self::NoticeNotAired { .. } => "notice-not-aired",
             Self::NoticeNotAiredYet { .. } => "notice-not-aired-yet",
@@ -551,6 +578,15 @@ impl Msg {
     /// The message's arguments, by catalogue name.
     pub fn values(&self) -> Vec<(&'static str, Value)> {
         match self {
+            Self::DiscussionAgeNow => Vec::new(),
+            Self::DiscussionAgeMinutes { minutes } => vec![("minutes", Value::Int(*minutes))],
+            Self::DiscussionAgeHours { hours } => vec![("hours", Value::Int(*hours))],
+            Self::DiscussionAgeDays { days } => vec![("days", Value::Int(*days))],
+            Self::DiscussionAgeWeeks { weeks } => vec![("weeks", Value::Int(*weeks))],
+            Self::DiscussionAgeYears { years } => vec![("years", Value::Int(*years))],
+            Self::NoticeCommentLikeFailed => Vec::new(),
+            Self::NoticeCommentDeleteFailed => Vec::new(),
+            Self::NoticeDiscussionSignIn => Vec::new(),
             Self::NoticeReason { reason } => vec![("reason", Value::Cause(reason.clone()))],
             Self::NoticeNotAired { episode, when } => vec![("episode", Value::Int(*episode)), ("when", Value::Cause(when.clone()))],
             Self::NoticeNotAiredYet { episode, next, when } => vec![("episode", Value::Int(*episode)), ("next", Value::Int(*next)), ("when", Value::Cause(when.clone()))],

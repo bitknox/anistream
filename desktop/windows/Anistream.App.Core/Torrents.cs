@@ -1,5 +1,4 @@
 using Anistream.Engine.Core;
-using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 
 namespace Anistream.App;
@@ -19,47 +18,48 @@ public static class TorrentWords
 
     public static string Label(TorrentProtection protection) => protection switch
     {
-        TorrentProtection.Proxy => "SOCKS5 proxy",
-        TorrentProtection.Device => "VPN on this device",
-        _ => "No protection",
+        TorrentProtection.Proxy => T.TorrentsProtectProxy,
+        TorrentProtection.Device => T.TorrentsProtectVpn,
+        _ => T.TorrentsProtectNone,
     };
 
     public static string Detail(TorrentProtection protection) => protection switch
     {
-        TorrentProtection.Proxy => "Torrent traffic goes through a proxy you run or rent.",
-        TorrentProtection.Device => "Uses the VPN already running on this PC.",
-        _ => "Your address is visible to everyone in the torrent.",
+        TorrentProtection.Proxy => T.TorrentsProtectProxyDetail,
+        TorrentProtection.Device => T.TorrentsProtectVpnDetail,
+        _ => T.TorrentsProtectNoneDetail,
     };
 
     public static string Label(FailedCheck check) => check switch
     {
-        FailedCheck.Pause => "Pause torrents",
-        FailedCheck.Stop => "Stop torrents",
-        _ => "Warn only",
+        FailedCheck.Pause => T.TorrentsFailPause,
+        FailedCheck.Stop => T.TorrentsFailStop,
+        _ => T.TorrentsFailWarn,
     };
 
-    public const string Exposed = "Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.";
-    public const string IndexNote = "The RSS search address anistream asks for torrents. anistream hosts no content.";
-    public const string CheckNote = "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.";
-    public const string OffNote = "Off by default. Turning this on asks how to protect your connection first.";
+    public static string Exposed => T.TorrentsRisk;
+    /// <summary>Under the index: what it is, and the legal line beside it.</summary>
+    public static string IndexNote => $"{T.TorrentsIndexDetail} {T.LegalHostsNoContent}";
+    public static string CheckNote => T.TorrentsCheckNote;
+    public static string OffNote => T.TorrentsOffDetail;
 
-    public const string NoneTitle = "Use torrents without protection?";
-    public const string NoneMessage = "Other people can see your IP address while you download and share a torrent, and anistream does not check the connection.";
+    public static string NoneTitle => T.TorrentsUnprotectedTitle;
+    public static string NoneMessage => T.TorrentsUnprotectedDetail;
     /// <summary>The confirmation's button: what pressing it does, turning torrents on or changing what protects them.</summary>
-    public static string NoneAction(bool turningOn) => turningOn ? "Turn on without protection" : "Use without protection";
+    public static string NoneAction(bool turningOn) => turningOn ? T.TorrentsTurnOnUnprotected : T.TorrentsUseUnprotected;
 
-    public const string FailedNote = "What happens to torrents when the check finds traffic leaving outside your VPN or proxy.";
-    public const string WarnTitle = "Keep torrents running if a check fails?";
-    public const string WarnMessage = "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.";
+    public static string FailedNote => T.TorrentsKeepRunningDetail;
+    public static string WarnTitle => T.TorrentsKeepRunningTitle;
+    public static string WarnMessage => T.TorrentsWarnInstead;
 
     /// <summary>Edit proxy's line over its form.</summary>
-    public const string EditNote = "Torrents keep using the saved proxy until the new one passes the connection check.";
+    public static string EditNote => T.TorrentsProxyKeepsSaved;
     /// <summary>Under the password, wherever a saved proxy's details are open again.</summary>
-    public const string PasswordKept = "Leave the password empty to keep the saved one.";
+    public static string PasswordKept => T.TorrentsPasswordKeep;
     /// <summary>While a proxy is checked before it is saved.</summary>
-    public const string CheckingProxy = "Checking the proxy";
+    public static string CheckingProxy => T.TorrentsCheckingProxy;
     /// <summary>Beside Protect with once a proxy passed its check and was saved.</summary>
-    public const string ProxySaved = "Proxy saved";
+    public static string ProxySaved => T.TorrentsProxySaved;
 
     /// <summary>What a form was doing with the proxy it checked: what stays when the check fails.</summary>
     public enum Kept { EditedProxy, Protection, TurningOn }
@@ -67,24 +67,22 @@ public static class TorrentWords
     /// <summary>Why a proxy was not saved, from the check's <paramref name="view"/> of it, and what stays: Android's words.</summary>
     public static string NotSaved(GuardView view, Kept kept)
     {
-        var why = view is GuardView.Leaking
-            ? "Torrent traffic left outside this proxy"
-            : "The check could not be made through this proxy";
+        var why = view is GuardView.Leaking ? T.TorrentsLeftOutsideProxy : T.TorrentsCheckNotMadeProxy;
         return kept switch
         {
-            Kept.EditedProxy => $"Not saved. {why}, so the saved proxy stays.",
-            Kept.Protection => $"Not saved. {why}, so the saved protection stays.",
-            _ => $"Torrents are still off. {why}.",
+            Kept.EditedProxy => T.TorrentsProxyNotSaved(why),
+            Kept.Protection => T.TorrentsProtectionNotSaved(why),
+            _ => T.TorrentsStillOff(why),
         };
     }
 
     /// <summary>What protects torrent traffic now, under the switch while torrents are on.</summary>
     public static string OnNote(ProtectionView view) => (view.Protection, view.Proxy) switch
     {
-        (TorrentProtection.Proxy, { } proxy) => $"Protected by a SOCKS5 proxy at {proxy.Host}:{proxy.Port}.",
-        (TorrentProtection.Proxy, null) => "Protected by a SOCKS5 proxy.",
-        (TorrentProtection.Device, _) => "Protected by the VPN on this device.",
-        _ => "Not protected. Your address is visible to everyone in the torrent.",
+        (TorrentProtection.Proxy, { } proxy) => T.TorrentsSummaryProxyAt(proxy.Host, proxy.Port.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+        (TorrentProtection.Proxy, null) => T.TorrentsSummaryProxy,
+        (TorrentProtection.Device, _) => T.TorrentsSummaryVpn,
+        _ => T.TorrentsSummaryNone,
     };
 
     /// <summary>
@@ -93,12 +91,12 @@ public static class TorrentWords
     /// </summary>
     public static (string Note, string Word, bool Failed) Guard(GuardView? view, long? ago) => view switch
     {
-        GuardView.Protected p => ($"Leaving through {p.Exit}" + (ago is { } s ? $" · {AnistreamFfiMethods.Ago(s)}" : ""), "Passed", false),
-        GuardView.Checking => ("Checking where torrent traffic leaves from", "Checking", false),
-        GuardView.Leaking => ("Traffic left outside the protection. Torrents are paused.", "Failed", true),
-        GuardView.Unreachable => ("The check could not be made. Torrents are paused.", "Failed", true),
-        GuardView.Unprotected => ("No protection is set", "Unprotected", false),
-        _ => ("Not checked yet", "Waiting", false),
+        GuardView.Protected p => (T.TorrentsCheckPassedExit(p.Exit) + (ago is { } s ? $" · {Wording.Ago(s)}" : ""), T.TorrentsCheckPassed, false),
+        GuardView.Checking => (T.TorrentsCheckRunningLine, T.TorrentsCheckRunning, false),
+        GuardView.Leaking => (T.TorrentsCheckLeaked(T.TorrentsFailPauseResult), T.TorrentsCheckFailed, true),
+        GuardView.Unreachable => (T.TorrentsCheckUnmade(T.TorrentsFailPauseResult), T.TorrentsCheckFailed, true),
+        GuardView.Unprotected => (T.TorrentsCheckNoneLine, T.TorrentsCheckNone, false),
+        _ => (T.TorrentsCheckWaitingLine, T.TorrentsCheckWaiting, false),
     };
 }
 

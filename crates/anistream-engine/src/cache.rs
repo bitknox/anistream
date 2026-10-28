@@ -335,6 +335,12 @@ impl TitleCache {
         Event::Progress { id, progress, resume, episodes }
     }
 
+    /// How many episodes of a title are done, as its page or a list last said: `None` for a
+    /// title the record does not know.
+    pub fn done(&self, id: AnilistId) -> Option<u32> {
+        self.titles.get(&id)?.progress.map(|progress| progress.done)
+    }
+
     /// The table loaded last, and whose it is.
     pub fn table(&self) -> Option<(AnilistId, &[EpisodeRow])> {
         self.table.as_ref().map(|(id, rows)| (*id, rows.as_slice()))

@@ -1,0 +1,83 @@
+---
+// The one-line offer of this page in the visitor's language, filled in by language-suggest.ts.
+// Every other language's words come from that language's own file, so the offer reads in the
+// language it offers. Absent while the site has only one language.
+import { useTranslations } from '@astrojs/starlight/internal';
+import { MULTILINGUAL, useSite } from '../../i18n/site';
+
+const { locale, alternates } = useSite(Astro);
+const offers = alternates
+	.filter((l) => l.key !== locale.key)
+	.map((l) => {
+		const text = useTranslations(l.lang);
+		const own = (id: string) => text(id, { interpolation: { escapeValue: false } } as never) as string;
+		return { lang: l.lang, href: l.href, text: own('site.suggest.text'), go: own('site.suggest.go'), dismiss: own('site.suggest.dismiss') };
+	});
+---
+
+{
+	MULTILINGUAL && (
+		<div class="lang-suggest" data-lang-suggest hidden role="region" aria-live="polite">
+			<p data-lang-text />
+			<a class="btn" data-lang-go href="#" />
+			<button type="button" data-lang-dismiss>
+				<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+					<path d="M2 2 L10 10 M10 2 L2 10"></path>
+				</svg>
+			</button>
+			<script type="application/json" set:html={JSON.stringify(offers).replace(/</g, '\\u003c')} />
+		</div>
+	)
+}
+
+<style is:global>
+	/* On the marketing pages, where body.landing's own rule gives its children a position. */
+	body.landing > .lang-suggest {
+		position: fixed;
+		inset: auto 16px 16px;
+		z-index: 40;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px 16px;
+		max-width: 640px;
+		margin-inline: auto;
+		padding: 10px 12px 10px 20px;
+		border: 1px solid var(--ani-rule-faint);
+		border-radius: 12px;
+		background: var(--ani-raised);
+		color: var(--ani-text);
+		box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+	}
+
+	body.landing > .lang-suggest[hidden] {
+		display: none;
+	}
+
+	.lang-suggest p {
+		flex: 1 1 200px;
+		margin: 0;
+		font-size: 15px;
+		line-height: 24px;
+	}
+
+	.lang-suggest button {
+		display: grid;
+		place-items: center;
+		width: 44px;
+		height: 44px;
+		border: 0;
+		border-radius: 22px;
+		background: transparent;
+		color: var(--ani-dim);
+		cursor: pointer;
+	}
+
+	.lang-suggest button:hover {
+		color: var(--ani-text);
+	}
+</style>
+
+<script>
+	import '../../scripts/language-suggest.ts';
+</script>

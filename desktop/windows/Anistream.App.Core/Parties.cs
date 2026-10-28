@@ -13,22 +13,22 @@ public static class Parties
     /// <summary>What the panel says of a member, beside their name.</summary>
     public static string MemberState(PartyMember member) => member.Ready switch
     {
-        true => "Ready",
-        false => "Not ready",
-        null => "No ready state",
+        true => T.PartyMemberReady,
+        false => T.PartyMemberNotReady,
+        null => T.PartyMemberNoReadyState,
     };
 
     /// <summary>A second line for a member whose episode is not this device's, or null.</summary>
     public static string? MemberFile(PartyMember member) => member switch
     {
         { You: true } => null,
-        { FileMatches: false } => "Playing a different file",
-        { File: null } => "Nothing open yet",
+        { FileMatches: false } => T.PartyMemberOtherFile,
+        { File: null } => T.PartyMemberNoFile,
         _ => null,
     };
 
     /// <summary>The member's name, with "(you)" for this device's.</summary>
-    public static string MemberName(PartyMember member) => member.You ? $"{member.Name} (you)" : member.Name;
+    public static string MemberName(PartyMember member) => member.You ? T.PartyMemberYou(member.Name) : member.Name;
 
     /// <summary>
     /// Every member is ready, and there are at least two: when play starts on its own. A member
@@ -41,32 +41,35 @@ public static class Parties
     public static string ReadyLine(IReadOnlyCollection<PartyMember> members)
     {
         if (members.Count < 2)
-            return "Nobody else is here yet. Send the invite link.";
+            return T.PartyAlone;
         if (AllReady(members))
-            return "Everyone is ready";
-        var waiting = members.Where(m => m.Ready == false).Select(m => m.You ? "you" : m.Name).ToList();
+            return T.PartyAllReady;
+        var waiting = members.Where(m => m.Ready == false).ToList();
         return waiting.Count switch
         {
-            1 when waiting[0] == "you" => "Play starts once you're ready",
-            1 => $"Play starts once {waiting[0]} is ready",
-            2 => $"Play starts once {waiting[0]} and {waiting[1]} are ready",
-            _ => $"Play starts once {waiting.Count} more are ready",
+            1 when waiting[0].You => T.PartyWaitYou,
+            1 => T.PartyWaitOne(waiting[0].Name),
+            2 => T.PartyWaitTwo(Named(waiting[0]), Named(waiting[1])),
+            _ => T.PartyWaitMany(waiting.Count),
         };
     }
 
+    static string Named(PartyMember member) => member.You ? T.PartyYou : member.Name;
+
     /// <summary>How the connection stands, for the panel's header.</summary>
-    public static string ConnectionLine(PartyView party) => party.Connection switch
+    public static string ConnectionLine(PartyView party)
     {
-        PartyConnection.Reconnecting r => $"Connection lost. Trying again, {r.Attempt} of {r.Of}",
-        _ => (party.Encrypted ? "Connected, encrypted" : "Connected, not encrypted")
-             + (party.LatencyMs is { } ms ? $" · {ms.ToString(CultureInfo.InvariantCulture)} ms" : ""),
-    };
+        if (party.Connection is PartyConnection.Reconnecting r)
+            return T.PartyConnectionLost(r.Attempt, r.Of);
+        var line = party.Encrypted ? T.PartyConnectedEncrypted : T.PartyConnectedPlain;
+        return party.LatencyMs is { } ms ? T.PartyConnectedLatency(line, (long)ms) : line;
+    }
 
     /// <summary>The line under the server field: whose the suggested server is, so the viewer knows before joining.</summary>
     public static string ServerHint(string typed, PartyForm form) =>
         string.Equals(typed.Trim(), form.SuggestedServer, StringComparison.OrdinalIgnoreCase)
-            ? $"A public server run by {form.SuggestedRunBy}, not by anistream."
-            : $"No server of your own? {form.SuggestedServer} is a public one, run by {form.SuggestedRunBy}.";
+            ? T.PartyServerPublic(form.SuggestedRunBy)
+            : T.PartyServerSuggest(form.SuggestedServer, form.SuggestedRunBy);
 
     /// <summary>
     /// What is wrong with a server as typed, or null when it reads as <c>host</c>,
@@ -77,7 +80,7 @@ public static class Parties
         var text = typed.Trim();
         if (text.Length == 0)
             return null;
-        const string shape = "Write the server as a host and a port, like party.example:8999.";
+        var shape = T.PartyServerShape;
         if (text.Contains(' ') || text.Contains('/'))
             return shape;
         string host, port;

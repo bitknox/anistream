@@ -1,24 +1,27 @@
 ---
 // The foot of the landing page and the apps page: Nagare, the legal line, the licence and links.
 import Nagare from '../Nagare.astro';
-import { APPS, FEATURES, GITHUB, LEGAL, PRIVACY, RELEASES } from '../../data/site';
+import { useSite } from '../../i18n/site';
+import { APPS, FEATURES, GITHUB, PRIVACY, RELEASES } from '../../data/site';
+
+const { t, href } = useSite(Astro);
 ---
 
 <footer class="l-footer">
 	<div class="footer-mascot">
 		<Nagare cell={5} class="footer-nagare" />
-		<p>Nagare 流 is anistream’s mascot, an original character.</p>
+		<p>{t('site.footer.mascot')}</p>
 	</div>
 	<div class="footer-legal">
-		<p>{LEGAL}</p>
-		<p class="footer-licence">anistream is open source under the MIT licence.</p>
+		<p>{t('site.legal')}</p>
+		<p class="footer-licence">{t('site.footer.licence')}</p>
 	</div>
-	<nav aria-label="Footer">
-		<a href={APPS}>Apps</a>
-		<a href={FEATURES}>Features</a>
-		<a href="/docs/">Docs</a>
-		<a href={PRIVACY}>Privacy</a>
-		<a href={RELEASES}>Releases</a>
+	<nav aria-label={t('site.footer.label')}>
+		<a href={href(APPS)}>{t('site.nav.apps')}</a>
+		<a href={href(FEATURES)}>{t('site.nav.features')}</a>
+		<a href={href('/docs/')}>{t('site.nav.docs')}</a>
+		<a href={href(PRIVACY)}>{t('site.footer.privacy')}</a>
+		<a href={RELEASES}>{t('site.nav.releases')}</a>
 		<a href={GITHUB}>GitHub</a>
 	</nav>
 </footer>

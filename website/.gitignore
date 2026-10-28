@@ -22,3 +22,7 @@ pnpm-debug.log*
 
 # feature videos: raw recordings (scripts/videos/record.sh)
 .videos/
+
+# pseudo locale (bun run build:pseudo): generated, never deployed
+src/content/i18n/en-XA.json
+dist-pseudo/

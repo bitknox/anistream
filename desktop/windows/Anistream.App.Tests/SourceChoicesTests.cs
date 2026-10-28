@@ -222,8 +222,8 @@ public class SourceChoicesTests
     {
         var entry = Watching(4) with { Status = AiringStatus.Finished, LastAired = null };
         var rows = Table(("4", true), ("5", true), ("6", false));
-        Assert.Equal("Start episode 4", PlayableNext.Item(entry, null, Casing.Sentence).Button);
-        Assert.Equal("Start episode 6", PlayableNext.Item(entry, rows, Casing.Sentence).Button);
+        Assert.Equal("Play episode 4", PlayableNext.Item(entry, null, Casing.Sentence).Button);
+        Assert.Equal("Play episode 6", PlayableNext.Item(entry, rows, Casing.Sentence).Button);
     }
 
     [Fact]

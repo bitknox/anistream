@@ -15,22 +15,13 @@ export const INSTALL_APPS = `${INSTALL_GUIDE}#the-apps`;
 export const APPS = '/apps/';
 export const FEATURES = '/features/';
 
-export const LEGAL = 'anistream hosts no content.';
-
 export const PRIVACY = '/docs/privacy/';
 
-/** Every platform with an app, in the order the pages name them. */
-export const PLATFORMS = 'Mac, iPhone, iPad, Android, Android TV, Windows and Linux';
-
-/** Each app and the toolkit its interface is written in. All of them run the same Rust engine. */
-export const TOOLKITS: [string, string][] = [
-	['Mac, iPhone and iPad', 'SwiftUI, in Swift'],
-	['Android phones and tablets', 'Jetpack Compose, in Kotlin'],
-	['Android TV', 'Compose for TV, in Kotlin'],
-	['Windows', 'WinUI 3, in C#'],
-	['Linux', 'GTK 4 and libadwaita, in Rust'],
-	['The terminal', 'Ratatui, in Rust'],
-];
+/**
+ * The apps and the toolkit each interface is written in, as keys under `apps.toolkit.` in the
+ * language files. All of them run the same Rust engine.
+ */
+export const TOOLKITS = ['apple', 'android', 'tv', 'windows', 'linux', 'terminal'] as const;
 
 /** One file of an app in the release. */
 export interface AppFile {
@@ -45,12 +36,11 @@ export interface AppFile {
 export interface AppDownload {
 	/** The id the page's elements carry, and the docs heading's anchor. */
 	id: 'android' | 'android-tv' | 'mac' | 'ios' | 'windows' | 'linux';
-	platform: string;
-	/** What it runs on. */
-	needs: string;
+	/**
+	 * The words for it are `dl.app.<id>.platform` (its name), `.needs` (what it runs on) and
+	 * `.first` (the first install, in one line) in the language files.
+	 */
 	files: AppFile[];
-	/** The first install, in one line. */
-	first: string;
 	/** The installation guide's section for it. */
 	guide: string;
 }
@@ -58,56 +48,38 @@ export interface AppDownload {
 export const APP_DOWNLOADS: AppDownload[] = [
 	{
 		id: 'mac',
-		platform: 'Mac',
-		needs: 'macOS 26 or later, Apple silicon',
 		files: [{ name: 'anistream-<version>-macos.dmg', suffix: '-macos.dmg' }],
-		first: 'Allow it once in System Settings, under Privacy & Security.',
 		guide: `${INSTALL_GUIDE}#mac`,
 	},
 	{
 		id: 'ios',
-		platform: 'iPhone and iPad',
-		needs: 'iOS or iPadOS 26 or later',
 		files: [{ name: 'anistream-<version>-ios-unsigned.ipa', suffix: '-ios-unsigned.ipa' }],
-		first: 'Add anistream’s source to SideStore or AltStore and install it from there.',
 		guide: `${INSTALL_GUIDE}#iphone-and-ipad`,
 	},
 	{
 		id: 'android',
-		platform: 'Android',
-		needs: 'Android 15 or later, 64-bit ARM',
 		files: [{ name: 'anistream-<version>-android-arm64.apk', suffix: '-android-arm64.apk' }],
-		first: 'Allow installs from your browser or file manager once.',
 		guide: `${INSTALL_GUIDE}#android`,
 	},
 	{
 		id: 'android-tv',
-		platform: 'Android TV',
-		needs: 'Android TV 11 or later, ARM',
 		files: [{ name: 'anistream-<version>-android-tv.apk', suffix: '-android-tv.apk' }],
-		first: 'Install it with the Downloader app, or from a computer with adb. After that it updates itself.',
 		guide: `${INSTALL_GUIDE}#android-tv`,
 	},
 	{
 		id: 'windows',
-		platform: 'Windows',
-		needs: 'Windows 10 version 2004 or later, x64 or Arm64',
 		files: [
 			{ name: 'anistream-<version>-windows-x64-setup.exe', suffix: '-windows-x64-setup.exe', arch: 'x64' },
 			{ name: 'anistream-<version>-windows-arm64-setup.exe', suffix: '-windows-arm64-setup.exe', arch: 'Arm64' },
 		],
-		first: 'The installer is not signed, so choose More info, then Run anyway, when SmartScreen stops it.',
 		guide: `${INSTALL_GUIDE}#windows`,
 	},
 	{
 		id: 'linux',
-		platform: 'Linux',
-		needs: 'Ubuntu 25.04, Fedora 42, Debian 13 or newer, x86-64 or ARM64',
 		files: [
 			{ name: 'anistream-<version>-linux-x86_64.AppImage', suffix: '-linux-x86_64.AppImage', arch: 'x86-64' },
 			{ name: 'anistream-<version>-linux-aarch64.AppImage', suffix: '-linux-aarch64.AppImage', arch: 'ARM64' },
 		],
-		first: 'Make the AppImage executable once, then open it.',
 		guide: `${INSTALL_GUIDE}#linux`,
 	},
 ];

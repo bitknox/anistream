@@ -205,7 +205,9 @@ impl App {
             | S::VpnOnFailure
             | S::EpisodeNotifications
             | S::MpvOptions
-            | S::AdultTitles => return None,
+            | S::AdultTitles
+            | S::EpisodeDiscussions
+            | S::CommentImages => return None,
         })
     }
 
@@ -309,6 +311,8 @@ fn label_text(key: SettingKey) -> String {
         S::EpisodeNotifications => t::settings_label_episode_notifications(),
         S::MpvOptions => t::settings_label_mpv_options(),
         S::AdultTitles => t::settings_label_adult_titles(),
+        S::EpisodeDiscussions => t::settings_label_episode_discussions(),
+        S::CommentImages => t::settings_label_comment_images(),
     }
 }
 

@@ -16,6 +16,20 @@ export const box = (x: number, y: number, w: number, h: number) =>
 export const text = (x: number, y: number, role: 'label' | 'sub' | 'note' | 'name', s: string, anchor: 'start' | 'middle' | 'end' = 'start') =>
 	`<text x="${x}" y="${y}" text-anchor="${anchor}" class="fd-t fd-${role}">${esc(s)}</text>`;
 
+/**
+ * A note over an arrow, on one line where it fits in `max` characters and on more where a longer
+ * language needs them, the last line on `y` and the others above it.
+ */
+export const note = (x: number, y: number, s: string, anchor: 'start' | 'middle' | 'end' = 'middle', max = 12) => {
+	const lines: string[] = [];
+	for (const word of s.split(' ')) {
+		const last = lines[lines.length - 1];
+		if (last !== undefined && last.length + 1 + word.length <= max) lines[lines.length - 1] = `${last} ${word}`;
+		else lines.push(word);
+	}
+	return lines.map((line, i) => text(x, y - (lines.length - 1 - i) * 15, 'note', line, anchor)).join('');
+};
+
 /** A box with a label and a line under it. */
 export const node = (x: number, y: number, w: number, h: number, label: string, sub?: string) => {
 	const top = sub ? y + h / 2 - 3 : y + h / 2 + 5;

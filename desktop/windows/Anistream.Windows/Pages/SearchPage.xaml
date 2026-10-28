@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:app="using:Anistream.Windows"
     xmlns:local="using:Anistream.Windows.Pages"
+    xmlns:s="using:Anistream.App"
     Background="{ThemeResource GroundBrush}">
   <Grid Padding="36,20,36,0" RowSpacing="12">
     <Grid.RowDefinitions>
@@ -13,13 +14,13 @@
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
     <StackPanel>
-      <TextBlock x:Name="Heading" Text="Search" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+      <TextBlock x:Name="Heading" Text="{x:Bind s:T.NavSearch}" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
       <local:OfflineLine />
     </StackPanel>
     <!-- The filters: each drop-down says its name until set, then what it has, in amber. -->
     <ScrollViewer Grid.Row="1" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled" Margin="0,0,-36,0">
       <StackPanel x:Name="FilterRow" Orientation="Horizontal" Spacing="8" Padding="0,0,36,0">
-        <DropDownButton x:Name="GenreButton" Content="Genre" Height="32" MinWidth="96" AutomationProperties.Name="Genre">
+        <DropDownButton x:Name="GenreButton" Content="{x:Bind s:T.FilterGenre}" Height="32" MinWidth="96" AutomationProperties.Name="{x:Bind s:T.FilterGenre}">
           <DropDownButton.Flyout>
             <Flyout x:Name="GenreFlyout" Placement="BottomEdgeAlignedLeft">
               <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto">
@@ -28,29 +29,29 @@
             </Flyout>
           </DropDownButton.Flyout>
         </DropDownButton>
-        <DropDownButton x:Name="FormatButton" Content="Format" Height="32" MinWidth="96" AutomationProperties.Name="Format">
+        <DropDownButton x:Name="FormatButton" Content="{x:Bind s:T.FilterFormat}" Height="32" MinWidth="96" AutomationProperties.Name="{x:Bind s:T.FilterFormat}">
           <DropDownButton.Flyout>
             <Flyout x:Name="FormatFlyout" Placement="BottomEdgeAlignedLeft">
               <StackPanel x:Name="FormatList" Spacing="2" MinWidth="180" />
             </Flyout>
           </DropDownButton.Flyout>
         </DropDownButton>
-        <DropDownButton x:Name="SeasonButton" Content="Season" Height="32" MinWidth="96" AutomationProperties.Name="Season">
+        <DropDownButton x:Name="SeasonButton" Content="{x:Bind s:T.FilterSeason}" Height="32" MinWidth="96" AutomationProperties.Name="{x:Bind s:T.FilterSeason}">
           <DropDownButton.Flyout>
             <MenuFlyout x:Name="SeasonMenu" Placement="BottomEdgeAlignedLeft" />
           </DropDownButton.Flyout>
         </DropDownButton>
-        <DropDownButton x:Name="YearButton" Content="Year" Height="32" MinWidth="88" AutomationProperties.Name="Year">
+        <DropDownButton x:Name="YearButton" Content="{x:Bind s:T.FilterYear}" Height="32" MinWidth="88" AutomationProperties.Name="{x:Bind s:T.FilterYear}">
           <DropDownButton.Flyout>
             <MenuFlyout x:Name="YearMenu" Placement="BottomEdgeAlignedLeft" />
           </DropDownButton.Flyout>
         </DropDownButton>
-        <DropDownButton x:Name="SortButton" Content="Sort" Height="32" MinWidth="88" AutomationProperties.Name="Sort">
+        <DropDownButton x:Name="SortButton" Content="{x:Bind s:T.SearchSortName}" Height="32" MinWidth="88" AutomationProperties.Name="{x:Bind s:T.SearchSortName}">
           <DropDownButton.Flyout>
             <MenuFlyout x:Name="SortMenu" Placement="BottomEdgeAlignedLeft" />
           </DropDownButton.Flyout>
         </DropDownButton>
-        <HyperlinkButton x:Name="ClearButton" Content="Clear filters" Click="OnClear" Height="32" Visibility="Collapsed" />
+        <HyperlinkButton x:Name="ClearButton" Content="{x:Bind s:T.SearchClearFilters}" Click="OnClear" Height="32" Visibility="Collapsed" />
       </StackPanel>
     </ScrollViewer>
     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">

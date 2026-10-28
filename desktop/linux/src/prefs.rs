@@ -5,6 +5,8 @@
 use std::{cell::RefCell, path::PathBuf};
 
 use adw::prelude::*;
+use anistream_core::{config::Paths, settings::SettingValue};
+use anistream_i18n::t;
 use gtk::glib;
 
 /// What closing the window with downloads running does: Settings › Downloads, "When the window
@@ -19,11 +21,11 @@ pub enum CloseChoice {
 impl CloseChoice {
     pub const ALL: [Self; 3] = [Self::Ask, Self::KeepGoing, Self::Stop];
 
-    pub fn label(self) -> &'static str {
+    pub fn label(self) -> String {
         match self {
-            Self::Ask => "Ask",
-            Self::KeepGoing => "Keep going",
-            Self::Stop => "Stop",
+            Self::Ask => t::downloads_background_ask(),
+            Self::KeepGoing => t::downloads_background_keep(),
+            Self::Stop => t::downloads_background_stop(),
         }
     }
 
@@ -43,6 +45,9 @@ impl CloseChoice {
 pub struct Prefs {
     file: PathBuf,
     keys: RefCell<glib::KeyFile>,
+    /// Where the engine's `config.toml` is, for the one setting this app writes there itself:
+    /// the language.
+    config: Option<Paths>,
 }
 
 const GROUP: &str = "window";
@@ -52,7 +57,39 @@ impl Prefs {
     pub fn open(file: PathBuf) -> Self {
         let keys = glib::KeyFile::new();
         let _ = keys.load_from_file(&file, glib::KeyFileFlags::NONE);
-        Self { file, keys: RefCell::new(keys) }
+        Self { file, keys: RefCell::new(keys), config: None }
+    }
+
+    /// These preferences, with the engine's config files named, so the language can be read and
+    /// written there.
+    pub fn with_config(mut self, paths: Paths) -> Self {
+        self.config = Some(paths);
+        self
+    }
+
+    /// The language chosen for the app's own text, as `config.toml` says it, or `None` to follow
+    /// the system's. The terminal app reads the same key.
+    pub fn language(&self) -> Option<String> {
+        let paths = self.config.as_ref()?;
+        saved_language(&paths.config_file)
+    }
+
+    /// Save the language chosen for the app's own text: a tag, or `"system"` to follow the
+    /// system's. It applies from the next start. Whether it was written.
+    pub fn set_language(&self, choice: &str) -> bool {
+        let Some(paths) = &self.config else { return false };
+        match anistream_core::settings::write_key(
+            paths,
+            &[],
+            "language",
+            SettingValue::Str(choice.to_owned()),
+        ) {
+            Ok(()) => true,
+            Err(e) => {
+                tracing::warn!(error = %e, "the language was not saved");
+                false
+            }
+        }
     }
 
     fn int(&self, key: &str, default: i32) -> i32 {
@@ -132,9 +169,38 @@ impl Prefs {
     }
 }
 
+/// The `language` key of the config file at `file`: `None` when it is unset, `"system"`, or the
+/// file is missing or does not load.
+pub fn saved_language(file: &std::path::Path) -> Option<String> {
+    let source = std::fs::read_to_string(file).ok()?;
+    let config = anistream_core::config::Config::parse(&source).ok()?;
+    config.language.filter(|tag| !tag.is_empty() && tag != "system")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_language_is_the_config_files_own_key_and_system_means_none() {
+        let dir = tempfile::tempdir().expect("a scratch directory");
+        let paths = Paths {
+            config_file: dir.path().join("config.toml"),
+            data_dir: dir.path().join("data"),
+            cache_dir: dir.path().join("cache"),
+        };
+        let prefs = Prefs::open(dir.path().join("desktop.ini")).with_config(paths.clone());
+        assert_eq!(prefs.language(), None);
+        std::fs::write(&paths.config_file, "[theme]\nmotion = false\n").unwrap();
+        assert!(prefs.set_language("da"));
+        assert_eq!(prefs.language().as_deref(), Some("da"));
+        let written = std::fs::read_to_string(&paths.config_file).unwrap();
+        assert!(written.contains("language = \"da\""), "{written}");
+        assert!(written.contains("motion = false"), "the rest is left alone");
+        assert!(prefs.set_language("system"));
+        assert_eq!(prefs.language(), None);
+        assert_eq!(Prefs::open(dir.path().join("x.ini")).language(), None);
+    }
 
     #[test]
     fn the_close_choice_is_kept_and_asks_by_default() {

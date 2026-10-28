@@ -100,6 +100,9 @@ pub struct EngineState {
     /// The titles whose episodes were listed lately, for listing them again when the sources
     /// change: see [`crate::titles::refresh`].
     pub listed: crate::titles::refresh::Listed,
+    /// The episode discussion open, and the episodes whose threads were looked up: see
+    /// [`crate::discussion`].
+    pub discussion: crate::discussion::Discussions,
     /// The watch party going, if one is: see [`crate::party`].
     #[cfg(feature = "party")]
     pub party: Option<crate::party::Running>,
@@ -139,6 +142,7 @@ impl EngineState {
             dubs: Default::default(),
             names: Default::default(),
             listed: Default::default(),
+            discussion: Default::default(),
             #[cfg(feature = "party")]
             party: None,
         }

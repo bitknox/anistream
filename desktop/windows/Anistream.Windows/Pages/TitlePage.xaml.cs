@@ -12,7 +12,7 @@ using Microsoft.UI.Xaml.Navigation;
 
 namespace Anistream.Windows.Pages;
 
-/// <summary>An episode row: "7 · The Lantern Road", its runtime or what is left, and its still.</summary>
+/// <summary>An episode row: "Episode 7 · The Lantern Road", its runtime or what is left, and its still.</summary>
 public sealed partial class EpisodeItem : INotifyPropertyChanged
 {
     ImageSource? still;
@@ -25,8 +25,11 @@ public sealed partial class EpisodeItem : INotifyPropertyChanged
 
     public EpisodeRow Row { get; }
     public bool Spoiler { get; }
-    public string Heading => Row.Title is { Length: > 0 } t ? $"{Row.Number} · {t}" : $"Episode {Row.Number}";
-    public string Name => $"{Heading}, {Line}";
+    public string Heading => long.TryParse(Row.Number, out var n)
+        ? Row.Title is { Length: > 0 } t ? T.EpisodeWithTitle(n, t) : T.EpisodeNumber(n)
+        : Row.Title is { Length: > 0 } named ? T.EpisodeTextWithTitle(Row.Number, named) : T.EpisodeNumberText(Row.Number);
+    /// <summary>What Narrator reads for the row: its heading, then its line when it has one.</summary>
+    public string Name => Line.Length > 0 ? T.EpisodeRowSpoken(Heading, Line) : Heading;
     public double Watched => Row.Watched;
     public bool Completed => Row.Completed;
     /// <summary>An episode no source lists is dimmed whole; a watched one is only a little.</summary>
@@ -35,7 +38,7 @@ public sealed partial class EpisodeItem : INotifyPropertyChanged
     public Visibility OnTv => Ctx.Current.Tv.Available ? Visibility.Visible : Visibility.Collapsed;
     public Visibility PartWay => Row.Watched is > 0 and < 1 && !Row.Completed ? Visibility.Visible : Visibility.Collapsed;
     public bool Playable => EpisodeSources.Playable(Row);
-    public string WatchedAction => Row.Completed ? "Mark as unwatched" : "Mark as watched";
+    public string WatchedAction => Row.Completed ? T.EpisodeMarkUnwatched : T.EpisodeMarkWatched;
     public Visibility SpoilerShown => Spoiler ? Visibility.Visible : Visibility.Collapsed;
 
     public string Line
@@ -45,10 +48,10 @@ public sealed partial class EpisodeItem : INotifyPropertyChanged
             if (Row.Unsourced)
                 return T.EpisodeUnsourced;
             if (Row.DurationSecs is not { } secs)
-                return Row.MetadataOnly ? "Listed by AniList" : "";
+                return Row.MetadataOnly ? T.EpisodeListedByAnilist : "";
             if (Row.Watched is > 0 and < 1 && !Row.Completed)
-                return $"{Math.Max(1, (int)Math.Round(secs * (1 - Row.Watched) / 60))} min left";
-            return AnistreamFfiMethods.RuntimeMinutes(secs);
+                return T.TimeMinutesLeft(Math.Max(1, (long)Math.Round(secs * (1 - Row.Watched) / 60)));
+            return Wording.Minutes(secs);
         }
     }
 
@@ -137,9 +140,9 @@ public sealed partial class TitlePage : Page, IPageKeys
         InitializeComponent();
         foreach (var (segment, name) in new[]
         {
-            (LibrarySegment.Watching, "Watching"), (LibrarySegment.Planning, "Planning"),
-            (LibrarySegment.Completed, "Completed"), (LibrarySegment.Paused, "Paused"),
-            (LibrarySegment.Dropped, "Dropped"),
+            (LibrarySegment.Watching, T.LibraryStatusWatching), (LibrarySegment.Planning, T.LibraryStatusPlanning),
+            (LibrarySegment.Completed, T.LibraryStatusCompleted), (LibrarySegment.Paused, T.LibraryStatusPaused),
+            (LibrarySegment.Dropped, T.LibraryStatusDropped),
         })
         {
             var item = new RadioMenuFlyoutItem { Text = name, GroupName = "status", Tag = segment };
@@ -148,7 +151,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         }
         SourceItem.Text = T.SourcePickerTitle;
         State.Placeholders = Placeholders;
-        State.ActivityText = "Loading this title";
+        State.ActivityText = T.TitleLoading;
         var settings = new Microsoft.UI.Xaml.Input.KeyboardAccelerator { Key = global::Windows.System.VirtualKey.I, Modifiers = global::Windows.System.VirtualKeyModifiers.Control };
         settings.Invoked += (_, a) =>
         {
@@ -236,7 +239,7 @@ public sealed partial class TitlePage : Page, IPageKeys
                     ctx.Send(new Command.LoadEpisodes(id));
                     break;
                 case Event.TitleDub td when td.Id == id:
-                    var line = AnistreamFfiMethods.DubLine(td.Dub);
+                    var line = Wording.DubLine(td.Dub);
                     if (line is not null)
                         DubLine.Text = line;
                     DubLine.Opacity = line is null ? 0 : 1;
@@ -271,12 +274,12 @@ public sealed partial class TitlePage : Page, IPageKeys
         ShowTitle.Text = entry.Title;
         Secondary.Text = entry.Secondary ?? "";
         Secondary.Visibility = entry.Secondary is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
-        Meta.Text = AnistreamFfiMethods.MetaLine(entry);
+        Meta.Text = Wording.MetaLine(entry);
         Synopsis.Text = entry.Synopsis;
 
         ShowAction(entry);
 
-        StatusButton.Content = entry.ListStatus is { } status ? status.ToString() : "Add to list";
+        StatusButton.Content = entry.ListStatus is { } status ? StatusName(status) : T.LibraryAddToList;
         foreach (var item in StatusMenu.Items.OfType<RadioMenuFlyoutItem>())
             item.IsChecked = item.Tag is LibrarySegment s && s == entry.ListStatus;
         TrailerItem.IsEnabled = entry.TrailerUrl is not null;
@@ -343,28 +346,28 @@ public sealed partial class TitlePage : Page, IPageKeys
         DetailsBelow.Children.Clear();
 
         var details = new StackPanel { Spacing = 6 };
-        details.Children.Add(new TextBlock { Text = "Details", Style = Res<Style>("BodyStrongTextBlockStyle") });
+        details.Children.Add(new TextBlock { Text = T.TitleDetails, Style = Res<Style>("BodyStrongTextBlockStyle") });
         void Line(string? text)
         {
             if (!string.IsNullOrEmpty(text))
                 details.Children.Add(new TextBlock { Text = text, Style = Res<Style>("HazeBodyStyle"), TextWrapping = TextWrapping.WrapWholeWords });
         }
-        Line(entry.Studio is { } studio ? $"Studio {studio}" : null);
-        Line(entry.Genres is { Length: > 0 } genres ? string.Join(", ", genres) : null);
-        Line(entry.Source is { } source ? $"Source: {Words.Source(source)}" : null);
-        Line(AnistreamFfiMethods.BroadcastLine(entry) is { Length: > 0 } airing ? airing : null);
+        Line(entry.Studio is { } studio ? T.TitleStudioLine(studio) : null);
+        Line(entry.Genres is { Length: > 0 } genres ? string.Join(", ", genres.Select(Searches.GenreName)) : null);
+        Line(entry.Source is { } source ? T.TitleBasedOnLine(MaterialName(source)) : null);
+        Line(BroadcastLine(entry) is { Length: > 0 } airing ? airing : null);
         host.Children.Add(details);
 
         if (Anistream.App.TitleSeasons.Related(entry) is { Length: > 0 } related)
         {
             var list = new StackPanel { Spacing = 6 };
-            list.Children.Add(new TextBlock { Text = "Related", Style = Res<Style>("BodyStrongTextBlockStyle") });
+            list.Children.Add(new TextBlock { Text = T.TitleRelated, Style = Res<Style>("BodyStrongTextBlockStyle") });
             foreach (var r in related.Take(8))
             {
                 var link = new HyperlinkButton { Padding = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Left };
                 var text = new StackPanel();
                 text.Children.Add(new TextBlock { Text = r.Title, Style = Res<Style>("ShowTitleStyle") });
-                text.Children.Add(new TextBlock { Text = Words.Relation(r.Relation, r.Format), Style = Res<Style>("HazeCaptionStyle") });
+                text.Children.Add(new TextBlock { Text = RelationLine(r.Relation, r.Format), Style = Res<Style>("HazeCaptionStyle") });
                 link.Content = text;
                 var target = r.Id;
                 link.Click += (_, _) => ctx.OpenTitle(target);
@@ -390,7 +393,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         EpisodeList.ItemsSource = items;
         ShowDownloads(ctx.Known.Downloads);
         var metadataOnly = rows.Length > 0 && rows.All(r => r.MetadataOnly);
-        EpisodesNote.Text = metadataOnly ? "Episodes from AniList. Add a source to play them." : "";
+        EpisodesNote.Text = metadataOnly ? T.TitleEpisodesNoSource : "";
         EpisodesNote.Visibility = metadataOnly ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -556,7 +559,7 @@ public sealed partial class TitlePage : Page, IPageKeys
             _ = SourcePickerDialog.Open(ctx, id, entry.Title, root);
     }
 
-    void OnWatchTogether(object sender, RoutedEventArgs e)
+    void OnWatchParty(object sender, RoutedEventArgs e)
     {
         if (action is { Playable: true })
             ctx.Window.ShowParty(new PartyDialog.For.Episode(id, action.Episode.ToString()));
@@ -579,12 +582,13 @@ public sealed partial class TitlePage : Page, IPageKeys
             return;
         var next = action?.Episode.ToString();
         var start = Math.Max(0, Array.IndexOf(playable, next));
-        var from = new ComboBox { Header = "From", MinWidth = 120 };
-        var to = new ComboBox { Header = "To", MinWidth = 120 };
+        var from = new ComboBox { Header = T.DownloadRangeFrom, MinWidth = 120 };
+        var to = new ComboBox { Header = T.DownloadRangeTo, MinWidth = 120 };
         foreach (var n in playable)
         {
-            from.Items.Add($"Episode {n}");
-            to.Items.Add($"Episode {n}");
+            var name = long.TryParse(n, out var whole) ? T.EpisodeNumber(whole) : T.EpisodeNumberText(n);
+            from.Items.Add(name);
+            to.Items.Add(name);
         }
         from.SelectedIndex = start;
         to.SelectedIndex = playable.Length - 1;
@@ -593,14 +597,14 @@ public sealed partial class TitlePage : Page, IPageKeys
         pick.Children.Add(to);
         var body = new StackPanel { Spacing = 12 };
         body.Children.Add(pick);
-        body.Children.Add(Ui.Text("Downloads use the quality in Settings › Downloads.", "HazeCaptionStyle"));
+        body.Children.Add(Ui.Text(T.DownloadRangeQualityNote, "HazeCaptionStyle"));
         var dialog = new ContentDialog
         {
             XamlRoot = root,
-            Title = "Download episodes",
+            Title = T.DownloadRangeTitle,
             Content = body,
-            PrimaryButtonText = "Download",
-            CloseButtonText = "Cancel",
+            PrimaryButtonText = T.TitleEpisodeDownload,
+            CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Primary,
         };
         void Check() => dialog.IsPrimaryButtonEnabled = from.SelectedIndex >= 0 && to.SelectedIndex >= from.SelectedIndex;
@@ -625,6 +629,75 @@ public sealed partial class TitlePage : Page, IPageKeys
     {
         if (ctx.Known.Entry(id) is { TrailerUrl: { } url } entry)
             ctx.Send(new Command.PlayTrailer(url, entry.Title));
+    }
+
+    static string StatusName(LibrarySegment status) => status switch
+    {
+        LibrarySegment.Watching => T.LibraryStatusWatching,
+        LibrarySegment.Planning => T.LibraryStatusPlanning,
+        LibrarySegment.Completed => T.LibraryStatusCompleted,
+        LibrarySegment.Paused => T.LibraryStatusPaused,
+        _ => T.LibraryStatusDropped,
+    };
+
+    static string MaterialName(SourceMaterial source) => source switch
+    {
+        SourceMaterial.Original => T.MaterialOriginal,
+        SourceMaterial.Manga => T.MaterialManga,
+        SourceMaterial.LightNovel => T.MaterialLightNovel,
+        SourceMaterial.VisualNovel => T.MaterialVisualNovel,
+        SourceMaterial.VideoGame => T.MaterialVideoGame,
+        SourceMaterial.Novel => T.MaterialNovel,
+        SourceMaterial.Doujinshi => T.MaterialDoujinshi,
+        SourceMaterial.Anime => T.MaterialAnime,
+        SourceMaterial.WebNovel => T.MaterialWebNovel,
+        SourceMaterial.LiveAction => T.MaterialLiveAction,
+        SourceMaterial.Game => T.MaterialGame,
+        SourceMaterial.Comic => T.MaterialComic,
+        SourceMaterial.MultimediaProject => T.MaterialMultimedia,
+        SourceMaterial.PictureBook => T.MaterialPictureBook,
+        _ => T.RelationOther,
+    };
+
+    /// <summary>A related title's line: "Sequel · TV". AniList's relation comes as its wire name, "SIDE_STORY".</summary>
+    static string RelationLine(string relation, string? format)
+    {
+        var name = relation.ToUpperInvariant() switch
+        {
+            "PREQUEL" => T.RelationPrequel,
+            "SEQUEL" => T.RelationSequel,
+            "PARENT" => T.RelationParent,
+            "SIDE_STORY" => T.RelationSideStory,
+            "SPIN_OFF" => T.RelationSpinOff,
+            "ALTERNATIVE" => T.RelationAlternative,
+            "SUMMARY" => T.RelationSummary,
+            "COMPILATION" => T.RelationCompilation,
+            "CONTAINS" => T.RelationContains,
+            "SAME_UNIVERSE" => T.RelationSameUniverse,
+            "CHARACTER" => T.RelationSharesCharacters,
+            "ADAPTATION" => T.RelationAdaptation,
+            "SOURCE" => T.RelationOriginalWork,
+            _ => T.RelationOther,
+        };
+        return format is { Length: > 0 } f ? T.TitleRelationFormat(name, Wording.Format(f)) : name;
+    }
+
+    /// <summary>
+    /// What most recently aired and what is next: "E5 out 2d ago · Episode 6 airs in 4d 20h". Latest
+    /// first, so a narrow column cuts the countdown before the news. A finished show has neither.
+    /// </summary>
+    static string BroadcastLine(Entry entry)
+    {
+        var parts = new List<string>();
+        // An episode known out only because the next one's number says so has no time to date it.
+        uint? proven = entry.NextEpisode is { } next && next >= 2 ? next - 1 : null;
+        if (entry.LastAired is { } aired && !(proven > aired.Episode))
+            parts.Add(T.TitleEpisodeOutAgo(aired.Episode, Wording.Ago(aired.Ago)));
+        else if (proven is { } out_)
+            parts.Add(T.CalendarEpisodeOut(out_));
+        if (entry.NextAiringIn is { } seconds && seconds > 0)
+            parts.Add(entry.NextEpisode is { } coming ? T.EpisodeAirs(coming, Wording.In(seconds)) : T.TitleNextAirs(Wording.In(seconds)));
+        return string.Join(" · ", parts);
     }
 
     void OnOpenAnilist(object sender, RoutedEventArgs e) =>

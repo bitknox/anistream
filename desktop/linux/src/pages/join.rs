@@ -1,10 +1,11 @@
 //! Join a plugin store: the invite link, checked against the store it names as it is pasted, then
-//! the store's preview (its name, who runs it, the key, its plugins and what this computer is
-//! called there) and Join Store. A dialog, which a narrow window shows as a bottom sheet.
+//! the store's preview (its name, who runs it, the key, its plugins and what this device is
+//! called there) and Join. A dialog, which a narrow window shows as a bottom sheet.
 
 use std::{cell::Cell, rc::Rc, time::Duration};
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
     event::Event,
@@ -130,9 +131,9 @@ pub fn open(ctx: &Rc<Ctx>, link: Option<&str>) {
     let header = adw::HeaderBar::new();
     header.set_show_end_title_buttons(false);
     header.set_show_start_title_buttons(false);
-    let cancel = gtk::Button::with_label("Cancel");
+    let cancel = gtk::Button::with_label(&t::action_cancel());
     header.pack_start(&cancel);
-    let join = gtk::Button::with_label("Join Store");
+    let join = gtk::Button::with_label(&t::stores_join_button());
     join.add_css_class("suggested-action");
     join.set_sensitive(false);
     header.pack_end(&join);
@@ -142,19 +143,17 @@ pub fn open(ctx: &Rc<Ctx>, link: Option<&str>) {
     column.set_margin_bottom(24);
     column.set_margin_start(18);
     column.set_margin_end(18);
-    column.append(&widgets::haze("Paste the invite link the store's owner sent you.", ""));
+    column.append(&widgets::haze(&t::stores_join_detail_desktop(), ""));
     let links = widgets::boxed_list();
-    let entry = adw::EntryRow::builder().title("Invite link").build();
+    let entry = adw::EntryRow::builder().title(t::stores_invite_link()).build();
     links.append(&entry);
     column.append(&links);
     let preview = gtk::Box::new(gtk::Orientation::Vertical, 12);
     column.append(&preview);
-    let note = widgets::haze(
-        "Plugins come from the store's owner, not from anistream. You can leave a store at any \
-         time.",
-        "caption",
-    );
+    let note = widgets::haze(&t::stores_not_from_app(), "caption");
     column.append(&note);
+    let legal = widgets::haze(&t::legal_hosts_no_content(), "caption");
+    column.append(&legal);
     // The dialog follows its content, which grows once the link is checked.
     if ctx.size() != crate::window::Size::Narrow {
         column.set_size_request(440, -1);
@@ -170,7 +169,7 @@ pub fn open(ctx: &Rc<Ctx>, link: Option<&str>) {
     view.set_content(Some(&scroll));
     let dialog = adw::Dialog::builder()
         .name(NAME)
-        .title("Join a Plugin Store")
+        .title(t::stores_join_title())
         .follows_content_size(true)
         .child(&view)
         .build();
@@ -217,7 +216,7 @@ pub fn open(ctx: &Rc<Ctx>, link: Option<&str>) {
                     let name = state.store.borrow().as_ref().map(|s| s.name.clone());
                     state.dialog.close();
                     if let Some(name) = name {
-                        state.ctx.toast(&format!("Joined {name}"));
+                        state.ctx.toast(&t::stores_tv_joined(&name));
                     }
                 }
                 _ => {}
@@ -255,7 +254,7 @@ impl Join {
             self.clear();
             return;
         }
-        self.say("Checking the link…", false);
+        self.say(&t::stores_checking_link(), false);
         let weak = Rc::downgrade(self);
         glib::timeout_add_local_once(Duration::from_millis(400), move || {
             if let Some(state) = weak.upgrade()
@@ -309,43 +308,32 @@ impl Join {
             .build();
         card.append(&name);
         let key = adw::ActionRow::builder()
-            .title("Store key")
-            .subtitle(format!(
-                "{} · matches the {}",
-                store.fingerprint,
-                if store.anonymous { "link" } else { "invite" }
-            ))
+            .title(t::stores_key_fingerprint())
+            .subtitle(&store.fingerprint)
             .build();
         key.add_css_class("property");
         card.append(&key);
         if store.open {
-            card.append(
-                &adw::ActionRow::builder().title("Anyone with the link can join").build(),
-            );
+            card.append(&adw::ActionRow::builder().title(t::stores_anyone_with_link()).build());
         }
         if !store.anonymous {
-            let device = adw::EntryRow::builder().title("Device name").build();
+            let device = adw::EntryRow::builder().title(t::stores_device_name()).build();
             device.set_text(&store.device_label);
             card.append(&device);
             self.device.replace(Some(device));
         }
         self.preview.append(&card);
         let line = if store.already_joined {
-            "This computer has joined this store already.".to_owned()
+            t::stores_already_joined_note()
         } else if store.anonymous {
-            "You join without a name. Another computer joins with the same link.".to_owned()
+            t::stores_anyone_note()
         } else {
-            "The store's owner sees this computer by this name.".to_owned()
+            t::stores_device_name_detail()
         };
         self.preview.append(&widgets::haze(&line, "caption"));
 
         if !store.plugins.is_empty() {
-            let count = store.plugins.len();
-            let heading = widgets::heading(&if count == 1 {
-                "1 Plugin".to_owned()
-            } else {
-                format!("{count} Plugins")
-            });
+            let heading = widgets::heading(&t::stores_plugins());
             heading.set_margin_top(6);
             self.preview.append(&heading);
             let list = widgets::boxed_list();

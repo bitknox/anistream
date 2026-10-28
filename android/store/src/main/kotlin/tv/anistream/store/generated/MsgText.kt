@@ -14,6 +14,15 @@ import tv.anistream.i18n.Strings
 /** The message in the person's language. Text anistream does not own is shown as it came. */
 fun Msg.text(context: Context): String =
     when (this) {
+        is Msg.DiscussionAgeNow -> Strings.discussionAgeNow(context)
+        is Msg.DiscussionAgeMinutes -> Strings.discussionAgeMinutes(context, this.minutes.toInt())
+        is Msg.DiscussionAgeHours -> Strings.discussionAgeHours(context, this.hours.toInt())
+        is Msg.DiscussionAgeDays -> Strings.discussionAgeDays(context, this.days.toInt())
+        is Msg.DiscussionAgeWeeks -> Strings.discussionAgeWeeks(context, this.weeks.toInt())
+        is Msg.DiscussionAgeYears -> Strings.discussionAgeYears(context, this.years.toInt())
+        is Msg.NoticeCommentLikeFailed -> Strings.noticeCommentLikeFailed(context)
+        is Msg.NoticeCommentDeleteFailed -> Strings.noticeCommentDeleteFailed(context)
+        is Msg.NoticeDiscussionSignIn -> Strings.noticeDiscussionSignIn(context)
         is Msg.NoticeReason -> Strings.noticeReason(context, this.reason.text(context))
         is Msg.NoticeNotAired -> Strings.noticeNotAired(context, this.episode.toInt(), this.`when`.text(context))
         is Msg.NoticeNotAiredYet -> Strings.noticeNotAiredYet(context, this.episode.toInt(), this.next.toInt(), this.`when`.text(context))

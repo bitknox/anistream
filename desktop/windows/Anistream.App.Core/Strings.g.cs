@@ -15,6 +15,33 @@ public static partial class T
     /// <summary>The language the resolver answers in, which picks plural forms. Set with the resolver.</summary>
     public static string Language { get; set; } = "en";
 
+    /// <summary>A comment's age, beside its author, when it was written under a minute ago.</summary>
+    public static string DiscussionAgeNow => Get("DiscussionAgeNow");
+
+    /// <summary>A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeMinutes(long minutes) => Fill(Get("DiscussionAgeMinutes"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in hours. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeHours(long hours) => Fill(Get("DiscussionAgeHours"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in days. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeDays(long days) => Fill(Get("DiscussionAgeDays"), ("days", days.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in weeks. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeWeeks(long weeks) => Fill(Get("DiscussionAgeWeeks"), ("weeks", weeks.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A comment's age, beside its author, in years. Abbreviated, as a timeline shows it.</summary>
+    public static string DiscussionAgeYears(long years) => Fill(Get("DiscussionAgeYears"), ("years", years.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Toast when a like on a comment did not reach AniList. The like is taken back.</summary>
+    public static string NoticeCommentLikeFailed => Get("NoticeCommentLikeFailed");
+
+    /// <summary>Toast when a comment could not be deleted on AniList. The comment stays.</summary>
+    public static string NoticeCommentDeleteFailed => Get("NoticeCommentDeleteFailed");
+
+    /// <summary>Toast when the viewer tried to like or post in a discussion without signing in to AniList.</summary>
+    public static string NoticeDiscussionSignIn => Get("NoticeDiscussionSignIn");
+
     /// <summary>A reason on its own, as a toast or a failed play's explanation. The reason is one of the engine's own reasons, so it is translated.</summary>
     public static string NoticeReason(string reason) => Fill(Get("NoticeReason"), ("reason", reason));
 
@@ -600,8 +627,554 @@ public static partial class T
     /// <summary>Toast after episodes are added to the download queue.</summary>
     public static string NoticeEpisodesQueued(long count) => Fill(GetPlural("NoticeEpisodesQueued", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>Context menu item on a Continue row: plays the episode from where it stopped.</summary>
+    public static string ContinueMenuResume => Get("ContinueMenuResume");
+
+    /// <summary>Busy line while Continue loads.</summary>
+    public static string ContinueLoading => Get("ContinueLoading");
+
+    /// <summary>Line under Continue's heading: changes made offline that AniList has not had yet.</summary>
+    public static string ContinueSyncWaiting(long count) => Fill(GetPlural("ContinueSyncWaiting", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Calendar: a day column of the week view with nothing airing that day.</summary>
+    public static string CalendarDayEmpty => Get("CalendarDayEmpty");
+
+    /// <summary>Calendar: the week shown, from its first day to its last, as dates.</summary>
+    public static string CalendarWeekRange(string start, string end) => Fill(Get("CalendarWeekRange"), ("start", start), ("end", end));
+
+    /// <summary>Calendar: an air time that is only an estimate, as shown in a row. The tilde means "about".</summary>
+    public static string CalendarTimeEstimate(string time) => Fill(Get("CalendarTimeEstimate"), ("time", time));
+
+    /// <summary>Calendar: an estimated air time as the screen reader says it.</summary>
+    public static string CalendarTimeAbout(string time) => Fill(Get("CalendarTimeAbout"), ("time", time));
+
+    /// <summary>Calendar: an episode that airs dubbed, with no time.</summary>
+    public static string CalendarEpisodeDubbed(long episode) => Fill(Get("CalendarEpisodeDubbed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Calendar: the one quiet line of an episode already watched: the show, then the episode.</summary>
+    public static string CalendarWatchedLine(string title, string episode) => Fill(Get("CalendarWatchedLine"), ("title", title), ("episode", episode));
+
+    /// <summary>Calendar: what the screen reader says for an episode already watched.</summary>
+    public static string CalendarWatchedSpoken(string title, string episode) => Fill(Get("CalendarWatchedSpoken"), ("title", title), ("episode", episode));
+
+    /// <summary>Library: a list's tab with how many titles are on it, such as "Watching 12".</summary>
+    public static string LibraryListCount(string list, long count) => Fill(Get("LibraryListCount"), ("list", list), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Search: the Sort drop-down's name before a sort is picked.</summary>
+    public static string SearchSortName => Get("SearchSortName");
+
+    /// <summary>Search: a filter drop-down with two values picked, such as two genres.</summary>
+    public static string FilterPickedTwo(string first, string second) => Fill(Get("FilterPickedTwo"), ("first", first), ("second", second));
+
+    /// <summary>Search: a filter drop-down with three or more values picked: the first, then how many more.</summary>
+    public static string FilterPickedMore(string first, long more) => Fill(Get("FilterPickedMore"), ("first", first), ("more", more.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Title page: a season in the season picker with when it aired, such as "Season 2 · Spring 2025".</summary>
+    public static string TitleSeasonWhen(string season, string when) => Fill(Get("TitleSeasonWhen"), ("season", season), ("when", when));
+
+    /// <summary>Title page: an episode row's download button, for an episode numbered other than as a whole number, such as "12.5".</summary>
+    public static string EpisodeDownloadText(string episode) => Fill(Get("EpisodeDownloadText"), ("episode", episode));
+
+    /// <summary>Title page: an episode row's download button after a failure, for an episode numbered other than as a whole number.</summary>
+    public static string EpisodeDownloadFailedText(string episode) => Fill(Get("EpisodeDownloadFailedText"), ("episode", episode));
+
+    /// <summary>Title page: an episode row with no name of its own, numbered other than as a whole number, such as "Episode 12.5".</summary>
+    public static string EpisodeNumberText(string episode) => Fill(Get("EpisodeNumberText"), ("episode", episode));
+
+    /// <summary>Title page: an episode row's heading with a name, for an episode numbered other than as a whole number.</summary>
+    public static string EpisodeTextWithTitle(string episode, string title) => Fill(Get("EpisodeTextWithTitle"), ("episode", episode), ("title", title));
+
+    /// <summary>Title page: what the screen reader says for an episode row: its heading, then its runtime or what is left.</summary>
+    public static string EpisodeRowSpoken(string heading, string line) => Fill(Get("EpisodeRowSpoken"), ("heading", heading), ("line", line));
+
+    /// <summary>Title page: the line of an episode that only AniList lists, so nothing can play it yet.</summary>
+    public static string EpisodeListedByAnilist => Get("EpisodeListedByAnilist");
+
+    /// <summary>Title page details: the studio that made the show.</summary>
+    public static string TitleStudioLine(string studio) => Fill(Get("TitleStudioLine"), ("studio", studio));
+
+    /// <summary>Title page details: what the show is adapted from, such as "Based on: Manga".</summary>
+    public static string TitleBasedOnLine(string material) => Fill(Get("TitleBasedOnLine"), ("material", material));
+
+    /// <summary>Title page: a related title's line, its relation and its format, such as "Sequel · TV".</summary>
+    public static string TitleRelationFormat(string relation, string format) => Fill(Get("TitleRelationFormat"), ("relation", relation), ("format", format));
+
+    /// <summary>Title page details: the latest episode and how long ago it came out. The span is already worded, such as "2d ago".</summary>
+    public static string TitleEpisodeOutAgo(long episode, string ago) => Fill(Get("TitleEpisodeOutAgo"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("ago", ago));
+
+    /// <summary>Title page details: when the next episode airs, when its number is not known. The time is already worded, such as "in 4d 20h".</summary>
+    public static string TitleNextAirs(string when) => Fill(Get("TitleNextAirs"), ("when", when));
+
+    /// <summary>Title page: the menu item that downloads one episode, and the download dialog's button.</summary>
+    public static string TitleEpisodeDownload => Get("TitleEpisodeDownload");
+
+    /// <summary>Title page: the More menu item that opens the download dialog.</summary>
+    public static string TitleDownloadMenu => Get("TitleDownloadMenu");
+
+    /// <summary>Title page: the More menu item that opens this show's settings.</summary>
+    public static string TitleShowSettingsMenu => Get("TitleShowSettingsMenu");
+
+    /// <summary>Title page: the tooltip of Play on TV.</summary>
+    public static string TitlePlayOnTvTooltip => Get("TitlePlayOnTvTooltip");
+
+    /// <summary>Title page: the screen reader's name for the button with the show's list status.</summary>
+    public static string TitleListStatus => Get("TitleListStatus");
+
+    /// <summary>Download dialog: its title.</summary>
+    public static string DownloadRangeTitle => Get("DownloadRangeTitle");
+
+    /// <summary>Download dialog: the first episode of the range.</summary>
+    public static string DownloadRangeFrom => Get("DownloadRangeFrom");
+
+    /// <summary>Download dialog: the last episode of the range.</summary>
+    public static string DownloadRangeTo => Get("DownloadRangeTo");
+
+    /// <summary>Download dialog: the note under the range.</summary>
+    public static string DownloadRangeQualityNote => Get("DownloadRangeQualityNote");
+
+    /// <summary>An episode's line in the player's title bar and in the system media controls: the episode's label (already "Episode 10" or "Episode 10 · Dubbed"), then the episode's own title.</summary>
+    public static string PlayerEpisodeLineTitled(string line, string title) => Fill(Get("PlayerEpisodeLineTitled"), ("line", line), ("title", title));
+
+    /// <summary>An episode whose number is not a whole number, like 12.5, which episode-number cannot take.</summary>
+    public static string PlayerEpisodeFraction(string number) => Fill(Get("PlayerEpisodeFraction"), ("number", number));
+
+    /// <summary>The starting screen while an episode with a number like 12.5 opens. Same as player-starting.</summary>
+    public static string PlayerStartingFraction(string number) => Fill(Get("PlayerStartingFraction"), ("number", number));
+
+    /// <summary>The starting screen when an episode with a number like 12.5 did not open after 20 seconds. Same as player-failed-title.</summary>
+    public static string PlayerFailedFraction(string number) => Fill(Get("PlayerFailedFraction"), ("number", number));
+
+    /// <summary>A playback speed in the Speed menu and in the flash when it changes: "1.25×".</summary>
+    public static string PlayerSpeedValue(string speed) => Fill(Get("PlayerSpeedValue"), ("speed", speed));
+
+    /// <summary>Screen reader status of the seek bar while playing: "Playing, 3:20 of 23:40".</summary>
+    public static string PlayerTimelinePlaying(string position, string duration) => Fill(Get("PlayerTimelinePlaying"), ("position", position), ("duration", duration));
+
+    /// <summary>Screen reader status of the seek bar while paused: "Paused, 3:20 of 23:40".</summary>
+    public static string PlayerTimelinePaused(string position, string duration) => Fill(Get("PlayerTimelinePaused"), ("position", position), ("duration", duration));
+
+    /// <summary>A subtitle or audio track the person loaded from a file, in the tracks menu: "English · Added".</summary>
+    public static string PlayerTrackAdded(string name) => Fill(Get("PlayerTrackAdded"), ("name", name));
+
+    /// <summary>The file chooser's confirm button when loading a subtitle file into the player.</summary>
+    public static string PlayerLoadSubtitlesCommit => Get("PlayerLoadSubtitlesCommit");
+
+    /// <summary>The file chooser's confirm button when loading an audio file into the player.</summary>
+    public static string PlayerLoadAudioCommit => Get("PlayerLoadAudioCommit");
+
+    /// <summary>Tip under the mini player button the first time the small window opens. $key is the keyboard key that toggles it, "P".</summary>
+    public static string PlayerMiniTip(string key) => Fill(Get("PlayerMiniTip"), ("key", key));
+
+    /// <summary>Screen reader name of one row in Stats for nerds: "Dropped frames: 3".</summary>
+    public static string PlayerStatsRow(string label, string value) => Fill(Get("PlayerStatsRow"), ("label", label), ("value", value));
+
+    /// <summary>Name screen readers give the list of panes down the side of Settings.</summary>
+    public static string SettingsPanesLabel => Get("SettingsPanesLabel");
+
+    /// <summary>Busy line while Settings waits for the engine's values.</summary>
+    public static string SettingsLoading => Get("SettingsLoading");
+
+    /// <summary>Heading of the group with mpv's own options, on the Advanced pane. mpv is the player's name and stays lower case.</summary>
+    public static string SettingsGroupMpv => Get("SettingsGroupMpv");
+
+    /// <summary>Screen reader name of a setting card that also says its state, such as "Protect with, Proxy saved".</summary>
+    public static string SettingsCardState(string title, string state) => Fill(Get("SettingsCardState"), ("title", title), ("state", state));
+
+    /// <summary>Screen reader name of the Last check card: its title, the check's word and the line under it.</summary>
+    public static string SettingsCardCheck(string title, string word, string note) => Fill(Get("SettingsCardCheck"), ("title", title), ("word", word), ("note", note));
+
+    /// <summary>Under the setting for what closing the window does while episodes download.</summary>
+    public static string SettingsClosingDetail => Get("SettingsClosingDetail");
+
+    /// <summary>Under the rich presence switch: what Discord shows. The tracker is the site the link goes to.</summary>
+    public static string SettingsPresenceRichDetail(string tracker) => Fill(Get("SettingsPresenceRichDetail"), ("tracker", tracker));
+
+    /// <summary>Card in the Play on TV group: pair one more TV, once at least one is paired.</summary>
+    public static string SettingsAnotherTv => Get("SettingsAnotherTv");
+
+    /// <summary>Setting: the app's colour theme.</summary>
+    public static string SettingsTheme => Get("SettingsTheme");
+
+    /// <summary>Setting: whether the app animates.</summary>
+    public static string SettingsMotion => Get("SettingsMotion");
+
+    /// <summary>Setting: the player opens fullscreen.</summary>
+    public static string SettingsStartFullscreen => Get("SettingsStartFullscreen");
+
+    /// <summary>Setting: the app's own player controls, or mpv's.</summary>
+    public static string SettingsPlayerInterface => Get("SettingsPlayerInterface");
+
+    /// <summary>Setting: a command run after each download finishes.</summary>
+    public static string SettingsAfterDownload => Get("SettingsAfterDownload");
+
+    /// <summary>Setting: Discord's status names the show being watched.</summary>
+    public static string SettingsPresenceTitle => Get("SettingsPresenceTitle");
+
+    /// <summary>Setting: Discord's status with the cover and a progress bar.</summary>
+    public static string SettingsPresenceRich => Get("SettingsPresenceRich");
+
+    /// <summary>Setting: how torrent traffic is protected. VPN stays in capitals: it is an abbreviation.</summary>
+    public static string SettingsVpnMode => Get("SettingsVpnMode");
+
+    /// <summary>Setting: where sign-in tokens are kept.</summary>
+    public static string SettingsTokenStorage => Get("SettingsTokenStorage");
+
+    /// <summary>Setting: whether watch parties are offered.</summary>
+    public static string SettingsWatchParties => Get("SettingsWatchParties");
+
+    /// <summary>Setting: the order the app tries sources in.</summary>
+    public static string SettingsSourceOrder => Get("SettingsSourceOrder");
+
+    /// <summary>Setting: downloads run on a cellular connection.</summary>
+    public static string SettingsDownloadsCellular => Get("SettingsDownloadsCellular");
+
+    /// <summary>Setting: extra options passed to mpv, the player. mpv stays lower case.</summary>
+    public static string SettingsMpvOptions => Get("SettingsMpvOptions");
+
+    /// <summary>Setting: a notification when a new episode of a followed show comes out.</summary>
+    public static string SettingsEpisodeNotifications => Get("SettingsEpisodeNotifications");
+
+    /// <summary>Setting: the switch that turns torrents on.</summary>
+    public static string SettingsTorrentSource => Get("SettingsTorrentSource");
+
+    /// <summary>Value of the theme setting: follows the system's colours.</summary>
+    public static string SettingsThemeAdaptive => Get("SettingsThemeAdaptive");
+
+    /// <summary>Value of the theme setting: draws its own dark background.</summary>
+    public static string SettingsThemeImmersive => Get("SettingsThemeImmersive");
+
+    /// <summary>Value of the player interface setting: mpv's own controls and the person's configuration.</summary>
+    public static string SettingsPlayerUiMpv => Get("SettingsPlayerUiMpv");
+
+    /// <summary>Value of the player interface setting: the app's own controls.</summary>
+    public static string SettingsPlayerUiApp => Get("SettingsPlayerUiApp");
+
+    /// <summary>Value of the quality setting: a picture height in lines, as in "1080p".</summary>
+    public static string SettingsQualityLines(long lines) => Fill(Get("SettingsQualityLines"), ("lines", lines.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Value of the seeding setting: share until the ratio is reached. The ratio is already formatted, as in "1.5".</summary>
+    public static string SettingsSeedUntilRatio(string ratio) => Fill(Get("SettingsSeedUntilRatio"), ("ratio", ratio));
+
+    /// <summary>Heading over the trackers on the Accounts pane.</summary>
+    public static string SettingsTrackers => Get("SettingsTrackers");
+
+    /// <summary>Heading over the sync card on the Accounts pane.</summary>
+    public static string SettingsSync => Get("SettingsSync");
+
+    /// <summary>Under the Sync with trackers card.</summary>
+    public static string SettingsSyncDetail => Get("SettingsSyncDetail");
+
+    /// <summary>Under a tracker that is signed in, when its user name is unknown.</summary>
+    public static string SettingsSignedIn => Get("SettingsSignedIn");
+
+    /// <summary>Under a tracker that is signed in, when its user name is unknown and changes wait to sync.</summary>
+    public static string SettingsSignedInWaiting(long count) => Fill(GetPlural("SettingsSignedInWaiting", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Under a tracker that signs in with a code typed on its website.</summary>
+    public static string SettingsSignedOutCode => Get("SettingsSignedOutCode");
+
+    /// <summary>Notice line for the video library the player uses.</summary>
+    public static string SettingsLibmpvLicence => Get("SettingsLibmpvLicence");
+
+    /// <summary>Confirmation text before choosing Warn only for a failed check.</summary>
+    public static string TorrentsWarnInstead => Get("TorrentsWarnInstead");
+
+    /// <summary>Screen reader name of a show's settings dialog.</summary>
+    public static string ShowSettingsLabel(string title) => Fill(Get("ShowSettingsLabel"), ("title", title));
+
+    /// <summary>Line in a show's settings while its values load.</summary>
+    public static string ShowSettingsLoading => Get("ShowSettingsLoading");
+
+    /// <summary>Line in a show's settings when its values did not come. Try again follows it.</summary>
+    public static string ShowSettingsFailed => Get("ShowSettingsFailed");
+
+    /// <summary>Under the source row of a show's settings, when no source is installed.</summary>
+    public static string ShowSettingsNoSource => Get("ShowSettingsNoSource");
+
+    /// <summary>Under the keep next episodes row of a show's settings.</summary>
+    public static string ShowSettingsKeepNextDetail => Get("ShowSettingsKeepNextDetail");
+
+    /// <summary>Under the new episodes row of a show's settings.</summary>
+    public static string ShowSettingsNotifyDetail => Get("ShowSettingsNotifyDetail");
+
+    /// <summary>First page of the welcome dialog: the legal line beside it, then this.</summary>
+    public static string WelcomeSourcesOthers => Get("WelcomeSourcesOthers");
+
+    /// <summary>Sources page of the welcome dialog, before the line about plugins.</summary>
+    public static string WelcomeNoOwnSources => Get("WelcomeNoOwnSources");
+
+    /// <summary>Value of the download quality setting: the usual version of an episode.</summary>
+    public static string SettingsDownloadStandard => Get("SettingsDownloadStandard");
+
+    /// <summary>Value of the download quality setting: a larger, sharper version where a source has one.</summary>
+    public static string SettingsDownloadHigher => Get("SettingsDownloadHigher");
+
+    /// <summary>Title of the dialog that turns torrents on and asks what protects them.</summary>
+    public static string TorrentsDialogTurnOn => Get("TorrentsDialogTurnOn");
+
+    /// <summary>Title of the dialog that changes what protects torrents.</summary>
+    public static string TorrentsDialogProtect => Get("TorrentsDialogProtect");
+
+    /// <summary>Title of the dialog that edits the saved proxy.</summary>
+    public static string TorrentsDialogEditProxy => Get("TorrentsDialogEditProxy");
+
+    /// <summary>The torrent dialog's main button when it turns torrents on.</summary>
+    public static string TorrentsDialogTurnOnAction => Get("TorrentsDialogTurnOnAction");
+
+    /// <summary>Screen reader name of a protection choice: its name, then what it does.</summary>
+    public static string TorrentsChoiceSpoken(string label, string detail) => Fill(Get("TorrentsChoiceSpoken"), ("label", label), ("detail", detail));
+
+    /// <summary>The notification area icon's balloon, the first time the window closes with downloads running: its title.</summary>
+    public static string TrayStillDownloading => Get("TrayStillDownloading");
+
+    /// <summary>The balloon's line under the title.</summary>
+    public static string TrayWhere => Get("TrayWhere");
+
+    /// <summary>The notification area icon's menu: brings the window back.</summary>
+    public static string TrayOpen => Get("TrayOpen");
+
+    /// <summary>The notification area icon's menu: stops everything and quits the app.</summary>
+    public static string TrayQuit => Get("TrayQuit");
+
+    /// <summary>The window's close dialog when downloads or seeding are still running: its title.</summary>
+    public static string CloseTitle => Get("CloseTitle");
+
+    /// <summary>The close dialog's line: how many episodes are downloading. A sentence of its own.</summary>
+    public static string CloseDownloading(long count) => Fill(GetPlural("CloseDownloading", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>The close dialog's line: how many episodes are seeding. A sentence of its own.</summary>
+    public static string CloseSeeding(long count) => Fill(GetPlural("CloseSeeding", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>The close dialog's question, after the counts.</summary>
+    public static string CloseAsk => Get("CloseAsk");
+
+    /// <summary>The close dialog's second button: stops the downloads and quits.</summary>
+    public static string CloseStop => Get("CloseStop");
+
+    /// <summary>Button on a toast whose message is about the plugin stores: opens them.</summary>
+    public static string ToastOpenStores => Get("ToastOpenStores");
+
+    /// <summary>A toast built from a notice that has a title and a body, while the window is in front.</summary>
+    public static string ToastTitled(string title, string body) => Fill(Get("ToastTitled"), ("title", title), ("body", body));
+
+    /// <summary>Toast when the app was opened by a link it does not handle.</summary>
+    public static string LinkCantOpen => Get("LinkCantOpen");
+
+    /// <summary>The account in the navigation pane's foot, when the sign-in ran out. Short: it sits beside an icon.</summary>
+    public static string AccountsPaneSignInAgain => Get("AccountsPaneSignInAgain");
+
+    /// <summary>A page that failed to load: the line above Try again. The next line says to check the connection.</summary>
+    public static string StateLoadFailed => Get("StateLoadFailed");
+
+    /// <summary>Notification body: a new episode is out.</summary>
+    public static string NotifyEpisodeOut(long episode) => Fill(Get("NotifyEpisodeOut"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Notification body: a new dubbed episode is out.</summary>
+    public static string NotifyEpisodeOutDubbed(long episode) => Fill(Get("NotifyEpisodeOutDubbed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Follows the line above when the viewer is behind: the episode Play starts.</summary>
+    public static string NotifyNextForYou(long episode) => Fill(Get("NotifyNextForYou"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Notification body: one episode of a show finished downloading. The episode is a number such as 3 or 12.5.</summary>
+    public static string NotifyDownloadedOne(string episode) => Fill(Get("NotifyDownloadedOne"), ("episode", episode));
+
+    /// <summary>Notification body: several episodes of a show finished downloading.</summary>
+    public static string NotifyDownloaded(long count) => Fill(GetPlural("NotifyDownloaded", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Screen reader name of the update's progress bar in About.</summary>
+    public static string UpdatesProgressName => Get("UpdatesProgressName");
+
+    /// <summary>Heading over a new version's notes in About.</summary>
+    public static string UpdatesNotesTitle(string version) => Fill(Get("UpdatesNotesTitle"), ("version", version));
+
+    /// <summary>Button in About when this copy can't install updates itself: opens the new version's download page.</summary>
+    public static string UpdatesOpenPage => Get("UpdatesOpenPage");
+
+    /// <summary>Button in About: opens the new version's page, which lists what changed.</summary>
+    public static string UpdatesWhatsNew => Get("UpdatesWhatsNew");
+
+    /// <summary>Test runs only: why the staged update didn't install.</summary>
+    public static string UpdatesWhyFixture => Get("UpdatesWhyFixture");
+
+    /// <summary>Screen reader name of the mascot drawn in empty states.</summary>
+    public static string NagareName => Get("NagareName");
+
+    /// <summary>Heading in the shortcuts dialog over the window's keys.</summary>
+    public static string ShortcutsWindow => Get("ShortcutsWindow");
+
+    /// <summary>Shortcut: the number keys go to the pane's sections, first to last.</summary>
+    public static string ShortcutsSections => Get("ShortcutsSections");
+
+    /// <summary>Keys for a range, such as "Ctrl+1 to Ctrl+7". The keys keep their names.</summary>
+    public static string ShortcutsKeysRange(string first, string last) => Fill(Get("ShortcutsKeysRange"), ("first", first), ("last", last));
+
+    /// <summary>Keys for Back: a key, then the mouse's back button.</summary>
+    public static string ShortcutsKeysBack(string key) => Fill(Get("ShortcutsKeysBack"), ("key", key));
+
+    /// <summary>Keys for the context menu: a key, then the keyboard's Menu key.</summary>
+    public static string ShortcutsKeysMenu(string key) => Fill(Get("ShortcutsKeysMenu"), ("key", key));
+
+    /// <summary>Shortcut in the player: the arrow keys seek 5 seconds, 30 with Shift held.</summary>
+    public static string ShortcutsSeek => Get("ShortcutsSeek");
+
+    /// <summary>Shortcut in the player: J and L seek 10 seconds.</summary>
+    public static string ShortcutsSeekTen => Get("ShortcutsSeekTen");
+
+    /// <summary>Shortcut in the player: skips an opening or ending, and a second key undoes it.</summary>
+    public static string ShortcutsSkipUndo => Get("ShortcutsSkipUndo");
+
+    /// <summary>Shortcut in the player: three keys for playback speed.</summary>
+    public static string ShortcutsSpeedReset => Get("ShortcutsSpeedReset");
+
+    /// <summary>Shortcut in the player: presses the button on the card in the corner, such as Up next.</summary>
+    public static string ShortcutsCornerCard => Get("ShortcutsCornerCard");
+
+    /// <summary>Shortcut in the player.</summary>
+    public static string ShortcutsClosePlayer => Get("ShortcutsClosePlayer");
+
+    /// <summary>Under the TV picker's title: the episode about to play on the TV, with its show's title.</summary>
+    public static string TvPickerEpisodeOf(string title, string episode) => Fill(Get("TvPickerEpisodeOf"), ("title", title), ("episode", episode));
+
+    /// <summary>An episode named by its label as the show numbers it, such as 5 or 5.5. Under the TV picker's title, on the remote while it starts, and in the watch party's dialog when no source has it.</summary>
+    public static string EpisodeLabel(string episode) => Fill(Get("EpisodeLabel"), ("episode", episode));
+
+    /// <summary>An episode of a show, named by its label as the show numbers it, such as 5 or 5.5. In the watch party's dialog when no source has it, before "plays with the room".</summary>
+    public static string EpisodeLabelOf(string episode, string title) => Fill(Get("EpisodeLabelOf"), ("episode", episode), ("title", title));
+
+    /// <summary>Title of the pairing sheet while it connects to a TV whose name it does not know yet.</summary>
+    public static string TvConnectingToTv => Get("TvConnectingToTv");
+
+    /// <summary>Under the paired TVs in Settings. The code is a few letters and digits the TV shows beside this { -device }.</summary>
+    public static string TvDeviceCode(string code) => Fill(Get("TvDeviceCode"), ("code", code));
+
+    /// <summary>What the remote calls a TV that has not said its name yet. Title of the remote.</summary>
+    public static string TvUnnamed => Get("TvUnnamed");
+
+    /// <summary>Short form of "Choose another TV…" on the remote's button when the window is narrow.</summary>
+    public static string TvAnotherShort => Get("TvAnotherShort");
+
+    /// <summary>Label of the row on the remote with the TV's volume buttons.</summary>
+    public static string TvVolumeLabel => Get("TvVolumeLabel");
+
+    /// <summary>While pairing, until the TV answers and before its name is known.</summary>
+    public static string TvWaiting => Get("TvWaiting");
+
+    /// <summary>While pairing, until the named TV answers.</summary>
+    public static string TvWaitingFor(string name) => Fill(Get("TvWaitingFor"), ("name", name));
+
+    /// <summary>Name read by a screen reader for a TV in the picker: its name, then the line under it.</summary>
+    public static string TvRowName(string name, string detail) => Fill(Get("TvRowName"), ("name", name), ("detail", detail));
+
+    /// <summary>Name read by a screen reader for the TV in the picker that this { -device } is connected to.</summary>
+    public static string TvRowNameConnected(string name, string detail) => Fill(Get("TvRowNameConnected"), ("name", name), ("detail", detail));
+
+    /// <summary>Help read by a screen reader for a TV in the picker that is not paired yet.</summary>
+    public static string TvRowPairHelp => Get("TvRowPairHelp");
+
+    /// <summary>Name read by a screen reader when the picker found no TVs: the heading, then what to check. Both are already sentences from the catalogue; the detail ends with its own full stop.</summary>
+    public static string TvNoneFoundName(string title, string detail) => Fill(Get("TvNoneFoundName"), ("title", title), ("detail", detail));
+
+    /// <summary>Name read by a screen reader for a track button on the remote: the setting, then the track chosen, as in "Subtitles, English".</summary>
+    public static string TvSettingValue(string setting, string value) => Fill(Get("TvSettingValue"), ("setting", setting), ("value", value));
+
+    /// <summary>Title of the dialog once it lists what each { -source } has for the room's episode. The episode is its label, such as 5 or 5.5.</summary>
+    public static string PartyChooseSourceFor(string episode) => Fill(Get("PartyChooseSourceFor"), ("episode", episode));
+
+    /// <summary>Button that plays the chosen { -source } in step with the room.</summary>
+    public static string PartyPlayWith => Get("PartyPlayWith");
+
+    /// <summary>When no { -source } lists the room's episode. The episode is its label, such as 5 or 5.5.</summary>
+    public static string PartyNoSourceLists(string episode) => Fill(Get("PartyNoSourceLists"), ("episode", episode));
+
+    /// <summary>Title of the dialog when the room's episode has not aired yet. The episode is its label, such as 5 or 5.5.</summary>
+    public static string PartyNosourceUnairedTitle(string episode) => Fill(Get("PartyNosourceUnairedTitle"), ("episode", episode));
+
+    /// <summary>Under that title: when it airs, as the schedule says it in full sentences, then what happens next.</summary>
+    public static string PartyNosourceUnairedWhen(string when) => Fill(Get("PartyNosourceUnairedWhen"), ("when", when));
+
+    /// <summary>Button at the top of the { -source-cap-pl } page that asks every { -source } whether it answers.</summary>
+    public static string SourcesCheck => Get("SourcesCheck");
+
+    /// <summary>Under a { -source }'s name in its detail: where it came from, then its version. The origin is already worded, such as "From a store" or "Added by hand".</summary>
+    public static string SourcesOriginVersion(string origin, string version) => Fill(Get("SourcesOriginVersion"), ("origin", origin), ("version", version));
+
+    /// <summary>Over the { -source } list while the { -source-pl } are set up again after a change.</summary>
+    public static string SourcesRebuilding => Get("SourcesRebuilding");
+
+    /// <summary>Label in a { -source }'s detail, beside how it stands: failing, slow, off, or working.</summary>
+    public static string SourcesStanding => Get("SourcesStanding");
+
+    /// <summary>How a { -source } stands when nothing is wrong with it.</summary>
+    public static string SourcesStatusWorking => Get("SourcesStatusWorking");
+
+    /// <summary>In the torrent { -source }'s detail, in place of the hosts it contacts.</summary>
+    public static string SourcesTorrentIndexes => Get("SourcesTorrentIndexes");
+
+    /// <summary>Heading of the card in a { -source }'s detail when a newer version can be installed.</summary>
+    public static string SourcesVersionReady(string version) => Fill(Get("SourcesVersionReady"), ("version", version));
+
+    /// <summary>Label of the switch that turns a { -source } on or off.</summary>
+    public static string SourcesUseThis => Get("SourcesUseThis");
+
+    /// <summary>Name read by a screen reader for that switch.</summary>
+    public static string SourcesUseName(string name) => Fill(Get("SourcesUseName"), ("name", name));
+
+    /// <summary>Under the title of the dialog that asks before a { -plugin } is removed from the { -source-cap-pl } page.</summary>
+    public static string SourcesRemoveDetail => Get("SourcesRemoveDetail");
+
+    /// <summary>Beside a { -plugin-store } in the list: how many of its installed { -plugin-pl } have an update.</summary>
+    public static string StoresUpdatesCount(long count) => Fill(GetPlural("StoresUpdatesCount", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>In the banner when a { -plugin-store } does not answer, under its title "Not answering".</summary>
+    public static string StoresOfflineKeepWorking => Get("StoresOfflineKeepWorking");
+
+    /// <summary>Under a { -plugin }'s name in a { -plugin-store }: how it stands here, then its version. Both are already worded, as in "Installed · Version 1.2".</summary>
+    public static string StoresStandingVersion(string standing, string version) => Fill(Get("StoresStandingVersion"), ("standing", standing), ("version", version));
+
+    /// <summary>Under the invite link when the { -plugin-store } it names could not be reached or checked.</summary>
+    public static string StoresUnreachable => Get("StoresUnreachable");
+
+    /// <summary>Title of the join dialog when this { -device } has joined that { -plugin-store } already.</summary>
+    public static string StoresAlreadyJoinedTitle(string name) => Fill(Get("StoresAlreadyJoinedTitle"), ("name", name));
+
+    /// <summary>Label over the box with the name this { -device } joins under.</summary>
+    public static string StoresOwnerSeesAs => Get("StoresOwnerSeesAs");
+
+    /// <summary>Under the Downloads page's title: the free space on the drive, then the space downloads take. Both sizes are already formatted.</summary>
+    public static string DownloadsFreeUsed(string free, string used) => Fill(Get("DownloadsFreeUsed"), ("free", free), ("used", used));
+
+    /// <summary>Under a show's title on the Downloads page: how many episodes, then the space they take. Both are already worded, as in "3 episodes · 1.2 GB".</summary>
+    public static string DownloadsGroupLine(string episodes, string size) => Fill(Get("DownloadsGroupLine"), ("episodes", episodes), ("size", size));
+
+    /// <summary>A running download's line with its speed after it. The line and the speed are already worded, as in "Downloading · 1 GB of 2 GB · 3 MB/s".</summary>
+    public static string DownloadsLineRate(string line, string rate) => Fill(Get("DownloadsLineRate"), ("line", line), ("rate", rate));
+
+    /// <summary>A running download's line with the time it has left after it. The time is short, such as 4m 10s.</summary>
+    public static string DownloadsLineLeft(string line, string left) => Fill(Get("DownloadsLineLeft"), ("line", line), ("left", left));
+
+    /// <summary>Under an episode whose download failed.</summary>
+    public static string DownloadsFailedRow => Get("DownloadsFailedRow");
+
+    /// <summary>Name read by a screen reader for a downloaded episode's play button. The episode is its label, such as 5 or 5.5.</summary>
+    public static string DownloadsPlayLabel(string episode) => Fill(Get("DownloadsPlayLabel"), ("episode", episode));
+
+    /// <summary>Name read by a screen reader for an episode's download progress bar. The name is the episode's, such as "Episode 5".</summary>
+    public static string DownloadsProgressName(string name) => Fill(Get("DownloadsProgressName"), ("name", name));
+
+    /// <summary>Greyed example inside the torrent proxy's host box. Keep it an address on a reserved example domain.</summary>
+    public static string TorrentsProxyHostExample => Get("TorrentsProxyHostExample");
+
+    /// <summary>When the TV's code has run out. The pairing starts again with a new code.</summary>
+    public static string TvProblemNoCode => Get("TvProblemNoCode");
+
     /// <summary>Under a release in the source picker: how many people share it right now.</summary>
     public static string SourcePickerSeeders(long count) => Fill(GetPlural("SourcePickerSeeders", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A transfer rate. The size is already formatted, such as "1.2 MB".</summary>
+    public static string RatePerSecond(string size) => Fill(Get("RatePerSecond"), ("size", size));
+
+    /// <summary>The window's title and the title bar's name: the app's name.</summary>
+    public static string AppName => Get("AppName");
 
     /// <summary>Title of the about page.</summary>
     public static string AboutTitle => Get("AboutTitle");
@@ -953,6 +1526,90 @@ public static partial class T
 
     /// <summary>Short placeholder while something loads.</summary>
     public static string StateLoading => Get("StateLoading");
+
+    /// <summary>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</summary>
+    public static string TimeJustNowInline => Get("TimeJustNowInline");
+
+    /// <summary>Checkbox of the close question.</summary>
+    public static string CloseDontAsk => Get("CloseDontAsk");
+
+    /// <summary>Response of the close question: keep it running in the background.</summary>
+    public static string CloseKeepGoing => Get("CloseKeepGoing");
+
+    /// <summary>Line while the sources are searched for the watch party's episode.</summary>
+    public static string PartyLookingSources => Get("PartyLookingSources");
+
+    /// <summary>Foot of the watch party form while the device is offline.</summary>
+    public static string PartyNeedsConnection => Get("PartyNeedsConnection");
+
+    /// <summary>Button that goes to the Sources page, when the watch party's episode has no source because none are set up.</summary>
+    public static string PartyOpenSources => Get("PartyOpenSources");
+
+    /// <summary>Line under the seeding group in Settings: seeding stops when the app closes.</summary>
+    public static string SettingsSeedingOpenOnly => Get("SettingsSeedingOpenOnly");
+
+    /// <summary>Shortcut: open the context menu of the title that has focus.</summary>
+    public static string ShortcutsContextMenu => Get("ShortcutsContextMenu");
+
+    /// <summary>Shortcut: mute the sound.</summary>
+    public static string ShortcutsMute => Get("ShortcutsMute");
+
+    /// <summary>Shortcut: move between episodes.</summary>
+    public static string ShortcutsNextPrevious => Get("ShortcutsNextPrevious");
+
+    /// <summary>Shortcut: pause or resume.</summary>
+    public static string ShortcutsPlayPause => Get("ShortcutsPlayPause");
+
+    /// <summary>Title of the keyboard shortcuts window.</summary>
+    public static string ShortcutsTitle => Get("ShortcutsTitle");
+
+    /// <summary>Settings line of a paired TV: paired on a date, last seen a while ago.</summary>
+    public static string TvPairedSeen(string paired, string ago) => Fill(Get("TvPairedSeen"), ("paired", paired), ("ago", ago));
+
+    /// <summary>The TV cannot take another connection now.</summary>
+    public static string TvProblemBusy => Get("TvProblemBusy");
+
+    /// <summary>The TV picked in the list has left the network.</summary>
+    public static string TvProblemGone => Get("TvProblemGone");
+
+    /// <summary>The TV's key changed since pairing.</summary>
+    public static string TvProblemKeyChanged => Get("TvProblemKeyChanged");
+
+    /// <summary>What was typed or scanned is not a TV's code or address.</summary>
+    public static string TvProblemNotALink => Get("TvProblemNotALink");
+
+    /// <summary>A command needs something playing and nothing is.</summary>
+    public static string TvProblemNotNow => Get("TvProblemNotNow");
+
+    /// <summary>The TV did not answer.</summary>
+    public static string TvProblemUnreachable => Get("TvProblemUnreachable");
+
+    /// <summary>The TV and this app speak different versions.</summary>
+    public static string TvProblemVersion => Get("TvProblemVersion");
+
+    /// <summary>The pairing code typed did not match.</summary>
+    public static string TvProblemWrongCode => Get("TvProblemWrongCode");
+
+    /// <summary>Accessible label of the button that turns the TV down.</summary>
+    public static string TvVolumeDown => Get("TvVolumeDown");
+
+    /// <summary>The TV's volume as a value of 100.</summary>
+    public static string TvVolumeOf(long volume) => Fill(Get("TvVolumeOf"), ("volume", volume.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Accessible label of the button that turns the TV up.</summary>
+    public static string TvVolumeUp => Get("TvVolumeUp");
+
+    /// <summary>Button that downloads the new version of the app.</summary>
+    public static string UpdatesDownload => Get("UpdatesDownload");
+
+    /// <summary>Button that closes the app and opens the new version it has put in place.</summary>
+    public static string UpdatesRestart => Get("UpdatesRestart");
+
+    /// <summary>The TV cannot take another paired device.</summary>
+    public static string TvProblemFull => Get("TvProblemFull");
+
+    /// <summary>The TV has forgotten this computer.</summary>
+    public static string TvProblemUnpaired => Get("TvProblemUnpaired");
 
     /// <summary>Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.</summary>
     public static string DownloadsTitle => Get("DownloadsTitle");
@@ -2280,6 +2937,21 @@ public static partial class T
     /// <summary>Accessibility label of the button that removes one filter.</summary>
     public static string FilterRemove(string filter) => Fill(Get("FilterRemove"), ("filter", filter));
 
+    /// <summary>Search: sort by how many people marked the title a favourite.</summary>
+    public static string SearchSortFavourites => Get("SearchSortFavourites");
+
+    /// <summary>Search: sort by release date, newest first.</summary>
+    public static string SearchSortNewest => Get("SearchSortNewest");
+
+    /// <summary>Search: sort by release date, oldest first.</summary>
+    public static string SearchSortOldest => Get("SearchSortOldest");
+
+    /// <summary>Search: sort by title, A to Z.</summary>
+    public static string SearchSortTitle => Get("SearchSortTitle");
+
+    /// <summary>Search: sort by what is popular right now.</summary>
+    public static string SearchSortTrending => Get("SearchSortTrending");
+
     /// <summary>Settings group and row title for choosing a language.</summary>
     public static string SettingsLanguage => Get("SettingsLanguage");
 
@@ -2621,6 +3293,30 @@ public static partial class T
 
     /// <summary>Accessibility label of a widget row: continue a dubbed episode.</summary>
     public static string WidgetResumeDubbedLabel(long episode, string title) => Fill(Get("WidgetResumeDubbedLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
+
+    /// <summary>Line under a signed-in account while changes wait to be sent.</summary>
+    public static string AccountsChangesWaiting(long count) => Fill(GetPlural("AccountsChangesWaiting", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Choice for the download quality: larger files with more detail.</summary>
+    public static string SettingsQualityHigher => Get("SettingsQualityHigher");
+
+    /// <summary>Choice for the download quality: the usual size.</summary>
+    public static string SettingsQualityStandard => Get("SettingsQualityStandard");
+
+    /// <summary>Value of the upload limit setting when there is no limit.</summary>
+    public static string SettingsUploadUnlimited => Get("SettingsUploadUnlimited");
+
+    /// <summary>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</summary>
+    public static string SettingsUpscalingNatural => Get("SettingsUpscalingNatural");
+
+    /// <summary>Preview note under the upscaling frame for the natural look.</summary>
+    public static string SettingsUpscalingNoteNatural => Get("SettingsUpscalingNoteNatural");
+
+    /// <summary>Preview note under the upscaling frame for the sharp look.</summary>
+    public static string SettingsUpscalingNoteSharp => Get("SettingsUpscalingNoteSharp");
+
+    /// <summary>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</summary>
+    public static string SettingsUpscalingSharp => Get("SettingsUpscalingSharp");
 
     /// <summary>Title of the screen or section that lists sources.</summary>
     public static string SourcesTitle => Get("SourcesTitle");
@@ -3183,6 +3879,12 @@ public static partial class T
     /// <summary>Version line of a plugin in the publish sheet.</summary>
     public static string StoresPluginNameVersion(string name, string version) => Fill(Get("StoresPluginNameVersion"), ("name", name), ("version", version));
 
+    /// <summary>Button under an invite link that copies it. Reads "Copied" for a moment afterwards.</summary>
+    public static string StoresCopyLink => Get("StoresCopyLink");
+
+    /// <summary>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</summary>
+    public static string StoresOffersPlugins(long count) => Fill(GetPlural("StoresOffersPlugins", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>Title of the state when a title page could not load.</summary>
     public static string TitleLoadFailed => Get("TitleLoadFailed");
 
@@ -3353,6 +4055,9 @@ public static partial class T
 
     /// <summary>Button that shows the spoiler tags.</summary>
     public static string MoreShowSpoilerTags(long count) => Fill(GetPlural("MoreShowSpoilerTags", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>An episode's line with the audio it was watched in marked, as Continue and the title page word it.</summary>
+    public static string EpisodeLineDubbed(string line) => Fill(Get("EpisodeLineDubbed"), ("line", line));
 
     /// <summary>Title of the settings group and the screen.</summary>
     public static string TorrentsTitle => Get("TorrentsTitle");
@@ -3572,6 +4277,9 @@ public static partial class T
 
     /// <summary>Line when the page needs script.</summary>
     public static string TorrentsPageNeedsScript => Get("TorrentsPageNeedsScript");
+
+    /// <summary>Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.</summary>
+    public static string TorrentsCheckNote => Get("TorrentsCheckNote");
 
     /// <summary>Title of the accounts screen. The sidebar item is nav-accounts.</summary>
     public static string AccountsTitle => Get("AccountsTitle");
@@ -4154,6 +4862,15 @@ public static partial class T
 
     static readonly Dictionary<string, string> English = new()
     {
+        ["DiscussionAgeNow"] = "now",
+        ["DiscussionAgeMinutes"] = "{minutes} min",
+        ["DiscussionAgeHours"] = "{hours} h",
+        ["DiscussionAgeDays"] = "{days} d",
+        ["DiscussionAgeWeeks"] = "{weeks} w",
+        ["DiscussionAgeYears"] = "{years} y",
+        ["NoticeCommentLikeFailed"] = "Couldn't like the comment. Try again.",
+        ["NoticeCommentDeleteFailed"] = "Couldn't delete the comment. Try again.",
+        ["NoticeDiscussionSignIn"] = "Sign in with AniList to like and reply.",
         ["NoticeReason"] = "{reason}",
         ["CauseNoSources"] = "No sources are set up. Add one on the Sources screen.",
         ["NoticeNotAired"] = "Episode {episode} airs {when}.",
@@ -4361,8 +5078,196 @@ public static partial class T
         ["NoticePlaybackFailed"] = "Playback failed. Try another source.",
         ["NoticeEpisodesQueued_one"] = "Queued one episode.",
         ["NoticeEpisodesQueued_other"] = "Queued {count} episodes.",
+        ["ContinueMenuResume"] = "Continue",
+        ["ContinueLoading"] = "Loading what you're watching",
+        ["ContinueSyncWaiting_one"] = "One change waiting to sync",
+        ["ContinueSyncWaiting_other"] = "{count} changes waiting to sync",
+        ["CalendarDayEmpty"] = "Nothing airs",
+        ["CalendarWeekRange"] = "{start} to {end}",
+        ["CalendarTimeEstimate"] = "~{time}",
+        ["CalendarTimeAbout"] = "about {time}",
+        ["CalendarEpisodeDubbed"] = "E{episode} dubbed",
+        ["CalendarWatchedLine"] = "{title} · {episode}",
+        ["CalendarWatchedSpoken"] = "{title}, {episode}, watched",
+        ["LibraryListCount"] = "{list} {count}",
+        ["SearchSortName"] = "Sort",
+        ["FilterPickedTwo"] = "{first}, {second}",
+        ["FilterPickedMore"] = "{first} +{more}",
+        ["TitleSeasonWhen"] = "{season} · {when}",
+        ["EpisodeDownloadText"] = "Download episode {episode}",
+        ["EpisodeDownloadFailedText"] = "Couldn't download episode {episode}. Download again.",
+        ["EpisodeNumberText"] = "Episode {episode}",
+        ["EpisodeTextWithTitle"] = "Episode {episode} · {title}",
+        ["EpisodeRowSpoken"] = "{heading}, {line}",
+        ["EpisodeListedByAnilist"] = "Listed by AniList",
+        ["TitleStudioLine"] = "Studio: {studio}",
+        ["TitleBasedOnLine"] = "Based on: {material}",
+        ["TitleRelationFormat"] = "{relation} · {format}",
+        ["TitleEpisodeOutAgo"] = "E{episode} out {ago}",
+        ["TitleNextAirs"] = "Next episode airs {when}",
+        ["TitleEpisodeDownload"] = "Download",
+        ["TitleDownloadMenu"] = "Download…",
+        ["TitleShowSettingsMenu"] = "Show settings…",
+        ["TitlePlayOnTvTooltip"] = "Play this episode on a TV with anistream",
+        ["TitleListStatus"] = "List status",
+        ["DownloadRangeTitle"] = "Download episodes",
+        ["DownloadRangeFrom"] = "From",
+        ["DownloadRangeTo"] = "To",
+        ["DownloadRangeQualityNote"] = "Downloads use the quality in Settings › Downloads.",
+        ["PlayerEpisodeLineTitled"] = "{line} · {title}",
+        ["PlayerEpisodeFraction"] = "Episode {number}",
+        ["PlayerStartingFraction"] = "Starting episode {number}",
+        ["PlayerFailedFraction"] = "Couldn't play episode {number}",
+        ["PlayerSpeedValue"] = "{speed}×",
+        ["PlayerTimelinePlaying"] = "Playing, {position} of {duration}",
+        ["PlayerTimelinePaused"] = "Paused, {position} of {duration}",
+        ["PlayerTrackAdded"] = "{name} · Added",
+        ["PlayerLoadSubtitlesCommit"] = "Load subtitles",
+        ["PlayerLoadAudioCommit"] = "Load audio",
+        ["PlayerMiniTip"] = "Stays on top. Press {key} to go back.",
+        ["PlayerStatsRow"] = "{label}: {value}",
+        ["SettingsPanesLabel"] = "Settings panes",
+        ["SettingsLoading"] = "Loading settings",
+        ["SettingsGroupMpv"] = "mpv",
+        ["SettingsCardState"] = "{title}, {state}",
+        ["SettingsCardCheck"] = "{title}, {word}, {note}",
+        ["SettingsClosingDetail"] = "Keep downloading leaves anistream in the notification area until they finish.",
+        ["SettingsPresenceRichDetail"] = "The cover, a progress bar and a link to the show on {tracker}. Needs the title shown.",
+        ["SettingsAnotherTv"] = "Another TV",
+        ["SettingsTheme"] = "Theme",
+        ["SettingsMotion"] = "Motion",
+        ["SettingsStartFullscreen"] = "Start fullscreen",
+        ["SettingsPlayerInterface"] = "Player interface",
+        ["SettingsAfterDownload"] = "After each download",
+        ["SettingsPresenceTitle"] = "Presence shows the title",
+        ["SettingsPresenceRich"] = "Rich presence",
+        ["SettingsVpnMode"] = "VPN mode",
+        ["SettingsTokenStorage"] = "Token storage",
+        ["SettingsWatchParties"] = "Watch parties",
+        ["SettingsSourceOrder"] = "Source order",
+        ["SettingsDownloadsCellular"] = "Downloads on cellular",
+        ["SettingsMpvOptions"] = "mpv options",
+        ["SettingsEpisodeNotifications"] = "New episode notifications",
+        ["SettingsTorrentSource"] = "Torrent source",
+        ["SettingsThemeAdaptive"] = "Adaptive",
+        ["SettingsThemeImmersive"] = "Immersive",
+        ["SettingsPlayerUiMpv"] = "Your mpv setup",
+        ["SettingsPlayerUiApp"] = "anistream",
+        ["SettingsQualityLines"] = "{lines}p",
+        ["SettingsSeedUntilRatio"] = "Until ratio {ratio}",
+        ["SettingsTrackers"] = "Trackers",
+        ["SettingsSync"] = "Sync",
+        ["SettingsSyncDetail"] = "Sends what changed here and fetches what changed elsewhere.",
+        ["SettingsSignedIn"] = "Signed in",
+        ["SettingsSignedInWaiting_one"] = "Signed in · one change waiting",
+        ["SettingsSignedInWaiting_other"] = "Signed in · {count} changes waiting",
+        ["SettingsSignedOutCode"] = "Not signed in · You enter a code on its site",
+        ["SettingsLibmpvLicence"] = "Licensed under the Lesser General Public Licence, version 2.1 or later.",
+        ["TorrentsWarnInstead"] = "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.",
+        ["ShowSettingsLabel"] = "Settings for {title}",
+        ["ShowSettingsLoading"] = "Loading this show's settings",
+        ["ShowSettingsFailed"] = "Couldn't load this show's settings.",
+        ["ShowSettingsNoSource"] = "Add a source to keep one for this show.",
+        ["ShowSettingsKeepNextDetail"] = "Downloads the episodes after the one you watch.",
+        ["ShowSettingsNotifyDetail"] = "A notification when an episode comes out.",
+        ["WelcomeSourcesOthers"] = "Every source is run by someone else.",
+        ["WelcomeNoOwnSources"] = "anistream ships no sources of its own.",
+        ["SettingsDownloadStandard"] = "Standard",
+        ["SettingsDownloadHigher"] = "Higher",
+        ["TorrentsDialogTurnOn"] = "Turn on torrents",
+        ["TorrentsDialogProtect"] = "Protect torrents",
+        ["TorrentsDialogEditProxy"] = "Edit proxy",
+        ["TorrentsDialogTurnOnAction"] = "Turn on",
+        ["TorrentsChoiceSpoken"] = "{label}. {detail}",
+        ["TrayStillDownloading"] = "anistream is still downloading",
+        ["TrayWhere"] = "It's in the notification area.",
+        ["TrayOpen"] = "Open anistream",
+        ["TrayQuit"] = "Quit",
+        ["CloseTitle"] = "Downloads are still running",
+        ["CloseDownloading_one"] = "One episode is downloading.",
+        ["CloseDownloading_other"] = "{count} episodes are downloading.",
+        ["CloseSeeding_one"] = "One episode is seeding.",
+        ["CloseSeeding_other"] = "{count} episodes are seeding.",
+        ["CloseAsk"] = "Keep them going after the window closes, or stop them?",
+        ["CloseStop"] = "Stop and close",
+        ["ToastOpenStores"] = "Open plugin stores",
+        ["ToastTitled"] = "{title}: {body}",
+        ["LinkCantOpen"] = "anistream can't open that link.",
+        ["AccountsPaneSignInAgain"] = "Sign in again",
+        ["StateLoadFailed"] = "Couldn't load this page",
+        ["NotifyEpisodeOut"] = "Episode {episode} is out.",
+        ["NotifyEpisodeOutDubbed"] = "Episode {episode} is out, dubbed.",
+        ["NotifyNextForYou"] = "Next for you: episode {episode}.",
+        ["NotifyDownloadedOne"] = "Episode {episode} downloaded.",
+        ["NotifyDownloaded_one"] = "One episode downloaded.",
+        ["NotifyDownloaded_other"] = "{count} episodes downloaded.",
+        ["UpdatesProgressName"] = "Update progress",
+        ["UpdatesNotesTitle"] = "In version {version}",
+        ["UpdatesOpenPage"] = "Open the download page",
+        ["UpdatesWhatsNew"] = "What's new",
+        ["UpdatesWhyFixture"] = "A test run installs nothing.",
+        ["NagareName"] = "Nagare, the anistream mascot",
+        ["ShortcutsWindow"] = "Window",
+        ["ShortcutsSections"] = "Sections, Continue to plugin stores",
+        ["ShortcutsKeysRange"] = "{first} to {last}",
+        ["ShortcutsKeysBack"] = "{key}, mouse back button",
+        ["ShortcutsKeysMenu"] = "{key}, Menu key",
+        ["ShortcutsSeek"] = "Back or forward 5 s, 30 s with Shift",
+        ["ShortcutsSeekTen"] = "Back or forward 10 s",
+        ["ShortcutsSkipUndo"] = "Skip, undo the skip",
+        ["ShortcutsSpeedReset"] = "Slower, faster, normal speed",
+        ["ShortcutsCornerCard"] = "Take the corner card's action",
+        ["ShortcutsClosePlayer"] = "Close the player",
+        ["TvPickerEpisodeOf"] = "{title}, episode {episode}",
+        ["EpisodeLabel"] = "Episode {episode}",
+        ["EpisodeLabelOf"] = "Episode {episode} of {title}",
+        ["TvConnectingToTv"] = "Connecting to the TV",
+        ["TvDeviceCode"] = "A TV lists this device with the code {code}. Forget a TV here and it forgets this device too.",
+        ["TvUnnamed"] = "TV",
+        ["TvAnotherShort"] = "Another TV…",
+        ["TvVolumeLabel"] = "TV volume",
+        ["TvWaiting"] = "Waiting for the TV",
+        ["TvWaitingFor"] = "Waiting for {name}",
+        ["TvRowName"] = "{name}, {detail}",
+        ["TvRowNameConnected"] = "{name}, {detail}, connected",
+        ["TvRowPairHelp"] = "Pairs with this TV",
+        ["TvNoneFoundName"] = "{title}. {detail}",
+        ["TvSettingValue"] = "{setting}, {value}",
+        ["PartyChooseSourceFor"] = "Choose a source for episode {episode}",
+        ["PartyPlayWith"] = "Play with the watch party",
+        ["PartyNoSourceLists"] = "No source lists episode {episode}. Sources come from plugins, which a plugin store adds.",
+        ["PartyNosourceUnairedTitle"] = "Episode {episode} isn't out yet",
+        ["PartyNosourceUnairedWhen"] = "{when} Your sources won't have it before then. It plays with the room once one of them does.",
+        ["SourcesCheck"] = "Check sources",
+        ["SourcesOriginVersion"] = "{origin} · version {version}",
+        ["SourcesRebuilding"] = "Sources are being set up again",
+        ["SourcesStanding"] = "Standing",
+        ["SourcesStatusWorking"] = "Working",
+        ["SourcesTorrentIndexes"] = "Searches the torrent indexes you have turned on under Settings.",
+        ["SourcesVersionReady"] = "Version {version} is ready",
+        ["SourcesUseThis"] = "Use this source",
+        ["SourcesUseName"] = "{name} on",
+        ["SourcesRemoveDetail"] = "It stops being tried for episodes. You can install it again from its plugin store.",
+        ["StoresUpdatesCount_one"] = "One to update",
+        ["StoresUpdatesCount_other"] = "{count} to update",
+        ["StoresOfflineKeepWorking"] = "It didn't answer when this device last asked. The plugins you installed keep working.",
+        ["StoresStandingVersion"] = "{standing} · {version}",
+        ["StoresUnreachable"] = "Couldn't reach the plugin store. Check the link and your connection, then try again.",
+        ["StoresAlreadyJoinedTitle"] = "{name} is already joined",
+        ["StoresOwnerSeesAs"] = "The owner sees this device as",
+        ["DownloadsFreeUsed"] = "{free} free · {used} in downloads",
+        ["DownloadsGroupLine"] = "{episodes} · {size}",
+        ["DownloadsLineRate"] = "{line} · {rate}",
+        ["DownloadsLineLeft"] = "{line} · {left} left",
+        ["DownloadsFailedRow"] = "Couldn't finish downloading. Try again, or remove it from the queue.",
+        ["DownloadsPlayLabel"] = "Play episode {episode}",
+        ["DownloadsProgressName"] = "{name} progress",
+        ["TorrentsProxyHostExample"] = "proxy.example",
+        ["TvProblemNoCode"] = "That code has expired. Ask the TV for a new one.",
         ["SourcePickerSeeders_one"] = "One seeder",
         ["SourcePickerSeeders_other"] = "{count} seeders",
+        ["RatePerSecond"] = "{size}/s",
+        ["AppName"] = "anistream",
         ["AboutTitle"] = "About",
         ["AboutTitleApp"] = "About anistream",
         ["AboutVersion"] = "Version {version}",
@@ -4480,6 +5385,34 @@ public static partial class T
         ["ErrorLabel"] = "Problem",
         ["StateWorking"] = "Working",
         ["StateLoading"] = "Loading",
+        ["TimeJustNowInline"] = "just now",
+        ["CloseDontAsk"] = "Don't ask again",
+        ["CloseKeepGoing"] = "Keep going",
+        ["PartyLookingSources"] = "Looking through your sources…",
+        ["PartyNeedsConnection"] = "A watch party needs a connection. You're offline.",
+        ["PartyOpenSources"] = "Open sources",
+        ["SettingsSeedingOpenOnly"] = "Seeding runs only while anistream is open.",
+        ["ShortcutsContextMenu"] = "Context menu",
+        ["ShortcutsMute"] = "Mute",
+        ["ShortcutsNextPrevious"] = "Next or previous episode",
+        ["ShortcutsPlayPause"] = "Play or pause",
+        ["ShortcutsTitle"] = "Keyboard shortcuts",
+        ["TvPairedSeen"] = "{paired} · seen {ago}",
+        ["TvProblemBusy"] = "The TV is connected to as many devices as it can. Try again soon.",
+        ["TvProblemGone"] = "That TV is no longer on the network.",
+        ["TvProblemKeyChanged"] = "The TV was reset or reinstalled since you paired. Pair again.",
+        ["TvProblemNotALink"] = "That isn't a TV's pairing code or address.",
+        ["TvProblemNotNow"] = "Nothing is playing on the TV.",
+        ["TvProblemUnreachable"] = "Can't reach the TV. Check that it's on, with anistream open, on the same network.",
+        ["TvProblemVersion"] = "The TV runs another version of anistream. Update both to the same one.",
+        ["TvProblemWrongCode"] = "That code didn't match. Check the code on the TV and try again.",
+        ["TvVolumeDown"] = "Volume down",
+        ["TvVolumeOf"] = "{volume} of 100",
+        ["TvVolumeUp"] = "Volume up",
+        ["UpdatesDownload"] = "Download update",
+        ["UpdatesRestart"] = "Restart to update",
+        ["TvProblemFull"] = "This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.",
+        ["TvProblemUnpaired"] = "The TV doesn't know this device any more. Pair again.",
         ["DownloadsTitle"] = "Downloads",
         ["DownloadsPauseAll"] = "Pause all",
         ["DownloadsResumeAll"] = "Resume all",
@@ -4928,6 +5861,11 @@ public static partial class T
         ["FilterHintTouch"] = "Tap once to include, twice to leave out.",
         ["FilterHintRemote"] = "Press once to include, twice to leave out.",
         ["FilterRemove"] = "Remove {filter}",
+        ["SearchSortFavourites"] = "Favourites",
+        ["SearchSortNewest"] = "Newest",
+        ["SearchSortOldest"] = "Oldest",
+        ["SearchSortTitle"] = "Title",
+        ["SearchSortTrending"] = "Trending",
         ["SettingsLanguage"] = "Language",
         ["SettingsLanguageApp"] = "App language",
         ["LanguageFollowSystem"] = "Follow system language",
@@ -5043,6 +5981,15 @@ public static partial class T
         ["WidgetResumeLabel"] = "Resume episode {episode} of {title}",
         ["WidgetStartLabel"] = "Play episode {episode} of {title}",
         ["WidgetResumeDubbedLabel"] = "Resume episode {episode}, dubbed, of {title}",
+        ["AccountsChangesWaiting_one"] = "One change waiting to sync",
+        ["AccountsChangesWaiting_other"] = "{count} changes waiting to sync",
+        ["SettingsQualityHigher"] = "Higher",
+        ["SettingsQualityStandard"] = "Standard",
+        ["SettingsUploadUnlimited"] = "Unlimited",
+        ["SettingsUpscalingNatural"] = "Natural · ArtCNN",
+        ["SettingsUpscalingNoteNatural"] = "Faithful line work and texture, nothing restyled.",
+        ["SettingsUpscalingNoteSharp"] = "Crisper lines and stronger edges, at some cost to texture.",
+        ["SettingsUpscalingSharp"] = "Sharp · Anime4K",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",
@@ -5235,6 +6182,9 @@ public static partial class T
         ["StoresPublishTitle"] = "Publish a plugin to {name}",
         ["StoresPublishNone"] = "No plugins on this device to publish.",
         ["StoresPluginNameVersion"] = "{name} {version}",
+        ["StoresCopyLink"] = "Copy link",
+        ["StoresOffersPlugins_one"] = "One plugin",
+        ["StoresOffersPlugins_other"] = "{count} plugins",
         ["TitleLoadFailed"] = "Couldn't load this title",
         ["TitleNoAnswer"] = "AniList didn't answer. Try again.",
         ["TitleLoading"] = "Loading this title",
@@ -5293,6 +6243,7 @@ public static partial class T
         ["MoreHideSpoilerTags"] = "Hide spoiler tags",
         ["MoreShowSpoilerTags_one"] = "Show one spoiler tag",
         ["MoreShowSpoilerTags_other"] = "Show {count} spoiler tags",
+        ["EpisodeLineDubbed"] = "{line} · Dubbed",
         ["TorrentsTitle"] = "Torrents",
         ["TorrentsOn"] = "Torrents are on",
         ["TorrentsOffDetail"] = "Off by default. Turning this on asks how to protect your connection first.",
@@ -5366,6 +6317,7 @@ public static partial class T
         ["TorrentsPageMissingKey"] = "This address is missing its key. Scan the QR code on the TV again, and open the whole address it gives.",
         ["TorrentsPageUnreadable"] = "The TV couldn't read this. Scan the QR code on the TV again.",
         ["TorrentsPageNeedsScript"] = "This page needs JavaScript to send the form to the TV safely.",
+        ["TorrentsCheckNote"] = "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.",
         ["AccountsTitle"] = "Accounts",
         ["AccountsOtherTrackers"] = "Other trackers",
         ["AccountsOtherTrackersNote"] = "Other trackers are in Settings, under Accounts.",

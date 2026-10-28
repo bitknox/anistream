@@ -459,11 +459,23 @@ pub struct MetaConfig {
     /// Show titles AniList marks adult in Search and the lists, with its adult genre and tags
     /// among the filters. Off unless asked for.
     pub adult: bool,
+    /// Episode discussions: look up an episode's AniList forum thread once it counts as watched,
+    /// and open it in the app. On unless switched off.
+    pub discussions: bool,
+    /// Load the images in discussion comments inline. Off, each is a line that opens it in the
+    /// browser, and the app asks nothing of the hosts people post images on.
+    pub discussion_images: bool,
 }
 
 impl Default for MetaConfig {
     fn default() -> Self {
-        Self { fallback: true, title_language: TitleChoice::default(), adult: false }
+        Self {
+            fallback: true,
+            title_language: TitleChoice::default(),
+            adult: false,
+            discussions: true,
+            discussion_images: false,
+        }
     }
 }
 

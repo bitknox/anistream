@@ -42,7 +42,7 @@ sealed class Toasts
         {
             using (var key = Registry.CurrentUser.CreateSubKey($@"Software\Classes\AppUserModelId\{AppId}"))
             {
-                key.SetValue("DisplayName", "anistream");
+                key.SetValue("DisplayName", T.AppName);
                 key.SetValue("IconUri", Path.Combine(AppContext.BaseDirectory, "Assets", "anistream-256.png"));
             }
             var notifier = ToastNotificationManager.CreateToastNotifier(AppId);
@@ -119,8 +119,8 @@ sealed class Toasts
         if (notice.Show != 0)
         {
             if (notice.Play is { } episode)
-                actions.Add(new XElement("action", new XAttribute("content", "Play"), new XAttribute("arguments", Args("play", notice.Show, episode)), new XAttribute("activationType", "foreground")));
-            actions.Add(new XElement("action", new XAttribute("content", "Open"), new XAttribute("arguments", Args("open", notice.Show)), new XAttribute("activationType", "foreground")));
+                actions.Add(new XElement("action", new XAttribute("content", T.ActionPlay), new XAttribute("arguments", Args("play", notice.Show, episode)), new XAttribute("activationType", "foreground")));
+            actions.Add(new XElement("action", new XAttribute("content", T.ActionOpen), new XAttribute("arguments", Args("open", notice.Show)), new XAttribute("activationType", "foreground")));
         }
         var toast = new XElement("toast", new XAttribute("launch", Args("open", notice.Show)), new XElement("visual", binding));
         if (actions.HasElements)

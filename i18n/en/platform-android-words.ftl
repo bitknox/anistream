@@ -5,12 +5,7 @@
 # A countdown that has run out.
 # @only android
 # @max 12
-time-now = now
-
-# How long ago, when it was under a minute.
-# @only android
-# @max 16
-time-just-now = just now
+time-now-inline = now
 
 # The episode in a short form for a title last watched dubbed.
 # @only android
@@ -77,40 +72,15 @@ downloads-live-paused-one = Paused
 # @max 16
 downloads-live-waiting = Waiting
 
-# Setting value: the upscaler tuned for natural-looking pictures. ArtCNN is the model's name.
-# @only android
-# @max 28
-settings-upscaling-natural = Natural · ArtCNN
-
-# Setting value: the upscaler tuned for sharp lines. Anime4K is the shader's name.
-# @only android
-# @max 28
-settings-upscaling-sharp = Sharp · Anime4K
-
 # Setting value: seed until the upload ratio reaches a number such as 1.5.
 # @only android
 # @arg ratio: text
 settings-seed-ratio-until = Until ratio { $ratio }
 
-# Setting value: no upload limit.
-# @only android
-# @max 16
-settings-upload-unlimited = Unlimited
-
 # Setting value: an upload limit, in size per second. The size is already formatted.
 # @only android
 # @arg size: text
 settings-upload-rate = { $size }/s
-
-# Setting value: the standard download quality.
-# @only android
-# @max 16
-settings-quality-standard = Standard
-
-# Setting value: the higher download quality.
-# @only android
-# @max 16
-settings-quality-higher = Higher
 
 # Footer under the week's notifications: shows watched dubbed, which notify when the dub is out.
 # The names are a list of titles.
@@ -135,10 +105,6 @@ settings-coming-up-switched-off = { $count ->
 # Footer under the week's notifications: what a row does.
 # @only android
 settings-coming-up-opens = A show opens its settings.
-
-# What the connection check does, said wherever torrents are on.
-# @only android
-torrents-check-note = { -app-name } checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.
 
 # The same note when a failed check only warns.
 # @only android
@@ -242,7 +208,7 @@ downloads-ratio-of = { $ratio } of { $goal }
 # @only android
 # @arg count: int
 # @arg size: text
-downloads-group-line = { $count ->
+downloads-group-summary = { $count ->
     [one] One episode · { $size }
    *[other] { $count } episodes · { $size }
  }
@@ -302,31 +268,6 @@ updates-closes-as-installs = { -app-name } closes as it installs
 # @only android
 # @max 24
 updates-open-release = Open page
-
-# Search sort menu: newest first by premiere.
-# @only android
-# @max 20
-search-sort-newest = Newest
-
-# Search sort menu: oldest first by premiere.
-# @only android
-# @max 20
-search-sort-oldest = Oldest
-
-# Search sort menu: by what is airing now and rising.
-# @only android
-# @max 20
-search-sort-trending = Trending
-
-# Search sort menu: by title, from A.
-# @only android
-# @max 20
-search-sort-title = Title
-
-# Search sort menu: by how many people favourited the title.
-# @only android
-# @max 20
-search-sort-favourites = Favourites
 
 # Country of origin filter: Japan.
 # @only android
@@ -518,14 +459,6 @@ stores-preview-key-invite = Key matches the invite
 # @max 16
 stores-key-verified = Verified
 
-# Join sheet: how many plugins the store offers.
-# @only android
-# @arg count: int
-stores-offers-plugins = { $count ->
-    [one] One { -plugin }
-   *[other] { $count } { -plugin-pl }
- }
-
 # Fallback title of a plugin store page before it loads.
 # @only android
 # @max 24
@@ -541,11 +474,6 @@ stores-fallback-plugin = { -plugin-cap }
 # @max 24
 stores-fallback-name = the { -plugin-store }
 
-# Button on the invite link sheet: copy the link.
-# @only android
-# @max 24
-stores-copy-link = Copy link
-
 # Invite link sheet: what the link does.
 # @only android
 stores-link-sheet-detail = Open this link on your other { -device } to join the { -plugin-store } there. It works once.
@@ -554,14 +482,6 @@ stores-link-sheet-detail = Open this link on your other { -device } to join the 
 # @only android
 # @arg ago: text
 accounts-synced-ago = Synced { $ago }
-
-# Account status: changes made here that wait for a connection to sync.
-# @only android
-# @arg count: int
-accounts-changes-waiting = { $count ->
-    [one] One change waiting to sync
-   *[other] { $count } changes waiting to sync
- }
 
 # Account card on the settings list: the tracker's name and its status.
 # @only android
@@ -796,15 +716,7 @@ settings-upscaling-source = Original 480p
 
 # Settings aside on a tablet, upscaling: what no processing does.
 # @only android
-settings-upscaling-note-off = The original 480p, scaled to fit without processing.
-
-# Settings aside on a tablet, upscaling: what the sharp mode does.
-# @only android
-settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
-
-# Settings aside on a tablet, upscaling: what the natural mode does.
-# @only android
-settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
+settings-upscaling-note-off-original = The original 480p, scaled to fit without processing.
 
 # Torrent sheet: the title when torrents are being turned on.
 # @only android
@@ -1040,7 +952,7 @@ search-searching-filters = Searching for { $filters }
 # Player, starting screen and header: an episode whose number is text, such as "7" or "7.5".
 # @only android
 # @arg number: text
-episode-number-text = Episode { $number }
+episode-number-plain = Episode { $number }
 
 # Player, header: the episode's number and its title.
 # @only android
