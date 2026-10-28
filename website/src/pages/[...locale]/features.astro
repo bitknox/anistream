@@ -1,20 +1,28 @@
 ---
-import '../styles/theme.css';
-import '../styles/landing.css';
-import '../styles/apps.css';
-import '../styles/features.css';
-import FeatureVideo from '../components/FeatureVideo.astro';
-import Shot from '../components/Shot.astro';
-import SiteFooter from '../components/site/SiteFooter.astro';
-import SiteHead from '../components/site/SiteHead.astro';
-import SiteNav from '../components/site/SiteNav.astro';
-import UpscaleCompare from '../components/UpscaleCompare.astro';
-import StoreDiagram from '../components/features/StoreDiagram.astro';
-import SyncDiagram from '../components/features/SyncDiagram.astro';
-import TerminalStill from '../components/features/TerminalStill.astro';
-import shots from '../data/shots.json';
-import videos from '../data/videos.json';
-import { APPS, INSTALL_GUIDE, LEGAL } from '../data/site';
+import '../../styles/theme.css';
+import '../../styles/landing.css';
+import '../../styles/apps.css';
+import '../../styles/features.css';
+import FeatureVideo from '../../components/FeatureVideo.astro';
+import Shot from '../../components/Shot.astro';
+import LanguageSuggest from '../../components/site/LanguageSuggest.astro';
+import SiteFooter from '../../components/site/SiteFooter.astro';
+import SiteHead from '../../components/site/SiteHead.astro';
+import SiteNav from '../../components/site/SiteNav.astro';
+import UpscaleCompare from '../../components/UpscaleCompare.astro';
+import StoreDiagram from '../../components/features/StoreDiagram.astro';
+import SyncDiagram from '../../components/features/SyncDiagram.astro';
+import TerminalStill from '../../components/features/TerminalStill.astro';
+import shots from '../../data/shots.json';
+import videos from '../../data/videos.json';
+import { APPS, INSTALL_GUIDE } from '../../data/site';
+import { localePaths, useSite } from '../../i18n/site';
+
+export const getStaticPaths = localePaths;
+
+const { t, href, lang, dir } = useSite(Astro);
+const OPAP = 'https://opap.jp/';
+const CC = 'https://creativecommons.org/licenses/by/4.0/';
 
 // Each highlight's picture sits in a .hl-media slot, and a FeatureVideo in each slot plays a short
 // loop of the task in place of a picture once scripts/videos/record.sh has recorded it. Until
@@ -28,49 +36,20 @@ const ratio = (name: keyof typeof shots) => shots[name].w / shots[name].h;
 /** The terminal still's viewBox, from TerminalStill.astro. */
 const TERMINAL = 640 / 382;
 
-// The rest, by task: each group a heading over short labels.
-const also: [string, [string, string][]][] = [
-	[
-		'Watching',
-		[
-			['Skip and Up Next', 'Skip the opening, and start the next episode from the credits.'],
-			['Resume', 'Picks up where you stopped.'],
-			['Pick a source', 'The automatic pick says why in one line, and you can choose another release.'],
-			['Sub or dub per show', 'Set it once and each show remembers.'],
-			['Subtitle and audio tracks', 'Every app switches the file’s tracks. Mac, Windows and Linux also load a subtitle or audio file.'],
-			['Picture in Picture', 'Keep watching while you browse, or in a mini player on Windows and Linux.'],
-			['Watch parties', 'Watch with friends in sync, on Mac, iPhone, iPad, Windows, Linux and in the terminal.'],
-		],
-	],
-	[
-		'Downloads',
-		[
-			['Next episodes', 'The next episodes of your shows download ahead of time.'],
-			['Start now', 'Move a queued download to the front.'],
-			['Same history offline', 'A downloaded episode resumes and syncs like a stream.'],
-		],
-	],
-	[
-		'Alerts and widgets',
-		[
-			['New-episode alerts', 'Off until you turn them on, per show.'],
-			['Widgets', 'Continue and Airing today on your home screen.'],
-			['Handoff, Spotlight, Shortcuts', 'Pick up a show on another Apple device.'],
-			['Live Activities', 'On iPhone, the Lock Screen shows what’s playing, your downloads and a show about to air.'],
-		],
-	],
-	[
-		'Other',
-		[
-			['Updates', 'The Mac, Android, Android TV, Windows, Linux and terminal apps update themselves.'],
-			['Torrents on the TV', 'Scan the TV’s code, then type the index and proxy on your phone.'],
-			['English or romaji', 'Pick how show titles are written.'],
-			['Command line', '--json output for your scripts.'],
-		],
-	],
-];
+// The rest, by task: each group a heading over short labels. The words are under
+// `features.also.<group>` in the language files.
+const ALSO: Record<string, string[]> = {
+	watching: ['skip', 'resume', 'source', 'dub', 'tracks', 'pip', 'parties'],
+	downloads: ['next', 'now', 'offline'],
+	alerts: ['alerts', 'widgets', 'handoff', 'live'],
+	other: ['updates', 'torrents', 'titles', 'cli'],
+};
+const also = Object.entries(ALSO).map(([group, ids]) => ({
+	title: t(`features.also.${group}.group`),
+	items: ids.map((id) => [t(`features.also.${group}.${id}.name`), t(`features.also.${group}.${id}.text`)]),
+}));
 
-const platforms = ['Mac', 'iPhone', 'iPad', 'Android', 'Android TV', 'Windows', 'Linux', 'Terminal'];
+const platforms = ['Mac', 'iPhone', 'iPad', 'Android', 'Android TV', 'Windows', 'Linux', t('features.apps.terminal')];
 
 // From docs/parity.md, which says where in each app's code a cell comes from. Rows every app has
 // are named in the line above the table instead. Y: the app does it. D: in development. N: not on
@@ -78,85 +57,79 @@ const platforms = ['Mac', 'iPhone', 'iPad', 'Android', 'Android TV', 'Windows', 
 type Cell = 'Y' | 'D' | 'N' | (string & {});
 const matrix: [string, [string, Cell[]][]][] = [
 	[
-		'Watching',
+		t('features.matrix.group.watching'),
 		[
-			['Built-in mpv', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Your mpv']],
-			['Upscaling', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'Y']],
-			['Opening and ending marks', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'mpv’s']],
-			['Load a subtitle file', ['Y', 'N', 'N', 'N', 'N', 'Y', 'Y', 'mpv’s']],
-			['Picture in Picture', ['Y', 'Y', 'Y', 'Y', 'N', 'Mini player', 'Mini player', 'N']],
-			['Watch parties', ['Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y']],
+			[t('features.matrix.row.mpv'), ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', t('features.matrix.cell.yourMpv')]],
+			[t('features.matrix.row.upscaling'), ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'Y']],
+			[t('features.matrix.row.marks'), ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', t('features.matrix.cell.mpvs')]],
+			[t('features.matrix.row.subfile'), ['Y', 'N', 'N', 'N', 'N', 'Y', 'Y', t('features.matrix.cell.mpvs')]],
+			[t('features.matrix.row.pip'), ['Y', 'Y', 'Y', 'Y', 'N', t('features.matrix.cell.miniPlayer'), t('features.matrix.cell.miniPlayer'), 'N']],
+			[t('features.matrix.row.parties'), ['Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y']],
 		],
 	],
 	[
-		'Tracking and downloads',
+		t('features.matrix.group.tracking'),
 		[
-			['MyAnimeList and Kitsu', ['Y', 'Y', 'Y', 'Y', 'Kitsu only', 'Y', 'Y', 'Y']],
-			['Per-show settings', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Source only']],
-			['Download an episode', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'Y']],
-			['Keep the next episodes', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'In config']],
+			[t('features.matrix.row.mal'), ['Y', 'Y', 'Y', 'Y', t('features.matrix.cell.kitsuOnly'), 'Y', 'Y', 'Y']],
+			[t('features.matrix.row.pershow'), ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', t('features.matrix.cell.sourceOnly')]],
+			[t('features.matrix.row.download'), ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'Y']],
+			[t('features.matrix.row.keep'), ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', t('features.matrix.cell.inConfig')]],
 		],
 	],
 	[
-		'Devices',
+		t('features.matrix.group.devices'),
 		[
-			['Play on TV and remote', ['Y', 'Y', 'Y', 'Y', 'Receives', 'Y', 'Y', 'D']],
-			['New-episode alerts', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'In config']],
-			['Home screen widgets', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'N', 'N']],
-			['Live Activities', ['N', 'Y', 'N', 'N', 'N', 'N', 'N', 'N']],
-			['Handoff, Spotlight, Shortcuts', ['Y', 'Y', 'Y', 'N', 'N', 'N', 'N', 'N']],
-			['Updates from the app', ['Y', 'Via SideStore', 'Via SideStore', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			[t('features.matrix.row.tv'), ['Y', 'Y', 'Y', 'Y', t('features.matrix.cell.receives'), 'Y', 'Y', 'D']],
+			[t('features.matrix.row.alerts'), ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', t('features.matrix.cell.inConfig')]],
+			[t('features.matrix.row.widgets'), ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'N', 'N']],
+			[t('features.matrix.row.live'), ['N', 'Y', 'N', 'N', 'N', 'N', 'N', 'N']],
+			[t('features.matrix.row.handoff'), ['Y', 'Y', 'Y', 'N', 'N', 'N', 'N', 'N']],
+			[t('features.matrix.row.updates'), ['Y', t('features.matrix.cell.sideStore'), t('features.matrix.cell.sideStore'), 'Y', 'Y', 'Y', 'Y', 'Y']],
 		],
 	],
 ];
 
 const MARK: Record<string, [string, string]> = {
-	Y: ['mk-yes', 'Available'],
-	D: ['mk-dev', 'In development'],
-	N: ['mk-none', 'Not on this platform'],
+	Y: ['mk-yes', t('features.matrix.yes')],
+	D: ['mk-dev', t('features.matrix.dev')],
+	N: ['mk-none', t('features.matrix.none')],
 };
 ---
 
-<html lang="en">
+<html lang={lang} dir={dir}>
 	<head>
-		<SiteHead
-			title="anistream features"
-			description="anistream’s features, and which app has each one."
-		/>
+		<SiteHead title={t('features.title')} description={t('features.description')} />
 	</head>
 	<body class="landing apps-page features-page">
 		<SiteNav current="features" />
 
 		<main>
 			<header class="wrap apps-head feat-head">
-				<h1>Features</h1>
+				<h1>{t('features.h1')}</h1>
 			</header>
 
 			<section class="wrap hl hl-wide" aria-labelledby="native-h">
 				<div class="hl-text">
-					<h2 id="native-h">Apps</h2>
-					<p>
-						Apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and one for the
-						terminal.
-					</p>
+					<h2 id="native-h">{t('features.apps.title')}</h2>
+					<p>{t('features.apps.text', { platforms: t('site.platforms') })}</p>
 				</div>
 				<div class="hl-media devices">
 					<div class="ratio-row dev-row">
 						<figure class="dev dev-flat" style={`--ratio: ${ratio('mac-continue')}`}>
-							<FeatureVideo name="mac-continue" frame="window" alt="The Mac app on Continue: another show picked from the queue, its banner growing into the title page, then its second season">
-								<Shot name="mac-continue" frame="window" sizes="(min-width: 1200px) 734px, 60vw" alt="The Mac app on Continue, with a button to resume the show in progress" />
+							<FeatureVideo name="mac-continue" frame="window" alt={t('features.apps.macVideoAlt')}>
+								<Shot name="mac-continue" frame="window" sizes="(min-width: 1200px) 734px, 60vw" alt={t('features.apps.macAlt')} />
 							</FeatureVideo>
 							<figcaption>Mac</figcaption>
 						</figure>
 						<figure class="dev" style={`--ratio: ${ratio('iphone-title')}`}>
-							<FeatureVideo name="iphone-title" frame="phone" alt="The iPhone app on Continue: the show’s banner zooms into its title page, on to its second season, then back home">
-								<Shot name="iphone-title" frame="phone" sizes="(min-width: 1200px) 212px, 18vw" alt="The iPhone app on a title page, with a button to resume episode 7" />
+							<FeatureVideo name="iphone-title" frame="phone" alt={t('features.apps.iphoneVideoAlt')}>
+								<Shot name="iphone-title" frame="phone" sizes="(min-width: 1200px) 212px, 18vw" alt={t('features.apps.iphoneAlt')} />
 							</FeatureVideo>
 							<figcaption>iPhone</figcaption>
 						</figure>
 						<figure class="dev" style={`--ratio: ${ratio('android-continue')}`}>
-							<FeatureVideo name="android-title" frame="phone" alt="The Android app opening a show from Continue, switching to Season 2 and back, scrolling its episodes, then swiping back to Continue">
-								<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 208px, 18vw" alt="The Android app on Continue" />
+							<FeatureVideo name="android-title" frame="phone" alt={t('features.apps.androidVideoAlt')}>
+								<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 208px, 18vw" alt={t('features.apps.androidAlt')} />
 							</FeatureVideo>
 							<figcaption>Android</figcaption>
 						</figure>
@@ -164,22 +137,22 @@ const MARK: Record<string, [string, string]> = {
 					<div class="dev-row dev-row-small">
 						<div class="ratio-row" style={`--ratio: ${ratio('windows-title') + ratio('linux-continue')}`}>
 							<figure class="dev dev-flat" style={`--ratio: ${ratio('windows-title')}`}>
-								<Shot name="windows-title" frame="window" sizes="(min-width: 1200px) 290px, 48vw" alt="The Windows app on a title page" />
+								<Shot name="windows-title" frame="window" sizes="(min-width: 1200px) 290px, 48vw" alt={t('features.apps.windowsAlt')} />
 								<figcaption>Windows</figcaption>
 							</figure>
 							<figure class="dev dev-flat" style={`--ratio: ${ratio('linux-continue')}`}>
-								<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 280px, 48vw" alt="The Linux app on Continue" />
+								<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 280px, 48vw" alt={t('features.apps.linuxAlt')} />
 								<figcaption>Linux</figcaption>
 							</figure>
 						</div>
 						<div class="ratio-row" style={`--ratio: ${ratio('tv-continue') + TERMINAL}`}>
 							<figure class="dev" style={`--ratio: ${ratio('tv-continue')}`}>
-								<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 300px, 48vw" alt="The Android TV app on Continue, with a large button to resume episode 7" />
+								<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 300px, 48vw" alt={t('features.apps.tvAlt')} />
 								<figcaption>Android TV</figcaption>
 							</figure>
 							<figure class="dev dev-flat dev-term" style={`--ratio: ${TERMINAL}`}>
 								<TerminalStill />
-								<figcaption>Terminal</figcaption>
+								<figcaption>{t('features.apps.terminal')}</figcaption>
 							</figure>
 						</div>
 					</div>
@@ -188,66 +161,65 @@ const MARK: Record<string, [string, string]> = {
 
 			<section class="wrap hl" aria-labelledby="find-h">
 				<div class="hl-text">
-					<h2 id="find-h">Search and the calendar</h2>
-					<p>Browse by genre, year and season without an account, or follow the seasonal charts and the week’s calendar.</p>
-					<p>A ~ marks an estimated air time, and a Dub tag marks an episode already dubbed. Title pages say how far the dub goes, such as “Dub to episode 6”.</p>
+					<h2 id="find-h">{t('features.find.title')}</h2>
+					<p>{t('features.find.text1')}</p>
+					<p>{t('features.find.text2')}</p>
 				</div>
 				<div class="hl-media find-stage">
-					<FeatureVideo name="mac-search" frame="window" class="find-mac" alt="The Mac app’s search: Trending now opened in full, the filters panel sliding in, Fantasy taking half the titles away, then a show’s page and its first season">
-						<Shot name="mac-search" frame="window" class="find-mac" sizes="(min-width: 1200px) 757px, calc(100vw - 32px)" alt="The Mac app’s search, with a query, its two results and the filters panel open: genres, tags, years and length" />
+					<FeatureVideo name="mac-search" frame="window" class="find-mac" alt={t('features.find.macVideoAlt')}>
+						<Shot name="mac-search" frame="window" class="find-mac" sizes="(min-width: 1200px) 757px, calc(100vw - 32px)" alt={t('features.find.macAlt')} />
 					</FeatureVideo>
-					<FeatureVideo name="iphone-calendar" frame="phone" class="find-phone" alt="The iPhone app’s calendar: a day picked in the week, a show’s cover zooming into its title page and back, then today again">
-						<Shot name="iphone-calendar" frame="phone" class="find-phone" sizes="(min-width: 1200px) 182px, 24vw" alt="The iPhone app’s calendar: the week’s days, then each day’s episodes with their times" />
+					<FeatureVideo name="iphone-calendar" frame="phone" class="find-phone" alt={t('features.find.phoneVideoAlt')}>
+						<Shot name="iphone-calendar" frame="phone" class="find-phone" sizes="(min-width: 1200px) 182px, 24vw" alt={t('features.find.phoneAlt')} />
 					</FeatureVideo>
 				</div>
 			</section>
 
 			<section class="wrap hl hl-flip" aria-labelledby="player-h">
 				<div class="hl-text">
-					<h2 id="player-h">The player</h2>
-					<p>Episodes play in mpv, upscaled by ArtCNN or Anime4K, with the opening and ending marked on the seek bar. Drag the line to compare a 480p stream.</p>
+					<h2 id="player-h">{t('features.player.title')}</h2>
+					<p>{t('features.player.text')}</p>
 				</div>
 				<div class="hl-media">
 					<UpscaleCompare
-						alt="A close-up of a character's face from a 480p stream, shown at 1080p"
+						alt={t('player.compareAlt')}
 						off="/player/compare-off.webp"
 						looks={[
-							{ id: 'natural', label: 'Natural', note: 'ArtCNN', src: '/player/compare-natural.webp' },
-							{ id: 'sharp', label: 'Sharp', note: 'Anime4K', src: '/player/compare-sharp.webp' },
-							{ id: 'original', label: 'Original', note: '1080p', src: '/player/compare-original.webp' },
+							{ id: 'natural', label: t('player.look.natural'), note: 'ArtCNN', src: '/player/compare-natural.webp' },
+							{ id: 'sharp', label: t('player.look.sharp'), note: 'Anime4K', src: '/player/compare-sharp.webp' },
+							{ id: 'original', label: t('player.look.original'), note: '1080p', src: '/player/compare-original.webp' },
 						]}
 						width={720}
 						height={480}
 					>
-						From <a href="https://opap.jp/">こうしす！ #3.2</a> by OPAP-JP contributors,{' '}
-						<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+						<Fragment set:html={t('features.player.credit', { opap: OPAP, licence: CC })} />
 					</UpscaleCompare>
 				</div>
 			</section>
 
 			<section class="wrap hl" aria-labelledby="tv-h">
 				<div class="hl-text">
-					<h2 id="tv-h">Play on TV</h2>
-					<p>Send an episode to the Android TV app, then pause, seek and switch subtitles from your phone. The Mac, Windows and Linux apps do the same.</p>
+					<h2 id="tv-h">{t('features.tv.title')}</h2>
+					<p>{t('features.tv.text')}</p>
 				</div>
 				<div class="hl-media tv-stage">
-					<FeatureVideo name="iphone-tv-remote" frame="phone" class="tv-phone" alt="The iPhone app sending an episode to a TV, then pausing it from the remote">
-						<Shot name="iphone-tv-remote" frame="phone" class="tv-phone" sizes="(min-width: 1200px) 160px, 21vw" alt="The iPhone app as the TV’s remote: the episode playing, play and seek buttons, subtitles, audio and the TV’s volume" />
+					<FeatureVideo name="iphone-tv-remote" frame="phone" class="tv-phone" alt={t('features.tv.phoneVideoAlt')}>
+						<Shot name="iphone-tv-remote" frame="phone" class="tv-phone" sizes="(min-width: 1200px) 160px, 21vw" alt={t('features.tv.phoneAlt')} />
 					</FeatureVideo>
 					<svg class="tv-link" viewBox="0 0 1000 470" aria-hidden="true" focusable="false">
 						<circle cx="236" cy="235" r="4" class="tv-link-end"></circle>
 						<path d="M248 235 H306 M298 228 L306 235 L298 242" class="tv-link-line"></path>
 					</svg>
-					<FeatureVideo name="tv-resume" frame="screen" class="tv-screen" alt="The Android TV app moving with the remote into a show’s page, switching seasons, then resuming episode 7">
-						<Shot name="tv-title" frame="screen" class="tv-screen" sizes="(min-width: 1200px) 520px, 68vw" alt="The Android TV app on a title page, with a button to resume episode 7 and the episode list" />
+					<FeatureVideo name="tv-resume" frame="screen" class="tv-screen" alt={t('features.tv.screenVideoAlt')}>
+						<Shot name="tv-title" frame="screen" class="tv-screen" sizes="(min-width: 1200px) 520px, 68vw" alt={t('features.tv.screenAlt')} />
 					</FeatureVideo>
 				</div>
 			</section>
 
 			<section class="wrap hl hl-flip" aria-labelledby="sync-h">
 				<div class="hl-text">
-					<h2 id="sync-h">History and sync</h2>
-					<p>History stays on your device and needs no account. Changes reach your trackers in order, even after a week offline.</p>
+					<h2 id="sync-h">{t('features.sync.title')}</h2>
+					<p>{t('features.sync.text')}</p>
 				</div>
 				<div class="hl-media">
 					<SyncDiagram />
@@ -256,9 +228,9 @@ const MARK: Record<string, [string, string]> = {
 
 			<section class="wrap hl" aria-labelledby="plugins-h">
 				<div class="hl-text">
-					<h2 id="plugins-h">Plugins and stores</h2>
-					<p>Sources are plugins, and each one can reach only the sites it lists. A friend can run a store and invite you.</p>
-					<p class="legal-lead">{LEGAL}</p>
+					<h2 id="plugins-h">{t('features.plugins.title')}</h2>
+					<p>{t('features.plugins.text')}</p>
+					<p class="legal-lead">{t('site.legal')}</p>
 				</div>
 				<div class="hl-media">
 					<StoreDiagram />
@@ -267,22 +239,16 @@ const MARK: Record<string, [string, string]> = {
 
 			{
 				episodeShown && (
-					<p class="wrap apps-credit feat-credit">
-						The player in the videos shows{' '}
-						<a href="https://opap.jp/">こうしす！ #3.1</a>{' '}
-						by OPAP-JP contributors, licensed{' '}
-						<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Every other title and
-						picture in them is made up.
-					</p>
+					<p class="wrap apps-credit feat-credit" set:html={t('features.credit', { opap: OPAP, licence: CC })} />
 				)
 			}
 
 			<section class="wrap feat-sect" aria-labelledby="also-h">
-				<h2 id="also-h">More features</h2>
+				<h2 id="also-h">{t('features.also.title')}</h2>
 				{
-					also.map(([group, items]) => (
+					also.map(({ title, items }) => (
 						<div class="also-group">
-							<h3>{group}</h3>
+							<h3>{title}</h3>
 							<dl class="also">
 								{items.map(([name, text]) => (
 									<div>
@@ -297,23 +263,19 @@ const MARK: Record<string, [string, string]> = {
 			</section>
 
 			<section class="wrap feat-sect" id="platforms" aria-labelledby="platforms-h">
-				<h2 id="platforms-h">By app</h2>
-				<p class="lede">
-					All eight apps have search with filters, the calendar, seasonal charts, subtitle and audio
-					tracks, skip, resume and Up Next. They all sync with AniList, Simkl and Trakt, join plugin
-					stores and run torrents behind the VPN guard. The table shows where they differ.
-				</p>
-				<ul class="matrix-key" aria-label="Key">
-					<li><span class="mk mk-yes" aria-hidden="true"></span>Available</li>
-					<li><span class="mk mk-dev" aria-hidden="true"></span>In development</li>
-					<li><span class="mk mk-none" aria-hidden="true"></span>Not on this platform</li>
+				<h2 id="platforms-h">{t('features.matrix.title')}</h2>
+				<p class="lede">{t('features.matrix.lede')}</p>
+				<ul class="matrix-key" aria-label={t('features.matrix.key')}>
+					<li><span class="mk mk-yes" aria-hidden="true"></span>{t('features.matrix.yes')}</li>
+					<li><span class="mk mk-dev" aria-hidden="true"></span>{t('features.matrix.dev')}</li>
+					<li><span class="mk mk-none" aria-hidden="true"></span>{t('features.matrix.none')}</li>
 				</ul>
 				<div class="matrix-scroll" tabindex="0" role="region" aria-labelledby="platforms-h">
 					<table class="matrix">
-						<caption class="sr-only">Which app does each feature</caption>
+						<caption class="sr-only">{t('features.matrix.caption')}</caption>
 						<thead>
 							<tr>
-								<th scope="col"><span class="sr-only">Feature</span></th>
+								<th scope="col"><span class="sr-only">{t('features.matrix.feature')}</span></th>
 								{platforms.map((p) => <th scope="col">{p}</th>)}
 							</tr>
 						</thead>
@@ -343,14 +305,15 @@ const MARK: Record<string, [string, string]> = {
 						}
 					</table>
 				</div>
-				<p class="caption matrix-note">Play on TV from the terminal app is in development, and so are home screen widgets on Windows.</p>
+				<p class="caption matrix-note">{t('features.matrix.note')}</p>
 				<div class="actions sect-actions">
-					<a class="btn btn-primary" href={APPS}>Get the apps</a>
-					<a class="btn" href={INSTALL_GUIDE}>Installation guide</a>
+					<a class="btn btn-primary" href={href(APPS)}>{t('features.matrix.getApps')}</a>
+					<a class="btn" href={href(INSTALL_GUIDE)}>{t('features.matrix.guide')}</a>
 				</div>
 			</section>
 		</main>
 
 		<SiteFooter />
+		<LanguageSuggest />
 	</body>
 </html>

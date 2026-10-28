@@ -1,7 +1,10 @@
 ---
 // How a plugin store reaches you: someone runs a store and invites you, the store's plugin list
 // arrives signed with its key, and each of your devices joins with a token.
+import { useSite } from '../../i18n/site';
 import { arrow, box, node, svg, text } from './draw';
+
+const { t } = useSite(Astro);
 
 const DEVICES = ['Mac', 'iPhone', 'Windows'];
 
@@ -10,9 +13,9 @@ const wide = svg(
 	172,
 	'wide',
 	[
-		node(0, 50, 176, 72, 'Plugin store', 'Invite only'),
+		node(0, 50, 176, 72, t('features.diagram.store.store'), t('features.diagram.store.invite')),
 		arrow([[177, 86], [261, 86]]),
-		node(262, 50, 196, 72, 'Plugin list', 'Signed by the store'),
+		node(262, 50, 196, 72, t('features.diagram.store.list'), t('features.diagram.store.signed')),
 		...DEVICES.map((d, i) => {
 			const y = i * 64;
 			const mid = y + 22;
@@ -20,7 +23,7 @@ const wide = svg(
 				arrow([[459, 86], [500, 86], [500, mid], [543, mid]]),
 				box(544, y, 176, 44),
 				text(560, y + 27, 'label', d),
-				text(704, y + 27, 'sub', 'a token', 'end'),
+				text(704, y + 27, 'sub', t('features.diagram.store.token'), 'end'),
 			].join('');
 		}),
 	].join(''),
@@ -31,9 +34,9 @@ const narrow = svg(
 	280,
 	'narrow',
 	[
-		node(69, 0, 220, 64, 'Plugin store', 'Invite only'),
+		node(69, 0, 220, 64, t('features.diagram.store.store'), t('features.diagram.store.invite')),
 		arrow([[179, 65], [179, 103]]),
-		node(69, 104, 220, 64, 'Plugin list', 'Signed by the store'),
+		node(69, 104, 220, 64, t('features.diagram.store.list'), t('features.diagram.store.signed')),
 		...DEVICES.map((d, i) => {
 			const x = i * 123;
 			const mid = x + 56;
@@ -41,7 +44,7 @@ const narrow = svg(
 				arrow([[179, 169], [179, 196], [mid, 196], [mid, 223]]),
 				box(x, 224, 112, 56),
 				text(x + 14, 248, 'label', d),
-				text(x + 14, 267, 'sub', 'a token'),
+				text(x + 14, 267, 'sub', t('features.diagram.store.token')),
 			].join('');
 		}),
 	].join(''),
@@ -51,7 +54,7 @@ const narrow = svg(
 <div
 	class="fdiag"
 	role="img"
-	aria-label="A plugin store, invite only, sends its plugin list signed by the store to your devices: a Mac, an iPhone and a Windows PC, each with a token of its own."
+	aria-label={t('features.diagram.store.alt')}
 >
 	<Fragment set:html={wide} />
 	<Fragment set:html={narrow} />

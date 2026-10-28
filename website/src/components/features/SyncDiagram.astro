@@ -2,27 +2,30 @@
 // How history syncs: it is written on the device, changes wait in a queue, which sends them to
 // your trackers in order, and a tracker's progress comes back to the device. A wide
 // drawing where the figure is 720 or wider, a tall one below that.
-import { arrow, box, node, svg, text } from './draw';
+import { useSite } from '../../i18n/site';
+import { arrow, box, node, note, svg, text } from './draw';
+
+const { t } = useSite(Astro);
 
 const TRACKERS = ['AniList', 'MyAnimeList', 'Kitsu', 'Simkl', 'Trakt'];
 
 const trackers = (x: number, y: number, w: number) =>
-	[box(x, y, w, 164), text(x + 16, y + 30, 'label', 'Your trackers'), ...TRACKERS.map((t, i) => text(x + 16, y + 58 + i * 22, 'name', t))].join('');
+	[box(x, y, w, 164), text(x + 16, y + 30, 'label', t('features.diagram.sync.trackers')), ...TRACKERS.map((name, i) => text(x + 16, y + 58 + i * 22, 'name', name))].join('');
 
 const wide = svg(
 	720,
 	236,
 	'wide',
 	[
-		node(0, 46, 176, 72, 'Watch history', 'On your device'),
+		node(0, 46, 176, 72, t('features.diagram.sync.history'), t('features.diagram.sync.device')),
 		arrow([[177, 82], [261, 82]]),
-		text(219, 72, 'note', 'each change', 'middle'),
-		node(262, 46, 176, 72, 'Queue', 'Waits while offline'),
+		note(219, 72, t('features.diagram.sync.each')),
+		node(262, 46, 176, 72, t('features.diagram.sync.queue'), t('features.diagram.sync.offline')),
 		arrow([[439, 82], [523, 82]]),
-		text(481, 72, 'note', 'in order', 'middle'),
+		note(481, 72, t('features.diagram.sync.order')),
 		trackers(524, 0, 196),
 		arrow([[622, 165], [622, 206], [88, 206], [88, 119]]),
-		text(355, 228, 'note', 'A tracker can move your progress forward, never back', 'middle'),
+		text(355, 228, 'note', t('features.diagram.sync.rule'), 'middle'),
 	].join(''),
 );
 
@@ -31,17 +34,17 @@ const narrow = svg(
 	388,
 	'narrow',
 	[
-		node(0, 0, 236, 64, 'Watch history', 'On your device'),
+		node(0, 0, 236, 64, t('features.diagram.sync.history'), t('features.diagram.sync.device')),
 		arrow([[118, 65], [118, 111]]),
-		text(130, 93, 'note', 'each change'),
-		node(0, 112, 236, 64, 'Queue', 'Waits while offline'),
+		text(130, 93, 'note', t('features.diagram.sync.each')),
+		node(0, 112, 236, 64, t('features.diagram.sync.queue'), t('features.diagram.sync.offline')),
 		arrow([[118, 177], [118, 223]]),
-		text(130, 205, 'note', 'in order'),
+		text(130, 205, 'note', t('features.diagram.sync.order')),
 		trackers(0, 224, 236),
 		arrow([[237, 306], [282, 306], [282, 32], [237, 32]]),
-		text(292, 150, 'note', 'Forward,'),
-		text(292, 166, 'note', 'never'),
-		text(292, 182, 'note', 'back'),
+		text(292, 150, 'note', t('features.diagram.sync.rule1')),
+		text(292, 166, 'note', t('features.diagram.sync.rule2')),
+		text(292, 182, 'note', t('features.diagram.sync.rule3')),
 	].join(''),
 );
 ---
@@ -49,7 +52,7 @@ const narrow = svg(
 <div
 	class="fdiag"
 	role="img"
-	aria-label="Watch history on your device sends each change to a queue, which waits while you are offline and sends the changes in order to AniList, MyAnimeList, Kitsu, Simkl and Trakt. A tracker can move your progress forward, never back."
+	aria-label={t('features.diagram.sync.alt')}
 >
 	<Fragment set:html={wide} />
 	<Fragment set:html={narrow} />

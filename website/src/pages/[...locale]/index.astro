@@ -1,44 +1,42 @@
 ---
-import '../styles/theme.css';
-import '../styles/landing.css';
-import DownloadSuggest from '../components/DownloadSuggest.astro';
-import FeatureVideo from '../components/FeatureVideo.astro';
-import Shot from '../components/Shot.astro';
-import SiteFooter from '../components/site/SiteFooter.astro';
-import SiteHead from '../components/site/SiteHead.astro';
-import SiteNav from '../components/site/SiteNav.astro';
-import TerminalDemo from '../components/TerminalDemo.astro';
-import UpscaleCompare from '../components/UpscaleCompare.astro';
-import { APP_DOWNLOADS, APPS, FEATURES, GITHUB, INSTALL_GUIDE, LATEST, LEGAL } from '../data/site';
+import '../../styles/theme.css';
+import '../../styles/landing.css';
+import DownloadSuggest from '../../components/DownloadSuggest.astro';
+import FeatureVideo from '../../components/FeatureVideo.astro';
+import Shot from '../../components/Shot.astro';
+import LanguageSuggest from '../../components/site/LanguageSuggest.astro';
+import SiteFooter from '../../components/site/SiteFooter.astro';
+import SiteHead from '../../components/site/SiteHead.astro';
+import SiteNav from '../../components/site/SiteNav.astro';
+import TerminalDemo from '../../components/TerminalDemo.astro';
+import UpscaleCompare from '../../components/UpscaleCompare.astro';
+import { APP_DOWNLOADS, APPS, FEATURES, GITHUB, INSTALL_GUIDE, LATEST } from '../../data/site';
+import { localePaths, useSite } from '../../i18n/site';
 
-const terminalRows: [string, string][] = [
-	['Vim keys', 'hjkl or the arrow keys, and you can rebind them.'],
-	['Watch parties', 'Press y to watch an episode with friends. Everyone’s player stays in sync.'],
-	['Command line', '--search, --stats and --random print JSON with --json, and --continue resumes the episode you left half watched.'],
-];
+// One source, served once per language: English at the root, the others under their prefix.
+export const getStaticPaths = localePaths;
 
-const sources: [string, string][] = [
-	['AniList', 'Public data for browsing, search, the calendar and title pages, with a pointer to where each title is licensed.'],
-	['Plugins', 'For APIs you have the right to use, servers you host and media you own. anistream never circumvents DRM, so a licensed stream opens in the service that carries it.'],
-	['Plugin stores', 'Run by someone you know, for the people they invite. anistream lists none of them.'],
-];
+const { t, href, lang, dir, words } = useSite(Astro);
+
+const OPAP = 'https://opap.jp/';
+const CC = 'https://creativecommons.org/licenses/by/4.0/';
+
+const terminalRows = ['vim', 'parties', 'cli'].map((id) => [t(`home.terminal.${id}.name`), t(`home.terminal.${id}.text`)]);
+const sources = ['anilist', 'plugins', 'stores'].map((id) => [t(`home.sources.${id}.name`), t(`home.sources.${id}.text`)]);
 
 const installHtml = [
-	'<span class="c-d"># needs mpv and ffmpeg</span>',
+	`<span class="c-d">${t('home.terminal.install.comment1')}</span>`,
 	'<span class="c-d">$</span> brew install mpv ffmpeg',
-	'<span class="c-d"># start browsing</span>',
+	`<span class="c-d">${t('home.terminal.install.comment2')}</span>`,
 	'<span class="c-d">$</span> anistream',
-	'<span class="c-d"># update</span>',
+	`<span class="c-d">${t('home.terminal.install.comment3')}</span>`,
 	'<span class="c-d">$</span> anistream <span class="c-n">--update</span>',
 ].join('\n');
 ---
 
-<html lang="en">
+<html lang={lang} dir={dir}>
 	<head>
-		<SiteHead
-			title="anistream · an open-source anime client"
-			description="An open-source anime client for Mac, iPhone, iPad, Android, Android TV, Windows, Linux and the terminal. It hosts no content."
-		/>
+		<SiteHead title={t('home.title')} description={t('home.description')} />
 	</head>
 	<body class="landing">
 		<div class="ambient" aria-hidden="true"></div>
@@ -46,12 +44,7 @@ const installHtml = [
 		<SiteNav overScene />
 
 		<header class="hero">
-			<div
-				class="scene"
-				data-scene
-				role="img"
-				aria-label="A rooftop at dusk over a lit city, meteors crossing the sky, and Nagare, anistream’s mascot, looking up at them, drawn in terminal halfblocks"
-			>
+			<div class="scene" data-scene role="img" aria-label={t('home.scene.alt')}>
 				<canvas data-plane="sky"></canvas>
 				<canvas data-plane="far"></canvas>
 				<canvas data-plane="near"></canvas>
@@ -59,35 +52,26 @@ const installHtml = [
 			</div>
 			<div class="wrap hero-copy">
 				<div class="hero-text">
-					<h1>Browse, watch, track and sync anime <span class="hero-claim">in one client.</span></h1>
+					<h1>{t('home.hero.title')} <span class="hero-claim">{t('home.hero.claim')}</span></h1>
 					<div class="hero-side">
-						<p class="hero-sub">
-							Native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and one for the
-							terminal. You add sources as plugins.
-						</p>
+						<p class="hero-sub">{t('home.hero.sub', { platforms: t('site.platforms') })}</p>
 						<div class="actions">
-							<a class="btn btn-primary" href={APPS}>Get the apps</a>
-							<a class="btn" href="/docs/">Read the docs</a>
+							<a class="btn btn-primary" href={href(APPS)}>{t('home.hero.getApps')}</a>
+							<a class="btn" href={href('/docs/')}>{t('home.hero.docs')}</a>
 						</div>
-						<p class="hero-note">MIT licence · Browsing needs no account</p>
+						<p class="hero-note">{t('home.hero.note')}</p>
 					</div>
 				</div>
 				<div class="hero-apps">
 					<div class="hero-devices">
-						<FeatureVideo
-							name="mac-continue"
-							frame="window"
-							class="hero-mac"
-							eager
-							alt="The Mac app on Continue: another show picked from the queue, its banner growing into the title page, then its second season"
-						>
+						<FeatureVideo name="mac-continue" frame="window" class="hero-mac" eager alt={t('home.hero.macVideoAlt')}>
 							<Shot
 								name="mac-continue"
 								frame="window"
 								class="hero-mac"
 								sizes="(min-width: 1200px) 584px, (min-width: 900px) 700px, calc(100vw - 32px)"
 								loading="eager"
-								alt="The Mac app’s Continue screen, with a banner for the show in progress and a button to resume its episode"
+								alt={t('home.hero.macAlt')}
 							/>
 						</FeatureVideo>
 						<Shot
@@ -96,141 +80,118 @@ const installHtml = [
 							class="hero-phone"
 							sizes="(min-width: 1200px) 160px, (min-width: 900px) 190px, 28vw"
 							loading="eager"
-							alt="The iPhone app on a title page, with the show’s banner, a button to resume episode 7 and the episode list"
+							alt={t('home.hero.phoneAlt')}
 						/>
 					</div>
-					<p class="caption">
-						The Mac app going from Continue to a title page, with the iPhone app on a title page in
-						front. Every title and picture here is made up.
-					</p>
+					<p class="caption">{t('home.hero.caption')}</p>
 				</div>
-				<p class="hero-run-hint" aria-hidden="true">Press Space</p>
+				<p class="hero-run-hint" aria-hidden="true">{t('home.hero.hint')}</p>
 			</div>
 		</header>
 
-
 		<main>
-			<section class="wrap sect" aria-label="Continue, the calendar and Play on TV">
+			<section class="wrap sect" aria-label={t('home.glance.label')}>
 				<div class="glance">
 					<figure>
 						<div class="glance-media">
-							<FeatureVideo name="android-title" frame="phone" alt="The Android app opening a show from Continue, switching to Season 2 and back, scrolling its episodes, then swiping back to Continue">
-								<Shot name="android-continue" frame="phone" sizes="240px" alt="The Android app on Continue" />
+							<FeatureVideo name="android-title" frame="phone" alt={t('home.glance.continue.videoAlt')}>
+								<Shot name="android-continue" frame="phone" sizes="240px" alt={t('home.glance.continue.alt')} />
 							</FeatureVideo>
 						</div>
 						<figcaption>
-							<h3>Continue watching</h3>
-							<p>The shows you’re partway through, with the next episode ready to play.</p>
+							<h3>{t('home.glance.continue.title')}</h3>
+							<p>{t('home.glance.continue.text')}</p>
 						</figcaption>
 					</figure>
 					<figure>
 						<div class="glance-media">
-							<FeatureVideo name="iphone-calendar" frame="phone" alt="The iPhone app’s calendar: the days of the week, then every show airing">
-								<Shot name="iphone-title" frame="phone" sizes="240px" alt="The iPhone app on a title page" />
+							<FeatureVideo name="iphone-calendar" frame="phone" alt={t('home.glance.calendar.videoAlt')}>
+								<Shot name="iphone-title" frame="phone" sizes="240px" alt={t('home.glance.calendar.alt')} />
 							</FeatureVideo>
 						</div>
 						<figcaption>
-							<h3>Calendar and sync</h3>
-							<p>See what airs each day. Your progress syncs to AniList, MyAnimeList, Kitsu, Simkl and Trakt.</p>
+							<h3>{t('home.glance.calendar.title')}</h3>
+							<p>{t('home.glance.calendar.text')}</p>
 						</figcaption>
 					</figure>
 					<figure>
 						<div class="glance-media">
-							<FeatureVideo name="iphone-tv-remote" frame="phone" alt="The iPhone app sending an episode to a TV, then pausing it as the remote">
-								<Shot name="iphone-tv-remote" frame="phone" sizes="240px" alt="The iPhone app as the TV’s remote" />
+							<FeatureVideo name="iphone-tv-remote" frame="phone" alt={t('home.glance.tv.videoAlt')}>
+								<Shot name="iphone-tv-remote" frame="phone" sizes="240px" alt={t('home.glance.tv.alt')} />
 							</FeatureVideo>
 						</div>
 						<figcaption>
-							<h3>Play on TV</h3>
-							<p>Send an episode to the Android TV app, then use your phone or computer as the remote.</p>
+							<h3>{t('home.glance.tv.title')}</h3>
+							<p>{t('home.glance.tv.text')}</p>
 						</figcaption>
 					</figure>
 				</div>
 				<div class="actions sect-actions">
-					<a class="btn" href={FEATURES}>See all features</a>
+					<a class="btn" href={href(FEATURES)}>{t('home.glance.all')}</a>
 				</div>
 			</section>
 
 			<section class="wrap sect" aria-labelledby="apps-h">
-				<h2 id="apps-h">Apps</h2>
-				<p class="lede">
-					Each app is built with its platform’s toolkit: SwiftUI on Apple, Jetpack Compose on
-					Android, WinUI 3 on Windows, GTK 4 on Linux and Ratatui in the terminal. They share one
-					engine, written in Rust.
-				</p>
+				<h2 id="apps-h">{t('home.apps.title')}</h2>
+				<p class="lede">{t('home.apps.lede')}</p>
 				<div class="ratio-row app-strip">
-					<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 490px, (min-width: 900px) 42vw, 490px" alt="The Linux app on Continue, with the shows in progress beside the one picked and a button to resume its episode" />
-					<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 540px, (min-width: 900px) 46vw, 540px" alt="The Android TV app on Continue, with a large button to resume episode 7 and a row of shows in progress" />
-					<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 140px, (min-width: 900px) 12vw, 140px" alt="The Android app on Continue, with the show in progress and the shows that came out this week" />
+					<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 490px, (min-width: 900px) 42vw, 490px" alt={t('home.apps.linuxAlt')} />
+					<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 540px, (min-width: 900px) 46vw, 540px" alt={t('home.apps.tvAlt')} />
+					<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 140px, (min-width: 900px) 12vw, 140px" alt={t('home.apps.androidAlt')} />
 				</div>
 				<div class="actions sect-actions">
-					<a class="btn" href={APPS}>More about the apps</a>
+					<a class="btn" href={href(APPS)}>{t('home.apps.more')}</a>
 				</div>
 			</section>
 
 			<section class="wrap sect" aria-labelledby="player-h">
-				<h2 id="player-h">The player</h2>
-				<p class="lede">
-					Episodes play in mpv, with a skip button for the opening and Up Next at the end. Drag the
-					line to compare a 480p stream, upscaled and not, with the 1080p original.
-				</p>
+				<h2 id="player-h">{t('home.player.title')}</h2>
+				<p class="lede">{t('home.player.lede')}</p>
 				<div class="player-block">
 					<UpscaleCompare
-						alt="A close-up of a character's face from a 480p stream, shown at 1080p"
+						alt={t('player.compareAlt')}
 						off="/player/compare-off.webp"
 						looks={[
-							{ id: 'natural', label: 'Natural', note: 'ArtCNN', src: '/player/compare-natural.webp' },
-							{ id: 'sharp', label: 'Sharp', note: 'Anime4K', src: '/player/compare-sharp.webp' },
-							{ id: 'original', label: 'Original', note: '1080p', src: '/player/compare-original.webp' },
+							{ id: 'natural', label: t('player.look.natural'), note: 'ArtCNN', src: '/player/compare-natural.webp' },
+							{ id: 'sharp', label: t('player.look.sharp'), note: 'Anime4K', src: '/player/compare-sharp.webp' },
+							{ id: 'original', label: t('player.look.original'), note: '1080p', src: '/player/compare-original.webp' },
 						]}
 						width={720}
 						height={480}
 					>
-						Natural keeps the line work as it was drawn and comes closest to the original. Sharp
-						draws the lines crisper and bolder than they were.
+						{t('home.player.compareNote')}
 					</UpscaleCompare>
 					<div class="player-shots">
 						<figure>
 							<a href="/player/player-skip.webp">
-								<img src="/player/player-skip.webp" alt="The show's logo during its opening, with a Skip opening button in the corner" width="1920" height="1080" loading="lazy" decoding="async" />
+								<img src="/player/player-skip.webp" alt={t('home.player.skipAlt')} width="1920" height="1080" loading="lazy" decoding="async" />
 							</a>
-							<figcaption>A button to skip the opening.</figcaption>
+							<figcaption>{t('home.player.skipCaption')}</figcaption>
 						</figure>
 						<figure>
 							<a href="/player/player-menu.webp">
-								<img src="/player/player-menu.webp" alt="The anistream menu inside the player: episodes, sources, sub or dub, upscaling, night mode, subtitles, audio" width="1920" height="1080" loading="lazy" decoding="async" />
+								<img src="/player/player-menu.webp" alt={t('home.player.menuAlt')} width="1920" height="1080" loading="lazy" decoding="async" />
 							</a>
-							<figcaption>The player menu: episodes, sources, sub or dub, upscaling and tracks.</figcaption>
+							<figcaption>{t('home.player.menuCaption')}</figcaption>
 						</figure>
 						<figure>
 							<a href="/player/player-up-next.webp">
-								<img src="/player/player-up-next.webp" alt="An Up Next card over the ending credits, naming episode 3.2 with a still from its preview" width="1920" height="1080" loading="lazy" decoding="async" />
+								<img src="/player/player-up-next.webp" alt={t('home.player.nextAlt')} width="1920" height="1080" loading="lazy" decoding="async" />
 							</a>
-							<figcaption>Up Next over the ending credits.</figcaption>
+							<figcaption>{t('home.player.nextCaption')}</figcaption>
 						</figure>
 					</div>
-					<p class="player-credit">
-						These three are the terminal app’s player. Player frames from{' '}
-						<a href="https://opap.jp/">こうしす！ #3.1</a>{' '}
-						and the comparison from #3.2, by OPAP-JP contributors, licensed{' '}
-						<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
-					</p>
+					<p class="player-credit" set:html={t('home.player.credit', { opap: OPAP, licence: CC })} />
 				</div>
 			</section>
 
 			<section class="wrap sect" aria-labelledby="terminal-h">
-				<h2 id="terminal-h">The terminal app</h2>
-				<p class="lede">
-					anistream also runs in a terminal on macOS, Linux and Windows. On a Mac it shares its
-					history and config with the Mac app.
-				</p>
+				<h2 id="terminal-h">{t('home.terminal.title')}</h2>
+				<p class="lede">{t('home.terminal.lede')}</p>
 				<div class="term-block">
 					<div class="term-demo">
 						<TerminalDemo />
-						<p class="caption">
-							The home screen, search, an episode list and playback. Covers show as images in Ghostty,
-							Kitty, iTerm2, WezTerm and other terminals with image support.
-						</p>
+						<p class="caption">{t('home.terminal.caption')}</p>
 					</div>
 					<dl class="term-rows">
 						{
@@ -247,8 +208,8 @@ const installHtml = [
 			</section>
 
 			<section class="wrap sect" aria-labelledby="sources-h">
-				<h2 id="sources-h">Sources</h2>
-				<p class="legal-lead">{LEGAL}</p>
+				<h2 id="sources-h">{t('home.sources.title')}</h2>
+				<p class="legal-lead">{t('site.legal')}</p>
 				<dl class="rows sources">
 					{
 						sources.map(([name, text]) => (
@@ -259,52 +220,44 @@ const installHtml = [
 						))
 					}
 				</dl>
-				<p class="lede">
-					Torrents are off by default and stay unreachable until you set up the VPN guard. What you
-					point any source at is your decision and your risk, under the laws that apply to you.
-					Removing a source takes one config edit.
-				</p>
+				<p class="lede">{t('home.sources.lede')}</p>
 			</section>
 
 			<section class="wrap sect" aria-labelledby="install-h">
-				<h2 id="install-h">Installation</h2>
-				<p class="lede">Every release has the apps and the terminal app.</p>
+				<h2 id="install-h">{t('home.install.title')}</h2>
+				<p class="lede">{t('home.install.lede')}</p>
 				<DownloadSuggest />
-				<p class="dl-others">Other platforms</p>
+				<p class="dl-others">{t('dl.others')}</p>
 				<div class="actions get-apps">
 					{
 						APP_DOWNLOADS.map((a) => (
 							<a class="btn" href={LATEST} data-asset={a.files[0].suffix} data-dl-app={a.id}>
-								{a.platform}
+								{t(`dl.app.${a.id}.platform`)}
 							</a>
 						))
 					}
 				</div>
-				<p class="get-more">
-					Windows and Linux get the x64 builds here. <a href={LATEST}>All downloads</a> has the Arm
-					builds and the terminal app, and the <a href={INSTALL_GUIDE}>installation guide</a> has
-					the first start on each.
-				</p>
+				<p class="get-more" set:html={t('home.install.more', { latest: LATEST, guide: href(INSTALL_GUIDE) })} />
 			</section>
 
 			<section class="wrap sect" aria-labelledby="next-h">
-				<h2 id="next-h">Open source</h2>
-				<p class="lede">
-					anistream is developed on GitHub. Anyone can write a plugin or run a store.
-				</p>
+				<h2 id="next-h">{t('home.open.title')}</h2>
+				<p class="lede">{t('home.open.lede')}</p>
 				<div class="actions sect-actions">
-					<a class="btn" href={GITHUB}>Follow on GitHub</a>
-					<a class="btn" href="/docs/plugins/authoring/">Write a plugin</a>
-					<a class="btn" href="/docs/plugins/running-a-store/">Run a store</a>
+					<a class="btn" href={GITHUB}>{t('home.open.github')}</a>
+					<a class="btn" href={href('/docs/plugins/authoring/')}>{t('home.open.plugin')}</a>
+					<a class="btn" href={href('/docs/plugins/running-a-store/')}>{t('home.open.store')}</a>
 				</div>
 			</section>
 		</main>
 
 		<SiteFooter />
+		<LanguageSuggest />
 
+		<script type="application/json" data-words="game" set:html={words('game.')} />
 		<script>
-			import '../scripts/landing-motion.ts';
-			import '../scripts/latest-release.ts';
+			import '../../scripts/landing-motion.ts';
+			import '../../scripts/latest-release.ts';
 		</script>
 	</body>
 </html>

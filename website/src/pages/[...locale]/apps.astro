@@ -1,64 +1,60 @@
 ---
-import '../styles/theme.css';
-import '../styles/landing.css';
-import '../styles/apps.css';
-import iconUrl from '../assets/icon-32.svg?url';
-import DownloadSuggest from '../components/DownloadSuggest.astro';
-import Shot from '../components/Shot.astro';
-import SiteFooter from '../components/site/SiteFooter.astro';
-import SiteHead from '../components/site/SiteHead.astro';
-import SiteNav from '../components/site/SiteNav.astro';
-import { APP_DOWNLOADS, FEATURES, INSTALL_APPS, LATEST, LEGAL, PRIVACY, TOOLKITS } from '../data/site';
+import '../../styles/theme.css';
+import '../../styles/landing.css';
+import '../../styles/apps.css';
+import iconUrl from '../../assets/icon-32.svg?url';
+import DownloadSuggest from '../../components/DownloadSuggest.astro';
+import Shot from '../../components/Shot.astro';
+import LanguageSuggest from '../../components/site/LanguageSuggest.astro';
+import SiteFooter from '../../components/site/SiteFooter.astro';
+import SiteHead from '../../components/site/SiteHead.astro';
+import SiteNav from '../../components/site/SiteNav.astro';
+import { APP_DOWNLOADS, FEATURES, INSTALL_APPS, LATEST, PRIVACY, TOOLKITS } from '../../data/site';
+import { localePaths, useSite } from '../../i18n/site';
 
-const across: [string, string][] = [
-	['Widgets', 'Continue watching and Airing today on the home screen, on Mac, iPhone, iPad and Android.'],
-	['New-episode notifications', 'An alert when a new episode of a show you watch comes out, on Mac, iPhone, iPad, Android, Windows and Linux. They stay off until you turn them on, and each show has its own switch.'],
-	['Live Activities', 'On iPhone, the Lock Screen and the Dynamic Island show what’s playing, your downloads and a show about to air.'],
-	['Picture in Picture', 'The episode keeps playing in a small window while you browse or use another app, on Mac, iPhone, iPad and Android. On Windows and Linux the player shrinks to a mini player.'],
-	['Downloads', 'Episodes download to the device and play offline, with the same history and resume as a stream. Every app but the TV app can keep the next episodes of the shows you watch downloaded.'],
-	['Trackers and plugin stores', 'Sign in to your trackers and join plugin stores in the app.'],
-	['Handoff, Spotlight and Shortcuts', 'On Apple devices, pick up a title on another of your devices, find your shows in Spotlight, and ask Siri to continue watching.'],
-];
+export const getStaticPaths = localePaths;
+
+const { t, href, lang, dir } = useSite(Astro);
+
+const OPAP = 'https://opap.jp/';
+const CC = 'https://creativecommons.org/licenses/by/4.0/';
+const platforms = t('site.platforms');
+
+const toolkits = TOOLKITS.map((id) => [t(`apps.toolkit.${id}.platform`), t(`apps.toolkit.${id}.toolkit`)]);
+const across = ['widgets', 'alerts', 'live', 'pip', 'downloads', 'stores', 'handoff'].map((id) => [
+	t(`apps.across.${id}.name`),
+	t(`apps.across.${id}.text`),
+]);
 ---
 
-<html lang="en">
+<html lang={lang} dir={dir}>
 	<head>
-		<SiteHead
-			title="anistream apps · Mac, iPhone, iPad, Android, Android TV, Windows and Linux"
-			description="The anistream apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux. You add sources as plugins, and the apps host no content."
-		/>
+		<SiteHead title={t('apps.title', { platforms })} description={t('apps.description', { platforms })} />
 	</head>
 	<body class="landing apps-page">
 		<SiteNav current="apps" />
 
 		<main>
 			<header class="wrap apps-head">
-				<img class="apps-icon" src={iconUrl} width="96" height="96" alt="The anistream app icon: Nagare, the mascot, on the dusk ground" />
-				<h1>anistream for Mac, iPhone, iPad, Android, Android TV, Windows and Linux</h1>
-				<p class="lede">
-					Browsing needs no account, and episodes play inside the app. Your history syncs to your
-					trackers. You add sources as plugins.
-				</p>
+				<img class="apps-icon" src={iconUrl} width="96" height="96" alt={t('apps.head.iconAlt')} />
+				<h1>{t('apps.head.title', { platforms })}</h1>
+				<p class="lede">{t('apps.head.lede')}</p>
 				<div class="actions">
-					<a class="btn btn-primary" href="#download">Download</a>
-					<a class="btn" href={INSTALL_APPS}>Installation steps</a>
+					<a class="btn btn-primary" href="#download">{t('apps.head.download')}</a>
+					<a class="btn" href={href(INSTALL_APPS)}>{t('apps.head.steps')}</a>
 				</div>
-				<p class="hero-note">
-					Downloads from GitHub<span data-release-tag=" · Latest release {tag}" hidden></span>
+				<p class="hero-note">{t('apps.head.note')}<span data-release-tag={t('apps.head.release', { tag: '{{tag}}' })} hidden></span>
 				</p>
 			</header>
 
 			<section class="wrap apps-sect" aria-labelledby="native-h">
 				<div class="apps-text">
-					<h2 id="native-h">Toolkits</h2>
-					<p>
-						Each app is built with its platform’s toolkit, and all of them share one engine, written
-						in Rust.
-					</p>
+					<h2 id="native-h">{t('apps.toolkits.title')}</h2>
+					<p>{t('apps.toolkits.text')}</p>
 				</div>
 				<dl class="rows toolkits">
 					{
-						TOOLKITS.map(([platform, toolkit]) => (
+						toolkits.map(([platform, toolkit]) => (
 							<div class="row">
 								<dt>{platform}</dt>
 								<dd>{toolkit}</dd>
@@ -70,194 +66,145 @@ const across: [string, string][] = [
 
 			<section class="wrap apps-sect" aria-labelledby="mac-h">
 				<div class="apps-text">
-					<h2 id="mac-h">Mac</h2>
-					<p>
-						A sidebar for Continue, the calendar, seasonal charts, search, your library and
-						downloads, with Settings in the same window. Play turns the window into the player, and
-						Picture in Picture keeps the episode going while you browse. On a Mac, the app and the
-						terminal app share one history and one config.
-					</p>
-					<p class="apps-needs">macOS 26 or later, on Apple silicon</p>
+					<h2 id="mac-h">{t('apps.mac.title')}</h2>
+					<p>{t('apps.mac.text')}</p>
+					<p class="apps-needs">{t('apps.mac.needs')}</p>
 				</div>
 				<div class="apps-shots">
-					<Shot name="mac-continue" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt="The Mac app on Continue: a banner for the show in progress with a button to resume its episode, and the other shows in progress beside it" />
+					<Shot name="mac-continue" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt={t('apps.mac.continueAlt')} />
 					<div class="apps-pair">
-						<Shot name="mac-title" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Mac app on a title page: the poster, a button to resume episode 7, the seasons and the episode list" />
-						<Shot name="mac-calendar" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Mac app’s calendar, with the week’s episodes laid out by day" />
+						<Shot name="mac-title" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.mac.titleAlt')} />
+						<Shot name="mac-calendar" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.mac.calendarAlt')} />
 					</div>
 				</div>
 			</section>
 
 			<section class="wrap apps-sect apps-side" aria-labelledby="iphone-h">
 				<div class="apps-text">
-					<h2 id="iphone-h">iPhone</h2>
-					<p>
-						Tabs for Continue, the calendar, seasonal charts, your library and search. A title page
-						opens from its cover, and the player turns to landscape when an episode starts.
-					</p>
-					<p class="apps-needs">iOS 26 or later</p>
+					<h2 id="iphone-h">{t('apps.iphone.title')}</h2>
+					<p>{t('apps.iphone.text')}</p>
+					<p class="apps-needs">{t('apps.iphone.needs')}</p>
 				</div>
 				<div class="ratio-row apps-row">
-					<Shot name="iphone-continue" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The iPhone app on Continue, with the show in progress at the top" />
-					<Shot name="iphone-title" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The iPhone app on a title page, with a button to resume episode 7" />
-					<Shot name="iphone-calendar" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The iPhone app’s calendar for the week" />
+					<Shot name="iphone-continue" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.iphone.continueAlt')} />
+					<Shot name="iphone-title" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.iphone.titleAlt')} />
+					<Shot name="iphone-calendar" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.iphone.calendarAlt')} />
 				</div>
 			</section>
 
 			<section class="wrap apps-sect apps-side" aria-labelledby="ipad-h">
 				<div class="apps-text">
-					<h2 id="ipad-h">iPad</h2>
-					<p>
-						The iPhone app with a sidebar. Title pages put the episode list next to the show’s
-						details, and the calendar shows the whole week.
-					</p>
-					<p class="apps-needs">iPadOS 26 or later</p>
+					<h2 id="ipad-h">{t('apps.ipad.title')}</h2>
+					<p>{t('apps.ipad.text')}</p>
+					<p class="apps-needs">{t('apps.ipad.needs')}</p>
 				</div>
 				<div class="apps-shots">
-					<Shot name="ipad-continue" frame="tablet" sizes="(min-width: 1200px) 780px, calc(100vw - 32px)" alt="The iPad app on Continue, with the sidebar open" />
+					<Shot name="ipad-continue" frame="tablet" sizes="(min-width: 1200px) 780px, calc(100vw - 32px)" alt={t('apps.ipad.continueAlt')} />
 					<div class="apps-pair">
-						<Shot name="ipad-title" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt="The iPad app on a title page, with the episode list beside the show’s details" />
-						<Shot name="ipad-calendar" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt="The iPad app’s calendar for the week" />
+						<Shot name="ipad-title" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt={t('apps.ipad.titleAlt')} />
+						<Shot name="ipad-calendar" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt={t('apps.ipad.calendarAlt')} />
 					</div>
 				</div>
 			</section>
 
 			<section class="wrap apps-sect apps-side" aria-labelledby="android-h">
 				<div class="apps-text">
-					<h2 id="android-h">Android phones</h2>
-					<p>
-						A navigation bar for Continue, the calendar, seasonal charts, your library and search,
-						with predictive back throughout. Episodes play in landscape.
-					</p>
-					<p class="apps-needs">Android 15 or later, on 64-bit ARM</p>
+					<h2 id="android-h">{t('apps.android.title')}</h2>
+					<p>{t('apps.android.text')}</p>
+					<p class="apps-needs">{t('apps.android.needs')}</p>
 				</div>
 				<div class="ratio-row apps-row">
-					<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The Android app on Continue" />
-					<Shot name="android-title" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The Android app on a title page" />
-					<Shot name="android-calendar" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The Android app’s calendar for the week" />
+					<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.android.continueAlt')} />
+					<Shot name="android-title" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.android.titleAlt')} />
+					<Shot name="android-calendar" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt={t('apps.android.calendarAlt')} />
 				</div>
 			</section>
 
 			<section class="wrap apps-sect apps-side" aria-labelledby="tablet-h">
 				<div class="apps-text">
-					<h2 id="tablet-h">Android tablets and foldables</h2>
-					<p>
-						On a tablet or an unfolded phone the navigation moves to a rail at the side, and a title
-						page sets the show’s details beside its banner, with the episodes in two columns.
-					</p>
-					<p class="apps-needs">Android 15 or later, on 64-bit ARM</p>
+					<h2 id="tablet-h">{t('apps.tablet.title')}</h2>
+					<p>{t('apps.tablet.text')}</p>
+					<p class="apps-needs">{t('apps.tablet.needs')}</p>
 				</div>
 				<div class="apps-shots">
-					<Shot name="tablet-continue" frame="tablet" sizes="(min-width: 1200px) 780px, calc(100vw - 32px)" alt="The Android app on a tablet, on Continue" />
+					<Shot name="tablet-continue" frame="tablet" sizes="(min-width: 1200px) 780px, calc(100vw - 32px)" alt={t('apps.tablet.continueAlt')} />
 					<div class="apps-pair">
-						<Shot name="tablet-title" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt="The Android app on a tablet, on a title page" />
-						<Shot name="tablet-calendar" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt="The Android app’s calendar on a tablet" />
+						<Shot name="tablet-title" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt={t('apps.tablet.titleAlt')} />
+						<Shot name="tablet-calendar" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt={t('apps.tablet.calendarAlt')} />
 					</div>
 				</div>
 			</section>
 
 			<section class="wrap apps-sect" aria-labelledby="tv-h">
 				<div class="apps-text">
-					<h2 id="tv-h">Android TV</h2>
-					<p>
-						A separate app made for the remote, with large buttons and a rail for search, Continue,
-						the calendar, seasonal charts and your library. The show you’re watching appears in the
-						TV’s Watch Next row. You sign in to trackers and set up torrents from your phone, with no
-						typing on the TV.
-					</p>
-					<p class="apps-needs">Android TV 11 or later, on ARM</p>
+					<h2 id="tv-h">{t('apps.tv.title')}</h2>
+					<p>{t('apps.tv.text')}</p>
+					<p class="apps-needs">{t('apps.tv.needs')}</p>
 				</div>
 				<div class="ratio-row apps-row">
-					<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 588px, 48vw" alt="The Android TV app on Continue: the show in progress with a large button to resume episode 7, and a row of other shows below" />
-					<Shot name="tv-search" frame="screen" sizes="(min-width: 1200px) 588px, 48vw" alt="The Android TV app’s search with nothing typed: the on-screen keyboard, filter chips with Adventure picked, and two matching titles" />
+					<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 588px, 48vw" alt={t('apps.tv.continueAlt')} />
+					<Shot name="tv-search" frame="screen" sizes="(min-width: 1200px) 588px, 48vw" alt={t('apps.tv.searchAlt')} />
 				</div>
 			</section>
 
 			<section class="wrap apps-sect" aria-labelledby="play-tv-h">
 				<div class="apps-text">
-					<h2 id="play-tv-h">Play on TV</h2>
-					<p>
-						The Mac, iPhone, iPad, Android, Windows and Linux apps send an episode to the TV app on the
-						same network, once you have paired them with the code or the QR code the TV shows. The TV
-						plays the episode, and your phone or computer works as the remote, with pause, seek, next
-						episode, subtitles, audio and volume. A phone can also type a search on the TV.
-					</p>
+					<h2 id="play-tv-h">{t('apps.playTv.title')}</h2>
+					<p>{t('apps.playTv.text')}</p>
 				</div>
 				<div class="ratio-row apps-row">
-					<Shot name="tv-title" frame="screen" sizes="(min-width: 1200px) 900px, 70vw" alt="The Android TV app on a title page, with a button to resume episode 7 and the episode list" />
-					<Shot name="iphone-tv-remote" frame="phone" sizes="(min-width: 1200px) 230px, 30vw" alt="The iPhone app as the TV’s remote: the episode playing, play and seek buttons, subtitles, audio and the TV’s volume" />
+					<Shot name="tv-title" frame="screen" sizes="(min-width: 1200px) 900px, 70vw" alt={t('apps.playTv.titleAlt')} />
+					<Shot name="iphone-tv-remote" frame="phone" sizes="(min-width: 1200px) 230px, 30vw" alt={t('apps.playTv.remoteAlt')} />
 				</div>
 			</section>
 
 			<section class="wrap apps-sect" aria-labelledby="windows-h">
 				<div class="apps-text">
-					<h2 id="windows-h">Windows</h2>
-					<p>
-						A navigation pane for Continue, the calendar, seasonal charts, your library and
-						downloads, and search with filters in the title bar. Episodes play in the window, with
-						the media keys and taskbar buttons, and the mini player stays on top. New episodes and
-						finished downloads show as Windows notifications.
-					</p>
-					<p class="apps-needs">Windows 10 version 2004 or later, on x64 or Arm64</p>
+					<h2 id="windows-h">{t('apps.windows.title')}</h2>
+					<p>{t('apps.windows.text')}</p>
+					<p class="apps-needs">{t('apps.windows.needs')}</p>
 				</div>
 				<div class="apps-shots apps-shots-narrow">
-					<Shot name="windows-title" frame="window" sizes="(min-width: 1200px) 1030px, calc(100vw - 32px)" alt="The Windows app on a title page: the poster, a button to resume episode 7 and the episode list" />
+					<Shot name="windows-title" frame="window" sizes="(min-width: 1200px) 1030px, calc(100vw - 32px)" alt={t('apps.windows.titleAlt')} />
 					<div class="apps-pair">
-						<Shot name="windows-search" frame="window" sizes="(min-width: 1200px) 507px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Windows app’s Browse page: Adventure picked from the genre filter, sorted by popularity, and two matching titles" />
-						<Shot name="windows-stores" frame="window" sizes="(min-width: 1200px) 507px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Windows app’s plugin stores: the stores you joined, and one store’s plugins with Install and Update buttons" />
+						<Shot name="windows-search" frame="window" sizes="(min-width: 1200px) 507px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.windows.searchAlt')} />
+						<Shot name="windows-stores" frame="window" sizes="(min-width: 1200px) 507px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.windows.storesAlt')} />
 					</div>
 				</div>
 			</section>
 
 			<section class="wrap apps-sect" aria-labelledby="linux-h">
 				<div class="apps-text">
-					<h2 id="linux-h">Linux</h2>
-					<p>
-						An app that fits in on a GNOME desktop, with a sidebar that folds away in a narrow window
-						and a week view for the calendar. New episodes show as desktop notifications, and the
-						media keys work.
-					</p>
-					<p class="apps-needs">
-						An AppImage for x86-64 or ARM64. It needs glibc 2.41 or newer: Ubuntu 25.04 or later,
-						including 26.04 LTS, Fedora 42 or later, or Debian 13. Ubuntu 24.04 is too old for it.
-					</p>
+					<h2 id="linux-h">{t('apps.linux.title')}</h2>
+					<p>{t('apps.linux.text')}</p>
+					<p class="apps-needs">{t('apps.linux.needs')}</p>
 				</div>
 				<div class="apps-shots">
-					<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt="The Linux app on Continue: the shows in progress, and the one picked with a button to resume its episode" />
+					<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt={t('apps.linux.continueAlt')} />
 					<div class="apps-pair">
-						<Shot name="linux-title" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Linux app on a title page, with the season picker, the episode list and a related title" />
-						<Shot name="linux-calendar" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Linux app’s calendar, with the week laid out by day" />
+						<Shot name="linux-title" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.linux.titleAlt')} />
+						<Shot name="linux-calendar" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt={t('apps.linux.calendarAlt')} />
 					</div>
 				</div>
 			</section>
 
 			<section class="wrap apps-sect" aria-labelledby="player-h">
 				<div class="apps-text">
-					<h2 id="player-h">The player</h2>
-					<p>
-						Every app has mpv built in, and its controls fade while you watch. It plays MKV files
-						with their styled subtitles and upscales with ArtCNN or Anime4K, as the terminal app
-						does. A button skips the opening, and Up Next comes up at the ending.
-					</p>
+					<h2 id="player-h">{t('apps.player.title')}</h2>
+					<p>{t('apps.player.text')}</p>
 				</div>
 				<div class="apps-shots">
-					<Shot name="mac-player" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt="The Mac app’s player, with its controls over the picture" />
+					<Shot name="mac-player" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt={t('apps.player.macAlt')} />
 					<div class="ratio-row">
-						<Shot name="iphone-player" frame="phone" sizes="(min-width: 1200px) 588px, 48vw" alt="The iPhone app’s player in landscape" />
-						<Shot name="android-player" frame="phone" sizes="(min-width: 1200px) 588px, 48vw" alt="The Android app’s player in landscape" />
+						<Shot name="iphone-player" frame="phone" sizes="(min-width: 1200px) 588px, 48vw" alt={t('apps.player.iphoneAlt')} />
+						<Shot name="android-player" frame="phone" sizes="(min-width: 1200px) 588px, 48vw" alt={t('apps.player.androidAlt')} />
 					</div>
 				</div>
-				<p class="apps-credit">
-					The player shows{' '}
-					<a href="https://opap.jp/">こうしす！ #3.1</a>{' '}
-					by OPAP-JP contributors, licensed{' '}
-					<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Every other title and
-					picture on this page is made up.
-				</p>
+				<p class="apps-credit" set:html={t('apps.player.credit', { opap: OPAP, licence: CC })} />
 			</section>
 
 			<section class="wrap apps-sect" aria-labelledby="across-h">
-				<h2 id="across-h">Other features</h2>
+				<h2 id="across-h">{t('apps.across.title')}</h2>
 				<dl class="rows apps-rows">
 					{
 						across.map(([name, text]) => (
@@ -269,32 +216,28 @@ const across: [string, string][] = [
 					}
 				</dl>
 				<div class="actions apps-compare">
-					<a class="btn" href={`${FEATURES}#platforms`}>Compare the apps</a>
+					<a class="btn" href={href(`${FEATURES}#platforms`)}>{t('apps.across.compare')}</a>
 				</div>
 			</section>
 
 			<section class="wrap apps-sect" id="download" aria-labelledby="get-h">
-				<h2 id="get-h">Download</h2>
-				<p class="lede">
-					The apps aren’t in the App Store or on Google Play, so the first install takes one extra
-					step, covered in the installation guide. After that they update themselves, iPhone and
-					iPad through SideStore or AltStore.
-				</p>
+				<h2 id="get-h">{t('apps.download.title')}</h2>
+				<p class="lede">{t('apps.download.lede')}</p>
 				<DownloadSuggest />
-				<h3 class="dl-others">Other platforms</h3>
+				<h3 class="dl-others">{t('dl.others')}</h3>
 				<ul class="downloads">
 					{
 						APP_DOWNLOADS.map((a) => (
 							<li data-dl-app={a.id}>
 								<div class="dl-name">
-									<span class="dl-platform">{a.platform}</span>
-									<span class="dl-needs">{a.needs}</span>
-									<a class="dl-guide" href={a.guide}>How to install</a>
+									<span class="dl-platform">{t(`dl.app.${a.id}.platform`)}</span>
+									<span class="dl-needs">{t(`dl.app.${a.id}.needs`)}</span>
+									<a class="dl-guide" href={href(a.guide)}>{t('dl.howTo')}</a>
 								</div>
 								<span class="dl-btns">
 									{a.files.map((f) => (
 										<a class="btn dl-btn" href={LATEST} data-asset={f.suffix}>
-											Download{f.arch && ` ${f.arch}`} <span class="dl-size" data-asset-size></span>
+											{f.arch ? t('dl.downloadArch', { arch: f.arch }) : t('dl.download')} <span class="dl-size" data-asset-size></span>
 										</a>
 									))}
 								</span>
@@ -302,21 +245,17 @@ const across: [string, string][] = [
 						))
 					}
 				</ul>
-				<p class="legal-lead apps-legal">{LEGAL}</p>
-				<p class="lede">
-					Plugins and sources are yours to add, and what you point them at is your decision and your
-					risk, under the laws that apply to you.
-				</p>
-				<p class="lede apps-privacy">
-					What the apps send, and what they keep on your device, is on the <a href={PRIVACY}>privacy page</a>.
-				</p>
+				<p class="legal-lead apps-legal">{t('site.legal')}</p>
+				<p class="lede">{t('apps.download.legal')}</p>
+				<p class="lede apps-privacy" set:html={t('apps.download.privacy', { privacy: href(PRIVACY) })} />
 			</section>
 		</main>
 
 		<SiteFooter />
+		<LanguageSuggest />
 
 		<script>
-			import '../scripts/latest-release.ts';
+			import '../../scripts/latest-release.ts';
 		</script>
 	</body>
 </html>
