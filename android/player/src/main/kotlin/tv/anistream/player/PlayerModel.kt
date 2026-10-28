@@ -1140,7 +1140,7 @@ class PlayerModel(
         episode?.let { return it.line }
         val number = staged?.episode ?: starting?.episode ?: ""
         val title = staged?.episodeTitle ?: starting?.episodeTitle
-        return if (title != null) Strings.episodeNumberTitleText(context, number, title) else Strings.episodeNumberText(context, number)
+        return if (title != null) Strings.episodeNumberTitleText(context, number, title) else Strings.episodeNumberPlain(context, number)
     }
 
     /** The title playing, for the art and the way back. */

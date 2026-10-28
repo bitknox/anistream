@@ -141,7 +141,7 @@ object AirTime {
 object Wording {
     /** A countdown in the largest unit that still reads at a glance: `6d 17h`, `2h 5m`, `4m`, `now`. */
     fun countdown(context: Context, seconds: Long): String {
-        if (seconds <= 0) return Strings.timeNow(context)
+        if (seconds <= 0) return Strings.timeNowInline(context)
         val minutes = seconds / 60
         val hours = minutes / 60
         val days = hours / 24
@@ -158,7 +158,7 @@ object Wording {
 
     /** How long ago: `2d ago`, or `just now` under a minute. */
     fun ago(context: Context, seconds: Long): String =
-        if (seconds < 60) Strings.timeJustNow(context) else Strings.timeAgo(context, countdown(context, seconds))
+        if (seconds < 60) Strings.timeJustNowInline(context) else Strings.timeAgo(context, countdown(context, seconds))
 
     /** Names in a sentence: "Kumo", "Kumo and Natsukaze", "Kumo, Hoshi and Natsukaze". */
     fun list(names: List<String>): String = when (names.size) {

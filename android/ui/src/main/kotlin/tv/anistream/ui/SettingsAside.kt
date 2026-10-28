@@ -176,7 +176,7 @@ private fun Chip(text: String, modifier: Modifier = Modifier) {
 
 /** What each upscaling mode does, under the drawing. */
 internal fun upscalingNote(mode: String): Int = when (mode) {
-    "off" -> R.string.settings_upscaling_note_off
+    "off" -> R.string.settings_upscaling_note_off_original
     "sharp · Anime4K" -> R.string.settings_upscaling_note_sharp
     else -> R.string.settings_upscaling_note_natural
 }

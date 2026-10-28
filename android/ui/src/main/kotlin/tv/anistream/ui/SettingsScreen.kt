@@ -413,7 +413,7 @@ internal object AccountWords {
         val at = syncedAt[state.tracker]
         if (at != null) {
             val seconds = (System.currentTimeMillis() - at) / 1000
-            return AccountStatus(if (seconds < 60) Strings.accountsSyncDone(context) + " " + Strings.timeJustNow(context) else Strings.accountsSyncedAgo(context, Wording.ago(context, seconds)), colors.secondary) // i18n-skip
+            return AccountStatus(if (seconds < 60) Strings.accountsSyncDone(context) + " " + Strings.timeJustNowInline(context) else Strings.accountsSyncedAgo(context, Wording.ago(context, seconds)), colors.secondary) // i18n-skip
         }
         return AccountStatus(Strings.accountsSyncDone(context), colors.secondary)
     }

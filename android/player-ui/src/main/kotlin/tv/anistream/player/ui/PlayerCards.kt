@@ -174,7 +174,7 @@ private fun UpNextCard(model: PlayerModel) {
             }
             Column(Modifier.weight(1f)) {
                 Text(upNextTitle, style = MaterialTheme.typography.labelSmall, color = ObiSilk.Haze)
-                Text(Strings.episodeNumberText(LocalContext.current, card.next.number), style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk)
+                Text(Strings.episodeNumberPlain(LocalContext.current, card.next.number), style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk)
                 card.next.title?.let {
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }

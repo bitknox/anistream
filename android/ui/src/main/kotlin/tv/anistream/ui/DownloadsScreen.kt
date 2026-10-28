@@ -238,7 +238,7 @@ private fun GroupHeader(group: DownloadGroup, entry: Entry?) {
         Column(Modifier.weight(1f)) {
             Text(entry?.showTitle ?: group.title, style = ShowTitle.row, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                pluralStringResource(R.plurals.downloads_group_line, group.rows.size, group.rows.size, Wording.bytes(LocalContext.current, group.bytesOnDisk)),
+                pluralStringResource(R.plurals.downloads_group_summary, group.rows.size, group.rows.size, Wording.bytes(LocalContext.current, group.bytesOnDisk)),
                 style = MaterialTheme.typography.bodyMedium.tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
