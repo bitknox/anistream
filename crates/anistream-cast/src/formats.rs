@@ -386,6 +386,12 @@ impl MediaInfo {
         self.audio.get(self.audio_choice).or_else(|| self.audio.first())
     }
 
+    /// Whether the audio chosen is the file's first track, what a player with no choice of its
+    /// own plays.
+    pub fn chosen_is_first(&self) -> bool {
+        self.audio_choice == 0 || self.audio_choice >= self.audio.len()
+    }
+
     /// Choose the first audio track in `language`, when one is.
     pub fn choose_language(&mut self, language: Option<&str>) {
         let Some(language) = language.map(two_letter) else { return };
@@ -509,8 +515,11 @@ pub fn cast_plans(
             }
             // Then the file as it is: for a file the remuxer can't read, and for a TV that
             // refuses the remux's HLS where it plays the file, as the Nest Hub does at 1080
-            // lines. Its audio can't change.
-            if let Some(audio) = copy_in(Delivery::Mkv) {
+            // lines. Its audio can't change, and the TV's media element plays the file's
+            // first track, so only when that is the one chosen.
+            if media.chosen_is_first()
+                && let Some(audio) = copy_in(Delivery::Mkv)
+            {
                 plans.push(plan(CastRoute::Relayed { remux: false }, audio, Delivery::Mkv));
             }
             if plans.is_empty() {
@@ -829,5 +838,37 @@ mod tests {
         assert_eq!(info.audio_choice, 0);
         info.choose_language(Some("fr"));
         assert_eq!(info.audio_choice, 0, "no French: as it was");
+    }
+
+    #[test]
+    fn a_file_passed_through_only_when_the_chosen_audio_is_the_one_it_plays() {
+        let track = |codec, language: &str| AudioTrack {
+            codec: Some(codec),
+            channels: 2,
+            language: Some(language.into()),
+        };
+        let mut info = MediaInfo {
+            audio: vec![track(AudioCodec::Eac3, "eng"), track(AudioCodec::Aac, "jpn")],
+            ..media(VideoFormat::H264, AudioCodec::Aac, Delivery::Mkv)
+        };
+        let passed_through = |info: &MediaInfo| {
+            cast_plans(
+                &source(SourceKind::Torrent, false),
+                info,
+                &CastCaps::default(),
+                &CorsProbe::default(),
+                &NoEncoder,
+            )
+            .unwrap()
+            .iter()
+            .any(|plan| plan.route == CastRoute::Relayed { remux: false })
+        };
+        // A sub watcher's Japanese is the second track: the TV would play the English one.
+        info.choose_language(Some("ja"));
+        assert!(!passed_through(&info));
+        info.audio.swap(0, 1);
+        info.choose_language(Some("ja"));
+        assert_eq!(info.audio_choice, 0);
+        assert!(passed_through(&info));
     }
 }
