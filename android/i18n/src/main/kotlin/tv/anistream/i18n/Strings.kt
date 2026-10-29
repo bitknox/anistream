@@ -833,6 +833,46 @@ object Strings {
     fun noticeOpenStores(context: Context): String =
         context.getString(R.string.notice_open_stores)
 
+    /** Settings row: whether an episode's AniList discussion can be opened. */
+    fun settingsDiscussionsLabel(context: Context): String =
+        context.getString(R.string.settings_discussions_label)
+
+    /** Note under the Episode discussions setting. */
+    fun settingsDiscussionsNote(context: Context): String =
+        context.getString(R.string.settings_discussions_note)
+
+    /** Settings row: whether images in comments load inline. */
+    fun settingsDiscussionImagesLabel(context: Context): String =
+        context.getString(R.string.settings_discussion_images_label)
+
+    /** Note under the Load images in comments setting. */
+    fun settingsDiscussionImagesNote(context: Context): String =
+        context.getString(R.string.settings_discussion_images_note)
+
+    /** Word on a comment that was just sent and has not been answered yet. */
+    fun discussionSending(context: Context): String =
+        context.getString(R.string.discussion_sending)
+
+    /** Line in place of the comments while AniList asks the app to wait. The time is a countdown such as 20 s. */
+    fun discussionWaiting(context: Context, time: String): String =
+        context.getString(R.string.discussion_waiting, time)
+
+    /** Button that unfolds a comment cut at ten lines. */
+    fun discussionShowMore(context: Context): String =
+        context.getString(R.string.discussion_show_more)
+
+    /** Menu item that copies a comment's text. */
+    fun discussionCopyText(context: Context): String =
+        context.getString(R.string.discussion_copy_text)
+
+    /** Line for an image in a comment when images do not load inline. The host is where it lives. */
+    fun discussionImageHost(context: Context, host: String): String =
+        context.getString(R.string.discussion_image_host, host)
+
+    /** Line for a video in a comment. The host is where it lives. */
+    fun discussionVideoHost(context: Context, host: String): String =
+        context.getString(R.string.discussion_video_host, host)
+
     /** Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. */
     fun tvPairRequestHeld(context: Context, phone: String, code: String): String =
         context.getString(R.string.tv_pair_request_held, phone, code)
@@ -1272,6 +1312,10 @@ object Strings {
     /** Spoken progress on a card for TalkBack, with the formatted percentage */
     fun tvCardProgressSpoken(context: Context, percent: String): String =
         context.getString(R.string.tv_card_progress_spoken, percent)
+
+    /** TV, discussion panel footer: replying needs a phone. */
+    fun tvDiscussionFooter(context: Context): String =
+        context.getString(R.string.tv_discussion_footer)
 
     /** A countdown that has run out. */
     fun timeNowInline(context: Context): String =

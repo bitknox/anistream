@@ -115,6 +115,19 @@ internal object Icons {
             addPath(addPathNodes("M12 ${y - 1.5f} A1.5 1.5 0 1 1 11.99 ${y - 1.5f} Z"), fill = SolidColor(Color.Black))
         }
     }.build()
+    /** A heart in outline, and filled once the comment is liked. */
+    val Heart = stroked("Heart", "M12 20 C5.5 15.2 3.5 12 3.5 9.2 A4.2 4.2 0 0 1 12 7.4 A4.2 4.2 0 0 1 20.5 9.2 C20.5 12 18.5 15.2 12 20 Z")
+    val HeartFilled = ImageVector.Builder(
+        name = "HeartFilled", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f,
+    ).apply {
+        addPath(
+            pathData = addPathNodes("M12 20 C5.5 15.2 3.5 12 3.5 9.2 A4.2 4.2 0 0 1 12 7.4 A4.2 4.2 0 0 1 20.5 9.2 C20.5 12 18.5 15.2 12 20 Z"),
+            fill = SolidColor(Color.Black),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineJoin = StrokeJoin.Round,
+        )
+    }.build()
     val Down = stroked("Down", "M7 10 L12 15 L17 10")
 
     /** A menu's own arrow, the filled triangle a dropdown row ends with; tinted like the rest. */

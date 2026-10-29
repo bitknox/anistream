@@ -487,3 +487,8 @@ tv-show-back-to-defaults = Back to defaults
 # @only android
 # @arg percent: text
 tv-card-progress-spoken = { $percent } watched
+
+# TV, discussion panel footer: replying needs a phone.
+# @only android
+# @max 60
+tv-discussion-footer = To reply, open this discussion on your phone.
