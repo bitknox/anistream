@@ -8,6 +8,7 @@ package tv.anistream.tv.screens
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import tv.anistream.i18n.R
+import tv.anistream.tv.ui.TrailerScreen
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -244,6 +245,7 @@ private fun Header(
     val store = LocalAppStore.current
     val actions = LocalActions.current
     val context = LocalContext.current
+    var watching by remember { mutableStateOf(false) }
     HeroHeader(entry, rows, modifier) {
         Spacer(Modifier.height(6.dp))
         Text(entry.metadataLine(context), style = MaterialTheme.typography.labelSmall, color = ObiSilk.Haze, maxLines = 1)
@@ -260,6 +262,20 @@ private fun Header(
                 ) { ButtonLabel(if (action.unsourced) Strings.episodeUnsourced(context) else action.label(context)) }
             }
             Spacer(Modifier.width(16.dp))
+            val trailer = entry.trailer
+            if (trailer != null) {
+                TonalButton(
+                    onClick = { watching = true },
+                    modifier = Modifier.remembered(memory, "trailer"),
+                ) { ButtonLabel(stringResource(R.string.title_trailer)) }
+                Spacer(Modifier.width(16.dp))
+                if (watching) {
+                    TrailerScreen(trailer) {
+                        watching = false
+                        memory.focus("trailer")
+                    }
+                }
+            }
             val status = entry.listStatus
             TonalButton(
                 onClick = { actions?.open(statusSheet(context, store, entry.id, entry.title, status)) },
