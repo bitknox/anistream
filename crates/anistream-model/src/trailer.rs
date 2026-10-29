@@ -133,6 +133,23 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
   var player = null;
   var showing = false;
   var watch = 0;
+  var tail = 0;
+  var told = false;
+  function stopTail() {
+    if (tail) { clearInterval(tail); tail = 0; }
+  }
+  // Half a second before the end, so a front end can bring its banner back in time.
+  function watchTail() {
+    stopTail();
+    tail = setInterval(function () {
+      if (!player || !player.getDuration || !player.getCurrentTime) { return; }
+      var length = player.getDuration();
+      if (length > 1 && length - player.getCurrentTime() <= 0.5 && !told) {
+        told = true;
+        say("ending");
+      }
+    }, 100);
+  }
   function frames(then) {
     requestAnimationFrame(function () { requestAnimationFrame(then); });
   }
@@ -173,18 +190,22 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
         onStateChange: function (event) {
           if (event.data === 1) {
             whenMoving();
+            watchTail();
           } else if (event.data === 2) {
             stopWatching();
+            stopTail();
             showing = false;
             say("paused");
           } else if (event.data === 0) {
             stopWatching();
+            stopTail();
             showing = false;
             say("ended");
           }
         },
         onError: function (event) {
           stopWatching();
+          stopTail();
           say("error:" + event.data);
         }
       }
@@ -205,6 +226,11 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
 </body>
 </html>
 "#;
+
+/// What the page posts half a second before the trailer ends: the banner comes back now. It is
+/// not a [`TrailerMessage`], so [`TrailerMessage::parse`] ignores it and a front end that does not
+/// know it loses nothing; the `ended` that follows still comes.
+pub const ENDING_MESSAGE: &str = "ending";
 
 /// What the page says, as the front end hands it back.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -506,6 +532,13 @@ mod tests {
         assert_eq!(TrailerMessage::parse("playing"), Some(TrailerMessage::Playing));
         assert_eq!(TrailerMessage::parse("paused"), Some(TrailerMessage::Paused));
         assert_eq!(TrailerMessage::parse("ended\n"), Some(TrailerMessage::Ended));
+        assert_eq!(
+            TrailerMessage::parse(ENDING_MESSAGE),
+            None,
+            "a front end that has no use for it"
+        );
+        let page = embed_page(&youtube("abc"), EmbedStyle::Banner, &app()).unwrap();
+        assert!(page.contains(&format!("say(\"{ENDING_MESSAGE}\")")), "the page says it");
         assert_eq!(
             TrailerMessage::parse("error:150"),
             Some(TrailerMessage::Error { code: 150 })

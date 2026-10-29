@@ -27,6 +27,11 @@ use crate::{
     window::{Ctx, Size},
 };
 
+/// The banner's tallest height: the band the head stands over.
+const BAND: i32 = 328;
+/// How far the head runs below the band when a trailer may play.
+const HEAD_BELOW: i32 = 100;
+
 /// How far a watched episode's still dims.
 const WATCHED: f64 = 0.55;
 
@@ -453,23 +458,30 @@ impl Page {
         let hub = &self.ctx.hub;
         // The banner, once: its art does not change with the detail.
         if !self.banner_filled.replace(true) {
-            let fit = widgets::faded_banner(hub, entry, 360);
+            let fit = widgets::faded_banner(hub, entry, BAND);
             let trailer = self.navigation.upgrade().map(|navigation| {
-                crate::trailer::PageTrailer::new(
-                    &self.ctx,
-                    entry.id.get(),
-                    &fit,
-                    &self.head,
-                    &self.header,
-                    &navigation,
-                )
+                crate::trailer::PageTrailer::new(&self.ctx, entry.id.get(), &fit, &navigation)
             });
             match &trailer {
-                Some(trailer) => self.banner.append(&trailer.stage.widget),
+                Some(trailer) => {
+                    self.banner.append(&trailer.stage.widget);
+                    // The sound button hangs under the video's corner, over the head's layer.
+                    if let Some(grid) = self.banner.parent().and_downcast::<gtk::Grid>() {
+                        trailer.sound.set_halign(gtk::Align::End);
+                        trailer.sound.set_valign(gtk::Align::Start);
+                        trailer.sound.set_margin_top(crate::trailer::Slot::video_bottom() + 8);
+                        trailer.sound.set_margin_end(crate::trailer::Slot::video_end());
+                        grid.attach(&trailer.sound, 0, 0, 1, 1);
+                    }
+                }
                 None => self.banner.append(&fit),
             }
             self.trailer.replace(trailer);
         }
+        // A title with a trailer gets its room when the page opens: the head stands 100 below the
+        // band, with the video's corner clear above it, so nothing moves when the trailer plays.
+        let room = entry.trailer.is_some() && !narrow;
+        self.banner.set_margin_bottom(if room { HEAD_BELOW } else { 0 });
         let id = entry.id.get();
 
         let text = gtk::Box::new(gtk::Orientation::Vertical, 6);
@@ -599,13 +611,6 @@ impl Page {
         if !narrow {
             actions.append(&status);
             actions.append(&more);
-        }
-        // The trailer's sound button, at the trailing end, while one plays.
-        if let Some(trailer) = self.trailer.borrow().as_ref() {
-            if trailer.sound.parent().is_some() {
-                trailer.sound.unparent();
-            }
-            actions.append(&trailer.sound);
         }
         text.append(&actions);
         if narrow {

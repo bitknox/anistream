@@ -1,13 +1,15 @@
-//! A title page's trailer: it plays behind the banner once the page has settled, and the banner
-//! clears over it when a frame is playing.
+//! A title page's trailer: it plays in the corner of the band once the page has settled, and the
+//! banner clears over it when a frame is playing.
 //!
 //! The page opens with its banner as it always did. After the transition has ended and half a
 //! second has passed, and when the engine allows autoplay for this title, the trailer loads under
-//! the banner. Nothing is drawn over the video: the header bar's band stays clear of it, the
-//! banner and its scrim are gone, and the title and its actions step down below it. Scrolling
-//! the page more than 8 px pauses the trailer and brings the banner back; scrolling to the top
-//! within 30 s plays it again, and after 30 away it is let go of for this visit. Leaving the
-//! page, starting an episode, opening a dialog or the window losing focus releases it at once.
+//! the banner. Nothing is drawn over the video: the banner and its scrim fade to the page's own
+//! colour, the video sits at 448 by 252 in the band's corner, and the title and its actions stay
+//! where they were. The sound button hangs below the video's corner. Half a second before the end
+//! the banner comes back. Scrolling the page more than 8 px brings the banner back and then
+//! pauses the trailer; scrolling to the top within 30 s plays it again, and after 30 away it is
+//! let go of for this visit. Leaving the page, starting an episode, opening a dialog or the
+//! window losing focus releases it at once.
 
 use std::{
     cell::{Cell, RefCell},
@@ -18,42 +20,34 @@ use std::{
 use adw::prelude::*;
 use gtk::glib;
 
-use super::{Stage, may_autoplay, preview};
+use super::{Stage, may_autoplay, preview, stage::Slot};
 use crate::{hub::Hub, window::Ctx};
 
 const SETTLE: Duration = Duration::from_millis(500);
 const AWAY: Duration = Duration::from_secs(30);
 /// Scrolling further than this pauses it.
 const SCROLLED: f64 = 8.0;
-/// Where the head of the page sits over the banner, as its margin says.
-const HEAD_OVER: i32 = 120;
 
 pub struct PageTrailer {
     pub stage: Rc<Stage>,
     pub sound: gtk::ToggleButton,
     ctx: Rc<Ctx>,
     id: u32,
-    head: gtk::Box,
-    header: adw::HeaderBar,
     scrolled: Cell<f64>,
     settled: Cell<bool>,
     /// Let go of for this visit: scrolled away for good.
     abandoned: Cell<bool>,
     settle: RefCell<Option<glib::SourceId>>,
     away: RefCell<Option<glib::SourceId>>,
-    step: RefCell<Option<adw::TimedAnimation>>,
     handlers: RefCell<Vec<glib::SignalHandlerId>>,
 }
 
 impl PageTrailer {
-    /// The trailer for the page of title `id`, whose banner is `banner`. `head` is the block
-    /// that stands over the banner's lower part, `header` the header bar over its top.
+    /// The trailer for the page of title `id`, whose banner is `banner`.
     pub fn new(
         ctx: &Rc<Ctx>,
         id: u32,
         banner: &impl IsA<gtk::Widget>,
-        head: &gtk::Box,
-        header: &adw::HeaderBar,
         navigation: &adw::NavigationPage,
     ) -> Rc<Self> {
         let stage = Stage::new(banner);
@@ -63,14 +57,11 @@ impl PageTrailer {
             sound: sound.clone(),
             ctx: Rc::clone(ctx),
             id,
-            head: head.clone(),
-            header: header.clone(),
             scrolled: Cell::new(0.0),
             settled: Cell::new(false),
             abandoned: Cell::new(false),
             settle: RefCell::default(),
             away: RefCell::default(),
-            step: RefCell::default(),
             handlers: RefCell::default(),
         });
 
@@ -199,9 +190,8 @@ impl PageTrailer {
             return;
         };
         let Some(trailer) = entry.trailer.clone() else { return };
-        let inset = self.header.height().max(0);
-        if may_autoplay(self.hub(), &entry) && self.stage.fits(inset) {
-            self.stage.start(&trailer, inset);
+        if may_autoplay(self.hub(), &entry) && self.stage.fits(Slot::Corner) {
+            self.stage.start(&trailer, Slot::Corner);
         }
     }
 
@@ -237,33 +227,6 @@ impl PageTrailer {
         preview::page_playing(showing);
         if showing {
             self.sound.set_active(false);
-            self.step_to(self.stage.widget.height() + 12);
-        } else if !self.stage.active() {
-            // Gone for good: the title goes back over the banner.
-            self.step_to(HEAD_OVER);
         }
-    }
-
-    /// Move the title block's top margin to `margin`: down below the video, or back over the
-    /// banner.
-    fn step_to(&self, margin: i32) {
-        if let Some(old) = self.step.take() {
-            old.pause();
-        }
-        let head = self.head.clone();
-        let target = adw::CallbackAnimationTarget::new({
-            let head = head.clone();
-            move |value| head.set_margin_top(value.round() as i32)
-        });
-        let animation = adw::TimedAnimation::new(
-            &head,
-            f64::from(head.margin_top()),
-            f64::from(margin),
-            300,
-            target,
-        );
-        animation.set_easing(adw::Easing::EaseOutCubic);
-        animation.play();
-        self.step.replace(Some(animation));
     }
 }
