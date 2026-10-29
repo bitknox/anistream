@@ -64,7 +64,16 @@ pub fn load_source_options(
             &media.match_target(),
             Translation::Sub,
             now,
-            |source, key| async move { source.episodes(&key, Translation::Sub, now).await },
+            |source, key| {
+                crate::titles::coverage::listing(
+                    source,
+                    key,
+                    Translation::Sub,
+                    (&store, id),
+                    &media,
+                    now,
+                )
+            },
         )
         .await;
         let mut said: std::collections::HashMap<_, _> = asked.into_iter().collect();
