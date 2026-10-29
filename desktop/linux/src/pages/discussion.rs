@@ -802,9 +802,11 @@ impl Sheet {
             row.set_margin_start(-8);
             row.set_margin_end(-8);
         }
-        let avatar_class =
-            if depth == 0 { "discussion-avatar" } else { "discussion-avatar small" };
-        let (frame, _) = widgets::art(hub, comment.avatar.as_deref(), None, avatar_class);
+        let (frame, _) =
+            widgets::art(hub, comment.avatar.as_deref(), None, "discussion-avatar");
+        if depth != 0 {
+            frame.add_css_class("small");
+        }
         let face = crate::fit::Fit::new(&frame, 1.0, size, true, 0);
         face.set_valign(gtk::Align::Start);
         face.set_halign(gtk::Align::Start);
