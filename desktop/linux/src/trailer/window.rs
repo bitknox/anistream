@@ -74,6 +74,23 @@ pub fn play(ctx: &Rc<Ctx>, entry: &Entry) -> bool {
     frame.set_child(Some(&web.widget));
     view.set_content(Some(&frame));
     dialog.set_child(Some(&view));
+    // Ctrl-W closes the trailer window, not the app window behind it. Captured before the web
+    // view sees the key.
+    let close = gtk::ShortcutController::new();
+    close.set_propagation_phase(gtk::PropagationPhase::Capture);
+    close.add_shortcut(gtk::Shortcut::new(
+        gtk::ShortcutTrigger::parse_string("<Control>w"),
+        Some(gtk::CallbackAction::new({
+            let dialog = dialog.downgrade();
+            move |_, _| {
+                if let Some(dialog) = dialog.upgrade() {
+                    dialog.close();
+                }
+                glib::Propagation::Stop
+            }
+        })),
+    ));
+    dialog.add_controller(close);
     // Held until the dialog closes, then let go of: the web process and its decoder go with it.
     let held = std::cell::RefCell::new(Some(web));
     dialog.connect_closed({
