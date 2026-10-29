@@ -10480,6 +10480,11 @@ pub fn title_trailer() -> String {
     text("title-trailer", &[])
 }
 
+/// Main button of the title page when every episode of the show is watched: plays episode 1 again.
+pub fn title_button_watch_again() -> String {
+    text("title-button-watch-again", &[])
+}
+
 /// Menu item that plays the trailer.
 pub fn title_play_trailer() -> String {
     text("title-play-trailer", &[])
