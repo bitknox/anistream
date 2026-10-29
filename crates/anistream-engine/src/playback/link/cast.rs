@@ -272,11 +272,9 @@ impl PlayerLink for CastLink {
                 }
             }
             "volume" => {
+                // mpv's 0 to 100, which is the scale the player takes too.
                 if let Some(volume) = number(&value) {
-                    player
-                        .set_volume((volume / 100.0).clamp(0.0, 1.0))
-                        .await
-                        .map_err(failed)?;
+                    player.set_volume(volume.clamp(0.0, 100.0)).await.map_err(failed)?;
                 }
             }
             "mute" => {
@@ -309,7 +307,7 @@ impl PlayerLink for CastLink {
     async fn add(&self, property: &'static str, delta: f64) -> Result<(), LinkError> {
         match property {
             "volume" => {
-                let level = (self.player.volume() + delta / 100.0).clamp(0.0, 1.0);
+                let level = (self.player.volume() + delta).clamp(0.0, 100.0);
                 self.player.set_volume(level).await.map_err(failed)
             }
             "speed" => {
@@ -468,6 +466,70 @@ mod tests {
         assert_eq!(start_of(&options("312.5")), Some(312.5));
         assert_eq!(start_of(&options("later")), None);
         assert_eq!(start_of(&[]), None);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn mpvs_volume_reaches_the_tv_on_its_own_scale() {
+        use std::time::Duration;
+
+        use anistream_cast::{
+            CastMemory, NoEncoder, PlainHttp, Timings,
+            fake::{FakeOptions, FakeReceiver},
+        };
+
+        let receiver = FakeReceiver::start(FakeOptions::default()).await.unwrap();
+        let device = CastDevice {
+            instance: "Chromecast-test".into(),
+            id: "tv-1".into(),
+            name: "Living room".into(),
+            model: "Chromecast".into(),
+            address: receiver.address,
+            video: true,
+            group: false,
+        };
+        let hub = Arc::new(CastHub::with(None, Arc::new(PlainHttp), Timings::default()));
+        let (player, _events) = CastPlayer::connect(CastSetup {
+            device,
+            memory: Arc::new(CastMemory::memory()),
+            upstream: Arc::new(PlainHttp),
+            encoder: Arc::new(NoEncoder),
+            timings: Timings::default(),
+        })
+        .await
+        .unwrap();
+        let link = CastLink {
+            player: Arc::new(player),
+            device: "tv-1".into(),
+            hub,
+            file: Mutex::new(None),
+        };
+        let levels = || -> Vec<f64> {
+            receiver
+                .heard("SET_VOLUME")
+                .iter()
+                .filter_map(|m| m["volume"]["level"].as_f64())
+                .collect()
+        };
+        let settle = |count: usize| {
+            let levels = &levels;
+            let player = Arc::clone(&link.player);
+            async move {
+                let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+                while levels().len() < count || player.volume() != levels()[count - 1] * 100.0 {
+                    assert!(tokio::time::Instant::now() < deadline, "the TV took the volume");
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                }
+            }
+        };
+
+        // mpv's `volume` is 0 to 100, and so is what the TV is set to, in hundredths.
+        link.set("volume", serde_json::json!(70)).await.unwrap();
+        settle(1).await;
+        link.add("volume", -20.0).await.unwrap();
+        settle(2).await;
+        let levels = levels();
+        assert!((levels[0] - 0.7).abs() < 1e-9, "{levels:?}");
+        assert!((levels[1] - 0.5).abs() < 1e-9, "{levels:?}");
     }
 
     #[test]

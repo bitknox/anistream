@@ -263,7 +263,8 @@ impl CastSession {
                 if player.volume_control() == VolumeControl::MuteOnly {
                     return;
                 }
-                let level = (player.volume() + step / 100.0).clamp(0.0, 1.0);
+                // The step and the player's volume are both 0 to 100.
+                let level = (player.volume() + step).clamp(0.0, 100.0);
                 tokio::spawn(async move {
                     if let Err(e) = player.set_volume(level).await {
                         tracing::debug!(error = %e, "the TV didn't take the volume");
@@ -432,6 +433,45 @@ mod tests {
         hub.end();
         assert!(session.card().card.over);
         assert!(sender.cast_session().is_none());
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn the_cards_volume_steps_the_tvs_level_in_hundredths() {
+        let receiver = FakeReceiver::start(FakeOptions::default()).await.unwrap();
+        let (sender, hub, _sent) = sender();
+        let device = CastDevice {
+            instance: "Chromecast-test".into(),
+            id: "tv-1".into(),
+            name: "Living room".into(),
+            model: "Chromecast".into(),
+            address: receiver.address,
+            video: true,
+            group: false,
+        };
+        hub.found(device.clone());
+        let session = sender.cast("cast:tv-1", AnilistId::new(7), "1".into(), None).unwrap();
+        let (player, _events) = CastPlayer::connect(CastSetup {
+            device,
+            memory: hub.memory(),
+            upstream: hub.upstream(),
+            encoder: hub.encoder(),
+            timings: hub.timings(),
+        })
+        .await
+        .unwrap();
+        let player = Arc::new(player);
+        hub.attach(&player);
+        assert_eq!(player.volume(), 40.0, "the fake starts at 0.4");
+
+        // A step of 10 on the card is ten points of the TV's 100.
+        session.command(RemoteCommand::Volume { step: 10.0 });
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+        while receiver.heard("SET_VOLUME").is_empty() {
+            assert!(tokio::time::Instant::now() < deadline, "the step reached the TV");
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        let level = receiver.heard("SET_VOLUME")[0]["volume"]["level"].as_f64().unwrap();
+        assert!((level - 0.5).abs() < 1e-9, "{level}");
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
