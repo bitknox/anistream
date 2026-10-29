@@ -173,8 +173,14 @@ impl TvSender {
         let (hub, engine) = self.hub().ok_or(Problem::Other)?;
         let device_id = key.strip_prefix(CAST).unwrap_or(key);
         let device = hub.device(device_id).ok_or(Problem::Gone)?;
+        // The cast is the hub's from the tap, so the engine still finds the TV when the picker
+        // closes, and forgets what the browse found, before it takes the command.
+        hub.begin(device.clone());
         let command = Command::CastTo { device: device.id.clone(), id, episode, position };
-        engine.send(command).ok_or(Problem::Other)?;
+        if engine.send(command).is_none() {
+            hub.end();
+            return Err(Problem::Other);
+        }
         Ok(Arc::new(CastSession { hub, engine, device }))
     }
 
@@ -433,6 +439,26 @@ mod tests {
         hub.end();
         assert!(session.card().card.over);
         assert!(sender.cast_session().is_none());
+    }
+
+    #[tokio::test]
+    async fn closing_the_picker_right_after_a_tap_still_finds_the_tv() {
+        let (sender, hub, mut sent) = sender();
+        CastSink { hub: Arc::clone(&hub) }.found(found(
+            "Chromecast-a",
+            "10.0.0.20",
+            txt("a", "Bedroom", "Chromecast", "5"),
+        ));
+        sender.cast("cast:a", AnilistId::new(7), "3".into(), None).unwrap();
+        // The app closes the picker before the engine has taken the command.
+        sender.stop_browsing_cast();
+        assert!(sender.cast_rows().is_empty(), "the browse's rows went with the picker");
+        assert!(matches!(sent().as_slice(), [Command::CastTo { .. }]));
+        assert_eq!(
+            hub.device("a").map(|d| d.name),
+            Some("Bedroom".into()),
+            "what the engine looks the TV up by"
+        );
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
