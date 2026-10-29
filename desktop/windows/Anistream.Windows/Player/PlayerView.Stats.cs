@@ -211,6 +211,7 @@ public sealed partial class PlayerView
 
     void OnStatsSized(object sender, SizeChangedEventArgs e)
     {
+        PlaceDiscussion();
         if (StatsLayer.Visibility == Visibility.Visible)
             PlaceStats();
     }

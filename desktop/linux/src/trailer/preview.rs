@@ -10,7 +10,7 @@
 use std::{
     cell::{Cell, RefCell},
     rc::{Rc, Weak},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use adw::prelude::*;
@@ -18,10 +18,13 @@ use anistream_i18n::t;
 use anistream_model::{catalog::Entry, command::Command};
 use gtk::glib;
 
-use super::{Stage, may_autoplay};
+use super::{Stage, may_autoplay, stage::Slot};
 use crate::{fit::Fit, hub::Hub, say, widgets};
 
 const DWELL: Duration = Duration::from_millis(800);
+/// After one preview has closed, the next opens this soon when the pointer rests within `SCAN`.
+const DWELL_NEXT: Duration = Duration::from_millis(300);
+const SCAN: Duration = Duration::from_secs(1);
 const LEAVE: Duration = Duration::from_millis(150);
 /// The pointer may drift this far and still be resting.
 const REST: f64 = 4.0;
@@ -33,6 +36,8 @@ thread_local! {
     static OPEN: RefCell<Option<Rc<Preview>>> = const { RefCell::new(None) };
     /// Whether a title page has its own trailer playing, which gets no previews over it.
     static PAGE_PLAYING: Cell<bool> = const { Cell::new(false) };
+    /// When the last preview closed, for the shorter wait while scanning a row.
+    static CLOSED: Cell<Option<Instant>> = const { Cell::new(None) };
 }
 
 /// A title page's trailer is on screen or is not: no preview opens while it is.
@@ -132,7 +137,9 @@ impl Rest {
         }
         let this = Rc::clone(self);
         let target = target.downgrade();
-        self.dwell.replace(Some(glib::timeout_add_local_once(DWELL, move || {
+        let scanning = CLOSED.with(Cell::get).is_some_and(|at| at.elapsed() < SCAN);
+        let wait = if scanning { DWELL_NEXT } else { DWELL };
+        self.dwell.replace(Some(glib::timeout_add_local_once(wait, move || {
             this.dwell.take();
             let (Some(target), Some(hub)) = (target.upgrade(), this.hub.upgrade()) else {
                 return;
@@ -186,6 +193,7 @@ impl Preview {
         }
         self.popover.popdown();
         self.popover.unparent();
+        CLOSED.with(|closed| closed.set(Some(Instant::now())));
     }
 }
 
@@ -280,26 +288,37 @@ fn open(hub: &Rc<Hub>, target: &gtk::Widget, id: u32) {
     if let Some(trailer) = entry.trailer.clone()
         && may_autoplay(hub, &entry)
     {
-        stage.start(&trailer, 0);
+        stage.start(&trailer, Slot::Fill);
     }
 }
 
-/// The card: banner (with the trailer under it), title, facts, synopsis and the main action.
+/// The card: the video flush at the top, then title, facts, synopsis and the main action, all
+/// one surface with no frame inside it.
 fn card(hub: &Rc<Hub>, entry: &Entry) -> (gtk::Box, Rc<Stage>) {
     let url = entry.banner_url.as_deref().or(entry.cover_url.as_deref());
     let (frame, _) = widgets::art(hub, url, entry.cover_color.as_deref(), "banner");
+    frame.add_css_class("flush");
     let banner = Fit::new(&frame, 16.0 / 9.0, WIDTH, true, 0);
     let stage = Stage::new(&banner);
 
-    let column = gtk::Box::new(gtk::Orientation::Vertical, 8);
-    column.set_size_request(WIDTH, -1);
-    column.append(&stage.widget);
+    let card = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    card.set_size_request(WIDTH, -1);
+    card.set_overflow(gtk::Overflow::Hidden);
+    card.append(&stage.widget);
 
-    let heading = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    let column = gtk::Box::new(gtk::Orientation::Vertical, 4);
+    column.set_margin_top(12);
+    column.set_margin_bottom(16);
+    column.set_margin_start(16);
+    column.set_margin_end(16);
+    card.append(&column);
+
+    let heading = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     let title = widgets::show_title(&entry.title, "row");
     title.set_hexpand(true);
-    title.set_lines(2);
+    title.set_lines(1);
     title.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    title.set_valign(gtk::Align::Center);
     heading.append(&title);
     let sound = sound_button();
     heading.append(&sound);
@@ -326,6 +345,8 @@ fn card(hub: &Rc<Hub>, entry: &Entry) -> (gtk::Box, Rc<Stage>) {
         line.set_ellipsize(gtk::pango::EllipsizeMode::End);
         line.set_xalign(0.0);
         line.set_max_width_chars(48);
+        line.add_css_class("haze");
+        line.set_margin_top(4);
         column.append(&line);
     }
 
@@ -337,16 +358,13 @@ fn card(hub: &Rc<Hub>, entry: &Entry) -> (gtk::Box, Rc<Stage>) {
         let button = gtk::Button::builder().child(&text).halign(gtk::Align::Start).build();
         button.add_css_class("pill");
         button.add_css_class("suggested-action");
+        button.set_margin_top(10);
         button.set_action_name(Some("win.play"));
         button
             .set_action_target_value(Some(&(entry.id.get(), episode.to_string()).to_variant()));
         column.append(&button);
     }
-    column.set_margin_top(10);
-    column.set_margin_bottom(12);
-    column.set_margin_start(10);
-    column.set_margin_end(10);
-    (column, stage)
+    (card, stage)
 }
 
 /// The synopsis with the parts a spoiler tag marks left out.
@@ -369,6 +387,7 @@ pub fn sound_button() -> gtk::ToggleButton {
     let button = gtk::ToggleButton::new();
     button.set_icon_name(sound_icon(false));
     button.add_css_class("flat");
+    button.add_css_class("circular");
     button.set_valign(gtk::Align::Center);
     button.set_tooltip_text(Some(&t::title_trailer_sound()));
     button.update_property(&[gtk::accessible::Property::Label(&t::title_trailer_sound())]);

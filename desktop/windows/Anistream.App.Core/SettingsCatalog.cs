@@ -29,6 +29,7 @@ public static class SettingsCatalog
         SettingKey.PresenceRich,
         SettingKey.Torrents, SettingKey.Syncplay, SettingKey.UpdateCheck, SettingKey.SpoilerProtection,
         SettingKey.DownloadsOnCellular, SettingKey.TorrentsOnCellular, SettingKey.EpisodeNotifications,
+        SettingKey.EpisodeDiscussions, SettingKey.CommentImages,
     ];
 
     /// <summary>
@@ -40,6 +41,7 @@ public static class SettingsCatalog
     {
         SettingKey.SyncplayServer or SettingKey.SyncplayRoom => [SettingKey.Syncplay],
         SettingKey.PresenceTitle => [SettingKey.Presence],
+        SettingKey.CommentImages => [SettingKey.EpisodeDiscussions],
         SettingKey.PresenceRich => [SettingKey.Presence, SettingKey.PresenceTitle],
         _ => [],
     };

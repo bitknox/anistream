@@ -405,6 +405,13 @@ On the ground (`#161A2E`): silk 13.0:1, water 9.1:1, amber 8.5:1 (and ground on 
 - Tab moves between sidebar, list and title page; arrows move inside them; Return opens; Space plays. In the player any key shows the controls, Tab walks them, and they do not hide while one has focus.
 - Every sheet has a default button on Return and a cancel button on Esc (`keyboardShortcut(.defaultAction)`, `.cancelAction`).
 
+### Game controllers
+
+- Desktop clients with a gamepad (Linux first) use the one map in `anistream-model`'s `input` module: D-pad and left stick move focus, A confirms, B goes back or closes what is open, Menu opens the controller help.
+- In the player the D-pad seeks and opens the controls, A pauses, and the Up Next and skip cards answer A and B.
+- A focus ring shows while a controller is in use and the pointer hides. Moving the pointer or pressing a key returns to normal.
+- Settings has a Controller group with a switch to turn it off and one to swap the A and B face buttons.
+
 ## Platform integration
 
 v1 takes what a video app is expected to have and what the TUI already does. The rest waits, for the reason beside it.

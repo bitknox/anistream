@@ -109,6 +109,11 @@ pub enum SettingKey {
     /// Whether images in discussion comments load inline rather than as a line that opens them
     /// in the browser. Off by default; shown while discussions are on.
     CommentImages,
+    /// Drive the app with a connected game controller. On by default; the Linux app's, and any
+    /// other that takes one.
+    ControllerInput,
+    /// Swap A and B, for a controller laid out as Nintendo's are. Off by default.
+    SwapFaceButtons,
     /// Whether Calendar shows only the shows on the person's list rather than everything
     /// airing. Off by default, so Calendar opens on All, and remembered from the last pick.
     CalendarMine,
@@ -158,7 +163,7 @@ impl SettingKey {
     /// The native apps' own rows, which the terminal's Settings screen does not show: a front
     /// end finds the rows both show among [`Self::ROWS`]. In no order of their own, since each
     /// app lays them out on its own panes; grouped by [`Self::category`] all the same.
-    pub const NATIVE_ROWS: [Self; 13] = [
+    pub const NATIVE_ROWS: [Self; 15] = [
         Self::UpNextCountdown,
         Self::SpoilerProtection,
         Self::DownloadQuality,
@@ -171,6 +176,8 @@ impl SettingKey {
         Self::AdultTitles,
         Self::EpisodeDiscussions,
         Self::CommentImages,
+        Self::ControllerInput,
+        Self::SwapFaceButtons,
         Self::CalendarMine,
     ];
 
@@ -186,6 +193,8 @@ impl SettingKey {
             Self::AdultTitles => (&["meta"], "adult"),
             Self::EpisodeDiscussions => (&["meta"], "discussions"),
             Self::CommentImages => (&["meta"], "discussion_images"),
+            Self::ControllerInput => (&["controller"], "enabled"),
+            Self::SwapFaceButtons => (&["controller"], "swap_face"),
             Self::CalendarMine => (&["meta"], "calendar_mine"),
             Self::Translation => (&["playback"], "translation"),
             Self::Quality => (&["playback"], "quality"),
@@ -311,6 +320,8 @@ impl SettingKey {
             Self::AdultTitles => to.meta.adult = from.meta.adult,
             Self::EpisodeDiscussions => to.meta.discussions = from.meta.discussions,
             Self::CommentImages => to.meta.discussion_images = from.meta.discussion_images,
+            Self::ControllerInput => to.controller.enabled = from.controller.enabled,
+            Self::SwapFaceButtons => to.controller.swap_face = from.controller.swap_face,
             Self::CalendarMine => to.meta.calendar_mine = from.meta.calendar_mine,
             Self::MpvOptions => dst.mpv_args.clone_from(&src.mpv_args),
             Self::SourceOrder => to.providers.order.clone_from(&from.providers.order),
@@ -342,6 +353,8 @@ impl SettingKey {
             | Self::Titles
             | Self::Trailers
             | Self::AdultTitles
+            | Self::ControllerInput
+            | Self::SwapFaceButtons
             | Self::CalendarMine => "appearance",
             Self::Translation
             | Self::Quality
@@ -441,6 +454,8 @@ impl SettingKey {
             Self::AdultTitles => "adult titles",
             Self::EpisodeDiscussions => "episode discussions",
             Self::CommentImages => "load images in comments",
+            Self::ControllerInput => "use a controller",
+            Self::SwapFaceButtons => "swap a and b",
             Self::CalendarMine => "calendar shows only my list",
             Self::EpisodeNotifications => "new episode notifications",
             Self::MpvOptions => "mpv options",
@@ -744,6 +759,8 @@ pub fn step(
         SettingKey::AdultTitles => V::Bool(!effective.meta.adult),
         SettingKey::EpisodeDiscussions => V::Bool(!effective.meta.discussions),
         SettingKey::CommentImages => V::Bool(!effective.meta.discussion_images),
+        SettingKey::ControllerInput => V::Bool(!effective.controller.enabled),
+        SettingKey::SwapFaceButtons => V::Bool(!effective.controller.swap_face),
         SettingKey::CalendarMine => V::Bool(!effective.meta.calendar_mine),
         // Between the two that need no confirming. Warn is never a step away: it is asked for
         // with its acknowledgement, and a step from it goes back to the default.
@@ -898,6 +915,8 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         (SettingKey::AdultTitles, V::Bool(on)) => config.meta.adult = *on,
         (SettingKey::EpisodeDiscussions, V::Bool(on)) => config.meta.discussions = *on,
         (SettingKey::CommentImages, V::Bool(on)) => config.meta.discussion_images = *on,
+        (SettingKey::ControllerInput, V::Bool(on)) => config.controller.enabled = *on,
+        (SettingKey::SwapFaceButtons, V::Bool(on)) => config.controller.swap_face = *on,
         (SettingKey::CalendarMine, V::Bool(on)) => config.meta.calendar_mine = *on,
         (SettingKey::TorrentsOnCellular, V::Bool(on)) => {
             config.providers.torrent.on_cellular = *on;
@@ -1033,6 +1052,8 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         SettingKey::AdultTitles => on_off(effective.meta.adult),
         SettingKey::EpisodeDiscussions => on_off(effective.meta.discussions),
         SettingKey::CommentImages => on_off(effective.meta.discussion_images),
+        SettingKey::ControllerInput => on_off(effective.controller.enabled),
+        SettingKey::SwapFaceButtons => on_off(effective.controller.swap_face),
         SettingKey::CalendarMine => on_off(effective.meta.calendar_mine),
         SettingKey::VpnOnFailure => match torrent.vpn.on_leak {
             LeakAction::Pause => "pause torrents",
@@ -1103,6 +1124,8 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         S::AdultTitles => c.meta.adult,
         S::EpisodeDiscussions => c.meta.discussions,
         S::CommentImages => c.meta.discussion_images,
+        S::ControllerInput => c.controller.enabled,
+        S::SwapFaceButtons => c.controller.swap_face,
         S::CalendarMine => c.meta.calendar_mine,
         // Pause, then stop; warn stands beside stop, a step back from the default.
         S::VpnOnFailure => {
@@ -1343,6 +1366,8 @@ mod tests {
                 (SettingKey::AdultTitles, "off"),
                 (SettingKey::EpisodeDiscussions, "on"),
                 (SettingKey::CommentImages, "off"),
+                (SettingKey::ControllerInput, "on"),
+                (SettingKey::SwapFaceButtons, "off"),
                 (SettingKey::CalendarMine, "off"),
             ]
         );
