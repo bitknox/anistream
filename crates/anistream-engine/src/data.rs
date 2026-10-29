@@ -119,6 +119,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
                 list_status: store.and_then(|s| library_segment(s, id)),
             })
             .collect(),
+        sequels: media.sequel_ids(),
         ..Entry::new(media.id, media.title.display())
     }
 }

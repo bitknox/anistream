@@ -808,10 +808,25 @@ impl Actor {
                 .map(|activity| JobGuard::announce(self.jobs.next(), activity, &tx));
             dispatch(again, job, &mut self.state, &self.services, &tx);
         }
+        self.refresh_up_next();
         #[cfg(feature = "testing")]
         {
             self.routed += 1;
         }
+    }
+
+    /// "Up next for you" sent again when the Continue queue is not what it was when it was last
+    /// sent, once it has been asked for: its room depends on the rows above it. Cut to the room
+    /// by the load, so a front end never trims it.
+    fn refresh_up_next(&mut self) {
+        let Some(sent) = self.state.up_next_queue.as_ref() else {
+            return;
+        };
+        if *sent == crate::catalog::up_next::queue_mark(&self.services.store) {
+            return;
+        }
+        let tx = self.inbox.sender();
+        dispatch(Command::LoadUpNext, None, &mut self.state, &self.services, &tx);
     }
 
     /// One item of the inbox, in its place.
@@ -843,6 +858,11 @@ impl Actor {
         // Named as the titles are shown now, before the record takes the names in.
         crate::title_language::retitle(&mut event, self.services.meta.titles().language());
         let moved_on = crate::downloads::ahead::after(&event);
+        // Where a viewer is in a show: what the Continue queue is made of.
+        let queue_moves = matches!(
+            event,
+            Event::Progress { .. } | Event::ProgressQueued | Event::PlaybackEnded { .. }
+        );
         // A table no source could list: its show is not one to download ahead.
         self.state.ahead.observe(&event);
         // A list that failed while offline: loaded again once back.
@@ -877,6 +897,9 @@ impl Actor {
                 &self.services,
                 &tx,
             );
+        }
+        if queue_moves {
+            self.refresh_up_next();
         }
         // An episode watched: the episodes after it, kept.
         if moved_on {

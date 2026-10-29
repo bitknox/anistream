@@ -209,6 +209,10 @@ pub struct Entry {
     /// [`crate::trailer::trailer_may_autoplay`] holds a sequel's trailer back by there.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub prequels: Vec<EarlierTitle>,
+    /// The ids of the title's sequels, on list rows and the title page alike, as
+    /// [`Self::prequels`] has the prequels: what "Up next for you" finds new seasons by.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub sequels: Vec<AnilistId>,
 }
 
 /// A prequel of a title, by id, and where it was on the viewer's list when the row was built.
@@ -746,6 +750,7 @@ impl Entry {
             watched_in: None,
             trailer: None,
             prequels: Vec::new(),
+            sequels: Vec::new(),
         }
     }
 

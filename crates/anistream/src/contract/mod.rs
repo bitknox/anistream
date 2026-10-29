@@ -26,6 +26,7 @@ mod settings;
 mod stores;
 mod title;
 mod titles;
+mod up_next;
 mod watch;
 mod without_sources;
 

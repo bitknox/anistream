@@ -145,6 +145,10 @@ impl TitleCache {
                 entries.iter().for_each(|entry| self.know(entry));
                 None
             }
+            Event::UpNext(items) => {
+                items.iter().for_each(|item| self.know(&item.entry));
+                None
+            }
             Event::Browse(rails) => {
                 rails.iter().flat_map(|rail| &rail.entries).for_each(|entry| self.know(entry));
                 None

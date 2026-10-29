@@ -386,6 +386,9 @@ async fn s_is_mpvs_screenshot_key_unless_a_skip_is_on_offer() {
     // Held only while the button is up: S and Enter are mpv's own keys the rest of the time.
     let keys = player.held_keys().await;
     assert!(!keys.iter().any(|k| k == "S" || k == "ENTER"), "held at rest: {keys:?}");
+    // A screenshot is of the frame on screen, so S does nothing until the first one is there:
+    // under load mpv can still be decoding it when the script has started.
+    player.wait_property("video-frame-info", |info| !info.is_null()).await;
     player.key("S").await;
     assert!(!player.sent("skip").await, "S fired a skip with nothing on offer");
     // …and mpv took its screenshot, as S always did.

@@ -28,6 +28,7 @@ use crate::{
     },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
     trailer::AutoplayView,
+    up_next::UpNextItem,
     updates::UpdateStatus,
     widgets::WidgetData,
 };
@@ -131,6 +132,11 @@ pub enum Event {
     /// Search's start: the rails, each a preset and its titles. Sent from what was kept, then
     /// again when AniList answers.
     Browse(Vec<BrowseRail>),
+    /// "Up next for you", in answer to [`Command::LoadUpNext`](crate::command::Command::LoadUpNext):
+    /// the suggestions under a short Continue, in order and already cut to the room the queue
+    /// leaves. Empty when there are none, which also takes the group away. Sent from what was
+    /// kept, and again if AniList's answer changes it.
+    UpNext(Vec<UpNextItem>),
     /// What the filters choose from.
     Facets(SearchFacets),
     /// The recent searches, newest first: at launch when asked, and after each change.

@@ -2643,6 +2643,9 @@ lists-sort-trending = [Ţŕéñðîñĝ~~~]
 # A search sort order.
 lists-sort-newest = [Ñéŵéšţ~~]
 
+# Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
+lists-up-next-dismissed = [{ $title } ĥîððéñ ƒŕöɱ üþ ñéẋţ ƒöŕ ýöü.~~~~~~~~~~]
+
 # Notice when the person leaves Now Playing while mpv carries on in its own window.
 playback-detached = [Ðéţàçĥéð. ɱþṽ îš šţîļļ þļàýîñĝ.~~~~~~~~~~]
 
@@ -4759,6 +4762,33 @@ progress-episodes-short = [É{ $done } öƒ { $total }~~~~]
 
 # Short progress under a show when the total is not known.
 progress-episode-short = [É{ $done }~~]
+
+# Heading over the suggestions under a short { -continue-cap } list.
+up-next-heading = [Ûþ ñéẋţ ƒöŕ ýöü~~~~~]
+
+# Line on a suggestion that has not started airing. The date is written out already, such as "9 January".
+up-next-starts = [Šţàŕţš { $date }~~~]
+
+# Reason on a suggestion that is a new season of a show the person finished and has not started.
+up-next-reason-new-season = [Ñéŵ šéàšöñ~~~]
+
+# Reason on a suggestion that is on the person's Planning list.
+up-next-reason-planning = [Öñ ýöüŕ Þļàññîñĝ ļîšţ~~~~~~~]
+
+# Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.
+up-next-reason-recommended = [Ɓéçàüšé ýöü ƒîñîšĥéð { $title }~~~~~~~~]
+
+# Reason on a recommended suggestion when the finished show is not known.
+up-next-reason-recommended-plain = [Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]
+
+# Reason on a suggestion that airs today, shown when nothing else is left to suggest.
+up-next-reason-airing-today = [Åîŕîñĝ ţöðàý~~~~]
+
+# Button on a suggestion that has not started airing. It puts the show on the Planning list.
+up-next-add-planning = [Åðð ţö Þļàññîñĝ~~~~~]
+
+# Menu item on a suggestion. The show stays hidden until it starts airing.
+up-next-not-interested = [Ñöţ îñţéŕéšţéð~~~~~]
 
 # Format of a show: broadcast on television.
 format-tv = [ŢṼ~]

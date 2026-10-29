@@ -249,6 +249,22 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                 rows.push(row);
             }
 
+            // "Up next for you", a short rail under Continue once all of its rows are in view.
+            let rail = app.up_next_here();
+            if section == Section::Home && !rail.is_empty() && start + fits >= entries.len() {
+                rows.push(ObiRow::new(String::new()));
+                rows.push(ObiRow::heading(t::up_next_heading()).ruled());
+                for (n, item) in rail.iter().enumerate() {
+                    if rows.len() >= visible {
+                        break;
+                    }
+                    let selected = entries.len() + n == cursor.selected;
+                    let mut row = ObiRow::new(item.entry.title.clone()).selected(selected);
+                    row = row.trailing(up_next_reason(item));
+                    rows.push(row);
+                }
+            }
+
             ObiList::new(&rows, &app.palette)
                 .focused(app.nav.focus() == Focus::Stage)
                 .render(list_col, buf);
@@ -257,6 +273,34 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                 render_preview(buf, app, layout::inset(preview, 2, 0), entry);
             }
         }
+    }
+}
+
+/// What a suggestion under Continue says beside its title: when it starts, if it has not, and
+/// otherwise why it is there.
+fn up_next_reason(item: &anistream_model::up_next::UpNextItem) -> String {
+    use anistream_model::up_next::UpNextReason;
+    if let Some(date) = item.starts {
+        let day = (date.month, date.day);
+        let text = match day {
+            (Some(month), Some(day)) => {
+                chrono::NaiveDate::from_ymd_opt(i32::from(date.year), month.into(), day.into())
+                    .map(|d| d.format("%-d %B").to_string())
+            }
+            (Some(month), None) => {
+                chrono::NaiveDate::from_ymd_opt(i32::from(date.year), month.into(), 1)
+                    .map(|d| d.format("%B %Y").to_string())
+            }
+            _ => None,
+        };
+        return t::up_next_starts(&text.unwrap_or_else(|| date.year.to_string()));
+    }
+    match (item.reason, &item.because) {
+        (UpNextReason::NewSeason, _) => t::up_next_reason_new_season(),
+        (UpNextReason::Planning, _) => t::up_next_reason_planning(),
+        (UpNextReason::Recommended, Some(title)) => t::up_next_reason_recommended(title),
+        (UpNextReason::Recommended, None) => t::up_next_reason_recommended_plain(),
+        (UpNextReason::AiringToday, _) => t::up_next_reason_airing_today(),
     }
 }
 

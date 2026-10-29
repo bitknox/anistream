@@ -745,6 +745,16 @@ impl Media {
             .collect()
     }
 
+    /// The ids of this title's sequels, from the list fields' `prequels`.
+    pub fn sequel_ids(&self) -> Vec<AnilistId> {
+        self.prequels
+            .edges
+            .iter()
+            .filter(|edge| edge.relation_type.as_deref() == Some("SEQUEL"))
+            .map(|edge| edge.node.id)
+            .collect()
+    }
+
     /// Titles recommended off this one, best-rated first — AniList's order, kept.
     ///
     /// Distinct from [`Self::watch_order`]: that answers "what comes before and after",

@@ -2039,6 +2039,37 @@ public enum L {
         Self.format("progress-episode-short", fallback: "E%1$lld", done)
     }
 
+    /// Heading over the suggestions under a short { -continue-cap } list.
+    public static var upNextHeading: String { string("up-next-heading", fallback: "Up next for you") }
+
+    /// Line on a suggestion that has not started airing. The date is written out already, such as "9 January".
+    public static func upNextStarts(date: String) -> String {
+        Self.format("up-next-starts", fallback: "Starts %1$@", date)
+    }
+
+    /// Reason on a suggestion that is a new season of a show the person finished and has not started.
+    public static var upNextReasonNewSeason: String { string("up-next-reason-new-season", fallback: "New season") }
+
+    /// Reason on a suggestion that is on the person's Planning list.
+    public static var upNextReasonPlanning: String { string("up-next-reason-planning", fallback: "On your Planning list") }
+
+    /// Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.
+    public static func upNextReasonRecommended(title: String) -> String {
+        Self.format("up-next-reason-recommended", fallback: "Because you finished %1$@", title)
+    }
+
+    /// Reason on a recommended suggestion when the finished show is not known.
+    public static var upNextReasonRecommendedPlain: String { string("up-next-reason-recommended-plain", fallback: "Recommended for you") }
+
+    /// Reason on a suggestion that airs today, shown when nothing else is left to suggest.
+    public static var upNextReasonAiringToday: String { string("up-next-reason-airing-today", fallback: "Airing today") }
+
+    /// Button on a suggestion that has not started airing. It puts the show on the Planning list.
+    public static var upNextAddPlanning: String { string("up-next-add-planning", fallback: "Add to Planning") }
+
+    /// Menu item on a suggestion. The show stays hidden until it starts airing.
+    public static var upNextNotInterested: String { string("up-next-not-interested", fallback: "Not interested") }
+
     /// Format of a show: broadcast on television.
     public static var formatTv: String { string("format-tv", fallback: "TV") }
 

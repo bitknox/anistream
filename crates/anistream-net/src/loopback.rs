@@ -25,6 +25,9 @@ pub struct Loopback {
     port: u16,
     accept: Accept,
     task: Mutex<Option<JoinHandle<()>>>,
+    /// Held from the check that it answers through to the new listener serving, so two binds
+    /// of the same port never overlap: the second sees the first's listener and leaves it.
+    rebinding: tokio::sync::Mutex<()>,
 }
 
 /// Every loopback listener alive, held weakly: one dropped is simply gone from it.
@@ -41,7 +44,12 @@ impl Loopback {
         let port = listener.local_addr()?.port();
         let accept: Accept = Box::new(accept);
         let task = accept(listener);
-        let loopback = Arc::new(Self { port, accept, task: Mutex::new(Some(task)) });
+        let loopback = Arc::new(Self {
+            port,
+            accept,
+            task: Mutex::new(Some(task)),
+            rebinding: tokio::sync::Mutex::new(()),
+        });
         let mut listeners = LISTENERS.lock().unwrap_or_else(PoisonError::into_inner);
         listeners.retain(|weak| weak.strong_count() > 0);
         listeners.push(Arc::downgrade(&loopback));
@@ -57,6 +65,12 @@ impl Loopback {
     /// port is free to take. Connections already open are the accept loop's spawned work and
     /// are left as they are.
     pub async fn rebind(&self) -> std::io::Result<()> {
+        let _rebinding = self.rebinding.lock().await;
+        self.bind_again().await
+    }
+
+    /// [`Self::rebind`], for a caller already holding `rebinding`.
+    async fn bind_again(&self) -> std::io::Result<()> {
         let old = self.lock().take();
         if let Some(old) = old {
             old.abort();
@@ -106,10 +120,11 @@ pub async fn restore_all() -> usize {
     };
     let mut bound = 0;
     for loopback in alive {
+        let _rebinding = loopback.rebinding.lock().await;
         if loopback.answers().await {
             continue;
         }
-        match loopback.rebind().await {
+        match loopback.bind_again().await {
             Ok(()) => bound += 1,
             Err(e) => tracing::warn!(port = loopback.port, error = %e, "could not bind again"),
         }

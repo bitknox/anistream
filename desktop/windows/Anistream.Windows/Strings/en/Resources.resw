@@ -3059,6 +3059,42 @@
     <value>E{done}</value>
     <comment>Short progress under a show when the total is not known.</comment>
   </data>
+  <data name="UpNextHeading" xml:space="preserve">
+    <value>Up next for you</value>
+    <comment>Heading over the suggestions under a short { -continue-cap } list.</comment>
+  </data>
+  <data name="UpNextStarts" xml:space="preserve">
+    <value>Starts {date}</value>
+    <comment>Line on a suggestion that has not started airing. The date is written out already, such as "9 January".</comment>
+  </data>
+  <data name="UpNextReasonNewSeason" xml:space="preserve">
+    <value>New season</value>
+    <comment>Reason on a suggestion that is a new season of a show the person finished and has not started.</comment>
+  </data>
+  <data name="UpNextReasonPlanning" xml:space="preserve">
+    <value>On your Planning list</value>
+    <comment>Reason on a suggestion that is on the person's Planning list.</comment>
+  </data>
+  <data name="UpNextReasonRecommended" xml:space="preserve">
+    <value>Because you finished {title}</value>
+    <comment>Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.</comment>
+  </data>
+  <data name="UpNextReasonRecommendedPlain" xml:space="preserve">
+    <value>Recommended for you</value>
+    <comment>Reason on a recommended suggestion when the finished show is not known.</comment>
+  </data>
+  <data name="UpNextReasonAiringToday" xml:space="preserve">
+    <value>Airing today</value>
+    <comment>Reason on a suggestion that airs today, shown when nothing else is left to suggest.</comment>
+  </data>
+  <data name="UpNextAddPlanning" xml:space="preserve">
+    <value>Add to Planning</value>
+    <comment>Button on a suggestion that has not started airing. It puts the show on the Planning list.</comment>
+  </data>
+  <data name="UpNextNotInterested" xml:space="preserve">
+    <value>Not interested</value>
+    <comment>Menu item on a suggestion. The show stays hidden until it starts airing.</comment>
+  </data>
   <data name="FormatTv" xml:space="preserve">
     <value>TV</value>
     <comment>Format of a show: broadcast on television.</comment>

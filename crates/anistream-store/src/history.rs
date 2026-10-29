@@ -376,6 +376,23 @@ impl Store {
         })
     }
 
+    /// Every title with an episode watched, hidden from Continue or not, most recent first:
+    /// what has been finished or started here, which "Up next for you" suggests from.
+    pub fn watched_titles(&self, limit: u32) -> Result<Vec<Progress>> {
+        self.with_conn(|c| {
+            let mut stmt = c.prepare(
+                "SELECT anilist_id, last_episode, last_position, last_duration,
+                        episodes_done, updated_at
+                   FROM watch_progress
+                  WHERE episodes_done > 0
+                  ORDER BY updated_at DESC
+                  LIMIT ?1",
+            )?;
+            let rows = stmt.query_map([limit], row_to_progress)?;
+            Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+        })
+    }
+
     /// Take a title off the CONTINUE rail without touching its history.
     ///
     /// A dismissal, not a deletion: every watch event and the progress projection survive,
