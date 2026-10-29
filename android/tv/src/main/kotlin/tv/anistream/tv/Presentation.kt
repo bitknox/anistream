@@ -20,6 +20,7 @@ import tv.anistream.store.ContinueItem
 import tv.anistream.store.EpisodeAiring
 import tv.anistream.store.airing
 import tv.anistream.store.playableNext
+import tv.anistream.store.watchedAll
 
 /** The episode a title's amber action plays, and how it says so. */
 data class PlayAction(
@@ -30,6 +31,8 @@ data class PlayAction(
     val translation: Translation? = null,
     /** Every episode from the next on is one no source lists: nothing to play. */
     val unsourced: Boolean = false,
+    /** Every episode is watched: the action plays episode 1 again. */
+    val watchAgain: Boolean = false,
 ) {
     /** Whether it plays now: never an episode still to air, nor one no source lists. */
     val playable: Boolean get() = airing.hasAired && !unsourced
@@ -42,6 +45,7 @@ data class PlayAction(
         val dubbed = translation == Translation.DUB
         val number = episode.toInt()
         return when {
+            watchAgain && resume == null -> Strings.titleButtonWatchAgain(context)
             resume != null -> if (dubbed) Strings.tvActionResumeDubbed(context, number) else Strings.tvActionResume(context, number)
             playable -> if (dubbed) Strings.titleButtonPlayDubbed(context, number) else Strings.titleButtonPlay(context, number)
             else -> outDay(context, now)?.let { Strings.tvActionOut(context, number, it) } ?: Strings.tvActionNotOut(context, number)
@@ -82,6 +86,7 @@ data class PlayAction(
                     PlayAction(episode, null, EpisodeAiring.Aired, translation = dub)
                 }
             }
+            if (entry.watchedAll) return PlayAction(episode, null, EpisodeAiring.Aired, translation = dub, watchAgain = true)
             return PlayAction(episode, null, entry.airing(episode), translation = dub)
         }
     }

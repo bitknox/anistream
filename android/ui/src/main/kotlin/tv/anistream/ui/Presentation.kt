@@ -13,6 +13,7 @@ import tv.anistream.store.EpisodeAiring
 import tv.anistream.store.airing
 import tv.anistream.store.clock
 import tv.anistream.store.playableNext
+import tv.anistream.store.watchedAll
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.Translation
 import tv.anistream.engine.model.Entry
@@ -94,6 +95,8 @@ data class TitleAction(
     val translation: Translation? = null,
     /** Every episode from the next on is one no source lists: nothing to play. */
     val unsourced: Boolean = false,
+    /** Every episode is watched: the action plays episode 1 again. */
+    val watchAgain: Boolean = false,
 ) {
     /**
      * Whether there is an episode to play: never one still to air, which nothing could find, and
@@ -105,6 +108,7 @@ data class TitleAction(
     fun label(context: Context): String {
         val dubbed = translation == Translation.DUB
         return when {
+            watchAgain && resume == null -> Strings.titleButtonWatchAgain(context)
             resume != null ->
                 if (dubbed) Strings.titleButtonResumeDubbed(context, episode.toInt(), resume.clock())
                 else Strings.titleButtonResume(context, episode.toInt(), resume.clock())
@@ -143,6 +147,7 @@ data class TitleAction(
                     TitleAction(episode, null, EpisodeAiring.Aired, translation = dub)
                 }
             }
+            if (entry.watchedAll) return TitleAction(episode, null, EpisodeAiring.Aired, translation = dub, watchAgain = true)
             return TitleAction(episode, null, entry.airing(episode), translation = dub)
         }
     }
