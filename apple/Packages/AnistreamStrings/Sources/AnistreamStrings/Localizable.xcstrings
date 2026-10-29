@@ -1569,6 +1569,18 @@
         }
       }
     },
+    "calendar-ceiling" : {
+      "comment" : "Line where days after the last day the calendar reaches would be.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The calendar goes 4 weeks ahead."
+          }
+        }
+      }
+    },
     "calendar-coming-up" : {
       "comment" : "Header of the list of episodes that air in the next seven days.",
       "extractionState" : "manual",
@@ -1701,6 +1713,30 @@
         }
       }
     },
+    "calendar-floor" : {
+      "comment" : "Line where days before the first day the calendar reaches would be.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The calendar goes back 3 months."
+          }
+        }
+      }
+    },
+    "calendar-load-earlier-failed" : {
+      "comment" : "Line where earlier broadcasts would be when they could not be loaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load earlier broadcasts"
+          }
+        }
+      }
+    },
     "calendar-load-failed" : {
       "comment" : "Title of the state when the calendar could not load.",
       "extractionState" : "manual",
@@ -1709,6 +1745,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't load the calendar"
+          }
+        }
+      }
+    },
+    "calendar-load-later-failed" : {
+      "comment" : "Line where later broadcasts would be when they could not be loaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load later broadcasts"
+          }
+        }
+      }
+    },
+    "calendar-loading-earlier" : {
+      "comment" : "Activity line while earlier broadcasts load.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading earlier broadcasts"
+          }
+        }
+      }
+    },
+    "calendar-loading-later" : {
+      "comment" : "Activity line while later broadcasts load.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading later broadcasts"
           }
         }
       }
@@ -1733,6 +1805,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Next week"
+          }
+        }
+      }
+    },
+    "calendar-now-spoken" : {
+      "comment" : "What a screen reader says for the line that marks the time now. The time is already worded. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now, %1$@"
           }
         }
       }
@@ -1797,6 +1881,18 @@
         }
       }
     },
+    "calendar-show-all" : {
+      "comment" : "Button under the line saying nothing on the person's list airs: shows every airing show.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show all airing"
+          }
+        }
+      }
+    },
     "calendar-this-week" : {
       "comment" : "Button that jumps back to the current week.",
       "extractionState" : "manual",
@@ -1805,6 +1901,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This week"
+          }
+        }
+      }
+    },
+    "calendar-today" : {
+      "comment" : "Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
           }
         }
       }

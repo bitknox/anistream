@@ -1012,6 +1012,35 @@ public enum L {
     /// Line when no show the person follows airs in the next seven days.
     public static var calendarComingUpEmpty: String { string("calendar-coming-up-empty", fallback: "Nothing airs this week for the shows you follow.") }
 
+    /// Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.
+    public static var calendarToday: String { string("calendar-today", fallback: "Today") }
+
+    /// Line where days before the first day the calendar reaches would be.
+    public static var calendarFloor: String { string("calendar-floor", fallback: "The calendar goes back 3 months.") }
+
+    /// Line where days after the last day the calendar reaches would be.
+    public static var calendarCeiling: String { string("calendar-ceiling", fallback: "The calendar goes 4 weeks ahead.") }
+
+    /// Activity line while earlier broadcasts load.
+    public static var calendarLoadingEarlier: String { string("calendar-loading-earlier", fallback: "Loading earlier broadcasts") }
+
+    /// Activity line while later broadcasts load.
+    public static var calendarLoadingLater: String { string("calendar-loading-later", fallback: "Loading later broadcasts") }
+
+    /// Line where earlier broadcasts would be when they could not be loaded.
+    public static var calendarLoadEarlierFailed: String { string("calendar-load-earlier-failed", fallback: "Couldn't load earlier broadcasts") }
+
+    /// Line where later broadcasts would be when they could not be loaded.
+    public static var calendarLoadLaterFailed: String { string("calendar-load-later-failed", fallback: "Couldn't load later broadcasts") }
+
+    /// Button under the line saying nothing on the person's list airs: shows every airing show.
+    public static var calendarShowAll: String { string("calendar-show-all", fallback: "Show all airing") }
+
+    /// What a screen reader says for the line that marks the time now. The time is already worded.
+    public static func calendarNowSpoken(time: String) -> String {
+        Self.format("calendar-now-spoken", fallback: "Now, %1$@", time)
+    }
+
     /// Button that runs a failed action again.
     public static var actionTryAgain: String { string("action-try-again", fallback: "Try again") }
 

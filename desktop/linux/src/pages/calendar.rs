@@ -8,12 +8,14 @@ use std::{
 };
 
 use adw::prelude::*;
+use anistream_core::settings::SettingValue;
 use anistream_i18n::t;
 use anistream_model::{
     catalog::{ContentFor, ContentList, Entry, LibrarySegment},
     command::Command,
     event::Event,
     present,
+    settings::SettingKey,
 };
 use gtk::{gio, glib};
 
@@ -100,27 +102,57 @@ fn is_mine(entry: &Entry) -> bool {
 
 struct Page {
     ctx: Rc<Ctx>,
+    me: RefCell<std::rc::Weak<Page>>,
     rows: RefCell<Vec<Entry>>,
-    /// What the rows' times count from, and how to ask for older ones.
+    /// What the rows' times count from, how far back and ahead the calendar reaches, and how to
+    /// ask for more of either side.
     anchor: Cell<Option<i64>>,
+    floor: Cell<Option<i64>>,
+    ceiling: Cell<Option<i64>>,
     pages: Cell<u32>,
     more_past: Cell<bool>,
     asking_past: Cell<bool>,
+    failed_past: Cell<bool>,
+    ahead_pages: Cell<u32>,
+    more_ahead: Cell<bool>,
+    asking_ahead: Cell<bool>,
+    failed_ahead: Cell<bool>,
     /// Weeks from this one.
     week: Cell<i32>,
     mine: Cell<bool>,
+    /// Set while the toggle follows the setting, so that is not a pick.
+    syncing: Cell<bool>,
     title: adw::WindowTitle,
-    this_week: gtk::Button,
+    today: gtk::Button,
+    previous: gtk::Button,
+    next: gtk::Button,
+    toggles: adw::ToggleGroup,
     body: Rc<States>,
     /// The week's columns or the agenda, whichever the width takes.
     views: gtk::Stack,
-    week_view: gtk::Box,
+    week_view: gtk::Grid,
     agenda: gtk::Box,
     empty: adw::StatusPage,
     loaded: Cell<bool>,
     /// Whether the week on screen came from an answer, so stepping weeks before one, or after
     /// a failure, leaves the state alone.
     answered: Cell<bool>,
+}
+
+/// Where a day stands against the days the calendar reaches.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Reach {
+    Before,
+    In,
+    After,
+}
+
+/// What the loaded broadcasts say about a week.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Held {
+    Ready,
+    Waiting { earlier: bool },
+    Failed { earlier: bool },
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
@@ -133,26 +165,36 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     previous.set_tooltip_text(Some(&t::calendar_previous_week()));
     let next = gtk::Button::from_icon_name("go-next-symbolic");
     next.set_tooltip_text(Some(&t::calendar_next_week()));
+    // Today stays between the arrows, so repeated clicks never move them, and is off on this
+    // week, which also says where you are.
+    let today = gtk::Button::with_label(&t::calendar_today());
+    today.set_sensitive(false);
     let steps = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     steps.add_css_class("linked");
     steps.append(&previous);
+    steps.append(&today);
     steps.append(&next);
-    let this_week = gtk::Button::with_label(&t::calendar_this_week());
-    this_week.set_visible(false);
     header.pack_end(&steps);
-    header.pack_end(&this_week);
 
+    // All airing leads and is the default; the pick is remembered as a setting.
+    let mine = ctx
+        .hub
+        .known
+        .borrow()
+        .setting(SettingKey::CalendarMine)
+        .is_some_and(|row| row.value == "on");
     let toggles = adw::ToggleGroup::new();
-    toggles.add(adw::Toggle::builder().name("mine").label(t::calendar_filter_mine()).build());
     toggles.add(adw::Toggle::builder().name("all").label(t::calendar_filter_all()).build());
-    toggles.set_active_name(Some("mine"));
+    toggles.add(adw::Toggle::builder().name("mine").label(t::calendar_filter_mine()).build());
+    toggles.set_active_name(Some(if mine { "mine" } else { "all" }));
     toggles.add_css_class("round");
     toggles.set_halign(gtk::Align::Center);
     toggles.set_margin_top(6);
     toggles.set_margin_bottom(6);
 
-    let week_view = gtk::Box::new(gtk::Orientation::Horizontal, 4);
-    week_view.set_homogeneous(true);
+    let week_view = gtk::Grid::new();
+    week_view.set_column_homogeneous(true);
+    week_view.set_column_spacing(4);
     week_view.set_margin_start(12);
     week_view.set_margin_end(12);
     week_view.set_margin_bottom(12);
@@ -184,15 +226,27 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
+        me: RefCell::default(),
         rows: RefCell::default(),
         anchor: Cell::new(None),
+        floor: Cell::new(None),
+        ceiling: Cell::new(None),
         pages: Cell::new(0),
         more_past: Cell::new(false),
         asking_past: Cell::new(false),
+        failed_past: Cell::new(false),
+        ahead_pages: Cell::new(0),
+        more_ahead: Cell::new(false),
+        asking_ahead: Cell::new(false),
+        failed_ahead: Cell::new(false),
         week: Cell::new(0),
-        mine: Cell::new(true),
+        mine: Cell::new(mine),
+        syncing: Cell::new(false),
         title,
-        this_week: this_week.clone(),
+        today: today.clone(),
+        previous: previous.clone(),
+        next: next.clone(),
+        toggles: toggles.clone(),
         body,
         views,
         week_view,
@@ -201,6 +255,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         loaded: Cell::new(false),
         answered: Cell::new(false),
     });
+    page.me.replace(Rc::downgrade(&page));
 
     let weak = Rc::downgrade(&page);
     ctx.hub.listen(move |event| {
@@ -220,20 +275,25 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         let weak = Rc::downgrade(&page);
         move |_: &gtk::Button| {
             if let Some(page) = weak.upgrade() {
-                page.week.set(if delta == 0 { 0 } else { page.week.get() + delta });
-                page.show();
-                page.backfill();
+                page.step(delta);
             }
         }
     };
     previous.connect_clicked(step(-1));
     next.connect_clicked(step(1));
-    this_week.connect_clicked(step(0));
+    today.connect_clicked(step(0));
     toggles.connect_active_name_notify({
         let weak = Rc::downgrade(&page);
         move |toggles| {
-            if let Some(page) = weak.upgrade() {
-                page.mine.set(toggles.active_name().as_deref() != Some("all"));
+            if let Some(page) = weak.upgrade()
+                && !page.syncing.get()
+            {
+                let mine = toggles.active_name().as_deref() == Some("mine");
+                page.mine.set(mine);
+                page.ctx.hub.send(Command::SetSetting {
+                    key: SettingKey::CalendarMine,
+                    value: SettingValue::Bool(mine),
+                });
                 page.show();
             }
         }
@@ -244,6 +304,42 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
             if let Some(page) = weak.upgrade() {
                 page.show();
             }
+        }
+    });
+    // Ctrl+T, Ctrl+Left and Ctrl+Right, while Calendar is on screen. Alt+Left is Back.
+    let keys = gtk::ShortcutController::new();
+    for (accel, delta) in [("<Control>t", 0), ("<Control>Left", -1), ("<Control>Right", 1)] {
+        keys.add_shortcut(gtk::Shortcut::new(
+            gtk::ShortcutTrigger::parse_string(accel),
+            Some(gtk::CallbackAction::new({
+                let weak = Rc::downgrade(&page);
+                let navigation = navigation.downgrade();
+                move |_, _| {
+                    let (Some(page), Some(navigation)) = (weak.upgrade(), navigation.upgrade())
+                    else {
+                        return glib::Propagation::Proceed;
+                    };
+                    if !navigation.is_mapped() {
+                        return glib::Propagation::Proceed;
+                    }
+                    page.step(delta);
+                    glib::Propagation::Stop
+                }
+            })),
+        ));
+    }
+    ctx.window.add_controller(keys);
+    // The line that marks now moves with the clock, and today moves at midnight.
+    glib::timeout_add_seconds_local(60, {
+        let weak = Rc::downgrade(&page);
+        move || match weak.upgrade() {
+            Some(page) => {
+                if page.week.get() == 0 && page.views.is_mapped() {
+                    page.show();
+                }
+                glib::ControlFlow::Continue
+            }
+            None => glib::ControlFlow::Break,
         }
     });
     // Loaded the first time it is shown, and again each time after a while away.
@@ -268,12 +364,44 @@ impl Page {
         self.ctx.hub.send(Command::LoadCalendar);
     }
 
+    /// To the week `delta` from this one, or back to this one with 0.
+    fn step(&self, delta: i32) {
+        let week = if delta == 0 { 0 } else { self.week.get() + delta };
+        let days = week_days(week);
+        // A week that lies wholly outside what the calendar reaches is not stepped to.
+        if self.reach_of_week(&days).iter().all(|r| *r != Reach::In) {
+            return;
+        }
+        self.week.set(week);
+        self.show();
+    }
+
     fn heard(&self, event: &Event) {
         match event {
-            Event::CalendarWindow { anchor, pages, more_past, .. } => {
+            Event::CalendarWindow {
+                anchor,
+                pages,
+                more_past,
+                floor,
+                ceiling,
+                ahead_pages,
+                more_ahead,
+            } => {
                 self.anchor.set(Some(*anchor));
+                self.floor.set(Some(*floor));
+                self.ceiling.set(Some(*ceiling));
                 self.pages.set(*pages);
                 self.more_past.set(*more_past);
+                self.ahead_pages.set(*ahead_pages);
+                self.more_ahead.set(*more_ahead);
+                for flag in [
+                    &self.asking_past,
+                    &self.failed_past,
+                    &self.asking_ahead,
+                    &self.failed_ahead,
+                ] {
+                    flag.set(false);
+                }
             }
             Event::Content { view: ContentFor::Calendar, content } => match content {
                 ContentList::Loading => self.body.loading(Some(t::activity_calendar())),
@@ -286,21 +414,36 @@ impl Page {
                     *self.rows.borrow_mut() = content.entries().to_vec();
                     self.answered.set(true);
                     self.show();
-                    self.backfill();
                 }
             },
             Event::CalendarBackfill { page, entries, more_past } => {
                 self.asking_past.set(false);
                 if let Some(page) = page {
-                    self.pages.set(page + 1);
+                    self.failed_past.set(false);
+                    self.pages.set(*page);
                     self.more_past.set(*more_past);
                     let mut rows = entries.clone();
                     rows.extend(self.rows.borrow_mut().drain(..));
                     *self.rows.borrow_mut() = rows;
-                    self.show();
-                    self.backfill();
+                } else {
+                    self.failed_past.set(true);
                 }
+                self.show();
             }
+            Event::CalendarAhead { page, entries, more_ahead } => {
+                self.asking_ahead.set(false);
+                if let Some(page) = page {
+                    self.failed_ahead.set(false);
+                    self.ahead_pages.set(*page);
+                    self.more_ahead.set(*more_ahead);
+                    self.rows.borrow_mut().extend(entries.iter().cloned());
+                } else {
+                    self.failed_ahead.set(true);
+                }
+                self.show();
+            }
+            // The pick may have been changed elsewhere, in Settings.
+            Event::Settings(_) => self.follow_setting(),
             // Progress moved: a broadcast may be watched now.
             Event::Progress { .. } if !self.rows.borrow().is_empty() => self.show(),
             // Titles are named another way now: the week again, once it has been shown.
@@ -309,23 +452,114 @@ impl Page {
         }
     }
 
-    /// An earlier week than is loaded asks for the broadcasts before it.
-    fn backfill(&self) {
+    /// The toggle follows the Calendar setting when something else changed it.
+    fn follow_setting(&self) {
+        let mine = self
+            .ctx
+            .hub
+            .known
+            .borrow()
+            .setting(SettingKey::CalendarMine)
+            .is_some_and(|row| row.value == "on");
+        if mine != self.mine.get() {
+            self.mine.set(mine);
+            self.syncing.set(true);
+            self.toggles.set_active_name(Some(if mine { "mine" } else { "all" }));
+            self.syncing.set(false);
+            self.show();
+        }
+    }
+
+    /// How each of the week's days stands against the days the calendar reaches: the floor is
+    /// three months back and the ceiling four weeks ahead, both from the engine.
+    fn reach_of_week(&self, days: &[glib::DateTime]) -> Vec<Reach> {
+        days.iter()
+            .map(|day| {
+                let start = day.to_unix();
+                let end = day.add_days(1).map_or(start + 86_400, |d| d.to_unix());
+                match (self.floor.get(), self.ceiling.get()) {
+                    (Some(floor), _) if end <= floor => Reach::Before,
+                    (_, Some(ceiling)) if start > ceiling => Reach::After,
+                    _ => Reach::In,
+                }
+            })
+            .collect()
+    }
+
+    /// The span of time the loaded broadcasts account for: all the way to a side that has
+    /// nothing more, else as far as the last broadcast loaded on it.
+    fn held(&self) -> (i64, i64) {
+        let anchor = self.anchor.get().unwrap_or_else(now);
+        let rows = self.rows.borrow();
+        let airs = rows.iter().filter_map(|r| r.airing_in).map(|s| anchor + s);
+        let from =
+            if self.more_past.get() { airs.clone().min().unwrap_or(anchor) } else { i64::MIN };
+        let to = if self.more_ahead.get() { airs.max().unwrap_or(anchor) } else { i64::MAX };
+        (from, to)
+    }
+
+    /// Whether the loaded broadcasts reach `start` to `end`, asking for what is missing: the
+    /// calendar pages in as a week is stepped to.
+    fn hold(&self, start: i64, end: i64) -> Held {
+        let (from, to) = self.held();
+        let mut held = Held::Ready;
+        if start < from {
+            held = if self.failed_past.get() {
+                Held::Failed { earlier: true }
+            } else {
+                self.ask_past(start);
+                Held::Waiting { earlier: true }
+            };
+        }
+        if end > to && !matches!(held, Held::Waiting { .. }) {
+            held = if self.failed_ahead.get() {
+                Held::Failed { earlier: false }
+            } else {
+                self.ask_ahead(end);
+                Held::Waiting { earlier: false }
+            };
+        }
+        held
+    }
+
+    fn ask_past(&self, through: i64) {
         let Some(anchor) = self.anchor.get() else { return };
-        if self.week.get() >= 0 || !self.more_past.get() || self.asking_past.get() {
+        if !self.more_past.get() || self.asking_past.replace(true) {
             return;
         }
-        let first_day = week_days(self.week.get())[0].to_unix();
-        let earliest = self.broadcasts(false).first().map(|b| b.airs);
-        if earliest.is_some_and(|at| at <= first_day) {
-            return;
-        }
-        self.asking_past.set(true);
         self.ctx.hub.send(Command::LoadCalendarPast {
             anchor,
-            page: self.pages.get(),
-            through: None,
+            page: self.pages.get() + 1,
+            through: Some(through),
         });
+    }
+
+    fn ask_ahead(&self, through: i64) {
+        let Some(anchor) = self.anchor.get() else { return };
+        if !self.more_ahead.get() || self.asking_ahead.replace(true) {
+            return;
+        }
+        self.ctx.hub.send(Command::LoadCalendarAhead {
+            anchor,
+            page: self.ahead_pages.get() + 1,
+            through: Some(through),
+        });
+    }
+
+    /// A week away from what is loaded is asked for before it is stepped to, so ordinary
+    /// stepping never waits.
+    fn prefetch(&self, start: i64, end: i64) {
+        let (from, to) = self.held();
+        let floor = self.floor.get().unwrap_or(i64::MIN);
+        let ceiling = self.ceiling.get().unwrap_or(i64::MAX);
+        let before = (start - 7 * 86_400).max(floor);
+        let after = (end + 7 * 86_400).min(ceiling);
+        if before < from && !self.failed_past.get() {
+            self.ask_past(before);
+        }
+        if after > to && !self.failed_ahead.get() {
+            self.ask_ahead(after);
+        }
     }
 
     /// The broadcasts, oldest first, each title as it now stands.
@@ -360,10 +594,19 @@ impl Page {
 
     fn show(&self) {
         let days = week_days(self.week.get());
+        let reach = self.reach_of_week(&days);
         let (title, subtitle) = week_name(&days, month_first());
         self.title.set_title(&title);
         self.title.set_subtitle(&subtitle);
-        self.this_week.set_visible(self.week.get() != 0);
+        self.today.set_sensitive(self.week.get() != 0);
+        // The arrows stop where the calendar does.
+        let beyond = |offset: i32| {
+            self.reach_of_week(&week_days(self.week.get() + offset))
+                .iter()
+                .all(|r| *r != Reach::In)
+        };
+        self.previous.set_sensitive(!beyond(-1));
+        self.next.set_sensitive(!beyond(1));
         self.body.agenda(self.ctx.size() != Size::Wide);
         if !self.loaded.get()
             || self.rows.borrow().is_empty() && self.anchor.get().is_none()
@@ -371,61 +614,171 @@ impl Page {
         {
             return;
         }
-        let start = days[0].to_unix();
-        let end = days[6].add_days(1).map_or(start + 7 * 86_400, |d| d.to_unix());
+        // The days of the week that the calendar reaches.
+        let first = reach.iter().position(|r| *r == Reach::In).unwrap_or(0);
+        let last = reach.iter().rposition(|r| *r == Reach::In).unwrap_or(6);
+        let start = days[first].to_unix();
+        let end = days[last].add_days(1).map_or(start + 7 * 86_400, |d| d.to_unix());
+        let held = self.hold(start, end);
+        if let Held::Waiting { earlier } = held {
+            self.body.loading(Some(if earlier {
+                t::calendar_loading_earlier()
+            } else {
+                t::calendar_loading_later()
+            }));
+            return;
+        }
         let broadcasts: Vec<Broadcast> = self
             .broadcasts(self.mine.get())
             .into_iter()
             .filter(|b| b.airs >= start && b.airs < end)
             .collect();
-        if broadcasts.is_empty() {
-            self.empty.set_description(Some(&if self.mine.get() {
-                t::calendar_empty_mine()
-            } else {
-                t::calendar_empty_all()
-            }));
+        // A line in the week's place: the load failed, or nothing on the list airs.
+        let note = match held {
+            Held::Failed { earlier } => Some(self.note(
+                &if earlier {
+                    t::calendar_load_earlier_failed()
+                } else {
+                    t::calendar_load_later_failed()
+                },
+                &t::action_try_again(),
+                true,
+            )),
+            _ if broadcasts.is_empty() && self.mine.get() => {
+                Some(self.note(&t::calendar_empty_mine(), &t::calendar_show_all(), false))
+            }
+            _ => None,
+        };
+        if broadcasts.is_empty() && note.is_none() {
+            self.empty.set_description(Some(&t::calendar_empty_all()));
             self.body.empty();
             return;
         }
         if self.ctx.size() == Size::Wide {
-            self.show_week(&days, &broadcasts);
+            self.show_week(&days, &reach, &broadcasts, note.as_ref());
             self.views.set_visible_child_name("week");
         } else {
-            self.show_agenda(&days, &broadcasts);
+            self.show_agenda(&days, &reach, &broadcasts, note.as_ref());
             self.views.set_visible_child_name("agenda");
         }
         self.body.content();
+        self.prefetch(start, end);
     }
 
-    fn show_week(&self, days: &[glib::DateTime], broadcasts: &[Broadcast]) {
-        clear(&self.week_view);
+    /// A line in a week's place with the one button that answers it: Try again for a failed
+    /// page (vermilion on the glyph only), Show all airing for an empty list.
+    fn note(&self, line: &str, button: &str, failed: bool) -> gtk::Widget {
+        let column = gtk::Box::new(gtk::Orientation::Vertical, 8);
+        column.set_halign(gtk::Align::Center);
+        column.set_margin_top(24);
+        column.set_margin_bottom(24);
+        let words = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        words.set_halign(gtk::Align::Center);
+        if failed {
+            let glyph = gtk::Image::from_icon_name("dialog-warning-symbolic");
+            glyph.add_css_class("error");
+            words.append(&glyph);
+        }
+        words.append(&widgets::haze(line, ""));
+        column.append(&words);
+        let button = gtk::Button::with_label(button);
+        button.set_halign(gtk::Align::Center);
+        button.add_css_class("pill");
+        let weak = self.me.borrow().clone();
+        button.connect_clicked(move |_| {
+            let Some(page) = weak.upgrade() else { return };
+            if failed {
+                page.failed_past.set(false);
+                page.failed_ahead.set(false);
+                page.show();
+            } else {
+                page.toggles.set_active_name(Some("all"));
+            }
+        });
+        column.append(&button);
+        column.upcast()
+    }
+
+    fn show_week(
+        &self,
+        days: &[glib::DateTime],
+        reach: &[Reach],
+        broadcasts: &[Broadcast],
+        note: Option<&gtk::Widget>,
+    ) {
+        while let Some(child) = self.week_view.first_child() {
+            self.week_view.remove(&child);
+        }
         let now = now();
         let today = glib::DateTime::now_local().ok();
-        for day in days {
-            let column = gtk::Box::new(gtk::Orientation::Vertical, 8);
-            column.add_css_class("calendar-day");
+        for (col, day) in days.iter().enumerate() {
+            let outside = reach[col] != Reach::In;
+            let col = col as i32;
             let is_today = today.as_ref().is_some_and(|t| same_day(t, day));
+            let head = gtk::Box::new(gtk::Orientation::Vertical, 0);
+            head.add_css_class("calendar-head");
+            // Today's column is raised from its heading to its foot.
+            let body = gtk::Box::new(gtk::Orientation::Vertical, 8);
+            body.add_css_class("calendar-body");
             if is_today {
-                column.add_css_class("today");
+                head.add_css_class("today");
+                body.add_css_class("today");
             }
-            let heading = gtk::Box::new(gtk::Orientation::Vertical, 0);
-            heading.add_css_class("calendar-heading");
-            let name = gtk::Label::new(Some(
-                &day.format("%a").map(|s| s.to_string()).unwrap_or_default(),
-            ));
+            // "Today" takes the weekday's place, in silk; the other days name theirs in haze.
+            let name = gtk::Label::new(Some(&if is_today {
+                t::calendar_today()
+            } else {
+                day.format("%a").map(|s| s.to_string()).unwrap_or_default()
+            }));
             name.add_css_class("caption-heading");
-            name.add_css_class("haze");
+            if !is_today || outside {
+                name.add_css_class("haze");
+            }
             name.set_xalign(0.0);
             let date = gtk::Label::new(Some(&day.day_of_month().to_string()));
             date.add_css_class("title-3");
-            date.set_xalign(0.0);
-            heading.append(&name);
-            heading.append(&date);
-            column.append(&heading);
-            for broadcast in broadcasts.iter().filter(|b| same_day(&local(b.airs), day)) {
-                column.append(&self.cell(broadcast, now));
+            if outside {
+                date.add_css_class("haze");
             }
-            self.week_view.append(&column);
+            date.set_xalign(0.0);
+            head.append(&name);
+            head.append(&date);
+            self.week_view.attach(&head, col, 0, 1, 1);
+            if outside || note.is_some() {
+                self.week_view.attach(&body, col, 1, 1, 1);
+                continue;
+            }
+            let on_day: Vec<&Broadcast> =
+                broadcasts.iter().filter(|b| same_day(&local(b.airs), day)).collect();
+            if on_day.is_empty() {
+                body.append(&widgets::haze(&t::calendar_linux_day_empty(), "caption"));
+            }
+            // The line that marks now sits between the last row out and the next, today only.
+            let line = (is_today && !on_day.is_empty())
+                .then(|| on_day.iter().take_while(|b| b.airs <= now).count());
+            for (n, broadcast) in on_day.iter().enumerate() {
+                if line == Some(n) {
+                    body.append(&now_line(now));
+                }
+                body.append(&self.cell(broadcast, now));
+            }
+            if line == Some(on_day.len()) {
+                body.append(&now_line(now));
+            }
+            self.week_view.attach(&body, col, 1, 1, 1);
+        }
+        // One line spans the days outside the calendar, and a note spans the days it reaches.
+        let before = reach.iter().filter(|r| **r == Reach::Before).count() as i32;
+        let after = reach.iter().filter(|r| **r == Reach::After).count() as i32;
+        let inside = 7 - before - after;
+        if before > 0 {
+            self.week_view.attach(&edge_line(&t::calendar_floor()), 0, 1, before, 1);
+        }
+        if after > 0 {
+            self.week_view.attach(&edge_line(&t::calendar_ceiling()), 7 - after, 1, after, 1);
+        }
+        if let Some(note) = note {
+            self.week_view.attach(note, before, 1, inside.max(1), 1);
         }
     }
 
@@ -452,15 +805,32 @@ impl Page {
         opens(&cell, broadcast)
     }
 
-    fn show_agenda(&self, days: &[glib::DateTime], broadcasts: &[Broadcast]) {
+    fn show_agenda(
+        &self,
+        days: &[glib::DateTime],
+        reach: &[Reach],
+        broadcasts: &[Broadcast],
+        note: Option<&gtk::Widget>,
+    ) {
         clear(&self.agenda);
         let now = now();
         let today = glib::DateTime::now_local().ok();
         let narrow = self.ctx.size() == Size::Narrow;
+        // The line at the top or foot where the calendar stops.
+        if reach.contains(&Reach::Before) {
+            self.agenda.append(&edge_line(&t::calendar_floor()));
+        }
+        if let Some(note) = note {
+            self.agenda.append(note);
+        }
         // Today first, then the days after it, then the days of the week already gone.
         let at =
             today.as_ref().and_then(|t| days.iter().position(|d| same_day(t, d))).unwrap_or(0);
-        for day in days[at..].iter().chain(&days[..at]) {
+        for (n, day) in days.iter().enumerate().skip(at).chain(days.iter().enumerate().take(at))
+        {
+            if note.is_some() || reach[n] != Reach::In {
+                continue;
+            }
             let on_day: Vec<&Broadcast> =
                 broadcasts.iter().filter(|b| same_day(&local(b.airs), day)).collect();
             let is_today = today.as_ref().is_some_and(|t| same_day(t, day));
@@ -482,12 +852,23 @@ impl Page {
                 let list = gtk::ListBox::new();
                 list.add_css_class("boxed-list");
                 list.set_selection_mode(gtk::SelectionMode::None);
-                for broadcast in on_day {
+                let line =
+                    is_today.then(|| on_day.iter().take_while(|b| b.airs <= now).count());
+                for (n, broadcast) in on_day.iter().enumerate() {
+                    if line == Some(n) {
+                        list.append(&now_row(now));
+                    }
                     list.append(&self.agenda_row(broadcast, now, narrow));
+                }
+                if line == Some(on_day.len()) {
+                    list.append(&now_row(now));
                 }
                 section.append(&list);
             }
             self.agenda.append(&section);
+        }
+        if reach.contains(&Reach::After) {
+            self.agenda.append(&edge_line(&t::calendar_ceiling()));
         }
     }
 
@@ -589,6 +970,48 @@ fn opens(cell: &gtk::Box, broadcast: &Broadcast) -> gtk::Widget {
     ))]);
     widgets::title_menu(&button, id, entry.list_status.is_none());
     button.upcast()
+}
+
+/// The line that marks now, in silk: the time, then a 1 px rule. It sits between the last
+/// broadcast out and the next, and a screen reader says "Now, 16:42".
+fn now_line(now: i64) -> gtk::Widget {
+    let line = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    line.add_css_class("calendar-now");
+    line.set_size_request(-1, 18);
+    let at = gtk::Label::new(Some(&time(now)));
+    at.add_css_class("numeric");
+    at.add_css_class("calendar-now-time");
+    let rule = gtk::Separator::new(gtk::Orientation::Horizontal);
+    rule.set_hexpand(true);
+    rule.set_valign(gtk::Align::Center);
+    line.append(&at);
+    line.append(&rule);
+    line.update_property(&[gtk::accessible::Property::Label(&t::calendar_now_spoken(&time(
+        now,
+    )))]);
+    line.upcast()
+}
+
+/// The same line as a row of the agenda's list, which cannot be picked.
+fn now_row(now: i64) -> gtk::ListBoxRow {
+    let row = gtk::ListBoxRow::builder()
+        .child(&now_line(now))
+        .activatable(false)
+        .selectable(false)
+        .build();
+    row.add_css_class("calendar-now-row");
+    row
+}
+
+/// Where the calendar stops: one line in haze over the days it does not reach.
+fn edge_line(text: &str) -> gtk::Widget {
+    let line = widgets::haze(text, "");
+    line.set_wrap(true);
+    line.set_halign(gtk::Align::Center);
+    line.set_justify(gtk::Justification::Center);
+    line.set_margin_top(12);
+    line.set_margin_bottom(12);
+    line.upcast()
 }
 
 fn clear(container: &gtk::Box) {

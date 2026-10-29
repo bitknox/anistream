@@ -1795,6 +1795,42 @@
     <value>[Ñöţĥîñĝ àîŕš ţĥîš ŵééķ ƒöŕ ţĥé šĥöŵš ýöü ƒöļļöŵ.~~~~~~~~~~~~~~~]</value>
     <comment>Line when no show the person follows airs in the next seven days.</comment>
   </data>
+  <data name="CalendarToday" xml:space="preserve">
+    <value>[Ţöðàý~~]</value>
+    <comment>Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.</comment>
+  </data>
+  <data name="CalendarFloor" xml:space="preserve">
+    <value>[Ţĥé çàļéñðàŕ ĝöéš ƀàçķ 3 ɱöñţĥš.~~~~~~~~~~]</value>
+    <comment>Line where days before the first day the calendar reaches would be.</comment>
+  </data>
+  <data name="CalendarCeiling" xml:space="preserve">
+    <value>[Ţĥé çàļéñðàŕ ĝöéš 4 ŵééķš àĥéàð.~~~~~~~~~~]</value>
+    <comment>Line where days after the last day the calendar reaches would be.</comment>
+  </data>
+  <data name="CalendarLoadingEarlier" xml:space="preserve">
+    <value>[Ļöàðîñĝ éàŕļîéŕ ƀŕöàðçàšţš~~~~~~~~]</value>
+    <comment>Activity line while earlier broadcasts load.</comment>
+  </data>
+  <data name="CalendarLoadingLater" xml:space="preserve">
+    <value>[Ļöàðîñĝ ļàţéŕ ƀŕöàðçàšţš~~~~~~~~]</value>
+    <comment>Activity line while later broadcasts load.</comment>
+  </data>
+  <data name="CalendarLoadEarlierFailed" xml:space="preserve">
+    <value>[Çöüļðñ'ţ ļöàð éàŕļîéŕ ƀŕöàðçàšţš~~~~~~~~~~]</value>
+    <comment>Line where earlier broadcasts would be when they could not be loaded.</comment>
+  </data>
+  <data name="CalendarLoadLaterFailed" xml:space="preserve">
+    <value>[Çöüļðñ'ţ ļöàð ļàţéŕ ƀŕöàðçàšţš~~~~~~~~~]</value>
+    <comment>Line where later broadcasts would be when they could not be loaded.</comment>
+  </data>
+  <data name="CalendarShowAll" xml:space="preserve">
+    <value>[Šĥöŵ àļļ àîŕîñĝ~~~~~]</value>
+    <comment>Button under the line saying nothing on the person's list airs: shows every airing show.</comment>
+  </data>
+  <data name="CalendarNowSpoken" xml:space="preserve">
+    <value>[Ñöŵ, {time}~~~]</value>
+    <comment>What a screen reader says for the line that marks the time now. The time is already worded.</comment>
+  </data>
   <data name="ActionTryAgain" xml:space="preserve">
     <value>[Ţŕý àĝàîñ~~~]</value>
     <comment>Button that runs a failed action again.</comment>

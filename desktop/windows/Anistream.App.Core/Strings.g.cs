@@ -1278,6 +1278,33 @@ public static partial class T
     /// <summary>Line when no show the person follows airs in the next seven days.</summary>
     public static string CalendarComingUpEmpty => Get("CalendarComingUpEmpty");
 
+    /// <summary>Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.</summary>
+    public static string CalendarToday => Get("CalendarToday");
+
+    /// <summary>Line where days before the first day the calendar reaches would be.</summary>
+    public static string CalendarFloor => Get("CalendarFloor");
+
+    /// <summary>Line where days after the last day the calendar reaches would be.</summary>
+    public static string CalendarCeiling => Get("CalendarCeiling");
+
+    /// <summary>Activity line while earlier broadcasts load.</summary>
+    public static string CalendarLoadingEarlier => Get("CalendarLoadingEarlier");
+
+    /// <summary>Activity line while later broadcasts load.</summary>
+    public static string CalendarLoadingLater => Get("CalendarLoadingLater");
+
+    /// <summary>Line where earlier broadcasts would be when they could not be loaded.</summary>
+    public static string CalendarLoadEarlierFailed => Get("CalendarLoadEarlierFailed");
+
+    /// <summary>Line where later broadcasts would be when they could not be loaded.</summary>
+    public static string CalendarLoadLaterFailed => Get("CalendarLoadLaterFailed");
+
+    /// <summary>Button under the line saying nothing on the person's list airs: shows every airing show.</summary>
+    public static string CalendarShowAll => Get("CalendarShowAll");
+
+    /// <summary>What a screen reader says for the line that marks the time now. The time is already worded.</summary>
+    public static string CalendarNowSpoken(string time) => Fill(Get("CalendarNowSpoken"), ("time", time));
+
     /// <summary>Button that runs a failed action again.</summary>
     public static string ActionTryAgain => Get("ActionTryAgain");
 
@@ -5392,6 +5419,15 @@ public static partial class T
         ["EpisodeNotOut"] = "Episode {episode} is not out yet",
         ["CalendarComingUp"] = "Coming up · next 7 days",
         ["CalendarComingUpEmpty"] = "Nothing airs this week for the shows you follow.",
+        ["CalendarToday"] = "Today",
+        ["CalendarFloor"] = "The calendar goes back 3 months.",
+        ["CalendarCeiling"] = "The calendar goes 4 weeks ahead.",
+        ["CalendarLoadingEarlier"] = "Loading earlier broadcasts",
+        ["CalendarLoadingLater"] = "Loading later broadcasts",
+        ["CalendarLoadEarlierFailed"] = "Couldn't load earlier broadcasts",
+        ["CalendarLoadLaterFailed"] = "Couldn't load later broadcasts",
+        ["CalendarShowAll"] = "Show all airing",
+        ["CalendarNowSpoken"] = "Now, {time}",
         ["ActionTryAgain"] = "Try again",
         ["ActionCancel"] = "Cancel",
         ["ActionNotNow"] = "Not now",

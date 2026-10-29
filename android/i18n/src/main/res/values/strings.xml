@@ -1255,6 +1255,24 @@
     <string name="calendar_coming_up">Coming up · next 7 days</string>
     <!-- Line when no show the person follows airs in the next seven days. -->
     <string name="calendar_coming_up_empty">Nothing airs this week for the shows you follow.</string>
+    <!-- Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown. -->
+    <string name="calendar_today">Today</string>
+    <!-- Line where days before the first day the calendar reaches would be. -->
+    <string name="calendar_floor">The calendar goes back 3 months.</string>
+    <!-- Line where days after the last day the calendar reaches would be. -->
+    <string name="calendar_ceiling">The calendar goes 4 weeks ahead.</string>
+    <!-- Activity line while earlier broadcasts load. -->
+    <string name="calendar_loading_earlier">Loading earlier broadcasts</string>
+    <!-- Activity line while later broadcasts load. -->
+    <string name="calendar_loading_later">Loading later broadcasts</string>
+    <!-- Line where earlier broadcasts would be when they could not be loaded. -->
+    <string name="calendar_load_earlier_failed">Couldn\'t load earlier broadcasts</string>
+    <!-- Line where later broadcasts would be when they could not be loaded. -->
+    <string name="calendar_load_later_failed">Couldn\'t load later broadcasts</string>
+    <!-- Button under the line saying nothing on the person's list airs: shows every airing show. -->
+    <string name="calendar_show_all">Show all airing</string>
+    <!-- What a screen reader says for the line that marks the time now. The time is already worded. -->
+    <string name="calendar_now_spoken">Now, %1$s</string>
     <!-- Button that runs a failed action again. -->
     <string name="action_try_again">Try again</string>
     <!-- Button that closes a dialog without doing what it offered. -->

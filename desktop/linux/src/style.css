@@ -77,9 +77,12 @@ gridview.posters > child { padding: 8px; border-radius: 12px; }
 gridview.posters > child:hover { background: alpha(var(--silk), 0.05); }
 
 /* Calendar: today's column on raised from heading to foot. */
-.calendar-day { padding: 8px 6px; border-radius: 12px; }
-.calendar-day.today { background: var(--raised); }
-.calendar-heading { padding: 0 4px 4px 4px; }
+.calendar-head { padding: 8px 10px 4px 10px; border-radius: 12px 12px 0 0; }
+.calendar-body { padding: 4px 6px 8px 6px; border-radius: 0 0 12px 12px; }
+.calendar-head.today, .calendar-body.today { background: var(--raised); }
+.calendar-now-time { color: var(--silk); font-size: 12px; font-weight: 700; }
+.calendar-now separator { background: var(--silk); min-height: 1px; }
+.calendar-now-row { background: none; padding: 0 12px; }
 .broadcast { padding: 4px; border-radius: 8px; }
 .broadcast:hover { background: alpha(var(--silk), 0.05); }
 .banner.small { border-radius: 6px; }
