@@ -17,16 +17,6 @@ settings-next-value = Next value
 # @only linux
 settings-sources-come-from = { -source-cap-pl } come from the { -plugin-store-pl } you join.
 
-# Choice for the download quality: the usual size.
-# @only linux
-# @max 20
-settings-quality-standard = Standard
-
-# Choice for the download quality: larger files with more detail.
-# @only linux
-# @max 20
-settings-quality-higher = Higher
-
 # Label on the left half of the upscaling preview: the video before processing.
 # @only linux
 # @max 20
@@ -35,14 +25,6 @@ settings-preview-source = 480p { -source }
 # Preview note under the upscaling frame when upscaling is off.
 # @only linux
 settings-upscaling-note-off = The 480p { -source }, scaled to fit without processing.
-
-# Preview note under the upscaling frame for the natural look.
-# @only linux
-settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
-
-# Preview note under the upscaling frame for the sharp look.
-# @only linux
-settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
 
 # A line of sample subtitle over the preview frame. Any short sentence will do.
 # @only linux
@@ -108,14 +90,6 @@ accounts-sync-detail = Progress and list changes sync to { $tracker }. { -librar
 accounts-changes-waiting-offline = { $count ->
     [one] One change waiting until you're online
    *[other] { $count } changes waiting until you're online
- }
-
-# Line under a signed-in account while changes wait to be sent.
-# @only linux
-# @arg count: int
-accounts-changes-waiting = { $count ->
-    [one] One change waiting to sync
-   *[other] { $count } changes waiting to sync
  }
 
 # Footnote on the Accounts page: where sign-in tokens are kept, when it is the system's keyring.

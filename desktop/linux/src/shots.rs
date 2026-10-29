@@ -21,7 +21,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 68] = [
+pub const ALL: [&str; 69] = [
     "home",
     "welcome",
     "offline",
@@ -41,6 +41,7 @@ pub const ALL: [&str; 68] = [
     "discussion-waiting",
     "discussion-signed-out",
     "title-discussion",
+    "title-watch-again",
     "show-settings",
     "library",
     "library-focus",
@@ -371,6 +372,25 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
                 3,
             );
             3.0
+        }
+        "title-watch-again" => {
+            // Every episode watched: the main button offers episode 1 again.
+            shell.go(Dest::Continue);
+            let _ =
+                WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
+            let hub = Rc::clone(&shell.ctx.hub);
+            glib::timeout_add_local_once(Duration::from_millis(2500), move || {
+                hub.take(vec![Event::Progress {
+                    id: anistream_core::ids::AnilistId::new(TITLE),
+                    progress: Some(anistream_model::progress::TitleProgress {
+                        done: 12,
+                        next: 1,
+                    }),
+                    resume: None,
+                    episodes: Vec::new(),
+                }]);
+            });
+            4.0
         }
         "title-discussion" => {
             // The episode that has a thread says so under its row.

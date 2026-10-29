@@ -3,6 +3,8 @@
 
 package tv.anistream.widgets
 
+import tv.anistream.i18n.Strings
+import android.content.Context
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -171,32 +173,31 @@ sealed interface AiringView {
         val translation: String?,
     ) {
         /** What the wide layout's right-hand column says: "E9 out", "E9 · Dub", "E4". */
-        val state: String
-            get() = when {
-                out -> "E$episode out"
-                translation != null -> "E$episode · $translation"
-                else -> "E$episode"
-            }
+        fun state(context: Context): String = when {
+            out -> Strings.calendarEpisodeOut(context, episode.toInt())
+            translation != null -> Strings.episodeNumberShort(context, episode.toInt()) + " · " + translation // i18n-skip
+            else -> Strings.episodeNumberShort(context, episode.toInt())
+        }
     }
 }
 
 /** How times are said: the device's own clock format, in its language. */
-data class Words(val twentyFourHour: Boolean = true, val locale: Locale = Locale.UK) {
+data class Words(val context: Context, val twentyFourHour: Boolean = true, val locale: Locale = Locale.UK) {
     fun time(at: Instant, zone: ZoneId): String =
         DateTimeFormatter.ofPattern(if (twentyFourHour) "HH:mm" else "h:mm a", locale).format(at.atZone(zone))
 
     /** "today 16:30", "tomorrow 16:30", "Thursday 16:30", as the title pages say when. */
-    fun airs(at: Instant, now: Instant, zone: ZoneId): String = airsWords(at, now, zone, twentyFourHour, locale)
+    fun airs(at: Instant, now: Instant, zone: ZoneId): String = airsWords(context, at, now, zone, twentyFourHour, locale)
 
     /** When a record was made, for "Updated …": "yesterday", "Sunday", or "12 Oct" further back. */
     fun day(at: Instant, now: Instant, zone: ZoneId): String {
         val day = LocalDate.ofInstant(at, zone)
         val days = ChronoUnit.DAYS.between(day, LocalDate.ofInstant(now, zone))
         return when {
-            days <= 0L -> "today"
-            days == 1L -> "yesterday"
+            days <= 0L -> Strings.widgetDayToday(context)
+            days == 1L -> Strings.widgetDayYesterday(context)
             days < 7L -> day.dayOfWeek.getDisplayName(TextStyle.FULL, locale)
-            else -> DateTimeFormatter.ofPattern("d MMM", locale).format(day)
+            else -> DateTimeFormatter.ofPattern(android.text.format.DateFormat.getBestDateTimePattern(locale, "dMMM"), locale).format(day)
         }
     }
 }
@@ -208,7 +209,7 @@ object WidgetModel {
     /** The most titles Continue watching draws: the first, and two more at 4 × 3. */
     const val CONTINUE_SHOWS = 3
 
-    fun continuing(record: Record?, now: Instant, zone: ZoneId, words: Words = Words()): ContinueView {
+    fun continuing(record: Record?, now: Instant, zone: ZoneId, words: Words): ContinueView {
         record ?: return ContinueView.SignedOut
         if (record.continuing.isEmpty()) {
             // A first-shape record does not say whether a tracker is signed in. A show in the list
@@ -220,8 +221,8 @@ object WidgetModel {
         }
         val stale = now.epochSecond - record.generatedAt.epochSecond > CONTINUE_FRESH_SECS
         return ContinueView.Shows(
-            shows = record.continuing.take(CONTINUE_SHOWS).map(::show),
-            updated = if (stale) "Updated ${words.day(record.generatedAt, now, zone)}" else null,
+            shows = record.continuing.take(CONTINUE_SHOWS).map { show(words.context, it) },
+            updated = if (stale) Strings.widgetUpdated(words.context, words.day(record.generatedAt, now, zone)) else null,
         )
     }
 
@@ -234,13 +235,13 @@ object WidgetModel {
             ?: record.airing.filter { it.onList && it.airsAt.isAfter(now) }.minByOrNull { it.airsAt }
                 ?.let { Record.Next(it.id, it.title, it.episode, it.airsAt) }
 
-    private fun show(row: Record.Continuing): ContinueView.Show {
+    private fun show(context: Context, row: Record.Continuing): ContinueView.Show {
         val begun = row.resume ?: ((row.fraction ?: 0.0) > 0.0)
-        val episode = listOfNotNull("E${row.episode}", row.mark).joinToString(" · ")
+        val episode = listOfNotNull(Strings.episodeNumberShort(context, row.episode.toInt()), row.mark).joinToString(" · ") // i18n-skip
         val line = when {
-            !begun -> "Start $episode"
-            row.minutesLeft != null -> "$episode · ${row.minutesLeft} min left"
-            row.episodes != null -> listOfNotNull("E${row.episode} of ${row.episodes}", row.mark).joinToString(" · ")
+            !begun -> Strings.widgetLineStart(context, episode)
+            row.minutesLeft != null -> Strings.widgetLineLeft(context, episode, row.minutesLeft!!.toInt())
+            row.episodes != null -> listOfNotNull(Strings.widgetLineOf(context, row.episode.toInt(), row.episodes!!.toInt()), row.mark).joinToString(" · ") // i18n-skip
             else -> episode
         }
         return ContinueView.Show(
@@ -256,7 +257,7 @@ object WidgetModel {
         )
     }
 
-    fun airing(record: Record?, now: Instant, zone: ZoneId, words: Words = Words()): AiringView {
+    fun airing(record: Record?, now: Instant, zone: ZoneId, words: Words): AiringView {
         record ?: return AiringView.NoSchedule
         val today = LocalDate.ofInstant(now, zone)
         val start = today.atStartOfDay(zone).toInstant()

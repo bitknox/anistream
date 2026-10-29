@@ -209,7 +209,8 @@ impl App {
             | S::EpisodeDiscussions
             | S::CommentImages
             | S::ControllerInput
-            | S::SwapFaceButtons => return None,
+            | S::SwapFaceButtons
+            | S::CalendarMine => return None,
         })
     }
 
@@ -317,6 +318,7 @@ fn label_text(key: SettingKey) -> String {
         S::CommentImages => t::settings_label_comment_images(),
         S::ControllerInput => t::settings_label_controller_input(),
         S::SwapFaceButtons => t::settings_label_swap_face_buttons(),
+        S::CalendarMine => t::settings_label_calendar_mine(),
     }
 }
 

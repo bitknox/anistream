@@ -1,6 +1,10 @@
 package tv.anistream.widgets
 
 import org.junit.Assert.assertEquals
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -10,12 +14,15 @@ import tv.anistream.widgets.Fixtures.ZONE
 import tv.anistream.widgets.Fixtures.at
 
 /** What the widgets make of the record: each state the boards draw, from either shape of it. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class WidgetModelTest {
+    private val context = RuntimeEnvironment.getApplication()
     private fun continuing(data: tv.anistream.engine.model.WidgetData?, now: java.time.Instant = NOW) =
-        WidgetModel.continuing(data?.let(Record::of), now, ZONE)
+        WidgetModel.continuing(data?.let(Record::of), now, ZONE, Words(context))
 
     private fun airing(data: tv.anistream.engine.model.WidgetData?, now: java.time.Instant = NOW) =
-        WidgetModel.airing(data?.let(Record::of), now, ZONE)
+        WidgetModel.airing(data?.let(Record::of), now, ZONE, Words(context))
 
     @Test
     fun a_second_shape_record_is_read_whole() {
@@ -40,7 +47,7 @@ class WidgetModelTest {
         assertNull(record.continuing.first().resume)
         assertNull(record.airing.first().watched)
         // Progress still comes from how far in it was left.
-        val view = WidgetModel.continuing(record, NOW, ZONE) as ContinueView.Shows
+        val view = WidgetModel.continuing(record, NOW, ZONE, Words(context)) as ContinueView.Shows
         assertEquals("E7 of 12", view.shows.first().line)
         assertEquals(0.42f, view.shows.first().progress!!, 0.001f)
     }
@@ -106,14 +113,14 @@ class WidgetModelTest {
         assertEquals("Tuesday", view.weekday)
         assertTrue(view.marks)
         val rows = view.rows.associateBy { it.time }
-        assertEquals("E9 out", rows.getValue("17:30").state)
+        assertEquals("E9 out", rows.getValue("17:30").state(context))
         assertTrue("watched, so not out", rows.getValue("13:00").watched)
         assertFalse(rows.getValue("13:00").out)
         // Aired but not in the list: no dot, and no mark.
         assertFalse(rows.getValue("19:00").out)
         assertFalse(rows.getValue("19:00").onList)
-        assertEquals("E9 · Dub", rows.getValue("21:00").state)
-        assertEquals("E2", rows.getValue("22:30").state)
+        assertEquals("E9 · Dub", rows.getValue("21:00").state(context))
+        assertEquals("E2", rows.getValue("22:30").state(context))
         // The week after today is held, not shown today.
         assertTrue(view.rows.none { it.episode == 10u })
     }
@@ -123,9 +130,9 @@ class WidgetModelTest {
         val record = Fixtures.record()
         val subbed = record.copy(airingToday = record.airingToday.map { if (it.airsAt == at(20, 22, 0).epochSecond) it.copy(translation = tv.anistream.engine.core.Translation.SUB) else it })
         val rows = (airing(subbed) as AiringView.Today).rows.associateBy { it.time }
-        assertEquals("E4", rows.getValue("22:00").state)
+        assertEquals("E4", rows.getValue("22:00").state(context))
         assertNull(rows.getValue("22:00").translation)
-        assertEquals("E9 · Dub", rows.getValue("21:00").state)
+        assertEquals("E9 · Dub", rows.getValue("21:00").state(context))
     }
 
     @Test
@@ -135,8 +142,8 @@ class WidgetModelTest {
             ((continuing(Fixtures.record(continuing = listOf(row))) as ContinueView.Shows).shows.single())
         assertEquals("Start E2 · Dub", line(dub.copy(resume = false, fraction = null)).line)
         assertEquals("E2 of 10 · Dub", line(dub.copy(minutesLeft = null)).line)
-        assertEquals("Resume episode 2, Dub, of Hagane no Niwashi", playLabel(line(dub)))
-        assertEquals("Resume episode 7 of Hoshikuzu no Tabibito", playLabel(line(Fixtures.continuing[0])))
+        assertEquals("Resume episode 2, dubbed, of Hagane no Niwashi", playLabel(context, line(dub)))
+        assertEquals("Resume episode 7 of Hoshikuzu no Tabibito", playLabel(context, line(Fixtures.continuing[0])))
     }
 
     @Test

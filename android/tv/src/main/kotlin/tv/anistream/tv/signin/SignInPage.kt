@@ -6,6 +6,9 @@
 
 package tv.anistream.tv.signin
 
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import android.content.Context
 import android.util.Log
 import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
@@ -52,6 +55,7 @@ enum class PageForm { Code, Password, Link, Torrent, TorrentProxy, Proxy }
  * first when there is one. Each answer goes to [onAnswer], on the page's own thread.
  */
 class SignInPage(
+    private val context: Context,
     private val tracker: String,
     private val form: PageForm,
     private val authorizeUrl: String?,
@@ -133,29 +137,29 @@ class SignInPage(
         val request = readRequest(input) ?: return
         val out = client.getOutputStream()
         val reply = when {
-            request.target.substringBefore('?') != "/$path" -> Reply(404, page("Not found", "<p>This page is not here.</p>"))
+            request.target.substringBefore('?') != "/$path" -> Reply(404, page(context.getString(R.string.torrents_page_not_found), "<p>${escape(context.getString(R.string.tv_page_not_found_text))}</p>"))
             request.method == "GET" -> Reply(200, formPage())
             request.method == "POST" -> {
                 // Only a sealed form opens: a plain one, or one sealed for another page, is turned away.
                 val fields = key.open(path, request.body)?.let(::parseForm)
                 val answer = fields?.let(::answerFrom)
                 when {
-                    fields == null -> Reply(400, said(ok = false, NOT_SEALED))
-                    answer == null -> Reply(200, said(ok = false, if (torrents) torrentProblem(fields) else "Fill in the form, then send it again."))
+                    fields == null -> Reply(400, said(ok = false, context.getString(R.string.torrents_page_unreadable)))
+                    answer == null -> Reply(200, said(ok = false, if (torrents) torrentProblem(fields) else context.getString(R.string.torrents_page_fill_form)))
                     else -> {
                         answered = true
                         onAnswer(answer)
                         val next = when (form) {
-                            PageForm.Link -> "it shows the store, to join there"
-                            PageForm.Torrent, PageForm.TorrentProxy -> "check the details there, then Turn on"
-                            PageForm.Proxy -> "check the proxy there, then Save"
-                            else -> "it signs in to $tracker now"
+                            PageForm.Link -> Strings.tvPageNextLink(context)
+                            PageForm.Torrent, PageForm.TorrentProxy -> Strings.tvPageNextTorrent(context)
+                            PageForm.Proxy -> Strings.tvPageNextProxy(context)
+                            else -> Strings.tvPageNextSignin(context, tracker)
                         }
-                        Reply(200, said(ok = true, "Look at the TV: $next. You can close this page."))
+                        Reply(200, said(ok = true, Strings.torrentsPageLookAtTv(context, next)))
                     }
                 }
             }
-            else -> Reply(405, page("Not allowed", "<p>This page only takes its own form.</p>"))
+            else -> Reply(405, page(context.getString(R.string.torrents_page_not_allowed), "<p>${escape(context.getString(R.string.tv_page_not_allowed_text))}</p>"))
         }
         val body = reply.html.toByteArray()
         val status = when (reply.status) {
@@ -207,8 +211,8 @@ class SignInPage(
     /** What is missing from torrents' form, as the TV's own fields say it. */
     private fun torrentProblem(fields: Map<String, String>): String {
         val index = fields["index"].orEmpty()
-        if (form != PageForm.Proxy && !TorrentWords.indexOk(index)) return TorrentWords.indexNote(index)
-        return "The proxy needs a host and a port from 1 to 65535."
+        if (form != PageForm.Proxy && !TorrentWords.indexOk(index)) return TorrentWords.indexNote(context, index)
+        return context.getString(R.string.torrents_proxy_invalid)
     }
 
     private fun formPage(): String {
@@ -216,60 +220,56 @@ class SignInPage(
             PageForm.Code -> buildString {
                 append("<ol>")
                 if (authorizeUrl != null) {
-                    append("<li><a href=\"${escape(authorizeUrl)}\" target=\"_blank\" rel=\"noreferrer\">Open $tracker</a> and allow anistream.</li>")
+                    val link = "<a href=\"${escape(authorizeUrl)}\" target=\"_blank\" rel=\"noreferrer\">${escape(Strings.tvPageOpenLink(context, tracker))}</a>"
+                    append("<li>${Strings.tvPageStepOpen(context, link)}</li>")
                 }
-                append("<li>Copy the code it shows, or the whole address the page ends on.</li>")
-                append("<li>Paste it here and send it to the TV.</li></ol>")
+                append("<li>${escape(context.getString(R.string.tv_page_step_copy))}</li>")
+                append("<li>${escape(context.getString(R.string.tv_page_step_paste))}</li></ol>")
             }
-            PageForm.Password -> "<p>Your $tracker user name or email, and password. They go to the TV, which signs in to $tracker with them and keeps only the token.</p>"
-            PageForm.Link -> "<p>Paste the plugin store's invite link. The TV shows the store before it joins.</p>"
-            PageForm.Torrent -> "<p>The torrent index anistream asks for torrents. anistream hosts no content. The page closes once it is sent.</p>"
-            PageForm.TorrentProxy -> "<p>The torrent index anistream asks for torrents, and the SOCKS5 proxy torrent traffic goes through. anistream hosts no content. The page closes once it is sent.</p>"
-            PageForm.Proxy -> "<p>The SOCKS5 proxy torrent traffic goes through. ${TorrentWords.PASSWORD_KEPT} The TV checks the proxy before it saves it. The page closes once it is sent.</p>"
+            PageForm.Password -> "<p>${escape(Strings.tvPagePassword(context, tracker))}</p>"
+            PageForm.Link -> "<p>${escape(context.getString(R.string.tv_page_link))}</p>"
+            PageForm.Torrent -> "<p>${escape(introOf(R.string.tv_page_torrent))}</p>"
+            PageForm.TorrentProxy -> "<p>${escape(introOf(R.string.tv_page_torrent_proxy))}</p>"
+            PageForm.Proxy -> "<p>${escape(Strings.tvPageProxy(context, context.getString(TorrentWords.PASSWORD_KEPT)) + " " + context.getString(R.string.tv_page_closes_once_sent))}</p>"
         }
         // No field has a name, and the form no action: only the script sends it, sealed.
         val input = { label: String, id: String, attributes: String -> "<label>$label<input id=\"$id\" data-field $attributes></label>" }
-        val index = input("Torrent index", "index", "type=\"url\" placeholder=\"https://\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"")
+        val index = input(escape(context.getString(R.string.torrents_index)), "index", "type=\"url\" placeholder=\"https://\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"")
         val fields = when (form) {
-            PageForm.Code -> "<label>Code<textarea id=\"code\" data-field rows=\"4\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"></textarea></label>"
+            PageForm.Code -> "<label>${escape(context.getString(R.string.tv_page_label_code))}<textarea id=\"code\" data-field rows=\"4\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"></textarea></label>"
             PageForm.Password ->
-                input("User name or email", "username", "autocomplete=\"username\" autocapitalize=\"off\"") +
-                    input("Password", "password", "type=\"password\" autocomplete=\"current-password\"")
-            PageForm.Link -> input("Invite link", "link", "type=\"url\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"")
+                input(escape(context.getString(R.string.accounts_user_or_email)), "username", "autocomplete=\"username\" autocapitalize=\"off\"") +
+                    input(escape(context.getString(R.string.torrents_proxy_password)), "password", "type=\"password\" autocomplete=\"current-password\"")
+            PageForm.Link -> input(escape(context.getString(R.string.stores_invite_link)), "link", "type=\"url\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"")
             PageForm.Torrent -> index
             PageForm.TorrentProxy, PageForm.Proxy -> (if (form == PageForm.Proxy) "" else index) +
-                input("Proxy host", "host", "autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"") +
-                input("Proxy port", "port", "inputmode=\"numeric\" autocomplete=\"off\"") +
-                "<p>User name and password only if the proxy asks for them.</p>" +
-                input("User name", "user", "autocomplete=\"off\" autocapitalize=\"off\"") +
-                input("Password", "password", "type=\"password\" autocomplete=\"off\"")
+                input(escape(context.getString(R.string.torrents_proxy_host)), "host", "autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"") +
+                input(escape(context.getString(R.string.torrents_proxy_port)), "port", "inputmode=\"numeric\" autocomplete=\"off\"") +
+                "<p>${escape(context.getString(R.string.torrents_sheet_proxy_auth_note))}</p>" +
+                input(escape(context.getString(R.string.torrents_proxy_user)), "user", "autocomplete=\"off\" autocapitalize=\"off\"") +
+                input(escape(context.getString(R.string.torrents_proxy_password)), "password", "type=\"password\" autocomplete=\"off\"")
         }
         // A saved proxy's details, sealed like the answer, for the script to fill in.
         val sealed = filled.takeIf { it.isNotEmpty() }?.let { key.seal(path, formBody(it)) }
         val prefill = sealed?.let { " data-filled=\"$it\"" }.orEmpty()
         return page(
             when (form) {
-                PageForm.Link -> "Add a plugin store"
-                PageForm.Torrent, PageForm.TorrentProxy, PageForm.Proxy -> "Torrents for anistream"
-                else -> "Sign in to $tracker"
+                PageForm.Link -> context.getString(R.string.stores_add_title)
+                PageForm.Torrent, PageForm.TorrentProxy, PageForm.Proxy -> context.getString(R.string.tv_page_title_torrents)
+                else -> context.getString(R.string.torrents_page_sign_in, tracker)
             },
-            "$steps<noscript><p class=\"error\">$NO_SCRIPT</p></noscript>" +
-                "<form id=\"form\" hidden$prefill>$fields<p id=\"problem\" class=\"error\" role=\"alert\" hidden></p><button type=\"submit\">Send to the TV</button></form>" +
-                "<script>${PAGE_CRYPTO}</script><script>$PAGE_SCRIPT</script>",
+            "$steps<noscript><p class=\"error\">${escape(context.getString(R.string.torrents_page_needs_script))}</p></noscript>" +
+                "<form id=\"form\" hidden$prefill>$fields<p id=\"problem\" class=\"error\" role=\"alert\" hidden></p><button type=\"submit\">${escape(context.getString(R.string.tv_page_send))}</button></form>" +
+                "<script>${PAGE_CRYPTO}</script><script>${pageScript(context)}</script>",
         )
     }
 
+    /** A torrent intro, its legal line and its closing sentence after it. */
+    private fun introOf(res: Int): String =
+        listOf(context.getString(res), Strings.legalHostsNoContent(context), context.getString(R.string.tv_page_closes_once_sent)).joinToString(" ") // i18n-skip
+
     companion object {
         const val TAG = "anistream-sign-in"
-
-        /** What the page says when its address came without its key. */
-        const val NO_KEY = "This address is missing its key. Scan the QR code on the TV again, and open the whole address it gives."
-
-        /** What the TV answers a form it can't open. */
-        const val NOT_SEALED = "The TV couldn't read this. Scan the QR code on the TV again."
-
-        /** Without its script, the page can't seal the form, so it doesn't send it. */
-        const val NO_SCRIPT = "This page needs JavaScript to send the form to the TV safely."
 
         /** @noble/ciphers' AES-GCM and the seal around it, bundled by android/tv/page-crypto/build.sh. */
         private val PAGE_CRYPTO: String by lazy {
@@ -280,7 +280,7 @@ class SignInPage(
          * The page's own script: the key from the address, the form filled in from what the TV
          * sealed, and the form sealed and posted, the reply said in place.
          */
-        private val PAGE_SCRIPT = """
+        private fun pageScript(context: Context): String = """
 (function () {
   var page = window.anistreamPage;
   var key = page.keyFrom(location.hash);
@@ -299,7 +299,7 @@ class SignInPage(
     main.appendChild(line);
   }
   if (!key) {
-    say('Scan the code again', "${json(NO_KEY)}", true);
+    say('${json(context.getString(R.string.tv_page_scan_again))}', "${json(context.getString(R.string.torrents_page_missing_key))}", true);
     return;
   }
   var filled = form.getAttribute('data-filled');
@@ -323,7 +323,7 @@ class SignInPage(
       .then(function (response) { return response.json(); })
       .then(function (reply) {
         if (reply.ok) {
-          say('Sent to the TV', reply.text, false);
+          say('${json(context.getString(R.string.tv_page_sent_title))}', reply.text, false);
         } else {
           problem.textContent = reply.text;
           problem.hidden = false;
@@ -331,7 +331,7 @@ class SignInPage(
         }
       })
       .catch(function () {
-        problem.textContent = 'The TV did not answer. Check that it is on and on the same network as this phone, then send it again.';
+        problem.textContent = '${json(context.getString(R.string.tv_page_no_answer))}';
         problem.hidden = false;
         button.disabled = false;
       });
@@ -346,6 +346,7 @@ class SignInPage(
                     c == '"' -> append("\\\"")
                     c == '\\' -> append("\\\\")
                     c == '<' -> append("\\u003c")
+                    c == '\'' -> append("\\u0027")
                     c < ' ' -> append("\\u%04x".format(c.code))
                     else -> append(c)
                 }
@@ -411,8 +412,8 @@ class SignInPage(
             .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
         /** A small page in the app's colours, readable on a phone. */
-        fun page(title: String, body: String): String = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+        fun page(title: String, body: String, lang: String = java.util.Locale.getDefault().toLanguageTag()): String = """<!doctype html>
+<html lang="${escape(lang)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escape(title)}</title>
 <style>
 body{margin:0;padding:24px 16px;background:#161A2E;color:#E4E0D6;font:17px/1.5 system-ui,sans-serif}

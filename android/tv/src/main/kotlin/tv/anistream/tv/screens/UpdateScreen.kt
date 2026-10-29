@@ -6,6 +6,11 @@
 
 package tv.anistream.tv.screens
 
+import tv.anistream.store.percentText
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -50,7 +55,6 @@ import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.EnterFocus
 import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.LocalAppStore
-import tv.anistream.tv.ui.OFFLINE_LINE
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.focusSoon
 import tv.anistream.tv.ui.isOffline
@@ -74,16 +78,16 @@ object UpdateWords {
         .joinToString("\n")
 
     /** The line under the version: its size and what this TV runs now. */
-    fun about(offer: UpdateOffer, installed: String?): String = listOfNotNull(
-        offer.bytes.takeIf { it > 0 }?.let(Wording::bytes),
-        installed?.let { "This TV has v${it.removePrefix("v")}" },
-    ).joinToString(" · ")
+    fun about(context: Context, offer: UpdateOffer, installed: String?): String = listOfNotNull(
+        offer.bytes.takeIf { it > 0 }?.let { Wording.bytes(context, it) },
+        installed?.let { Strings.tvUpdateInstalled(context, it.removePrefix("v")) },
+    ).joinToString(" · ") // i18n-skip
 
     /** "Downloading · 34 % · 16 MB of 48 MB", or "Starting the download" before the first byte. */
-    fun downloading(state: UpdateState.Downloading): String {
-        if (state.done == 0L) return "Starting the download"
-        val fraction = state.fraction ?: return "Downloading · ${Wording.bytes(state.done)}"
-        return "Downloading · ${(fraction * 100).toInt()} % · ${Wording.bytes(state.done)} of ${Wording.bytes(state.total)}"
+    fun downloading(context: Context, state: UpdateState.Downloading): String {
+        if (state.done == 0L) return Strings.updatesStartingDownload(context)
+        val fraction = state.fraction ?: return "${Strings.downloadsCaptionRunningPlain(context)} · ${Wording.bytes(context, state.done)}" // i18n-skip
+        return Strings.updatesDownloadingFull(context, percentText((fraction * 100).toInt()), Wording.bytes(context, state.done), Wording.bytes(context, state.total))
     }
 }
 
@@ -113,19 +117,19 @@ fun UpdateScreen(memory: FocusMemory, onDone: () -> Unit) {
     ) {
         val offer = current.offer
         if (offer == null) {
-            Text("anistream is up to date", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
-            installed?.let { Text("This TV has v${it.removePrefix("v")}", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze) }
+            Text(stringResource(R.string.updates_up_to_date), style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
+            installed?.let { Text(stringResource(R.string.tv_update_installed, it.removePrefix("v")), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze) }
             Spacer(Modifier.height(8.dp))
-            TonalButton(onClick = onDone, modifier = Modifier.remembered(memory, "update/back")) { ButtonLabel("Back") }
+            TonalButton(onClick = onDone, modifier = Modifier.remembered(memory, "update/back")) { ButtonLabel(stringResource(R.string.action_back)) }
             EnterFocus(memory, entry = "none")
             return@Column
         }
-        Text("Update to ${offer.name}", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
-        Text(UpdateWords.about(offer, installed), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+        Text(stringResource(R.string.updates_update_to, offer.name), style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
+        Text(UpdateWords.about(context, offer, installed), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
         // What changed, as the release's notes begin: four lines at most, at most 60 characters
         // wide, so the place below always sits where it did.
         Text(
-            UpdateWords.notes(offer.notes).ifBlank { "This release's notes are on its page." },
+            UpdateWords.notes(offer.notes).ifBlank { stringResource(R.string.updates_notes_on_page) },
             style = MaterialTheme.typography.bodyLarge,
             color = ObiSilk.Silk,
             maxLines = 4,
@@ -142,21 +146,22 @@ fun UpdateScreen(memory: FocusMemory, onDone: () -> Unit) {
 @Composable
 private fun Where(state: UpdateState, offline: Boolean, memory: FocusMemory, onDone: () -> Unit) {
     val store = LocalAppStore.current
+    val context = LocalContext.current
     val updates = store.updates
     val installs = state.offer?.let(updates::installs) ?: false
     val primary = remember { FocusRequester() }
     // A new state has a new first button: it takes focus, where the last one went away.
     LaunchedEffect(state::class) { primary.focusSoon() }
     val cancel = @Composable {
-        TonalButton(onClick = updates::cancel, modifier = Modifier.focusRequester(primary).remembered(memory, "update/cancel")) { ButtonLabel("Cancel") }
+        TonalButton(onClick = updates::cancel, modifier = Modifier.focusRequester(primary).remembered(memory, "update/cancel")) { ButtonLabel(stringResource(R.string.action_cancel)) }
     }
     Column(Modifier.widthIn(max = 720.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         when (state) {
             is UpdateState.Available, is UpdateState.None, is UpdateState.Allowing -> {
                 when {
-                    !installs -> StateLine("This build doesn't update itself. Install the release's TV app from its page.")
-                    offline -> StateLine(OFFLINE_LINE, Mark.Offline)
-                    else -> StateLine("Nothing installs until Android asks you to confirm.")
+                    !installs -> StateLine(stringResource(R.string.updates_no_self_update))
+                    offline -> StateLine(stringResource(R.string.accounts_offline_changes_tv), Mark.Offline)
+                    else -> StateLine(stringResource(R.string.updates_android_asks))
                 }
                 Bar(null)
                 Buttons {
@@ -165,36 +170,36 @@ private fun Where(state: UpdateState, offline: Boolean, memory: FocusMemory, onD
                         icon = null,
                         enabled = installs && !offline,
                         modifier = Modifier.focusRequester(primary).remembered(memory, "update/press"),
-                    ) { ButtonLabel("Update") }
-                    TonalButton(onClick = onDone, modifier = Modifier.remembered(memory, "update/later")) { ButtonLabel("Not now") }
+                    ) { ButtonLabel(stringResource(R.string.action_update)) }
+                    TonalButton(onClick = onDone, modifier = Modifier.remembered(memory, "update/later")) { ButtonLabel(stringResource(R.string.action_not_now)) }
                 }
             }
             is UpdateState.Downloading -> {
-                StateLine(UpdateWords.downloading(state))
+                StateLine(UpdateWords.downloading(context, state))
                 Bar(state.fraction ?: 0f)
                 Buttons { cancel() }
             }
             is UpdateState.Verifying -> {
-                StateLine("Checking the download")
+                StateLine(stringResource(R.string.updates_checking_download_short))
                 Bar(1f)
                 Buttons { cancel() }
             }
             is UpdateState.Installing -> {
-                StateLine("Android is asking to install the update. Confirm on its screen; your sign-ins, lists and settings stay.")
+                StateLine(stringResource(R.string.updates_confirm_on_android))
                 Bar(1f)
                 // Nothing here can stop Android's installer, so no Cancel; its place stays, a tonal
                 // button high, so nothing above moves.
                 Spacer(Modifier.height(48.dp))
             }
             is UpdateState.Done -> {
-                StateLine("Updated to ${state.offer.name}. It opens next time you start anistream.")
+                StateLine(stringResource(R.string.updates_updated_tv, state.offer.name))
                 Bar(null)
                 Buttons {
-                    TonalButton(onClick = onDone, modifier = Modifier.focusRequester(primary).remembered(memory, "update/done")) { ButtonLabel("Done") }
+                    TonalButton(onClick = onDone, modifier = Modifier.focusRequester(primary).remembered(memory, "update/done")) { ButtonLabel(stringResource(R.string.action_done)) }
                 }
             }
             is UpdateState.Failed -> {
-                if (offline) StateLine(OFFLINE_LINE, Mark.Offline) else StateLine(state.failure.text, Mark.Error)
+                if (offline) StateLine(stringResource(R.string.accounts_offline_changes_tv), Mark.Offline) else StateLine(state.failure.text(context), Mark.Error)
                 Bar(null)
                 Buttons {
                     AmberButton(
@@ -202,8 +207,8 @@ private fun Where(state: UpdateState, offline: Boolean, memory: FocusMemory, onD
                         icon = null,
                         enabled = !offline,
                         modifier = Modifier.focusRequester(primary).remembered(memory, "update/retry"),
-                    ) { ButtonLabel("Try again") }
-                    TonalButton(onClick = onDone, modifier = Modifier.remembered(memory, "update/later")) { ButtonLabel("Not now") }
+                    ) { ButtonLabel(stringResource(R.string.action_try_again)) }
+                    TonalButton(onClick = onDone, modifier = Modifier.remembered(memory, "update/later")) { ButtonLabel(stringResource(R.string.action_not_now)) }
                 }
             }
         }
@@ -274,17 +279,17 @@ private fun AllowInstalls(state: UpdateState.Allowing, memory: FocusMemory, onOp
             .padding(start = Canvas.Keyline, end = Canvas.SafeX, top = 72.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Allow anistream to install its update", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
+        Text(stringResource(R.string.updates_allow_title), style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
         Column(Modifier.widthIn(max = 720.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Step(1, "Choose Open settings. Android shows the apps that may install other apps.")
-            Step(2, "Turn on anistream.")
-            Step(3, "Press Back. The update downloads, and Android asks you to confirm it.")
+            Step(1, stringResource(R.string.updates_allow_step_1))
+            Step(2, stringResource(R.string.updates_allow_step_2))
+            Step(3, stringResource(R.string.updates_allow_step_3))
         }
         Text(
             if (state.opened) {
-                "Waiting for the switch. If Android's page didn't open, find it under $UNKNOWN_SOURCES_PATH."
+                stringResource(R.string.updates_allow_waiting, UNKNOWN_SOURCES_PATH)
             } else {
-                "Android asks this once. If its page doesn't open, the switch is under $UNKNOWN_SOURCES_PATH."
+                stringResource(R.string.updates_allow_once, UNKNOWN_SOURCES_PATH)
             },
             style = MaterialTheme.typography.bodyMedium,
             color = ObiSilk.Silk,
@@ -294,8 +299,8 @@ private fun AllowInstalls(state: UpdateState.Allowing, memory: FocusMemory, onOp
         )
         Spacer(Modifier.height(8.dp))
         Buttons {
-            AmberButton(onClick = onOpen, icon = null, modifier = Modifier.focusRequester(open).remembered(memory, "allow/open")) { ButtonLabel("Open settings") }
-            TonalButton(onClick = onNotNow, modifier = Modifier.remembered(memory, "allow/later")) { ButtonLabel("Not now") }
+            AmberButton(onClick = onOpen, icon = null, modifier = Modifier.focusRequester(open).remembered(memory, "allow/open")) { ButtonLabel(stringResource(R.string.action_open_settings)) }
+            TonalButton(onClick = onNotNow, modifier = Modifier.remembered(memory, "allow/later")) { ButtonLabel(stringResource(R.string.action_not_now)) }
         }
     }
     LaunchedEffect(Unit) { open.focusSoon() }

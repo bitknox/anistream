@@ -241,3 +241,6 @@ torrents-page-unreadable = The TV couldn't read this. Scan the QR code on the TV
 
 # Line when the page needs script.
 torrents-page-needs-script = This page needs JavaScript to send the form to the TV safely.
+
+# Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+torrents-check-note = { -app-name } checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.

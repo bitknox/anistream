@@ -169,6 +169,40 @@
         }
       }
     },
+    "accounts-changes-waiting" : {
+      "comment" : "Line under a signed-in account while changes wait to be sent. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One change waiting to sync"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld changes waiting to sync"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "accounts-clash-detail" : {
       "comment" : "Line under it. Argument 1: tracker (Text).",
       "extractionState" : "manual",
@@ -10657,6 +10691,66 @@
         }
       }
     },
+    "search-sort-favourites" : {
+      "comment" : "Search: sort by how many people marked the title a favourite.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favourites"
+          }
+        }
+      }
+    },
+    "search-sort-newest" : {
+      "comment" : "Search: sort by release date, newest first.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest"
+          }
+        }
+      }
+    },
+    "search-sort-oldest" : {
+      "comment" : "Search: sort by release date, oldest first.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oldest"
+          }
+        }
+      }
+    },
+    "search-sort-title" : {
+      "comment" : "Search: sort by title, A to Z.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        }
+      }
+    },
+    "search-sort-trending" : {
+      "comment" : "Search: sort by what is popular right now.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trending"
+          }
+        }
+      }
+    },
     "search-try-fewer-filters" : {
       "comment" : "Line under a state that filters emptied.",
       "extractionState" : "manual",
@@ -11507,6 +11601,30 @@
         }
       }
     },
+    "settings-quality-higher" : {
+      "comment" : "Choice for the download quality: larger files with more detail.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Higher"
+          }
+        }
+      }
+    },
+    "settings-quality-standard" : {
+      "comment" : "Choice for the download quality: the usual size.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        }
+      }
+    },
     "settings-seed-after" : {
       "comment" : "Row: seeding after watching.",
       "extractionState" : "manual",
@@ -11803,6 +11921,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upload limit"
+          }
+        }
+      }
+    },
+    "settings-upload-unlimited" : {
+      "comment" : "Value of the upload limit setting when there is no limit.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlimited"
+          }
+        }
+      }
+    },
+    "settings-upscaling-natural" : {
+      "comment" : "Value of the upscaling setting: a natural look. The name after the dot is the shader used.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Natural · ArtCNN"
+          }
+        }
+      }
+    },
+    "settings-upscaling-note-natural" : {
+      "comment" : "Preview note under the upscaling frame for the natural look.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faithful line work and texture, nothing restyled."
+          }
+        }
+      }
+    },
+    "settings-upscaling-note-sharp" : {
+      "comment" : "Preview note under the upscaling frame for the sharp look.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crisper lines and stronger edges, at some cost to texture."
+          }
+        }
+      }
+    },
+    "settings-upscaling-sharp" : {
+      "comment" : "Value of the upscaling setting: a sharper look. The name after the dot is the shader used.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sharp · Anime4K"
           }
         }
       }
@@ -13921,6 +14099,18 @@
         }
       }
     },
+    "stores-copy-link" : {
+      "comment" : "Button under an invite link that copies it. Reads \"Copied\" for a moment afterwards.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy link"
+          }
+        }
+      }
+    },
     "stores-device-joined-as" : {
       "comment" : "How the device joined, when a name was given. Argument 1: name (Text).",
       "extractionState" : "manual",
@@ -14637,6 +14827,40 @@
         }
       }
     },
+    "stores-offers-plugins" : {
+      "comment" : "Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One plugin"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld plugins"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "stores-offline-last-list" : {
       "comment" : "Line when the store cannot be reached but a list was kept. The reason is a sentence fragment. Argument 1: reason (Cause).",
       "extractionState" : "manual",
@@ -15273,6 +15497,18 @@
         }
       }
     },
+    "time-just-now-inline" : {
+      "comment" : "How long ago something happened, under a minute. Lower case: it follows other words, as in \"out just now\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "just now"
+          }
+        }
+      }
+    },
     "time-minutes" : {
       "comment" : "A length in minutes, for an episode. Argument 1: minutes (Int).",
       "extractionState" : "manual",
@@ -15341,6 +15577,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Resume episode %1$lld · %2$@"
+          }
+        }
+      }
+    },
+    "title-button-watch-again" : {
+      "comment" : "Main button of the title page when every episode of the show is watched: plays episode 1 again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch again"
           }
         }
       }
@@ -15785,6 +16033,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The check could not be made through this proxy"
+          }
+        }
+      }
+    },
+    "torrents-check-note" : {
+      "comment" : "Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you."
           }
         }
       }

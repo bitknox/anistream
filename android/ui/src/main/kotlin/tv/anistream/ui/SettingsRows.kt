@@ -4,6 +4,9 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.R
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -244,6 +247,7 @@ fun <T> MenuRow(
 
 @Composable
 private fun <T> MenuItem(choice: MenuChoice<T>, picked: Boolean, onClick: () -> Unit) {
+    val selectedWord = stringResource(R.string.value_selected)
     DropdownMenuItem(
         text = {
             Column {
@@ -266,7 +270,7 @@ private fun <T> MenuItem(choice: MenuChoice<T>, picked: Boolean, onClick: () -> 
         },
         modifier = Modifier
             .heightIn(min = if (choice.example != null) 64.dp else 48.dp)
-            .semantics { if (picked) stateDescription = "Selected" },
+            .semantics { if (picked) stateDescription = selectedWord },
         onClick = onClick,
     )
 }
@@ -301,6 +305,8 @@ fun SwitchRow(
     focus: String? = null,
     onChange: (Boolean) -> Unit,
 ) {
+    val onWord = stringResource(R.string.value_on)
+    val offWord = stringResource(R.string.value_off)
     RowFrame(
         place,
         onClick = if (enabled) ({ onChange(!checked) }) else null,
@@ -310,7 +316,7 @@ fun SwitchRow(
             .alpha(if (enabled) 1f else 0.38f)
             .semantics(mergeDescendants = true) {
                 role = Role.Switch
-                stateDescription = if (checked) "On" else "Off"
+                stateDescription = if (checked) onWord else offWord
             },
     ) { selected ->
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {

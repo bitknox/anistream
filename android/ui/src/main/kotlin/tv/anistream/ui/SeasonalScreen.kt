@@ -2,6 +2,9 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.R
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -29,11 +32,11 @@ fun SeasonalScreen() {
     val navigator = LocalNavigator.current
     LaunchedEffect(Unit) { store.loadSeasonal() }
     ScreenFrame(
-        title = "Seasonal",
+        title = stringResource(R.string.nav_seasonal),
         subtitle = caption?.let(::seasonName),
         actions = {
             // The season as a search, to narrow by genre, format or anything else.
-            QuietButton("Filter in Search") {
+            QuietButton(stringResource(R.string.seasonal_filter_in_search)) {
                 store.search(seasonQuery())
                 navigator.go(Destination.Search)
             }
@@ -58,9 +61,9 @@ fun SeasonalScreen() {
                         items(list.ids.mapNotNull { titles[it] }, key = { it.id.toLong() }) { PosterCell(it, itemMotion(), from = "seasonal") }
                     }
                     is ListState.Failed -> Column(Modifier.padding(top = padding.calculateTopPadding()).verticalScroll(rememberScrollState())) {
-                        FailedState("Couldn't load this season", list.reason, retry = { store.loadSeasonal(force = true) })
+                        FailedState(stringResource(R.string.seasonal_load_failed), list.reason, retry = { store.loadSeasonal(force = true) })
                     }
-                    else -> Column(Modifier.padding(top = padding.calculateTopPadding()).verticalScroll(rememberScrollState())) { Quiet("Nothing this season yet") }
+                    else -> Column(Modifier.padding(top = padding.calculateTopPadding()).verticalScroll(rememberScrollState())) { Quiet(caption?.let { stringResource(R.string.seasonal_empty_title, seasonName(it)) } ?: stringResource(R.string.seasonal_empty_detail)) }
                 }
             }
         }

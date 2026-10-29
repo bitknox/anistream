@@ -1,6 +1,11 @@
 package tv.anistream.tv
 
+import tv.anistream.i18n.R
 import java.net.HttpURLConnection
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import java.net.URI
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
@@ -19,7 +24,10 @@ import tv.anistream.tv.signin.anilistCallback
 import tv.anistream.tv.signin.spaced
 
 /** The TV's sign-in page, served on loopback: its one-time path, its forms, and what it hands on. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class SignInPageTest {
+    private val context = RuntimeEnvironment.getApplication()
     private val answers = LinkedBlockingQueue<PageAnswer>()
     private var page: SignInPage? = null
 
@@ -29,7 +37,7 @@ class SignInPageTest {
     }
 
     private fun start(form: PageForm): String {
-        val started = SignInPage("Kitsu", form, authorizeUrl = "https://tracker.example/authorize?state=s1") { answers.add(it) }
+        val started = SignInPage(context, "Kitsu", form, authorizeUrl = "https://tracker.example/authorize?state=s1") { answers.add(it) }
         page = started
         val port = started.start(port = 0)!!
         return "http://127.0.0.1:$port/${started.path}"
@@ -71,7 +79,7 @@ class SignInPageTest {
         val url = start(PageForm.Password)
         val plain = postRaw(url, "username=mika&password=secret")
         assertEquals(400, plain.first)
-        assertTrue(plain.second.contains(SignInPage.NOT_SEALED))
+        assertTrue(plain.second.contains(SignInPage.json(context.getString(R.string.torrents_page_unreadable))))
         // Sealed with another key, or for another page, it opens no better.
         val other = PageKey().seal(page!!.path, "username=mika&password=secret")
         assertEquals(400, postRaw(url, other).first)
@@ -152,6 +160,7 @@ class SignInPageTest {
     @Test
     fun edit_proxy_page_opens_filled_in_but_for_the_password_and_takes_no_index() {
         val started = SignInPage(
+            context,
             "torrents",
             PageForm.Proxy,
             authorizeUrl = null,
@@ -182,7 +191,7 @@ class SignInPageTest {
     @Test
     fun the_pages_script_posts_the_form_sealed_and_the_tv_takes_it() {
         assumeTrue("Node runs the page's script", runCatching { ProcessBuilder("node", "--version").start().waitFor() == 0 }.getOrDefault(false))
-        val started = SignInPage("torrents", PageForm.Proxy, authorizeUrl = null, filled = mapOf("host" to "proxy.example", "port" to "1080", "user" to "mika")) { answers.add(it) }
+        val started = SignInPage(context, "torrents", PageForm.Proxy, authorizeUrl = null, filled = mapOf("host" to "proxy.example", "port" to "1080", "user" to "mika")) { answers.add(it) }
         page = started
         val url = "http://127.0.0.1:${started.start(port = 0)!!}/${started.path}"
         val html = get(url).second

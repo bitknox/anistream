@@ -3,6 +3,7 @@
 
 package tv.anistream.ui
 
+import android.content.Context
 import android.text.format.DateFormat
 import java.time.Instant
 import java.time.LocalDate
@@ -20,6 +21,9 @@ import tv.anistream.engine.model.RelationKind
 import tv.anistream.engine.model.Season
 import tv.anistream.engine.model.SourceMaterial
 import tv.anistream.engine.model.TitleTag
+import tv.anistream.i18n.R
+import tv.anistream.i18n.Strings
+import tv.anistream.store.AirTime
 import tv.anistream.store.AppClock
 
 /**
@@ -32,24 +36,24 @@ fun Entry.otherForms(): List<String> =
         .distinctBy { it.lowercase(Locale.ROOT) }
 
 /** "Summer", from AniList's season. */
-fun Season.label(): String = name.lowercase(Locale.ROOT).replaceFirstChar { it.uppercase() }
+fun Season.label(context: Context): String = seasonName(context, this)
 
 /** What a title was adapted from, in words; `null` for Other, which is left out. */
-fun SourceMaterial.label(): String? = when (this) {
-    SourceMaterial.ORIGINAL -> "Original story"
-    SourceMaterial.MANGA -> "Manga"
-    SourceMaterial.LIGHT_NOVEL -> "Light novel"
-    SourceMaterial.WEB_NOVEL -> "Web novel"
-    SourceMaterial.VISUAL_NOVEL -> "Visual novel"
-    SourceMaterial.VIDEO_GAME -> "Video game"
-    SourceMaterial.NOVEL -> "Novel"
-    SourceMaterial.DOUJINSHI -> "Doujinshi"
-    SourceMaterial.ANIME -> "Anime"
-    SourceMaterial.LIVE_ACTION -> "Live action"
-    SourceMaterial.GAME -> "Game"
-    SourceMaterial.COMIC -> "Comic"
-    SourceMaterial.MULTIMEDIA_PROJECT -> "Multimedia project"
-    SourceMaterial.PICTURE_BOOK -> "Picture book"
+fun SourceMaterial.label(context: Context): String? = when (this) {
+    SourceMaterial.ORIGINAL -> Strings.materialOriginal(context)
+    SourceMaterial.MANGA -> Strings.materialManga(context)
+    SourceMaterial.LIGHT_NOVEL -> Strings.materialLightNovel(context)
+    SourceMaterial.WEB_NOVEL -> Strings.materialWebNovel(context)
+    SourceMaterial.VISUAL_NOVEL -> Strings.materialVisualNovel(context)
+    SourceMaterial.VIDEO_GAME -> Strings.materialVideoGame(context)
+    SourceMaterial.NOVEL -> Strings.materialNovel(context)
+    SourceMaterial.DOUJINSHI -> Strings.materialDoujinshi(context)
+    SourceMaterial.ANIME -> Strings.materialAnime(context)
+    SourceMaterial.LIVE_ACTION -> Strings.materialLiveAction(context)
+    SourceMaterial.GAME -> Strings.materialGame(context)
+    SourceMaterial.COMIC -> Strings.materialComic(context)
+    SourceMaterial.MULTIMEDIA_PROJECT -> Strings.materialMultimedia(context)
+    SourceMaterial.PICTURE_BOOK -> Strings.materialPictureBook(context)
     SourceMaterial.OTHER -> null
 }
 
@@ -58,8 +62,9 @@ fun FuzzyDate.words(locale: Locale = Locale.getDefault()): String {
     val month = month?.toInt()
     val day = day?.toInt()
     if (month == null) return year.toString()
-    val short = java.time.Month.of(month).getDisplayName(java.time.format.TextStyle.SHORT, locale)
-    return if (day == null) "$short $year" else "$day $short $year"
+    val skeleton = if (day == null) "yMMM" else "yMMMd"
+    val pattern = AirTime.bestPattern(skeleton, if (day == null) "MMM yyyy" else "d MMM yyyy")
+    return DateTimeFormatter.ofPattern(pattern, locale).format(LocalDate.of(year.toInt(), month, day ?: 1))
 }
 
 private fun FuzzyDate.earliest(): LocalDate = LocalDate.of(year.toInt(), month?.toInt() ?: 1, day?.toInt() ?: 1)
@@ -71,13 +76,13 @@ private fun FuzzyDate.latest(): LocalDate {
 }
 
 /** Where a title stands by its dates, with the label and the words the facts give it. */
-data class AiringState(val label: String, val value: String)
+data class AiringState(val label: String, val value: String, val line: String)
 
 /**
  * Aired, Airing or Airs, from the dates until the engine carries a status: finished once the end
  * has passed, airing once the start has, upcoming before; nothing with no dates at all.
  */
-fun Entry.airingState(today: LocalDate = LocalDate.ofInstant(AppClock.now(), AppClock.zone)): AiringState? {
+fun Entry.airingState(context: Context, today: LocalDate = LocalDate.ofInstant(AppClock.now(), AppClock.zone)): AiringState? {
     val start = startDate ?: return null
     val end = endDate
     return when {
@@ -86,40 +91,40 @@ fun Entry.airingState(today: LocalDate = LocalDate.ofInstant(AppClock.now(), App
                 start.words()
             } else if (start.year == end.year && start.day != null && end.day != null && start.month != null) {
                 // "4 Apr to 22 Jun 2024": the year once when both ends share it.
-                "${start.words().removeSuffix(" ${start.year}")} to ${end.words()}"
+                Strings.mediaDatesRange(context, start.words().removeSuffix(" ${start.year}"), end.words())
             } else {
-                "${start.words()} to ${end.words()}"
+                Strings.mediaDatesRange(context, start.words(), end.words())
             }
-            AiringState("Aired", value)
+            AiringState(Strings.mediaStatusAired(context), value, Strings.titleFactsAired(context, value))
         }
-        start.earliest() <= today -> AiringState("Airing", "Since ${start.words()}")
-        else -> AiringState("Airs", "From ${start.words()}")
+        start.earliest() <= today -> AiringState(Strings.mediaStatusAiring(context), Strings.mediaAiringSince(context, start.words()), Strings.titleFactsAiring(context, start.words()))
+        else -> AiringState(Strings.mediaStatusUpcoming(context), Strings.mediaAiringFrom(context, start.words()), Strings.titleFactsAirs(context, start.words()))
     }
 }
 
 /** "Summer 2026", or "2026" with only a year. */
-fun Entry.seasonWords(): String? = when {
-    season != null && year != null -> "${season!!.label()} $year"
+fun Entry.seasonWords(context: Context): String? = when {
+    season != null && year != null -> Strings.seasonWithYear(context, season!!.label(context), year.toString())
     year != null -> year.toString()
     else -> null
 }
 
 /** "Hikari Stream", or "Hikari Stream and 1 more". */
-fun Entry.alsoOn(): String? = when (availableOn.size) {
+fun Entry.alsoOn(context: Context): String? = when (availableOn.size) {
     0 -> null
     1 -> availableOn.first()
-    else -> "${availableOn.first()} and ${availableOn.size - 1} more"
+    else -> context.resources.getQuantityString(R.plurals.title_also_on_more, availableOn.size - 1, availableOn.first(), availableOn.size - 1)
 }
 
 /**
  * The phone's facts line: what it is based on, the studio and the airing state, as one line that
  * is cut at the end, so the dates go first when space runs out.
  */
-fun Entry.factsLine(): String? = listOfNotNull(
-    source?.label(),
+fun Entry.factsLine(context: Context): String? = listOfNotNull(
+    source?.label(context),
     studio,
-    airingState()?.let { "${it.label} ${it.value.replaceFirstChar { c -> c.lowercase() }}" },
-).joinToString(" · ").ifEmpty { null }
+    airingState(context)?.line,
+).joinToString(" · ").ifEmpty { null } // i18n-skip
 
 /** The tags without spoilers, by rank. */
 fun List<TitleTag>.plain(): List<TitleTag> =
@@ -133,33 +138,36 @@ fun List<TitleTag>.spoilers(): List<TitleTag> =
 fun Entry.tagsLine(): String? =
     detail?.tags?.plain()?.take(3)?.joinToString(" · ") { it.name }?.ifEmpty { null }
 
-/** The caps line: "18+ · TV · 12 EP · SPRING 2024 · 82%". */
-val Entry.capsLine: String
-    get() {
-        val base = metadataLine
-        return if (adult) listOf("18+", base).filter { it.isNotEmpty() }.joinToString(" · ") else base
-    }
+/** The meta line with the adult mark: "18+ · TV · 12 episodes · Spring 2024 · 82%". */
+fun Entry.headlineMeta(context: Context): String {
+    val base = metadataLine(context)
+    return if (adult) listOf(Strings.titleAdultMark(context), base).filter { it.isNotEmpty() }.joinToString(" · ") else base // i18n-skip
+}
 
 /** AniList's synopsis without its inline spoiler spans, which the app offers no reveal for yet. */
 fun synopsisWithoutSpoilers(text: String): String =
-    text.replace(Regex("~!.*?!~", RegexOption.DOT_MATCHES_ALL), "").replace(Regex("\\s{2,}"), " ").trim()
+    text.replace(Regex("~!.*?!~", RegexOption.DOT_MATCHES_ALL), "")
+        .replace(Regex("[^\\S\\n]+"), " ")
+        .replace(Regex(" ?\\n ?"), "\n")
+        .replace(Regex("\\n{3,}"), "\n\n")
+        .trim()
 
 /** A relation in words. */
-fun RelationKind.words(): String = when (this) {
-    RelationKind.PREQUEL -> "Prequel"
-    RelationKind.SEQUEL -> "Sequel"
-    RelationKind.PARENT -> "Parent story"
-    RelationKind.SIDE_STORY -> "Side story"
-    RelationKind.SPIN_OFF -> "Spin-off"
-    RelationKind.ALTERNATIVE -> "Alternative"
-    RelationKind.SUMMARY -> "Summary"
-    RelationKind.COMPILATION -> "Compilation"
-    RelationKind.CONTAINS -> "Contains"
-    RelationKind.SAME_UNIVERSE -> "Same universe"
-    RelationKind.CHARACTER -> "Shares characters"
-    RelationKind.ADAPTATION -> "Adaptation"
-    RelationKind.SOURCE -> "Source"
-    RelationKind.OTHER -> "Related"
+fun RelationKind.words(context: Context): String = when (this) {
+    RelationKind.PREQUEL -> Strings.relationPrequel(context)
+    RelationKind.SEQUEL -> Strings.relationSequel(context)
+    RelationKind.PARENT -> Strings.relationParent(context)
+    RelationKind.SIDE_STORY -> Strings.relationSideStory(context)
+    RelationKind.SPIN_OFF -> Strings.relationSpinOff(context)
+    RelationKind.ALTERNATIVE -> Strings.relationAlternative(context)
+    RelationKind.SUMMARY -> Strings.relationSummary(context)
+    RelationKind.COMPILATION -> Strings.relationCompilation(context)
+    RelationKind.CONTAINS -> Strings.relationContains(context)
+    RelationKind.SAME_UNIVERSE -> Strings.relationSameUniverse(context)
+    RelationKind.CHARACTER -> Strings.relationSharesCharacters(context)
+    RelationKind.ADAPTATION -> Strings.relationAdaptation(context)
+    RelationKind.SOURCE -> Strings.showSettingsSource(context)
+    RelationKind.OTHER -> Strings.relationOther(context)
 }
 
 private val SERIES = setOf("TV", "TV_SHORT", "TV SHORT", "ONA")
@@ -188,26 +196,25 @@ fun Entry.relatedCards(): List<LinkedTitle> {
 }
 
 /** "Side story · Movie · 2025". */
-fun LinkedTitle.cardLine(): String =
-    listOfNotNull((relation ?: RelationKind.OTHER).words(), formatLabel(format), year?.toString()).joinToString(" · ")
+fun LinkedTitle.cardLine(context: Context): String =
+    listOfNotNull((relation ?: RelationKind.OTHER).words(context), formatLabel(context, format), year?.toString()).joinToString(" · ") // i18n-skip
 
 /** "Movie · 2025", for a recommendation. */
-fun LinkedTitle.recommendationLine(): String =
-    listOfNotNull(formatLabel(format), year?.toString()).joinToString(" · ")
+fun LinkedTitle.recommendationLine(context: Context): String =
+    listOfNotNull(formatLabel(context, format), year?.toString()).joinToString(" · ") // i18n-skip
 
 /**
  * A ranking in words: "Highest rated, Summer 2026", "Most popular, all time". The number goes
  * beside it, set apart.
  */
-fun Ranking.words(): String {
-    val kind = if (kind == RankingKind.RATED) "Highest rated" else "Most popular"
+fun Ranking.words(context: Context): String {
     val span = when {
-        allTime -> "all time"
-        season != null && year != null -> "${season!!.label()} $year"
+        allTime -> Strings.rankingAllTime(context)
+        season != null && year != null -> Strings.seasonWithYear(context, season!!.label(context), year.toString())
         year != null -> year.toString()
-        else -> "all time"
+        else -> Strings.rankingAllTime(context)
     }
-    return "$kind, $span"
+    return if (kind == RankingKind.RATED) Strings.rankingHighestRated(context, span) else Strings.rankingMostPopular(context, span)
 }
 
 /** Season before year before all time, and rated before popular within each. */
@@ -231,31 +238,28 @@ fun Entry.nextUnaired(rows: List<EpisodeRow>?, now: Long = AppClock.now().epochS
 }
 
 /**
- * When a broadcast airs: "today 16:30", "tomorrow 16:30", "Thursday 16:30" within six days, and
- * "29 Oct, 16:30" later, in the device's own time format.
+ * When a broadcast airs: "today at 16:30", "tomorrow at 16:30", "on Thursday at 16:30" within six days,
+ * and "on 29 Oct at 16:30" later, in the device's own time format.
  */
 fun airsWords(
+    context: Context,
     at: Instant,
     now: Instant = AppClock.now(),
     zone: ZoneId = AppClock.zone,
-    twentyFourHour: Boolean = true,
+    twentyFourHour: Boolean = DateFormat.is24HourFormat(context),
     locale: Locale = Locale.getDefault(),
 ): String {
-    val time = DateTimeFormatter.ofPattern(if (twentyFourHour) "HH:mm" else "h:mm a", locale).format(at.atZone(zone))
+    val time = DateTimeFormatter.ofPattern(AirTime.bestPattern(if (twentyFourHour) "Hm" else "hm", if (twentyFourHour) "HH:mm" else "h:mm a"), locale).format(at.atZone(zone))
     val day = LocalDate.ofInstant(at, zone)
     val today = LocalDate.ofInstant(now, zone)
     val days = ChronoUnit.DAYS.between(today, day)
     return when {
-        days == 0L -> "today $time"
-        days == 1L -> "tomorrow $time"
-        days in 2..6 -> "${day.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, locale)} $time"
-        else -> "${DateTimeFormatter.ofPattern("d MMM", locale).format(day)}, $time"
+        days == 0L -> Strings.causeAirsToday(context, time)
+        days == 1L -> Strings.causeAirsTomorrow(context, time)
+        days in 2..6 -> Strings.causeAirsOnDate(context, day.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, locale), time)
+        else -> Strings.causeAirsOnDate(context, DateTimeFormatter.ofPattern(AirTime.bestPattern("dMMM", "d MMM"), locale).format(day), time)
     }
 }
-
-/** [airsWords] in the device's own time format. */
-fun airsWords(context: android.content.Context, at: Instant): String =
-    airsWords(at, twentyFourHour = DateFormat.is24HourFormat(context))
 
 /** The flat rect a cover or character waits in: #1F2440 until a cover's own colour is known. */
 val NoArtPlate = androidx.compose.ui.graphics.Color(0xFF1F2440)

@@ -4,6 +4,7 @@
 
 package tv.anistream.widgets
 
+import tv.anistream.i18n.Strings
 import android.content.Context
 import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
@@ -87,7 +88,7 @@ internal fun drawing(context: Context, host: WidgetHost?) = Drawing(
     art = { url, width, height -> host?.widgetArt?.image(url, width, height) },
     now = AppClock.now(),
     zone = AppClock.zone,
-    words = Words(DateFormat.is24HourFormat(context), Locale.getDefault()),
+    words = Words(context, DateFormat.is24HourFormat(context), Locale.getDefault()),
 )
 
 /** The picker's 2 × 2 Continue watching. */
@@ -102,19 +103,20 @@ class ContinueWideReceiver : AnistreamWidgetReceiver() {
 
 @Composable
 internal fun ContinueContent(view: ContinueView, drawing: Drawing) {
+    val context = drawing.words.context
     when (view) {
         ContinueView.SignedOut -> Message(
-            title = "Continue",
-            body = "Connect AniList, or play an episode, to see it here.",
+            title = Strings.widgetContinueTitle(context),
+            body = Strings.widgetConnectDetail(context),
             onClick = drawing.open(AppLink.Accounts),
-            action = "Connect",
+            action = Strings.widgetConnect(context),
         )
         is ContinueView.CaughtUp -> {
             val next = view.next
             if (next == null) {
-                Message("Continue", "You’re caught up.", drawing.open(null))
+                Message(Strings.widgetContinueTitle(context), Strings.widgetCaughtUp(context), drawing.open(null))
             } else {
-                Message("Caught up", "${next.title} E${next.episode} airs ${drawing.airs(next.airsAt)}.", drawing.open(AppLink.Title(next.id)))
+                Message(Strings.widgetCaughtUpTitle(context), Strings.widgetCaughtUpNext(context, next.title, next.episode.toInt(), drawing.airs(next.airsAt)), drawing.open(AppLink.Title(next.id)))
             }
         }
         is ContinueView.Shows -> {
@@ -156,7 +158,7 @@ private fun Small(show: ContinueView.Show, updated: String?, drawing: Drawing) {
             }
         }
         Box(GlanceModifier.fillMaxSize().padding(top = 56.dp, end = 8.dp), contentAlignment = Alignment.TopEnd) {
-            Play(drawing.open(AppLink.Continue(show.id)), playLabel(show), filled = true)
+            Play(drawing.open(AppLink.Continue(show.id)), playLabel(drawing.words.context, show), filled = true)
         }
     }
 }
@@ -176,7 +178,7 @@ private fun Beside(show: ContinueView.Show, updated: String?, drawing: Drawing) 
             }
         }
         Box(GlanceModifier.fillMaxSize().padding(end = 12.dp, bottom = 12.dp), contentAlignment = Alignment.BottomEnd) {
-            Play(drawing.open(AppLink.Continue(show.id)), playLabel(show), filled = true)
+            Play(drawing.open(AppLink.Continue(show.id)), playLabel(drawing.words.context, show), filled = true)
         }
     }
 }
@@ -193,7 +195,7 @@ private fun Two(shows: List<ContinueView.Show>, updated: String?, drawing: Drawi
                     Box(contentAlignment = Alignment.TopEnd) {
                         Art(drawing, show.wideUrl, show.plate, card, 88.dp, 16.dp)
                         Box(GlanceModifier.padding(top = 40.dp, end = 4.dp)) {
-                            Play(drawing.open(AppLink.Continue(show.id)), playLabel(show), filled = false)
+                            Play(drawing.open(AppLink.Continue(show.id)), playLabel(drawing.words.context, show), filled = false)
                         }
                     }
                     Spacer(GlanceModifier.height(8.dp))
@@ -224,7 +226,7 @@ private fun Tall(shows: List<ContinueView.Show>, updated: String?, drawing: Draw
             Box(contentAlignment = Alignment.TopEnd) {
                 Art(drawing, first.wideUrl, first.plate, width, 96.dp, 16.dp)
                 Box(GlanceModifier.padding(top = 40.dp, end = 8.dp)) {
-                    Play(drawing.open(AppLink.Continue(first.id)), playLabel(first), filled = true)
+                    Play(drawing.open(AppLink.Continue(first.id)), playLabel(drawing.words.context, first), filled = true)
                 }
             }
             Spacer(GlanceModifier.height(8.dp))
@@ -258,7 +260,12 @@ private fun Tall(shows: List<ContinueView.Show>, updated: String?, drawing: Draw
  * What the play button says to a screen reader: "Resume episode 7 of …", or "Play episode 4 of …",
  * and for a dub the mark as the row shows it: "Resume episode 7, Dub, of …".
  */
-internal fun playLabel(show: ContinueView.Show): String {
-    val episode = listOfNotNull("episode ${show.episode}", show.mark).joinToString(", ")
-    return "${if (show.progress != null) "Resume" else "Play"} $episode${if (show.mark != null) "," else ""} of ${show.title}"
+internal fun playLabel(context: Context, show: ContinueView.Show): String {
+    val episode = show.episode.toInt()
+    return when {
+        show.progress != null && show.mark != null -> Strings.widgetResumeDubbedLabel(context, episode, show.title)
+        show.progress != null -> Strings.widgetResumeLabel(context, episode, show.title)
+        show.mark != null -> Strings.widgetPlayDubbedLabel(context, episode, show.title)
+        else -> Strings.widgetStartLabel(context, episode, show.title)
+    }
 }

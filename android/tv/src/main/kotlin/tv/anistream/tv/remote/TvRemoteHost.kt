@@ -4,6 +4,7 @@
 
 package tv.anistream.tv.remote
 
+import tv.anistream.i18n.Strings
 import android.content.Context
 import android.media.AudioManager
 import android.net.ConnectivityManager
@@ -305,7 +306,7 @@ class TvRemoteHost(
                 if (pairing) ownCode = remote?.openPairing()
             }
             is FrontIntent.Paired -> {
-                say("${intent.phone} is paired")
+                say(Strings.tvPhonePaired(context, intent.phone))
                 phones = remote?.paired().orEmpty()
                 if (pairing) closePairing()
             }

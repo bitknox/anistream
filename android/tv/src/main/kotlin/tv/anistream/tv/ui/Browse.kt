@@ -4,6 +4,10 @@
 
 package tv.anistream.tv.ui
 
+import androidx.compose.ui.platform.LocalContext
+import tv.anistream.i18n.Strings
+import java.text.NumberFormat
+import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
@@ -218,7 +222,7 @@ fun PosterCard(
     dot: Color? = null,
 ) {
     Column(Modifier.width(Canvas.PosterWidth)) {
-        ArtCard(onClick, Canvas.PosterWidth, Canvas.PosterHeight, modifier, sheet, cardLabel(title, line, progress)) {
+        ArtCard(onClick, Canvas.PosterWidth, Canvas.PosterHeight, modifier, sheet, cardLabel(LocalContext.current, title, line, progress)) {
             ArtImage(coverUrl, CoverPlate.parse(coverColor), POSTER_PIXELS, Modifier.fillMaxSize())
             if (progress != null) ProgressEdge(progress, Modifier.align(Alignment.BottomStart))
         }
@@ -244,7 +248,7 @@ fun WideCard(
     sheet: (() -> ActionSheet)? = null,
 ) {
     Column(Modifier.width(Canvas.CardWidth)) {
-        ArtCard(onClick, Canvas.CardWidth, Canvas.CardHeight, modifier, sheet, cardLabel(title, line, progress)) {
+        ArtCard(onClick, Canvas.CardWidth, Canvas.CardHeight, modifier, sheet, cardLabel(LocalContext.current, title, line, progress)) {
             if (art != null) {
                 ArtImage(art, CoverPlate.parse(entry.coverColor), pixels(Canvas.CardWidth), Modifier.fillMaxSize(), spoiler = spoiler)
             } else {
@@ -266,10 +270,10 @@ fun WideCard(
 /**
  * What TalkBack says for a card: its title, its line and the progress in words, as one element.
  */
-fun cardLabel(title: String, line: String?, progress: Float?): String = listOfNotNull(
+fun cardLabel(context: Context, title: String, line: String?, progress: Float?): String = listOfNotNull(
     title,
     line,
-    progress?.let { "${(it.coerceIn(0f, 1f) * 100).roundToInt()} percent watched" },
+    progress?.let { Strings.tvCardProgressSpoken(context, NumberFormat.getPercentInstance().format(it.coerceIn(0f, 1f).toDouble())) },
 ).joinToString(", ")
 
 /** The panel's actions for TalkBack's actions menu: each runs, or opens its next panel. */

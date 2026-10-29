@@ -581,7 +581,7 @@ public final class AppStore {
             if case .calendar = view { widgetsChanged() }
         case .caption(let view, let text):
             caption(text, for: view)
-        case .calendarWindow(let anchor, let pages, let morePast):
+        case .calendarWindow(let anchor, let pages, let morePast, _, _, _, _):
             calendar.window(anchor: anchor, pages: pages, morePast: morePast)
         case .calendarBackfill(let page, let entries, let morePast):
             calendar.backfill(page: page, entries: entries, morePast: morePast, titles: titles)

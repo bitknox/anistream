@@ -1,6 +1,7 @@
 package tv.anistream.ui
 
 import android.view.ViewGroup
+import org.robolectric.RuntimeEnvironment
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -83,6 +84,7 @@ import tv.anistream.testkit.Scene
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [36])
 class SettingsShots {
+    private val context = RuntimeEnvironment.getApplication()
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
@@ -184,7 +186,7 @@ class SettingsShots {
         tap = "Edit proxy…",
         thenTap = "Save",
         after = { it.apply(listOf(Event.ProtectionChecked(GuardView.Protected("203.0.113.24")))) },
-        check = { compose.onNodeWithText(TorrentWords.SAID_PROXY).assertExists() },
+        check = { compose.onNodeWithText(context.getString(TorrentWords.SAID_PROXY)).assertExists() },
     )
 
     /** The Torrent index row's sheet: the index alone, under the row's own name. */
@@ -203,7 +205,7 @@ class SettingsShots {
         fill = ::proxyTyped,
         thenTap = "Turn on",
         check = {
-            compose.onNodeWithText(TorrentWords.CHECKING_PROXY).assertExists()
+            compose.onNodeWithText(context.getString(TorrentWords.CHECKING_PROXY)).assertExists()
             compose.onNodeWithText("Host").assertIsNotEnabled()
         },
     )

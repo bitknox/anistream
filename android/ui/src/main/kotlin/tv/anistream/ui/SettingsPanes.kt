@@ -4,6 +4,9 @@
 
 package tv.anistream.ui
 
+import android.os.Build
+import tv.anistream.i18n.Language
+import tv.anistream.store.AppLanguage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,7 +56,11 @@ import tv.anistream.engine.model.StorePluginStatus
 import tv.anistream.engine.model.TitleLanguage
 import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.TorrentProxy
-import tv.anistream.i18n.R as I18nR
+import tv.anistream.i18n.R
+import tv.anistream.i18n.Strings
+import android.content.Context
+import java.text.NumberFormat
+import androidx.compose.ui.res.pluralStringResource
 import tv.anistream.store.AccountsModel
 import tv.anistream.store.AirTime
 import tv.anistream.store.ComingModel
@@ -69,13 +76,13 @@ import tv.anistream.store.updates
 internal const val FOCUS_UPSCALING = "upscaling"
 internal const val FOCUS_TITLES = "titles"
 
-/** A value as a row says it, in sentence case: "Natural · ArtCNN", "Off", "1080p". */
-internal fun sentence(value: String): String = value.replaceFirstChar { it.titlecase(Locale.UK) }
+/** A value as a row says it, in sentence case, for a token the app itself does not word. */
+internal fun sentence(value: String): String = value.replaceFirstChar { it.titlecase(Locale.getDefault()) }
 
-/** "Subtitled" or "Dubbed", for sub or dub as the engine says it. */
-internal fun translationWords(value: String): String = when (value.substringBefore(" · ")) {
-    "sub" -> "Subtitled"
-    "dub" -> "Dubbed"
+/** "Subbed" or "Dubbed", for sub or dub as the engine says it. */
+internal fun translationWords(context: Context, value: String): String = when (value.substringBefore(" · ")) {
+    "sub" -> Strings.audioSubbed(context)
+    "dub" -> Strings.audioDubbed(context)
     else -> sentence(value)
 }
 
@@ -91,19 +98,19 @@ internal fun SettingMenu(
     note: String? = null,
     enabled: Boolean = true,
     focus: String? = null,
-    label: (String) -> String = ::sentence,
 ) {
     val store = LocalAppStore.current
+    val context = LocalContext.current
     val view by store.settings.view.collectAsStateWithLifecycle()
     val row = store.settings.row(key, view)
     val current = SettingsCatalog.current(row)
     MenuRow(
         place = place,
         title = title,
-        value = row?.value?.let { current?.label ?: it }?.let(label),
-        choices = SettingsCatalog.options(key).map { MenuChoice(it.value, label(it.label)) },
+        value = SettingsCatalog.words(context, row),
+        choices = SettingsCatalog.options(key).map { MenuChoice(it.value, SettingsCatalog.words(context, key, it)) },
         current = current?.value,
-        note = listOfNotNull(store.settings.overridden(key, view), note).joinToString("\n").ifEmpty { null },
+        note = listOfNotNull(store.settings.overridden(LocalContext.current, key, view), note).joinToString("\n").ifEmpty { null }, // i18n-skip
         enabled = enabled && SettingsCatalog.editable(row),
         focus = focus,
     ) { store.setSetting(key, it) }
@@ -119,7 +126,7 @@ internal fun SettingSwitch(place: Place, key: SettingKey, title: String, note: S
         place = place,
         title = title,
         checked = SettingsCatalog.isOn(row),
-        note = listOfNotNull(store.settings.overridden(key, view), note).joinToString("\n").ifEmpty { null },
+        note = listOfNotNull(store.settings.overridden(LocalContext.current, key, view), note).joinToString("\n").ifEmpty { null }, // i18n-skip
         enabled = enabled && SettingsCatalog.editable(row),
     ) { store.setSetting(key, SettingValue.Bool(it)) }
 }
@@ -154,16 +161,16 @@ internal fun NotificationsPane(actions: AppActions) {
     LaunchedEffect(Unit) { store.loadComing() }
     Pane {
         SettingsGroup(
-            footer = "anistream asks for permission the first time you turn this on.",
+            footer = stringResource(R.string.settings_notify_permission_note),
             rows = listOf(
                 { place ->
                     SwitchRow(
                         place = place,
-                        title = "New episodes",
+                        title = stringResource(R.string.settings_new_episodes),
                         checked = SettingsCatalog.isOn(row),
                         note = listOfNotNull(
-                            if (refused) NOTIFICATIONS_REFUSED else "For shows in your Watching list",
-                            store.settings.overridden(key, view),
+                            if (refused) stringResource(R.string.settings_notify_refused) else stringResource(R.string.settings_new_episodes_detail),
+                            store.settings.overridden(LocalContext.current, key, view),
                         ).joinToString("\n"),
                         enabled = SettingsCatalog.editable(row),
                     ) { on -> app?.turn?.invoke(on) ?: store.setSwitch(key, on) }
@@ -172,8 +179,8 @@ internal fun NotificationsPane(actions: AppActions) {
         )
         week?.let { week ->
             SettingsGroup(
-                title = "Coming up · next 7 days",
-                footer = ComingModel.footer(week),
+                title = stringResource(R.string.settings_coming_up),
+                footer = ComingModel.footer(LocalContext.current, week),
                 rows = ComingModel.listed(week).map { episode ->
                     @Composable { place: Place -> ComingRow(place, episode) { opened = episode.id } }
                 },
@@ -186,8 +193,8 @@ internal fun NotificationsPane(actions: AppActions) {
                     { place ->
                         InfoRow(
                             place,
-                            "Notification settings",
-                            "Sound, vibration and the lock screen",
+                            stringResource(R.string.settings_notify_system_title),
+                            stringResource(R.string.settings_notify_system_detail),
                             onClick = app.openSystemSettings,
                             trailing = { Icon(Icons.External, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                         )
@@ -220,11 +227,12 @@ internal fun NotificationsPane(actions: AppActions) {
 @Composable
 private fun ComingRow(place: Place, episode: UpcomingNotice, onClick: () -> Unit) {
     val dimmed = !episode.notifies
-    val note = if (episode.reason == NoticeReason.SWITCHED_ON) "On in this show’s settings" else null
+    val note = if (episode.reason == NoticeReason.SWITCHED_ON) stringResource(R.string.settings_notifications_show_on) else null
+    val context = LocalContext.current
     InfoRow(
         place,
         episode.title,
-        "E${episode.episode} · ${AirTime.coming(Instant.ofEpochSecond(episode.airsAt))}",
+        Strings.calendarRowTime(context, episode.episode.toInt(), AirTime.coming(context, Instant.ofEpochSecond(episode.airsAt))),
         note = note,
         onClick = onClick,
         leading = {
@@ -242,9 +250,6 @@ private fun ComingRow(place: Place, episode: UpcomingNotice, onClick: () -> Unit
     )
 }
 
-/** What the switch's line says once Android has not let notifications go on. */
-internal const val NOTIFICATIONS_REFUSED = "Off: Android isn’t allowing anistream’s notifications"
-
 // General
 
 /** How titles read and which are listed: nothing here is about playing an episode. */
@@ -252,10 +257,14 @@ internal const val NOTIFICATIONS_REFUSED = "Off: Android isn’t allowing anistr
 internal fun GeneralPane() {
     Pane {
         SettingsGroup(
-            title = "Titles",
+            title = stringResource(R.string.settings_language_app),
+            rows = listOf({ place -> LanguageRow(place) }),
+        )
+        SettingsGroup(
+            title = stringResource(R.string.settings_group_titles),
             rows = listOf(
                 { place -> TitleLanguageRow(place) },
-                { place -> SettingSwitch(place, SettingKey.ADULT_TITLES, "Show adult titles", note = "Titles AniList marks adult, in Search and Seasonal") },
+                { place -> SettingSwitch(place, SettingKey.ADULT_TITLES, stringResource(R.string.settings_adult), note = stringResource(R.string.settings_adult_detail, "AniList")) },
             ),
         )
     }
@@ -270,33 +279,33 @@ internal fun PlaybackPane() {
     val autoNext = store.settings.isOn(SettingKey.AUTO_NEXT, view)
     Pane {
         SettingsGroup(
-            title = stringResource(I18nR.string.settings_language),
-            footer = "Each show remembers its own audio and subtitles.",
+            title = stringResource(R.string.settings_language),
+            footer = stringResource(R.string.settings_audio_detail),
             rows = listOf(
-                { place -> SettingMenu(place, SettingKey.TRANSLATION, "Translation", label = ::translationWords) },
+                { place -> SettingMenu(place, SettingKey.TRANSLATION, stringResource(R.string.settings_audio)) },
                 { place -> SubtitlesRow(place) },
                 { place -> FollowCaptionsRow(place) },
-                { place -> SettingMenu(place, SettingKey.QUALITY, "Quality") },
+                { place -> SettingMenu(place, SettingKey.QUALITY, stringResource(R.string.settings_quality)) },
             ),
         )
         SettingsGroup(
-            title = "Episodes",
+            title = stringResource(R.string.settings_group_episodes),
             rows = listOf(
-                { place -> SettingSwitch(place, SettingKey.AUTO_NEXT, "Auto-play next") },
-                { place -> SettingMenu(place, SettingKey.UP_NEXT_COUNTDOWN, "Up Next countdown", enabled = autoNext) },
-                { place -> SettingSwitch(place, SettingKey.SKIP_OPENING, "Skip opening automatically") },
-                { place -> SettingSwitch(place, SettingKey.SKIP_FILLER, "Skip filler automatically") },
-                { place -> SettingSwitch(place, SettingKey.MARK_CHAPTERS, "Mark opening and ending") },
-                { place -> SettingSwitch(place, SettingKey.SKIP_BUTTON, "Show skip button", note = "While the opening or ending plays, when it isn't skipped automatically") },
-                { place -> SettingMenu(place, SettingKey.COMMIT_THRESHOLD, "Counts as watched at", note = "Or when the ending starts, if it is marked") },
-                { place -> SettingSwitch(place, SettingKey.SPOILER_PROTECTION, "Spoiler protection", note = "Blurs stills of unwatched episodes after the next one") },
+                { place -> SettingSwitch(place, SettingKey.AUTO_NEXT, stringResource(R.string.settings_auto_play)) },
+                { place -> SettingMenu(place, SettingKey.UP_NEXT_COUNTDOWN, stringResource(R.string.settings_up_next_countdown), enabled = autoNext) },
+                { place -> SettingSwitch(place, SettingKey.SKIP_OPENING, stringResource(R.string.settings_skip_opening)) },
+                { place -> SettingSwitch(place, SettingKey.SKIP_FILLER, stringResource(R.string.settings_skip_filler)) },
+                { place -> SettingSwitch(place, SettingKey.MARK_CHAPTERS, stringResource(R.string.settings_mark_opening)) },
+                { place -> SettingSwitch(place, SettingKey.SKIP_BUTTON, stringResource(R.string.settings_skip_button), note = stringResource(R.string.settings_skip_button_detail)) },
+                { place -> SettingMenu(place, SettingKey.COMMIT_THRESHOLD, stringResource(R.string.settings_counts_watched), note = stringResource(R.string.settings_counts_watched_detail)) },
+                { place -> SettingSwitch(place, SettingKey.SPOILER_PROTECTION, stringResource(R.string.settings_spoiler), note = stringResource(R.string.settings_spoiler_detail)) },
             ),
         )
         SettingsGroup(
-            title = "Picture and sound",
+            title = stringResource(R.string.player_picture_and_sound),
             rows = listOf(
-                { place -> SettingMenu(place, SettingKey.UPSCALING, "Upscaling", focus = FOCUS_UPSCALING) },
-                { place -> SettingSwitch(place, SettingKey.NIGHT_MODE, "Night mode", note = "Evens out loud and quiet passages, so dialogue stays clear at low volume") },
+                { place -> SettingMenu(place, SettingKey.UPSCALING, stringResource(R.string.player_upscaling), focus = FOCUS_UPSCALING) },
+                { place -> SettingSwitch(place, SettingKey.NIGHT_MODE, stringResource(R.string.player_night_mode), note = stringResource(R.string.player_night_mode_detail)) },
             ),
         )
     }
@@ -309,9 +318,9 @@ private fun FollowCaptionsRow(place: Place) {
     var follow by remember { mutableStateOf(DevicePreferences.followsSystemCaptions(context)) }
     SwitchRow(
         place,
-        "Follow system caption style",
+        stringResource(R.string.settings_system_captions),
         follow,
-        note = "Plain subtitles use your caption preferences from Accessibility. Styled (ASS) subtitles keep their own look.",
+        note = stringResource(R.string.settings_system_captions_detail),
     ) {
         follow = it
         DevicePreferences.of(context).edit().putBoolean(DevicePreferences.FOLLOW_SYSTEM_CAPTIONS, it).apply()
@@ -319,10 +328,17 @@ private fun FollowCaptionsRow(place: Place) {
 }
 
 /** The three forms a title can be named in, as the settings file names them. */
-internal enum class TitleChoice(val value: String, val label: String) {
-    AniList("anilist", "AniList's choice"),
-    English("english", "English"),
-    Romaji("romaji", "Romaji");
+internal enum class TitleChoice(val value: String) {
+    AniList("anilist"),
+    English("english"),
+    Romaji("romaji");
+
+    /** The choice as the menu names it. */
+    fun label(context: Context): String = when (this) {
+        AniList -> Strings.settingsTitleTracker(context, "AniList") // i18n-skip
+        English -> Strings.settingsTitleEnglish(context)
+        Romaji -> Strings.settingsTitleRomaji(context)
+    }
 
     companion object {
         fun of(value: SettingValue?): TitleChoice = entries.firstOrNull { (value as? SettingValue.Str)?.v1 == it.value } ?: AniList
@@ -332,34 +348,32 @@ internal enum class TitleChoice(val value: String, val label: String) {
 /** What the title-language row and its preview say: metadata.md, "The title-language row". */
 internal object TitleLanguageWords {
     /** The line under the label: what the choice does now. */
-    fun line(choice: TitleChoice, signedIn: Boolean, viewer: TitleLanguage?): String = when (choice) {
+    fun line(context: Context, choice: TitleChoice, signedIn: Boolean, viewer: TitleLanguage?): String = when (choice) {
         TitleChoice.AniList -> when {
-            !signedIn -> "English while signed out of AniList"
-            viewer != null -> "${name(viewer)}, from your AniList account"
-            else -> "Follows your AniList account"
+            !signedIn -> Strings.settingsTitlesLineSignedOut(context)
+            viewer != null -> Strings.settingsTitlesLineAccountLanguage(context, name(context, viewer))
+            else -> Strings.settingsTitlesLineFollows(context)
         }
-        TitleChoice.English -> "Romaji where there is no English title"
-        TitleChoice.Romaji -> "Japanese titles in Latin letters"
+        TitleChoice.English -> Strings.settingsTitlesLineEnglish(context)
+        TitleChoice.Romaji -> Strings.settingsTitlesLineRomaji(context)
     }
 
     /** The note under the tablet's examples. */
-    fun note(choice: TitleChoice, signedIn: Boolean, viewer: TitleLanguage?, examples: List<Entry>): String = when (choice) {
-        TitleChoice.AniList -> {
-            val signedOut = "While you are signed out of AniList, titles show in English."
-            if (signedIn && viewer != null) "Follows your AniList account, which is set to ${name(viewer)}. $signedOut"
-            else "Follows your AniList account. $signedOut"
-        }
+    fun note(context: Context, choice: TitleChoice, signedIn: Boolean, viewer: TitleLanguage?, examples: List<Entry>): String = when (choice) {
+        TitleChoice.AniList ->
+            if (signedIn && viewer != null) Strings.settingsTitlesNoteAccount(context, name(context, viewer))
+            else Strings.settingsTitlesNoteFollows(context)
         TitleChoice.English -> examples.firstOrNull { it.titleEnglish.isNullOrEmpty() }
-            ?.let { "${it.titleRomaji ?: it.title} has no English title on AniList, so it keeps its romaji one." }
-            ?: "English titles as AniList lists them, and romaji where there is none."
-        TitleChoice.Romaji -> "Japanese titles written in Latin letters, as AniList lists them."
+            ?.let { Strings.settingsTitlesNoteEnglishMissing(context, it.titleRomaji ?: it.title) }
+            ?: Strings.settingsTitlesNoteEnglish(context)
+        TitleChoice.Romaji -> Strings.settingsTitlesNoteRomaji(context)
     }
 
     /** A title language as every sentence names it, with its capital: "English". */
-    fun name(language: TitleLanguage): String = when (language) {
-        TitleLanguage.ROMAJI -> "Romaji"
-        TitleLanguage.ENGLISH -> "English"
-        TitleLanguage.NATIVE -> "Native"
+    fun name(context: Context, language: TitleLanguage): String = when (language) {
+        TitleLanguage.ROMAJI -> Strings.settingsTitleRomaji(context)
+        TitleLanguage.ENGLISH -> Strings.settingsTitleEnglish(context)
+        TitleLanguage.NATIVE -> Strings.settingsTitleNative(context)
     }
 
     /**
@@ -418,18 +432,46 @@ private fun TitleLanguageRow(place: Place) {
     val row = store.settings.row(SettingKey.TITLES, view)
     val choice = TitleChoice.of(SettingsCatalog.current(row)?.value)
     val example = titleLanguageExamples().firstOrNull()
+    val context = LocalContext.current
     LaunchedEffect(Unit) { store.loadContinue() }
     MenuRow(
         place = place,
-        title = "Title language",
-        value = choice.label,
-        choices = TitleChoice.entries.map { MenuChoice(it, it.label, example?.let { e -> TitleLanguageWords.example(e, it, signedIn, viewer) }) },
+        title = stringResource(R.string.settings_title_language),
+        value = choice.label(context),
+        choices = TitleChoice.entries.map { MenuChoice(it, it.label(context), example?.let { e -> TitleLanguageWords.example(e, it, signedIn, viewer) }) },
         current = choice,
-        note = TitleLanguageWords.line(choice, signedIn, viewer),
+        note = TitleLanguageWords.line(context, choice, signedIn, viewer),
         enabled = row != null,
         focus = FOCUS_TITLES,
         menuWidth = 300,
     ) { if (it != choice) store.setSetting(SettingKey.TITLES, SettingValue.Str(it.value)) }
+}
+
+/**
+ * The app's language: the system's per-app setting from Android 13, the app's own choice below.
+ * Only the languages this build ships are listed, a draft one labelled so; it follows the
+ * system's until one is chosen.
+ */
+@Composable
+private fun LanguageRow(place: Place) {
+    val context = LocalContext.current
+    var chosen by remember { mutableStateOf(AppLanguage.chosen(context)) }
+    val follow = stringResource(R.string.language_follow_system)
+    val draft = stringResource(R.string.language_draft_label)
+    fun name(language: Language) = if (language.draft) "${language.name} · $draft" else language.name // i18n-skip
+    MenuRow(
+        place = place,
+        title = stringResource(R.string.settings_language),
+        value = chosen?.let(::name) ?: follow,
+        choices = listOf(MenuChoice<Language?>(null, follow)) + AppLanguage.shipped.map { MenuChoice<Language?>(it, name(it)) },
+        current = chosen,
+        note = if (chosen?.draft == true) stringResource(R.string.language_draft_note) else null,
+    ) { picked ->
+        chosen = picked
+        AppLanguage.choose(context, picked)
+        // From Android 13 the system recreates the activity; below, the app does.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) generateSequence(context) { (it as? android.content.ContextWrapper)?.baseContext }.filterIsInstance<android.app.Activity>().firstOrNull()?.recreate()
+    }
 }
 
 /** The subtitle language, by name, from the languages people pick most; any other is typed in the file. */
@@ -441,15 +483,15 @@ private fun SubtitlesRow(place: Place) {
     val code = SettingsCatalog.typedText(row) ?: row?.value ?: ""
     val languages = listOf("en", "ja", "es", "pt", "fr", "de", "it", "ru", "ar", "id", "ko", "zh")
     val choices = (languages + listOf(code).filter { it.isNotEmpty() && it !in languages }).map { MenuChoice(it, languageName(it)) }
-    MenuRow(place, "Subtitles", languageName(code), choices, code, enabled = SettingsCatalog.editable(row)) {
+    MenuRow(place, stringResource(R.string.player_subtitles), languageName(code), choices, code, enabled = SettingsCatalog.editable(row)) {
         store.setSetting(SettingKey.SUBTITLES, SettingValue.Str(it))
     }
 }
 
-/** A language code as its name in English: "English" for "en" or "eng". */
+/** A language code as its name in the app's language: "English" for "en" or "eng". */
 internal fun languageName(code: String): String {
     if (code.isEmpty()) return "–"
-    val name = Locale.forLanguageTag(code).getDisplayLanguage(Locale.UK)
+    val name = Locale.forLanguageTag(code).getDisplayLanguage(Locale.getDefault())
     return if (name.isNullOrEmpty() || name.equals(code, ignoreCase = true)) code else name
 }
 
@@ -471,21 +513,21 @@ internal fun DownloadsPane(actions: AppActions) {
                     val navigator = LocalNavigator.current
                     InfoRow(
                         place,
-                        "Downloads",
-                        if (downloads.isEmpty()) "None yet" else Wording.plural(downloads.size, "episode"),
+                        stringResource(R.string.downloads_title),
+                        if (downloads.isEmpty()) stringResource(R.string.settings_none_yet) else pluralStringResource(R.plurals.settings_downloads_count, downloads.size, downloads.size),
                         onClick = { navigator.open(DOWNLOADS_ROUTE) },
                     )
                 },
             ),
         )
         SettingsGroup(
-            title = "New downloads",
+            title = stringResource(R.string.settings_new_downloads),
             rows = listOfNotNull(
-                @Composable { place: Place -> SettingMenu(place, SettingKey.DOWNLOAD_QUALITY, "Quality") },
-                { place -> SettingMenu(place, SettingKey.KEEP_NEXT_EPISODES, "Keep next episodes", note = "Downloads the episodes after the one you are on, for each show you watch") },
+                @Composable { place: Place -> SettingMenu(place, SettingKey.DOWNLOAD_QUALITY, stringResource(R.string.settings_quality)) },
+                { place -> SettingMenu(place, SettingKey.KEEP_NEXT_EPISODES, stringResource(R.string.settings_keep_next), note = stringResource(R.string.settings_keep_next_detail)) },
                 { place -> WifiOnlyRow(place) },
-                { place -> SettingSwitch(place, SettingKey.MERGE_SUBTITLES, "Merge subtitles in") },
-                if (torrents) @Composable { place: Place -> SettingSwitch(place, SettingKey.KEEP_SEEDING, "Keep seeding") } else null,
+                { place -> SettingSwitch(place, SettingKey.MERGE_SUBTITLES, stringResource(R.string.settings_merge_subtitles)) },
+                if (torrents) @Composable { place: Place -> SettingSwitch(place, SettingKey.KEEP_SEEDING, stringResource(R.string.settings_keep_seeding)) } else null,
             ),
         )
     }
@@ -498,15 +540,16 @@ internal fun DownloadsPane(actions: AppActions) {
 @Composable
 private fun StorageRow(place: Place, used: Long, free: Long?) {
     val colors = MaterialTheme.colorScheme
+    val description = stringResource(R.string.downloads_storage_share_description, Wording.bytes(LocalContext.current, used))
     RowFrame(place, onClick = null, modifier = Modifier.heightIn(min = 88.dp)) {
         Column(Modifier.fillMaxWidth()) {
-            Text("Storage", style = MaterialTheme.typography.titleMedium)
-            Text(storageWords(used, free), style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant)
+            Text(stringResource(R.string.settings_group_storage), style = MaterialTheme.typography.titleMedium)
+            Text(storageWords(LocalContext.current, used, free), style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant)
             val share = if (free != null && used + free > 0) used.toFloat() / (used + free) else 0f
             androidx.compose.material3.LinearProgressIndicator(
                 progress = { share.coerceIn(0f, 1f) },
                 modifier = Modifier.padding(top = 8.dp).fillMaxWidth().height(4.dp)
-                    .semantics { contentDescription = "Downloads take ${Wording.bytes(used)}" },
+                    .semantics { contentDescription = description },
                 // Water, not amber: a share of the disk is neither an action nor progress.
                 color = colors.secondary,
                 trackColor = colors.outline,
@@ -523,7 +566,7 @@ private fun WifiOnlyRow(place: Place) {
     val store = LocalAppStore.current
     val view by store.settings.view.collectAsStateWithLifecycle()
     val row = store.settings.row(SettingKey.DOWNLOADS_ON_CELLULAR, view)
-    SwitchRow(place, "Wi-Fi only", checked = !SettingsCatalog.isOn(row), note = "Downloads wait for Wi-Fi", enabled = SettingsCatalog.editable(row)) {
+    SwitchRow(place, stringResource(R.string.settings_wifi_only), checked = !SettingsCatalog.isOn(row), note = stringResource(R.string.settings_wifi_only_detail), enabled = SettingsCatalog.editable(row)) {
         store.setSetting(SettingKey.DOWNLOADS_ON_CELLULAR, SettingValue.Bool(!it))
     }
 }
@@ -554,18 +597,18 @@ internal fun SourcesPane(actions: AppActions) {
             rows = listOf(
                 { place ->
                     val navigator = LocalNavigator.current
-                    InfoRow(place, "Source order", Wording.plural(providers.size, "source").takeIf { providersLoaded }, onClick = { navigator.open(PROVIDERS_ROUTE) })
+                    InfoRow(place, stringResource(R.string.sources_order), pluralStringResource(R.plurals.settings_summary_sources, providers.size, providers.size).takeIf { providersLoaded }, onClick = { navigator.open(PROVIDERS_ROUTE) })
                 },
                 { place ->
                     val navigator = LocalNavigator.current
                     InfoRow(
                         place,
-                        "Plugin stores",
+                        stringResource(R.string.nav_plugin_stores),
                         when {
                             !storesLoaded && stores.isEmpty() -> null
-                            stores.isEmpty() -> "None joined"
-                            updates > 0 -> "${stores.size} · ${Wording.plural(updates, "update")}"
-                            else -> "${stores.size}"
+                            stores.isEmpty() -> stringResource(R.string.settings_none_joined)
+                            updates > 0 -> stringResource(R.string.settings_stores_with_updates, stores.size, pluralStringResource(R.plurals.stores_updates_waiting, updates, updates))
+                            else -> NumberFormat.getIntegerInstance().format(stores.size)
                         },
                         onClick = { navigator.open(STORES_ROUTE) },
                     )
@@ -573,19 +616,19 @@ internal fun SourcesPane(actions: AppActions) {
             ),
         )
         SettingsGroup(
-            title = "Torrents",
-            footer = if (torrents) checkNote(view?.torrent?.onFailure, view?.torrent?.protection) else TorrentWords.OFF_NOTE,
+            title = stringResource(R.string.torrents_title),
+            footer = if (torrents) checkNote(context, view?.torrent?.onFailure, view?.torrent?.protection) else stringResource(TorrentWords.OFF_NOTE),
             rows = listOfNotNull(
                 @Composable { place: Place -> TorrentSourceRow(place, torrents) { sheet = TorrentSheetMode.TurnOn } },
                 if (torrents) @Composable { place: Place ->
-                    InfoRow(place, "Torrent index", view?.sources?.index ?: "None set", onClick = { picked = null; sheet = TorrentSheetMode.Index })
+                    InfoRow(place, stringResource(R.string.torrents_index), view?.sources?.index ?: stringResource(R.string.settings_index_none), onClick = { picked = null; sheet = TorrentSheetMode.Index })
                 } else null,
                 if (torrents) @Composable { place: Place ->
                     MenuRow(
                         place,
-                        "Protect with",
-                        protectionWords(view?.torrent?.protection),
-                        listOf(TorrentProtection.PROXY, TorrentProtection.DEVICE, TorrentProtection.NONE).map { MenuChoice(it, protectionWords(it)) },
+                        stringResource(R.string.torrents_protect_with),
+                        protectionWords(context, view?.torrent?.protection),
+                        listOf(TorrentProtection.PROXY, TorrentProtection.DEVICE, TorrentProtection.NONE).map { MenuChoice(it, protectionWords(context, it)) },
                         view?.torrent?.protection,
                     ) { choice ->
                         if (choice != view?.torrent?.protection) {
@@ -599,25 +642,25 @@ internal fun SourcesPane(actions: AppActions) {
                     val proxy = view?.torrent?.proxy
                     InfoRow(
                         place,
-                        "Edit proxy…",
-                        proxy?.let { TorrentWords.proxyLine(it.host, it.port.toString(), it.user.orEmpty()) },
+                        stringResource(R.string.settings_edit_proxy),
+                        proxy?.let { TorrentWords.proxyLine(context, it.host, it.port.toString(), it.user.orEmpty()) },
                         onClick = { picked = null; sheet = TorrentSheetMode.EditProxy },
                     )
                 } else null,
                 if (torrents) @Composable { place: Place -> LastCheckRow(place) } else null,
                 if (torrents) @Composable { place: Place -> FailedCheckRow(place) } else null,
                 // Only where the device has a cellular radio to spare.
-                if (torrents && cellular) @Composable { place: Place -> SettingSwitch(place, SettingKey.TORRENTS_ON_CELLULAR, "Torrents on cellular") } else null,
+                if (torrents && cellular) @Composable { place: Place -> SettingSwitch(place, SettingKey.TORRENTS_ON_CELLULAR, stringResource(R.string.settings_torrents_cellular)) } else null,
             ),
         )
         if (torrents) {
             SettingsGroup(
-                title = "Seeding",
-                footer = "Best effort on this ${deviceWord()}: seeding runs only while anistream is open.",
+                title = stringResource(R.string.downloads_seeding_title),
+                footer = stringResource(R.string.settings_seeding_best_effort),
                 rows = listOf(
-                    { place -> SettingMenu(place, SettingKey.SEED_RATIO, "Seed after watching") },
-                    { place -> SettingMenu(place, SettingKey.SEED_HOURS, "Seed for at most") },
-                    { place -> SettingMenu(place, SettingKey.UPLOAD_LIMIT, "Upload limit") },
+                    { place -> SettingMenu(place, SettingKey.SEED_RATIO, stringResource(R.string.settings_seed_after)) },
+                    { place -> SettingMenu(place, SettingKey.SEED_HOURS, stringResource(R.string.settings_seed_for)) },
+                    { place -> SettingMenu(place, SettingKey.UPLOAD_LIMIT, stringResource(R.string.settings_upload_limit)) },
                 ),
             )
         }
@@ -631,13 +674,13 @@ internal fun SourcesPane(actions: AppActions) {
 }
 
 /** The check's note for what a failed check does, and that none runs with no protection. */
-internal fun checkNote(onFailure: FailedCheck?, protection: TorrentProtection?): String = TorrentWords.checkNote(onFailure, protection)
+internal fun checkNote(context: Context, onFailure: FailedCheck?, protection: TorrentProtection?): String = TorrentWords.checkNote(context, onFailure, protection)
 
 /** The torrent source's switch. Turning it off is a switch; turning it on asks for protection first. */
 @Composable
 private fun TorrentSourceRow(place: Place, on: Boolean, turnOn: () -> Unit) {
     val store = LocalAppStore.current
-    SwitchRow(place, "Torrent source", checked = on) { wanted ->
+    SwitchRow(place, stringResource(R.string.sources_torrent_source), checked = on) { wanted ->
         if (wanted) turnOn() else store.setSwitch(SettingKey.TORRENTS, false)
     }
 }
@@ -654,14 +697,14 @@ private fun FailedCheckRow(place: Place) {
     val torrent = view?.torrent
     var warning by remember { mutableStateOf(false) }
     val choices = listOf(
-        MenuChoice(FailedCheck.PAUSE, "Pause torrents"),
-        MenuChoice(FailedCheck.STOP, "Stop torrents"),
-        MenuChoice(FailedCheck.WARN, "Warn only"),
+        MenuChoice(FailedCheck.PAUSE, stringResource(R.string.torrents_fail_pause)),
+        MenuChoice(FailedCheck.STOP, stringResource(R.string.torrents_fail_stop)),
+        MenuChoice(FailedCheck.WARN, stringResource(R.string.torrents_fail_warn)),
     )
     val current = torrent?.onFailure ?: FailedCheck.PAUSE
     MenuRow(
         place,
-        "If a check fails",
+        stringResource(R.string.torrents_if_check_fails),
         choices.firstOrNull { it.value == current }?.label,
         choices,
         current,
@@ -688,7 +731,7 @@ private fun FailedCheckRow(place: Place) {
 }
 
 /** "SOCKS5 proxy", "VPN on this device", "No protection". */
-internal fun protectionWords(protection: TorrentProtection?): String = TorrentWords.protection(protection)
+internal fun protectionWords(context: Context, protection: TorrentProtection?): String = TorrentWords.protection(context, protection)
 
 /** The connection check's last word, with its dot, where traffic leaves from, and Check now. */
 @Composable
@@ -696,12 +739,12 @@ private fun LastCheckRow(place: Place) {
     val store = LocalAppStore.current
     val check by store.providers.check.collectAsStateWithLifecycle()
     val view by store.settings.view.collectAsStateWithLifecycle()
-    val words = guardWords(check, onFailure = view?.torrent?.onFailure)
+    val words = guardWords(LocalContext.current, check, onFailure = view?.torrent?.onFailure)
     val colors = MaterialTheme.colorScheme
     RowFrame(place, onClick = null, modifier = Modifier.heightIn(min = 88.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Column(Modifier.weight(1f)) {
-                Text("Last check", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.torrents_last_check), style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     StateDot(
                         when {
@@ -717,15 +760,15 @@ private fun LastCheckRow(place: Place) {
             TextButton(onClick = store::checkProviders, enabled = check?.view != GuardView.Checking) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     WorkRing(check?.view == GuardView.Checking)
-                    Text("Check now", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                    Text(stringResource(R.string.torrents_check_now), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
                 }
             }
         }
     }
 }
 
-internal fun guardWords(check: ProvidersModel.Check?, now: Long = System.currentTimeMillis(), onFailure: FailedCheck? = null): TorrentWords.Check =
-    TorrentWords.check(check, now, onFailure)
+internal fun guardWords(context: Context, check: ProvidersModel.Check?, now: Long = System.currentTimeMillis(), onFailure: FailedCheck? = null): TorrentWords.Check =
+    TorrentWords.check(context, check, now, onFailure)
 
 // Accounts
 
@@ -738,61 +781,61 @@ internal fun AccountsPane(actions: AppActions) {
     val working by store.accounts.working.collectAsStateWithLifecycle()
     val conflicts by store.accounts.conflicts.collectAsStateWithLifecycle()
     var reviewing by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val anilist = trackers["anilist"]
     val storage = trackers.values.firstNotNullOfOrNull { it.storage }
     /** The tracker's own sign-in: Kitsu's sheet, the browser or a code for the rest. */
     val signIn = { tracker: String -> if (tracker == "kitsu") sheets.kitsu = true else store.connect(tracker) }
     Pane {
         SettingsGroup(
-            title = "AniList",
-            footer = "Progress and list changes sync to AniList. Library shows your AniList lists.",
+            title = "AniList", // i18n-skip
+            footer = stringResource(R.string.settings_anilist_footer),
             rows = if (anilist?.connected == true) {
                 val status = AccountWords.status(anilist, syncedAt, working)
                 listOfNotNull(
                     @Composable { place: Place ->
                         InfoRow(
                             place,
-                            anilist.user ?: "Signed in",
+                            anilist.user ?: stringResource(R.string.accounts_signed_in_plain),
                             status.text,
                             leading = { Avatar(anilist.user, 40) },
-                            trailing = if (anilist.needsReauth) ({ SignInButton("Sign in again", busy = store.accounts.isWorking(working, "anilist")) { signIn("anilist") } }) else null,
+                            trailing = if (anilist.needsReauth) ({ SignInButton(stringResource(R.string.accounts_sign_in_again_button), busy = store.accounts.isWorking(working, "anilist")) { signIn("anilist") } }) else null,
                         )
                     },
-                    @Composable { place: Place -> ActionRow(place, "Sync now", enabled = "sync" !in working.values, onClick = store::syncNow) },
+                    @Composable { place: Place -> ActionRow(place, stringResource(R.string.accounts_sync_now), enabled = "sync" !in working.values, onClick = store::syncNow) },
                     if (conflicts.isNotEmpty()) @Composable { place: Place ->
-                        ActionRow(place, "Review ${Wording.plural(conflicts.size, "difference")}") { reviewing = true }
+                        ActionRow(place, pluralStringResource(R.plurals.accounts_review_differences, conflicts.size, conflicts.size)) { reviewing = true }
                     } else null,
-                    @Composable { place: Place -> ActionRow(place, "Sign out") { store.disconnect("anilist") } },
+                    @Composable { place: Place -> ActionRow(place, stringResource(R.string.accounts_sign_out)) { store.disconnect("anilist") } },
                 )
             } else {
                 listOf(@Composable { place: Place ->
                     InfoRow(
                         place,
-                        "AniList",
-                        "Brings in your lists and fills Continue with what you are watching.",
-                        trailing = { SignInButton("Sign in", busy = store.accounts.isWorking(working, "anilist")) { signIn("anilist") } },
+                        "AniList", // i18n-skip
+                        stringResource(R.string.accounts_brings_lists),
+                        trailing = { SignInButton(stringResource(R.string.accounts_sign_in), busy = store.accounts.isWorking(working, "anilist")) { signIn("anilist") } },
                     )
                 })
             },
         )
         SettingsGroup(
-            title = "Other trackers",
-            footer = if (storage?.contains("file", ignoreCase = true) == true) "Sign-in tokens are kept in a file on this device."
-            else "Sign-in tokens are kept on this device, sealed with a key in its keystore.",
+            title = stringResource(R.string.accounts_other_trackers),
+            footer = stringResource(if (storage?.contains("file", ignoreCase = true) == true) R.string.accounts_tokens_file else R.string.accounts_tokens_keystore),
             rows = AccountsModel.order.drop(1).map { tracker ->
                 @Composable { place: Place ->
                     val state = trackers[tracker]
                     val connected = state?.connected == true
                     val busy = store.accounts.isWorking(working, tracker)
                     val button: @Composable () -> Unit = when {
-                        connected && state?.needsReauth == true -> ({ SignInButton("Sign in again", busy) { signIn(tracker) } })
-                        connected -> ({ TextButton(onClick = { store.disconnect(tracker) }) { Text("Sign out", color = MaterialTheme.colorScheme.onSurface) } })
-                        else -> ({ SignInButton("Sign in", busy) { signIn(tracker) } })
+                        connected && state?.needsReauth == true -> ({ SignInButton(stringResource(R.string.accounts_sign_in_again_button), busy) { signIn(tracker) } })
+                        connected -> ({ TextButton(onClick = { store.disconnect(tracker) }) { Text(stringResource(R.string.accounts_sign_out), color = MaterialTheme.colorScheme.onSurface) } })
+                        else -> ({ SignInButton(stringResource(R.string.accounts_sign_in), busy) { signIn(tracker) } })
                     }
                     InfoRow(
                         place,
                         AccountsModel.name(tracker),
-                        if (connected) AccountWords.status(state, syncedAt, working).text else "Not signed in",
+                        if (connected) AccountWords.status(state, syncedAt, working).text else stringResource(R.string.accounts_state_signed_out),
                         trailing = button,
                     )
                 }
@@ -838,25 +881,26 @@ internal fun AboutPane() {
     Pane {
         Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Nagare(cell = 6)
-            Text("anistream", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp))
-            Text("Version ${appVersion()}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("anistream", // i18n-skip
+                style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp))
+            Text(stringResource(R.string.about_version, appVersion()), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         SettingsGroup(
-            title = "Updates",
+            title = stringResource(R.string.updates_title),
             rows = listOfNotNull(
                 if (update.offer != null) @Composable { place: Place -> UpdateRow(place) } else null,
                 { place -> CheckNowRow(place) },
-                { place -> SettingSwitch(place, SettingKey.UPDATE_CHECK, "Check for updates", note = "Once a day. Nothing downloads until you choose to update.") },
+                { place -> SettingSwitch(place, SettingKey.UPDATE_CHECK, stringResource(R.string.settings_check_updates), note = stringResource(R.string.updates_schedule)) },
             ),
         )
         SettingsGroup(
-            footer = "Opens a bug report on GitHub, where you sign in. It carries your versions and the last error, with no addresses, file paths or titles.",
+            footer = stringResource(R.string.about_report_bug_detail),
             rows = listOf(
                 { place ->
                     InfoRow(
                         place,
-                        "Report a bug",
-                        "Opens GitHub in your browser",
+                        stringResource(R.string.about_report_bug),
+                        stringResource(R.string.settings_report_bug_value),
                         onClick = { openBugReport(context, store) },
                         trailing = { Icon(Icons.External, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     )
@@ -869,15 +913,15 @@ internal fun AboutPane() {
                 { place ->
                     InfoRow(
                         place,
-                        "Privacy",
-                        "What anistream sends, and what stays on this device",
+                        stringResource(R.string.settings_privacy),
+                        stringResource(R.string.settings_privacy_detail),
                         onClick = { store.openExternal(PRIVACY_URL) },
                         trailing = { Icon(Icons.External, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     )
                 },
-                { place -> InfoRow(place, "Licence", "MIT, open source and non-commercial") },
-                { place -> InfoRow(place, "Typefaces", "Roboto Flex and Zen Kaku Gothic New, under the SIL Open Font License 1.1") },
-                { place -> InfoRow(place, "Libraries", "JNA and AndroidX, under the Apache License 2.0") },
+                { place -> InfoRow(place, stringResource(R.string.settings_licence_title), stringResource(R.string.settings_licence_value)) },
+                { place -> InfoRow(place, stringResource(R.string.settings_typefaces), stringResource(R.string.settings_typefaces_value)) },
+                { place -> InfoRow(place, stringResource(R.string.settings_libraries), stringResource(R.string.settings_libraries_value)) },
             ),
         )
     }

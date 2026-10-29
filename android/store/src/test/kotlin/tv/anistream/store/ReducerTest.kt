@@ -1,6 +1,10 @@
 package tv.anistream.store
 
 import kotlinx.coroutines.Dispatchers
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -42,7 +46,10 @@ import tv.anistream.engine.model.TitleProgress
 
 /** The store fed scripted event lists, as the engine sends them: no engine, no native code. */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class ReducerTest {
+    private val context = RuntimeEnvironment.getApplication()
     private val main = UnconfinedTestDispatcher()
     private var now = 0L
     private lateinit var store: AppStore
@@ -123,12 +130,12 @@ class ReducerTest {
         store.apply(Event.Content(ContentFor.Continue, ContentList.Entries(listOf(dub, sub, unknown, fresh))))
         val queue = store.continuing.queue(store.titles.entries.value)
         assertEquals(
-            listOf("Resume E7 · Dub · 10:06", "Start E4", "Start E4"),
-            queue.inProgress.map { it.action },
+            listOf("Continue E7 dubbed · 10:06", "Play E4", "Play E4"),
+            queue.inProgress.map { it.action(context) },
         )
-        assertEquals(listOf("Start E9 · Dub · out 2h ago"), queue.newThisWeek.map { it.action })
-        assertEquals("Episode 7 · Dub", queue.inProgress[0].longEpisode)
-        assertEquals("Episode 4", queue.inProgress[1].longEpisode)
+        assertEquals(listOf("Play E9 dubbed · out 2h ago"), queue.newThisWeek.map { it.action(context) })
+        assertEquals("Episode 7 · Dubbed", queue.inProgress[0].longEpisode(context))
+        assertEquals("Episode 4", queue.inProgress[1].longEpisode(context))
     }
 
     @Test
@@ -144,9 +151,9 @@ class ReducerTest {
         )
         store.apply(Event.Content(ContentFor.Continue, ContentList.Entries(listOf(resumed, next, fresh))))
         val queue = store.continuing.queue(store.titles.entries.value)
-        assertEquals(listOf("Resume E7 · 10:06", "Start E4"), queue.inProgress.map { it.action })
+        assertEquals(listOf("Continue E7 · 10:06", "Play E4"), queue.inProgress.map { it.action(context) })
         assertEquals(14, queue.inProgress.first().minutesLeft)
-        assertEquals(listOf("Start E9 · out 2h ago"), queue.newThisWeek.map { it.action })
+        assertEquals(listOf("Play E9 · out 2h ago"), queue.newThisWeek.map { it.action(context) })
 
         store.hideFromContinue(900002u)
         assertEquals(listOf(900001u), store.continuing.queue(store.titles.entries.value).inProgress.map { it.id })
@@ -386,8 +393,8 @@ class ReducerTest {
         val notice = Notice(kind = NoticeKind.INFO, text = "Update ready: Hotaru Open Archive", hint = null)
         store.apply(listOf(Event.Toast(notice), Event.Status(Msg.Verbatim("2 changes waiting to sync"))))
         val item = store.notices.current.value!!
-        assertEquals("Update ready: Hotaru Open Archive", item.notice.text)
-        assertEquals("2 changes waiting to sync", store.notices.status.value)
+        assertEquals("Update ready: Hotaru Open Archive", item.text(context))
+        assertEquals("2 changes waiting to sync", store.notices.status.value?.text(context))
         store.notices.dismiss(item)
         assertNull(store.notices.current.value)
         assertEquals(1, store.notices.log.value.size)

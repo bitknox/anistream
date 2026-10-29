@@ -39,6 +39,12 @@ pub enum Action {
     Right,
     Top,
     Bottom,
+    /// The calendar: back to the next broadcast, with today's ruling in view.
+    Today,
+    /// The calendar: to the start of this day, or of the day before when already there.
+    PreviousDay,
+    /// The calendar: to the first broadcast of a later day.
+    NextDay,
     PageUp,
     PageDown,
 
@@ -148,6 +154,9 @@ impl Action {
         Self::Right,
         Self::Top,
         Self::Bottom,
+        Self::Today,
+        Self::PreviousDay,
+        Self::NextDay,
         Self::PageUp,
         Self::PageDown,
         Self::Open,
@@ -227,6 +236,9 @@ impl Action {
             Self::Right => t::keys_action_right(),
             Self::Top => t::keys_action_top(),
             Self::Bottom => t::keys_action_bottom(),
+            Self::Today => t::keys_action_today(),
+            Self::PreviousDay => t::keys_action_previous_day(),
+            Self::NextDay => t::keys_action_next_day(),
             Self::PageUp => t::keys_action_page_up(),
             Self::PageDown => t::keys_action_page_down(),
             Self::Open => t::keys_action_open(),
@@ -326,6 +338,9 @@ impl Action {
             | Self::Right
             | Self::Top
             | Self::Bottom
+            | Self::Today
+            | Self::PreviousDay
+            | Self::NextDay
             | Self::PageUp
             | Self::PageDown => Scope::Movement,
 

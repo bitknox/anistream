@@ -434,3 +434,14 @@ stores-publish-none = No { -plugin-pl } on this { -device } to publish.
 # @arg name: text
 # @arg version: text
 stores-plugin-name-version = { $name } { $version }
+
+# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+# @max 24
+stores-copy-link = Copy link
+
+# Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+# @arg count: int
+stores-offers-plugins = { $count ->
+    [one] One { -plugin }
+   *[other] { $count } { -plugin-pl }
+ }

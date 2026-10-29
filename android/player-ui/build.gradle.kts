@@ -15,6 +15,7 @@ android {
 dependencies {
     api(project(":player"))
     implementation(project(":store"))
+    implementation(project(":i18n"))
     // The frame's player slot, the art and the page's shared transitions.
     implementation(project(":ui"))
     implementation(libs.activity.compose)

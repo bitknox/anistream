@@ -194,8 +194,15 @@ fn walk(
                 if code.starts_with("//") || code.starts_with("///") || code.starts_with('*') {
                     continue;
                 }
+                // A token, not text (a key glyph, a format code, an id): the same marker as the terminal's.
+                if line.trim_end().ends_with("// i18n-skip") {
+                    continue;
+                }
                 if patterns.iter().any(|p| p.is_match(line)) {
                     n += 1;
+                    if std::env::var_os("I18N_LIST").is_some() {
+                        println!("{}: {}", path.strip_prefix(root)?.display(), line.trim());
+                    }
                 }
             }
             if n > 0 {
@@ -646,7 +653,7 @@ mod tests {
         let dir = tree(&[
             (
                 "android/ui/src/main/kotlin/A.kt",
-                "Text(\"Hello there\")\nSettingsGroup(title = \"Language\")\nText(stringResource(R.string.x))\n",
+                "Text(\"Hello there\")\nSettingsGroup(title = \"Language\")\nText(stringResource(R.string.x))\nText(\"Ctrl\") // i18n-skip\n",
             ),
             (
                 "desktop/windows/Anistream.Windows/A.xaml",

@@ -181,14 +181,6 @@ stores-unreachable = Couldn't reach the { -plugin-store }. Check the link and yo
 # @arg name: text
 stores-already-joined-title = { $name } is already joined
 
-# Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
-# @only windows
-# @arg count: int
-stores-offers-plugins = { $count ->
-    [one] One { -plugin }
-   *[other] { $count } { -plugin-pl }
- }
-
 # Label over the box with the name this { -device } joins under.
 # @only windows
 stores-owner-sees-as = The owner sees this { -device } as

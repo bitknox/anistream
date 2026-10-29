@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import tv.anistream.engine.core.AnilistId
-import tv.anistream.engine.ffi.dubLine
 import tv.anistream.engine.model.DubExtent
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeProgress
@@ -30,10 +29,10 @@ class TitleCache {
     /** Each title's episode table, as last loaded. */
     val episodes: StateFlow<Map<AnilistId, List<EpisodeRow>>> = _episodes.asStateFlow()
 
-    private val _dubLines = MutableStateFlow<Map<AnilistId, String>>(emptyMap())
+    private val _dubLines = MutableStateFlow<Map<AnilistId, DubExtent>>(emptyMap())
 
-    /** Each title's line on its dub ("Dub to episode 6"), where its source could say one. */
-    val dubLines: StateFlow<Map<AnilistId, String>> = _dubLines.asStateFlow()
+    /** How far each title's dub goes, where its source could say; [line] words it. */
+    val dubLines: StateFlow<Map<AnilistId, DubExtent>> = _dubLines.asStateFlow()
 
     /** The titles whose page has been loaded, so their detail-only fields are known. */
     var detailed: Set<AnilistId> = emptySet()
@@ -131,8 +130,7 @@ class TitleCache {
 
     /** How far [id]'s dub goes, worded for the page; nothing when there is none to say. */
     internal fun dub(id: AnilistId, extent: DubExtent?) {
-        val line = dubLine(extent)
-        _dubLines.value = if (line == null) _dubLines.value - id else _dubLines.value + (id to line)
+        _dubLines.value = if (extent == null) _dubLines.value - id else _dubLines.value + (id to extent)
     }
 
     /**
@@ -150,3 +148,7 @@ class TitleCache {
         entries[id]?.let { entries[id] = it.copy(listStatus = segment) }
     }
 }
+
+/** The title page's line on its dub: "Dubbed to episode 6", or "Dubbed" when every aired episode is. */
+fun DubExtent.line(context: android.content.Context): String =
+    if (complete) tv.anistream.i18n.Strings.audioDubbed(context) else tv.anistream.i18n.Strings.titleDubbedTo(context, through.toInt())

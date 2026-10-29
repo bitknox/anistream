@@ -1,6 +1,10 @@
 package tv.anistream.store
 
 import java.time.Instant
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,7 +17,10 @@ import tv.anistream.engine.model.UpcomingNotice
 import tv.anistream.engine.model.UpcomingNotices
 import tv.anistream.engine.model.Event
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class ComingTest {
+    private val context = RuntimeEnvironment.getApplication()
     private val zone = ZoneId.of("Europe/Copenhagen")
 
     /** Tuesday 20 October 2026, 19:30 in Copenhagen. */
@@ -21,11 +28,11 @@ class ComingTest {
 
     @Test
     fun a_time_coming_up_says_today_tomorrow_or_its_weekday() {
-        assertEquals("Today 22:00", AirTime.coming(Instant.parse("2026-10-20T20:00:00Z"), now, zone))
-        assertEquals("Tomorrow 16:30", AirTime.coming(Instant.parse("2026-10-21T14:30:00Z"), now, zone))
-        assertEquals("Thursday 16:30", AirTime.coming(Instant.parse("2026-10-22T14:30:00Z"), now, zone))
+        assertEquals("Today 22:00", AirTime.coming(context, Instant.parse("2026-10-20T20:00:00Z"), now, zone))
+        assertEquals("Tomorrow 16:30", AirTime.coming(context, Instant.parse("2026-10-21T14:30:00Z"), now, zone))
+        assertEquals("Thursday 16:30", AirTime.coming(context, Instant.parse("2026-10-22T14:30:00Z"), now, zone))
         // Past midnight here, though not yet in UTC.
-        assertEquals("Tomorrow 00:30", AirTime.coming(Instant.parse("2026-10-20T22:30:00Z"), now, zone))
+        assertEquals("Tomorrow 00:30", AirTime.coming(context, Instant.parse("2026-10-20T22:30:00Z"), now, zone))
     }
 
     @Test
@@ -60,8 +67,8 @@ class ComingTest {
         assertEquals(listOf(1u, 1u, 3u), ComingModel.listed(week).map { it.id })
         assertEquals(
             "Summer Wind Relay notifies when its dub is out. Amber Forest is off in its own settings. A show opens its settings.",
-            ComingModel.footer(week),
+            ComingModel.footer(context, week),
         )
-        assertEquals("Nothing airs this week for the shows followed.", ComingModel.footer(UpcomingNotices(enabled = true, generatedAt = 0)))
+        assertEquals("Nothing airs this week for the shows you follow.", ComingModel.footer(context, UpcomingNotices(enabled = true, generatedAt = 0)))
     }
 }
