@@ -17,6 +17,7 @@ use anistream_core::config::{Config, Paths};
 use anistream_net::HttpClient;
 use anistream_providers::{
     ProviderRegistry,
+    ani_cli::AniCliProvider,
     remote::RemoteHttpProvider,
     torrent::TorrentSession,
     vpn::{GuardState, VpnGuard},
@@ -80,6 +81,7 @@ pub fn build_registry_deferred(config: &Config, http: &HttpClient) -> ProviderRe
             continue;
         }
         match id.as_str() {
+            "ani-cli" => providers.push(std::sync::Arc::new(AniCliProvider::new(http.clone()))),
             "remote" => {
                 if let Some(url) = &config.providers.remote_url {
                     providers.push(std::sync::Arc::new(RemoteHttpProvider::new(
@@ -102,6 +104,13 @@ pub fn build_registry_deferred(config: &Config, http: &HttpClient) -> ProviderRe
             // order — see `rank`. Plugins compile later, so a typo cannot be told from one yet.
             other => tracing::debug!(provider = other, "order entry left for a plugin"),
         }
+    }
+    // Saved configurations from upstream predate the built-in provider. Keep it available
+    // without forcing users to edit a config file; explicit disabling still takes precedence.
+    if !config.providers.order.iter().any(|id| id == "ani-cli")
+        && !config.providers.disabled.iter().any(|id| id == "ani-cli")
+    {
+        providers.insert(0, std::sync::Arc::new(AniCliProvider::new(http.clone())));
     }
     let registry = ProviderRegistry::new(providers);
     // A plugin switched off by name joins the chain all the same, and is not tried.
@@ -628,5 +637,20 @@ mod tests {
         );
         let held = held.expect("the verdict that held it back");
         assert!(!held.is_protected(), "{held:?}");
+    }
+}
+
+#[cfg(test)]
+mod ani_cli_registration_tests {
+    use super::*;
+
+    #[test]
+    fn builtin_is_available_to_saved_configurations_and_can_be_disabled() {
+        let mut config = Config::default();
+        config.providers.order = vec!["torrent".into(), "plugins".into()];
+        let http = HttpClient::offline(&config.network).unwrap();
+        assert!(build_registry_deferred(&config, &http).get("ani-cli").is_some());
+        config.providers.disabled.push("ani-cli".into());
+        assert!(build_registry_deferred(&config, &http).get("ani-cli").is_none());
     }
 }
