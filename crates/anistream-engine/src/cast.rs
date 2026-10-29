@@ -20,8 +20,7 @@ use std::{
 pub use anistream_cast as protocol;
 use anistream_cast::{
     AacEncoder, CastDevice, CastFailure, CastMemory, CastPlayer, CastState, CastStatus,
-    NoEncoder, PlainHttp, Timings,
-    Upstream, UpstreamResponse, formats::is_loopback_url,
+    NoEncoder, PlainHttp, Timings, Upstream, UpstreamResponse, formats::is_loopback_url,
 };
 use anistream_model::event::Event;
 use anistream_net::HttpClient;
