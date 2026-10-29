@@ -491,6 +491,14 @@ async fn answer(
     Ok((404, true))
 }
 
+/// Whether a content type says nothing of what the body is, so a playlist may hide behind it.
+fn untyped(content_type: &str) -> bool {
+    let kind = content_type.to_ascii_lowercase();
+    kind.starts_with("application/octet-stream")
+        || kind.starts_with("binary/octet-stream")
+        || kind.starts_with("text/plain")
+}
+
 /// Whether bytes of this type are the picture and sound, not a playlist or subtitles.
 fn is_media(content_type: &str) -> bool {
     let kind = content_type.to_ascii_lowercase();
@@ -592,7 +600,7 @@ async fn upstream(
         headers.push(("Range".into(), range.clone()));
     }
     let wait = SourceWait::begin(shared);
-    let response = match shared.upstream.get(url, &headers).await {
+    let mut response = match shared.upstream.get(url, &headers).await {
         Ok(response) => response,
         Err(e) => {
             tracing::debug!(error = %e, "relay upstream failed");
@@ -625,8 +633,31 @@ async fn upstream(
         extra.push_str("Accept-Ranges: bytes\r\n");
     }
 
-    let playlist = kind.contains("mpegurl")
+    let mut playlist = kind.contains("mpegurl")
         || url.split('?').next().is_some_and(|p| p.to_ascii_lowercase().ends_with(".m3u8"));
+    // A tokenised playlist address may come as plain bytes or text: its first bytes say.
+    let mut first = Vec::new();
+    if !playlist && untyped(&kind) && matches!(status, 200 | 206) && !head_only {
+        let wait = SourceWait::begin(shared);
+        while first.len() < 64 {
+            match response.body.next().await {
+                Some(Ok(chunk)) => first.extend_from_slice(&chunk),
+                Some(Err(e)) => {
+                    wait.failed();
+                    return Err(e);
+                }
+                None => {
+                    // Spent: a stream may not be asked again once it has ended.
+                    response.body = Box::pin(futures::stream::empty());
+                    break;
+                }
+            }
+        }
+        drop(wait);
+        let text = String::from_utf8_lossy(&first);
+        playlist = text.trim_start_matches('\u{feff}').trim_start().starts_with("#EXTM3U");
+    }
+    let sniffed = playlist && !first.is_empty();
     if playlist && matches!(status, 200 | 206) {
         // A playlist is rewritten whole, so it is fetched whole, whatever range was asked.
         let whole = status == 200
@@ -638,7 +669,11 @@ async fn upstream(
             });
         let wait = SourceWait::begin(shared);
         let body = if whole {
-            response.bytes(PLAYLIST_LIMIT).await
+            response.bytes(PLAYLIST_LIMIT.saturating_sub(first.len())).await.map(|rest| {
+                let mut body = std::mem::take(&mut first);
+                body.extend(rest);
+                body
+            })
         } else {
             let headers = lock(&shared.headers).clone();
             match shared.upstream.get(url, &headers).await {
@@ -666,6 +701,7 @@ async fn upstream(
             format!("{}/u/{}", shared.base, encode(u))
         });
         lock(&shared.origins).extend(origins.into_inner());
+        let kind = if sniffed { "application/vnd.apple.mpegurl" } else { kind.as_str() };
         let extra = format!("{cors}Content-Type: {kind}\r\n");
         head(write, 200, &extra, Some(rewritten.len() as u64)).await?;
         if !head_only {
@@ -683,6 +719,10 @@ async fn upstream(
     }
     let mut body = response.body;
     let mut sent = 0u64;
+    if !first.is_empty() {
+        write.write_all(&first).await?;
+        sent += first.len() as u64;
+    }
     loop {
         let chunk = {
             let wait = SourceWait::begin(shared);
@@ -874,6 +914,33 @@ mod tests {
         let response = get(&kept, None).await;
         assert_eq!(response.header("content-type"), Some("video/webm"));
         assert_eq!(response.bytes(1024).await.unwrap(), b"not a real clip");
+        assert!(relay.media_served());
+    }
+
+    #[tokio::test]
+    async fn a_playlist_served_as_plain_bytes_is_still_rewritten() {
+        // A tokenised playlist address with no `.m3u8`, answered without an HLS type.
+        let playlist = "#EXTM3U\n#EXTINF:4.0,\nseg0.ts\n#EXT-X-ENDLIST\n";
+        let source = crate::fetch::tests::serve(playlist.as_bytes().to_vec(), false).await;
+        let relay = Relay::start(
+            Ipv4Addr::LOCALHOST,
+            IpAddr::V4(Ipv4Addr::LOCALHOST),
+            Arc::new(PlainHttp),
+        )
+        .await
+        .unwrap();
+        let response = get(&relay.upstream_url(&format!("{source}/play?token=abc")), None).await;
+        assert_eq!(response.status, 200);
+        assert!(response.header("content-type").is_some_and(|t| t.contains("mpegurl")));
+        let text = String::from_utf8(response.bytes(1 << 20).await.unwrap()).unwrap();
+        assert!(text.contains(&format!("{}/u/", relay.base())), "{text}");
+        assert!(!relay.media_served(), "a playlist is not the picture or the sound");
+
+        // Bytes that aren't a playlist go through as they came.
+        let body: Vec<u8> = (0..70_000u32).map(|i| (i % 251) as u8).collect();
+        let source = crate::fetch::tests::serve(body.clone(), true).await;
+        let response = get(&relay.upstream_url(&format!("{source}/v?token=abc")), None).await;
+        assert_eq!(response.bytes(1 << 20).await.unwrap(), body);
         assert!(relay.media_served());
     }
 
