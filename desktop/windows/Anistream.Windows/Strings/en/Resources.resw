@@ -1807,6 +1807,10 @@
     <value>The calendar goes 4 weeks ahead.</value>
     <comment>Line where days after the last day the calendar reaches would be.</comment>
   </data>
+  <data name="CalendarEnd" xml:space="preserve">
+    <value>Nothing later is scheduled yet.</value>
+    <comment>Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.</comment>
+  </data>
   <data name="CalendarLoadingEarlier" xml:space="preserve">
     <value>Loading earlier broadcasts</value>
     <comment>Activity line while earlier broadcasts load.</comment>

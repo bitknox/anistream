@@ -6065,6 +6065,11 @@ pub fn calendar_ceiling() -> String {
     text("calendar-ceiling", &[])
 }
 
+/// Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.
+pub fn calendar_end() -> String {
+    text("calendar-end", &[])
+}
+
 /// Activity line while earlier broadcasts load.
 pub fn calendar_loading_earlier() -> String {
     text("calendar-loading-earlier", &[])

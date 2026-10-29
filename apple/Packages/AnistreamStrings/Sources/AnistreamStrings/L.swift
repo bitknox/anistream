@@ -1021,6 +1021,9 @@ public enum L {
     /// Line where days after the last day the calendar reaches would be.
     public static var calendarCeiling: String { string("calendar-ceiling", fallback: "The calendar goes 4 weeks ahead.") }
 
+    /// Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.
+    public static var calendarEnd: String { string("calendar-end", fallback: "Nothing later is scheduled yet.") }
+
     /// Activity line while earlier broadcasts load.
     public static var calendarLoadingEarlier: String { string("calendar-loading-earlier", fallback: "Loading earlier broadcasts") }
 

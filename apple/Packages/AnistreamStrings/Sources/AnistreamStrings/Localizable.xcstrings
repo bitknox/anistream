@@ -1677,6 +1677,18 @@
         }
       }
     },
+    "calendar-end" : {
+      "comment" : "Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing later is scheduled yet."
+          }
+        }
+      }
+    },
     "calendar-episode-out" : {
       "comment" : "Row in a small widget: the episode is out. Argument 1: episode (Int).",
       "extractionState" : "manual",

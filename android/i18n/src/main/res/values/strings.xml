@@ -1261,6 +1261,8 @@
     <string name="calendar_floor">The calendar goes back 3 months.</string>
     <!-- Line where days after the last day the calendar reaches would be. -->
     <string name="calendar_ceiling">The calendar goes 4 weeks ahead.</string>
+    <!-- Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling. -->
+    <string name="calendar_end">Nothing later is scheduled yet.</string>
     <!-- Activity line while earlier broadcasts load. -->
     <string name="calendar_loading_earlier">Loading earlier broadcasts</string>
     <!-- Activity line while later broadcasts load. -->

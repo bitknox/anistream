@@ -2353,6 +2353,10 @@ object Strings {
     fun calendarCeiling(context: Context): String =
         context.getString(R.string.calendar_ceiling)
 
+    /** Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling. */
+    fun calendarEnd(context: Context): String =
+        context.getString(R.string.calendar_end)
+
     /** Activity line while earlier broadcasts load. */
     fun calendarLoadingEarlier(context: Context): String =
         context.getString(R.string.calendar_loading_earlier)

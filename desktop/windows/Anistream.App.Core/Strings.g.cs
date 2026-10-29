@@ -1287,6 +1287,9 @@ public static partial class T
     /// <summary>Line where days after the last day the calendar reaches would be.</summary>
     public static string CalendarCeiling => Get("CalendarCeiling");
 
+    /// <summary>Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.</summary>
+    public static string CalendarEnd => Get("CalendarEnd");
+
     /// <summary>Activity line while earlier broadcasts load.</summary>
     public static string CalendarLoadingEarlier => Get("CalendarLoadingEarlier");
 
@@ -5422,6 +5425,7 @@ public static partial class T
         ["CalendarToday"] = "Today",
         ["CalendarFloor"] = "The calendar goes back 3 months.",
         ["CalendarCeiling"] = "The calendar goes 4 weeks ahead.",
+        ["CalendarEnd"] = "Nothing later is scheduled yet.",
         ["CalendarLoadingEarlier"] = "Loading earlier broadcasts",
         ["CalendarLoadingLater"] = "Loading later broadcasts",
         ["CalendarLoadEarlierFailed"] = "Couldn't load earlier broadcasts",

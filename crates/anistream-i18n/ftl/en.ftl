@@ -3812,6 +3812,9 @@ calendar-floor = The calendar goes back 3 months.
 # Line where days after the last day the calendar reaches would be.
 calendar-ceiling = The calendar goes 4 weeks ahead.
 
+# Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.
+calendar-end = Nothing later is scheduled yet.
+
 # Activity line while earlier broadcasts load.
 calendar-loading-earlier = Loading earlier broadcasts
 

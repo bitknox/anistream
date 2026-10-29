@@ -1807,6 +1807,10 @@
     <value>[Ţĥé çàļéñðàŕ ĝöéš 4 ŵééķš àĥéàð.~~~~~~~~~~]</value>
     <comment>Line where days after the last day the calendar reaches would be.</comment>
   </data>
+  <data name="CalendarEnd" xml:space="preserve">
+    <value>[Ñöţĥîñĝ ļàţéŕ îš šçĥéðüļéð ýéţ.~~~~~~~~~~]</value>
+    <comment>Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.</comment>
+  </data>
   <data name="CalendarLoadingEarlier" xml:space="preserve">
     <value>[Ļöàðîñĝ éàŕļîéŕ ƀŕöàðçàšţš~~~~~~~~]</value>
     <comment>Activity line while earlier broadcasts load.</comment>

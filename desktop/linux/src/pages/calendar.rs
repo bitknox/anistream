@@ -915,7 +915,8 @@ impl Page {
         if self.waiting.get().is_none() {
             return false;
         }
-        let left = self.since.get().and_then(|since| states::AT_LEAST.checked_sub(since.elapsed()));
+        let left =
+            self.since.get().and_then(|since| states::AT_LEAST.checked_sub(since.elapsed()));
         let Some(left) = left else {
             self.cancel_wait();
             self.waiting.set(None);
