@@ -551,6 +551,7 @@ fn as_rows(episodes: &[EpisodeProgress]) -> Vec<EpisodeRow> {
             metadata_only: false,
             source: None,
             unsourced: false,
+            past_progress: false,
         })
         .collect()
 }
@@ -590,6 +591,7 @@ mod tests {
             metadata_only: false,
             source: None,
             unsourced: false,
+            past_progress: false,
         }
     }
 

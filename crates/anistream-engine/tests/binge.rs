@@ -404,6 +404,7 @@ fn row(number: &str) -> anistream_model::episodes::EpisodeRow {
         metadata_only: false,
         source: None,
         unsourced: false,
+        past_progress: false,
     }
 }
 

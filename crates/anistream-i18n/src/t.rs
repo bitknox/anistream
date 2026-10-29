@@ -7680,6 +7680,86 @@ pub fn media_airing_from(date: &str) -> String {
     text("media-airing-from", &[("date", Arg::Text(date))])
 }
 
+/// Date line of a show that has finished: when it began and when it ended. Both are already worded dates.
+pub fn media_aired_range(from: &str, to: &str) -> String {
+    text("media-aired-range", &[("from", Arg::Text(from)), ("to", Arg::Text(to))])
+}
+
+/// Date line of a show that has finished and ran on one day, such as a film.
+pub fn media_aired_on(date: &str) -> String {
+    text("media-aired-on", &[("date", Arg::Text(date))])
+}
+
+/// Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.
+pub fn media_hiatus_since(date: &str) -> String {
+    text("media-hiatus-since", &[("date", Arg::Text(date))])
+}
+
+/// Date line of a show that was cancelled: the last episode that aired.
+pub fn media_cancelled_after(episode: i64) -> String {
+    text("media-cancelled-after", &[("episode", Arg::Int(episode))])
+}
+
+/// Heading of the list of official services that stream a show, in the sheet of more about it.
+pub fn media_streaming_on() -> String {
+    text("media-streaming-on", &[])
+}
+
+/// Note under the list of official services: AniList's links are not checked against where the viewer is.
+pub fn media_streaming_region_note() -> String {
+    text("media-streaming-region-note", &[])
+}
+
+/// Note beside a link to an official service whose page is in another language, such as "Site in Japanese".
+pub fn media_link_language(language: &str) -> String {
+    text("media-link-language", &[("language", Arg::Text(language))])
+}
+
+/// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+pub fn film_length_hours_minutes(hours: i64, minutes: i64) -> String {
+    text("film-length-hours-minutes", &[("hours", Arg::Int(hours)), ("minutes", Arg::Int(minutes))])
+}
+
+/// Length of a film or a single episode that is a whole number of hours, such as "2 hr".
+pub fn film_length_hours(hours: i64) -> String {
+    text("film-length-hours", &[("hours", Arg::Int(hours))])
+}
+
+/// Length of a film or a single episode under an hour, such as "46 min".
+pub fn film_length_minutes(minutes: i64) -> String {
+    text("film-length-minutes", &[("minutes", Arg::Int(minutes))])
+}
+
+/// Country name: the origin filter and, after "Made in", the title facts.
+pub fn country_japan() -> String {
+    text("country-japan", &[])
+}
+
+/// Country name: the origin filter and, after "Made in", the title facts.
+pub fn country_china() -> String {
+    text("country-china", &[])
+}
+
+/// Country name, after "Made in".
+pub fn country_south_korea() -> String {
+    text("country-south-korea", &[])
+}
+
+/// Country name: the origin filter and, after "Made in", the title facts.
+pub fn country_taiwan() -> String {
+    text("country-taiwan", &[])
+}
+
+/// Fact on a show made outside Japan, with the country already named.
+pub fn media_made_in(country: &str) -> String {
+    text("media-made-in", &[("country", Arg::Text(country))])
+}
+
+/// Fact on a show made outside Japan, for a country this app has no name for.
+pub fn media_made_elsewhere() -> String {
+    text("media-made-elsewhere", &[])
+}
+
 /// Value of "Based on": a story written for the screen.
 pub fn material_original() -> String {
     text("material-original", &[])

@@ -4817,6 +4817,54 @@ media-airing-since = [Šîñçé { $date }~~~]
 # Date line of a show that has not started: when it will.
 media-airing-from = [Ƒŕöɱ { $date }~~~]
 
+# Date line of a show that has finished: when it began and when it ended. Both are already worded dates.
+media-aired-range = [Åîŕéð { $from } ţö { $to }~~~~~]
+
+# Date line of a show that has finished and ran on one day, such as a film.
+media-aired-on = [Åîŕéð { $date }~~~]
+
+# Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.
+media-hiatus-since = [Öñ ĥîàţüš šîñçé { $date }~~~~~~]
+
+# Date line of a show that was cancelled: the last episode that aired.
+media-cancelled-after = [Çàñçéļļéð àƒţéŕ éþîšöðé { $episode }~~~~~~~~~]
+
+# Heading of the list of official services that stream a show, in the sheet of more about it.
+media-streaming-on = [Šţŕéàɱîñĝ öñ~~~~]
+
+# Note under the list of official services: AniList's links are not checked against where the viewer is.
+media-streaming-region-note = [Åṽàîļàƀîļîţý ðéþéñðš öñ ýöüŕ ŕéĝîöñ.~~~~~~~~~~~]
+
+# Note beside a link to an official service whose page is in another language, such as "Site in Japanese".
+media-link-language = [Šîţé îñ { $language }~~~~]
+
+# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+film-length-hours-minutes = [{ $hours } ĥŕ { $minutes } ɱîñ~~~~~]
+
+# Length of a film or a single episode that is a whole number of hours, such as "2 hr".
+film-length-hours = [{ $hours } ĥŕ~~]
+
+# Length of a film or a single episode under an hour, such as "46 min".
+film-length-minutes = [{ $minutes } ɱîñ~~~]
+
+# Country name: the origin filter and, after "Made in", the title facts.
+country-japan = [Ĵàþàñ~~]
+
+# Country name: the origin filter and, after "Made in", the title facts.
+country-china = [Çĥîñà~~]
+
+# Country name, after "Made in".
+country-south-korea = [Šöüţĥ Ķöŕéà~~~~]
+
+# Country name: the origin filter and, after "Made in", the title facts.
+country-taiwan = [Ţàîŵàñ~~]
+
+# Fact on a show made outside Japan, with the country already named.
+media-made-in = [Ṁàðé îñ { $country }~~~~]
+
+# Fact on a show made outside Japan, for a country this app has no name for.
+media-made-elsewhere = [Ṁàðé öüţšîðé Ĵàþàñ~~~~~~]
+
 # Value of "Based on": a story written for the screen.
 material-original = [Öŕîĝîñàļ šţöŕý~~~~~]
 

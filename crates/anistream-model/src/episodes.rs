@@ -65,6 +65,13 @@ pub struct EpisodeRow {
     /// the season is whole and can be marked watched, and a play says no source has it.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub unsourced: bool,
+    /// The viewer has not reached this episode: it is past their progress (the tracker's, or the
+    /// furthest episode they finished here) and not finished itself. What spoiler protection
+    /// hides: the episode's summary, its still and any score for it. The setting, and a show's
+    /// own, decide whether to hide; this says only which episodes are ahead. `false` for an
+    /// episode with no number to compare.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub past_progress: bool,
 }
 
 /// How far a title's dub goes, as the source a dubbed play would use lists it: what

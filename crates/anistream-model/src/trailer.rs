@@ -629,6 +629,7 @@ mod tests {
             rankings: Vec::new(),
             characters: Vec::new(),
             staff: Vec::new(),
+            ..TitleDetail::default()
         });
         entry
     }

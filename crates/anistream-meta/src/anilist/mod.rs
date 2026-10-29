@@ -597,8 +597,14 @@ impl AniList {
     }
 
     pub async fn media(&self, id: AnilistId) -> Result<Media> {
-        let data: serde_json::Value =
-            self.execute(&query::by_id(), serde_json::json!({ "id": id.get() })).await?;
+        // The people the viewer follows are asked for in the same request, and only when someone
+        // is signed in: the filter needs an authenticated viewer.
+        let data: serde_json::Value = self
+            .execute(
+                &query::by_id(self.is_authenticated()),
+                serde_json::json!({ "id": id.get() }),
+            )
+            .await?;
         decode_detail(&data)
     }
 
@@ -838,6 +844,16 @@ fn decode_detail(data: &serde_json::Value) -> Result<Media> {
         .into_iter()
         .flatten()
         .filter_map(|row| serde_json::from_value(row.clone()).ok())
+        .collect();
+    // Best-effort too, and nothing private: AniList withholds those, and this keeps one out if it
+    // does not.
+    media.following = data["following"]["mediaList"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|row| serde_json::from_value::<model::Follower>(row.clone()).ok())
+        .filter(|entry| !entry.private && !entry.user.name.is_empty())
+        .take(query::FOLLOWING_LIMIT as usize)
         .collect();
     Ok(media)
 }

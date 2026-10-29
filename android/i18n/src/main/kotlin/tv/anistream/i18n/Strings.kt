@@ -1473,21 +1473,9 @@ object Strings {
     fun updatesOpenRelease(context: Context): String =
         context.getString(R.string.updates_open_release)
 
-    /** Country of origin filter: Japan. */
-    fun countryJapan(context: Context): String =
-        context.getString(R.string.country_japan)
-
-    /** Country of origin filter: China. */
-    fun countryChina(context: Context): String =
-        context.getString(R.string.country_china)
-
     /** Country of origin filter: South Korea. */
     fun countryKorea(context: Context): String =
         context.getString(R.string.country_korea)
-
-    /** Country of origin filter: Taiwan. */
-    fun countryTaiwan(context: Context): String =
-        context.getString(R.string.country_taiwan)
 
     /** Search chip for several genres picked. */
     fun searchGenresPicked(context: Context, count: Int): String =
@@ -3616,6 +3604,70 @@ object Strings {
     /** Date line of a show that has not started: when it will. */
     fun mediaAiringFrom(context: Context, date: String): String =
         context.getString(R.string.media_airing_from, date)
+
+    /** Date line of a show that has finished: when it began and when it ended. Both are already worded dates. */
+    fun mediaAiredRange(context: Context, from: String, to: String): String =
+        context.getString(R.string.media_aired_range, from, to)
+
+    /** Date line of a show that has finished and ran on one day, such as a film. */
+    fun mediaAiredOn(context: Context, date: String): String =
+        context.getString(R.string.media_aired_on, date)
+
+    /** Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year. */
+    fun mediaHiatusSince(context: Context, date: String): String =
+        context.getString(R.string.media_hiatus_since, date)
+
+    /** Date line of a show that was cancelled: the last episode that aired. */
+    fun mediaCancelledAfter(context: Context, episode: Int): String =
+        context.getString(R.string.media_cancelled_after, episode)
+
+    /** Heading of the list of official services that stream a show, in the sheet of more about it. */
+    fun mediaStreamingOn(context: Context): String =
+        context.getString(R.string.media_streaming_on)
+
+    /** Note under the list of official services: AniList's links are not checked against where the viewer is. */
+    fun mediaStreamingRegionNote(context: Context): String =
+        context.getString(R.string.media_streaming_region_note)
+
+    /** Note beside a link to an official service whose page is in another language, such as "Site in Japanese". */
+    fun mediaLinkLanguage(context: Context, language: String): String =
+        context.getString(R.string.media_link_language, language)
+
+    /** Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min". */
+    fun filmLengthHoursMinutes(context: Context, hours: Int, minutes: Int): String =
+        context.getString(R.string.film_length_hours_minutes, hours, minutes)
+
+    /** Length of a film or a single episode that is a whole number of hours, such as "2 hr". */
+    fun filmLengthHours(context: Context, hours: Int): String =
+        context.getString(R.string.film_length_hours, hours)
+
+    /** Length of a film or a single episode under an hour, such as "46 min". */
+    fun filmLengthMinutes(context: Context, minutes: Int): String =
+        context.getString(R.string.film_length_minutes, minutes)
+
+    /** Country name: the origin filter and, after "Made in", the title facts. */
+    fun countryJapan(context: Context): String =
+        context.getString(R.string.country_japan)
+
+    /** Country name: the origin filter and, after "Made in", the title facts. */
+    fun countryChina(context: Context): String =
+        context.getString(R.string.country_china)
+
+    /** Country name, after "Made in". */
+    fun countrySouthKorea(context: Context): String =
+        context.getString(R.string.country_south_korea)
+
+    /** Country name: the origin filter and, after "Made in", the title facts. */
+    fun countryTaiwan(context: Context): String =
+        context.getString(R.string.country_taiwan)
+
+    /** Fact on a show made outside Japan, with the country already named. */
+    fun mediaMadeIn(context: Context, country: String): String =
+        context.getString(R.string.media_made_in, country)
+
+    /** Fact on a show made outside Japan, for a country this app has no name for. */
+    fun mediaMadeElsewhere(context: Context): String =
+        context.getString(R.string.media_made_elsewhere)
 
     /** Value of "Based on": a story written for the screen. */
     fun materialOriginal(context: Context): String =
