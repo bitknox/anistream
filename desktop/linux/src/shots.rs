@@ -21,7 +21,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 69] = [
+pub const ALL: [&str; 73] = [
     "home",
     "welcome",
     "offline",
@@ -91,6 +91,10 @@ pub const ALL: [&str; 69] = [
     "mini",
     "resumed",
     "close",
+    "up-next",
+    "up-next-picked",
+    "up-next-notice",
+    "continue-welcome",
 ];
 
 /// The watch party's shots, apart from the rest: each holds a party on the scene's own server,
@@ -218,6 +222,31 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         "welcome" => {
             crate::pages::first_launch::open(&shell.ctx);
             1.5
+        }
+        // Continue with its queue cut to two rows, so there is room for Up next for you; the
+        // shots after it keep that. A hidden title stays hidden, so these four come last.
+        "up-next" => {
+            hide_from_continue(shell, &[900_002, 900_006]);
+            shell.go(Dest::Continue);
+            3.5
+        }
+        "up-next-picked" => {
+            shell.go(Dest::Continue);
+            pick_last_row(shell);
+            2.0
+        }
+        "up-next-notice" => {
+            shell.go(Dest::Continue);
+            if let Some((list, id)) = pick_last_row(shell) {
+                let _ = list.activate_action("up.dismiss", Some(&id.to_variant()));
+            }
+            2.0
+        }
+        "continue-welcome" => {
+            shell.ctx.toasts.dismiss_all();
+            hide_from_continue(shell, &[900_001, 900_005]);
+            shell.go(Dest::Continue);
+            3.5
         }
         "offline" => {
             shell.ctx.hub.send(Command::NetworkPath {
@@ -1279,6 +1308,51 @@ fn wide_widgets(widget: &gtk::Widget, depth: usize, limit: i32) {
     if !over {
         tracing::warn!(depth, min, kind = %widget.type_(), name = %widget.widget_name(), css = ?widget.css_classes(), "too wide");
     }
+}
+
+/// Hide `ids` from Continue and load it again, so its queue is shorter.
+fn hide_from_continue(shell: &Rc<Shell>, ids: &[u32]) {
+    for id in ids {
+        shell
+            .ctx
+            .hub
+            .send(Command::HideFromContinue { id: anistream_core::ids::AnilistId::new(*id) });
+    }
+    shell.ctx.hub.send(Command::LoadContinue);
+    shell.ctx.hub.send(Command::LoadUpNext);
+}
+
+/// Select the last row of Continue's list, a suggestion once the group is there, and say its
+/// title's id.
+fn pick_last_row(shell: &Rc<Shell>) -> Option<(gtk::ListBox, u32)> {
+    fn find(widget: &gtk::Widget) -> Option<gtk::ListBox> {
+        if let Some(list) = widget.downcast_ref::<gtk::ListBox>()
+            && list.has_css_class("queue")
+        {
+            return Some(list.clone());
+        }
+        let mut child = widget.first_child();
+        while let Some(c) = child {
+            if let Some(found) = find(&c) {
+                return Some(found);
+            }
+            child = c.next_sibling();
+        }
+        None
+    }
+    let list = find(shell.ctx.window.content()?.upcast_ref())?;
+    let mut last = None;
+    let mut child = list.first_child();
+    while let Some(c) = child {
+        if let Some(row) = c.downcast_ref::<gtk::ListBoxRow>() {
+            last = Some(row.clone());
+        }
+        child = c.next_sibling();
+    }
+    let row = last?;
+    list.select_row(Some(&row));
+    let id = row.child()?.widget_name().parse().ok()?;
+    Some((list, id))
 }
 
 /// The room the party shots hold their party in.

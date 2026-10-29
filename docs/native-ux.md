@@ -312,6 +312,8 @@ Nagare (cell 5, 100 × 160 pt) stands above a title, one line and at most one bu
 | Providers, no sources | No sources yet | anistream ships no sources of its own. Sources come as plugins from a plugin store. | Join a plugin store |
 | Search, no results | `ContentUnavailableView.search(text:)` |  |  |
 
+On Windows and Linux, Continue with nothing watched shows a welcome first: Airing today as wide cards and This season as posters, each under a heading with a button to Calendar or Seasonal. Nagare and the Continue line above stand in only when both of those are empty or failed. Suggestions (Up next for you) never sit with the welcome.
+
 ### Offline
 
 - `NWPathMonitor` drives one app-wide state. Cached screens stay usable, with “Offline. Downloaded episodes still play.” under the title in haze beside a `wifi.slash` glyph, not a coloured banner.

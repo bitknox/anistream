@@ -1930,6 +1930,21 @@ pub fn continue_preview() -> String {
     text("continue-preview", &[])
 }
 
+/// Under a card in the welcome on Continue: an episode that has aired today and how long ago.
+pub fn continue_welcome_out(episode: i64, ago: &str) -> String {
+    text("continue-welcome-out", &[("episode", Arg::Int(episode)), ("ago", Arg::Text(ago))])
+}
+
+/// Under a card in the welcome on Continue: an episode that airs later today, and when.
+pub fn continue_welcome_at(episode: i64, time: &str) -> String {
+    text("continue-welcome-at", &[("episode", Arg::Int(episode)), ("time", Arg::Text(time))])
+}
+
+/// Under a suggestion that airs later today when no episode number is known: the time it airs.
+pub fn up_next_airs_at(time: &str) -> String {
+    text("up-next-airs-at", &[("time", Arg::Text(time))])
+}
+
 /// Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 pub fn chrome_meta_chip(mark: &str) -> String {
     text("chrome-meta-chip", &[("mark", Arg::Text(mark))])
@@ -7698,6 +7713,26 @@ pub fn up_next_add_planning() -> String {
 /// Menu item on a suggestion. The show stays hidden until it starts airing.
 pub fn up_next_not_interested() -> String {
     text("up-next-not-interested", &[])
+}
+
+/// Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January".
+pub fn up_next_row_starts(reason: &str, starts: &str) -> String {
+    text("up-next-row-starts", &[("reason", Arg::Text(reason)), ("starts", Arg::Text(starts))])
+}
+
+/// Notice after Not interested on a suggestion that is already airing or has aired.
+pub fn up_next_hidden(title: &str) -> String {
+    text("up-next-hidden", &[("title", Arg::Text(title))])
+}
+
+/// Notice after Not interested on a suggestion that has not started airing.
+pub fn up_next_hidden_until_airs(title: &str) -> String {
+    text("up-next-hidden-until-airs", &[("title", Arg::Text(title))])
+}
+
+/// Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+pub fn up_next_because_detail(title: &str) -> String {
+    text("up-next-because-detail", &[("title", Arg::Text(title))])
 }
 
 /// Format of a show: broadcast on television.

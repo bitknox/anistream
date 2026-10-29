@@ -22933,6 +22933,18 @@
         }
       }
     },
+    "up-next-because-detail" : {
+      "comment" : "Line in the preview of a recommended suggestion, naming the show the recommendation came from. Argument 1: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended on AniList by people who liked %1$@"
+          }
+        }
+      }
+    },
     "up-next-heading" : {
       "comment" : "Heading over the suggestions under a short { -continue-cap } list.",
       "extractionState" : "manual",
@@ -22941,6 +22953,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Up next for you"
+          }
+        }
+      }
+    },
+    "up-next-hidden" : {
+      "comment" : "Notice after Not interested on a suggestion that is already airing or has aired. Argument 1: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is hidden from Up next for you"
+          }
+        }
+      }
+    },
+    "up-next-hidden-until-airs" : {
+      "comment" : "Notice after Not interested on a suggestion that has not started airing. Argument 1: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is hidden until it airs"
           }
         }
       }
@@ -23013,6 +23049,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recommended for you"
+          }
+        }
+      }
+    },
+    "up-next-row-starts" : {
+      "comment" : "Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as \"9 January\". Argument 1: reason (Text). Argument 2: starts (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
           }
         }
       }

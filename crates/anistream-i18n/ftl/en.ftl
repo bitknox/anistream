@@ -1259,6 +1259,15 @@ title-open-named = Open { $title }
 # Accessible name of the pane beside Continue's queue that previews the selected title.
 continue-preview = Preview
 
+# Under a card in the welcome on Continue: an episode that has aired today and how long ago.
+continue-welcome-out = Episode { $episode } · out { $ago }
+
+# Under a card in the welcome on Continue: an episode that airs later today, and when.
+continue-welcome-at = Episode { $episode } · { $time }
+
+# Under a suggestion that airs later today when no episode number is known: the time it airs.
+up-next-airs-at = Airs at { $time }
+
 # Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 chrome-meta-chip = Metadata { $mark }
 
@@ -4828,6 +4837,18 @@ up-next-add-planning = Add to Planning
 
 # Menu item on a suggestion. The show stays hidden until it starts airing.
 up-next-not-interested = Not interested
+
+# Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January".
+up-next-row-starts = { $reason } · { $starts }
+
+# Notice after Not interested on a suggestion that is already airing or has aired.
+up-next-hidden = { $title } is hidden from Up next for you
+
+# Notice after Not interested on a suggestion that has not started airing.
+up-next-hidden-until-airs = { $title } is hidden until it airs
+
+# Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+up-next-because-detail = Recommended on AniList by people who liked { $title }
 
 # Format of a show: broadcast on television.
 format-tv = TV

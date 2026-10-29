@@ -3131,6 +3131,22 @@
     <value>[Ñöţ îñţéŕéšţéð~~~~~]</value>
     <comment>Menu item on a suggestion. The show stays hidden until it starts airing.</comment>
   </data>
+  <data name="UpNextRowStarts" xml:space="preserve">
+    <value>[{reason} · {starts}~~~]</value>
+    <comment>Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January".</comment>
+  </data>
+  <data name="UpNextHidden" xml:space="preserve">
+    <value>[{title} îš ĥîððéñ ƒŕöɱ Ûþ ñéẋţ ƒöŕ ýöü~~~~~~~~~~~]</value>
+    <comment>Notice after Not interested on a suggestion that is already airing or has aired.</comment>
+  </data>
+  <data name="UpNextHiddenUntilAirs" xml:space="preserve">
+    <value>[{title} îš ĥîððéñ üñţîļ îţ àîŕš~~~~~~~~~]</value>
+    <comment>Notice after Not interested on a suggestion that has not started airing.</comment>
+  </data>
+  <data name="UpNextBecauseDetail" xml:space="preserve">
+    <value>[Ŕéçöɱɱéñðéð öñ ÅñîĻîšţ ƀý þéöþļé ŵĥö ļîķéð {title}~~~~~~~~~~~~~~]</value>
+    <comment>Line in the preview of a recommended suggestion, naming the show the recommendation came from.</comment>
+  </data>
   <data name="FormatTv" xml:space="preserve">
     <value>[ŢṼ~]</value>
     <comment>Format of a show: broadcast on television.</comment>

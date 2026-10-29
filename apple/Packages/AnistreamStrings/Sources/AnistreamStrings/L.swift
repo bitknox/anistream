@@ -3791,6 +3791,26 @@ public enum L {
     /// Menu item on a suggestion. The show stays hidden until it starts airing.
     public static var upNextNotInterested: String { string("up-next-not-interested", fallback: "Not interested") }
 
+    /// Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January".
+    public static func upNextRowStarts(reason: String, starts: String) -> String {
+        Self.format("up-next-row-starts", fallback: "%1$@ · %2$@", reason, starts)
+    }
+
+    /// Notice after Not interested on a suggestion that is already airing or has aired.
+    public static func upNextHidden(title: String) -> String {
+        Self.format("up-next-hidden", fallback: "%1$@ is hidden from Up next for you", title)
+    }
+
+    /// Notice after Not interested on a suggestion that has not started airing.
+    public static func upNextHiddenUntilAirs(title: String) -> String {
+        Self.format("up-next-hidden-until-airs", fallback: "%1$@ is hidden until it airs", title)
+    }
+
+    /// Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+    public static func upNextBecauseDetail(title: String) -> String {
+        Self.format("up-next-because-detail", fallback: "Recommended on AniList by people who liked %1$@", title)
+    }
+
     /// Format of a show: broadcast on television.
     public static var formatTv: String { string("format-tv", fallback: "TV") }
 

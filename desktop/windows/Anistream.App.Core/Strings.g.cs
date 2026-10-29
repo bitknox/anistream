@@ -2253,6 +2253,18 @@ public static partial class T
     /// <summary>Menu item on a suggestion. The show stays hidden until it starts airing.</summary>
     public static string UpNextNotInterested => Get("UpNextNotInterested");
 
+    /// <summary>Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January".</summary>
+    public static string UpNextRowStarts(string reason, string starts) => Fill(Get("UpNextRowStarts"), ("reason", reason), ("starts", starts));
+
+    /// <summary>Notice after Not interested on a suggestion that is already airing or has aired.</summary>
+    public static string UpNextHidden(string title) => Fill(Get("UpNextHidden"), ("title", title));
+
+    /// <summary>Notice after Not interested on a suggestion that has not started airing.</summary>
+    public static string UpNextHiddenUntilAirs(string title) => Fill(Get("UpNextHiddenUntilAirs"), ("title", title));
+
+    /// <summary>Line in the preview of a recommended suggestion, naming the show the recommendation came from.</summary>
+    public static string UpNextBecauseDetail(string title) => Fill(Get("UpNextBecauseDetail"), ("title", title));
+
     /// <summary>Format of a show: broadcast on television.</summary>
     public static string FormatTv => Get("FormatTv");
 
@@ -6068,6 +6080,10 @@ public static partial class T
         ["UpNextReasonAiringToday"] = "Airing today",
         ["UpNextAddPlanning"] = "Add to Planning",
         ["UpNextNotInterested"] = "Not interested",
+        ["UpNextRowStarts"] = "{reason} · {starts}",
+        ["UpNextHidden"] = "{title} is hidden from Up next for you",
+        ["UpNextHiddenUntilAirs"] = "{title} is hidden until it airs",
+        ["UpNextBecauseDetail"] = "Recommended on AniList by people who liked {title}",
         ["FormatTv"] = "TV",
         ["FormatTvShort"] = "TV short",
         ["FormatMovie"] = "Movie",

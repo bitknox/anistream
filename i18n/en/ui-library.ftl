@@ -245,3 +245,25 @@ up-next-add-planning = Add to Planning
 
 # Menu item on a suggestion. The show stays hidden until it starts airing.
 up-next-not-interested = Not interested
+
+# Second line of a suggestion that has not started airing: why it is there, then when it starts.
+# The date is written out already, such as "9 January".
+# @arg reason: text
+# @arg starts: text
+# @max 40
+up-next-row-starts = { $reason } · { $starts }
+
+# Notice after Not interested on a suggestion that is already airing or has aired.
+# @arg title: text
+# @max 80
+up-next-hidden = { $title } is hidden from { -up-next-cap } for you
+
+# Notice after Not interested on a suggestion that has not started airing.
+# @arg title: text
+# @max 80
+up-next-hidden-until-airs = { $title } is hidden until it airs
+
+# Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+# @arg title: text
+# @max 80
+up-next-because-detail = Recommended on AniList by people who liked { $title }

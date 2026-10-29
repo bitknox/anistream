@@ -1199,7 +1199,7 @@ fn local(unix: i64) -> glib::DateTime {
 }
 
 /// "16:30", or "4:30 PM" where the clock is set to 12 hours.
-fn time(unix: i64) -> String {
+pub fn time(unix: i64) -> String {
     thread_local! {
         static TWELVE: bool = twelve_hour();
     }

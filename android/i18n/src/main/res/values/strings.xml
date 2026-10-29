@@ -1896,6 +1896,14 @@
     <string name="up_next_add_planning">Add to Planning</string>
     <!-- Menu item on a suggestion. The show stays hidden until it starts airing. -->
     <string name="up_next_not_interested">Not interested</string>
+    <!-- Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January". -->
+    <string name="up_next_row_starts">%1$s · %2$s</string>
+    <!-- Notice after Not interested on a suggestion that is already airing or has aired. -->
+    <string name="up_next_hidden">%1$s is hidden from Up next for you</string>
+    <!-- Notice after Not interested on a suggestion that has not started airing. -->
+    <string name="up_next_hidden_until_airs">%1$s is hidden until it airs</string>
+    <!-- Line in the preview of a recommended suggestion, naming the show the recommendation came from. -->
+    <string name="up_next_because_detail">Recommended on AniList by people who liked %1$s</string>
     <!-- Format of a show: broadcast on television. -->
     <string name="format_tv">TV</string>
     <!-- Format of a show: a short series on television. -->
