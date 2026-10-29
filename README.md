@@ -30,7 +30,7 @@ anistream hosts no content.
 
 <p>
 <a href="https://github.com/bitknox/anistream/releases/latest"><img src="https://img.shields.io/github/v/release/bitknox/anistream?style=flat-square&label=release&labelColor=161a2e&color=f2a64b" alt="Latest release"></a>
-<a href="LICENSE"><img src="https://img.shields.io/github/license/bitknox/anistream?style=flat-square&label=licence&labelColor=161a2e&color=7fc7d9" alt="MIT licence"></a>
+<a href="LICENSE"><img src="https://img.shields.io/github/license/bitknox/anistream?style=flat-square&label=licence&labelColor=161a2e&color=343a57" alt="MIT licence"></a>
 </p>
 
 <br>
