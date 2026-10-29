@@ -2145,6 +2145,39 @@ public static partial class T
     /// <summary>Date line of a show that has not started: when it will.</summary>
     public static string MediaAiringFrom(string date) => Fill(Get("MediaAiringFrom"), ("date", date));
 
+    /// <summary>Date line of a show that has finished: when it began and when it ended. Both are already worded dates.</summary>
+    public static string MediaAiredRange(string from, string to) => Fill(Get("MediaAiredRange"), ("from", from), ("to", to));
+
+    /// <summary>Date line of a show that has finished and ran on one day, such as a film.</summary>
+    public static string MediaAiredOn(string date) => Fill(Get("MediaAiredOn"), ("date", date));
+
+    /// <summary>Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".</summary>
+    public static string FilmLengthHoursMinutes(long hours, long minutes) => Fill(Get("FilmLengthHoursMinutes"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Length of a film or a single episode that is a whole number of hours, such as "2 h".</summary>
+    public static string FilmLengthHours(long hours) => Fill(Get("FilmLengthHours"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Length of a film or a single episode under an hour, such as "46 min".</summary>
+    public static string FilmLengthMinutes(long minutes) => Fill(Get("FilmLengthMinutes"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Country name, after "Made in".</summary>
+    public static string CountryJapan => Get("CountryJapan");
+
+    /// <summary>Country name, after "Made in".</summary>
+    public static string CountryChina => Get("CountryChina");
+
+    /// <summary>Country name, after "Made in".</summary>
+    public static string CountrySouthKorea => Get("CountrySouthKorea");
+
+    /// <summary>Country name, after "Made in".</summary>
+    public static string CountryTaiwan => Get("CountryTaiwan");
+
+    /// <summary>Fact on a show made outside Japan, with the country already named.</summary>
+    public static string MediaMadeIn(string country) => Fill(Get("MediaMadeIn"), ("country", country));
+
+    /// <summary>Fact on a show made outside Japan, for a country this app has no name for.</summary>
+    public static string MediaMadeElsewhere => Get("MediaMadeElsewhere");
+
     /// <summary>Value of "Based on": a story written for the screen.</summary>
     public static string MaterialOriginal => Get("MaterialOriginal");
 
@@ -5668,6 +5701,17 @@ public static partial class T
         ["MediaStatusHiatus"] = "On hiatus",
         ["MediaAiringSince"] = "Since {date}",
         ["MediaAiringFrom"] = "From {date}",
+        ["MediaAiredRange"] = "Aired {from} to {to}",
+        ["MediaAiredOn"] = "Aired {date}",
+        ["FilmLengthHoursMinutes"] = "{hours} h {minutes} min",
+        ["FilmLengthHours"] = "{hours} h",
+        ["FilmLengthMinutes"] = "{minutes} min",
+        ["CountryJapan"] = "Japan",
+        ["CountryChina"] = "China",
+        ["CountrySouthKorea"] = "South Korea",
+        ["CountryTaiwan"] = "Taiwan",
+        ["MediaMadeIn"] = "Made in {country}",
+        ["MediaMadeElsewhere"] = "Made outside Japan",
         ["MaterialOriginal"] = "Original story",
         ["MaterialManga"] = "Manga",
         ["MaterialLightNovel"] = "Light novel",

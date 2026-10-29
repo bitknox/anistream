@@ -4,12 +4,16 @@
 //! `anistream-core` only, so they build and test without a metadata backend. This module is
 //! the only place that knows both vocabularies.
 
-use anistream_meta::anilist::{AiringEntry, Media, model::RelationNode};
+use anistream_meta::anilist::{
+    AiringEntry, Media,
+    model::{Follower, RelationNode},
+};
 use anistream_model::{
     catalog::{
-        AiringStatus, CastMember, CastRole, Entry, FuzzyDate, LibrarySegment, LinkedTitle,
-        Person, Ranking, RankingKind, RelationKind, Season, SourceMaterial, StaffCredit,
-        SynopsisSpan, TitleDetail, TitleLanguage, TitleTag,
+        AiringFact, AiringStatus, CastMember, CastRole, Entry, FollowedEntry, FuzzyDate,
+        LibrarySegment, LinkedTitle, Person, Ranking, RankingKind, RelationKind, RunLength,
+        Season, SourceMaterial, StaffCredit, StreamingLink, SynopsisSpan, TitleDetail,
+        TitleLanguage, TitleTag,
     },
     episodes::{EpisodeAiring, EpisodeKind, EpisodeRow},
     progress::TitleProgress,
@@ -23,6 +27,10 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
     // taken from any remote list — this is what makes the app work with no account.
     let (progress, resume) =
         store.map_or((None, None), |s| standing(s, media.id, media.episodes));
+
+    let (start_date, end_date) =
+        (media.start_date.and_then(fuzzy_date), media.end_date.and_then(fuzzy_date));
+    let status = decided_status(media, end_date);
 
     Entry {
         secondary: media.title.secondary().map(str::to_owned),
@@ -74,11 +82,19 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
         title_english: media.title.english.clone(),
         title_native: media.title.native.clone(),
         season: media.season.map(season),
-        start_date: media.start_date.and_then(fuzzy_date),
-        end_date: media.end_date.and_then(fuzzy_date),
+        start_date,
+        end_date,
         source: media.source.map(source_material),
         adult: media.is_adult.unwrap_or(false),
-        status: media.status.and_then(airing_status),
+        status,
+        airing: status.map(|status| airing_fact(status, start_date, end_date)),
+        duration: media.duration.filter(|m| *m > 0),
+        film_length: film_length(media),
+        country: media.country_of_origin.clone().filter(|c| !c.is_empty()),
+        made_outside_japan: media
+            .country_of_origin
+            .as_deref()
+            .is_some_and(|c| !c.is_empty() && !c.eq_ignore_ascii_case("JP")),
         synopsis_spans: media
             .description_spans()
             .into_iter()
@@ -146,18 +162,9 @@ fn detail_from(
     };
     use anistream_core::media::MediaFormat;
     TitleDetail {
-        tags: media
-            .tags
-            .iter()
-            .filter(|tag| !tag.name.is_empty())
-            .map(|tag| TitleTag {
-                name: tag.name.clone(),
-                rank: tag.rank,
-                media_spoiler: tag.is_media_spoiler,
-                general_spoiler: tag.is_general_spoiler,
-                category: tag.category.clone(),
-            })
-            .collect(),
+        tags: ranked_tags(media),
+        streaming_links: streaming_links(media),
+        following: media.following.iter().map(follower).collect(),
         schedule: media
             .air_times()
             .into_iter()
@@ -194,6 +201,63 @@ fn detail_from(
     }
 }
 
+/// The tags, most relevant first, each with its category and whether it is a spoiler. AniList
+/// sends them in its own order; the sheet's order is the rank's, ties kept as sent.
+fn ranked_tags(media: &Media) -> Vec<TitleTag> {
+    let mut tags: Vec<TitleTag> = media
+        .tags
+        .iter()
+        .filter(|tag| !tag.name.is_empty())
+        .map(|tag| TitleTag {
+            name: tag.name.clone(),
+            rank: tag.rank,
+            media_spoiler: tag.is_media_spoiler,
+            general_spoiler: tag.is_general_spoiler,
+            category: tag.category.clone(),
+        })
+        .collect();
+    tags.sort_by_key(|tag| std::cmp::Reverse(tag.rank.unwrap_or(0)));
+    tags
+}
+
+/// The official streaming services' pages for the title: AniList's `STREAMING` links that are
+/// switched on and open on the web, once per service and address. The other kinds (the official
+/// site, social media, information pages) are not links the sheet offers.
+fn streaming_links(media: &Media) -> Vec<StreamingLink> {
+    let mut links: Vec<StreamingLink> = Vec::new();
+    for link in media.streaming_services().into_iter().filter(|link| !link.is_disabled) {
+        let url = link.url.trim();
+        let web = url.get(..8).is_some_and(|p| p.eq_ignore_ascii_case("https://"))
+            || url.get(..7).is_some_and(|p| p.eq_ignore_ascii_case("http://"));
+        if link.site.is_empty()
+            || !web
+            || links.iter().any(|l| l.site == link.site && l.url == url)
+        {
+            continue;
+        }
+        links.push(StreamingLink {
+            site: link.site.clone(),
+            url: url.to_owned(),
+            language: link.language.clone().filter(|l| !l.is_empty()),
+        });
+    }
+    links
+}
+
+/// One person the viewer follows, with their entry.
+fn follower(entry: &Follower) -> FollowedEntry {
+    FollowedEntry {
+        name: entry.user.name.clone(),
+        avatar_url: entry.user.avatar.medium.clone().filter(|url| !url.is_empty()),
+        status: entry.status.as_deref().and_then(|status| {
+            let status = if status == "REPEATING" { "CURRENT" } else { status };
+            LibrarySegment::ALL.into_iter().find(|s| s.wire() == status)
+        }),
+        score: entry.score.filter(|s| *s > 0.0).map(|s| s.round().clamp(0.0, 100.0) as u32),
+        progress: entry.progress.unwrap_or(0),
+    }
+}
+
 /// A related or recommended title, as its card shows it.
 fn linked(node: &RelationNode, relation: Option<RelationKind>) -> LinkedTitle {
     LinkedTitle {
@@ -210,6 +274,48 @@ fn linked(node: &RelationNode, relation: Option<RelationKind>) -> LinkedTitle {
         year: node.season_year,
         list_status: None,
     }
+}
+
+/// Where a title is in its run: AniList's `status`, and when it sends none (or one this build
+/// does not know), what the rest says. A broadcast still to come means it is airing; an end date
+/// means it is over. Nothing else is guessed, so a title with neither has no state.
+fn decided_status(media: &Media, end_date: Option<FuzzyDate>) -> Option<AiringStatus> {
+    media.status.and_then(airing_status).or_else(|| {
+        if media.next_airing_episode.is_some() {
+            Some(AiringStatus::Releasing)
+        } else if end_date.is_some() {
+            Some(AiringStatus::Finished)
+        } else {
+            None
+        }
+    })
+}
+
+/// What the page says of a run. Hiatus and cancelled stand on their own: whatever the dates say,
+/// neither is airing. A title that began and ended on one day (a film) has one date.
+fn airing_fact(
+    status: AiringStatus,
+    start: Option<FuzzyDate>,
+    end: Option<FuzzyDate>,
+) -> AiringFact {
+    match status {
+        AiringStatus::Hiatus => AiringFact::Hiatus,
+        AiringStatus::Cancelled => AiringFact::Cancelled,
+        AiringStatus::Releasing => AiringFact::Airing { since: start },
+        AiringStatus::NotYetReleased => AiringFact::NotYetReleased { from: start },
+        AiringStatus::Finished => {
+            AiringFact::Finished { from: start, to: end.filter(|end| Some(*end) != start) }
+        }
+    }
+}
+
+/// How long a film runs, for a title that is one film or one episode. `None` for a series, whose
+/// episodes' length is [`Entry::duration`].
+fn film_length(media: &Media) -> Option<RunLength> {
+    use anistream_core::media::MediaFormat;
+    let single = matches!(media.format, Some(MediaFormat::Movie))
+        || (media.episodes == Some(1) && !matches!(media.format, Some(MediaFormat::Tv)));
+    media.duration.filter(|m| single && *m > 0).map(RunLength::of_minutes)
 }
 
 /// Where a title is in its run, as the model has it; `None` for a status AniList has and this
@@ -1017,6 +1123,7 @@ mod naming_tests {
 mod tests {
     use super::*;
     use anistream_core::ids::AnilistId;
+    use anistream_model::present;
 
     fn media() -> Media {
         serde_json::from_value(serde_json::json!({
@@ -1086,6 +1193,272 @@ mod tests {
             ]}
         }))
         .unwrap()
+    }
+
+    /// A title as AniList sends it, with these fields over a minimal one.
+    fn title_with(fields: serde_json::Value) -> Media {
+        let mut wire = serde_json::json!({"id": 7, "title": {"romaji": "Yoake no Kaidan"}});
+        wire.as_object_mut().unwrap().extend(fields.as_object().unwrap().clone());
+        serde_json::from_value(wire).unwrap()
+    }
+
+    fn date(year: u16, month: u8, day: u8) -> FuzzyDate {
+        FuzzyDate { year, month: Some(month), day: Some(day) }
+    }
+
+    #[test]
+    fn every_airing_state_is_decided_here_and_a_break_or_a_cancellation_never_reads_as_airing()
+    {
+        let began = serde_json::json!({"year": 2026, "month": 4, "day": 4});
+        let ended = serde_json::json!({"year": 2026, "month": 6, "day": 20});
+        let fact = |status: &str, end: Option<&serde_json::Value>| {
+            let entry = entry_from(
+                &title_with(serde_json::json!({
+                    "status": status, "startDate": began, "endDate": end,
+                })),
+                None,
+            );
+            (entry.status, entry.airing)
+        };
+
+        assert_eq!(
+            fact("RELEASING", None),
+            (
+                Some(AiringStatus::Releasing),
+                Some(AiringFact::Airing { since: Some(date(2026, 4, 4)) })
+            )
+        );
+        assert_eq!(
+            fact("FINISHED", Some(&ended)),
+            (
+                Some(AiringStatus::Finished),
+                Some(AiringFact::Finished {
+                    from: Some(date(2026, 4, 4)),
+                    to: Some(date(2026, 6, 20))
+                })
+            )
+        );
+        assert_eq!(
+            fact("NOT_YET_RELEASED", None).1,
+            Some(AiringFact::NotYetReleased { from: Some(date(2026, 4, 4)) })
+        );
+        // Hiatus and cancelled hold whatever dates come with them: a show on hiatus has begun and
+        // not ended, which is what read as airing; a cancelled one may have no end at all.
+        assert_eq!(fact("HIATUS", None).1, Some(AiringFact::Hiatus));
+        assert_eq!(fact("CANCELLED", None).1, Some(AiringFact::Cancelled));
+        assert_eq!(fact("CANCELLED", Some(&ended)).1, Some(AiringFact::Cancelled));
+        for stopped in [AiringFact::Hiatus, AiringFact::Cancelled] {
+            assert!(!stopped.is_airing());
+        }
+        assert!(AiringFact::Airing { since: None }.is_airing());
+    }
+
+    #[test]
+    fn a_film_has_one_date_and_a_title_without_a_status_is_read_from_what_else_is_known() {
+        let film = entry_from(
+            &title_with(serde_json::json!({
+                "status": "FINISHED",
+                "startDate": {"year": 2025, "month": 8, "day": 15},
+                "endDate": {"year": 2025, "month": 8, "day": 15},
+            })),
+            None,
+        );
+        assert_eq!(
+            film.airing,
+            Some(AiringFact::Finished { from: Some(date(2025, 8, 15)), to: None })
+        );
+
+        let unknown =
+            entry_from(&title_with(serde_json::json!({"status": "SOMETHING_NEW"})), None);
+        assert_eq!((unknown.status, unknown.airing), (None, None), "nothing is guessed");
+        let ended =
+            entry_from(&title_with(serde_json::json!({"endDate": {"year": 2020}})), None);
+        assert_eq!(ended.status, Some(AiringStatus::Finished), "an end date means it is over");
+        let coming = entry_from(
+            &title_with(serde_json::json!({
+                "nextAiringEpisode": {"episode": 2, "airingAt": 9, "timeUntilAiring": 5},
+            })),
+            None,
+        );
+        assert_eq!(coming.status, Some(AiringStatus::Releasing));
+    }
+
+    #[test]
+    fn the_airing_line_is_worded_from_the_catalogue() {
+        let say = |d: FuzzyDate| {
+            format!("{}/{}/{}", d.day.unwrap_or(0), d.month.unwrap_or(0), d.year)
+        };
+        let line = |fields| present::airing_line(&entry_from(&title_with(fields), None), say);
+        let began = serde_json::json!({"year": 2026, "month": 4, "day": 4});
+        assert_eq!(
+            line(serde_json::json!({"status": "HIATUS", "startDate": began})).as_deref(),
+            Some("On hiatus")
+        );
+        assert_eq!(
+            line(serde_json::json!({"status": "CANCELLED", "startDate": began})).as_deref(),
+            Some("Cancelled")
+        );
+        assert_eq!(
+            line(serde_json::json!({"status": "RELEASING", "startDate": began})).as_deref(),
+            Some("Since 4/4/2026")
+        );
+        assert_eq!(
+            line(serde_json::json!({
+                "status": "FINISHED", "startDate": began,
+                "endDate": {"year": 2026, "month": 6, "day": 20},
+            }))
+            .as_deref(),
+            Some("Aired 4/4/2026 to 20/6/2026")
+        );
+        assert_eq!(line(serde_json::json!({"status": "FINISHED"})).as_deref(), Some("Aired"));
+        assert_eq!(
+            line(serde_json::json!({"status": "NOT_YET_RELEASED"})).as_deref(),
+            Some("Not yet released")
+        );
+    }
+
+    #[test]
+    fn a_films_length_is_said_in_hours_and_minutes_and_a_series_has_none() {
+        let length = |fields| {
+            let entry = entry_from(&title_with(fields), None);
+            (entry.duration, entry.film_length, present::film_length(&entry))
+        };
+        let film = |minutes: u32| serde_json::json!({"format": "MOVIE", "duration": minutes});
+        assert_eq!(
+            length(film(112)),
+            (Some(112), Some(RunLength { hours: 1, minutes: 52 }), Some("1 h 52 min".into()))
+        );
+        assert_eq!(length(film(120)).2.as_deref(), Some("2 h"));
+        assert_eq!(length(film(46)).2.as_deref(), Some("46 min"));
+        assert_eq!(length(film(0)), (None, None, None), "no length is not zero minutes");
+        assert_eq!(length(serde_json::json!({"format": "MOVIE"})).1, None);
+        // A series' episodes have a length of their own, which the page does not put in its line.
+        let series =
+            length(serde_json::json!({"format": "TV", "episodes": 12, "duration": 24}));
+        assert_eq!((series.0, series.1, series.2), (Some(24), None, None));
+        // One episode that is not a series counts, a one-episode TV season does not.
+        let special =
+            length(serde_json::json!({"format": "OVA", "episodes": 1, "duration": 50}));
+        assert_eq!(special.2.as_deref(), Some("50 min"));
+        let one = length(serde_json::json!({"format": "TV", "episodes": 1, "duration": 24}));
+        assert_eq!(one.1, None);
+        // And it joins the metadata line, before the score.
+        let line = present::meta_line(&entry_from(
+            &title_with(serde_json::json!({
+                "format": "MOVIE", "seasonYear": 2025, "duration": 112, "averageScore": 82,
+            })),
+            None,
+        ));
+        assert_eq!(line, "Movie · 2025 · 1 h 52 min · 82%");
+    }
+
+    #[test]
+    fn the_country_is_shown_only_for_a_title_not_made_in_japan() {
+        let made = |country: serde_json::Value| {
+            let entry =
+                entry_from(&title_with(serde_json::json!({"countryOfOrigin": country})), None);
+            (entry.made_outside_japan, entry.country.clone(), present::made_in(&entry))
+        };
+        assert_eq!(made("JP".into()), (false, Some("JP".into()), None));
+        assert_eq!(made("CN".into()), (true, Some("CN".into()), Some("Made in China".into())));
+        assert_eq!(made("KR".into()).2.as_deref(), Some("Made in South Korea"));
+        assert_eq!(made("TW".into()).2.as_deref(), Some("Made in Taiwan"));
+        assert_eq!(made("FR".into()).2.as_deref(), Some("Made outside Japan"));
+        assert_eq!(
+            made(serde_json::Value::Null),
+            (false, None, None),
+            "unknown is not foreign"
+        );
+    }
+
+    #[test]
+    fn the_sheet_gets_the_official_streaming_links_and_no_others() {
+        let links = |wire: serde_json::Value| {
+            entry_with_detail(
+                &title_with(serde_json::json!({"externalLinks": wire})),
+                None,
+                None,
+            )
+            .detail
+            .unwrap()
+            .streaming_links
+        };
+        let found = links(serde_json::json!([
+            {"site": "Lantern Stream", "url": "https://stream.example/series/a", "type": "STREAMING",
+             "language": "Japanese"},
+            {"site": "Lantern Stream", "url": "https://stream.example/series/a", "type": "STREAMING"},
+            {"site": "Lantern Stream", "url": "https://stream.example/series/b", "type": "STREAMING"},
+            {"site": "Gone Stream", "url": "https://gone.example/a", "type": "STREAMING",
+             "isDisabled": true},
+            {"site": "Odd Stream", "url": "intent://odd.example/a", "type": "STREAMING"},
+            {"site": "Official Site", "url": "https://show.example", "type": "INFO"},
+            {"site": "Chirp", "url": "https://chirp.example/show", "type": "SOCIAL"},
+        ]));
+        let seen: Vec<_> = found.iter().map(|l| (l.site.as_str(), l.url.as_str())).collect();
+        assert_eq!(
+            seen,
+            [
+                ("Lantern Stream", "https://stream.example/series/a"),
+                ("Lantern Stream", "https://stream.example/series/b"),
+            ]
+        );
+        assert_eq!(found[0].language.as_deref(), Some("Japanese"));
+        assert_eq!(found[1].language, None);
+        assert!(links(serde_json::json!([])).is_empty());
+    }
+
+    #[test]
+    fn the_tags_come_ranked_with_their_category_and_their_spoilers_flagged() {
+        let detail = entry_with_detail(
+            &title_with(serde_json::json!({"tags": [
+                {"name": "Ghosts", "rank": 40, "category": "Theme-Other"},
+                {"name": "Twist", "rank": 95, "isMediaSpoiler": true, "category": "Theme-Other"},
+                {"name": "Rural", "rank": 70, "category": "Setting-Scene"},
+                {"name": "Villain", "rank": 70, "isGeneralSpoiler": true},
+            ]})),
+            None,
+            None,
+        )
+        .detail
+        .unwrap();
+        let tags: Vec<_> =
+            detail.tags.iter().map(|t| (t.name.as_str(), t.is_spoiler())).collect();
+        assert_eq!(
+            tags,
+            [("Twist", true), ("Rural", false), ("Villain", true), ("Ghosts", false)],
+            "by rank, ties as sent"
+        );
+        assert_eq!(detail.tags[1].category.as_deref(), Some("Setting-Scene"));
+    }
+
+    #[test]
+    fn the_people_followed_become_names_with_their_standing() {
+        let detail =
+            entry_with_detail(&title_with(serde_json::json!({})), None, None).detail.unwrap();
+        assert!(detail.following.is_empty());
+
+        let mut media = title_with(serde_json::json!({}));
+        media.following = serde_json::from_value(serde_json::json!([
+            {"status": "COMPLETED", "score": 90.0, "progress": 12,
+             "user": {"name": "Mika", "avatar": {"medium": "https://img.example/a/mika.png"}}},
+            {"status": "REPEATING", "score": 0, "progress": 3, "user": {"name": "Tomo"}},
+            {"status": "SOMETHING_NEW", "user": {"name": "Aki", "avatar": {"medium": ""}}},
+        ]))
+        .unwrap();
+        let following = entry_with_detail(&media, None, None).detail.unwrap().following;
+        assert_eq!(following.len(), 3);
+        assert_eq!(following[0].name, "Mika");
+        assert_eq!(following[0].avatar_url.as_deref(), Some("https://img.example/a/mika.png"));
+        assert_eq!(
+            (following[0].status, following[0].score, following[0].progress),
+            (Some(LibrarySegment::Completed), Some(90), 12)
+        );
+        assert_eq!(
+            (following[1].status, following[1].score, following[1].progress),
+            (Some(LibrarySegment::Watching), None, 3),
+            "a rewatch is watching, and no score is none"
+        );
+        assert_eq!((following[2].status, following[2].avatar_url.clone()), (None, None));
     }
 
     #[test]

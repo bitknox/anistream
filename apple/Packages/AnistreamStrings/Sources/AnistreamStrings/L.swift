@@ -1978,6 +1978,51 @@ public enum L {
         Self.format("media-airing-from", fallback: "From %1$@", date)
     }
 
+    /// Date line of a show that has finished: when it began and when it ended. Both are already worded dates.
+    public static func mediaAiredRange(from: String, to: String) -> String {
+        Self.format("media-aired-range", fallback: "Aired %1$@ to %2$@", from, to)
+    }
+
+    /// Date line of a show that has finished and ran on one day, such as a film.
+    public static func mediaAiredOn(date: String) -> String {
+        Self.format("media-aired-on", fallback: "Aired %1$@", date)
+    }
+
+    /// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
+    public static func filmLengthHoursMinutes(hours: Int, minutes: Int) -> String {
+        Self.format("film-length-hours-minutes", fallback: "%1$lld h %2$lld min", hours, minutes)
+    }
+
+    /// Length of a film or a single episode that is a whole number of hours, such as "2 h".
+    public static func filmLengthHours(hours: Int) -> String {
+        Self.format("film-length-hours", fallback: "%1$lld h", hours)
+    }
+
+    /// Length of a film or a single episode under an hour, such as "46 min".
+    public static func filmLengthMinutes(minutes: Int) -> String {
+        Self.format("film-length-minutes", fallback: "%1$lld min", minutes)
+    }
+
+    /// Country name, after "Made in".
+    public static var countryJapan: String { string("country-japan", fallback: "Japan") }
+
+    /// Country name, after "Made in".
+    public static var countryChina: String { string("country-china", fallback: "China") }
+
+    /// Country name, after "Made in".
+    public static var countrySouthKorea: String { string("country-south-korea", fallback: "South Korea") }
+
+    /// Country name, after "Made in".
+    public static var countryTaiwan: String { string("country-taiwan", fallback: "Taiwan") }
+
+    /// Fact on a show made outside Japan, with the country already named.
+    public static func mediaMadeIn(country: String) -> String {
+        Self.format("media-made-in", fallback: "Made in %1$@", country)
+    }
+
+    /// Fact on a show made outside Japan, for a country this app has no name for.
+    public static var mediaMadeElsewhere: String { string("media-made-elsewhere", fallback: "Made outside Japan") }
+
     /// Value of "Based on": a story written for the screen.
     public static var materialOriginal: String { string("material-original", fallback: "Original story") }
 

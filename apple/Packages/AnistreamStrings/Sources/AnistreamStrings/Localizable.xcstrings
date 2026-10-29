@@ -2357,6 +2357,54 @@
         }
       }
     },
+    "country-china" : {
+      "comment" : "Country name, after \"Made in\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "China"
+          }
+        }
+      }
+    },
+    "country-japan" : {
+      "comment" : "Country name, after \"Made in\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Japan"
+          }
+        }
+      }
+    },
+    "country-south-korea" : {
+      "comment" : "Country name, after \"Made in\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "South Korea"
+          }
+        }
+      }
+    },
+    "country-taiwan" : {
+      "comment" : "Country name, after \"Made in\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taiwan"
+          }
+        }
+      }
+    },
     "day-today" : {
       "comment" : "Day word for today.",
       "extractionState" : "manual",
@@ -4183,6 +4231,42 @@
         }
       }
     },
+    "film-length-hours" : {
+      "comment" : "Length of a film or a single episode that is a whole number of hours, such as \"2 h\". Argument 1: hours (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld h"
+          }
+        }
+      }
+    },
+    "film-length-hours-minutes" : {
+      "comment" : "Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as \"1 h 52 min\". Argument 1: hours (Int). Argument 2: minutes (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld h %2$lld min"
+          }
+        }
+      }
+    },
+    "film-length-minutes" : {
+      "comment" : "Length of a film or a single episode under an hour, such as \"46 min\". Argument 1: minutes (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld min"
+          }
+        }
+      }
+    },
     "filter-all-formats" : {
       "comment" : "Choice meaning every format on Seasonal.",
       "extractionState" : "manual",
@@ -5527,6 +5611,30 @@
         }
       }
     },
+    "media-aired-on" : {
+      "comment" : "Date line of a show that has finished and ran on one day, such as a film. Argument 1: date (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aired %1$@"
+          }
+        }
+      }
+    },
+    "media-aired-range" : {
+      "comment" : "Date line of a show that has finished: when it began and when it ended. Both are already worded dates. Argument 1: from (Text). Argument 2: to (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aired %1$@ to %2$@"
+          }
+        }
+      }
+    },
     "media-airing-from" : {
       "comment" : "Date line of a show that has not started: when it will. Argument 1: date (Text).",
       "extractionState" : "manual",
@@ -5547,6 +5655,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Since %1$@"
+          }
+        }
+      }
+    },
+    "media-made-elsewhere" : {
+      "comment" : "Fact on a show made outside Japan, for a country this app has no name for.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Made outside Japan"
+          }
+        }
+      }
+    },
+    "media-made-in" : {
+      "comment" : "Fact on a show made outside Japan, with the country already named. Argument 1: country (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Made in %1$@"
           }
         }
       }

@@ -9,7 +9,7 @@
 use anistream_core::media::Translation;
 
 use crate::{
-    catalog::{AiringStatus, Entry, ResumePoint, Season},
+    catalog::{AiringFact, AiringStatus, Entry, FuzzyDate, ResumePoint, RunLength, Season},
     episodes::DubExtent,
     wording,
 };
@@ -260,6 +260,56 @@ pub fn format_label(wire: &str) -> String {
     }
 }
 
+/// What the title page says of a title's run, in the catalogue's words: "On hiatus", "Cancelled",
+/// "Aired 4 Apr to 22 Jun 2024", "Since 4 Apr 2026". `date` words a date as the front end shows
+/// dates. `None` when [`Entry::airing`] is.
+pub fn airing_line(entry: &Entry, date: impl Fn(FuzzyDate) -> String) -> Option<String> {
+    use anistream_i18n::t;
+    Some(match entry.airing? {
+        AiringFact::Airing { since: Some(d) } => t::media_airing_since(&date(d)),
+        AiringFact::Airing { since: None } => t::media_status_airing(),
+        AiringFact::Finished { from: Some(a), to: Some(b) } => {
+            t::media_aired_range(&date(a), &date(b))
+        }
+        AiringFact::Finished { from: Some(d), to: None }
+        | AiringFact::Finished { from: None, to: Some(d) } => t::media_aired_on(&date(d)),
+        AiringFact::Finished { from: None, to: None } => t::media_status_aired(),
+        AiringFact::NotYetReleased { from: Some(d) } => t::media_airing_from(&date(d)),
+        AiringFact::NotYetReleased { from: None } => t::media_status_upcoming(),
+        AiringFact::Hiatus => t::media_status_hiatus(),
+        AiringFact::Cancelled => t::media_status_cancelled(),
+    })
+}
+
+/// A film's length as the catalogue words it: "1 h 52 min", "2 h", "46 min". `None` for a series
+/// or when AniList does not know ([`Entry::film_length`]).
+pub fn film_length(entry: &Entry) -> Option<String> {
+    use anistream_i18n::t;
+    let RunLength { hours, minutes } = entry.film_length?;
+    Some(match (hours, minutes) {
+        (0, 0) => return None,
+        (0, m) => t::film_length_minutes(m.into()),
+        (h, 0) => t::film_length_hours(h.into()),
+        (h, m) => t::film_length_hours_minutes(h.into(), m.into()),
+    })
+}
+
+/// "Made in China", for a title made outside Japan; `None` for a Japanese one, which a page
+/// says nothing of ([`Entry::made_outside_japan`]).
+pub fn made_in(entry: &Entry) -> Option<String> {
+    use anistream_i18n::t;
+    if !entry.made_outside_japan {
+        return None;
+    }
+    let country = match entry.country.as_deref()?.to_ascii_uppercase().as_str() {
+        "CN" => t::country_china(),
+        "KR" => t::country_south_korea(),
+        "TW" => t::country_taiwan(),
+        _ => return Some(t::media_made_elsewhere()),
+    };
+    Some(t::media_made_in(&country))
+}
+
 /// The title page's metadata line: "TV · Summer 2026 · 24 episodes · 79%".
 pub fn meta_line(entry: &Entry) -> String {
     let mut parts = Vec::new();
@@ -273,6 +323,9 @@ pub fn meta_line(entry: &Entry) -> String {
     }
     if let Some(n) = entry.episodes.filter(|n| *n > 0) {
         parts.push(wording::plural(n as usize, "episode"));
+    }
+    if let Some(length) = film_length(entry) {
+        parts.push(length);
     }
     if let Some(score) = entry.score {
         parts.push(format!("{score}%"));

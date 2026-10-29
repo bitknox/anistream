@@ -213,6 +213,8 @@ struct State {
     art_trouble: ArtTrouble,
     /// How often each image has been asked for, and in which order they first were.
     art_asked: HashMap<String, (usize, u32)>,
+    /// The entries of the people the viewer follows, by title: see [`FakeAniList::set_following`].
+    following: HashMap<u64, Vec<Value>>,
     /// Forum threads a test made up: see [`FakeAniList::add_thread`].
     threads: Vec<threads::FakeThread>,
     /// How many comments have been posted to them, for the new comments' ids.
@@ -249,6 +251,7 @@ impl FakeAniList {
             art: None,
             art_trouble: ArtTrouble::default(),
             art_asked: HashMap::new(),
+            following: HashMap::new(),
             threads: Vec::new(),
             posted: 0,
         }));
@@ -390,6 +393,14 @@ impl FakeAniList {
     /// `NATIVE` or a stylised form, as AniList names them.
     pub fn set_viewer_title_language(&self, language: &str) {
         lock(&self.state).viewer_language = Some(language.to_owned());
+    }
+
+    /// The people the signed-in viewer follows who have `id` on a list, as `mediaList` entries in
+    /// AniList's shape (`status`, `score`, `progress`, `private`, `user { name avatar { medium } }`),
+    /// newest first. Answered only to a request that asks for them, with a token: see
+    /// [`following_entry`].
+    pub fn set_following(&self, id: AnilistId, entries: impl IntoIterator<Item = Value>) {
+        lock(&self.state).following.insert(u64::from(id.get()), entries.into_iter().collect());
     }
 
     /// Hold every answer to `operation` back by `wait` from now on, as a slow AniList would: for
@@ -613,7 +624,8 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         Operation::Unknown
     };
 
-    let (failure, (now, ahead), titles, viewer_language, extra, pool) = {
+    let asks_following = query.contains("isFollowing: true");
+    let (failure, (now, ahead), titles, viewer_language, extra, pool, following) = {
         let mut state = lock(state);
         state.requests.push(Request {
             operation,
@@ -626,7 +638,16 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         let clock = (state.now, state.ahead);
         let extra = state.extra.clone();
         let pool = state.catalogue.clone();
-        (failure, clock, state.titles.clone(), state.viewer_language.clone(), extra, pool)
+        let following = state.following.clone();
+        (
+            failure,
+            clock,
+            state.titles.clone(),
+            state.viewer_language.clone(),
+            extra,
+            pool,
+            following,
+        )
     };
     match failure {
         Some(failure) => fail(failure),
@@ -646,7 +667,14 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
                 threads::respond(&mut lock(state), operation, &variables, clock.now)
             };
             let mut reply = thread.unwrap_or_else(|| {
-                respond(operation, &variables, authorized, clock, catalogue)
+                respond(
+                    operation,
+                    &variables,
+                    authorized,
+                    clock,
+                    catalogue,
+                    asks_following.then_some(&following),
+                )
             });
             if let Reply::Answer { body, .. } = &mut reply {
                 retitle(body, &titles);
@@ -800,11 +828,12 @@ fn respond(
     authorized: bool,
     clock: Clock,
     catalogue: Catalogue<'_>,
+    following: Option<&HashMap<u64, Vec<Value>>>,
 ) -> Reply {
     let needs_token = matches!(
         operation,
         Operation::Library | Operation::Viewer | Operation::SaveEntry | Operation::DeleteEntry
-    );
+    ) || (operation == Operation::Detail && following.is_some());
     // The client never sends these without a token; a request that does is a bug worth seeing.
     if needs_token && !authorized {
         return Reply::errors(401, "Invalid token", Value::Null);
@@ -824,7 +853,18 @@ fn respond(
         Operation::Facets => Reply::ok(facets()),
         Operation::Detail => {
             match vars["id"].as_u64().and_then(|id| catalogue.get(id)) {
-                Some(media) => Reply::ok(detail(catalogue.with_neighbours(media), clock)),
+                Some(media) => {
+                    let mut data = detail(catalogue.with_neighbours(media), clock);
+                    // Only to a document that asks, as AniList answers only what is asked.
+                    if let Some(following) = following {
+                        let entries = following
+                            .get(&vars["id"].as_u64().unwrap_or_default())
+                            .cloned()
+                            .unwrap_or_default();
+                        data["following"] = json!({ "mediaList": entries });
+                    }
+                    Reply::ok(data)
+                }
                 // What AniList answers for an id it has no title for: a 404 inside GraphQL's
                 // error shape, which the client reads as an API failure rather than NotFound.
                 None => Reply::errors(404, "Not Found.", json!({ "Media": null })),
@@ -911,6 +951,24 @@ impl Clock {
             row["airingAt"] = at.into();
         }
     }
+}
+
+/// One entry of the people the viewer follows, as AniList answers it: for
+/// [`FakeAniList::set_following`].
+pub fn following_entry(
+    name: &str,
+    status: &str,
+    score: Option<u32>,
+    progress: u32,
+    private: bool,
+) -> Value {
+    json!({
+        "status": status,
+        "score": score.unwrap_or(0),
+        "progress": progress,
+        "private": private,
+        "user": { "name": name, "avatar": { "medium": format!("https://img.example/avatar/{name}.png") } },
+    })
 }
 
 /// The single-title answer, as AniList shapes it: the title, and beside it the broadcasts
@@ -1361,7 +1419,8 @@ mod tests {
                 Operation::Browse,
             ),
             (query::FACETS.to_owned(), Operation::Facets),
-            (query::by_id(), Operation::Detail),
+            (query::by_id(false), Operation::Detail),
+            (query::by_id(true), Operation::Detail),
             (query::by_ids(), Operation::Many),
             (query::relations(), Operation::Relations),
             (query::airing_schedule(), Operation::Schedule),

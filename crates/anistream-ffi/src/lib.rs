@@ -911,6 +911,7 @@ mod tests {
                 name: "Director of Stardust Wayfarer".into(),
                 role: "Director".into(),
             }],
+            ..TitleDetail::default()
         });
         assert_eq!(crossed(entry.clone()), entry);
         crosses_intact(Event::Detail(Box::new(entry)));

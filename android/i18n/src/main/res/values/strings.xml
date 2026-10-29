@@ -1100,6 +1100,28 @@
     <string name="media_airing_since">Since %1$s</string>
     <!-- Date line of a show that has not started: when it will. -->
     <string name="media_airing_from">From %1$s</string>
+    <!-- Date line of a show that has finished: when it began and when it ended. Both are already worded dates. -->
+    <string name="media_aired_range">Aired %1$s to %2$s</string>
+    <!-- Date line of a show that has finished and ran on one day, such as a film. -->
+    <string name="media_aired_on">Aired %1$s</string>
+    <!-- Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min". -->
+    <string name="film_length_hours_minutes">%1$d h %2$d min</string>
+    <!-- Length of a film or a single episode that is a whole number of hours, such as "2 h". -->
+    <string name="film_length_hours">%1$d h</string>
+    <!-- Length of a film or a single episode under an hour, such as "46 min". -->
+    <string name="film_length_minutes">%1$d min</string>
+    <!-- Country name, after "Made in". -->
+    <string name="country_japan">Japan</string>
+    <!-- Country name, after "Made in". -->
+    <string name="country_china">China</string>
+    <!-- Country name, after "Made in". -->
+    <string name="country_south_korea">South Korea</string>
+    <!-- Country name, after "Made in". -->
+    <string name="country_taiwan">Taiwan</string>
+    <!-- Fact on a show made outside Japan, with the country already named. -->
+    <string name="media_made_in">Made in %1$s</string>
+    <!-- Fact on a show made outside Japan, for a country this app has no name for. -->
+    <string name="media_made_elsewhere">Made outside Japan</string>
     <!-- Value of "Based on": a story written for the screen. -->
     <string name="material_original">Original story</string>
     <!-- Value of "Based on". -->

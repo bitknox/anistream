@@ -2085,6 +2085,50 @@ object Strings {
     fun mediaAiringFrom(context: Context, date: String): String =
         context.getString(R.string.media_airing_from, date)
 
+    /** Date line of a show that has finished: when it began and when it ended. Both are already worded dates. */
+    fun mediaAiredRange(context: Context, from: String, to: String): String =
+        context.getString(R.string.media_aired_range, from, to)
+
+    /** Date line of a show that has finished and ran on one day, such as a film. */
+    fun mediaAiredOn(context: Context, date: String): String =
+        context.getString(R.string.media_aired_on, date)
+
+    /** Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min". */
+    fun filmLengthHoursMinutes(context: Context, hours: Int, minutes: Int): String =
+        context.getString(R.string.film_length_hours_minutes, hours, minutes)
+
+    /** Length of a film or a single episode that is a whole number of hours, such as "2 h". */
+    fun filmLengthHours(context: Context, hours: Int): String =
+        context.getString(R.string.film_length_hours, hours)
+
+    /** Length of a film or a single episode under an hour, such as "46 min". */
+    fun filmLengthMinutes(context: Context, minutes: Int): String =
+        context.getString(R.string.film_length_minutes, minutes)
+
+    /** Country name, after "Made in". */
+    fun countryJapan(context: Context): String =
+        context.getString(R.string.country_japan)
+
+    /** Country name, after "Made in". */
+    fun countryChina(context: Context): String =
+        context.getString(R.string.country_china)
+
+    /** Country name, after "Made in". */
+    fun countrySouthKorea(context: Context): String =
+        context.getString(R.string.country_south_korea)
+
+    /** Country name, after "Made in". */
+    fun countryTaiwan(context: Context): String =
+        context.getString(R.string.country_taiwan)
+
+    /** Fact on a show made outside Japan, with the country already named. */
+    fun mediaMadeIn(context: Context, country: String): String =
+        context.getString(R.string.media_made_in, country)
+
+    /** Fact on a show made outside Japan, for a country this app has no name for. */
+    fun mediaMadeElsewhere(context: Context): String =
+        context.getString(R.string.media_made_elsewhere)
+
     /** Value of "Based on": a story written for the screen. */
     fun materialOriginal(context: Context): String =
         context.getString(R.string.material_original)

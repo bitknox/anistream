@@ -126,6 +126,10 @@ struct Answered {
     /// answer from the fallback or the cache is for an outage, and the next ask should find
     /// out whether it is over.
     fresh: bool,
+    /// Whether someone was signed in to AniList when it was asked, and so whether the people they
+    /// follow were asked after. An answer is not reused across a sign-in or a sign-out: the one
+    /// would miss them, the other would keep them.
+    signed_in: bool,
 }
 
 impl Answered {
@@ -133,13 +137,13 @@ impl Answered {
     ///
     /// Not once an episode has aired since: the next one and its countdown have moved, and
     /// the episode count with them.
-    fn serves(&self, now: Instant, reuse_for: Duration) -> bool {
+    fn serves(&self, now: Instant, reuse_for: Duration, signed_in: bool) -> bool {
         let age = now.saturating_duration_since(self.at);
         let Ok(media) = &self.outcome else { return false };
         let aired = media.next_airing_episode.as_ref().is_some_and(|next| {
             next.time_until_airing <= i64::try_from(age.as_secs()).unwrap_or(i64::MAX)
         });
-        self.fresh && age < reuse_for && !aired
+        self.fresh && age < reuse_for && !aired && self.signed_in == signed_in
     }
 
     /// The answer as of `now`, its countdown run on by the time since.
@@ -562,10 +566,11 @@ impl Meta {
     /// fallback or the cache, which may be a list's row with none of the page's fields.
     pub async fn media_answered(&self, id: AnilistId) -> Result<(Media, bool)> {
         let flight = self.flight(id);
+        let signed_in = self.anilist.is_authenticated();
         let answered = flight
             .get_or_init(|| async {
                 let (outcome, fresh) = self.ask_media(id).await;
-                Answered { at: Instant::now(), outcome, fresh }
+                Answered { at: Instant::now(), outcome, fresh, signed_in }
             })
             .await;
         answered.as_of(Instant::now()).map(|media| (media, answered.fresh))
@@ -607,9 +612,10 @@ impl Meta {
     /// new one. Answers that serve no longer are let go on the way.
     fn flight(&self, id: AnilistId) -> Flight {
         let now = Instant::now();
+        let signed_in = self.anilist.is_authenticated();
         let Ok(mut recent) = self.recent.lock() else { return Flight::default() };
         recent.titles.retain(|_, flight| {
-            flight.get().is_none_or(|answered| answered.serves(now, self.reuse_for))
+            flight.get().is_none_or(|answered| answered.serves(now, self.reuse_for, signed_in))
         });
         Arc::clone(recent.titles.entry(id).or_default())
     }
@@ -1002,30 +1008,42 @@ mod tests {
     #[test]
     fn an_answer_serves_for_its_minutes_and_not_past_a_broadcast() {
         let at = Instant::now();
-        let answered = |media: Media, fresh| Answered { at, outcome: Ok(media), fresh };
+        let answered =
+            |media: Media, fresh| Answered { at, outcome: Ok(media), fresh, signed_in: false };
         let minute = Duration::from_secs(60);
 
         let hour_away = answered(airing(3_600), true);
-        assert!(hour_away.serves(at + minute, REUSE_FOR));
-        assert!(!hour_away.serves(at + REUSE_FOR, REUSE_FOR), "only for so long");
-        assert!(!hour_away.serves(at, Duration::ZERO), "and not at all with no time to serve");
+        assert!(hour_away.serves(at + minute, REUSE_FOR, false));
+        assert!(!hour_away.serves(at + REUSE_FOR, REUSE_FOR, false), "only for so long");
+        assert!(
+            !hour_away.serves(at, Duration::ZERO, false),
+            "and not at all with no time to serve"
+        );
         // The countdown runs on from the answer.
         let later = hour_away.as_of(at + minute).unwrap();
         assert_eq!(later.next_airing_episode.unwrap().time_until_airing, 3_540);
 
         // An episode that airs in the meantime ends it: the next one is another answer.
         let soon = answered(airing(90), true);
-        assert!(soon.serves(at + minute, REUSE_FOR));
-        assert!(!soon.serves(at + Duration::from_secs(90), REUSE_FOR));
+        assert!(soon.serves(at + minute, REUSE_FOR, false));
+        assert!(!soon.serves(at + Duration::from_secs(90), REUSE_FOR, false));
 
         // The fallback's answers, and failures, are asked again.
-        assert!(!answered(airing(3_600), false).serves(at, REUSE_FOR));
+        assert!(!answered(airing(3_600), false).serves(at, REUSE_FOR, false));
         let failed = Answered {
             at,
             outcome: Err(MetaError::Anilist(AniListError::NotFound)),
             fresh: true,
+            signed_in: false,
         };
-        assert!(!failed.serves(at, REUSE_FOR));
+        assert!(!failed.serves(at, REUSE_FOR, false));
+
+        // A sign-in or a sign-out is another answer: the people the viewer follows come with one
+        // and must not outlast the other.
+        assert!(!hour_away.serves(at, REUSE_FOR, true), "not after a sign-in");
+        let signed_in = Answered { signed_in: true, ..answered(airing(3_600), true) };
+        assert!(signed_in.serves(at, REUSE_FOR, true));
+        assert!(!signed_in.serves(at, REUSE_FOR, false), "nor after a sign-out");
     }
 
     #[test]

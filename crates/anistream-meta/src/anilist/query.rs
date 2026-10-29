@@ -22,6 +22,7 @@ pub const MEDIA_FIELDS: &str = r"
     endDate { year month day }
     source(version: 3)
     isAdult
+    countryOfOrigin
     averageScore
     genres
     synonyms
@@ -41,7 +42,7 @@ pub const MEDIA_FIELDS: &str = r"
 /// asked for beside the title, in [`by_id`]: this connection takes no sort, so its first page of
 /// aired episodes is a long runner's oldest fifty rather than its newest.
 pub const MEDIA_DETAIL_FIELDS: &str = r"
-    externalLinks { site url type language }
+    externalLinks { site url type language isDisabled }
     streamingEpisodes { title url site thumbnail }
     tags { name rank isMediaSpoiler isGeneralSpoiler category }
     upcoming: airingSchedule(notYetAired: true, perPage: 50) { nodes { episode airingAt } }
@@ -148,7 +149,8 @@ pub fn by_ids() -> String {
 /// along its prequel and sequel chain: a franchise of three seasons is known whole from its
 /// middle one, and one of two from either end. Measured again with them (2026-10-23): answered
 /// in full, a long runner's 65 relations bringing 248 more edges and 21 KB.
-pub fn by_id() -> String {
+pub fn by_id(following: bool) -> String {
+    let following = if following { FOLLOWING } else { "" };
     format!(
         r"query ($id: Int) {{
             Media(id: $id, type: ANIME) {{ {MEDIA_FIELDS} {MEDIA_DETAIL_FIELDS}
@@ -163,9 +165,29 @@ pub fn by_id() -> String {
                     airingAt
                 }}
             }}
+            {following}
         }}"
     )
 }
+
+/// How many of the people the viewer follows the title page asks after.
+pub const FOLLOWING_LIMIT: u32 = 10;
+
+/// The entries of the people the signed-in viewer follows, newest update first, as a third root
+/// of [`by_id`]: no request of its own. Scores come out of a hundred whatever scale each person
+/// keeps their list in. Left out of the document when nobody is signed in to AniList, since the
+/// filter needs an authenticated viewer.
+const FOLLOWING: &str = r"
+            following: Page(perPage: 10) {
+                mediaList(mediaId: $id, isFollowing: true, sort: [UPDATED_TIME_DESC]) {
+                    status
+                    score(format: POINT_100)
+                    progress
+                    private
+                    user { name avatar { medium } }
+                }
+            }
+";
 
 /// Several titles' relations at once, two levels deep: the season walk's question of what
 /// comes before and after each title at the edge of what it knows (see `crate::franchise`).
@@ -459,7 +481,8 @@ mod tests {
             ("search_filtered", search_filtered()),
             ("facets", FACETS.to_string()),
             ("by_ids", by_ids()),
-            ("by_id", by_id()),
+            ("by_id", by_id(false)),
+            ("by_id_following", by_id(true)),
             ("relations", relations()),
             ("seasonal", seasonal()),
             ("airing_schedule", airing_schedule()),
@@ -485,7 +508,7 @@ mod tests {
         assert_eq!(walk.matches("relations {").count(), 2, "{walk}");
         assert!(walk.contains("media(id_in: $ids"), "every title at the walk's edge at once");
         // The list fields' `prequels` alias is a third, by id alone, and not a step.
-        let page = by_id().replace("prequels: relations {", "");
+        let page = by_id(false).replace("prequels: relations {", "");
         assert_eq!(page.matches("relations {").count(), 2, "the page sees two steps");
         // A card's fields, for the picker; nothing only a page shows.
         for heavy in
@@ -513,7 +536,7 @@ mod tests {
             search(),
             search_filtered(),
             by_ids(),
-            by_id(),
+            by_id(false),
             seasonal(),
             airing_schedule(),
             user_library(),
@@ -529,7 +552,7 @@ mod tests {
     fn heavy_fields_stay_on_the_title_page() {
         // Seventy tags, a cast and fifty broadcasts per title would multiply every list
         // response for fields only the title page shows.
-        let detail = by_id();
+        let detail = by_id(false);
         for field in ["tags {", "characters(", "staff(", "rankings {", "upcoming:", "aired:"] {
             assert!(detail.contains(field), "{field} missing from the title page");
             for (name, doc) in [
@@ -583,7 +606,7 @@ mod tests {
     #[test]
     fn interpolation_produced_no_stray_escapes() {
         // `{{` in a format string should have collapsed to `{`.
-        for doc in [search(), search_filtered(), by_id(), seasonal(), airing_schedule()] {
+        for doc in [search(), search_filtered(), by_id(false), seasonal(), airing_schedule()] {
             assert!(!doc.contains("{{"), "unexpanded brace escape in:\n{doc}");
             assert!(!doc.contains("}}"), "unexpanded brace escape in:\n{doc}");
         }
@@ -594,7 +617,7 @@ mod tests {
         for doc in [
             search(),
             search_filtered(),
-            by_id(),
+            by_id(false),
             seasonal(),
             airing_schedule(),
             user_library(),
@@ -608,7 +631,7 @@ mod tests {
     fn detail_fields_are_confined_to_the_single_title_query() {
         // streamingEpisodes can be hundreds of entries; pulling it in a list query would
         // make browse responses enormous for no benefit.
-        assert!(by_id().contains("streamingEpisodes"));
+        assert!(by_id(false).contains("streamingEpisodes"));
         for doc in [search(), search_filtered(), seasonal(), airing_schedule()] {
             assert!(
                 !doc.contains("streamingEpisodes"),
@@ -622,5 +645,38 @@ mod tests {
         for doc in [search(), search_filtered(), seasonal(), airing_schedule()] {
             assert!(doc.contains("hasNextPage"), "cannot paginate without it");
         }
+    }
+
+    #[test]
+    fn the_title_page_asks_after_the_people_followed_only_when_signed_in() {
+        let out = by_id(false);
+        let signed_in = by_id(true);
+        for needle in ["mediaList", "isFollowing", "following:"] {
+            assert!(!out.contains(needle), "{needle} asked for with nobody signed in");
+            assert!(signed_in.contains(needle), "{needle} missing for a signed-in viewer");
+        }
+        // One request either way: the people are a root beside the title, not a second query.
+        assert_eq!(signed_in.matches("query ").count(), 1);
+        assert!(signed_in.contains("Media(id: $id, type: ANIME)"));
+        assert!(signed_in.contains(&format!("perPage: {FOLLOWING_LIMIT}")));
+        assert!(
+            signed_in.contains("score(format: POINT_100)"),
+            "a score on one scale whatever each person's list uses"
+        );
+        assert!(!signed_in.contains("notes"), "no free text from other people");
+    }
+
+    #[test]
+    fn the_people_followed_add_a_little_to_the_title_page_and_nothing_to_the_lists() {
+        // The title page is already the heaviest document; what a signed-in viewer adds must
+        // stay a small, capped page: ten entries of five scalars and a name and an avatar.
+        let added = by_id(true).len() - by_id(false).len();
+        assert!(added < 500, "{added} characters added");
+        for doc in [search(), by_ids(), seasonal(), airing_schedule(), user_library()] {
+            assert!(!doc.contains("isFollowing"), "leaked into a list query");
+        }
+        // Country and the links' switch ride the shared fields and the detail fields.
+        assert!(MEDIA_FIELDS.contains("countryOfOrigin"));
+        assert!(MEDIA_DETAIL_FIELDS.contains("isDisabled"));
     }
 }

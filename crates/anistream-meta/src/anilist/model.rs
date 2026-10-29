@@ -308,6 +308,9 @@ pub struct ExternalLink {
     #[serde(rename = "type")]
     pub kind: Option<String>,
     pub language: Option<String>,
+    /// AniList has switched the link off: the service no longer carries the title.
+    #[serde(default)]
+    pub is_disabled: bool,
 }
 
 impl ExternalLink {
@@ -461,6 +464,9 @@ pub struct Media {
     pub source: Option<SourceMaterial>,
     #[serde(default)]
     pub is_adult: Option<bool>,
+    /// Where it was made, as an ISO country code: `JP`, `CN`, `KR`, `TW`.
+    #[serde(default)]
+    pub country_of_origin: Option<String>,
     #[serde(default)]
     pub average_score: Option<u32>,
     #[serde(default)]
@@ -513,6 +519,44 @@ pub struct Media {
     /// The people who made it, most relevant first. Rides the detail fetch.
     #[serde(default)]
     pub staff: StaffConnection,
+    /// People the signed-in viewer follows who have the title on a list, newest update first.
+    /// Not a field of AniList's `Media`: the detail fetch asks for it beside the title when
+    /// someone is signed in, and puts it here. Never written to the cache, so a sign-out leaves
+    /// nothing of it behind.
+    #[serde(default, skip_serializing)]
+    pub following: Vec<Follower>,
+}
+
+/// One person the viewer follows, with their entry for a title.
+#[derive(Debug, Clone, Default, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Follower {
+    #[serde(default)]
+    pub status: Option<String>,
+    /// Out of a hundred, whatever scale the person keeps their list in; zero is unscored.
+    #[serde(default)]
+    pub score: Option<f64>,
+    #[serde(default)]
+    pub progress: Option<u32>,
+    /// AniList should withhold private entries; the client leaves one out if it is sent.
+    #[serde(default)]
+    pub private: bool,
+    #[serde(default)]
+    pub user: FollowerUser,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, PartialEq)]
+pub struct FollowerUser {
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub avatar: FollowerAvatar,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, PartialEq)]
+pub struct FollowerAvatar {
+    #[serde(default)]
+    pub medium: Option<String>,
 }
 
 /// A trailer reference: a video id on a host, not a playable URL.

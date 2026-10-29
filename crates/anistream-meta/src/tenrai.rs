@@ -296,6 +296,8 @@ impl Tenrai {
             rankings: Vec::new(),
             characters: Default::default(),
             staff: Default::default(),
+            following: Vec::new(),
+            country_of_origin: None,
         })
     }
 

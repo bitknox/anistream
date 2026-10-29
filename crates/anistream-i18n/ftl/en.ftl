@@ -4672,6 +4672,39 @@ media-airing-since = Since { $date }
 # Date line of a show that has not started: when it will.
 media-airing-from = From { $date }
 
+# Date line of a show that has finished: when it began and when it ended. Both are already worded dates.
+media-aired-range = Aired { $from } to { $to }
+
+# Date line of a show that has finished and ran on one day, such as a film.
+media-aired-on = Aired { $date }
+
+# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
+film-length-hours-minutes = { $hours } h { $minutes } min
+
+# Length of a film or a single episode that is a whole number of hours, such as "2 h".
+film-length-hours = { $hours } h
+
+# Length of a film or a single episode under an hour, such as "46 min".
+film-length-minutes = { $minutes } min
+
+# Country name, after "Made in".
+country-japan = Japan
+
+# Country name, after "Made in".
+country-china = China
+
+# Country name, after "Made in".
+country-south-korea = South Korea
+
+# Country name, after "Made in".
+country-taiwan = Taiwan
+
+# Fact on a show made outside Japan, with the country already named.
+media-made-in = Made in { $country }
+
+# Fact on a show made outside Japan, for a country this app has no name for.
+media-made-elsewhere = Made outside Japan
+
 # Value of "Based on": a story written for the screen.
 material-original = Original story
 

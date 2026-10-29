@@ -7445,6 +7445,61 @@ pub fn media_airing_from(date: &str) -> String {
     text("media-airing-from", &[("date", Arg::Text(date))])
 }
 
+/// Date line of a show that has finished: when it began and when it ended. Both are already worded dates.
+pub fn media_aired_range(from: &str, to: &str) -> String {
+    text("media-aired-range", &[("from", Arg::Text(from)), ("to", Arg::Text(to))])
+}
+
+/// Date line of a show that has finished and ran on one day, such as a film.
+pub fn media_aired_on(date: &str) -> String {
+    text("media-aired-on", &[("date", Arg::Text(date))])
+}
+
+/// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
+pub fn film_length_hours_minutes(hours: i64, minutes: i64) -> String {
+    text("film-length-hours-minutes", &[("hours", Arg::Int(hours)), ("minutes", Arg::Int(minutes))])
+}
+
+/// Length of a film or a single episode that is a whole number of hours, such as "2 h".
+pub fn film_length_hours(hours: i64) -> String {
+    text("film-length-hours", &[("hours", Arg::Int(hours))])
+}
+
+/// Length of a film or a single episode under an hour, such as "46 min".
+pub fn film_length_minutes(minutes: i64) -> String {
+    text("film-length-minutes", &[("minutes", Arg::Int(minutes))])
+}
+
+/// Country name, after "Made in".
+pub fn country_japan() -> String {
+    text("country-japan", &[])
+}
+
+/// Country name, after "Made in".
+pub fn country_china() -> String {
+    text("country-china", &[])
+}
+
+/// Country name, after "Made in".
+pub fn country_south_korea() -> String {
+    text("country-south-korea", &[])
+}
+
+/// Country name, after "Made in".
+pub fn country_taiwan() -> String {
+    text("country-taiwan", &[])
+}
+
+/// Fact on a show made outside Japan, with the country already named.
+pub fn media_made_in(country: &str) -> String {
+    text("media-made-in", &[("country", Arg::Text(country))])
+}
+
+/// Fact on a show made outside Japan, for a country this app has no name for.
+pub fn media_made_elsewhere() -> String {
+    text("media-made-elsewhere", &[])
+}
+
 /// Value of "Based on": a story written for the screen.
 pub fn material_original() -> String {
     text("material-original", &[])
