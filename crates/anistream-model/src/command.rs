@@ -164,6 +164,11 @@ pub enum Command {
     DismissUpNext {
         id: AnilistId,
     },
+    /// Undo of [`Command::DismissUpNext`], for a notice with Undo: the title may be suggested
+    /// again, and a fresh [`Event::UpNext`](crate::event::Event::UpNext) follows.
+    RestoreUpNext {
+        id: AnilistId,
+    },
     /// What the filters choose from: answered with
     /// [`Event::Facets`](crate::event::Event::Facets). Asked of AniList at most once a week.
     LoadSearchFacets,

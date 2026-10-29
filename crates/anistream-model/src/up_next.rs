@@ -54,6 +54,15 @@ pub struct UpNextItem {
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub starts: Option<FuzzyDate>,
     pub action: UpNextAction,
+    /// For [`UpNextReason::AiringToday`], when today's episode airs, in Unix seconds. A front end
+    /// shows it in the viewer's zone.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub airs_at: Option<i64>,
+    /// The group is the fallback for a viewer with nothing personal to be suggested: every item
+    /// of it is airing today, and the heading over it reads "Airing today", not "Up next for
+    /// you".
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub fallback: bool,
 }
 
 #[cfg(test)]

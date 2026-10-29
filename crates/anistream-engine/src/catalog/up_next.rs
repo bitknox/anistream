@@ -69,6 +69,9 @@ struct Pick {
     /// The viewer's list has it as Planning.
     #[serde(default)]
     planned: bool,
+    /// When today's episode airs, for a broadcast.
+    #[serde(default)]
+    airs_at: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -168,6 +171,29 @@ pub async fn dismiss(lent: Lent, id: AnilistId) {
     }
 }
 
+/// Undo of [`dismiss`]: `id` may be suggested again, and the suggestions are sent anew.
+pub async fn restore(lent: Lent, id: AnilistId, ask: Ask) {
+    let mut all = dismissed(&lent.store);
+    all.retain(|d| d.id != id.get());
+    match serde_json::to_string(&all) {
+        Ok(json) => {
+            if let Err(e) = lent.store.set_meta_text(DISMISSED_KEY, &json) {
+                tracing::warn!(error = %e, "could not undo the dismissal");
+            }
+        }
+        Err(e) => tracing::warn!(error = %e, "could not write the dismissals"),
+    }
+    load_up_next(lent, ask).await;
+}
+
+/// Which titles are on Continue, to tell when the queue has changed: a show finished, one
+/// started, a row removed. The order they are in does not count.
+pub fn queue_mark(store: &Store) -> Vec<u32> {
+    let mut ids: Vec<u32> = queue(store).iter().map(|id| id.get()).collect();
+    ids.sort_unstable();
+    ids
+}
+
 /// The ids on Continue, the queue the suggestions sit under.
 fn queue(store: &Store) -> Vec<AnilistId> {
     store.continue_list(15).unwrap_or_default().iter().map(|p| p.anilist_id).collect()
@@ -251,6 +277,8 @@ fn item(pick: &Pick, entry: Entry) -> UpNextItem {
         because: pick.because.clone(),
         starts,
         action,
+        airs_at: pick.airs_at,
+        fallback: pick.reason == Why::AiringToday,
         entry,
     }
 }
@@ -379,6 +407,7 @@ async fn find(
                     because: None,
                     unaired: false,
                     planned: status_of(entry.id).as_deref() == Some("PLANNING"),
+                    airs_at: None,
                 },
                 entry.clone(),
             ));
@@ -434,6 +463,7 @@ async fn find(
                                         because,
                                         unaired: false,
                                         planned: false,
+                                        airs_at: None,
                                     },
                                     entry,
                                 ));
@@ -503,6 +533,7 @@ async fn airing_today(
                 // Its first episode is the one airing, and not yet.
                 unaired: airing.episode == 1 && airing.airing_at > ask.now,
                 planned: planned.contains(&airing.media.id),
+                airs_at: Some(airing.airing_at),
             },
             data::entry_from(&airing.media, Some(store)),
         ));

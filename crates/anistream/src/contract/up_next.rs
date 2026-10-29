@@ -318,6 +318,83 @@ async fn with_nothing_of_their_own_it_falls_back_to_what_airs_today() {
     assert_eq!(ids_of(&items), [AIRING_NO_MAL.get()]);
     assert_eq!(items[0].reason, UpNextReason::AiringToday);
     assert_eq!(items[0].action, UpNextAction::PlayFirstEpisode);
+    // It says it is the fallback, and when the episode airs.
+    assert!(items[0].fallback);
+    let airs_at = items[0].airs_at.expect("the broadcast time");
+    assert!(airs_at > now - 20 * 3_600 && airs_at < now, "today: {airs_at}");
+}
+
+#[tokio::test]
+async fn personal_suggestions_are_not_the_fallback_and_carry_no_air_time() {
+    let mut h = Harness::with(signed_in()).await;
+    invent(&h);
+    watch(&h, FINISHED_ONE, 12, 600);
+    list(&h, &[(FINISHED_ONE, "COMPLETED")]);
+
+    let items = load(&mut h).await;
+
+    assert!(!items.is_empty());
+    assert!(items.iter().all(|i| !i.fallback && i.airs_at.is_none()), "{items:?}");
+}
+
+/// The suggestions an `Event::UpNext` among `updates` carries, the last of them.
+fn sent(updates: Vec<Event>) -> Option<Vec<UpNextItem>> {
+    updates
+        .into_iter()
+        .filter_map(|u| match u {
+            Event::UpNext(items) => Some(items),
+            _ => None,
+        })
+        .next_back()
+}
+
+#[tokio::test]
+async fn restoring_a_dismissed_title_brings_it_back_in_a_fresh_event() {
+    let mut h = Harness::with(signed_in()).await;
+    invent(&h);
+    watch(&h, FINISHED_ONE, 12, 600);
+    list(&h, &[(FINISHED_ONE, "COMPLETED")]);
+    h.send(Command::DismissUpNext { id: id(NEW_SEASON_AIRING) });
+    h.settle().await;
+    assert!(!ids_of(&load(&mut h).await).contains(&NEW_SEASON_AIRING));
+
+    h.send(Command::RestoreUpNext { id: id(NEW_SEASON_AIRING) });
+    let items = sent(h.settle().await).expect("a fresh Up next");
+
+    assert_eq!(ids_of(&items)[0], NEW_SEASON_AIRING);
+}
+
+#[tokio::test]
+async fn a_change_to_the_queue_sends_up_next_again_cut_to_the_room() {
+    let mut h = Harness::with(signed_in()).await;
+    let planned: Vec<u32> = (930_310..930_318).collect();
+    h.server().add_titles(
+        planned.iter().map(|n| invented(*n, "RELEASING", 12, (2026, 10, 4), &[], &[])),
+    );
+    let statuses: Vec<(u32, &str)> = planned.iter().map(|n| (*n, "PLANNING")).collect();
+    list(&h, &statuses);
+    seed::stopped_at(h.store(), AIRING, "1", 300.0, FIXTURE_NOW - 60);
+    seed::stopped_at(h.store(), AIRING_NO_MAL, "1", 300.0, FIXTURE_NOW - 120);
+    assert_eq!(load(&mut h).await.len(), 4, "two rows leave room for four");
+
+    // A row removed: one row leaves room for six, and nobody asked again.
+    h.send(Command::HideFromContinue { id: AIRING });
+    let items = sent(h.settle().await).expect("sent without being asked");
+    assert_eq!(items.len(), 6);
+
+    // Another show started: back to four.
+    seed::stopped_at(h.store(), ONA, "1", 300.0, FIXTURE_NOW - 30);
+    h.send(Command::HideFromContinue { id: id(930_999) });
+    let items = sent(h.settle().await).expect("sent for a show that started");
+    assert_eq!(items.len(), 4);
+}
+
+#[tokio::test]
+async fn up_next_is_not_sent_by_itself_before_it_was_asked_for() {
+    let mut h = Harness::with(signed_in()).await;
+    seed::stopped_at(h.store(), AIRING, "1", 300.0, FIXTURE_NOW - 60);
+    h.send(Command::HideFromContinue { id: AIRING });
+    assert!(sent(h.settle().await).is_none());
 }
 
 #[tokio::test]

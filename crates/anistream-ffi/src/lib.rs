@@ -153,6 +153,7 @@ mod tests {
             Command::LoadBrowse,
             Command::LoadUpNext,
             Command::DismissUpNext { id: AnilistId::new(900_004) },
+            Command::RestoreUpNext { id: AnilistId::new(900_004) },
             Command::LoadSearchFacets,
         ];
         for command in commands {
@@ -816,6 +817,8 @@ mod tests {
                 day: Some(9),
             }),
             action: anistream_model::up_next::UpNextAction::AddToPlanning,
+            airs_at: Some(1_800_000_000),
+            fallback: true,
         }]));
         crosses_intact(Event::Facets(SearchFacets {
             genres: vec!["Mecha".into()],

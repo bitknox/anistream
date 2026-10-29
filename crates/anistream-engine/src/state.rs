@@ -73,6 +73,9 @@ pub struct EngineState {
     pub network: crate::phases::Network,
     /// What to ask for again once the network is back: see [`crate::connectivity`].
     pub missed: crate::connectivity::Missed,
+    /// Once "Up next for you" has been asked for: the titles on Continue when it was last sent,
+    /// so that a change to them sends it again. See [`crate::catalog::up_next`].
+    pub up_next_queue: Option<Vec<u32>>,
     /// What the device last said of itself: see [`crate::autoplay`].
     pub device: anistream_model::trailer::Device,
     /// Whether trailers may start by themselves, as last said: see [`crate::autoplay`].
@@ -132,6 +135,7 @@ impl EngineState {
             phase: Default::default(),
             network: Default::default(),
             missed: Default::default(),
+            up_next_queue: None,
             device: Default::default(),
             autoplay: None,
             gated: None,

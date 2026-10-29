@@ -157,6 +157,16 @@ where
 /// episode's keys steering the next one.
 ///
 /// The actor runs it for each command `Engine::send` hands over, one at a time.
+/// What "Up next for you" is told of the viewer and the moment.
+fn up_next_ask(engine: &EngineState, services: &Services) -> Ask {
+    Ask {
+        listed: downloads::ahead::listed(services),
+        adult: engine.config.effective().meta.adult,
+        now: services.clock.now(),
+        zone: services.clock.zone(),
+    }
+}
+
 pub(crate) fn dispatch(
     task: Command,
     job: Option<JobGuard>,
@@ -173,13 +183,13 @@ pub(crate) fn dispatch(
         }
         Command::HideFromContinue { id } => hide_from_continue(id, services, tx),
         Command::LoadUpNext => {
-            let ask = Ask {
-                listed: downloads::ahead::listed(services),
-                adult: engine.config.effective().meta.adult,
-                now: services.clock.now(),
-                zone: services.clock.zone(),
-            };
+            engine.up_next_queue = Some(up_next::queue_mark(&services.store));
+            let ask = up_next_ask(engine, services);
             spawn(job, services, tx, move |lent| up_next::load_up_next(lent, ask))
+        }
+        Command::RestoreUpNext { id } => {
+            let ask = up_next_ask(engine, services);
+            spawn(job, services, tx, move |lent| up_next::restore(lent, id, ask))
         }
         Command::DismissUpNext { id } => {
             spawn(job, services, tx, move |lent| up_next::dismiss(lent, id))
