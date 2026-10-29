@@ -389,6 +389,7 @@ pub async fn play(
                         })));
                     // The player never existed, but the UI has Now Playing up and a control
                     // surface pointed at it. Saying so is what takes them down.
+                    run.servers.settle().await;
                     let _ = tx.send(Event::playback_ended(false, Ending::Failed));
                     let _ = tx.send(Event::Status(None));
                     return;
@@ -478,6 +479,7 @@ pub async fn play(
                     let _ = player.link.stop().await;
                     slot.park(player);
                 }
+                run.servers.settle().await;
                 return;
             }
             FileOutcome::Ended { watched, complete, exited, stopped, quit, no_frames } => {
@@ -489,9 +491,7 @@ pub async fn play(
                 // decided, so the next play knows which server to try first.
                 if no_frames {
                     let refused = menders.refused(&streams[index].url);
-                    run.servers
-                        .unplayed(&store, &streams[index], stopped || quit, refused)
-                        .await;
+                    run.servers.unplayed(&store, &streams[index], stopped || quit, refused);
                 }
 
                 if no_frames && !stopped && !exited && !last {
@@ -571,6 +571,9 @@ pub async fn play(
                 // be the last: the tracker's verdict when it reached one, and otherwise the
                 // honest `false` for a session that never played. The ending names the next
                 // episode only when the window was kept for it, which is what auto-next follows.
+                // What this playback learned of its servers is in the store first, for the
+                // next to read.
+                run.servers.settle().await;
                 let ending = if complete {
                     Ending::Complete { next: next.map(|n| n.number.clone()) }
                 } else if stopped {
