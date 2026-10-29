@@ -185,7 +185,10 @@ private fun MoreMenu(model: PlayerModel, discussion: DiscussionEntry) {
         onDispose { model.hold("more", false) } // i18n-skip
     }
     Box {
-        ControlButton(PlayerIcons.More, stringResource(R.string.action_more)) { open = true }
+        // Open, the button keeps a haze disc under it, as the board draws it.
+        Box(Modifier.size(48.dp).background(if (open) ObiSilk.Silk.copy(alpha = 0.18f) else Color.Transparent, androidx.compose.foundation.shape.CircleShape)) {
+            ControlButton(PlayerIcons.More, stringResource(R.string.action_more)) { open = true }
+        }
         Menu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
                 text = {
@@ -199,7 +202,7 @@ private fun MoreMenu(model: PlayerModel, discussion: DiscussionEntry) {
                         )
                     }
                 },
-                leadingIcon = { Icon(PlayerIcons.Discussion, contentDescription = null) },
+                trailingIcon = { Icon(PlayerIcons.Discussion, contentDescription = null) },
                 onClick = {
                     open = false
                     discussion.onOpen()
