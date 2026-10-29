@@ -1047,6 +1047,30 @@
     <value>Today ({keys})</value>
     <comment>Calendar: tooltip of the button that returns to the current week, with its shortcut.</comment>
   </data>
+  <data name="DiscussionCopyText" xml:space="preserve">
+    <value>Copy text</value>
+    <comment>Menu item that copies a comment's text.</comment>
+  </data>
+  <data name="DiscussionSending" xml:space="preserve">
+    <value>Sending</value>
+    <comment>Age of a comment that was sent and is not yet confirmed.</comment>
+  </data>
+  <data name="DiscussionEditing" xml:space="preserve">
+    <value>Editing your comment</value>
+    <comment>Line above the field while the viewer edits their own comment.</comment>
+  </data>
+  <data name="DiscussionCommentMenu" xml:space="preserve">
+    <value>More for this comment</value>
+    <comment>Accessible name of the button that opens a comment's menu.</comment>
+  </data>
+  <data name="DiscussionPaneLabel" xml:space="preserve">
+    <value>Episode {episode} discussion</value>
+    <comment>Accessible name of the discussion pane.</comment>
+  </data>
+  <data name="DiscussionAnswering" xml:space="preserve">
+    <value>to {name}</value>
+    <comment>After the author's name on a reply to a reply, naming who it answers.</comment>
+  </data>
   <data name="PlayerEpisodeLineTitled" xml:space="preserve">
     <value>{line} · {title}</value>
     <comment>An episode's line in the player's title bar and in the system media controls: the episode's label (already "Episode 10" or "Episode 10 · Dubbed"), then the episode's own title.</comment>
@@ -1182,6 +1206,14 @@
   <data name="SettingsEpisodeNotifications" xml:space="preserve">
     <value>New episode notifications</value>
     <comment>Setting: a notification when a new episode of a followed show comes out.</comment>
+  </data>
+  <data name="SettingsEpisodeDiscussions" xml:space="preserve">
+    <value>Episode discussions</value>
+    <comment>Setting: whether an episode's AniList forum thread is looked up and opened in the app.</comment>
+  </data>
+  <data name="SettingsCommentImages" xml:space="preserve">
+    <value>Load images in comments</value>
+    <comment>Setting: whether images in discussion comments load inline.</comment>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
     <value>Torrent source</value>
