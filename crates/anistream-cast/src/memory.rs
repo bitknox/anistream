@@ -215,7 +215,11 @@ impl CastMemory {
     }
 
     /// Note that `plan` stalled on the TV `id`, as [`CastCaps::record_stall`] says.
-    pub fn record_stall(&self, id: &str, plan: &CastPlan) -> Result<Option<String>, MemoryError> {
+    pub fn record_stall(
+        &self,
+        id: &str,
+        plan: &CastPlan,
+    ) -> Result<Option<String>, MemoryError> {
         let now = (self.clock)();
         let blamed = self
             .lock()
