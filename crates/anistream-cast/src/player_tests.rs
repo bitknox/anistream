@@ -515,6 +515,9 @@ async fn another_sender_taking_over_ends_the_cast() {
     next(&mut events, |e| matches!(e, PlaybackEvent::Ended { complete: false })).await;
     assert_eq!(player.failure(), Some(CastFailure::TakenOver));
     assert!(!player.is_alive());
+    // The relay closed with the cast, though the player is still held.
+    let served = receiver.fetched()[0].url.clone();
+    assert!(PlainHttp.get(&served, &[]).await.is_err(), "the relay still answers");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

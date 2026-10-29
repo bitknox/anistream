@@ -574,6 +574,7 @@ impl CastPlayer {
         }
         lock(&self.inner.state).quit = true;
         let result = close(&self.inner).await;
+        self.inner.relay.close();
         self.inner.publish();
         lock(&self.inner.events).take();
         result
@@ -1057,6 +1058,7 @@ async fn pump(mut incoming: mpsc::UnboundedReceiver<Incoming>, inner: std::sync:
     if let Some(inner) = inner.upgrade() {
         let mut state = lock(&inner.state);
         if !state.closed && !state.quit {
+            inner.relay.close();
             state.closed = true;
             state.failure.get_or_insert(CastFailure::Lost("the connection closed".into()));
             if !state.ended {
@@ -1127,6 +1129,7 @@ fn end_cast(inner: &Inner, state: &mut State, failure: CastFailure) {
         return;
     }
     tracing::info!(%failure, "cast ended");
+    inner.relay.close();
     state.closed = true;
     state.app = None;
     state.failure = Some(failure);
@@ -1158,6 +1161,7 @@ async fn poll(inner: std::sync::Weak<Inner>) {
         if idle {
             tracing::info!("paused too long; ending the cast");
             let _ = close(&inner).await;
+            inner.relay.close();
             let mut state = lock(&inner.state);
             state.closed = true;
             if !state.ended {

@@ -8,7 +8,8 @@
 //! - It accepts connections from the TV's address alone and drops the rest unread.
 //! - It fetches upstream only from the origins it was handed, and those a playlist it relayed
 //!   names, so it is no open proxy.
-//! - It closes when the [`Relay`] is dropped, which the cast does when it ends.
+//! - It closes when the [`Relay`] is dropped, which the cast does when it ends, and every
+//!   connection open to it closes with it.
 //!
 //! What a receiver needs that mpv did not: the receiver is a web page, so HLS and WebVTT are
 //! fetched by script and need CORS, `Access-Control-Allow-Origin` on every answer and an answer
@@ -36,7 +37,7 @@ use tokio::{
     fs::File,
     io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufReader},
     net::{TcpListener, TcpStream, tcp::OwnedWriteHalf},
-    task::JoinHandle,
+    task::{JoinHandle, JoinSet},
 };
 
 use crate::fetch::Upstream;
@@ -84,7 +85,7 @@ pub struct Relay {
 
 impl Drop for Relay {
     fn drop(&mut self) {
-        self.task.abort();
+        self.close();
     }
 }
 
@@ -122,13 +123,17 @@ impl Relay {
         let task = {
             let shared = Arc::clone(&shared);
             tokio::spawn(async move {
+                // Every connection lives in this set, so aborting the accept loop drops them
+                // all: a TV's kept-alive connection gets nothing once the cast has ended.
+                let mut connections = JoinSet::new();
                 while let Ok((socket, peer)) = listener.accept().await {
+                    while connections.try_join_next().is_some() {}
                     if peer.ip() != shared.allow {
                         tracing::debug!(peer = %peer.ip(), "relay refused a connection");
                         continue;
                     }
                     let shared = Arc::clone(&shared);
-                    tokio::spawn(async move {
+                    connections.spawn(async move {
                         if let Err(e) = connection(socket, &shared).await {
                             tracing::debug!(error = %e, "relay connection ended");
                         }
@@ -137,6 +142,18 @@ impl Relay {
             })
         };
         Ok(Self { shared, task })
+    }
+
+    /// Stop serving: the listener and every open connection close, and what was shared is
+    /// forgotten. The cast calls it the moment it ends; dropping the relay does it too.
+    pub fn close(&self) {
+        self.task.abort();
+        // A request already being answered holds `Shared` until its task is dropped; what it
+        // could reach goes now.
+        lock(&self.shared.dynamic).take();
+        lock(&self.shared.files).clear();
+        lock(&self.shared.bytes).clear();
+        lock(&self.shared.origins).clear();
     }
 
     pub fn base(&self) -> &str {
@@ -751,6 +768,35 @@ mod tests {
         assert_eq!(response.header("content-type"), Some("video/webm"));
         assert_eq!(response.bytes(1024).await.unwrap(), b"not a real clip");
         assert!(relay.media_served());
+    }
+
+    #[tokio::test]
+    async fn a_connection_kept_alive_is_closed_when_the_cast_ends() {
+        let relay = Relay::start(
+            Ipv4Addr::LOCALHOST,
+            IpAddr::V4(Ipv4Addr::LOCALHOST),
+            Arc::new(PlainHttp),
+        )
+        .await
+        .unwrap();
+        let kept = relay.share_bytes("clip.webm", "video/webm", b"twelve bytes");
+        let (authority, path) = kept.trim_start_matches("http://").split_once('/').unwrap();
+        let ask = format!("GET /{path} HTTP/1.1\r\nHost: tv\r\n\r\n");
+        let mut socket = tokio::net::TcpStream::connect(authority).await.unwrap();
+        socket.write_all(ask.as_bytes()).await.unwrap();
+        let mut answer = vec![0u8; 512];
+        let n = socket.read(&mut answer).await.unwrap();
+        assert!(answer[..n].starts_with(b"HTTP/1.1 200"));
+
+        drop(relay);
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        // The same connection, asked again: nothing comes back but the close.
+        let _ = socket.write_all(ask.as_bytes()).await;
+        let mut rest = Vec::new();
+        let read = tokio::time::timeout(Duration::from_secs(2), socket.read_to_end(&mut rest))
+            .await
+            .expect("the connection closed");
+        assert!(read.is_err() || rest.is_empty(), "{}", String::from_utf8_lossy(&rest));
     }
 
     #[tokio::test]
