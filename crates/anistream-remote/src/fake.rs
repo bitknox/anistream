@@ -361,6 +361,7 @@ fn front(server: &RemoteServer, script: &mut Script, intent: FrontIntent) {
             }
         }
         FrontIntent::Navigate { key } => script.commands.push(format!("{key:?}")),
+        FrontIntent::Mute { muted } => script.commands.push(format!("mute {muted}")),
         FrontIntent::Paired { .. } => {}
     }
 }

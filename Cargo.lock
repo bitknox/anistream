@@ -185,6 +185,7 @@ dependencies = [
 name = "anistream-engine"
 version = "2.0.0"
 dependencies = [
+ "anistream-cast",
  "anistream-core",
  "anistream-discord",
  "anistream-meta",

@@ -43,6 +43,9 @@ pub enum RemoteCommand {
     /// A step of the TV's own volume, the system's, which the TV front end sets: not the
     /// player's volume, so it works with nothing playing.
     Volume { step: f64 },
+    /// Mute the TV's sound, or bring it back: a cast's receiver mute, which works where its
+    /// volume is fixed; the TV's own, on a TV running anistream.
+    Mute { muted: bool },
     /// [`PlayerCommand::SpeedTo`].
     Speed { speed: f64 },
     /// [`PlayerCommand::ChooseTrack`]: `id` from the state's track list, or none to turn
@@ -126,6 +129,7 @@ impl RemoteCommand {
             Self::Volume { step } => {
                 Routed::Front(FrontIntent::Volume { step: step.clamp(-100.0, 100.0) })
             }
+            Self::Mute { muted } => Routed::Front(FrontIntent::Mute { muted }),
             Self::Speed { speed } => player(PlayerCommand::SpeedTo(speed.clamp(0.25, 4.0))),
             Self::Track { kind, id } => player(PlayerCommand::ChooseTrack {
                 kind: match kind {
@@ -149,6 +153,7 @@ impl RemoteCommand {
                 | Self::Text { .. }
                 | Self::Navigate { .. }
                 | Self::Volume { .. }
+                | Self::Mute { .. }
         )
     }
 }

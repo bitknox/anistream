@@ -1821,6 +1821,30 @@
         }
       }
     },
+    "cast-episode" : {
+      "comment" : "What the TV's loading screen and its own controls show under the show's name. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@"
+          }
+        }
+      }
+    },
+    "cast-episode-titled" : {
+      "comment" : "What the TV's loading screen and its own controls show under the show's name, with the episode's own title. Argument 1: episode (Text). Argument 2: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@ · %2$@"
+          }
+        }
+      }
+    },
     "cause-airs-in-days" : {
       "comment" : "Part of an air time: the broadcast is within the next week. Argument 1: days (Int). Argument 2: time (Text).",
       "extractionState" : "manual",
@@ -6107,6 +6131,138 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't open a browser for the sign-in. Check that one is installed and try again. %1$@"
+          }
+        }
+      }
+    },
+    "notice-cast-audio-codec" : {
+      "comment" : "The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS. Argument 1: codec (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV can't play this audio (%1$@), and this device can't convert it. Try another source."
+          }
+        }
+      }
+    },
+    "notice-cast-container" : {
+      "comment" : "The stream comes in a kind of file the TV can't read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV can't play this kind of file. Try another source."
+          }
+        }
+      }
+    },
+    "notice-cast-deep-link" : {
+      "comment" : "The episode opens in another app, which this device can't cast.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This episode opens in another app, so it can't be cast."
+          }
+        }
+      }
+    },
+    "notice-cast-lost" : {
+      "comment" : "The TV stopped answering mid-cast.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lost the TV, so casting stopped."
+          }
+        }
+      }
+    },
+    "notice-cast-never-fetches" : {
+      "comment" : "The TV accepted the stream but never started reading it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between."
+          }
+        }
+      }
+    },
+    "notice-cast-no-device" : {
+      "comment" : "The TV picked to cast to has left the network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That TV is no longer on the network."
+          }
+        }
+      }
+    },
+    "notice-cast-not-same-network" : {
+      "comment" : "This device isn't on the TV's network, or reaches it through a VPN.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network."
+          }
+        }
+      }
+    },
+    "notice-cast-refused" : {
+      "comment" : "The TV tried every way of playing the stream and played none of them.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV couldn't play this stream. Try another source."
+          }
+        }
+      }
+    },
+    "notice-cast-taken-over" : {
+      "comment" : "Someone started something else on the TV, which ends the cast.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another device started something on the TV, so casting stopped."
+          }
+        }
+      }
+    },
+    "notice-cast-unavailable" : {
+      "comment" : "This build of the app has no casting.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This version of anistream can't cast to TVs."
+          }
+        }
+      }
+    },
+    "notice-cast-video-codec" : {
+      "comment" : "The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10. Argument 1: codec (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV can't play this video (%1$@). Try another source."
           }
         }
       }

@@ -35,6 +35,58 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="CastEpisode" xml:space="preserve">
+    <value>[Éþîšöðé {episode}~~~~]</value>
+    <comment>What the TV's loading screen and its own controls show under the show's name.</comment>
+  </data>
+  <data name="CastEpisodeTitled" xml:space="preserve">
+    <value>[Éþîšöðé {episode} · {title}~~~~~~]</value>
+    <comment>What the TV's loading screen and its own controls show under the show's name, with the episode's own title.</comment>
+  </data>
+  <data name="NoticeCastVideoCodec" xml:space="preserve">
+    <value>[Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš ṽîðéö ({codec}). Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.</comment>
+  </data>
+  <data name="NoticeCastAudioCodec" xml:space="preserve">
+    <value>[Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš àüðîö ({codec}), àñð ţĥîš ðéṽîçé çàñ'ţ çöñṽéŕţ îţ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.</comment>
+  </data>
+  <data name="NoticeCastContainer" xml:space="preserve">
+    <value>[Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš ķîñð öƒ ƒîļé. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~]</value>
+    <comment>The stream comes in a kind of file the TV can't read.</comment>
+  </data>
+  <data name="NoticeCastDeepLink" xml:space="preserve">
+    <value>[Ţĥîš éþîšöðé öþéñš îñ àñöţĥéŕ àþþ, šö îţ çàñ'ţ ƀé çàšţ.~~~~~~~~~~~~~~~~~]</value>
+    <comment>The episode opens in another app, which this device can't cast.</comment>
+  </data>
+  <data name="NoticeCastNeverFetches" xml:space="preserve">
+    <value>[Ţĥé ŢṼ ðîðñ'ţ šţàŕţ ŕéàðîñĝ ţĥé šţŕéàɱ. Çĥéçķ ţĥàţ ţĥîš ðéṽîçé àñð ţĥé ŢṼ àŕé öñ ţĥé šàɱé ñéţŵöŕķ, ŵîţĥöüţ à ṼÞÑ îñ ƀéţŵééñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV accepted the stream but never started reading it.</comment>
+  </data>
+  <data name="NoticeCastRefused" xml:space="preserve">
+    <value>[Ţĥé ŢṼ çöüļðñ'ţ þļàý ţĥîš šţŕéàɱ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV tried every way of playing the stream and played none of them.</comment>
+  </data>
+  <data name="NoticeCastTakenOver" xml:space="preserve">
+    <value>[Åñöţĥéŕ ðéṽîçé šţàŕţéð šöɱéţĥîñĝ öñ ţĥé ŢṼ, šö çàšţîñĝ šţöþþéð.~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Someone started something else on the TV, which ends the cast.</comment>
+  </data>
+  <data name="NoticeCastNotSameNetwork" xml:space="preserve">
+    <value>[Ţĥîš ðéṽîçé îšñ'ţ öñ ţĥé ŢṼ'š ñéţŵöŕķ, öŕ ŕéàçĥéš îţ ţĥŕöüĝĥ à ṼÞÑ. Çàšţîñĝ ñééðš ƀöţĥ öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>This device isn't on the TV's network, or reaches it through a VPN.</comment>
+  </data>
+  <data name="NoticeCastLost" xml:space="preserve">
+    <value>[Ļöšţ ţĥé ŢṼ, šö çàšţîñĝ šţöþþéð.~~~~~~~~~~]</value>
+    <comment>The TV stopped answering mid-cast.</comment>
+  </data>
+  <data name="NoticeCastNoDevice" xml:space="preserve">
+    <value>[Ţĥàţ ŢṼ îš ñö ļöñĝéŕ öñ ţĥé ñéţŵöŕķ.~~~~~~~~~~~]</value>
+    <comment>The TV picked to cast to has left the network.</comment>
+  </data>
+  <data name="NoticeCastUnavailable" xml:space="preserve">
+    <value>[Ţĥîš ṽéŕšîöñ öƒ àñîšţŕéàɱ çàñ'ţ çàšţ ţö ŢṼš.~~~~~~~~~~~~~~]</value>
+    <comment>This build of the app has no casting.</comment>
+  </data>
   <data name="DiscussionAgeNow" xml:space="preserve">
     <value>[ñöŵ~]</value>
     <comment>A comment's age, beside its author, when it was written under a minute ago.</comment>

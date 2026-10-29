@@ -9,6 +9,58 @@ import android.content.Context
  * `stringResource(R.string.x)` and `pluralStringResource(R.plurals.x, n, ...)` directly.
  */
 object Strings {
+    /** What the TV's loading screen and its own controls show under the show's name. */
+    fun castEpisode(context: Context, episode: String): String =
+        context.getString(R.string.cast_episode, episode)
+
+    /** What the TV's loading screen and its own controls show under the show's name, with the episode's own title. */
+    fun castEpisodeTitled(context: Context, episode: String, title: String): String =
+        context.getString(R.string.cast_episode_titled, episode, title)
+
+    /** The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10. */
+    fun noticeCastVideoCodec(context: Context, codec: String): String =
+        context.getString(R.string.notice_cast_video_codec, codec)
+
+    /** The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS. */
+    fun noticeCastAudioCodec(context: Context, codec: String): String =
+        context.getString(R.string.notice_cast_audio_codec, codec)
+
+    /** The stream comes in a kind of file the TV can't read. */
+    fun noticeCastContainer(context: Context): String =
+        context.getString(R.string.notice_cast_container)
+
+    /** The episode opens in another app, which this device can't cast. */
+    fun noticeCastDeepLink(context: Context): String =
+        context.getString(R.string.notice_cast_deep_link)
+
+    /** The TV accepted the stream but never started reading it. */
+    fun noticeCastNeverFetches(context: Context): String =
+        context.getString(R.string.notice_cast_never_fetches)
+
+    /** The TV tried every way of playing the stream and played none of them. */
+    fun noticeCastRefused(context: Context): String =
+        context.getString(R.string.notice_cast_refused)
+
+    /** Someone started something else on the TV, which ends the cast. */
+    fun noticeCastTakenOver(context: Context): String =
+        context.getString(R.string.notice_cast_taken_over)
+
+    /** This device isn't on the TV's network, or reaches it through a VPN. */
+    fun noticeCastNotSameNetwork(context: Context): String =
+        context.getString(R.string.notice_cast_not_same_network)
+
+    /** The TV stopped answering mid-cast. */
+    fun noticeCastLost(context: Context): String =
+        context.getString(R.string.notice_cast_lost)
+
+    /** The TV picked to cast to has left the network. */
+    fun noticeCastNoDevice(context: Context): String =
+        context.getString(R.string.notice_cast_no_device)
+
+    /** This build of the app has no casting. */
+    fun noticeCastUnavailable(context: Context): String =
+        context.getString(R.string.notice_cast_unavailable)
+
     /** A comment's age, beside its author, when it was written under a minute ago. */
     fun discussionAgeNow(context: Context): String =
         context.getString(R.string.discussion_age_now)

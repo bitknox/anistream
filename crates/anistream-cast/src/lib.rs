@@ -49,6 +49,8 @@ pub use formats::{
     Uncastable, VideoFormat, cast_plans,
 };
 pub use memory::{CastCaps, CastMemory, FormatAnswer};
-pub use player::{CastFailure, CastLoad, CastPlayer, CastSetup, CastSubtitle, Timings};
+pub use player::{
+    CastFailure, CastLoad, CastPlayer, CastSetup, CastState, CastStatus, CastSubtitle, Timings,
+};
 pub use probe::CorsProbe;
 pub use relay::Relay;

@@ -13,6 +13,19 @@ public static class MsgText
 {
     public static string Text(this Msg message) => message switch
     {
+        Msg.CastEpisode x => T.CastEpisode(x.Episode),
+        Msg.CastEpisodeTitled x => T.CastEpisodeTitled(x.Episode, x.Title),
+        Msg.NoticeCastVideoCodec x => T.NoticeCastVideoCodec(x.Codec),
+        Msg.NoticeCastAudioCodec x => T.NoticeCastAudioCodec(x.Codec),
+        Msg.NoticeCastContainer => T.NoticeCastContainer,
+        Msg.NoticeCastDeepLink => T.NoticeCastDeepLink,
+        Msg.NoticeCastNeverFetches => T.NoticeCastNeverFetches,
+        Msg.NoticeCastRefused => T.NoticeCastRefused,
+        Msg.NoticeCastTakenOver => T.NoticeCastTakenOver,
+        Msg.NoticeCastNotSameNetwork => T.NoticeCastNotSameNetwork,
+        Msg.NoticeCastLost => T.NoticeCastLost,
+        Msg.NoticeCastNoDevice => T.NoticeCastNoDevice,
+        Msg.NoticeCastUnavailable => T.NoticeCastUnavailable,
         Msg.DiscussionAgeNow => T.DiscussionAgeNow,
         Msg.DiscussionAgeMinutes x => T.DiscussionAgeMinutes(x.Minutes),
         Msg.DiscussionAgeHours x => T.DiscussionAgeHours(x.Hours),

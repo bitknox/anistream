@@ -77,6 +77,12 @@ pub struct EngineState {
     pub device: anistream_model::trailer::Device,
     /// Whether trailers may start by themselves, as last said: see [`crate::autoplay`].
     pub autoplay: Option<anistream_model::trailer::AutoplayView>,
+    /// The TV every play casts to, from [`Command::CastTo`] until casting stops: what auto-next
+    /// opens its cast with when the TV's window was not kept.
+    ///
+    /// [`Command::CastTo`]: anistream_model::command::Command::CastTo
+    #[cfg(feature = "cast")]
+    pub casting: Option<std::sync::Arc<crate::playback::link::cast::CastOpener>>,
     /// What the torrent session was last told of it, for a setting saved to tell whether that
     /// changed: see [`crate::phases::gate_for`].
     pub gated: Option<crate::phases::Gate>,
@@ -136,6 +142,8 @@ impl EngineState {
             missed: Default::default(),
             device: Default::default(),
             autoplay: None,
+            #[cfg(feature = "cast")]
+            casting: None,
             gated: None,
             episode_check: Arc::default(),
             widget_schedule: Schedule::default(),

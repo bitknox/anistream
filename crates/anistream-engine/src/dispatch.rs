@@ -326,6 +326,20 @@ pub(crate) fn dispatch(
         | Command::PartyLeave => {
             let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticePartyNotBuilt)));
         }
+        #[cfg(feature = "cast")]
+        Command::CastTo { device, id, episode, position } => {
+            engine.dubs.stop();
+            engine.names.stop();
+            crate::playback::start::cast_to(
+                &device, id, episode, position, job, engine, services, tx,
+            );
+        }
+        #[cfg(feature = "cast")]
+        Command::StopCasting => crate::playback::start::stop_casting(engine, services),
+        #[cfg(not(feature = "cast"))]
+        Command::CastTo { .. } | Command::StopCasting => {
+            let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeCastUnavailable)));
+        }
         Command::PlayLocal { id, episode, title, path } => {
             #[cfg(feature = "party")]
             crate::party::join_by_default(engine, services, tx);

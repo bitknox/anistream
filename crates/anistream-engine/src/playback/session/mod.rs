@@ -46,7 +46,7 @@ use crate::{
     playback::{
         PlaybackContext,
         health::Servers,
-        link::{LinkError, Overlay, PlayerLink, PlayerOpener},
+        link::{FileFacts, LinkError, Overlay, PlayerLink, PlayerOpener},
         picture::HdrKind,
         power::PowerSource,
         seat::{PartyHub, Seat, SeatReport},
@@ -375,7 +375,7 @@ pub async fn play(
         // A window: the one this playback already has, the one the last episode left open,
         // or a new one.
         if player.as_ref().is_none_or(|p| !p.link.is_alive()) {
-            player = slot.take();
+            player = slot.take(&opener.target());
             run.night_applied = false;
         }
         if player.is_none() {
@@ -421,6 +421,20 @@ pub async fn play(
         }
 
         run.publish(current.link.as_ref(), &streams, index).await;
+        current.link.prepare(&FileFacts {
+            source: streams[index].clone(),
+            played: stream.clone(),
+            title: context.title.clone(),
+            episode: context.episode.clone(),
+            episode_title: run
+                .episodes
+                .iter()
+                .find(|e| e.number == context.episode)
+                .and_then(|e| e.title.clone()),
+            image: context.banner_url.clone().or_else(|| context.cover_url.clone()),
+            subtitle_language: settings.subtitle_language.clone(),
+            dub: context.translation == Translation::Dub,
+        });
         if let Err(e) = load(current.link.as_ref(), &stream, &request).await {
             tracing::warn!(error = %e, "could not hand the stream to mpv");
         }
@@ -485,6 +499,7 @@ pub async fn play(
                     (Some(p), true) => p.link.diagnostics().await,
                     _ => None,
                 };
+                let notice = player.as_ref().and_then(|p| p.link.failure_notice());
                 // What the attempt says of its server, written down before anything else is
                 // decided, so the next play knows which server to try first.
                 if no_frames {
@@ -555,9 +570,10 @@ pub async fn play(
                 // Both are checked, because a quit that reaches mpv before the file has started
                 // ends no file, and only the socket closing says anything happened.
                 if no_frames && !stopped && !quit {
-                    let message = match reported {
-                        Some(line) => Msg::NoticePlayerCouldNotPlay { reason: line },
-                        None => Msg::NoticePlayerExitedSilently,
+                    let message = match (notice, reported) {
+                        (Some(notice), _) => notice,
+                        (None, Some(line)) => Msg::NoticePlayerCouldNotPlay { reason: line },
+                        (None, None) => Msg::NoticePlayerExitedSilently,
                     };
                     tracing::warn!(
                         message = %message,
@@ -666,6 +682,8 @@ struct Run<'a> {
     in_party: bool,
 }
 
+#[cfg(all(test, feature = "cast"))]
+mod cast_tests;
 #[cfg(test)]
 mod tests {
     use anistream_core::ids::AnilistId;
