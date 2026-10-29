@@ -7,8 +7,10 @@ import org.robolectric.RobolectricTestRunner
 import org.junit.runner.RunWith
 import org.junit.Test
 import tv.anistream.engine.core.Translation
+import tv.anistream.engine.model.EpisodeAiring
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.ResumePoint
+import tv.anistream.engine.model.TitleDetail
 import tv.anistream.engine.model.TitleProgress
 
 /** The amber action marks a dub and leaves a sub as it was. */
@@ -52,5 +54,17 @@ class TitleActionTest {
         assertEquals("Play episode 1", TitleAction.of(unknown).label(context))
         val part = Entry(id = 900001u, title = "Stardust Wayfarer", episodes = 12u, progress = TitleProgress(done = 11u, next = 12u))
         assertEquals("Play episode 12", TitleAction.of(part).label(context))
+    }
+
+    @Test
+    fun a_finished_show_with_a_past_schedule_entry_still_says_watch_again() {
+        val aired = TitleDetail(schedule = listOf(EpisodeAiring(episode = 1u, airsAt = 1_700_000_000L)))
+        val finished = Entry(
+            id = 900001u, title = "Stardust Wayfarer", episodes = 12u,
+            progress = TitleProgress(done = 12u, next = 1u), detail = aired,
+        )
+        val action = TitleAction.of(finished)
+        assertEquals("Watch again", action.label(context))
+        assertEquals(1u, action.episode)
     }
 }
