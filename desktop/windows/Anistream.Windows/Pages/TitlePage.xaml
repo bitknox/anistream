@@ -6,6 +6,11 @@
     xmlns:local="using:Anistream.Windows.Pages"
     xmlns:s="using:Anistream.App"
     Background="{ThemeResource GroundBrush}">
+  <Grid x:Name="Shell" SizeChanged="OnShellSized">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="Auto" />
+    </Grid.ColumnDefinitions>
   <ScrollViewer x:Name="Scroll" VerticalScrollBarVisibility="Auto" SizeChanged="OnSizeChanged">
     <local:StateHost x:Name="State">
     <Grid x:Name="Body">
@@ -135,6 +140,7 @@
                         <MenuFlyoutItem Text="{x:Bind s:T.EpisodePlayFromBeginning}" Click="OnEpisodeFromStart" Tag="{x:Bind}" Visibility="{x:Bind PartWay}" />
                         <MenuFlyoutItem Text="{x:Bind s:T.TvPlayOn}" Click="OnEpisodeOnTv" Tag="{x:Bind}" Visibility="{x:Bind OnTv}" IsEnabled="{x:Bind Playable}" />
                         <MenuFlyoutItem Text="{x:Bind WatchedAction}" Click="OnEpisodeWatched" Tag="{x:Bind}" />
+                        <MenuFlyoutItem Text="{x:Bind s:T.DiscussionOpen}" Click="OnEpisodeDiscussion" Tag="{x:Bind}" Visibility="{x:Bind DiscussionShown, Mode=OneWay}" />
                         <MenuFlyoutItem Text="{x:Bind s:T.TitleEpisodeDownload}" Click="OnEpisodeDownload" Tag="{x:Bind}" IsEnabled="{x:Bind CanDownload, Mode=OneWay}" />
                       </MenuFlyout>
                     </Grid.ContextFlyout>
@@ -146,6 +152,15 @@
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
                       <TextBlock Text="{x:Bind Heading}" Style="{StaticResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" />
                       <TextBlock Text="{x:Bind Line}" Style="{StaticResource HazeCaptionStyle}" />
+                      <!-- The quiet row under a watched episode whose discussion the engine found. -->
+                      <HyperlinkButton Content="{x:Bind DiscussionLine, Mode=OneWay}" Visibility="{x:Bind DiscussionShown, Mode=OneWay}"
+                                       Click="OnEpisodeDiscussion" Tag="{x:Bind}" Padding="0" MinHeight="0" FontSize="12"
+                                       Foreground="{ThemeResource HazeBrush}" ToolTipService.ToolTip="{x:Bind s:T.DiscussionOpen}">
+                        <HyperlinkButton.Resources>
+                          <SolidColorBrush x:Key="HyperlinkButtonForegroundPointerOver" Color="#E4E0D6" />
+                          <SolidColorBrush x:Key="HyperlinkButtonForegroundPressed" Color="#E4E0D6" />
+                        </HyperlinkButton.Resources>
+                      </HyperlinkButton>
                       <ProgressBar Value="{x:Bind Watched}" Maximum="1" Width="160" HorizontalAlignment="Left" Visibility="{x:Bind PartWay}" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
@@ -194,4 +209,5 @@
     </Grid>
     </local:StateHost>
   </ScrollViewer>
+  </Grid>
 </Page>

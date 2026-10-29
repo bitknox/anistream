@@ -1043,6 +1043,30 @@
     <value>[Ðöŵñļöàðš üšé ţĥé ƣüàļîţý îñ Šéţţîñĝš › Ðöŵñļöàðš.~~~~~~~~~~~~~~~]</value>
     <comment>Download dialog: the note under the range.</comment>
   </data>
+  <data name="DiscussionCopyText" xml:space="preserve">
+    <value>[Çöþý ţéẋţ~~~]</value>
+    <comment>Menu item that copies a comment's text.</comment>
+  </data>
+  <data name="DiscussionSending" xml:space="preserve">
+    <value>[Šéñðîñĝ~~~]</value>
+    <comment>Age of a comment that was sent and is not yet confirmed.</comment>
+  </data>
+  <data name="DiscussionEditing" xml:space="preserve">
+    <value>[Éðîţîñĝ ýöüŕ çöɱɱéñţ~~~~~~]</value>
+    <comment>Line above the field while the viewer edits their own comment.</comment>
+  </data>
+  <data name="DiscussionCommentMenu" xml:space="preserve">
+    <value>[Ṁöŕé ƒöŕ ţĥîš çöɱɱéñţ~~~~~~~]</value>
+    <comment>Accessible name of the button that opens a comment's menu.</comment>
+  </data>
+  <data name="DiscussionPaneLabel" xml:space="preserve">
+    <value>[Éþîšöðé {episode} ðîšçüššîöñ~~~~~~~]</value>
+    <comment>Accessible name of the discussion pane.</comment>
+  </data>
+  <data name="DiscussionAnswering" xml:space="preserve">
+    <value>[ţö {name}~~]</value>
+    <comment>After the author's name on a reply to a reply, naming who it answers.</comment>
+  </data>
   <data name="PlayerEpisodeLineTitled" xml:space="preserve">
     <value>[{line} · {title}~~~]</value>
     <comment>An episode's line in the player's title bar and in the system media controls: the episode's label (already "Episode 10" or "Episode 10 · Dubbed"), then the episode's own title.</comment>
@@ -1178,6 +1202,14 @@
   <data name="SettingsEpisodeNotifications" xml:space="preserve">
     <value>[Ñéŵ éþîšöðé ñöţîƒîçàţîöñš~~~~~~~~]</value>
     <comment>Setting: a notification when a new episode of a followed show comes out.</comment>
+  </data>
+  <data name="SettingsEpisodeDiscussions" xml:space="preserve">
+    <value>[Éþîšöðé ðîšçüššîöñš~~~~~~]</value>
+    <comment>Setting: whether an episode's AniList forum thread is looked up and opened in the app.</comment>
+  </data>
+  <data name="SettingsCommentImages" xml:space="preserve">
+    <value>[Ļöàð îɱàĝéš îñ çöɱɱéñţš~~~~~~~]</value>
+    <comment>Setting: whether images in discussion comments load inline.</comment>
   </data>
   <data name="SettingsTorrentSource" xml:space="preserve">
     <value>[Ţöŕŕéñţ šöüŕçé~~~~~]</value>
