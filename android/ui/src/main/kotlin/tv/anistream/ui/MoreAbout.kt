@@ -4,6 +4,11 @@
 
 package tv.anistream.ui
 
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -104,7 +109,7 @@ fun MoreAboutContent(
             entry.id in failed -> 2
             else -> 0
         }
-        androidx.compose.animation.Crossfade(phase, animationSpec = Motion.standard(), label = "about") { shown ->
+        androidx.compose.animation.Crossfade(phase, animationSpec = Motion.standard(), label = "about") { shown -> // i18n-skip
         Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         when (shown) {
             1 -> if (detail != null) {
@@ -114,7 +119,7 @@ fun MoreAboutContent(
                     Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Nagare(cell = 4)
                         Text(
-                            "AniList has no cast, staff or recommendations for this show yet.",
+                            stringResource(R.string.more_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -128,8 +133,8 @@ fun MoreAboutContent(
                 }
             }
             2 -> Column(Modifier.padding(horizontal = 16.dp)) {
-                Text("AniList did not answer.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = { store.loadDetail(entry.id) }, modifier = Modifier.padding(start = 0.dp)) { Text("Try again") }
+                Text(stringResource(R.string.accounts_did_not_answer, "AniList"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) // i18n-skip
+                TextButton(onClick = { store.loadDetail(entry.id) }, modifier = Modifier.padding(start = 0.dp)) { Text(stringResource(R.string.action_try_again)) }
             }
             else -> AboutPlaceholders()
         }
@@ -160,13 +165,14 @@ private fun About(entry: Entry, heading: Boolean) {
                 modifier = Modifier.padding(top = if (heading) 12.dp else 0.dp),
             )
         }
-        val airing = entry.airingState()
+        val context = LocalContext.current
+        val airing = entry.airingState(context)
         val facts = listOfNotNull(
-            entry.studio?.let { "STUDIO" to it },
-            entry.source?.label()?.let { "BASED ON" to it },
-            entry.seasonWords()?.let { "SEASON" to it },
-            airing?.let { it.label.uppercase() to it.value },
-            entry.alsoOn()?.let { "ALSO ON" to it },
+            entry.studio?.let { context.getString(R.string.title_studio) to it },
+            entry.source?.label(context)?.let { context.getString(R.string.title_based_on) to it },
+            entry.seasonWords(context)?.let { context.getString(R.string.filter_season) to it },
+            airing?.let { it.label to it.value },
+            entry.alsoOn(context)?.let { context.getString(R.string.title_facts_also_on) to it },
         )
         if (facts.isNotEmpty()) {
             Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -193,13 +199,13 @@ private fun Rankings(entry: Entry) {
     if (rankings.isEmpty()) return
     val colors = MaterialTheme.colorScheme
     Column(Modifier.padding(horizontal = 16.dp)) {
-        SectionTitle("Rankings", Modifier.padding(bottom = 4.dp))
+        SectionTitle(stringResource(R.string.more_rankings), Modifier.padding(bottom = 4.dp))
         for (ranking in rankings) {
             Text(
                 buildAnnotatedString {
                     withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum")) { append("#${ranking.rank}") }
                     append(" ")
-                    withStyle(SpanStyle(color = colors.onSurfaceVariant)) { append(ranking.words()) }
+                    withStyle(SpanStyle(color = colors.onSurfaceVariant)) { append(ranking.words(LocalContext.current)) }
                 },
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -215,8 +221,8 @@ private fun Cast(entry: Entry) {
     val colors = MaterialTheme.colorScheme
     Column {
         Row(Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp).fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-            SectionTitle("Cast", Modifier.weight(1f))
-            Text("Japanese voices", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            SectionTitle(stringResource(R.string.more_cast), Modifier.weight(1f))
+            Text(stringResource(R.string.more_cast_voices), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
         }
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(cast) { member ->
@@ -225,7 +231,7 @@ private fun Cast(entry: Entry) {
                         member.imageUrl?.let { ArtworkImage(it, plate = PLATE, maxPixelSize = 300, modifier = Modifier.size(88.dp, 132.dp)) }
                     }
                     Text(member.name, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
-                    Text(member.role.words(), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    Text(member.role.words(LocalContext.current), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                     member.voiceActors.firstOrNull()?.let {
                         Text(it.name, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
@@ -235,10 +241,10 @@ private fun Cast(entry: Entry) {
     }
 }
 
-private fun CastRole.words(): String = when (this) {
-    CastRole.MAIN -> "Main"
-    CastRole.SUPPORTING -> "Supporting"
-    CastRole.BACKGROUND -> "Background"
+private fun CastRole.words(context: Context): String = when (this) {
+    CastRole.MAIN -> context.getString(R.string.more_role_main)
+    CastRole.SUPPORTING -> context.getString(R.string.more_role_supporting)
+    CastRole.BACKGROUND -> context.getString(R.string.more_role_background)
 }
 
 /** Eight credits in two columns: the name, then the role as AniList writes it. */
@@ -248,7 +254,7 @@ private fun Staff(entry: Entry) {
     if (staff.isEmpty()) return
     val colors = MaterialTheme.colorScheme
     Column(Modifier.padding(horizontal = 16.dp)) {
-        SectionTitle("Staff", Modifier.padding(bottom = 4.dp))
+        SectionTitle(stringResource(R.string.more_staff), Modifier.padding(bottom = 4.dp))
         for (pair in staff.chunked(2)) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 for (credit in pair) {
@@ -270,13 +276,13 @@ private fun Recommendations(entry: Entry, onOpenTitle: (AnilistId) -> Unit) {
     if (recommendations.isEmpty()) return
     val colors = MaterialTheme.colorScheme
     Column {
-        SectionTitle("Recommendations", Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))
+        SectionTitle(stringResource(R.string.more_recommendations), Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(recommendations, key = { it.id.toLong() }) { linked ->
-                Column(itemMotion().width(100.dp).clickable(onClickLabel = "Open title") { onOpenTitle(linked.id) }) {
+                Column(itemMotion().width(100.dp).clickable(onClickLabel = stringResource(R.string.title_open)) { onOpenTitle(linked.id) }) {
                     ArtworkImage(linked.coverUrl, plate = linked.plate(), maxPixelSize = 300, modifier = Modifier.size(100.dp, 150.dp).clip(ArtShape.cover(100.dp)))
                     Text(linked.title, style = ShowTitle.caption, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
-                    Text(linked.recommendationLine(), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1)
+                    Text(linked.recommendationLine(LocalContext.current), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1)
                 }
             }
         }
@@ -295,8 +301,9 @@ private fun Tags(entry: Entry) {
     if (plain.isEmpty() && spoilers.isEmpty()) return
     val colors = MaterialTheme.colorScheme
     var shown by remember(entry.id) { mutableStateOf(false) }
+    val spoilerWord = stringResource(R.string.more_spoiler)
     Column(Modifier.padding(horizontal = 16.dp)) {
-        SectionTitle("Tags", Modifier.padding(bottom = 4.dp))
+        SectionTitle(stringResource(R.string.title_tags), Modifier.padding(bottom = 4.dp))
         if (plain.isNotEmpty()) Text(plain.joinToString(" · ") { it.name }, style = MaterialTheme.typography.bodyMedium)
         if (spoilers.isNotEmpty()) {
             if (shown) {
@@ -306,7 +313,7 @@ private fun Tags(entry: Entry) {
                             if (index > 0) append(" · ")
                             append(tag.name)
                             append(" ")
-                            withStyle(SpanStyle(color = colors.onSurfaceVariant, fontSize = MaterialTheme.typography.bodySmall.fontSize)) { append("Spoiler") }
+                            withStyle(SpanStyle(color = colors.onSurfaceVariant, fontSize = MaterialTheme.typography.bodySmall.fontSize)) { append(spoilerWord) }
                         }
                     },
                     style = MaterialTheme.typography.bodyMedium,
@@ -314,16 +321,13 @@ private fun Tags(entry: Entry) {
                 )
             }
             val count = spoilers.size
-            val label = when {
-                shown && count == 1 -> "Hide spoiler tag"
-                shown -> "Hide spoiler tags"
-                count == 1 -> "Show 1 spoiler tag"
-                else -> "Show $count spoiler tags"
-            }
+            val label = if (shown) stringResource(R.string.more_hide_spoiler_tags) else pluralStringResource(R.plurals.more_show_spoiler_tags, count, count)
+            val expanded = stringResource(R.string.state_expanded)
+            val collapsed = stringResource(R.string.state_collapsed)
             TextButton(
                 onClick = { shown = !shown },
                 colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = colors.onSurface),
-                modifier = Modifier.padding(top = 4.dp).semantics { stateDescription = if (shown) "Expanded" else "Collapsed" },
+                modifier = Modifier.padding(top = 4.dp).semantics { stateDescription = if (shown) expanded else collapsed },
             ) { Text(label) }
         }
     }

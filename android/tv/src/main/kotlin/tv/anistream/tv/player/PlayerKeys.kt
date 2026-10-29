@@ -4,6 +4,8 @@
 
 package tv.anistream.tv.player
 
+import tv.anistream.i18n.Strings
+import android.content.Context
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToLong
@@ -43,16 +45,16 @@ class SeekRun(private val step: Double = 10.0) {
     }
 
     /** "+30 s", "−20 s". */
-    val label: String get() = signedSeconds(total)
+    fun label(context: Context): String = signedSeconds(context, total)
 }
 
 /** "+30 s" or "−20 s" (a real minus sign), and "0 s". */
-fun signedSeconds(seconds: Double): String {
+fun signedSeconds(context: Context, seconds: Double): String {
     val whole = seconds.roundToLong()
     return when {
-        whole > 0 -> "+$whole s"
-        whole < 0 -> "−${abs(whole)} s"
-        else -> "0 s"
+        whole > 0 -> "+" + Strings.durationSeconds(context, whole.toInt())
+        whole < 0 -> "−" + Strings.durationSeconds(context, abs(whole).toInt())
+        else -> Strings.durationSeconds(context, 0)
     }
 }
 

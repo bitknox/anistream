@@ -7,6 +7,8 @@
 
 package tv.anistream.tv.signin
 
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.R
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -101,9 +103,6 @@ private val Protections = listOf(TorrentProtection.PROXY, TorrentProtection.DEVI
 /** Where the QR page's address is reached on this network: this TV's own address, or none. */
 val LocalPageHost = staticCompositionLocalOf<(Context) -> String?> { ::localAddress }
 
-/** "Use a phone": asks for the details again from a new QR page. */
-private const val USE_PHONE = "Use a phone"
-
 /**
  * TVTorrents, until Turn on (or Save) or Back, then [onDone]. [start] is the protection picked in
  * Settings, which the screen starts on; no protection is confirmed first.
@@ -120,6 +119,7 @@ fun TorrentScreen(mode: TorrentMode, start: TorrentProtection?, onDone: () -> Un
 /** Turn on torrents, or Protect torrent traffic: the protection, the index, and a proxy's details. */
 @Composable
 private fun ProtectScreen(mode: TorrentMode, start: TorrentProtection?, onDone: () -> Unit) {
+    val context = LocalContext.current
     val store = LocalAppStore.current
     val notices = LocalNotices.current
     val view by store.settings.view.collectAsStateWithLifecycle()
@@ -155,7 +155,7 @@ private fun ProtectScreen(mode: TorrentMode, start: TorrentProtection?, onDone: 
         )
         password = ""
         if (mode == TorrentMode.TurnOn) store.setSwitch(SettingKey.TORRENTS, true)
-        notices?.say(if (mode == TorrentMode.TurnOn) TorrentWords.SAID_ON else TorrentWords.SAID_PROTECTION)
+        notices?.say(context.getString(if (mode == TorrentMode.TurnOn) TorrentWords.SAID_ON else TorrentWords.SAID_PROTECTION))
         done()
     }
     val check = proxyCheck(details.takeIf { checks }, onPassed = save)
@@ -177,12 +177,12 @@ private fun ProtectScreen(mode: TorrentMode, start: TorrentProtection?, onDone: 
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Text(
-            if (mode == TorrentMode.TurnOn) "Turn on torrents" else "Protect torrent traffic",
+            stringResource(if (mode == TorrentMode.TurnOn) R.string.torrents_sheet_turn_on_title else R.string.torrents_sheet_protect_title),
             style = MaterialTheme.typography.titleLarge,
             color = ObiSilk.Silk,
             modifier = Modifier.semantics { heading() },
         )
-        Text(TorrentWords.WHY, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
+        Text(stringResource(TorrentWords.WHY), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
         if (form.typing) {
             TypeDetails(
                 proxy = proxy,
@@ -222,28 +222,28 @@ private fun ProtectScreen(mode: TorrentMode, start: TorrentProtection?, onDone: 
                         }
                     } else {
                         Column {
-                            TvInfoRow("Torrent index", supporting = index.trim())
-                            if (proxy) TvInfoRow("Proxy", supporting = proxyLine(host, port, user))
+                            TvInfoRow(stringResource(R.string.torrents_index), supporting = index.trim())
+                            if (proxy) TvInfoRow(stringResource(R.string.torrents_protect_proxy), supporting = proxyLine(context, host, port, user))
                         }
                     }
                     Status(
                         PROTECT_STATUS,
                         checking = check.checking,
                         failed = check.failed?.let {
-                            TorrentWords.proxyFailed(it, if (mode == TorrentMode.TurnOn) TorrentWords.Kept.TurningOn else TorrentWords.Kept.Protection)
+                            TorrentWords.proxyFailed(context, it, if (mode == TorrentMode.TurnOn) TorrentWords.Kept.TurningOn else TorrentWords.Kept.Protection)
                         },
-                        otherwise = TorrentWords.checkNote(torrent?.onFailure, protection),
+                        otherwise = TorrentWords.checkNote(context, torrent?.onFailure, protection),
                     )
-                    FormButtons(form, primary = if (mode == TorrentMode.TurnOn) "Turn on" else "Save", whole = whole, checking = check.checking, onPrimary = press, onCancel = done)
+                    FormButtons(form, primary = stringResource(if (mode == TorrentMode.TurnOn) R.string.torrents_sheet_turn_on_button else R.string.action_save), whole = whole, checking = check.checking, onPrimary = press, onCancel = done)
                 }
             }
         }
     }
     if (asking) {
         ConfirmDialog(
-            title = TorrentWords.NONE_TITLE,
-            body = TorrentWords.NONE_BODY,
-            action = "No protection",
+            title = stringResource(TorrentWords.NONE_TITLE),
+            body = stringResource(TorrentWords.NONE_BODY),
+            action = stringResource(R.string.torrents_protect_none),
             onConfirm = {
                 asking = false
                 acknowledged = true
@@ -257,6 +257,7 @@ private fun ProtectScreen(mode: TorrentMode, start: TorrentProtection?, onDone: 
 /** The torrent index alone, from the Torrent index row: from a phone, or typed. */
 @Composable
 private fun IndexScreen(onDone: () -> Unit) {
+    val context = LocalContext.current
     val store = LocalAppStore.current
     val notices = LocalNotices.current
     val view by store.settings.view.collectAsStateWithLifecycle()
@@ -269,7 +270,7 @@ private fun IndexScreen(onDone: () -> Unit) {
     val save = {
         val trimmed = index.trim()
         if (trimmed != view?.sources?.index) store.setSetting(SettingKey.TORRENT_INDEX, SettingValue.Str(trimmed))
-        notices?.say(TorrentWords.SAID_INDEX)
+        notices?.say(context.getString(TorrentWords.SAID_INDEX))
         done()
     }
 
@@ -280,8 +281,8 @@ private fun IndexScreen(onDone: () -> Unit) {
             .padding(start = Canvas.Keyline, end = Canvas.SafeX, top = 72.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Text("Torrent index", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
-        Text(TorrentWords.INDEX_ABOUT, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
+        Text(stringResource(R.string.torrents_index), style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
+        Text(TorrentWords.indexAbout(context), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
         if (form.typing) {
             TypeDetails(
                 proxy = false,
@@ -305,9 +306,9 @@ private fun IndexScreen(onDone: () -> Unit) {
                         form.answered()
                     }
                 } else {
-                    TvInfoRow("Torrent index", supporting = index.trim())
+                    TvInfoRow(stringResource(R.string.torrents_index), supporting = index.trim())
                 }
-                FormButtons(form, primary = "Save", whole = whole, checking = false, onPrimary = save, onCancel = done, primaryFirst = true)
+                FormButtons(form, primary = stringResource(R.string.action_save), whole = whole, checking = false, onPrimary = save, onCancel = done, primaryFirst = true)
             }
         }
     }
@@ -320,6 +321,7 @@ private fun IndexScreen(onDone: () -> Unit) {
  */
 @Composable
 private fun EditProxyScreen(onDone: () -> Unit) {
+    val context = LocalContext.current
     val store = LocalAppStore.current
     val notices = LocalNotices.current
     val view by store.settings.view.collectAsStateWithLifecycle()
@@ -336,7 +338,7 @@ private fun EditProxyScreen(onDone: () -> Unit) {
     val check = proxyCheck(details) { checked ->
         store.setTorrentProtection(TorrentProtection.PROXY, checked, view?.torrent?.onFailure ?: FailedCheck.PAUSE, acknowledged = false)
         password = ""
-        notices?.say(TorrentWords.SAID_PROXY)
+        notices?.say(context.getString(TorrentWords.SAID_PROXY))
         done()
     }
     BackHandler { if (form.typing) form.stopTyping() else done() }
@@ -349,8 +351,8 @@ private fun EditProxyScreen(onDone: () -> Unit) {
             .padding(start = Canvas.Keyline, end = Canvas.SafeX, top = 72.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Text("Edit proxy", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
-        Text(TorrentWords.EDIT_NOTE, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
+        Text(stringResource(R.string.torrents_sheet_edit_proxy_title), style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
+        Text(stringResource(TorrentWords.EDIT_NOTE), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
         if (form.typing) {
             TypeDetails(
                 proxy = true,
@@ -378,12 +380,12 @@ private fun EditProxyScreen(onDone: () -> Unit) {
                         form.answered()
                     }
                 } else {
-                    TvInfoRow("Proxy", supporting = proxyLine(host, port, user))
+                    TvInfoRow(stringResource(R.string.torrents_protect_proxy), supporting = proxyLine(context, host, port, user))
                 }
-                Status(EDIT_STATUS, checking = check.checking, failed = check.failed?.let(TorrentWords::editFailed), otherwise = TorrentWords.PASSWORD_KEPT)
+                Status(EDIT_STATUS, checking = check.checking, failed = check.failed?.let { TorrentWords.editFailed(context, it) }, otherwise = stringResource(TorrentWords.PASSWORD_KEPT))
                 FormButtons(
                     form,
-                    primary = "Save",
+                    primary = stringResource(R.string.action_save),
                     whole = whole,
                     checking = check.checking,
                     onPrimary = { if (!check.checking && details != null) store.checkTorrentProtection(TorrentProtection.PROXY, details) },
@@ -458,10 +460,10 @@ private fun FormButtons(
             ButtonLabel(primary)
         }
         if (whole && form.asked == 0) {
-            TonalButton(onClick = form::askPhone, enabled = !checking, height = BUTTON_HEIGHT) { ButtonLabel(USE_PHONE) }
+            TonalButton(onClick = form::askPhone, enabled = !checking, height = BUTTON_HEIGHT) { ButtonLabel(stringResource(R.string.tv_use_phone)) }
         }
-        TonalButton(onClick = form::startTyping, enabled = !checking, height = BUTTON_HEIGHT, modifier = Modifier.focusRequester(form.type)) { ButtonLabel("Type it") }
-        TonalButton(onClick = onCancel, height = BUTTON_HEIGHT) { ButtonLabel("Cancel") }
+        TonalButton(onClick = form::startTyping, enabled = !checking, height = BUTTON_HEIGHT, modifier = Modifier.focusRequester(form.type)) { ButtonLabel(stringResource(R.string.tv_type_it)) }
+        TonalButton(onClick = onCancel, height = BUTTON_HEIGHT) { ButtonLabel(stringResource(R.string.action_cancel)) }
     }
 }
 
@@ -513,7 +515,7 @@ private fun sameAs(saved: ProxyView?, host: String, port: String, user: String):
     saved != null && saved.host == host.trim() && saved.port.toString() == port.trim() && saved.user.orEmpty() == user.trim()
 
 /** "proxy.example:1080 · as mika": where the proxy is, and who it lets in. */
-internal fun proxyLine(host: String, port: String, user: String): String = TorrentWords.proxyLine(host, port, user)
+internal fun proxyLine(context: Context, host: String, port: String, user: String): String = TorrentWords.proxyLine(context, host, port, user)
 
 /**
  * One place under the details for what the check says, [height] high whatever is in it so the
@@ -556,7 +558,7 @@ private fun CheckingLine() {
             spin = true
         }
         Box(Modifier.size(32.dp)) { if (spin) Spinner() }
-        Text(TorrentWords.CHECKING_PROXY, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+        Text(stringResource(TorrentWords.CHECKING_PROXY), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
     }
 }
 
@@ -569,13 +571,14 @@ private const val SPINNER_WAIT = 400L
  */
 @Composable
 private fun ProtectWith(chosen: TorrentProtection, first: FocusRequester, onPick: (TorrentProtection) -> Unit) {
+    val context = LocalContext.current
     Column(Modifier.width(300.dp).selectableGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Protect with", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze, modifier = Modifier.padding(start = 16.dp, bottom = 4.dp))
+        Text(stringResource(R.string.torrents_protect_with), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze, modifier = Modifier.padding(start = 16.dp, bottom = 4.dp))
         Protections.forEach { each ->
             TvListRow(
-                TorrentWords.protection(each),
+                TorrentWords.protection(context, each),
                 onClick = { onPick(each) },
-                supporting = TorrentWords.protectionNote(each, "TV"),
+                supporting = TorrentWords.protectionNote(context, each),
                 supportingLines = 2,
                 height = 88.dp,
                 selected = each == chosen,
@@ -604,7 +607,7 @@ private fun DetailsPage(form: PageForm, opened: Int, filled: Map<String, String>
         expired = false
         started = false
         address = null
-        val page = SignInPage(tracker = "torrents", form = form, authorizeUrl = null, filled = filled) { sent ->
+        val page = SignInPage(context, tracker = "torrents", form = form, authorizeUrl = null, filled = filled) { sent ->
             if (sent is PageAnswer.Torrent) scope.launch { answer(sent) }
         }
         val job = scope.launch {
@@ -626,29 +629,29 @@ private fun DetailsPage(form: PageForm, opened: Int, filled: Map<String, String>
     Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
         val shown = address.takeIf { !expired }
         if (shown != null) {
-            QrCode(shown, size = QR, label = if (form == PageForm.Proxy) "QR code for the page that takes the proxy" else "QR code for the page that takes the torrent index")
+            QrCode(shown, size = QR, label = stringResource(if (form == PageForm.Proxy) R.string.tv_qr_label_proxy else R.string.tv_qr_label_index))
         } else {
             // The code's place kept while the page starts, so nothing moves when it comes.
             Box(Modifier.size(QR).background(ObiSilk.Raised, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                if (expired) Text("Code expired", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Silk)
+                if (expired) Text(stringResource(R.string.stores_code_expired), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Silk)
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                when (form) {
-                    PageForm.TorrentProxy -> "Scan with your phone, then fill in the torrent index and the proxy on the page that opens."
-                    PageForm.Proxy -> "Scan with your phone, then change the proxy on the page that opens."
-                    else -> "Scan with your phone, then fill in the torrent index on the page that opens."
-                },
+                stringResource(when (form) {
+                    PageForm.TorrentProxy -> R.string.tv_scan_torrent_proxy
+                    PageForm.Proxy -> R.string.tv_scan_proxy
+                    else -> R.string.tv_scan_torrent
+                }),
                 style = MaterialTheme.typography.bodyMedium,
                 color = ObiSilk.Silk,
             )
             Text(
                 when {
-                    expired -> "The page closed after 10 minutes."
+                    expired -> stringResource(R.string.stores_page_closed)
                     shown != null -> shown
-                    started -> "This TV isn't on a network a phone can reach."
-                    else -> "Starting"
+                    started -> stringResource(R.string.stores_tv_no_network)
+                    else -> stringResource(R.string.downloads_notice_starting)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = ObiSilk.Haze,
@@ -656,9 +659,9 @@ private fun DetailsPage(form: PageForm, opened: Int, filled: Map<String, String>
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (!expired) Text("The page closes once it's sent, or in 10 minutes.", style = MaterialTheme.typography.bodySmall, color = ObiSilk.Haze)
+            if (!expired) Text(stringResource(R.string.stores_page_closes), style = MaterialTheme.typography.bodySmall, color = ObiSilk.Haze)
             if (expired) {
-                TonalButton(onClick = { again += 1 }) { ButtonLabel("Get a new code") }
+                TonalButton(onClick = { again += 1 }) { ButtonLabel(stringResource(R.string.action_new_code)) }
             }
         }
     }
@@ -689,21 +692,21 @@ private fun TypeDetails(
     }
     Column(Modifier.widthIn(max = 640.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (withIndex) {
-            Field(index, onIndex, "Torrent index", KeyboardType.Uri, focus = first)
-            Text(TorrentWords.indexNote(index), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, modifier = Modifier.padding(start = 24.dp))
+            Field(index, onIndex, stringResource(R.string.torrents_index), KeyboardType.Uri, focus = first)
+            Text(TorrentWords.indexNote(LocalContext.current, index), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, modifier = Modifier.padding(start = 24.dp))
         }
         if (proxy) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Field(host, onHost, "Proxy host", KeyboardType.Uri, Modifier.weight(2f), focus = first.takeIf { !withIndex })
-                Field(port, onPort, "Port", KeyboardType.Number, Modifier.weight(1f))
+                Field(host, onHost, stringResource(R.string.torrents_proxy_host), KeyboardType.Uri, Modifier.weight(2f), focus = first.takeIf { !withIndex })
+                Field(port, onPort, stringResource(R.string.torrents_sheet_port), KeyboardType.Number, Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Field(user, onUser, "User name, if asked", KeyboardType.Text, Modifier.weight(1f))
-                Field(password, onPassword, "Password, if asked", KeyboardType.Password, Modifier.weight(1f), secret = true)
+                Field(user, onUser, stringResource(R.string.tv_field_user_optional), KeyboardType.Text, Modifier.weight(1f))
+                Field(password, onPassword, stringResource(R.string.tv_field_password_optional), KeyboardType.Password, Modifier.weight(1f), secret = true)
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            TonalButton(onClick = onDone) { ButtonLabel("Done") }
+            TonalButton(onClick = onDone) { ButtonLabel(stringResource(R.string.action_done)) }
         }
     }
 }

@@ -3,6 +3,7 @@
 
 package tv.anistream.app
 
+import tv.anistream.i18n.Strings
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
@@ -43,7 +44,7 @@ data class EpisodePlan(val posts: List<Post>, val summary: Summary?) {
     /** The group's summary: how many, and a line for each, newest first. */
     data class Summary(val count: Int, val lines: List<Line>) {
         /** "3 new episodes". */
-        val title: String get() = if (count == 1) "1 new episode" else "$count new episodes"
+        fun title(context: Context): String = Strings.notifNewEpisodes(context, count)
 
         /** The shows, as the collapsed summary names them: "Kazamachi Shokudo, Ame no Kajiya and Natsukaze Relay". */
         val text: String get() = Wording.list(lines.map { it.title }.distinct())
@@ -79,11 +80,15 @@ data class EpisodePlan(val posts: List<Post>, val summary: Summary?) {
          * is out.", "Episode 9 is out, dubbed." for a show watched dubbed, and for a viewer behind,
          * "Episode 10 is out. Next for you: episode 8."
          */
-        fun textOf(episode: NewEpisode): String = buildString {
-            append("Episode ${episode.episode} is out")
-            if (episode.dubbed) append(", dubbed")
-            append(".")
-            episode.nextForYou?.let { append(" Next for you: episode $it.") }
+        fun textOf(context: Context, episode: NewEpisode): String {
+            val number = episode.episode.toInt()
+            val next = episode.nextForYou?.toInt()
+            return when {
+                episode.dubbed && next != null -> Strings.notifEpisodeOutDubbedNext(context, number, next)
+                episode.dubbed -> Strings.notifEpisodeOutDubbed(context, number)
+                next != null -> Strings.notifEpisodeOutNext(context, number, next)
+                else -> Strings.notifEpisodeOut(context, number)
+            }
         }
 
         /** The episode Play starts: the viewer's next where they are behind, else the new one. */
@@ -93,7 +98,6 @@ data class EpisodePlan(val posts: List<Post>, val summary: Summary?) {
         fun lineOf(episode: NewEpisode): Line = Line(episode.title, episode.episode)
 
         /** What shows with previews hidden on the lock screen: the app's name, and this. */
-        const val HIDDEN_TEXT = "New episode"
     }
 }
 
@@ -167,12 +171,12 @@ class EpisodeNotifier(private val context: Context) {
         val tag = post.tag
         val builder = builder()
             .setContentTitle(episode.title)
-            .setContentText(EpisodePlan.textOf(episode))
+            .setContentText(EpisodePlan.textOf(context, episode))
             .setWhen(episode.airedAt * 1000)
             .setShowWhen(true)
             .setSilent(!post.alert)
             .setOnlyAlertOnce(true)
-            .setPublicVersion(builder().setContentTitle(context.getString(R.string.app_name)).setContentText(EpisodePlan.HIDDEN_TEXT).build())
+            .setPublicVersion(builder().setContentTitle(context.getString(R.string.app_name)).setContentText(Strings.notifHiddenText(context)).build())
             .addExtras(
                 android.os.Bundle().apply {
                     putString(EXTRA_SHOW, episode.title)
@@ -203,10 +207,10 @@ class EpisodeNotifier(private val context: Context) {
             )
         }
         return builder()
-            .setContentTitle(summary.title)
+            .setContentTitle(summary.title(context))
             .setContentText(summary.text)
             .setStyle(style)
-            .setPublicVersion(builder().setContentTitle(context.getString(R.string.app_name)).setContentText(summary.title).setGroupSummary(true).build())
+            .setPublicVersion(builder().setContentTitle(context.getString(R.string.app_name)).setContentText(summary.title(context)).setGroupSummary(true).build())
             .setGroupSummary(true)
             // The episodes ring, as the plan says; the summary never does.
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)

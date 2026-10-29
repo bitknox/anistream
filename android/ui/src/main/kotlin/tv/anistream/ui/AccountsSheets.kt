@@ -4,6 +4,10 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -187,29 +191,30 @@ internal fun KitsuSheet(onDismiss: () -> Unit) {
             password = ""
         }
     }
+    val kitsu = AccountsModel.name("kitsu")
     SettingsSheet(onDismiss) {
-        SheetTitle("Sign in to Kitsu")
-        SheetText("Your password goes to Kitsu once, for a token kept on this device.")
+        SheetTitle(stringResource(R.string.accounts_form_title, kitsu))
+        SheetText(stringResource(R.string.accounts_form_detail, kitsu))
         Spacer(Modifier.heightIn(min = 16.dp))
         SheetField(
             username,
             { username = it },
-            "Email or user name",
+            stringResource(R.string.accounts_user_or_email),
             keyboard = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next, autoCorrectEnabled = false),
         )
         Spacer(Modifier.heightIn(min = 12.dp))
         SheetField(
             password,
             { password = it },
-            "Password",
+            stringResource(R.string.accounts_password),
             password = true,
             keyboard = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done, autoCorrectEnabled = false),
             actions = KeyboardActions(onDone = { signIn() }),
         )
         SheetButtons {
-            QuietButton("Cancel", onClick = onDismiss)
+            QuietButton(stringResource(R.string.action_cancel), onClick = onDismiss)
             Button(onClick = signIn, enabled = username.isNotBlank() && password.isNotEmpty() && !busy) {
-                Text(if (busy) "Signing in" else "Sign in")
+                Text(stringResource(if (busy) R.string.accounts_signing_in_action else R.string.accounts_sign_in))
             }
         }
     }
@@ -228,9 +233,10 @@ internal fun DeviceCodeSheet(prompt: DeviceCodePrompt, onDismiss: () -> Unit) {
     val name = AccountsModel.name(prompt.tracker)
     val host = runCatching { android.net.Uri.parse(prompt.url).host }.getOrNull() ?: prompt.url
     val colors = MaterialTheme.colorScheme
+    val codeLabel = stringResource(R.string.accounts_code_label, prompt.code.toList().joinToString(" "))
     SettingsSheet(onDismiss) {
-        SheetTitle("Sign in to $name")
-        SheetText("Go to $host and enter this code. anistream signs in once you have.")
+        SheetTitle(stringResource(R.string.accounts_form_title, name))
+        SheetText(stringResource(R.string.accounts_code_detail, host))
         Text(
             prompt.code,
             style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium, fontSize = 34.sp, lineHeight = 44.sp, letterSpacing = 4.sp),
@@ -240,17 +246,17 @@ internal fun DeviceCodeSheet(prompt: DeviceCodePrompt, onDismiss: () -> Unit) {
                 .fillMaxWidth()
                 .background(colors.surface, RoundedCornerShape(12.dp))
                 .padding(vertical = 14.dp)
-                .semantics { contentDescription = "Code ${prompt.code.toList().joinToString(" ")}" },
+                .semantics { contentDescription = codeLabel },
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
-        if (!expired) SheetText("Waiting for $name", Modifier.padding(top = 12.dp))
+        if (!expired) SheetText(stringResource(R.string.accounts_code_waiting, name), Modifier.padding(top = 12.dp))
         CodeExpiry(prompt, Modifier.padding(top = if (expired) 12.dp else 4.dp), onExpired = { expired = true })
         SheetButtons {
-            QuietButton("Close", onClick = onDismiss)
+            QuietButton(stringResource(R.string.action_close), onClick = onDismiss)
             if (expired) {
-                Button(onClick = { store.connect(prompt.tracker) }) { Text("Get a new code") }
+                Button(onClick = { store.connect(prompt.tracker) }) { Text(stringResource(R.string.action_new_code)) }
             } else {
-                Button(onClick = { runCatching { uri.openUri(prompt.url) } }) { Text("Open $host") }
+                Button(onClick = { runCatching { uri.openUri(prompt.url) } }) { Text(stringResource(R.string.accounts_open_host, host)) }
             }
         }
     }
@@ -289,21 +295,22 @@ internal fun ConflictsSheet(onDismiss: () -> Unit) {
     val conflicts by store.accounts.conflicts.collectAsStateWithLifecycle()
     LaunchedEffect(conflicts.isEmpty()) { if (conflicts.isEmpty()) onDismiss() }
     SettingsSheet(onDismiss, tall = true) {
-        SheetTitle("Different on AniList")
-        SheetText("These changed on AniList and here since the last sync. Keep one side of each.")
+        val anilist = AccountsModel.name("anilist")
+        SheetTitle(stringResource(R.string.accounts_clash_title, anilist))
+        SheetText(stringResource(R.string.accounts_clash_detail, anilist))
         conflicts.forEachIndexed { index, row ->
             if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Column(Modifier.padding(vertical = 12.dp)) {
                 Text(row.title, style = tv.anistream.design.ShowTitle.row)
-                SheetText("${row.field.replaceFirstChar { it.uppercase() }}: ${row.local} here, ${row.remote} on AniList")
+                SheetText(stringResource(R.string.accounts_clash_row, row.field.replaceFirstChar { it.uppercase() }, row.local, row.remote, anilist))
                 Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { store.resolveConflict(row.anilistId, keepLocal = true) }) { Text("Keep this device's") }
-                    OutlinedButton(onClick = { store.resolveConflict(row.anilistId, keepLocal = false) }) { Text("Keep AniList's") }
+                    OutlinedButton(onClick = { store.resolveConflict(row.anilistId, keepLocal = true) }) { Text(stringResource(R.string.accounts_keep_mine)) }
+                    OutlinedButton(onClick = { store.resolveConflict(row.anilistId, keepLocal = false) }) { Text(stringResource(R.string.accounts_keep_theirs, anilist)) }
                 }
             }
         }
         SheetButtons {
-            Button(onClick = onDismiss) { Text("Done") }
+            Button(onClick = onDismiss) { Text(stringResource(R.string.action_done)) }
         }
     }
 }

@@ -1,6 +1,10 @@
 package tv.anistream.store
 
 import java.io.File
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import java.io.IOException
 import java.nio.file.Files
 import java.security.MessageDigest
@@ -30,7 +34,10 @@ import tv.anistream.engine.model.UpdateStatus
  * cancelled from each back to available, on a host that stands in for Android.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class UpdateModelTest {
+    private val context = RuntimeEnvironment.getApplication()
     private val dir: File = Files.createTempDirectory("updates").toFile()
     private val files = UpdateFiles(dir.resolve("updates"))
     private val apkBytes = "the new APK".toByteArray()
@@ -213,9 +220,9 @@ class UpdateModelTest {
         assertEquals(UpdateState.Failed(offer, UpdateFailure.Checksum), model.state.value)
         assertFalse(host.calls.any { it.startsWith("install") })
         assertTrue(left.isEmpty())
-        val notice = notices.current.value!!.notice
-        assertEquals(NoticeKind.ALERT, notice.kind)
-        assertEquals("The download does not match the release's checksum, so it was not installed.", notice.text)
+        val notice = notices.current.value!!
+        assertEquals(NoticeKind.ALERT, notice.notice.kind)
+        assertEquals("The download does not match the checksum listed for this version, so it was not installed.", notice.text(context))
     }
 
     @Test
@@ -246,7 +253,7 @@ class UpdateModelTest {
         job(model, host, fetch)
         advanceUntilIdle()
         assertEquals(UpdateState.Failed(offer, UpdateFailure.Download("the server answered 503")), model.state.value)
-        assertEquals("Couldn't download the update. Check the connection and try again.", notices.current.value!!.notice.text)
+        assertEquals("Couldn't download the update. Check the connection and try again.", notices.current.value!!.text(context))
         assertTrue(left.isEmpty())
         fetch.fails = null
         model.press()
@@ -265,7 +272,7 @@ class UpdateModelTest {
         assertTrue(left.isNotEmpty())
         model.installResult(InstallResult.Failed("INSTALL_FAILED_INSUFFICIENT_STORAGE"))
         assertEquals(UpdateState.Failed(offer, UpdateFailure.Install("INSTALL_FAILED_INSUFFICIENT_STORAGE")), model.state.value)
-        assertEquals("Couldn't install the update. Try again.", notices.current.value!!.notice.text)
+        assertEquals("Couldn't install the update. Try again.", notices.current.value!!.text(context))
         assertTrue(left.isEmpty())
         // A session that could not even be written is the same failure.
         val writing = FakeHost().apply { installFails = IOException("no space") }
@@ -490,7 +497,7 @@ class UpdateModelTest {
         model.press()
         assertEquals(UpdateState.Failed(offer, UpdateFailure.Storage), model.state.value)
         assertTrue("nothing was asked of the download", host.calls.isEmpty())
-        assertEquals(UpdateFailure.Storage.text, notices.current.value!!.notice.text)
+        assertEquals(UpdateFailure.Storage.text(context), notices.current.value!!.text(context))
         // With room again, Update starts over.
         host.room = true
         model.press()

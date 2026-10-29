@@ -5,6 +5,11 @@
 
 package tv.anistream.tv.signin
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -69,17 +74,19 @@ import tv.anistream.tv.player.Spinner
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.entryFocus
 import tv.anistream.tv.ui.focusSoon
-import tv.anistream.tv.ui.plainReason
+import tv.anistream.store.plainReason
 
 /** The line under every Join. */
-const val JOIN_LEGAL_LINE = "anistream hosts no content."
 
 /**
  * TVJoinStore, until a store is joined ([onDone] with true) or Back ([onDone] with false). On
  * first launch [cancelLabel] is "Skip for now".
  */
 @Composable
-fun JoinStoreScreen(onDone: (joined: Boolean) -> Unit, cancelLabel: String = "Cancel", title: String = "Add a plugin store", line: String? = null) {
+fun JoinStoreScreen(onDone: (joined: Boolean) -> Unit, cancelLabel: String? = null, title: String? = null, line: String? = null) {
+    val context = LocalContext.current
+    val cancelLabel = cancelLabel ?: stringResource(R.string.action_cancel)
+    val title = title ?: stringResource(R.string.stores_add_title)
     val store = LocalAppStore.current
     val notices = LocalNotices.current
     val preview by store.stores.preview.collectAsStateWithLifecycle()
@@ -90,7 +97,7 @@ fun JoinStoreScreen(onDone: (joined: Boolean) -> Unit, cancelLabel: String = "Ca
     LaunchedEffect(joined) {
         val id = joined ?: return@LaunchedEffect
         val name = stores.firstOrNull { it.id == id }?.name
-        notices?.say(if (name != null) "Joined $name" else "Joined the plugin store")
+        notices?.say(if (name != null) Strings.storesTvJoined(context, name) else Strings.storesTvJoinedPlain(context))
         store.stores.clearJoined()
         done(true)
     }
@@ -134,7 +141,7 @@ fun JoinStoreScreen(onDone: (joined: Boolean) -> Unit, cancelLabel: String = "Ca
                     spin = true
                 }
                 Box(Modifier.size(32.dp)) { if (spin) Spinner() }
-                Text("Checking the store", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                Text(stringResource(R.string.stores_checking_store), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             }
             is StoresModel.Preview.Failed -> Failed(shown.reason, onAgain = { store.stores.clearPreview() }, onCancel = { done(false) }, cancelLabel = cancelLabel)
             is StoresModel.Preview.Store -> Preview(
@@ -164,7 +171,7 @@ private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () ->
     var expired by remember { mutableStateOf(false) }
     DisposableEffect(opened) {
         expired = false
-        val page = SignInPage(tracker = "a plugin store", form = PageForm.Link, authorizeUrl = null) { pasted ->
+        val page = SignInPage(context, tracker = Strings.storesFallbackTitle(context), form = PageForm.Link, authorizeUrl = null) { pasted ->
             if (pasted is PageAnswer.Link) scope.launch { answer(pasted.text) }
         }
         val job = scope.launch {
@@ -187,7 +194,7 @@ private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () ->
     val again = remember { FocusRequester() }
     LaunchedEffect(expired) { if (expired) again.focusSoon() }
     Text(
-        "Scan the QR code with your phone, then paste the store's invite link on the page that opens.",
+        stringResource(R.string.stores_qr_instructions),
         style = MaterialTheme.typography.bodyLarge,
         color = ObiSilk.Silk,
         modifier = Modifier.widthIn(max = 640.dp),
@@ -195,32 +202,32 @@ private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () ->
     Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
         val shown = address.takeIf { !expired }
         if (shown != null) {
-            QrCode(shown, label = "QR code for the page that takes the link")
+            QrCode(shown, label = stringResource(R.string.tv_qr_label_link))
         } else {
             Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                if (expired) Text("Code expired", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
+                if (expired) Text(stringResource(R.string.stores_code_expired), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.widthIn(max = 520.dp)) {
-            Text("Or open this address", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
+            Text(stringResource(R.string.stores_or_open_address), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
             Text(
                 when {
-                    expired -> "The page closed after 10 minutes."
+                    expired -> stringResource(R.string.stores_page_closed)
                     shown != null -> shown
-                    started -> "This TV isn't on a network a phone can reach."
-                    else -> "Starting"
+                    started -> stringResource(R.string.stores_tv_no_network)
+                    else -> stringResource(R.string.downloads_notice_starting)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = ObiSilk.Silk,
             )
-            Text("The page closes with this screen, or in 10 minutes.", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+            Text(stringResource(R.string.stores_page_closes), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
         }
     }
     Row(Modifier.entryFocus(type), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         if (expired) {
-            TonalButton(onClick = { opened += 1 }, modifier = Modifier.focusRequester(again)) { ButtonLabel("Get a new code") }
+            TonalButton(onClick = { opened += 1 }, modifier = Modifier.focusRequester(again)) { ButtonLabel(stringResource(R.string.action_new_code)) }
         }
-        TonalButton(onClick = onType, modifier = Modifier.focusRequester(type)) { ButtonLabel("Type the link") }
+        TonalButton(onClick = onType, modifier = Modifier.focusRequester(type)) { ButtonLabel(stringResource(R.string.stores_type_link)) }
         TonalButton(onClick = onCancel) { ButtonLabel(cancelLabel) }
     }
 }
@@ -239,7 +246,7 @@ private fun TypeLink(start: String, onCheck: (String) -> Unit, onCancel: () -> U
         Modifier.widthIn(max = 640.dp).fillMaxWidth().height(56.dp).background(ObiSilk.Raised, CircleShape).padding(horizontal = 24.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
-        if (text.isEmpty()) Text("Invite link", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+        if (text.isEmpty()) Text(stringResource(R.string.stores_invite_link), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
         BasicTextField(
             value = text,
             onValueChange = { text = it },
@@ -252,8 +259,8 @@ private fun TypeLink(start: String, onCheck: (String) -> Unit, onCancel: () -> U
         )
     }
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        TonalButton(onClick = { onCheck(text) }, enabled = text.isNotBlank()) { ButtonLabel("Check the link") }
-        TonalButton(onClick = onCancel) { ButtonLabel("Back") }
+        TonalButton(onClick = { onCheck(text) }, enabled = text.isNotBlank()) { ButtonLabel(stringResource(R.string.stores_check_link)) }
+        TonalButton(onClick = onCancel) { ButtonLabel(stringResource(R.string.action_back)) }
     }
 }
 
@@ -263,11 +270,11 @@ private fun Failed(reason: String, onAgain: () -> Unit, onCancel: () -> Unit, ca
     val again = remember { FocusRequester() }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(Modifier.size(8.dp).background(ObiSilk.Vermilion, CircleShape))
-        Text("Couldn't open this link.", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
+        Text(stringResource(R.string.stores_link_failed), style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
     }
-    Text(plainReason(reason), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
+    Text(plainReason(LocalContext.current, reason), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
     Row(Modifier.entryFocus(again), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        TonalButton(onClick = onAgain, modifier = Modifier.focusRequester(again)) { ButtonLabel("Try another link") }
+        TonalButton(onClick = onAgain, modifier = Modifier.focusRequester(again)) { ButtonLabel(stringResource(R.string.stores_try_another_link)) }
         TonalButton(onClick = onCancel) { ButtonLabel(cancelLabel) }
     }
 }
@@ -285,9 +292,9 @@ private fun Preview(invited: InvitedStore, onJoin: () -> Unit, onCancel: () -> U
     val join = remember { FocusRequester() }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(invited.name, style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
-        Text(invited.runByLine, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
-        Text("Key ${invited.fingerprint.chunked(4).take(4).joinToString(" ")}", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
-        if (invited.open) Text("Anyone with the link can join.", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+        Text(invited.runByLine(LocalContext.current), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+        Text(stringResource(R.string.tv_preview_key, invited.fingerprint.chunked(4).take(4).joinToString(" ")), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+        if (invited.open) Text(stringResource(R.string.stores_anyone_with_link), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
     }
     if (invited.plugins.isNotEmpty()) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.widthIn(max = 720.dp)) {
@@ -298,21 +305,21 @@ private fun Preview(invited: InvitedStore, onJoin: () -> Unit, onCancel: () -> U
                 }
             }
             if (invited.plugins.size > PREVIEW_PLUGINS) {
-                Text("and ${invited.plugins.size - PREVIEW_PLUGINS} more", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+                Text(stringResource(R.string.tv_preview_more, invited.plugins.size - PREVIEW_PLUGINS), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
             }
         }
     }
     Column(Modifier.entryFocus(join)) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             if (invited.alreadyJoined) {
-                TonalButton(onClick = onCancel, modifier = Modifier.focusRequester(join)) { ButtonLabel("Already joined") }
+                TonalButton(onClick = onCancel, modifier = Modifier.focusRequester(join)) { ButtonLabel(stringResource(R.string.tv_already_joined)) }
             } else {
-                AmberButton(onClick = onJoin, icon = null, enabled = !joining, modifier = Modifier.focusRequester(join)) { ButtonLabel(if (joining) "Joining" else "Join") }
-                TonalButton(onClick = onCancel) { ButtonLabel("Cancel") }
+                AmberButton(onClick = onJoin, icon = null, enabled = !joining, modifier = Modifier.focusRequester(join)) { ButtonLabel(stringResource(if (joining) R.string.tv_joining else R.string.action_join)) }
+                TonalButton(onClick = onCancel) { ButtonLabel(stringResource(R.string.action_cancel)) }
             }
         }
         Spacer(Modifier.height(12.dp))
-        Text(JOIN_LEGAL_LINE, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, modifier = Modifier.widthIn(max = 640.dp))
+        Text(stringResource(R.string.legal_hosts_no_content), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, modifier = Modifier.widthIn(max = 640.dp))
     }
 }
 

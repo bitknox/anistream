@@ -104,14 +104,6 @@ settings-torrent-source = Torrent { -source }
 
 ## Setting values
 
-# Value of the upscaling setting: a natural look. The name after the dot is the shader used.
-# @only windows
-settings-upscaling-natural = Natural · ArtCNN
-
-# Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
-# @only windows
-settings-upscaling-sharp = Sharp · Anime4K
-
 # Value of the theme setting: follows the system's colours.
 # @only windows
 settings-theme-adaptive = Adaptive
@@ -137,10 +129,6 @@ settings-quality-lines = { $lines }p
 # @only windows
 # @arg ratio: text
 settings-seed-until-ratio = Until ratio { $ratio }
-
-# Value of the upload limit setting when there is no limit.
-# @only windows
-settings-upload-unlimited = Unlimited
 
 ## Accounts pane
 
@@ -179,10 +167,6 @@ settings-signed-out-code = Not signed in · You enter a code on its site
 settings-libmpv-licence = Licensed under the Lesser General Public Licence, version 2.1 or later.
 
 ## Torrents
-
-# Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
-# @only windows
-torrents-check-note = { -app-name } checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.
 
 # Confirmation text before choosing Warn only for a failed check.
 # @only windows

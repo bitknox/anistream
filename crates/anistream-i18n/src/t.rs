@@ -1300,16 +1300,6 @@ pub fn settings_sources_come_from() -> String {
     text("settings-sources-come-from", &[])
 }
 
-/// Choice for the download quality: the usual size.
-pub fn settings_quality_standard() -> String {
-    text("settings-quality-standard", &[])
-}
-
-/// Choice for the download quality: larger files with more detail.
-pub fn settings_quality_higher() -> String {
-    text("settings-quality-higher", &[])
-}
-
 /// Label on the left half of the upscaling preview: the video before processing.
 pub fn settings_preview_source() -> String {
     text("settings-preview-source", &[])
@@ -1318,16 +1308,6 @@ pub fn settings_preview_source() -> String {
 /// Preview note under the upscaling frame when upscaling is off.
 pub fn settings_upscaling_note_off() -> String {
     text("settings-upscaling-note-off", &[])
-}
-
-/// Preview note under the upscaling frame for the natural look.
-pub fn settings_upscaling_note_natural() -> String {
-    text("settings-upscaling-note-natural", &[])
-}
-
-/// Preview note under the upscaling frame for the sharp look.
-pub fn settings_upscaling_note_sharp() -> String {
-    text("settings-upscaling-note-sharp", &[])
 }
 
 /// A line of sample subtitle over the preview frame. Any short sentence will do.
@@ -1398,11 +1378,6 @@ pub fn accounts_sync_detail(tracker: &str) -> String {
 /// Line under a signed-in account while changes wait for the connection.
 pub fn accounts_changes_waiting_offline(count: i64) -> String {
     text("accounts-changes-waiting-offline", &[("count", Arg::Int(count))])
-}
-
-/// Line under a signed-in account while changes wait to be sent.
-pub fn accounts_changes_waiting(count: i64) -> String {
-    text("accounts-changes-waiting", &[("count", Arg::Int(count))])
 }
 
 /// Footnote on the Accounts page: where sign-in tokens are kept, when it is the system's keyring.
@@ -1688,11 +1663,6 @@ pub fn stores_owner_needs_connection_detail() -> String {
 /// Red line in the invite dialog when this device is offline and a link cannot be made.
 pub fn stores_owner_link_offline() -> String {
     text("stores-owner-link-offline", &[])
-}
-
-/// Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
-pub fn stores_copy_link() -> String {
-    text("stores-copy-link", &[])
 }
 
 /// Line over a new invite link made for a named person. The time is the one the link stops working.
@@ -2723,6 +2693,21 @@ pub fn keys_action_right() -> String {
 /// Action label in the help overlay and the command palette.
 pub fn keys_action_top() -> String {
     text("keys-action-top", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_today() -> String {
+    text("keys-action-today", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_previous_day() -> String {
+    text("keys-action-previous-day", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_next_day() -> String {
+    text("keys-action-next-day", &[])
 }
 
 /// Action label in the help overlay and the command palette.
@@ -4860,6 +4845,11 @@ pub fn settings_label_comment_images() -> String {
     text("settings-label-comment-images", &[])
 }
 
+/// Settings row: whether Calendar shows only the shows on the person's list.
+pub fn settings_label_calendar_mine() -> String {
+    text("settings-label-calendar-mine", &[])
+}
+
 /// Note under the titles row.
 pub fn settings_note_titles() -> String {
     text("settings-note-titles", &[])
@@ -6453,6 +6443,11 @@ pub fn state_working() -> String {
 /// Short placeholder while something loads.
 pub fn state_loading() -> String {
     text("state-loading", &[])
+}
+
+/// How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
+pub fn time_just_now_inline() -> String {
+    text("time-just-now-inline", &[])
 }
 
 /// Checkbox of the close question.
@@ -8940,6 +8935,31 @@ pub fn filter_remove(filter: &str) -> String {
     text("filter-remove", &[("filter", Arg::Text(filter))])
 }
 
+/// Search: sort by how many people marked the title a favourite.
+pub fn search_sort_favourites() -> String {
+    text("search-sort-favourites", &[])
+}
+
+/// Search: sort by release date, newest first.
+pub fn search_sort_newest() -> String {
+    text("search-sort-newest", &[])
+}
+
+/// Search: sort by release date, oldest first.
+pub fn search_sort_oldest() -> String {
+    text("search-sort-oldest", &[])
+}
+
+/// Search: sort by title, A to Z.
+pub fn search_sort_title() -> String {
+    text("search-sort-title", &[])
+}
+
+/// Search: sort by what is popular right now.
+pub fn search_sort_trending() -> String {
+    text("search-sort-trending", &[])
+}
+
 /// Settings group and row title for choosing a language.
 pub fn settings_language() -> String {
     text("settings-language", &[])
@@ -9523,6 +9543,46 @@ pub fn widget_start_label(episode: i64, title: &str) -> String {
 /// Accessibility label of a widget row: continue a dubbed episode.
 pub fn widget_resume_dubbed_label(episode: i64, title: &str) -> String {
     text("widget-resume-dubbed-label", &[("episode", Arg::Int(episode)), ("title", Arg::Text(title))])
+}
+
+/// Line under a signed-in account while changes wait to be sent.
+pub fn accounts_changes_waiting(count: i64) -> String {
+    text("accounts-changes-waiting", &[("count", Arg::Int(count))])
+}
+
+/// Choice for the download quality: larger files with more detail.
+pub fn settings_quality_higher() -> String {
+    text("settings-quality-higher", &[])
+}
+
+/// Choice for the download quality: the usual size.
+pub fn settings_quality_standard() -> String {
+    text("settings-quality-standard", &[])
+}
+
+/// Value of the upload limit setting when there is no limit.
+pub fn settings_upload_unlimited() -> String {
+    text("settings-upload-unlimited", &[])
+}
+
+/// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+pub fn settings_upscaling_natural() -> String {
+    text("settings-upscaling-natural", &[])
+}
+
+/// Preview note under the upscaling frame for the natural look.
+pub fn settings_upscaling_note_natural() -> String {
+    text("settings-upscaling-note-natural", &[])
+}
+
+/// Preview note under the upscaling frame for the sharp look.
+pub fn settings_upscaling_note_sharp() -> String {
+    text("settings-upscaling-note-sharp", &[])
+}
+
+/// Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+pub fn settings_upscaling_sharp() -> String {
+    text("settings-upscaling-sharp", &[])
 }
 
 /// Title of the screen or section that lists sources.
@@ -10460,6 +10520,16 @@ pub fn stores_plugin_name_version(name: &str, version: &str) -> String {
     text("stores-plugin-name-version", &[("name", Arg::Text(name)), ("version", Arg::Text(version))])
 }
 
+/// Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+pub fn stores_copy_link() -> String {
+    text("stores-copy-link", &[])
+}
+
+/// Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+pub fn stores_offers_plugins(count: i64) -> String {
+    text("stores-offers-plugins", &[("count", Arg::Int(count))])
+}
+
 /// Title of the state when a title page could not load.
 pub fn title_load_failed() -> String {
     text("title-load-failed", &[])
@@ -10478,6 +10548,11 @@ pub fn title_loading() -> String {
 /// Button on the title page that plays the trailer.
 pub fn title_trailer() -> String {
     text("title-trailer", &[])
+}
+
+/// Main button of the title page when every episode of the show is watched: plays episode 1 again.
+pub fn title_button_watch_again() -> String {
+    text("title-button-watch-again", &[])
 }
 
 /// Menu item that plays the trailer.
@@ -11118,6 +11193,11 @@ pub fn torrents_page_unreadable() -> String {
 /// Line when the page needs script.
 pub fn torrents_page_needs_script() -> String {
     text("torrents-page-needs-script", &[])
+}
+
+/// Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+pub fn torrents_check_note() -> String {
+    text("torrents-check-note", &[])
 }
 
 /// Title of the accounts screen. The sidebar item is nav-accounts.

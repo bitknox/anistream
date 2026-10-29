@@ -845,23 +845,11 @@ settings-next-value = [Ñéẋţ ṽàļüé~~~]
 # Line after the legal line under the sources settings: where sources come from.
 settings-sources-come-from = [Šöüŕçéš çöɱé ƒŕöɱ ţĥé þļüĝîñ šţöŕéš ýöü ĵöîñ.~~~~~~~~~~~~~~]
 
-# Choice for the download quality: the usual size.
-settings-quality-standard = [Šţàñðàŕð~~~]
-
-# Choice for the download quality: larger files with more detail.
-settings-quality-higher = [Ĥîĝĥéŕ~~]
-
 # Label on the left half of the upscaling preview: the video before processing.
 settings-preview-source = [480þ šöüŕçé~~~~]
 
 # Preview note under the upscaling frame when upscaling is off.
 settings-upscaling-note-off = [Ţĥé 480þ šöüŕçé, šçàļéð ţö ƒîţ ŵîţĥöüţ þŕöçéššîñĝ.~~~~~~~~~~~~~~~]
-
-# Preview note under the upscaling frame for the natural look.
-settings-upscaling-note-natural = [Ƒàîţĥƒüļ ļîñé ŵöŕķ àñð ţéẋţüŕé, ñöţĥîñĝ ŕéšţýļéð.~~~~~~~~~~~~~~~]
-
-# Preview note under the upscaling frame for the sharp look.
-settings-upscaling-note-sharp = [Çŕîšþéŕ ļîñéš àñð šţŕöñĝéŕ éðĝéš, àţ šöɱé çöšţ ţö ţéẋţüŕé.~~~~~~~~~~~~~~~~~~]
 
 # A line of sample subtitle over the preview frame. Any short sentence will do.
 settings-caption-sample = [Ţĥé ļàñţéŕñ ŕöàð ŕüñš öñ þàšţ ţĥé ļàšţ ţöŵñ.~~~~~~~~~~~~~~]
@@ -907,13 +895,6 @@ accounts-changes-waiting-offline =
     { $count ->
         [one] [Öñé çĥàñĝé ŵàîţîñĝ üñţîļ ýöü'ŕé öñļîñé~~~~~~~~~~~~]
        *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ üñţîļ ýöü'ŕé öñļîñé~~~~~~~~~~~~]
-    }
-
-# Line under a signed-in account while changes wait to be sent.
-accounts-changes-waiting =
-    { $count ->
-        [one] [Öñé çĥàñĝé ŵàîţîñĝ ţö šýñç~~~~~~~~]
-       *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ ţö šýñç~~~~~~~~~]
     }
 
 # Footnote on the Accounts page: where sign-in tokens are kept, when it is the system's keyring.
@@ -1102,9 +1083,6 @@ stores-owner-needs-connection-detail = [Ţŕý àĝàîñ öñçé ţĥîš ðé
 
 # Red line in the invite dialog when this device is offline and a link cannot be made.
 stores-owner-link-offline = [Ṁàķîñĝ à ļîñķ ñééðš à çöññéçţîöñ ţö ţĥé þļüĝîñ šţöŕé.~~~~~~~~~~~~~~~~]
-
-# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
-stores-copy-link = [Çöþý ļîñķ~~~]
 
 # Line over a new invite link made for a named person. The time is the one the link stops working.
 stores-send-link-until = [Šéñð ţĥîš ļîñķ. Îţ ŵöŕķš öñçé, üñţîļ { $until }.~~~~~~~~~~~~~]
@@ -1751,6 +1729,15 @@ keys-action-right = [Ṁöṽé ŕîĝĥţ~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-top = [Ĵüɱþ ţö ţöþ~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-today = [Ĵüɱþ ţö ţöðàý~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-previous-day = [Ĵüɱþ ţö þŕéṽîöüš ðàý~~~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-next-day = [Ĵüɱþ ţö ñéẋţ ðàý~~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-bottom = [Ĵüɱþ ţö ƀöţţöɱ~~~~~]
@@ -3057,6 +3044,9 @@ settings-label-episode-discussions = [Éþîšöðé ðîšçüššîöñš~~~~~
 # Settings row: whether images in discussion comments load inline.
 settings-label-comment-images = [Ļöàð îɱàĝéš îñ çöɱɱéñţš~~~~~~~]
 
+# Settings row: whether Calendar shows only the shows on the person's list.
+settings-label-calendar-mine = [Çàļéñðàŕ šĥöŵš öñļý ɱý ļîšţ~~~~~~~~~]
+
 # Note under the titles row.
 settings-note-titles = [ÅñîĻîšţ'š çĥöîçé ƒöļļöŵš ýöüŕ ÅñîĻîšţ àççöüñţ, àñð îš Éñĝļîšĥ ŵĥéñ ýöü'ŕé šîĝñéð öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
@@ -4049,6 +4039,9 @@ state-working = [Ŵöŕķîñĝ~~~]
 
 # Short placeholder while something loads.
 state-loading = [Ļöàðîñĝ~~~]
+
+# How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
+time-just-now-inline = [ĵüšţ ñöŵ~~~]
 
 # Checkbox of the close question.
 close-dont-ask = [Ðöñ'ţ àšķ àĝàîñ~~~~~]
@@ -5577,6 +5570,21 @@ filter-hint-remote = [Þŕéšš öñçé ţö îñçļüðé, ţŵîçé ţö �
 # Accessibility label of the button that removes one filter.
 filter-remove = [Ŕéɱöṽé { $filter }~~~]
 
+# Search: sort by how many people marked the title a favourite.
+search-sort-favourites = [Ƒàṽöüŕîţéš~~~]
+
+# Search: sort by release date, newest first.
+search-sort-newest = [Ñéŵéšţ~~]
+
+# Search: sort by release date, oldest first.
+search-sort-oldest = [Öļðéšţ~~]
+
+# Search: sort by title, A to Z.
+search-sort-title = [Ţîţļé~~]
+
+# Search: sort by what is popular right now.
+search-sort-trending = [Ţŕéñðîñĝ~~~]
+
 # Settings group and row title for choosing a language.
 settings-language = [Ļàñĝüàĝé~~~]
 
@@ -5931,6 +5939,34 @@ widget-start-label = [Þļàý éþîšöðé { $episode } öƒ { $title }~~~~~~
 
 # Accessibility label of a widget row: continue a dubbed episode.
 widget-resume-dubbed-label = [Ŕéšüɱé éþîšöðé { $episode }, ðüƀƀéð, öƒ { $title }~~~~~~~~~~~]
+
+# Line under a signed-in account while changes wait to be sent.
+accounts-changes-waiting =
+    { $count ->
+        [one] [Öñé çĥàñĝé ŵàîţîñĝ ţö šýñç~~~~~~~~]
+       *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ ţö šýñç~~~~~~~~~]
+    }
+
+# Choice for the download quality: larger files with more detail.
+settings-quality-higher = [Ĥîĝĥéŕ~~]
+
+# Choice for the download quality: the usual size.
+settings-quality-standard = [Šţàñðàŕð~~~]
+
+# Value of the upload limit setting when there is no limit.
+settings-upload-unlimited = [Ûñļîɱîţéð~~~]
+
+# Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+settings-upscaling-natural = [Ñàţüŕàļ · ÅŕţÇÑÑ~~~~~]
+
+# Preview note under the upscaling frame for the natural look.
+settings-upscaling-note-natural = [Ƒàîţĥƒüļ ļîñé ŵöŕķ àñð ţéẋţüŕé, ñöţĥîñĝ ŕéšţýļéð.~~~~~~~~~~~~~~~]
+
+# Preview note under the upscaling frame for the sharp look.
+settings-upscaling-note-sharp = [Çŕîšþéŕ ļîñéš àñð šţŕöñĝéŕ éðĝéš, àţ šöɱé çöšţ ţö ţéẋţüŕé.~~~~~~~~~~~~~~~~~~]
+
+# Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+settings-upscaling-sharp = [Šĥàŕþ · Åñîɱé4Ķ~~~~~]
 
 # Title of the screen or section that lists sources.
 sources-title = [Šöüŕçéš~~~]
@@ -6513,6 +6549,16 @@ stores-publish-none = [Ñö þļüĝîñš öñ ţĥîš ðéṽîçé ţö þü
 # Version line of a plugin in the publish sheet.
 stores-plugin-name-version = [{ $name } { $version }~~~]
 
+# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+stores-copy-link = [Çöþý ļîñķ~~~]
+
+# Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+stores-offers-plugins =
+    { $count ->
+        [one] [Öñé þļüĝîñ~~~]
+       *[other] [{ $count } þļüĝîñš~~~~]
+    }
+
 # Title of the state when a title page could not load.
 title-load-failed = [Çöüļðñ'ţ ļöàð ţĥîš ţîţļé~~~~~~~~]
 
@@ -6524,6 +6570,9 @@ title-loading = [Ļöàðîñĝ ţĥîš ţîţļé~~~~~~]
 
 # Button on the title page that plays the trailer.
 title-trailer = [Ţŕàîļéŕ~~~]
+
+# Main button of the title page when every episode of the show is watched: plays episode 1 again.
+title-button-watch-again = [Ŵàţçĥ àĝàîñ~~~~]
 
 # Menu item that plays the trailer.
 title-play-trailer = [Þļàý ţŕàîļéŕ~~~~]
@@ -6912,6 +6961,9 @@ torrents-page-unreadable = [Ţĥé ŢṼ çöüļðñ'ţ ŕéàð ţĥîš. Šç
 
 # Line when the page needs script.
 torrents-page-needs-script = [Ţĥîš þàĝé ñééðš ĴàṽàŠçŕîþţ ţö šéñð ţĥé ƒöŕɱ ţö ţĥé ŢṼ šàƒéļý.~~~~~~~~~~~~~~~~~~~]
+
+# Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+torrents-check-note = [àñîšţŕéàɱ çĥéçķš ŵĥéŕé ţöŕŕéñţ ţŕàƒƒîç ļéàṽéš ƒŕöɱ ŵĥéñ à ţöŕŕéñţ šţàŕţš àñð éṽéŕý ɱîñüţé ŵĥîļé îţ ŕüñš, àñð þàüšéš ţöŕŕéñţš îƒ ţĥàţ çĥéçķ ƒàîļš. Ýöüŕ ṼÞÑ öŕ þŕöẋý îš ŵĥàţ þŕöţéçţš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Title of the accounts screen. The sidebar item is nav-accounts.
 accounts-title = [Åççöüñţš~~~]

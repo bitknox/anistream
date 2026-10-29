@@ -16,6 +16,7 @@
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
     <application
+        android:localeConfig="@xml/locales_config"
         android:name=".TvApp"
         android:allowBackup="false"
         android:banner="@drawable/banner"

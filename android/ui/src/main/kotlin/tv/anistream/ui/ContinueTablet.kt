@@ -4,6 +4,10 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import tv.anistream.store.text
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -122,6 +126,7 @@ private const val QUICK_RESELECT_MILLIS = 150L
 @Composable
 internal fun TabletQueue(queue: ContinueQueue, actions: AppActions, state: QueueState) {
     val items = queue.all
+    val resizeQueue = stringResource(R.string.continue_resize_queue)
     val current = items.firstOrNull { it.id.toLong() == state.selected } ?: items.firstOrNull() ?: return
     val panes = rememberListDetailPaneScaffoldNavigator<Long>()
     // The divider settles on the list's 380 or on half the content (AT2).
@@ -144,7 +149,7 @@ internal fun TabletQueue(queue: ContinueQueue, actions: AppActions, state: Queue
             VerticalDragHandle(
                 modifier = Modifier
                     .paneExpansionDraggable(handle, LocalMinimumInteractiveComponentSize.current, interaction)
-                    .semantics { contentDescription = "Resize the queue" },
+                    .semantics { contentDescription = resizeQueue },
                 interactionSource = interaction,
             )
         },
@@ -176,7 +181,7 @@ internal fun TabletQueue(queue: ContinueQueue, actions: AppActions, state: Queue
                         else fadeIn(Motion.fadeIn()) togetherWith fadeOut(Motion.fadeIn())
                     },
                     contentKey = { it.id },
-                    label = "preview",
+                    label = "preview", // i18n-skip
                 ) { item -> QueuePreview(item, actions) }
             }
         },
@@ -193,21 +198,21 @@ private fun QueueList(
 ) {
     // Under the title, as on a phone: the offline line, a job past 4 s, or the engine's status.
     val status by LocalAppStore.current.notices.status.collectAsStateWithLifecycle()
-    val line = frameLine(status)
+    val line = frameLine(status?.text(LocalContext.current))
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), state = list, contentPadding = PaddingValues(bottom = 24.dp)) {
         // The headings move with the rows, so a row never slides over a heading that snapped.
         item(key = "title", contentType = "title") {
             Column(itemMotion().heightIn(min = 64.dp).padding(horizontal = 12.dp), verticalArrangement = Arrangement.Center) {
-                Text("Continue", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+                Text(stringResource(R.string.nav_continue), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
                 line?.let { FrameLineText(it, MaterialTheme.typography.bodyMedium, Modifier.padding(bottom = 8.dp)) }
             }
         }
         if (queue.inProgress.isNotEmpty()) {
-            item(key = "progress", contentType = "heading") { ListHeading("In progress", itemMotion()) }
+            item(key = "progress", contentType = "heading") { ListHeading(stringResource(R.string.group_in_progress), itemMotion()) }
             items(queue.inProgress, key = { "p-${it.id}" }, contentType = { "row" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
         }
         if (queue.newThisWeek.isNotEmpty()) {
-            item(key = "new", contentType = "heading") { ListHeading("New this week", itemMotion().padding(top = 16.dp)) }
+            item(key = "new", contentType = "heading") { ListHeading(stringResource(R.string.group_new_this_week), itemMotion().padding(top = 16.dp)) }
             items(queue.newThisWeek, key = { "n-${it.id}" }, contentType = { "row" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
         }
     }
@@ -234,7 +239,7 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
     val fill by animateColorAsState(
         if (selected) colors.primaryContainer else colors.primaryContainer.copy(alpha = 0f),
         Motion.quick(),
-        label = "selection",
+        label = "selection", // i18n-skip
     )
     Row(
         Modifier
@@ -263,7 +268,7 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (item.isNew) Box(Modifier.size(6.dp).background(colors.secondary, CircleShape))
                 Text(
-                    item.action,
+                    item.actionText(),
                     style = MaterialTheme.typography.bodyMedium.tabular(),
                     color = if (selected) colors.onPrimaryContainer else colors.onSurfaceVariant,
                     maxLines = 1,
@@ -281,7 +286,8 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
             }
         }
         Box {
-            IconButton(onClick = { menu = true }, modifier = Modifier.padding(end = 4.dp).semantics { contentDescription = "More for ${item.entry.showTitle}" }) {
+            val moreFor = stringResource(R.string.continue_more_for, item.entry.showTitle)
+            IconButton(onClick = { menu = true }, modifier = Modifier.padding(end = 4.dp).semantics { contentDescription = moreFor }) {
                 Box(Modifier.size(40.dp).background(if (selected) colors.surfaceContainerHigh else colors.surfaceContainer, CircleShape), contentAlignment = Alignment.Center) {
                     Icon(Icons.More, contentDescription = null)
                 }
@@ -309,13 +315,13 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
         BannerArt(item.entry, Modifier.fillMaxWidth().height(300.dp).clip(ArtShape.banner))
         Text(item.entry.showTitle, style = ShowTitle.page, modifier = Modifier.padding(top = 16.dp))
         item.entry.alternateTitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant) }
-        if (item.entry.metadataLine.isNotEmpty()) {
-            Text(item.entry.metadataLine, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+        if (item.entry.metadataLine(LocalContext.current).isNotEmpty()) {
+            Text(item.entry.metadataLine(LocalContext.current), style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
         }
         Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(name?.let { "Episode ${item.episode} · $it" } ?: "Episode ${item.episode}", style = MaterialTheme.typography.bodyMedium)
-                item.minutesLeft?.let { Text("$it min left", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant) }
+                Text(name?.let { stringResource(R.string.episode_with_title, item.episode.toInt(), it) } ?: stringResource(R.string.episode_number, item.episode.toInt()), style = MaterialTheme.typography.bodyMedium)
+                item.minutesLeft?.let { Text(stringResource(R.string.time_minutes_left, it), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant) }
             }
             item.fraction?.let {
                 LinearProgressIndicator(
@@ -338,10 +344,10 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(item.action, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.actionText(), style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             FilledTonalButton(onClick = { navigator.openTitle(item.id, "preview") }, contentPadding = PaddingValues(horizontal = 24.dp)) {
-                Text("Episodes", maxLines = 1, softWrap = false)
+                Text(stringResource(R.string.title_episodes), maxLines = 1, softWrap = false)
             }
         }
         upNext?.let { row ->
@@ -358,7 +364,7 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
                 Column {
                     row.title?.let { Text(it, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     Text(
-                        listOfNotNull("E${row.number}", "Up next", minutes(row)).joinToString(" · "),
+                        listOfNotNull(stringResource(R.string.episode_number_short, row.number.toInt()), stringResource(R.string.player_up_next), minutes(LocalContext.current, row)).joinToString(" · "),
                         style = MaterialTheme.typography.bodyMedium.tabular(),
                         color = colors.onSurfaceVariant,
                         maxLines = 1,
@@ -372,7 +378,7 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
         }
         if (item.entry.availableOn.isNotEmpty()) {
             Text(
-                "Also on " + item.entry.availableOn.joinToString(", "),
+                stringResource(R.string.title_facts_also_on) + " " + item.entry.availableOn.joinToString(", "), // i18n-skip
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),

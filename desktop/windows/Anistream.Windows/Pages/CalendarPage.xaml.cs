@@ -326,7 +326,7 @@ public sealed partial class CalendarPage : Page
         if (ctx.Known.CalendarAnchor is { } anchor && morePast && !askingPast)
         {
             askingPast = true;
-            ctx.Send(new Command.LoadCalendarPast(anchor, pages));
+            ctx.Send(new Command.LoadCalendarPast(anchor, pages, null));
         }
         Show();
     }

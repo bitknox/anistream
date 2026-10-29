@@ -65,6 +65,13 @@ import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.ProviderStanding
 import tv.anistream.store.SourceOrder
 import tv.anistream.store.standing
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalContext
+import tv.anistream.i18n.Strings
+import android.content.Context
+import tv.anistream.store.firstClause
 
 internal const val PROVIDERS_ROUTE = "providers"
 
@@ -80,23 +87,23 @@ internal fun NavGraphBuilder.providerPages(actions: AppActions) {
 }
 
 /** What Providers says of a source: its name, and the quiet line under it. */
-internal data class ProviderInfo(val row: ProviderRow) {
+internal data class ProviderInfo(val row: ProviderRow, val context: Context) {
     val isTorrent get() = row.kind == "torrent"
     val isPlugin get() = row.kind == "plugin"
 
     val name: String
         get() = when (row.kind) {
-            "torrent" -> "Torrents"
-            "remote" -> "Remote"
+            "torrent" -> Strings.sourcesTorrents(context)
+            "remote" -> Strings.sourcesRemote(context)
             else -> row.name.ifEmpty { row.id }
         }
 
     /** "Hotaru Plugins", "Added by hand", "Built in". */
     val origin: String
         get() = when (val origin = row.origin) {
-            is ProviderOrigin.Store -> origin.name ?: "A store you left"
-            ProviderOrigin.ByHand -> "Added by hand"
-            ProviderOrigin.BuiltIn -> if (row.kind == "remote") "Set in the config file" else "Built in"
+            is ProviderOrigin.Store -> origin.name ?: Strings.sourcesOriginLeftStore(context)
+            ProviderOrigin.ByHand -> Strings.sourcesOriginByHand(context)
+            ProviderOrigin.BuiltIn -> if (row.kind == "remote") Strings.sourcesOriginConfig(context) else Strings.sourcesOriginBuiltIn(context)
         }
 
     /**
@@ -104,10 +111,10 @@ internal data class ProviderInfo(val row: ProviderRow) {
      * said to be failing: the one offline line says why nothing answers.
      */
     fun state(offline: Boolean): Pair<String, StateKind>? = when {
-            row.disabled -> "Off" to StateKind.Off
-            row.standing == ProviderStanding.Failing && !offline -> "Not answering" to StateKind.Problem
-            row.standing == ProviderStanding.HeldBack -> "Held back" to StateKind.Off
-            row.update != null -> "Update available" to StateKind.Update
+            row.disabled -> Strings.valueOff(context) to StateKind.Off
+            row.standing == ProviderStanding.Failing && !offline -> Strings.sourcesStatusNotAnswering(context) to StateKind.Problem
+            row.standing == ProviderStanding.HeldBack -> Strings.sourcesStatusHeldBack(context) to StateKind.Off
+            row.update != null -> Strings.sourcesStatusUpdate(context) to StateKind.Update
             else -> null
         }
 
@@ -131,12 +138,12 @@ internal fun ProvidersScreen() {
     val order = view?.sources?.order.orEmpty()
     val sorted = SourceOrder.sorted(rows, order)
     ScreenFrame(
-        title = "Providers",
+        title = stringResource(R.string.sources_title),
         onBack = navigator::back,
         actions = {
             if (sorted.size > 1) {
                 IconButton(onClick = { editing = !editing }) {
-                    Icon(if (editing) Icons.Check else Icons.Reorder, contentDescription = if (editing) "Done" else "Reorder")
+                    Icon(if (editing) Icons.Check else Icons.Reorder, contentDescription = stringResource(if (editing) R.string.action_done else R.string.sources_reorder))
                 }
             }
         },
@@ -152,9 +159,9 @@ internal fun ProvidersScreen() {
             when {
                 !loaded -> PlaceholderRows()
                 sorted.isEmpty() -> EmptyState(
-                    title = "No sources yet",
-                    line = "Sources come as plugins from a plugin store. $LEGAL_LINE",
-                    action = "Join a plugin store",
+                    title = stringResource(R.string.sources_empty_title),
+                    line = stringResource(R.string.sources_empty_detail),
+                    action = stringResource(R.string.stores_join_action),
                     onAction = { store.stores.openJoin() },
                 )
                 else -> {
@@ -168,10 +175,9 @@ internal fun ProvidersScreen() {
                         SourceOrder.movedTo(order, sorted, id, target)?.let { store.setSetting(SettingKey.SOURCE_ORDER, SettingValue.Strings(it)) }
                     }
                     SettingsFootnote(
-                        if (editing) "Drag a source by its handle to change when it is tried."
-                        else "Sources are tried top to bottom. To change the order, tap Reorder in the top bar.",
+                        stringResource(if (editing) R.string.sources_drag_hint else R.string.sources_order_detail),
                     )
-                    SettingsFootnote(LEGAL_LINE)
+                    SettingsFootnote(stringResource(R.string.legal_hosts_no_content))
                 }
             }
         }
@@ -201,10 +207,12 @@ private fun SourceList(
     var offset by remember { mutableFloatStateOf(0f) }
     var target by remember { mutableStateOf(-1) }
     val gap = with(androidx.compose.ui.platform.LocalDensity.current) { 2.dp.toPx() }
+    val moveUp = stringResource(R.string.sources_move_up)
+    val moveDown = stringResource(R.string.sources_move_down)
 
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         rows.forEachIndexed { index, row ->
-            val info = ProviderInfo(row)
+            val info = ProviderInfo(row, LocalContext.current)
             val from = rows.indexOfFirst { it.id == dragging }
             // Where this row sits while another is dragged past it: one row's height up or down.
             val shift = when {
@@ -214,7 +222,7 @@ private fun SourceList(
                 else -> 0f
             }
             // Read where it is placed, not here, so making way moves the row and composes nothing.
-            val shiftPx = animateFloatAsState(shift, animationSpec = tv.anistream.design.Motion.standard(), label = "shift")
+            val shiftPx = animateFloatAsState(shift, animationSpec = tv.anistream.design.Motion.standard(), label = "shift") // i18n-skip
             val lifted = dragging == row.id
             Box(
                 Modifier
@@ -224,8 +232,8 @@ private fun SourceList(
                     .offset { IntOffset(0, if (lifted) 0 else shiftPx.value.roundToInt()) }
                     .semantics {
                         customActions = listOfNotNull(
-                            if (index > 0) CustomAccessibilityAction("Move up") { move(row.id, index - 1); true } else null,
-                            if (index < rows.lastIndex) CustomAccessibilityAction("Move down") { move(row.id, index + 1); true } else null,
+                            if (index > 0) CustomAccessibilityAction(moveUp) { move(row.id, index - 1); true } else null,
+                            if (index < rows.lastIndex) CustomAccessibilityAction(moveDown) { move(row.id, index + 1); true } else null,
                         )
                     },
             ) {
@@ -315,6 +323,8 @@ private fun ProviderListRow(
 ) {
     val colors = MaterialTheme.colorScheme
     val on = !info.row.disabled
+    val moveLabel = stringResource(R.string.sources_move, info.name)
+    val useLabel = stringResource(R.string.sources_use, info.name)
     // Lifted by its handle, the row rises a container role, not onto a shadow.
     RowFrame(
         place,
@@ -347,14 +357,14 @@ private fun ProviderListRow(
                 Box(
                     handle
                         .size(48.dp)
-                        .semantics { contentDescription = "Move ${info.name}" },
+                        .semantics { contentDescription = moveLabel },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(Icons.DragHandle, contentDescription = null, tint = colors.onSurfaceVariant)
                 }
             } else if (info.isPlugin || info.isTorrent) {
                 Box(
-                    Modifier.semantics(mergeDescendants = true) { contentDescription = "Use ${info.name}" },
+                    Modifier.semantics(mergeDescendants = true) { contentDescription = useLabel },
                 ) {
                     androidx.compose.material3.Switch(
                         checked = switchOn,
@@ -396,8 +406,9 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
     }
     var removing by remember { mutableStateOf(false) }
     var updating by remember { mutableStateOf(false) }
-    val info = row?.let(::ProviderInfo)
-    ScreenFrame(title = info?.name ?: "Provider", subtitle = info?.let { if (it.isPlugin && it.row.origin is ProviderOrigin.Store) "From ${it.origin}" else it.origin }, onBack = navigator::back) { padding ->
+    val context = LocalContext.current
+    val info = row?.let { ProviderInfo(it, context) }
+    ScreenFrame(title = info?.name ?: stringResource(R.string.sources_fallback_title), subtitle = info?.let { if (it.isPlugin && it.row.origin is ProviderOrigin.Store) stringResource(R.string.sources_origin_from, it.origin) else it.origin }, onBack = navigator::back) { padding ->
         if (info == null) return@ScreenFrame
         Column(
             Modifier
@@ -408,7 +419,7 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
                 .readingWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            stateLine(info, offline)?.let { (text, problem) ->
+            stateLine(LocalContext.current, info, offline)?.let { (text, problem) ->
                 Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     StateDot(if (problem) MaterialTheme.colorScheme.error else null)
                     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -416,7 +427,7 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
             }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 info.row.update?.let { update ->
-                    Button(onClick = { updating = true }) { Text("Update to ${update.version}") }
+                    Button(onClick = { updating = true }) { Text(stringResource(R.string.updates_update_to, update.version)) }
                 }
                 val silk = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
                 if (info.row.standing == ProviderStanding.Failing && !offline) {
@@ -430,36 +441,42 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             WorkRing(checking)
-                            Text("Check again")
+                            Text(stringResource(R.string.action_check_again))
                         }
                     }
                 }
-                if (info.isPlugin) OutlinedButton(onClick = { removing = true }, colors = silk) { Text("Remove") }
+                if (info.isPlugin) OutlinedButton(onClick = { removing = true }, colors = silk) { Text(stringResource(R.string.action_remove)) }
             }
             if (info.isPlugin) {
                 SettingsGroup(
-                    footer = "${info.name} can contact only these hosts and cannot read your files.",
+                    footer = stringResource(R.string.stores_plugin_limits),
                     rows = listOf(
-                        { place -> SwitchRow(place, "Use ${info.name}", checked = !info.row.disabled) { store.disablePlugin(info.row.id, disabled = !it) } },
+                        { place -> SwitchRow(place, stringResource(R.string.sources_use, info.name), checked = !info.row.disabled) { store.disablePlugin(info.row.id, disabled = !it) } },
                         { place ->
                             InfoRow(
                                 place,
-                                "Version",
-                                listOfNotNull(info.row.version ?: "Not from a store", info.row.update?.let { "${it.version} available" }).joinToString(" · "),
+                                stringResource(R.string.sources_version),
+                                listOfNotNull(info.row.version ?: stringResource(R.string.sources_origin_no_store), info.row.update?.let { stringResource(R.string.sources_version_available, it.version) }).joinToString(" · "), // i18n-skip
                             )
                         },
                         { place ->
                             InfoRow(
                                 place,
-                                "Response time",
+                                stringResource(R.string.sources_response_time),
                                 when {
-                                    info.row.standing == ProviderStanding.Failing && !offline -> "No answer"
-                                    info.row.latencyMs != null -> "${info.row.latencyMs} ms"
-                                    else -> "Not checked yet"
+                                    info.row.standing == ProviderStanding.Failing && !offline -> stringResource(R.string.sources_no_answer)
+                                    info.row.latencyMs != null -> stringResource(R.string.sources_response_ms, info.row.latencyMs!!.toInt())
+                                    else -> stringResource(R.string.sources_not_checked)
                                 },
                             )
                         },
-                        { place -> InfoRow(place, "Contacts", info.row.hosts.ifEmpty { listOf("No hosts") }.joinToString("\n")) },
+                        { place ->
+                            InfoRow(
+                                place,
+                                stringResource(R.string.sources_contacts_label),
+                                info.row.hosts.ifEmpty { listOf(stringResource(R.string.sources_no_hosts)) }.joinToString("\n"), // i18n-skip
+                            )
+                        },
                     ),
                 )
             }
@@ -468,16 +485,16 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
     if (removing && info != null) {
         AlertDialog(
             onDismissRequest = { removing = false },
-            title = { Text("Remove ${info.name}?") },
-            text = { Text("It is deleted from this device. A store can install it again.") },
+            title = { Text(stringResource(R.string.stores_remove_plugin_title, info.name)) },
+            text = { Text(stringResource(R.string.stores_remove_plugin_detail)) },
             confirmButton = {
-                QuietButton("Remove") {
+                QuietButton(stringResource(R.string.action_remove)) {
                     removing = false
                     store.removePlugin(info.row.id)
                     navigator.back()
                 }
             },
-            dismissButton = { QuietButton("Cancel") { removing = false } },
+            dismissButton = { QuietButton(stringResource(R.string.action_cancel)) { removing = false } },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         )
     }
@@ -494,11 +511,12 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
 }
 
 /** The page's state line. The engine's error goes to Messages whole; the page says it plainly. */
-private fun stateLine(info: ProviderInfo, offline: Boolean): Pair<String, Boolean>? = when {
-    info.row.disabled -> "Off. It keeps its place and is not tried until it is on again." to false
+private fun stateLine(context: Context, info: ProviderInfo, offline: Boolean): Pair<String, Boolean>? = when {
+    info.row.disabled -> Strings.sourcesDetailOff(context) to false
     info.row.standing == ProviderStanding.Failing && offline -> null
-    info.row.standing == ProviderStanding.Failing -> ("Not answering." + (info.row.lastError?.let { " ${providerReason(it)}" } ?: "")) to true
-    info.row.standing == ProviderStanding.HeldBack -> "Held back until the connection check passes." to false
+    info.row.standing == ProviderStanding.Failing ->
+        (info.row.lastError?.let { Strings.sourcesDetailNotAnswering(context, providerReason(context, it)) } ?: Strings.sourcesDetailNotAnsweringPlain(context)) to true
+    info.row.standing == ProviderStanding.HeldBack -> Strings.sourcesDetailHeldBack(context) to false
     else -> null
 }
 
@@ -518,31 +536,31 @@ internal fun UpdateDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Update $plugin?") },
+        title = { Text(stringResource(R.string.sources_update_title, plugin)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Version $to from $storeName" + (from?.let { " replaces $it." } ?: "."))
+                Text(if (from != null) stringResource(R.string.sources_update_detail, to, storeName, from) else stringResource(R.string.sources_update_from, to, storeName))
                 if (newHosts.isNotEmpty()) {
-                    Text("This update also contacts ${newHosts.joinToString(", ")}.")
+                    Text(if (newHosts.size == 1) stringResource(R.string.sources_update_contacts_one, newHosts.first()) else pluralStringResource(R.plurals.sources_update_contacts, newHosts.size - 1, newHosts.first(), newHosts.size - 1))
                 }
             }
         },
-        confirmButton = { Button(onClick = onUpdate) { Text("Update") } },
-        dismissButton = { QuietButton("Cancel", onClick = onDismiss) },
+        confirmButton = { Button(onClick = onUpdate) { Text(stringResource(R.string.action_update)) } },
+        dismissButton = { QuietButton(stringResource(R.string.action_cancel), onClick = onDismiss) },
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     )
 }
 
-/** A provider's error in plain words: what kind of failure it was, never the request chain. */
-internal fun providerReason(raw: String): String {
+/** A source's error in plain words: what kind of failure it was, never the request chain. */
+internal fun providerReason(context: Context, raw: String): String {
     val lower = raw.lowercase(java.util.Locale.ROOT)
     return when {
-        "timed out" in lower || "timeout" in lower -> "It took too long to answer."
-        "429" in lower || "too many requests" in lower -> "It is busy. Try again in a minute."
-        Regex("\\b5\\d\\d\\b").containsMatchIn(lower) -> "It had a problem."
-        Regex("\\b40[34]\\b").containsMatchIn(lower) -> "It turned the request away."
-        "dns" in lower || "resolve" in lower -> "Its address could not be found."
-        "error sending request" in lower || "connect" in lower -> "It could not be reached."
-        else -> firstClause(raw)
+        "timed out" in lower || "timeout" in lower -> Strings.reasonSourceTimeout(context)
+        "429" in lower || "too many requests" in lower -> Strings.reasonSourceBusy(context)
+        Regex("\\b5\\d\\d\\b").containsMatchIn(lower) -> Strings.reasonSourceProblem(context)
+        Regex("\\b40[34]\\b").containsMatchIn(lower) -> Strings.reasonSourceTurnedAway(context)
+        "dns" in lower || "resolve" in lower -> Strings.reasonSourceNoAddress(context)
+        "error sending request" in lower || "connect" in lower -> Strings.reasonSourceUnreachable(context)
+        else -> firstClause(context, raw)
     }
 }

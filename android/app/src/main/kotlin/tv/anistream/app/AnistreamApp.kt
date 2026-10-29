@@ -2,6 +2,7 @@
 
 package tv.anistream.app
 
+import tv.anistream.i18n.Strings
 import android.app.Application
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -223,7 +224,7 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
             val browser = Flavour.tvBrowser(this@AnistreamApp, store) ?: return@launch
             val tablet = resources.configuration.smallestScreenWidthDp >= 600
             val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: "0"
-            if (!store.startTv(browser, if (tablet) "Android tablet" else "Android phone", "anistream-android/$version")) return@launch
+            if (!store.startTv(browser, if (tablet) Strings.deviceNameTablet(this@AnistreamApp) else Strings.deviceNamePhone(this@AnistreamApp), "anistream-android/$version")) return@launch
             store.tv.handedOff = { player.viewerClosed() }
             tvConnection = TvConnection(this@AnistreamApp, store.tv, scope)
         }

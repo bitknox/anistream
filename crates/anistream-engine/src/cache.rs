@@ -140,6 +140,7 @@ impl TitleCache {
             }
             Event::Content { content: ContentList::Entries(entries), .. }
             | Event::CalendarBackfill { entries, .. }
+            | Event::CalendarAhead { entries, .. }
             | Event::SearchMore { entries, .. } => {
                 entries.iter().for_each(|entry| self.know(entry));
                 None

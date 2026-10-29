@@ -43,9 +43,9 @@ class UpdateJob : JobService() {
             updates.run(HttpApkFetch(plainHttp = BuildConfig.UPDATE_TEST))
             shown.cancel()
             val end = when (val state = updates.state.value) {
-                is UpdateState.Installing -> "with the installer"
-                is UpdateState.Failed -> "failed: ${state.failure}"
-                else -> "cancelled"
+                is UpdateState.Installing -> "with the installer" // i18n-skip
+                is UpdateState.Failed -> "failed: ${state.failure}" // i18n-skip
+                else -> "cancelled" // i18n-skip
             }
             Log.i(AnistreamApp.TAG, "update: the job ends, $end")
             jobFinished(params, false)

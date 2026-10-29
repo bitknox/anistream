@@ -4,6 +4,9 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.padding
@@ -32,14 +35,16 @@ internal class ContinueMenuActions(
     val open: () -> Unit,
     val hide: () -> Unit,
     val drop: () -> Unit,
+    val hideLabel: String,
+    val dropLabel: String,
 ) {
     /** The menu's items as TalkBack's actions on the row. */
     val accessibility: List<CustomAccessibilityAction>
         get() = listOfNotNull(
             play?.let { CustomAccessibilityAction(playLabel) { it(); true } },
             CustomAccessibilityAction(markLabel) { markWatched(); true },
-            CustomAccessibilityAction("Hide from Continue") { hide(); true },
-            CustomAccessibilityAction("Drop") { drop(); true },
+            CustomAccessibilityAction(hideLabel) { hide(); true },
+            CustomAccessibilityAction(dropLabel) { drop(); true },
         )
 }
 
@@ -51,16 +56,18 @@ internal fun continueMenuActions(item: ContinueItem, actions: AppActions, from: 
     val haptics = LocalHapticFeedback.current
     return ContinueMenuActions(
         play = if (item.playable) ({ actions.play(item.id, item.episode.toString()) }) else null,
-        playLabel = item.action,
+        playLabel = item.actionText(),
         markWatched = {
             // Marked watched from the queue plays T9's toggle, as from the title page.
             haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
             store.setWatched(item.id, listOf(item.episode.toString()))
         },
-        markLabel = "Mark E${item.episode} watched",
+        markLabel = stringResource(R.string.episode_mark_n_watched, item.episode.toInt()),
         open = { navigator.openTitle(item.id, from) },
         hide = { hide?.invoke(item) ?: store.hideFromContinue(item.id) },
         drop = { store.setStatus(item.id, LibrarySegment.DROPPED) },
+        hideLabel = stringResource(R.string.continue_hide),
+        dropLabel = stringResource(R.string.continue_drop),
     )
 }
 
@@ -80,18 +87,18 @@ internal fun ContinueMenu(menu: ContinueMenuActions, expanded: Boolean, onDismis
             onClick = { onDismiss(); menu.markWatched() },
         )
         DropdownMenuItem(
-            text = { Text("Go to title") },
+            text = { Text(stringResource(R.string.continue_go_to_title)) },
             leadingIcon = { Icon(Icons.External, contentDescription = null) },
             onClick = { onDismiss(); menu.open() },
         )
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
         DropdownMenuItem(
-            text = { Text("Hide from Continue") },
+            text = { Text(stringResource(R.string.continue_hide)) },
             leadingIcon = { Icon(Icons.HideRow, contentDescription = null) },
             onClick = { onDismiss(); menu.hide() },
         )
         DropdownMenuItem(
-            text = { Text("Drop") },
+            text = { Text(stringResource(R.string.continue_drop)) },
             leadingIcon = { Icon(Icons.Clear, contentDescription = null) },
             onClick = { onDismiss(); menu.drop() },
         )
@@ -109,8 +116,8 @@ internal fun Modifier.openOrMenu(menu: ContinueMenuActions, onMenu: () -> Unit):
     return this
         .semantics { customActions = menu.accessibility }
         .combinedClickable(
-            onClickLabel = "Open title",
-            onLongClickLabel = "More",
+            onClickLabel = stringResource(R.string.title_open),
+            onLongClickLabel = stringResource(R.string.action_more),
             onLongClick = {
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 onMenu()
@@ -127,8 +134,8 @@ internal fun Modifier.openOrMenu(menu: ContinueMenuActions, onMenu: () -> Unit):
 internal fun SwipeRow(item: ContinueItem, actions: AppActions, leave: (ContinueItem) -> Unit, content: @Composable () -> Unit) {
     val menu = continueMenuActions(item, actions, "new", hide = leave)
     Swipeable(
-        start = SwipeAction("Watched", Icons.Check, menu.markWatched),
-        end = SwipeAction("Hide", Icons.HideRow, menu.hide),
+        start = SwipeAction(stringResource(R.string.episode_watched), Icons.Check, menu.markWatched),
+        end = SwipeAction(stringResource(R.string.filter_hide), Icons.HideRow, menu.hide),
         content = content,
     )
 }

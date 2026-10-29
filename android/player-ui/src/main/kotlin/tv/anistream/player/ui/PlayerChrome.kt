@@ -4,6 +4,10 @@
 
 package tv.anistream.player.ui
 
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.togetherWith
@@ -129,7 +133,7 @@ private fun TopBar(
     modifier: Modifier,
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ControlButton(PlayerIcons.Back, "Back", onClick = onClose)
+        ControlButton(PlayerIcons.Back, stringResource(R.string.action_back), onClick = onClose)
         Column(Modifier.weight(1f)) {
             Text(
                 model.showTitle,
@@ -140,11 +144,11 @@ private fun TopBar(
             )
             // Into the next episode, the line crossfades on standard (T5).
             androidx.compose.animation.AnimatedContent(
-                model.episodeLine,
+                model.episodeLine(LocalContext.current),
                 transitionSpec = {
                     androidx.compose.animation.fadeIn(Motion.standard()) togetherWith androidx.compose.animation.fadeOut(Motion.standard())
                 },
-                label = "episode line",
+                label = "episode line", // i18n-skip
             ) { line ->
                 Text(
                     line,
@@ -155,9 +159,9 @@ private fun TopBar(
                 )
             }
         }
-        onPlayOnTv?.let { ControlButton(PlayerIcons.Tv, "Play on TV", onClick = it) }
-        ControlButton(PlayerIcons.Subtitles, "Subtitles, audio and picture", onClick = onTracks)
-        ControlButton(PlayerIcons.Episodes, "Episodes", onClick = onEpisodes)
+        onPlayOnTv?.let { ControlButton(PlayerIcons.Tv, stringResource(R.string.tv_play_on), onClick = it) }
+        ControlButton(PlayerIcons.Subtitles, stringResource(R.string.player_subtitles_audio_picture), onClick = onTracks)
+        ControlButton(PlayerIcons.Episodes, stringResource(R.string.player_episodes), onClick = onEpisodes)
     }
 }
 
@@ -166,13 +170,13 @@ private fun BottomBar(model: PlayerModel, preview: SeekPreview?, modifier: Modif
     val time = MaterialTheme.typography.labelLarge.tabular().copy(shadow = ControlShadow)
     val duration = model.duration ?: 0.0
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        StepButton(PlayerIcons.Replay, "Back 10 seconds") { model.seekBy(-10.0) }
+        StepButton(PlayerIcons.Replay, stringResource(R.string.player_back_10)) { model.seekBy(-10.0) }
         Spacer(Modifier.width(4.dp))
-        ControlButton(if (model.paused) PlayerIcons.Play else PlayerIcons.Pause, if (model.paused) "Play" else "Pause", size = 32.dp) {
+        ControlButton(if (model.paused) PlayerIcons.Play else PlayerIcons.Pause, stringResource(if (model.paused) R.string.action_play else R.string.action_pause), size = 32.dp) {
             model.togglePause()
         }
         Spacer(Modifier.width(4.dp))
-        StepButton(PlayerIcons.Forward, "Forward 10 seconds") { model.seekBy(10.0) }
+        StepButton(PlayerIcons.Forward, stringResource(R.string.player_forward_10)) { model.seekBy(10.0) }
         Spacer(Modifier.width(8.dp))
         Text(PlayerClock.label(model.position), style = time, color = ObiSilk.Silk, modifier = Modifier.width(44.dp))
         SeekSlider(model, preview, Modifier.weight(1f).padding(horizontal = 12.dp))
@@ -223,8 +227,8 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
     val pressed by touch.collectIsPressedAsState()
     val dragged by touch.collectIsDraggedAsState()
     val active = pressed || dragged
-    val trackHeight by animateDpAsState(if (active) 24.dp else 16.dp, Motion.quick(), label = "track")
-    val handleWidth by animateDpAsState(if (active) 2.dp else 4.dp, label = "handle")
+    val trackHeight by animateDpAsState(if (active) 24.dp else 16.dp, Motion.quick(), label = "track") // i18n-skip
+    val handleWidth by animateDpAsState(if (active) 2.dp else 4.dp, label = "handle") // i18n-skip
     val duration = model.duration?.takeIf { it > 0 } ?: 1.0
     // The stretches as a value that changes only with the chapters or the length, not with each
     // tick of the position, so the tick below is not started again and the track can skip.
@@ -236,8 +240,9 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
             .drop(1)
             .collect { if (model.scrubbing != null) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick) }
     }
+    val positionLabel = stringResource(R.string.player_position)
     val label = buildString {
-        append("${PlayerClock.label(model.position)} of ${PlayerClock.label(duration)}")
+        append(Strings.playerPositionState(LocalContext.current, PlayerClock.label(model.position), PlayerClock.label(duration)))
         model.chapter(model.position)?.let { append(", $it") }
     }
     val state = remember(duration) { SliderState(0f, 0, 0f..duration.toFloat()) }
@@ -255,6 +260,8 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
     var fingerY by remember { mutableFloatStateOf(0f) }
     var lastRaw by remember { mutableStateOf<Float?>(null) }
     val above = with(density) { -fingerY.toDp() }
+    val quarterSpeed = stringResource(R.string.player_scrub_quarter)
+    val halfSpeed = stringResource(R.string.player_scrub_half)
     val scale = when {
         above >= 96.dp -> 0.25f
         above >= 48.dp -> 0.5f
@@ -272,8 +279,8 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
             label = buildString {
                 append(PlayerClock.label(scrubbing))
                 when (scale) {
-                    0.25f -> append(" · Quarter-speed scrubbing")
-                    0.5f -> append(" · Half-speed scrubbing")
+                    0.25f -> append(" · ").append(quarterSpeed)
+                    0.5f -> append(" · ").append(halfSpeed)
                     else -> model.chapter(scrubbing)?.takeIf { model.segments.any { s -> s.kind != SeekSegment.Kind.Plain && scrubbing >= s.start && scrubbing < s.end } }
                         ?.let { append(" · $it") }
                 }
@@ -310,7 +317,7 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
                 }
             }
         }.semantics {
-            contentDescription = "Position"
+            contentDescription = positionLabel
             stateDescription = label
         },
         thumb = {

@@ -372,3 +372,36 @@ widget-start-label = Play episode { $episode } of { $title }
 # @arg episode: int
 # @arg title: text
 widget-resume-dubbed-label = Resume episode { $episode }, { -dubbed }, of { $title }
+
+# Line under a signed-in account while changes wait to be sent.
+# @arg count: int
+accounts-changes-waiting = { $count ->
+    [one] One change waiting to sync
+   *[other] { $count } changes waiting to sync
+ }
+
+# Choice for the download quality: larger files with more detail.
+# @max 16
+settings-quality-higher = Higher
+
+# Choice for the download quality: the usual size.
+# @max 16
+settings-quality-standard = Standard
+
+# Value of the upload limit setting when there is no limit.
+# @max 16
+settings-upload-unlimited = Unlimited
+
+# Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+# @max 28
+settings-upscaling-natural = Natural · ArtCNN
+
+# Preview note under the upscaling frame for the natural look.
+settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
+
+# Preview note under the upscaling frame for the sharp look.
+settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
+
+# Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+# @max 28
+settings-upscaling-sharp = Sharp · Anime4K

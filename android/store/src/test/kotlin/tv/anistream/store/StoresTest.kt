@@ -1,6 +1,10 @@
 package tv.anistream.store
 
 import kotlinx.coroutines.Dispatchers
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -22,7 +26,10 @@ import tv.anistream.engine.model.StorePluginStatus
 
 /** Invite links as the app is handed them, and joining a store with one. */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class StoresTest {
+    private val context = RuntimeEnvironment.getApplication()
     private val main = UnconfinedTestDispatcher()
     private lateinit var store: AppStore
 
@@ -70,14 +77,14 @@ class StoresTest {
     @Test
     fun a_preview_says_who_runs_the_store_and_where_each_plugin_stands() {
         val invited = InvitedStore(link = https, name = "Hotaru Plugins", url = "https://plugins.example", host = "plugins.example", fingerprint = "9f3c 1a2b 77de 0c41", alreadyJoined = false)
-        assertEquals("plugins.example", invited.runByLine)
-        assertEquals("Run by Ren, Sora · plugins.example", invited.copy(owners = listOf("Ren", "Sora")).runByLine)
+        assertEquals("plugins.example", invited.runByLine(context))
+        assertEquals("Run by Ren and Sora · plugins.example", invited.copy(owners = listOf("Ren", "Sora")).runByLine(context))
         val row = StorePluginRow(id = "a", name = "A", version = "2.0.0", hosts = listOf("a.example"), status = StorePluginStatus.Available)
-        assertNull(row.standing)
-        assertEquals("Installed", row.copy(status = StorePluginStatus.Installed).standing)
-        assertEquals("1.4.0 installed", row.copy(status = StorePluginStatus.Update("1.4.0", emptyList())).standing)
-        assertEquals("Added by hand", row.copy(status = StorePluginStatus.AddedByHand).standing)
-        assertEquals("From Kumo", row.copy(status = StorePluginStatus.OtherStore("Kumo")).standing)
+        assertNull(row.standing(context))
+        assertEquals("Installed", row.copy(status = StorePluginStatus.Installed).standing(context))
+        assertEquals("Version 1.4.0 installed, 2.0.0 available", row.copy(status = StorePluginStatus.Update("1.4.0", emptyList())).standing(context))
+        assertEquals("Added by hand", row.copy(status = StorePluginStatus.AddedByHand).standing(context))
+        assertEquals("From Kumo", row.copy(status = StorePluginStatus.OtherStore("Kumo")).standing(context))
     }
 
     @Test

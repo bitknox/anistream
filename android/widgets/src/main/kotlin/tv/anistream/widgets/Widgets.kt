@@ -117,7 +117,7 @@ class RedrawWork(context: Context, params: WorkerParameters) : CoroutineWorker(c
     override suspend fun doWork(): Result {
         val host = widgetHost(applicationContext)
         val data = host?.widgetRecord?.value
-        if (WidgetModel.airing(data?.let(Record::of), AppClock.now(), AppClock.zone) == AiringView.NoSchedule) {
+        if (WidgetModel.airing(data?.let(Record::of), AppClock.now(), AppClock.zone, Words(applicationContext)) == AiringView.NoSchedule) {
             host?.refreshWidgetRecord()
         }
         Widgets.update(applicationContext, data)

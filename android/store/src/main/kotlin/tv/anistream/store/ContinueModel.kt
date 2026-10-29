@@ -2,15 +2,17 @@
 
 package tv.anistream.store
 
+import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import tv.anistream.engine.core.AnilistId
-import tv.anistream.engine.ffi.episodeLine
+import tv.anistream.engine.core.Translation
 import tv.anistream.engine.model.ContentList
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.engine.model.ResumePoint
+import tv.anistream.i18n.Strings
 
 /** One row of the queue: a title and the episode it plays next. */
 data class ContinueItem(
@@ -39,23 +41,30 @@ data class ContinueItem(
     val playable: Boolean get() = airing.hasAired && !unsourced
 
     /**
-     * What the row says it plays: "Resume E7 · 10:06", "Start E4", "Start E9 · out 2h ago", or
+     * What the row says it plays: "Continue E7 · 10:06", "Play E4", "Play E9 · out 2h ago", or
      * with nothing out to watch, "Caught up · E9 Saturday 18:30".
      */
-    val action: String
-        get() = when {
-            resume != null -> "Resume $shortEpisode · ${resume.clock()}"
-            unsourced -> shortEpisode
-            !playable -> "Caught up · E$episode " + (airing.airs() ?: "not out yet")
-            airedAgo != null -> "Start $shortEpisode · out ${Wording.ago(airedAgo)}"
-            else -> "Start $shortEpisode"
+    fun action(context: Context): String {
+        val dubbed = entry.watchedIn == Translation.DUB
+        return when {
+            resume != null ->
+                if (dubbed) Strings.continueRowResumeDubbed(context, episode.toInt(), resume.clock()) else Strings.continueRowResume(context, episode.toInt(), resume.clock())
+            unsourced -> shortEpisode(context)
+            !playable -> airing.airs()?.let { Strings.continueRowCaughtUp(context, episode.toInt(), it) } ?: Strings.continueRowCaughtUpPlain(context)
+            airedAgo != null ->
+                if (dubbed) Strings.continueRowStartAiredDubbed(context, episode.toInt(), Wording.ago(context, airedAgo))
+                else Strings.continueRowStartAired(context, episode.toInt(), Wording.ago(context, airedAgo))
+            else -> if (dubbed) Strings.continueRowStartDubbed(context, episode.toInt()) else Strings.continueRowStart(context, episode.toInt())
         }
+    }
 
-    /** "E7", or "E7 · Dub" for a title last watched dubbed: only a dub is marked, by the engine's rule. */
-    val shortEpisode: String get() = episodeLine("E$episode", entry.watchedIn)
+    /** "E7", or "E7 · Dubbed" for a title last watched dubbed: only a dub is marked, by the engine's rule. */
+    fun shortEpisode(context: Context): String =
+        if (entry.watchedIn == Translation.DUB) Strings.episodeShortDubbed(context, episode.toInt()) else Strings.episodeNumberShort(context, episode.toInt())
 
-    /** "Episode 7", or "Episode 7 · Dub": the long form, for the lines that name the episode. */
-    val longEpisode: String get() = episodeLine("Episode $episode", entry.watchedIn)
+    /** "Episode 7", or "Episode 7 · Dubbed": the long form, for the lines that name the episode. */
+    fun longEpisode(context: Context): String =
+        if (entry.watchedIn == Translation.DUB) Strings.episodeLongDubbed(context, episode.toInt()) else Strings.episodeNumber(context, episode.toInt())
 
     /** How far into the episode, for the row's meter, when it was left part-way. */
     val fraction: Double? get() = resume?.fraction

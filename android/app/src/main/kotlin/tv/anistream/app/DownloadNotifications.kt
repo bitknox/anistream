@@ -5,6 +5,7 @@
 
 package tv.anistream.app
 
+import tv.anistream.i18n.Strings
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -42,7 +43,7 @@ class DownloadNotifier(private val context: Context, private val sdk: Int = Buil
     /** What the job says the moment it starts, before the queue is known. */
     fun starting(): Notification = frame()
         .setContentTitle(context.getString(R.string.downloads_channel))
-        .setContentText("Starting")
+        .setContentText(Strings.downloadsNoticeStarting(context))
         .setProgress(0, 0, true)
         .build()
 
@@ -86,8 +87,8 @@ class DownloadNotifier(private val context: Context, private val sdk: Int = Buil
         .setSmallIcon(R.drawable.ic_launcher_monochrome)
         // Amber is only for Play once an episode is down.
         .setColor(AMBER)
-        .setContentTitle("Episode ${row.episode} downloaded")
-        .setContentText("${row.title} · ready to watch offline")
+        .setContentTitle(Strings.downloadsNoticeDone(context, row.episode.toInt()))
+        .setContentText(Strings.downloadsNoticeDoneDetail(context, row.title))
         .setAutoCancel(true)
         .setContentIntent(open(AppLink.Downloads))
         .addAction(0, context.getString(R.string.download_play), open(AppLink.Download(row.id)))

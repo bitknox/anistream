@@ -9,6 +9,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import android.content.Context
+import tv.anistream.i18n.Strings
 import tv.anistream.engine.ffi.FfiDirs
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.LibrarySegment
@@ -79,21 +81,29 @@ sealed interface EpisodeAiring {
 }
 
 /**
- * A broadcast's time as the screens say it, in English on the system's clock: "Saturday 18:30"
- * within the week, "22 October 18:30" further off, and "Saturday 6:30 pm" where the system
- * reads 12 hours.
+ * A broadcast's time as the screens say it, in the person's language on the system's clock:
+ * "Saturday 18:30" within the week, "22 October 18:30" further off, and "Saturday 6:30 pm" where
+ * the system reads 12 hours.
  */
 object AirTime {
-    val locale: Locale = Locale.UK
+    /** The language the screens are in now. */
+    val locale: Locale get() = Locale.getDefault()
 
     /** Whether the system reads a 24-hour clock: the app sets it from Android's own setting. */
     @Volatile
     var twentyFourHour: Boolean = true
 
-    private val time24 = DateTimeFormatter.ofPattern("HH:mm", locale)
-    private val time12 = DateTimeFormatter.ofPattern("h:mm a", locale)
-    private val time: DateTimeFormatter get() = if (twentyFourHour) time24 else time12
-    private val date = DateTimeFormatter.ofPattern("d MMMM", locale)
+    /** The pattern the locale writes [skeleton] with, or [fallback] where Android's isn't there (a plain JVM test). */
+    fun bestPattern(skeleton: String, fallback: String): String =
+        runCatching { android.text.format.DateFormat.getBestDateTimePattern(locale, skeleton) }.getOrNull()?.takeIf { it.isNotBlank() } ?: fallback
+
+    private val time: DateTimeFormatter
+        get() = if (twentyFourHour) {
+            DateTimeFormatter.ofPattern(bestPattern("Hm", "HH:mm"), locale)
+        } else {
+            DateTimeFormatter.ofPattern(bestPattern("hm", "h:mm a"), locale)
+        }
+    private val date: DateTimeFormatter get() = DateTimeFormatter.ofPattern(bestPattern("dMMMM", "d MMMM"), locale)
 
     /** The time of day alone, on the system's clock: "18:30" or "6:30 pm". */
     fun clock(at: Instant, zone: ZoneId = AppClock.zone): String = time.format(at.atZone(zone))
@@ -105,12 +115,12 @@ object AirTime {
      * A time coming up this week, as Notifications' "Coming up" says it: "Today 22:00",
      * "Tomorrow 16:30", "Thursday 16:30".
      */
-    fun coming(at: Instant, now: Instant = AppClock.now(), zone: ZoneId = AppClock.zone): String {
+    fun coming(context: Context, at: Instant, now: Instant = AppClock.now(), zone: ZoneId = AppClock.zone): String {
         val local = at.atZone(zone)
         val today = now.atZone(zone).toLocalDate()
         val day = when (local.toLocalDate()) {
-            today -> "Today"
-            today.plusDays(1) -> "Tomorrow"
+            today -> Strings.dayToday(context)
+            today.plusDays(1) -> Strings.dayTomorrow(context)
             else -> local.dayOfWeek.getDisplayName(TextStyle.FULL, locale)
         }
         return "$day ${time.format(local)}"
@@ -126,57 +136,69 @@ object AirTime {
 
 /**
  * The words for counts and spans of time: `anistream_model::wording`, so a screen says a wait or a
- * count as the terminal does.
+ * count as the terminal does, in the catalogue's units.
  */
 object Wording {
     /** A countdown in the largest unit that still reads at a glance: `6d 17h`, `2h 5m`, `4m`, `now`. */
-    fun countdown(seconds: Long): String {
-        if (seconds <= 0) return "now"
+    fun countdown(context: Context, seconds: Long): String {
+        if (seconds <= 0) return Strings.timeNowInline(context)
         val minutes = seconds / 60
         val hours = minutes / 60
         val days = hours / 24
         if (days >= 1) {
-            val hoursLeft = hours % 24
-            return if (hoursLeft > 0 && days < 7) "${days}d ${hoursLeft}h" else "${days}d"
+            val hoursLeft = (hours % 24).toInt()
+            return if (hoursLeft > 0 && days < 7) Strings.durationDaysHours(context, days.toInt(), hoursLeft) else Strings.durationDays(context, days.toInt())
         }
         if (hours >= 1) {
-            val minutesLeft = minutes % 60
-            return if (minutesLeft > 0) "${hours}h ${minutesLeft}m" else "${hours}h"
+            val minutesLeft = (minutes % 60).toInt()
+            return if (minutesLeft > 0) Strings.durationHoursMinutes(context, hours.toInt(), minutesLeft) else Strings.durationHours(context, hours.toInt())
         }
-        return "${minutes}m"
+        return Strings.durationMinutes(context, minutes.toInt())
     }
 
     /** How long ago: `2d ago`, or `just now` under a minute. */
-    fun ago(seconds: Long): String = if (seconds < 60) "just now" else "${countdown(seconds)} ago"
-
-    /** A count and its noun, singular at one: `1 episode`, `3 episodes`. */
-    fun plural(count: Int, noun: String): String = if (count == 1) "1 $noun" else "$count ${noun}s"
+    fun ago(context: Context, seconds: Long): String =
+        if (seconds < 60) Strings.timeJustNowInline(context) else Strings.timeAgo(context, countdown(context, seconds))
 
     /** Names in a sentence: "Kumo", "Kumo and Natsukaze", "Kumo, Hoshi and Natsukaze". */
     fun list(names: List<String>): String = when (names.size) {
         0 -> ""
         1 -> names[0]
-        else -> names.dropLast(1).joinToString(", ") + " and " + names.last()
+        else -> android.icu.text.ListFormatter.getInstance(AirTime.locale).format(names)
     }
 
     /**
      * A size as people read it: `9.4 GB`, `140 MB`, `0 B`, in decimal units, one decimal below
-     * ten and none above. `human_bytes`.
+     * ten and none above, the number in the person's format. `human_bytes`.
      */
-    fun bytes(bytes: Long): String {
-        for ((unit, scale) in listOf("GB" to 1_000_000_000L, "MB" to 1_000_000L, "kB" to 1_000L, "B" to 1L)) {
-            if (bytes >= scale) {
-                val value = bytes.toDouble() / scale
-                return if (value < 10 && scale > 1) String.format(Locale.ROOT, "%.1f %s", value, unit)
-                else "${Math.round(value)} $unit"
-            }
+    fun bytes(context: Context, bytes: Long): String {
+        val scale = listOf(1_000_000_000L, 1_000_000L, 1_000L).firstOrNull { bytes >= it } ?: 1L
+        val value = bytes.toDouble() / scale
+        val decimals = if (value < 10 && scale > 1) 1 else 0
+        val number = java.text.NumberFormat.getInstance(AirTime.locale).apply {
+            minimumFractionDigits = decimals
+            maximumFractionDigits = decimals
+        }.format(if (bytes <= 0) 0.0 else value)
+        return when (scale) {
+            1_000_000_000L -> Strings.sizeGigabyte(context, number)
+            1_000_000L -> Strings.sizeMegabyte(context, number)
+            1_000L -> Strings.sizeKilobyte(context, number)
+            else -> Strings.sizeByte(context, number)
         }
-        return "0 B"
     }
 }
 
-/** The list's name in lower case: "watching". `LibrarySegment::label`. */
-val LibrarySegment.label: String get() = name.lowercase(Locale.ROOT)
+/** The list's name: "Watching". `LibrarySegment::label`. */
+fun LibrarySegment.label(context: Context): String = when (this) {
+    LibrarySegment.WATCHING -> Strings.libraryStatusWatching(context)
+    LibrarySegment.PLANNING -> Strings.libraryStatusPlanning(context)
+    LibrarySegment.COMPLETED -> Strings.libraryStatusCompleted(context)
+    LibrarySegment.PAUSED -> Strings.libraryStatusPaused(context)
+    LibrarySegment.DROPPED -> Strings.libraryStatusDropped(context)
+}
+
+/** The list's name inside a sentence: "watching", as in "Nothing on your watching list". */
+fun LibrarySegment.inSentence(context: Context): String = label(context).lowercase(AirTime.locale)
 
 /** The engine's directories under one root, `config`, `data` and `cache`, as a test lays them out. */
 fun ffiDirs(root: java.io.File): FfiDirs = FfiDirs(

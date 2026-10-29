@@ -33,6 +33,9 @@ import tv.anistream.tv.shell.TvRoot
 import tv.anistream.tv.ui.TvTheme
 
 class TvActivity : ComponentActivity() {
+    // Below Android 13 the chosen language is the app's own to apply.
+    override fun attachBaseContext(newBase: android.content.Context) = super.attachBaseContext(tv.anistream.store.AppLanguage.wrap(newBase))
+
     private val app: TvApp get() = application as TvApp
 
     override fun onCreate(savedInstanceState: Bundle?) {

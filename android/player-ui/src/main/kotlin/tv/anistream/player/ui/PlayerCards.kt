@@ -4,6 +4,11 @@
 
 package tv.anistream.player.ui
 
+import androidx.compose.ui.res.pluralStringResource
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -81,7 +86,7 @@ fun CornerCard(model: PlayerModel, chromeVisible: Boolean, throughGround: () -> 
         transitionSpec = {
             fadeIn(Motion.standard()) togetherWith fadeOut(if (targetState == null) Motion.quick() else Motion.standard())
         },
-        label = "corner",
+        label = "corner", // i18n-skip
     ) { card ->
         when (card) {
             Corner.Skip -> SkipButton(model)
@@ -101,7 +106,7 @@ private fun SkipButton(model: PlayerModel) {
     val touch = remember { MutableInteractionSource() }
     val down by touch.collectIsPressedAsState()
     val dim = model.skipDimmed && !down
-    val strength by animateFloatAsState(if (dim) 0.4f else 1f, if (dim) Motion.fadeOut() else Motion.fadeIn(), label = "skip")
+    val strength by animateFloatAsState(if (dim) 0.4f else 1f, if (dim) Motion.fadeOut() else Motion.fadeIn(), label = "skip") // i18n-skip
     Box(
         Modifier
             .height(48.dp)
@@ -117,7 +122,7 @@ private fun SkipButton(model: PlayerModel) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(skip.label, style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk)
+            Text(skip.label(LocalContext.current), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk)
             Icon(PlayerIcons.SkipNext, contentDescription = null, tint = ObiSilk.Silk, modifier = Modifier.size(20.dp))
         }
     }
@@ -132,7 +137,7 @@ private fun UndoNote(model: PlayerModel) {
         Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(ObiSilk.Raised).padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(undo.label, style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk)
+        Text(undo.label(LocalContext.current), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk)
         Text(" · ", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
         TextButton(
             onClick = {
@@ -140,7 +145,7 @@ private fun UndoNote(model: PlayerModel) {
                 model.undoSkip()
             },
             contentPadding = PaddingValues(horizontal = 12.dp),
-        ) { Text("Undo", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk) }
+        ) { Text(stringResource(R.string.action_undo), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk) }
     }
 }
 
@@ -154,21 +159,22 @@ private fun UpNextCard(model: PlayerModel) {
     val card = model.upNext ?: return
     val haptics = LocalHapticFeedback.current
     val countdown = model.countdown
+    val upNextTitle = stringResource(R.string.player_up_next)
     Column(
         Modifier
             .width(336.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(ObiSilk.Raised)
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
-            .semantics { paneTitle = "Up next" },
+            .semantics { paneTitle = upNextTitle },
     ) {
         Row(Modifier.height(60.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Box(Modifier.size(96.dp, 54.dp).clip(RoundedCornerShape(8.dp)).background(ObiSilk.RaisedSelected)) {
                 card.next.thumbnail?.let { ArtworkImage(it, plate = null, maxPixelSize = pixels(96.dp), modifier = Modifier.fillMaxSize()) }
             }
             Column(Modifier.weight(1f)) {
-                Text("UP NEXT", style = MaterialTheme.typography.labelSmall, color = ObiSilk.Haze)
-                Text("Episode ${card.next.number}", style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk)
+                Text(upNextTitle, style = MaterialTheme.typography.labelSmall, color = ObiSilk.Haze)
+                Text(Strings.episodeNumberPlain(LocalContext.current, card.next.number), style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk)
                 card.next.title?.let {
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -186,13 +192,13 @@ private fun UpNextCard(model: PlayerModel) {
         }
         Row(Modifier.padding(top = 4.dp).height(48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                countdown?.let { "Plays in ${it.first} s" }.orEmpty(),
+                countdown?.let { stringResource(R.string.player_plays_in, it.first.toInt()) }.orEmpty(),
                 style = MaterialTheme.typography.bodyMedium.tabular(),
                 color = ObiSilk.Haze,
                 modifier = Modifier.weight(1f),
             )
             TextButton(onClick = model::cancelNext, modifier = Modifier.height(40.dp), contentPadding = PaddingValues(horizontal = 12.dp)) {
-                Text("Cancel", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk)
+                Text(stringResource(R.string.action_cancel), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk)
             }
             Button(
                 onClick = {
@@ -205,7 +211,7 @@ private fun UpNextCard(model: PlayerModel) {
             ) {
                 Icon(PlayerIcons.Play, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Play now", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.action_play_now), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -218,17 +224,17 @@ private fun StallCard(model: PlayerModel) {
     Column(
         Modifier.width(336.dp).clip(RoundedCornerShape(16.dp)).background(ObiSilk.Raised).padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
     ) {
-        Text("Source is buffering · ${stall.held(model.clock)} s", style = MaterialTheme.typography.titleMedium.tabular(), color = ObiSilk.Silk)
-        Text("Another stream may play without waiting.", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, modifier = Modifier.padding(top = 4.dp))
+        Text(stringResource(R.string.player_stall_title, stall.held(model.clock).toInt()), style = MaterialTheme.typography.titleMedium.tabular(), color = ObiSilk.Silk)
+        Text(stringResource(R.string.player_stall_detail), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, modifier = Modifier.padding(top = 4.dp))
         Row(Modifier.padding(top = 4.dp).height(48.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End)) {
             TextButton(onClick = model::keepWaiting, modifier = Modifier.height(40.dp)) {
-                Text("Keep waiting", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk)
+                Text(stringResource(R.string.player_keep_waiting), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk)
             }
             FilledTonalButton(
                 onClick = model::switchSource,
                 modifier = Modifier.height(40.dp),
                 colors = ButtonDefaults.filledTonalButtonColors(containerColor = ObiSilk.RaisedSelected, contentColor = ObiSilk.Silk),
-            ) { Text("Switch source", style = MaterialTheme.typography.labelLarge) }
+            ) { Text(stringResource(R.string.player_switch_source), style = MaterialTheme.typography.labelLarge) }
         }
     }
 }
@@ -243,10 +249,10 @@ fun ResumeNote(model: PlayerModel, modifier: Modifier = Modifier) {
             Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(ObiSilk.Raised).padding(start = 16.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(shown.label, style = MaterialTheme.typography.labelLarge.tabular(), color = ObiSilk.Silk)
+            Text(shown.label(LocalContext.current), style = MaterialTheme.typography.labelLarge.tabular(), color = ObiSilk.Silk)
             Text(" · ", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
             TextButton(onClick = model::startOver, contentPadding = PaddingValues(horizontal = 12.dp)) {
-                Text("Start over", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk)
+                Text(stringResource(R.string.player_start_over), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk)
             }
         }
     }
@@ -276,28 +282,29 @@ fun AlertNote(model: PlayerModel, modifier: Modifier = Modifier) {
 @Composable
 fun StillWatching(model: PlayerModel) {
     val haptics = LocalHapticFeedback.current
+    val stillWatching = stringResource(R.string.player_still_watching)
     AnimatedVisibility(model.stillWatching, enter = fadeIn(Motion.standard()), exit = fadeOut(Motion.quick())) {
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.32f)).clickable(interactionSource = null, indication = null) {}, contentAlignment = Alignment.Center) {
             Column(
                 Modifier.width(312.dp).clip(RoundedCornerShape(28.dp)).background(ObiSilk.RaisedHigh).padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 16.dp)
-                    .semantics { paneTitle = "Still watching?" },
+                    .semantics { paneTitle = stillWatching },
             ) {
-                Text("Still watching?", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk)
+                Text(stillWatching, style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk)
                 Text(
-                    "Paused after ${model.stillWatchingAfter} episodes in a row.",
+                    pluralStringResource(R.plurals.player_still_watching_detail, model.stillWatchingAfter, model.stillWatchingAfter),
                     style = MaterialTheme.typography.bodyMedium,
                     color = ObiSilk.Haze,
                     modifier = Modifier.padding(top = 16.dp),
                 )
                 Row(Modifier.padding(top = 24.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                    TextButton(onClick = model::stopWatching) { Text("Stop", color = ObiSilk.Silk) }
+                    TextButton(onClick = model::stopWatching) { Text(stringResource(R.string.action_stop), color = ObiSilk.Silk) }
                     FilledTonalButton(
                         onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
                             model.continueWatching()
                         },
                         colors = ButtonDefaults.filledTonalButtonColors(containerColor = ObiSilk.RaisedSelected, contentColor = ObiSilk.Silk),
-                    ) { Text("Continue watching") }
+                    ) { Text(stringResource(R.string.player_still_watching_continue)) }
                 }
             }
         }
@@ -317,14 +324,14 @@ internal fun StartingChoices(model: PlayerModel, onChooseSource: () -> Unit) {
             Button(
                 onClick = onChooseSource,
                 colors = ButtonDefaults.buttonColors(containerColor = ObiSilk.Amber, contentColor = ObiSilk.Ground),
-            ) { Text("Choose source") }
-            TextButton(onClick = model::viewerClosed) { Text("Close", color = ObiSilk.Silk) }
+            ) { Text(stringResource(R.string.player_choose_source)) }
+            TextButton(onClick = model::viewerClosed) { Text(stringResource(R.string.action_close), color = ObiSilk.Silk) }
         } else {
             FilledTonalButton(
                 onClick = onChooseSource,
                 colors = ButtonDefaults.filledTonalButtonColors(containerColor = ObiSilk.RaisedSelected, contentColor = ObiSilk.Silk),
-            ) { Text("Choose source") }
-            TextButton(onClick = model::viewerClosed) { Text("Stop", color = ObiSilk.Silk) }
+            ) { Text(stringResource(R.string.player_choose_source)) }
+            TextButton(onClick = model::viewerClosed) { Text(stringResource(R.string.action_stop), color = ObiSilk.Silk) }
         }
     }
 }

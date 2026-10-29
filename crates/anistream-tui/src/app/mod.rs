@@ -230,6 +230,12 @@ pub struct App {
     /// A backfill is in flight. Without this a fast scroll would ask for the same page on every
     /// keystroke and empty the request budget answering one question.
     calendar_loading_past: bool,
+    /// Pages of the days ahead the calendar holds. The forward paging asks for the one after.
+    calendar_ahead_pages: u32,
+    /// Whether there are later broadcasts to fetch, up to the engine's ceiling.
+    calendar_more_ahead: bool,
+    /// A forward page is in flight, as [`Self::calendar_loading_past`] is for the past.
+    calendar_loading_ahead: bool,
     /// The title a mark made here is waiting on the engine's word for. The engine writes the
     /// mark and says where the title stands, at once; until it has, the loop holds the next
     /// frame and key, so the frame after the key shows the mark and a second press reads it.
@@ -378,6 +384,9 @@ impl App {
             calendar_pages: 0,
             calendar_more_past: false,
             calendar_loading_past: false,
+            calendar_ahead_pages: 0,
+            calendar_more_ahead: false,
+            calendar_loading_ahead: false,
             marking: None,
             rolling: false,
             commands: Vec::new(),
@@ -445,11 +454,14 @@ impl App {
         }
 
         match update {
-            Event::CalendarWindow { anchor, pages, more_past } => {
-                self.apply_calendar_window(anchor, pages, more_past)
-            }
+            Event::CalendarWindow {
+                anchor, pages, more_past, ahead_pages, more_ahead, ..
+            } => self.apply_calendar_window(anchor, pages, more_past, ahead_pages, more_ahead),
             Event::CalendarBackfill { page, entries, more_past } => {
                 self.apply_calendar_backfill(page, entries, more_past)
+            }
+            Event::CalendarAhead { page, entries, more_ahead } => {
+                self.apply_calendar_ahead(page, entries, more_ahead)
             }
             Event::Caption { view, text } => self.apply_caption(view, text),
             Event::SearchPaging { query, has_next } => {

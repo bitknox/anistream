@@ -65,7 +65,7 @@ data class WatchNextCard(
         const val ENDING_MINUTES = 3
 
         /** The row from the Continue [queue]: one entry per show with an episode out to play. */
-        fun of(queue: ContinueQueue, episodes: Map<AnilistId, List<EpisodeRow>>): List<WatchNextCard> =
+        fun of(context: Context, queue: ContinueQueue, episodes: Map<AnilistId, List<EpisodeRow>>): List<WatchNextCard> =
             queue.all.filter { it.playable }.map { item ->
                 val resume = item.resume
                 val started = resume != null && resume.position > STARTED_SECS &&
@@ -83,7 +83,7 @@ data class WatchNextCard(
                     episode = item.episode,
                     kind = kind,
                     title = item.entry.title,
-                    description = listOfNotNull(item.longEpisode, row?.title).joinToString(" · "),
+                    description = listOfNotNull(item.longEpisode(context), row?.title).joinToString(" · "),
                     art = item.entry.bannerUrl ?: item.entry.coverUrl,
                     positionMillis = if (started) (resume.position * 1000).toLong() else 0L,
                     durationMillis = ((duration ?: 0.0) * 1000).toLong(),
@@ -153,7 +153,7 @@ class WatchNext(
                 store.continuing.list.state,
                 store.continuing.hidden,
                 store.titles.episodes,
-            ) { entries, _, _, episodes -> WatchNextCard.of(store.continuing.queue(entries, episodes), episodes) }
+            ) { entries, _, _, episodes -> WatchNextCard.of(context, store.continuing.queue(entries, episodes), episodes) }
                 .distinctUntilChanged()
                 .debounce(SETTLE_MILLIS)
                 .collect { cards ->
