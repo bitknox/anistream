@@ -4,6 +4,7 @@
 
 package tv.anistream.store
 
+import android.content.Context
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -21,6 +22,7 @@ import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.Release
 import tv.anistream.engine.model.ReleaseAsset
 import tv.anistream.engine.model.UpdateStatus
+import tv.anistream.i18n.Strings
 
 /**
  * A newer release of the app, as the engine found it: its APK, the APK's SHA-256 and its size,
@@ -83,46 +85,47 @@ sealed interface UpdateCheck {
 
 /** Why an update was not installed. Each says so in one plain sentence, which the notice shows. */
 sealed interface UpdateFailure {
-    val text: String
+    /** The sentence, in the person's language. */
+    fun text(context: Context): String
 
     /** The download did not finish: no connection, the server's answer, a short or long file. */
     data class Download(val reason: String?) : UpdateFailure {
-        override val text get() = "Couldn't download the update. Check the connection and try again."
+        override fun text(context: Context) = Strings.updatesWhyDownload(context)
     }
 
     /** Android did not start the download job. */
     data object NotStarted : UpdateFailure {
-        override val text get() = "Couldn't start the download. Try again."
+        override fun text(context: Context) = Strings.updatesWhyStart(context)
     }
 
     /** The file is not the one the release names. */
     data object Checksum : UpdateFailure {
-        override val text get() = "The download does not match the release's checksum, so it was not installed."
+        override fun text(context: Context) = Strings.updatesWhyChecksumAndroid(context)
     }
 
     /** Android does not read the file as an app. */
     data object NotAnApp : UpdateFailure {
-        override val text get() = "The download is not an Android app, so it was not installed."
+        override fun text(context: Context) = Strings.updatesWhyNotApp(context)
     }
 
     /** The file is some other app. */
     data class Package(val found: String) : UpdateFailure {
-        override val text get() = "The download is a different app, so it was not installed."
+        override fun text(context: Context) = Strings.updatesWhyOtherApp(context)
     }
 
     /** The file is not signed with the key the installed app is. */
     data object Signer : UpdateFailure {
-        override val text get() = "The download is not signed with anistream's key, so it was not installed."
+        override fun text(context: Context) = Strings.updatesWhyUnsigned(context)
     }
 
     /** The file is this version or an older one. */
     data object NotNewer : UpdateFailure {
-        override val text get() = "The download is not newer than this version, so it was not installed."
+        override fun text(context: Context) = Strings.updatesWhyNotNewer(context)
     }
 
     /** The device has too little room for the APK and the installer's copy of it. */
     data object Storage : UpdateFailure {
-        override val text get() = "Not enough free space for the update. Free some and try again."
+        override fun text(context: Context) = Strings.updatesWhySpace(context)
     }
 
     /**
@@ -130,7 +133,7 @@ sealed interface UpdateFailure {
      * ("INSTALL_FAILED_…"), not sentences, so the screen says ours.
      */
     data class Install(val message: String?) : UpdateFailure {
-        override val text get() = "Couldn't install the update. Try again."
+        override fun text(context: Context) = Strings.updatesWhyInstall(context)
     }
 }
 
@@ -518,7 +521,7 @@ class UpdateModel(
             }
         }
         files?.clear()
-        if (failed) notices?.post(Notice(kind = NoticeKind.ALERT, text = failure.text, hint = null))
+        if (failed) notices?.post(Notice(kind = NoticeKind.ALERT, text = "", hint = null), failure::text)
     }
 
     companion object {

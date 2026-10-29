@@ -1,6 +1,7 @@
 package tv.anistream.ui
 
 import androidx.activity.ComponentActivity
+import org.robolectric.RuntimeEnvironment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -51,6 +52,7 @@ import tv.anistream.store.UpdateState
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w412dp-h915dp-port-420dpi")
 class AppUpdateTest {
+    private val context = RuntimeEnvironment.getApplication()
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
@@ -131,7 +133,7 @@ class AppUpdateTest {
         aboutPane()
         compose.runOnIdle { store.updates.offer(offer) }
         compose.onNodeWithText("Update to v2.0.3").assertIsDisplayed()
-        compose.onNodeWithText("Opens the release page").assertIsDisplayed()
+        compose.onNodeWithText("Opens the page for this version").assertIsDisplayed()
     }
 
     @Test
@@ -150,7 +152,7 @@ class AppUpdateTest {
             scope.launch { store.updates.run(fetch) }
         }
         settle { (store.updates.state.value as? UpdateState.Downloading)?.done == 16_400_000L }
-        compose.onNodeWithText("Downloading 34 %").assertIsDisplayed()
+        compose.onNodeWithText("Downloading 34%").assertIsDisplayed()
         compose.onNodeWithText("16 MB of 48 MB").assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
         compose.runOnIdle {
@@ -161,7 +163,7 @@ class AppUpdateTest {
     }
 
     @Test
-    fun the_first_time_it_asks_for_install_unknown_apps_in_one_sentence() {
+    fun the_first_time_it_asks_to_allow_installs_in_three_steps() {
         val host = host().apply { allowed = false }
         show {
             Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -171,8 +173,8 @@ class AppUpdateTest {
         }
         compose.runOnIdle { store.updates.offer(offer) }
         compose.onNodeWithText("Update to v2.0.3").performClick()
-        compose.onNodeWithText("Install unknown apps").assertIsDisplayed()
-        compose.onNodeWithText("To install updates, Android needs you to turn on Allow from this source for anistream.").assertIsDisplayed()
+        compose.onNodeWithText("Allow anistream to install its update").assertIsDisplayed()
+        compose.onNodeWithText("Turn on anistream.").assertIsDisplayed()
         compose.onNodeWithText("Open settings").performClick()
         compose.runOnIdle {
             assertEquals(listOf("settings"), host.calls)
@@ -198,9 +200,9 @@ class AppUpdateTest {
             scope.launch { store.updates.run { _, into, _, _ -> into.parentFile?.mkdirs(); into.writeText("some other file") } }
         }
         settle { store.updates.state.value is UpdateState.Failed }
-        compose.onNodeWithText("The download does not match the release's checksum, so it was not installed.").assertIsDisplayed()
+        compose.onNodeWithText("The download does not match the checksum listed for this version, so it was not installed.").assertIsDisplayed()
         compose.onNodeWithText("Update to v2.0.3").assertIsDisplayed()
-        assertEquals("The download does not match the release's checksum, so it was not installed.", store.notices.current.value?.notice?.text)
+        assertEquals("The download does not match the checksum listed for this version, so it was not installed.", store.notices.current.value?.text(context))
     }
 
     @Test
@@ -208,7 +210,7 @@ class AppUpdateTest {
         val host = host()
         show { UpdatePrompts() }
         compose.runOnIdle { store.updates.offer(offer, tell = true) }
-        compose.onNodeWithText("anistream v2.0.3 is out.").assertIsDisplayed()
+        compose.onNodeWithText("anistream 2.0.3 is available").assertIsDisplayed()
         compose.onNodeWithText("Update to v2.0.3").performClick()
         compose.runOnIdle { assertEquals(listOf("download"), host.calls) }
     }
@@ -227,7 +229,7 @@ class AppUpdateTest {
             scope.launch { store.updates.run { _, _, expected, progress -> progress(16_400_000, expected); gate.await() } }
         }
         settle { (store.updates.state.value as? UpdateState.Downloading)?.done == 16_400_000L }
-        compose.onNodeWithText("Downloading v2.0.3 · 34 %").assertIsDisplayed()
+        compose.onNodeWithText("Downloading version 2.0.3 · 34%").assertIsDisplayed()
         // Settings' row says the same, so the notice is down there.
         compose.runOnIdle { onSettings.value = true }
         settle { compose.onAllNodes(androidx.compose.ui.test.hasText("Downloading", substring = true)).fetchSemanticsNodes().isEmpty() }
@@ -239,20 +241,20 @@ class AppUpdateTest {
 
     @Test
     fun the_words_at_each_step() {
-        assertEquals("Update to v2.0.3", UpdateWords.title(UpdateState.Available(offer)))
-        assertEquals("48 MB", UpdateWords.line(UpdateState.Available(offer), installs = true))
-        assertEquals("Downloading 34 %", UpdateWords.title(UpdateState.Downloading(offer, 16_400_000, 48_200_000)))
-        assertEquals("Downloading", UpdateWords.title(UpdateState.Downloading(offer, 16_400_000, 0)))
-        assertEquals("16 MB", UpdateWords.line(UpdateState.Downloading(offer, 16_400_000, 0), installs = true))
-        assertEquals("Installing", UpdateWords.title(UpdateState.Verifying(offer)))
-        assertEquals("Checking the download", UpdateWords.line(UpdateState.Verifying(offer), installs = true))
-        assertEquals("Installing", UpdateWords.title(UpdateState.Installing(offer)))
-        assertEquals("Installing v2.0.3", UpdateWords.notice(UpdateState.Installing(offer)))
-        assertEquals("Open release", UpdateWords.action(offer, installs = false))
-        assertEquals("Checking", UpdateWords.check(UpdateCheck.Checking))
-        assertEquals("anistream is up to date", UpdateWords.check(UpdateCheck.UpToDate))
-        assertEquals(null, UpdateWords.check(UpdateCheck.Found))
-        assertEquals("Not checked. GitHub could not be reached.", UpdateWords.check(UpdateCheck.Failed("GitHub could not be reached.")))
+        assertEquals("Update to v2.0.3", UpdateWords.title(context, UpdateState.Available(offer)))
+        assertEquals("48 MB", UpdateWords.line(context, UpdateState.Available(offer), installs = true))
+        assertEquals("Downloading 34%", UpdateWords.title(context, UpdateState.Downloading(offer, 16_400_000, 48_200_000)))
+        assertEquals("Downloading", UpdateWords.title(context, UpdateState.Downloading(offer, 16_400_000, 0)))
+        assertEquals("16 MB", UpdateWords.line(context, UpdateState.Downloading(offer, 16_400_000, 0), installs = true))
+        assertEquals("Installing", UpdateWords.title(context, UpdateState.Verifying(offer)))
+        assertEquals("Checking the download", UpdateWords.line(context, UpdateState.Verifying(offer), installs = true))
+        assertEquals("Installing", UpdateWords.title(context, UpdateState.Installing(offer)))
+        assertEquals("Installing version 2.0.3…", UpdateWords.notice(context, UpdateState.Installing(offer)))
+        assertEquals("Open page", UpdateWords.action(context, offer, installs = false))
+        assertEquals("Checking for a newer version…", UpdateWords.check(context, UpdateCheck.Checking))
+        assertEquals("Up to date", UpdateWords.check(context, UpdateCheck.UpToDate))
+        assertEquals(null, UpdateWords.check(context, UpdateCheck.Found))
+        assertEquals("Not checked. GitHub could not be reached.", UpdateWords.check(context, UpdateCheck.Failed("GitHub could not be reached.")))
     }
 
     @Test
@@ -261,8 +263,8 @@ class AppUpdateTest {
         compose.onNodeWithText("Check now").performClick()
         compose.runOnIdle { assertEquals(listOf(Command.CheckForUpdates), store.waiting) }
         compose.runOnIdle { store.apply(Event.Update(UpdateStatus.Checking)) }
-        compose.onNodeWithText("Checking").assertIsDisplayed()
+        compose.onNodeWithText("Checking for a newer version…").assertIsDisplayed()
         compose.runOnIdle { store.apply(Event.Update(UpdateStatus.UpToDate)) }
-        compose.onNodeWithText("anistream is up to date").assertIsDisplayed()
+        compose.onNodeWithText("Up to date").assertIsDisplayed()
     }
 }

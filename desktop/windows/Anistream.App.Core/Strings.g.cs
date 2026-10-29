@@ -663,21 +663,6 @@ public static partial class T
     /// <summary>Search: the Sort drop-down's name before a sort is picked.</summary>
     public static string SearchSortName => Get("SearchSortName");
 
-    /// <summary>Search: sort by what is popular right now.</summary>
-    public static string SearchSortTrending => Get("SearchSortTrending");
-
-    /// <summary>Search: sort by release date, newest first.</summary>
-    public static string SearchSortNewest => Get("SearchSortNewest");
-
-    /// <summary>Search: sort by release date, oldest first.</summary>
-    public static string SearchSortOldest => Get("SearchSortOldest");
-
-    /// <summary>Search: sort by title, A to Z.</summary>
-    public static string SearchSortTitle => Get("SearchSortTitle");
-
-    /// <summary>Search: sort by how many people marked the title a favourite.</summary>
-    public static string SearchSortFavourites => Get("SearchSortFavourites");
-
     /// <summary>Search: a filter drop-down with two values picked, such as two genres.</summary>
     public static string FilterPickedTwo(string first, string second) => Fill(Get("FilterPickedTwo"), ("first", first), ("second", second));
 
@@ -852,12 +837,6 @@ public static partial class T
     /// <summary>Setting: the switch that turns torrents on.</summary>
     public static string SettingsTorrentSource => Get("SettingsTorrentSource");
 
-    /// <summary>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</summary>
-    public static string SettingsUpscalingNatural => Get("SettingsUpscalingNatural");
-
-    /// <summary>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</summary>
-    public static string SettingsUpscalingSharp => Get("SettingsUpscalingSharp");
-
     /// <summary>Value of the theme setting: follows the system's colours.</summary>
     public static string SettingsThemeAdaptive => Get("SettingsThemeAdaptive");
 
@@ -875,9 +854,6 @@ public static partial class T
 
     /// <summary>Value of the seeding setting: share until the ratio is reached. The ratio is already formatted, as in "1.5".</summary>
     public static string SettingsSeedUntilRatio(string ratio) => Fill(Get("SettingsSeedUntilRatio"), ("ratio", ratio));
-
-    /// <summary>Value of the upload limit setting when there is no limit.</summary>
-    public static string SettingsUploadUnlimited => Get("SettingsUploadUnlimited");
 
     /// <summary>Heading over the trackers on the Accounts pane.</summary>
     public static string SettingsTrackers => Get("SettingsTrackers");
@@ -899,9 +875,6 @@ public static partial class T
 
     /// <summary>Notice line for the video library the player uses.</summary>
     public static string SettingsLibmpvLicence => Get("SettingsLibmpvLicence");
-
-    /// <summary>Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.</summary>
-    public static string TorrentsCheckNote => Get("TorrentsCheckNote");
 
     /// <summary>Confirmation text before choosing Warn only for a failed check.</summary>
     public static string TorrentsWarnInstead => Get("TorrentsWarnInstead");
@@ -1164,9 +1137,6 @@ public static partial class T
     /// <summary>Title of the join dialog when this { -device } has joined that { -plugin-store } already.</summary>
     public static string StoresAlreadyJoinedTitle(string name) => Fill(Get("StoresAlreadyJoinedTitle"), ("name", name));
 
-    /// <summary>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</summary>
-    public static string StoresOffersPlugins(long count) => Fill(GetPlural("StoresOffersPlugins", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
-
     /// <summary>Label over the box with the name this { -device } joins under.</summary>
     public static string StoresOwnerSeesAs => Get("StoresOwnerSeesAs");
 
@@ -1199,9 +1169,6 @@ public static partial class T
 
     /// <summary>Under a release in the source picker: how many people share it right now.</summary>
     public static string SourcePickerSeeders(long count) => Fill(GetPlural("SourcePickerSeeders", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
-
-    /// <summary>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</summary>
-    public static string TimeJustNowInline => Get("TimeJustNowInline");
 
     /// <summary>A transfer rate. The size is already formatted, such as "1.2 MB".</summary>
     public static string RatePerSecond(string size) => Fill(Get("RatePerSecond"), ("size", size));
@@ -1559,6 +1526,9 @@ public static partial class T
 
     /// <summary>Short placeholder while something loads.</summary>
     public static string StateLoading => Get("StateLoading");
+
+    /// <summary>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</summary>
+    public static string TimeJustNowInline => Get("TimeJustNowInline");
 
     /// <summary>Checkbox of the close question.</summary>
     public static string CloseDontAsk => Get("CloseDontAsk");
@@ -3051,6 +3021,21 @@ public static partial class T
     /// <summary>Accessibility label of the button that removes one filter.</summary>
     public static string FilterRemove(string filter) => Fill(Get("FilterRemove"), ("filter", filter));
 
+    /// <summary>Search: sort by how many people marked the title a favourite.</summary>
+    public static string SearchSortFavourites => Get("SearchSortFavourites");
+
+    /// <summary>Search: sort by release date, newest first.</summary>
+    public static string SearchSortNewest => Get("SearchSortNewest");
+
+    /// <summary>Search: sort by release date, oldest first.</summary>
+    public static string SearchSortOldest => Get("SearchSortOldest");
+
+    /// <summary>Search: sort by title, A to Z.</summary>
+    public static string SearchSortTitle => Get("SearchSortTitle");
+
+    /// <summary>Search: sort by what is popular right now.</summary>
+    public static string SearchSortTrending => Get("SearchSortTrending");
+
     /// <summary>Settings group and row title for choosing a language.</summary>
     public static string SettingsLanguage => Get("SettingsLanguage");
 
@@ -3392,6 +3377,30 @@ public static partial class T
 
     /// <summary>Accessibility label of a widget row: continue a dubbed episode.</summary>
     public static string WidgetResumeDubbedLabel(long episode, string title) => Fill(Get("WidgetResumeDubbedLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
+
+    /// <summary>Line under a signed-in account while changes wait to be sent.</summary>
+    public static string AccountsChangesWaiting(long count) => Fill(GetPlural("AccountsChangesWaiting", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Choice for the download quality: larger files with more detail.</summary>
+    public static string SettingsQualityHigher => Get("SettingsQualityHigher");
+
+    /// <summary>Choice for the download quality: the usual size.</summary>
+    public static string SettingsQualityStandard => Get("SettingsQualityStandard");
+
+    /// <summary>Value of the upload limit setting when there is no limit.</summary>
+    public static string SettingsUploadUnlimited => Get("SettingsUploadUnlimited");
+
+    /// <summary>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</summary>
+    public static string SettingsUpscalingNatural => Get("SettingsUpscalingNatural");
+
+    /// <summary>Preview note under the upscaling frame for the natural look.</summary>
+    public static string SettingsUpscalingNoteNatural => Get("SettingsUpscalingNoteNatural");
+
+    /// <summary>Preview note under the upscaling frame for the sharp look.</summary>
+    public static string SettingsUpscalingNoteSharp => Get("SettingsUpscalingNoteSharp");
+
+    /// <summary>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</summary>
+    public static string SettingsUpscalingSharp => Get("SettingsUpscalingSharp");
 
     /// <summary>Title of the screen or section that lists sources.</summary>
     public static string SourcesTitle => Get("SourcesTitle");
@@ -3954,6 +3963,12 @@ public static partial class T
     /// <summary>Version line of a plugin in the publish sheet.</summary>
     public static string StoresPluginNameVersion(string name, string version) => Fill(Get("StoresPluginNameVersion"), ("name", name), ("version", version));
 
+    /// <summary>Button under an invite link that copies it. Reads "Copied" for a moment afterwards.</summary>
+    public static string StoresCopyLink => Get("StoresCopyLink");
+
+    /// <summary>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</summary>
+    public static string StoresOffersPlugins(long count) => Fill(GetPlural("StoresOffersPlugins", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>Title of the state when a title page could not load.</summary>
     public static string TitleLoadFailed => Get("TitleLoadFailed");
 
@@ -4349,6 +4364,9 @@ public static partial class T
 
     /// <summary>Line when the page needs script.</summary>
     public static string TorrentsPageNeedsScript => Get("TorrentsPageNeedsScript");
+
+    /// <summary>Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.</summary>
+    public static string TorrentsCheckNote => Get("TorrentsCheckNote");
 
     /// <summary>Title of the accounts screen. The sidebar item is nav-accounts.</summary>
     public static string AccountsTitle => Get("AccountsTitle");
@@ -5160,11 +5178,6 @@ public static partial class T
         ["CalendarWatchedSpoken"] = "{title}, {episode}, watched",
         ["LibraryListCount"] = "{list} {count}",
         ["SearchSortName"] = "Sort",
-        ["SearchSortTrending"] = "Trending",
-        ["SearchSortNewest"] = "Newest",
-        ["SearchSortOldest"] = "Oldest",
-        ["SearchSortTitle"] = "Title",
-        ["SearchSortFavourites"] = "Favourites",
         ["FilterPickedTwo"] = "{first}, {second}",
         ["FilterPickedMore"] = "{first} +{more}",
         ["TitleSeasonWhen"] = "{season} · {when}",
@@ -5223,15 +5236,12 @@ public static partial class T
         ["SettingsMpvOptions"] = "mpv options",
         ["SettingsEpisodeNotifications"] = "New episode notifications",
         ["SettingsTorrentSource"] = "Torrent source",
-        ["SettingsUpscalingNatural"] = "Natural · ArtCNN",
-        ["SettingsUpscalingSharp"] = "Sharp · Anime4K",
         ["SettingsThemeAdaptive"] = "Adaptive",
         ["SettingsThemeImmersive"] = "Immersive",
         ["SettingsPlayerUiMpv"] = "Your mpv setup",
         ["SettingsPlayerUiApp"] = "anistream",
         ["SettingsQualityLines"] = "{lines}p",
         ["SettingsSeedUntilRatio"] = "Until ratio {ratio}",
-        ["SettingsUploadUnlimited"] = "Unlimited",
         ["SettingsTrackers"] = "Trackers",
         ["SettingsSync"] = "Sync",
         ["SettingsSyncDetail"] = "Sends what changed here and fetches what changed elsewhere.",
@@ -5240,7 +5250,6 @@ public static partial class T
         ["SettingsSignedInWaiting_other"] = "Signed in · {count} changes waiting",
         ["SettingsSignedOutCode"] = "Not signed in · You enter a code on its site",
         ["SettingsLibmpvLicence"] = "Licensed under the Lesser General Public Licence, version 2.1 or later.",
-        ["TorrentsCheckNote"] = "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.",
         ["TorrentsWarnInstead"] = "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.",
         ["ShowSettingsLabel"] = "Settings for {title}",
         ["ShowSettingsLoading"] = "Loading this show's settings",
@@ -5332,8 +5341,6 @@ public static partial class T
         ["StoresStandingVersion"] = "{standing} · {version}",
         ["StoresUnreachable"] = "Couldn't reach the plugin store. Check the link and your connection, then try again.",
         ["StoresAlreadyJoinedTitle"] = "{name} is already joined",
-        ["StoresOffersPlugins_one"] = "One plugin",
-        ["StoresOffersPlugins_other"] = "{count} plugins",
         ["StoresOwnerSeesAs"] = "The owner sees this device as",
         ["DownloadsFreeUsed"] = "{free} free · {used} in downloads",
         ["DownloadsGroupLine"] = "{episodes} · {size}",
@@ -5346,7 +5353,6 @@ public static partial class T
         ["TvProblemNoCode"] = "That code has expired. Ask the TV for a new one.",
         ["SourcePickerSeeders_one"] = "One seeder",
         ["SourcePickerSeeders_other"] = "{count} seeders",
-        ["TimeJustNowInline"] = "just now",
         ["RatePerSecond"] = "{size}/s",
         ["AppName"] = "anistream",
         ["AboutTitle"] = "About",
@@ -5466,6 +5472,7 @@ public static partial class T
         ["ErrorLabel"] = "Problem",
         ["StateWorking"] = "Working",
         ["StateLoading"] = "Loading",
+        ["TimeJustNowInline"] = "just now",
         ["CloseDontAsk"] = "Don't ask again",
         ["CloseKeepGoing"] = "Keep going",
         ["PartyLookingSources"] = "Looking through your sources…",
@@ -5972,6 +5979,11 @@ public static partial class T
         ["FilterHintTouch"] = "Tap once to include, twice to leave out.",
         ["FilterHintRemote"] = "Press once to include, twice to leave out.",
         ["FilterRemove"] = "Remove {filter}",
+        ["SearchSortFavourites"] = "Favourites",
+        ["SearchSortNewest"] = "Newest",
+        ["SearchSortOldest"] = "Oldest",
+        ["SearchSortTitle"] = "Title",
+        ["SearchSortTrending"] = "Trending",
         ["SettingsLanguage"] = "Language",
         ["SettingsLanguageApp"] = "App language",
         ["LanguageFollowSystem"] = "Follow system language",
@@ -6087,6 +6099,15 @@ public static partial class T
         ["WidgetResumeLabel"] = "Resume episode {episode} of {title}",
         ["WidgetStartLabel"] = "Play episode {episode} of {title}",
         ["WidgetResumeDubbedLabel"] = "Resume episode {episode}, dubbed, of {title}",
+        ["AccountsChangesWaiting_one"] = "One change waiting to sync",
+        ["AccountsChangesWaiting_other"] = "{count} changes waiting to sync",
+        ["SettingsQualityHigher"] = "Higher",
+        ["SettingsQualityStandard"] = "Standard",
+        ["SettingsUploadUnlimited"] = "Unlimited",
+        ["SettingsUpscalingNatural"] = "Natural · ArtCNN",
+        ["SettingsUpscalingNoteNatural"] = "Faithful line work and texture, nothing restyled.",
+        ["SettingsUpscalingNoteSharp"] = "Crisper lines and stronger edges, at some cost to texture.",
+        ["SettingsUpscalingSharp"] = "Sharp · Anime4K",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",
@@ -6279,6 +6300,9 @@ public static partial class T
         ["StoresPublishTitle"] = "Publish a plugin to {name}",
         ["StoresPublishNone"] = "No plugins on this device to publish.",
         ["StoresPluginNameVersion"] = "{name} {version}",
+        ["StoresCopyLink"] = "Copy link",
+        ["StoresOffersPlugins_one"] = "One plugin",
+        ["StoresOffersPlugins_other"] = "{count} plugins",
         ["TitleLoadFailed"] = "Couldn't load this title",
         ["TitleNoAnswer"] = "AniList didn't answer. Try again.",
         ["TitleLoading"] = "Loading this title",
@@ -6412,6 +6436,7 @@ public static partial class T
         ["TorrentsPageMissingKey"] = "This address is missing its key. Scan the QR code on the TV again, and open the whole address it gives.",
         ["TorrentsPageUnreadable"] = "The TV couldn't read this. Scan the QR code on the TV again.",
         ["TorrentsPageNeedsScript"] = "This page needs JavaScript to send the form to the TV safely.",
+        ["TorrentsCheckNote"] = "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.",
         ["AccountsTitle"] = "Accounts",
         ["AccountsOtherTrackers"] = "Other trackers",
         ["AccountsOtherTrackersNote"] = "Other trackers are in Settings, under Accounts.",

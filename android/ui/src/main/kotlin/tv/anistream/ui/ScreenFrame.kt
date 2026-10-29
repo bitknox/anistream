@@ -26,6 +26,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import tv.anistream.i18n.R as I18nR
+import androidx.compose.ui.res.stringResource
 
 /**
  * The large flexible top app bar, 112 at rest under the status bar (136 with a [subtitle]), which
@@ -65,7 +67,7 @@ fun ScreenFrame(
                 },
                 navigationIcon = {
                     if (onBack != null) {
-                        IconButton(onClick = onBack) { Icon(Icons.Back, contentDescription = "Back") }
+                        IconButton(onClick = onBack) { Icon(Icons.Back, contentDescription = stringResource(I18nR.string.action_back)) }
                     }
                 },
                 actions = {
@@ -108,7 +110,7 @@ data class Account(
 /** Accounts and settings: the user's initial on a raised circle, or the account glyph signed out. */
 @Composable
 private fun AccountButton(account: Account) {
-    val label = account.name?.let { "$it, accounts and settings" } ?: "Accounts and settings"
+    val label = account.name?.let { stringResource(I18nR.string.account_button_named, it) } ?: stringResource(I18nR.string.nav_accounts_and_settings)
     IconButton(onClick = account.open, modifier = Modifier.semantics { contentDescription = label }) {
         val name = account.name
         if (name == null) {

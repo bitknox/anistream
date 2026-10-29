@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import tv.anistream.engine.model.GuardView
+import tv.anistream.engine.model.Msg
 import tv.anistream.engine.model.ProviderRow
 import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.TorrentProxy
@@ -23,10 +24,10 @@ class ProvidersModel(private val clock: () -> Long = { AppClock.now().toEpochMil
     /** Whether the engine has said the providers at all. */
     val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
 
-    private val _note = MutableStateFlow<String?>(null)
+    private val _note = MutableStateFlow<Msg?>(null)
 
     /** Why there are no sources, when there are none. */
-    val note: StateFlow<String?> = _note.asStateFlow()
+    val note: StateFlow<Msg?> = _note.asStateFlow()
 
     private val _rebuilding = MutableStateFlow(false)
 
@@ -116,8 +117,8 @@ class ProvidersModel(private val clock: () -> Long = { AppClock.now().toEpochMil
         if (rows.isNotEmpty()) _note.value = null
     }
 
-    internal fun note(text: String) {
-        _note.value = text
+    internal fun note(msg: Msg) {
+        _note.value = msg
     }
 
     internal fun sourcesChanged() {

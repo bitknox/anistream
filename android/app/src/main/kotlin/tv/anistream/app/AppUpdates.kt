@@ -4,6 +4,8 @@
 
 package tv.anistream.app
 
+import tv.anistream.store.percentText
+import tv.anistream.i18n.Strings
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -334,9 +336,9 @@ class UpdateNotifier(private val context: Context) {
         val downloading = state as? UpdateState.Downloading
         val percent = downloading?.fraction?.let { (it * 100).toInt() }
         val text = when {
-            downloading == null -> "Starting"
-            downloading.total > 0 -> "$percent % · ${Wording.bytes(downloading.done)} of ${Wording.bytes(downloading.total)}"
-            else -> Wording.bytes(downloading.done)
+            downloading == null -> Strings.updatesStartingDownload(context)
+            downloading.total > 0 -> percentText(percent ?: 0) + " · " + Strings.downloadsRatioOf(context, Wording.bytes(context, downloading.done), Wording.bytes(context, downloading.total)) // i18n-skip
+            else -> Wording.bytes(context, downloading.done)
         }
         val open = Intent(context, MainActivity::class.java)
             .setAction(Intent.ACTION_MAIN)
@@ -364,7 +366,7 @@ class UpdateNotifier(private val context: Context) {
     fun updated(installed: AppUpdates.Installed): Notification = NotificationCompat.Builder(context, CHANNEL)
         .setSmallIcon(R.drawable.ic_launcher_monochrome)
         .setColor(ObiSilk.Water.toArgb())
-        .setContentTitle("anistream updated to v${installed.version}")
+        .setContentTitle(Strings.updatesUpdated(context, installed.version))
         .apply { installed.headline?.let(::setContentText) }
         .setAutoCancel(true)
         .setContentIntent(

@@ -4,6 +4,9 @@
 
 package tv.anistream.tv.screens
 
+import tv.anistream.i18n.R
+import tv.anistream.store.label
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,7 +63,7 @@ import tv.anistream.tv.ui.HeroHeader
 import tv.anistream.tv.ui.OfflineLine
 import tv.anistream.tv.ui.StateBlock
 import tv.anistream.tv.ui.isOffline
-import tv.anistream.tv.ui.plainReason
+import tv.anistream.store.plainReason
 import tv.anistream.tv.ui.swapFade
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.PosterCard
@@ -74,6 +77,7 @@ import tv.anistream.tv.ui.placeholdersAfterWait
 import tv.anistream.tv.ui.planSheet
 import tv.anistream.tv.ui.remembered
 import tv.anistream.tv.ui.settlesAt
+import androidx.compose.ui.platform.LocalContext
 
 /** The y a focused row's header scrolls to. */
 private val RowTop = 48.dp
@@ -86,6 +90,7 @@ fun ContinueScreen(
     onPlay: (AnilistId, UInt) -> Unit,
 ) {
     val store = LocalAppStore.current
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         store.loadContinue()
         store.loadSeasonal()
@@ -143,10 +148,10 @@ fun ContinueScreen(
             if (failedHere) {
                 item(key = "failed", contentType = "state") {
                     StateBlock(
-                        "Couldn't load Watching.",
+                        stringResource(R.string.tv_load_failed_named, LibrarySegment.WATCHING.label(LocalContext.current)),
                         swapFade().padding(start = Canvas.Keyline, end = Canvas.SafeX, top = 64.dp),
-                        detail = plainReason(failed!!.reason),
-                        action = "Try again",
+                        detail = plainReason(LocalContext.current, failed!!.reason),
+                        action = stringResource(R.string.action_try_again),
                         onAction = retry,
                         actionModifier = Modifier.firstFocus(memory, "retry-watching"),
                     )
@@ -158,7 +163,7 @@ fun ContinueScreen(
                 firstRow = false
                 item(key = "continue", contentType = "row") {
                     BrowseRow(
-                        "Continue watching",
+                        stringResource(R.string.continue_heading),
                         modifier = swapFade().settlesAt(list, scope, "continue", rowTop),
                     ) {
                         items(inProgress, key = { it.id.toLong() }, contentType = { "wide" }) { item ->
@@ -166,9 +171,9 @@ fun ContinueScreen(
                             WideCard(
                                 item.entry,
                                 onClick = { onOpen(item.id) },
-                                line = item.action,
+                                line = item.action(context),
                                 progress = item.fraction?.toFloat(),
-                                sheet = { continueSheet(store, item, onOpen) },
+                                sheet = { continueSheet(context, store, item, onOpen) },
                                 modifier = Modifier
                                     .firstFocus(memory, "continue/${item.id}", firstCard),
                             )
@@ -180,14 +185,14 @@ fun ContinueScreen(
                 val first = firstRow
                 firstRow = false
                 item(key = "new", contentType = "row") {
-                    BrowseRow("New this week", modifier = swapFade().settlesAt(list, scope, "new", rowTop)) {
+                    BrowseRow(stringResource(R.string.group_new_this_week), modifier = swapFade().settlesAt(list, scope, "new", rowTop)) {
                         items(newThisWeek, key = { it.id.toLong() }, contentType = { "wide" }) { item ->
                             WideCard(
                                 item.entry,
                                 onClick = { onOpen(item.id) },
-                                line = item.action,
+                                line = item.action(context),
                                 newDot = true,
-                                sheet = { continueSheet(store, item, onOpen) },
+                                sheet = { continueSheet(context, store, item, onOpen) },
                                 modifier = Modifier
                                     .firstFocus(memory, "new/${item.id}", first && item === newThisWeek.first()),
                             )
@@ -199,13 +204,13 @@ fun ContinueScreen(
                 val first = firstRow
                 firstRow = false
                 item(key = "airing", contentType = "row") {
-                    BrowseRow("Airing today", modifier = swapFade().settlesAt(list, scope, "airing", rowTop)) {
+                    BrowseRow(stringResource(R.string.continue_airing_today), modifier = swapFade().settlesAt(list, scope, "airing", rowTop)) {
                         items(airingToday, key = { "${it.entry.id}/${it.episode}" }, contentType = { "wide" }) { airing ->
                             WideCard(
                                 airing.entry,
                                 onClick = { onOpen(airing.entry.id) },
-                                line = airing.timeLine(),
-                                sheet = { planSheet(store, airing.entry, onOpen) },
+                                line = airing.timeLine(context),
+                                sheet = { planSheet(context, store, airing.entry, onOpen) },
                                 modifier = Modifier
                                     .firstFocus(memory, "airing/${airing.entry.id}", first && airing === airingToday.first()),
                             )
@@ -216,13 +221,13 @@ fun ContinueScreen(
             if (season.isNotEmpty()) {
                 val first = firstRow
                 item(key = "season", contentType = "row") {
-                    BrowseRow("This season", modifier = swapFade().settlesAt(list, scope, "season", rowTop)) {
+                    BrowseRow(stringResource(R.string.continue_this_season), modifier = swapFade().settlesAt(list, scope, "season", rowTop)) {
                         items(season, key = { it.id.toLong() }, contentType = { "poster" }) { entry ->
                             PosterCard(
                                 entry,
                                 onClick = { onOpen(entry.id) },
-                                line = entry.posterLine,
-                                sheet = { planSheet(store, entry, onOpen) },
+                                line = entry.posterLine(context),
+                                sheet = { planSheet(context, store, entry, onOpen) },
                                 modifier = Modifier
                                     .firstFocus(memory, "season/${entry.id}", first && entry === season.first()),
                             )
@@ -261,28 +266,28 @@ private fun Hero(
 ) {
     HeroHeader(item.entry, rows, modifier) {
         Spacer(Modifier.height(4.dp))
-        Text(item.heroLine(rows), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze, maxLines = 1)
+        Text(item.heroLine(LocalContext.current, rows), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze, maxLines = 1)
         Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             // No source can play yet: the one way on is a plugin store, as on the title page.
             val addStore = LocalAddStore.current
             if (addStore != null) {
                 AmberButton(onClick = addStore, icon = null, modifier = Modifier.firstFocus(memory, HERO)) {
-                    ButtonLabel("Add a plugin store to play")
+                    ButtonLabel(stringResource(R.string.tv_add_store_to_play))
                 }
             } else {
                 AmberButton(
                     onClick = { onPlay(item.id, item.episode) },
                     enabled = item.playable,
                     modifier = Modifier.firstFocus(memory, HERO),
-                ) { ButtonLabel(if (item.unsourced) Strings.episodeUnsourced(androidx.compose.ui.platform.LocalContext.current) else item.heroAction) }
+                ) { ButtonLabel(if (item.unsourced) Strings.episodeUnsourced(androidx.compose.ui.platform.LocalContext.current) else item.heroAction(LocalContext.current)) }
             }
             Spacer(Modifier.width(16.dp))
             TonalButton(
                 onClick = { onOpen(item.id) },
                 icon = TvIcons.Info,
                 modifier = Modifier.remembered(memory, "hero/title"),
-            ) { ButtonLabel("Title page") }
+            ) { ButtonLabel(stringResource(R.string.tv_title_page)) }
         }
     }
 }
@@ -319,17 +324,17 @@ private fun EmptyQueue(failed: Boolean, onRetry: () -> Unit, onBrowse: () -> Uni
     Box(modifier.fillMaxWidth().padding(top = 120.dp), contentAlignment = Alignment.Center) {
         if (failed) {
             StateBlock(
-                "anistream can't reach AniList right now.",
+                stringResource(R.string.tv_continue_offline_failed),
                 nagare = true,
-                action = "Try again",
+                action = stringResource(R.string.action_try_again),
                 onAction = onRetry,
                 actionModifier = Modifier.firstFocus(memory, "retry"),
             )
         } else {
             StateBlock(
-                "Nothing to continue yet.",
+                stringResource(R.string.tv_continue_empty),
                 nagare = true,
-                action = "Browse this season",
+                action = stringResource(R.string.tv_continue_browse),
                 onAction = onBrowse,
                 actionModifier = Modifier.firstFocus(memory, "browse"),
             )
@@ -354,13 +359,13 @@ private const val HERO = "hero"
 private const val SEASON_CARDS = 20
 
 /** A Continue card's actions: mark its episode watched, hide it, drop the show, or open it. */
-fun continueSheet(store: AppStore, item: ContinueItem, onOpen: (AnilistId) -> Unit): ActionSheet = ActionSheet(
+fun continueSheet(context: android.content.Context, store: AppStore, item: ContinueItem, onOpen: (AnilistId) -> Unit): ActionSheet = ActionSheet(
     item.entry.title,
     listOfNotNull(
-        CardAction("Mark episode ${item.episode} watched") { store.setWatched(item.id, listOf(item.episode.toString())) }
+        CardAction(Strings.episodeMarkNWatched(context, item.episode.toInt())) { store.setWatched(item.id, listOf(item.episode.toString())) }
             .takeIf { item.playable },
-        CardAction("Hide from Continue") { store.hideFromContinue(item.id) },
-        CardAction("Drop") { store.setStatus(item.id, LibrarySegment.DROPPED) },
-        CardAction("Open the title page") { onOpen(item.id) },
+        CardAction(Strings.continueHide(context)) { store.hideFromContinue(item.id) },
+        CardAction(Strings.continueDrop(context)) { store.setStatus(item.id, LibrarySegment.DROPPED) },
+        CardAction(Strings.tvOpenTitlePage(context)) { onOpen(item.id) },
     ),
 )

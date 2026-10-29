@@ -951,26 +951,6 @@
     <value>Sort</value>
     <comment>Search: the Sort drop-down's name before a sort is picked.</comment>
   </data>
-  <data name="SearchSortTrending" xml:space="preserve">
-    <value>Trending</value>
-    <comment>Search: sort by what is popular right now.</comment>
-  </data>
-  <data name="SearchSortNewest" xml:space="preserve">
-    <value>Newest</value>
-    <comment>Search: sort by release date, newest first.</comment>
-  </data>
-  <data name="SearchSortOldest" xml:space="preserve">
-    <value>Oldest</value>
-    <comment>Search: sort by release date, oldest first.</comment>
-  </data>
-  <data name="SearchSortTitle" xml:space="preserve">
-    <value>Title</value>
-    <comment>Search: sort by title, A to Z.</comment>
-  </data>
-  <data name="SearchSortFavourites" xml:space="preserve">
-    <value>Favourites</value>
-    <comment>Search: sort by how many people marked the title a favourite.</comment>
-  </data>
   <data name="FilterPickedTwo" xml:space="preserve">
     <value>{first}, {second}</value>
     <comment>Search: a filter drop-down with two values picked, such as two genres.</comment>
@@ -1203,14 +1183,6 @@
     <value>Torrent source</value>
     <comment>Setting: the switch that turns torrents on.</comment>
   </data>
-  <data name="SettingsUpscalingNatural" xml:space="preserve">
-    <value>Natural · ArtCNN</value>
-    <comment>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</comment>
-  </data>
-  <data name="SettingsUpscalingSharp" xml:space="preserve">
-    <value>Sharp · Anime4K</value>
-    <comment>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</comment>
-  </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>Adaptive</value>
     <comment>Value of the theme setting: follows the system's colours.</comment>
@@ -1234,10 +1206,6 @@
   <data name="SettingsSeedUntilRatio" xml:space="preserve">
     <value>Until ratio {ratio}</value>
     <comment>Value of the seeding setting: share until the ratio is reached. The ratio is already formatted, as in "1.5".</comment>
-  </data>
-  <data name="SettingsUploadUnlimited" xml:space="preserve">
-    <value>Unlimited</value>
-    <comment>Value of the upload limit setting when there is no limit.</comment>
   </data>
   <data name="SettingsTrackers" xml:space="preserve">
     <value>Trackers</value>
@@ -1270,10 +1238,6 @@
   <data name="SettingsLibmpvLicence" xml:space="preserve">
     <value>Licensed under the Lesser General Public Licence, version 2.1 or later.</value>
     <comment>Notice line for the video library the player uses.</comment>
-  </data>
-  <data name="TorrentsCheckNote" xml:space="preserve">
-    <value>anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.</value>
-    <comment>Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.</comment>
   </data>
   <data name="TorrentsWarnInstead" xml:space="preserve">
     <value>anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.</value>
@@ -1639,14 +1603,6 @@
     <value>{name} is already joined</value>
     <comment>Title of the join dialog when this { -device } has joined that { -plugin-store } already.</comment>
   </data>
-  <data name="StoresOffersPlugins_one" xml:space="preserve">
-    <value>One plugin</value>
-    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
-  </data>
-  <data name="StoresOffersPlugins_other" xml:space="preserve">
-    <value>{count} plugins</value>
-    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
-  </data>
   <data name="StoresOwnerSeesAs" xml:space="preserve">
     <value>The owner sees this device as</value>
     <comment>Label over the box with the name this { -device } joins under.</comment>
@@ -1694,10 +1650,6 @@
   <data name="SourcePickerSeeders_other" xml:space="preserve">
     <value>{count} seeders</value>
     <comment>Under a release in the source picker: how many people share it right now.</comment>
-  </data>
-  <data name="TimeJustNowInline" xml:space="preserve">
-    <value>just now</value>
-    <comment>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</comment>
   </data>
   <data name="RatePerSecond" xml:space="preserve">
     <value>{size}/s</value>
@@ -2174,6 +2126,10 @@
   <data name="StateLoading" xml:space="preserve">
     <value>Loading</value>
     <comment>Short placeholder while something loads.</comment>
+  </data>
+  <data name="TimeJustNowInline" xml:space="preserve">
+    <value>just now</value>
+    <comment>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</comment>
   </data>
   <data name="CloseDontAsk" xml:space="preserve">
     <value>Don't ask again</value>
@@ -4199,6 +4155,26 @@
     <value>Remove {filter}</value>
     <comment>Accessibility label of the button that removes one filter.</comment>
   </data>
+  <data name="SearchSortFavourites" xml:space="preserve">
+    <value>Favourites</value>
+    <comment>Search: sort by how many people marked the title a favourite.</comment>
+  </data>
+  <data name="SearchSortNewest" xml:space="preserve">
+    <value>Newest</value>
+    <comment>Search: sort by release date, newest first.</comment>
+  </data>
+  <data name="SearchSortOldest" xml:space="preserve">
+    <value>Oldest</value>
+    <comment>Search: sort by release date, oldest first.</comment>
+  </data>
+  <data name="SearchSortTitle" xml:space="preserve">
+    <value>Title</value>
+    <comment>Search: sort by title, A to Z.</comment>
+  </data>
+  <data name="SearchSortTrending" xml:space="preserve">
+    <value>Trending</value>
+    <comment>Search: sort by what is popular right now.</comment>
+  </data>
   <data name="SettingsLanguage" xml:space="preserve">
     <value>Language</value>
     <comment>Settings group and row title for choosing a language.</comment>
@@ -4658,6 +4634,42 @@
   <data name="WidgetResumeDubbedLabel" xml:space="preserve">
     <value>Resume episode {episode}, dubbed, of {title}</value>
     <comment>Accessibility label of a widget row: continue a dubbed episode.</comment>
+  </data>
+  <data name="AccountsChangesWaiting_one" xml:space="preserve">
+    <value>One change waiting to sync</value>
+    <comment>Line under a signed-in account while changes wait to be sent.</comment>
+  </data>
+  <data name="AccountsChangesWaiting_other" xml:space="preserve">
+    <value>{count} changes waiting to sync</value>
+    <comment>Line under a signed-in account while changes wait to be sent.</comment>
+  </data>
+  <data name="SettingsQualityHigher" xml:space="preserve">
+    <value>Higher</value>
+    <comment>Choice for the download quality: larger files with more detail.</comment>
+  </data>
+  <data name="SettingsQualityStandard" xml:space="preserve">
+    <value>Standard</value>
+    <comment>Choice for the download quality: the usual size.</comment>
+  </data>
+  <data name="SettingsUploadUnlimited" xml:space="preserve">
+    <value>Unlimited</value>
+    <comment>Value of the upload limit setting when there is no limit.</comment>
+  </data>
+  <data name="SettingsUpscalingNatural" xml:space="preserve">
+    <value>Natural · ArtCNN</value>
+    <comment>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</comment>
+  </data>
+  <data name="SettingsUpscalingNoteNatural" xml:space="preserve">
+    <value>Faithful line work and texture, nothing restyled.</value>
+    <comment>Preview note under the upscaling frame for the natural look.</comment>
+  </data>
+  <data name="SettingsUpscalingNoteSharp" xml:space="preserve">
+    <value>Crisper lines and stronger edges, at some cost to texture.</value>
+    <comment>Preview note under the upscaling frame for the sharp look.</comment>
+  </data>
+  <data name="SettingsUpscalingSharp" xml:space="preserve">
+    <value>Sharp · Anime4K</value>
+    <comment>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</comment>
   </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>Sources</value>
@@ -5427,6 +5439,18 @@
     <value>{name} {version}</value>
     <comment>Version line of a plugin in the publish sheet.</comment>
   </data>
+  <data name="StoresCopyLink" xml:space="preserve">
+    <value>Copy link</value>
+    <comment>Button under an invite link that copies it. Reads "Copied" for a moment afterwards.</comment>
+  </data>
+  <data name="StoresOffersPlugins_one" xml:space="preserve">
+    <value>One plugin</value>
+    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
+  </data>
+  <data name="StoresOffersPlugins_other" xml:space="preserve">
+    <value>{count} plugins</value>
+    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
+  </data>
   <data name="TitleLoadFailed" xml:space="preserve">
     <value>Couldn't load this title</value>
     <comment>Title of the state when a title page could not load.</comment>
@@ -5958,6 +5982,10 @@
   <data name="TorrentsPageNeedsScript" xml:space="preserve">
     <value>This page needs JavaScript to send the form to the TV safely.</value>
     <comment>Line when the page needs script.</comment>
+  </data>
+  <data name="TorrentsCheckNote" xml:space="preserve">
+    <value>anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.</value>
+    <comment>Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.</comment>
   </data>
   <data name="AccountsTitle" xml:space="preserve">
     <value>Accounts</value>

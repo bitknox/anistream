@@ -4,6 +4,10 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import tv.anistream.store.plainReason
+import tv.anistream.store.text
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -49,7 +53,6 @@ import tv.anistream.store.BugContext
 import tv.anistream.store.JobsModel
 
 /** The offline line, under a screen's title while it shows what it has. */
-internal const val OFFLINE_LINE = "Offline. Downloaded episodes still play."
 
 /** How long a job runs before its activity is said in words under the title. */
 internal const val SLOW_MILLIS = 4_000L
@@ -63,7 +66,7 @@ internal fun OfflineLine(modifier: Modifier = Modifier, style: TextStyle = Mater
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(Icons.Offline, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-        Text(OFFLINE_LINE, style = style, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.state_offline_line), style = style, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -114,7 +117,7 @@ private fun slowJob(): String? {
         }
     }
     if (!slow || job == null) return null
-    return sentence(job.note ?: job.activity)
+    return sentence(job.note?.text(LocalContext.current) ?: job.activity)
 }
 
 /** Whether [active] has held for [millis]: work earns its place on screen only past 600 ms. */
@@ -162,16 +165,16 @@ internal fun FailedState(title: String, reason: String, retry: () -> Unit, modif
     }
     val context = LocalContext.current
     StateBlock(
-        glyph = { Icon(Icons.Problem, contentDescription = "Problem", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(32.dp)) },
+        glyph = { Icon(Icons.Problem, contentDescription = stringResource(R.string.error_label), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(32.dp)) },
         title = title,
-        line = plainReason(reason),
+        line = plainReason(LocalContext.current, reason),
         modifier = modifier,
     ) {
-        FilledTonalButton(onClick = retry) { Text("Try again") }
+        FilledTonalButton(onClick = retry) { Text(stringResource(R.string.action_try_again)) }
         TextButton(
             onClick = { openBugReport(context, store, BugContext("load", reason)) },
             colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
-        ) { Text("Report") }
+        ) { Text(stringResource(R.string.action_report)) }
     }
 }
 
@@ -181,11 +184,11 @@ internal fun OfflineState(modifier: Modifier = Modifier) {
     val navigator = LocalNavigator.current
     StateBlock(
         glyph = { Icon(Icons.Offline, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(32.dp)) },
-        title = "You're offline",
-        line = "Downloaded episodes still play.",
+        title = stringResource(R.string.state_offline_title),
+        line = stringResource(R.string.state_offline_detail),
         modifier = modifier,
     ) {
-        FilledTonalButton(onClick = { navigator.open(DOWNLOADS_ROUTE) }) { Text("Show downloads") }
+        FilledTonalButton(onClick = { navigator.open(DOWNLOADS_ROUTE) }) { Text(stringResource(R.string.state_offline_show_downloads)) }
     }
 }
 
@@ -262,31 +265,6 @@ private fun StateBlock(
             androidx.compose.runtime.CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) { buttons() }
         }
     }
-}
-
-/**
- * The first clause of an engine reason, in plain words: raw error chains never reach the screen
- * (copy rule 5). They go to Messages and the bug report whole.
- */
-internal fun plainReason(raw: String): String {
-    val lower = raw.lowercase(Locale.ROOT)
-    val who = if ("anilist" in lower) "AniList" else "The server"
-    return when {
-        "timed out" in lower || "timeout" in lower -> "$who took too long to answer."
-        "401" in lower || "unauthori" in lower || "expired" in lower && "token" in lower -> "Your sign-in has expired. Sign in again in Accounts."
-        "429" in lower || "rate limit" in lower || "too many requests" in lower -> "$who is busy. Try again in a minute."
-        Regex("\\b5\\d\\d\\b").containsMatchIn(lower) -> "$who had a problem."
-        "error sending request" in lower || "connection" in lower || "dns" in lower || "network" in lower ||
-            "unreachable" in lower || "connect" in lower -> "$who didn't answer."
-        else -> firstClause(raw)
-    }
-}
-
-/** "could not read the list: bad json at line 3" as "Could not read the list." */
-internal fun firstClause(raw: String): String {
-    val clause = raw.substringBefore(": ").substringBefore(" (").trim().trimEnd('.')
-    if (clause.isEmpty()) return "Something went wrong."
-    return sentence(clause) + "."
 }
 
 /** How long a pull to refresh may spin waiting for its job. */

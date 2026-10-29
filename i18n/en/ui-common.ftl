@@ -276,3 +276,7 @@ state-working = Working
 
 # Short placeholder while something loads.
 state-loading = Loading
+
+# How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
+# @max 16
+time-just-now-inline = just now

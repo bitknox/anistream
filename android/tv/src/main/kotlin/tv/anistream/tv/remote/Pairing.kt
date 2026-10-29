@@ -3,6 +3,8 @@
 
 package tv.anistream.tv.remote
 
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas as DrawCanvas
 import androidx.compose.foundation.background
@@ -49,7 +51,7 @@ import tv.anistream.tv.ui.entryFocus
 
 /** A QR code of [text], silk modules on ground with a quiet zone of four, [size] square. */
 @Composable
-fun QrCode(text: String, modifier: Modifier = Modifier, size: Dp = 180.dp, label: String = "QR code") {
+fun QrCode(text: String, modifier: Modifier = Modifier, size: Dp = 180.dp, label: String = stringResource(R.string.tv_qr_label_default)) {
     val matrix = remember(text) { qr(text) }
     DrawCanvas(
         modifier
@@ -100,11 +102,11 @@ fun PairRequestDialog(request: PairRequest, onCancel: () -> Unit) {
                 .padding(32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Pair with ${request.phone}?", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
+            Text(stringResource(R.string.tv_pair_request, request.phone), style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
             Code(request.code)
-            Text("Enter this code on the phone.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+            Text(stringResource(R.string.tv_pair_request_detail), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             Spacer(Modifier.height(8.dp))
-            TonalButton(onClick = onCancel, modifier = Modifier.focusRequester(cancel)) { ButtonLabel("Cancel") }
+            TonalButton(onClick = onCancel, modifier = Modifier.focusRequester(cancel)) { ButtonLabel(stringResource(R.string.action_cancel)) }
         }
     }
 }
@@ -126,7 +128,7 @@ fun ConfirmDialog(title: String, body: String, action: String, onConfirm: () -> 
             Text(body, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TonalButton(onClick = onCancel, modifier = Modifier.focusRequester(cancel)) { ButtonLabel("Cancel") }
+                TonalButton(onClick = onCancel, modifier = Modifier.focusRequester(cancel)) { ButtonLabel(stringResource(R.string.action_cancel)) }
                 TonalButton(onClick = onConfirm) { ButtonLabel(action) }
             }
         }
@@ -136,9 +138,9 @@ fun ConfirmDialog(title: String, body: String, action: String, onConfirm: () -> 
 /** Settings › Remotes › a paired phone: remove it, after asking. */
 @Composable
 fun RemovePhoneDialog(phone: String, onRemove: () -> Unit, onCancel: () -> Unit) = ConfirmDialog(
-    title = "Remove $phone?",
-    body = "It stops working as a remote for this TV. It can pair again with a new code.",
-    action = "Remove",
+    title = stringResource(R.string.tv_remove_phone_title, phone),
+    body = stringResource(R.string.tv_remove_phone_detail),
+    action = stringResource(R.string.action_remove),
     onConfirm = onRemove,
     onCancel = onCancel,
 )
@@ -168,29 +170,29 @@ fun PairPage(name: String, code: String?, link: String?, address: String?, onClo
     ) {
         Box(Modifier.width(160.dp)) { Nagare(cell = 5) }
         Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Text("Pair a phone", style = MaterialTheme.typography.headlineMedium, color = ObiSilk.Silk)
+            Text(stringResource(R.string.tv_pair_phone), style = MaterialTheme.typography.headlineMedium, color = ObiSilk.Silk)
             Text(
-                "Open anistream on your phone and choose Play on TV, then scan this code.",
+                stringResource(R.string.tv_pair_phone_detail),
                 style = MaterialTheme.typography.bodyLarge,
                 color = ObiSilk.Haze,
                 modifier = Modifier.widthIn(max = 640.dp),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (link != null) {
-                    QrCode(link, label = "QR code for pairing")
+                    QrCode(link, label = stringResource(R.string.tv_qr_label_pairing))
                 } else {
                     Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)))
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Or enter this code", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
-                    if (code != null) Code(code) else Text("Starting", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                    Text(stringResource(R.string.tv_or_enter_code), style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
+                    if (code != null) Code(code) else Text(stringResource(R.string.downloads_notice_starting), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
                     if (address != null) {
-                        Text("This TV: $name, $address", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+                        Text(stringResource(R.string.tv_this_tv, name, address), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
                     }
                 }
             }
-            Text("The code changes every 5 minutes.", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
-            TonalButton(onClick = onClose, modifier = Modifier.focusRequester(focus)) { ButtonLabel("Done") }
+            Text(stringResource(R.string.tv_code_changes), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+            TonalButton(onClick = onClose, modifier = Modifier.focusRequester(focus)) { ButtonLabel(stringResource(R.string.action_done)) }
         }
     }
 }

@@ -5,6 +5,7 @@
 
 package tv.anistream.app.tv
 
+import tv.anistream.i18n.Strings
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
@@ -48,24 +49,24 @@ class TvRemoteService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val tv = (application as AnistreamApp).store.tv
-        val player = TvSessionPlayer(tv)
+        val player = TvSessionPlayer(this, tv)
         val open = packageManager.getLaunchIntentForPackage(packageName)
             ?.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             ?.putExtra(EXTRA_REMOTE, true)
             ?.let { PendingIntent.getActivity(this, REMOTE_REQUEST, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT) }
         val buttons = listOf(
             CommandButton.Builder(CommandButton.ICON_SKIP_BACK_10)
-                .setDisplayName("Back 10 seconds")
+                .setDisplayName(Strings.playerBack10(this))
                 .setPlayerCommand(Player.COMMAND_SEEK_BACK)
                 .setSlots(CommandButton.SLOT_BACK)
                 .build(),
             CommandButton.Builder(CommandButton.ICON_SKIP_FORWARD_10)
-                .setDisplayName("Forward 10 seconds")
+                .setDisplayName(Strings.playerForward10(this))
                 .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
                 .setSlots(CommandButton.SLOT_FORWARD)
                 .build(),
             CommandButton.Builder(CommandButton.ICON_STOP)
-                .setDisplayName("Disconnect")
+                .setDisplayName(Strings.actionDisconnect(this))
                 .setPlayerCommand(Player.COMMAND_STOP)
                 .setSlots(CommandButton.SLOT_OVERFLOW)
                 .build(),

@@ -4,6 +4,11 @@
 
 package tv.anistream.ui
 
+import android.content.Context
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -89,35 +94,35 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
         ) {
             CoverArt(entry, 40.dp, Modifier.size(40.dp, 60.dp))
             Column {
-                Text("Settings for this show", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+                Text(stringResource(R.string.show_settings_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
                 Text(entry.showTitle, style = ShowTitle.row, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
 
-        SheetHeading("Audio and subtitles")
+        SheetHeading(stringResource(R.string.show_settings_audio_subtitles))
         val audio = row(ShowSettingKey.TRANSLATION)
         val translation = if (audio?.value?.startsWith("dub") == true) Translation.DUB else Translation.SUB
         ChoiceRow(
-            title = "Audio",
+            title = stringResource(R.string.player_audio),
             value = audio?.let { audioWords(it.value) },
             choices = listOf(
-                Choice(SettingValue.Str("sub"), "Japanese"),
-                Choice(SettingValue.Str("dub"), "English"),
+                Choice(SettingValue.Str("sub"), languageName("ja")),
+                Choice(SettingValue.Str("dub"), languageName("en")),
             ),
             current = audio?.let { SettingValue.Str(if (translation == Translation.DUB) "dub" else "sub") },
             enabled = audio != null,
         ) { set(ShowSettingKey.TRANSLATION, it) }
         val remembered = view?.remembered?.firstOrNull { it.translation == translation }?.subtitles
         SubtitlesRow(view, remembered)
-        SheetNote(if (remembered != null) "Chosen in the player. Remembered from your last episode." else "Chosen in the player. Following Settings › Playback.")
+        SheetNote(stringResource(if (remembered != null) R.string.show_settings_subs_remembered else R.string.show_settings_subs_follow))
 
-        SheetHeading("Episodes")
-        SwitchChoiceRow("Skip opening", row(ShowSettingKey.SKIP_OPENING), "On", "Off") { set(ShowSettingKey.SKIP_OPENING, it) }
-        SwitchChoiceRow("Skip filler", row(ShowSettingKey.SKIP_FILLER), "On", "Off") { set(ShowSettingKey.SKIP_FILLER, it) }
-        SwitchChoiceRow("Spoiler protection", row(ShowSettingKey.SPOILER_PROTECTION), "Always", "Never") {
+        SheetHeading(stringResource(R.string.title_episodes))
+        SwitchChoiceRow(stringResource(R.string.show_settings_skip_opening), row(ShowSettingKey.SKIP_OPENING), stringResource(R.string.value_on), stringResource(R.string.value_off)) { set(ShowSettingKey.SKIP_OPENING, it) }
+        SwitchChoiceRow(stringResource(R.string.show_settings_skip_filler), row(ShowSettingKey.SKIP_FILLER), stringResource(R.string.value_on), stringResource(R.string.value_off)) { set(ShowSettingKey.SKIP_FILLER, it) }
+        SwitchChoiceRow(stringResource(R.string.settings_spoiler), row(ShowSettingKey.SPOILER_PROTECTION), stringResource(R.string.show_settings_always), stringResource(R.string.show_settings_never)) {
             set(ShowSettingKey.SPOILER_PROTECTION, it)
         }
-        SheetNote("Spoiler protection blurs stills after the next episode.")
+        SheetNote(stringResource(R.string.show_settings_spoiler_detail))
 
         SheetDivider()
         // Whether this show's new episodes are notified of: On notifies whatever Settings says, and
@@ -125,14 +130,14 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
         val continuing by store.continuing.list.state.collectAsStateWithLifecycle()
         val notify = row(ShowSettingKey.NOTIFY_NEW_EPISODES)
         val notifications = LocalNotificationActions.current
-        SwitchChoiceRow("New episodes", notify, "On", "Off", default = notify?.let { notifyDefault(it, beingWatched(entry, continuing.ids)) }) { value ->
+        SwitchChoiceRow(stringResource(R.string.settings_new_episodes), notify, stringResource(R.string.value_on), stringResource(R.string.value_off), default = notify?.let { notifyDefault(LocalContext.current, it, beingWatched(entry, continuing.ids)) }) { value ->
             val switch: () -> Unit = { set(ShowSettingKey.NOTIFY_NEW_EPISODES, value) }
             if (value == SettingValue.Bool(true) && notifications != null) notifications.permit(switch) else switch()
         }
 
         SheetDivider()
         SourceRow(entry, view)
-        SheetNote("Automatic tries your sources in order.")
+        SheetNote(stringResource(R.string.show_settings_source_detail))
 
         SheetDivider()
         Column(
@@ -143,8 +148,8 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            Text("Reset to defaults", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold))
-            Text("Also clears the remembered audio and subtitles.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            Text(stringResource(R.string.show_settings_reset), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold))
+            Text(stringResource(R.string.show_settings_reset_detail), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
         }
     }
 }
@@ -159,7 +164,8 @@ private fun SubtitlesRow(view: ShowSettingsView?, remembered: RememberedSubtitle
     val settings by store.settings.view.collectAsStateWithLifecycle()
     val language = store.settings.row(tv.anistream.engine.model.SettingKey.SUBTITLES, settings)?.value
         ?.let(::languageName)
-    val default = listOfNotNull("Default", language).joinToString(" · ")
+    val context = LocalContext.current
+    val default = listOfNotNull(Strings.valueDefault(context), language).joinToString(" · ")
     // TODO(engine): no command sets or forgets a show's remembered subtitles outside the player;
     // once one does, this becomes a menu like Audio.
     Column(
@@ -170,9 +176,9 @@ private fun SubtitlesRow(view: ShowSettingsView?, remembered: RememberedSubtitle
             .semantics(mergeDescendants = true) {},
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("Subtitles", style = MaterialTheme.typography.bodyLarge)
+        Text(stringResource(R.string.player_subtitles), style = MaterialTheme.typography.bodyLarge)
         Text(
-            remembered?.let(::subtitleWords) ?: default,
+            remembered?.let { subtitleWords(context, it) } ?: default,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -189,11 +195,12 @@ private fun SourceRow(entry: Entry, view: ShowSettingsView?) {
     val rows by store.providers.rows.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { if (rows.isEmpty()) store.checkProviders() }
     val sources = store.orderedProviders().filter { !it.disabled }
-    fun name(id: String) = sources.firstOrNull { it.id == id }?.let(::sourceName) ?: id
+    val context = LocalContext.current
+    fun name(id: String) = sources.firstOrNull { it.id == id }?.let { sourceName(context, it) } ?: id
     ChoiceRow(
-        title = "Source",
-        value = view?.source?.let(::name) ?: "Automatic",
-        choices = listOf(Choice(null, "Automatic")) + sources.map { Choice(SettingValue.Str(it.id), sourceName(it)) },
+        title = stringResource(R.string.show_settings_source),
+        value = view?.source?.let(::name) ?: stringResource(R.string.value_automatic),
+        choices = listOf(Choice(null, stringResource(R.string.value_automatic))) + sources.map { Choice(SettingValue.Str(it.id), sourceName(context, it)) },
         current = view?.source?.let { SettingValue.Str(it) },
         enabled = view != null && sources.isNotEmpty(),
         currentIsDefault = view?.source == null,
@@ -205,9 +212,9 @@ private fun SourceRow(entry: Entry, view: ShowSettingsView?) {
 }
 
 /** A source as a person names it: the plugin's own name, or Torrents. */
-private fun sourceName(row: tv.anistream.engine.model.ProviderRow): String = when (row.kind) {
-    "torrent" -> "Torrents"
-    "remote" -> "Remote"
+private fun sourceName(context: Context, row: tv.anistream.engine.model.ProviderRow): String = when (row.kind) {
+    "torrent" -> Strings.sourcesTorrents(context)
+    "remote" -> Strings.sourcesRemote(context)
     else -> row.name.ifEmpty { row.id }
 }
 
@@ -225,7 +232,7 @@ private fun SwitchChoiceRow(
     on: String,
     off: String,
     /** What following Settings means for this show, where it is not Settings' own value. */
-    default: String? = row?.default?.let(::defaultWords),
+    default: String? = row?.default?.let { defaultWords(LocalContext.current, it) },
     onPick: (SettingValue?) -> Unit,
 ) {
     val own = (row?.own as? SettingValue.Bool)?.v1
@@ -236,7 +243,7 @@ private fun SwitchChoiceRow(
             false -> off
             null -> default
         },
-        choices = listOf(Choice(null, default ?: "Use default"), Choice(SettingValue.Bool(true), on), Choice(SettingValue.Bool(false), off)),
+        choices = listOf(Choice(null, default ?: stringResource(R.string.value_use_default)), Choice(SettingValue.Bool(true), on), Choice(SettingValue.Bool(false), off)),
         current = row?.own,
         currentIsDefault = row != null && row.own == null,
         enabled = row != null,
@@ -280,7 +287,7 @@ private fun ChoiceRow(
                     text = { Text(choice.label, style = MaterialTheme.typography.labelLarge) },
                     leadingIcon = {
                         Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                            if (checked) Icon(Icons.Check, contentDescription = "Current")
+                            if (checked) Icon(Icons.Check, contentDescription = stringResource(R.string.value_current))
                         }
                     },
                     modifier = Modifier.heightIn(min = 48.dp),
@@ -320,7 +327,7 @@ private fun SheetDivider() {
 }
 
 /** The audio a translation plays: Japanese for subtitled, English for dubbed. */
-internal fun audioWords(value: String): String = if (value.startsWith("dub")) "English" else "Japanese"
+internal fun audioWords(value: String): String = languageName(if (value.startsWith("dub")) "en" else "ja")
 
 /**
  * Whether the show is being watched, as the new-episode check follows shows: on the list as
@@ -333,31 +340,38 @@ internal fun beingWatched(entry: Entry, continuing: List<AnilistId>): Boolean =
  * What following Settings means for new episodes: Settings' value for a show being watched, and
  * off for one that is not, which only its own switch takes in: "Off · not watching".
  */
-internal fun notifyDefault(row: ShowSettingRow, watching: Boolean): String =
-    if (SettingsCatalog.isOnWords(row.default) && !watching) "Off · not watching" else defaultWords(row.default)
+internal fun notifyDefault(context: Context, row: ShowSettingRow, watching: Boolean): String =
+    if (SettingsCatalog.isOnWords(row.default) && !watching) Strings.showSettingsNotWatching(context) else defaultWords(context, row.default)
 
 /** What following Settings means for a row: "Use default · On", from Settings' "on". */
-internal fun defaultWords(value: String): String =
-    "Use default · " + value.removePrefix("Use Default · ").replaceFirstChar { it.titlecase(Locale.UK) }
-
-/** A remembered subtitle track: "Off", "English", or "English (Hotaru)" with its title. */
-internal fun subtitleWords(subtitles: RememberedSubtitles): String = when (subtitles) {
-    RememberedSubtitles.Off -> "Off"
-    is RememberedSubtitles.Track -> trackWords(subtitles.track)
+internal fun defaultWords(context: Context, value: String): String {
+    val words = value.removePrefix("Use Default · ")
+    val shown = when (words.lowercase()) {
+        "on" -> Strings.valueOn(context)
+        "off" -> Strings.valueOff(context)
+        else -> words.replaceFirstChar { it.titlecase(Locale.getDefault()) }
+    }
+    return Strings.valueUseDefaultIs(context, shown)
 }
 
-internal fun trackWords(track: RememberedTrack): String {
+/** A remembered subtitle track: "Off", "English", or "English (Hotaru)" with its title. */
+internal fun subtitleWords(context: Context, subtitles: RememberedSubtitles): String = when (subtitles) {
+    RememberedSubtitles.Off -> Strings.valueOff(context)
+    is RememberedSubtitles.Track -> trackWords(context, subtitles.track)
+}
+
+internal fun trackWords(context: Context, track: RememberedTrack): String {
     val language = track.language?.let { code ->
-        val name = Locale.forLanguageTag(code).getDisplayLanguage(Locale.UK)
+        val name = Locale.forLanguageTag(code).getDisplayLanguage(Locale.getDefault())
         if (name.isNullOrEmpty() || name.equals(code, ignoreCase = true)) code else name
     }
     // The title in words of its own, past the language it repeats: "english signs" is "signs".
     val title = track.title.split(' ').filter { word -> language == null || !word.equals(language, ignoreCase = true) }
-        .joinToString(" ").replaceFirstChar { it.titlecase(Locale.UK) }
+        .joinToString(" ").replaceFirstChar { it.titlecase(Locale.getDefault()) }
     return when {
-        language == null && title.isEmpty() -> "Unnamed track"
+        language == null && title.isEmpty() -> Strings.playerTrackUnnamed(context)
         language == null -> title
         title.isEmpty() -> language
-        else -> "$language ($title)"
+        else -> Strings.showSettingsTrackWith(context, language, title)
     }
 }

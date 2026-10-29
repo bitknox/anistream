@@ -1295,6 +1295,9 @@ public enum L {
     /// Short placeholder while something loads.
     public static var stateLoading: String { string("state-loading", fallback: "Loading") }
 
+    /// How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
+    public static var timeJustNowInline: String { string("time-just-now-inline", fallback: "just now") }
+
     /// Checkbox of the close question.
     public static var closeDontAsk: String { string("close-dont-ask", fallback: "Don't ask again") }
 
@@ -2984,6 +2987,21 @@ public enum L {
         Self.format("filter-remove", fallback: "Remove %1$@", filter)
     }
 
+    /// Search: sort by how many people marked the title a favourite.
+    public static var searchSortFavourites: String { string("search-sort-favourites", fallback: "Favourites") }
+
+    /// Search: sort by release date, newest first.
+    public static var searchSortNewest: String { string("search-sort-newest", fallback: "Newest") }
+
+    /// Search: sort by release date, oldest first.
+    public static var searchSortOldest: String { string("search-sort-oldest", fallback: "Oldest") }
+
+    /// Search: sort by title, A to Z.
+    public static var searchSortTitle: String { string("search-sort-title", fallback: "Title") }
+
+    /// Search: sort by what is popular right now.
+    public static var searchSortTrending: String { string("search-sort-trending", fallback: "Trending") }
+
     /// Settings group and row title for choosing a language.
     public static var settingsLanguage: String { string("settings-language", fallback: "Language") }
 
@@ -3343,6 +3361,32 @@ public enum L {
     public static func widgetResumeDubbedLabel(episode: Int, title: String) -> String {
         Self.format("widget-resume-dubbed-label", fallback: "Resume episode %1$lld, dubbed, of %2$@", episode, title)
     }
+
+    /// Line under a signed-in account while changes wait to be sent.
+    public static func accountsChangesWaiting(count: Int) -> String {
+        Self.format("accounts-changes-waiting", fallback: "%1$lld changes waiting to sync", count)
+    }
+
+    /// Choice for the download quality: larger files with more detail.
+    public static var settingsQualityHigher: String { string("settings-quality-higher", fallback: "Higher") }
+
+    /// Choice for the download quality: the usual size.
+    public static var settingsQualityStandard: String { string("settings-quality-standard", fallback: "Standard") }
+
+    /// Value of the upload limit setting when there is no limit.
+    public static var settingsUploadUnlimited: String { string("settings-upload-unlimited", fallback: "Unlimited") }
+
+    /// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+    public static var settingsUpscalingNatural: String { string("settings-upscaling-natural", fallback: "Natural · ArtCNN") }
+
+    /// Preview note under the upscaling frame for the natural look.
+    public static var settingsUpscalingNoteNatural: String { string("settings-upscaling-note-natural", fallback: "Faithful line work and texture, nothing restyled.") }
+
+    /// Preview note under the upscaling frame for the sharp look.
+    public static var settingsUpscalingNoteSharp: String { string("settings-upscaling-note-sharp", fallback: "Crisper lines and stronger edges, at some cost to texture.") }
+
+    /// Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+    public static var settingsUpscalingSharp: String { string("settings-upscaling-sharp", fallback: "Sharp · Anime4K") }
 
     /// Title of the screen or section that lists sources.
     public static var sourcesTitle: String { string("sources-title", fallback: "Sources") }
@@ -3997,6 +4041,14 @@ public enum L {
         Self.format("stores-plugin-name-version", fallback: "%1$@ %2$@", name, version)
     }
 
+    /// Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+    public static var storesCopyLink: String { string("stores-copy-link", fallback: "Copy link") }
+
+    /// Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+    public static func storesOffersPlugins(count: Int) -> String {
+        Self.format("stores-offers-plugins", fallback: "%1$lld plugins", count)
+    }
+
     /// Title of the state when a title page could not load.
     public static var titleLoadFailed: String { string("title-load-failed", fallback: "Couldn't load this title") }
 
@@ -4440,6 +4492,9 @@ public enum L {
 
     /// Line when the page needs script.
     public static var torrentsPageNeedsScript: String { string("torrents-page-needs-script", fallback: "This page needs JavaScript to send the form to the TV safely.") }
+
+    /// Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+    public static var torrentsCheckNote: String { string("torrents-check-note", fallback: "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.") }
 
     /// Title of the accounts screen. The sidebar item is nav-accounts.
     public static var accountsTitle: String { string("accounts-title", fallback: "Accounts") }

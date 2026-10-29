@@ -446,6 +446,740 @@
         <item quantity="one">Queued one episode.</item>
         <item quantity="other">Queued %1$d episodes.</item>
     </plurals>
+    <!-- Accessibility label of the account button in the top bar when someone is signed in. -->
+    <string name="account_button_named">%1$s, accounts and settings</string>
+    <!-- Button on a notice that opens the plugin stores, where its cause can be fixed. -->
+    <string name="notice_open_stores">Open plugin stores</string>
+    <!-- Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. -->
+    <string name="tv_pair_request_held">%1$s wants to pair. Code %2$s</string>
+    <!-- TV, Continue hero: the action when no source can play yet. -->
+    <string name="tv_add_store_to_play">Add a plugin store to play</string>
+    <!-- TV, Continue hero: the button that opens the title page. -->
+    <string name="tv_title_page">Title page</string>
+    <!-- TV, Continue: the line when nothing could be loaded. -->
+    <string name="tv_continue_offline_failed">anistream can’t reach AniList right now.</string>
+    <!-- TV, Continue: the line when there is nothing to continue. -->
+    <string name="tv_continue_empty">Nothing to continue yet.</string>
+    <!-- TV, Continue: the button that opens Seasonal when the queue is empty. -->
+    <string name="tv_continue_browse">Browse this season</string>
+    <!-- TV, card actions: opens the title page. -->
+    <string name="tv_open_title_page">Open the title page</string>
+    <!-- TV, Seasonal: the sheet title over the sorts. -->
+    <string name="tv_sort_title">Sort</string>
+    <!-- TV, Seasonal: the chip that keeps only titles on the viewer's lists. -->
+    <string name="tv_on_my_list">On my list</string>
+    <!-- TV, Seasonal: the line when no title of the season is on the viewer's lists. -->
+    <string name="tv_seasonal_unlisted">Nothing from %1$s is on your lists yet.</string>
+    <!-- TV, Seasonal and Library: the line when a season or a list could not be loaded. -->
+    <string name="tv_load_failed_named">Couldn’t load %1$s.</string>
+    <!-- TV, Library: the line over an empty list. -->
+    <string name="tv_library_empty">Nothing in %1$s.</string>
+    <!-- TV, Library: the line when no tracker is connected. -->
+    <string name="tv_lists_signed_out">Your lists live in a tracker. Sign in to see them here.</string>
+    <!-- TV, Library: the button that opens Accounts. -->
+    <string name="tv_connect_tracker">Connect a tracker</string>
+    <!-- TV, Library card actions: opens the list of statuses. -->
+    <string name="tv_change_status">Change status</string>
+    <!-- TV, card actions: adds the title to Planning. -->
+    <string name="tv_add_to_planning">Add to Planning</string>
+    <!-- TV, Library poster: how far along, out of the total. -->
+    <string name="tv_progress_of">%1$d / %2$d</string>
+    <!-- TV, Library poster: how far along when the total is not known. -->
+    <string name="tv_progress_unknown">%1$d / ?</string>
+    <!-- Beside the calendar chips when signed out -->
+    <string name="tv_calendar_signed_out_note">Sign in to see only your shows</string>
+    <!-- Air time with the time it moved from -->
+    <string name="tv_calendar_time_was">%1$s (was %2$s)</string>
+    <!-- Pill on the TV player after a skip, naming what it did and offering undo -->
+    <string name="tv_player_undo_pill">%1$s · Undo</string>
+    <!-- An episode in the TV player's episode panel, number then title -->
+    <string name="tv_player_episode_row">E%1$s · %2$s</string>
+    <!-- Marks the episode that is playing in the TV player's episode panel -->
+    <string name="tv_player_episode_playing">Playing</string>
+    <!-- Title line on the TV player's up next card -->
+    <string name="tv_player_up_next_line">Up next: E%1$s · %2$s</string>
+    <!-- Title line on the TV player's up next card when the episode has no title -->
+    <string name="tv_player_up_next_bare">Up next: E%1$s</string>
+    <!-- Note under the TV player's subtitle list -->
+    <string name="tv_player_caption_note">Style follows the system\'s caption settings</string>
+    <!-- Shown in the TV search field while a phone is typing into it -->
+    <string name="tv_search_typing_phone">Typing from a phone</string>
+    <!-- Button on the TV search screen that opens the system keyboard -->
+    <string name="tv_search_system_keyboard">System keyboard</string>
+    <!-- Space key on the TV search keyboard -->
+    <string name="tv_search_space">Space</string>
+    <!-- Title of the season picker on the TV once a year is chosen -->
+    <string name="tv_search_season_in">Season in %1$d</string>
+    <!-- Under the genre list on the TV when it is offline and the genres have not loaded -->
+    <string name="tv_search_genres_offline">Genres load once the TV is online</string>
+    <!-- Under the seasons row on the TV title page: which season this is among the franchise's. -->
+    <string name="tv_seasons_position">%1$d of %2$d</string>
+    <!-- Under the seasons row on the TV title page when this title is none of its seasons. -->
+    <plurals name="tv_seasons_count">
+        <item quantity="one">%1$d season</item>
+        <item quantity="other">%1$d seasons</item>
+    </plurals>
+    <!-- Action on an episode's sheet: marks it and every episode before it watched. -->
+    <string name="tv_episode_mark_up_to_here">Mark watched up to here</string>
+    <!-- The spoken label of an episode card once it is watched: the card's own label, then this. -->
+    <string name="tv_card_label_watched">%1$s, watched</string>
+    <!-- TV settings section and fallback name of the TV -->
+    <string name="tv_section_this_tv">This TV</string>
+    <!-- Label on a TV source's panel for where it came from -->
+    <string name="tv_info_from">From</string>
+    <!-- Label on a TV source's panel for its problem -->
+    <string name="tv_info_state">State</string>
+    <!-- Line under a plugin store on the TV that has ended this device's access -->
+    <string name="tv_store_revoked">No longer lets this TV in</string>
+    <!-- Note under the seeding rows in TV settings -->
+    <string name="tv_seeding_note">Best effort on this TV: seeding runs only while anistream is open.</string>
+    <!-- Title of the TV sign-out confirmation -->
+    <string name="tv_sign_out_title">Sign out of %1$s?</string>
+    <!-- Line under a tracker on the TV when nobody is signed in -->
+    <string name="tv_account_not_signed_in">Not signed in</string>
+    <!-- Line under a tracker on the TV when someone is signed in -->
+    <string name="tv_account_signed_in_as">Signed in as %1$s</string>
+    <!-- Row on the TV showing the name phones see -->
+    <string name="tv_remote_name_label">This TV\'s name for phones</string>
+    <!-- Switch on the TV that lets phones find it on the network -->
+    <string name="tv_remote_findable">Let phones on this network find this TV</string>
+    <!-- Line under a paired phone used today -->
+    <string name="tv_phone_used_today">Used today</string>
+    <!-- Line under a paired phone used yesterday -->
+    <string name="tv_phone_used_yesterday">Used yesterday</string>
+    <!-- Line under a paired phone that never connected again, paired today -->
+    <string name="tv_phone_paired_today">Paired today</string>
+    <!-- Line under a paired phone that never connected again, paired yesterday -->
+    <string name="tv_phone_paired_yesterday">Paired yesterday</string>
+    <!-- Switch on the TV that shows the app on the home screen -->
+    <string name="tv_watch_next_row">Show anistream on the home screen</string>
+    <!-- Android's name for the home screen row -->
+    <string name="tv_watch_next_name">Watch Next</string>
+    <!-- Row on the TV that clears the cached images -->
+    <string name="tv_image_cache_clear">Clear the image cache</string>
+    <!-- Value of the clear-cache row while it clears -->
+    <string name="tv_image_cache_clearing">Clearing</string>
+    <!-- Row in TV About for the library used in the pairing pages -->
+    <string name="tv_licence_page_encryption">Page encryption</string>
+    <!-- Value of that row -->
+    <string name="tv_licence_page_encryption_value">noble-ciphers, under the MIT License</string>
+    <!-- Line under the TV's update row when an update can be fetched -->
+    <string name="tv_update_available">Available</string>
+    <!-- Line under the TV's update row while Android has not allowed installs yet -->
+    <string name="tv_update_waiting_install">Waiting for Android to allow installs</string>
+    <!-- Switch in TV About for the daily update check -->
+    <string name="tv_update_auto_check">Check for updates automatically</string>
+    <!-- Line under that switch -->
+    <string name="tv_update_auto_check_detail">Once a day, from anistream\'s releases</string>
+    <!-- Line under a paired phone on the TV: it was last used this many days ago. -->
+    <plurals name="tv_phone_used_days">
+        <item quantity="one">Used %1$d day ago</item>
+        <item quantity="other">Used %1$d days ago</item>
+    </plurals>
+    <!-- Line under a paired phone that never connected again: it paired this many days ago. -->
+    <plurals name="tv_phone_paired_days">
+        <item quantity="one">Paired %1$d day ago</item>
+        <item quantity="other">Paired %1$d days ago</item>
+    </plurals>
+    <!-- Line on the TV's update page naming the version it runs now -->
+    <string name="tv_update_installed">This TV has v%1$s</string>
+    <!-- Body of the TV's phone page when its address is wrong -->
+    <string name="tv_page_not_found_text">This page is not here.</string>
+    <!-- Body of the TV's phone page when it is asked for something else -->
+    <string name="tv_page_not_allowed_text">This page only takes its own form.</string>
+    <!-- What the TV does next once the phone sent a plugin store link, for the line telling to look at the TV -->
+    <string name="tv_page_next_link">it shows the plugin store, to join there</string>
+    <!-- What the TV does next once the phone sent the torrent details -->
+    <string name="tv_page_next_torrent">check the details there, then Turn on</string>
+    <!-- What the TV does next once the phone sent a proxy -->
+    <string name="tv_page_next_proxy">check the proxy there, then Save</string>
+    <!-- What the TV does next once the phone sent a sign-in -->
+    <string name="tv_page_next_signin">it signs in to %1$s now</string>
+    <!-- Link text on the phone page that opens a tracker's authorisation page -->
+    <string name="tv_page_open_link">Open %1$s</string>
+    <!-- First step on the phone page: the link, then what to do there -->
+    <string name="tv_page_step_open">%1$s and allow anistream.</string>
+    <!-- Second step on the phone page -->
+    <string name="tv_page_step_copy">Copy the code it shows, or the whole address the page ends on.</string>
+    <!-- Third step on the phone page -->
+    <string name="tv_page_step_paste">Paste it here and send it to the TV.</string>
+    <!-- Intro on the phone page that takes a user name and password -->
+    <string name="tv_page_password">Your %1$s user name or email, and password. They go to the TV, which signs in to %1$s with them and keeps only the token.</string>
+    <!-- Intro on the phone page that takes a plugin store link -->
+    <string name="tv_page_link">Paste the plugin store\'s invite link. The TV shows the plugin store before it joins.</string>
+    <!-- Intro on the phone page that takes the torrent index -->
+    <string name="tv_page_torrent">The torrent index anistream asks for torrents.</string>
+    <!-- Intro on the phone page that takes the torrent index and a proxy -->
+    <string name="tv_page_torrent_proxy">The torrent index anistream asks for torrents, and the SOCKS5 proxy torrent traffic goes through.</string>
+    <!-- Intro on the phone page that takes a proxy -->
+    <string name="tv_page_proxy">The SOCKS5 proxy torrent traffic goes through. %1$s The TV checks the proxy before it saves it.</string>
+    <!-- Label of the code field on the phone page -->
+    <string name="tv_page_label_code">Code</string>
+    <!-- Title of the phone page that takes torrent details -->
+    <string name="tv_page_title_torrents">Torrents for anistream</string>
+    <!-- Button on the phone page -->
+    <string name="tv_page_send">Send to the TV</string>
+    <!-- Title on the phone page when its address lost the key -->
+    <string name="tv_page_scan_again">Scan the code again</string>
+    <!-- Title on the phone page once the TV took the form -->
+    <string name="tv_page_sent_title">Sent to the TV</string>
+    <!-- Line on the phone page when the TV did not answer -->
+    <string name="tv_page_no_answer">The TV did not answer. Check that it is on and on the same network as this phone, then send it again.</string>
+    <!-- Last sentence of the phone page's intro. -->
+    <string name="tv_page_closes_once_sent">The page closes once it is sent.</string>
+    <!-- Button on the TV's torrent form that asks for the details again from a phone -->
+    <string name="tv_use_phone">Use a phone</string>
+    <!-- Button on the TV's torrent form that types the details with the system keyboard -->
+    <string name="tv_type_it">Type it</string>
+    <!-- Spoken label of the QR code for the proxy page -->
+    <string name="tv_qr_label_proxy">QR code for the page that takes the proxy</string>
+    <!-- Spoken label of the QR code for the torrent index page -->
+    <string name="tv_qr_label_index">QR code for the page that takes the torrent index</string>
+    <!-- Beside the QR code on the TV -->
+    <string name="tv_scan_torrent_proxy">Scan with your phone, then fill in the torrent index and the proxy on the page that opens.</string>
+    <!-- Beside the QR code on the TV -->
+    <string name="tv_scan_proxy">Scan with your phone, then change the proxy on the page that opens.</string>
+    <!-- Beside the QR code on the TV -->
+    <string name="tv_scan_torrent">Scan with your phone, then fill in the torrent index on the page that opens.</string>
+    <!-- Name of the proxy user field on the TV -->
+    <string name="tv_field_user_optional">User name, if asked</string>
+    <!-- Name of the proxy password field on the TV -->
+    <string name="tv_field_password_optional">Password, if asked</string>
+    <!-- Spoken label of the QR code for the plugin store link page -->
+    <string name="tv_qr_label_link">QR code for the page that takes the link</string>
+    <!-- Key line under a plugin store's name before joining on the TV -->
+    <string name="tv_preview_key">Key %1$s</string>
+    <!-- Line under the first plugins of a plugin store about the rest -->
+    <string name="tv_preview_more">and %1$d more</string>
+    <!-- Button on the TV's plugin store preview when this device joined already -->
+    <string name="tv_already_joined">Already joined</string>
+    <!-- Label of the Join button while it works -->
+    <string name="tv_joining">Joining</string>
+    <!-- Notice after a TV account sign-in, with the user name -->
+    <string name="tv_signin_done_as">Signed in to %1$s as %2$s</string>
+    <!-- Notice after a TV account sign-in -->
+    <string name="tv_signin_done">Signed in to %1$s</string>
+    <!-- Said when a tracker has no TV sign-in -->
+    <string name="tv_signin_not_on_tv">%1$s doesn\'t sign in on a TV.</string>
+    <!-- Shown under the sign-in page address when the answer was turned down -->
+    <string name="tv_signin_did_not">%1$s did not sign in. Check the details and send them again from the page.</string>
+    <!-- Steps for a device-code sign-in on the TV -->
+    <string name="tv_signin_device_steps">On your phone, scan the QR code or go to the address, then type this code.</string>
+    <!-- Shown while the TV asks a service for a device code -->
+    <string name="tv_signin_asking_code">Asking for a code</string>
+    <!-- Spoken label of the sign-in page QR code -->
+    <string name="tv_signin_qr_page">QR code for the sign-in page</string>
+    <!-- Spoken label of the activation address QR code -->
+    <string name="tv_signin_qr_activation">QR code for the activation address</string>
+    <!-- Spoken label of the pairing QR code -->
+    <string name="tv_qr_label_pairing">QR code for pairing</string>
+    <!-- Spoken label of a QR code with no more specific label -->
+    <string name="tv_qr_label_default">QR code</string>
+    <!-- Supporting line of the reset row after it was pressed in a show's settings panel -->
+    <string name="tv_show_back_to_defaults">Back to defaults</string>
+    <!-- Spoken progress on a card for TalkBack, with the formatted percentage -->
+    <string name="tv_card_progress_spoken">%1$s watched</string>
+    <!-- A countdown that has run out. -->
+    <string name="time_now_inline">now</string>
+    <!-- The episode in a short form for a title last watched dubbed. -->
+    <string name="episode_short_dubbed">E%1$d · Dubbed</string>
+    <!-- The episode in its long form for a title last watched dubbed. -->
+    <string name="episode_long_dubbed">Episode %1$d · Dubbed</string>
+    <!-- Continue row: a new episode, watched dubbed, with how long ago it came out. -->
+    <string name="continue_row_start_aired_dubbed">Play E%1$d dubbed · out %2$s</string>
+    <!-- Title page button: continue a dubbed episode part-way through. -->
+    <string name="title_button_resume_dubbed">Resume episode %1$d · Dubbed · %2$s</string>
+    <!-- Title page button: play the next dubbed episode. -->
+    <string name="title_button_play_dubbed">Play episode %1$d · Dubbed</string>
+    <!-- Download notification title when several episodes are paused. -->
+    <plurals name="downloads_live_paused">
+        <item quantity="one">One episode paused</item>
+        <item quantity="other">%1$d episodes paused</item>
+    </plurals>
+    <!-- Download notification, several episodes: the one that runs, by show and number. -->
+    <string name="downloads_live_lead">%1$s E%2$d</string>
+    <!-- Download notification, several episodes: how much is left. The size is already formatted. -->
+    <string name="downloads_live_left">%1$s left</string>
+    <!-- Download notification, one episode: how much is down. Both sizes are already formatted. -->
+    <string name="downloads_live_progress">%1$s of %2$s</string>
+    <!-- Download notification, one episode: the download is paused. -->
+    <string name="downloads_live_paused_one">Paused</string>
+    <!-- Download notification, one episode: it waits for a free slot. -->
+    <string name="downloads_live_waiting">Waiting</string>
+    <!-- Setting value: seed until the upload ratio reaches a number such as 1.5. -->
+    <string name="settings_seed_ratio_until">Until ratio %1$s</string>
+    <!-- Setting value: an upload limit, in size per second. The size is already formatted. -->
+    <string name="settings_upload_rate">%1$s/s</string>
+    <!-- Footer under the week's notifications: shows watched dubbed, which notify when the dub is out. The names are a list of titles. -->
+    <plurals name="settings_coming_up_dubbed">
+        <item quantity="one">%1$s notifies when its dub is out.</item>
+        <item quantity="other">%1$s notify when their dubs are out.</item>
+    </plurals>
+    <!-- Footer under the week's notifications: shows with their own notification switch off. The names are a list of titles. -->
+    <plurals name="settings_coming_up_switched_off">
+        <item quantity="one">%1$s is off in its own settings.</item>
+        <item quantity="other">%1$s are off in their own settings.</item>
+    </plurals>
+    <!-- Footer under the week's notifications: what a row does. -->
+    <string name="settings_coming_up_opens">A show opens its settings.</string>
+    <!-- The same note when a failed check only warns. -->
+    <string name="torrents_check_note_warn">anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and warns you if that check fails. Your VPN or proxy is what protects you.</string>
+    <!-- The same note when a failed check stops torrents. -->
+    <string name="torrents_check_note_stop">anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and stops torrents if that check fails. Your VPN or proxy is what protects you.</string>
+    <!-- Notice after the torrent protection was saved. -->
+    <string name="torrents_protection_saved">Torrent protection saved</string>
+    <!-- Name of the proxy protection. -->
+    <string name="torrents_protect_proxy_name">SOCKS5 proxy</string>
+    <!-- Name of the VPN protection. -->
+    <string name="torrents_protect_vpn_name">VPN on this device</string>
+    <!-- Body of the question asked before a failed check only warns. -->
+    <string name="torrents_warn_body">anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.</string>
+    <!-- Part of a proxy's line: the user it lets in. -->
+    <string name="torrents_proxy_as">as %1$s</string>
+    <!-- Title facts: a finished title and when it aired. The dates are already formatted. -->
+    <string name="title_facts_aired">Aired %1$s</string>
+    <!-- Title facts: a title that is airing, and since when. -->
+    <string name="title_facts_airing">Airing since %1$s</string>
+    <!-- Title facts: a title that has not started, and when it does. -->
+    <string name="title_facts_airs">Airs from %1$s</string>
+    <!-- Two dates as a range, such as the first and last broadcast. -->
+    <string name="media_dates_range">%1$s to %2$s</string>
+    <!-- Title facts: where else the title is, by the first place and how many more. -->
+    <plurals name="title_also_on_more">
+        <item quantity="one">%1$s and one more</item>
+        <item quantity="other">%1$s and %2$d more</item>
+    </plurals>
+    <!-- Mark on a title meant for adults. -->
+    <string name="title_adult_mark">18+</string>
+    <!-- Downloads: what the downloads use and what is free. Both sizes are already formatted. -->
+    <string name="downloads_storage_used_free">%1$s used · %2$s free</string>
+    <!-- Downloads: what the downloads use, when the free space is not known. -->
+    <string name="downloads_storage_used">%1$s used</string>
+    <!-- Downloads row: how long is left. The time is already formatted. -->
+    <string name="downloads_time_left">%1$s left</string>
+    <!-- Downloads row: the speed, in size per second. The size is already formatted. -->
+    <string name="downloads_rate">%1$s/s</string>
+    <!-- Seeding row: how much was sent. The size is already formatted. -->
+    <string name="downloads_uploaded">%1$s up</string>
+    <!-- Seeding row: the ratio reached against the ratio asked for. -->
+    <string name="downloads_ratio_of">%1$s of %2$s</string>
+    <!-- Group heading on the downloads board: how many episodes a show has, and the space they take. -->
+    <plurals name="downloads_group_summary">
+        <item quantity="one">One episode · %2$s</item>
+        <item quantity="other">%1$d episodes · %2$s</item>
+    </plurals>
+    <!-- Episode menu item that starts a download. -->
+    <string name="episode_menu_download">Download</string>
+    <!-- Episode menu item, shown while the episode's download is paused. -->
+    <string name="episode_menu_download_paused">Download paused</string>
+    <!-- A failure in plain words: AniList took too long to answer. -->
+    <string name="reason_timeout_anilist">AniList took too long to answer.</string>
+    <!-- A failure in plain words: the server took too long to answer. -->
+    <string name="reason_timeout_server">The server took too long to answer.</string>
+    <!-- A failure in plain words: AniList asks for a pause. -->
+    <string name="reason_busy_anilist">AniList is busy. Try again in a minute.</string>
+    <!-- A failure in plain words: the server asks for a pause. -->
+    <string name="reason_busy_server">The server is busy. Try again in a minute.</string>
+    <!-- A failure in plain words: AniList had a fault. -->
+    <string name="reason_problem_anilist">AniList had a problem.</string>
+    <!-- A failure in plain words: the server had a fault. -->
+    <string name="reason_problem_server">The server had a problem.</string>
+    <!-- A failure in plain words: AniList could not be reached. -->
+    <string name="reason_silent_anilist">AniList didn\'t answer.</string>
+    <!-- A failure in plain words: the server could not be reached. -->
+    <string name="reason_silent_server">The server didn\'t answer.</string>
+    <!-- Update row title while the update goes in. -->
+    <string name="updates_installing_plain">Installing</string>
+    <!-- Update row line while the installer runs: the app is replaced, so it closes. -->
+    <string name="updates_closes_as_installs">anistream closes as it installs</string>
+    <!-- Button on the update notice where this build cannot install the update itself: it opens the version's page. -->
+    <string name="updates_open_release">Open page</string>
+    <!-- Country of origin filter: Japan. -->
+    <string name="country_japan">Japan</string>
+    <!-- Country of origin filter: China. -->
+    <string name="country_china">China</string>
+    <!-- Country of origin filter: South Korea. -->
+    <string name="country_korea">Korea</string>
+    <!-- Country of origin filter: Taiwan. -->
+    <string name="country_taiwan">Taiwan</string>
+    <!-- Search chip for several genres picked. -->
+    <plurals name="search_genres_picked">
+        <item quantity="one">One genre</item>
+        <item quantity="other">%1$d genres</item>
+    </plurals>
+    <!-- Search chip for several formats picked. -->
+    <plurals name="search_formats_picked">
+        <item quantity="one">One format</item>
+        <item quantity="other">%1$d formats</item>
+    </plurals>
+    <!-- Search chip for several statuses picked. -->
+    <plurals name="search_statuses_picked">
+        <item quantity="one">One status</item>
+        <item quantity="other">%1$d statuses</item>
+    </plurals>
+    <!-- Search filter: the score slider's value when no minimum is set. -->
+    <string name="filter_score_any">Any</string>
+    <!-- Search filter: the year range from a year onwards. -->
+    <string name="filter_years_from">%1$s on</string>
+    <!-- Search filter: the year range between two years. -->
+    <string name="filter_years_between">%1$s to %2$s</string>
+    <!-- Search filter name: the tag rank slider, whose value sits beside it. -->
+    <string name="filter_tag_rank_title">Tag rank at least</string>
+    <!-- Search suggestions: the kind shown beside a tag that matches the typed words. -->
+    <string name="filter_tag">Tag</string>
+    <!-- Accessibility label of a search suggestion: it becomes a filter. -->
+    <string name="search_filter_by">Filter by %1$s</string>
+    <!-- Disabled item in the genre menu while the genres load. -->
+    <string name="search_loading_genres">Loading genres</string>
+    <!-- Search note: live results wait while AniList's rate limit recovers. -->
+    <string name="search_paused_rate_limit">Results wait for the search key while AniList’s rate limit recovers</string>
+    <!-- Button that takes every active filter off. -->
+    <string name="action_clear_all">Clear all</string>
+    <!-- Search filter label above the source materials. -->
+    <string name="filter_source_material">Source material</string>
+    <!-- Search result detail for a title being watched: its list status, and the episode up next. -->
+    <string name="search_detail_episode">%1$s · Ep %2$d</string>
+    <!-- Source switch: use the source. The name is the source's. -->
+    <string name="sources_use">Use %1$s</string>
+    <!-- Accessibility label of a source's drag handle while the list is reordered. -->
+    <string name="sources_move">Move %1$s</string>
+    <!-- Accessibility label of the button that starts reordering sources. -->
+    <string name="sources_reorder">Reorder</string>
+    <!-- Source page: the version of a source and the newer one a store offers. -->
+    <string name="sources_version_available">%1$s available</string>
+    <!-- Source page: how long the source took to answer, in milliseconds. -->
+    <string name="sources_response_ms">%1$d ms</string>
+    <!-- Update dialog: the version, and the store it comes from, for a source that has no version yet. -->
+    <string name="sources_update_from">Version %1$s from %2$s.</string>
+    <!-- Source page: the line under a source that is off. -->
+    <string name="sources_detail_off">Off. It keeps its place and is not tried until it is on again.</string>
+    <!-- Fallback title of a source page before the source loads. -->
+    <string name="sources_fallback_title">Source</string>
+    <!-- A source's failure in plain words: it took too long to answer. -->
+    <string name="reason_source_timeout">It took too long to answer.</string>
+    <!-- A source's failure in plain words: it asks for a pause. -->
+    <string name="reason_source_busy">It is busy. Try again in a minute.</string>
+    <!-- A source's failure in plain words: it had a fault. -->
+    <string name="reason_source_problem">It had a problem.</string>
+    <!-- A source's failure in plain words: it refused the request. -->
+    <string name="reason_source_turned_away">It turned the request away.</string>
+    <!-- A source's failure in plain words: its address is not found. -->
+    <string name="reason_source_no_address">Its address could not be found.</string>
+    <!-- A source's failure in plain words: it could not be reached. -->
+    <string name="reason_source_unreachable">It could not be reached.</string>
+    <!-- Plugin store line: how many updates wait in it. -->
+    <plurals name="stores_updates_waiting">
+        <item quantity="one">One update</item>
+        <item quantity="other">%1$d updates</item>
+    </plurals>
+    <!-- Plugin store page: when the store was last checked, after "Joined as" and a dot. -->
+    <string name="stores_checked_ago">checked %1$s</string>
+    <!-- Join sheet: the store's key matches the key in a link anyone can use. -->
+    <string name="stores_preview_key_link">Key matches the link</string>
+    <!-- Join sheet: the store's key matches the key in an invite. -->
+    <string name="stores_preview_key_invite">Key matches the invite</string>
+    <!-- Accessibility label of the shield beside a matching key. -->
+    <string name="stores_key_verified">Verified</string>
+    <!-- Fallback title of a plugin store page before it loads. -->
+    <string name="stores_fallback_title">Plugin store</string>
+    <!-- Fallback title of a plugin page before it loads. -->
+    <string name="stores_fallback_plugin">Plugin</string>
+    <!-- Fallback name of a plugin store in a sentence, before it is known. -->
+    <string name="stores_fallback_name">the plugin store</string>
+    <!-- Invite link sheet: what the link does. -->
+    <string name="stores_link_sheet_detail">Open this link on your other device to join the plugin store there. It works once.</string>
+    <!-- Settings list: how long ago the last sync was, with Synced in front. -->
+    <string name="accounts_synced_ago">Synced %1$s</string>
+    <!-- Account card on the settings list: the tracker's name and its status. -->
+    <string name="accounts_card_line">%1$s · %2$s</string>
+    <!-- Account card, spoken: who is signed in, how it stands, and what it opens. -->
+    <string name="accounts_card_description">%1$s, %2$s. Opens Accounts</string>
+    <!-- Account card, spoken, when nobody is signed in. -->
+    <string name="accounts_card_description_signed_out">Not signed in. Opens Accounts</string>
+    <!-- Account card title when the tracker gave no name. -->
+    <string name="accounts_signed_in_plain">Signed in</string>
+    <!-- Settings list, Notifications row: new episode notifications are on. -->
+    <string name="settings_summary_notify_on">New episodes on</string>
+    <!-- Settings list, Notifications row: new episode notifications are off. -->
+    <string name="settings_summary_notify_off">New episodes off</string>
+    <!-- Settings list, Sources row: how many sources there are. -->
+    <plurals name="settings_summary_sources">
+        <item quantity="one">One source</item>
+        <item quantity="other">%1$d sources</item>
+    </plurals>
+    <!-- Settings list, Sources row: no sources yet. -->
+    <string name="settings_summary_no_sources">No sources yet</string>
+    <!-- Settings list, Sources row: torrents are on. -->
+    <string name="settings_summary_torrents_on">torrents on</string>
+    <!-- Settings list, Sources row: torrents are off. -->
+    <string name="settings_summary_torrents_off">torrents off</string>
+    <!-- Library: the downloads row, with the space the downloads use. The size is already formatted. -->
+    <string name="library_storage_on_device">%1$s on this device</string>
+    <!-- Library: the downloads row when nothing is downloaded. -->
+    <string name="library_storage_none">Nothing on this device</string>
+    <!-- Library list detail: the next episode and how many there are. -->
+    <string name="library_detail_of">Ep %1$d of %2$d</string>
+    <!-- Library list detail: the next episode when the length is not announced. -->
+    <string name="library_detail_next">Ep %1$d</string>
+    <!-- Library sort menu: by when the title was last watched. -->
+    <string name="library_sort_last_watched">Last watched</string>
+    <!-- Accessibility label of the check beside the sort in use. -->
+    <string name="library_sort_current">Current</string>
+    <!-- Settings, Notifications: the line under the group that says when the permission is asked. -->
+    <string name="settings_notify_permission_note">anistream asks for permission the first time you turn this on.</string>
+    <!-- Settings, Notifications: the note on the switch once Android has not let notifications go on. -->
+    <string name="settings_notify_refused">Off: Android isn’t allowing anistream’s notifications</string>
+    <!-- Settings, Notifications: the row that opens Android's channel settings. -->
+    <string name="settings_notify_system_title">Notification settings</string>
+    <!-- Settings, Notifications: what Android's channel settings hold. -->
+    <string name="settings_notify_system_detail">Sound, vibration and the lock screen</string>
+    <!-- Title language row: what AniList's choice does when nobody is signed in. -->
+    <string name="settings_titles_line_signed_out">English while signed out of AniList</string>
+    <!-- Title language row: what AniList's choice does with the language the account asks for. -->
+    <string name="settings_titles_line_account_language">%1$s, from your AniList account</string>
+    <!-- Title language row: what AniList's choice does before the account's language is known. -->
+    <string name="settings_titles_line_follows">Follows your AniList account</string>
+    <!-- Title language row: what the English choice does. -->
+    <string name="settings_titles_line_english">Romaji where there is no English title</string>
+    <!-- Title language row: what the Romaji choice does. -->
+    <string name="settings_titles_line_romaji">Japanese titles in Latin letters</string>
+    <!-- Title language note: AniList's choice, with the account's language and the signed-out fallback. -->
+    <string name="settings_titles_note_account">Follows your AniList account, which is set to %1$s. While you are signed out of AniList, titles show in English.</string>
+    <!-- Title language note: AniList's choice without the account's language. -->
+    <string name="settings_titles_note_follows">Follows your AniList account. While you are signed out of AniList, titles show in English.</string>
+    <!-- Title language note: a title has no English form, so it keeps its romaji one. -->
+    <string name="settings_titles_note_english_missing">%1$s has no English title on AniList, so it keeps its romaji one.</string>
+    <!-- Title language note: what the English choice does. -->
+    <string name="settings_titles_note_english">English titles as AniList lists them, and romaji where there is none.</string>
+    <!-- Title language note: what the Romaji choice does. -->
+    <string name="settings_titles_note_romaji">Japanese titles written in Latin letters, as AniList lists them.</string>
+    <!-- Settings, Sources: no torrent index address is set. -->
+    <string name="settings_index_none">None set</string>
+    <!-- Settings, Sources: how many plugin stores, and how many updates wait in them. -->
+    <string name="settings_stores_with_updates">%1$d · %2$s</string>
+    <!-- Settings, Sources: the note under the seeding group. -->
+    <string name="settings_seeding_best_effort">Best effort on this device: seeding runs only while anistream is open.</string>
+    <!-- Settings, Downloads: the count of downloaded episodes. -->
+    <plurals name="settings_downloads_count">
+        <item quantity="one">One episode</item>
+        <item quantity="other">%1$d episodes</item>
+    </plurals>
+    <!-- Settings, Accounts: the group about the main tracker. -->
+    <string name="settings_anilist_footer">Progress and list changes sync to AniList. Library shows your AniList lists.</string>
+    <!-- Settings, Accounts: the button that signs in again, in a row. -->
+    <string name="accounts_sign_in_again_button">Sign in again</string>
+    <!-- Settings, Accounts: the row that opens the list of differences between here and the tracker. -->
+    <plurals name="accounts_review_differences">
+        <item quantity="one">Review one difference</item>
+        <item quantity="other">Review %1$d differences</item>
+    </plurals>
+    <!-- Settings, About: the licence row. -->
+    <string name="settings_licence_title">Licence</string>
+    <!-- Settings, About: the licence row's value. -->
+    <string name="settings_licence_value">MIT, open source and non-commercial</string>
+    <!-- Settings, About: the typefaces row's value. -->
+    <string name="settings_typefaces_value">Roboto Flex and Zen Kaku Gothic New, under the SIL Open Font License 1.1</string>
+    <!-- Settings, About: the libraries row's value. -->
+    <string name="settings_libraries_value">JNA and AndroidX, under the Apache License 2.0</string>
+    <!-- Settings, About: the report a bug row's value. -->
+    <string name="settings_report_bug_value">Opens GitHub in your browser</string>
+    <!-- Settings, Downloads: what a screen reader says for the bar of how much the downloads take. -->
+    <string name="downloads_storage_share_description">Downloads take %1$s</string>
+    <!-- Settings aside on a tablet, New episodes: what a notification carries. -->
+    <string name="settings_aside_notifications">One notification when an episode of a show you follow comes out: the show and the episode’s number, never its name. A show can turn its own off in its settings.</string>
+    <!-- Settings aside on a tablet, Downloads: where downloads live. -->
+    <string name="settings_aside_downloads">Downloads stay in anistream’s own space on this device, which other apps cannot read. Removing the app removes them.</string>
+    <!-- Settings aside on a tablet, Sources: the title over the connection check note. -->
+    <string name="settings_aside_connection_check">Connection check</string>
+    <!-- Settings aside on a tablet, Sources: how sources are tried. -->
+    <string name="settings_aside_sources">Source are tried in order, top to bottom. A show can keep its own source, chosen from its title page.</string>
+    <!-- Settings aside on a tablet, Accounts: what signing out keeps. -->
+    <string name="settings_aside_accounts">anistream works without an account. Your watch history stays on this device when you sign out.</string>
+    <!-- Settings aside on a tablet, upscaling picture: what a screen reader hears. -->
+    <string name="settings_upscaling_description">The same still, the left half as the original 480p, the right half with %1$s</string>
+    <!-- Settings aside on a tablet, upscaling picture: the label over the unprocessed half. -->
+    <string name="settings_upscaling_source">Original 480p</string>
+    <!-- Settings aside on a tablet, upscaling: what no processing does. -->
+    <string name="settings_upscaling_note_off_original">The original 480p, scaled to fit without processing.</string>
+    <!-- Torrent sheet: the title when torrents are being turned on. -->
+    <string name="torrents_sheet_turn_on_title">Turn on torrents</string>
+    <!-- Torrent sheet: the title when only the protection changes. -->
+    <string name="torrents_sheet_protect_title">Protect torrent traffic</string>
+    <!-- Torrent sheet: the button that turns torrents on. -->
+    <string name="torrents_sheet_turn_on_button">Turn on</string>
+    <!-- Torrent sheet: the proxy's host field. -->
+    <string name="torrents_sheet_host">Host</string>
+    <!-- Torrent sheet: the proxy's port field. -->
+    <string name="torrents_sheet_port">Port</string>
+    <!-- Torrent sheet: the note under the proxy fields. -->
+    <string name="torrents_sheet_proxy_auth_note">User name and password only if the proxy asks for them.</string>
+    <!-- Torrent sheet: the title when a saved proxy is edited. -->
+    <string name="torrents_sheet_edit_proxy_title">Edit proxy</string>
+    <!-- Title page, facts: the label over the places the title can also be watched. -->
+    <string name="title_facts_also_on">Also on</string>
+    <!-- Title page: what a failed fetch of the title says under its heading. -->
+    <string name="title_fetch_failed_detail">AniList didn’t answer.</string>
+    <!-- Continue on a tablet: what a screen reader hears on the handle between the queue and the preview. -->
+    <string name="continue_resize_queue">Resize the queue</string>
+    <!-- Continue row menu: opens the title page. -->
+    <string name="continue_go_to_title">Go to title</string>
+    <!-- Continue row: the short episode and how long is left, such as "E4 · 12 min left". -->
+    <string name="continue_short_left">%1$s · %2$s</string>
+    <!-- Continue, airing card: an episode that has aired, with its time and how long ago. -->
+    <string name="continue_airing_out">E%1$d · %2$s · out %3$s</string>
+    <!-- Continue, airing card: an episode still to air, with its time and how long to wait. -->
+    <string name="continue_airing_in">E%1$d · %2$s · in %3$s</string>
+    <!-- Calendar row: an episode that has aired, with how long ago. -->
+    <string name="calendar_line_out">%1$s out %2$s</string>
+    <!-- Calendar row: an episode still to air, with how long to wait. -->
+    <string name="calendar_line_in">%1$s in %2$s</string>
+    <!-- Navigation rail: what a screen reader hears on the account button, with the signed-in user's name. -->
+    <string name="nav_accounts_and_settings_user">%1$s, accounts and settings</string>
+    <!-- Episode row: what a screen reader hears on an episode still to air, with no time known. -->
+    <string name="episode_unaired_label">Episode %1$s, %2$s. Not out yet</string>
+    <!-- Episode row: the same for an episode that has no title. -->
+    <string name="episode_unaired_label_plain">Episode %1$s. Not out yet</string>
+    <!-- Episode row: what a screen reader hears on an episode still to air, with its time. -->
+    <string name="episode_unaired_airs_label">Episode %1$s, %2$s. Airs %3$s, not out yet</string>
+    <!-- Episode row: the same for an episode that has no title. -->
+    <string name="episode_unaired_airs_label_plain">Episode %1$s. Airs %2$s, not out yet</string>
+    <!-- TV sheet, picker: the heading over the TVs found on the network. -->
+    <string name="tv_sheet_on_network">On this network</string>
+    <!-- TV sheet, picker: the heading over the ways to add a TV that did not show up. -->
+    <string name="tv_sheet_not_listed">Not listed</string>
+    <!-- TV sheet, picker: the row that opens the camera to scan the code on the TV. -->
+    <string name="tv_sheet_scan">Scan the code on the TV</string>
+    <!-- TV sheet, pairing: the heading over the six digits, naming the TV that shows them. -->
+    <string name="tv_sheet_code_on">Code on %1$s</string>
+    <!-- TV sheet, pairing: the button while the code is being checked. -->
+    <string name="tv_sheet_pairing_button">Pairing</string>
+    <!-- TV sheet, pairing: the row while the phone reaches for a TV that has no name yet. -->
+    <string name="tv_sheet_connecting">Connecting to the TV</string>
+    <!-- TV sheet, pairing: what a screen reader offers on the digit boxes. -->
+    <string name="tv_sheet_type_code">Type the code</string>
+    <!-- TV sheet, remote: the row for the TV's volume. -->
+    <string name="tv_sheet_volume">TV volume</string>
+    <!-- TV sheet, remote: the volume down button. -->
+    <string name="tv_sheet_volume_down">Volume down</string>
+    <!-- TV sheet, remote: the volume up button. -->
+    <string name="tv_sheet_volume_up">Volume up</string>
+    <!-- TV sheet, remote: the volume as a number out of 100. -->
+    <string name="tv_sheet_volume_value">%1$d of 100</string>
+    <!-- TV sheet, remote: the row when the TV plays nothing. -->
+    <string name="tv_sheet_nothing_playing">Nothing playing</string>
+    <!-- TV sheet, remote: the seek bar's name for a screen reader. -->
+    <string name="tv_sheet_position">Position on the TV</string>
+    <!-- TV sheet, remote: the seek bar's state for a screen reader, two times. -->
+    <string name="tv_sheet_position_state">%1$s of %2$s</string>
+    <!-- TV sheet, picker: the episode a play request is for, with the show. -->
+    <string name="tv_sheet_request_titled">%1$s, episode %2$s</string>
+    <!-- TV sheet, picker: the episode a play request is for, with no show. -->
+    <string name="tv_sheet_request_plain">Episode %1$s</string>
+    <!-- Settings, Play on TV: the note under the paired TVs. -->
+    <string name="tv_sheet_footer">A TV lists this device with the code %1$s. Forget a TV here and it forgets this device too.</string>
+    <!-- TV sheet, remote: the sheet's title when the TV has no name yet. -->
+    <string name="tv_sheet_title_fallback">TV</string>
+    <!-- Episode row, second line: the episode's number, then a detail such as its length or air time. -->
+    <string name="episode_line_detail">E%1$d · %2$s</string>
+    <!-- Calendar, day strip: what a screen reader hears on a day. -->
+    <string name="calendar_day_label">%1$s</string>
+    <!-- Calendar, day strip: the same for today. -->
+    <string name="calendar_day_label_today">%1$s, today</string>
+    <!-- Calendar, day strip: the same for a day with episodes airing. -->
+    <string name="calendar_day_label_airing">%1$s, episodes airing</string>
+    <!-- Calendar, day strip: the same for today with episodes airing. -->
+    <string name="calendar_day_label_today_airing">%1$s, today, episodes airing</string>
+    <!-- Continue, heading link: what a screen reader hears on the Airing today heading. -->
+    <string name="continue_show_airing_in_calendar">Show airing today in Calendar</string>
+    <!-- Continue, heading link: what a screen reader hears on the This season heading. -->
+    <string name="continue_show_season_in_seasonal">Show this season in Seasonal</string>
+    <!-- Search, loading: the filters being searched when there are no words. -->
+    <string name="search_searching_filters">Searching for %1$s</string>
+    <!-- Player, starting screen and header: an episode whose number is text, such as "7" or "7.5". -->
+    <string name="episode_number_plain">Episode %1$s</string>
+    <!-- Player, header: the episode's number and its title. -->
+    <string name="episode_number_title_text">Episode %1$s · %2$s</string>
+    <!-- Player, starting screen: the first line. -->
+    <string name="player_starting_text">Starting episode %1$s</string>
+    <!-- Player, starting screen: what the wait is on, and for how long. -->
+    <string name="player_wait_note">%1$s · %2$d s</string>
+    <!-- Player, starting screen: the title when nothing played. -->
+    <string name="player_failed_title_text">Couldn\'t play episode %1$s</string>
+    <!-- Player, track lists: a track with neither language nor title. -->
+    <string name="player_track_n">Track %1$d</string>
+    <!-- Player, seek bar: the position and the length, for a screen reader. -->
+    <string name="player_position_state">%1$s of %2$s</string>
+    <!-- Player, seek bar: the label while scrubbing at a quarter of the speed. -->
+    <string name="player_scrub_quarter">Quarter-speed scrubbing</string>
+    <!-- Player, seek bar: the label while scrubbing at half the speed. -->
+    <string name="player_scrub_half">Half-speed scrubbing</string>
+    <!-- Player, sources sheet: shown while the sources are being asked. -->
+    <string name="player_sheet_finding">Finding sources…</string>
+    <!-- Player, sources sheet: shown when no source has the episode. -->
+    <string name="player_sheet_none">No sources found for this episode.</string>
+    <!-- Player, episodes sheet: shown before the list arrives. -->
+    <string name="player_sheet_episodes_loading">The episode list is on its way.</string>
+    <!-- Player, sources sheet: a stream with both languages. -->
+    <string name="player_dual_audio">Subbed and dubbed</string>
+    <!-- Notification, new episodes: the summary's title when several shows have a new episode. -->
+    <plurals name="notif_new_episodes">
+        <item quantity="one">One new episode</item>
+        <item quantity="other">%1$d new episodes</item>
+    </plurals>
+    <!-- Notification, new episode: what the lock screen shows when previews are hidden. -->
+    <string name="notif_hidden_text">New episode</string>
+    <!-- Notification, new episode: the line under the show's title. -->
+    <string name="notif_episode_out">Episode %1$d is out.</string>
+    <!-- Notification, new episode: the same for a show watched dubbed. -->
+    <string name="notif_episode_out_dubbed">Episode %1$d is out, dubbed.</string>
+    <!-- Notification, new episode: the same for a viewer who is behind. -->
+    <string name="notif_episode_out_next">Episode %1$d is out. Next for you: episode %2$d.</string>
+    <!-- Notification, new episode: the same, dubbed, for a viewer who is behind. -->
+    <string name="notif_episode_out_dubbed_next">Episode %1$d is out, dubbed. Next for you: episode %2$d.</string>
+    <!-- Phone as remote: how this phone introduces itself to a TV. -->
+    <string name="device_name_phone">Android phone</string>
+    <!-- Phone as remote: how this tablet introduces itself to a TV. -->
+    <string name="device_name_tablet">Android tablet</string>
+    <!-- Phone as remote, media card: what the card says while the TV starts the episode. -->
+    <string name="tv_session_starting">Starting on %1$s</string>
+    <!-- Phone as remote, media card: the episode and the TV it plays on. -->
+    <string name="tv_session_line">%1$s · %2$s</string>
+    <!-- Widgets, Continue: the line under a show that has not been started. -->
+    <string name="widget_line_start">Start %1$s</string>
+    <!-- Widgets, Continue: the line under a show with time left in the episode. -->
+    <string name="widget_line_left">%1$s · %2$d min left</string>
+    <!-- Widgets, Continue: the line under a show with the episode out of the season. -->
+    <string name="widget_line_of">E%1$d of %2$d</string>
+    <!-- Widgets, Continue: the title when nothing is in progress. -->
+    <string name="widget_continue_title">Continue</string>
+    <!-- Widgets, Continue: the title and line when the viewer is up to date. -->
+    <string name="widget_caught_up_title">Caught up</string>
+    <!-- Widgets, Continue: the line when the viewer is up to date. -->
+    <string name="widget_caught_up">You’re caught up.</string>
+    <!-- Widgets, Continue: the line when the next episode has a date. -->
+    <string name="widget_caught_up_next">%1$s E%2$d airs %3$s.</string>
+    <!-- Widgets: a day word for the Updated line. -->
+    <string name="widget_day_today">today</string>
+    <!-- Widgets: a day word for the Updated line. -->
+    <string name="widget_day_yesterday">yesterday</string>
+    <!-- Widgets: the Updated line's date when it is a week or more back. -->
+    <string name="widget_day_date">%1$s</string>
+    <!-- Widgets, Continue: the play button for a screen reader, with the mark ("dubbed") after the number. -->
+    <string name="widget_play_dubbed_label">Play episode %1$d, dubbed, of %2$s</string>
+    <!-- TV, title page: the amber action when the viewer has started the episode. -->
+    <string name="tv_action_resume">Resume episode %1$d</string>
+    <!-- TV, title page: the same when the viewer watches dubbed. -->
+    <string name="tv_action_resume_dubbed">Resume episode %1$d · Dubbed</string>
+    <!-- TV, title page: the disabled action for an episode that is not out, with the day it comes out. -->
+    <string name="tv_action_out">Play episode %1$d (out %2$s)</string>
+    <!-- TV, title page: the disabled action for an episode with no air date. -->
+    <string name="tv_action_not_out">Play episode %1$d (not out yet)</string>
+    <!-- TV, title page: the day word for an episode that comes out later today. -->
+    <string name="tv_out_today">today</string>
+    <!-- TV, Continue hero: the amber action for an episode the viewer has started. -->
+    <string name="tv_hero_resume">Resume %1$s</string>
+    <!-- TV, Continue hero: the amber action for an episode the viewer has not started. -->
+    <string name="tv_hero_start">Start %1$s</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->
@@ -687,6 +1421,8 @@
     <string name="state_working">Working</string>
     <!-- Short placeholder while something loads. -->
     <string name="state_loading">Loading</string>
+    <!-- How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now". -->
+    <string name="time_just_now_inline">just now</string>
     <!-- Checkbox of the close question. -->
     <string name="close_dont_ask">Don\'t ask again</string>
     <!-- Response of the close question: keep it running in the background. -->
@@ -1710,6 +2446,16 @@
     <string name="filter_hint_remote">Press once to include, twice to leave out.</string>
     <!-- Accessibility label of the button that removes one filter. -->
     <string name="filter_remove">Remove %1$s</string>
+    <!-- Search: sort by how many people marked the title a favourite. -->
+    <string name="search_sort_favourites">Favourites</string>
+    <!-- Search: sort by release date, newest first. -->
+    <string name="search_sort_newest">Newest</string>
+    <!-- Search: sort by release date, oldest first. -->
+    <string name="search_sort_oldest">Oldest</string>
+    <!-- Search: sort by title, A to Z. -->
+    <string name="search_sort_title">Title</string>
+    <!-- Search: sort by what is popular right now. -->
+    <string name="search_sort_trending">Trending</string>
     <!-- Settings group and row title for choosing a language. -->
     <string name="settings_language">Language</string>
     <!-- Settings row for the language of the app's own text. -->
@@ -1941,6 +2687,25 @@
     <string name="widget_start_label">Play episode %1$d of %2$s</string>
     <!-- Accessibility label of a widget row: continue a dubbed episode. -->
     <string name="widget_resume_dubbed_label">Resume episode %1$d, dubbed, of %2$s</string>
+    <!-- Line under a signed-in account while changes wait to be sent. -->
+    <plurals name="accounts_changes_waiting">
+        <item quantity="one">One change waiting to sync</item>
+        <item quantity="other">%1$d changes waiting to sync</item>
+    </plurals>
+    <!-- Choice for the download quality: larger files with more detail. -->
+    <string name="settings_quality_higher">Higher</string>
+    <!-- Choice for the download quality: the usual size. -->
+    <string name="settings_quality_standard">Standard</string>
+    <!-- Value of the upload limit setting when there is no limit. -->
+    <string name="settings_upload_unlimited">Unlimited</string>
+    <!-- Value of the upscaling setting: a natural look. The name after the dot is the shader used. -->
+    <string name="settings_upscaling_natural">Natural · ArtCNN</string>
+    <!-- Preview note under the upscaling frame for the natural look. -->
+    <string name="settings_upscaling_note_natural">Faithful line work and texture, nothing restyled.</string>
+    <!-- Preview note under the upscaling frame for the sharp look. -->
+    <string name="settings_upscaling_note_sharp">Crisper lines and stronger edges, at some cost to texture.</string>
+    <!-- Value of the upscaling setting: a sharper look. The name after the dot is the shader used. -->
+    <string name="settings_upscaling_sharp">Sharp · Anime4K</string>
     <!-- Title of the screen or section that lists sources. -->
     <string name="sources_title">Sources</string>
     <!-- Shown on the sources screen when none is installed. -->
@@ -2330,6 +3095,13 @@
     <string name="stores_publish_none">No plugins on this device to publish.</string>
     <!-- Version line of a plugin in the publish sheet. -->
     <string name="stores_plugin_name_version">%1$s %2$s</string>
+    <!-- Button under an invite link that copies it. Reads "Copied" for a moment afterwards. -->
+    <string name="stores_copy_link">Copy link</string>
+    <!-- Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog. -->
+    <plurals name="stores_offers_plugins">
+        <item quantity="one">One plugin</item>
+        <item quantity="other">%1$d plugins</item>
+    </plurals>
     <!-- Title of the state when a title page could not load. -->
     <string name="title_load_failed">Couldn\'t load this title</string>
     <!-- Line under the load failure when AniList did not answer. -->
@@ -2597,6 +3369,8 @@
     <string name="torrents_page_unreadable">The TV couldn\'t read this. Scan the QR code on the TV again.</string>
     <!-- Line when the page needs script. -->
     <string name="torrents_page_needs_script">This page needs JavaScript to send the form to the TV safely.</string>
+    <!-- Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects. -->
+    <string name="torrents_check_note">anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.</string>
     <!-- Title of the accounts screen. The sidebar item is nav-accounts. -->
     <string name="accounts_title">Accounts</string>
     <!-- Heading over the trackers other than the first. -->

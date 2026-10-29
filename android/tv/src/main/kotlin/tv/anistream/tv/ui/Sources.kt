@@ -3,6 +3,10 @@
 
 package tv.anistream.tv.ui
 
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -28,13 +32,13 @@ import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.SourceCandidate
 
 /** "1080p · 1.2 GiB · Dual audio · Automatic": what tells one release from another. */
-fun releaseLine(candidate: SourceCandidate): String? = listOfNotNull(
+fun releaseLine(context: Context, candidate: SourceCandidate): String? = listOfNotNull(
     candidate.quality?.let { "${it}p" },
     candidate.size,
-    candidate.seeders?.let { "$it seeders" },
-    "Dub".takeIf { candidate.dubbed },
-    "Dual audio".takeIf { candidate.dualAudio },
-    "Automatic".takeIf { candidate.autoPick },
+    candidate.seeders?.let { context.resources.getQuantityString(R.plurals.release_seeders, it.toInt(), it.toInt()) },
+    context.getString(R.string.audio_dubbed).takeIf { candidate.dubbed },
+    context.getString(R.string.player_dual_audio).takeIf { candidate.dualAudio },
+    context.getString(R.string.source_picker_automatic).takeIf { candidate.autoPick },
 ).joinToString(" · ").ifEmpty { null }
 
 /**
@@ -46,13 +50,13 @@ fun ReleaseList(choices: List<SourceCandidate>?, onPick: (SourceCandidate) -> Un
     val first = remember { FocusRequester() }
     LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         when {
-            choices == null -> item(key = "finding") { ReleaseNote("Finding releases", Modifier.focusRequester(first)) }
-            choices.isEmpty() -> item(key = "none") { ReleaseNote("No releases found for this episode.", Modifier.focusRequester(first)) }
+            choices == null -> item(key = "finding") { ReleaseNote(stringResource(R.string.source_picker_finding), Modifier.focusRequester(first)) }
+            choices.isEmpty() -> item(key = "none") { ReleaseNote(stringResource(R.string.source_picker_empty), Modifier.focusRequester(first)) }
             else -> itemsIndexed(choices, key = { _, it -> "${it.providerId}/${it.id}" }) { index, candidate ->
                 TvListRow(
                     candidate.title,
                     onClick = { onPick(candidate) },
-                    supporting = releaseLine(candidate),
+                    supporting = releaseLine(LocalContext.current, candidate),
                     modifier = if (index == 0) Modifier.focusRequester(first) else Modifier,
                 )
             }
@@ -82,7 +86,7 @@ fun ReleasesPanel(choices: List<SourceCandidate>?, onPick: (SourceCandidate) -> 
             .background(ObiSilk.RaisedHigh)
             .padding(start = 16.dp, end = PANEL_END, top = 27.dp, bottom = 27.dp),
     ) {
-        Text("Choose a source", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() })
+        Text(stringResource(R.string.player_choose_source), style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() })
         ReleaseList(choices, onPick)
     }
 }

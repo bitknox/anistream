@@ -3,6 +3,7 @@
 
 package tv.anistream.tv.shell
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -12,18 +13,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.TorrentProtection
+import tv.anistream.i18n.R as I18nR
 import tv.anistream.tv.signin.TorrentMode
 import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.TvIcons
 
 /** The rail's destinations, top to bottom: Search, then the phone's order, then Settings. */
-enum class Destination(val label: String, val icon: ImageVector) {
-    Search("Search", TvIcons.Search),
-    Continue("Continue", TvIcons.Continue),
-    Calendar("Calendar", TvIcons.Calendar),
-    Seasonal("Seasonal", TvIcons.Seasonal),
-    Library("Library", TvIcons.Library),
-    Settings("Settings", TvIcons.Settings),
+enum class Destination(@StringRes val label: Int, val icon: ImageVector) {
+    Search(I18nR.string.nav_search, TvIcons.Search),
+    Continue(I18nR.string.nav_continue, TvIcons.Continue),
+    Calendar(I18nR.string.nav_calendar, TvIcons.Calendar),
+    Seasonal(I18nR.string.nav_seasonal, TvIcons.Seasonal),
+    Library(I18nR.string.nav_library, TvIcons.Library),
+    Settings(I18nR.string.nav_settings, TvIcons.Settings),
     ;
 
     companion object {

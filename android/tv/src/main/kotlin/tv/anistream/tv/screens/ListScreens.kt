@@ -3,6 +3,12 @@
 
 package tv.anistream.tv.screens
 
+import tv.anistream.tv.seasonName
+import androidx.annotation.StringRes
+import tv.anistream.i18n.Strings
+import android.content.Context
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -51,17 +57,18 @@ import tv.anistream.tv.ui.OfflineLine
 import tv.anistream.tv.ui.PosterGrid
 import tv.anistream.tv.ui.StateBlock
 import tv.anistream.tv.ui.isOffline
-import tv.anistream.tv.ui.plainReason
+import tv.anistream.store.plainReason
 import tv.anistream.tv.ui.TvTab
 import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.placeholdersAfterWait
 import tv.anistream.tv.ui.planSheet
 import tv.anistream.tv.ui.remembered
 import tv.anistream.tv.ui.statusSheet
+import androidx.compose.ui.platform.LocalContext
 
 /** A season of a year, as Seasonal's tabs name it: "Fall 2026". */
 data class SeasonTab(val season: Season, val year: Int) {
-    val label: String get() = "${season.name.lowercase().replaceFirstChar { it.uppercase() }} $year"
+    fun label(context: Context): String = Strings.seasonWithYear(context, seasonName(context, season), year.toString())
 
     /** [steps] seasons later, or earlier when negative. */
     fun shift(steps: Int): SeasonTab {
@@ -85,18 +92,18 @@ data class SeasonTab(val season: Season, val year: Int) {
 }
 
 /** "Fall 2026", for the season [date] falls in. */
-fun seasonLabel(date: LocalDate): String = SeasonTab.of(date).label
+fun seasonLabel(context: Context, date: LocalDate): String = SeasonTab.of(date).label(context)
 
 /** Seasonal's sorts, under AniList's names. */
-enum class SeasonSort(val label: String, val sort: SearchSort) {
-    Popular("Popular", SearchSort.POPULARITY),
-    Score("Score", SearchSort.SCORE),
-    AirDay("Air day", SearchSort.OLDEST),
+enum class SeasonSort(@StringRes val label: Int, val sort: SearchSort) {
+    Popular(R.string.sort_popularity, SearchSort.POPULARITY),
+    Score(R.string.sort_score, SearchSort.SCORE),
+    AirDay(R.string.sort_air_day, SearchSort.OLDEST),
 }
 
 /** Seasonal's formats: every one, or one of AniList's. */
-val SeasonFormats: List<Pair<MediaFormat?, String>> =
-    listOf(null to "All formats", MediaFormat.TV to "TV", MediaFormat.MOVIE to "Movie", MediaFormat.ONA to "ONA", MediaFormat.OVA to "OVA")
+val SeasonFormats: List<Pair<MediaFormat?, Int>> =
+    listOf(null to R.string.filter_all_formats, MediaFormat.TV to R.string.format_tv, MediaFormat.MOVIE to R.string.format_movie, MediaFormat.ONA to R.string.format_ona, MediaFormat.OVA to R.string.format_ova)
 
 /**
  * What Seasonal asks the engine for: the current season, popular first, in every format is the
@@ -117,6 +124,7 @@ fun seasonFilter(tab: SeasonTab, current: SeasonTab, sort: SeasonSort, format: M
 @Composable
 fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> Unit) {
     val store = LocalAppStore.current
+    val context = LocalContext.current
     val actions = LocalActions.current
     val offline = isOffline()
     val today = AppClock.now().atZone(AppClock.zone).toLocalDate()
@@ -152,11 +160,11 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
     PosterGrid(
         shown,
         memory,
-        keyPrefix = "seasonal/${tab.label}/${sort.name}/${format.first}/$listed",
+        keyPrefix = "seasonal/${tab.label(context)}/${sort.name}/${format.first}/$listed",
         onOpen = { onOpen(it.id) },
         state = grid,
-        line = { entry -> listOfNotNull(entry.listStatus?.label?.replaceFirstChar { it.uppercase() }, entry.posterLine).joinToString(" · ").ifEmpty { null } },
-        sheet = { entry -> planSheet(store, entry, onOpen) },
+        line = { entry -> listOfNotNull(entry.listStatus?.label(context), entry.posterLine(context)).joinToString(" · ").ifEmpty { null } }, // i18n-skip
+        sheet = { entry -> planSheet(context, store, entry, onOpen) },
         // A water dot on the titles airing now.
         dot = { entry -> if (entry.status == AiringStatus.RELEASING) ObiSilk.Water else null },
         placeholders = if (placeholdersAfterWait(state is ListState.Loading || state is ListState.Idle || waiting)) GRID_COLUMNS * 2 else 0,
@@ -165,10 +173,10 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
             Row(Modifier.focusRestorer(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 tabs.forEachIndexed { index, each ->
                     TvTab(
-                        each.label,
+                        each.label(context),
                         selected = index == tabIndex,
                         onSelect = { tabIndex = index },
-                        modifier = Modifier.firstFocus(memory, "tab/${each.label}", index == tabIndex && shown.isEmpty()),
+                        modifier = Modifier.firstFocus(memory, "tab/${each.label(context)}", index == tabIndex && shown.isEmpty()),
                     )
                 }
             }
@@ -176,20 +184,20 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
         item(key = "chips", span = { GridItemSpan(maxLineSpan) }, contentType = "chips") {
             Row(Modifier.padding(bottom = 8.dp).focusRestorer(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TvTab(
-                    format.second,
+                    stringResource(format.second),
                     selected = format.first != null,
                     onSelect = {
-                        actions?.open(ActionSheet("Format", SeasonFormats.mapIndexed { index, each -> CardAction(each.second, selected = index == formatIndex) { formatIndex = index } }))
+                        actions?.open(ActionSheet(Strings.filterFormat(context), SeasonFormats.mapIndexed { index, each -> CardAction(context.getString(each.second), selected = index == formatIndex) { formatIndex = index } }))
                     },
                     settle = null,
                     chip = true,
                     modifier = Modifier.remembered(memory, "chip/format"),
                 )
                 TvTab(
-                    "Sort: ${sort.label}",
+                    Strings.sortButton(context, context.getString(sort.label)),
                     selected = sort != SeasonSort.Popular,
                     onSelect = {
-                        actions?.open(ActionSheet("Sort", SeasonSort.entries.map { each -> CardAction(each.label, selected = each == sort) { sortIndex = each.ordinal } }))
+                        actions?.open(ActionSheet(Strings.tvSortTitle(context), SeasonSort.entries.map { each -> CardAction(context.getString(each.label), selected = each == sort) { sortIndex = each.ordinal } }))
                     },
                     settle = null,
                     chip = true,
@@ -197,7 +205,7 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
                 )
                 if (signedIn) {
                     TvTab(
-                        "On my list",
+                        stringResource(R.string.tv_on_my_list),
                         selected = onList,
                         onSelect = { onList = !onList },
                         settle = null,
@@ -214,22 +222,22 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
             // The lists are on their way: no line yet saying there is nothing.
         } else if (listed && state is ListState.Loaded && state.ids.isNotEmpty() && shown.isEmpty()) {
             item(key = "unlisted", span = { GridItemSpan(maxLineSpan) }) {
-                Text("Nothing from ${tab.label} is on your lists yet.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                Text(stringResource(R.string.tv_seasonal_unlisted, tab.label(context)), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             }
         } else if (state is ListState.Empty || (state is ListState.Loaded && shown.isEmpty())) {
             item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
-                StateBlock("Nothing announced for ${tab.label} yet.", Modifier.padding(top = 48.dp), nagare = true)
+                StateBlock(stringResource(R.string.seasonal_empty_title, tab.label(context)), Modifier.padding(top = 48.dp), nagare = true)
             }
         }
         if (state is ListState.Failed && shown.isEmpty()) {
             item(key = "failed", span = { GridItemSpan(maxLineSpan) }) {
                 StateBlock(
-                    "Couldn't load ${tab.label}.",
+                    stringResource(R.string.tv_load_failed_named, tab.label(context)),
                     Modifier.padding(top = 48.dp),
-                    detail = plainReason(state.reason),
-                    action = "Try again",
+                    detail = plainReason(LocalContext.current, state.reason),
+                    action = stringResource(R.string.action_try_again),
                     onAction = { if (filter == null) store.loadSeasonal(force = true) else store.browse(filter) },
-                    actionModifier = Modifier.firstFocus(memory, "retry/${tab.label}"),
+                    actionModifier = Modifier.firstFocus(memory, "retry/${tab.label(context)}"),
                 )
             }
         }
@@ -240,6 +248,7 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
 @Composable
 fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> Unit, onAccounts: () -> Unit) {
     val store = LocalAppStore.current
+    val context = LocalContext.current
     val offline = isOffline()
     var segment by rememberSaveable { mutableStateOf(LibrarySegment.WATCHING) }
     LaunchedEffect(Unit) { LibraryModel.order.forEach(store::loadLibrary) }
@@ -258,8 +267,8 @@ fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> 
         keyPrefix = "library/${segment.name}",
         onOpen = { onOpen(it.id) },
         state = grid,
-        line = { entry -> entry.progress?.let { "${it.done} / ${entry.episodes ?: "?"}" } },
-        sheet = { entry -> librarySheet(store, entry, segment, onOpen) },
+        line = { entry -> entry.progress?.let { p -> entry.episodes?.let { Strings.tvProgressOf(context, p.done.toInt(), it.toInt()) } ?: Strings.tvProgressUnknown(context, p.done.toInt()) } },
+        sheet = { entry -> librarySheet(context, store, entry, segment, onOpen) },
         progress = { entry ->
             if (segment != LibrarySegment.WATCHING) return@PosterGrid null
             val done = entry.progress?.done?.toFloat() ?: return@PosterGrid null
@@ -273,7 +282,7 @@ fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> 
                 LibraryModel.order.forEach { each ->
                     val count = states.getValue(each).let { if (it is ListState.Loaded) it.ids.size.toString() else null }
                     TvTab(
-                        each.label.replaceFirstChar { it.uppercase() },
+                        each.label(context),
                         selected = each == segment,
                         onSelect = { segment = each },
                         count = count,
@@ -290,18 +299,18 @@ fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> 
                 if (!signedIn) {
                     NotSignedIn(onAccounts, memory)
                 } else if (state is ListState.Failed) {
-                    val name = segment.label.replaceFirstChar { it.uppercase() }
+                    val name = segment.label(context)
                     StateBlock(
-                        "Couldn't load $name.",
+                        stringResource(R.string.tv_load_failed_named, name),
                         Modifier.padding(top = 48.dp),
-                        detail = plainReason(state.reason),
-                        action = "Try again",
+                        detail = plainReason(LocalContext.current, state.reason),
+                        action = stringResource(R.string.action_try_again),
                         onAction = { store.loadLibrary(segment) },
                         actionModifier = Modifier.firstFocus(memory, "retry/${segment.name}"),
                     )
                 } else {
-                    val name = segment.label.replaceFirstChar { it.uppercase() }
-                    Text("Nothing in $name.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze, modifier = Modifier.padding(top = 24.dp))
+                    val name = segment.label(context)
+                    Text(stringResource(R.string.tv_library_empty, name), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze, modifier = Modifier.padding(top = 24.dp))
                 }
             }
         }
@@ -313,21 +322,21 @@ fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> 
 @Composable
 private fun NotSignedIn(onAccounts: () -> Unit, memory: FocusMemory) {
     StateBlock(
-        "Your lists live in a tracker. Sign in to see them here.",
+        stringResource(R.string.tv_lists_signed_out),
         Modifier.padding(top = 48.dp),
         nagare = true,
-        action = "Connect a tracker",
+        action = stringResource(R.string.tv_connect_tracker),
         onAction = onAccounts,
         actionModifier = Modifier.firstFocus(memory, "connect"),
     )
 }
 
 /** A Library card's actions: change its list, mark the next episode watched, or open it. */
-fun librarySheet(store: AppStore, entry: Entry, segment: LibrarySegment, onOpen: (AnilistId) -> Unit): ActionSheet = ActionSheet(
+fun librarySheet(context: Context, store: AppStore, entry: Entry, segment: LibrarySegment, onOpen: (AnilistId) -> Unit): ActionSheet = ActionSheet(
     entry.title,
     listOfNotNull(
-        CardAction("Change status", then = statusSheet(store, entry.id, entry.title, segment)),
-        entry.progress?.next?.let { next -> CardAction("Mark episode $next watched") { store.setWatched(entry.id, listOf(next.toString())) } },
-        CardAction("Open the title page") { onOpen(entry.id) },
+        CardAction(Strings.tvChangeStatus(context), then = statusSheet(context, store, entry.id, entry.title, segment)),
+        entry.progress?.next?.let { next -> CardAction(Strings.episodeMarkNWatched(context, next.toInt())) { store.setWatched(entry.id, listOf(next.toString())) } },
+        CardAction(Strings.tvOpenTitlePage(context)) { onOpen(entry.id) },
     ),
 )

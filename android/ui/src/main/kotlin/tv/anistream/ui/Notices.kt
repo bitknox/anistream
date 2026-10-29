@@ -3,6 +3,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
@@ -22,6 +23,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import tv.anistream.engine.model.NoticeHint
+import tv.anistream.i18n.R as I18nR
+import androidx.compose.ui.platform.LocalContext
+import tv.anistream.i18n.Strings
 
 /**
  * How long a snackbar stays: 4 s, 8 s with a button, plus 1 s for every 10 words past 12, so a
@@ -75,10 +79,10 @@ internal fun NoticeSnackbar(data: SnackbarData) {
 }
 
 /** The words on a notice's button, for what can be done about it. */
-fun NoticeHint.label(): String = when (this) {
-    NoticeHint.STOP_PLAYBACK -> "Stop"
-    NoticeHint.OPEN_STORES -> "Open stores"
-    NoticeHint.KITSU_CREDENTIALS -> "Sign in"
+fun NoticeHint.label(context: android.content.Context): String = when (this) {
+    NoticeHint.STOP_PLAYBACK -> context.getString(I18nR.string.action_stop)
+    NoticeHint.OPEN_STORES -> context.getString(I18nR.string.notice_open_stores)
+    NoticeHint.KITSU_CREDENTIALS -> context.getString(I18nR.string.action_sign_in)
 }
 
 /** Each notice the engine posts, as a snackbar, with its hint as the button. */
@@ -93,11 +97,12 @@ internal fun EngineNotices(onHint: (NoticeHint) -> Unit) {
         val hint = item.notice.hint
         // An alert's button is its hint when it has one, and Report when it has none.
         if (hint == null && item.isAlert) {
-            snackbars.show(item.notice.text, "Report") {
-                openBugReport(context, store, tv.anistream.store.BugContext("message", item.notice.text))
+            val text = item.notice.text(context)
+            snackbars.show(text, context.getString(I18nR.string.action_report)) {
+                openBugReport(context, store, tv.anistream.store.BugContext("message", text))
             }
         } else {
-            snackbars.show(item.notice.text, hint?.label()) { hint?.let(onHint) }
+            snackbars.show(item.notice.text(context), hint?.label(context)) { hint?.let(onHint) }
         }
         store.notices.dismiss(item)
     }
