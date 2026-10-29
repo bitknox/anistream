@@ -21,7 +21,7 @@ pub use preview::{
     attach as hover_preview, close as close_preview, shot_popover as shot_preview,
     show as show_preview,
 };
-pub use stage::Stage;
+pub use stage::{Slot, Stage};
 pub use window::play as play_window;
 
 use crate::{catalog, hub::Hub};

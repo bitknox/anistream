@@ -76,6 +76,10 @@ struct Sheet {
     seen: RefCell<HashSet<u32>>,
     /// Whether this drawing is a later one, so new comments fade in.
     animate: Cell<bool>,
+    /// The text of the comments that were on their way at the last drawing, and at this one:
+    /// when one comes back posted it goes from half to full opacity instead of fading in.
+    was_sending: RefCell<Vec<String>>,
+    now_sending: RefCell<Vec<String>>,
     started: Instant,
     /// How many comments were there when the next page was asked for.
     asked: Cell<usize>,
@@ -240,6 +244,8 @@ fn build(ctx: &Rc<Ctx>, media: AnilistId, episode: u32) -> Rc<Sheet> {
         likes: RefCell::new(HashMap::new()),
         seen: RefCell::new(HashSet::new()),
         animate: Cell::new(false),
+        was_sending: RefCell::new(Vec::new()),
+        now_sending: RefCell::new(Vec::new()),
         started: Instant::now(),
         asked: Cell::new(0),
         to_end: Cell::new(false),
@@ -702,6 +708,7 @@ impl Sheet {
         }
         self.rows.borrow_mut().clear();
         self.animate.set(!self.seen.borrow().is_empty());
+        self.was_sending.replace(self.now_sending.take());
         for (n, comment) in view.comments.iter().enumerate() {
             if n > 0 {
                 let rule = gtk::Separator::new(gtk::Orientation::Horizontal);
@@ -889,7 +896,19 @@ impl Sheet {
         row.add_controller(secondary);
         into.append(&row);
         self.rows.borrow_mut().insert(id, row.clone());
-        if self.seen.borrow_mut().insert(id) && self.animate.get() {
+        if comment.pending == PostState::Sending {
+            self.now_sending.borrow_mut().push(comment.markdown.clone());
+        }
+        // The comment you sent, answered: from half to full opacity on the quick spring.
+        let confirmed = comment.own
+            && comment.pending == PostState::Posted
+            && self.was_sending.borrow().contains(&comment.markdown);
+        if confirmed {
+            self.was_sending.borrow_mut().retain(|m| *m != comment.markdown);
+            self.seen.borrow_mut().insert(id);
+            row.set_opacity(0.5);
+            motion::quick(&row, 0.5, 1.0, motion::opacity(&row)).play();
+        } else if self.seen.borrow_mut().insert(id) && self.animate.get() {
             let to = if comment.pending == PostState::Posted { 1.0 } else { 0.5 };
             row.set_opacity(0.0);
             motion::standard(&row, 0.0, to, motion::opacity(&row)).play();
