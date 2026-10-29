@@ -4,7 +4,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/wordmark-dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/wordmark-light.webp">
-    <img src="docs/assets/readme/wordmark-light.webp" width="288" alt="anistream">
+    <img src="docs/assets/readme/wordmark-light.webp" width="303" alt="anistream">
   </picture>
 </a>
 
@@ -276,7 +276,7 @@ through [SECURITY.md](SECURITY.md).
 <br>
 
 <p align="center">
-<a href="https://anistream.tv"><img src="assets/icon/256x256.png" width="40" alt="anistream"></a>
+<a href="https://anistream.tv"><img src="website/public/favicon.svg" width="48" alt="anistream"></a>
 <br>
 <sub>anistream hosts no content.</sub>
 </p>
