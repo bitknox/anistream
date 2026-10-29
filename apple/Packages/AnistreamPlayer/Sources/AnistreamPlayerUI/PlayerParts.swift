@@ -748,7 +748,7 @@ struct SkipButton: View {
                 model.takeSkip()
             } label: {
                 HStack(spacing: 8) {
-                    Text(metrics.touch ? skip.label : skip.label.capitalized)
+                    Text(skip.label)
                     Image(systemName: "forward.end.fill")
                         .font(.system(size: metrics.touch ? 15 : 13))
                 }

@@ -181,7 +181,7 @@ public struct MacPlayerView: View {
     private var contextMenu: some View {
         Button(model.paused ? L.actionPlay : L.actionPause) { model.togglePause() }
         if let skip = model.skip {
-            Button(skip.label.capitalized) { model.takeSkip() }
+            Button(skip.label) { model.takeSkip() }
         }
         Divider()
         Button(L.playerMenuSubtitles) { toggle(.tracks) }
