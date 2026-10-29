@@ -18,7 +18,7 @@ import Foundation
 ///     -AnistreamSheet torrent       a sheet over the screen: torrent, proxy (Edit proxy), join, kitsu, update, show,
 ///                                   source (the source picker), filters (Search's filters), typing (the search field focused),
 ///                                   welcome (first launch), messages, discussion-7 (episode 7's discussion of the
-///                                   title, found as the engine says it after the episode is watched), discussion-row
+///                                   title, read from the testing engine's fixture thread)
 ///     -AnistreamFold open           the title page's watched episodes, opened
 ///     -AnistreamDay 2               the calendar opened on the day this many days after today,
 ///                                   for a day with broadcasts: the fixtures' own day can have none

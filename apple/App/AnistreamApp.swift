@@ -8,6 +8,7 @@ import AnistreamDesign
 import AnistreamKit
 import AnistreamPlayerUI
 import AnistreamStore
+import AnistreamStrings
 import AnistreamUI
 import SwiftUI
 

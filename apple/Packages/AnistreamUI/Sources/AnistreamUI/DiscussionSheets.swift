@@ -37,49 +37,21 @@ public struct DiscussionSheets: ViewModifier {
 
     private func close() { store.discussion.target = nil }
 
-    /// `-AnistreamSheet discussion-7` opens episode 7 of the launch title's discussion once its
-    /// thread is found, as the engine would say after the episode counts as watched; `discussion-row`
-    /// only says the thread is found, for the episode row's quiet line. Screenshots only.
+    /// `-AnistreamSheet discussion-7` opens episode 7's discussion, which the testing engine's
+    /// fixture thread answers. Screenshots only: the sheet name comes from the launch route, which
+    /// a Release build ignores.
     private func launched() async {
         guard !overPlayer, let name = navigator.launchSheet, name.hasPrefix("discussion") else { return }
         let media = LaunchRoute.current.title ?? 900_001
         let episode = UInt32(name.dropFirst("discussion-".count)) ?? 7
         try? await Task.sleep(for: .milliseconds(500))
         navigator.launchSheet = nil
-        store.apply(.discussionFound(media: media, episode: episode, comments: 6))
-        guard name != "discussion-row" else { return }
         let key = DiscussionKey(media: media, episode: episode)
         #if os(iOS)
         store.discussion.show(key)
         #else
         preview = key
         #endif
-        try? await Task.sleep(for: .milliseconds(700))
-        store.apply(.discussion(Self.sample(media: media, episode: episode)))
-    }
-
-    /// A made-up thread for the shots, since the testing engine has no forum threads.
-    static func sample(media: AnilistId, episode: UInt32) -> DiscussionView {
-        func span(_ text: String, bold: Bool = false, spoiler: Bool = false) -> CommentSpan {
-            CommentSpan(text: text, bold: bold, spoiler: spoiler)
-        }
-        func comment(_ id: UInt32, _ author: String, _ age: Int64, _ likes: UInt32, _ spans: [CommentSpan],
-                     liked: Bool = false, own: Bool = false, replies: [CommentView] = []) -> CommentView {
-            CommentView(id: id, author: author, createdAt: 0, age: .discussionAgeHours(hours: age),
-                        body: [CommentBlock(spans: spans)], likeCount: likes, liked: liked, own: own,
-                        pending: .posted, replies: replies)
-        }
-        let reply = comment(2, "tamsin", 3, 4, [span("Same. The quiet scene at the harbour stayed with me.")], liked: true)
-        let comments = [
-            comment(1, "lampwick", 5, 12, [span("That ending. I did not see the lantern coming.")], replies: [reply]),
-            comment(3, "marlowe", 4, 2, [span("The soundtrack in the second half is "), span("so good", bold: true), span(".")]),
-            comment(4, "juniper", 3, 0, [span("Does the ferry captain come back? "), span("She sails home in the finale.", spoiler: true)]),
-            comment(5, "ferrylog", 2, 7, [span("Adding this to my rewatch list.")]),
-            comment(6, "sorrel", 1, 1, [span("Rewatching it tonight.")], own: true),
-        ]
-        return DiscussionView(media: media, episode: episode, title: "Harbour Lights, episode \(episode)",
-                              commentCount: 6, url: "https://forum.example/thread/1", comments: comments,
-                              state: .ready(more: false), canPost: true, signedIn: true, loadImages: true)
     }
 
     public func body(content: Content) -> some View {
