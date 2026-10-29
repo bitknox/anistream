@@ -3,6 +3,7 @@
 import AnistreamKit
 import AnistreamPlayer
 import AnistreamStore
+import AnistreamStrings
 import CoreGraphics
 import Foundation
 import Observation
@@ -192,8 +193,8 @@ public struct ScrubPace: Equatable, Sendable {
     /// "Half-speed scrubbing", while it is.
     public static func label(_ factor: Double) -> String? {
         switch factor {
-        case 0.5: "Half-speed scrubbing"
-        case 0.25: "Quarter-speed scrubbing"
+        case 0.5: L.playerScrubHalf
+        case 0.25: L.playerScrubQuarter
         default: nil
         }
     }

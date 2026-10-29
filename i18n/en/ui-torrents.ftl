@@ -244,3 +244,7 @@ torrents-page-needs-script = This page needs JavaScript to send the form to the 
 
 # Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
 torrents-check-note = { -app-name } checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.
+
+
+# Notice after the protection was saved.
+torrents-protection-saved = Torrent protection saved

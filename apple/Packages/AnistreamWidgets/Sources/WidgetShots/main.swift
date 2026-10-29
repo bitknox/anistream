@@ -63,15 +63,15 @@ enum Shots {
     static func continuing(_ files: WidgetFiles) -> [SnapshotContinue] {
         [
             SnapshotContinue(
-                id: 900001, title: "Hoshikuzu no Tabibito", episode: 7, watched: 6, episodes: 12,
+                id: 900001, title: "Hoshikuzu no Tabibito", episode: 7, watched: 6, episodes: 12, // i18n-skip
                 fraction: 0.42, episodeTitle: "The Lantern Road", resume: true, positionSecs: 600,
                 durationSecs: 1_440, minutesLeft: 14, art: art(900001, in: files)),
             SnapshotContinue(
-                id: 900005, title: "Hagane no Niwashi", episode: 2, watched: 1, episodes: 10,
+                id: 900005, title: "Hagane no Niwashi", episode: 2, watched: 1, episodes: 10, // i18n-skip
                 fraction: 0.75, resume: true, positionSecs: 1_080, durationSecs: 1_440, minutesLeft: 6,
                 art: art(900005, in: files), mark: "Dub"),
             SnapshotContinue(
-                id: 900002, title: "Kumo no Ue no Toshokan", episode: 4, watched: 3, episodes: 24,
+                id: 900002, title: "Kumo no Ue no Toshokan", episode: 4, watched: 3, episodes: 24, // i18n-skip
                 resume: false, durationSecs: 1_440, minutesLeft: 24, art: art(900002, in: files)),
         ]
     }
@@ -79,19 +79,19 @@ enum Shots {
     /// The day's schedule: MacCalendar's day, with fixture titles in the places of the boards'.
     static func airing(_ files: WidgetFiles) -> [SnapshotAiring] {
         [
-            SnapshotAiring(id: 900004, title: "Hoshikuzu no Tabibito 2nd Season", episode: 3, airsAt: at(day: 20, 13, 0),
+            SnapshotAiring(id: 900004, title: "Hoshikuzu no Tabibito 2nd Season", episode: 3, airsAt: at(day: 20, 13, 0), // i18n-skip
                        onList: true, watched: true, art: art(900004, in: files)),
-            SnapshotAiring(id: 900006, title: "Natsukaze Relay", episode: 9, airsAt: at(day: 20, 17, 30),
+            SnapshotAiring(id: 900006, title: "Natsukaze Relay", episode: 9, airsAt: at(day: 20, 17, 30), // i18n-skip
                        onList: true, translation: .sub, art: art(900006, in: files)),
-            SnapshotAiring(id: 900005, title: "Hagane no Niwashi", episode: 5, airsAt: at(day: 20, 19, 0),
+            SnapshotAiring(id: 900005, title: "Hagane no Niwashi", episode: 5, airsAt: at(day: 20, 19, 0), // i18n-skip
                        art: art(900005, in: files)),
-            SnapshotAiring(id: 900006, title: "Natsukaze Relay", episode: 9, airsAt: at(day: 20, 21, 0),
+            SnapshotAiring(id: 900006, title: "Natsukaze Relay", episode: 9, airsAt: at(day: 20, 21, 0), // i18n-skip
                        onList: true, translation: .dub, art: art(900006, in: files)),
-            SnapshotAiring(id: 900002, title: "Kumo no Ue no Toshokan", episode: 6, airsAt: at(day: 20, 22, 0),
+            SnapshotAiring(id: 900002, title: "Kumo no Ue no Toshokan", episode: 6, airsAt: at(day: 20, 22, 0), // i18n-skip
                        onList: true, art: art(900002, in: files)),
-            SnapshotAiring(id: 900003, title: "Tsukiakari no Teishajo", episode: 2, airsAt: at(day: 20, 22, 30),
+            SnapshotAiring(id: 900003, title: "Tsukiakari no Teishajo", episode: 2, airsAt: at(day: 20, 22, 30), // i18n-skip
                        art: art(900003, in: files)),
-            SnapshotAiring(id: 900001, title: "Hoshikuzu no Tabibito", episode: 8, airsAt: at(day: 20, 23, 45),
+            SnapshotAiring(id: 900001, title: "Hoshikuzu no Tabibito", episode: 8, airsAt: at(day: 20, 23, 45), // i18n-skip
                        onList: true, art: art(900001, in: files)),
         ]
     }
@@ -100,9 +100,9 @@ enum Shots {
         WidgetSnapshot(
             version: 2, generatedAt: at(day: 20, 19, 10), signedIn: true, tracker: "anilist",
             continueWatching: continuing(files), airingToday: airing(files),
-            nextDays: [SnapshotAiring(id: 900002, title: "Kumo no Ue no Toshokan", episode: 7,
+            nextDays: [SnapshotAiring(id: 900002, title: "Kumo no Ue no Toshokan", episode: 7, // i18n-skip
                                   airsAt: at(day: 27, 22, 0), onList: true)],
-            nextAiring: SnapshotNextAiring(id: 900006, title: "Natsukaze Relay", episode: 9, airsAt: at(day: 20, 21, 0)))
+            nextAiring: SnapshotNextAiring(id: 900006, title: "Natsukaze Relay", episode: 9, airsAt: at(day: 20, 21, 0))) // i18n-skip
     }
 
     // MARK: Drawing
@@ -213,7 +213,7 @@ enum Shots {
         shoot(iphone, "continue-signed-out", .continuing, signedOut, families: states)
         var caughtUp = full
         caughtUp.continueWatching = []
-        caughtUp.nextAiring = SnapshotNextAiring(id: 900001, title: "Hoshikuzu no Tabibito", episode: 10, airsAt: at(day: 22, 16, 30))
+        caughtUp.nextAiring = SnapshotNextAiring(id: 900001, title: "Hoshikuzu no Tabibito", episode: 10, airsAt: at(day: 22, 16, 30)) // i18n-skip
         shoot(iphone, "continue-caught-up", .continuing, caughtUp, families: states)
         var stale = full
         stale.generatedAt = at(day: 18, 20, 0)
@@ -222,9 +222,9 @@ enum Shots {
         var quiet = full
         quiet.generatedAt = at(day: 21, 9, 0)
         quiet.airingToday = []
-        quiet.nextDays = [SnapshotAiring(id: 900001, title: "Hoshikuzu no Tabibito", episode: 10,
+        quiet.nextDays = [SnapshotAiring(id: 900001, title: "Hoshikuzu no Tabibito", episode: 10, // i18n-skip
                                      airsAt: at(day: 22, 16, 30), onList: true)]
-        quiet.nextAiring = SnapshotNextAiring(id: 900001, title: "Hoshikuzu no Tabibito", episode: 10, airsAt: at(day: 22, 16, 30))
+        quiet.nextAiring = SnapshotNextAiring(id: 900001, title: "Hoshikuzu no Tabibito", episode: 10, airsAt: at(day: 22, 16, 30)) // i18n-skip
         shoot(iphone, "airing-nothing-today", .airing, quiet, families: states, at: at(day: 21, 10, 0))
         var old = full
         old.generatedAt = at(day: 12, 19, 0)
@@ -249,7 +249,7 @@ enum Shots {
             try? FileManager.default.copyItem(at: files.art(poster), to: files.liveDirectory.appending(path: poster))
         }
         let one = DownloadsActivityState(
-            titleID: 900001, title: "Hoshikuzu no Tabibito", episode: "8", coverFile: poster,
+            titleID: 900001, title: "Hoshikuzu no Tabibito", episode: "8", coverFile: poster, // i18n-skip
             bytesDone: 412_000_000, bytesTotal: 1_100_000_000, speed: 2_400_000, secondsLeft: 290)
         var several = one
         several.count = 3
@@ -321,7 +321,7 @@ enum Shots {
             try? FileManager.default.copyItem(at: files.art(airingPoster), to: files.liveDirectory.appending(path: airingPoster))
         }
         let playing = PlaybackActivityState(
-            titleID: 900001, title: "Stardust Wayfarer", episode: "7", coverFile: poster,
+            titleID: 900001, title: "Stardust Wayfarer", episode: "7", coverFile: poster, // i18n-skip
             position: 600, duration: 1_440, at: moment)
         var pausedPlay = playing
         pausedPlay.paused = true
@@ -347,7 +347,7 @@ enum Shots {
         draw(playExpanded, "playback-island-expanded", width: 371, height: 160, radius: 44, background: .black)
 
         let airing = AiringActivityState(
-            titleID: 900002, title: "The Library Above the Clouds", episode: 6, airsAt: moment.addingTimeInterval(12 * 60 + 4),
+            titleID: 900002, title: "The Library Above the Clouds", episode: 6, airsAt: moment.addingTimeInterval(12 * 60 + 4), // i18n-skip
             since: moment.addingTimeInterval(-20 * 60), coverFile: airingPoster)
         draw(AiringLockScreenView(state: airing, out: false), "airing", width: 358, height: nil, radius: 24, background: card)
         draw(AiringLockScreenView(state: airing, out: true), "airing-out", width: 358, height: nil, radius: 24, background: card)

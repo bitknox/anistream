@@ -1,6 +1,8 @@
 // The menu bar's Playback menu: its speed ladder and how a speed is named.
 
 @testable import AnistreamPlayerUI
+import AnistreamKit
+import Foundation
 import Testing
 
 @MainActor
@@ -16,8 +18,10 @@ struct PlaybackMenuTests {
     }
 
     @Test func aSpeedIsNamedAsTheMenuBarNamesIt() {
-        #expect(PlaybackMenu.name(1) == "Normal")
-        #expect(PlaybackMenu.name(0.75) == "0.75×")
-        #expect(PlaybackMenu.name(2) == "2×")
+        AirTime.$locale.withValue(Locale(identifier: "en_GB")) {
+            #expect(PlaybackMenu.name(1) == "Normal")
+            #expect(PlaybackMenu.name(0.75) == "0.75×")
+            #expect(PlaybackMenu.name(2) == "2×")
+        }
     }
 }

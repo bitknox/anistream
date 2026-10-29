@@ -15,14 +15,14 @@ public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable
 
     var title: String {
         switch self {
-        case .general: "General"
-        case .playback: "Playback"
-        case .downloads: "Downloads"
-        case .notifications: "Notifications"
-        case .sources: "Sources"
-        case .accounts: "Accounts"
-        case .integrations: "Integrations"
-        case .advanced: "Advanced"
+        case .general: L.settingsGroupGeneral
+        case .playback: L.settingsGroupPlayback
+        case .downloads: L.navDownloads
+        case .notifications: L.settingsGroupNotifications
+        case .sources: L.sourcesTitle
+        case .accounts: L.navAccounts
+        case .integrations: L.settingsGroupIntegrations
+        case .advanced: L.settingsGroupAdvanced
         }
     }
 
@@ -193,29 +193,31 @@ struct SettingsResults: View {
 
     /// Each row's name, and its pane.
     static let index: [(title: String, pane: SettingsPane)] = [
-        ("Title language", .general), ("Show adult titles", .general),
-        ("Translation", .playback), ("Subtitles", .playback), ("Quality", .playback),
-        ("Auto-play next", .playback), ("Up Next countdown", .playback),
-        ("Skip opening automatically", .playback), ("Skip filler automatically", .playback),
-        ("Mark opening and ending", .playback), ("Counts as watched at", .playback),
-        ("Spoiler protection", .playback), ("Upscaling", .playback), ("Night mode", .playback),
-        ("Start fullscreen", .playback),
-        ("Download folder", .downloads), ("Download quality", .downloads), ("Merge subtitles in", .downloads),
-        ("Keep seeding", .downloads), ("After each download", .downloads), ("Watched downloads", .downloads),
-        ("New episodes", .notifications), ("Notification settings", .notifications),
-        ("Source order", .sources), ("Torrent source", .sources), ("Torrent index", .sources),
-        ("Protect with", .sources), ("Last check", .sources), ("If a check fails", .sources),
-        ("Seed after watching", .sources), ("Seed for at most", .sources), ("Upload limit", .sources),
-        ("AniList", .accounts), ("MyAnimeList", .accounts), ("Kitsu", .accounts), ("Simkl", .accounts),
-        ("Trakt", .accounts), ("Sync now", .accounts), ("Sign out", .accounts), ("Privacy", .accounts),
-        ("Check for updates", updatesPane),
-        ("mpv options", .advanced),
+        (L.settingsTitleLanguage, .general), (L.settingsAdult, .general),
+        (L.settingsTranslation, .playback), (L.playerSubtitles, .playback), (L.settingsQuality, .playback),
+        (L.settingsAutoPlay, .playback), (L.settingsUpNextCountdown, .playback),
+        (L.settingsSkipOpening, .playback), (L.settingsSkipFiller, .playback),
+        (L.settingsMarkOpening, .playback), (L.settingsCountsWatched, .playback),
+        (L.settingsSpoiler, .playback), (L.playerUpscaling, .playback), (L.playerNightMode, .playback),
+        (L.settingsStartFullScreen, .playback),
+        (L.downloadsFolder, .downloads), (L.downloadsQuality, .downloads), (L.settingsMergeSubtitles, .downloads),
+        (L.settingsKeepSeeding, .downloads), (L.settingsAfterDownload, .downloads), (L.settingsWatchedDownloads, .downloads),
+        (L.settingsNewEpisodes, .notifications), (L.settingsSystemNotifications, .notifications),
+        (L.sourcesSourceOrderRow, .sources), (L.sourcesTorrentSource, .sources), (L.torrentsIndex, .sources),
+        (L.torrentsProtectWith, .sources), (L.torrentsLastCheck, .sources), (L.torrentsIfCheckFails, .sources),
+        (L.settingsSeedAfter, .sources), (L.settingsSeedFor, .sources), (L.settingsUploadLimit, .sources),
+        (AccountsModel.name("anilist"), .accounts), (AccountsModel.name("mal"), .accounts),
+        (AccountsModel.name("kitsu"), .accounts), (AccountsModel.name("simkl"), .accounts),
+        (AccountsModel.name("trakt"), .accounts), (L.accountsSyncNow, .accounts),
+        (L.accountsSignOut, .accounts), (L.settingsPrivacy, .accounts),
+        (L.settingsCheckUpdates, updatesPane),
+        (L.settingsMpvOptions, .advanced),
     ].filter { SettingsPane.shown.contains($0.pane) }
 
     /// The rows about Discord, which only an engine with a presence has.
     static let presenceRows: [(title: String, pane: SettingsPane)] = [
-        ("Discord presence", .integrations), ("Presence shows the title", .integrations),
-        ("Rich presence", .integrations),
+        (L.settingsDiscordPresence, .integrations), (L.settingsPresenceTitle, .integrations),
+        (L.settingsPresenceRich, .integrations),
     ].filter { SettingsPane.shown.contains($0.pane) }
 
     /// The rows to search, those about Discord only when `presence` says the engine has one.
@@ -236,12 +238,12 @@ struct SettingsResults: View {
         let words = query.lowercased().split(separator: " ")
         let found = Self.rows(presence: store.settings.hasPresence).filter { row in words.allSatisfy { row.title.lowercased().contains($0) } }
         if found.isEmpty {
-            Text("No setting is called that.")
+            Text(L.settingsNoMatch)
                 .font(.mac(13))
                 .foregroundStyle(.haze)
                 .padding(.leading, 14)
         } else {
-            SettingsGroup(title: "Results") {
+            SettingsGroup(title: L.settingsResults) {
                 ForEach(found, id: \.title) { row in
                     Button {
                         navigator.settingsPane = row.pane
@@ -282,7 +284,7 @@ struct SettingsTabs: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Settings panes")
+        .accessibilityLabel(L.settingsPanesLabel)
     }
 }
 
@@ -306,16 +308,16 @@ struct SettingsAside: View {
                 NotificationsAside()
             case .sources:
                 if store.settings.isOn(.torrents) {
-                    aside("Connection check", "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.")
+                    aside(L.settingsAsideCheckTitle, L.torrentsCheckNote)
                 } else {
-                    aside("Sources", "Sources are tried in order, top to bottom. A show can keep its own source, chosen from its title page.")
+                    aside(L.sourcesTitle, L.settingsAsideSourcesApple)
                 }
             case .accounts:
-                aside("Accounts", "anistream works without an account. Your watch history stays on this \(Device.name) when you sign out.")
+                aside(L.navAccounts, L.settingsAsideAccounts)
             case .integrations:
                 if store.settings.hasPresence { PresencePreview() }
             case .advanced:
-                aside("Advanced", "An option here can undo a Playback setting, such as upscaling or night mode. Most people never need this pane.")
+                aside(L.settingsGroupAdvanced, L.settingsAsideAdvanced)
             }
         }
         .padding(16)
@@ -339,9 +341,9 @@ struct SettingsAside: View {
 enum Device {
     static var name: String {
         #if os(macOS)
-        "Mac"
+        "Mac" // i18n-skip
         #else
-        UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
+        UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone" // i18n-skip
         #endif
     }
 }
@@ -351,11 +353,14 @@ enum Device {
 /// How titles read and which are listed: nothing here is about playing an episode.
 struct GeneralPane: View {
     var body: some View {
-        SettingsGroup(title: "Titles") {
+        SettingsGroup(title: L.settingsGroupTitles) {
             TitleLanguageRow()
-            SettingsRow(title: SettingKey.adultTitles.title, note: "Titles AniList marks adult, in Search and Seasonal.") {
+            SettingsRow(title: SettingKey.adultTitles.title, note: L.settingsAdultDetail(tracker: AccountsModel.name("anilist"))) {
                 SettingSwitch(key: .adultTitles)
             }
+        }
+        SettingsGroup(title: L.settingsLanguage) {
+            AppLanguageRow()
         }
     }
 }
@@ -373,17 +378,17 @@ struct PlaybackPane: View {
             SettingsRow(title: SettingKey.subtitles.title) { SubtitlesMenu() }
             // Kept on this device: the style it follows is this device's.
             SettingsRow(
-                title: "Subtitles follow your system caption style",
-                note: "Plain subtitles take the font, size, colours and edges set in System Settings › Accessibility › Captions. Styled subtitles keep their own look."
+                title: L.settingsSystemCaptions,
+                note: L.settingsSystemCaptionsDetail
             ) {
-                Toggle("Subtitles follow your system caption style", isOn: $followCaptions)
+                Toggle(L.settingsSystemCaptions, isOn: $followCaptions)
                     .toggleStyle(.switch)
                     .tint(.amber)
                     .labelsHidden()
             }
             SettingsRow(title: SettingKey.quality.title, note: overridden(.quality)) { SettingMenu(key: .quality) }
         }
-        SettingsGroup(title: "Episodes") {
+        SettingsGroup(title: L.settingsGroupEpisodes) {
             SettingsRow(title: SettingKey.autoNext.title) { SettingSwitch(key: .autoNext) }
             SettingsRow(title: SettingKey.upNextCountdown.title) { SettingMenu(key: .upNextCountdown) }
                 .disabled(!store.settings.isOn(.autoNext))
@@ -391,23 +396,23 @@ struct PlaybackPane: View {
             SettingsRow(title: SettingKey.skipOpening.title, note: overridden(.skipOpening)) { SettingSwitch(key: .skipOpening) }
             SettingsRow(title: SettingKey.skipFiller.title, note: overridden(.skipFiller)) { SettingSwitch(key: .skipFiller) }
             SettingsRow(title: SettingKey.markChapters.title) { SettingSwitch(key: .markChapters) }
-            SettingsRow(title: SettingKey.skipButton.title, note: "While the opening or ending plays, when it isn't skipped automatically.") {
+            SettingsRow(title: SettingKey.skipButton.title, note: L.settingsSkipButtonDetail) {
                 SettingSwitch(key: .skipButton)
             }
-            SettingsRow(title: SettingKey.commitThreshold.title, note: "Or when the ending starts, if it is marked.") {
+            SettingsRow(title: SettingKey.commitThreshold.title, note: L.settingsCountsWatchedDetail) {
                 SettingMenu(key: .commitThreshold)
             }
             SettingsRow(title: SettingKey.spoilerProtection.title,
-                        note: "Blurs stills of unwatched episodes after the next one.") {
+                        note: L.settingsSpoilerDetail) {
                 SettingSwitch(key: .spoilerProtection)
             }
         }
-        SettingsGroup(title: "Picture and sound") {
+        SettingsGroup(title: L.playerPictureAndSound) {
             // Selected: the column beside the pane is about it.
             SettingsRow(title: SettingKey.upscaling.title, selected: true) {
                 SettingMenu(key: .upscaling)
             }
-            SettingsRow(title: SettingKey.nightMode.title, note: "Evens out loud and quiet passages, so dialogue stays clear at low volume.") {
+            SettingsRow(title: SettingKey.nightMode.title, note: L.playerNightModeDetail) {
                 SettingSwitch(key: .nightMode)
             }
             #if os(macOS)
@@ -430,7 +435,7 @@ struct SubtitlesMenu: View {
     var body: some View {
         let code = store.settings.row(.subtitles)?.typedText ?? store.settings.value(.subtitles) ?? ""
         Menu {
-            Picker("Subtitles", selection: Binding(
+            Picker(L.playerSubtitles, selection: Binding(
                 get: { code },
                 set: { store.setSetting(.subtitles, to: .str($0)) }
             )) {
@@ -450,7 +455,7 @@ struct SubtitlesMenu: View {
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
-        .accessibilityLabel("Subtitles")
+        .accessibilityLabel(L.playerSubtitles)
     }
 
     /// A language code as the system names it in English: "en" reads "English".
@@ -465,7 +470,7 @@ struct UpscalingPreview: View {
 
     var body: some View {
         let mode = store.settings.row(.upscaling)?.option?.label ?? "natural · ArtCNN"
-        Text("Upscaling").groupHeaderStyle().macLineHeight(14)
+        Text(L.playerUpscaling).groupHeaderStyle().macLineHeight(14)
             .accessibilityAddTraits(.isHeader)
         GeometryReader { proxy in
             let half = proxy.size.width / 2
@@ -476,13 +481,13 @@ struct UpscalingPreview: View {
                     .clipped()
                 Rectangle().fill(.silk).frame(width: 2).offset(x: half - 1)
             }
-            .overlay(alignment: .bottomLeading) { chip("480p source").padding(8) }
+            .overlay(alignment: .bottomLeading) { chip(L.settingsUpscalingSourceApple).padding(8) }
             .overlay(alignment: .bottomTrailing) { chip(SettingKey.upscaling.display(mode)).padding(8) }
         }
         .aspectRatio(16 / 9, contentMode: .fit)
         .clipShape(.rect(cornerRadius: 8))
         .accessibilityElement()
-        .accessibilityLabel("The 480p source beside \(SettingKey.upscaling.display(mode))")
+        .accessibilityLabel(L.settingsUpscalingCompare(mode: SettingKey.upscaling.display(mode)))
         Text(note(mode))
             .font(.mac(13))
             .macLineHeight(18)
@@ -516,9 +521,9 @@ struct UpscalingPreview: View {
 
     private func note(_ mode: String) -> String {
         switch mode {
-        case "off": "The 480p source, scaled to fit without processing."
-        case "sharp · Anime4K": "Crisper lines and stronger edges, at some cost to texture."
-        default: "Faithful line work and texture, nothing restyled."
+        case "off": L.settingsUpscalingNoteNone
+        case "sharp · Anime4K": L.settingsUpscalingNoteSharp
+        default: L.settingsUpscalingNoteNatural
         }
     }
 }
@@ -530,7 +535,7 @@ struct UpscalingPreview: View {
 struct AdvancedPane: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("No extra options. The player runs with anistream's own.")
+            Text(L.settingsAdvancedNone)
                 .font(.plat(mac: 13, touch: 15))
                 .foregroundStyle(.haze)
                 .padding(.leading, 14)

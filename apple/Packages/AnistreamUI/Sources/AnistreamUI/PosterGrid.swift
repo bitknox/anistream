@@ -3,6 +3,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// One title in a grid: its cover at 2:3, its title in two lines, a line beneath, and, where it
@@ -172,12 +173,12 @@ struct PosterCellPlaceholder: View {
                 .aspectRatio(2 / 3, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: width)))
-            Text("Hoshikuzu no Tabibito")
+            Text("Hoshikuzu no Tabibito") // i18n-skip
                 .font(.macShowTitle(size: 14))
                 .macLineHeight(18)
                 .lineLimit(2, reservesSpace: true)
                 .padding(.top, 8)
-            Text("TV · 2026")
+            Text("TV · 2026") // i18n-skip
                 .font(.mac(12))
                 .macLineHeight(16)
                 .lineLimit(1)
@@ -244,7 +245,7 @@ struct ListStates<Loaded: View, Empty: View>: View {
     /// The engine's words for the load, which the activity line names past 4 s.
     var activity: String?
     /// What failed, said over the reason when the list could not load.
-    var failure = "Couldn't load this list"
+    var failure = L.browseListFailed
     /// Ask again, as Try again does.
     var retry: (() -> Void)?
     /// How far the offline line sits in from the sides, where the list's own rows set their

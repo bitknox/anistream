@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// Continue with nothing watched yet.
@@ -40,7 +41,7 @@ struct AiringToday: View {
                     navigator.open(.calendar)
                 } label: {
                     HStack(spacing: 8) {
-                        Text(compact ? "Airing today" : cased(mac: "Airing Today", touch: "Airing today"))
+                        Text(L.widgetAiringToday)
                             .font(compact ? .ui(20, weight: .semibold) : .mac(15, weight: .semibold))
                             .foregroundStyle(.silk)
                         Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)
@@ -49,7 +50,7 @@ struct AiringToday: View {
                 }
                 .buttonStyle(.plain)
                 .pointerHover()
-                .accessibilityLabel("Airing today, show in Calendar")
+                .accessibilityLabel(L.welcomeAiringTodayLabel)
                 if compact {
                     ScrollView(.horizontal) {
                         HStack(alignment: .top, spacing: 12) {
@@ -84,16 +85,16 @@ struct AiringToday: View {
                     .lineLimit(1)
                     .padding(.top, 8)
                 HStack(spacing: 8) {
-                    Text("Episode \(broadcast.episode)\(broadcast.markSuffix) · \(broadcast.clock)").monospacedDigit()
+                    Text(L.welcomeBroadcast(episode: L.episodeNumberString(number: String(broadcast.episode)) + broadcast.markSuffix, clock: broadcast.clock)).monospacedDigit()
                     Spacer(minLength: 0)
                     let seconds = Int64(broadcast.airs.timeIntervalSince(now))
                     if seconds <= 0 {
                         HStack(spacing: 5) {
                             Circle().fill(.water).frame(width: 6, height: 6)
-                            Text("Out \(Wording.ago(-seconds))")
+                            Text(L.calendarOut(ago: Wording.ago(-seconds)))
                         }
                     } else {
-                        Text("in \(Wording.countdown(seconds))").foregroundStyle(next ? .water : .haze)
+                        Text(L.timeIn(span: Wording.countdown(seconds))).foregroundStyle(next ? .water : .haze)
                     }
                 }
                 .font(.mac(12))
@@ -126,7 +127,7 @@ struct ThisSeason: View {
                         navigator.open(.seasonal)
                     } label: {
                         HStack(spacing: 8) {
-                            Text(compact ? "This season" : cased(mac: "This Season", touch: "This season"))
+                            Text(L.continueThisSeason)
                                 .font(compact ? .ui(20, weight: .semibold) : .mac(15, weight: .semibold))
                                 .foregroundStyle(.silk)
                             Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)

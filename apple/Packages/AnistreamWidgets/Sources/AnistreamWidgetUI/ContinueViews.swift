@@ -1,11 +1,15 @@
 // Continue watching: the next episode, its progress, a tap to open the title and one to play.
 
 import AnistreamDesign
+import AnistreamStrings
 import AnistreamWidgetData
 import SwiftUI
 import WidgetKit
 
 /// Continue watching at one size, for one moment.
+/// The tracker the widget asks the person to connect.
+private let trackerName = "AniList" // i18n-skip
+
 public struct ContinueWidgetView: View {
     let content: ContinueContent
     let layout: WidgetLayout
@@ -33,11 +37,11 @@ public struct ContinueWidgetView: View {
         switch content {
         case .signedOut:
             MessageWidget(
-                title: layout == .small ? "Continue" : "Continue watching",
+                title: layout == .small ? L.navContinue : L.widgetContinueTitleApple,
                 message: layout == .small
-                    ? "Connect AniList, or play an episode, to see it here."
-                    : "Connect AniList, or play an episode, to see what you’re watching here.",
-                action: "Connect AniList"
+                    ? L.widgetConnectDetailShort(tracker: trackerName)
+                    : L.widgetConnectDetailLong(tracker: trackerName),
+                action: L.widgetConnectTracker(tracker: trackerName)
             )
             .widgetURL(WidgetLink.accounts.url)
         case .caughtUp(let next, let art):
@@ -65,14 +69,14 @@ public struct ContinueWidgetView: View {
         switch content {
         case .signedOut:
             VStack(alignment: .leading, spacing: 2) {
-                Text("Continue watching").font(WidgetType.ui(15, weight: .semibold))
-                Text("Connect AniList to see it here.").font(WidgetType.ui(13)).foregroundStyle(.secondary)
+                Text(L.widgetContinueTitleApple).font(WidgetType.ui(15, weight: .semibold))
+                Text(L.continueWidgetConnect).font(WidgetType.ui(13)).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .widgetURL(WidgetLink.accounts.url)
         case .caughtUp(let next, _):
             VStack(alignment: .leading, spacing: 2) {
-                Text("You’re caught up").font(WidgetType.ui(15, weight: .semibold))
+                Text(L.widgetCaughtUpTitleApple).font(WidgetType.ui(15, weight: .semibold))
                 if let next {
                     Text(next.title).font(WidgetType.title(13)).lineLimit(1).widgetAccentable()
                     Text(format.airs(next, from: now)).font(WidgetType.ui(13)).foregroundStyle(.secondary).lineLimit(1)
@@ -107,10 +111,11 @@ public struct ContinueWidgetView: View {
     @ViewBuilder private var inline: some View {
         switch content {
         case .signedOut:
-            Label("Connect AniList", systemImage: "play.fill")
+            Label(L.widgetConnectTracker(tracker: trackerName), systemImage: "play.fill")
                 .widgetURL(WidgetLink.accounts.url)
         case .caughtUp(let next, _):
-            Label(next.map { "Caught up · E\($0.episode) \(format.day($0.airsAt, from: now))" } ?? "Caught up",
+            Label(next.map { L.continueRowCaughtUp(episode: $0.episode, when: format.day($0.airsAt, from: now)) }
+                    ?? L.continueRowCaughtUpPlain,
                   systemImage: "checkmark")
         case .shows(let items, _):
             Label("\(ContinuePresentation.episodeShort(items[0])) · \(items[0].title)", systemImage: "play.fill")
@@ -153,7 +158,7 @@ struct ContinueSmall: View {
     }
 
     private var play: some View {
-        PlayCircle(id: item.id, episode: item.episode, label: "Play episode \(item.episode) of \(item.title)", intent: true)
+        PlayCircle(id: item.id, episode: item.episode, label: L.widgetStartLabel(episode: item.episode, title: item.title), intent: true)
     }
 
     private var text: some View {
@@ -247,7 +252,7 @@ struct ContinueCard: View {
         .accessibilityLabel(ContinuePresentation.accessibilityLabel(item))
         // The play button over the art, beside the card's link rather than inside it.
         .overlay(alignment: .topLeading) {
-            PlayCircle(id: item.id, episode: item.episode, label: "Play episode \(item.episode) of \(item.title)")
+            PlayCircle(id: item.id, episode: item.episode, label: L.widgetStartLabel(episode: item.episode, title: item.title))
                 .padding(8)
                 .frame(width: width, height: artHeight, alignment: .bottomTrailing)
         }
@@ -398,9 +403,9 @@ struct CaughtUp: View {
     var body: some View {
         if small {
             MessageWidget(
-                title: "Caught up",
-                message: next.map { "\($0.title) E\($0.episode) airs \(format.day($0.airsAt, from: now))." }
-                    ?? "You’re caught up.",
+                title: L.continueRowCaughtUpPlain,
+                message: next.map { L.widgetAirsDay(title: $0.title, episode: $0.episode, day: format.day($0.airsAt, from: now)) }
+                    ?? L.continueCaughtUp,
                 extra: {
                     if let next {
                         HStack(spacing: 6) {
@@ -414,8 +419,8 @@ struct CaughtUp: View {
                 })
         } else {
             MessageWidget(
-                title: "You’re caught up",
-                message: next == nil ? "Nothing more to continue." : "Next from your list:",
+                title: L.widgetCaughtUpTitleApple,
+                message: next == nil ? L.widgetCaughtUpNone : L.widgetCaughtUpNextApple,
                 extra: {
                     if let next {
                         HStack(spacing: 10) {

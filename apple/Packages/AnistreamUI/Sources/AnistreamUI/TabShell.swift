@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 struct TabShell: View {
@@ -35,9 +36,9 @@ struct TabShell: View {
                     TabStack(section: .downloads) { screen(.downloads) }
                 }
                 .defaultVisibility(.hidden, for: .tabBar)
-                TabSection("Sources") {
+                TabSection(L.sourcesTitle) {
                     ForEach([AppSection.providers, .pluginStores]) { section in
-                        Tab(section.title.capitalizedSentence, systemImage: section.symbol, value: section) {
+                        Tab(section.title, systemImage: section.symbol, value: section) {
                             TabStack(section: section) { screen(section) }
                         }
                         .defaultVisibility(.hidden, for: .tabBar)
@@ -50,7 +51,7 @@ struct TabShell: View {
             }
             Tab(value: AppSection.search, role: .search) {
                 TabStack(section: .search) { PhoneSearch() }
-                    .titleSearchField(text: $navigator.query, prompt: "Search titles")
+                    .titleSearchField(text: $navigator.query, prompt: L.searchPlaceholder)
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
@@ -117,30 +118,30 @@ struct PadTitleToolbar: ToolbarContent {
             Menu {
                 if let entry = store.titles[id] { TitleMoreItems(entry: entry) }
             } label: {
-                Label("More", systemImage: "ellipsis")
+                Label(L.actionMore, systemImage: "ellipsis")
             }
         }
     }
 }
 
-/// Providers' toolbar on iPad: check the stores for plugin updates.
+/// Sources' toolbar on iPad: check the stores for plugin updates.
 struct IPadProvidersToolbar: ToolbarContent {
     @Environment(AppStore.self) private var store
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button("Check for updates") { store.loadStores() }
+            Button(L.settingsCheckUpdates) { store.loadStores() }
         }
     }
 }
 
-/// Plugin Stores' toolbar on iPad: join another.
+/// Plugin stores' toolbar on iPad: join another.
 struct IPadStoresToolbar: ToolbarContent {
     @Environment(Navigator.self) private var navigator
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button("Join store", systemImage: "plus") { navigator.invite = "" }
+            Button(L.storesJoinMenu, systemImage: "plus") { navigator.invite = "" }
         }
     }
 }
@@ -154,9 +155,9 @@ struct IPadDownloadsToolbar: ToolbarContent {
             let paused = store.downloads.rows.contains { $0.state == .paused }
             let running = store.downloads.rows.contains { $0.state == .active || $0.state == .queued }
             if running || !paused {
-                Button("Pause all") { store.pauseAllDownloads() }.disabled(!running)
+                Button(L.downloadsPauseAll) { store.pauseAllDownloads() }.disabled(!running)
             } else {
-                Button("Resume all") { store.resumeAllDownloads() }
+                Button(L.downloadsResumeAll) { store.resumeAllDownloads() }
             }
         }
     }
@@ -183,8 +184,8 @@ struct TabStack<Screen: View>: View {
                         ToolbarItem(placement: .topBarLeading) { TVNowPlayingButton() }
                     }
                 }
-                .navigationTitle(section.title.capitalizedSentence)
-                .boardTitle(section.title.capitalizedSentence)
+                .navigationTitle(section.title)
+                .boardTitle(section.title)
                 // Library's Downloads row, on iPhone and in a narrow window: no tab of its own.
                 .navigationDestination(isPresented: section == .library ? Binding(
                     get: { navigator.downloadsPushed },

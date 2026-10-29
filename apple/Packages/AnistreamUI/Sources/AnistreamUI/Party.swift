@@ -8,6 +8,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 #if os(macOS)
 import AppKit
@@ -80,7 +81,7 @@ public struct PartySheets: ViewModifier {
             }
             #if os(macOS)
             .alert(
-                "Leave the party?",
+                L.partyLeaveTitle,
                 isPresented: Binding(
                     get: { here && party.askingToLeave != nil },
                     set: { if !$0 { party.askingToLeave = nil } }
@@ -88,9 +89,9 @@ public struct PartySheets: ViewModifier {
                 presenting: party.askingToLeave
             ) { leaving in
                 // Stay is the default: Return and Escape both keep the party.
-                Button("Stay", role: .cancel) {}
+                Button(L.partyStay, role: .cancel) {}
                     .keyboardShortcut(.defaultAction)
-                Button(leaving == .quit ? "Leave and Quit" : "Leave and Close") {
+                Button(leaving == .quit ? L.partyLeaveAndQuit : L.partyLeaveAndClose) {
                     party.agreeToLeave()
                     switch leaving {
                     case .quit: NSApp.terminate(nil)
@@ -98,10 +99,10 @@ public struct PartySheets: ViewModifier {
                     }
                 }
             } message: { leaving in
-                let room = party.party?.room ?? "the party"
+                let room = party.party?.room ?? L.partyTitle.lowercased(with: AirTime.locale)
                 Text(leaving == .quit
-                     ? "Quitting anistream leaves \(room). Everyone else carries on without you."
-                     : "Closing the window leaves \(room). Everyone else carries on without you.")
+                     ? L.partyLeaveDetail(room: room)
+                     : L.partyLeaveDetailWindow(room: room))
             }
             // The red button and ⌘W ask first while in a party, as quitting does.
             .background {
@@ -152,12 +153,12 @@ struct PartyFormState {
     var party: PartyModel { store.party }
 
     var title: String {
-        start.isInvite ? cased(mac: "Join the Party?", touch: "Join the party?") : cased(mac: "Watch Together", touch: "Watch together")
+        start.isInvite ? L.partyJoinTitle : L.partyOpen
     }
 
     var primary: String {
-        if party.failure != nil { return cased(mac: "Try Again", touch: "Try again") }
-        return start.isInvite ? cased(mac: "Join Party", touch: "Join party") : cased(mac: "Start Party", touch: "Start party")
+        if party.failure != nil { return L.actionTryAgain }
+        return start.isInvite ? L.partyJoin : L.partyStart
     }
 
     var episodeLine: String {
@@ -169,11 +170,11 @@ struct PartyFormState {
     var status: (text: String, busy: Bool, error: Bool)? {
         if party.joining {
             let (server, room) = party.place
-            return ("Joining \(room.trimmingCharacters(in: .whitespaces)) on \(server.trimmingCharacters(in: .whitespaces))…", true, false)
+            return (L.partyJoining(room: room.trimmingCharacters(in: .whitespaces), server: server.trimmingCharacters(in: .whitespaces)), true, false)
         }
         if let failure = party.failure { return (failure, false, true) }
-        if store.offline { return ("A party needs a connection. You're offline.", false, true) }
-        if party.form == nil { return ("Getting things ready…", true, false) }
+        if store.offline { return (L.partyNeedsConnection, false, true) }
+        if party.form == nil { return (L.partyGettingReady, true, false) }
         return nil
     }
 
@@ -199,8 +200,8 @@ struct PartyFormState {
         return (party.form?.recentServers ?? []).filter { typed.isEmpty || $0.localizedCaseInsensitiveContains(typed) }
     }
 
-    static let roomNote = "Anyone who knows the room's name can join it. The invite link carries it, so nobody has to read it out."
-    static let privacy = "The server sees your name, the room, and when anyone plays, pauses or seeks. Each of you plays the episode from your own sources. anistream hosts no content."
+    static var roomNote: String { L.partyRoomHint }
+    static var privacy: String { L.partyPrivacy }
     /// The longest name the room shows.
     static let nameLimit = 40
 }
@@ -222,7 +223,7 @@ struct PartySourceState {
     }
 
     var title: String {
-        party.choice == nil ? first.title : cased(mac: "Choose a Source for Episode \(ask.episode)", touch: "Choose a source for episode \(ask.episode)")
+        party.choice == nil ? first.title : L.partyChooseSourceTitle(episode: ask.episode)
     }
 
     /// The primary button: the actions that fit the answer. Nothing to choose before the episode
@@ -246,20 +247,20 @@ struct PartySourceState {
     func label(_ primary: Primary) -> String {
         switch primary {
         case .none: ""
-        case .providers: cased(mac: "Open Providers", touch: "Open Providers")
-        case .choose: cased(mac: "Choose Source", touch: "Choose source")
-        case .play: cased(mac: "Play with the Party", touch: "Play with the party")
-        case .again: cased(mac: "Try Again", touch: "Try again")
+        case .providers: L.partyOpenSources
+        case .choose: L.playerChooseSource
+        case .play: L.partyPlayWith
+        case .again: L.actionTryAgain
         }
     }
 
     /// The line over the list: looking, what was found, or why nothing was.
     var line: (text: String, busy: Bool, error: Bool) {
         switch party.choice {
-        case .looking?, nil: ("Looking through your sources…", true, false)
+        case .looking?, nil: (L.partyLookingSources, true, false)
         case .listed(let found)?:
             found.isEmpty
-                ? ("No source lists episode \(ask.episode). Sources come from plugins, which Providers adds.", false, false)
+                ? (L.partyNoSourceLists(episode: ask.episode), false, false)
                 : (PartyWords.found(found.count), false, false)
         case .failed(let why)?: (why, false, true)
         }
@@ -365,7 +366,7 @@ struct MacPartyForm: View {
                 .foregroundStyle(.haze)
                 .padding(.top, 4)
             if case .invite(let invite) = start {
-                Text("Room \(invite.room) on \(invite.server)")
+                Text(L.partyInviteRoom(room: invite.room, server: invite.server))
                     .font(.mac(13))
                     .foregroundStyle(.silk)
                     .textSelection(.enabled)
@@ -373,8 +374,8 @@ struct MacPartyForm: View {
                 hint(state.serverLine?.text ?? " ", problem: false)
                     .padding(.top, 6)
             } else {
-                label("Server").padding(.top, 18)
-                field("Server", text: $model.server, prompt: "host:port")
+                label(L.partyServer).padding(.top, 18)
+                field(L.partyServer, text: $model.server, prompt: L.partyServerHint)
                     .textInputSuggestions {
                         ForEach(state.recent, id: \.self) { server in
                             Text(server).textInputCompletion(server)
@@ -384,25 +385,25 @@ struct MacPartyForm: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     hint(state.serverLine?.text ?? " ", problem: state.serverLine?.problem ?? false)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Button(cased(mac: "Use It", touch: "Use it")) {
+                    Button(L.partyUseIt) {
                         if let form = party.form { party.server = form.suggestedServer }
                     }
                     .controlSize(.small)
-                    .accessibilityLabel("Use \(party.form?.suggestedServer ?? "the public server")")
+                    .accessibilityLabel(party.form.map { L.partyUseServer(server: $0.suggestedServer) } ?? L.partyUseIt)
                     // Faded rather than removed, so the line keeps its height.
                     .opacity(state.offersSuggested ? 1 : 0)
                     .disabled(!state.offersSuggested || locked)
                     .animation(.quick, value: state.offersSuggested)
                 }
                 .padding(.top, 6)
-                label("Room").padding(.top, 14)
-                field("Room", text: $model.room, prompt: "")
+                label(L.partyRoom).padding(.top, 14)
+                field(L.partyRoom, text: $model.room, prompt: "")
                     .padding(.top, 6)
                 hint(PartyFormState.roomNote, problem: false)
                     .padding(.top, 6)
             }
-            label("Your name in the room").padding(.top, 14)
-            field("Your name in the room", text: $model.name, prompt: "")
+            label(L.partyYourName).padding(.top, 14)
+            field(L.partyYourName, text: $model.name, prompt: "")
                 .padding(.top, 6)
                 .onChange(of: party.name) { _, name in
                     if name.count > PartyFormState.nameLimit { party.name = String(name.prefix(PartyFormState.nameLimit)) }
@@ -411,7 +412,7 @@ struct MacPartyForm: View {
                 .padding(.top, 16)
             HStack(spacing: 10) {
                 Spacer()
-                Button("Cancel") { party.closeForm() }
+                Button(L.actionCancel) { party.closeForm() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
                 Button(state.primary) { party.join() }
@@ -559,15 +560,15 @@ struct MacPartySource: View {
                 .opacity(state.candidates.isEmpty ? 0 : 1)
                 .animation(.fadeIn, value: state.candidates.isEmpty)
                 .padding(.top, state.candidates.isEmpty ? 0 : 10)
-                .accessibilityLabel("Sources for this episode")
+                .accessibilityLabel(L.partySourcesLabel)
             }
             HStack(spacing: 10) {
-                Button(cased(mac: "Leave Party", touch: "Leave party")) {
+                Button(L.partyLeave) {
                     party.leave()
                 }
                 .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                 Spacer()
-                Button(cased(mac: "Not Now", touch: "Not now")) { party.closeNoSource() }
+                Button(L.actionNotNow) { party.closeNoSource() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
                 if state.primary != .none {
@@ -657,8 +658,8 @@ struct PhonePartyForm: View {
                 }
                 if case .invite(let invite) = start {
                     Section {
-                        LabeledContent("Room", value: invite.room)
-                        LabeledContent("Server", value: invite.server)
+                        LabeledContent(L.partyRoom, value: invite.room)
+                        LabeledContent(L.partyServer, value: invite.server)
                     } footer: {
                         Text(state.serverLine?.text ?? " ")
                     }
@@ -666,7 +667,7 @@ struct PhonePartyForm: View {
                 } else {
                     Section {
                         HStack {
-                            TextField("Server", text: $model.server, prompt: Text("host:port"))
+                            TextField(L.partyServer, text: $model.server, prompt: Text(L.partyServerHint))
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .keyboardType(.URL)
@@ -679,18 +680,18 @@ struct PhonePartyForm: View {
                                     Image(systemName: "clock.arrow.circlepath")
                                         .foregroundStyle(.haze)
                                 }
-                                .accessibilityLabel("Recent servers")
+                                .accessibilityLabel(L.partyRecentServers)
                             }
                         }
                         .disabled(locked)
                     } header: {
-                        Text("Server")
+                        Text(L.partyServer)
                     } footer: {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(state.serverLine?.text ?? " ")
                                 .foregroundStyle(state.serverLine?.problem == true ? .vermilion : .haze)
                                 .contentTransition(.opacity)
-                            Button("Use \(party.form?.suggestedServer ?? "it")") {
+                            Button(party.form.map { L.partyUseServer(server: $0.suggestedServer) } ?? L.partyUseIt) {
                                 if let form = party.form { party.server = form.suggestedServer }
                             }
                             .font(.ui(13, weight: .semibold))
@@ -703,26 +704,26 @@ struct PhonePartyForm: View {
                     }
                     .listRowBackground(Palette.raised)
                     Section {
-                        TextField("Room", text: $model.room)
+                        TextField(L.partyRoom, text: $model.room)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .disabled(locked)
                     } header: {
-                        Text("Room")
+                        Text(L.partyRoom)
                     } footer: {
                         Text(PartyFormState.roomNote)
                     }
                     .listRowBackground(Palette.raised)
                 }
                 Section {
-                    TextField("Your name in the room", text: $model.name)
+                    TextField(L.partyYourName, text: $model.name)
                         .autocorrectionDisabled()
                         .disabled(locked)
                         .onChange(of: party.name) { _, name in
                             if name.count > PartyFormState.nameLimit { party.name = String(name.prefix(PartyFormState.nameLimit)) }
                         }
                 } header: {
-                    Text("Your name in the room")
+                    Text(L.partyYourName)
                 } footer: {
                     PhoneFormFoot(status: state.status)
                 }
@@ -731,7 +732,7 @@ struct PhonePartyForm: View {
             .navigationTitle(state.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { party.closeForm() }.tint(.silk) }
+                ToolbarItem(placement: .topBarLeading) { Button(L.actionCancel) { party.closeForm() }.tint(.silk) }
             }
             .safeAreaInset(edge: .bottom) {
                 Button {
@@ -838,14 +839,14 @@ struct PhonePartySource: View {
                     .listRowBackground(Palette.raised)
                 }
                 Section {
-                    Button(cased(mac: "Leave Party", touch: "Leave party"), role: .destructive) { party.leave() }
+                    Button(L.partyLeave, role: .destructive) { party.leave() }
                 }
                 .listRowBackground(Palette.raised)
             }
-            .navigationTitle("Watch party")
+            .navigationTitle(L.partyTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Not now") { party.closeNoSource() }.tint(.silk) }
+                ToolbarItem(placement: .topBarLeading) { Button(L.actionNotNow) { party.closeNoSource() }.tint(.silk) }
             }
             .safeAreaInset(edge: .bottom) {
                 if state.primary != .none {

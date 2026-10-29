@@ -70,7 +70,7 @@ public final class PictureFeed: @unchecked Sendable {
     /// The drawable mpv took last, copied as it takes the next.
     private var previous: CAMetalDrawable?
     #endif
-    private let enqueueing = DispatchQueue(label: "tv.anistream.picture-feed")
+    private let enqueueing = DispatchQueue(label: "tv.anistream.picture-feed") // i18n-skip
 
     struct PoolKey: Equatable {
         let width: Int

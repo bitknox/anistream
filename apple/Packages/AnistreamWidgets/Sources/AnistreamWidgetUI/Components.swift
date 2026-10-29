@@ -80,6 +80,28 @@ extension EnvironmentValues {
 }
 
 /// A countdown or a time since, that runs on its own in a widget: "1 hr, 30 min".
+/// A line that carries a time which counts on its own: the message is worded, and the time is
+/// drawn where its marker stood.
+struct TimedLine: View {
+    let date: Date
+    let message: (String) -> String
+
+    init(date: Date, message: @escaping (String) -> String) {
+        self.date = date
+        self.message = message
+    }
+
+    var body: some View {
+        let marker = "\u{1}"
+        let parts = message(marker).components(separatedBy: marker)
+        HStack(spacing: 0) {
+            Text(parts[0])
+            RelativeTime(date: date)
+            if parts.count > 1 { Text(parts[1]) }
+        }
+    }
+}
+
 struct RelativeTime: View {
     let date: Date
     @Environment(\.widgetNow) private var now

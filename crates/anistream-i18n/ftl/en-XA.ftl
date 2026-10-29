@@ -1083,17 +1083,11 @@ tv-code-expired = [Çöðé éẋþîŕéð~~~~]
 # Under a TV in the list: what choosing it does, for a screen reader.
 tv-row-pairs-with = [Þàîŕš ŵîţĥ ţĥîš ŢṼ~~~~~~]
 
-# Row title of the button that pairs another TV once one is paired.
-tv-another = [Åñöţĥéŕ ŢṼ~~~]
-
 # Under a TV in the list: paired, but not seen on the network.
 tv-row-away = [Þàîŕéð, ñöţ šééñ öñ ţĥîš ñéţŵöŕķ~~~~~~~~~~]
 
 # Under a TV in the list: found, not paired yet.
 tv-row-new = [Ñöţ þàîŕéð ýéţ~~~~~]
-
-# Under a TV in the list: its version does not match.
-tv-row-needs-update = [Ñééðš ţĥé šàɱé àñîšţŕéàɱ ṽéŕšîöñ àš ţĥîš ðéṽîçé~~~~~~~~~~~~~~~]
 
 # What a screen reader hears when a heading and its problem show together.
 tv-problem-announce = [{ $heading }. { $problem }~~~]
@@ -1115,9 +1109,6 @@ tv-fingerprint-note = [Å ŢṼ ļîšţš ţĥîš ðéṽîçé ŵîţĥ ţĥ�
 
 # Settings line of a paired TV: paired on a date, reached in the last minute.
 tv-paired-seen-now = [{ $paired } · šééñ ĵüšţ ñöŵ~~~~~~]
-
-# Title of the remote's volume row.
-tv-volume = [ŢṼ ṽöļüɱé~~~]
 
 # Accessible name of a track menu: the row, then the track chosen.
 tv-track-choice = [{ $row }, { $track }~~~]
@@ -1165,9 +1156,6 @@ stores-open-no-names = [Ñö ñàɱéš àŕé ķéþţ.~~~~~~]
 # Line on the summary row of devices that joined with the link, when joining is off.
 stores-open-keep-working = [Ţĥéý ķééþ ŵöŕķîñĝ üñţîļ ýöü ŕéɱöṽé ţĥéɱ.~~~~~~~~~~~~]
 
-# Button on the summary row that removes every device that joined with the link.
-stores-remove-all = [Ŕéɱöṽé àļļ~~~]
-
 # Line under a device that joined with the link: when the store last saw it.
 stores-device-seen = [Šééñ { $when }~~~]
 
@@ -1194,9 +1182,6 @@ stores-published-state = [Þüƀļîšĥéð~~~]
 
 # Accessible name of a row's Publish button.
 stores-publish-label = [Þüƀļîšĥ { $name } { $version }~~~~~]
-
-# Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
-sources-torrents-note = [Ţöŕŕéñţš àŕé þàŕţ öƒ àñîšţŕéàɱ, ñöţ à þļüĝîñ. Ŵĥàţ þŕöţéçţš ţĥéîŕ ţŕàƒƒîç, ţĥé çöññéçţîöñ çĥéçķ àñð šééðîñĝ àŕé šéţ îñ Šéţţîñĝš, üñðéŕ Šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Under a release in the source picker: how many people share it right now.
 source-picker-seeders-linux =
@@ -4076,6 +4061,24 @@ time-minutes-left = [{ $minutes } ɱîñ ļéƒţ~~~~]
 # A length in minutes, for an episode.
 time-minutes = [{ $minutes } ɱîñ~~~]
 
+# A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.
+time-now-inline = [ñöŵ~]
+
+# How long ago, under a minute. Lower case, as it stands inside a line.
+time-just-now-inline = [ĵüšţ ñöŵ~~~]
+
+# Later today.
+when-today = [ţöðàý { $time }~~~]
+
+# Tomorrow.
+when-tomorrow = [ţöɱöŕŕöŵ { $time }~~~~]
+
+# Within the next six days. The day is the weekday's name, already formatted.
+when-weekday = [{ $day } { $time }~~~]
+
+# A week or more away. The date is the day and short month, already formatted, such as "29 Oct".
+when-date = [{ $date }, { $time }~~~]
+
 # Line under a title when the device has no connection.
 state-offline-line = [Öƒƒļîñé. Ðöŵñļöàðéð éþîšöðéš šţîļļ þļàý.~~~~~~~~~~~~]
 
@@ -4114,9 +4117,6 @@ state-working = [Ŵöŕķîñĝ~~~]
 
 # Short placeholder while something loads.
 state-loading = [Ļöàðîñĝ~~~]
-
-# How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
-time-just-now-inline = [ĵüšţ ñöŵ~~~]
 
 # Controller help: the D-pad and left stick move focus between items.
 pad-help-move = [Ṁöṽé ƒöçüš~~~]
@@ -4799,6 +4799,9 @@ progress-episodes-short = [É{ $done } öƒ { $total }~~~~]
 # Short progress under a show when the total is not known.
 progress-episode-short = [É{ $done }~~]
 
+# Row caption: the next unwatched episode, dubbed, which came out a while ago.
+continue-row-start-aired-dubbed = [Þļàý É{ $episode } ðüƀƀéð · öüţ { $ago }~~~~~~~~]
+
 # Format of a show: broadcast on television.
 format-tv = [ŢṼ~]
 
@@ -5307,6 +5310,12 @@ party-sources-label = [Šöüŕçéš ƒöŕ ţĥîš éþîšöðé~~~~~~~~]
 # Line of a source: its quality and size already formatted, and the number of seeders.
 party-source-seeders = [{ $seeders } šééðéŕš~~~~]
 
+# Line when no source lists the episode.
+party-no-source-lists = [Ñö šöüŕçé ļîšţš éþîšöðé { $episode }. Šöüŕçéš çöɱé ƒŕöɱ þļüĝîñš, ŵĥîçĥ à þļüĝîñ šţöŕé àððš.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Button that plays the chosen source with the room.
+party-play-with = [Þļàý ŵîţĥ ţĥé ŵàţçĥ þàŕţý~~~~~~~~]
+
 # Label on the card for the episode that plays after this one.
 player-up-next = [Ûþ ñéẋţ~~~]
 
@@ -5535,6 +5544,24 @@ source-picker-empty = [Ñö šöüŕçé ĥàš à šţŕéàɱ ƒöŕ ţĥîš 
 
 # Title of the picker sheet in the player.
 player-sources = [Šöüŕçéš~~~]
+
+# Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".
+player-failed-title-text = [Çöüļðñ'ţ þļàý éþîšöðé { $episode }~~~~~~~~]
+
+# Label while scrubbing the seek line at half the pace.
+player-scrub-half = [Ĥàļƒ-šþééð šçŕüƀƀîñĝ~~~~~~]
+
+# Label while scrubbing the seek line at a quarter of the pace.
+player-scrub-quarter = [Ǫüàŕţéŕ-šþééð šçŕüƀƀîñĝ~~~~~~~]
+
+# Heading of the starting screen. The episode's number is text, because it may be "7.5".
+player-starting-text = [Šţàŕţîñĝ éþîšöðé { $episode }~~~~~~]
+
+# Name of an audio or subtitle track that has no language or title.
+player-track-n = [Ţŕàçķ { $id }~~~]
+
+# Line while an episode starts after a few seconds: what the wait is on, and for how long.
+player-wait-note = [{ $what } · { $seconds } š~~~~]
 
 # Button that shows the season before.
 seasonal-previous = [Þŕéṽîöüš šéàšöñ~~~~~]
@@ -6156,8 +6183,38 @@ settings-upscaling-note-natural = [Ƒàîţĥƒüļ ļîñé ŵöŕķ àñð ţ�
 # Preview note under the upscaling frame for the sharp look.
 settings-upscaling-note-sharp = [Çŕîšþéŕ ļîñéš àñð šţŕöñĝéŕ éðĝéš, àţ šöɱé çöšţ ţö ţéẋţüŕé.~~~~~~~~~~~~~~~~~~]
 
+# Setting: a command run after each download finishes.
+settings-after-download = [Åƒţéŕ éàçĥ ðöŵñļöàð~~~~~~]
+
+# Setting: extra options passed to mpv, the player. mpv stays lower case.
+settings-mpv-options = [ɱþṽ öþţîöñš~~~~]
+
+# Name screen readers give the list of panes down the side of Settings.
+settings-panes-label = [Šéţţîñĝš þàñéš~~~~~]
+
+# Setting: Discord's status with the cover and a progress bar.
+settings-presence-rich = [Ŕîçĥ þŕéšéñçé~~~~]
+
+# Setting: Discord's status names the show being watched.
+settings-presence-title = [Þŕéšéñçé šĥöŵš ţĥé ţîţļé~~~~~~~~]
+
+# Under a tracker that is signed in, when its user name is unknown.
+settings-signed-in = [Šîĝñéð îñ~~~]
+
 # Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
 settings-upscaling-sharp = [Šĥàŕþ · Åñîɱé4Ķ~~~~~]
+
+# Side note in Accounts.
+settings-aside-accounts = [àñîšţŕéàɱ ŵöŕķš ŵîţĥöüţ àñ àççöüñţ. Ýöüŕ ŵàţçĥ ĥîšţöŕý šţàýš öñ ţĥîš ðéṽîçé ŵĥéñ ýöü šîĝñ öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Today, inside a line such as "Thursday 16:30".
+widget-day-today = [ţöðàý~~]
+
+# Yesterday, inside a line.
+widget-day-yesterday = [ýéšţéŕðàý~~~]
+
+# Line of the Continue widget: what plays next, with the episode already named.
+widget-line-start = [Šţàŕţ { $episode }~~~]
 
 # Title of the screen or section that lists sources.
 sources-title = [Šöüŕçéš~~~]
@@ -6359,6 +6416,15 @@ sources-torrent-source = [Ţöŕŕéñţ šöüŕçé~~~~~]
 
 # Row: where the plugin's page stands.
 sources-source-order-row = [Šöüŕçé öŕðéŕ~~~~]
+
+# Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
+sources-torrents-note = [Ţöŕŕéñţš àŕé þàŕţ öƒ àñîšţŕéàɱ, ñöţ à þļüĝîñ. Ŵĥàţ þŕöţéçţš ţĥéîŕ ţŕàƒƒîç, ţĥé çöññéçţîöñ çĥéçķ àñð šééðîñĝ àŕé šéţ îñ Šéţţîñĝš, üñðéŕ Šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Over the { -source } list while the { -source-pl } are set up again after a change.
+sources-rebuilding = [Šöüŕçéš àŕé ƀéîñĝ šéţ üþ àĝàîñ~~~~~~~~~]
+
+# Value of a plugin's response time, in milliseconds.
+sources-response-ms = [{ $ms } ɱš~~]
 
 # Short label for a joined store, on a row.
 stores-joined = [Ĵöîñéð~~]
@@ -6740,6 +6806,9 @@ stores-publish-none = [Ñö þļüĝîñš öñ ţĥîš ðéṽîçé ţö þü
 # Version line of a plugin in the publish sheet.
 stores-plugin-name-version = [{ $name } { $version }~~~]
 
+# Button on the summary row that removes every device that joined with the link.
+stores-remove-all = [Ŕéɱöṽé àļļ~~~]
+
 # Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
 stores-copy-link = [Çöþý ļîñķ~~~]
 
@@ -6749,6 +6818,9 @@ stores-offers-plugins =
         [one] [Öñé þļüĝîñ~~~]
        *[other] [{ $count } þļüĝîñš~~~~]
     }
+
+# Button of a notice that opens the plugin stores page.
+notice-open-stores = [Öþéñ þļüĝîñ šţöŕéš~~~~~~]
 
 # Title of the state when a title page could not load.
 title-load-failed = [Çöüļðñ'ţ ļöàð ţĥîš ţîţļé~~~~~~~~]
@@ -6933,6 +7005,12 @@ more-show-spoiler-tags =
 
 # An episode's line with the audio it was watched in marked, as Continue and the title page word it.
 episode-line-dubbed = [{ $line } · Ðüƀƀéð~~~~]
+
+# Main button of the title page for a dubbed episode that has not been started.
+title-button-play-dubbed = [Þļàý éþîšöðé { $episode } · Ðüƀƀéð~~~~~~~~]
+
+# Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.
+title-button-resume-dubbed = [Ŕéšüɱé éþîšöðé { $episode } · Ðüƀƀéð · { $time }~~~~~~~~~~]
 
 # Title of the settings group and the screen.
 torrents-title = [Ţöŕŕéñţš~~~]
@@ -7155,6 +7233,9 @@ torrents-page-needs-script = [Ţĥîš þàĝé ñééðš ĴàṽàŠçŕîþţ
 
 # Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
 torrents-check-note = [àñîšţŕéàɱ çĥéçķš ŵĥéŕé ţöŕŕéñţ ţŕàƒƒîç ļéàṽéš ƒŕöɱ ŵĥéñ à ţöŕŕéñţ šţàŕţš àñð éṽéŕý ɱîñüţé ŵĥîļé îţ ŕüñš, àñð þàüšéš ţöŕŕéñţš îƒ ţĥàţ çĥéçķ ƒàîļš. Ýöüŕ ṼÞÑ öŕ þŕöẋý îš ŵĥàţ þŕöţéçţš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Notice after the protection was saved.
+torrents-protection-saved = [Ţöŕŕéñţ þŕöţéçţîöñ šàṽéð~~~~~~~~]
 
 # Title of the accounts screen. The sidebar item is nav-accounts.
 accounts-title = [Åççöüñţš~~~]
@@ -7540,6 +7621,15 @@ tv-remove-phone-detail = [Îţ šţöþš ŵöŕķîñĝ àš à ŕéɱöţé ƒ
 
 # Heading of the settings group on the TV that lists the remotes.
 tv-remotes = [Ŕéɱöţéš~~~]
+
+# Row title of the button that pairs another TV once one is paired.
+tv-another = [Åñöţĥéŕ ŢṼ~~~]
+
+# Under a TV in the list: its version does not match.
+tv-row-needs-update = [Ñééðš ţĥé šàɱé àñîšţŕéàɱ ṽéŕšîöñ àš ţĥîš ðéṽîçé~~~~~~~~~~~~~~~]
+
+# Title of the remote's volume row.
+tv-volume = [ŢṼ ṽöļüɱé~~~]
 
 # Heading of the update row in settings and about.
 updates-title = [Ûþðàţéš~~~]

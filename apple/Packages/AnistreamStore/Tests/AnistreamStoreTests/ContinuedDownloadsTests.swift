@@ -54,7 +54,7 @@ private final class Harness {
         h.continued.update([row(1, .done)])
         #expect(h.asked.isEmpty, "nothing to go on")
         h.continued.update([row(1, .done), row(2, .queued)])
-        #expect(h.asked == ["1 episode left"])
+        #expect(h.asked == ["One episode left"])
         #expect(h.continued.stage == .asked)
         #expect(h.continued.isRunning, "the Live Activity stays out of the way from the ask")
         h.continued.update([row(1, .done), row(2, .active, 0.1), row(3, .queued)])
@@ -91,7 +91,7 @@ private final class Harness {
 
         h.continued.update([row(1, .done, 1), row(2, .active, 0.25)])
         #expect(window.reports.last?.completed == 1_250)
-        #expect(window.reports.last?.subtitle == "1 episode left")
+        #expect(window.reports.last?.subtitle == "One episode left")
 
         h.continued.update([row(1, .done, 1), row(2, .done, 1)])
         #expect(window.ended == true)
@@ -120,7 +120,7 @@ private final class Harness {
         let rows = [row(1, .queued)]
         // Queued at launch, before any window: the app leaves.
         h.continued.leaving(rows: rows)
-        #expect(h.asked == ["1 episode left"])
+        #expect(h.asked == ["One episode left"])
         h.continued.phase(foreground: false, rows: rows)
         #expect(h.phases == [.background(playing: false)], "held until the window opens")
         h.continued.began(FakeWindow(), rows: rows)

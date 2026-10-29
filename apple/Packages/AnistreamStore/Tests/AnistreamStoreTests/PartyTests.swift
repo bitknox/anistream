@@ -75,18 +75,18 @@ struct PartyTests {
 
     @Test func noSourceSaysWhyAndWhatComesNext() {
         let what = "Episode 7 of Stardust Wayfarer"
-        let found = PartyWords.noSource(why: .notFound, reason: "could not match this title: sample-source has no episode 7", episode: "7", what: what)
+        let found = PartyWords.noSource(why: .notFound, reason: .noticeSourceSearchEmpty(query: "sample"), episode: "7", what: what)
         #expect(found.title == "None of your sources has this episode")
-        #expect(found.body == "Could not match this title: sample-source has no episode 7. Episode 7 of Stardust Wayfarer plays with the room once you choose a source that has it.")
-        let none = PartyWords.noSource(why: .noSources, reason: "", episode: "7", what: what)
+        #expect(found.body == "Nothing found for “sample”. Try a different search. Episode 7 of Stardust Wayfarer plays with the room once you choose a source that has it.")
+        let none = PartyWords.noSource(why: .noSources, reason: .noticeNoSourceCouldList(reason: ""), episode: "7", what: what)
         #expect(none.title == "You have no sources yet")
-        let soon = PartyWords.noSource(why: .notAired, reason: "episode 6 airs tomorrow 18:30", episode: "6", what: what)
+        let soon = PartyWords.noSource(why: .notAired, reason: .noticeNotAired(episode: 6, when: .airsTomorrow(time: "18:30")), episode: "6", what: what)
         #expect(soon.title == "Episode 6 airs tomorrow at 18:30")
         #expect(soon.body == "Your sources won't have it before then. It plays with the room once one of them does.")
-        let later = PartyWords.noSource(why: .notAired, reason: "episode 8 hasn't aired yet; episode 6 airs Saturday 18:30", episode: "8", what: what)
-        #expect(later.title == "Episode 8 hasn't aired yet")
-        #expect(later.body == "Episode 6 airs Saturday at 18:30. Your sources won't have episode 8 before it's out.")
-        #expect(PartyWords.found(1) == "1 source has it")
+        let later = PartyWords.noSource(why: .notAired, reason: .noticeNotAiredYet(episode: 8, next: 6, when: .airsTomorrow(time: "18:30")), episode: "8", what: what)
+        #expect(later.title == "Episode 8 hasn't aired yet. Episode 6 airs tomorrow at 18:30")
+        #expect(later.body == "Your sources won't have episode 8 before it's out.")
+        #expect(PartyWords.found(1) == "One source has it")
         #expect(PartyWords.found(3) == "3 sources have it")
     }
 
@@ -121,7 +121,7 @@ struct PartyTests {
         try await waitFor { party.party != nil }
         #expect(party.start == nil)
         #expect(!party.joining)
-        #expect(store.notices.current?.notice.text == "You're in the party. The people button in the player has the invite link.")
+        #expect(store.notices.current?.notice.text == "You're in the watch party. The people button in the player has the invite link.")
         try await waitFor { party.members?.count == 1 }
         #expect(party.members?.first?.you == true)
 
@@ -146,7 +146,7 @@ struct PartyTests {
         #expect(!party.asksBeforeQuitting())
         try await waitFor { party.party == nil }
         #expect(party.members == nil)
-        #expect(store.notices.current?.notice.text == "You left the party. What's playing goes on, just for you.")
+        #expect(store.notices.current?.notice.text == "You left the watch party. What's playing goes on, just for you.")
     }
 
     @Test func closingOutsideAPartyAsksNothing() async throws {
@@ -198,6 +198,6 @@ struct PartyTests {
 
         party.openInvite("anistream://party?room=tuesday") { opened = $0 }
         #expect(party.start == nil)
-        #expect(store.notices.current?.notice.text == "That party link is missing its server, room or episode")
+        #expect(store.notices.current?.notice.text == "That party link is missing its server, room or episode.")
     }
 }

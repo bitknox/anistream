@@ -60,11 +60,6 @@ stores-open-no-names = No names are kept.
 # @only linux
 stores-open-keep-working = They keep working until you remove them.
 
-# Button on the summary row that removes every device that joined with the link.
-# @only linux
-# @max 24
-stores-remove-all = Remove all
-
 # Line under a device that joined with the link: when the store last saw it.
 # @only linux
 # @arg when: text
@@ -106,7 +101,3 @@ stores-published-state = Published
 # @arg name: text
 # @arg version: text
 stores-publish-label = Publish { $name } { $version }
-
-# Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
-# @only linux
-sources-torrents-note = Torrents are part of { -app-name }, not a { -plugin }. What protects their traffic, the connection check and seeding are set in Settings, under { -source-cap-pl }.

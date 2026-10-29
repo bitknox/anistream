@@ -12,11 +12,11 @@ struct ScreenRulesTests {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         var e = entry { $0.progress = TitleProgress(done: 7, next: 8) }
         let aired = Broadcast(entry: e, episode: 8, airs: now.addingTimeInterval(-19 * 3600))
-        #expect(aired.line(now: now) == "Ep 8 out 19h ago")
+        #expect(aired.line(now: now) == "E8 out 19h ago")
         #expect(aired.isNew(now: now))
         #expect(!aired.watched)
         let coming = Broadcast(entry: e, episode: 9, airs: now.addingTimeInterval(90 * 60))
-        #expect(coming.line(now: now) == "Ep 9 in 1h 30m")
+        #expect(coming.line(now: now) == "E9 in 1h 30m")
         #expect(!coming.isNew(now: now))
         e.progress = TitleProgress(done: 8, next: 9)
         #expect(Broadcast(entry: e, episode: 8, airs: aired.airs).watched)
@@ -41,11 +41,11 @@ struct ScreenRulesTests {
             $0.progress = TitleProgress(done: 6, next: 7)
             $0.resume = ResumePoint(position: 606, fraction: 0.42)
         }
-        #expect(TitleAction(resuming).title == "Resume Episode 7 · 10:06")
+        #expect(TitleAction(resuming).title == "Resume episode 7 · 10:06")
         #expect(TitleAction(resuming).sentence == "Resume episode 7 · 10:06")
         let starting = entry { $0.progress = TitleProgress(done: 3, next: 4) }
-        #expect(TitleAction(starting).title == "Start Episode 4")
-        #expect(TitleAction(entry { _ in }).title == "Start Episode 1")
+        #expect(TitleAction(starting).title == "Play episode 4")
+        #expect(TitleAction(entry { _ in }).title == "Play episode 1")
     }
 
     @Test func anEpisodeStillToAirIsSaidAndNotOffered() {
@@ -101,8 +101,10 @@ struct ScreenRulesTests {
     }
 
     @Test func aTitlesPageSaysItsScore() {
-        #expect(entry { _ in }.titleMetadata == "TV · 12 episodes · 2024 · Kujaku Animation Works · 82%")
-        #expect(entry { _ in }.phoneMetadata == "TV · 12 ep · 2024 · 82%")
+        AirTime.$locale.withValue(Locale(identifier: "en_GB")) {
+            #expect(entry { _ in }.titleMetadata == "TV · 12 episodes · 2024 · Kujaku Animation Works · 82%")
+            #expect(entry { _ in }.phoneMetadata == "TV · 12 ep · 2024 · 82%")
+        }
     }
 
     @Test func settingsKeepsItsColumnBesideThePaneWhileThePaneHas440() {

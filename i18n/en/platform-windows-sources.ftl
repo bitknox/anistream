@@ -83,15 +83,6 @@ tv-setting-value = { $setting }, { $value }
 # @arg episode: text
 party-choose-source-for = Choose a { -source } for episode { $episode }
 
-# Button that plays the chosen { -source } in step with the room.
-# @only windows
-party-play-with = Play with the { -watch-party }
-
-# When no { -source } lists the room's episode. The episode is its label, such as 5 or 5.5.
-# @only windows
-# @arg episode: text
-party-no-source-lists = No { -source } lists episode { $episode }. { -source-cap-pl } come from { -plugin-pl }, which a { -plugin-store } adds.
-
 # Title of the dialog when the room's episode has not aired yet. The episode is its label, such as 5 or 5.5.
 # @only windows
 # @arg episode: text
@@ -114,10 +105,6 @@ sources-check = Check { -source-pl }
 # @arg origin: text
 # @arg version: text
 sources-origin-version = { $origin } · version { $version }
-
-# Over the { -source } list while the { -source-pl } are set up again after a change.
-# @only windows
-sources-rebuilding = { -source-cap-pl } are being set up again
 
 # Label in a { -source }'s detail, beside how it stands: failing, slow, off, or working.
 # @only windows

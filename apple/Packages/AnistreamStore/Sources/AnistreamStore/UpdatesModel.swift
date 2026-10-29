@@ -7,6 +7,7 @@
 // Update: `update()` is the one way an install starts.
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 import Observation
 
@@ -219,7 +220,7 @@ public final class RehearsedInstaller: UpdateInstaller {
                 progress(.downloading(received: size * UInt64(step) / 10, expected: size))
                 try? await Task.sleep(for: .milliseconds(300))
             }
-            progress(.failed("The Fixtures app does not install updates."))
+            progress(.failed(L.updatesFixturesNoInstall))
         }
     }
 

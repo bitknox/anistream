@@ -2,6 +2,7 @@
 // download queue, and the words it shows it in. One activity for all downloads, which changes
 // state rather than stacking. Names and episode numbers only, never an episode's title.
 
+import AnistreamStrings
 import Foundation
 #if os(iOS)
 import ActivityKit
@@ -96,7 +97,7 @@ public struct DownloadsActivityText: Equatable, Sendable {
     public init(_ state: DownloadsActivityState, stale: Bool = false, locale: Locale = .autoupdatingCurrent) {
         let bytes = Self.bytes(state.bytesDone, of: state.bytesTotal, locale: locale)
         let speed = state.speed.flatMap { $0 > 0 ? Self.speed($0, locale: locale) : nil }
-        let left = state.secondsLeft.map(Self.minutes)
+        let left = state.secondsLeft.map { Self.minutes($0, locale: locale) }
         let percent = Int((state.fraction * 100).rounded())
         timeLeft = state.paused || state.finished || stale ? nil : left
         detail = [bytes, speed].compactMap { $0 }.joined(separator: " · ")
@@ -104,40 +105,45 @@ public struct DownloadsActivityText: Equatable, Sendable {
         if state.finished {
             title = state.title
             titleIsShow = true
-            line1 = "Episode \(state.episode) downloaded"
-            line2 = "Ready to watch offline"
-            accessibilityLabel = "\(state.title), episode \(state.episode), downloaded"
+            line1 = L.widgetDownloadedLine(episode: state.episode)
+            line2 = L.widgetDownloadedReady
+            accessibilityLabel = L.widgetA11yDownloaded(title: state.title, episode: state.episode)
             return
         }
         if state.count > 1 {
-            title = "Downloading \(state.count) episodes"
+            title = L.widgetDownloadingTitle(count: state.count)
             titleIsShow = false
-            line1 = state.paused ? "Paused" : "\(state.title) E\(state.episode), then \(state.count - 1) more"
-            let remaining = "\(Self.size(state.bytesLeft, locale: locale)) left"
+            line1 = state.paused
+                ? L.widgetDownloadsPaused
+                : L.widgetDownloadsThenMore(title: state.title, episode: state.episode, count: state.count - 1)
+            let remaining = L.widgetSizeLeft(size: Self.size(state.bytesLeft, locale: locale))
             line2 = state.paused || stale ? remaining : [remaining, speed].compactMap { $0 }.joined(separator: " · ")
         } else {
             title = state.title
             titleIsShow = true
-            line1 = state.paused ? "Paused" : "Episode \(state.episode)"
-            line2 = state.paused || stale ? bytes : [bytes, left.map { "\($0) left" }].compactMap { $0 }.joined(separator: " · ")
+            line1 = state.paused ? L.widgetDownloadsPaused : L.widgetDownloadsEpisode(episode: state.episode)
+            line2 = state.paused || stale ? bytes : [bytes, left.map { L.widgetTimeLeft(time: $0) }].compactMap { $0 }.joined(separator: " · ")
         }
         if stale && !state.paused {
-            line1 = "Continues when you open anistream"
+            line1 = L.widgetContinuesWhenOpen
         }
-        var spoken = "\(state.title), episode \(state.episode), \(percent) percent"
+        var spoken = L.widgetA11yDownloading(
+            title: state.title, episode: state.episode,
+            percent: state.fraction.formatted(.percent.precision(.fractionLength(0)).locale(locale)))
         if state.paused {
-            spoken += ", paused"
+            spoken = L.widgetA11yThenPaused(label: spoken)
         } else if let seconds = state.secondsLeft, !stale {
-            let minutes = max(1, (seconds + 59) / 60)
-            spoken += ", \(minutes) \(minutes == 1 ? "minute" : "minutes") left"
+            spoken = L.widgetA11yThenTimeLeft(label: spoken, time: Self.minutes(seconds, locale: locale))
         }
-        if state.count > 1 { spoken += ", \(state.count) episodes downloading" }
+        if state.count > 1 { spoken = L.widgetA11yThenCount(label: spoken, count: state.count) }
         accessibilityLabel = spoken
     }
 
     /// "412 MB of 1.1 GB", or "412 MB" before the size is known.
     static func bytes(_ done: Int64, of total: Int64, locale: Locale) -> String {
-        total > 0 ? "\(size(done, locale: locale)) of \(size(total, locale: locale))" : size(done, locale: locale)
+        total > 0
+            ? L.widgetBytesOf(done: size(done, locale: locale), total: size(total, locale: locale))
+            : size(done, locale: locale)
     }
 
     /// "1.1 GB", in the decimal units Files uses.
@@ -147,14 +153,13 @@ public struct DownloadsActivityText: Equatable, Sendable {
 
     /// "2.4 MB/s".
     static func speed(_ bytes: Double, locale: Locale) -> String {
-        "\(size(Int64(bytes), locale: locale))/s"
+        L.widgetSpeed(size: size(Int64(bytes), locale: locale))
     }
 
     /// "5 min", rounded up, at least a minute.
-    static func minutes(_ seconds: Int) -> String {
+    static func minutes(_ seconds: Int, locale: Locale = .autoupdatingCurrent) -> String {
         let minutes = max(1, (seconds + 59) / 60)
-        if minutes < 60 { return "\(minutes) min" }
-        let hours = minutes / 60, rest = minutes % 60
-        return rest == 0 ? "\(hours) h" : "\(hours) h \(rest) min"
+        return Duration.seconds(minutes * 60)
+            .formatted(.units(allowed: [.hours, .minutes], width: .abbreviated).locale(locale))
     }
 }

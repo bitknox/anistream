@@ -3,6 +3,7 @@
 // progress and the time left run on the dates it carries. Names and episode numbers only, never
 // an episode's title.
 
+import AnistreamStrings
 import Foundation
 #if os(iOS)
 import ActivityKit
@@ -94,12 +95,13 @@ public struct PlaybackActivityText: Equatable, Sendable {
 
     public init(_ state: PlaybackActivityState) {
         title = state.title
-        episode = "Episode \(state.episode)"
+        episode = L.episodeNumberString(number: state.episode)
         let left = Self.clock(state.remaining / (state.rate > 0 ? state.rate : 1))
-        pausedLine = "Paused · \(left) left"
+        pausedLine = L.widgetPausedLine(left: left)
         let minutes = max(1, Int((state.remaining / (state.rate > 0 ? state.rate : 1) / 60).rounded(.up)))
-        let spoken = "\(minutes) \(minutes == 1 ? "minute" : "minutes") left"
-        accessibilityLabel = "\(state.title), episode \(state.episode), \(state.paused ? "paused" : "playing"), \(spoken)"
+        accessibilityLabel = state.paused
+            ? L.widgetA11yPlaybackPaused(title: state.title, episode: state.episode, minutes: minutes)
+            : L.widgetA11yPlaybackPlaying(title: state.title, episode: state.episode, minutes: minutes)
     }
 
     /// "18:20", or "1:02:03" past an hour, as a timer shows it.

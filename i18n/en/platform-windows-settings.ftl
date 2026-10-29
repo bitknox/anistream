@@ -2,10 +2,6 @@
 
 ## Settings page
 
-# Name screen readers give the list of panes down the side of Settings.
-# @only windows
-settings-panes-label = Settings panes
-
 # Busy line while Settings waits for the engine's values.
 # @only windows
 settings-loading = Loading settings
@@ -58,18 +54,6 @@ settings-start-fullscreen = Start fullscreen
 # @only windows
 settings-player-interface = Player interface
 
-# Setting: a command run after each download finishes.
-# @only windows
-settings-after-download = After each download
-
-# Setting: Discord's status names the show being watched.
-# @only windows
-settings-presence-title = Presence shows the title
-
-# Setting: Discord's status with the cover and a progress bar.
-# @only windows
-settings-presence-rich = Rich presence
-
 # Setting: how torrent traffic is protected. VPN stays in capitals: it is an abbreviation.
 # @only windows
 settings-vpn-mode = VPN mode
@@ -89,10 +73,6 @@ settings-source-order = { -source-cap } order
 # Setting: downloads run on a cellular connection.
 # @only windows
 settings-downloads-cellular = Downloads on cellular
-
-# Setting: extra options passed to mpv, the player. mpv stays lower case.
-# @only windows
-settings-mpv-options = mpv options
 
 # Setting: a notification when a new episode of a followed show comes out.
 # @only windows
@@ -151,10 +131,6 @@ settings-sync = Sync
 # Under the Sync with trackers card.
 # @only windows
 settings-sync-detail = Sends what changed here and fetches what changed elsewhere.
-
-# Under a tracker that is signed in, when its user name is unknown.
-# @only windows
-settings-signed-in = Signed in
 
 # Under a tracker that is signed in, when its user name is unknown and changes wait to sync.
 # @only windows

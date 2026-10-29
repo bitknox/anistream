@@ -24,6 +24,7 @@ func tag(_ name: String, spoiler: Bool = false) -> TitleTag {
     TitleTag(name: name, rank: 80, mediaSpoiler: spoiler, generalSpoiler: false, category: nil)
 }
 
+@Suite(.britishEnglish)
 struct MetaTests {
     /// Wednesday 21 October 2026, at noon where the test runs.
     let now: Date = {
@@ -103,9 +104,9 @@ struct MetaTests {
         #expect(e.topTags == ["Travel", "Found Family", "Lamplighters"])
         #expect(e.safeTags.count == 4)
         #expect(e.spoilerTags == ["Twist Ending"])
-        #expect(SpoilerWords.reveal(1, shown: false, titleCase: false) == "Show 1 spoiler tag")
-        #expect(SpoilerWords.reveal(3, shown: false, titleCase: true) == "Show 3 Spoiler Tags")
-        #expect(SpoilerWords.reveal(3, shown: true, titleCase: false) == "Hide spoiler tags")
+        #expect(SpoilerWords.reveal(1, shown: false) == "Show one spoiler tag")
+        #expect(SpoilerWords.reveal(3, shown: false) == "Show 3 spoiler tags")
+        #expect(SpoilerWords.reveal(3, shown: true) == "Hide spoiler tags")
     }
 
     @Test func theSynopsisLosesItsInlineSpoilers() {
@@ -180,6 +181,6 @@ struct MetaTests {
         #expect(AirsWords.airs(at(1, 16), now: now) == "Airs tomorrow \(clock)")
         #expect(AirsWords.airs(at(2, 16), now: now) == "Airs Friday \(clock)")
         #expect(AirsWords.airs(at(8, 16), now: now) == "Airs 29 Oct, \(clock)")
-        #expect(AirsWords.aired(at(-6, 16)) == "Aired Thursday 15 October 2026")
+        #expect(AirsWords.aired(at(-6, 16)) == "Aired Thursday, 15 October 2026")
     }
 }

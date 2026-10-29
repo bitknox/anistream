@@ -3,6 +3,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// A cover or banner: the plate first, and the art fading in over it once it arrives.
@@ -141,7 +142,7 @@ struct ClampedText: View {
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { full = $0 }
                 }
             if expanded || full > shown + 1 {
-                Button(expanded ? "Less" : "More") {
+                Button(expanded ? L.shellLess : L.actionMore) {
                     withAnimation(.standard) { expanded.toggle() }
                 }
                 .buttonStyle(.plain)
@@ -172,7 +173,7 @@ struct Meter: View {
             .frame(height: height)
             .animation(.standard, value: fraction)
             .accessibilityElement()
-            .accessibilityLabel("Progress")
+            .accessibilityLabel(L.shellProgress)
             .accessibilityValue(spoken.map(Text.init) ?? Text(fraction, format: .percent.precision(.fractionLength(0))))
     }
 }
@@ -222,11 +223,11 @@ struct AirsStatus: View {
 }
 
 /// In the main button's place when no source has the title, so its episodes are AniList's alone:
-/// "Add a Source to Play", which opens Providers. In the secondary style, since nothing on the
+/// "Add a source to play", which opens Sources. In the secondary style, since nothing on the
 /// page can play yet and amber would promise it could.
 struct AddSourceButton: View {
     @Environment(Navigator.self) private var navigator
-    /// Sentence case, as iPhone and iPad say it, rather than the Mac's title case.
+    /// Unused since every platform says it in sentence case; the title page still passes it.
     var sentence = false
     var height: CGFloat = 34
     var fontSize: CGFloat = 13
@@ -241,25 +242,19 @@ struct AddSourceButton: View {
                 .frame(maxWidth: fills ? .infinity : nil)
         }
         .buttonStyle(SecondaryCapsuleStyle(height: height, fontSize: fontSize))
-        .accessibilityHint("Opens Providers")
+        .accessibilityHint(L.shellOpensSources)
     }
 }
 
 /// What a title no source has offers in place of Play.
 enum AddSourceWords {
-    /// "Add a Source to Play", as a Mac button or menu says it, or "Add a source to play".
-    static func play(sentence: Bool) -> String {
-        sentence ? "Add a source to play" : "Add a Source to Play"
+    /// "Add a source to play". `sentence` is unused: every platform says it in sentence case.
+    static func play(sentence: Bool = true) -> String {
+        L.titleButtonAddSource
     }
 
-    /// As the platform's menus say it: title case on the Mac, sentence case on iPhone and iPad.
-    static var menu: String {
-        #if os(macOS)
-        play(sentence: false)
-        #else
-        play(sentence: true)
-        #endif
-    }
+    /// As a context menu says it.
+    static var menu: String { play() }
 }
 
 /// A capsule's text: one line, and up to three at the accessibility sizes, where one would be
@@ -387,6 +382,7 @@ struct SyncCapsule: View {
             .padding(.horizontal, 4)
         }
         .accessibilityLabel(accessibilityLabel(summary))
+        .accessibilityHint(L.shellSyncHint)
         .popover(isPresented: $showing, arrowEdge: .bottom) {
             JobsPopover {
                 showing = false
@@ -397,9 +393,9 @@ struct SyncCapsule: View {
 
     private func accessibilityLabel(_ summary: SyncSummary) -> String {
         let text = summary.state == .signedOut
-            ? "\(AccountsModel.name(summary.tracker ?? "anilist")) not connected"
+            ? L.shellSyncNotConnected(tracker: AccountsModel.name(summary.tracker ?? "anilist"))
             : summary.text
-        return "\(text). Shows what is running"
+        return text
     }
 }
 
@@ -414,7 +410,7 @@ struct JobsPopover: View {
                 .font(.mac(13, weight: .semibold))
                 .foregroundStyle(.silk)
             if store.jobs.running.isEmpty {
-                Text("Nothing is running.")
+                Text(L.shellNothingRunning)
                     .font(.mac(13))
                     .foregroundStyle(.haze)
                     .padding(.top, 8)
@@ -443,17 +439,19 @@ struct JobsPopover: View {
                 .padding(.top, 10)
             }
             Rectangle().fill(.faintRule).frame(height: 1).padding(.vertical, 12)
-            Button("Accounts Settings…", action: openAccounts)
+            Button(L.accountsSettings, action: openAccounts)
                 .buttonStyle(SecondaryCapsuleStyle())
         }
         .padding(16)
         .frame(width: 300, alignment: .leading)
     }
 
-    /// "4 s", "1 min 12 s".
+    /// "4s", "1m 12s".
     static func elapsed(_ job: Job) -> String {
         let seconds = Int((ContinuousClock.now - job.started).components.seconds)
-        return seconds < 60 ? "\(seconds) s" : "\(seconds / 60) min \(seconds % 60) s"
+        return seconds < 60
+            ? L.durationSeconds(seconds: seconds)
+            : L.durationMinutesSeconds(minutes: seconds / 60, seconds: String(seconds % 60))
     }
 }
 
@@ -462,7 +460,7 @@ struct NotBuiltYet: View {
     let section: AppSection
 
     var body: some View {
-        Text("\(section.title) comes in a later build.")
+        Text(L.shellNotBuiltYet(section: section.title))
             .font(.mac(13))
             .foregroundStyle(.haze)
             .frame(maxWidth: .infinity, maxHeight: .infinity)

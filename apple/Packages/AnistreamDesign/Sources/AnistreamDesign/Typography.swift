@@ -109,8 +109,8 @@ extension View {
         #endif
     }
 
-    /// A group header: 11 pt medium capitals spaced 0.08 em, in haze, as the Mac and iPhone lists
-    /// head their groups ("IN PROGRESS", "NEW THIS WEEK").
+    /// A group header: 11 pt semibold in sentence case, in haze, as the Mac and iPhone lists head
+    /// their groups ("In progress", "New this week"). Never capitals: the words stay as written.
     public func groupHeaderStyle() -> some View {
         modifier(GroupHeaderStyle())
     }
@@ -194,15 +194,15 @@ extension Font {
 struct GroupHeaderStyle: ViewModifier {
     @Environment(\.dynamicTypeSize) private var typeSize
 
-    /// 11 pt at 0.08 em on the Mac; 13 pt at 0.04 em on iPhone and iPad, as Foundations sets
-    /// grouped lists' headers.
+    /// 11 pt semibold on the Mac; 13 pt medium on iPhone and iPad, as Foundations sets grouped
+    /// lists' headers. A light tracking only: spacing suits capitals, and these are not capitals.
     #if os(macOS)
     static let size: CGFloat = 11
-    static let tracking: CGFloat = 0.08
-    static var font: Font { .mac(11, weight: .medium) }
+    static let tracking: CGFloat = 0.01
+    static var font: Font { .mac(11, weight: .semibold) }
     #else
     static let size: CGFloat = 13
-    static let tracking: CGFloat = 0.04
+    static let tracking: CGFloat = 0.01
     static var font: Font { .ui(13, weight: .medium) }
     #endif
 
@@ -210,7 +210,6 @@ struct GroupHeaderStyle: ViewModifier {
         content
             .font(Self.font)
             .kerning(typeSize.isAccessibilitySize ? 0 : Self.size * Self.tracking)
-            .textCase(.uppercase)
             .foregroundStyle(.haze)
             .dynamicTypeSize(...DynamicTypeSize.accessibility1)
     }

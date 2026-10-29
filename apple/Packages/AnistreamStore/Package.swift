@@ -12,6 +12,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../AnistreamKit"),
+        .package(path: "../AnistreamStrings"),
         .package(path: "../AnistreamWidgets"),
     ],
     targets: [
@@ -19,6 +20,7 @@ let package = Package(
             name: "AnistreamStore",
             dependencies: [
                 "AnistreamKit",
+                .product(name: "AnistreamStrings", package: "AnistreamStrings"),
                 .product(name: "AnistreamWidgetData", package: "AnistreamWidgets"),
             ],
             // The packages build on the testing engine (see AnistreamKit), so its starts are
