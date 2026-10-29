@@ -1335,6 +1335,10 @@
     <value>{label}. {detail}</value>
     <comment>Screen reader name of a protection choice: its name, then what it does.</comment>
   </data>
+  <data name="SettingsNoteTrailersWindows" xml:space="preserve">
+    <value>Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animation effects off, in energy saver mode or with Narrator running.</value>
+    <comment>Note under the Play trailers setting: what the trailers are and when they do not play.</comment>
+  </data>
   <data name="TrayStillDownloading" xml:space="preserve">
     <value>anistream is still downloading</value>
     <comment>The notification area icon's balloon, the first time the window closes with downloads running: its title.</comment>
@@ -4567,6 +4571,18 @@
     <value>Title language</value>
     <comment>Row: how titles are written.</comment>
   </data>
+  <data name="SettingsValueTrailersAlways" xml:space="preserve">
+    <value>Always</value>
+    <comment>Value of the trailers setting: trailers play by themselves on any network.</comment>
+  </data>
+  <data name="SettingsValueTrailersWifiOnly" xml:space="preserve">
+    <value>Wi-Fi only</value>
+    <comment>Value of the trailers setting: trailers play by themselves only on Wi-Fi.</comment>
+  </data>
+  <data name="SettingsLabelTrailers" xml:space="preserve">
+    <value>Play trailers</value>
+    <comment>Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.</comment>
+  </data>
   <data name="SettingsTitleTracker" xml:space="preserve">
     <value>{tracker}'s choice</value>
     <comment>Option: use the tracker's own choice. The tracker is a name.</comment>
@@ -5770,6 +5786,10 @@
   <data name="TitlePlayTrailer" xml:space="preserve">
     <value>Play trailer</value>
     <comment>Menu item that plays the trailer.</comment>
+  </data>
+  <data name="TitleTrailerFailed" xml:space="preserve">
+    <value>Couldn't open the trailer</value>
+    <comment>Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.</comment>
   </data>
   <data name="TitleTrailerSound" xml:space="preserve">
     <value>Trailer sound</value>

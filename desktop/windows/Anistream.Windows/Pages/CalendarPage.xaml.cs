@@ -240,6 +240,7 @@ public sealed partial class CalendarPage : Page
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
         };
         button.Click += (_, _) => ctx.OpenTitle(b.Entry.Id);
+        HoverPreview.Attach(button, b.Entry.Id);
         if (b.Watched)
         {
             // Watched: one quiet line, a dub still marked.
@@ -288,6 +289,7 @@ public sealed partial class CalendarPage : Page
         };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, Spoken(b));
         button.Click += (_, _) => ctx.OpenTitle(b.Entry.Id);
+        HoverPreview.Attach(button, b.Entry.Id);
         return button;
     }
 

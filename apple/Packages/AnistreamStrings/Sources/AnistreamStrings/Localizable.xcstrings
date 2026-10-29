@@ -11531,6 +11531,18 @@
         }
       }
     },
+    "settings-label-trailers" : {
+      "comment" : "Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play trailers"
+          }
+        }
+      }
+    },
     "settings-language" : {
       "comment" : "Settings group and row title for choosing a language.",
       "extractionState" : "manual",
@@ -12173,6 +12185,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sharp · Anime4K"
+          }
+        }
+      }
+    },
+    "settings-value-trailers-always" : {
+      "comment" : "Value of the trailers setting: trailers play by themselves on any network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always"
+          }
+        }
+      }
+    },
+    "settings-value-trailers-wifi-only" : {
+      "comment" : "Value of the trailers setting: trailers play by themselves only on Wi-Fi.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi only"
           }
         }
       }
@@ -16033,6 +16069,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trailer"
+          }
+        }
+      }
+    },
+    "title-trailer-failed" : {
+      "comment" : "Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open the trailer"
           }
         }
       }

@@ -3292,6 +3292,15 @@ public enum L {
     /// Row: how titles are written.
     public static var settingsTitleLanguage: String { string("settings-title-language", fallback: "Title language") }
 
+    /// Value of the trailers setting: trailers play by themselves on any network.
+    public static var settingsValueTrailersAlways: String { string("settings-value-trailers-always", fallback: "Always") }
+
+    /// Value of the trailers setting: trailers play by themselves only on Wi-Fi.
+    public static var settingsValueTrailersWifiOnly: String { string("settings-value-trailers-wifi-only", fallback: "Wi-Fi only") }
+
+    /// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+    public static var settingsLabelTrailers: String { string("settings-label-trailers", fallback: "Play trailers") }
+
     /// Option: use the tracker's own choice. The tracker is a name.
     public static func settingsTitleTracker(tracker: String) -> String {
         Self.format("settings-title-tracker", fallback: "%1$@'s choice", tracker)
@@ -4284,6 +4293,9 @@ public enum L {
 
     /// Menu item that plays the trailer.
     public static var titlePlayTrailer: String { string("title-play-trailer", fallback: "Play trailer") }
+
+    /// Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.
+    public static var titleTrailerFailed: String { string("title-trailer-failed", fallback: "Couldn't open the trailer") }
 
     /// Name and tooltip of the button beside a playing trailer that turns its sound on or off.
     public static var titleTrailerSound: String { string("title-trailer-sound", fallback: "Trailer sound") }

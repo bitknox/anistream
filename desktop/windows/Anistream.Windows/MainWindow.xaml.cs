@@ -50,6 +50,7 @@ public sealed partial class MainWindow : Window
     readonly FfiDirs dirs;
     readonly Ctx ctx;
     readonly NetworkWatch network;
+    readonly DeviceWatch device;
     readonly Taskbar? taskbar;
     readonly MediaControls? media;
     Tray? tray;
@@ -104,6 +105,8 @@ public sealed partial class MainWindow : Window
         };
         ctx = new Ctx { Session = session, Art = art, Window = this, Options = options, Updater = updater, Tv = tv };
         Ctx.Current = ctx;
+        // A fixture run has no trailers of its own; the testing build gives most titles a made-up one.
+        session.Known.FixtureTrailers = options.Fixture;
         session.Batch += batch =>
         {
             art.Take(batch);
@@ -154,6 +157,8 @@ public sealed partial class MainWindow : Window
         // The network path, said to the engine now and on every change; it answers with one
         // online or offline state (Event.Connectivity) the pages show.
         network = new NetworkWatch(c => ctx.Send(c), ui, options.Offline);
+        // What the device says of itself, which with the network decides whether trailers start.
+        device = new DeviceWatch(c => ctx.Send(c), ui);
         taskbar = Taskbar.For(WinRT.Interop.WindowNative.GetWindowHandle(this));
         // The media overlay, the media keys and the thumbnail's buttons, while an episode plays.
         media = MediaControls.Start(WinRT.Interop.WindowNative.GetWindowHandle(this), taskbar, art, ui, c => ctx.Send(new Command.Player(c)));
@@ -625,6 +630,7 @@ public sealed partial class MainWindow : Window
 
     void OnFrameNavigated(object sender, NavigationEventArgs e)
     {
+        HoverPreview.Close();
         AppTitleBar.IsBackButtonEnabled = ContentFrame.CanGoBack;
         selecting = true;
         if (e.SourcePageType == typeof(SettingsPage))
@@ -698,6 +704,8 @@ public sealed partial class MainWindow : Window
     {
         // The player's top bar is the title bar while it is up: its title drags the window, and
         // the caption buttons follow its controls.
+        if (showing)
+            TrailerHub.StopAll();
         SetTitleBar(showing ? Player.DragArea : AppTitleBar);
         AppTitleBar.Visibility = showing ? Visibility.Collapsed : Visibility.Visible;
         Nav.Visibility = showing ? Visibility.Collapsed : Visibility.Visible;
@@ -874,12 +882,24 @@ public sealed partial class MainWindow : Window
     DispatcherQueueTimer? newEpisodes;
     bool inFront = true;
 
+    /// <summary>The window is the active one.</summary>
+    internal bool InFront => inFront;
+
+    /// <summary>The player is up over the pages.</summary>
+    internal bool PlayerUp => Player.Showing;
+
     /// <summary>How often the open app asks the engine what aired; the engine asks AniList at most every five minutes.</summary>
     static readonly TimeSpan CheckEvery = TimeSpan.FromMinutes(15);
 
     void StartNotifications(Art art)
     {
-        Activated += (_, e) => inFront = e.WindowActivationState != WindowActivationState.Deactivated;
+        Activated += (_, e) =>
+        {
+            inFront = e.WindowActivationState != WindowActivationState.Deactivated;
+            // A trailer plays only while the window is in front.
+            if (!inFront)
+                TrailerHub.StopAll();
+        };
         var asked = options.Show == "toast";
         if (options.Fixture && !asked)
             return;
@@ -1098,6 +1118,7 @@ public sealed partial class MainWindow : Window
         toasts?.Stop();
         tray?.Dispose();
         network.Dispose();
+        device.Dispose();
         StopTv();
         taskbar?.Clear();
         player?.Shutdown();

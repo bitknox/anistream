@@ -948,6 +948,9 @@ public static partial class T
     /// <summary>Screen reader name of a protection choice: its name, then what it does.</summary>
     public static string TorrentsChoiceSpoken(string label, string detail) => Fill(Get("TorrentsChoiceSpoken"), ("label", label), ("detail", detail));
 
+    /// <summary>Note under the Play trailers setting: what the trailers are and when they do not play.</summary>
+    public static string SettingsNoteTrailersWindows => Get("SettingsNoteTrailersWindows");
+
     /// <summary>The notification area icon's balloon, the first time the window closes with downloads running: its title.</summary>
     public static string TrayStillDownloading => Get("TrayStillDownloading");
 
@@ -3324,6 +3327,15 @@ public static partial class T
     /// <summary>Row: how titles are written.</summary>
     public static string SettingsTitleLanguage => Get("SettingsTitleLanguage");
 
+    /// <summary>Value of the trailers setting: trailers play by themselves on any network.</summary>
+    public static string SettingsValueTrailersAlways => Get("SettingsValueTrailersAlways");
+
+    /// <summary>Value of the trailers setting: trailers play by themselves only on Wi-Fi.</summary>
+    public static string SettingsValueTrailersWifiOnly => Get("SettingsValueTrailersWifiOnly");
+
+    /// <summary>Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.</summary>
+    public static string SettingsLabelTrailers => Get("SettingsLabelTrailers");
+
     /// <summary>Option: use the tracker's own choice. The tracker is a name.</summary>
     public static string SettingsTitleTracker(string tracker) => Fill(Get("SettingsTitleTracker"), ("tracker", tracker));
 
@@ -4202,6 +4214,9 @@ public static partial class T
 
     /// <summary>Menu item that plays the trailer.</summary>
     public static string TitlePlayTrailer => Get("TitlePlayTrailer");
+
+    /// <summary>Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.</summary>
+    public static string TitleTrailerFailed => Get("TitleTrailerFailed");
 
     /// <summary>Name and tooltip of the button beside a playing trailer that turns its sound on or off.</summary>
     public static string TitleTrailerSound => Get("TitleTrailerSound");
@@ -5493,6 +5508,7 @@ public static partial class T
         ["TorrentsDialogEditProxy"] = "Edit proxy",
         ["TorrentsDialogTurnOnAction"] = "Turn on",
         ["TorrentsChoiceSpoken"] = "{label}. {detail}",
+        ["SettingsNoteTrailersWindows"] = "Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animation effects off, in energy saver mode or with Narrator running.",
         ["TrayStillDownloading"] = "anistream is still downloading",
         ["TrayWhere"] = "It's in the notification area.",
         ["TrayOpen"] = "Open anistream",
@@ -6301,6 +6317,9 @@ public static partial class T
         ["SettingsGroupStorage"] = "Storage",
         ["SettingsGroupEpisodes"] = "Episodes",
         ["SettingsTitleLanguage"] = "Title language",
+        ["SettingsValueTrailersAlways"] = "Always",
+        ["SettingsValueTrailersWifiOnly"] = "Wi-Fi only",
+        ["SettingsLabelTrailers"] = "Play trailers",
         ["SettingsTitleTracker"] = "{tracker}'s choice",
         ["SettingsTitleEnglish"] = "English",
         ["SettingsTitleRomaji"] = "Romaji",
@@ -6602,6 +6621,7 @@ public static partial class T
         ["TitleTrailer"] = "Trailer",
         ["TitleButtonWatchAgain"] = "Watch again",
         ["TitlePlayTrailer"] = "Play trailer",
+        ["TitleTrailerFailed"] = "Couldn't open the trailer",
         ["TitleTrailerSound"] = "Trailer sound",
         ["TitleOpenAnilist"] = "Open on AniList",
         ["TitleOpen"] = "Open title",
