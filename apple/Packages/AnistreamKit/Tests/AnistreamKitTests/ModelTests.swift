@@ -69,20 +69,22 @@ struct ModelTests {
     }
 
     @Test func anAirTimeIsTheDayAndTheTimeWithinTheWeek() {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
-        // Wednesday 21 October 2026, at noon where the test runs.
-        let now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 21, hour: 12))!
-        let saturday = calendar.date(from: DateComponents(year: 2026, month: 10, day: 24, hour: 18, minute: 30))!
-        #expect(AirTime.words(saturday, now: now) == "Saturday \(AirTime.clock(saturday))")
-        let later = calendar.date(from: DateComponents(year: 2026, month: 11, day: 2, hour: 9, minute: 5))!
-        #expect(AirTime.words(later, now: now) == "2 Nov, \(AirTime.clock(later))")
-        let tonight = calendar.date(from: DateComponents(year: 2026, month: 10, day: 21, hour: 20))!
-        #expect(AirTime.words(tonight, now: now).hasPrefix("today "))
-        let seconds = Int64(saturday.timeIntervalSince(now))
-        #expect(EpisodeAvailability.upcoming(inSeconds: seconds).airs(now: now) == "Saturday \(AirTime.clock(saturday))")
-        #expect(EpisodeAvailability.upcoming(inSeconds: nil).airs(now: now) == nil)
-        #expect(EpisodeAvailability.aired.airs(now: now) == nil)
+        AirTime.$locale.withValue(Locale(identifier: "en_GB")) {
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = .current
+            // Wednesday 21 October 2026, at noon where the test runs.
+            let now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 21, hour: 12))!
+            let saturday = calendar.date(from: DateComponents(year: 2026, month: 10, day: 24, hour: 18, minute: 30))!
+            #expect(AirTime.words(saturday, now: now) == "Saturday \(AirTime.clock(saturday))")
+            let later = calendar.date(from: DateComponents(year: 2026, month: 11, day: 2, hour: 9, minute: 5))!
+            #expect(AirTime.words(later, now: now) == "2 Nov, \(AirTime.clock(later))")
+            let tonight = calendar.date(from: DateComponents(year: 2026, month: 10, day: 21, hour: 20))!
+            #expect(AirTime.words(tonight, now: now).hasPrefix("today "))
+            let seconds = Int64(saturday.timeIntervalSince(now))
+            #expect(EpisodeAvailability.upcoming(inSeconds: seconds).airs(now: now) == "Saturday \(AirTime.clock(saturday))")
+            #expect(EpisodeAvailability.upcoming(inSeconds: nil).airs(now: now) == nil)
+            #expect(EpisodeAvailability.aired.airs(now: now) == nil)
+        }
     }
 
     @Test func progressCountsAgainstTheLengthOrWhatHasAired() {
