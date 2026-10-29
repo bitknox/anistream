@@ -385,6 +385,7 @@ impl Shell {
         shell.updates();
         if !fixtures {
             shell.watch_network();
+            shell.watch_device();
         }
         shell.close_request();
         shell.go(Dest::Continue);
@@ -629,6 +630,17 @@ impl Shell {
                         episodes: vec![episode],
                         watched: false,
                     });
+                }
+            }),
+        );
+        add(
+            "open-discussion",
+            Some(glib::VariantTy::new("(us)").expect("a type")),
+            Box::new(move |s, a| {
+                if let Some((id, episode)) = play_of(a)
+                    && let Ok(episode) = episode.parse()
+                {
+                    pages::discussion::open(&s.ctx, id, episode);
                 }
             }),
         );
@@ -966,6 +978,41 @@ impl Shell {
             move |monitor| tell(monitor)
         });
         monitor.connect_network_metered_notify(move |monitor| tell(monitor));
+    }
+
+    /// Tell the engine what the device says about itself, now and as it changes: animations
+    /// turned off, power saver on, a screen reader running, and little memory. With the network
+    /// and the Play trailers setting these decide whether trailers start by themselves.
+    fn watch_device(&self) {
+        let hub = Rc::downgrade(&self.ctx.hub);
+        let tell = Rc::new(move || {
+            let Some(hub) = hub.upgrade() else { return };
+            let reduce_motion = gtk::Settings::default()
+                .is_some_and(|settings| !settings.is_gtk_enable_animations());
+            let low_power = gio::PowerProfileMonitor::get_default().is_power_saver_enabled();
+            hub.send(Command::DeviceState {
+                reduce_motion,
+                autoplay_previews: true,
+                low_power,
+                thermal_serious: false,
+                screen_reader: screen_reader_running(),
+                low_memory: memory_kib().is_some_and(|kib| kib < 4 * 1024 * 1024),
+            });
+        });
+        tell();
+        if let Some(settings) = gtk::Settings::default() {
+            settings.connect_gtk_enable_animations_notify({
+                let tell = Rc::clone(&tell);
+                move |_| tell()
+            });
+        }
+        gio::PowerProfileMonitor::get_default().connect_power_saver_enabled_notify({
+            let tell = Rc::clone(&tell);
+            move |_| tell()
+        });
+        if let Some(settings) = a11y_settings() {
+            settings.connect_changed(Some("screen-reader-enabled"), move |_, _| tell());
+        }
     }
 
     /// What the engine asked of the desktop.
@@ -1450,6 +1497,25 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
         }
     });
     row
+}
+
+/// GNOME's accessibility settings, where its schema is installed.
+fn a11y_settings() -> Option<gio::Settings> {
+    const SCHEMA: &str = "org.gnome.desktop.a11y.applications";
+    gio::SettingsSchemaSource::default()?.lookup(SCHEMA, true)?;
+    Some(gio::Settings::new(SCHEMA))
+}
+
+/// Whether Orca or another screen reader is switched on.
+fn screen_reader_running() -> bool {
+    a11y_settings().is_some_and(|settings| settings.boolean("screen-reader-enabled"))
+}
+
+/// The machine's memory in KiB, from the kernel.
+fn memory_kib() -> Option<u64> {
+    let info = std::fs::read_to_string("/proc/meminfo").ok()?;
+    let line = info.lines().find(|line| line.starts_with("MemTotal:"))?;
+    line.split_whitespace().nth(1)?.parse().ok()
 }
 
 #[cfg(test)]

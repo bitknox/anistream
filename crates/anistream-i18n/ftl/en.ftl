@@ -928,6 +928,9 @@ updates-why-reopen = The new version is installed but couldn't be opened. Open a
 # Accessible description of the mascot's picture. Nagare is the mascot's name.
 nagare-description = Nagare, the anistream mascot: a figure with a silk bob, an amber scarf and an indigo cloak, holding a staff with a water charm
 
+# Note under the Play trailers setting: what the trailers are and when they do not play.
+settings-note-trailers-linux = Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animations off, in power saver mode or with a screen reader running.
+
 # Settings row: whether a connected game controller drives the app.
 settings-label-controller-input = Use a controller
 
@@ -4289,6 +4292,102 @@ tv-problem-full = This TV has as many devices paired as it can keep. Remove one 
 # The TV has forgotten this computer.
 tv-problem-unpaired = The TV doesn't know this device any more. Pair again.
 
+# Menu item that opens an episode's discussion.
+discussion-open = Discussion
+
+# Title of the discussion window or sheet when the thread has no title yet.
+discussion-title-episode = Episode { $episode } discussion
+
+# Quiet line under an episode that opens its discussion.
+discussion-row =
+    { $count ->
+        [one] Discussion · one comment
+       *[other] Discussion · { $count } comments
+    }
+
+# Count of comments in the header of the discussion.
+discussion-count =
+    { $count ->
+        [one] One comment
+       *[other] { $count } comments
+    }
+
+# Button that likes a comment, with its count after it. Also its accessible name.
+discussion-like = Like
+
+# Button that replies to a comment.
+discussion-reply = Reply
+
+# Line under a reply that has more replies folded in it. The line opens them.
+discussion-more-replies =
+    { $count ->
+        [one] One more reply
+       *[other] { $count } more replies
+    }
+
+# Muted bar in place of a spoiler in a comment, until it is opened.
+discussion-spoiler = Spoiler
+
+# Line in place of an image in a comment. It opens the image in the browser.
+discussion-image = Image
+
+# Line in place of a video in a comment. It opens the video in the browser.
+discussion-video = Video
+
+# Placeholder in the field for a new comment.
+discussion-add-comment = Add a comment
+
+# Placeholder in the field while editing a comment.
+discussion-edit-comment = Edit your comment
+
+# Button that sends the comment in the field.
+discussion-post = Post
+
+# Line above the field while answering a comment.
+discussion-replying-to = Replying to { $name }
+
+# Accessible name of the button that stops replying or editing.
+discussion-cancel-reply = Cancel reply
+
+# Line in place of the field when nobody is signed in to AniList. It opens the sign-in.
+discussion-sign-in = Sign in with AniList to reply
+
+# Line in place of the field when the viewer is signed in but offline.
+discussion-offline-post = Posting waits for the network
+
+# Line under a comment AniList did not accept. The button beside it sends it again.
+discussion-post-failed = Didn't post. Try again
+
+# Title of the question asked before deleting the viewer's own comment.
+discussion-delete-title = Delete this comment?
+
+# Body of the question asked before deleting the viewer's own comment.
+discussion-delete-body = It is removed from AniList too.
+
+# Line while the comments are still loading after a few seconds.
+discussion-still-loading = Still loading from AniList
+
+# Line while AniList's request budget is spent. The engine waits, then goes on by itself.
+discussion-rate-limited = AniList asked for a pause. Back in { $time }.
+
+# Title of the state when the episode has no thread on AniList.
+discussion-no-thread = No discussion yet
+
+# Line under the no-thread title.
+discussion-no-thread-detail = Nobody has opened a thread for this episode on AniList.
+
+# Title of the state when a thread has no comments.
+discussion-no-comments = No comments yet
+
+# Title of the state when the discussion could not be read.
+discussion-failed = Couldn't load the discussion
+
+# Line over comments that are kept from an earlier visit while offline. The age reads "2h ago".
+discussion-offline-cached = Offline. Showing comments from { $age }.
+
+# Heading of the Settings group for discussion rows.
+discussion-settings-group = Discussions
+
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = Downloads
 
@@ -6580,6 +6679,9 @@ title-trailer = Trailer
 
 # Menu item that plays the trailer.
 title-play-trailer = Play trailer
+
+# Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+title-trailer-sound = Trailer sound
 
 # Menu item that opens the title on the AniList website.
 title-open-anilist = Open on AniList

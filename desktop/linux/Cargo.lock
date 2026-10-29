@@ -125,6 +125,7 @@ dependencies = [
  "gdk4-wayland-sys",
  "gdk4-x11",
  "gdk4-x11-sys",
+ "gio",
  "gtk4",
  "image",
  "libadwaita",

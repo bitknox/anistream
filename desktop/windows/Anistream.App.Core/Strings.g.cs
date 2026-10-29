@@ -1758,6 +1758,90 @@ public static partial class T
     /// <summary>The TV has forgotten this computer.</summary>
     public static string TvProblemUnpaired => Get("TvProblemUnpaired");
 
+    /// <summary>Menu item that opens an episode's discussion.</summary>
+    public static string DiscussionOpen => Get("DiscussionOpen");
+
+    /// <summary>Title of the discussion window or sheet when the thread has no title yet.</summary>
+    public static string DiscussionTitleEpisode(long episode) => Fill(Get("DiscussionTitleEpisode"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Quiet line under an episode that opens its discussion.</summary>
+    public static string DiscussionRow(long count) => Fill(GetPlural("DiscussionRow", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Count of comments in the header of the discussion.</summary>
+    public static string DiscussionCount(long count) => Fill(GetPlural("DiscussionCount", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Button that likes a comment, with its count after it. Also its accessible name.</summary>
+    public static string DiscussionLike => Get("DiscussionLike");
+
+    /// <summary>Button that replies to a comment.</summary>
+    public static string DiscussionReply => Get("DiscussionReply");
+
+    /// <summary>Line under a reply that has more replies folded in it. The line opens them.</summary>
+    public static string DiscussionMoreReplies(long count) => Fill(GetPlural("DiscussionMoreReplies", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Muted bar in place of a spoiler in a comment, until it is opened.</summary>
+    public static string DiscussionSpoiler => Get("DiscussionSpoiler");
+
+    /// <summary>Line in place of an image in a comment. It opens the image in the browser.</summary>
+    public static string DiscussionImage => Get("DiscussionImage");
+
+    /// <summary>Line in place of a video in a comment. It opens the video in the browser.</summary>
+    public static string DiscussionVideo => Get("DiscussionVideo");
+
+    /// <summary>Placeholder in the field for a new comment.</summary>
+    public static string DiscussionAddComment => Get("DiscussionAddComment");
+
+    /// <summary>Placeholder in the field while editing a comment.</summary>
+    public static string DiscussionEditComment => Get("DiscussionEditComment");
+
+    /// <summary>Button that sends the comment in the field.</summary>
+    public static string DiscussionPost => Get("DiscussionPost");
+
+    /// <summary>Line above the field while answering a comment.</summary>
+    public static string DiscussionReplyingTo(string name) => Fill(Get("DiscussionReplyingTo"), ("name", name));
+
+    /// <summary>Accessible name of the button that stops replying or editing.</summary>
+    public static string DiscussionCancelReply => Get("DiscussionCancelReply");
+
+    /// <summary>Line in place of the field when nobody is signed in to AniList. It opens the sign-in.</summary>
+    public static string DiscussionSignIn => Get("DiscussionSignIn");
+
+    /// <summary>Line in place of the field when the viewer is signed in but offline.</summary>
+    public static string DiscussionOfflinePost => Get("DiscussionOfflinePost");
+
+    /// <summary>Line under a comment AniList did not accept. The button beside it sends it again.</summary>
+    public static string DiscussionPostFailed => Get("DiscussionPostFailed");
+
+    /// <summary>Title of the question asked before deleting the viewer's own comment.</summary>
+    public static string DiscussionDeleteTitle => Get("DiscussionDeleteTitle");
+
+    /// <summary>Body of the question asked before deleting the viewer's own comment.</summary>
+    public static string DiscussionDeleteBody => Get("DiscussionDeleteBody");
+
+    /// <summary>Line while the comments are still loading after a few seconds.</summary>
+    public static string DiscussionStillLoading => Get("DiscussionStillLoading");
+
+    /// <summary>Line while AniList's request budget is spent. The engine waits, then goes on by itself.</summary>
+    public static string DiscussionRateLimited(string time) => Fill(Get("DiscussionRateLimited"), ("time", time));
+
+    /// <summary>Title of the state when the episode has no thread on AniList.</summary>
+    public static string DiscussionNoThread => Get("DiscussionNoThread");
+
+    /// <summary>Line under the no-thread title.</summary>
+    public static string DiscussionNoThreadDetail => Get("DiscussionNoThreadDetail");
+
+    /// <summary>Title of the state when a thread has no comments.</summary>
+    public static string DiscussionNoComments => Get("DiscussionNoComments");
+
+    /// <summary>Title of the state when the discussion could not be read.</summary>
+    public static string DiscussionFailed => Get("DiscussionFailed");
+
+    /// <summary>Line over comments that are kept from an earlier visit while offline. The age reads "2h ago".</summary>
+    public static string DiscussionOfflineCached(string age) => Fill(Get("DiscussionOfflineCached"), ("age", age));
+
+    /// <summary>Heading of the Settings group for discussion rows.</summary>
+    public static string DiscussionSettingsGroup => Get("DiscussionSettingsGroup");
+
     /// <summary>Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.</summary>
     public static string DownloadsTitle => Get("DownloadsTitle");
 
@@ -4002,6 +4086,9 @@ public static partial class T
     /// <summary>Menu item that plays the trailer.</summary>
     public static string TitlePlayTrailer => Get("TitlePlayTrailer");
 
+    /// <summary>Name and tooltip of the button beside a playing trailer that turns its sound on or off.</summary>
+    public static string TitleTrailerSound => Get("TitleTrailerSound");
+
     /// <summary>Menu item that opens the title on the AniList website.</summary>
     public static string TitleOpenAnilist => Get("TitleOpenAnilist");
 
@@ -5564,6 +5651,37 @@ public static partial class T
         ["UpdatesRestart"] = "Restart to update",
         ["TvProblemFull"] = "This TV has as many devices paired as it can keep. Remove one in the TV's settings, under Remotes.",
         ["TvProblemUnpaired"] = "The TV doesn't know this device any more. Pair again.",
+        ["DiscussionOpen"] = "Discussion",
+        ["DiscussionTitleEpisode"] = "Episode {episode} discussion",
+        ["DiscussionRow_one"] = "Discussion · one comment",
+        ["DiscussionRow_other"] = "Discussion · {count} comments",
+        ["DiscussionCount_one"] = "One comment",
+        ["DiscussionCount_other"] = "{count} comments",
+        ["DiscussionLike"] = "Like",
+        ["DiscussionReply"] = "Reply",
+        ["DiscussionMoreReplies_one"] = "One more reply",
+        ["DiscussionMoreReplies_other"] = "{count} more replies",
+        ["DiscussionSpoiler"] = "Spoiler",
+        ["DiscussionImage"] = "Image",
+        ["DiscussionVideo"] = "Video",
+        ["DiscussionAddComment"] = "Add a comment",
+        ["DiscussionEditComment"] = "Edit your comment",
+        ["DiscussionPost"] = "Post",
+        ["DiscussionReplyingTo"] = "Replying to {name}",
+        ["DiscussionCancelReply"] = "Cancel reply",
+        ["DiscussionSignIn"] = "Sign in with AniList to reply",
+        ["DiscussionOfflinePost"] = "Posting waits for the network",
+        ["DiscussionPostFailed"] = "Didn't post. Try again",
+        ["DiscussionDeleteTitle"] = "Delete this comment?",
+        ["DiscussionDeleteBody"] = "It is removed from AniList too.",
+        ["DiscussionStillLoading"] = "Still loading from AniList",
+        ["DiscussionRateLimited"] = "AniList asked for a pause. Back in {time}.",
+        ["DiscussionNoThread"] = "No discussion yet",
+        ["DiscussionNoThreadDetail"] = "Nobody has opened a thread for this episode on AniList.",
+        ["DiscussionNoComments"] = "No comments yet",
+        ["DiscussionFailed"] = "Couldn't load the discussion",
+        ["DiscussionOfflineCached"] = "Offline. Showing comments from {age}.",
+        ["DiscussionSettingsGroup"] = "Discussions",
         ["DownloadsTitle"] = "Downloads",
         ["DownloadsPauseAll"] = "Pause all",
         ["DownloadsResumeAll"] = "Resume all",
@@ -6324,6 +6442,7 @@ public static partial class T
         ["TitleLoading"] = "Loading this title",
         ["TitleTrailer"] = "Trailer",
         ["TitlePlayTrailer"] = "Play trailer",
+        ["TitleTrailerSound"] = "Trailer sound",
         ["TitleOpenAnilist"] = "Open on AniList",
         ["TitleOpen"] = "Open title",
         ["TitleSeasons"] = "Seasons",

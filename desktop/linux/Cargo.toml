@@ -52,6 +52,8 @@ anistream-remote = { path = "../../crates/anistream-remote", optional = true }
 
 # GraphicsOffload is GTK 4.14's; 4.16 gave it a black background for direct scanout.
 gtk = { package = "gtk4", version = "0.11", features = ["v4_16"] }
+# The power saver state, for trailers: GIO's PowerProfileMonitor is 2.70's.
+gio = { version = "0.22", features = ["v2_70"] }
 # 1.7 for the toggle group and the inline view switcher; Debian 13 ships 1.7.
 adw = { package = "libadwaita", version = "0.9", features = ["v1_7"] }
 # The native display, for hardware decoding's interop.
@@ -63,7 +65,8 @@ gdk-x11 = { package = "gdk4-x11", version = "0.11" }
 pango = { version = "0.22", features = ["v1_56"] }
 pangocairo = "0.22"
 async-channel = "2"
-# libmanette, looked up when the app starts and not linked, so a system without it still runs.
+# WebKitGTK (trailers, when one is about to play) and libmanette (controllers, when the app starts),
+# looked up and not linked, so a system without them still runs.
 libloading = "0.8"
 serde_json = "1"
 # Covers and banners decoded off the main loop.

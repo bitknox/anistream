@@ -2447,6 +2447,130 @@
     <value>The TV doesn't know this device any more. Pair again.</value>
     <comment>The TV has forgotten this computer.</comment>
   </data>
+  <data name="DiscussionOpen" xml:space="preserve">
+    <value>Discussion</value>
+    <comment>Menu item that opens an episode's discussion.</comment>
+  </data>
+  <data name="DiscussionTitleEpisode" xml:space="preserve">
+    <value>Episode {episode} discussion</value>
+    <comment>Title of the discussion window or sheet when the thread has no title yet.</comment>
+  </data>
+  <data name="DiscussionRow_one" xml:space="preserve">
+    <value>Discussion · one comment</value>
+    <comment>Quiet line under an episode that opens its discussion.</comment>
+  </data>
+  <data name="DiscussionRow_other" xml:space="preserve">
+    <value>Discussion · {count} comments</value>
+    <comment>Quiet line under an episode that opens its discussion.</comment>
+  </data>
+  <data name="DiscussionCount_one" xml:space="preserve">
+    <value>One comment</value>
+    <comment>Count of comments in the header of the discussion.</comment>
+  </data>
+  <data name="DiscussionCount_other" xml:space="preserve">
+    <value>{count} comments</value>
+    <comment>Count of comments in the header of the discussion.</comment>
+  </data>
+  <data name="DiscussionLike" xml:space="preserve">
+    <value>Like</value>
+    <comment>Button that likes a comment, with its count after it. Also its accessible name.</comment>
+  </data>
+  <data name="DiscussionReply" xml:space="preserve">
+    <value>Reply</value>
+    <comment>Button that replies to a comment.</comment>
+  </data>
+  <data name="DiscussionMoreReplies_one" xml:space="preserve">
+    <value>One more reply</value>
+    <comment>Line under a reply that has more replies folded in it. The line opens them.</comment>
+  </data>
+  <data name="DiscussionMoreReplies_other" xml:space="preserve">
+    <value>{count} more replies</value>
+    <comment>Line under a reply that has more replies folded in it. The line opens them.</comment>
+  </data>
+  <data name="DiscussionSpoiler" xml:space="preserve">
+    <value>Spoiler</value>
+    <comment>Muted bar in place of a spoiler in a comment, until it is opened.</comment>
+  </data>
+  <data name="DiscussionImage" xml:space="preserve">
+    <value>Image</value>
+    <comment>Line in place of an image in a comment. It opens the image in the browser.</comment>
+  </data>
+  <data name="DiscussionVideo" xml:space="preserve">
+    <value>Video</value>
+    <comment>Line in place of a video in a comment. It opens the video in the browser.</comment>
+  </data>
+  <data name="DiscussionAddComment" xml:space="preserve">
+    <value>Add a comment</value>
+    <comment>Placeholder in the field for a new comment.</comment>
+  </data>
+  <data name="DiscussionEditComment" xml:space="preserve">
+    <value>Edit your comment</value>
+    <comment>Placeholder in the field while editing a comment.</comment>
+  </data>
+  <data name="DiscussionPost" xml:space="preserve">
+    <value>Post</value>
+    <comment>Button that sends the comment in the field.</comment>
+  </data>
+  <data name="DiscussionReplyingTo" xml:space="preserve">
+    <value>Replying to {name}</value>
+    <comment>Line above the field while answering a comment.</comment>
+  </data>
+  <data name="DiscussionCancelReply" xml:space="preserve">
+    <value>Cancel reply</value>
+    <comment>Accessible name of the button that stops replying or editing.</comment>
+  </data>
+  <data name="DiscussionSignIn" xml:space="preserve">
+    <value>Sign in with AniList to reply</value>
+    <comment>Line in place of the field when nobody is signed in to AniList. It opens the sign-in.</comment>
+  </data>
+  <data name="DiscussionOfflinePost" xml:space="preserve">
+    <value>Posting waits for the network</value>
+    <comment>Line in place of the field when the viewer is signed in but offline.</comment>
+  </data>
+  <data name="DiscussionPostFailed" xml:space="preserve">
+    <value>Didn't post. Try again</value>
+    <comment>Line under a comment AniList did not accept. The button beside it sends it again.</comment>
+  </data>
+  <data name="DiscussionDeleteTitle" xml:space="preserve">
+    <value>Delete this comment?</value>
+    <comment>Title of the question asked before deleting the viewer's own comment.</comment>
+  </data>
+  <data name="DiscussionDeleteBody" xml:space="preserve">
+    <value>It is removed from AniList too.</value>
+    <comment>Body of the question asked before deleting the viewer's own comment.</comment>
+  </data>
+  <data name="DiscussionStillLoading" xml:space="preserve">
+    <value>Still loading from AniList</value>
+    <comment>Line while the comments are still loading after a few seconds.</comment>
+  </data>
+  <data name="DiscussionRateLimited" xml:space="preserve">
+    <value>AniList asked for a pause. Back in {time}.</value>
+    <comment>Line while AniList's request budget is spent. The engine waits, then goes on by itself.</comment>
+  </data>
+  <data name="DiscussionNoThread" xml:space="preserve">
+    <value>No discussion yet</value>
+    <comment>Title of the state when the episode has no thread on AniList.</comment>
+  </data>
+  <data name="DiscussionNoThreadDetail" xml:space="preserve">
+    <value>Nobody has opened a thread for this episode on AniList.</value>
+    <comment>Line under the no-thread title.</comment>
+  </data>
+  <data name="DiscussionNoComments" xml:space="preserve">
+    <value>No comments yet</value>
+    <comment>Title of the state when a thread has no comments.</comment>
+  </data>
+  <data name="DiscussionFailed" xml:space="preserve">
+    <value>Couldn't load the discussion</value>
+    <comment>Title of the state when the discussion could not be read.</comment>
+  </data>
+  <data name="DiscussionOfflineCached" xml:space="preserve">
+    <value>Offline. Showing comments from {age}.</value>
+    <comment>Line over comments that are kept from an earlier visit while offline. The age reads "2h ago".</comment>
+  </data>
+  <data name="DiscussionSettingsGroup" xml:space="preserve">
+    <value>Discussions</value>
+    <comment>Heading of the Settings group for discussion rows.</comment>
+  </data>
   <data name="DownloadsTitle" xml:space="preserve">
     <value>Downloads</value>
     <comment>Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.</comment>
@@ -5486,6 +5610,10 @@
   <data name="TitlePlayTrailer" xml:space="preserve">
     <value>Play trailer</value>
     <comment>Menu item that plays the trailer.</comment>
+  </data>
+  <data name="TitleTrailerSound" xml:space="preserve">
+    <value>Trailer sound</value>
+    <comment>Name and tooltip of the button beside a playing trailer that turns its sound on or off.</comment>
   </data>
   <data name="TitleOpenAnilist" xml:space="preserve">
     <value>Open on AniList</value>

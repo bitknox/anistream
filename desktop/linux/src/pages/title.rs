@@ -42,6 +42,8 @@ struct EpisodeLine {
     /// The row's content, dimmed when no source lists the episode.
     root: gtk::Box,
     sub: gtk::Label,
+    /// "Discussion · 214 comments", once a thread is known.
+    discuss: gtk::Button,
     bar: gtk::ProgressBar,
     menu: gio::Menu,
     shown: RefCell<EpisodeRow>,
@@ -53,6 +55,8 @@ struct Page {
     navigation: glib::WeakRef<adw::NavigationPage>,
     banner: gtk::Box,
     banner_filled: Cell<bool>,
+    /// The trailer behind the banner, made with the banner.
+    trailer: RefCell<Option<Rc<crate::trailer::PageTrailer>>>,
     head: gtk::Box,
     side: gtk::Box,
     seasons: gtk::Box,
@@ -182,6 +186,7 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
         navigation: navigation.downgrade(),
         banner: banner_slot,
         banner_filled: Cell::new(false),
+        trailer: RefCell::default(),
         head,
         side,
         seasons,
@@ -210,6 +215,10 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
         move |adjustment| {
             if let Some(page) = weak.upgrade() {
                 page.title_shown(adjustment.value());
+                let trailer = page.trailer.borrow().clone();
+                if let Some(trailer) = trailer {
+                    trailer.scrolled(adjustment.value());
+                }
             }
         }
     });
@@ -241,6 +250,9 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     navigation.connect_destroy(move |_| {
         if let Some(id) = page.listening.borrow_mut().take() {
             page.ctx.hub.forget(id);
+        }
+        if let Some(trailer) = page.trailer.borrow_mut().take() {
+            trailer.release();
         }
     });
     navigation
@@ -291,6 +303,9 @@ impl Page {
                 if new {
                     self.ctx.toast(&t::source_pin_unavailable(name));
                 }
+            }
+            Event::DiscussionFound { media, .. } if *media == self.id => {
+                self.redress_discussions();
             }
             Event::TitleDub { id, dub } if *id == self.id => {
                 self.dubbed_to.replace(say::dub_line(dub.as_ref()));
@@ -360,13 +375,11 @@ impl Page {
         group.add_action(status);
         let trailer = gio::SimpleAction::new("trailer", None);
         trailer.connect_activate({
-            let hub = hub.clone();
+            let ctx = Rc::downgrade(&self.ctx);
             move |_, _| {
-                let Some(hub) = hub.upgrade() else { return };
-                let Some(entry) = hub.entry(id) else { return };
-                if let Some(url) = entry.trailer_url.clone() {
-                    hub.send(Command::PlayTrailer { url, title: entry.title });
-                }
+                let Some(ctx) = ctx.upgrade() else { return };
+                let Some(entry) = ctx.hub.entry(id) else { return };
+                crate::trailer::play_window(&ctx, &entry);
             }
         });
         group.add_action(&trailer);
@@ -440,7 +453,22 @@ impl Page {
         let hub = &self.ctx.hub;
         // The banner, once: its art does not change with the detail.
         if !self.banner_filled.replace(true) {
-            self.banner.append(&widgets::faded_banner(hub, entry, 360));
+            let fit = widgets::faded_banner(hub, entry, 360);
+            let trailer = self.navigation.upgrade().map(|navigation| {
+                crate::trailer::PageTrailer::new(
+                    &self.ctx,
+                    entry.id.get(),
+                    &fit,
+                    &self.head,
+                    &self.header,
+                    &navigation,
+                )
+            });
+            match &trailer {
+                Some(trailer) => self.banner.append(&trailer.stage.widget),
+                None => self.banner.append(&fit),
+            }
+            self.trailer.replace(trailer);
         }
         let id = entry.id.get();
 
@@ -582,6 +610,13 @@ impl Page {
         if !narrow {
             actions.append(&status);
             actions.append(&more);
+        }
+        // The trailer's sound button, at the trailing end, while one plays.
+        if let Some(trailer) = self.trailer.borrow().as_ref() {
+            if trailer.sound.parent().is_some() {
+                trailer.sound.unparent();
+            }
+            actions.append(&trailer.sound);
         }
         text.append(&actions);
         if narrow {
@@ -732,6 +767,7 @@ impl Page {
                 None => linked.title.clone(),
             })]);
             widgets::title_menu(&button, id, linked.list_status.is_none());
+            crate::trailer::hover_preview(&self.ctx.hub, &button, id);
             box_.append(&button);
         }
         let column = gtk::Box::new(gtk::Orientation::Vertical, 8);
@@ -782,6 +818,14 @@ impl Page {
             let sub = widgets::haze("", "caption");
             sub.add_css_class("numeric");
             text.append(&sub);
+            let discuss = gtk::Button::new();
+            discuss.add_css_class("flat");
+            discuss.add_css_class("caption");
+            discuss.set_halign(gtk::Align::Start);
+            discuss.set_visible(false);
+            discuss.set_action_name(Some("win.open-discussion"));
+            discuss.set_action_target_value(Some(&(id, row.number.clone()).to_variant()));
+            text.append(&discuss);
             let bar = gtk::ProgressBar::new();
             bar.set_margin_top(4);
             bar.set_size_request(120, -1);
@@ -831,6 +875,7 @@ impl Page {
                 frame,
                 root: line,
                 sub,
+                discuss,
                 bar,
                 menu,
                 shown: RefCell::new(row.clone()),
@@ -861,6 +906,28 @@ impl Page {
     }
 
     /// One row as `row` stands: its check, its line, its still and its menu.
+    /// Whether the episode offers its discussion: the setting is on, and with spoiler
+    /// protection the viewer has watched it.
+    fn discussion_offered(&self, row: &EpisodeRow, next: u32, spoilers: bool) -> bool {
+        let number: u32 = row.number.parse().unwrap_or(0);
+        let on = self
+            .ctx
+            .hub
+            .known
+            .borrow()
+            .setting(SettingKey::EpisodeDiscussions)
+            .is_some_and(|r| catalog::is_on(&r));
+        on && number > 0 && !row.metadata_only && (!spoilers || row.completed || number < next)
+    }
+
+    /// A discussion was found: the rows that offer it again.
+    fn redress_discussions(&self) {
+        for line in self.lines.borrow().iter() {
+            let row = line.shown.borrow().clone();
+            self.dress(line, &row, false);
+        }
+    }
+
     fn dress(&self, line: &EpisodeLine, row: &EpisodeRow, animate: bool) {
         let entry = self.ctx.hub.entry(self.id);
         let next = entry.as_ref().and_then(|e| e.progress).map_or(1, |p| p.next);
@@ -967,6 +1034,27 @@ impl Page {
             );
         }
         line.menu.append_section(None, &second);
+        let offered = self.discussion_offered(row, next, spoilers);
+        if offered {
+            let talk = gio::Menu::new();
+            talk.append(
+                Some(&t::discussion_open()),
+                Some(&format!("win.open-discussion({target})")),
+            );
+            line.menu.append_section(None, &talk);
+        }
+        let found = row
+            .number
+            .parse::<u32>()
+            .ok()
+            .and_then(|n| self.ctx.hub.known.borrow().discussions.get(&(id, n)).copied());
+        match found.filter(|_| offered) {
+            Some(count) => {
+                line.discuss.set_label(&t::discussion_row(i64::from(count)));
+                line.discuss.set_visible(true);
+            }
+            None => line.discuss.set_visible(false),
+        }
         if choices::playable(row) {
             let third = gio::Menu::new();
             third.append(

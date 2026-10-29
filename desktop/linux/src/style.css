@@ -218,3 +218,8 @@ row.expander:checked image.expander-row-arrow { color: var(--haze); }
 }
 .code-box.current { box-shadow: inset 0 0 0 1px var(--silk); }
 .tv-play { min-width: 48px; min-height: 48px; -gtk-icon-size: 24px; }
+
+/* Episode discussions: round avatars, quotes set in, a liked comment in amber. */
+.discussion-avatar { border-radius: 16px; }
+.discussion-quote { border-left: 3px solid var(--rule); padding-left: 10px; }
+.discussion-like.liked { color: var(--amber); }

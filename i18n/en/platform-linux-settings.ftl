@@ -135,6 +135,10 @@ updates-why-reopen = The new version is installed but couldn't be opened. Open {
 # @only linux
 nagare-description = Nagare, the { -app-name } mascot: a figure with a silk bob, an amber scarf and an indigo cloak, holding a staff with a water charm
 
+# Note under the Play trailers setting: what the trailers are and when they do not play.
+# @only linux
+# @max 230
+settings-note-trailers-linux = Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animations off, in power saver mode or with a screen reader running.
 # Settings row: whether a connected game controller drives the app.
 # @only linux
 # @max 30
