@@ -300,7 +300,7 @@ impl Upstream for HttpUpstream {
         let response = request.send().await.map_err(io::Error::other)?;
         let status = response.status().as_u16();
         // Redirects are followed: a CDN's playlist often comes from an edge host.
-        let landed = Some(response.url().to_string()).filter(|landed| landed != url);
+        let landed = Some(response.uri().to_string()).filter(|landed| landed != url);
         let headers = response
             .headers()
             .iter()
