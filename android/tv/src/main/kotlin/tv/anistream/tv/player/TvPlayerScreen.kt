@@ -98,12 +98,8 @@ import tv.anistream.player.Device
 import tv.anistream.player.PlayerModel
 import tv.anistream.player.SeekSegment
 import tv.anistream.player.Track
-import androidx.compose.ui.res.pluralStringResource
-import tv.anistream.engine.core.AnilistId
 import tv.anistream.store.AirTime
 import tv.anistream.store.AppClock
-import tv.anistream.store.PlayerDiscussion
-import tv.anistream.tv.ui.DiscussionPanel
 import tv.anistream.tv.ui.AmberButton
 import tv.anistream.tv.ui.ArtImage
 import tv.anistream.tv.ui.ButtonLabel
@@ -122,7 +118,7 @@ import tv.anistream.tv.ui.focusSoon
 import tv.anistream.tv.ui.tryFocus
 
 /** The player's panels, each the 400-wide column on the right. */
-enum class PlayerPanel { Episodes, Tracks, Sources, Info, More, Discussion }
+enum class PlayerPanel { Episodes, Tracks, Sources, Info }
 
 /**
  * The way to add a plugin store, while this TV has no source that can play: a playback that
@@ -160,14 +156,6 @@ fun TvPlayerScreen(
     val barFocus = remember { FocusRequester() }
     val episodesFocus = remember { FocusRequester() }
     var panel by remember { mutableStateOf<PlayerPanel?>(null) }
-    // The discussion of the episode playing, in the More panel from 85 % of it, while discussions are on.
-    val store = LocalAppStore.current
-    val media = model.titleId
-    val number = model.episode?.number ?: model.staged?.episode
-    val discussionEpisode = PlayerDiscussion.episode(number)
-    val late = remember(media, number) { PlayerDiscussion() }.see(model.position, model.duration)
-    val settings by store.settings.view.collectAsStateWithLifecycle()
-    val discussions = media != null && PlayerDiscussion.offered(late, settings == null || store.discussionsOn(), discussionEpisode)
     var wanted by remember { mutableStateOf<ChromeFocus?>(null) }
     val run = remember { SeekRun() }
     var presses by remember { mutableIntStateOf(0) }
@@ -374,7 +362,6 @@ fun TvPlayerScreen(
                 barFocus = barFocus,
                 episodesFocus = episodesFocus,
                 onPanel = ::openPanel,
-                hasMore = discussions,
                 onNext = ::nextEpisode,
                 hasNext = model.menus?.episodes?.let { list -> list.indexOfFirst { it.current }.let { it >= 0 && it < list.lastIndex } } == true,
                 onBarKey = { event ->
@@ -438,17 +425,7 @@ fun TvPlayerScreen(
             if (stall == null && upNext == null && !chrome && panel == null) root.tryFocus()
         }
         panel?.let { open ->
-            Panel(
-                model,
-                open,
-                onDone = { closePanel() },
-                modifier = Modifier.align(Alignment.CenterEnd),
-                discussion = if (media != null && discussions && discussionEpisode != null) {
-                    DiscussionTarget(media, discussionEpisode) { panel = PlayerPanel.Discussion }
-                } else {
-                    null
-                },
-            )
+            Panel(model, open, onDone = { closePanel() }, modifier = Modifier.align(Alignment.CenterEnd))
         }
         if (model.choosingSource) {
             ReleasesPanel(model.sourceChoices, onPick = model::play, onClose = model::cancelChoosingSource, modifier = Modifier.align(Alignment.CenterEnd))
@@ -573,7 +550,6 @@ private fun Chrome(
     barFocus: FocusRequester,
     episodesFocus: FocusRequester,
     onPanel: (PlayerPanel) -> Unit,
-    hasMore: Boolean,
     onNext: () -> Unit,
     hasNext: Boolean,
     onBarKey: (KeyEvent) -> Boolean,
@@ -618,7 +594,6 @@ private fun Chrome(
                 TonalButton(onClick = { onPanel(PlayerPanel.Tracks) }, icon = TvIcons.Subtitles) { ButtonLabel(stringResource(R.string.player_subtitles_and_audio)) }
                 TonalButton(onClick = { onPanel(PlayerPanel.Sources) }, icon = TvIcons.Source) { ButtonLabel(stringResource(R.string.show_settings_source)) }
                 TonalButton(onClick = { onPanel(PlayerPanel.Info) }, icon = TvIcons.Info) { ButtonLabel(stringResource(R.string.player_info)) }
-                if (hasMore) TonalButton(onClick = { onPanel(PlayerPanel.More) }, icon = TvIcons.More) { ButtonLabel(stringResource(R.string.action_more)) }
                 Spacer(Modifier.weight(1f))
                 if (hasNext) TonalButton(onClick = onNext, icon = TvIcons.SkipNext) { ButtonLabel(stringResource(R.string.player_next_episode)) }
             }
@@ -727,19 +702,14 @@ private fun SkipPill(label: String, fresh: Boolean, modifier: Modifier) {
     }
 }
 
-/** The discussion the More panel opens, and what to do to show it. */
-private class DiscussionTarget(val media: AnilistId, val episode: UInt, val open: () -> Unit)
-
 /** A panel: the 400-wide column on the right; focus starts on the current item. */
 @Composable
-private fun Panel(model: PlayerModel, panel: PlayerPanel, onDone: () -> Unit, modifier: Modifier, discussion: DiscussionTarget?) {
-    val store = LocalAppStore.current
-    val entries by store.titles.entries.collectAsStateWithLifecycle()
+private fun Panel(model: PlayerModel, panel: PlayerPanel, onDone: () -> Unit, modifier: Modifier) {
     val current = remember { FocusRequester() }
     val list = remember { FocusRequester() }
     Column(
         modifier
-            .width(if (panel == PlayerPanel.Discussion) 560.dp else 400.dp)
+            .width(400.dp)
             .fillMaxHeight()
             .background(ObiSilk.RaisedHigh)
             .padding(start = 16.dp, end = PANEL_END, top = 27.dp, bottom = 27.dp),
@@ -749,30 +719,10 @@ private fun Panel(model: PlayerModel, panel: PlayerPanel, onDone: () -> Unit, mo
             PlayerPanel.Tracks -> R.string.player_subtitles_and_audio
             PlayerPanel.Sources -> R.string.show_settings_source
             PlayerPanel.Info -> R.string.player_info
-            PlayerPanel.More -> R.string.action_more
-            PlayerPanel.Discussion -> R.string.discussion_open
         })
         Text(title, style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() })
-        val shown = discussion?.let { entries[it.media] }
-        if (panel == PlayerPanel.Discussion && discussion != null && shown != null) {
-            DiscussionPanel(shown, discussion.episode)
-        } else LazyColumn(Modifier.focusRequester(list).focusGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        LazyColumn(Modifier.focusRequester(list).focusGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             when (panel) {
-                PlayerPanel.Discussion -> Unit
-                PlayerPanel.More -> item(key = "discussion") {
-                    val comments = discussion?.let { store.discussion.count(it.media, it.episode) }
-                    TvListRow(
-                        stringResource(R.string.discussion_open),
-                        onClick = {
-                            // The video waits where it is, and stays paused as the panel closes.
-                            model.setPlaying(false)
-                            discussion?.open?.invoke()
-                        },
-                        supporting = comments?.let { pluralStringResource(R.plurals.player_more_discussion_note, it.toInt(), it.toInt()) }
-                            ?: stringResource(R.string.player_more_discussion_pauses),
-                        modifier = Modifier.focusRequester(current),
-                    )
-                }
                 PlayerPanel.Episodes -> items(model.menus?.episodes.orEmpty(), key = { it.number }) { episode ->
                     TvListRow(
                         episode.title?.let { stringResource(R.string.tv_player_episode_row, episode.number, it) } ?: episode.label,
