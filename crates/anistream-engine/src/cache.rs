@@ -145,6 +145,10 @@ impl TitleCache {
                 entries.iter().for_each(|entry| self.know(entry));
                 None
             }
+            Event::UpNext(items) => {
+                items.iter().for_each(|item| self.know(&item.entry));
+                None
+            }
             Event::Browse(rails) => {
                 rails.iter().flat_map(|rail| &rail.entries).for_each(|entry| self.know(entry));
                 None
@@ -551,6 +555,7 @@ fn as_rows(episodes: &[EpisodeProgress]) -> Vec<EpisodeRow> {
             metadata_only: false,
             source: None,
             unsourced: false,
+            past_progress: false,
         })
         .collect()
 }
@@ -590,6 +595,7 @@ mod tests {
             metadata_only: false,
             source: None,
             unsourced: false,
+            past_progress: false,
         }
     }
 

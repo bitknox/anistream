@@ -782,14 +782,8 @@
     <string name="updates_closes_as_installs">anistream closes as it installs</string>
     <!-- Button on the update notice where this build cannot install the update itself: it opens the version's page. -->
     <string name="updates_open_release">Open page</string>
-    <!-- Country of origin filter: Japan. -->
-    <string name="country_japan">Japan</string>
-    <!-- Country of origin filter: China. -->
-    <string name="country_china">China</string>
     <!-- Country of origin filter: South Korea. -->
     <string name="country_korea">Korea</string>
-    <!-- Country of origin filter: Taiwan. -->
-    <string name="country_taiwan">Taiwan</string>
     <!-- Search chip for several genres picked. -->
     <plurals name="search_genres_picked">
         <item quantity="one">One genre</item>
@@ -1221,6 +1215,26 @@
     <string name="calendar_coming_up">Coming up · next 7 days</string>
     <!-- Line when no show the person follows airs in the next seven days. -->
     <string name="calendar_coming_up_empty">Nothing airs this week for the shows you follow.</string>
+    <!-- Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown. -->
+    <string name="calendar_today">Today</string>
+    <!-- Line where days before the first day the calendar reaches would be. -->
+    <string name="calendar_floor">The calendar goes back 3 months.</string>
+    <!-- Line where days after the last day the calendar reaches would be. -->
+    <string name="calendar_ceiling">The calendar goes 4 weeks ahead.</string>
+    <!-- Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling. -->
+    <string name="calendar_end">Nothing later is scheduled yet.</string>
+    <!-- Activity line while earlier broadcasts load. -->
+    <string name="calendar_loading_earlier">Loading earlier broadcasts</string>
+    <!-- Activity line while later broadcasts load. -->
+    <string name="calendar_loading_later">Loading later broadcasts</string>
+    <!-- Line where earlier broadcasts would be when they could not be loaded. -->
+    <string name="calendar_load_earlier_failed">Couldn\'t load earlier broadcasts</string>
+    <!-- Line where later broadcasts would be when they could not be loaded. -->
+    <string name="calendar_load_later_failed">Couldn\'t load later broadcasts</string>
+    <!-- Button under the line saying nothing on the person's list airs: shows every airing show. -->
+    <string name="calendar_show_all">Show all airing</string>
+    <!-- What a screen reader says for the line that marks the time now. The time is already worded. -->
+    <string name="calendar_now_spoken">Now, %1$s</string>
     <!-- Button that runs a failed action again. -->
     <string name="action_try_again">Try again</string>
     <!-- Button that closes a dialog without doing what it offered. -->
@@ -1589,7 +1603,7 @@
     <!-- Line while the comments are still loading after a few seconds. -->
     <string name="discussion_still_loading">Still loading from AniList</string>
     <!-- Line while AniList's request budget is spent. The engine waits, then goes on by itself. -->
-    <string name="discussion_rate_limited">AniList asked for a pause. Back in %1$s.</string>
+    <string name="discussion_rate_limited">Waiting for AniList · %1$s</string>
     <!-- Title of the state when the episode has no thread on AniList. -->
     <string name="discussion_no_thread">No discussion yet</string>
     <!-- Line under the no-thread title. -->
@@ -1602,6 +1616,10 @@
     <string name="discussion_offline_cached">Offline. Showing comments from %1$s.</string>
     <!-- Heading of the Settings group for discussion rows. -->
     <string name="discussion_settings_group">Discussions</string>
+    <!-- Age of a comment that is on its way to AniList. -->
+    <string name="discussion_sending">Sending</string>
+    <!-- Comment menu item that copies the comment's text. -->
+    <string name="discussion_copy_text">Copy text</string>
     <!-- Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group. -->
     <string name="downloads_title">Downloads</string>
     <!-- Button that pauses every running download. -->
@@ -1860,6 +1878,24 @@
     <string name="progress_episode_short">E%1$d</string>
     <!-- Row caption: the next unwatched episode, dubbed, which came out a while ago. -->
     <string name="continue_row_start_aired_dubbed">Play E%1$d dubbed · out %2$s</string>
+    <!-- Heading over the suggestions under a short { -continue-cap } list. -->
+    <string name="up_next_heading">Up next for you</string>
+    <!-- Line on a suggestion that has not started airing. The date is written out already, such as "9 January". -->
+    <string name="up_next_starts">Starts %1$s</string>
+    <!-- Reason on a suggestion that is a new season of a show the person finished and has not started. -->
+    <string name="up_next_reason_new_season">New season</string>
+    <!-- Reason on a suggestion that is on the person's Planning list. -->
+    <string name="up_next_reason_planning">On your Planning list</string>
+    <!-- Reason on a suggestion that people who liked a finished show also rated highly. The title is that show. -->
+    <string name="up_next_reason_recommended">Because you finished %1$s</string>
+    <!-- Reason on a recommended suggestion when the finished show is not known. -->
+    <string name="up_next_reason_recommended_plain">Recommended for you</string>
+    <!-- Reason on a suggestion that airs today, shown when nothing else is left to suggest. -->
+    <string name="up_next_reason_airing_today">Airing today</string>
+    <!-- Button on a suggestion that has not started airing. It puts the show on the Planning list. -->
+    <string name="up_next_add_planning">Add to Planning</string>
+    <!-- Menu item on a suggestion. The show stays hidden until it starts airing. -->
+    <string name="up_next_not_interested">Not interested</string>
     <!-- Format of a show: broadcast on television. -->
     <string name="format_tv">TV</string>
     <!-- Format of a show: a short series on television. -->
@@ -1898,6 +1934,38 @@
     <string name="media_airing_since">Since %1$s</string>
     <!-- Date line of a show that has not started: when it will. -->
     <string name="media_airing_from">From %1$s</string>
+    <!-- Date line of a show that has finished: when it began and when it ended. Both are already worded dates. -->
+    <string name="media_aired_range">Aired %1$s to %2$s</string>
+    <!-- Date line of a show that has finished and ran on one day, such as a film. -->
+    <string name="media_aired_on">Aired %1$s</string>
+    <!-- Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year. -->
+    <string name="media_hiatus_since">On hiatus since %1$s</string>
+    <!-- Date line of a show that was cancelled: the last episode that aired. -->
+    <string name="media_cancelled_after">Cancelled after episode %1$d</string>
+    <!-- Heading of the list of official services that stream a show, in the sheet of more about it. -->
+    <string name="media_streaming_on">Streaming on</string>
+    <!-- Note under the list of official services: AniList's links are not checked against where the viewer is. -->
+    <string name="media_streaming_region_note">Availability depends on your region.</string>
+    <!-- Note beside a link to an official service whose page is in another language, such as "Site in Japanese". -->
+    <string name="media_link_language">Site in %1$s</string>
+    <!-- Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min". -->
+    <string name="film_length_hours_minutes">%1$d hr %2$d min</string>
+    <!-- Length of a film or a single episode that is a whole number of hours, such as "2 hr". -->
+    <string name="film_length_hours">%1$d hr</string>
+    <!-- Length of a film or a single episode under an hour, such as "46 min". -->
+    <string name="film_length_minutes">%1$d min</string>
+    <!-- Country name: the origin filter and, after "Made in", the title facts. -->
+    <string name="country_japan">Japan</string>
+    <!-- Country name: the origin filter and, after "Made in", the title facts. -->
+    <string name="country_china">China</string>
+    <!-- Country name, after "Made in". -->
+    <string name="country_south_korea">South Korea</string>
+    <!-- Country name: the origin filter and, after "Made in", the title facts. -->
+    <string name="country_taiwan">Taiwan</string>
+    <!-- Fact on a show made outside Japan, with the country already named. -->
+    <string name="media_made_in">Made in %1$s</string>
+    <!-- Fact on a show made outside Japan, for a country this app has no name for. -->
+    <string name="media_made_elsewhere">Made outside Japan</string>
     <!-- Value of "Based on": a story written for the screen. -->
     <string name="material_original">Original story</string>
     <!-- Value of "Based on". -->
@@ -2582,6 +2650,12 @@
     <string name="settings_group_episodes">Episodes</string>
     <!-- Row: how titles are written. -->
     <string name="settings_title_language">Title language</string>
+    <!-- Value of the trailers setting: trailers play by themselves on any network. -->
+    <string name="settings_value_trailers_always">Always</string>
+    <!-- Value of the trailers setting: trailers play by themselves only on Wi-Fi. -->
+    <string name="settings_value_trailers_wifi_only">Wi-Fi only</string>
+    <!-- Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps. -->
+    <string name="settings_label_trailers">Play trailers</string>
     <!-- Option: use the tracker's own choice. The tracker is a name. -->
     <string name="settings_title_tracker">%1$s\'s choice</string>
     <!-- Option: English titles. -->
@@ -3222,6 +3296,8 @@
     <string name="title_button_watch_again">Watch again</string>
     <!-- Menu item that plays the trailer. -->
     <string name="title_play_trailer">Play trailer</string>
+    <!-- Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it. -->
+    <string name="title_trailer_failed">Couldn\'t open the trailer</string>
     <!-- Name and tooltip of the button beside a playing trailer that turns its sound on or off. -->
     <string name="title_trailer_sound">Trailer sound</string>
     <!-- Menu item that opens the title on the AniList website. -->

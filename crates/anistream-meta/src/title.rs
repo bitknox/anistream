@@ -142,6 +142,12 @@ pub fn similarity(a: &str, b: &str) -> f64 {
     if na == nb {
         return 1.0;
     }
+    // The same name in another season is another title, however much of the name they share:
+    // "Show" is the first season, and "Show Season 2" the sequel a search for it also finds.
+    let ((name_a, season_a), (name_b, season_b)) = (season_of(&na), season_of(&nb));
+    if name_a == name_b && season_a != season_b {
+        return 0.0;
+    }
 
     let ta: Vec<&str> = na.split_whitespace().collect();
     let tb: Vec<&str> = nb.split_whitespace().collect();
@@ -152,6 +158,18 @@ pub fn similarity(a: &str, b: &str) -> f64 {
     }
     // Dice coefficient over token sets.
     (2.0 * shared as f64) / (ta.len() + tb.len()) as f64
+}
+
+/// A normalised title's name and season: `"tsukiakari season 2"` is the name `"tsukiakari"` in
+/// season 2, and a title with no season marker is the first season. Only [`render`] writes the
+/// word "season" into a normalised title, and only as the marker at its end.
+fn season_of(normalised: &str) -> (&str, u32) {
+    if let Some((name, season)) = normalised.rsplit_once(" season ")
+        && let Ok(season) = season.parse()
+    {
+        return (name, season);
+    }
+    (normalised, 1)
 }
 
 /// What we know about the title we are trying to find a provider entry for.
@@ -313,6 +331,24 @@ mod tests {
     fn different_seasons_do_not_normalise_together() {
         assert_ne!(normalise("Tsukiakari Season 2"), normalise("Tsukiakari Season 3"));
         assert_ne!(normalise("Tsukiakari Season 2"), normalise("Tsukiakari"));
+    }
+
+    #[test]
+    fn a_sequel_is_not_matched_to_the_season_before_by_their_shared_name() {
+        // The first season's page is what a source with no page for the sequel finds.
+        assert_eq!(similarity("Hoshi no Kakurega Season 2", "Hoshi no Kakurega"), 0.0);
+        assert_eq!(similarity("Tsukiakari Season 3", "Tsukiakari II"), 0.0);
+        assert_eq!(similarity("Tsukiakari 2nd Season", "Tsukiakari II"), 1.0);
+        let target = MatchTarget {
+            titles: vec!["Hoshi no Kakurega Season 2".into()],
+            format: Some(MediaFormat::Tv),
+            ..Default::default()
+        };
+        let first =
+            vec![SearchHit { format: Some(MediaFormat::Tv), ..hit("Hoshi no Kakurega") }];
+        assert!(!rank(&target, &first)[0].is_confident());
+        // A bare number is part of a name, not a season, so it is still judged by the words.
+        assert!(similarity("Orbital Garden 2", "Orbital Garden") > 0.0);
     }
 
     #[test]

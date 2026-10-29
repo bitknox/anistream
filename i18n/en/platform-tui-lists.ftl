@@ -724,3 +724,8 @@ lists-sort-trending = Trending
 # A search sort order.
 # @only tui
 lists-sort-newest = Newest
+
+# Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
+# @arg title: text
+# @only tui
+lists-up-next-dismissed = { $title } hidden from { -up-next } for you.

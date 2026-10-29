@@ -46,7 +46,34 @@ impl App {
         if !matches!(self.nav.current(), StageView::Section(_)) {
             return None;
         }
-        self.content.entries().get(self.section_cursor().selected)
+        let selected = self.section_cursor().selected;
+        let entries = self.content.entries();
+        entries.get(selected).or_else(|| {
+            self.up_next_here().get(selected - entries.len().min(selected)).map(|i| &i.entry)
+        })
+    }
+
+    /// The suggestions under Continue, while Home's list is what is on screen and has rows. A
+    /// pushed view keeps the Home list as `content`, and its rail is not selectable there.
+    pub fn up_next_here(&self) -> &[anistream_model::up_next::UpNextItem] {
+        let at_home = self.nav.section() == Section::Home
+            && matches!(self.nav.current(), StageView::Section(Section::Home));
+        if at_home && !self.content.is_empty() { &self.up_next } else { &[] }
+    }
+
+    /// How many rows the list on screen has to move over: its entries, and Home's rail.
+    pub(super) fn rows_len(&self) -> usize {
+        self.content.len() + self.up_next_here().len()
+    }
+
+    /// Take the suggestions the engine sent.
+    pub(super) fn apply_up_next(&mut self, items: Vec<anistream_model::up_next::UpNextItem>) {
+        self.up_next = items;
+        let len = self.rows_len();
+        let cursor = self.cursors.section_mut(self.nav.section());
+        if self.nav.section() == Section::Home {
+            cursor.selected = cursor.selected.min(len.saturating_sub(1));
+        }
     }
 
     /// Fetch older broadcasts once the selection nears the top of the calendar.
@@ -417,6 +444,15 @@ impl App {
         if entries.is_empty() {
             return None;
         }
+        // A suggestion under the list: Not interested, which hides it until it airs.
+        let on_rail = self.cursors.home.selected.checked_sub(entries.len());
+        if let Some(n) = on_rail.filter(|n| *n < self.up_next.len()) {
+            let item = self.up_next.remove(n);
+            let home = &mut self.cursors.home;
+            home.selected = home.selected.min(entries.len() + self.up_next.len() - 1);
+            self.push_toast(info(t::lists_up_next_dismissed(&item.entry.title)));
+            return Some(Command::DismissUpNext { id: item.entry.id });
+        }
         // Dropped from the screen before the write: the list answers immediately, and
         // the store catches up.
         let home = &mut self.cursors.home;
@@ -568,7 +604,7 @@ impl App {
             }
         }
         // Selection must stay in range or the next render would index past the end.
-        let len = self.content.len();
+        let len = self.rows_len();
         let cursor = self.cursors.section_mut(self.nav.section());
         cursor.selected = cursor.selected.min(len.saturating_sub(1));
         if len == 0 {
@@ -660,6 +696,10 @@ impl App {
         // and acted on under its heading.
         self.content =
             if self.fetches_list() { ContentList::Loading } else { ContentList::Empty };
+        // The suggestions under Continue are asked for beside it, and arrive on their own.
+        if self.nav.section() == Section::Home {
+            self.commands.push(Command::LoadUpNext);
+        }
         Some(task)
     }
 
@@ -1162,6 +1202,8 @@ mod tests {
             a.handle(Action::Up, 5);
         }
         assert_eq!(a.nav.section(), Section::Search);
+        // Leaving Home asked for Up next beside Continue; that is not Search's.
+        a.take_commands();
         for _ in 0..=RELOAD_IDLE_TICKS {
             a.tick_pending_reload();
         }

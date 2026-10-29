@@ -1043,13 +1043,9 @@
     <value>[Ðöŵñļöàðš üšé ţĥé ƣüàļîţý îñ Šéţţîñĝš › Ðöŵñļöàðš.~~~~~~~~~~~~~~~]</value>
     <comment>Download dialog: the note under the range.</comment>
   </data>
-  <data name="DiscussionCopyText" xml:space="preserve">
-    <value>[Çöþý ţéẋţ~~~]</value>
-    <comment>Menu item that copies a comment's text.</comment>
-  </data>
-  <data name="DiscussionSending" xml:space="preserve">
-    <value>[Šéñðîñĝ~~~]</value>
-    <comment>Age of a comment that was sent and is not yet confirmed.</comment>
+  <data name="CalendarTodayTooltip" xml:space="preserve">
+    <value>[Ţöðàý ({keys})~~~~]</value>
+    <comment>Calendar: tooltip of the button that returns to the current week, with its shortcut.</comment>
   </data>
   <data name="DiscussionEditing" xml:space="preserve">
     <value>[Éðîţîñĝ ýöüŕ çöɱɱéñţ~~~~~~]</value>
@@ -1310,6 +1306,10 @@
   <data name="TorrentsChoiceSpoken" xml:space="preserve">
     <value>[{label}. {detail}~~~]</value>
     <comment>Screen reader name of a protection choice: its name, then what it does.</comment>
+  </data>
+  <data name="SettingsNoteTrailersWindows" xml:space="preserve">
+    <value>[Ţŕàîļéŕš þļàý ɱüţéð ƒŕöɱ ÝöüŢüƀé, ŵĥîçĥ šééš ýöüŕ ÎÞ àððŕéšš. Ţĥéý ðöñ'ţ þļàý öñ à ɱéţéŕéð çöññéçţîöñ, ŵîţĥ àñîɱàţîöñ éƒƒéçţš öƒƒ, îñ éñéŕĝý šàṽéŕ ɱöðé öŕ ŵîţĥ Ñàŕŕàţöŕ ŕüññîñĝ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Note under the Play trailers setting: what the trailers are and when they do not play.</comment>
   </data>
   <data name="TrayStillDownloading" xml:space="preserve">
     <value>[àñîšţŕéàɱ îš šţîļļ ðöŵñļöàðîñĝ~~~~~~~~~]</value>
@@ -1790,6 +1790,46 @@
   <data name="CalendarComingUpEmpty" xml:space="preserve">
     <value>[Ñöţĥîñĝ àîŕš ţĥîš ŵééķ ƒöŕ ţĥé šĥöŵš ýöü ƒöļļöŵ.~~~~~~~~~~~~~~~]</value>
     <comment>Line when no show the person follows airs in the next seven days.</comment>
+  </data>
+  <data name="CalendarToday" xml:space="preserve">
+    <value>[Ţöðàý~~]</value>
+    <comment>Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.</comment>
+  </data>
+  <data name="CalendarFloor" xml:space="preserve">
+    <value>[Ţĥé çàļéñðàŕ ĝöéš ƀàçķ 3 ɱöñţĥš.~~~~~~~~~~]</value>
+    <comment>Line where days before the first day the calendar reaches would be.</comment>
+  </data>
+  <data name="CalendarCeiling" xml:space="preserve">
+    <value>[Ţĥé çàļéñðàŕ ĝöéš 4 ŵééķš àĥéàð.~~~~~~~~~~]</value>
+    <comment>Line where days after the last day the calendar reaches would be.</comment>
+  </data>
+  <data name="CalendarEnd" xml:space="preserve">
+    <value>[Ñöţĥîñĝ ļàţéŕ îš šçĥéðüļéð ýéţ.~~~~~~~~~~]</value>
+    <comment>Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.</comment>
+  </data>
+  <data name="CalendarLoadingEarlier" xml:space="preserve">
+    <value>[Ļöàðîñĝ éàŕļîéŕ ƀŕöàðçàšţš~~~~~~~~]</value>
+    <comment>Activity line while earlier broadcasts load.</comment>
+  </data>
+  <data name="CalendarLoadingLater" xml:space="preserve">
+    <value>[Ļöàðîñĝ ļàţéŕ ƀŕöàðçàšţš~~~~~~~~]</value>
+    <comment>Activity line while later broadcasts load.</comment>
+  </data>
+  <data name="CalendarLoadEarlierFailed" xml:space="preserve">
+    <value>[Çöüļðñ'ţ ļöàð éàŕļîéŕ ƀŕöàðçàšţš~~~~~~~~~~]</value>
+    <comment>Line where earlier broadcasts would be when they could not be loaded.</comment>
+  </data>
+  <data name="CalendarLoadLaterFailed" xml:space="preserve">
+    <value>[Çöüļðñ'ţ ļöàð ļàţéŕ ƀŕöàðçàšţš~~~~~~~~~]</value>
+    <comment>Line where later broadcasts would be when they could not be loaded.</comment>
+  </data>
+  <data name="CalendarShowAll" xml:space="preserve">
+    <value>[Šĥöŵ àļļ àîŕîñĝ~~~~~]</value>
+    <comment>Button under the line saying nothing on the person's list airs: shows every airing show.</comment>
+  </data>
+  <data name="CalendarNowSpoken" xml:space="preserve">
+    <value>[Ñöŵ, {time}~~~]</value>
+    <comment>What a screen reader says for the line that marks the time now. The time is already worded.</comment>
   </data>
   <data name="ActionTryAgain" xml:space="preserve">
     <value>[Ţŕý àĝàîñ~~~]</value>
@@ -2516,7 +2556,7 @@
     <comment>Line while the comments are still loading after a few seconds.</comment>
   </data>
   <data name="DiscussionRateLimited" xml:space="preserve">
-    <value>[ÅñîĻîšţ àšķéð ƒöŕ à þàüšé. Ɓàçķ îñ {time}.~~~~~~~~~~~~]</value>
+    <value>[Ŵàîţîñĝ ƒöŕ ÅñîĻîšţ · {time}~~~~~~~~]</value>
     <comment>Line while AniList's request budget is spent. The engine waits, then goes on by itself.</comment>
   </data>
   <data name="DiscussionNoThread" xml:space="preserve">
@@ -2542,6 +2582,14 @@
   <data name="DiscussionSettingsGroup" xml:space="preserve">
     <value>[Ðîšçüššîöñš~~~~]</value>
     <comment>Heading of the Settings group for discussion rows.</comment>
+  </data>
+  <data name="DiscussionSending" xml:space="preserve">
+    <value>[Šéñðîñĝ~~~]</value>
+    <comment>Age of a comment that is on its way to AniList.</comment>
+  </data>
+  <data name="DiscussionCopyText" xml:space="preserve">
+    <value>[Çöþý ţéẋţ~~~]</value>
+    <comment>Comment menu item that copies the comment's text.</comment>
   </data>
   <data name="DownloadsTitle" xml:space="preserve">
     <value>[Ðöŵñļöàðš~~~]</value>
@@ -3047,6 +3095,42 @@
     <value>[Þļàý É{episode} ðüƀƀéð · öüţ {ago}~~~~~~~~]</value>
     <comment>Row caption: the next unwatched episode, dubbed, which came out a while ago.</comment>
   </data>
+  <data name="UpNextHeading" xml:space="preserve">
+    <value>[Ûþ ñéẋţ ƒöŕ ýöü~~~~~]</value>
+    <comment>Heading over the suggestions under a short { -continue-cap } list.</comment>
+  </data>
+  <data name="UpNextStarts" xml:space="preserve">
+    <value>[Šţàŕţš {date}~~~]</value>
+    <comment>Line on a suggestion that has not started airing. The date is written out already, such as "9 January".</comment>
+  </data>
+  <data name="UpNextReasonNewSeason" xml:space="preserve">
+    <value>[Ñéŵ šéàšöñ~~~]</value>
+    <comment>Reason on a suggestion that is a new season of a show the person finished and has not started.</comment>
+  </data>
+  <data name="UpNextReasonPlanning" xml:space="preserve">
+    <value>[Öñ ýöüŕ Þļàññîñĝ ļîšţ~~~~~~~]</value>
+    <comment>Reason on a suggestion that is on the person's Planning list.</comment>
+  </data>
+  <data name="UpNextReasonRecommended" xml:space="preserve">
+    <value>[Ɓéçàüšé ýöü ƒîñîšĥéð {title}~~~~~~~~]</value>
+    <comment>Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.</comment>
+  </data>
+  <data name="UpNextReasonRecommendedPlain" xml:space="preserve">
+    <value>[Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]</value>
+    <comment>Reason on a recommended suggestion when the finished show is not known.</comment>
+  </data>
+  <data name="UpNextReasonAiringToday" xml:space="preserve">
+    <value>[Åîŕîñĝ ţöðàý~~~~]</value>
+    <comment>Reason on a suggestion that airs today, shown when nothing else is left to suggest.</comment>
+  </data>
+  <data name="UpNextAddPlanning" xml:space="preserve">
+    <value>[Åðð ţö Þļàññîñĝ~~~~~]</value>
+    <comment>Button on a suggestion that has not started airing. It puts the show on the Planning list.</comment>
+  </data>
+  <data name="UpNextNotInterested" xml:space="preserve">
+    <value>[Ñöţ îñţéŕéšţéð~~~~~]</value>
+    <comment>Menu item on a suggestion. The show stays hidden until it starts airing.</comment>
+  </data>
   <data name="FormatTv" xml:space="preserve">
     <value>[ŢṼ~]</value>
     <comment>Format of a show: broadcast on television.</comment>
@@ -3122,6 +3206,70 @@
   <data name="MediaAiringFrom" xml:space="preserve">
     <value>[Ƒŕöɱ {date}~~~]</value>
     <comment>Date line of a show that has not started: when it will.</comment>
+  </data>
+  <data name="MediaAiredRange" xml:space="preserve">
+    <value>[Åîŕéð {from} ţö {to}~~~~~]</value>
+    <comment>Date line of a show that has finished: when it began and when it ended. Both are already worded dates.</comment>
+  </data>
+  <data name="MediaAiredOn" xml:space="preserve">
+    <value>[Åîŕéð {date}~~~]</value>
+    <comment>Date line of a show that has finished and ran on one day, such as a film.</comment>
+  </data>
+  <data name="MediaHiatusSince" xml:space="preserve">
+    <value>[Öñ ĥîàţüš šîñçé {date}~~~~~~]</value>
+    <comment>Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.</comment>
+  </data>
+  <data name="MediaCancelledAfter" xml:space="preserve">
+    <value>[Çàñçéļļéð àƒţéŕ éþîšöðé {episode}~~~~~~~~~]</value>
+    <comment>Date line of a show that was cancelled: the last episode that aired.</comment>
+  </data>
+  <data name="MediaStreamingOn" xml:space="preserve">
+    <value>[Šţŕéàɱîñĝ öñ~~~~]</value>
+    <comment>Heading of the list of official services that stream a show, in the sheet of more about it.</comment>
+  </data>
+  <data name="MediaStreamingRegionNote" xml:space="preserve">
+    <value>[Åṽàîļàƀîļîţý ðéþéñðš öñ ýöüŕ ŕéĝîöñ.~~~~~~~~~~~]</value>
+    <comment>Note under the list of official services: AniList's links are not checked against where the viewer is.</comment>
+  </data>
+  <data name="MediaLinkLanguage" xml:space="preserve">
+    <value>[Šîţé îñ {language}~~~~]</value>
+    <comment>Note beside a link to an official service whose page is in another language, such as "Site in Japanese".</comment>
+  </data>
+  <data name="FilmLengthHoursMinutes" xml:space="preserve">
+    <value>[{hours} ĥŕ {minutes} ɱîñ~~~~~]</value>
+    <comment>Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".</comment>
+  </data>
+  <data name="FilmLengthHours" xml:space="preserve">
+    <value>[{hours} ĥŕ~~]</value>
+    <comment>Length of a film or a single episode that is a whole number of hours, such as "2 hr".</comment>
+  </data>
+  <data name="FilmLengthMinutes" xml:space="preserve">
+    <value>[{minutes} ɱîñ~~~]</value>
+    <comment>Length of a film or a single episode under an hour, such as "46 min".</comment>
+  </data>
+  <data name="CountryJapan" xml:space="preserve">
+    <value>[Ĵàþàñ~~]</value>
+    <comment>Country name: the origin filter and, after "Made in", the title facts.</comment>
+  </data>
+  <data name="CountryChina" xml:space="preserve">
+    <value>[Çĥîñà~~]</value>
+    <comment>Country name: the origin filter and, after "Made in", the title facts.</comment>
+  </data>
+  <data name="CountrySouthKorea" xml:space="preserve">
+    <value>[Šöüţĥ Ķöŕéà~~~~]</value>
+    <comment>Country name, after "Made in".</comment>
+  </data>
+  <data name="CountryTaiwan" xml:space="preserve">
+    <value>[Ţàîŵàñ~~]</value>
+    <comment>Country name: the origin filter and, after "Made in", the title facts.</comment>
+  </data>
+  <data name="MediaMadeIn" xml:space="preserve">
+    <value>[Ṁàðé îñ {country}~~~~]</value>
+    <comment>Fact on a show made outside Japan, with the country already named.</comment>
+  </data>
+  <data name="MediaMadeElsewhere" xml:space="preserve">
+    <value>[Ṁàðé öüţšîðé Ĵàþàñ~~~~~~]</value>
+    <comment>Fact on a show made outside Japan, for a country this app has no name for.</comment>
   </data>
   <data name="MaterialOriginal" xml:space="preserve">
     <value>[Öŕîĝîñàļ šţöŕý~~~~~]</value>
@@ -4487,6 +4635,18 @@
     <value>[Ţîţļé ļàñĝüàĝé~~~~~]</value>
     <comment>Row: how titles are written.</comment>
   </data>
+  <data name="SettingsValueTrailersAlways" xml:space="preserve">
+    <value>[Åļŵàýš~~]</value>
+    <comment>Value of the trailers setting: trailers play by themselves on any network.</comment>
+  </data>
+  <data name="SettingsValueTrailersWifiOnly" xml:space="preserve">
+    <value>[Ŵî-Ƒî öñļý~~~]</value>
+    <comment>Value of the trailers setting: trailers play by themselves only on Wi-Fi.</comment>
+  </data>
+  <data name="SettingsLabelTrailers" xml:space="preserve">
+    <value>[Þļàý ţŕàîļéŕš~~~~]</value>
+    <comment>Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.</comment>
+  </data>
   <data name="SettingsTitleTracker" xml:space="preserve">
     <value>[{tracker}'š çĥöîçé~~~~]</value>
     <comment>Option: use the tracker's own choice. The tracker is a name.</comment>
@@ -5750,6 +5910,10 @@
   <data name="TitlePlayTrailer" xml:space="preserve">
     <value>[Þļàý ţŕàîļéŕ~~~~]</value>
     <comment>Menu item that plays the trailer.</comment>
+  </data>
+  <data name="TitleTrailerFailed" xml:space="preserve">
+    <value>[Çöüļðñ'ţ öþéñ ţĥé ţŕàîļéŕ~~~~~~~~]</value>
+    <comment>Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.</comment>
   </data>
   <data name="TitleTrailerSound" xml:space="preserve">
     <value>[Ţŕàîļéŕ šöüñð~~~~]</value>

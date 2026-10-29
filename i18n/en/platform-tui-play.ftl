@@ -289,12 +289,6 @@ settings-value-titles-english = English
 # Value of the titles setting: titles in Latin letters as written in Japanese.
 settings-value-titles-romaji = Romaji
 
-# Value of the trailers setting: trailers play by themselves on any network.
-settings-value-trailers-always = Always
-
-# Value of the trailers setting: trailers play by themselves only on Wi-Fi.
-settings-value-trailers-wifi-only = Wi-Fi only
-
 # Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 settings-value-upscaling-natural = Natural · ArtCNN
 
@@ -363,9 +357,6 @@ settings-label-motion = Motion
 
 # Settings row: which language titles are shown in.
 settings-label-titles = Titles
-
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
-settings-label-trailers = Play trailers
 
 # Settings row: subbed or dubbed audio.
 settings-label-translation = Audio

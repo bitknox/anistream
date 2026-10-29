@@ -124,6 +124,9 @@ pub struct Options {
     /// How long a title page waits for the season walk before it is sent without its seasons,
     /// or `None` for as long as the app waits.
     pub season_hold: Option<Duration>,
+    /// The engine's clock, kept by the test to move it on or to read days in a zone of its own,
+    /// or `None` for the system's.
+    pub clock: Option<anistream_engine::clock::Clock>,
 }
 
 impl Default for Options {
@@ -138,6 +141,7 @@ impl Default for Options {
             keep_next: false,
             before_start: None,
             season_hold: None,
+            clock: None,
         }
     }
 }
@@ -269,7 +273,7 @@ impl Harness {
         start.saved = Some(saved);
         start.sources = Some(registry.clone());
         start.background = Background { keep_next: options.keep_next, ..Background::none() };
-        let engine_clock = anistream_engine::clock::Clock::default();
+        let engine_clock = options.clock.unwrap_or_default();
         start.parts = Some(Parts {
             meta,
             sync,
@@ -545,7 +549,6 @@ impl Harness {
         &mut self.app
     }
 
-    /// The fake AniList: what it was asked, and how it should fail.
     /// Let `secs` pass for the engine's own clock, which what it keeps for a while ages by. The
     /// fake AniList and the broadcasts it answers with stay where they are.
     pub fn advance_engine_clock(&self, secs: i64) {
@@ -758,6 +761,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::SearchMore { .. } => "SearchMore",
         Event::LiveSearch { .. } => "LiveSearch",
         Event::Browse(_) => "Browse",
+        Event::UpNext(_) => "UpNext",
         Event::Facets(_) => "Facets",
         Event::RecentSearches(_) => "RecentSearches",
         Event::CalendarWindow { .. } => "CalendarWindow",
@@ -878,6 +882,7 @@ fn copy(update: &Event) -> Event {
         },
         Event::LiveSearch { paused } => Event::LiveSearch { paused: *paused },
         Event::Browse(rails) => Event::Browse(rails.clone()),
+        Event::UpNext(items) => Event::UpNext(items.clone()),
         Event::Facets(facets) => Event::Facets(facets.clone()),
         Event::RecentSearches(recent) => Event::RecentSearches(recent.clone()),
         Event::CalendarWindow {

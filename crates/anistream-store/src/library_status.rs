@@ -62,6 +62,21 @@ impl Store {
         })
     }
 
+    /// The titles the list has with `status` (as the tracker words it: `PLANNING`), newest ids
+    /// first: the newest titles are the likeliest to be airing.
+    pub fn library_with_status(&self, status: &str) -> Result<Vec<AnilistId>> {
+        self.with_conn(|c| {
+            let mut statement = c.prepare(
+                "SELECT anilist_id FROM library_status WHERE status = ?1 ORDER BY anilist_id DESC",
+            )?;
+            let ids = statement
+                .query_map([status], |r| r.get::<_, u32>(0))?
+                .map(|id| id.map(AnilistId::new))
+                .collect::<rusqlite::Result<_>>()?;
+            Ok(ids)
+        })
+    }
+
     /// Where `id` is on the list, as the tracker words it, when it is on it.
     pub fn library_status(&self, id: AnilistId) -> Result<Option<String>> {
         self.with_conn(|c| {

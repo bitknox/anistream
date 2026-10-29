@@ -7,3 +7,4 @@ pub mod detail;
 pub mod lists;
 pub mod recents;
 pub mod search;
+pub mod up_next;

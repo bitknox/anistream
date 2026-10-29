@@ -151,6 +151,9 @@ mod tests {
             Command::SearchMore { query: SearchQuery::sorted(SearchSort::Score), page: 3 },
             Command::RememberSearch(SearchQuery::season(Season::Fall, 2026)),
             Command::LoadBrowse,
+            Command::LoadUpNext,
+            Command::DismissUpNext { id: AnilistId::new(900_004) },
+            Command::RestoreUpNext { id: AnilistId::new(900_004) },
             Command::LoadSearchFacets,
         ];
         for command in commands {
@@ -802,7 +805,20 @@ mod tests {
             title: "Popular this season".into(),
             detail: Some("Fall 2026".into()),
             query: SearchQuery::season(Season::Fall, 2026),
-            entries: vec![entry],
+            entries: vec![entry.clone()],
+        }]));
+        crosses_intact(Event::UpNext(vec![anistream_model::up_next::UpNextItem {
+            entry,
+            reason: anistream_model::up_next::UpNextReason::Recommended,
+            because: Some("Stardust Wayfarer".into()),
+            starts: Some(anistream_model::catalog::FuzzyDate {
+                year: 2027,
+                month: Some(1),
+                day: Some(9),
+            }),
+            action: anistream_model::up_next::UpNextAction::AddToPlanning,
+            airs_at: Some(1_800_000_000),
+            fallback: true,
         }]));
         crosses_intact(Event::Facets(SearchFacets {
             genres: vec!["Mecha".into()],
@@ -911,6 +927,7 @@ mod tests {
                 name: "Director of Stardust Wayfarer".into(),
                 role: "Director".into(),
             }],
+            ..TitleDetail::default()
         });
         assert_eq!(crossed(entry.clone()), entry);
         crosses_intact(Event::Detail(Box::new(entry)));
@@ -933,6 +950,7 @@ mod tests {
             metadata_only: false,
             source: None,
             unsourced: false,
+            past_progress: false,
         };
         assert_eq!(crossed(row.clone()), row);
         let dub = DubExtent { through: 6, complete: false };

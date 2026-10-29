@@ -771,6 +771,9 @@ title-linux-play-on-tv-help = [Þļàý ţĥîš éþîšöðé öñ à ŢṼ ŵ
 # Description read by a screen reader on an episode's watched check box.
 title-linux-episode-watched = [Éþîšöðé { $episode } ŵàţçĥéð~~~~~~]
 
+# Line in a day's column when nothing airs that day.
+calendar-linux-day-empty = [Ñöţĥîñĝ àîŕš~~~~]
+
 # Accessible label of the line that says how the watch party form is getting on.
 party-status = [Ŵàţçĥ þàŕţý šţàţüš~~~~~~]
 
@@ -2628,6 +2631,9 @@ lists-sort-trending = [Ţŕéñðîñĝ~~~]
 # A search sort order.
 lists-sort-newest = [Ñéŵéšţ~~]
 
+# Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
+lists-up-next-dismissed = [{ $title } ĥîððéñ ƒŕöɱ üþ ñéẋţ ƒöŕ ýöü.~~~~~~~~~~]
+
 # Notice when the person leaves Now Playing while mpv carries on in its own window.
 playback-detached = [Ðéţàçĥéð. ɱþṽ îš šţîļļ þļàýîñĝ.~~~~~~~~~~]
 
@@ -2861,12 +2867,6 @@ settings-value-titles-english = [Éñĝļîšĥ~~~]
 # Value of the titles setting: titles in Latin letters as written in Japanese.
 settings-value-titles-romaji = [Ŕöɱàĵî~~]
 
-# Value of the trailers setting: trailers play by themselves on any network.
-settings-value-trailers-always = [Åļŵàýš~~]
-
-# Value of the trailers setting: trailers play by themselves only on Wi-Fi.
-settings-value-trailers-wifi-only = [Ŵî-Ƒî öñļý~~~]
-
 # Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 settings-value-upscaling-natural = [Ñàţüŕàļ · ÅŕţÇÑÑ~~~~~]
 
@@ -2929,9 +2929,6 @@ settings-label-motion = [Ṁöţîöñ~~]
 
 # Settings row: which language titles are shown in.
 settings-label-titles = [Ţîţļéš~~]
-
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
-settings-label-trailers = [Þļàý ţŕàîļéŕš~~~~]
 
 # Settings row: subbed or dubbed audio.
 settings-label-translation = [Åüðîö~~]
@@ -3812,6 +3809,36 @@ calendar-coming-up = [Çöɱîñĝ üþ · ñéẋţ 7 ðàýš~~~~~~~]
 # Line when no show the person follows airs in the next seven days.
 calendar-coming-up-empty = [Ñöţĥîñĝ àîŕš ţĥîš ŵééķ ƒöŕ ţĥé šĥöŵš ýöü ƒöļļöŵ.~~~~~~~~~~~~~~~]
 
+# Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.
+calendar-today = [Ţöðàý~~]
+
+# Line where days before the first day the calendar reaches would be.
+calendar-floor = [Ţĥé çàļéñðàŕ ĝöéš ƀàçķ 3 ɱöñţĥš.~~~~~~~~~~]
+
+# Line where days after the last day the calendar reaches would be.
+calendar-ceiling = [Ţĥé çàļéñðàŕ ĝöéš 4 ŵééķš àĥéàð.~~~~~~~~~~]
+
+# Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.
+calendar-end = [Ñöţĥîñĝ ļàţéŕ îš šçĥéðüļéð ýéţ.~~~~~~~~~~]
+
+# Activity line while earlier broadcasts load.
+calendar-loading-earlier = [Ļöàðîñĝ éàŕļîéŕ ƀŕöàðçàšţš~~~~~~~~]
+
+# Activity line while later broadcasts load.
+calendar-loading-later = [Ļöàðîñĝ ļàţéŕ ƀŕöàðçàšţš~~~~~~~~]
+
+# Line where earlier broadcasts would be when they could not be loaded.
+calendar-load-earlier-failed = [Çöüļðñ'ţ ļöàð éàŕļîéŕ ƀŕöàðçàšţš~~~~~~~~~~]
+
+# Line where later broadcasts would be when they could not be loaded.
+calendar-load-later-failed = [Çöüļðñ'ţ ļöàð ļàţéŕ ƀŕöàðçàšţš~~~~~~~~~]
+
+# Button under the line saying nothing on the person's list airs: shows every airing show.
+calendar-show-all = [Šĥöŵ àļļ àîŕîñĝ~~~~~]
+
+# What a screen reader says for the line that marks the time now. The time is already worded.
+calendar-now-spoken = [Ñöŵ, { $time }~~~]
+
 # Button that runs a failed action again.
 action-try-again = [Ţŕý àĝàîñ~~~]
 
@@ -4361,7 +4388,7 @@ discussion-delete-body = [Îţ îš ŕéɱöṽéð ƒŕöɱ ÅñîĻîšţ ţö
 discussion-still-loading = [Šţîļļ ļöàðîñĝ ƒŕöɱ ÅñîĻîšţ~~~~~~~~]
 
 # Line while AniList's request budget is spent. The engine waits, then goes on by itself.
-discussion-rate-limited = [ÅñîĻîšţ àšķéð ƒöŕ à þàüšé. Ɓàçķ îñ { $time }.~~~~~~~~~~~~]
+discussion-rate-limited = [Ŵàîţîñĝ ƒöŕ ÅñîĻîšţ · { $time }~~~~~~~~]
 
 # Title of the state when the episode has no thread on AniList.
 discussion-no-thread = [Ñö ðîšçüššîöñ ýéţ~~~~~~]
@@ -4380,6 +4407,18 @@ discussion-offline-cached = [Öƒƒļîñé. Šĥöŵîñĝ çöɱɱéñţš ƒ�
 
 # Heading of the Settings group for discussion rows.
 discussion-settings-group = [Ðîšçüššîöñš~~~~]
+
+# Age of a comment that is on its way to AniList.
+discussion-sending = [Šéñðîñĝ~~~]
+
+# Button under a comment that is cut off after ten lines.
+discussion-show-more = [Šĥöŵ ɱöŕé~~~]
+
+# Comment menu item that copies the comment's text.
+discussion-copy-text = [Çöþý ţéẋţ~~~]
+
+# Line for a picture or video in a comment: what it is and the site it is on.
+discussion-media-line = [{ $kind } · { $host }~~~]
 
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = [Ðöŵñļöàðš~~~]
@@ -4763,6 +4802,33 @@ progress-episode-short = [É{ $done }~~]
 # Row caption: the next unwatched episode, dubbed, which came out a while ago.
 continue-row-start-aired-dubbed = [Þļàý É{ $episode } ðüƀƀéð · öüţ { $ago }~~~~~~~~]
 
+# Heading over the suggestions under a short { -continue-cap } list.
+up-next-heading = [Ûþ ñéẋţ ƒöŕ ýöü~~~~~]
+
+# Line on a suggestion that has not started airing. The date is written out already, such as "9 January".
+up-next-starts = [Šţàŕţš { $date }~~~]
+
+# Reason on a suggestion that is a new season of a show the person finished and has not started.
+up-next-reason-new-season = [Ñéŵ šéàšöñ~~~]
+
+# Reason on a suggestion that is on the person's Planning list.
+up-next-reason-planning = [Öñ ýöüŕ Þļàññîñĝ ļîšţ~~~~~~~]
+
+# Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.
+up-next-reason-recommended = [Ɓéçàüšé ýöü ƒîñîšĥéð { $title }~~~~~~~~]
+
+# Reason on a recommended suggestion when the finished show is not known.
+up-next-reason-recommended-plain = [Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]
+
+# Reason on a suggestion that airs today, shown when nothing else is left to suggest.
+up-next-reason-airing-today = [Åîŕîñĝ ţöðàý~~~~]
+
+# Button on a suggestion that has not started airing. It puts the show on the Planning list.
+up-next-add-planning = [Åðð ţö Þļàññîñĝ~~~~~]
+
+# Menu item on a suggestion. The show stays hidden until it starts airing.
+up-next-not-interested = [Ñöţ îñţéŕéšţéð~~~~~]
+
 # Format of a show: broadcast on television.
 format-tv = [ŢṼ~]
 
@@ -4819,6 +4885,54 @@ media-airing-since = [Šîñçé { $date }~~~]
 
 # Date line of a show that has not started: when it will.
 media-airing-from = [Ƒŕöɱ { $date }~~~]
+
+# Date line of a show that has finished: when it began and when it ended. Both are already worded dates.
+media-aired-range = [Åîŕéð { $from } ţö { $to }~~~~~]
+
+# Date line of a show that has finished and ran on one day, such as a film.
+media-aired-on = [Åîŕéð { $date }~~~]
+
+# Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.
+media-hiatus-since = [Öñ ĥîàţüš šîñçé { $date }~~~~~~]
+
+# Date line of a show that was cancelled: the last episode that aired.
+media-cancelled-after = [Çàñçéļļéð àƒţéŕ éþîšöðé { $episode }~~~~~~~~~]
+
+# Heading of the list of official services that stream a show, in the sheet of more about it.
+media-streaming-on = [Šţŕéàɱîñĝ öñ~~~~]
+
+# Note under the list of official services: AniList's links are not checked against where the viewer is.
+media-streaming-region-note = [Åṽàîļàƀîļîţý ðéþéñðš öñ ýöüŕ ŕéĝîöñ.~~~~~~~~~~~]
+
+# Note beside a link to an official service whose page is in another language, such as "Site in Japanese".
+media-link-language = [Šîţé îñ { $language }~~~~]
+
+# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+film-length-hours-minutes = [{ $hours } ĥŕ { $minutes } ɱîñ~~~~~]
+
+# Length of a film or a single episode that is a whole number of hours, such as "2 hr".
+film-length-hours = [{ $hours } ĥŕ~~]
+
+# Length of a film or a single episode under an hour, such as "46 min".
+film-length-minutes = [{ $minutes } ɱîñ~~~]
+
+# Country name: the origin filter and, after "Made in", the title facts.
+country-japan = [Ĵàþàñ~~]
+
+# Country name: the origin filter and, after "Made in", the title facts.
+country-china = [Çĥîñà~~]
+
+# Country name, after "Made in".
+country-south-korea = [Šöüţĥ Ķöŕéà~~~~]
+
+# Country name: the origin filter and, after "Made in", the title facts.
+country-taiwan = [Ţàîŵàñ~~]
+
+# Fact on a show made outside Japan, with the country already named.
+media-made-in = [Ṁàðé îñ { $country }~~~~]
+
+# Fact on a show made outside Japan, for a country this app has no name for.
+media-made-elsewhere = [Ṁàðé öüţšîðé Ĵàþàñ~~~~~~]
 
 # Value of "Based on": a story written for the screen.
 material-original = [Öŕîĝîñàļ šţöŕý~~~~~]
@@ -5845,6 +5959,15 @@ settings-group-episodes = [Éþîšöðéš~~~]
 # Row: how titles are written.
 settings-title-language = [Ţîţļé ļàñĝüàĝé~~~~~]
 
+# Value of the trailers setting: trailers play by themselves on any network.
+settings-value-trailers-always = [Åļŵàýš~~]
+
+# Value of the trailers setting: trailers play by themselves only on Wi-Fi.
+settings-value-trailers-wifi-only = [Ŵî-Ƒî öñļý~~~]
+
+# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+settings-label-trailers = [Þļàý ţŕàîļéŕš~~~~]
+
 # Option: use the tracker's own choice. The tracker is a name.
 settings-title-tracker = [{ $tracker }'š çĥöîçé~~~~]
 
@@ -6800,6 +6923,9 @@ title-button-watch-again = [Ŵàţçĥ àĝàîñ~~~~]
 
 # Menu item that plays the trailer.
 title-play-trailer = [Þļàý ţŕàîļéŕ~~~~]
+
+# Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.
+title-trailer-failed = [Çöüļðñ'ţ öþéñ ţĥé ţŕàîļéŕ~~~~~~~~]
 
 # Name and tooltip of the button beside a playing trailer that turns its sound on or off.
 title-trailer-sound = [Ţŕàîļéŕ šöüñð~~~~]

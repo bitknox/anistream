@@ -243,25 +243,10 @@ updates-closes-as-installs = { -app-name } closes as it installs
 # @max 24
 updates-open-release = Open page
 
-# Country of origin filter: Japan.
-# @only android
-# @max 20
-country-japan = Japan
-
-# Country of origin filter: China.
-# @only android
-# @max 20
-country-china = China
-
 # Country of origin filter: South Korea.
 # @only android
 # @max 20
 country-korea = Korea
-
-# Country of origin filter: Taiwan.
-# @only android
-# @max 20
-country-taiwan = Taiwan
 
 # Search chip for several genres picked.
 # @only android

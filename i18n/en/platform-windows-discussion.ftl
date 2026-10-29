@@ -1,15 +1,5 @@
 ## Windows: the discussion pane's own words, beside the shared ones in ui-discussion.ftl.
 
-# Menu item that copies a comment's text.
-# @only windows
-# @max 24
-discussion-copy-text = Copy text
-
-# Age of a comment that was sent and is not yet confirmed.
-# @only windows
-# @max 16
-discussion-sending = Sending
-
 # Line above the field while the viewer edits their own comment.
 # @only windows
 # @max 40

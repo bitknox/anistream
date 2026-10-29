@@ -247,6 +247,7 @@ mod tests {
                 airs_at: None,
                 delayed_from: None,
                 metadata_only: false,
+                past_progress: false,
                 unsourced: unsourced.contains(&n),
                 source: None,
             })

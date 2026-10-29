@@ -1190,6 +1190,11 @@ pub fn title_linux_episode_watched(episode: i64) -> String {
     text("title-linux-episode-watched", &[("episode", Arg::Int(episode))])
 }
 
+/// Line in a day's column when nothing airs that day.
+pub fn calendar_linux_day_empty() -> String {
+    text("calendar-linux-day-empty", &[])
+}
+
 /// Accessible label of the line that says how the watch party form is getting on.
 pub fn party_status() -> String {
     text("party-status", &[])
@@ -4165,6 +4170,11 @@ pub fn lists_sort_newest() -> String {
     text("lists-sort-newest", &[])
 }
 
+/// Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
+pub fn lists_up_next_dismissed(title: &str) -> String {
+    text("lists-up-next-dismissed", &[("title", Arg::Text(title))])
+}
+
 /// Notice when the person leaves Now Playing while mpv carries on in its own window.
 pub fn playback_detached() -> String {
     text("playback-detached", &[])
@@ -4540,16 +4550,6 @@ pub fn settings_value_titles_romaji() -> String {
     text("settings-value-titles-romaji", &[])
 }
 
-/// Value of the trailers setting: trailers play by themselves on any network.
-pub fn settings_value_trailers_always() -> String {
-    text("settings-value-trailers-always", &[])
-}
-
-/// Value of the trailers setting: trailers play by themselves only on Wi-Fi.
-pub fn settings_value_trailers_wifi_only() -> String {
-    text("settings-value-trailers-wifi-only", &[])
-}
-
 /// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 pub fn settings_value_upscaling_natural() -> String {
     text("settings-value-upscaling-natural", &[])
@@ -4653,11 +4653,6 @@ pub fn settings_label_motion() -> String {
 /// Settings row: which language titles are shown in.
 pub fn settings_label_titles() -> String {
     text("settings-label-titles", &[])
-}
-
-/// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
-pub fn settings_label_trailers() -> String {
-    text("settings-label-trailers", &[])
 }
 
 /// Settings row: subbed or dubbed audio.
@@ -6065,6 +6060,56 @@ pub fn calendar_coming_up_empty() -> String {
     text("calendar-coming-up-empty", &[])
 }
 
+/// Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.
+pub fn calendar_today() -> String {
+    text("calendar-today", &[])
+}
+
+/// Line where days before the first day the calendar reaches would be.
+pub fn calendar_floor() -> String {
+    text("calendar-floor", &[])
+}
+
+/// Line where days after the last day the calendar reaches would be.
+pub fn calendar_ceiling() -> String {
+    text("calendar-ceiling", &[])
+}
+
+/// Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.
+pub fn calendar_end() -> String {
+    text("calendar-end", &[])
+}
+
+/// Activity line while earlier broadcasts load.
+pub fn calendar_loading_earlier() -> String {
+    text("calendar-loading-earlier", &[])
+}
+
+/// Activity line while later broadcasts load.
+pub fn calendar_loading_later() -> String {
+    text("calendar-loading-later", &[])
+}
+
+/// Line where earlier broadcasts would be when they could not be loaded.
+pub fn calendar_load_earlier_failed() -> String {
+    text("calendar-load-earlier-failed", &[])
+}
+
+/// Line where later broadcasts would be when they could not be loaded.
+pub fn calendar_load_later_failed() -> String {
+    text("calendar-load-later-failed", &[])
+}
+
+/// Button under the line saying nothing on the person's list airs: shows every airing show.
+pub fn calendar_show_all() -> String {
+    text("calendar-show-all", &[])
+}
+
+/// What a screen reader says for the line that marks the time now. The time is already worded.
+pub fn calendar_now_spoken(time: &str) -> String {
+    text("calendar-now-spoken", &[("time", Arg::Text(time))])
+}
+
 /// Button that runs a failed action again.
 pub fn action_try_again() -> String {
     text("action-try-again", &[])
@@ -6980,6 +7025,26 @@ pub fn discussion_settings_group() -> String {
     text("discussion-settings-group", &[])
 }
 
+/// Age of a comment that is on its way to AniList.
+pub fn discussion_sending() -> String {
+    text("discussion-sending", &[])
+}
+
+/// Button under a comment that is cut off after ten lines.
+pub fn discussion_show_more() -> String {
+    text("discussion-show-more", &[])
+}
+
+/// Comment menu item that copies the comment's text.
+pub fn discussion_copy_text() -> String {
+    text("discussion-copy-text", &[])
+}
+
+/// Line for a picture or video in a comment: what it is and the site it is on.
+pub fn discussion_media_line(kind: &str, host: &str) -> String {
+    text("discussion-media-line", &[("kind", Arg::Text(kind)), ("host", Arg::Text(host))])
+}
+
 /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 pub fn downloads_title() -> String {
     text("downloads-title", &[])
@@ -7590,6 +7655,51 @@ pub fn continue_row_start_aired_dubbed(episode: i64, ago: &str) -> String {
     text("continue-row-start-aired-dubbed", &[("episode", Arg::Int(episode)), ("ago", Arg::Text(ago))])
 }
 
+/// Heading over the suggestions under a short { -continue-cap } list.
+pub fn up_next_heading() -> String {
+    text("up-next-heading", &[])
+}
+
+/// Line on a suggestion that has not started airing. The date is written out already, such as "9 January".
+pub fn up_next_starts(date: &str) -> String {
+    text("up-next-starts", &[("date", Arg::Text(date))])
+}
+
+/// Reason on a suggestion that is a new season of a show the person finished and has not started.
+pub fn up_next_reason_new_season() -> String {
+    text("up-next-reason-new-season", &[])
+}
+
+/// Reason on a suggestion that is on the person's Planning list.
+pub fn up_next_reason_planning() -> String {
+    text("up-next-reason-planning", &[])
+}
+
+/// Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.
+pub fn up_next_reason_recommended(title: &str) -> String {
+    text("up-next-reason-recommended", &[("title", Arg::Text(title))])
+}
+
+/// Reason on a recommended suggestion when the finished show is not known.
+pub fn up_next_reason_recommended_plain() -> String {
+    text("up-next-reason-recommended-plain", &[])
+}
+
+/// Reason on a suggestion that airs today, shown when nothing else is left to suggest.
+pub fn up_next_reason_airing_today() -> String {
+    text("up-next-reason-airing-today", &[])
+}
+
+/// Button on a suggestion that has not started airing. It puts the show on the Planning list.
+pub fn up_next_add_planning() -> String {
+    text("up-next-add-planning", &[])
+}
+
+/// Menu item on a suggestion. The show stays hidden until it starts airing.
+pub fn up_next_not_interested() -> String {
+    text("up-next-not-interested", &[])
+}
+
 /// Format of a show: broadcast on television.
 pub fn format_tv() -> String {
     text("format-tv", &[])
@@ -7683,6 +7793,86 @@ pub fn media_airing_since(date: &str) -> String {
 /// Date line of a show that has not started: when it will.
 pub fn media_airing_from(date: &str) -> String {
     text("media-airing-from", &[("date", Arg::Text(date))])
+}
+
+/// Date line of a show that has finished: when it began and when it ended. Both are already worded dates.
+pub fn media_aired_range(from: &str, to: &str) -> String {
+    text("media-aired-range", &[("from", Arg::Text(from)), ("to", Arg::Text(to))])
+}
+
+/// Date line of a show that has finished and ran on one day, such as a film.
+pub fn media_aired_on(date: &str) -> String {
+    text("media-aired-on", &[("date", Arg::Text(date))])
+}
+
+/// Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.
+pub fn media_hiatus_since(date: &str) -> String {
+    text("media-hiatus-since", &[("date", Arg::Text(date))])
+}
+
+/// Date line of a show that was cancelled: the last episode that aired.
+pub fn media_cancelled_after(episode: i64) -> String {
+    text("media-cancelled-after", &[("episode", Arg::Int(episode))])
+}
+
+/// Heading of the list of official services that stream a show, in the sheet of more about it.
+pub fn media_streaming_on() -> String {
+    text("media-streaming-on", &[])
+}
+
+/// Note under the list of official services: AniList's links are not checked against where the viewer is.
+pub fn media_streaming_region_note() -> String {
+    text("media-streaming-region-note", &[])
+}
+
+/// Note beside a link to an official service whose page is in another language, such as "Site in Japanese".
+pub fn media_link_language(language: &str) -> String {
+    text("media-link-language", &[("language", Arg::Text(language))])
+}
+
+/// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+pub fn film_length_hours_minutes(hours: i64, minutes: i64) -> String {
+    text("film-length-hours-minutes", &[("hours", Arg::Int(hours)), ("minutes", Arg::Int(minutes))])
+}
+
+/// Length of a film or a single episode that is a whole number of hours, such as "2 hr".
+pub fn film_length_hours(hours: i64) -> String {
+    text("film-length-hours", &[("hours", Arg::Int(hours))])
+}
+
+/// Length of a film or a single episode under an hour, such as "46 min".
+pub fn film_length_minutes(minutes: i64) -> String {
+    text("film-length-minutes", &[("minutes", Arg::Int(minutes))])
+}
+
+/// Country name: the origin filter and, after "Made in", the title facts.
+pub fn country_japan() -> String {
+    text("country-japan", &[])
+}
+
+/// Country name: the origin filter and, after "Made in", the title facts.
+pub fn country_china() -> String {
+    text("country-china", &[])
+}
+
+/// Country name, after "Made in".
+pub fn country_south_korea() -> String {
+    text("country-south-korea", &[])
+}
+
+/// Country name: the origin filter and, after "Made in", the title facts.
+pub fn country_taiwan() -> String {
+    text("country-taiwan", &[])
+}
+
+/// Fact on a show made outside Japan, with the country already named.
+pub fn media_made_in(country: &str) -> String {
+    text("media-made-in", &[("country", Arg::Text(country))])
+}
+
+/// Fact on a show made outside Japan, for a country this app has no name for.
+pub fn media_made_elsewhere() -> String {
+    text("media-made-elsewhere", &[])
 }
 
 /// Value of "Based on": a story written for the screen.
@@ -9380,6 +9570,21 @@ pub fn settings_title_language() -> String {
     text("settings-title-language", &[])
 }
 
+/// Value of the trailers setting: trailers play by themselves on any network.
+pub fn settings_value_trailers_always() -> String {
+    text("settings-value-trailers-always", &[])
+}
+
+/// Value of the trailers setting: trailers play by themselves only on Wi-Fi.
+pub fn settings_value_trailers_wifi_only() -> String {
+    text("settings-value-trailers-wifi-only", &[])
+}
+
+/// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+pub fn settings_label_trailers() -> String {
+    text("settings-label-trailers", &[])
+}
+
 /// Option: use the tracker's own choice. The tracker is a name.
 pub fn settings_title_tracker(tracker: &str) -> String {
     text("settings-title-tracker", &[("tracker", Arg::Text(tracker))])
@@ -10918,6 +11123,11 @@ pub fn title_button_watch_again() -> String {
 /// Menu item that plays the trailer.
 pub fn title_play_trailer() -> String {
     text("title-play-trailer", &[])
+}
+
+/// Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.
+pub fn title_trailer_failed() -> String {
+    text("title-trailer-failed", &[])
 }
 
 /// Name and tooltip of the button beside a playing trailer that turns its sound on or off.

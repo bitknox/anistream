@@ -228,3 +228,8 @@ torrents-dialog-turn-on-action = Turn on
 torrents-choice-spoken = { $label }. { $detail }
 
 ## Seeding
+
+# Note under the Play trailers setting: what the trailers are and when they do not play.
+# @only windows
+# @max 240
+settings-note-trailers-windows = Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animation effects off, in energy saver mode or with Narrator running.

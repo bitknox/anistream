@@ -277,6 +277,19 @@ libmpv draws with the GPU into its own layer, and Picture in Picture accepts onl
 - Calls and Siri pause, and playback resumes when the interruption allows it. Unplugging headphones pauses.
 - While playing, Mac keeps the display awake (`ProcessInfo.beginActivity` with `.idleDisplaySleepDisabled`) and iPhone disables the idle timer. Pausing releases both.
 
+## Calendar
+
+The behaviour the calendar board sets for every app. The engine owns the range: `CalendarWindow` carries `floor` (90 days before the anchor) and `ceiling` (28 days after it), and no app keeps those numbers.
+
+- All airing is the default and comes first in the control, then My list. The pick is the `CalendarMine` setting (off by default), so Calendar opens on All and remembers the last choice. The label is "My list" everywhere.
+- The first load is about a week each way. Anything else pages in with `LoadCalendarPast` and `LoadCalendarAhead`, asked when the loaded edge is one screen (a week on a grid) away, and with `through` set to the day a grid is stepping to. Pages are numbered from the last page held plus one. A refresh the person asks for sends `RefreshCalendar`.
+- Desktops keep Previous, Today and Next together, always present. Today is turned off while the current week shows, which also says where you are. Ctrl or Command with the left and right arrows steps a week, and with T goes to today.
+- Today is marked by words and place, never amber: the word Today leads the day's label and the column stays raised. The only amber in the calendar is a selection.
+- The now line is silk, 1 px, with the time beside it. It sits between the last broadcast out and the next, today only, and is spoken as "Now, 16:42". Nothing aired yet: under the Today heading. Everything aired: closing the day. Nothing airing today: no line.
+- Where the calendar stops, days keep their headers in haze, one line spans them ("The calendar goes back 3 months.", "The calendar goes 4 weeks ahead.") and the arrow on that side is turned off.
+- A week that is not loaded follows the States rules: nothing for 600 ms, placeholders, then the activity line after 4 s. A failed page keeps what arrived and puts one line with Try again in the week's place, with the vermilion on the glyph only.
+- My list with nothing airing is a line in place with Show all airing, not a full-page state.
+
 ## States
 
 Every screen has loading, content, empty, offline and failed states. All of them follow the TUI's rule: nothing for the first 600 ms, then the state shows where it applies.

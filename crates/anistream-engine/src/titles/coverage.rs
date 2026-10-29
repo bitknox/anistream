@@ -7,11 +7,98 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use anistream_core::media::Episode;
+use anistream_core::{
+    error::ProviderError,
+    ids::{AnilistId, ProviderKey},
+    media::{Episode, MediaStatus, Translation},
+};
 use anistream_meta::anilist::Media;
-use anistream_providers::Contribution;
+use anistream_providers::{Attempt, Contribution, ProviderRegistry};
+use anistream_store::Store;
 
 use crate::data::{self, Numbering};
+
+/// Whether AniList says title `media` has not started: announced, and nothing of it out by its
+/// count or its schedule. There is nothing of it for a source to list, and what a search for it
+/// finds is another title, most often the season before, whose name a sequel's begins with.
+pub fn unstarted(media: &Media, now: i64) -> bool {
+    media.status == Some(MediaStatus::NotYetReleased)
+        && data::metadata_episodes(media, now).next().is_none()
+}
+
+/// How many episodes past a finished title's count a source can list and still be listing it.
+/// Sites often number a bonus episode, a recap or an OVA on from the last episode, so a season
+/// of 12 is listed as 13 or 14; a listing further past the count is a longer work. The same
+/// slack the ladder gives a search hit's episode count before calling it another title.
+const FINISHED_EXTRAS: u32 = 2;
+
+/// How far a source can list title `media`, in AniList's numbers: a finished title's count and
+/// the extras sites number on from it ([`FINISHED_EXTRAS`]), or on a show not yet finished what
+/// is out and the episode airing next, which a source can carry a little before AniList's
+/// schedule says it is out. `None` when AniList cannot say: a show on the air with no count or
+/// schedule to go by.
+fn listable(media: &Media, now: i64) -> Option<u32> {
+    let out = *data::metadata_episodes(media, now).end();
+    if out == 0 && !unstarted(media, now) {
+        return None;
+    }
+    let done = matches!(media.status, Some(MediaStatus::Finished | MediaStatus::Cancelled))
+        && media.next_airing_episode.is_none();
+    Some(if done { out + FINISHED_EXTRAS } else { out + 1 })
+}
+
+/// Whether `listing`, a source's for `media`, runs past what has aired: it has an episode, in
+/// AniList's numbers, beyond what [`listable`] allows. Such a listing is another title's that
+/// the source's search took for this one, as the season before a sequel is, and none of it is
+/// this title's. A listing numbered in a way that does not line up with AniList's is not judged.
+pub fn runs_ahead(media: &Media, listing: &[Episode], now: i64) -> bool {
+    let Some(bound) = listable(media, now) else { return false };
+    let numbering = Numbering::of(listing, media, now);
+    listing
+        .iter()
+        .filter_map(|episode| numbering.anilist(episode.number.as_str()))
+        .any(|number| number > bound)
+}
+
+/// What `source` lists of title `media` (title `id`) under `key`, when it is this title's. A
+/// listing that [`runs_ahead`] is the source not having the title: it does not reach a table,
+/// fill another source's gaps or say how far a dub goes, and the sources below are asked
+/// instead.
+///
+/// Unless the user chose the source's page for the title themselves: their correction stands,
+/// as it does on the ladder. A season released on a site all at once while AniList's schedule
+/// still goes by the weekly broadcast looks, from the listing and AniList alone, just like the
+/// season before matched by its name, and a correction is how such a title is set right.
+pub async fn listing(
+    source: ProviderRegistry,
+    key: ProviderKey,
+    translation: Translation,
+    (store, id): (&Store, AnilistId),
+    media: &Media,
+    now: i64,
+) -> Attempt<Vec<Episode>> {
+    let corrected = || {
+        source.ids().first().is_some_and(|provider| {
+            store.lookup_mapping(id, provider).ok().flatten().is_some_and(|mapping| {
+                mapping.rung == anistream_store::ResolutionRung::Override
+                    && mapping.provider_key == key
+            })
+        })
+    };
+    let mut attempt = source.episodes(&key, translation, now).await;
+    if let Some(episodes) = &attempt.value
+        && runs_ahead(media, episodes, now)
+        && !corrected()
+    {
+        let provider = attempt.provider.take().unwrap_or_default();
+        tracing::info!(
+            %provider, listed = episodes.len(), "lists more than has aired; another title's"
+        );
+        attempt.value = None;
+        attempt.failures.push((provider, ProviderError::NotFound));
+    }
+    attempt
+}
 
 /// The sources' listings of one title, merged: see [`merge`].
 #[derive(Debug, Clone, PartialEq)]
@@ -210,6 +297,46 @@ mod tests {
         assert_eq!(missing, ["10", "11", "12", "13"]);
         assert!(!is_whole(&media(), &[answer("batch", 1..=6)], 0));
         assert!(is_whole(&media(), &[answer("batch", 1..=13)], 0));
+    }
+
+    #[test]
+    fn a_listing_past_what_has_aired_is_another_titles() {
+        let listed = |numbers: std::ops::RangeInclusive<u32>| -> Vec<Episode> {
+            numbers.map(Episode::new).collect()
+        };
+        let title = |fields: serde_json::Value| -> Media {
+            let mut wire = serde_json::json!({ "id": 1, "duration": 24 });
+            wire.as_object_mut().unwrap().extend(fields.as_object().unwrap().clone());
+            serde_json::from_value(wire).unwrap()
+        };
+        // Three of twelve out and the fourth next.
+        let airing = title(serde_json::json!({
+            "status": "RELEASING", "episodes": 12,
+            "aired": [
+                { "episode": 1, "airingAt": 100 }, { "episode": 2, "airingAt": 200 },
+                { "episode": 3, "airingAt": 300 },
+            ],
+            "nextAiringEpisode": { "episode": 4, "airingAt": 400, "timeUntilAiring": 50 },
+        }));
+        assert!(!runs_ahead(&airing, &listed(1..=4), 0), "the next can be out a little early");
+        assert!(runs_ahead(&airing, &listed(1..=12), 0), "the season before, by its name");
+        assert!(!runs_ahead(&airing, &listed(13..=15), 0), "counted on from the season before");
+        // Nothing to go by.
+        let unknown = title(serde_json::json!({ "status": "RELEASING" }));
+        assert!(!runs_ahead(&unknown, &listed(1..=40), 0));
+        // A finished season of 12, listed with the extras sites number on from it, and a
+        // listing twice as long, which is a longer work.
+        let finished = title(serde_json::json!({ "status": "FINISHED", "episodes": 12 }));
+        assert!(!runs_ahead(&finished, &listed(1..=12), 0));
+        assert!(!runs_ahead(&finished, &listed(1..=13), 0), "a bonus numbered 13");
+        assert!(!runs_ahead(&finished, &listed(1..=14), 0), "a recap and an OVA after it");
+        assert!(runs_ahead(&finished, &listed(1..=24), 0));
+        // Not started: nothing is out, and only the first episode is ever close to it.
+        let announced = title(serde_json::json!({ "status": "NOT_YET_RELEASED" }));
+        assert!(unstarted(&announced, 0));
+        assert!(runs_ahead(&announced, &listed(1..=12), 0));
+        assert!(!runs_ahead(&announced, &[], 0));
+        assert!(!unstarted(&airing, 0));
     }
 
     #[test]

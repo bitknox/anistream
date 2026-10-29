@@ -72,6 +72,15 @@ settings-group-episodes = Episodes
 # Row: how titles are written.
 settings-title-language = Title language
 
+# Value of the trailers setting: trailers play by themselves on any network.
+settings-value-trailers-always = Always
+
+# Value of the trailers setting: trailers play by themselves only on Wi-Fi.
+settings-value-trailers-wifi-only = Wi-Fi only
+
+# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+settings-label-trailers = Play trailers
+
 # Option: use the tracker's own choice. The tracker is a name.
 # @arg tracker: text
 settings-title-tracker = { $tracker }'s choice
