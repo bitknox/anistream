@@ -7,6 +7,7 @@ import AnistreamDesign
 import AnistreamKit
 import AnistreamPlayer
 import AnistreamStore
+import AnistreamStrings
 import AppKit
 import SwiftUI
 
@@ -178,24 +179,24 @@ public struct MacPlayerView: View {
 
     @ViewBuilder
     private var contextMenu: some View {
-        Button(model.paused ? "Play" : "Pause") { model.togglePause() }
+        Button(model.paused ? L.actionPlay : L.actionPause) { model.togglePause() }
         if let skip = model.skip {
-            Button(skip.label.capitalized) { model.takeSkip() }
+            Button(skip.label) { model.takeSkip() }
         }
         Divider()
-        Button("Subtitles…") { toggle(.tracks) }
-        Button("Audio…") { toggle(.tracks) }
-        Button("Episodes…") { toggle(.episodes) }
-        Button("Picture and Sound…") { toggle(.picture) }
+        Button(L.playerMenuSubtitles) { toggle(.tracks) }
+        Button(L.playerMenuAudio) { toggle(.tracks) }
+        Button(L.playerMenuEpisodes) { toggle(.episodes) }
+        Button(L.playerMenuPictureSound) { toggle(.picture) }
             .disabled(model.menus == nil)
-        Toggle("Stats for Nerds", isOn: Binding(get: { model.statsShown }, set: { model.showStats($0) }))
+        Toggle(L.playerStats, isOn: Binding(get: { model.statsShown }, set: { model.showStats($0) }))
         Divider()
-        Button("Picture in Picture") { model.togglePictureInPicture() }
+        Button(L.playerPictureInPicture) { model.togglePictureInPicture() }
             .disabled(!model.pictureInPictureAvailable)
         if model.playOnTVAvailable {
-            Button("Play on TV…") { model.playOnTV() }
+            Button(L.tvPlayOnMenu) { model.playOnTV() }
         }
-        Button(store.party.inParty ? "Watch Party…" : "Watch Together…") { people() }
+        Button(L.partyOpen) { people() }
     }
 
     // MARK: Chrome
@@ -232,8 +233,8 @@ public struct MacPlayerView: View {
             Color.clear.frame(width: model.fullScreen ? 0 : 60, height: 12)
             // In the window's title bar strip outside full screen, where each of the bar's
             // controls takes its clicks this way and the rest of the strip drags the window.
-            icon("chevron.backward", "Back", lit: pointed == "Back") { back() }
-                .titleBarControl(active: visible, pointed: { point("Back", $0) }) { back() }
+            icon("chevron.backward", L.actionBack, lit: pointed == L.actionBack) { back() }
+                .titleBarControl(active: visible, pointed: { point(L.actionBack, $0) }) { back() }
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(model.showTitle)
                     .font(.showTitle(size: 15))
@@ -246,8 +247,8 @@ public struct MacPlayerView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 0) {
                 partyButton
-                capsuleButton("captions.bubble", "Subtitles and audio", on: panel == .tracks) { toggle(.tracks) }
-                capsuleButton("list.bullet", "Episodes", on: panel == .episodes) { toggle(.episodes) }
+                capsuleButton("captions.bubble", L.playerSubtitlesAndAudio, on: panel == .tracks) { toggle(.tracks) }
+                capsuleButton("list.bullet", L.playerEpisodes, on: panel == .episodes) { toggle(.episodes) }
             }
             .padding(2)
             .background(.overVideo(0.62), in: .capsule)
@@ -260,9 +261,9 @@ public struct MacPlayerView: View {
 
     private var controlRow: some View {
         HStack(spacing: 4) {
-            icon(model.paused ? "play.fill" : "pause.fill", model.paused ? "Play" : "Pause") { model.togglePause() }
-            icon("gobackward.10", "Back 10 seconds") { model.seek(by: -10) }
-            icon("goforward.10", "Forward 10 seconds") { model.seek(by: 10) }
+            icon(model.paused ? "play.fill" : "pause.fill", model.paused ? L.actionPlay : L.actionPause) { model.togglePause() }
+            icon("gobackward.10", L.playerBack10) { model.seek(by: -10) }
+            icon("goforward.10", L.playerForward10) { model.seek(by: 10) }
             PlayerTime(seconds: model.position, metrics: metrics)
                 .frame(width: 44, alignment: .leading)
                 .padding(.leading, 8)
@@ -281,7 +282,7 @@ public struct MacPlayerView: View {
                         .contentShape(.circle)
                 }
                 .buttonStyle(OverVideoButtonStyle())
-                .accessibilityLabel(model.muted ? "Unmute" : "Mute")
+                .accessibilityLabel(model.muted ? L.playerUnmute : L.playerMute)
                 VolumeLine(model: model)
             }
             .padding(.leading, 8)
@@ -296,20 +297,20 @@ public struct MacPlayerView: View {
             }
             .buttonStyle(OverVideoButtonStyle(on: panel == .speed))
             .padding(.leading, 8)
-            .accessibilityLabel("Playback speed, \(speedLabel(model.speed))")
-            .help("Playback speed")
-            icon("slider.horizontal.3", "Picture and sound", on: panel == .picture) { toggle(.picture) }
+            .accessibilityLabel(L.playerSpeedIs(speed: speedLabel(model.speed)))
+            .help(L.playerSpeed)
+            icon("slider.horizontal.3", L.playerPictureAndSound, on: panel == .picture) { toggle(.picture) }
                 .disabled(model.menus == nil)
                 .opacity(model.menus == nil ? 0.4 : 1)
             if model.playOnTVAvailable {
-                icon("tv", "Play on TV") { model.playOnTV() }
+                icon("tv", L.tvPlayOn) { model.playOnTV() }
             }
-            icon("pip.enter", "Picture in Picture") { model.togglePictureInPicture() }
+            icon("pip.enter", L.playerPictureInPicture) { model.togglePictureInPicture() }
                 .disabled(!model.pictureInPictureAvailable)
                 .opacity(model.pictureInPictureAvailable ? 1 : 0.4)
             icon(
                 model.fullScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
-                model.fullScreen ? "Exit Full Screen" : "Enter Full Screen"
+                model.fullScreen ? L.playerExitFullScreen : L.playerEnterFullScreen
             ) { model.fullScreen.toggle() }
         }
         .overVideoText()
@@ -644,8 +645,8 @@ struct VolumeLine: View {
         }
         .frame(width: width, height: 28)
         .accessibilityElement()
-        .accessibilityLabel("Volume")
-        .accessibilityValue("\(Int(model.volume))%")
+        .accessibilityLabel(L.playerVolume)
+        .accessibilityValue((model.volume / 100).formatted(.percent.locale(AirTime.locale)))
         .accessibilityAdjustableAction { model.stepVolume(by: $0 == .increment ? 5 : -5) }
     }
 }

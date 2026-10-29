@@ -15,7 +15,7 @@ import dnssd
 public final class BonjourTVBrowser: FfiTvBrowser {
     public static let serviceType = "_anistream._tcp"
 
-    private let queue = DispatchQueue(label: "tv.anistream.tv-browser")
+    private let queue = DispatchQueue(label: "tv.anistream.tv-browser") // i18n-skip
     private struct Browse {
         var browser: NWBrowser
         var sink: FfiDiscoverySink

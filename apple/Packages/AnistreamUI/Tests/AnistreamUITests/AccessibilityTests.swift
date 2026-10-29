@@ -7,12 +7,12 @@ import Foundation
 import Testing
 
 struct AccessibilityTests {
-    @Test func shorthandIsReadInWords() {
-        #expect(Spoken.words("Ep 8 out 1d 2h ago") == "Episode 8 out 1 day 2 hours ago")
-        #expect(Spoken.words("Ep 9 in 1h 30m") == "Episode 9 in 1 hour 30 minutes")
-        #expect(Spoken.words("14 min left") == "14 minutes left")
-        #expect(Spoken.words("1 min left") == "1 minute left")
-        #expect(Spoken.words("Resume E7 · 10:06") == "Resume E7 · 10:06", "a clock stays a clock")
+    @Test func aSpanIsReadInFullWords() {
+        #expect(Spoken.span(26 * 3600) == "1 day, 2 hours")
+        #expect(Spoken.span(90 * 60) == "1 hour, 30 minutes")
+        #expect(Spoken.span(14 * 60) == "14 minutes")
+        #expect(Spoken.span(10 * 86_400) == "10 days")
+        #expect(Spoken.out(30) == "just now")
     }
 
     @Test func aBroadcastIsReadWithItsEpisodeFirst() {
@@ -21,7 +21,7 @@ struct AccessibilityTests {
         let aired = Broadcast(entry: e, episode: 8, airs: now.addingTimeInterval(-19 * 3600))
         #expect(aired.spoken(now: now) == "Episode 8, out 19 hours ago")
         let coming = Broadcast(entry: e, episode: 9, airs: now.addingTimeInterval(90 * 60))
-        #expect(coming.spoken(now: now) == "Episode 9 at \(CalendarWords.time(coming.airs)), in 1 hour 30 minutes")
+        #expect(coming.spoken(now: now) == "Episode 9 at \(CalendarWords.time(coming.airs)), in 1 hour, 30 minutes")
         e.progress = TitleProgress(done: 8, next: 9)
         #expect(Broadcast(entry: e, episode: 8, airs: aired.airs).spoken(now: now) == "Episode 8, watched")
     }
@@ -31,12 +31,12 @@ struct AccessibilityTests {
         let airs = now.addingTimeInterval(90 * 60)
         let plain = Broadcast(entry: entry { _ in }, episode: 9, airs: airs)
         #expect(plain.clock == CalendarWords.time(airs))
-        #expect(plain.mark == nil)
+        #expect(!plain.dubbed)
         let estimated = Broadcast(entry: entry { $0.airingApproximate = true; $0.airingDubbed = true }, episode: 9, airs: airs)
         #expect(estimated.clock == "~" + CalendarWords.time(airs))
-        #expect(estimated.mark == "Dub")
-        #expect(estimated.spoken(now: now) == "Episode 9, Dub at about \(CalendarWords.time(airs)), in 1 hour 30 minutes")
-        #expect(Broadcast(entry: entry { $0.airingTranslation = .sub }, episode: 9, airs: airs).mark == nil, "only dubs are marked")
+        #expect(estimated.dubbed)
+        #expect(estimated.spoken(now: now) == "Episode 9, Dubbed at about \(CalendarWords.time(airs)), in 1 hour, 30 minutes")
+        #expect(Broadcast(entry: entry { $0.airingTranslation = .sub }, episode: 9, airs: airs).dubbed == false, "only dubs are marked")
     }
 
     @Test func anEpisodeIsNamedThenSaysWhereItStands() {
@@ -66,8 +66,8 @@ struct AccessibilityTests {
         // A dub is read as the row marks it, a sub as before.
         let dub = entry { $0.watchedIn = .dub }
         let dubbed = ContinueItem(entry: dub, episode: 7, resume: ResumePoint(position: 606, fraction: 0.42), airedAgo: nil)
-        #expect(dubbed.spokenProgress == "Episode 7, Dub, 14 minutes left")
-        #expect(ContinueItem(entry: dub, episode: 4, resume: nil, airedAgo: nil).spokenProgress == "Episode 4, Dub")
+        #expect(dubbed.spokenProgress == "Episode 7, Dubbed, 14 minutes left")
+        #expect(ContinueItem(entry: dub, episode: 4, resume: nil, airedAgo: nil).spokenProgress == "Episode 4, Dubbed")
         let sub = entry { $0.watchedIn = .sub }
         #expect(ContinueItem(entry: sub, episode: 4, resume: nil, airedAgo: nil).spokenProgress == "Episode 4")
     }

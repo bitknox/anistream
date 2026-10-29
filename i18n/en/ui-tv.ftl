@@ -200,3 +200,12 @@ tv-remove-phone-detail = It stops working as a remote for this TV. It can pair a
 
 # Heading of the settings group on the TV that lists the remotes.
 tv-remotes = Remotes
+
+# Row title of the button that pairs another TV once one is paired.
+tv-another = Another TV
+
+# Under a TV in the list: its version does not match.
+tv-row-needs-update = Needs the same { -app-name } version as this { -device }
+
+# Title of the remote's volume row.
+tv-volume = TV volume

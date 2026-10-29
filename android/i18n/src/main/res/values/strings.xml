@@ -448,8 +448,6 @@
     </plurals>
     <!-- Accessibility label of the account button in the top bar when someone is signed in. -->
     <string name="account_button_named">%1$s, accounts and settings</string>
-    <!-- Button on a notice that opens the plugin stores, where its cause can be fixed. -->
-    <string name="notice_open_stores">Open plugin stores</string>
     <!-- Settings row: whether an episode's AniList discussion can be opened. -->
     <string name="settings_discussions_label">Episode discussions</string>
     <!-- Note under the Episode discussions setting. -->
@@ -709,18 +707,10 @@
     </plurals>
     <!-- TV, discussion panel: what Select does on a comment with a hidden spoiler. -->
     <string name="tv_discussion_select_spoiler">Select to show the spoiler</string>
-    <!-- A countdown that has run out. -->
-    <string name="time_now_inline">now</string>
     <!-- The episode in a short form for a title last watched dubbed. -->
     <string name="episode_short_dubbed">E%1$d · Dubbed</string>
     <!-- The episode in its long form for a title last watched dubbed. -->
     <string name="episode_long_dubbed">Episode %1$d · Dubbed</string>
-    <!-- Continue row: a new episode, watched dubbed, with how long ago it came out. -->
-    <string name="continue_row_start_aired_dubbed">Play E%1$d dubbed · out %2$s</string>
-    <!-- Title page button: continue a dubbed episode part-way through. -->
-    <string name="title_button_resume_dubbed">Resume episode %1$d · Dubbed · %2$s</string>
-    <!-- Title page button: play the next dubbed episode. -->
-    <string name="title_button_play_dubbed">Play episode %1$d · Dubbed</string>
     <!-- Download notification title when several episodes are paused. -->
     <plurals name="downloads_live_paused">
         <item quantity="one">One episode paused</item>
@@ -756,8 +746,6 @@
     <string name="torrents_check_note_warn">anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and warns you if that check fails. Your VPN or proxy is what protects you.</string>
     <!-- The same note when a failed check stops torrents. -->
     <string name="torrents_check_note_stop">anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and stops torrents if that check fails. Your VPN or proxy is what protects you.</string>
-    <!-- Notice after the torrent protection was saved. -->
-    <string name="torrents_protection_saved">Torrent protection saved</string>
     <!-- Name of the proxy protection. -->
     <string name="torrents_protect_proxy_name">SOCKS5 proxy</string>
     <!-- Name of the VPN protection. -->
@@ -877,8 +865,6 @@
     <string name="sources_reorder">Reorder</string>
     <!-- Source page: the version of a source and the newer one a store offers. -->
     <string name="sources_version_available">%1$s available</string>
-    <!-- Source page: how long the source took to answer, in milliseconds. -->
-    <string name="sources_response_ms">%1$d ms</string>
     <!-- Update dialog: the version, and the store it comes from, for a source that has no version yet. -->
     <string name="sources_update_from">Version %1$s from %2$s.</string>
     <!-- Source page: the line under a source that is off. -->
@@ -1023,8 +1009,6 @@
     <string name="settings_aside_connection_check">Connection check</string>
     <!-- Settings aside on a tablet, Sources: how sources are tried. -->
     <string name="settings_aside_sources">Source are tried in order, top to bottom. A show can keep its own source, chosen from its title page.</string>
-    <!-- Settings aside on a tablet, Accounts: what signing out keeps. -->
-    <string name="settings_aside_accounts">anistream works without an account. Your watch history stays on this device when you sign out.</string>
     <!-- Settings aside on a tablet, upscaling picture: what a screen reader hears. -->
     <string name="settings_upscaling_description">The same still, the left half as the original 480p, the right half with %1$s</string>
     <!-- Settings aside on a tablet, upscaling picture: the label over the unprocessed half. -->
@@ -1129,20 +1113,8 @@
     <string name="episode_number_plain">Episode %1$s</string>
     <!-- Player, header: the episode's number and its title. -->
     <string name="episode_number_title_text">Episode %1$s · %2$s</string>
-    <!-- Player, starting screen: the first line. -->
-    <string name="player_starting_text">Starting episode %1$s</string>
-    <!-- Player, starting screen: what the wait is on, and for how long. -->
-    <string name="player_wait_note">%1$s · %2$d s</string>
-    <!-- Player, starting screen: the title when nothing played. -->
-    <string name="player_failed_title_text">Couldn\'t play episode %1$s</string>
-    <!-- Player, track lists: a track with neither language nor title. -->
-    <string name="player_track_n">Track %1$d</string>
     <!-- Player, seek bar: the position and the length, for a screen reader. -->
     <string name="player_position_state">%1$s of %2$s</string>
-    <!-- Player, seek bar: the label while scrubbing at a quarter of the speed. -->
-    <string name="player_scrub_quarter">Quarter-speed scrubbing</string>
-    <!-- Player, seek bar: the label while scrubbing at half the speed. -->
-    <string name="player_scrub_half">Half-speed scrubbing</string>
     <!-- Player, sources sheet: shown while the sources are being asked. -->
     <string name="player_sheet_finding">Finding sources…</string>
     <!-- Player, sources sheet: shown when no source has the episode. -->
@@ -1174,8 +1146,6 @@
     <string name="tv_session_starting">Starting on %1$s</string>
     <!-- Phone as remote, media card: the episode and the TV it plays on. -->
     <string name="tv_session_line">%1$s · %2$s</string>
-    <!-- Widgets, Continue: the line under a show that has not been started. -->
-    <string name="widget_line_start">Start %1$s</string>
     <!-- Widgets, Continue: the line under a show with time left in the episode. -->
     <string name="widget_line_left">%1$s · %2$d min left</string>
     <!-- Widgets, Continue: the line under a show with the episode out of the season. -->
@@ -1188,10 +1158,6 @@
     <string name="widget_caught_up">You’re caught up.</string>
     <!-- Widgets, Continue: the line when the next episode has a date. -->
     <string name="widget_caught_up_next">%1$s E%2$d airs %3$s.</string>
-    <!-- Widgets: a day word for the Updated line. -->
-    <string name="widget_day_today">today</string>
-    <!-- Widgets: a day word for the Updated line. -->
-    <string name="widget_day_yesterday">yesterday</string>
     <!-- Widgets: the Updated line's date when it is a week or more back. -->
     <string name="widget_day_date">%1$s</string>
     <!-- Widgets, Continue: the play button for a screen reader, with the mark ("dubbed") after the number. -->
@@ -1425,6 +1391,18 @@
     <string name="time_minutes_left">%1$d min left</string>
     <!-- A length in minutes, for an episode. -->
     <string name="time_minutes">%1$d min</string>
+    <!-- A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line. -->
+    <string name="time_now_inline">now</string>
+    <!-- How long ago, under a minute. Lower case, as it stands inside a line. -->
+    <string name="time_just_now_inline">just now</string>
+    <!-- Later today. -->
+    <string name="when_today">today %1$s</string>
+    <!-- Tomorrow. -->
+    <string name="when_tomorrow">tomorrow %1$s</string>
+    <!-- Within the next six days. The day is the weekday's name, already formatted. -->
+    <string name="when_weekday">%1$s %2$s</string>
+    <!-- A week or more away. The date is the day and short month, already formatted, such as "29 Oct". -->
+    <string name="when_date">%1$s, %2$s</string>
     <!-- Line under a title when the device has no connection. -->
     <string name="state_offline_line">Offline. Downloaded episodes still play.</string>
     <!-- Title of the full-screen state when a screen needs a connection and there is none. -->
@@ -1451,8 +1429,6 @@
     <string name="state_working">Working</string>
     <!-- Short placeholder while something loads. -->
     <string name="state_loading">Loading</string>
-    <!-- How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now". -->
-    <string name="time_just_now_inline">just now</string>
     <!-- Controller help: the D-pad and left stick move focus between items. -->
     <string name="pad_help_move">Move focus</string>
     <!-- Controller help: the A button on a list, a button or a switch. -->
@@ -1916,6 +1892,8 @@
     <string name="progress_episodes_short">E%1$d of %2$d</string>
     <!-- Short progress under a show when the total is not known. -->
     <string name="progress_episode_short">E%1$d</string>
+    <!-- Row caption: the next unwatched episode, dubbed, which came out a while ago. -->
+    <string name="continue_row_start_aired_dubbed">Play E%1$d dubbed · out %2$s</string>
     <!-- Format of a show: broadcast on television. -->
     <string name="format_tv">TV</string>
     <!-- Format of a show: a short series on television. -->
@@ -2255,6 +2233,10 @@
     <string name="party_sources_label">Sources for this episode</string>
     <!-- Line of a source: its quality and size already formatted, and the number of seeders. -->
     <string name="party_source_seeders">%1$d seeders</string>
+    <!-- Line when no source lists the episode. -->
+    <string name="party_no_source_lists">No source lists episode %1$s. Sources come from plugins, which a plugin store adds.</string>
+    <!-- Button that plays the chosen source with the room. -->
+    <string name="party_play_with">Play with the watch party</string>
     <!-- Label on the card for the episode that plays after this one. -->
     <string name="player_up_next">Up next</string>
     <!-- Label before the name of the work a show is based on. -->
@@ -2408,6 +2390,18 @@
     <string name="source_picker_empty">No source has a stream for this episode.</string>
     <!-- Title of the picker sheet in the player. -->
     <string name="player_sources">Sources</string>
+    <!-- Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5". -->
+    <string name="player_failed_title_text">Couldn\'t play episode %1$s</string>
+    <!-- Label while scrubbing the seek line at half the pace. -->
+    <string name="player_scrub_half">Half-speed scrubbing</string>
+    <!-- Label while scrubbing the seek line at a quarter of the pace. -->
+    <string name="player_scrub_quarter">Quarter-speed scrubbing</string>
+    <!-- Heading of the starting screen. The episode's number is text, because it may be "7.5". -->
+    <string name="player_starting_text">Starting episode %1$s</string>
+    <!-- Name of an audio or subtitle track that has no language or title. -->
+    <string name="player_track_n">Track %1$d</string>
+    <!-- Line while an episode starts after a few seconds: what the wait is on, and for how long. -->
+    <string name="player_wait_note">%1$s · %2$d s</string>
     <!-- Button that shows the season before. -->
     <string name="seasonal_previous">Previous season</string>
     <!-- Button that shows the season after. -->
@@ -2822,8 +2816,28 @@
     <string name="settings_upscaling_note_natural">Faithful line work and texture, nothing restyled.</string>
     <!-- Preview note under the upscaling frame for the sharp look. -->
     <string name="settings_upscaling_note_sharp">Crisper lines and stronger edges, at some cost to texture.</string>
+    <!-- Setting: a command run after each download finishes. -->
+    <string name="settings_after_download">After each download</string>
+    <!-- Setting: extra options passed to mpv, the player. mpv stays lower case. -->
+    <string name="settings_mpv_options">mpv options</string>
+    <!-- Name screen readers give the list of panes down the side of Settings. -->
+    <string name="settings_panes_label">Settings panes</string>
+    <!-- Setting: Discord's status with the cover and a progress bar. -->
+    <string name="settings_presence_rich">Rich presence</string>
+    <!-- Setting: Discord's status names the show being watched. -->
+    <string name="settings_presence_title">Presence shows the title</string>
+    <!-- Under a tracker that is signed in, when its user name is unknown. -->
+    <string name="settings_signed_in">Signed in</string>
     <!-- Value of the upscaling setting: a sharper look. The name after the dot is the shader used. -->
     <string name="settings_upscaling_sharp">Sharp · Anime4K</string>
+    <!-- Side note in Accounts. -->
+    <string name="settings_aside_accounts">anistream works without an account. Your watch history stays on this device when you sign out.</string>
+    <!-- Today, inside a line such as "Thursday 16:30". -->
+    <string name="widget_day_today">today</string>
+    <!-- Yesterday, inside a line. -->
+    <string name="widget_day_yesterday">yesterday</string>
+    <!-- Line of the Continue widget: what plays next, with the episode already named. -->
+    <string name="widget_line_start">Start %1$s</string>
     <!-- Title of the screen or section that lists sources. -->
     <string name="sources_title">Sources</string>
     <!-- Shown on the sources screen when none is installed. -->
@@ -2959,6 +2973,12 @@
     <string name="sources_torrent_source">Torrent source</string>
     <!-- Row: where the plugin's page stands. -->
     <string name="sources_source_order_row">Source order</string>
+    <!-- Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin. -->
+    <string name="sources_torrents_note">Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.</string>
+    <!-- Over the { -source } list while the { -source-pl } are set up again after a change. -->
+    <string name="sources_rebuilding">Sources are being set up again</string>
+    <!-- Value of a plugin's response time, in milliseconds. -->
+    <string name="sources_response_ms">%1$d ms</string>
     <!-- Short label for a joined store, on a row. -->
     <string name="stores_joined">Joined</string>
     <!-- Title of the empty list. -->
@@ -3213,6 +3233,8 @@
     <string name="stores_publish_none">No plugins on this device to publish.</string>
     <!-- Version line of a plugin in the publish sheet. -->
     <string name="stores_plugin_name_version">%1$s %2$s</string>
+    <!-- Button on the summary row that removes every device that joined with the link. -->
+    <string name="stores_remove_all">Remove all</string>
     <!-- Button under an invite link that copies it. Reads "Copied" for a moment afterwards. -->
     <string name="stores_copy_link">Copy link</string>
     <!-- Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog. -->
@@ -3220,6 +3242,8 @@
         <item quantity="one">One plugin</item>
         <item quantity="other">%1$d plugins</item>
     </plurals>
+    <!-- Button of a notice that opens the plugin stores page. -->
+    <string name="notice_open_stores">Open plugin stores</string>
     <!-- Title of the state when a title page could not load. -->
     <string name="title_load_failed">Couldn\'t load this title</string>
     <!-- Line under the load failure when AniList did not answer. -->
@@ -3343,6 +3367,10 @@
     </plurals>
     <!-- An episode's line with the audio it was watched in marked, as Continue and the title page word it. -->
     <string name="episode_line_dubbed">%1$s · Dubbed</string>
+    <!-- Main button of the title page for a dubbed episode that has not been started. -->
+    <string name="title_button_play_dubbed">Play episode %1$d · Dubbed</string>
+    <!-- Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted. -->
+    <string name="title_button_resume_dubbed">Resume episode %1$d · Dubbed · %2$s</string>
     <!-- Title of the settings group and the screen. -->
     <string name="torrents_title">Torrents</string>
     <!-- Label and short value for the switch. -->
@@ -3491,6 +3519,8 @@
     <string name="torrents_page_needs_script">This page needs JavaScript to send the form to the TV safely.</string>
     <!-- Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects. -->
     <string name="torrents_check_note">anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.</string>
+    <!-- Notice after the protection was saved. -->
+    <string name="torrents_protection_saved">Torrent protection saved</string>
     <!-- Title of the accounts screen. The sidebar item is nav-accounts. -->
     <string name="accounts_title">Accounts</string>
     <!-- Heading over the trackers other than the first. -->
@@ -3748,6 +3778,12 @@
     <string name="tv_remove_phone_detail">It stops working as a remote for this TV. It can pair again with a new code.</string>
     <!-- Heading of the settings group on the TV that lists the remotes. -->
     <string name="tv_remotes">Remotes</string>
+    <!-- Row title of the button that pairs another TV once one is paired. -->
+    <string name="tv_another">Another TV</string>
+    <!-- Under a TV in the list: its version does not match. -->
+    <string name="tv_row_needs_update">Needs the same anistream version as this device</string>
+    <!-- Title of the remote's volume row. -->
+    <string name="tv_volume">TV volume</string>
     <!-- Heading of the update row in settings and about. -->
     <string name="updates_title">Updates</string>
     <!-- Line while the app checks. -->

@@ -2,6 +2,7 @@
 // stands: a mark or a watch moves it everywhere at once.
 
 import AnistreamKit
+import AnistreamStrings
 import Observation
 
 /// The titles by id, merged from every list, page and progress the engine sends. Lists hold ids
@@ -90,7 +91,11 @@ public final class TitleCache {
 
     /// How far a title's dub goes, as the page words it; nothing when there is none to say.
     func dub(id: AnilistId, extent: DubExtent?) {
-        dubLines[id] = dubLine(dub: extent)
+        guard let extent else {
+            dubLines[id] = nil
+            return
+        }
+        dubLines[id] = extent.complete ? L.audioDubbed : L.titleDubbedTo(episode: Int(extent.through))
     }
 
     /// Whether title `id`'s episodes, as last loaded, are AniList's alone: no source set up has

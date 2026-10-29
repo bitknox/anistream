@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 // MARK: - On the page
@@ -59,7 +60,7 @@ struct InlineMoreText: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 if !expanded, full > shown + 1 {
-                    Button("More") { withAnimation(.standard) { expanded = true } }
+                    Button(L.actionMore) { withAnimation(.standard) { expanded = true } }
                         .buttonStyle(.plain)
                         .font(font.weight(.semibold))
                         .foregroundStyle(.silk)
@@ -69,7 +70,7 @@ struct InlineMoreText: View {
                                     .init(color: Palette.ground, location: 0.45)],
                             startPoint: .leading, endPoint: .trailing))
                         .contentShape(.rect.inset(by: -12))
-                        .accessibilityHint("Shows the whole synopsis")
+                        .accessibilityHint(L.titleSynopsisHint)
                 }
             }
     }
@@ -91,7 +92,7 @@ struct MetaFactsGrid: View {
             }
             if !tags.isEmpty {
                 GridRow(alignment: .top) {
-                    Text("Tags").foregroundStyle(.haze).frame(width: 124, alignment: .leading)
+                    Text(L.titleTags).foregroundStyle(.haze).frame(width: 124, alignment: .leading)
                     Text(tags.joined(separator: ", ")).foregroundStyle(.silk).lineLimit(2)
                 }
             }
@@ -108,10 +109,10 @@ struct MoreAboutButton: View {
 
     var body: some View {
         #if os(macOS)
-        let label = "More About This Show"
+        let label = L.titleMoreAbout
         let height: CGFloat = 28
         #else
-        let label = "More about this show"
+        let label = L.titleMoreAbout
         let height: CGFloat = 44
         #endif
         Button {
@@ -136,7 +137,7 @@ struct MoreAboutRow: View {
             navigator.moreAbout = entry.id
         } label: {
             HStack {
-                Text("More about this show").font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
+                Text(L.titleMoreAbout).font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
                 Spacer()
                 Image(systemName: "chevron.right").font(.ui(15, weight: .semibold)).foregroundStyle(.haze)
             }
@@ -255,7 +256,7 @@ struct MoreAboutSheet: View {
                 Text(sheetName).font(.mac(15)).foregroundStyle(.haze).lineLimit(1)
             }
             Spacer(minLength: 12)
-            Button("Done") { close() }
+            Button(L.actionDone) { close() }
                 .buttonStyle(SecondaryCapsuleStyle(height: phone ? 44 : 32, raisedSurface: true, fontSize: phone ? 17 : 13))
                 .keyboardShortcut(.cancelAction)
         }
@@ -263,7 +264,7 @@ struct MoreAboutSheet: View {
         .accessibilityElement(children: .contain)
     }
 
-    private var sheetName: String { "More about this show" }
+    private var sheetName: String { L.titleMoreAbout }
 
     private func close() {
         navigator.moreAbout = nil
@@ -365,7 +366,7 @@ struct MoreAboutSheet: View {
         let rankings = detail.orderedRankings
         if !rankings.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                heading("Rankings")
+                heading(L.moreRankings)
                 FlowLayout(spacing: 36, lineSpacing: 6) {
                     ForEach(Array(rankings.enumerated()), id: \.offset) { _, ranking in
                         Text("\(Text("#\(ranking.rank)").fontWeight(.semibold).foregroundStyle(.silk)) \(ranking.words)")
@@ -382,7 +383,7 @@ struct MoreAboutSheet: View {
         let cast = detail.shownCast
         if !cast.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                heading("Cast", trailing: "Japanese voices")
+                heading(L.moreCast, trailing: L.moreCastVoices)
                 if phone {
                     ScrollView(.horizontal) {
                         HStack(alignment: .top, spacing: 12) {
@@ -444,7 +445,7 @@ struct MoreAboutSheet: View {
         let staff = detail.shownStaff
         if !staff.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                heading("Staff")
+                heading(L.moreStaff)
                 let columns = phone
                     ? [GridItem(.flexible(), spacing: 16, alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)]
                     : [GridItem(.flexible(), alignment: .topLeading)]
@@ -466,7 +467,7 @@ struct MoreAboutSheet: View {
         let shown = detail.shownRecommendations
         if !shown.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                heading("Recommendations")
+                heading(L.moreRecommendations)
                 if phone {
                     ScrollView(.horizontal) {
                         HStack(alignment: .top, spacing: 12) {
@@ -526,7 +527,7 @@ struct MoreAboutSheet: View {
         let spoilers = entry.spoilerTags
         if !safe.isEmpty || !spoilers.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                heading("Tags")
+                heading(L.titleTags)
                 if !safe.isEmpty {
                     Text(safe.joined(separator: " · ")).font(phone ? .ui(17) : .mac(13)).foregroundStyle(.silk)
                         .fixedSize(horizontal: false, vertical: true)
@@ -534,21 +535,21 @@ struct MoreAboutSheet: View {
                 if spoilersShown {
                     FlowLayout(spacing: 14, lineSpacing: 6) {
                         ForEach(spoilers, id: \.self) { name in
-                            Text("\(Text(name).foregroundStyle(.silk)) Spoiler")
+                            Text("\(Text(name).foregroundStyle(.silk)) \(L.moreSpoiler)")
                                 .foregroundStyle(.haze)
                                 .font(phone ? .ui(17) : .mac(13))
                         }
                     }
                 }
                 if !spoilers.isEmpty {
-                    Button(SpoilerWords.reveal(spoilers.count, shown: spoilersShown, titleCase: onMac)) {
+                    Button(SpoilerWords.reveal(spoilers.count, shown: spoilersShown)) {
                         withAnimation(.standard) { spoilersShown.toggle() }
                     }
                     .buttonStyle(.plain)
                     .font(phone ? .ui(17, weight: .semibold) : .mac(13, weight: .semibold))
                     .foregroundStyle(.silk)
                     .frame(minHeight: phone ? 44 : nil)
-                    .accessibilityValue(spoilersShown ? "Expanded" : "Collapsed")
+                    .accessibilityValue(spoilersShown ? L.stateExpanded : L.stateCollapsed)
                 }
             }
         }
@@ -562,8 +563,8 @@ struct MoreAboutSheet: View {
     private var waiting: some View {
         if now - asked > .seconds(25) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("AniList did not answer.").font(phone ? .ui(17) : .mac(13)).foregroundStyle(.silk)
-                Button(onMac ? "Try Again" : "Try again") {
+                Text(L.titleNoAnswerShort).font(phone ? .ui(17) : .mac(13)).foregroundStyle(.silk)
+                Button(L.actionTryAgain) {
                     asked = .now
                     now = .now
                     store.loadDetail(id, force: true)
@@ -573,8 +574,8 @@ struct MoreAboutSheet: View {
         } else {
             VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("#4 Highest rated, Summer 2026")
-                    Text("#19 Highest rated, 2026")
+                    Text("#4 Highest rated, Summer 2026") // i18n-skip
+                    Text("#19 Highest rated, 2026") // i18n-skip
                 }
                 HStack(spacing: 12) {
                     ForEach(0..<4, id: \.self) { _ in
@@ -583,7 +584,7 @@ struct MoreAboutSheet: View {
                     }
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(0..<4, id: \.self) { _ in Text("Director of Stardust Wayfarer") }
+                    ForEach(0..<4, id: \.self) { _ in Text("Director of Stardust Wayfarer") } // i18n-skip
                 }
                 HStack(spacing: 12) {
                     ForEach(0..<4, id: \.self) { _ in
@@ -602,7 +603,7 @@ struct MoreAboutSheet: View {
     private var emptyState: some View {
         VStack(spacing: 16) {
             Nagare(cell: 4)
-            Text("AniList has no cast, staff or recommendations for this show yet.")
+            Text(L.moreEmpty)
                 .font(phone ? .ui(17) : .mac(13))
                 .foregroundStyle(.haze)
                 .multilineTextAlignment(.center)

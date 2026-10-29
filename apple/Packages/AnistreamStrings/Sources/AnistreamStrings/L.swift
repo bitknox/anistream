@@ -877,6 +877,1661 @@ public enum L {
         Self.format("notice-episodes-queued", fallback: "Queued %1$lld episodes.", count)
     }
 
+    /// VoiceOver: a title that is up to date and whose next episode airs later. The time is already worded.
+    public static func accessCaughtUpAirs(episode: Int, when: String) -> String {
+        Self.format("access-caught-up-airs", fallback: "Caught up, episode %1$lld airs %2$@", episode, when)
+    }
+
+    /// VoiceOver: a title that is up to date and whose next episode has no air time yet.
+    public static func accessCaughtUpUnaired(episode: Int) -> String {
+        Self.format("access-caught-up-unaired", fallback: "Caught up, episode %1$lld is not out yet", episode)
+    }
+
+    /// VoiceOver: where a part-watched episode stopped. The time is a clock time.
+    public static func accessStoppedAt(time: String) -> String {
+        Self.format("access-stopped-at", fallback: "stopped at %1$@", time)
+    }
+
+    /// VoiceOver: how long a part-watched episode has left.
+    public static func accessMinutesLeft(minutes: Int) -> String {
+        Self.format("access-minutes-left", fallback: "%1$lld minutes left", minutes)
+    }
+
+    /// VoiceOver: a length of time in whole minutes.
+    public static func accessMinutes(minutes: Int) -> String {
+        Self.format("access-minutes", fallback: "%1$lld minutes", minutes)
+    }
+
+    /// VoiceOver: when an episode came out. The span is spoken in full, such as "2 hours".
+    public static func accessOutAgo(span: String) -> String {
+        Self.format("access-out-ago", fallback: "out %1$@ ago", span)
+    }
+
+    /// VoiceOver: when an episode will come out. The span is spoken in full, such as "1 hour 30 minutes".
+    public static func accessInSpan(span: String) -> String {
+        Self.format("access-in-span", fallback: "in %1$@", span)
+    }
+
+    /// VoiceOver: an episode and the time it airs, when the engine has only estimated the time.
+    public static func accessAtAbout(episode: String, time: String) -> String {
+        Self.format("access-at-about", fallback: "%1$@ at about %2$@", episode, time)
+    }
+
+    /// VoiceOver: an episode and the time it airs.
+    public static func accessAt(episode: String, time: String) -> String {
+        Self.format("access-at", fallback: "%1$@ at %2$@", episode, time)
+    }
+
+    /// VoiceOver: an episode that was delayed, with the time it was first set for.
+    public static func accessDelayedFrom(time: String) -> String {
+        Self.format("access-delayed-from", fallback: "delayed from %1$@", time)
+    }
+
+    /// VoiceOver: an episode that will air. The time is already worded.
+    public static func accessAirs(when: String) -> String {
+        Self.format("access-airs", fallback: "airs %1$@", when)
+    }
+
+    /// VoiceOver: an episode with no air time yet.
+    public static var accessNotOut: String { string("access-not-out", fallback: "not out yet") }
+
+    /// VoiceOver: two parts of one description, read one after the other.
+    public static func accessThen(first: String, next: String) -> String {
+        Self.format("access-then", fallback: "%1$@, %2$@", first, next)
+    }
+
+    /// VoiceOver: the name of a custom list that jumps between the episodes not yet watched.
+    public static var accessRotorUnwatched: String { string("access-rotor-unwatched", fallback: "Unwatched episodes") }
+
+    /// VoiceOver: the name of a custom list that jumps between the days of the calendar.
+    public static var accessRotorDays: String { string("access-rotor-days", fallback: "Days") }
+
+    /// VoiceOver: the name of a custom list that jumps between the downloads under way.
+    public static var accessRotorInProgress: String { string("access-rotor-in-progress", fallback: "In progress") }
+
+    /// VoiceOver: a day of the calendar with nothing on it.
+    public static var accessNothingAiring: String { string("access-nothing-airing", fallback: "nothing airing") }
+
+    /// VoiceOver: a calendar day and what airs on it. The second part is a count of episodes or "nothing airing".
+    public static func accessDayAiring(day: String, airing: String) -> String {
+        Self.format("access-day-airing", fallback: "%1$@, %2$@", day, airing)
+    }
+
+    /// VoiceOver: a download that waits its turn.
+    public static var accessQueued: String { string("access-queued", fallback: "queued") }
+
+    /// VoiceOver: one download in the list of downloads under way.
+    public static func accessDownload(title: String, episode: String, standing: String) -> String {
+        Self.format("access-download", fallback: "%1$@, %2$@, %3$@", title, episode, standing)
+    }
+
+    /// Short episode name for a dubbed episode, in a row or a widget.
+    public static func titleEpisodeShortDubbed(episode: Int) -> String {
+        Self.format("title-episode-short-dubbed", fallback: "E%1$lld dubbed", episode)
+    }
+
+    /// Long episode name for a dubbed episode, in a row or a widget.
+    public static func titleEpisodeLongDubbed(episode: Int) -> String {
+        Self.format("title-episode-long-dubbed", fallback: "Episode %1$lld · Dubbed", episode)
+    }
+
+    /// Row caption: an episode part-watched, with how long is left. The time left is already worded.
+    public static func continueRowLeft(episode: Int, left: String) -> String {
+        Self.format("continue-row-left", fallback: "E%1$lld · %2$@", episode, left)
+    }
+
+    /// Row caption: a dubbed episode part-watched, with how long is left. The time left is already worded.
+    public static func continueRowLeftDubbed(episode: Int, left: String) -> String {
+        Self.format("continue-row-left-dubbed", fallback: "E%1$lld dubbed · %2$@", episode, left)
+    }
+
+    /// Widget action: carry on with an episode that was left part-way.
+    public static func continueWidgetResume(episode: Int) -> String {
+        Self.format("continue-widget-resume", fallback: "Resume E%1$lld", episode)
+    }
+
+    /// Widget action: carry on with a dubbed episode that was left part-way.
+    public static func continueWidgetResumeDubbed(episode: Int) -> String {
+        Self.format("continue-widget-resume-dubbed", fallback: "Resume E%1$lld dubbed", episode)
+    }
+
+    /// Title of the system window that keeps downloads going after the person leaves the app.
+    public static var downloadsContinuedTitle: String { string("downloads-continued-title", fallback: "Downloading episodes") }
+
+    /// Line in that window: how many downloads are still to finish.
+    public static func downloadsContinuedLeft(count: Int) -> String {
+        Self.format("downloads-continued-left", fallback: "%1$lld episodes left", count)
+    }
+
+    /// Line on the title page and in a Continue preview: where else the show streams. The places are already joined, such as "Lantern Stream and Hikari Stream".
+    public static func titleAlsoOn(places: String) -> String {
+        Self.format("title-also-on", fallback: "Also on %1$@", places)
+    }
+
+    /// Time of a broadcast that is an estimate, with a tilde before it. The time is already formatted.
+    public static func calendarTimeApproximate(time: String) -> String {
+        Self.format("calendar-time-approximate", fallback: "~%1$@", time)
+    }
+
+    /// Name of the week before this one, in the calendar's toolbar.
+    public static var calendarLastWeek: String { string("calendar-last-week", fallback: "Last week") }
+
+    /// Calendar row: an episode that has aired. The span is already worded, such as "1d 2h ago".
+    public static func calendarLineOutApple(episode: Int, ago: String) -> String {
+        Self.format("calendar-line-out-apple", fallback: "E%1$lld out %2$@", episode, ago)
+    }
+
+    /// Calendar row: a dubbed episode that has aired. The span is already worded, such as "1d 2h ago".
+    public static func calendarLineOutDubbed(episode: Int, ago: String) -> String {
+        Self.format("calendar-line-out-dubbed", fallback: "E%1$lld out %2$@ · Dubbed", episode, ago)
+    }
+
+    /// Calendar row: an episode that airs soon. The span is already worded, such as "1h 30m".
+    public static func calendarLineInApple(episode: Int, span: String) -> String {
+        Self.format("calendar-line-in-apple", fallback: "E%1$lld in %2$@", episode, span)
+    }
+
+    /// Calendar row: a dubbed episode that airs soon. The span is already worded, such as "1h 30m".
+    public static func calendarLineInDubbed(episode: Int, span: String) -> String {
+        Self.format("calendar-line-in-dubbed", fallback: "E%1$lld in %2$@ · Dubbed", episode, span)
+    }
+
+    /// Swipe action on an episode row that downloads it.
+    public static var titleSwipeDownload: String { string("title-swipe-download", fallback: "Download") }
+
+    /// Line under a title in Spotlight: the episode it plays next, out of how many there are.
+    public static func titleEpisodeOf(episode: Int, total: Int) -> String {
+        Self.format("title-episode-of", fallback: "Episode %1$lld of %2$lld", episode, total)
+    }
+
+    /// Title of the failure shown over a list of titles that could not load, when the screen has no name of its own for it.
+    public static var browseListFailed: String { string("browse-list-failed", fallback: "Couldn't load this list") }
+
+    /// Line under Downloads in the Mac's toolbar: free space, then what downloads take. Both are already formatted.
+    public static func downloadsSubtitleFree(free: String, size: String) -> String {
+        Self.format("downloads-subtitle-free", fallback: "%1$@ free · Downloads take %2$@", free, size)
+    }
+
+    /// Line under a title in Downloads: how many episodes it has downloaded and what they take. The count is already worded, such as "3 episodes".
+    public static func downloadsGroupSummaryApple(count: String, size: String) -> String {
+        Self.format("downloads-group-summary-apple", fallback: "%1$@ · %2$@", count, size)
+    }
+
+    /// Part of a running download's line: how much of the whole is done. Both are already formatted.
+    public static func downloadsOfTotal(done: String, total: String) -> String {
+        Self.format("downloads-of-total", fallback: "%1$@ of %2$@", done, total)
+    }
+
+    /// Part of a running download's line: how fast it goes. The rate is already formatted, such as "2.4 MB".
+    public static func downloadsRateApple(rate: String) -> String {
+        Self.format("downloads-rate-apple", fallback: "%1$@/s", rate)
+    }
+
+    /// Part of a running download's line and of a seeding line: how long is left. The time is already worded.
+    public static func downloadsTimeLeftApple(left: String) -> String {
+        Self.format("downloads-time-left-apple", fallback: "%1$@ left", left)
+    }
+
+    /// Line of a seeding episode: ratio shared out of the goal, time left and how much went up. Ratios, time and size are already formatted.
+    public static func downloadsSeedingUploaded(shared: String, goal: String, left: String, size: String) -> String {
+        Self.format("downloads-seeding-uploaded", fallback: "Shared %1$@ of %2$@ · %3$@ · %4$@ up", shared, goal, left, size)
+    }
+
+    /// Body of a new-episode notification when the viewer is caught up.
+    public static func noticeOut(episode: Int) -> String {
+        Self.format("notice-out", fallback: "Episode %1$lld is out.", episode)
+    }
+
+    /// Body of a new-episode notification for the dub the viewer watches the show in.
+    public static func noticeOutDubbed(episode: Int) -> String {
+        Self.format("notice-out-dubbed", fallback: "Episode %1$lld is out, dubbed.", episode)
+    }
+
+    /// Body of a new-episode notification when the viewer is behind: the episode out and the one to watch next.
+    public static func noticeOutBehind(episode: Int, next: Int) -> String {
+        Self.format("notice-out-behind", fallback: "Episode %1$lld is out. Next for you: episode %2$lld.", episode, next)
+    }
+
+    /// Body of a new-episode notification for a dub when the viewer is behind.
+    public static func noticeOutDubbedBehind(episode: Int, next: Int) -> String {
+        Self.format("notice-out-dubbed-behind", fallback: "Episode %1$lld is out, dubbed. Next for you: episode %2$lld.", episode, next)
+    }
+
+    /// What the system shows instead of the body when previews are hidden.
+    public static var noticeHiddenPreview: String { string("notice-hidden-preview", fallback: "New episode") }
+
+    /// What the system shows under a group of new-episode notifications. The system fills in the count at %u.
+    public static var noticeSummary: String { string("notice-summary", fallback: "%u more new episodes") }
+
+    /// VoiceOver action of a notice that dismisses it.
+    public static var noticeDismiss: String { string("notice-dismiss", fallback: "Dismiss") }
+
+    /// Line of the device sign-in sheet when the code ran out.
+    public static func accountsCodeExpiredDetail(tracker: String) -> String {
+        Self.format("accounts-code-expired-detail", fallback: "This code has expired. Get a new one to sign in to %1$@.", tracker)
+    }
+
+    /// Placeholder of the command palette's field.
+    public static var palettePlaceholder: String { string("palette-placeholder", fallback: "Titles and commands") }
+
+    /// Heading of the titles in the command palette.
+    public static var paletteTitles: String { string("palette-titles", fallback: "Titles") }
+
+    /// Heading of the commands in the command palette.
+    public static var paletteCommands: String { string("palette-commands", fallback: "Commands") }
+
+    /// Heading of the recent searches in the command palette.
+    public static var paletteRecent: String { string("palette-recent", fallback: "Recent") }
+
+    /// Line of the command palette when nothing matches. Return runs the search.
+    public static func paletteSearchFor(query: String) -> String {
+        Self.format("palette-search-for", fallback: "Return searches for “%1$@”", query)
+    }
+
+    /// Hint at the foot of the command palette: what Return does.
+    public static var paletteHintOpen: String { string("palette-hint-open", fallback: "Open") }
+
+    /// Right-hand label of a title in the command palette whose episode has a resume point. The episode number is text.
+    public static func paletteResumeEpisode(episode: String) -> String {
+        Self.format("palette-resume-episode", fallback: "Resume E%1$@", episode)
+    }
+
+    /// Detail of the hide from Continue command.
+    public static var paletteProgressKept: String { string("palette-progress-kept", fallback: "Progress is kept") }
+
+    /// Detail of the show settings command: what the settings hold.
+    public static var paletteShowSettingsDetail: String { string("palette-show-settings-detail", fallback: "Audio, subtitles, auto-skip, source") }
+
+    /// Accessibility label of the Airing today heading on the Welcome page, which opens the calendar.
+    public static var welcomeAiringTodayLabel: String { string("welcome-airing-today-label", fallback: "Airing today, show in Calendar") }
+
+    /// Line of the next broadcast on the Welcome page: the episode, then its time.
+    public static func welcomeBroadcast(episode: String, clock: String) -> String {
+        Self.format("welcome-broadcast", fallback: "%1$@ · %2$@", episode, clock)
+    }
+
+    /// Line of the Messages page when there are no messages.
+    public static var messagesEmpty: String { string("messages-empty", fallback: "No messages yet") }
+
+    /// Line in the list of releases of an episode, when the person's sources found none.
+    public static var playerReleasesEmpty: String { string("player-releases-empty", fallback: "No releases found for this episode.") }
+
+    /// Line in the list of releases of an episode, while the sources are still looking.
+    public static var playerReleasesFinding: String { string("player-releases-finding", fallback: "Finding releases…") }
+
+    /// Line in the Episodes list under the playing episode when its sources found no releases.
+    public static var playerReleasesNone: String { string("player-releases-none", fallback: "No releases found") }
+
+    /// Part of a release's detail line: a release in the dubbed audio.
+    public static var playerReleaseDub: String { string("player-release-dub", fallback: "dub") }
+
+    /// Part of a release's detail line: a release with both the original and the dubbed audio.
+    public static var playerReleaseDualAudio: String { string("player-release-dual-audio", fallback: "subbed and dubbed") }
+
+    /// VoiceOver label of the countdown bar of the up next card.
+    public static func playerCountdownLabel(episode: String) -> String {
+        Self.format("player-countdown-label", fallback: "Countdown to episode %1$@", episode)
+    }
+
+    /// VoiceOver value of the seek line: where the playhead is. Both times are already spoken in full.
+    public static func playerPositionOf(position: String, duration: String) -> String {
+        Self.format("player-position-of", fallback: "%1$@ of %2$@", position, duration)
+    }
+
+    /// VoiceOver announcement when the up next card shows.
+    public static func playerAnnounceUpNext(episode: String) -> String {
+        Self.format("player-announce-up-next", fallback: "Up next: episode %1$@", episode)
+    }
+
+    /// VoiceOver announcement when the up next card shows for an episode that plays dubbed.
+    public static func playerAnnounceUpNextDubbed(episode: String) -> String {
+        Self.format("player-announce-up-next-dubbed", fallback: "Up next: episode %1$@, dubbed", episode)
+    }
+
+    /// VoiceOver announcement when the up next countdown has 8 seconds left.
+    public static func playerAnnouncePlaysIn(seconds: Int) -> String {
+        Self.format("player-announce-plays-in", fallback: "Plays in %1$lld seconds", seconds)
+    }
+
+    /// Short word Voice Control takes for the button that skips forward 10 seconds.
+    public static var playerVoiceForward: String { string("player-voice-forward", fallback: "Forward") }
+
+    /// Short word Voice Control takes for the button that goes back 10 seconds.
+    public static var playerVoiceBack: String { string("player-voice-back", fallback: "Back") }
+
+    /// Text of a menu in the player's controls that opens the subtitles and audio panel.
+    public static var playerMenuSubtitles: String { string("player-menu-subtitles", fallback: "Subtitles…") }
+
+    /// Text of a menu in the player's controls that opens the audio panel.
+    public static var playerMenuAudio: String { string("player-menu-audio", fallback: "Audio…") }
+
+    /// Text of a menu in the player's controls that opens the episodes panel.
+    public static var playerMenuEpisodes: String { string("player-menu-episodes", fallback: "Episodes…") }
+
+    /// Text of a menu in the player's controls that opens the picture and sound panel.
+    public static var playerMenuPictureSound: String { string("player-menu-picture-sound", fallback: "Picture and sound…") }
+
+    /// Line of the player's hint over the picture: how many seconds a jump moves the playhead forward.
+    public static func playerFlashForward(seconds: Int) -> String {
+        Self.format("player-flash-forward", fallback: "+%1$lld s", seconds)
+    }
+
+    /// Line of the player's hint over the picture: how many seconds a jump moves the playhead back.
+    public static func playerFlashBack(seconds: Int) -> String {
+        Self.format("player-flash-back", fallback: "−%1$lld s", seconds)
+    }
+
+    /// The next episode's line on the up next card, with the audio it plays in after it.
+    public static func playerUpNextLine(episode: String, audio: String) -> String {
+        Self.format("player-up-next-line", fallback: "%1$@ · %2$@", episode, audio)
+    }
+
+    /// Mac menu bar item, Playback menu: skips the ending.
+    public static var menuSkipEnding: String { string("menu-skip-ending", fallback: "Skip Ending") }
+
+    /// Name of the Mac menu bar submenu of Playback that holds the tracks.
+    public static var menuSubtitlesAndAudio: String { string("menu-subtitles-and-audio", fallback: "Subtitles and Audio") }
+
+    /// Mac menu bar item, Playback menu: raises the volume.
+    public static var menuVolumeUp: String { string("menu-volume-up", fallback: "Volume Up") }
+
+    /// Mac menu bar item, Playback menu: lowers the volume.
+    public static var menuVolumeDown: String { string("menu-volume-down", fallback: "Volume Down") }
+
+    /// Mac menu bar item, Playback menu: mutes the sound.
+    public static var menuMute: String { string("menu-mute", fallback: "Mute") }
+
+    /// Mac menu bar item, Playback menu: turns the sound back on.
+    public static var menuUnmute: String { string("menu-unmute", fallback: "Unmute") }
+
+    /// Mac menu bar item, Playback menu: enters full screen.
+    public static var menuEnterFullScreen: String { string("menu-enter-full-screen", fallback: "Enter Full Screen") }
+
+    /// Mac menu bar item, Playback menu: leaves full screen.
+    public static var menuExitFullScreen: String { string("menu-exit-full-screen", fallback: "Exit Full Screen") }
+
+    /// Mac menu bar item, Playback menu: shows the player's technical details.
+    public static var menuStatsForNerds: String { string("menu-stats-for-nerds", fallback: "Stats for Nerds") }
+
+    /// Mac menu bar item, Window menu: floats the picture over other windows.
+    public static var menuPictureInPicture: String { string("menu-picture-in-picture", fallback: "Picture in Picture") }
+
+    /// Mac menu bar item, in Playback's Subtitles and Audio: loads a subtitle file.
+    public static var menuLoadSubtitleFile: String { string("menu-load-subtitle-file", fallback: "Load Subtitle File…") }
+
+    /// Mac menu bar item, in Playback's Subtitles and Audio: loads an audio file.
+    public static var menuLoadAudioFile: String { string("menu-load-audio-file", fallback: "Load Audio File…") }
+
+    /// Mac menu bar item in Playback's Speed menu: the normal speed.
+    public static var menuSpeedNormal: String { string("menu-speed-normal", fallback: "Normal") }
+
+    /// A playback speed as a multiple, such as 1.25×. The number is already formatted.
+    public static func menuSpeedValue(speed: String) -> String {
+        Self.format("menu-speed-value", fallback: "%1$@×", speed)
+    }
+
+    /// Button in the player's controls and VoiceOver label: turns the sound off.
+    public static var playerMute: String { string("player-mute", fallback: "Mute") }
+
+    /// Button in the player's controls and VoiceOver label: turns the sound back on.
+    public static var playerUnmute: String { string("player-unmute", fallback: "Unmute") }
+
+    /// Button in the player's controls and VoiceOver label: enters full screen.
+    public static var playerEnterFullScreen: String { string("player-enter-full-screen", fallback: "Enter full screen") }
+
+    /// Button in the player's controls and VoiceOver label: leaves full screen.
+    public static var playerExitFullScreen: String { string("player-exit-full-screen", fallback: "Exit full screen") }
+
+    /// Button of the Mac open panel that picks a subtitle or audio file for the player.
+    public static var playerLoadPrompt: String { string("player-load-prompt", fallback: "Load") }
+
+    /// Line under the show's name in the player when a title is staged: the show, then the episode.
+    public static func playerTitleEpisodeLine(title: String, episode: String) -> String {
+        Self.format("player-title-episode-line", fallback: "%1$@ · %2$@", title, episode)
+    }
+
+    /// VoiceOver announcement of the up next card with the episode's name after it.
+    public static func playerAnnounceTitled(line: String, title: String) -> String {
+        Self.format("player-announce-titled", fallback: "%1$@, %2$@", line, title)
+    }
+
+    /// Heading of the sound section in the picture and sound panel.
+    public static var playerSound: String { string("player-sound", fallback: "Sound") }
+
+    /// Spoken by VoiceOver on the loading indicator before the video shows.
+    public static var playerLoadingAnnounce: String { string("player-loading-announce", fallback: "Starting") }
+
+    /// Line while results wait for the rate limit to recover, on a phone where a Search key runs the search.
+    public static var searchRateLimitSearch: String { string("search-rate-limit-search", fallback: "Results wait for Search while AniList’s rate limit recovers") }
+
+    /// Line while results wait for the rate limit to recover, on a Mac where Return runs the search.
+    public static var searchRateLimitReturn: String { string("search-rate-limit-return", fallback: "Results wait for Return while AniList’s rate limit recovers") }
+
+    /// Line while a browse is slow to answer. The headline names what is browsed, such as "Trending now".
+    public static func searchSearchingBrowse(what: String) -> String {
+        Self.format("search-searching-browse", fallback: "Searching for %1$@", what)
+    }
+
+    /// Title of the genre filter when more than one genre is chosen.
+    public static func searchGenresCount(count: Int) -> String {
+        Self.format("search-genres-count", fallback: "%1$lld genres", count)
+    }
+
+    /// Title of the format filter when more than two formats are chosen.
+    public static func searchFormatsCount(count: Int) -> String {
+        Self.format("search-formats-count", fallback: "%1$lld formats", count)
+    }
+
+    /// Title of the status filter when more than one status is chosen.
+    public static func searchStatusesCount(count: Int) -> String {
+        Self.format("search-statuses-count", fallback: "%1$lld statuses", count)
+    }
+
+    /// Submenu and context menu item that leaves a genre or tag out of the results.
+    public static var searchLeaveOut: String { string("search-leave-out", fallback: "Leave out") }
+
+    /// Context menu item that includes a tag or genre in the results.
+    public static var searchInclude: String { string("search-include", fallback: "Include") }
+
+    /// Tooltip of the All filters button.
+    public static var searchFiltersHelp: String { string("search-filters-help", fallback: "Tags, length, score, origin and where to watch") }
+
+    /// VoiceOver value of the All filters button: how many advanced filters are set.
+    public static func searchFiltersSet(count: Int) -> String {
+        Self.format("search-filters-set", fallback: "%1$lld set", count)
+    }
+
+    /// Title of the sort picker in the filter bar.
+    public static var searchSortBy: String { string("search-sort-by", fallback: "Sort by") }
+
+    /// Button that clears every filter chip at once.
+    public static var searchClearAll: String { string("search-clear-all", fallback: "Clear all") }
+
+    /// Title of the empty state when the filters match nothing.
+    public static var searchNoResults: String { string("search-no-results", fallback: "No results") }
+
+    /// Heading of the placeholder rail shown while the search page loads.
+    public static var searchTrendingNow: String { string("search-trending-now", fallback: "Trending now") }
+
+    /// Prompt of the lower bound of a range filter.
+    public static var filterRangeFrom: String { string("filter-range-from", fallback: "From") }
+
+    /// Prompt of the upper bound of a range filter.
+    public static var filterRangeTo: String { string("filter-range-to", fallback: "To") }
+
+    /// Word between the two bounds of a range filter, small and lower case.
+    public static var filterRangeBetween: String { string("filter-range-between", fallback: "to") }
+
+    /// Value of the score slider when no minimum is set.
+    public static var filterAny: String { string("filter-any", fallback: "Any") }
+
+    /// Unit shown after the bounds of the episode length filter.
+    public static var filterMinutesUnit: String { string("filter-minutes-unit", fallback: "min") }
+
+    /// Label of the years range in the Released section.
+    public static var filterYears: String { string("filter-years", fallback: "Years") }
+
+    /// VoiceOver hint of a filter group that is open.
+    public static var filterGroupCloses: String { string("filter-group-closes", fallback: "Closes the group") }
+
+    /// VoiceOver hint of a filter group that is closed.
+    public static var filterGroupOpens: String { string("filter-group-opens", fallback: "Opens the group") }
+
+    /// Settings row: download over cellular data.
+    public static var settingsDownloadCellular: String { string("settings-download-cellular", fallback: "Download on cellular") }
+
+    /// Settings row on the Mac: the switch for hosting a Syncplay-compatible watch party.
+    public static var settingsSyncplay: String { string("settings-syncplay", fallback: "Syncplay watch parties") }
+
+    /// Settings row on the Mac: the Syncplay server address.
+    public static var settingsSyncplayServer: String { string("settings-syncplay-server", fallback: "Syncplay server") }
+
+    /// Settings row on the Mac: the Syncplay room name.
+    public static var settingsSyncplayRoom: String { string("settings-syncplay-room", fallback: "Syncplay room") }
+
+    /// Settings row on the Mac: whether the player starts in full screen.
+    public static var settingsStartFullScreen: String { string("settings-start-full-screen", fallback: "Start in full screen") }
+
+    /// Settings row for the command that runs after each download.
+    public static var settingsHookCommand: String { string("settings-hook-command", fallback: "Command") }
+
+    /// Settings row for the audio translation, as the engine names the setting.
+    public static var settingsTranslation: String { string("settings-translation", fallback: "Translation") }
+
+    /// Shown in Settings when a search matches no row.
+    public static var settingsNoMatch: String { string("settings-no-match", fallback: "No setting is called that.") }
+
+    /// Heading over the rows that Settings search found.
+    public static var settingsResults: String { string("settings-results", fallback: "Results") }
+
+    /// Text on the upscaling preview, over the left half, which shows the source untouched.
+    public static var settingsUpscalingSourceApple: String { string("settings-upscaling-source-apple", fallback: "480p source") }
+
+    /// VoiceOver description of the upscaling preview. The mode is the chosen upscaling mode.
+    public static func settingsUpscalingCompare(mode: String) -> String {
+        Self.format("settings-upscaling-compare", fallback: "The 480p source beside %1$@", mode)
+    }
+
+    /// Under the upscaling preview when the mode is off.
+    public static var settingsUpscalingNoteNone: String { string("settings-upscaling-note-none", fallback: "The source, scaled to fit without processing.") }
+
+    /// Shown in the Advanced pane while the player has no options of its own to set.
+    public static var settingsAdvancedNone: String { string("settings-advanced-none", fallback: "No extra options. The player runs with anistream's own.") }
+
+    /// Side note title in Sources while torrents are on.
+    public static var settingsAsideCheckTitle: String { string("settings-aside-check-title", fallback: "Connection check") }
+
+    /// Side note in Sources while torrents are off.
+    public static var settingsAsideSourcesApple: String { string("settings-aside-sources-apple", fallback: "Sources are tried in order, top to bottom. A show can keep its own source, chosen from its title page.") }
+
+    /// Side note in Advanced.
+    public static var settingsAsideAdvanced: String { string("settings-aside-advanced", fallback: "An option here can undo a Playback setting, such as upscaling or night mode. Most people never need this pane.") }
+
+    /// Note under the download quality row.
+    public static var settingsQualityDetail: String { string("settings-quality-detail", fallback: "Higher takes the best version a source offers, and more space.") }
+
+    /// Note under the merge subtitles row.
+    public static var settingsMergeSubtitlesDetail: String { string("settings-merge-subtitles-detail", fallback: "Subtitles stay with the episode wherever the file goes.") }
+
+    /// Note under the keep seeding row on the Mac.
+    public static var settingsKeepSeedingDetailMac: String { string("settings-keep-seeding-detail-mac", fallback: "A download that keeps seeding stays in anistream's cache, not the download folder.") }
+
+    /// Note under the keep seeding row on iPhone and iPad.
+    public static var settingsKeepSeedingDetail: String { string("settings-keep-seeding-detail", fallback: "A download that keeps seeding stays in anistream's cache.") }
+
+    /// Row title for the finished downloads of episodes already watched.
+    public static var settingsWatchedDownloads: String { string("settings-watched-downloads", fallback: "Watched downloads") }
+
+    /// Under the watched downloads row: the episodes of one show and their size. The episodes are already counted.
+    public static func settingsWatchedOne(episodes: String, title: String, size: String) -> String {
+        Self.format("settings-watched-one", fallback: "%1$@ of %2$@ · %3$@", episodes, title, size)
+    }
+
+    /// Under the watched downloads row: the episodes of several shows and their size. The episodes are already counted.
+    public static func settingsWatchedMany(episodes: String, size: String) -> String {
+        Self.format("settings-watched-many", fallback: "%1$@ · %2$@", episodes, size)
+    }
+
+    /// Title of the dialog that deletes the watched downloads.
+    public static func settingsDeleteWatchedTitle(count: Int) -> String {
+        Self.format("settings-delete-watched-title", fallback: "Delete %1$lld watched downloads?", count)
+    }
+
+    /// Message of the dialog that deletes the watched downloads.
+    public static var settingsDeleteWatchedDetail: String { string("settings-delete-watched-detail", fallback: "The files are deleted from this device. Episodes not yet watched stay.") }
+
+    /// Under the download folder row while no folder is chosen.
+    public static var settingsFolderDefault: String { string("settings-folder-default", fallback: "Kept with the torrent cache") }
+
+    /// Legend of the storage bar: what downloads take for episodes not yet watched.
+    public static var settingsStorageUnwatched: String { string("settings-storage-unwatched", fallback: "Not watched yet") }
+
+    /// Line under the storage bar: what downloads take.
+    public static func settingsStorageUsed(size: String) -> String {
+        Self.format("settings-storage-used", fallback: "%1$@ in downloads.", size)
+    }
+
+    /// Line under the storage bar: what downloads take and what is free.
+    public static func settingsStorageUsedFree(size: String, free: String) -> String {
+        Self.format("settings-storage-used-free", fallback: "%1$@ in downloads. %2$@ free on this device.", size, free)
+    }
+
+    /// Footnote of the Torrents group while torrents are on.
+    public static var settingsTorrentsWarnNote: String { string("settings-torrents-warn-note", fallback: "Choosing Warn only asks you to confirm first, as No protection does.") }
+
+    /// Value of the source order row: how many sources are in the order.
+    public static func settingsSourceCount(count: Int) -> String {
+        Self.format("settings-source-count", fallback: "%1$lld sources", count)
+    }
+
+    /// Footnote of the AniList group in Accounts.
+    public static func settingsAccountsSyncNote(tracker: String) -> String {
+        Self.format("settings-accounts-sync-note", fallback: "Progress and list changes sync to %1$@. Library and the Calendar's My list show your %1$@ lists.", tracker)
+    }
+
+    /// Row title in Accounts: titles that differ between this device and the tracker.
+    public static func settingsConflicts(count: Int, tracker: String) -> String {
+        Self.format("settings-conflicts", fallback: "%1$lld titles differ from %2$@", count, tracker)
+    }
+
+    /// Button in Accounts that opens the list of differences.
+    public static var settingsReview: String { string("settings-review", fallback: "Review") }
+
+    /// Under a tracker row: how many changes wait to sync.
+    public static func settingsChangesWaiting(count: Int) -> String {
+        Self.format("settings-changes-waiting", fallback: "%1$lld changes waiting to sync", count)
+    }
+
+    /// Under a tracker row: when the last sync finished, a moment ago.
+    public static var settingsSyncedJustNow: String { string("settings-synced-just-now", fallback: "Synced just now") }
+
+    /// Under a tracker row: when the last sync finished. The span is already worded, such as "2 hours ago".
+    public static func settingsSyncedAgo(ago: String) -> String {
+        Self.format("settings-synced-ago", fallback: "Synced %1$@", ago)
+    }
+
+    /// Row note under Privacy in Accounts.
+    public static var settingsPrivacyNote: String { string("settings-privacy-note", fallback: "What anistream sends, and what stays on this device") }
+
+    /// Button that opens the privacy page in a browser.
+    public static var settingsReadOnline: String { string("settings-read-online", fallback: "Read online") }
+
+    /// Footnote of the Discord group.
+    public static func settingsPresenceNote(tracker: String) -> String {
+        Self.format("settings-presence-note", fallback: "Rich presence shows the cover, a progress bar and a link to the show on %1$@. Discord fetches the cover from %1$@ itself. It needs the title shown.", tracker)
+    }
+
+    /// Preview of the Discord presence: the label of the cover drawing.
+    public static var settingsPresenceCover: String { string("settings-presence-cover", fallback: "Cover") }
+
+    /// Preview of the Discord presence: the button that opens the show on the tracker.
+    public static func settingsPresenceButton(tracker: String) -> String {
+        Self.format("settings-presence-button", fallback: "View on %1$@", tracker)
+    }
+
+    /// Preview of the Discord presence when the title is kept off.
+    public static var settingsPresenceNothing: String { string("settings-presence-nothing", fallback: "Watching anime") }
+
+    /// Preview of the Discord presence: the episode line with the total.
+    public static func settingsPresenceEpisodeOf(episode: Int, total: Int) -> String {
+        Self.format("settings-presence-episode-of", fallback: "Episode %1$lld of %2$lld", episode, total)
+    }
+
+    /// Preview of the Discord presence: the episode line without a total.
+    public static func settingsPresenceEpisode(episode: Int) -> String {
+        Self.format("settings-presence-episode", fallback: "Episode %1$lld", episode)
+    }
+
+    /// Under the Discord preview while presence is on.
+    public static var settingsPresenceOn: String { string("settings-presence-on", fallback: "Your Discord profile shows this while an episode plays.") }
+
+    /// Under the Discord preview while presence is off.
+    public static var settingsPresenceOff: String { string("settings-presence-off", fallback: "Off. When on, your Discord profile shows this while an episode plays.") }
+
+    /// Under the New episodes group: when the system asks for permission.
+    public static var settingsNotifyPermission: String { string("settings-notify-permission", fallback: "anistream asks for permission the first time you turn this on.") }
+
+    /// Shown in the week list when nothing airs in the next 7 days for the followed shows.
+    public static var settingsWeekEmpty: String { string("settings-week-empty", fallback: "Nothing airs in the next 7 days for the shows you follow.") }
+
+    /// Shown in the week list while the week is loading.
+    public static var settingsWeekLoading: String { string("settings-week-loading", fallback: "Loading the week…") }
+
+    /// Name of the system's own settings app on the Mac, which is where notification permission is set.
+    public static var settingsSystemAppMac: String { string("settings-system-app-mac", fallback: "System Settings") }
+
+    /// Name of the system's own settings app on iPhone and iPad, which is where notification permission is set.
+    public static var settingsSystemAppIos: String { string("settings-system-app-ios", fallback: "Settings") }
+
+    /// Under the New episodes row when the system does not allow notifications.
+    public static func settingsNotifyNotAllowed(settings: String) -> String {
+        Self.format("settings-notify-not-allowed", fallback: "Not allowed for anistream in %1$@", settings)
+    }
+
+    /// Footnote of the week list: a show whose dub notifies when the dub is out.
+    public static func settingsWeekDubOne(show: String) -> String {
+        Self.format("settings-week-dub-one", fallback: "%1$@ notifies when its dub is out.", show)
+    }
+
+    /// Footnote of the week list: several shows whose dubs notify when the dubs are out. The shows are already listed.
+    public static func settingsWeekDubMany(shows: String) -> String {
+        Self.format("settings-week-dub-many", fallback: "%1$@ notify when their dubs are out.", shows)
+    }
+
+    /// Footnote of the week list: a show that is switched off in its own settings.
+    public static func settingsWeekOffOne(show: String) -> String {
+        Self.format("settings-week-off-one", fallback: "%1$@ is off in its own settings.", show)
+    }
+
+    /// Footnote of the week list: several shows that are switched off in their own settings. The shows are already listed.
+    public static func settingsWeekOffMany(shows: String) -> String {
+        Self.format("settings-week-off-many", fallback: "%1$@ are off in their own settings.", shows)
+    }
+
+    /// Footnote of the week list: what tapping a row does.
+    public static var settingsWeekRowOpens: String { string("settings-week-row-opens", fallback: "A row opens that show's settings.") }
+
+    /// A row of the week: today, with the time. The time is already formatted.
+    public static func settingsWhenToday(time: String) -> String {
+        Self.format("settings-when-today", fallback: "Today %1$@", time)
+    }
+
+    /// A row of the week: tomorrow, with the time. The time is already formatted.
+    public static func settingsWhenTomorrow(time: String) -> String {
+        Self.format("settings-when-tomorrow", fallback: "Tomorrow %1$@", time)
+    }
+
+    /// A row of the week: a later day, with the time. The day is a weekday name and the time is already formatted.
+    public static func settingsWhenDay(day: String, time: String) -> String {
+        Self.format("settings-when-day", fallback: "%1$@ %2$@", day, time)
+    }
+
+    /// VoiceOver label of a row of the week: the show, the episode and when it airs.
+    public static func settingsWeekRowLabel(title: String, episode: Int, when: String) -> String {
+        Self.format("settings-week-row-label", fallback: "%1$@, episode %2$lld, %3$@", title, episode, when)
+    }
+
+    /// VoiceOver hint of a row of the week.
+    public static var settingsWeekRowHint: String { string("settings-week-row-hint", fallback: "Opens this show's settings") }
+
+    /// Under the notification preview while New episodes is on.
+    public static func settingsNotifyExplainOn(tracker: String) -> String {
+        Self.format("settings-notify-explain-on", fallback: "One notification when an episode of a show in your Watching list comes out, at the time %1$@ gives. A show's own setting comes first.", tracker)
+    }
+
+    /// Under the notification preview while New episodes is off.
+    public static var settingsNotifyExplainOff: String { string("settings-notify-explain-off", fallback: "Off. Only shows turned on in their own settings notify.") }
+
+    /// Preview of a notification: the show's name when no show is airing soon.
+    public static var settingsPreviewShow: String { string("settings-preview-show", fallback: "A show you watch") }
+
+    /// Preview of a notification: the words when no show is airing soon.
+    public static var settingsPreviewWords: String { string("settings-preview-words", fallback: "Episode 9 is out.") }
+
+    /// VoiceOver label of the notification preview.
+    public static func settingsPreviewLabel(show: String, words: String) -> String {
+        Self.format("settings-preview-label", fallback: "A notification: %1$@, %2$@", show, words)
+    }
+
+    /// VoiceOver label of the menu for one show's New episodes choice. The value is its current choice.
+    public static func settingsShowNoticesLabel(value: String) -> String {
+        Self.format("settings-show-notices-label", fallback: "New episodes: %1$@", value)
+    }
+
+    /// Title of a show's notifications page when the show has no name yet.
+    public static var settingsThisShow: String { string("settings-this-show", fallback: "This show") }
+
+    /// Value of a show's New episodes menu when the show follows Settings but is not being watched.
+    public static var settingsShowOffNotWatching: String { string("settings-show-off-not-watching", fallback: "Off · not watching") }
+
+    /// Choice of the upscaling setting: the natural mode, named with the filter it uses.
+    public static var settingsOptionNatural: String { string("settings-option-natural", fallback: "Natural · ArtCNN") }
+
+    /// Choice of the upscaling setting: the sharp mode, named with the filter it uses.
+    public static var settingsOptionSharp: String { string("settings-option-sharp", fallback: "Sharp · Anime4K") }
+
+    /// Choice of the player setting: the user's own mpv configuration.
+    public static var settingsOptionMpv: String { string("settings-option-mpv", fallback: "Your mpv setup") }
+
+    /// Choice of the seeding setting: stop seeding once the ratio is reached. The ratio is already formatted.
+    public static func settingsOptionUntilRatio(ratio: String) -> String {
+        Self.format("settings-option-until-ratio", fallback: "Until ratio %1$@", ratio)
+    }
+
+    /// Choice of the upload limit setting: no limit.
+    public static var settingsOptionUnlimited: String { string("settings-option-unlimited", fallback: "Unlimited") }
+
+    /// Choice of the upload limit setting: a speed. The size is already formatted, such as 524 kB.
+    public static func settingsOptionPerSecond(size: String) -> String {
+        Self.format("settings-option-per-second", fallback: "%1$@/s", size)
+    }
+
+    /// Choice of the download quality setting: the usual versions.
+    public static var settingsOptionStandard: String { string("settings-option-standard", fallback: "Standard") }
+
+    /// Choice of the download quality setting: the best version a source offers.
+    public static var settingsOptionHigher: String { string("settings-option-higher", fallback: "Higher") }
+
+    /// Choice of the theme setting: the window follows the artwork's colours less.
+    public static var settingsOptionAdaptive: String { string("settings-option-adaptive", fallback: "Adaptive") }
+
+    /// Choice of the theme setting: the window takes on the artwork's colours.
+    public static var settingsOptionImmersive: String { string("settings-option-immersive", fallback: "Immersive") }
+
+    /// Value of the Sources row in the iPhone's Settings when torrents are on.
+    public static var settingsTorrentsValueOn: String { string("settings-torrents-value-on", fallback: "Torrents on") }
+
+    /// Value of the Sources row in the iPhone's Settings when torrents are off.
+    public static var settingsTorrentsValueOff: String { string("settings-torrents-value-off", fallback: "Torrents off") }
+
+    /// Note under the seed after watching row on iPhone and iPad.
+    public static var settingsSeedRatioDetail: String { string("settings-seed-ratio-detail", fallback: "Best effort on this device: only while anistream is open") }
+
+    /// Button on the iPhone's Accounts page that opens the list of differences with the tracker.
+    public static func settingsReviewDifferences(count: Int) -> String {
+        Self.format("settings-review-differences", fallback: "Review %1$lld differences", count)
+    }
+
+    /// Swipe action on a paused download.
+    public static var settingsSwipeResume: String { string("settings-swipe-resume", fallback: "Resume") }
+
+    /// Swipe action on a download that stopped.
+    public static var settingsSwipeRetry: String { string("settings-swipe-retry", fallback: "Retry") }
+
+    /// Value of the Plugin stores row on the iPhone: how many stores, and how many plugins have updates. The updates are already counted.
+    public static func settingsStoresValueUpdates(count: Int, updates: String) -> String {
+        Self.format("settings-stores-value-updates", fallback: "%1$lld · %2$@", count, updates)
+    }
+
+    /// Label of a row in the Mac's sheet for one show's settings. The label is already worded.
+    public static func showSettingsRowLabel(label: String) -> String {
+        Self.format("show-settings-row-label", fallback: "%1$@:", label)
+    }
+
+    /// A remembered subtitle track that has neither a language nor a title.
+    public static var showSettingsUnnamedTrack: String { string("show-settings-unnamed-track", fallback: "Unnamed track") }
+
+    /// Line under the AniList's choice option of Title language when signed out.
+    public static func settingsTitleLineSignedOut(tracker: String) -> String {
+        Self.format("settings-title-line-signed-out", fallback: "English while signed out of %1$@", tracker)
+    }
+
+    /// Line under the tracker's choice option of Title language: which language the account asks for.
+    public static func settingsTitleLineFromAccount(language: String, tracker: String) -> String {
+        Self.format("settings-title-line-from-account", fallback: "%1$@, from your %2$@ account", language, tracker)
+    }
+
+    /// Line under the English option of Title language.
+    public static var settingsTitleLineEnglish: String { string("settings-title-line-english", fallback: "Romaji where there is no English title") }
+
+    /// Line under the Romaji option of Title language.
+    public static var settingsTitleLineRomaji: String { string("settings-title-line-romaji", fallback: "Japanese titles in Latin letters") }
+
+    /// Note under the examples of Title language: what titles do while signed out.
+    public static func settingsTitleNoteSignedOut(tracker: String) -> String {
+        Self.format("settings-title-note-signed-out", fallback: "While you are signed out of %1$@, titles show in English.", tracker)
+    }
+
+    /// Note under the examples when the tracker's choice is picked and nobody is signed in.
+    public static func settingsTitleNoteFollows(tracker: String, then: String) -> String {
+        Self.format("settings-title-note-follows", fallback: "Follows your %1$@ account. %2$@", tracker, then)
+    }
+
+    /// Note under the examples when the tracker's choice is picked and the account has a language.
+    public static func settingsTitleNoteFollowsSet(tracker: String, language: String, then: String) -> String {
+        Self.format("settings-title-note-follows-set", fallback: "Follows your %1$@ account, which is set to %2$@. %3$@", tracker, language, then)
+    }
+
+    /// Note under the examples when a show has no English title.
+    public static func settingsTitleNoteKept(title: String, tracker: String) -> String {
+        Self.format("settings-title-note-kept", fallback: "%1$@ has no English title on %2$@, so it keeps its romaji one.", title, tracker)
+    }
+
+    /// Note under the examples for the English option.
+    public static func settingsTitleNoteEnglish(tracker: String) -> String {
+        Self.format("settings-title-note-english", fallback: "English titles as %1$@ lists them, and romaji where there is none.", tracker)
+    }
+
+    /// Note under the examples for the Romaji option.
+    public static func settingsTitleNoteRomaji(tracker: String) -> String {
+        Self.format("settings-title-note-romaji", fallback: "Japanese titles written in Latin letters, as %1$@ lists them.", tracker)
+    }
+
+    /// Confirm button of the folder picker for the downloads folder.
+    public static var settingsFolderChoose: String { string("settings-folder-choose", fallback: "Choose") }
+
+    /// Mac menu bar item that opens Settings.
+    public static var menuSettings: String { string("menu-settings", fallback: "Settings…") }
+
+    /// Mac menu bar item that opens the sheet for joining a plugin store.
+    public static var menuJoinPluginStore: String { string("menu-join-plugin-store", fallback: "Join Store…") }
+
+    /// Mac menu bar item that opens the invite link on the clipboard.
+    public static var menuOpenInviteLink: String { string("menu-open-invite-link", fallback: "Open Invite Link") }
+
+    /// Mac menu bar item that reveals the downloads folder in Finder.
+    public static var menuShowInFinder: String { string("menu-show-in-finder", fallback: "Show in Finder") }
+
+    /// Mac menu bar item that opens the filters of a search.
+    public static var menuSearchFilters: String { string("menu-search-filters", fallback: "Search Filters") }
+
+    /// Mac menu bar item that opens the command palette.
+    public static var menuCommandPalette: String { string("menu-command-palette", fallback: "Command Palette") }
+
+    /// Mac menu bar item that syncs with the tracker accounts now.
+    public static var menuSyncNow: String { string("menu-sync-now", fallback: "Sync Now") }
+
+    /// Mac menu bar item that pauses every download.
+    public static var menuPauseAllDownloads: String { string("menu-pause-all-downloads", fallback: "Pause All Downloads") }
+
+    /// Mac menu bar item that removes finished downloads from the list.
+    public static var menuClearFinishedDownloads: String { string("menu-clear-finished-downloads", fallback: "Clear Finished Downloads") }
+
+    /// Name of the Mac menu bar menu of playback commands.
+    public static var menuPlayback: String { string("menu-playback", fallback: "Playback") }
+
+    /// Name of the Mac menu bar menu of commands for one episode.
+    public static var menuEpisode: String { string("menu-episode", fallback: "Episode") }
+
+    /// Mac menu bar item that checks the plugin stores for plugin updates.
+    public static var menuCheckForUpdates: String { string("menu-check-for-updates", fallback: "Check for Updates") }
+
+    /// Mac menu bar item that opens the log of messages.
+    public static var menuMessages: String { string("menu-messages", fallback: "Messages") }
+
+    /// Mac menu bar item that opens a bug report.
+    public static var menuReportBug: String { string("menu-report-bug", fallback: "Report a Bug…") }
+
+    /// Mac menu bar item that shows the plugin stores.
+    public static var menuPluginStores: String { string("menu-plugin-stores", fallback: "Plugin Stores") }
+
+    /// Mac menu bar item that skips ahead ten seconds in the player.
+    public static var menuSkipForward: String { string("menu-skip-forward", fallback: "Skip Forward 10 Seconds") }
+
+    /// Mac menu bar item that skips back ten seconds in the player.
+    public static var menuSkipBack: String { string("menu-skip-back", fallback: "Skip Back 10 Seconds") }
+
+    /// Mac menu bar item that plays the next episode.
+    public static var menuNextEpisode: String { string("menu-next-episode", fallback: "Next Episode") }
+
+    /// Mac menu bar item that plays the previous episode.
+    public static var menuPreviousEpisode: String { string("menu-previous-episode", fallback: "Previous Episode") }
+
+    /// Mac menu bar item that skips the opening in the player.
+    public static var menuSkipOpening: String { string("menu-skip-opening", fallback: "Skip Opening") }
+
+    /// Mac menu bar item that brings the main window forward.
+    public static var menuMainWindow: String { string("menu-main-window", fallback: "Main Window") }
+
+    /// Heading of the Mac Episode menu when no episode is selected.
+    public static var menuNoEpisodeSelected: String { string("menu-no-episode-selected", fallback: "No Episode Selected") }
+
+    /// Mac menu bar item that marks the selected episode watched.
+    public static var menuMarkWatched: String { string("menu-mark-watched", fallback: "Mark Watched") }
+
+    /// Mac menu bar item that marks the selected episode unwatched.
+    public static var menuMarkUnwatched: String { string("menu-mark-unwatched", fallback: "Mark Unwatched") }
+
+    /// Mac menu bar item that marks every episode before the selected one watched.
+    public static var menuMarkAllPreviousWatched: String { string("menu-mark-all-previous-watched", fallback: "Mark All Previous Watched") }
+
+    /// Mac menu bar item that downloads the selected episode.
+    public static var menuDownload: String { string("menu-download", fallback: "Download") }
+
+    /// Heading of the Mac menu for a title when no title is selected.
+    public static var menuNoTitleSelected: String { string("menu-no-title-selected", fallback: "No Title Selected") }
+
+    /// Mac menu bar item that plays the selected title's trailer.
+    public static var menuPlayTrailer: String { string("menu-play-trailer", fallback: "Play Trailer") }
+
+    /// Mac menu bar item that opens the cast, staff and rankings of the selected title.
+    public static var menuMoreAbout: String { string("menu-more-about", fallback: "More About This Show…") }
+
+    /// Mac menu bar item that opens the settings of the selected title.
+    public static var menuShowSettings: String { string("menu-show-settings", fallback: "Show Settings for This Show…") }
+
+    /// Button under a long synopsis that folds it back to a few lines.
+    public static var shellLess: String { string("shell-less", fallback: "Less") }
+
+    /// VoiceOver label of a progress bar.
+    public static var shellProgress: String { string("shell-progress", fallback: "Progress") }
+
+    /// VoiceOver hint of the button that adds a source to play: it opens the Sources screen.
+    public static var shellOpensSources: String { string("shell-opens-sources", fallback: "Opens Sources") }
+
+    /// VoiceOver hint of the sync status in the sidebar: it opens the list of what is running.
+    public static var shellSyncHint: String { string("shell-sync-hint", fallback: "Shows what is running") }
+
+    /// Sync status in the sidebar when the tracker has no account signed in.
+    public static func shellSyncNotConnected(tracker: String) -> String {
+        Self.format("shell-sync-not-connected", fallback: "%1$@ not connected", tracker)
+    }
+
+    /// Line in the list of what the engine is doing, when it is doing nothing.
+    public static var shellNothingRunning: String { string("shell-nothing-running", fallback: "Nothing is running.") }
+
+    /// Line on a screen that this build does not have yet.
+    public static func shellNotBuiltYet(section: String) -> String {
+        Self.format("shell-not-built-yet", fallback: "%1$@ comes in a later build.", section)
+    }
+
+    /// Placeholder of the search field while Settings is open.
+    public static var shellSearchSettings: String { string("shell-search-settings", fallback: "Search settings") }
+
+    /// Toolbar button of Downloads that reveals the folder in Finder.
+    public static var shellShowInFinder: String { string("shell-show-in-finder", fallback: "Show in Finder") }
+
+    /// Swipe or context menu action that downloads an episode.
+    public static var shellDownload: String { string("shell-download", fallback: "Download") }
+
+    /// Accessibility label of the picker that chooses which list of the library to show.
+    public static var shellLibraryListLabel: String { string("shell-library-list-label", fallback: "List") }
+
+    /// Accessibility label of the picker that chooses how the library is sorted.
+    public static var shellLibraryOrderLabel: String { string("shell-library-order-label", fallback: "Order") }
+
+    /// Segment of the library list picker: the list's name and how many titles it holds.
+    public static func shellLibrarySegment(name: String, count: Int) -> String {
+        Self.format("shell-library-segment", fallback: "%1$@ %2$lld", name, count)
+    }
+
+    /// Error when a link that was pasted or opened is not a plugin store's invite.
+    public static var shellNotAStore: String { string("shell-not-a-store", fallback: "This link does not lead to a plugin store. Ask the plugin store's owner for a new invite.") }
+
+    /// Context menu item that carries on with an episode that was left part-way.
+    public static func shellResumeEpisode(episode: Int) -> String {
+        Self.format("shell-resume-episode", fallback: "Resume episode %1$lld", episode)
+    }
+
+    /// Context menu item that opens the settings of one title.
+    public static var shellShowSettings: String { string("shell-show-settings", fallback: "Show settings for this show") }
+
+    /// Sync status in the toolbar when no tracker account is signed in.
+    public static var shellSyncNone: String { string("shell-sync-none", fallback: "Not connected") }
+
+    /// Sync status in the toolbar when the account needs to be signed in again.
+    public static func shellSyncSignInAgain(tracker: String) -> String {
+        Self.format("shell-sync-sign-in-again", fallback: "Sign in to %1$@ again", tracker)
+    }
+
+    /// Sync status in the toolbar when the last sync failed.
+    public static func shellSyncFailed(tracker: String) -> String {
+        Self.format("shell-sync-failed", fallback: "%1$@ not synced", tracker)
+    }
+
+    /// Sync status in the toolbar when everything is synced.
+    public static func shellSyncSynced(tracker: String) -> String {
+        Self.format("shell-sync-synced", fallback: "%1$@ synced", tracker)
+    }
+
+    /// Title of the page shown instead of the app when the engine could not start. The reason follows.
+    public static var shellStartFailed: String { string("shell-start-failed", fallback: "anistream could not start") }
+
+    /// Line under the heading of the sources list on a phone, where the order is changed with Edit.
+    public static var sourcesOrderDetailEdit: String { string("sources-order-detail-edit", fallback: "Sources are tried top to bottom. Tap Edit to change the order.") }
+
+    /// Button that opens the update question for a plugin.
+    public static func sourcesUpdateTo(version: String) -> String {
+        Self.format("sources-update-to", fallback: "Update to %1$@", version)
+    }
+
+    /// Next to a plugin's version: the newer one its store offers.
+    public static func sourcesUpdateAvailableVersion(version: String) -> String {
+        Self.format("sources-update-available-version", fallback: "%1$@ available", version)
+    }
+
+    /// Row label on a plugin's page: the plugin store it came from.
+    public static var storesStoreLabel: String { string("stores-store-label", fallback: "Plugin store") }
+
+    /// Line under a plugin store's key: when its list was last fetched and checked. The time is relative, such as "2 minutes ago".
+    public static func storesCheckedAt(when: String) -> String {
+        Self.format("stores-checked-at", fallback: "Checked %1$@", when)
+    }
+
+    /// Short status of a plugin store: how many plugins have an update.
+    public static func storesUpdatesAvailable(count: Int) -> String {
+        Self.format("stores-updates-available", fallback: "%1$lld updates", count)
+    }
+
+    /// Line on a plugin's row: the version installed, when an update is offered or the plugin came from here.
+    public static func storesInstalledVersion(version: String) -> String {
+        Self.format("stores-installed-version", fallback: "%1$@ installed", version)
+    }
+
+    /// Number of plugins a plugin store offers, beside its name in the invite preview.
+    public static func storesPluginsCount(count: Int) -> String {
+        Self.format("stores-plugins-count", fallback: "%1$lld plugins", count)
+    }
+
+    /// Number of devices of one member of a plugin store.
+    public static func storesDevicesCount(count: Int) -> String {
+        Self.format("stores-devices-count", fallback: "%1$lld devices", count)
+    }
+
+    /// Line in the replace question: the plugin added by hand is replaced by the store's copy.
+    public static func storesReplaceByHandDetail(version: String, store: String) -> String {
+        Self.format("stores-replace-by-hand-detail", fallback: "Version %1$@ from %2$@ replaces the copy added by hand.", version, store)
+    }
+
+    /// Line under the switch of the who-can-join sheet while anyone with the link can join.
+    public static var storesOpenJoinOnDetail: String { string("stores-open-join-on-detail", fallback: "They join without a name. Turning this off stops the link; turning it on again makes a new one.") }
+
+    /// Line under the switch of the who-can-join sheet while only invited people can join.
+    public static var storesOpenJoinOffDetail: String { string("stores-open-join-off-detail", fallback: "Only people you invite can join. Turned on, anyone with the link joins, without a name.") }
+
+    /// Line under the count of devices that joined with the link, while the link is open.
+    public static var storesOpenJoinNoNames: String { string("stores-open-join-no-names", fallback: "No names are kept.") }
+
+    /// Line under the count of devices that joined with the link, while the link is closed.
+    public static var storesOpenJoinKeepWorking: String { string("stores-open-join-keep-working", fallback: "They keep working until you remove them.") }
+
+    /// Line of a device that joined with the link: when it was last seen. The time is relative.
+    public static func storesDeviceSeenAt(when: String) -> String {
+        Self.format("stores-device-seen-at", fallback: "Seen %1$@", when)
+    }
+
+    /// Line of a device that joined with the link and was never seen again.
+    public static var storesDeviceNotSeen: String { string("stores-device-not-seen", fallback: "Not seen since") }
+
+    /// Line of a plugin in the publish sheet: the version the plugin store offers.
+    public static func storesPublishOffered(version: String) -> String {
+        Self.format("stores-publish-offered", fallback: "The plugin store offers %1$@", version)
+    }
+
+    /// Line of a plugin in the publish sheet that the plugin store does not have yet.
+    public static var storesPublishNotYet: String { string("stores-publish-not-yet", fallback: "Not in the plugin store yet") }
+
+    /// Title of the sheet that turns torrents on.
+    public static var torrentsSheetTurnOn: String { string("torrents-sheet-turn-on", fallback: "Turn on torrents") }
+
+    /// Title of the sheet that changes what protects torrents.
+    public static var torrentsSheetProtect: String { string("torrents-sheet-protect", fallback: "Protect torrents") }
+
+    /// Title of the sheet that edits the saved proxy.
+    public static var torrentsSheetEditProxy: String { string("torrents-sheet-edit-proxy", fallback: "Edit proxy") }
+
+    /// Button of the turn-on sheet.
+    public static var torrentsTurnOnButton: String { string("torrents-turn-on-button", fallback: "Turn on") }
+
+    /// Button that opens the sheet that edits the saved proxy.
+    public static var torrentsEditProxy: String { string("torrents-edit-proxy", fallback: "Edit proxy") }
+
+    /// Hint inside the optional proxy fields.
+    public static var torrentsProxyOptional: String { string("torrents-proxy-optional", fallback: "Optional") }
+
+    /// Line under the question that asks whether torrents may keep running when a check fails.
+    public static var torrentsWarnOnlyDetail: String { string("torrents-warn-only-detail", fallback: "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.") }
+
+    /// Line naming where the saved proxy is and who it signs in as.
+    public static func torrentsProxyLineUser(address: String, user: String) -> String {
+        Self.format("torrents-proxy-line-user", fallback: "%1$@ · as %2$@", address, user)
+    }
+
+    /// Button that closes the app and leaves the party.
+    public static var partyLeaveAndQuit: String { string("party-leave-and-quit", fallback: "Leave and quit") }
+
+    /// Line under the question when the window is closed while in a party. The room is a name.
+    public static func partyLeaveDetailWindow(room: String) -> String {
+        Self.format("party-leave-detail-window", fallback: "Closing the window leaves %1$@. Everyone else carries on without you.", room)
+    }
+
+    /// Title of the sheet that lists sources for the party's episode. The episode is a number.
+    public static func partyChooseSourceTitle(episode: String) -> String {
+        Self.format("party-choose-source-title", fallback: "Choose a source for episode %1$@", episode)
+    }
+
+    /// Button that lists what each source has for the episode.
+    public static var partyChooseSource: String { string("party-choose-source", fallback: "Choose a source") }
+
+    /// Fallback name of a TV that has none.
+    public static var tvGenericName: String { string("tv-generic-name", fallback: "TV") }
+
+    /// Line under the name of a TV in the picker: paired and found on the network.
+    public static var tvRowPaired: String { string("tv-row-paired", fallback: "Paired") }
+
+    /// Line under the name of a TV in the picker: paired, but not found on this network now.
+    public static var tvRowPairedAway: String { string("tv-row-paired-away", fallback: "Paired, not seen on this network") }
+
+    /// Line under the name of a TV in the picker: found, not paired yet.
+    public static var tvRowNotPaired: String { string("tv-row-not-paired", fallback: "Not paired yet") }
+
+    /// Accessibility hint of a TV's row that pairs.
+    public static var tvRowPairHint: String { string("tv-row-pair-hint", fallback: "Pairs with this TV") }
+
+    /// Line of the sheet picker: what the episode is that is about to play, with its title. The episode is a number.
+    public static func tvPickerTitleEpisode(title: String, episode: String) -> String {
+        Self.format("tv-picker-title-episode", fallback: "%1$@, episode %2$@", title, episode)
+    }
+
+    /// Title of the sheet while the app connects to a TV and its name is not known.
+    public static var tvConnectingGeneric: String { string("tv-connecting-generic", fallback: "Connecting to the TV") }
+
+    /// Title of the section that lists TVs found on the network.
+    public static var tvSectionNetwork: String { string("tv-section-network", fallback: "On this network") }
+
+    /// Title of the section for a TV that is not listed.
+    public static var tvSectionNotListed: String { string("tv-section-not-listed", fallback: "Not listed") }
+
+    /// Button that opens the camera to read the code on the TV.
+    public static var tvScanCode: String { string("tv-scan-code", fallback: "Scan the code on the TV") }
+
+    /// Title of the section over the code boxes on a phone.
+    public static func tvCodeOn(name: String) -> String {
+        Self.format("tv-code-on", fallback: "Code on %1$@", name)
+    }
+
+    /// Title of the remote when nothing plays on the TV.
+    public static var tvNothingPlaying: String { string("tv-nothing-playing", fallback: "Nothing playing") }
+
+    /// Accessibility action that opens the remote.
+    public static var tvRemoteAction: String { string("tv-remote-action", fallback: "Show the remote") }
+
+    /// Status of the remote: the link was lost and the TV is not answering any more.
+    public static func tvStatusCantReach(name: String) -> String {
+        Self.format("tv-status-cant-reach", fallback: "Can't reach %1$@. Check that it is on and on the same network.", name)
+    }
+
+    /// Short status of the remote in the toolbar: the TV never answered.
+    public static func tvBarCantReach(name: String) -> String {
+        Self.format("tv-bar-cant-reach", fallback: "Can't reach %1$@", name)
+    }
+
+    /// Short status of the remote in the toolbar: the TV was given up on.
+    public static func tvBarNotFound(name: String) -> String {
+        Self.format("tv-bar-not-found", fallback: "%1$@ not found", name)
+    }
+
+    /// Title of the list of paired TVs on a phone.
+    public static var tvPairedTvs: String { string("tv-paired-tvs", fallback: "Paired TVs") }
+
+    /// Title of the page of paired TVs on a phone.
+    public static var tvTitleList: String { string("tv-title-list", fallback: "TVs") }
+
+    /// Line under the settings group of paired TVs. The code is a short fingerprint.
+    public static func tvSettingsFootnote(code: String) -> String {
+        Self.format("tv-settings-footnote", fallback: "A TV lists this device with the code %1$@. Forget a TV here and it forgets this device too.", code)
+    }
+
+    /// Time of the last sighting of a paired TV, within the last minute.
+    public static var tvSeenJustNow: String { string("tv-seen-just-now", fallback: "just now") }
+
+    /// Line over an invite link made for someone by name: it works once, and says until when. The time is already formatted.
+    public static func storesLinkSendOnce(who: String, until: String) -> String {
+        Self.format("stores-link-send-once", fallback: "Send this link to %1$@. It works once, until %2$@.", who, until)
+    }
+
+    /// Line over an invite link made for nobody in particular: it works once, and says until when.
+    public static func storesLinkSendOnceAnyone(until: String) -> String {
+        Self.format("stores-link-send-once-anyone", fallback: "Send this link to the person it is for. It works once, until %1$@.", until)
+    }
+
+    /// Title of the confirmation that removes a plugin. The name is the plugin's.
+    public static func sourcesRemoveTitle(name: String) -> String {
+        Self.format("sources-remove-title", fallback: "Remove %1$@?", name)
+    }
+
+    /// Detail of the confirmation that removes a plugin.
+    public static var sourcesRemoveDetailDevice: String { string("sources-remove-detail-device", fallback: "It is deleted from this device. A plugin store can install it again.") }
+
+    /// Name of the fact on the title page that lists where else a show can be watched.
+    public static var titleFactAlsoOn: String { string("title-fact-also-on", fallback: "Also on") }
+
+    /// Value of the Also on fact when more than one place has the show. The first is already named.
+    public static func titleAlsoOnMoreApple(first: String, count: Int) -> String {
+        Self.format("title-also-on-more-apple", fallback: "%1$@ and %2$lld more", first, count)
+    }
+
+    /// Value of the Airing fact for a show that has begun but whose start date is unknown.
+    public static var titleAiringNow: String { string("title-airing-now", fallback: "Now") }
+
+    /// Help tag on an episode row that has aired. The day is already written in full.
+    public static func episodeAiredHelp(day: String) -> String {
+        Self.format("episode-aired-help", fallback: "Aired %1$@", day)
+    }
+
+    /// Name of the fact on the title page that says when an unaired show starts.
+    public static var titleFactAirs: String { string("title-fact-airs", fallback: "Airs") }
+
+    /// Ranking that has no period, such as "Highest rated".
+    public static var titleRankingRated: String { string("title-ranking-rated", fallback: "Highest rated") }
+
+    /// Ranking that has no period, such as "Most popular".
+    public static var titleRankingPopular: String { string("title-ranking-popular", fallback: "Most popular") }
+
+    /// Name of an episode whose number is text, because it may be "7.5" or "OVA 2".
+    public static func episodeNumberString(number: String) -> String {
+        Self.format("episode-number-string", fallback: "Episode %1$@", number)
+    }
+
+    /// An episode whose number is text, and its name.
+    public static func episodeTitledText(number: String, title: String) -> String {
+        Self.format("episode-titled-text", fallback: "Episode %1$@ · %2$@", number, title)
+    }
+
+    /// Help tag on the Play on TV button of the title page.
+    public static var titlePlayOnTvHelp: String { string("title-play-on-tv-help", fallback: "Play this episode on a TV with anistream") }
+
+    /// Episode count on a phone's title line, such as "24 ep". Kept short.
+    public static func titleEpisodesShort(count: Int) -> String {
+        Self.format("title-episodes-short", fallback: "%1$lld ep", count)
+    }
+
+    /// VoiceOver label of an episode row that has not aired. The title is already worded, and so is when it airs.
+    public static func titleEpisodeRowUnaired(title: String, when: String) -> String {
+        Self.format("title-episode-row-unaired", fallback: "%1$@. %2$@, not out yet", title, when)
+    }
+
+    /// Line in the episode list of a title when the list is filtered to unwatched episodes and there are none.
+    public static var titleAllWatched: String { string("title-all-watched", fallback: "Every episode is watched") }
+
+    /// Line on the title page when the detail did not arrive in time. A Try again button follows.
+    public static var titleNoAnswerShort: String { string("title-no-answer-short", fallback: "AniList did not answer.") }
+
+    /// Option of the episode list's filter that shows every episode.
+    public static var titleEpisodesAll: String { string("title-episodes-all", fallback: "All") }
+
+    /// Option of the episode list's filter that shows the episodes not yet watched.
+    public static var titleEpisodesUnwatched: String { string("title-episodes-unwatched", fallback: "Unwatched") }
+
+    /// Status line while the update is being fetched ahead of the download.
+    public static var updatesPreparing: String { string("updates-preparing", fallback: "Preparing the update") }
+
+    /// Status line while the downloaded update is being downloaded. The size is already written.
+    public static func updatesDownloadingBytes(done: String) -> String {
+        Self.format("updates-downloading-bytes", fallback: "Downloading %1$@", done)
+    }
+
+    /// Status line while the update downloads and its size is known. Both sizes are already written.
+    public static func updatesDownloadingBytesOf(done: String, total: String) -> String {
+        Self.format("updates-downloading-bytes-of", fallback: "Downloading %1$@ of %2$@", done, total)
+    }
+
+    /// Status line while the app closes to finish the update.
+    public static var updatesRestarting: String { string("updates-restarting", fallback: "Restarting to finish the update") }
+
+    /// Status line after an update that stopped before it was done.
+    public static var updatesDidNotFinish: String { string("updates-did-not-finish", fallback: "The update did not finish.") }
+
+    /// Status line when the check for a newer version could not be made.
+    public static var updatesCouldNotCheck: String { string("updates-could-not-check", fallback: "Could not check.") }
+
+    /// Button that opens the app's page in SideStore, where the update is made.
+    public static var updatesInSidestore: String { string("updates-in-sidestore", fallback: "Update in SideStore") }
+
+    /// Button that opens the page of the release in the browser.
+    public static var updatesReleasePage: String { string("updates-release-page", fallback: "Version page") }
+
+    /// Button on the update row that opens the notes of the release in the browser.
+    public static var updatesReleaseNotes: String { string("updates-release-notes", fallback: "What's new") }
+
+    /// Title of the update row that carries the notes of the release.
+    public static func updatesWhatsNewIn(version: String) -> String {
+        Self.format("updates-whats-new-in", fallback: "What's new in %1$@", version)
+    }
+
+    /// Failure shown when the Mac updater is not ready to install yet.
+    public static var updatesInstallerNotReady: String { string("updates-installer-not-ready", fallback: "The updater is not ready. Try again in a moment.") }
+
+    /// Failure shown when the update feed does not list the version being installed yet.
+    public static var updatesFeedMissing: String { string("updates-feed-missing", fallback: "The update feed does not have this version yet.") }
+
+    /// Failure shown when the Fixtures app, used for screenshots, is asked to install an update.
+    public static var updatesFixturesNoInstall: String { string("updates-fixtures-no-install", fallback: "The Fixtures app does not install updates.") }
+
+    /// Short episode name in a widget.
+    public static func widgetEpisodeShort(episode: Int) -> String {
+        Self.format("widget-episode-short", fallback: "E%1$lld", episode)
+    }
+
+    /// Long episode name in a widget.
+    public static func widgetEpisodeLong(episode: Int) -> String {
+        Self.format("widget-episode-long", fallback: "Episode %1$lld", episode)
+    }
+
+    /// Tomorrow, inside a line.
+    public static var widgetDayTomorrow: String { string("widget-day-tomorrow", fallback: "tomorrow") }
+
+    /// Under a widget: the next episode and when it airs.
+    public static func widgetNextLine(when: String, title: String, episode: Int) -> String {
+        Self.format("widget-next-line", fallback: "Next: %1$@ · %2$@ · Episode %3$lld", when, title, episode)
+    }
+
+    /// The same line, shorter, for the small size.
+    public static func widgetNextLineShort(when: String, title: String, episode: Int) -> String {
+        Self.format("widget-next-line-short", fallback: "Next: %1$@, %2$@ E%3$lld", when, title, episode)
+    }
+
+    /// Header detail on the large Airing today widget: when the next episode airs.
+    public static func widgetNextTime(time: String) -> String {
+        Self.format("widget-next-time", fallback: "Next %1$@", time)
+    }
+
+    /// Small widget line: the show, its episode and the day it airs.
+    public static func widgetAirsDay(title: String, episode: Int, day: String) -> String {
+        Self.format("widget-airs-day", fallback: "%1$@ E%2$lld airs %3$@.", title, episode, day)
+    }
+
+    /// Row state: an episode came out a while ago. The span is already worded, and counts up as time passes.
+    public static func widgetOutAgo(time: String) -> String {
+        Self.format("widget-out-ago", fallback: "Out %1$@ ago", time)
+    }
+
+    /// Row state: an episode comes out in a while. The span is already worded, and counts down.
+    public static func widgetInTime(time: String) -> String {
+        Self.format("widget-in-time", fallback: "In %1$@", time)
+    }
+
+    /// Short title of the small Airing today widget.
+    public static var widgetAiringTitleSmall: String { string("widget-airing-title-small", fallback: "Today") }
+
+    /// Line of the small widget when nothing airs.
+    public static var widgetNothingAiringShort: String { string("widget-nothing-airing-short", fallback: "Nothing airing.") }
+
+    /// Second line of the medium widget when it has no schedule.
+    public static var widgetOpenToUpdate: String { string("widget-open-to-update", fallback: "Open anistream to update it.") }
+
+    /// Line on the Lock Screen when nothing more airs today.
+    public static var widgetNothingMoreToday: String { string("widget-nothing-more-today", fallback: "Nothing more today") }
+
+    /// Line when nothing airs tomorrow.
+    public static var widgetTomorrowNone: String { string("widget-tomorrow-none", fallback: "Tomorrow: nothing airing") }
+
+    /// Line for tomorrow: the first episode and the time.
+    public static func widgetTomorrowFirst(time: String, title: String) -> String {
+        Self.format("widget-tomorrow-first", fallback: "Tomorrow: %1$@ · %2$@", time, title)
+    }
+
+    /// Line for tomorrow: the first episode and how many more follow.
+    public static func widgetTomorrowMore(time: String, title: String, count: Int) -> String {
+        Self.format("widget-tomorrow-more", fallback: "Tomorrow: %1$@ · %2$@ and %3$lld more", time, title, count)
+    }
+
+    /// Name of the Continue widget, in the gallery and its title.
+    public static var widgetContinueTitleApple: String { string("widget-continue-title-apple", fallback: "Continue watching") }
+
+    /// Description of the Continue widget in the gallery.
+    public static var widgetContinueDescription: String { string("widget-continue-description", fallback: "The next episode of what you're watching.") }
+
+    /// Description of the Airing today widget in the gallery.
+    public static var widgetAiringDescription: String { string("widget-airing-description", fallback: "Today's episodes, with the shows in your list marked.") }
+
+    /// Line on the Continue widget when nothing is connected, for the medium and large sizes.
+    public static func widgetConnectDetailLong(tracker: String) -> String {
+        Self.format("widget-connect-detail-long", fallback: "Connect %1$@, or play an episode, to see what you're watching here.", tracker)
+    }
+
+    /// Line on the Continue widget when nothing is connected, for the small size.
+    public static func widgetConnectDetailShort(tracker: String) -> String {
+        Self.format("widget-connect-detail-short", fallback: "Connect %1$@, or play an episode, to see it here.", tracker)
+    }
+
+    /// Button on the Continue widget that connects the tracker.
+    public static func widgetConnectTracker(tracker: String) -> String {
+        Self.format("widget-connect-tracker", fallback: "Connect %1$@", tracker)
+    }
+
+    /// Title of the Continue widget when nothing is left to watch.
+    public static var widgetCaughtUpTitleApple: String { string("widget-caught-up-title-apple", fallback: "You're caught up") }
+
+    /// Line under that title when the next episode is not known.
+    public static var widgetCaughtUpNone: String { string("widget-caught-up-none", fallback: "Nothing more to continue.") }
+
+    /// Line under that title when the next episode is on the person's list.
+    public static var widgetCaughtUpNextApple: String { string("widget-caught-up-next-apple", fallback: "Next from your list:") }
+
+    /// Line of the Continue widget: an episode left part-way and the time left.
+    public static func widgetLineLeftApple(episode: String, left: String) -> String {
+        Self.format("widget-line-left-apple", fallback: "%1$@ · %2$@", episode, left)
+    }
+
+    /// Line of the Continue widget: resume an episode.
+    public static func widgetLineResume(episode: String) -> String {
+        Self.format("widget-line-resume", fallback: "Resume %1$@", episode)
+    }
+
+    /// Button of the large Continue widget: carry on with an episode that was part-watched.
+    public static func widgetActionResume(episode: String) -> String {
+        Self.format("widget-action-resume", fallback: "Resume %1$@", episode)
+    }
+
+    /// Button of the large Continue widget: start an episode.
+    public static func widgetActionStart(episode: String) -> String {
+        Self.format("widget-action-start", fallback: "Start %1$@", episode)
+    }
+
+    /// VoiceOver, an episode in a Continue row: the episode number.
+    public static func widgetA11yEpisode(episode: Int) -> String {
+        Self.format("widget-a11y-episode", fallback: "episode %1$lld", episode)
+    }
+
+    /// VoiceOver, an episode with its mark such as Dub. The first part is already worded.
+    public static func widgetA11yEpisodeMarked(episode: String, mark: String) -> String {
+        Self.format("widget-a11y-episode-marked", fallback: "%1$@, %2$@", episode, mark)
+    }
+
+    /// VoiceOver, an episode left part-way. The first part is already worded.
+    public static func widgetA11yResume(episode: String, minutes: Int) -> String {
+        Self.format("widget-a11y-resume", fallback: "%1$@, %2$lld minutes left", episode, minutes)
+    }
+
+    /// VoiceOver, an episode to start. The first part is already worded.
+    public static func widgetA11yStart(episode: String) -> String {
+        Self.format("widget-a11y-start", fallback: "start %1$@", episode)
+    }
+
+    /// VoiceOver, a Continue row: the show and what happens when it is pressed.
+    public static func widgetA11yRow(title: String, what: String) -> String {
+        Self.format("widget-a11y-row", fallback: "%1$@, %2$@", title, what)
+    }
+
+    /// VoiceOver, an Airing today row: the show, episode and time.
+    public static func widgetA11yAiring(title: String, episode: Int, time: String) -> String {
+        Self.format("widget-a11y-airing", fallback: "%1$@, episode %2$lld, %3$@", title, episode, time)
+    }
+
+    /// Added to an Airing today row that was watched.
+    public static func widgetA11yThenWatched(label: String) -> String {
+        Self.format("widget-a11y-then-watched", fallback: "%1$@, watched", label)
+    }
+
+    /// Added to an Airing today row that is out.
+    public static func widgetA11yThenOut(label: String) -> String {
+        Self.format("widget-a11y-then-out", fallback: "%1$@, out", label)
+    }
+
+    /// Added to an Airing today row that is in the person's list.
+    public static func widgetA11yThenList(label: String) -> String {
+        Self.format("widget-a11y-then-list", fallback: "%1$@, in your list", label)
+    }
+
+    /// Line of the airing activity once the episode is out.
+    public static var widgetOutNow: String { string("widget-out-now", fallback: "Out now") }
+
+    /// Line of the airing activity before it is out. The time is the device's clock.
+    public static func widgetAirsAt(time: String) -> String {
+        Self.format("widget-airs-at", fallback: "Airs at %1$@", time)
+    }
+
+    /// Line of the airing activity once the episode is out. The time is the device's clock.
+    public static func widgetAiredAt(time: String) -> String {
+        Self.format("widget-aired-at", fallback: "Aired at %1$@", time)
+    }
+
+    /// VoiceOver, the airing activity before the episode is out.
+    public static func widgetA11yAirsAt(title: String, episode: Int, time: String) -> String {
+        Self.format("widget-a11y-airs-at", fallback: "%1$@, episode %2$lld, airs at %3$@", title, episode, time)
+    }
+
+    /// VoiceOver, the airing activity once the episode is out.
+    public static func widgetA11yOutNow(title: String, episode: Int) -> String {
+        Self.format("widget-a11y-out-now", fallback: "%1$@, episode %2$lld, out now", title, episode)
+    }
+
+    /// Line of the downloads activity when an episode finished.
+    public static func widgetDownloadedLine(episode: String) -> String {
+        Self.format("widget-downloaded-line", fallback: "Episode %1$@ downloaded", episode)
+    }
+
+    /// Second line of the downloads activity when an episode finished.
+    public static var widgetDownloadedReady: String { string("widget-downloaded-ready", fallback: "Ready to watch offline") }
+
+    /// Title of the downloads activity while several episodes download.
+    public static func widgetDownloadingTitle(count: Int) -> String {
+        Self.format("widget-downloading-title", fallback: "Downloading %1$lld episodes", count)
+    }
+
+    /// Line of the downloads activity while paused.
+    public static var widgetDownloadsPaused: String { string("widget-downloads-paused", fallback: "Paused") }
+
+    /// Line of the downloads activity: the first show, then how many more follow.
+    public static func widgetDownloadsThenMore(title: String, episode: String, count: Int) -> String {
+        Self.format("widget-downloads-then-more", fallback: "%1$@ E%2$@, then %3$lld more", title, episode, count)
+    }
+
+    /// Line of the downloads activity: the size still to download.
+    public static func widgetSizeLeft(size: String) -> String {
+        Self.format("widget-size-left", fallback: "%1$@ left", size)
+    }
+
+    /// Line of the downloads activity: the time still to wait.
+    public static func widgetTimeLeft(time: String) -> String {
+        Self.format("widget-time-left", fallback: "%1$@ left", time)
+    }
+
+    /// Line of the downloads activity when the app has not updated it for a while.
+    public static var widgetContinuesWhenOpen: String { string("widget-continues-when-open", fallback: "Continues when you open anistream") }
+
+    /// Line of the downloads activity: the size done and the size in all.
+    public static func widgetBytesOf(done: String, total: String) -> String {
+        Self.format("widget-bytes-of", fallback: "%1$@ of %2$@", done, total)
+    }
+
+    /// Download speed, such as "2.4 MB/s". The size is already formatted.
+    public static func widgetSpeed(size: String) -> String {
+        Self.format("widget-speed", fallback: "%1$@/s", size)
+    }
+
+    /// Line of the downloads activity: an episode that is downloading.
+    public static func widgetDownloadsEpisode(episode: String) -> String {
+        Self.format("widget-downloads-episode", fallback: "Episode %1$@", episode)
+    }
+
+    /// VoiceOver, the downloads activity once an episode finished.
+    public static func widgetA11yDownloaded(title: String, episode: String) -> String {
+        Self.format("widget-a11y-downloaded", fallback: "%1$@, episode %2$@, downloaded", title, episode)
+    }
+
+    /// VoiceOver, the downloads activity while it runs.
+    public static func widgetA11yDownloading(title: String, episode: String, percent: String) -> String {
+        Self.format("widget-a11y-downloading", fallback: "%1$@, episode %2$@, %3$@", title, episode, percent)
+    }
+
+    /// Added to the VoiceOver line of the downloads activity when it is paused.
+    public static func widgetA11yThenPaused(label: String) -> String {
+        Self.format("widget-a11y-then-paused", fallback: "%1$@, paused", label)
+    }
+
+    /// Added to the VoiceOver line of the downloads activity: the time left.
+    public static func widgetA11yThenTimeLeft(label: String, time: String) -> String {
+        Self.format("widget-a11y-then-time-left", fallback: "%1$@, %2$@ left", label, time)
+    }
+
+    /// Added to the VoiceOver line of the downloads activity: how many episodes are downloading.
+    public static func widgetA11yThenCount(label: String, count: Int) -> String {
+        Self.format("widget-a11y-then-count", fallback: "%1$@, %2$lld episodes downloading", label, count)
+    }
+
+    /// Button of the downloads activity that starts an episode that finished.
+    public static func widgetPlayEpisodeShort(episode: String) -> String {
+        Self.format("widget-play-episode-short", fallback: "Play E%1$@", episode)
+    }
+
+    /// VoiceOver, the button of the downloads activity that plays an episode that finished.
+    public static func widgetPlayEpisodeLong(episode: String) -> String {
+        Self.format("widget-play-episode-long", fallback: "Play episode %1$@", episode)
+    }
+
+    /// VoiceOver, the button that continues the downloads.
+    public static var widgetResumeDownloads: String { string("widget-resume-downloads", fallback: "Resume downloads") }
+
+    /// VoiceOver, the button that pauses the downloads.
+    public static var widgetPauseDownloads: String { string("widget-pause-downloads", fallback: "Pause downloads") }
+
+    /// Line of the playback activity while paused. The time is the time left, such as "18:20".
+    public static func widgetPausedLine(left: String) -> String {
+        Self.format("widget-paused-line", fallback: "Paused · %1$@ left", left)
+    }
+
+    /// VoiceOver, the playback activity while paused.
+    public static func widgetA11yPlaybackPaused(title: String, episode: String, minutes: Int) -> String {
+        Self.format("widget-a11y-playback-paused", fallback: "%1$@, episode %2$@, paused, %3$lld minutes left", title, episode, minutes)
+    }
+
+    /// VoiceOver, the playback activity while it plays.
+    public static func widgetA11yPlaybackPlaying(title: String, episode: String, minutes: Int) -> String {
+        Self.format("widget-a11y-playback-playing", fallback: "%1$@, episode %2$@, playing, %3$lld minutes left", title, episode, minutes)
+    }
+
     /// Mac menu bar item. Title Case, as Apple's guidelines ask for the menu bar only.
     public static var menuShowLibrary: String { string("menu-show-library", fallback: "Show Library") }
 
@@ -1254,6 +2909,32 @@ public enum L {
         Self.format("time-minutes", fallback: "%1$lld min", minutes)
     }
 
+    /// A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.
+    public static var timeNowInline: String { string("time-now-inline", fallback: "now") }
+
+    /// How long ago, under a minute. Lower case, as it stands inside a line.
+    public static var timeJustNowInline: String { string("time-just-now-inline", fallback: "just now") }
+
+    /// Later today.
+    public static func whenToday(time: String) -> String {
+        Self.format("when-today", fallback: "today %1$@", time)
+    }
+
+    /// Tomorrow.
+    public static func whenTomorrow(time: String) -> String {
+        Self.format("when-tomorrow", fallback: "tomorrow %1$@", time)
+    }
+
+    /// Within the next six days. The day is the weekday's name, already formatted.
+    public static func whenWeekday(day: String, time: String) -> String {
+        Self.format("when-weekday", fallback: "%1$@ %2$@", day, time)
+    }
+
+    /// A week or more away. The date is the day and short month, already formatted, such as "29 Oct".
+    public static func whenDate(date: String, time: String) -> String {
+        Self.format("when-date", fallback: "%1$@, %2$@", date, time)
+    }
+
     /// Line under a title when the device has no connection.
     public static var stateOfflineLine: String { string("state-offline-line", fallback: "Offline. Downloaded episodes still play.") }
 
@@ -1294,9 +2975,6 @@ public enum L {
 
     /// Short placeholder while something loads.
     public static var stateLoading: String { string("state-loading", fallback: "Loading") }
-
-    /// How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
-    public static var timeJustNowInline: String { string("time-just-now-inline", fallback: "just now") }
 
     /// Controller help: the D-pad and left stick move focus between items.
     public static var padHelpMove: String { string("pad-help-move", fallback: "Move focus") }
@@ -2045,6 +3723,11 @@ public enum L {
         Self.format("progress-episode-short", fallback: "E%1$lld", done)
     }
 
+    /// Row caption: the next unwatched episode, dubbed, which came out a while ago.
+    public static func continueRowStartAiredDubbed(episode: Int, ago: String) -> String {
+        Self.format("continue-row-start-aired-dubbed", fallback: "Play E%1$lld dubbed · out %2$@", episode, ago)
+    }
+
     /// Format of a show: broadcast on television.
     public static var formatTv: String { string("format-tv", fallback: "TV") }
 
@@ -2607,6 +4290,14 @@ public enum L {
         Self.format("party-source-seeders", fallback: "%1$lld seeders", seeders)
     }
 
+    /// Line when no source lists the episode.
+    public static func partyNoSourceLists(episode: String) -> String {
+        Self.format("party-no-source-lists", fallback: "No source lists episode %1$@. Sources come from plugins, which a plugin store adds.", episode)
+    }
+
+    /// Button that plays the chosen source with the room.
+    public static var partyPlayWith: String { string("party-play-with", fallback: "Play with the watch party") }
+
     /// Label on the card for the episode that plays after this one.
     public static var playerUpNext: String { string("player-up-next", fallback: "Up next") }
 
@@ -2855,6 +4546,32 @@ public enum L {
 
     /// Title of the picker sheet in the player.
     public static var playerSources: String { string("player-sources", fallback: "Sources") }
+
+    /// Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".
+    public static func playerFailedTitleText(episode: String) -> String {
+        Self.format("player-failed-title-text", fallback: "Couldn't play episode %1$@", episode)
+    }
+
+    /// Label while scrubbing the seek line at half the pace.
+    public static var playerScrubHalf: String { string("player-scrub-half", fallback: "Half-speed scrubbing") }
+
+    /// Label while scrubbing the seek line at a quarter of the pace.
+    public static var playerScrubQuarter: String { string("player-scrub-quarter", fallback: "Quarter-speed scrubbing") }
+
+    /// Heading of the starting screen. The episode's number is text, because it may be "7.5".
+    public static func playerStartingText(episode: String) -> String {
+        Self.format("player-starting-text", fallback: "Starting episode %1$@", episode)
+    }
+
+    /// Name of an audio or subtitle track that has no language or title.
+    public static func playerTrackN(id: Int) -> String {
+        Self.format("player-track-n", fallback: "Track %1$lld", id)
+    }
+
+    /// Line while an episode starts after a few seconds: what the wait is on, and for how long.
+    public static func playerWaitNote(what: String, seconds: Int) -> String {
+        Self.format("player-wait-note", fallback: "%1$@ · %2$lld s", what, seconds)
+    }
 
     /// Button that shows the season before.
     public static var seasonalPrevious: String { string("seasonal-previous", fallback: "Previous season") }
@@ -3512,8 +5229,40 @@ public enum L {
     /// Preview note under the upscaling frame for the sharp look.
     public static var settingsUpscalingNoteSharp: String { string("settings-upscaling-note-sharp", fallback: "Crisper lines and stronger edges, at some cost to texture.") }
 
+    /// Setting: a command run after each download finishes.
+    public static var settingsAfterDownload: String { string("settings-after-download", fallback: "After each download") }
+
+    /// Setting: extra options passed to mpv, the player. mpv stays lower case.
+    public static var settingsMpvOptions: String { string("settings-mpv-options", fallback: "mpv options") }
+
+    /// Name screen readers give the list of panes down the side of Settings.
+    public static var settingsPanesLabel: String { string("settings-panes-label", fallback: "Settings panes") }
+
+    /// Setting: Discord's status with the cover and a progress bar.
+    public static var settingsPresenceRich: String { string("settings-presence-rich", fallback: "Rich presence") }
+
+    /// Setting: Discord's status names the show being watched.
+    public static var settingsPresenceTitle: String { string("settings-presence-title", fallback: "Presence shows the title") }
+
+    /// Under a tracker that is signed in, when its user name is unknown.
+    public static var settingsSignedIn: String { string("settings-signed-in", fallback: "Signed in") }
+
     /// Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
     public static var settingsUpscalingSharp: String { string("settings-upscaling-sharp", fallback: "Sharp · Anime4K") }
+
+    /// Side note in Accounts.
+    public static var settingsAsideAccounts: String { string("settings-aside-accounts", fallback: "anistream works without an account. Your watch history stays on this device when you sign out.") }
+
+    /// Today, inside a line such as "Thursday 16:30".
+    public static var widgetDayToday: String { string("widget-day-today", fallback: "today") }
+
+    /// Yesterday, inside a line.
+    public static var widgetDayYesterday: String { string("widget-day-yesterday", fallback: "yesterday") }
+
+    /// Line of the Continue widget: what plays next, with the episode already named.
+    public static func widgetLineStart(episode: String) -> String {
+        Self.format("widget-line-start", fallback: "Start %1$@", episode)
+    }
 
     /// Title of the screen or section that lists sources.
     public static var sourcesTitle: String { string("sources-title", fallback: "Sources") }
@@ -3729,6 +5478,17 @@ public enum L {
 
     /// Row: where the plugin's page stands.
     public static var sourcesSourceOrderRow: String { string("sources-source-order-row", fallback: "Source order") }
+
+    /// Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
+    public static var sourcesTorrentsNote: String { string("sources-torrents-note", fallback: "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.") }
+
+    /// Over the { -source } list while the { -source-pl } are set up again after a change.
+    public static var sourcesRebuilding: String { string("sources-rebuilding", fallback: "Sources are being set up again") }
+
+    /// Value of a plugin's response time, in milliseconds.
+    public static func sourcesResponseMs(ms: Int) -> String {
+        Self.format("sources-response-ms", fallback: "%1$lld ms", ms)
+    }
 
     /// Short label for a joined store, on a row.
     public static var storesJoined: String { string("stores-joined", fallback: "Joined") }
@@ -4168,6 +5928,9 @@ public enum L {
         Self.format("stores-plugin-name-version", fallback: "%1$@ %2$@", name, version)
     }
 
+    /// Button on the summary row that removes every device that joined with the link.
+    public static var storesRemoveAll: String { string("stores-remove-all", fallback: "Remove all") }
+
     /// Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
     public static var storesCopyLink: String { string("stores-copy-link", fallback: "Copy link") }
 
@@ -4175,6 +5938,9 @@ public enum L {
     public static func storesOffersPlugins(count: Int) -> String {
         Self.format("stores-offers-plugins", fallback: "%1$lld plugins", count)
     }
+
+    /// Button of a notice that opens the plugin stores page.
+    public static var noticeOpenStores: String { string("notice-open-stores", fallback: "Open plugin stores") }
 
     /// Title of the state when a title page could not load.
     public static var titleLoadFailed: String { string("title-load-failed", fallback: "Couldn't load this title") }
@@ -4384,6 +6150,16 @@ public enum L {
     /// An episode's line with the audio it was watched in marked, as Continue and the title page word it.
     public static func episodeLineDubbed(line: String) -> String {
         Self.format("episode-line-dubbed", fallback: "%1$@ · Dubbed", line)
+    }
+
+    /// Main button of the title page for a dubbed episode that has not been started.
+    public static func titleButtonPlayDubbed(episode: Int) -> String {
+        Self.format("title-button-play-dubbed", fallback: "Play episode %1$lld · Dubbed", episode)
+    }
+
+    /// Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.
+    public static func titleButtonResumeDubbed(episode: Int, time: String) -> String {
+        Self.format("title-button-resume-dubbed", fallback: "Resume episode %1$lld · Dubbed · %2$@", episode, time)
     }
 
     /// Title of the settings group and the screen.
@@ -4625,6 +6401,9 @@ public enum L {
 
     /// Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
     public static var torrentsCheckNote: String { string("torrents-check-note", fallback: "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.") }
+
+    /// Notice after the protection was saved.
+    public static var torrentsProtectionSaved: String { string("torrents-protection-saved", fallback: "Torrent protection saved") }
 
     /// Title of the accounts screen. The sidebar item is nav-accounts.
     public static var accountsTitle: String { string("accounts-title", fallback: "Accounts") }
@@ -5116,6 +6895,15 @@ public enum L {
 
     /// Heading of the settings group on the TV that lists the remotes.
     public static var tvRemotes: String { string("tv-remotes", fallback: "Remotes") }
+
+    /// Row title of the button that pairs another TV once one is paired.
+    public static var tvAnother: String { string("tv-another", fallback: "Another TV") }
+
+    /// Under a TV in the list: its version does not match.
+    public static var tvRowNeedsUpdate: String { string("tv-row-needs-update", fallback: "Needs the same anistream version as this device") }
+
+    /// Title of the remote's volume row.
+    public static var tvVolume: String { string("tv-volume", fallback: "TV volume") }
 
     /// Heading of the update row in settings and about.
     public static var updatesTitle: String { string("updates-title", fallback: "Updates") }

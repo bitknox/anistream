@@ -1044,17 +1044,11 @@ tv-code-expired = Code expired
 # Under a TV in the list: what choosing it does, for a screen reader.
 tv-row-pairs-with = Pairs with this TV
 
-# Row title of the button that pairs another TV once one is paired.
-tv-another = Another TV
-
 # Under a TV in the list: paired, but not seen on the network.
 tv-row-away = Paired, not seen on this network
 
 # Under a TV in the list: found, not paired yet.
 tv-row-new = Not paired yet
-
-# Under a TV in the list: its version does not match.
-tv-row-needs-update = Needs the same anistream version as this device
 
 # What a screen reader hears when a heading and its problem show together.
 tv-problem-announce = { $heading }. { $problem }
@@ -1076,9 +1070,6 @@ tv-fingerprint-note = A TV lists this device with the code { $code }. Forget a T
 
 # Settings line of a paired TV: paired on a date, reached in the last minute.
 tv-paired-seen-now = { $paired } · seen just now
-
-# Title of the remote's volume row.
-tv-volume = TV volume
 
 # Accessible name of a track menu: the row, then the track chosen.
 tv-track-choice = { $row }, { $track }
@@ -1126,9 +1117,6 @@ stores-open-no-names = No names are kept.
 # Line on the summary row of devices that joined with the link, when joining is off.
 stores-open-keep-working = They keep working until you remove them.
 
-# Button on the summary row that removes every device that joined with the link.
-stores-remove-all = Remove all
-
 # Line under a device that joined with the link: when the store last saw it.
 stores-device-seen = Seen { $when }
 
@@ -1155,9 +1143,6 @@ stores-published-state = Published
 
 # Accessible name of a row's Publish button.
 stores-publish-label = Publish { $name } { $version }
-
-# Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
-sources-torrents-note = Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.
 
 # Under a release in the source picker: how many people share it right now.
 source-picker-seeders-linux =
@@ -4037,6 +4022,24 @@ time-minutes-left = { $minutes } min left
 # A length in minutes, for an episode.
 time-minutes = { $minutes } min
 
+# A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.
+time-now-inline = now
+
+# How long ago, under a minute. Lower case, as it stands inside a line.
+time-just-now-inline = just now
+
+# Later today.
+when-today = today { $time }
+
+# Tomorrow.
+when-tomorrow = tomorrow { $time }
+
+# Within the next six days. The day is the weekday's name, already formatted.
+when-weekday = { $day } { $time }
+
+# A week or more away. The date is the day and short month, already formatted, such as "29 Oct".
+when-date = { $date }, { $time }
+
 # Line under a title when the device has no connection.
 state-offline-line = Offline. Downloaded episodes still play.
 
@@ -4075,9 +4078,6 @@ state-working = Working
 
 # Short placeholder while something loads.
 state-loading = Loading
-
-# How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
-time-just-now-inline = just now
 
 # Controller help: the D-pad and left stick move focus between items.
 pad-help-move = Move focus
@@ -4766,6 +4766,9 @@ progress-episodes-short = E{ $done } of { $total }
 # Short progress under a show when the total is not known.
 progress-episode-short = E{ $done }
 
+# Row caption: the next unwatched episode, dubbed, which came out a while ago.
+continue-row-start-aired-dubbed = Play E{ $episode } dubbed · out { $ago }
+
 # Format of a show: broadcast on television.
 format-tv = TV
 
@@ -5274,6 +5277,12 @@ party-sources-label = Sources for this episode
 # Line of a source: its quality and size already formatted, and the number of seeders.
 party-source-seeders = { $seeders } seeders
 
+# Line when no source lists the episode.
+party-no-source-lists = No source lists episode { $episode }. Sources come from plugins, which a plugin store adds.
+
+# Button that plays the chosen source with the room.
+party-play-with = Play with the watch party
+
 # Label on the card for the episode that plays after this one.
 player-up-next = Up next
 
@@ -5502,6 +5511,24 @@ source-picker-empty = No source has a stream for this episode.
 
 # Title of the picker sheet in the player.
 player-sources = Sources
+
+# Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".
+player-failed-title-text = Couldn't play episode { $episode }
+
+# Label while scrubbing the seek line at half the pace.
+player-scrub-half = Half-speed scrubbing
+
+# Label while scrubbing the seek line at a quarter of the pace.
+player-scrub-quarter = Quarter-speed scrubbing
+
+# Heading of the starting screen. The episode's number is text, because it may be "7.5".
+player-starting-text = Starting episode { $episode }
+
+# Name of an audio or subtitle track that has no language or title.
+player-track-n = Track { $id }
+
+# Line while an episode starts after a few seconds: what the wait is on, and for how long.
+player-wait-note = { $what } · { $seconds } s
 
 # Button that shows the season before.
 seasonal-previous = Previous season
@@ -6123,8 +6150,38 @@ settings-upscaling-note-natural = Faithful line work and texture, nothing restyl
 # Preview note under the upscaling frame for the sharp look.
 settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
 
+# Setting: a command run after each download finishes.
+settings-after-download = After each download
+
+# Setting: extra options passed to mpv, the player. mpv stays lower case.
+settings-mpv-options = mpv options
+
+# Name screen readers give the list of panes down the side of Settings.
+settings-panes-label = Settings panes
+
+# Setting: Discord's status with the cover and a progress bar.
+settings-presence-rich = Rich presence
+
+# Setting: Discord's status names the show being watched.
+settings-presence-title = Presence shows the title
+
+# Under a tracker that is signed in, when its user name is unknown.
+settings-signed-in = Signed in
+
 # Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
 settings-upscaling-sharp = Sharp · Anime4K
+
+# Side note in Accounts.
+settings-aside-accounts = anistream works without an account. Your watch history stays on this device when you sign out.
+
+# Today, inside a line such as "Thursday 16:30".
+widget-day-today = today
+
+# Yesterday, inside a line.
+widget-day-yesterday = yesterday
+
+# Line of the Continue widget: what plays next, with the episode already named.
+widget-line-start = Start { $episode }
 
 # Title of the screen or section that lists sources.
 sources-title = Sources
@@ -6326,6 +6383,15 @@ sources-torrent-source = Torrent source
 
 # Row: where the plugin's page stands.
 sources-source-order-row = Source order
+
+# Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
+sources-torrents-note = Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.
+
+# Over the { -source } list while the { -source-pl } are set up again after a change.
+sources-rebuilding = Sources are being set up again
+
+# Value of a plugin's response time, in milliseconds.
+sources-response-ms = { $ms } ms
 
 # Short label for a joined store, on a row.
 stores-joined = Joined
@@ -6707,6 +6773,9 @@ stores-publish-none = No plugins on this device to publish.
 # Version line of a plugin in the publish sheet.
 stores-plugin-name-version = { $name } { $version }
 
+# Button on the summary row that removes every device that joined with the link.
+stores-remove-all = Remove all
+
 # Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
 stores-copy-link = Copy link
 
@@ -6716,6 +6785,9 @@ stores-offers-plugins =
         [one] One plugin
        *[other] { $count } plugins
     }
+
+# Button of a notice that opens the plugin stores page.
+notice-open-stores = Open plugin stores
 
 # Title of the state when a title page could not load.
 title-load-failed = Couldn't load this title
@@ -6900,6 +6972,12 @@ more-show-spoiler-tags =
 
 # An episode's line with the audio it was watched in marked, as Continue and the title page word it.
 episode-line-dubbed = { $line } · Dubbed
+
+# Main button of the title page for a dubbed episode that has not been started.
+title-button-play-dubbed = Play episode { $episode } · Dubbed
+
+# Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.
+title-button-resume-dubbed = Resume episode { $episode } · Dubbed · { $time }
 
 # Title of the settings group and the screen.
 torrents-title = Torrents
@@ -7122,6 +7200,9 @@ torrents-page-needs-script = This page needs JavaScript to send the form to the 
 
 # Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
 torrents-check-note = anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.
+
+# Notice after the protection was saved.
+torrents-protection-saved = Torrent protection saved
 
 # Title of the accounts screen. The sidebar item is nav-accounts.
 accounts-title = Accounts
@@ -7507,6 +7588,15 @@ tv-remove-phone-detail = It stops working as a remote for this TV. It can pair a
 
 # Heading of the settings group on the TV that lists the remotes.
 tv-remotes = Remotes
+
+# Row title of the button that pairs another TV once one is paired.
+tv-another = Another TV
+
+# Under a TV in the list: its version does not match.
+tv-row-needs-update = Needs the same anistream version as this device
+
+# Title of the remote's volume row.
+tv-volume = TV volume
 
 # Heading of the update row in settings and about.
 updates-title = Updates

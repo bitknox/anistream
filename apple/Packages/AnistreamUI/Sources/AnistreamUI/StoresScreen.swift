@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 struct PluginStoresScreen: View {
@@ -46,10 +47,10 @@ struct NoStores: View {
 
     var body: some View {
         EmptyState(
-            title: "No plugin stores yet",
-            line: "Plugin stores are run by people you know. Join one with the invite link its owner sends you."
+            title: L.storesEmptyTitle,
+            line: L.storesEmptyDetail
         ) {
-            Button(cased(mac: "Join Store…", touch: "Join a store")) { navigator.invite = "" }
+            Button(L.storesJoinShort) { navigator.invite = "" }
                 .buttonStyle(SecondaryCapsuleStyle(height: ScreenFailed.buttonHeight, fontSize: ScreenFailed.buttonFont))
         }
     }
@@ -65,7 +66,7 @@ struct StoreList: View {
         let current = selection ?? stores.first?.id
         ScrollView {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Joined")
+                Text(L.storesJoined)
                     .groupHeaderStyle()
                     .accessibilityAddTraits(.isHeader)
                     .macLineHeight(14)
@@ -91,7 +92,7 @@ struct StoreList: View {
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(selected ? .isSelected : [])
                 }
-                Text("Plugin stores are run by people you know. Join one with the invite link its owner sends you.")
+                Text(L.storesEmptyDetail)
                     .font(.mac(12))
                     .macLineHeight(17)
                     .foregroundStyle(.haze)
@@ -113,11 +114,11 @@ struct StoreStanding: View {
     var body: some View {
         switch row.state {
         case .revoked:
-            label("Access removed", dot: .vermilion, color: .silk)
+            label(L.storesStatusAccessEnded, dot: .vermilion, color: .silk)
         case .offline:
-            label("Offline", ring: true, color: .haze)
+            label(L.storesStatusOffline, ring: true, color: .haze)
         case .ready where row.updates > 0:
-            label(row.updates == 1 ? "1 update" : "\(row.updates) updates", dot: .water, color: .silk)
+            label(L.storesUpdatesAvailable(count: Int(row.updates)), dot: .water, color: .silk)
         case .ready:
             EmptyView()
         }
@@ -158,7 +159,7 @@ struct StoreDetail: View {
                             .font(.mac(13))
                             .foregroundStyle(.haze)
                         if row.open {
-                            Text("Anyone with the link can join")
+                            Text(L.storesAnyoneWithLink)
                                 .font(.mac(12))
                                 .foregroundStyle(.haze)
                         }
@@ -167,16 +168,16 @@ struct StoreDetail: View {
                     StoreMenu(row: row, sheet: $sheet, leaving: $leaving)
                 }
                 if case .offline = row.state {
-                    Text("Offline. Showing the last list it sent.")
+                    Text(L.storesOfflineLastListPlain)
                         .font(.mac(12))
                         .foregroundStyle(.haze)
                         .padding(.top, 8)
                 }
                 if row.state == .revoked {
-                    FailedLine("This store no longer lets this \(Device.name) in. Its plugins stay installed until you remove them.", size: 12)
+                    FailedLine(L.storesAccessEndedPage, size: 12)
                         .padding(.top, 8)
                 }
-                Text("Plugins")
+                Text(L.storesPlugins)
                     .groupHeaderStyle()
                     .accessibilityAddTraits(.isHeader)
                     .macLineHeight(14)
@@ -189,8 +190,8 @@ struct StoreDetail: View {
                     }
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Each plugin can contact only the hosts listed with it and cannot read your files.")
-                    Text("Store key \(row.fingerprint) · \(row.joinedAs)")
+                    Text(L.storesPluginLimits)
+                    Text(L.storesKeyLine(key: row.fingerprint, joined: row.joinedAs))
                 }
                 .font(.mac(12))
                 .macLineHeight(17)
@@ -214,10 +215,10 @@ struct StoreDetail: View {
                 sheet = .update(plugin)
             }
         }
-        .confirmationDialog("Leave \(row.name)?", isPresented: $leaving) {
-            Button(cased(mac: "Leave Store", touch: "Leave store"), role: .destructive) { store.leaveStore(row.id) }
+        .confirmationDialog(L.storesLeaveTitle(name: row.name), isPresented: $leaving) {
+            Button(L.storesLeave, role: .destructive) { store.leaveStore(row.id) }
         } message: {
-            Text("This \(Device.name) can no longer install or update its plugins. Plugins already installed stay.")
+            Text(L.storesLeaveDetail)
         }
     }
 }
@@ -272,7 +273,7 @@ struct StorePluginLine: View {
 
     private var line: String {
         if case .addedByHand = plugin.status {
-            return "Installed by hand · " + plugin.contactsLine.prefix(1).lowercased() + plugin.contactsLine.dropFirst()
+            return L.storesAddedByHand(detail: plugin.contactsLine)
         }
         return plugin.contactsLine
     }
@@ -285,27 +286,27 @@ struct StorePluginLine: View {
         case .installed:
             HStack(spacing: 6) {
                 Image(systemName: "checkmark").font(.mac(11, weight: .semibold)).foregroundStyle(.water)
-                Text("Installed").font(.mac(12)).foregroundStyle(.haze)
+                Text(L.storesPluginStateInstalled).font(.mac(12)).foregroundStyle(.haze)
             }
         case .update where live:
-            Button("Update") { sheet = .update(plugin) }
+            Button(L.actionUpdate) { sheet = .update(plugin) }
                 .buttonStyle(PrimaryCapsuleStyle(height: 28))
                 .disabled(working)
-                .accessibilityLabel("Update \(plugin.name) to \(plugin.version)")
+                .accessibilityLabel(L.storesUpdateLabel(name: plugin.name, version: plugin.version))
         case .available where store.state == .ready:
-            Button("Install") { appStore.installPlugin(plugin.id, from: store.id) }
+            Button(L.actionInstall) { appStore.installPlugin(plugin.id, from: store.id) }
                 .buttonStyle(SecondaryCapsuleStyle())
                 .disabled(working)
-                .accessibilityLabel("Install \(plugin.name)")
+                .accessibilityLabel(L.storesInstallLabel(name: plugin.name))
         case .available:
-            Text(live ? "Offline" : "Not available").font(.mac(12)).foregroundStyle(.haze)
+            Text(live ? L.storesPluginOffline : L.storesPluginUnavailable).font(.mac(12)).foregroundStyle(.haze)
         case .addedByHand where live:
-            Button("Replace") { sheet = .update(plugin) }
+            Button(L.actionReplace) { sheet = .update(plugin) }
                 .buttonStyle(SecondaryCapsuleStyle())
                 .disabled(working)
-                .accessibilityLabel("Replace the copy of \(plugin.name) added by hand")
+                .accessibilityLabel(L.storesReplaceLabel(name: plugin.name))
         case .otherStore(let other):
-            Text("From \(other)").font(.mac(12)).foregroundStyle(.haze)
+            Text(L.storesPluginFrom(other: other)).font(.mac(12)).foregroundStyle(.haze)
         default:
             EmptyView()
         }
@@ -324,20 +325,20 @@ struct StoreMenu: View {
         Menu {
             if row.state != .revoked {
                 if row.owner {
-                    Button(cased(mac: "Invite Someone…", touch: "Invite someone")) { sheet = .invite(device: false) }
-                    Button(cased(mac: "Show Members", touch: "Show members")) { sheet = .members }
-                    Button(cased(mac: "Who Can Join…", touch: "Who can join")) { sheet = .joining }
-                    Button(cased(mac: "Publish a Plugin…", touch: "Publish a plugin")) { sheet = .publish }
-                    Button(cased(mac: "Open Admin Page", touch: "Open admin page")) { store.openAdmin(row.id) }
+                    Button(L.storesInviteSomeone) { sheet = .invite(device: false) }
+                    Button(L.storesShowMembers) { sheet = .members }
+                    Button(L.storesWhoCanJoinMenu) { sheet = .joining }
+                    Button(L.storesPublishMenu) { sheet = .publish }
+                    Button(L.storesOpenAdmin) { store.openAdmin(row.id) }
                     Divider()
                 }
                 // A device that joined with the store's link joins another the same way.
                 if !row.anonymous {
-                    Button(cased(mac: "Link Another Device…", touch: "Link another device")) { sheet = .invite(device: true) }
+                    Button(L.storesLinkDevice) { sheet = .invite(device: true) }
                     Divider()
                 }
             }
-            Button(cased(mac: "Leave Store…", touch: "Leave store")) { leaving = true }
+            Button(L.storesLeave) { leaving = true }
         } label: {
             Image(systemName: "ellipsis")
                 .font(.mac(13, weight: .semibold))
@@ -350,7 +351,7 @@ struct StoreMenu: View {
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
-        .accessibilityLabel("Actions for \(row.name)")
+        .accessibilityLabel(L.storesActionsFor(name: row.name))
     }
 }
 
@@ -363,7 +364,7 @@ enum StoreWords {
     /// When the store's list was last fetched and checked: "checked 2 minutes ago".
     static func checked(_ row: StoreRow) -> String? {
         row.checkedAt.map {
-            "checked " + Date(timeIntervalSince1970: TimeInterval($0)).formatted(.relative(presentation: .named))
+            L.storesCheckedAt(when: Date(timeIntervalSince1970: TimeInterval($0)).formatted(.relative(presentation: .named).locale(AirTime.locale)))
         }
     }
 }
@@ -389,20 +390,20 @@ struct UpdatePluginSheet: View {
                 .foregroundStyle(.haze)
                 .padding(.top, 4)
             if !added.isEmpty {
-                Text("This update also contacts \(Text(added.joined(separator: ", ")).fontWeight(.semibold)).")
+                Text(L.storesUpdateContacts(hosts: added.formatted(.list(type: .and).locale(AirTime.locale))))
                     .font(.mac(13))
                     .foregroundStyle(.silk)
                     .padding(.top, 16)
             }
             HStack(alignment: .top, spacing: 24) {
-                Text("Contacts").foregroundStyle(.haze)
+                Text(L.sourcesContactsLabel).foregroundStyle(.haze)
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(plugin.hosts, id: \.self) { host in
                         HStack {
                             Text(host).foregroundStyle(.silk)
                             Spacer()
                             if added.contains(host) {
-                                Text("New in \(plugin.version)").foregroundStyle(.haze)
+                                Text(L.storesNewIn(version: plugin.version)).foregroundStyle(.haze)
                             }
                         }
                     }
@@ -412,13 +413,13 @@ struct UpdatePluginSheet: View {
             .padding(14)
             .background(.ground, in: .rect(cornerRadius: 10))
             .padding(.top, 14)
-            Text("Plugins cannot read your files or contact a host that is not listed.")
+            Text(L.storesPluginLimitsShort)
                 .font(.mac(12))
                 .foregroundStyle(.haze)
                 .padding(.top, 14)
             HStack(spacing: 10) {
                 Spacer()
-                Button("Cancel") { dismiss() }
+                Button(L.actionCancel) { dismiss() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
                 Button(confirm) {
@@ -440,18 +441,18 @@ struct UpdatePluginSheet: View {
     }
 
     private var title: String {
-        byHand ? "Replace \(plugin.name)?" : "Update \(plugin.name)?"
+        byHand ? L.sourcesReplaceTitle(name: plugin.name) : L.sourcesUpdateTitle(name: plugin.name)
     }
 
     private var subtitle: String {
         if case .update(let from, _) = plugin.status {
-            return "Version \(plugin.version) from \(store.name) replaces \(from)."
+            return L.sourcesUpdateDetail(version: plugin.version, store: store.name, from: from)
         }
-        return "Version \(plugin.version) from \(store.name) replaces the copy added by hand."
+        return L.storesReplaceByHandDetail(version: plugin.version, store: store.name)
     }
 
     private var confirm: String {
-        byHand ? "Replace" : "Update"
+        byHand ? L.actionReplace : L.actionUpdate
     }
 }
 
@@ -466,18 +467,18 @@ struct JoinStoreSheet: View {
     var body: some View {
         let working = store.stores.isWorking(.join)
         VStack(alignment: .leading, spacing: 0) {
-            Text("Join a Plugin Store")
+            Text(L.storesJoinTitle)
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
-            Text("Paste the invite link the store's owner sent you.")
+            Text(L.storesJoinDetail)
                 .font(.mac(13))
                 .foregroundStyle(.haze)
                 .padding(.top, 4)
-            Text("Invite link")
+            Text(L.storesInviteLink)
                 .font(.mac(12))
                 .foregroundStyle(.haze)
                 .padding(.top, 18)
-            TextField("Invite link", text: $link, prompt: Text("https://…/join/…"))
+            TextField(L.storesInviteLink, text: $link, prompt: Text(L.storesInviteLinkHint))
                 .textFieldStyle(.plain)
                 .font(.mac(13))
                 .padding(.horizontal, 12)
@@ -490,7 +491,7 @@ struct JoinStoreSheet: View {
             if case .store(let invited)? = store.stores.preview, !invited.anonymous {
                 deviceName.padding(.top, 14)
             }
-            Text("Plugins come from the store's owner, not from anistream. You can leave a store at any time.")
+            Text(L.storesNotFromApp)
                 .font(.mac(12))
                 .macLineHeight(17)
                 .foregroundStyle(.haze)
@@ -499,10 +500,10 @@ struct JoinStoreSheet: View {
             HStack(spacing: 10) {
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
-                Button("Cancel") { dismiss() }
+                Button(L.actionCancel) { dismiss() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
-                Button(cased(mac: "Join Store", touch: "Join store")) { store.joinStore(link) }
+                Button(L.storesJoinButton) { store.joinStore(link) }
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
                     .disabled(!canJoin || working)
@@ -536,10 +537,10 @@ struct JoinStoreSheet: View {
     /// joining. Never the Mac's own name, which is often its owner's.
     private var deviceName: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Device name")
+            Text(L.storesDeviceName)
                 .font(.mac(12))
                 .foregroundStyle(.haze)
-            TextField("Device name",
+            TextField(L.storesDeviceName,
                       text: Binding(get: { store.stores.deviceName }, set: { store.stores.deviceName = $0 }),
                       prompt: Text(Device.name))
                 .textFieldStyle(.plain)
@@ -550,7 +551,7 @@ struct JoinStoreSheet: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.glassRule, lineWidth: 1))
                 .labelsHidden()
                 .padding(.top, 6)
-            Text("The store's owner sees this \(Device.name) by this name.")
+            Text(L.storesDeviceNameDetail)
                 .font(.mac(12))
                 .foregroundStyle(.haze)
                 .padding(.top, 6)
@@ -563,7 +564,7 @@ struct JoinStoreSheet: View {
         case .checking?:
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Checking the link…").font(.mac(13)).foregroundStyle(.haze)
+                Text(L.storesCheckingLink).font(.mac(13)).foregroundStyle(.haze)
             }
         case .failed?:
             FailedLine(notAStoreWords)
@@ -603,23 +604,23 @@ struct JoinPreview: View {
                     .foregroundStyle(.haze)
                 HStack(spacing: 5) {
                     Image(systemName: "checkmark").font(.mac(10, weight: .semibold)).foregroundStyle(.water)
-                    Text("Key \(Text(invited.fingerprint).font(.mac(12, design: .monospaced)).foregroundStyle(.silk)) matches the \(invited.anonymous ? "link" : "invite")")
+                    Text(L.storesKeyMatches(key: invited.fingerprint))
                         .font(.mac(12))
                         .foregroundStyle(.haze)
                 }
                 if invited.open {
                     HStack(spacing: 5) {
                         Image(systemName: "person.2").font(.mac(10, weight: .semibold)).foregroundStyle(.haze)
-                        Text("Anyone with the link can join").font(.mac(12)).foregroundStyle(.silk)
+                        Text(L.storesAnyoneWithLink).font(.mac(12)).foregroundStyle(.silk)
                     }
                 }
                 if invited.anonymous {
-                    Text("You join without a name. Another \(Device.name) joins with the same link.")
+                    Text(L.storesAnyoneNote)
                         .font(.mac(12))
                         .foregroundStyle(.haze)
                 }
                 if invited.alreadyJoined {
-                    Text("This \(Device.name) has joined this store already.")
+                    Text(L.storesAlreadyJoinedNote)
                         .font(.mac(12))
                         .foregroundStyle(.haze)
                 }
@@ -674,13 +675,13 @@ struct InviteSheet: View {
     var body: some View {
         let link = appStore.stores.invite.flatMap { $0.store == store.id ? $0 : nil }
         VStack(alignment: .leading, spacing: 14) {
-            Text(device ? "Link another device" : "Invite someone to \(store.name)")
+            Text(device ? L.storesLinkDeviceTitle : L.storesInviteForName(name: store.name))
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             if let link {
                 Text(device
-                     ? "Open this link on the other device. It works once, until \(Self.expiry(link.expiresAt))."
-                     : "Send this link to \(link.forWhom ?? "them"). It works once, until \(Self.expiry(link.expiresAt)).")
+                     ? L.storesLinkOnceUntil(until: Self.expiry(link.expiresAt))
+                     : link.forWhom.map { L.storesLinkSendOnce(who: $0, until: Self.expiry(link.expiresAt)) } ?? L.storesLinkSendOnceAnyone(until: Self.expiry(link.expiresAt)))
                     .font(.mac(13))
                     .foregroundStyle(.haze)
                 Text(link.link)
@@ -692,25 +693,25 @@ struct InviteSheet: View {
                     .background(.ground, in: .rect(cornerRadius: 8))
                 HStack {
                     Spacer()
-                    ShareLink(item: link.link) { Text("Share…") }
+                    ShareLink(item: link.link) { Text(L.actionShare) }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                    Button(cased(mac: "Copy Link", touch: "Copy link")) { Pasteboard.copy(link.link) }
+                    Button(L.actionCopy) { Pasteboard.copy(link.link) }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                    Button("Done") { dismiss() }
+                    Button(L.actionDone) { dismiss() }
                         .buttonStyle(PrimaryCapsuleStyle(height: 28))
                         .keyboardShortcut(.defaultAction)
                 }
             } else {
                 if !device {
-                    TextField("Their name", text: $name)
+                    TextField(L.storesTheirName, text: $name)
                         .textFieldStyle(SheetFieldStyle())
                 }
                 HStack {
                     Spacer()
-                    Button("Cancel") { dismiss() }
+                    Button(L.actionCancel) { dismiss() }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                         .keyboardShortcut(.cancelAction)
-                    Button(cased(mac: "Make Link", touch: "Make link")) { appStore.createInvite(store.id, for: device ? nil : name) }
+                    Button(L.storesMakeLink) { appStore.createInvite(store.id, for: device ? nil : name) }
                         .buttonStyle(PrimaryCapsuleStyle(height: 28))
                         .keyboardShortcut(.defaultAction)
                         .disabled((!device && name.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -740,7 +741,7 @@ struct MembersSheet: View {
     var body: some View {
         let list = appStore.stores.members[store.id]
         VStack(alignment: .leading, spacing: 14) {
-            Text("Members of \(store.name)")
+            Text(L.storesMembersOf(name: store.name))
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             if let list {
@@ -748,14 +749,14 @@ struct MembersSheet: View {
                     ForEach(list.members, id: \.id) { member in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(member.name + (member.you ? " (you)" : "")).foregroundStyle(.silk)
-                                Text(member.owner ? "Owner · \(Wording.plural(Int(member.devices), "device"))"
-                                                  : Wording.plural(Int(member.devices), "device"))
+                                Text(member.you ? L.partyMemberYou(name: member.name) : member.name).foregroundStyle(.silk)
+                                Text(member.owner ? L.storesOwnerDevices(devices: L.storesDevicesCount(count: Int(member.devices)))
+                                                  : L.storesDevicesCount(count: Int(member.devices)))
                                     .font(.mac(12)).foregroundStyle(.haze)
                             }
                             Spacer()
                             if !member.you {
-                                Button(cased(mac: "Remove…", touch: "Remove")) { removing = member }
+                                Button(L.actionRemove) { removing = member }
                                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                             }
                         }
@@ -765,12 +766,12 @@ struct MembersSheet: View {
                     ForEach(list.invites, id: \.id) { invite in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(invite.device ? "Another device" : invite.name).foregroundStyle(.silk)
-                                Text("Invited, until \(InviteSheet.expiry(invite.expiresAt))")
+                                Text(invite.device ? L.storesInviteUnnamed : invite.name).foregroundStyle(.silk)
+                                Text(L.storesInvitedUntil(until: InviteSheet.expiry(invite.expiresAt)))
                                     .font(.mac(12)).foregroundStyle(.haze)
                             }
                             Spacer()
-                            Button(cased(mac: "Cancel Invite", touch: "Cancel invite")) { appStore.cancelInvite(invite.id, in: store.id) }
+                            Button(L.storesCancelInvite) { appStore.cancelInvite(invite.id, in: store.id) }
                                 .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                         }
                         .font(.mac(13))
@@ -778,24 +779,24 @@ struct MembersSheet: View {
                     }
                 }
                 .confirmationDialog(
-                    removing.map { "Remove \($0.name) from \(store.name)?" } ?? "",
+                    removing.map { L.storesRemoveMemberTitle(name: $0.name) } ?? "",
                     isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
                     titleVisibility: .visible,
                     presenting: removing
                 ) { member in
-                    Button(cased(mac: "Remove Member", touch: "Remove member"), role: .destructive) {
+                    Button(L.storesRemoveMember, role: .destructive) {
                         appStore.removeMember(member.id, from: store.id)
                     }
-                    Button("Cancel", role: .cancel) {}
+                    Button(L.actionCancel, role: .cancel) {}
                 } message: { member in
-                    Text("Their \(Wording.plural(Int(member.devices), "device")) lose access to this store.")
+                    Text(L.storesRemoveMemberDetail)
                 }
             } else {
                 ProgressView().controlSize(.small)
             }
             HStack {
                 Spacer()
-                Button("Done") { dismiss() }
+                Button(L.actionDone) { dismiss() }
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
             }
@@ -823,7 +824,7 @@ struct OpenJoinSheet: View {
         let working = appStore.stores.isWorking(.openJoin(store: store.id))
             || appStore.stores.isWorking(.removeAnonymous(store: store.id))
         VStack(alignment: .leading, spacing: 14) {
-            Text("Who can join \(store.name)")
+            Text(L.storesWhoCanJoinTitle(name: store.name))
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             if let view {
@@ -832,10 +833,10 @@ struct OpenJoinSheet: View {
                     set: { appStore.setOpenJoin(store.id, open: $0) }
                 )) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Anyone with the store's link").foregroundStyle(.silk)
+                        Text(L.storesAnyoneWithStoreLink).foregroundStyle(.silk)
                         Text(view.open
-                             ? "They join without a name. Turning this off stops the link; turning it on again makes a new one."
-                             : "Only people you invite can join. Turned on, anyone with the link joins, without a name.")
+                             ? L.storesOpenJoinOnDetail
+                             : L.storesOpenJoinOffDetail)
                             .font(.mac(12))
                             .foregroundStyle(.haze)
                             .fixedSize(horizontal: false, vertical: true)
@@ -854,9 +855,9 @@ struct OpenJoinSheet: View {
                         .background(.ground, in: .rect(cornerRadius: 8))
                     HStack {
                         Spacer()
-                        ShareLink(item: link) { Text("Share…") }
+                        ShareLink(item: link) { Text(L.actionShare) }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                        Button(cased(mac: "Copy Link", touch: "Copy link")) { Pasteboard.copy(link) }
+                        Button(L.actionCopy) { Pasteboard.copy(link) }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     }
                 }
@@ -864,13 +865,13 @@ struct OpenJoinSheet: View {
                     Rectangle().fill(.faintRule).frame(height: 1)
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("\(Wording.plural(Int(view.devices), "device")) joined with the link")
+                            Text(L.storesDevicesJoined(count: Int(view.devices)))
                                 .foregroundStyle(.silk)
-                            Text(view.open ? "No names are kept." : "They keep working until you remove them.")
+                            Text(view.open ? L.storesOpenJoinNoNames : L.storesOpenJoinKeepWorking)
                                 .font(.mac(12)).foregroundStyle(.haze)
                         }
                         Spacer()
-                        Button(view.devices == 1 ? "Remove" : "Remove All") { removingAll = true }
+                        Button(view.devices == 1 ? L.actionRemove : L.storesRemoveAll) { removingAll = true }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                             .disabled(working)
                     }
@@ -878,24 +879,24 @@ struct OpenJoinSheet: View {
                     ForEach(view.recent, id: \.id) { device in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Joined \(Self.when(device.joinedAt))").foregroundStyle(.silk)
-                                Text(device.lastSeen.map { "Seen \(Self.when($0))" } ?? "Not seen since")
+                                Text(L.storesDeviceJoinedAt(when: Self.when(device.joinedAt))).foregroundStyle(.silk)
+                                Text(device.lastSeen.map { L.storesDeviceSeenAt(when: Self.when($0)) } ?? L.storesDeviceNotSeen)
                                     .font(.mac(12)).foregroundStyle(.haze)
                             }
                             Spacer()
-                            Button("Remove") { appStore.removeAnonymous(device.id, from: store.id) }
+                            Button(L.actionRemove) { appStore.removeAnonymous(device.id, from: store.id) }
                                 .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                                 .disabled(working)
                         }
                         .font(.mac(13))
                     }
                     if view.devices > UInt32(view.recent.count) {
-                        Text("The newest \(view.recent.count) are listed.")
+                        Text(L.storesNewestListed(count: view.recent.count))
                             .font(.mac(12)).foregroundStyle(.haze)
                     }
                 }
             } else if waited {
-                Text("This store's server is older, and lets in only people you invite. Updating it adds the choice.")
+                Text(L.storesServerOlder)
                     .font(.mac(13)).foregroundStyle(.haze)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
@@ -903,7 +904,7 @@ struct OpenJoinSheet: View {
             }
             HStack {
                 Spacer()
-                Button("Done") { dismiss() }
+                Button(L.actionDone) { dismiss() }
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
             }
@@ -916,10 +917,10 @@ struct OpenJoinSheet: View {
             try? await Task.sleep(for: .seconds(4))
             waited = true
         }
-        .confirmationDialog("Remove the devices that joined with the link?", isPresented: $removingAll) {
-            Button("Remove", role: .destructive) { appStore.removeAnonymous(nil, from: store.id) }
+        .confirmationDialog(L.storesRemoveDevicesTitle, isPresented: $removingAll) {
+            Button(L.actionRemove, role: .destructive) { appStore.removeAnonymous(nil, from: store.id) }
         } message: {
-            Text("They stop working with \(store.name) at once. Plugins already installed on them stay.")
+            Text(L.storesRemoveDevicesDetail(name: store.name))
         }
     }
 
@@ -937,23 +938,23 @@ struct PublishSheet: View {
     var body: some View {
         let plugins = appStore.stores.localPlugins[store.id]
         VStack(alignment: .leading, spacing: 14) {
-            Text("Publish a plugin to \(store.name)")
+            Text(L.storesPublishTitle(name: store.name))
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             if let plugins {
                 if plugins.isEmpty {
-                    Text("No plugins on this \(Device.name) to publish.")
+                    Text(L.storesPublishNone)
                         .font(.mac(13)).foregroundStyle(.haze)
                 }
                 ForEach(plugins, id: \.id) { plugin in
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("\(plugin.name) \(plugin.version)").foregroundStyle(.silk)
-                            Text(plugin.published.map { "The store offers \($0)" } ?? "Not in the store yet")
+                            Text(L.storesPluginNameVersion(name: plugin.name, version: plugin.version)).foregroundStyle(.silk)
+                            Text(plugin.published.map { L.storesPublishOffered(version: $0) } ?? L.storesPublishNotYet)
                                 .font(.mac(12)).foregroundStyle(.haze)
                         }
                         Spacer()
-                        Button("Publish") { appStore.publishPlugin(plugin.id, to: store.id) }
+                        Button(L.actionPublish) { appStore.publishPlugin(plugin.id, to: store.id) }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                             .disabled(plugin.published == plugin.version)
                     }
@@ -964,7 +965,7 @@ struct PublishSheet: View {
             }
             HStack {
                 Spacer()
-                Button("Done") { dismiss() }
+                Button(L.actionDone) { dismiss() }
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
             }

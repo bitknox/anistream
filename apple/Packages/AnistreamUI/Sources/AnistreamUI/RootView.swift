@@ -51,7 +51,7 @@ struct StartFailed: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Text("anistream could not start")
+            Text(L.shellStartFailed)
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             Text(reason)

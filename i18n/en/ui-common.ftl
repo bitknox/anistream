@@ -234,6 +234,33 @@ time-minutes-left = { $minutes } min left
 # @arg minutes: int
 time-minutes = { $minutes } min
 
+# A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.
+time-now-inline = now
+
+# How long ago, under a minute. Lower case, as it stands inside a line.
+time-just-now-inline = just now
+
+## When something airs or happens, inside a line such as "Episode 5 airs { $when }". The time is
+## on the device's clock, already formatted.
+
+# Later today.
+# @arg time: text
+when-today = today { $time }
+
+# Tomorrow.
+# @arg time: text
+when-tomorrow = tomorrow { $time }
+
+# Within the next six days. The day is the weekday's name, already formatted.
+# @arg day: text
+# @arg time: text
+when-weekday = { $day } { $time }
+
+# A week or more away. The date is the day and short month, already formatted, such as "29 Oct".
+# @arg date: text
+# @arg time: text
+when-date = { $date }, { $time }
+
 ## Offline, loading and failing. Each screen says what it could not do; these are the parts every
 ## screen shares.
 
@@ -276,7 +303,3 @@ state-working = Working
 
 # Short placeholder while something loads.
 state-loading = Loading
-
-# How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
-# @max 16
-time-just-now-inline = just now

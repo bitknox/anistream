@@ -14,6 +14,14 @@ public struct NoticeItem: Identifiable, Equatable, Sendable {
     public var isAlert: Bool { notice.kind == .alert }
 }
 
+extension Notice {
+    /// What the notice says in the person's language: the engine's message through the
+    /// catalogue, or for a notice the app made itself, its text (already from the catalogue).
+    public var words: String {
+        msg?.text ?? text
+    }
+}
+
 /// The notice capsule's current notice, and Messages, the log of every notice this session.
 @Observable @MainActor
 public final class NoticesModel {

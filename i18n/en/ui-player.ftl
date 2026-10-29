@@ -254,3 +254,27 @@ source-picker-empty = No { -source } has a stream for this episode.
 
 # Title of the picker sheet in the player.
 player-sources = { -source-cap-pl }
+
+
+# Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".
+# @arg episode: text
+player-failed-title-text = Couldn't play episode { $episode }
+
+# Label while scrubbing the seek line at half the pace.
+player-scrub-half = Half-speed scrubbing
+
+# Label while scrubbing the seek line at a quarter of the pace.
+player-scrub-quarter = Quarter-speed scrubbing
+
+# Heading of the starting screen. The episode's number is text, because it may be "7.5".
+# @arg episode: text
+player-starting-text = Starting episode { $episode }
+
+# Name of an audio or subtitle track that has no language or title.
+# @arg id: int
+player-track-n = Track { $id }
+
+# Line while an episode starts after a few seconds: what the wait is on, and for how long.
+# @arg what: text
+# @arg seconds: int
+player-wait-note = { $what } · { $seconds } s

@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 struct MacShell: View {
@@ -17,7 +18,7 @@ struct MacShell: View {
         NavigationSplitView {
             Sidebar(selection: $navigator.section)
                 // 220 wide, as the boards draw it. macOS 26 takes the column width; macOS 27
-                // ignores it and opens the column at 144, where "Plugin Stores" is cut, or at
+                // ignores it and opens the column at 144, where "Plugin stores" is cut, or at
                 // whatever it saved. A minimum on the column's content holds on both, and brings
                 // a saved 144 back to 220.
                 .frame(minWidth: 220)
@@ -68,7 +69,7 @@ struct MacShell: View {
                 text: navigator.section == .settings ? $navigator.settingsQuery : $navigator.query,
                 titles: navigator.section != .settings,
                 placement: .toolbar,
-                prompt: navigator.section == .settings ? "Search Settings" : "Search titles"
+                prompt: navigator.section == .settings ? L.shellSearchSettings : L.searchPlaceholder
             )
         }
         .containerBackground(Palette.ground, for: .window)
@@ -99,7 +100,7 @@ struct MacShell: View {
         guard navigator.titleOnMac == nil else { return "" }
         switch navigator.section {
         case .continue:
-            return store.continuing.list.state == .empty ? "Nothing watched yet" : ""
+            return store.continuing.list.state == .empty ? L.continueEmptyTitle : ""
         case .calendar:
             return CalendarWords.range(weekDays(offset: navigator.calendarWeek))
         case .seasonal:
@@ -144,16 +145,16 @@ struct SectionToolbar: ToolbarContent {
     }
 }
 
-/// Providers' toolbar: check the stores for plugin updates.
+/// Sources' toolbar: check the stores for plugin updates.
 struct ProvidersToolbar: View {
     @Environment(AppStore.self) private var store
 
     var body: some View {
-        Button("Check for Updates") { store.loadStores() }
+        Button(L.settingsCheckUpdates) { store.loadStores() }
     }
 }
 
-/// Plugin Stores' toolbar: join another.
+/// Plugin stores' toolbar: join another.
 struct StoresToolbar: View {
     @Environment(Navigator.self) private var navigator
 
@@ -161,7 +162,7 @@ struct StoresToolbar: View {
         Button {
             navigator.invite = ""
         } label: {
-            Label("Join Store…", systemImage: "plus").labelStyle(.titleAndIcon)
+            Label(L.storesJoinMenu, systemImage: "plus").labelStyle(.titleAndIcon)
         }
     }
 }
@@ -175,16 +176,16 @@ struct DownloadsToolbar: View {
         let paused = store.downloads.rows.contains { $0.state == .paused }
         HStack(spacing: 8) {
             if running || !paused {
-                Button("Pause All") { store.pauseAllDownloads() }
+                Button(L.downloadsPauseAll) { store.pauseAllDownloads() }
                     .disabled(!running)
             } else {
-                Button("Resume All") { store.resumeAllDownloads() }
+                Button(L.downloadsResumeAll) { store.resumeAllDownloads() }
             }
             Button {
                 let path = store.settings.row(.downloadDir)?.typedText ?? ""
                 if !path.isEmpty { NSWorkspace.shared.open(URL(fileURLWithPath: path)) }
             } label: {
-                Label("Show in Finder", systemImage: "folder").labelStyle(.titleAndIcon)
+                Label(L.shellShowInFinder, systemImage: "folder").labelStyle(.titleAndIcon)
             }
             .disabled((store.settings.row(.downloadDir)?.typedText ?? "").isEmpty)
         }
@@ -199,15 +200,26 @@ struct LibrarySegments: View {
     var body: some View {
         @Bindable var navigator = navigator
         if store.accounts.summary.state != .signedOut {
-            Picker("List", selection: $navigator.librarySegment) {
+            Picker(L.shellLibraryListLabel, selection: $navigator.librarySegment) {
                 ForEach(LibraryModel.order, id: \.self) { segment in
                     let count = store.library.segment(segment).state.ids.count
-                    Text("\(segment.label.capitalizedSentence) \(count)").tag(segment)
+                    Text(L.shellLibrarySegment(name: segment.title, count: count)).tag(segment)
                 }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             .fixedSize()
+        }
+    }
+}
+
+/// The words for a sort, from the catalogue.
+private extension LibrarySort {
+    var shown: String {
+        switch self {
+        case .lastWatched: L.librarySortUpdated
+        case .title: L.librarySortTitle
+        case .score: L.librarySortScore
         }
     }
 }
@@ -221,18 +233,18 @@ struct LibraryMenus: View {
         if store.accounts.summary.state != .signedOut {
             HStack(spacing: 8) {
                 Menu {
-                    Picker("Order", selection: $sort) {
-                        ForEach(LibrarySort.allCases) { Text($0.rawValue).tag($0) }
+                    Picker(L.shellLibraryOrderLabel, selection: $sort) {
+                        ForEach(LibrarySort.allCases) { Text($0.shown).tag($0) }
                     }
                     .pickerStyle(.inline)
                 } label: {
-                    Text(sort.rawValue)
+                    Text(sort.shown)
                 }
                 .fixedSize()
                 Menu {
-                    Button("Sync Now") { store.send(.syncNow) }
+                    Button(L.accountsSyncNow) { store.send(.syncNow) }
                 } label: {
-                    Label("More", systemImage: "ellipsis")
+                    Label(L.actionMore, systemImage: "ellipsis")
                 }
             }
         }
@@ -249,7 +261,7 @@ struct Sidebar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             ForEach(AppSection.browse) { row($0) }
-            Text("Sources")
+            Text(L.sourcesTitle)
                 .font(.mac(11, weight: .semibold))
                 .foregroundStyle(.haze)
                 .padding(EdgeInsets(top: 18, leading: 10, bottom: 6, trailing: 10))
@@ -265,7 +277,7 @@ struct Sidebar: View {
         .onKeyPress(.upArrow) { step(-1) }
         .onKeyPress(.downArrow) { step(1) }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Sections")
+        .accessibilityLabel(L.navSectionsLabel)
     }
 
     private func row(_ section: AppSection) -> some View {

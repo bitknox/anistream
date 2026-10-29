@@ -34,7 +34,7 @@ struct HandoffTests {
         let navigator = Navigator(route: LaunchRoute())
         #expect(HandoffRoutes.take(playing, types: types, navigator: navigator))
         #expect(navigator.titleOnScreen == 900_001)
-        #expect(TitleAction(entry { _ in }, handedOff: navigator.handedOff).title == "Resume Episode 7 · 12:40")
+        #expect(TitleAction(entry { _ in }, handedOff: navigator.handedOff).title == "Resume episode 7 · 12:40")
 
         // As the title page there describes itself.
         let page = NSUserActivity(activityType: types.title)
@@ -57,15 +57,15 @@ struct HandoffTests {
         }
         let handedOff = HandedOff(id: 900_001, episode: "7", position: 760)
         let action = TitleAction(here, handedOff: handedOff)
-        #expect(action.title == "Resume Episode 7 · 12:40")
+        #expect(action.title == "Resume episode 7 · 12:40")
         #expect(action.sentence == "Resume episode 7 · 12:40")
         #expect(action.playable)
 
-        #expect(TitleAction(here).title == "Resume Episode 6 · 10:06")
+        #expect(TitleAction(here).title == "Resume episode 6 · 10:06")
         let otherTitle = HandedOff(id: 900_005, episode: "7", position: 760)
-        #expect(TitleAction(here, handedOff: otherTitle).title == "Resume Episode 6 · 10:06")
+        #expect(TitleAction(here, handedOff: otherTitle).title == "Resume episode 6 · 10:06")
         let notWhole = HandedOff(id: 900_001, episode: "7.5", position: 760)
-        #expect(TitleAction(here, handedOff: notWhole).title == "Resume Episode 6 · 10:06")
+        #expect(TitleAction(here, handedOff: notWhole).title == "Resume episode 6 · 10:06")
     }
 
     @Test func playingTheOfferUsesItUp() {

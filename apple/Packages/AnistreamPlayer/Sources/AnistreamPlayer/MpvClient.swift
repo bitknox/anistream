@@ -99,7 +99,7 @@ public actor MpvClient {
 
     public init(configuration: MpvConfiguration = .init()) {
         self.configuration = configuration
-        self.queue = DispatchSerialQueue(label: "tv.anistream.mpv", qos: .userInitiated)
+        self.queue = DispatchSerialQueue(label: "tv.anistream.mpv", qos: .userInitiated) // i18n-skip
     }
 
     // MARK: Lifetime

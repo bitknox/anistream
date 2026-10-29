@@ -7,6 +7,7 @@ import AnistreamDesign
 import AnistreamKit
 import AnistreamPlayer
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 import UIKit
 
@@ -107,7 +108,7 @@ public struct PhonePlayerView: View {
                         .transition(.opacity)
                 }
                 if let flash {
-                    Text(flash.forward ? "+\(flash.seconds) s" : "−\(flash.seconds) s")
+                    Text(flash.forward ? L.playerFlashForward(seconds: flash.seconds) : L.playerFlashBack(seconds: flash.seconds))
                         .font(.system(size: 17, weight: .semibold))
                         .monospacedDigit()
                         .padding(.horizontal, 16)
@@ -175,7 +176,7 @@ public struct PhonePlayerView: View {
                     .contentShape(.circle)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Close player")
+            .accessibilityLabel(L.playerClose)
             VStack(alignment: .leading, spacing: 1) {
                 Text(model.showTitle)
                     .font(.showTitle(size: 15))
@@ -194,21 +195,21 @@ public struct PhonePlayerView: View {
                     // The party while in one, the form that starts one otherwise.
                     if store.party.inParty { sheet = .party } else { store.party.open(.playing) }
                 }
-                headerButton("captions.bubble", "Subtitles and audio") { sheet = .tracks }
-                headerButton("slider.horizontal.3", "Picture and sound") { sheet = .picture }
+                headerButton("captions.bubble", L.playerSubtitlesAndAudio) { sheet = .tracks }
+                headerButton("slider.horizontal.3", L.playerPictureAndSound) { sheet = .picture }
                 if model.pictureInPictureToggle != nil {
                     // The Mac's button, until the PhonePlayer board draws one.
-                    headerButton("pip.enter", "Picture in Picture") { model.togglePictureInPicture() }
+                    headerButton("pip.enter", L.playerPictureInPicture) { model.togglePictureInPicture() }
                         .disabled(!model.pictureInPictureAvailable)
                         .opacity(model.pictureInPictureAvailable ? 1 : 0.4)
                 }
                 if model.playOnTVAvailable {
-                    headerButton("tv", "Play on TV") { model.playOnTV() }
+                    headerButton("tv", L.tvPlayOn) { model.playOnTV() }
                 }
                 AirPlayButton()
                     .frame(width: 44, height: 44)
-                    .accessibilityLabel("AirPlay")
-                headerButton("list.bullet", "Episodes") { sheet = .episodes }
+                    .accessibilityLabel("AirPlay") // i18n-skip
+                headerButton("list.bullet", L.playerEpisodes) { sheet = .episodes }
             }
             .background(.overVideo(0.62), in: .capsule)
             .overlay(Capsule().strokeBorder(Palette.glassOverArtEdge, lineWidth: 1))
@@ -220,11 +221,11 @@ public struct PhonePlayerView: View {
 
     private var bottomBar: some View {
         HStack(spacing: 4) {
-            barButton("gobackward.10", "Back 10 seconds") { model.seek(by: -10) }
-            barButton(model.paused ? "play.fill" : "pause.fill", model.paused ? "Play" : "Pause") {
+            barButton("gobackward.10", L.playerBack10) { model.seek(by: -10) }
+            barButton(model.paused ? "play.fill" : "pause.fill", model.paused ? L.actionPlay : L.actionPause) {
                 model.togglePause()
             }
-            barButton("goforward.10", "Forward 10 seconds") { model.seek(by: 10) }
+            barButton("goforward.10", L.playerForward10) { model.seek(by: 10) }
             PlayerTime(seconds: model.position, metrics: metrics)
                 .frame(width: 40, alignment: .leading)
                 .padding(.leading, 8)
@@ -292,7 +293,7 @@ public struct PhonePlayerView: View {
                         MenuDivider()
                         // The Mac's More menu is this sheet here: Stats for nerds goes up over
                         // the picture, so the sheet goes down to show it.
-                        MenuRow(title: "Stats for nerds", checked: model.statsShown, metrics: metrics) {
+                        MenuRow(title: L.playerStats, checked: model.statsShown, metrics: metrics) {
                             model.toggleStats()
                             if model.statsShown { self.sheet = nil }
                         }

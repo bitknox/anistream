@@ -18,6 +18,7 @@ let package = Package(
     dependencies: [
         .package(path: "../AnistreamStore"),
         .package(path: "../AnistreamDesign"),
+        .package(path: "../AnistreamStrings"),
     ],
     targets: [
         // A dynamic framework per slice that exports only `_mpv_*`, with mpv's headers.
@@ -29,6 +30,7 @@ let package = Package(
                 "AnistreamPlayer",
                 .product(name: "AnistreamStore", package: "AnistreamStore"),
                 .product(name: "AnistreamDesign", package: "AnistreamDesign"),
+                .product(name: "AnistreamStrings", package: "AnistreamStrings"),
             ],
             // On the testing engine, as the other packages are (see AnistreamKit): the Fixtures
             // app's previews of each state are there to name. The Xcode project defines this

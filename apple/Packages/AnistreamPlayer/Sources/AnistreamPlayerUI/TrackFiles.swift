@@ -3,6 +3,7 @@
 // and Audio menu both offer them. iPhone and iPad have no such files to hand.
 
 #if os(macOS)
+import AnistreamStrings
 import AppKit
 import UniformTypeIdentifiers
 
@@ -19,14 +20,14 @@ enum TrackFiles {
 
     /// The menus' item: "Load Subtitle File…", "Load Audio File…".
     static func title(_ kind: Track.Kind) -> String {
-        kind == .audio ? "Load Audio File…" : "Load Subtitle File…"
+        kind == .audio ? L.menuLoadAudioFile : L.menuLoadSubtitleFile
     }
 
     /// Ask for a file of `kind`, and load it into the player if one is chosen.
     static func load(_ kind: Track.Kind, into model: PlayerModel) {
         let panel = NSOpenPanel()
         panel.title = title(kind)
-        panel.prompt = "Load"
+        panel.prompt = L.playerLoadPrompt
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false

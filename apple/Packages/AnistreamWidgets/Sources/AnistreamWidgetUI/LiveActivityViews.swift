@@ -3,6 +3,7 @@
 // has finished.
 
 import AnistreamDesign
+import AnistreamStrings
 import AnistreamWidgetData
 import SwiftUI
 import WidgetKit
@@ -66,7 +67,7 @@ struct DownloadsButton: View {
         if state.finished {
             let play = HStack(spacing: 6) {
                 Image(systemName: "play.fill").font(.system(size: 10))
-                Text("Play E\(state.episode)").font(WidgetType.ui(15, weight: .semibold))
+                Text(L.widgetPlayEpisodeShort(episode: state.episode)).font(WidgetType.ui(15, weight: .semibold))
             }
             .foregroundStyle(Palette.ground)
             .padding(.horizontal, 14)
@@ -74,7 +75,7 @@ struct DownloadsButton: View {
             .background(Capsule().fill(Palette.amber))
             if drawsTaps, let id = state.downloadID {
                 Link(destination: WidgetLink.download(id).url) { play }
-                    .accessibilityLabel("Play episode \(state.episode)")
+                    .accessibilityLabel(L.widgetPlayEpisodeLong(episode: state.episode))
             } else {
                 play
             }
@@ -85,7 +86,7 @@ struct DownloadsButton: View {
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(Palette.silk.opacity(0.14)))
                 .frame(width: 44, height: 44)
-            let label = state.paused ? "Resume downloads" : "Pause downloads"
+            let label = state.paused ? L.widgetResumeDownloads : L.widgetPauseDownloads
             #if os(iOS)
             if drawsTaps {
                 if state.paused {
@@ -187,7 +188,7 @@ public struct DownloadsIslandTitle: View {
                 .font(text.titleIsShow ? WidgetType.title(15) : WidgetType.ui(15, weight: .semibold))
                 .foregroundStyle(.white)
                 .lineLimit(1)
-            Text(state.finished ? text.line1 : (state.count > 1 ? "\(state.title) E\(state.episode)" : "Episode \(state.episode)"))
+            Text(state.finished ? text.line1 : (state.count > 1 ? L.widgetDownloadsThenMore(title: state.title, episode: state.episode, count: state.count - 1) : L.widgetDownloadsEpisode(episode: state.episode)))
                 .font(WidgetType.ui(13))
                 .foregroundStyle(.white.opacity(0.7))
                 .lineLimit(1)
@@ -213,7 +214,7 @@ public struct DownloadsIslandTimeLeft: View {
                 .monospacedDigit()
                 .foregroundStyle(Palette.water)
         } else if state.paused {
-            Text("Paused").font(WidgetType.ui(15, weight: .semibold)).foregroundStyle(.white.opacity(0.7))
+            Text(L.libraryStatusPaused).font(WidgetType.ui(15, weight: .semibold)).foregroundStyle(.white.opacity(0.7))
         }
     }
 }

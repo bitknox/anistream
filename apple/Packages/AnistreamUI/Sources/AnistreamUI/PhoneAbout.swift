@@ -6,6 +6,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 struct PhoneAboutPage: View {
@@ -17,7 +18,7 @@ struct PhoneAboutPage: View {
             VStack(spacing: 0) {
                 Nagare(cell: 5)
                     .accessibilityHidden(true)
-                Text("anistream")
+                Text("anistream") // i18n-skip
                     .font(.ui(22, weight: .bold))
                     .foregroundStyle(.silk)
                     .padding(.top, 20)
@@ -26,24 +27,24 @@ struct PhoneAboutPage: View {
                     .monospacedDigit()
                     .foregroundStyle(.haze)
                     .padding(.top, 4)
-                Text("Open source under the MIT licence.")
+                Text(L.aboutLicence)
                     .font(.ui(15))
                     .foregroundStyle(.haze)
                     .multilineTextAlignment(.center)
                     .padding(.top, 12)
                 HStack(spacing: 10) {
                     NavigationLink(value: PhoneSettingsPage.acknowledgements) {
-                        Text("Acknowledgements")
+                        Text(L.aboutAcknowledgements)
                     }
                     .buttonStyle(SecondaryCapsuleStyle(height: 44, fontSize: 17))
-                    Button("Website") { openURL(AppVersion.website) }
+                    Button(L.aboutWebsite) { openURL(AppVersion.website) }
                         .buttonStyle(SecondaryCapsuleStyle(height: 44, fontSize: 17))
                 }
                 .padding(.top, 28)
-                Button("Report a bug") { ReportBugAction(store: store, openURL: openURL)() }
+                Button(L.aboutReportBug) { ReportBugAction(store: store, openURL: openURL)() }
                     .buttonStyle(SecondaryCapsuleStyle(height: 44, fontSize: 17))
                     .padding(.top, 10)
-                Text("Opens a bug report on GitHub, where you sign in. It carries your versions and the last error, with no addresses, file paths or titles.")
+                Text(L.aboutReportBugDetail)
                     .font(.ui(13))
                     .foregroundStyle(.haze)
                     .multilineTextAlignment(.center)
@@ -55,7 +56,7 @@ struct PhoneAboutPage: View {
             .padding(EdgeInsets(top: 48, leading: 16, bottom: 32, trailing: 16))
         }
         .background(.ground)
-        .navigationTitle("About")
+        .navigationTitle(L.aboutTitle)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -80,7 +81,7 @@ struct PhoneAcknowledgementsPage: View {
             .padding(16)
         }
         .background(.ground)
-        .navigationTitle("Acknowledgements")
+        .navigationTitle(L.aboutAcknowledgements)
         .navigationBarTitleDisplayMode(.inline)
     }
 

@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 struct DownloadsScreen: View {
@@ -21,7 +22,7 @@ struct DownloadsScreen: View {
                         #if os(iOS)
                         if store.continued.ask != nil,
                            store.downloads.rows.contains(where: { $0.state == .queued || $0.state == .active }) {
-                            Text("Downloads continue after you leave anistream.")
+                            Text(L.downloadsBackgroundNote)
                                 .font(.mac(12))
                                 .foregroundStyle(.haze)
                                 .padding(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 0))
@@ -51,7 +52,7 @@ struct DownloadsScreen: View {
 /// Downloads with nothing in it (the spec's empty states).
 struct NoDownloads: View {
     var body: some View {
-        EmptyState(title: "No downloads", line: "Downloaded episodes play without a connection.")
+        EmptyState(title: L.downloadsEmptyTitle, line: L.downloadsEmptyDetail)
     }
 }
 
@@ -64,7 +65,7 @@ struct DownloadsTitle: View {
         let used = Double(store.downloads.bytesOnDisk)
         let free = FreeSpace.bytes.map { Double($0) }
         VStack(alignment: .leading, spacing: 2) {
-            Text("Downloads")
+            Text(L.downloadsTitle)
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             HStack(spacing: 8) {
@@ -87,7 +88,7 @@ struct DownloadsTitle: View {
         .fixedSize()
         .padding(.leading, 4)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Downloads")
+        .accessibilityLabel(L.downloadsTitle)
         .accessibilityValue(downloadsSubtitle(store).replacingOccurrences(of: " · ", with: ", "))
     }
 }
@@ -95,9 +96,9 @@ struct DownloadsTitle: View {
 /// What the toolbar says under Downloads: what is free, and what downloads take.
 @MainActor
 func downloadsSubtitle(_ store: AppStore) -> String {
-    let used = "downloads use \(Wording.bytes(store.downloads.bytesOnDisk))"
-    guard let free = FreeSpace.bytes else { return used }
-    return "\(Wording.bytes(free)) free · \(used)"
+    let used = Wording.bytes(store.downloads.bytesOnDisk)
+    guard let free = FreeSpace.bytes else { return L.downloadsSpaceUsed(size: used) }
+    return L.downloadsSubtitleFree(free: Wording.bytes(free), size: used)
 }
 
 /// One title's downloads: its cover and name, how many and how much, and each episode.
@@ -142,9 +143,9 @@ struct DownloadGroupView: View {
     }
 
     private var summary: String {
-        let count = Wording.plural(group.rows.count, "episode")
+        let count = L.episodesCount(count: group.rows.count)
         let bytes = group.bytesOnDisk
-        return bytes > 0 ? "\(count) · \(Wording.bytes(bytes))" : count
+        return bytes > 0 ? L.downloadsGroupSummaryApple(count: count, size: Wording.bytes(bytes)) : count
     }
 }
 
@@ -163,7 +164,7 @@ struct DownloadLine: View {
                     .lineLimit(1)
                 // Queued by keep next rather than asked for. The name gives way first.
                 if row.ahead {
-                    Text("Downloaded ahead")
+                    Text(L.downloadsAhead)
                         .font(.mac(11))
                         .foregroundStyle(.haze)
                         .lineLimit(1)
@@ -184,17 +185,18 @@ struct DownloadLine: View {
         .padding(.leading, 50)
         .frame(minHeight: 44)
         .accessibilityElement(children: .contain)
-        .confirmationDialog("Delete \(name)?", isPresented: $confirmDelete) {
-            Button("Delete", role: .destructive) { store.deleteDownload(row.id) }
+        .confirmationDialog(L.downloadsDeleteTitle(name: name), isPresented: $confirmDelete) {
+            Button(L.actionDelete, role: .destructive) { store.deleteDownload(row.id) }
         } message: {
-            Text("The file is deleted from this \(Device.name).")
+            Text(L.downloadsDeleteDetail)
         }
     }
 
     /// "Episode 8 · A Town Without Night", with the title when the episode list is known.
     private var name: String {
         let title = store.titles.episodes[row.anilistId]?.first { $0.number == row.episode }?.title
-        return "Episode \(row.episode)" + (title.map { " · \($0)" } ?? "")
+        let number = Int(episode: row.episode)
+        return title.map { L.episodeWithTitle(number: number, title: $0) } ?? L.downloadsEpisodeName(episode: number)
     }
 
     @ViewBuilder
@@ -204,35 +206,35 @@ struct DownloadLine: View {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark").font(.mac(11, weight: .semibold)).foregroundStyle(.water)
                 // One keep next queued goes a day after it is watched.
-                Text(row.ahead ? "Downloaded · Removed a day after you watch it" : "Downloaded")
+                Text(row.ahead ? L.downloadsCaptionAhead : L.downloadsCaptionDone)
                     .foregroundStyle(.haze)
                     .lineLimit(1)
             }
             .font(.mac(13))
         case .active where row.total == 0:
-            Text("Waiting for metadata").font(.mac(13)).foregroundStyle(.haze)
+            Text(L.downloadsCaptionMetadata).font(.mac(13)).foregroundStyle(.haze)
         case .active:
             progress(activeLine, color: .water)
         case .paused:
-            progress("Paused at \(Wording.bytes(row.downloaded)) of \(Wording.bytes(row.total))", color: .haze)
+            progress(L.downloadsCaptionPaused(percent: row.fraction.formatted(.percent.precision(.fractionLength(0)))), color: .haze)
         case .queued:
-            Text("Queued · starts when a download slot is free").font(.mac(13)).foregroundStyle(.haze)
+            Text(L.downloadsCaptionQueuedSlot).font(.mac(13)).foregroundStyle(.haze)
         case .failed:
             // What stopped it is in Messages and the bug report (copy rule 5).
-            FailedLine("The download stopped")
+            FailedLine(L.downloadsCaptionFailed)
                 .lineLimit(2)
         }
     }
 
     private var activeLine: String {
-        var line = "\(Wording.bytes(row.downloaded)) of \(Wording.bytes(row.total))"
+        var parts = [L.downloadsOfTotal(done: Wording.bytes(row.downloaded), total: Wording.bytes(row.total))]
         if let rate = store.downloads.rates[row.id], rate > 0 {
-            line += " · \(Wording.bytes(UInt64(rate)))/s"
+            parts.append(L.downloadsRateApple(rate: Wording.bytes(UInt64(rate))))
         }
         if let left = store.downloads.secondsLeft(row) {
-            line += " · \(Wording.countdown(left)) left"
+            parts.append(L.downloadsTimeLeftApple(left: Wording.countdown(left)))
         }
-        return line
+        return parts.joined(separator: " · ")
     }
 
     /// A line and a bar: the bar in water while it runs, haze while it waits.
@@ -258,31 +260,31 @@ struct DownloadLine: View {
         HStack(spacing: 4) {
             switch row.state {
             case .done:
-                icon("play", "Play") { store.playDownload(row) }
+                icon("play", L.actionPlay) { store.playDownload(row) }
                 #if os(macOS)
-                icon("folder", "Show in Finder") {
+                icon("folder", L.downloadsShowInFolder) {
                     if let path = row.path {
                         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
                     }
                 }
                 #endif
-                icon("trash", "Delete") { confirmDelete = true }
+                icon("trash", L.actionDelete) { confirmDelete = true }
             case .active:
-                icon("pause", "Pause") { store.toggleDownload(row.id) }
-                icon("xmark", "Remove from queue") { store.cancelDownload(row.id) }
+                icon("pause", L.downloadsPauseOne) { store.toggleDownload(row.id) }
+                icon("xmark", L.downloadsRemoveFromQueue) { store.cancelDownload(row.id) }
             case .paused:
-                icon("play", "Resume") { store.toggleDownload(row.id) }
-                icon("xmark", "Remove from queue") { store.cancelDownload(row.id) }
+                icon("play", L.downloadsResumeOne) { store.toggleDownload(row.id) }
+                icon("xmark", L.downloadsRemoveFromQueue) { store.cancelDownload(row.id) }
             case .queued:
-                Button(cased(mac: "Start Now", touch: "Start now")) { store.startDownloadNow(row.id) }
+                Button(L.downloadsStartNow) { store.startDownloadNow(row.id) }
                     .buttonStyle(SecondaryCapsuleStyle())
                     .fixedSize()
-                    .help("Start this download ahead of the queue")
-                icon("xmark", "Remove from queue") { store.cancelDownload(row.id) }
+                    .help(L.downloadsStartNowHelp)
+                icon("xmark", L.downloadsRemoveFromQueue) { store.cancelDownload(row.id) }
             case .failed:
-                Button("Retry") { store.retryDownload(row) }
+                Button(L.actionTryAgain) { store.retryDownload(row) }
                     .buttonStyle(SecondaryCapsuleStyle())
-                icon("xmark", "Remove from queue") { store.cancelDownload(row.id) }
+                icon("xmark", L.downloadsRemoveFromQueue) { store.cancelDownload(row.id) }
             }
         }
         .font(.mac(13, weight: .medium))
@@ -305,9 +307,18 @@ struct DownloadLine: View {
 struct SeedingList: View {
     @Environment(AppStore.self) private var store
 
+    /// "Shared 0.8 of 1.0 · 2h left · 1.2 GB up".
+    private func seedingLine(_ row: SeedRow) -> String {
+        let ratio = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(1))
+        return L.downloadsSeedingUploaded(
+            shared: row.ratio.formatted(ratio), goal: row.goal.formatted(ratio),
+            left: L.downloadsTimeLeftApple(left: Wording.countdown(Int64(row.leftSecs))),
+            size: Wording.bytes(row.uploadedBytes))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Seeding after watching")
+            Text(L.downloadsSeedingAfterWatching)
                 .groupHeaderStyle()
                 .accessibilityAddTraits(.isHeader)
                 .macLineHeight(14)
@@ -329,8 +340,7 @@ struct SeedingList: View {
                                 }
                             }
                             .frame(width: 60, height: 3)
-                        Text(String(format: "%.1f of %.1f", row.ratio, row.goal)
-                             + " · \(Wording.countdown(Int64(row.leftSecs))) left · \(Wording.bytes(row.uploadedBytes)) up")
+                        Text(seedingLine(row))
                             .font(.mac(13))
                             .monospacedDigit()
                             .foregroundStyle(.haze)

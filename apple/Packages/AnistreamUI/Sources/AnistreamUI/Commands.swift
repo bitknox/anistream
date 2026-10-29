@@ -44,40 +44,40 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
 
     public var body: some Commands {
         CommandGroup(replacing: .appSettings) {
-            Button("Settings…") { navigator.openSettings(navigator.settingsPane) }
+            Button(L.menuSettings) { navigator.openSettings(navigator.settingsPane) }
                 .keyboardShortcut(",", modifiers: .command)
         }
 
         // File.
         CommandGroup(replacing: .newItem) {
-            Button("Join Store…") { navigator.invite = "" }
+            Button(L.menuJoinPluginStore) { navigator.invite = "" }
             // The invite link on the pasteboard, into the join sheet.
-            Button("Open Invite Link") { navigator.invite = Pasteboard.invite ?? "" }
+            Button(L.menuOpenInviteLink) { navigator.invite = Pasteboard.invite ?? "" }
             #if os(macOS)
             Divider()
-            Button("Show in Finder") { DownloadFolder.show(store) }
+            Button(L.menuShowInFinder) { DownloadFolder.show(store) }
                 .disabled((store.settings.row(.downloadDir)?.typedText ?? "").isEmpty)
             #endif
         }
 
-        CommandMenu("Library") {
+        CommandMenu(L.navLibrary) {
             sectionButton(.continue, "1")
             sectionButton(.calendar, "2")
             sectionButton(.seasonal, "3")
             sectionButton(.library, "4")
             sectionButton(.downloads, "5")
             Divider()
-            Button("Search") { navigator.open(.search) }
+            Button(L.navSearch) { navigator.open(.search) }
                 .keyboardShortcut("f", modifiers: .command)
-            Button("Search Filters") {
+            Button(L.menuSearchFilters) {
                 navigator.section = .search
                 navigator.searchFiltersShown.toggle()
             }
             .keyboardShortcut("f", modifiers: [.command, .option])
-            Button("Command Palette") { navigator.paletteShown.toggle() }
+            Button(L.menuCommandPalette) { navigator.paletteShown.toggle() }
                 .keyboardShortcut("k", modifiers: .command)
             Divider()
-            Button("Back") {
+            Button(L.actionBack) {
                 if let playerBack, playerBack.isUp() {
                     playerBack.back()
                 } else {
@@ -86,28 +86,28 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
             }
             .keyboardShortcut("[", modifiers: .command)
             .disabled(!navigator.canGoBack && playerBack?.isUp() != true)
-            Button("Sync Now") { store.send(.syncNow) }
+            Button(L.menuSyncNow) { store.send(.syncNow) }
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(store.accounts.summary.state == .signedOut)
             Divider()
-            Button("Pause All Downloads") { store.pauseAllDownloads() }
+            Button(L.menuPauseAllDownloads) { store.pauseAllDownloads() }
                 .disabled(!store.downloads.rows.contains { $0.state == .active || $0.state == .queued })
-            Button("Clear Finished Downloads") { store.clearCompletedDownloads() }
+            Button(L.menuClearFinishedDownloads) { store.clearCompletedDownloads() }
         }
 
-        CommandMenu("Playback") {
+        CommandMenu(L.menuPlayback) {
             playback
         }
 
-        CommandMenu("Episode") {
+        CommandMenu(L.menuEpisode) {
             EpisodeCommands(store: store, navigator: navigator)
         }
 
-        CommandMenu("Sources") {
+        CommandMenu(L.sourcesTitle) {
             sectionButton(.providers, "6")
             sectionButton(.pluginStores, "7")
             Divider()
-            Button("Check for Updates") { store.loadStores() }
+            Button(L.menuCheckForUpdates) { store.loadStores() }
         }
 
         CommandGroup(after: .windowArrangement) {
@@ -116,17 +116,17 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
             MainWindowButton()
             #endif
             playerWindowItems
-            Button("Messages") { navigator.messagesShown = true }
+            Button(L.menuMessages) { navigator.messagesShown = true }
                 .keyboardShortcut("l", modifiers: [.command, .option])
         }
 
         CommandGroup(replacing: .help) {
-            Button("Report a Bug…") { ReportBugAction(store: store, openURL: openURL)() }
+            Button(L.menuReportBug) { ReportBugAction(store: store, openURL: openURL)() }
         }
     }
 
     private func sectionButton(_ section: AppSection, _ key: Character) -> some View {
-        Button(section.title) { navigator.open(section) }
+        Button(section == .pluginStores ? L.menuPluginStores : section.title) { navigator.open(section) }
             .keyboardShortcut(KeyEquivalent(key), modifiers: .command)
     }
 
@@ -146,12 +146,12 @@ extension AnistreamCommands where Playback == DimmedPlayback, PlayerWindowItems 
 public struct DimmedPlayback: View {
     public var body: some View {
         Group {
-            Button("Play") {}.keyboardShortcut(.space, modifiers: [])
-            Button("Skip Forward 10 Seconds") {}
-            Button("Skip Back 10 Seconds") {}
-            Button("Next Episode") {}
-            Button("Previous Episode") {}
-            Button("Skip Opening") {}
+            Button(L.actionPlay) {}.keyboardShortcut(.space, modifiers: [])
+            Button(L.menuSkipForward) {}
+            Button(L.menuSkipBack) {}
+            Button(L.menuNextEpisode) {}
+            Button(L.menuPreviousEpisode) {}
+            Button(L.menuSkipOpening) {}
         }
         .disabled(true)
     }
@@ -172,7 +172,7 @@ struct MainWindowButton: View {
 
     var body: some View {
         let _ = MainWindow.open = { [openWindow] in openWindow(id: "main") }
-        Button("Main Window") { openWindow(id: "main") }
+        Button(L.menuMainWindow) { openWindow(id: "main") }
             .keyboardShortcut("0", modifiers: .command)
     }
 }
@@ -190,32 +190,32 @@ struct EpisodeCommands: View {
         let watched = entry.flatMap { store.titles.episodes[$0.id]?.first { $0.number == String(next) }?.completed } ?? false
         // An episode still to air cannot be watched yet.
         let aired = entry?.airing(of: next).hasAired ?? true
-        Section(entry == nil ? "No Episode Selected" : name.map { "Episode \(next) · \($0)" } ?? "Episode \(next)") {
-            Button("Mark Watched") {
+        Section(entry == nil ? L.menuNoEpisodeSelected : name.map { L.episodeWithTitle(number: Int(next), title: $0) } ?? L.episodeNumber(number: Int(next))) {
+            Button(L.menuMarkWatched) {
                 if let entry { store.send(.setWatched(id: entry.id, episodes: [String(next)], watched: true)) }
             }
             // The same keys as Mark Unwatched, held by whichever of the two can act: a menu on
             // iPad may not list one shortcut twice.
             .keyboardShortcut(watched ? nil : KeyboardShortcut("u", modifiers: [.command, .shift]))
             .disabled(entry == nil || watched || !aired)
-            Button("Mark Unwatched") {
+            Button(L.menuMarkUnwatched) {
                 if let entry { store.send(.setWatched(id: entry.id, episodes: [String(next)], watched: false)) }
             }
             .keyboardShortcut(watched ? KeyboardShortcut("u", modifiers: [.command, .shift]) : nil)
             .disabled(entry == nil || !watched)
-            Button("Mark All Previous Watched") {
+            Button(L.menuMarkAllPreviousWatched) {
                 if let entry {
                     store.send(.setWatched(id: entry.id, episodes: (1..<max(next, 1)).map(String.init), watched: true))
                 }
             }
             .disabled(entry == nil || next <= 1)
-            Button("Download") {
+            Button(L.menuDownload) {
                 if let entry { store.send(.downloadEpisode(id: entry.id, episode: String(next))) }
             }
             .disabled(entry.map { store.hasDownload($0.id, episode: String(next)) } ?? true || !aired)
         }
-        Section(entry?.showTitle ?? "No Title Selected") {
-            Menu("Status") {
+        Section(entry?.showTitle ?? L.menuNoTitleSelected) {
+            Menu(L.filterStatus) {
                 ForEach(LibraryModel.order, id: \.self) { segment in
                     Button(segment.label.capitalizedSentence) {
                         if let entry { store.setStatus(entry.id, segment) }
@@ -223,21 +223,21 @@ struct EpisodeCommands: View {
                 }
             }
             .disabled(entry == nil)
-            Button("Hide from Continue") {
+            Button(L.continueHide) {
                 if let entry { store.hideFromContinue(entry.id) }
             }
             .keyboardShortcut(.delete, modifiers: .command)
             .disabled(entry?.progress == nil)
-            Button("Play Trailer") {
+            Button(L.menuPlayTrailer) {
                 if let entry, let trailer = entry.trailerUrl { store.send(.playTrailer(url: trailer, title: entry.title)) }
             }
             .disabled(entry?.trailerUrl == nil)
-            Button("More About This Show…") {
+            Button(L.menuMoreAbout) {
                 if let entry { navigator.moreAbout = entry.id }
             }
             .keyboardShortcut("i", modifiers: [.command, .option])
             .disabled(entry == nil)
-            Button("Open on AniList") {
+            Button(L.titleOpenAnilist) {
                 if let entry { store.openOnAniList(entry.id) }
             }
             .disabled(entry == nil)
@@ -247,7 +247,7 @@ struct EpisodeCommands: View {
             .disabled(entry == nil)
         }
         Divider()
-        Button("Show Settings for This Show…") {
+        Button(L.menuShowSettings) {
             if let entry { navigator.showSettings = entry.id }
         }
         // ⌘I, as the boards have it (Johan, 24 October 2026); More About This Show is ⌥⌘I.
