@@ -2338,6 +2338,8 @@
     <string name="title_loading">Loading this title</string>
     <!-- Button on the title page that plays the trailer. -->
     <string name="title_trailer">Trailer</string>
+    <!-- Main button of the title page when every episode of the show is watched: plays episode 1 again. -->
+    <string name="title_button_watch_again">Watch again</string>
     <!-- Menu item that plays the trailer. -->
     <string name="title_play_trailer">Play trailer</string>
     <!-- Name and tooltip of the button beside a playing trailer that turns its sound on or off. -->

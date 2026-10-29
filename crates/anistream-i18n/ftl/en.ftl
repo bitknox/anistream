@@ -6525,6 +6525,9 @@ title-loading = Loading this title
 # Button on the title page that plays the trailer.
 title-trailer = Trailer
 
+# Main button of the title page when every episode of the show is watched: plays episode 1 again.
+title-button-watch-again = Watch again
+
 # Menu item that plays the trailer.
 title-play-trailer = Play trailer
 

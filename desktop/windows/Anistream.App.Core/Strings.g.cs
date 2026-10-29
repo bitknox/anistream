@@ -3966,6 +3966,9 @@ public static partial class T
     /// <summary>Button on the title page that plays the trailer.</summary>
     public static string TitleTrailer => Get("TitleTrailer");
 
+    /// <summary>Main button of the title page when every episode of the show is watched: plays episode 1 again.</summary>
+    public static string TitleButtonWatchAgain => Get("TitleButtonWatchAgain");
+
     /// <summary>Menu item that plays the trailer.</summary>
     public static string TitlePlayTrailer => Get("TitlePlayTrailer");
 
@@ -6283,6 +6286,7 @@ public static partial class T
         ["TitleNoAnswer"] = "AniList didn't answer. Try again.",
         ["TitleLoading"] = "Loading this title",
         ["TitleTrailer"] = "Trailer",
+        ["TitleButtonWatchAgain"] = "Watch again",
         ["TitlePlayTrailer"] = "Play trailer",
         ["TitleTrailerSound"] = "Trailer sound",
         ["TitleOpenAnilist"] = "Open on AniList",

@@ -14833,6 +14833,18 @@
         }
       }
     },
+    "title-button-watch-again" : {
+      "comment" : "Main button of the title page when every episode of the show is watched: plays episode 1 again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch again"
+          }
+        }
+      }
+    },
     "title-details" : {
       "comment" : "Heading of the block of facts about a title.",
       "extractionState" : "manual",

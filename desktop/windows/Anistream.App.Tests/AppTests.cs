@@ -198,6 +198,10 @@ public class SharedWordsTests
         Assert.Equal("Resume episode 7 · 10:06", queue.InProgress[0].Button);
         Assert.Equal("Continue E7 · 10:06", queue.InProgress[0].Action);
         Assert.Equal("14 min left", queue.InProgress[0].Left);
+        var finished = entry with { Progress = new TitleProgress(Done: 12, Next: 1), Resume = null };
+        Assert.Equal("Watch again", Wording.Said(AnistreamFfiMethods.QueueItem(finished, Casing.Sentence)).Button);
+        var almost = entry with { Progress = new TitleProgress(Done: 11, Next: 12), Resume = null };
+        Assert.Equal("Play episode 12", Wording.Said(AnistreamFfiMethods.QueueItem(almost, Casing.Sentence)).Button);
         Assert.Equal("4:05", AnistreamFfiMethods.PlayClock(245.4));
         Assert.Equal("auto-play next", AnistreamFfiMethods.SettingLabel(SettingKey.AutoNext));
         Assert.Equal("Expires in 15 min", AnistreamFfiMethods.DeviceCodeExpiry(899));
