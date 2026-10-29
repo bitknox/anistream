@@ -5,6 +5,7 @@
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
+    time::Instant,
 };
 
 use adw::prelude::*;
@@ -21,6 +22,7 @@ use gtk::{gio, glib};
 
 use crate::{
     fit::Fit,
+    motion,
     states::{self, Shape, States},
     widgets,
     window::{Ctx, Size},
@@ -130,7 +132,17 @@ struct Page {
     body: Rc<States>,
     /// The week's columns or the agenda, whichever the width takes.
     views: gtk::Stack,
-    week_view: gtk::Grid,
+    /// The week's columns live on two grids that take turns; a step slides to the other.
+    week_stack: gtk::Stack,
+    grids: [gtk::Grid; 2],
+    grid_on: Cell<usize>,
+    /// The week (and its look) on the visible grid, to choose how the next one arrives.
+    shown_week: Cell<Option<i32>>,
+    look: Cell<Look>,
+    /// The week whose broadcasts are awaited, its placeholder timer, and when they appeared.
+    waiting: Cell<Option<i32>>,
+    wait_timer: RefCell<Option<glib::SourceId>>,
+    since: Cell<Option<Instant>>,
     agenda: gtk::Box,
     empty: adw::StatusPage,
     loaded: Cell<bool>,
@@ -145,6 +157,14 @@ enum Reach {
     Before,
     In,
     After,
+}
+
+/// What a week's columns hold: broadcasts, nothing yet, or placeholders for them.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Look {
+    Cards,
+    Empty,
+    Placeholders,
 }
 
 /// What the loaded broadcasts say about a week.
@@ -169,6 +189,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     // week, which also says where you are.
     let today = gtk::Button::with_label(&t::calendar_today());
     today.set_sensitive(false);
+    today.add_css_class("calendar-today");
     let steps = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     steps.add_css_class("linked");
     steps.append(&previous);
@@ -192,12 +213,22 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     toggles.set_margin_top(6);
     toggles.set_margin_bottom(6);
 
-    let week_view = gtk::Grid::new();
-    week_view.set_column_homogeneous(true);
-    week_view.set_column_spacing(4);
-    week_view.set_margin_start(12);
-    week_view.set_margin_end(12);
-    week_view.set_margin_bottom(12);
+    let grid = || {
+        let grid = gtk::Grid::new();
+        grid.set_column_homogeneous(true);
+        grid.set_column_spacing(4);
+        grid.set_margin_start(12);
+        grid.set_margin_end(12);
+        grid.set_margin_bottom(12);
+        grid
+    };
+    let grids = [grid(), grid()];
+    // Weeks slide over the standard token's 360 ms; a week changing in place crossfades.
+    let week_stack = gtk::Stack::new();
+    week_stack.set_transition_duration(360);
+    week_stack.set_hhomogeneous(true);
+    week_stack.add_named(&grids[0], Some("a"));
+    week_stack.add_named(&grids[1], Some("b"));
     let agenda = gtk::Box::new(gtk::Orientation::Vertical, 18);
     agenda.set_margin_start(18);
     agenda.set_margin_end(18);
@@ -206,7 +237,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     let scroll_week = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
         .vexpand(true)
-        .child(&week_view)
+        .child(&week_stack)
         .build();
     let scroll_agenda = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
@@ -249,7 +280,14 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         toggles: toggles.clone(),
         body,
         views,
-        week_view,
+        week_stack,
+        grids,
+        grid_on: Cell::new(0),
+        shown_week: Cell::new(None),
+        look: Cell::new(Look::Cards),
+        waiting: Cell::new(None),
+        wait_timer: RefCell::default(),
+        since: Cell::new(None),
         agenda,
         empty,
         loaded: Cell::new(false),
@@ -597,7 +635,13 @@ impl Page {
         let reach = self.reach_of_week(&days);
         let (title, subtitle) = week_name(&days, month_first());
         self.title.set_title(&title);
-        self.title.set_subtitle(&subtitle);
+        if self.title.subtitle() != subtitle {
+            self.title.set_subtitle(&subtitle);
+            // The range changes with one standard crossfade.
+            if self.title.is_mapped() {
+                motion::crossfade_in(&self.title);
+            }
+        }
         self.today.set_sensitive(self.week.get() != 0);
         // The arrows stop where the calendar does.
         let beyond = |offset: i32| {
@@ -621,6 +665,10 @@ impl Page {
         let end = days[last].add_days(1).map_or(start + 7 * 86_400, |d| d.to_unix());
         let held = self.hold(start, end);
         if let Held::Waiting { earlier } = held {
+            if self.ctx.size() == Size::Wide {
+                self.wait_week(&days, &reach);
+                return;
+            }
             self.body.loading(Some(if earlier {
                 t::calendar_loading_earlier()
             } else {
@@ -628,6 +676,10 @@ impl Page {
             }));
             return;
         }
+        if self.settle() {
+            return;
+        }
+        let ends = if held == Held::Ready { self.schedule_end(&days, &reach) } else { None };
         let broadcasts: Vec<Broadcast> = self
             .broadcasts(self.mine.get())
             .into_iter()
@@ -649,16 +701,16 @@ impl Page {
             }
             _ => None,
         };
-        if broadcasts.is_empty() && note.is_none() {
+        if broadcasts.is_empty() && note.is_none() && ends.is_none() {
             self.empty.set_description(Some(&t::calendar_empty_all()));
             self.body.empty();
             return;
         }
         if self.ctx.size() == Size::Wide {
-            self.show_week(&days, &reach, &broadcasts, note.as_ref());
+            self.show_week(&days, &reach, &broadcasts, note.as_ref(), ends, Look::Cards);
             self.views.set_visible_child_name("week");
         } else {
-            self.show_agenda(&days, &reach, &broadcasts, note.as_ref());
+            self.show_agenda(&days, &reach, &broadcasts, note.as_ref(), ends);
             self.views.set_visible_child_name("agenda");
         }
         self.body.content();
@@ -705,9 +757,14 @@ impl Page {
         reach: &[Reach],
         broadcasts: &[Broadcast],
         note: Option<&gtk::Widget>,
+        ends: Option<usize>,
+        look: Look,
     ) {
-        while let Some(child) = self.week_view.first_child() {
-            self.week_view.remove(&child);
+        // The week is built on the grid that is not showing, then arrives by the right motion.
+        let on = 1 - self.grid_on.get();
+        let grid = &self.grids[on];
+        while let Some(child) = grid.first_child() {
+            grid.remove(&child);
         }
         let now = now();
         let today = glib::DateTime::now_local().ok();
@@ -743,10 +800,22 @@ impl Page {
             date.set_xalign(0.0);
             head.append(&name);
             head.append(&date);
-            self.week_view.attach(&head, col, 0, 1, 1);
-            if outside || note.is_some() {
-                self.week_view.attach(&body, col, 1, 1, 1);
+            grid.attach(&head, col, 0, 1, 1);
+            if outside || note.is_some() || ends.is_some_and(|e| col as usize >= e) {
+                grid.attach(&body, col, 1, 1, 1);
                 continue;
+            }
+            match look {
+                Look::Empty => {
+                    grid.attach(&body, col, 1, 1, 1);
+                    continue;
+                }
+                Look::Placeholders => {
+                    states::column_placeholder(&body);
+                    grid.attach(&body, col, 1, 1, 1);
+                    continue;
+                }
+                Look::Cards => {}
             }
             let on_day: Vec<&Broadcast> =
                 broadcasts.iter().filter(|b| same_day(&local(b.airs), day)).collect();
@@ -765,21 +834,116 @@ impl Page {
             if line == Some(on_day.len()) {
                 body.append(&now_line(now));
             }
-            self.week_view.attach(&body, col, 1, 1, 1);
+            grid.attach(&body, col, 1, 1, 1);
         }
         // One line spans the days outside the calendar, and a note spans the days it reaches.
         let before = reach.iter().filter(|r| **r == Reach::Before).count() as i32;
         let after = reach.iter().filter(|r| **r == Reach::After).count() as i32;
         let inside = 7 - before - after;
         if before > 0 {
-            self.week_view.attach(&edge_line(&t::calendar_floor()), 0, 1, before, 1);
+            grid.attach(&edge_line(&t::calendar_floor()), 0, 1, before, 1);
         }
         if after > 0 {
-            self.week_view.attach(&edge_line(&t::calendar_ceiling()), 7 - after, 1, after, 1);
+            grid.attach(&edge_line(&t::calendar_ceiling()), 7 - after, 1, after, 1);
         }
         if let Some(note) = note {
-            self.week_view.attach(note, before, 1, inside.max(1), 1);
+            grid.attach(note, before, 1, inside.max(1), 1);
+        } else if let Some(e) = ends {
+            let span = (7 - after - e as i32).max(1);
+            grid.attach(&edge_line(&t::calendar_end()), e as i32, 1, span, 1);
         }
+        self.arrive(on, self.week.get(), look);
+    }
+
+    /// Bring the built grid in: a step slides one week towards the side it went, a week that
+    /// changes what it holds crossfades, and a refresh of the same look swaps in place.
+    fn arrive(&self, on: usize, week: i32, look: Look) {
+        let transition = match self.shown_week.get() {
+            Some(shown) if shown != week => {
+                if week > shown {
+                    gtk::StackTransitionType::SlideLeft
+                } else {
+                    gtk::StackTransitionType::SlideRight
+                }
+            }
+            Some(_) if self.look.get() != look => gtk::StackTransitionType::Crossfade,
+            _ => gtk::StackTransitionType::None,
+        };
+        self.week_stack.set_transition_type(transition);
+        self.week_stack.set_visible_child_name(if on == 0 { "a" } else { "b" });
+        self.grid_on.set(on);
+        self.shown_week.set(Some(week));
+        self.look.set(look);
+    }
+
+    /// The week's broadcasts are on their way: its columns arrive empty, placeholders follow
+    /// after 600 ms of quiet and stand at least 0.3 s.
+    fn wait_week(&self, days: &[glib::DateTime], reach: &[Reach]) {
+        let week = self.week.get();
+        if self.waiting.get() == Some(week) {
+            return;
+        }
+        self.cancel_wait();
+        self.waiting.set(Some(week));
+        self.show_week(days, reach, &[], None, None, Look::Empty);
+        self.views.set_visible_child_name("week");
+        self.body.content();
+        let weak = self.me.borrow().clone();
+        let id = glib::timeout_add_local_once(states::SILENT, move || {
+            let Some(page) = weak.upgrade() else { return };
+            // This timer has fired: forgotten, so a cancel does not remove it again.
+            page.wait_timer.borrow_mut().take();
+            if page.waiting.get() == Some(week) && page.week.get() == week {
+                let days = week_days(week);
+                let reach = page.reach_of_week(&days);
+                page.show_week(&days, &reach, &[], None, None, Look::Placeholders);
+                page.since.set(Some(Instant::now()));
+            }
+        });
+        self.wait_timer.replace(Some(id));
+    }
+
+    fn cancel_wait(&self) {
+        if let Some(id) = self.wait_timer.borrow_mut().take() {
+            id.remove();
+        }
+    }
+
+    /// The broadcasts arrived. True when placeholders are up and have not stood their least
+    /// time yet: the cards come once they have, in one crossfade.
+    fn settle(&self) -> bool {
+        if self.waiting.get().is_none() {
+            return false;
+        }
+        let left = self.since.get().and_then(|since| states::AT_LEAST.checked_sub(since.elapsed()));
+        let Some(left) = left else {
+            self.cancel_wait();
+            self.waiting.set(None);
+            self.since.set(None);
+            return false;
+        };
+        if self.wait_timer.borrow().is_none() {
+            let weak = self.me.borrow().clone();
+            let id = glib::timeout_add_local_once(left, move || {
+                let Some(page) = weak.upgrade() else { return };
+                page.wait_timer.borrow_mut().take();
+                page.waiting.set(None);
+                page.since.set(None);
+                page.show();
+            });
+            self.wait_timer.replace(Some(id));
+        }
+        true
+    }
+
+    /// Where the schedule runs out before the calendar does: the first column of this week
+    /// after the last broadcast there is, once the engine has no more pages ahead.
+    fn schedule_end(&self, days: &[glib::DateTime], reach: &[Reach]) -> Option<usize> {
+        if self.more_ahead.get() || self.anchor.get().is_none() {
+            return None;
+        }
+        let last = self.broadcasts(false).last()?.airs;
+        (0..7).find(|&n| reach[n] == Reach::In && days[n].to_unix() > last)
     }
 
     /// A broadcast in a day's column: its art, the time, the title and the episode line; one
@@ -811,6 +975,7 @@ impl Page {
         reach: &[Reach],
         broadcasts: &[Broadcast],
         note: Option<&gtk::Widget>,
+        ends: Option<usize>,
     ) {
         clear(&self.agenda);
         let now = now();
@@ -866,6 +1031,9 @@ impl Page {
                 section.append(&list);
             }
             self.agenda.append(&section);
+        }
+        if ends.is_some() && note.is_none() {
+            self.agenda.append(&edge_line(&t::calendar_end()));
         }
         if reach.contains(&Reach::After) {
             self.agenda.append(&edge_line(&t::calendar_ceiling()));

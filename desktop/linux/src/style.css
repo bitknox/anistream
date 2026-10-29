@@ -226,3 +226,8 @@ row.expander:checked image.expander-row-arrow { color: var(--haze); }
 .discussion-avatar { border-radius: 16px; }
 .discussion-quote { border-left: 3px solid var(--rule); padding-left: 10px; }
 .discussion-like.liked { color: var(--amber); }
+
+/* Today turns on and off with the quick token's 0.2 s. */
+button.calendar-today {
+  transition: opacity 200ms ease-out;
+}
