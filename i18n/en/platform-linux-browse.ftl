@@ -199,3 +199,7 @@ title-linux-play-on-tv-help = Play this episode on a TV with { -app-name }
 # @arg episode: int
 # @max 40
 title-linux-episode-watched = Episode { $episode } watched
+
+# Line in a day's column when nothing airs that day.
+# @only linux
+calendar-linux-day-empty = Nothing airs

@@ -1190,6 +1190,11 @@ pub fn title_linux_episode_watched(episode: i64) -> String {
     text("title-linux-episode-watched", &[("episode", Arg::Int(episode))])
 }
 
+/// Line in a day's column when nothing airs that day.
+pub fn calendar_linux_day_empty() -> String {
+    text("calendar-linux-day-empty", &[])
+}
+
 /// Accessible label of the line that says how the watch party form is getting on.
 pub fn party_status() -> String {
     text("party-status", &[])
@@ -6078,6 +6083,56 @@ pub fn calendar_coming_up() -> String {
 /// Line when no show the person follows airs in the next seven days.
 pub fn calendar_coming_up_empty() -> String {
     text("calendar-coming-up-empty", &[])
+}
+
+/// Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.
+pub fn calendar_today() -> String {
+    text("calendar-today", &[])
+}
+
+/// Line where days before the first day the calendar reaches would be.
+pub fn calendar_floor() -> String {
+    text("calendar-floor", &[])
+}
+
+/// Line where days after the last day the calendar reaches would be.
+pub fn calendar_ceiling() -> String {
+    text("calendar-ceiling", &[])
+}
+
+/// Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.
+pub fn calendar_end() -> String {
+    text("calendar-end", &[])
+}
+
+/// Activity line while earlier broadcasts load.
+pub fn calendar_loading_earlier() -> String {
+    text("calendar-loading-earlier", &[])
+}
+
+/// Activity line while later broadcasts load.
+pub fn calendar_loading_later() -> String {
+    text("calendar-loading-later", &[])
+}
+
+/// Line where earlier broadcasts would be when they could not be loaded.
+pub fn calendar_load_earlier_failed() -> String {
+    text("calendar-load-earlier-failed", &[])
+}
+
+/// Line where later broadcasts would be when they could not be loaded.
+pub fn calendar_load_later_failed() -> String {
+    text("calendar-load-later-failed", &[])
+}
+
+/// Button under the line saying nothing on the person's list airs: shows every airing show.
+pub fn calendar_show_all() -> String {
+    text("calendar-show-all", &[])
+}
+
+/// What a screen reader says for the line that marks the time now. The time is already worded.
+pub fn calendar_now_spoken(time: &str) -> String {
+    text("calendar-now-spoken", &[("time", Arg::Text(time))])
 }
 
 /// Button that runs a failed action again.

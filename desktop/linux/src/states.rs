@@ -21,11 +21,11 @@ use anistream_i18n::t;
 use crate::{hub::Hub, motion};
 
 /// How long a wait is silent.
-const SILENT: Duration = Duration::from_millis(600);
+pub const SILENT: Duration = Duration::from_millis(600);
 /// When the activity line joins the placeholders.
 const ACTIVITY: Duration = Duration::from_secs(4);
 /// The least time placeholders stay once shown, so they never flash.
-const AT_LEAST: Duration = Duration::from_millis(300);
+pub const AT_LEAST: Duration = Duration::from_millis(300);
 
 /// What the placeholders look like: the shape of what lands there.
 #[derive(Debug, Clone, Copy)]
@@ -367,6 +367,19 @@ fn plate(width: i32, height: i32, class: &str) -> gtk::Box {
     plate.set_size_request(width, height);
     plate.set_halign(gtk::Align::Start);
     plate
+}
+
+/// A week's column while its broadcasts load: two banners with a line under each.
+pub fn column_placeholder(column: &gtk::Box) {
+    for _ in 0..2 {
+        let banner = plate(-1, 64, "");
+        banner.set_halign(gtk::Align::Fill);
+        column.append(&banner);
+        let line = plate(-1, 12, "bar");
+        line.set_halign(gtk::Align::Fill);
+        line.set_margin_end(16);
+        column.append(&line);
+    }
 }
 
 fn placeholders(shape: Shape) -> gtk::Widget {

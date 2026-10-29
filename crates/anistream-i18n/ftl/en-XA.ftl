@@ -771,6 +771,9 @@ title-linux-play-on-tv-help = [Þļàý ţĥîš éþîšöðé öñ à ŢṼ ŵ
 # Description read by a screen reader on an episode's watched check box.
 title-linux-episode-watched = [Éþîšöðé { $episode } ŵàţçĥéð~~~~~~]
 
+# Line in a day's column when nothing airs that day.
+calendar-linux-day-empty = [Ñöţĥîñĝ àîŕš~~~~]
+
 # Accessible label of the line that says how the watch party form is getting on.
 party-status = [Ŵàţçĥ þàŕţý šţàţüš~~~~~~]
 
@@ -3820,6 +3823,36 @@ calendar-coming-up = [Çöɱîñĝ üþ · ñéẋţ 7 ðàýš~~~~~~~]
 
 # Line when no show the person follows airs in the next seven days.
 calendar-coming-up-empty = [Ñöţĥîñĝ àîŕš ţĥîš ŵééķ ƒöŕ ţĥé šĥöŵš ýöü ƒöļļöŵ.~~~~~~~~~~~~~~~]
+
+# Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.
+calendar-today = [Ţöðàý~~]
+
+# Line where days before the first day the calendar reaches would be.
+calendar-floor = [Ţĥé çàļéñðàŕ ĝöéš ƀàçķ 3 ɱöñţĥš.~~~~~~~~~~]
+
+# Line where days after the last day the calendar reaches would be.
+calendar-ceiling = [Ţĥé çàļéñðàŕ ĝöéš 4 ŵééķš àĥéàð.~~~~~~~~~~]
+
+# Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.
+calendar-end = [Ñöţĥîñĝ ļàţéŕ îš šçĥéðüļéð ýéţ.~~~~~~~~~~]
+
+# Activity line while earlier broadcasts load.
+calendar-loading-earlier = [Ļöàðîñĝ éàŕļîéŕ ƀŕöàðçàšţš~~~~~~~~]
+
+# Activity line while later broadcasts load.
+calendar-loading-later = [Ļöàðîñĝ ļàţéŕ ƀŕöàðçàšţš~~~~~~~~]
+
+# Line where earlier broadcasts would be when they could not be loaded.
+calendar-load-earlier-failed = [Çöüļðñ'ţ ļöàð éàŕļîéŕ ƀŕöàðçàšţš~~~~~~~~~~]
+
+# Line where later broadcasts would be when they could not be loaded.
+calendar-load-later-failed = [Çöüļðñ'ţ ļöàð ļàţéŕ ƀŕöàðçàšţš~~~~~~~~~]
+
+# Button under the line saying nothing on the person's list airs: shows every airing show.
+calendar-show-all = [Šĥöŵ àļļ àîŕîñĝ~~~~~]
+
+# What a screen reader says for the line that marks the time now. The time is already worded.
+calendar-now-spoken = [Ñöŵ, { $time }~~~]
 
 # Button that runs a failed action again.
 action-try-again = [Ţŕý àĝàîñ~~~]
