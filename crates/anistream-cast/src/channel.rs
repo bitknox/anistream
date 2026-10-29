@@ -8,6 +8,9 @@
 //! What it does for its callers:
 //! - answers the device's `PING` with `PONG`, and sends its own `PING` every five seconds, since
 //!   a device closes a channel it has heard nothing on for about ten;
+//! - closes the channel when the device has said nothing for [`SILENCE`]: a TV switched off at
+//!   the wall or dropped off the Wi-Fi sends no FIN, and every `PING` is answered, so silence
+//!   that long means it is gone;
 //! - matches a reply to the request that asked for it by `requestId`;
 //! - hands every other message, a device's unsolicited `MEDIA_STATUS` above all, to `events`.
 
@@ -44,6 +47,9 @@ pub const RECEIVER: &str = "receiver-0";
 
 const HEARTBEAT: Duration = Duration::from_secs(5);
 const REPLY_TIMEOUT: Duration = Duration::from_secs(20);
+
+/// How long a device may say nothing before the channel takes it as gone: three heartbeats.
+pub const SILENCE: Duration = Duration::from_secs(15);
 
 #[derive(Debug, thiserror::Error)]
 pub enum CastError {
@@ -85,9 +91,11 @@ pub struct Channel {
 }
 
 impl Channel {
-    /// Open the channel and connect to the device's platform receiver.
+    /// Open the channel and connect to the device's platform receiver. It closes once the
+    /// device has said nothing for `silence`; the heartbeat goes three times in that span.
     pub async fn connect(
         address: SocketAddr,
+        silence: Duration,
     ) -> Result<(Self, mpsc::UnboundedReceiver<Incoming>), CastError> {
         let tcp = tokio::time::timeout(Duration::from_secs(5), TcpStream::connect(address))
             .await
@@ -111,13 +119,14 @@ impl Channel {
         let pending: Pending = Arc::default();
         let sender = format!("sender-{:08x}", rand::random::<u32>());
         let (closing, closed) = watch::channel(false);
-        tokio::spawn(write_loop(write, outgoing));
+        tokio::spawn(write_loop(write, outgoing, closed.clone()));
         tokio::spawn(read_loop(
             read,
             writer.downgrade(),
             events,
             Arc::clone(&pending),
             closing,
+            silence,
         ));
         let channel = Channel {
             writer,
@@ -131,8 +140,9 @@ impl Channel {
         // the channel is dropped, heartbeat or not.
         let weak = channel.writer.downgrade();
         let id = channel.sender.clone();
+        let beat = HEARTBEAT.min(silence / 3);
         tokio::spawn(async move {
-            let mut tick = tokio::time::interval(HEARTBEAT);
+            let mut tick = tokio::time::interval(beat);
             loop {
                 tick.tick().await;
                 let Some(writer) = weak.upgrade() else { break };
@@ -176,6 +186,9 @@ impl Channel {
             payload.to_string(),
         );
         tracing::trace!(%destination, %namespace, %payload, "cast →");
+        if *self.closed.borrow() {
+            return Err(CastError::Closed);
+        }
         self.writer.send(message).map_err(|_| CastError::Closed)
     }
 
@@ -223,13 +236,26 @@ impl Channel {
 async fn write_loop(
     mut write: WriteHalf<TlsStream<TcpStream>>,
     mut outgoing: mpsc::UnboundedReceiver<CastMessage>,
+    mut closed: watch::Receiver<bool>,
 ) {
-    while let Some(message) = outgoing.recv().await {
-        if write.write_all(&message.frame()).await.is_err() || write.flush().await.is_err() {
+    loop {
+        let message = tokio::select! {
+            message = outgoing.recv() => message,
+            // The reader gave up on the device: nothing more goes to it.
+            _ = closed.wait_for(|closed| *closed) => None,
+        };
+        let Some(message) = message else { break };
+        let sent = async {
+            write.write_all(&message.frame()).await?;
+            write.flush().await
+        };
+        // A device that stopped reading fills the socket; a write that can't finish is a
+        // device gone, as silence is.
+        if !matches!(tokio::time::timeout(REPLY_TIMEOUT, sent).await, Ok(Ok(()))) {
             break;
         }
     }
-    let _ = write.shutdown().await;
+    let _ = tokio::time::timeout(Duration::from_secs(1), write.shutdown()).await;
 }
 
 async fn read_loop(
@@ -238,11 +264,17 @@ async fn read_loop(
     events: mpsc::UnboundedSender<Incoming>,
     pending: Pending,
     closing: watch::Sender<bool>,
+    silence: Duration,
 ) {
     loop {
         let mut len = [0u8; 4];
-        if read.read_exact(&mut len).await.is_err() {
-            break;
+        match tokio::time::timeout(silence, read.read_exact(&mut len)).await {
+            Ok(Ok(_)) => {}
+            Ok(Err(_)) => break,
+            Err(_) => {
+                tracing::info!(?silence, "the device went silent; closing the channel");
+                break;
+            }
         }
         let len = usize::try_from(u32::from_be_bytes(len)).unwrap_or(usize::MAX);
         if len > MAX_MESSAGE {
@@ -250,7 +282,8 @@ async fn read_loop(
             break;
         }
         let mut body = vec![0u8; len];
-        if read.read_exact(&mut body).await.is_err() {
+        if !matches!(tokio::time::timeout(silence, read.read_exact(&mut body)).await, Ok(Ok(_)))
+        {
             break;
         }
         let message = match CastMessage::decode(&body) {

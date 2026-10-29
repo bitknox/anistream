@@ -1,7 +1,7 @@
 //! The receiver and media namespaces over a [`Channel`]: launch the Default Media Receiver, load
 //! a URL with its text tracks, play, pause, seek, stop, set the volume, and read what it reports.
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, time::Duration};
 
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
@@ -12,7 +12,8 @@ use crate::channel::{CastError, Channel, Incoming, NS_MEDIA, NS_RECEIVER, RECEIV
 /// MP4 through the Cast web player.
 pub const DEFAULT_MEDIA_RECEIVER: &str = "CC1AD845";
 
-/// A connected receiver, through its platform receiver.
+/// A connected receiver, through its platform receiver. Cheap to clone.
+#[derive(Clone)]
 pub struct Device {
     pub channel: Channel,
 }
@@ -63,10 +64,12 @@ impl ReceiverStatus {
 }
 
 impl Device {
+    /// Connect, taking the device as gone once it has said nothing for `silence`.
     pub async fn connect(
         address: SocketAddr,
+        silence: Duration,
     ) -> Result<(Self, mpsc::UnboundedReceiver<Incoming>), CastError> {
-        let (channel, events) = Channel::connect(address).await?;
+        let (channel, events) = Channel::connect(address, silence).await?;
         Ok((Self { channel }, events))
     }
 

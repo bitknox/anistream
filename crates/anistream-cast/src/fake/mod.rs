@@ -121,6 +121,7 @@ pub struct FakeReceiver {
 
 enum Control {
     TakeOver,
+    Silence,
 }
 
 impl Drop for FakeReceiver {
@@ -243,6 +244,12 @@ impl FakeReceiver {
     pub fn take_over(&self) {
         let _ = self.control.send(Control::TakeOver);
     }
+
+    /// Say nothing more and read nothing more, with the connection left open: a TV switched
+    /// off at the wall, or gone from the Wi-Fi, which sends no FIN.
+    pub fn go_silent(&self) {
+        let _ = self.control.send(Control::Silence);
+    }
 }
 
 #[allow(clippy::too_many_lines)]
@@ -303,6 +310,11 @@ async fn serve(
                     app = Some(("someone-else".into(), "E0000000"));
                     playing = None;
                     send("receiver-0", "*", NS_RECEIVER, receiver_status(&app, 0, level, muted));
+                }
+                Control::Silence => {
+                    // Holding the socket, the writer and all, and never touching it again.
+                    let _held = (&read, &tx);
+                    std::future::pending::<()>().await;
                 }
             },
             frame = read_frame(&mut read) => {

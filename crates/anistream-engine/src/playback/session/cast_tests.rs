@@ -50,6 +50,7 @@ fn timings() -> Timings {
         movement: Duration::from_millis(1500),
         fetch: Duration::from_secs(2),
         idle_close: Duration::from_secs(600),
+        ..Timings::default()
     }
 }
 

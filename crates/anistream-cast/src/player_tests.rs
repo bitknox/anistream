@@ -88,6 +88,7 @@ fn timings() -> Timings {
         movement: Duration::from_millis(1500),
         fetch: Duration::from_secs(2),
         idle_close: Duration::from_secs(600),
+        ..Timings::default()
     }
 }
 
@@ -518,6 +519,45 @@ async fn another_sender_taking_over_ends_the_cast() {
     // The relay closed with the cast, though the player is still held.
     let served = receiver.fetched()[0].url.clone();
     assert!(PlainHttp.get(&served, &[]).await.is_err(), "the relay still answers");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_tv_that_goes_silent_ends_the_cast_and_never_holds_a_control_up() {
+    let file = matroska(&Fixture { audio: Some(FixtureAudio::aac()), ..Fixture::default() });
+    let base = serve(HashMap::from([("/episode.mkv".to_owned(), file)])).await;
+    let receiver = FakeReceiver::start(FakeOptions::default()).await.unwrap();
+    let mut setup = setup(&receiver, Arc::new(CastMemory::memory()), Arc::new(NoEncoder));
+    setup.timings.silence = Duration::from_secs(2);
+    let (player, mut events) = CastPlayer::connect(setup).await.unwrap();
+    player.load(torrent(format!("{base}/episode.mkv")));
+    next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
+    // Long enough on a live TV that the heartbeat and polls keep the channel up.
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    assert!(player.is_alive(), "a TV that answers is kept");
+
+    // Switched off at the wall: the socket stays open, and nothing comes back.
+    receiver.go_silent();
+    let began = tokio::time::Instant::now();
+    for control in 0..3 {
+        let asked = tokio::time::Instant::now();
+        let sent = match control {
+            0 => player.set_paused(true).await,
+            1 => player.seek(10.0, true).await,
+            _ => player.set_volume(50.0).await,
+        };
+        assert!(sent.is_ok() || !player.is_alive(), "{sent:?}");
+        assert!(asked.elapsed() < Duration::from_secs(3), "a control waited on a silent TV");
+    }
+    next(&mut events, |e| matches!(e, PlaybackEvent::Ended { complete: false })).await;
+    assert!(began.elapsed() < Duration::from_secs(8), "noticed in {:?}", began.elapsed());
+    assert!(!player.is_alive());
+    assert!(matches!(player.failure(), Some(CastFailure::Lost(_))), "{:?}", player.failure());
+    assert_eq!(player.status().borrow().state, CastState::Ended);
+
+    // Stop on the card doesn't wait out the silence either.
+    let asked = tokio::time::Instant::now();
+    let _ = player.quit().await;
+    assert!(asked.elapsed() < Duration::from_secs(3));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

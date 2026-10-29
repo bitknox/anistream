@@ -462,6 +462,49 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_tv_gone_from_the_network_ends_the_card_with_a_notice() {
+        let receiver = FakeReceiver::start(FakeOptions::default()).await.unwrap();
+        let (sender, _, _sent) = sender();
+        let timings = Timings { silence: Duration::from_secs(1), ..Timings::default() };
+        let hub = Arc::new(CastHub::with(None, Arc::new(PlainHttp), timings));
+        let (engine, _sent) = RemoteSender::recording();
+        sender.attach_casting(Arc::clone(&hub), engine);
+        let device = CastDevice {
+            instance: "Chromecast-test".into(),
+            id: "tv-1".into(),
+            name: "Living room".into(),
+            model: "Chromecast".into(),
+            address: receiver.address,
+            video: true,
+            group: false,
+        };
+        hub.found(device.clone());
+        let session = sender.cast("cast:tv-1", AnilistId::new(7), "1".into(), None).unwrap();
+        let (player, _events) = CastPlayer::connect(CastSetup {
+            device,
+            memory: hub.memory(),
+            upstream: hub.upstream(),
+            encoder: hub.encoder(),
+            timings: hub.timings(),
+        })
+        .await
+        .unwrap();
+        let player = Arc::new(player);
+        hub.attach(&player);
+        assert_eq!(session.card().card.phase, LinkPhase::Connected);
+
+        receiver.go_silent();
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+        while session.card().notice.is_none() {
+            assert!(tokio::time::Instant::now() < deadline, "the card noticed");
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        let card = session.card();
+        assert_eq!(card.notice, Some(Msg::NoticeCastLost));
+        assert!(card.card.over);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn the_cards_volume_steps_the_tvs_level_in_hundredths() {
         let receiver = FakeReceiver::start(FakeOptions::default()).await.unwrap();
         let (sender, hub, _sent) = sender();

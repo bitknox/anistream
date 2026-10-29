@@ -70,6 +70,8 @@ pub struct Timings {
     pub fetch: Duration,
     /// Paused this long, the cast ends.
     pub idle_close: Duration,
+    /// The TV said nothing this long, heartbeat and status polls unanswered: it is gone.
+    pub silence: Duration,
 }
 
 impl Default for Timings {
@@ -79,6 +81,7 @@ impl Default for Timings {
             movement: Duration::from_secs(8),
             fetch: Duration::from_secs(15),
             idle_close: Duration::from_secs(10 * 60),
+            silence: crate::channel::SILENCE,
         }
     }
 }
@@ -278,7 +281,11 @@ struct Inner {
     device: Device,
     relay: Relay,
     resources: Arc<Resources>,
-    media: AsyncMutex<Option<Media>>,
+    /// The media session in force. Read without waiting, so a control never queues behind a
+    /// launch.
+    media: Mutex<Option<Media>>,
+    /// Held while the receiver app launches, so two loads launch it once.
+    launching: AsyncMutex<()>,
     state: Mutex<State>,
     events: Mutex<Option<mpsc::UnboundedSender<PlaybackEvent>>>,
     status: watch::Sender<CastStatus>,
@@ -302,20 +309,20 @@ impl Inner {
 
     /// The running receiver app, launched when there is none yet.
     async fn app(&self) -> Result<Media, CastError> {
-        let mut media = self.media.lock().await;
-        if let Some(media) = media.as_ref() {
-            return Ok(media.clone());
+        let _launching = self.launching.lock().await;
+        if let Some(media) = self.media() {
+            return Ok(media);
         }
         let app = self.device.launch(DEFAULT_MEDIA_RECEIVER).await?;
         lock(&self.state).app = Some(app.clone());
         let fresh = Media::new(self.device.channel.clone(), app);
-        *media = Some(fresh.clone());
+        *lock(&self.media) = Some(fresh.clone());
         Ok(fresh)
     }
 
     /// The media session in force, for a command.
-    async fn media(&self) -> Option<Media> {
-        self.media.lock().await.clone()
+    fn media(&self) -> Option<Media> {
+        lock(&self.media).clone()
     }
 }
 
@@ -363,7 +370,8 @@ impl CastPlayer {
             .map_err(|e| CastFailure::Lost(e.to_string()))?;
         let resources = Arc::new(Resources::default());
         relay.set_dynamic(Some(Arc::clone(&resources) as Arc<dyn Dynamic>));
-        let (device, incoming) = Device::connect(address).await.map_err(lost)?;
+        let (device, incoming) =
+            Device::connect(address, setup.timings.silence).await.map_err(lost)?;
         let receiver = device.status().await.map_err(lost)?;
         let firmware =
             if tv.is_loopback() { None } else { firmware(setup.upstream.as_ref(), tv).await };
@@ -390,7 +398,8 @@ impl CastPlayer {
             device,
             relay,
             resources,
-            media: AsyncMutex::new(None),
+            media: Mutex::new(None),
+            launching: AsyncMutex::new(()),
             state: Mutex::new(state),
             events: Mutex::new(Some(events)),
             status,
@@ -486,17 +495,26 @@ impl CastPlayer {
         match reload {
             Some(load) if !lock(&self.inner.state).trying => {
                 let mut media = self.inner.app().await?;
-                media.load(&load).await?;
-                *self.inner.media.lock().await = Some(media);
-                Ok(())
+                let inner = Arc::downgrade(&self.inner);
+                answered(async move {
+                    media.load(&load).await?;
+                    if let Some(inner) = inner.upgrade() {
+                        *lock(&inner.media) = Some(media);
+                    }
+                    Ok(())
+                })
+                .await
             }
             _ => Ok(()),
         }
     }
 
     pub async fn set_paused(&self, paused: bool) -> Result<(), CastError> {
-        let Some(media) = self.inner.media().await else { return Ok(()) };
-        if paused { media.pause().await } else { media.play().await }.map(|_| ())
+        let Some(media) = self.inner.media() else { return Ok(()) };
+        answered(async move {
+            if paused { media.pause().await } else { media.play().await }.map(|_| ())
+        })
+        .await
     }
 
     pub async fn toggle_pause(&self) -> Result<(), CastError> {
@@ -506,17 +524,23 @@ impl CastPlayer {
 
     /// Seek to `seconds`, or by them when not `absolute`.
     pub async fn seek(&self, seconds: f64, absolute: bool) -> Result<(), CastError> {
-        let Some(media) = self.inner.media().await else { return Ok(()) };
+        let Some(media) = self.inner.media() else { return Ok(()) };
         let target = if absolute { seconds } else { self.position().unwrap_or(0.0) + seconds };
         self.inner.say(PlaybackEvent::Seeking(true));
-        let result = media.seek(target.max(0.0)).await;
-        self.inner.say(PlaybackEvent::Seeking(false));
-        result.map(|_| ())
+        let inner = Arc::downgrade(&self.inner);
+        answered(async move {
+            let result = media.seek(target.max(0.0)).await;
+            if let Some(inner) = inner.upgrade() {
+                inner.say(PlaybackEvent::Seeking(false));
+            }
+            result.map(|_| ())
+        })
+        .await
     }
 
     pub async fn set_rate(&self, rate: f64) -> Result<(), CastError> {
-        let Some(media) = self.inner.media().await else { return Ok(()) };
-        media.set_rate(rate.clamp(0.5, 2.0)).await.map(|_| ())
+        let Some(media) = self.inner.media() else { return Ok(()) };
+        answered(async move { media.set_rate(rate.clamp(0.5, 2.0)).await.map(|_| ()) }).await
     }
 
     pub fn rate(&self) -> f64 {
@@ -528,7 +552,11 @@ impl CastPlayer {
         if lock(&self.inner.state).control == VolumeControl::MuteOnly {
             return Ok(());
         }
-        self.inner.device.set_volume(Some((level / 100.0).clamp(0.0, 1.0)), None).await
+        let device = self.inner.device.clone();
+        answered(async move {
+            device.set_volume(Some((level / 100.0).clamp(0.0, 1.0)), None).await
+        })
+        .await
     }
 
     pub fn volume(&self) -> f64 {
@@ -540,7 +568,8 @@ impl CastPlayer {
     }
 
     pub async fn set_muted(&self, muted: bool) -> Result<(), CastError> {
-        self.inner.device.set_volume(None, Some(muted)).await
+        let device = self.inner.device.clone();
+        answered(async move { device.set_volume(None, Some(muted)).await }).await
     }
 
     pub fn muted(&self) -> bool {
@@ -549,9 +578,9 @@ impl CastPlayer {
 
     /// Show the text track `id` (1-based, as loaded), or none.
     pub async fn set_subtitle(&self, id: Option<u32>) -> Result<(), CastError> {
-        let Some(media) = self.inner.media().await else { return Ok(()) };
+        let Some(media) = self.inner.media() else { return Ok(()) };
         let ids: Vec<u32> = id.into_iter().collect();
-        media.active_tracks(&ids).await.map(|_| ())
+        answered(async move { media.active_tracks(&ids).await.map(|_| ()) }).await
     }
 
     /// Stop the file, keeping the receiver for the next.
@@ -559,11 +588,11 @@ impl CastPlayer {
         if let Some(attempt) = lock(&self.attempt).take() {
             attempt.abort();
         }
-        let Some(media) = self.inner.media().await else { return Ok(()) };
+        let Some(media) = self.inner.media() else { return Ok(()) };
         if media.media_session_id.is_none() {
             return Ok(());
         }
-        media.stop().await.map(|_| ())
+        answered(async move { media.stop().await.map(|_| ()) }).await
     }
 
     /// Stop playing and close the receiver app, so the TV goes back to what it showed. The
@@ -595,15 +624,46 @@ impl CastPlayer {
     }
 }
 
+/// How long a control waits for the TV's answer before it lets the session go on. mpv answers
+/// in milliseconds; a TV that takes longer is answered off the session's loop, and one that has
+/// gone is noticed by its channel's silence.
+const CONTROL_WAIT: Duration = Duration::from_secs(2);
+
+/// Run a command to the TV, waiting for its answer up to [`CONTROL_WAIT`]. Past that it
+/// finishes by itself, and what it says is only logged.
+async fn answered(
+    command: impl std::future::Future<Output = Result<(), CastError>> + Send + 'static,
+) -> Result<(), CastError> {
+    let task = tokio::spawn(async move {
+        let result = command.await;
+        if let Err(e) = &result {
+            tracing::debug!(error = %e, "the TV didn't take a command");
+        }
+        result
+    });
+    match tokio::time::timeout(CONTROL_WAIT, task).await {
+        Ok(Ok(result)) => result,
+        Ok(Err(_)) => Ok(()),
+        Err(_) => {
+            tracing::debug!("the TV is slow to answer; going on without it");
+            Ok(())
+        }
+    }
+}
+
 /// Stop the media and the app, when one runs.
 async fn close(inner: &Inner) -> Result<(), CastError> {
-    let media = inner.media.lock().await.take();
+    let media = lock(&inner.media).take();
     let Some(media) = media else { return Ok(()) };
-    if media.media_session_id.is_some() {
-        let _ = media.stop().await;
-    }
     lock(&inner.state).app = None;
-    inner.device.stop(&media.app).await
+    let device = inner.device.clone();
+    answered(async move {
+        if media.media_session_id.is_some() {
+            let _ = media.stop().await;
+        }
+        device.stop(&media.app).await
+    })
+    .await
 }
 
 /// `cast_build_revision` from the TV's local setup API, when it answers within two seconds.
@@ -949,7 +1009,7 @@ async fn try_plan(inner: &Arc<Inner>, relayed: bool, cast: Load) -> Result<Tried
         Ok(Err(e)) => return Err(lost(e)),
         Ok(Ok(status)) => status,
     };
-    *inner.media.lock().await = Some(media.clone());
+    *lock(&inner.media) = Some(media.clone());
     let session = first.media_session_id;
     let from = first.position;
     let deadline = Instant::now() + timings.movement;
@@ -1172,7 +1232,7 @@ async fn poll(inner: std::sync::Weak<Inner>) {
             inner.publish();
             return;
         }
-        let media = inner.media.lock().await.clone();
+        let media = inner.media();
         if let Some(media) = media
             && media.poll().is_err()
         {
