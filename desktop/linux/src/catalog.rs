@@ -81,6 +81,7 @@ pub fn label(key: SettingKey) -> String {
         K::MpvOptions => t::settings_label_mpv_options(),
         K::EpisodeDiscussions => t::settings_label_episode_discussions(),
         K::CommentImages => t::settings_label_comment_images(),
+        K::CalendarMine => t::settings_label_calendar_mine(),
     }
 }
 

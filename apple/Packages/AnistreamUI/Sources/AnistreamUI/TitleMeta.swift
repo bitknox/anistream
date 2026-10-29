@@ -207,7 +207,7 @@ extension Entry {
     /// "Hikari Stream", or "Hikari Stream and 1 more" with more than one.
     var alsoOnFact: String? {
         guard let first = availableOn.first else { return nil }
-        return availableOn.count > 1 ? L.titleAlsoOnMore(first: first, count: availableOn.count - 1) : first
+        return availableOn.count > 1 ? L.titleAlsoOnMoreApple(first: first, count: availableOn.count - 1) : first
     }
 
     /// The top three tags by rank that give nothing away.

@@ -6,7 +6,7 @@ title-fact-also-on = Also on
 # Value of the Also on fact when more than one place has the show. The first is already named.
 # @arg first: text
 # @arg count: int
-title-also-on-more = { $first } and { $count } more
+title-also-on-more-apple = { $first } and { $count } more
 
 # Value of the Airing fact for a show that has begun but whose start date is unknown.
 title-airing-now = Now

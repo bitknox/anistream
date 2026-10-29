@@ -270,7 +270,7 @@ impl Page {
 
     fn heard(&self, event: &Event) {
         match event {
-            Event::CalendarWindow { anchor, pages, more_past } => {
+            Event::CalendarWindow { anchor, pages, more_past, .. } => {
                 self.anchor.set(Some(*anchor));
                 self.pages.set(*pages);
                 self.more_past.set(*more_past);
@@ -321,7 +321,11 @@ impl Page {
             return;
         }
         self.asking_past.set(true);
-        self.ctx.hub.send(Command::LoadCalendarPast { anchor, page: self.pages.get() });
+        self.ctx.hub.send(Command::LoadCalendarPast {
+            anchor,
+            page: self.pages.get(),
+            through: None,
+        });
     }
 
     /// The broadcasts, oldest first, each title as it now stands.

@@ -3,6 +3,10 @@
 
 package tv.anistream.tv.screens
 
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -82,7 +86,7 @@ import tv.anistream.tv.ui.TextBar
 import tv.anistream.tv.ui.accessibilityActions
 import tv.anistream.tv.ui.isOffline
 import tv.anistream.tv.ui.placeholdersAfterWait
-import tv.anistream.tv.ui.plainReason
+import tv.anistream.store.plainReason
 import tv.anistream.tv.ui.remembered
 import tv.anistream.tv.ui.swapFade
 import tv.anistream.tv.ui.Canvas
@@ -97,6 +101,7 @@ import tv.anistream.tv.ui.TvTitle
 import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.pixels
 import tv.anistream.tv.ui.planSheet
+import androidx.compose.ui.platform.LocalContext
 
 /** One broadcast: a title, its episode, and when it airs. */
 data class Airing(val entry: Entry, val episode: UInt, val at: Instant)
@@ -112,28 +117,29 @@ fun CalendarModel.Window.airings(now: Instant = AppClock.now()): List<Airing> {
 }
 
 /** "Today", then "Wed 21" and so on. */
-fun dayLabel(day: LocalDate, today: LocalDate): String =
-    if (day == today) "Today" else "${day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale)} ${day.dayOfMonth}"
+fun dayLabel(context: Context, day: LocalDate, today: LocalDate): String =
+    if (day == today) Strings.dayToday(context) else "${day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale)} ${day.dayOfMonth}"
 
 /**
  * When it airs on the TV's clock: "16:30", "~16:30" for an estimate, or "16:30 (was 23:00)" when
  * AniList moved it, as the phone writes it.
  */
-fun Airing.timeLine(): String {
+fun Airing.timeLine(context: Context): String {
     val time = airTime(AirTime.clock(at), entry.airingApproximate)
     val was = entry.delayedFrom?.let { AirTime.clock(Instant.ofEpochSecond(it)) }
-    return if (was != null && was != time) "$time (was $was)" else time
+    return if (was != null && was != time) Strings.tvCalendarTimeWas(context, time, was) else time
 }
 
 /** "Dub" when the engine marks the row as the dub's, else null: only dubs are marked. */
-fun Airing.mark(): String? = calendarMark(entry)
+fun Airing.dubbed(): Boolean = calendarMark(entry) != null
 
 /** The line under the title: "Episode 10", with Dub after it when the engine marks one: "Episode 10 · Dub". */
-fun Airing.episodeLine(): String = listOfNotNull("Episode $episode", mark()).joinToString(" · ")
+fun Airing.episodeLine(context: Context): String =
+    if (dubbed()) Strings.episodeLongDubbed(context, episode.toInt()) else Strings.episodeNumber(context, episode.toInt())
 
 /** [timeLine] drawn: the time in the row's colour, "(was 23:00)" after it in [quiet]. */
-private fun Airing.timeText(quiet: Color): AnnotatedString {
-    val line = timeLine()
+private fun Airing.timeText(context: Context, quiet: Color): AnnotatedString {
+    val line = timeLine(context)
     val was = line.indexOf(" (was ")
     if (was < 0) return AnnotatedString(line)
     return buildAnnotatedString {
@@ -143,10 +149,10 @@ private fun Airing.timeText(quiet: Color): AnnotatedString {
 }
 
 /** "E7 of 24" for a show on a list, as text on its row. */
-private fun Airing.listProgress(): String? {
+private fun Airing.listProgress(context: Context): String? {
     if (entry.listStatus == null) return null
     val done = entry.progress?.done ?: return null
-    return entry.episodes?.let { "E$done of $it" } ?: "E$done"
+    return entry.episodes?.let { Strings.widgetLineOf(context, done.toInt(), it.toInt()) } ?: Strings.episodeNumberShort(context, done.toInt())
 }
 
 private const val DAYS = 7
@@ -154,6 +160,7 @@ private const val DAYS = 7
 @Composable
 fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> Unit) {
     val store = LocalAppStore.current
+    val context = LocalContext.current
     LaunchedEffect(Unit) { store.loadCalendar() }
     val window by store.calendar.window.collectAsStateWithLifecycle()
     val state by store.calendar.list.state.collectAsStateWithLifecycle()
@@ -200,7 +207,7 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
         Row(Modifier.focusRestorer(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             repeat(DAYS) { index ->
                 TvTab(
-                    dayLabel(today.plusDays(index.toLong()), today),
+                    dayLabel(context, today.plusDays(index.toLong()), today),
                     selected = index == offset,
                     onSelect = { offset = index },
                     modifier = Modifier.firstFocus(memory, "day/$index", shown.isEmpty() && index == offset),
@@ -211,13 +218,13 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
         Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.focusRestorer(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (signedIn) {
-                    TvTab("My list", selected = onlyMine, onSelect = { mine = true }, settle = null, chip = true, modifier = Modifier.remembered(memory, "chip/mine"))
+                    TvTab(stringResource(R.string.calendar_filter_mine), selected = onlyMine, onSelect = { mine = true }, settle = null, chip = true, modifier = Modifier.remembered(memory, "chip/mine"))
                 }
-                TvTab("All airing", selected = !onlyMine, onSelect = { mine = false }, settle = null, chip = true, modifier = Modifier.remembered(memory, "chip/all"))
+                TvTab(stringResource(R.string.calendar_filter_all), selected = !onlyMine, onSelect = { mine = false }, settle = null, chip = true, modifier = Modifier.remembered(memory, "chip/all"))
             }
             if (!signedIn) {
                 Text(
-                    "Sign in to see only your shows",
+                    stringResource(R.string.tv_calendar_signed_out_note),
                     style = MaterialTheme.typography.bodyMedium,
                     color = ObiSilk.Haze,
                     modifier = Modifier.padding(start = 16.dp),
@@ -229,16 +236,15 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
         when {
             placeholders -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) { repeat(5) { AiringPlaceholder() } }
             failed != null && airings.isEmpty() -> StateBlock(
-                "Couldn't load the calendar.",
+                stringResource(R.string.calendar_load_failed),
                 Modifier.padding(top = 48.dp),
-                detail = plainReason(failed.reason),
-                action = "Try again",
+                detail = plainReason(LocalContext.current, failed.reason),
+                action = stringResource(R.string.action_try_again),
                 onAction = { store.loadCalendar(force = true) },
                 actionModifier = Modifier.firstFocus(memory, "retry"),
             )
             shown.isEmpty() && !loading -> {
-                val name = if (offset == 0) "today" else "on ${day.dayOfWeek.getDisplayName(TextStyle.FULL, AirTime.locale)}"
-                Text("Nothing airs $name.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                Text(if (offset == 0) stringResource(R.string.calendar_empty_today) else stringResource(R.string.calendar_empty_day, day.dayOfWeek.getDisplayName(TextStyle.FULL, AirTime.locale)), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             }
         }
         val density = LocalDensity.current
@@ -251,7 +257,7 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
                         airing,
                         past = airing.at < now,
                         onClick = { onOpen(airing.entry.id) },
-                        sheet = { planSheet(store, airing.entry, onOpen) },
+                        sheet = { planSheet(context, store, airing.entry, onOpen) },
                         onDay = { step ->
                             val next = offset + step
                             if (next !in 0 until DAYS) return@AiringRow false
@@ -281,9 +287,12 @@ private fun AiringRow(
     modifier: Modifier,
 ) {
     val host = LocalActions.current
+    val context = LocalContext.current
     var focused by remember { mutableStateOf(false) }
-    val state = if (past) "Aired" else "Airing"
-    val progress = airing.listProgress()
+    val state = stringResource(if (past) R.string.media_status_aired else R.string.media_status_airing)
+    val progress = airing.listProgress(context)
+    val timeLine = airing.timeLine(context)
+    val episodeLine = airing.episodeLine(context)
     Surface(
         onClick = onClick,
         onLongClick = { host?.open(sheet()) },
@@ -300,7 +309,7 @@ private fun AiringRow(
                 }
             }
             .semantics(mergeDescendants = true) {
-                contentDescription = listOfNotNull(airing.timeLine(), airing.entry.title, airing.episodeLine(), progress, state).joinToString(", ")
+                contentDescription = listOfNotNull(timeLine, airing.entry.title, episodeLine, progress, state).joinToString(", ")
                 if (host != null) customActions = sheet().accessibilityActions(host)
             },
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
@@ -316,7 +325,7 @@ private fun AiringRow(
             // Lines under the title are haze, or the row's own colour once focus turns it silk;
             // never a faded colour, which falls under 4.5:1 on a past row.
             val quiet = if (focused) LocalContentColor.current else ObiSilk.Haze
-            Text(airing.timeText(quiet), style = MaterialTheme.typography.labelLarge, maxLines = 2, modifier = Modifier.width(84.dp).clearAndSetSemantics {})
+            Text(airing.timeText(context, quiet), style = MaterialTheme.typography.labelLarge, maxLines = 2, modifier = Modifier.width(84.dp).clearAndSetSemantics {})
             ArtImage(
                 airing.entry.bannerUrl ?: airing.entry.coverUrl,
                 CoverPlate.parse(airing.entry.coverColor),
@@ -326,7 +335,7 @@ private fun AiringRow(
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f).clearAndSetSemantics {}) {
                 Text(airing.entry.title, style = TvTitle.list, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(airing.episodeLine(), style = MaterialTheme.typography.bodyMedium, color = quiet)
+                Text(episodeLine, style = MaterialTheme.typography.bodyMedium, color = quiet)
             }
             if (progress != null) {
                 Text(

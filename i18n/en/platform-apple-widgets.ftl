@@ -15,14 +15,8 @@ widget-episode-long = Episode { $episode }
 
 ## Day words that stand inside a line, lower case
 
-# Today, inside a line such as "Thursday 16:30".
-widget-day-today = today
-
 # Tomorrow, inside a line.
 widget-day-tomorrow = tomorrow
-
-# Yesterday, inside a line.
-widget-day-yesterday = yesterday
 
 ## Lines that carry a time
 
@@ -89,7 +83,7 @@ widget-tomorrow-more = Tomorrow: { $time } · { $title } and { $count } more
 ## Continue
 
 # Name of the Continue widget, in the gallery and its title.
-widget-continue-title = { -continue-cap } watching
+widget-continue-title-apple = { -continue-cap } watching
 
 # Description of the Continue widget in the gallery.
 widget-continue-description = The next episode of what you're watching.
@@ -110,22 +104,18 @@ widget-connect-detail-short = Connect { $tracker }, or play an episode, to see i
 widget-connect-tracker = Connect { $tracker }
 
 # Title of the Continue widget when nothing is left to watch.
-widget-caught-up-title = You're caught up
+widget-caught-up-title-apple = You're caught up
 
 # Line under that title when the next episode is not known.
 widget-caught-up-none = Nothing more to { -continue }.
 
 # Line under that title when the next episode is on the person's list.
-widget-caught-up-next = Next from your list:
-
-# Line of the Continue widget: what plays next, with the episode already named.
-# @arg episode: text
-widget-line-start = Start { $episode }
+widget-caught-up-next-apple = Next from your list:
 
 # Line of the Continue widget: an episode left part-way and the time left.
 # @arg episode: text
 # @arg left: text
-widget-line-left = { $episode } · { $left }
+widget-line-left-apple = { $episode } · { $left }
 
 # Line of the Continue widget: resume an episode.
 # @arg episode: text

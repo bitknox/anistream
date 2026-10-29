@@ -453,6 +453,40 @@
         }
       }
     },
+    "accounts-changes-waiting" : {
+      "comment" : "Line under a signed-in account while changes wait to be sent. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One change waiting to sync"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld changes waiting to sync"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "accounts-clash-detail" : {
       "comment" : "Line under it. Argument 1: tracker (Text).",
       "extractionState" : "manual",
@@ -1987,7 +2021,7 @@
         }
       }
     },
-    "calendar-line-in" : {
+    "calendar-line-in-apple" : {
       "comment" : "Calendar row: an episode that airs soon. The span is already worded, such as \"1h 30m\". Argument 1: episode (Int). Argument 2: span (Text).",
       "extractionState" : "manual",
       "localizations" : {
@@ -2011,7 +2045,7 @@
         }
       }
     },
-    "calendar-line-out" : {
+    "calendar-line-out-apple" : {
       "comment" : "Calendar row: an episode that has aired. The span is already worded, such as \"1d 2h ago\". Argument 1: episode (Int). Argument 2: ago (Text).",
       "extractionState" : "manual",
       "localizations" : {
@@ -3749,7 +3783,7 @@
         }
       }
     },
-    "downloads-group-summary" : {
+    "downloads-group-summary-apple" : {
       "comment" : "Line under a title in Downloads: how many episodes it has downloaded and what they take. The count is already worded, such as \"3 episodes\". Argument 1: count (Text). Argument 2: size (Bytes).",
       "extractionState" : "manual",
       "localizations" : {
@@ -3951,7 +3985,7 @@
         }
       }
     },
-    "downloads-rate" : {
+    "downloads-rate-apple" : {
       "comment" : "Part of a running download's line: how fast it goes. The rate is already formatted, such as \"2.4 MB\". Argument 1: rate (Bytes).",
       "extractionState" : "manual",
       "localizations" : {
@@ -4155,7 +4189,7 @@
         }
       }
     },
-    "downloads-time-left" : {
+    "downloads-time-left-apple" : {
       "comment" : "Part of a running download's line and of a seeding line: how long is left. The time is already worded. Argument 1: left (Text).",
       "extractionState" : "manual",
       "localizations" : {
@@ -8095,18 +8129,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't save that setting. %1$@"
-          }
-        }
-      }
-    },
-    "notice-open-stores" : {
-      "comment" : "Button of a notice that opens the plugin stores page.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open plugin stores"
           }
         }
       }
@@ -12247,6 +12269,66 @@
         }
       }
     },
+    "search-sort-favourites" : {
+      "comment" : "Search: sort by how many people marked the title a favourite.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favourites"
+          }
+        }
+      }
+    },
+    "search-sort-newest" : {
+      "comment" : "Search: sort by release date, newest first.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest"
+          }
+        }
+      }
+    },
+    "search-sort-oldest" : {
+      "comment" : "Search: sort by release date, oldest first.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oldest"
+          }
+        }
+      }
+    },
+    "search-sort-title" : {
+      "comment" : "Search: sort by title, A to Z.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        }
+      }
+    },
+    "search-sort-trending" : {
+      "comment" : "Search: sort by what is popular right now.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trending"
+          }
+        }
+      }
+    },
     "search-statuses-count" : {
       "comment" : "Title of the status filter when more than one status is chosen. Argument 1: count (Int).",
       "extractionState" : "manual",
@@ -12629,7 +12711,7 @@
         }
       }
     },
-    "settings-aside-sources" : {
+    "settings-aside-sources-apple" : {
       "comment" : "Side note in Sources while torrents are off.",
       "extractionState" : "manual",
       "localizations" : {
@@ -13809,6 +13891,30 @@
         }
       }
     },
+    "settings-quality-higher" : {
+      "comment" : "Choice for the download quality: larger files with more detail.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Higher"
+          }
+        }
+      }
+    },
+    "settings-quality-standard" : {
+      "comment" : "Choice for the download quality: the usual size.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        }
+      }
+    },
     "settings-read-online" : {
       "comment" : "Button that opens the privacy page in a browser.",
       "extractionState" : "manual",
@@ -14609,6 +14715,18 @@
         }
       }
     },
+    "settings-upload-unlimited" : {
+      "comment" : "Value of the upload limit setting when there is no limit.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlimited"
+          }
+        }
+      }
+    },
     "settings-upscaling-compare" : {
       "comment" : "VoiceOver description of the upscaling preview. The mode is the chosen upscaling mode. Argument 1: mode (Text).",
       "extractionState" : "manual",
@@ -14617,6 +14735,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The 480p source beside %1$@"
+          }
+        }
+      }
+    },
+    "settings-upscaling-natural" : {
+      "comment" : "Value of the upscaling setting: a natural look. The name after the dot is the shader used.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Natural · ArtCNN"
           }
         }
       }
@@ -14657,7 +14787,19 @@
         }
       }
     },
-    "settings-upscaling-source" : {
+    "settings-upscaling-sharp" : {
+      "comment" : "Value of the upscaling setting: a sharper look. The name after the dot is the shader used.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sharp · Anime4K"
+          }
+        }
+      }
+    },
+    "settings-upscaling-source-apple" : {
       "comment" : "Text on the upscaling preview, over the left half, which shows the source untouched.",
       "extractionState" : "manual",
       "localizations" : {
@@ -17347,6 +17489,18 @@
         }
       }
     },
+    "stores-copy-link" : {
+      "comment" : "Button under an invite link that copies it. Reads \"Copied\" for a moment afterwards.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy link"
+          }
+        }
+      }
+    },
     "stores-device-joined-as" : {
       "comment" : "How the device joined, when a name was given. Argument 1: name (Text).",
       "extractionState" : "manual",
@@ -18153,6 +18307,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plugins come from the plugin store's owner, not from anistream. You can leave a plugin store at any time."
+          }
+        }
+      }
+    },
+    "stores-offers-plugins" : {
+      "comment" : "Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One plugin"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld plugins"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -19053,7 +19241,7 @@
         }
       }
     },
-    "title-also-on-more" : {
+    "title-also-on-more-apple" : {
       "comment" : "Value of the Also on fact when more than one place has the show. The first is already named. Argument 1: first (Text). Argument 2: count (Int).",
       "extractionState" : "manual",
       "localizations" : {
@@ -23365,7 +23553,7 @@
         }
       }
     },
-    "widget-caught-up-next" : {
+    "widget-caught-up-next-apple" : {
       "comment" : "Line under that title when the next episode is on the person's list.",
       "extractionState" : "manual",
       "localizations" : {
@@ -23389,7 +23577,7 @@
         }
       }
     },
-    "widget-caught-up-title" : {
+    "widget-caught-up-title-apple" : {
       "comment" : "Title of the Continue widget when nothing is left to watch.",
       "extractionState" : "manual",
       "localizations" : {
@@ -23473,7 +23661,7 @@
         }
       }
     },
-    "widget-continue-title" : {
+    "widget-continue-title-apple" : {
       "comment" : "Name of the Continue widget, in the gallery and its title.",
       "extractionState" : "manual",
       "localizations" : {
@@ -23675,7 +23863,7 @@
         }
       }
     },
-    "widget-line-left" : {
+    "widget-line-left-apple" : {
       "comment" : "Line of the Continue widget: an episode left part-way and the time left. Argument 1: episode (Text). Argument 2: left (Text).",
       "extractionState" : "manual",
       "localizations" : {

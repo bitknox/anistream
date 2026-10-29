@@ -951,26 +951,6 @@
     <value>[Šöŕţ~~]</value>
     <comment>Search: the Sort drop-down's name before a sort is picked.</comment>
   </data>
-  <data name="SearchSortTrending" xml:space="preserve">
-    <value>[Ţŕéñðîñĝ~~~]</value>
-    <comment>Search: sort by what is popular right now.</comment>
-  </data>
-  <data name="SearchSortNewest" xml:space="preserve">
-    <value>[Ñéŵéšţ~~]</value>
-    <comment>Search: sort by release date, newest first.</comment>
-  </data>
-  <data name="SearchSortOldest" xml:space="preserve">
-    <value>[Öļðéšţ~~]</value>
-    <comment>Search: sort by release date, oldest first.</comment>
-  </data>
-  <data name="SearchSortTitle" xml:space="preserve">
-    <value>[Ţîţļé~~]</value>
-    <comment>Search: sort by title, A to Z.</comment>
-  </data>
-  <data name="SearchSortFavourites" xml:space="preserve">
-    <value>[Ƒàṽöüŕîţéš~~~]</value>
-    <comment>Search: sort by how many people marked the title a favourite.</comment>
-  </data>
   <data name="FilterPickedTwo" xml:space="preserve">
     <value>[{first}, {second}~~~]</value>
     <comment>Search: a filter drop-down with two values picked, such as two genres.</comment>
@@ -1183,14 +1163,6 @@
     <value>[Ţöŕŕéñţ šöüŕçé~~~~~]</value>
     <comment>Setting: the switch that turns torrents on.</comment>
   </data>
-  <data name="SettingsUpscalingNatural" xml:space="preserve">
-    <value>[Ñàţüŕàļ · ÅŕţÇÑÑ~~~~~]</value>
-    <comment>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</comment>
-  </data>
-  <data name="SettingsUpscalingSharp" xml:space="preserve">
-    <value>[Šĥàŕþ · Åñîɱé4Ķ~~~~~]</value>
-    <comment>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</comment>
-  </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>[Åðàþţîṽé~~~]</value>
     <comment>Value of the theme setting: follows the system's colours.</comment>
@@ -1214,10 +1186,6 @@
   <data name="SettingsSeedUntilRatio" xml:space="preserve">
     <value>[Ûñţîļ ŕàţîö {ratio}~~~~~]</value>
     <comment>Value of the seeding setting: share until the ratio is reached. The ratio is already formatted, as in "1.5".</comment>
-  </data>
-  <data name="SettingsUploadUnlimited" xml:space="preserve">
-    <value>[Ûñļîɱîţéð~~~]</value>
-    <comment>Value of the upload limit setting when there is no limit.</comment>
   </data>
   <data name="SettingsTrackers" xml:space="preserve">
     <value>[Ţŕàçķéŕš~~~]</value>
@@ -1598,14 +1566,6 @@
   <data name="StoresAlreadyJoinedTitle" xml:space="preserve">
     <value>[{name} îš àļŕéàðý ĵöîñéð~~~~~~~]</value>
     <comment>Title of the join dialog when this { -device } has joined that { -plugin-store } already.</comment>
-  </data>
-  <data name="StoresOffersPlugins_one" xml:space="preserve">
-    <value>[Öñé þļüĝîñ~~~]</value>
-    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
-  </data>
-  <data name="StoresOffersPlugins_other" xml:space="preserve">
-    <value>[{count} þļüĝîñš~~~~]</value>
-    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
   </data>
   <data name="StoresOwnerSeesAs" xml:space="preserve">
     <value>[Ţĥé öŵñéŕ šééš ţĥîš ðéṽîçé àš~~~~~~~~~]</value>
@@ -2887,6 +2847,10 @@
     <value>[É{done}~~]</value>
     <comment>Short progress under a show when the total is not known.</comment>
   </data>
+  <data name="ContinueRowStartAiredDubbed" xml:space="preserve">
+    <value>[Þļàý É{episode} ðüƀƀéð · öüţ {ago}~~~~~~~~]</value>
+    <comment>Row caption: the next unwatched episode, dubbed, which came out a while ago.</comment>
+  </data>
   <data name="FormatTv" xml:space="preserve">
     <value>[ŢṼ~]</value>
     <comment>Format of a show: broadcast on television.</comment>
@@ -3875,6 +3839,30 @@
     <value>[Šöüŕçéš~~~]</value>
     <comment>Title of the picker sheet in the player.</comment>
   </data>
+  <data name="PlayerFailedTitleText" xml:space="preserve">
+    <value>[Çöüļðñ'ţ þļàý éþîšöðé {episode}~~~~~~~~]</value>
+    <comment>Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".</comment>
+  </data>
+  <data name="PlayerScrubHalf" xml:space="preserve">
+    <value>[Ĥàļƒ-šþééð šçŕüƀƀîñĝ~~~~~~]</value>
+    <comment>Label while scrubbing the seek line at half the pace.</comment>
+  </data>
+  <data name="PlayerScrubQuarter" xml:space="preserve">
+    <value>[Ǫüàŕţéŕ-šþééð šçŕüƀƀîñĝ~~~~~~~]</value>
+    <comment>Label while scrubbing the seek line at a quarter of the pace.</comment>
+  </data>
+  <data name="PlayerStartingText" xml:space="preserve">
+    <value>[Šţàŕţîñĝ éþîšöðé {episode}~~~~~~]</value>
+    <comment>Heading of the starting screen. The episode's number is text, because it may be "7.5".</comment>
+  </data>
+  <data name="PlayerTrackN" xml:space="preserve">
+    <value>[Ţŕàçķ {id}~~~]</value>
+    <comment>Name of an audio or subtitle track that has no language or title.</comment>
+  </data>
+  <data name="PlayerWaitNote" xml:space="preserve">
+    <value>[{what} · {seconds} š~~~~]</value>
+    <comment>Line while an episode starts after a few seconds: what the wait is on, and for how long.</comment>
+  </data>
   <data name="SeasonalPrevious" xml:space="preserve">
     <value>[Þŕéṽîöüš šéàšöñ~~~~~]</value>
     <comment>Button that shows the season before.</comment>
@@ -4186,6 +4174,26 @@
   <data name="FilterRemove" xml:space="preserve">
     <value>[Ŕéɱöṽé {filter}~~~]</value>
     <comment>Accessibility label of the button that removes one filter.</comment>
+  </data>
+  <data name="SearchSortFavourites" xml:space="preserve">
+    <value>[Ƒàṽöüŕîţéš~~~]</value>
+    <comment>Search: sort by how many people marked the title a favourite.</comment>
+  </data>
+  <data name="SearchSortNewest" xml:space="preserve">
+    <value>[Ñéŵéšţ~~]</value>
+    <comment>Search: sort by release date, newest first.</comment>
+  </data>
+  <data name="SearchSortOldest" xml:space="preserve">
+    <value>[Öļðéšţ~~]</value>
+    <comment>Search: sort by release date, oldest first.</comment>
+  </data>
+  <data name="SearchSortTitle" xml:space="preserve">
+    <value>[Ţîţļé~~]</value>
+    <comment>Search: sort by title, A to Z.</comment>
+  </data>
+  <data name="SearchSortTrending" xml:space="preserve">
+    <value>[Ţŕéñðîñĝ~~~]</value>
+    <comment>Search: sort by what is popular right now.</comment>
   </data>
   <data name="SettingsLanguage" xml:space="preserve">
     <value>[Ļàñĝüàĝé~~~]</value>
@@ -4647,6 +4655,30 @@
     <value>[Ŕéšüɱé éþîšöðé {episode}, ðüƀƀéð, öƒ {title}~~~~~~~~~~~]</value>
     <comment>Accessibility label of a widget row: continue a dubbed episode.</comment>
   </data>
+  <data name="AccountsChangesWaiting_one" xml:space="preserve">
+    <value>[Öñé çĥàñĝé ŵàîţîñĝ ţö šýñç~~~~~~~~]</value>
+    <comment>Line under a signed-in account while changes wait to be sent.</comment>
+  </data>
+  <data name="AccountsChangesWaiting_other" xml:space="preserve">
+    <value>[{count} çĥàñĝéš ŵàîţîñĝ ţö šýñç~~~~~~~~~]</value>
+    <comment>Line under a signed-in account while changes wait to be sent.</comment>
+  </data>
+  <data name="SettingsQualityHigher" xml:space="preserve">
+    <value>[Ĥîĝĥéŕ~~]</value>
+    <comment>Choice for the download quality: larger files with more detail.</comment>
+  </data>
+  <data name="SettingsQualityStandard" xml:space="preserve">
+    <value>[Šţàñðàŕð~~~]</value>
+    <comment>Choice for the download quality: the usual size.</comment>
+  </data>
+  <data name="SettingsUploadUnlimited" xml:space="preserve">
+    <value>[Ûñļîɱîţéð~~~]</value>
+    <comment>Value of the upload limit setting when there is no limit.</comment>
+  </data>
+  <data name="SettingsUpscalingNatural" xml:space="preserve">
+    <value>[Ñàţüŕàļ · ÅŕţÇÑÑ~~~~~]</value>
+    <comment>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</comment>
+  </data>
   <data name="SettingsUpscalingNoteNatural" xml:space="preserve">
     <value>[Ƒàîţĥƒüļ ļîñé ŵöŕķ àñð ţéẋţüŕé, ñöţĥîñĝ ŕéšţýļéð.~~~~~~~~~~~~~~~]</value>
     <comment>Preview note under the upscaling frame for the natural look.</comment>
@@ -4678,6 +4710,26 @@
   <data name="SettingsSignedIn" xml:space="preserve">
     <value>[Šîĝñéð îñ~~~]</value>
     <comment>Under a tracker that is signed in, when its user name is unknown.</comment>
+  </data>
+  <data name="SettingsUpscalingSharp" xml:space="preserve">
+    <value>[Šĥàŕþ · Åñîɱé4Ķ~~~~~]</value>
+    <comment>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</comment>
+  </data>
+  <data name="SettingsAsideAccounts" xml:space="preserve">
+    <value>[àñîšţŕéàɱ ŵöŕķš ŵîţĥöüţ àñ àççöüñţ. Ýöüŕ ŵàţçĥ ĥîšţöŕý šţàýš öñ ţĥîš ðéṽîçé ŵĥéñ ýöü šîĝñ öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Side note in Accounts.</comment>
+  </data>
+  <data name="WidgetDayToday" xml:space="preserve">
+    <value>[ţöðàý~~]</value>
+    <comment>Today, inside a line such as "Thursday 16:30".</comment>
+  </data>
+  <data name="WidgetDayYesterday" xml:space="preserve">
+    <value>[ýéšţéŕðàý~~~]</value>
+    <comment>Yesterday, inside a line.</comment>
+  </data>
+  <data name="WidgetLineStart" xml:space="preserve">
+    <value>[Šţàŕţ {episode}~~~]</value>
+    <comment>Line of the Continue widget: what plays next, with the episode already named.</comment>
   </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>[Šöüŕçéš~~~]</value>
@@ -4950,6 +5002,10 @@
   <data name="SourcesRebuilding" xml:space="preserve">
     <value>[Šöüŕçéš àŕé ƀéîñĝ šéţ üþ àĝàîñ~~~~~~~~~]</value>
     <comment>Over the { -source } list while the { -source-pl } are set up again after a change.</comment>
+  </data>
+  <data name="SourcesResponseMs" xml:space="preserve">
+    <value>[{ms} ɱš~~]</value>
+    <comment>Value of a plugin's response time, in milliseconds.</comment>
   </data>
   <data name="StoresJoined" xml:space="preserve">
     <value>[Ĵöîñéð~~]</value>
@@ -5459,6 +5515,18 @@
     <value>[Ŕéɱöṽé àļļ~~~]</value>
     <comment>Button on the summary row that removes every device that joined with the link.</comment>
   </data>
+  <data name="StoresCopyLink" xml:space="preserve">
+    <value>[Çöþý ļîñķ~~~]</value>
+    <comment>Button under an invite link that copies it. Reads "Copied" for a moment afterwards.</comment>
+  </data>
+  <data name="StoresOffersPlugins_one" xml:space="preserve">
+    <value>[Öñé þļüĝîñ~~~]</value>
+    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
+  </data>
+  <data name="StoresOffersPlugins_other" xml:space="preserve">
+    <value>[{count} þļüĝîñš~~~~]</value>
+    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
+  </data>
   <data name="TitleLoadFailed" xml:space="preserve">
     <value>[Çöüļðñ'ţ ļöàð ţĥîš ţîţļé~~~~~~~~]</value>
     <comment>Title of the state when a title page could not load.</comment>
@@ -5698,6 +5766,14 @@
   <data name="EpisodeLineDubbed" xml:space="preserve">
     <value>[{line} · Ðüƀƀéð~~~~]</value>
     <comment>An episode's line with the audio it was watched in marked, as Continue and the title page word it.</comment>
+  </data>
+  <data name="TitleButtonPlayDubbed" xml:space="preserve">
+    <value>[Þļàý éþîšöðé {episode} · Ðüƀƀéð~~~~~~~~]</value>
+    <comment>Main button of the title page for a dubbed episode that has not been started.</comment>
+  </data>
+  <data name="TitleButtonResumeDubbed" xml:space="preserve">
+    <value>[Ŕéšüɱé éþîšöðé {episode} · Ðüƀƀéð · {time}~~~~~~~~~~]</value>
+    <comment>Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.</comment>
   </data>
   <data name="TorrentsTitle" xml:space="preserve">
     <value>[Ţöŕŕéñţš~~~]</value>
@@ -5994,6 +6070,10 @@
   <data name="TorrentsCheckNote" xml:space="preserve">
     <value>[àñîšţŕéàɱ çĥéçķš ŵĥéŕé ţöŕŕéñţ ţŕàƒƒîç ļéàṽéš ƒŕöɱ ŵĥéñ à ţöŕŕéñţ šţàŕţš àñð éṽéŕý ɱîñüţé ŵĥîļé îţ ŕüñš, àñð þàüšéš ţöŕŕéñţš îƒ ţĥàţ çĥéçķ ƒàîļš. Ýöüŕ ṼÞÑ öŕ þŕöẋý îš ŵĥàţ þŕöţéçţš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.</comment>
+  </data>
+  <data name="TorrentsProtectionSaved" xml:space="preserve">
+    <value>[Ţöŕŕéñţ þŕöţéçţîöñ šàṽéð~~~~~~~~]</value>
+    <comment>Notice after the protection was saved.</comment>
   </data>
   <data name="AccountsTitle" xml:space="preserve">
     <value>[Åççöüñţš~~~]</value>

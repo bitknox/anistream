@@ -3,6 +3,10 @@
 
 package tv.anistream.tv.ui
 
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import android.content.Context
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -52,8 +56,6 @@ import tv.anistream.design.Motion
 import tv.anistream.design.Nagare
 import tv.anistream.design.ObiSilk
 
-/** What the offline line says: the TV keeps what it showed, and syncs once it is back. */
-const val OFFLINE_LINE = "Offline. Changes sync once the network is back."
 
 /** Whether the engine says the TV is offline, its one offline state. */
 @Composable
@@ -68,7 +70,7 @@ fun OfflineLine(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(Modifier.size(6.dp).background(ObiSilk.Haze, CircleShape))
-        Text(OFFLINE_LINE, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+        Text(stringResource(R.string.accounts_offline_changes_tv), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
     }
 }
 
@@ -108,31 +110,6 @@ fun StateBlock(
             TonalButton(onClick = onAction, modifier = actionModifier) { ButtonLabel(action) }
         }
     }
-}
-
-/**
- * The first clause of an engine reason, in plain words: raw error chains never reach the screen
- * (copy rule 5). The phone's rule, word for word.
- */
-fun plainReason(raw: String): String {
-    val lower = raw.lowercase(Locale.ROOT)
-    val who = if ("anilist" in lower) "AniList" else "The server"
-    return when {
-        "timed out" in lower || "timeout" in lower -> "$who took too long to answer."
-        "401" in lower || "unauthori" in lower || "expired" in lower && "token" in lower -> "Your sign-in has expired. Sign in again in Accounts."
-        "429" in lower || "rate limit" in lower || "too many requests" in lower -> "$who is busy. Try again in a minute."
-        Regex("\\b5\\d\\d\\b").containsMatchIn(lower) -> "$who had a problem."
-        "error sending request" in lower || "connection" in lower || "dns" in lower || "network" in lower ||
-            "unreachable" in lower || "connect" in lower -> "$who didn't answer."
-        else -> firstClause(raw)
-    }
-}
-
-/** "could not read the list: bad json at line 3" as "Could not read the list." */
-fun firstClause(raw: String): String {
-    val clause = raw.substringBefore(": ").substringBefore(" (").trim().trimEnd('.')
-    if (clause.isEmpty()) return "Something went wrong."
-    return clause.replaceFirstChar { it.titlecase(Locale.UK) } + "."
 }
 
 /** How long a notice stays: 4 s, plus 1 s for every 10 words past 12. */
@@ -185,7 +162,7 @@ fun NoticeView(shown: ShownNotice?, modifier: Modifier = Modifier) {
     var last by remember { mutableStateOf(shown) }
     if (shown != null) last = shown
     AnimatedVisibility(shown != null, modifier, enter = enterFade(), exit = exitFade()) {
-        Crossfade(last, animationSpec = if (LocalReducedMotion.current) snap() else Motion.fadeIn(), label = "notice") { notice ->
+        Crossfade(last, animationSpec = if (LocalReducedMotion.current) snap() else Motion.fadeIn(), label = "notice") { notice -> // i18n-skip
             Box(
                 Modifier
                     .padding(top = Canvas.SafeY, end = Canvas.SafeX)

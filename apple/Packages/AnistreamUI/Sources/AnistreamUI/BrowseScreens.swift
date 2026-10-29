@@ -182,7 +182,7 @@ struct LibraryScreen: View {
         guard let aired = entry.latestAired, aired.episode == next, let ago = aired.ago,
               ago < ContinueQueue.week
         else { return nil }
-        return L.calendarLineOut(episode: Int(next), ago: Wording.ago(ago))
+        return L.calendarLineOutApple(episode: Int(next), ago: Wording.ago(ago))
     }
 }
 

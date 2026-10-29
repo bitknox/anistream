@@ -12,6 +12,7 @@ use anistream_model::{
 use super::{App, Cursor, Field, info};
 use crate::{
     clock::Clock,
+    keymap::Action,
     nav::{Focus, Overlay, Section, StageView},
 };
 
@@ -65,7 +66,11 @@ impl App {
         }
         let Some(anchor) = self.calendar_anchor else { return };
         self.calendar_loading_past = true;
-        self.commands.push(Command::LoadCalendarPast { anchor, page: self.calendar_pages + 1 });
+        self.commands.push(Command::LoadCalendarPast {
+            anchor,
+            page: self.calendar_pages + 1,
+            through: None,
+        });
     }
 
     /// Fetch the next page of search results once the selection nears the end of them, quietly,
@@ -142,7 +147,14 @@ impl App {
 
     /// The paging of the calendar just loaded: the instant its pages count back from, how many
     /// pages of the past it holds, and whether there are more.
-    pub(super) fn apply_calendar_window(&mut self, anchor: i64, pages: u32, more_past: bool) {
+    pub(super) fn apply_calendar_window(
+        &mut self,
+        anchor: i64,
+        pages: u32,
+        more_past: bool,
+        ahead_pages: u32,
+        more_ahead: bool,
+    ) {
         // Paging for a calendar the user has left would let a scroll elsewhere ask for
         // history nobody is looking at.
         if self.nav.section() != Section::Calendar {
@@ -152,6 +164,115 @@ impl App {
         self.calendar_pages = pages;
         self.calendar_more_past = more_past;
         self.calendar_loading_past = false;
+        self.calendar_ahead_pages = ahead_pages;
+        self.calendar_more_ahead = more_ahead;
+        self.calendar_loading_ahead = false;
+    }
+
+    /// A page of later broadcasts, as [`Self::more_calendar_if_near_end`] asked for, or word
+    /// that it could not be had. They go after what is on screen, so nothing moves.
+    pub(super) fn apply_calendar_ahead(
+        &mut self,
+        page: Option<u32>,
+        entries: Vec<Entry>,
+        more_ahead: bool,
+    ) {
+        self.calendar_loading_ahead = false;
+        self.calendar_more_ahead = more_ahead;
+        if let Some(page) = page {
+            self.calendar_ahead_pages = self.calendar_ahead_pages.max(page);
+        }
+        if !entries.is_empty()
+            && self.nav.section() == Section::Calendar
+            && let ContentList::Entries(existing) = &mut self.content
+        {
+            existing.extend(entries);
+        }
+    }
+
+    /// Fetch later broadcasts once the selection nears the bottom of the calendar, quietly, as
+    /// the past is fetched near the top.
+    pub(super) fn more_calendar_if_near_end(&mut self) {
+        if self.nav.section() != Section::Calendar
+            || self.calendar_loading_ahead
+            || !self.calendar_more_ahead
+            || self.cursors.calendar.selected + CALENDAR_BACKFILL_MARGIN < self.content.len()
+        {
+            return;
+        }
+        let Some(anchor) = self.calendar_anchor else { return };
+        self.calendar_loading_ahead = true;
+        self.commands.push(Command::LoadCalendarAhead {
+            anchor,
+            page: self.calendar_ahead_pages + 1,
+            through: None,
+        });
+    }
+
+    /// Where the calendar's cursor stands when it opens or returns to today: the next
+    /// broadcast selected, with everything that already aired today above it, as far as a short
+    /// terminal's fold allows.
+    fn today_cursor(&self) -> Option<Cursor> {
+        let ContentList::Entries(entries) = &self.content else { return None };
+        let next = entries.iter().position(|e| e.airing_in.is_some_and(|secs| secs > 0))?;
+        let today = self.clock.today();
+        let start_of_today = entries
+            .iter()
+            .position(|e| {
+                e.airing_in
+                    .is_some_and(|secs| air_date(&self.clock, secs).is_some_and(|d| d >= today))
+            })
+            .unwrap_or(next);
+        Some(Cursor {
+            selected: next,
+            offset: next.saturating_sub((next - start_of_today.min(next)).min(12)),
+        })
+    }
+
+    /// `T`, `{` and `}` on the calendar: back to today, or to the start of a day. Nothing
+    /// anywhere else, and nothing when the calendar holds no such row.
+    pub(super) fn calendar_day_jump(&mut self, action: Action, visible_rows: usize) {
+        if self.nav.focus() == Focus::Rail
+            || !matches!(self.nav.current(), StageView::Section(Section::Calendar))
+        {
+            return;
+        }
+        if action == Action::Today {
+            if let Some(cursor) = self.today_cursor() {
+                self.cursors.calendar = cursor;
+            }
+            return;
+        }
+        let ContentList::Entries(entries) = &self.content else { return };
+        let day = |entry: &Entry| entry.airing_in.and_then(|s| air_date(&self.clock, s));
+        let here = self.cursors.calendar.selected.min(entries.len().saturating_sub(1));
+        let Some(today) = entries.get(here).and_then(day) else { return };
+        let target = if action == Action::NextDay {
+            entries.iter().position(|e| day(e).is_some_and(|d| d > today))
+        } else {
+            // The start of this day, and from there the start of the day before it.
+            let start_of = |date| entries.iter().position(|e| day(e) == Some(date));
+            match start_of(today) {
+                Some(start) if start < here => Some(start),
+                Some(start) if start > 0 => {
+                    entries.get(start - 1).and_then(day).and_then(start_of)
+                }
+                _ => None,
+            }
+        };
+        let Some(target) = target else {
+            // At the end of what is loaded: the page after is on its way if there is one.
+            self.more_calendar_if_near_end();
+            return;
+        };
+        let cursor = &mut self.cursors.calendar;
+        cursor.selected = target;
+        if target < cursor.offset || target >= cursor.offset + visible_rows.max(1) {
+            // Landed off screen: put the day's first row a third of the way down.
+            cursor.offset = target.saturating_sub(visible_rows / 3);
+        }
+        self.backfill_calendar_if_near_top();
+        self.more_calendar_if_near_end();
     }
 
     /// A page of older broadcasts, as [`Self::backfill_calendar_if_near_top`] asked for, or word
@@ -460,23 +581,9 @@ impl App {
         // happen. Capped so a very broadcast-heavy day cannot push the selection below
         // a short terminal's fold.
         if self.nav.section() == Section::Calendar
-            && let ContentList::Entries(entries) = &self.content
-            && let Some(next) =
-                entries.iter().position(|e| e.airing_in.is_some_and(|secs| secs > 0))
+            && let Some(cursor) = self.today_cursor()
         {
-            let today = self.clock.today();
-            let start_of_today = entries
-                .iter()
-                .position(|e| {
-                    e.airing_in.is_some_and(|secs| {
-                        air_date(&self.clock, secs).is_some_and(|d| d >= today)
-                    })
-                })
-                .unwrap_or(next);
-            self.cursors.calendar = Cursor {
-                selected: next,
-                offset: next.saturating_sub((next - start_of_today.min(next)).min(12)),
-            };
+            self.cursors.calendar = cursor;
         }
     }
 
@@ -521,6 +628,9 @@ impl App {
         self.calendar_pages = 0;
         self.calendar_more_past = false;
         self.calendar_loading_past = false;
+        self.calendar_ahead_pages = 0;
+        self.calendar_more_ahead = false;
+        self.calendar_loading_ahead = false;
 
         let task = match self.nav.section() {
             Section::Home => Command::LoadContinue,
@@ -558,7 +668,12 @@ impl App {
         // Asking again means the covers too: one that failed while the network was
         // down should not wait out its backoff once you have said it is back.
         self.images.requests().retry_failed();
-        self.reload()
+        // The engine keeps the calendar it last fetched for ten minutes; asking again by hand
+        // means a new one.
+        match self.reload() {
+            Some(Command::LoadCalendar) => Some(Command::RefreshCalendar),
+            other => other,
+        }
     }
 
     /// Whether the section on screen fills `content` with a list it is about to ask for.
@@ -763,6 +878,10 @@ mod tests {
             anchor: CALENDAR_TEST_ANCHOR,
             pages: 3,
             more_past: true,
+            floor: CALENDAR_TEST_ANCHOR - 90 * 86_400,
+            ceiling: CALENDAR_TEST_ANCHOR + 28 * 86_400,
+            ahead_pages: 3,
+            more_ahead: false,
         });
         a.apply(a.content_here(entries(150)));
         a
@@ -787,7 +906,11 @@ mod tests {
         a.handle(Action::Up, 20);
         assert_eq!(
             a.take_commands(),
-            [Command::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }],
+            [Command::LoadCalendarPast {
+                anchor: CALENDAR_TEST_ANCHOR,
+                page: 4,
+                through: None
+            }],
             "nearing the top should reach for the page behind the ones loaded"
         );
 
@@ -855,7 +978,11 @@ mod tests {
         a.handle(Action::Up, 20);
         assert_eq!(
             a.take_commands(),
-            [Command::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }],
+            [Command::LoadCalendarPast {
+                anchor: CALENDAR_TEST_ANCHOR,
+                page: 4,
+                through: None
+            }],
             "the page that failed is the page still missing"
         );
     }
@@ -913,7 +1040,11 @@ mod tests {
         assert_eq!(
             a.take_commands(),
             [
-                Command::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 },
+                Command::LoadCalendarPast {
+                    anchor: CALENDAR_TEST_ANCHOR,
+                    page: 4,
+                    through: None
+                },
                 Command::LoadSeasonal
             ]
         );
@@ -1280,5 +1411,112 @@ mod tests {
         a.apply(a.content_here(ContentList::Failed("anilist unreachable".into())));
         assert!(matches!(a.content, ContentList::Failed(_)));
         assert!(a.content.is_empty());
+    }
+
+    /// Noon on a Tuesday, UTC: far from midnight, so a day's rows stay on their day.
+    const CALENDAR_NOON: i64 = 1_699_963_200;
+
+    /// A calendar of four days, yesterday to the day after tomorrow, three broadcasts a day at
+    /// ten, two and eight o'clock. Today's first has aired.
+    fn calendar_by_day() -> App {
+        let mut a = calendar_loaded();
+        a.clock = Clock::fixed(CALENDAR_NOON, crate::clock::Zone::utc());
+        let rows: Vec<Entry> = (-1..=2i64)
+            .flat_map(|day| [10, 14, 20].map(|hour| (day, hour)))
+            .enumerate()
+            .map(|(i, (day, hour))| {
+                let mut entry = Entry::new(AnilistId::new(i as u32 + 1), format!("Title {i}"));
+                entry.airing_in = Some(day * 86_400 + (hour - 12) * 3_600);
+                entry
+            })
+            .collect();
+        a.apply(a.content_here(ContentList::Entries(rows)));
+        a
+    }
+
+    #[test]
+    fn t_returns_to_the_next_broadcast_with_todays_first_in_view() {
+        let mut a = calendar_by_day();
+        a.set_cursor(11);
+        a.set_offset(8);
+        a.handle(Action::Today, 20);
+        assert_eq!(
+            (a.cursor(), a.offset()),
+            (4, 3),
+            "the next broadcast, today's first above it"
+        );
+    }
+
+    #[test]
+    fn the_braces_step_the_calendar_by_day() {
+        let mut a = calendar_by_day();
+        a.handle(Action::Today, 20);
+        a.handle(Action::NextDay, 20);
+        assert_eq!(a.cursor(), 6, "tomorrow's first");
+        a.handle(Action::NextDay, 20);
+        assert_eq!(a.cursor(), 9);
+
+        a.handle(Action::PreviousDay, 20);
+        assert_eq!(a.cursor(), 6, "from the start of a day, the day before");
+        a.set_cursor(7);
+        a.handle(Action::PreviousDay, 20);
+        assert_eq!(a.cursor(), 6, "from within a day, its start");
+        a.set_cursor(4);
+        a.handle(Action::PreviousDay, 20);
+        a.handle(Action::PreviousDay, 20);
+        assert_eq!(a.cursor(), 0, "and no further back than what is loaded");
+    }
+
+    #[test]
+    fn the_day_keys_do_nothing_off_the_calendar() {
+        let mut a = calendar_by_day();
+        a.set_cursor(7);
+        let _ = a.go_to_section(Section::Seasonal);
+        a.handle(Action::NextDay, 20);
+        a.handle(Action::Today, 20);
+        assert_eq!(a.cursor(), 0);
+    }
+
+    #[test]
+    fn scrolling_near_the_end_fetches_the_next_forward_page_once() {
+        let mut a = calendar_loaded();
+        a.apply(Event::CalendarWindow {
+            anchor: CALENDAR_TEST_ANCHOR,
+            pages: 3,
+            more_past: false,
+            floor: CALENDAR_TEST_ANCHOR - 90 * 86_400,
+            ceiling: CALENDAR_TEST_ANCHOR + 28 * 86_400,
+            ahead_pages: 3,
+            more_ahead: true,
+        });
+        a.set_cursor(100);
+        a.handle(Action::Down, 20);
+        assert!(a.take_commands().is_empty(), "far from the end there is nothing to ask for");
+
+        a.set_cursor(140);
+        a.handle(Action::Down, 20);
+        let ahead =
+            Command::LoadCalendarAhead { anchor: CALENDAR_TEST_ANCHOR, page: 4, through: None };
+        assert_eq!(a.take_commands(), std::slice::from_ref(&ahead));
+        a.handle(Action::Down, 20);
+        assert!(a.take_commands().is_empty(), "one page in flight at a time");
+
+        // A failed page is asked for again; one that arrives goes after the rows and moves none.
+        a.apply(Event::CalendarAhead { page: None, entries: Vec::new(), more_ahead: true });
+        a.handle(Action::Down, 20);
+        assert_eq!(a.take_commands(), [ahead]);
+        let selected = a.cursor();
+        let later = vec![Entry::new(AnilistId::new(999), "Later")];
+        a.apply(Event::CalendarAhead { page: Some(4), entries: later, more_ahead: false });
+        assert_eq!((a.content.len(), a.cursor()), (151, selected));
+        assert_eq!(a.content.entries()[150].title, "Later");
+        a.handle(Action::Bottom, 20);
+        assert!(a.take_commands().is_empty(), "the ceiling is reached");
+    }
+
+    #[test]
+    fn refreshing_the_calendar_asks_past_what_the_engine_keeps() {
+        let mut a = calendar_loaded();
+        assert_eq!(a.refresh_section(), Some(Command::RefreshCalendar));
     }
 }

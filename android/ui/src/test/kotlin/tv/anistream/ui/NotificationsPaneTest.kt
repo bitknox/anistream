@@ -1,6 +1,8 @@
 package tv.anistream.ui
 
+import tv.anistream.i18n.R
 import androidx.activity.ComponentActivity
+import org.robolectric.RuntimeEnvironment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -46,6 +48,7 @@ import tv.anistream.testkit.Scene
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w412dp-h915dp-port-420dpi")
 class NotificationsPaneTest {
+    private val context = RuntimeEnvironment.getApplication()
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
@@ -89,7 +92,7 @@ class NotificationsPaneTest {
     @Test
     fun where_android_said_no_the_line_says_so() {
         pane(AppActions(notifications = NotificationActions({}, MutableStateFlow(true)) {}))
-        assertTrue(compose.onAllNodesWithText(NOTIFICATIONS_REFUSED, substring = true).fetchSemanticsNodes().isNotEmpty())
+        assertTrue(compose.onAllNodesWithText(context.getString(R.string.settings_notify_refused), substring = true).fetchSemanticsNodes().isNotEmpty())
     }
 
     @Test
@@ -116,7 +119,7 @@ class NotificationsPaneTest {
         compose.waitForIdle()
         assertTrue(compose.onAllNodesWithText("Coming up · next 7 days").fetchSemanticsNodes().isNotEmpty())
         assertTrue(compose.onAllNodesWithText("E6 · ", substring = true).fetchSemanticsNodes().isNotEmpty())
-        assertEquals(1, compose.onAllNodesWithText("On in this show’s settings", substring = true).fetchSemanticsNodes().size)
+        assertEquals(1, compose.onAllNodesWithText("On in this show's settings", substring = true).fetchSemanticsNodes().size)
         // A show its own switch leaves out is named under the week, not listed.
         assertTrue(compose.onAllNodesWithText("E2 · ", substring = true).fetchSemanticsNodes().isEmpty())
         assertTrue(compose.onAllNodesWithText("Amber Forest is off in its own settings. A show opens its settings.").fetchSemanticsNodes().isNotEmpty())

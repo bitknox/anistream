@@ -50,6 +50,9 @@ import tv.anistream.ui.NotificationActions
 import tv.anistream.ui.Destination
 
 class MainActivity : ComponentActivity() {
+    // Below Android 13 the chosen language is the app's own to apply.
+    override fun attachBaseContext(newBase: android.content.Context) = super.attachBaseContext(tv.anistream.store.AppLanguage.wrap(newBase))
+
     private val app get() = application as AnistreamApp
 
     private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {

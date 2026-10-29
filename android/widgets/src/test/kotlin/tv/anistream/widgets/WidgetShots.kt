@@ -37,6 +37,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.Shadows.shadowOf
@@ -146,7 +147,7 @@ class WidgetShots {
     fun the_widget_draws_the_record_and_asks_for_one_when_there_is_none() {
         val host = Host(null)
         val widget = ContinueWidget { host }
-        assertTrue(texts(widget, SMALL).contains("Connect AniList, or play an episode, to see it here."))
+        assertTrue(texts(widget, SMALL).contains(tv.anistream.i18n.Strings.widgetConnectDetail(RuntimeEnvironment.getApplication())))
         assertEquals("no record: a new one is asked for", 1, host.asked)
 
         // The record lands: drawn again, it shows it.

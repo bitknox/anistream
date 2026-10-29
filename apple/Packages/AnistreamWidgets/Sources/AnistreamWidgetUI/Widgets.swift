@@ -51,7 +51,7 @@ public struct ContinueWatchingWidget: Widget {
         StaticConfiguration(kind: Self.kind, provider: ContinueProvider()) { entry in
             ContinueEntryView(entry: entry)
         }
-        .configurationDisplayName(L.widgetContinueTitle)
+        .configurationDisplayName(L.widgetContinueTitleApple)
         .description(L.widgetContinueDescription)
         .supportedFamilies(WidgetFamilies.supported)
         .contentMarginsDisabled()

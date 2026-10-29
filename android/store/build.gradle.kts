@@ -12,10 +12,14 @@ android {
     namespace = "tv.anistream.store"
     // Shared with the TV app.
     defaultConfig { minSdk = AnistreamSdk.TV_MIN }
+    // The tests read the words the person would, from the catalogue.
+    testOptions { unitTests.isIncludeAndroidResources = true }
 }
 
 dependencies {
     api(project(":engine"))
+    // The strings, for the engine's messages rendered in the person's language (generated/MsgText.kt).
+    api(project(":i18n"))
     api(libs.coroutines.android)
 
     testImplementation(libs.junit)

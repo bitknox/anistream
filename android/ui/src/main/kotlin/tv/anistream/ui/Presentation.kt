@@ -5,7 +5,7 @@ package tv.anistream.ui
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.util.Locale
+import android.content.Context
 import tv.anistream.store.AppClock
 import tv.anistream.store.CalendarModel
 import tv.anistream.store.ContinueItem
@@ -15,12 +15,15 @@ import tv.anistream.store.clock
 import tv.anistream.store.playableNext
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.Translation
-import tv.anistream.engine.ffi.episodeLine
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.engine.model.LinkedTitle
 import tv.anistream.engine.model.RelatedTitle
 import tv.anistream.engine.model.ResumePoint
+import tv.anistream.i18n.R
+import tv.anistream.i18n.Strings
+import tv.anistream.store.percentText
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * The title as the screens head it: the form the engine names it by, following the title-language
@@ -55,19 +58,32 @@ fun List<Broadcast>.today(now: Instant = AppClock.now(), zone: ZoneId = AppClock
 val Entry.alternateTitle: String? get() = otherForms().joinToString(" \u00b7 ").ifEmpty { null }
 
 /**
- * The metadata line on a title page, set in capitals by its style: "TV · 24 EP · SUMMER 2026 ·
- * 79%". The season with its year when AniList gives it, the year alone otherwise.
+ * The metadata line on a title page: "TV · 24 episodes · Summer 2026 · 79%". The season with its
+ * year when AniList gives it, the year alone otherwise.
  */
-val Entry.metadataLine: String
-    get() {
-        val parts = mutableListOf<String>()
-        format?.let { parts += it.replace('_', ' ') }
-        episodes?.takeIf { it > 0u && format != "MOVIE" }?.let { parts += "$it EP" }
-        val airedIn = listOfNotNull(season?.name, year?.toString()).joinToString(" ")
-        if (airedIn.isNotEmpty()) parts += airedIn
-        score?.let { parts += "$it%" }
-        return parts.joinToString(" · ").uppercase(Locale.ROOT)
+fun Entry.metadataLine(context: Context): String {
+    val parts = mutableListOf<String>()
+    formatLabel(context, format)?.let { parts += it }
+    episodes?.takeIf { it > 0u && format != "MOVIE" }?.let {
+        parts += context.resources.getQuantityString(R.plurals.episodes_count, it.toInt(), it.toInt())
     }
+    val airedIn = when {
+        season != null && year != null -> Strings.seasonWithYear(context, seasonName(context, season!!), year.toString())
+        season != null -> seasonName(context, season!!)
+        else -> year?.toString()
+    }
+    airedIn?.let { parts += it }
+    score?.let { parts += percentText(it.toInt()) }
+    return parts.joinToString(" · ") // i18n-skip
+}
+
+/** A season's name: "Autumn". */
+fun seasonName(context: Context, season: tv.anistream.engine.model.Season): String = when (season) {
+    tv.anistream.engine.model.Season.WINTER -> Strings.seasonWinter(context)
+    tv.anistream.engine.model.Season.SPRING -> Strings.seasonSpring(context)
+    tv.anistream.engine.model.Season.SUMMER -> Strings.seasonSummer(context)
+    tv.anistream.engine.model.Season.FALL -> Strings.seasonAutumn(context)
+}
 
 /** The episode a title's action plays, and how it says so. */
 data class TitleAction(
@@ -85,22 +101,26 @@ data class TitleAction(
      */
     val playable: Boolean get() = airing.hasAired && !unsourced
 
-    /** "Resume E7 · 10:06", "Start E8", and for a dub "Start E8 · Dub": what the amber action says. */
-    val label: String
-        get() = when {
-            resume != null -> "Resume ${episodeLine("E$episode", translation)} · ${resume.clock()}"
-            else -> "Start ${episodeLine("E$episode", translation)}"
+    /** "Resume episode 7 · 10:06", "Play episode 8", and for a dub "Play episode 8 · Dubbed": what the amber action says. */
+    fun label(context: Context): String {
+        val dubbed = translation == Translation.DUB
+        return when {
+            resume != null ->
+                if (dubbed) Strings.titleButtonResumeDubbed(context, episode.toInt(), resume.clock())
+                else Strings.titleButtonResume(context, episode.toInt(), resume.clock())
+            else -> if (dubbed) Strings.titleButtonPlayDubbed(context, episode.toInt()) else Strings.titleButtonPlay(context, episode.toInt())
         }
+    }
 
     /**
      * Caught up, the next episode still to air: "Episode 10 airs Thursday 16:30", a haze line
      * with a water dot in the action's place, or "Episode 10 is not out yet" undated.
      */
-    fun caughtUp(context: android.content.Context): String =
-        if (unsourced) tv.anistream.i18n.Strings.episodeUnsourced(context)
-        else airsAt?.let { "Episode $episode airs ${airsWords(context, Instant.ofEpochSecond(it))}" }
-            ?: airing.airs()?.let { "Episode $episode airs $it" }
-            ?: "Episode $episode is not out yet"
+    fun caughtUp(context: Context): String =
+        if (unsourced) Strings.episodeUnsourced(context)
+        else airsAt?.let { Strings.episodeAirs(context, episode.toInt(), airsWords(context, Instant.ofEpochSecond(it))) }
+            ?: airing.airs()?.let { Strings.episodeAirs(context, episode.toInt(), it) }
+            ?: Strings.episodeNotOut(context, episode.toInt())
 
     companion object {
         /**
@@ -163,8 +183,8 @@ fun Entry.foldedEpisodes(rows: List<EpisodeRow>, columns: Int = 1): List<Episode
 }
 
 /** The folded episodes' row: "Episodes 1 to 5 watched". */
-fun watchedRangeWords(folded: List<EpisodeRow>): String =
-    "Episodes ${folded.first().number} to ${folded.last().number} watched"
+fun watchedRangeWords(context: Context, folded: List<EpisodeRow>): String =
+    Strings.titleWatchedRange(context, folded.first().number.toInt(), folded.last().number.toInt())
 
 /**
  * A title's seasons, and what else it has: films, OVAs and specials.
@@ -209,16 +229,21 @@ data class TitleFamily(val seasons: List<Season>, val related: List<RelatedTitle
 }
 
 /** "TV", "Movie", "OVA": a format as a label says it. */
-fun formatLabel(format: String?): String? = when (format) {
+fun formatLabel(context: Context, format: String?): String? = when (format) {
     null -> null
-    "MOVIE" -> "Movie"
-    "TV_SHORT" -> "TV short"
-    "SPECIAL" -> "Special"
-    "MUSIC" -> "Music"
-    else -> format
+    "TV" -> Strings.formatTv(context)
+    "MOVIE" -> Strings.formatMovie(context)
+    "TV_SHORT", "TV SHORT" -> Strings.formatTvShort(context)
+    "SPECIAL" -> Strings.formatSpecial(context)
+    "MUSIC" -> Strings.formatMusic(context)
+    "OVA" -> Strings.formatOva(context)
+    "ONA" -> Strings.formatOna(context)
+    else -> format.replace('_', ' ')
 }
 
 /** What a Continue row says it plays; with no source for what is left, that no source has it. */
 @androidx.compose.runtime.Composable
-internal fun ContinueItem.actionText(): String =
-    if (unsourced) androidx.compose.ui.res.stringResource(tv.anistream.i18n.R.string.episode_unsourced) else action
+internal fun ContinueItem.actionText(): String {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    return if (unsourced) Strings.episodeUnsourced(context) else action(context)
+}

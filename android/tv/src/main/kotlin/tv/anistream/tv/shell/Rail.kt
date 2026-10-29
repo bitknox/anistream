@@ -28,6 +28,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Icon
@@ -123,11 +124,11 @@ private fun RailItem(destination: Destination, current: Boolean, open: Boolean, 
     ) {
         Row(Modifier.fillMaxHeight().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(24.dp)) {
-                Icon(destination.icon, contentDescription = if (open) null else destination.label, modifier = Modifier.size(24.dp))
+                Icon(destination.icon, contentDescription = if (open) null else stringResource(destination.label), modifier = Modifier.size(24.dp))
             }
             if (open) {
                 Spacer(Modifier.width(16.dp))
-                Text(destination.label, style = MaterialTheme.typography.labelLarge, maxLines = 1, modifier = Modifier.weight(1f))
+                Text(stringResource(destination.label), style = MaterialTheme.typography.labelLarge, maxLines = 1, modifier = Modifier.weight(1f))
                 if (current && focused) {
                     Box(Modifier.padding(end = 16.dp).size(6.dp).background(ObiSilk.Amber, CircleShape))
                 }

@@ -199,7 +199,9 @@ impl PreviewRun {
             Command::LoadContinue
                 | Command::LoadSeasonal
                 | Command::LoadCalendar
+                | Command::RefreshCalendar
                 | Command::LoadCalendarPast { .. }
+                | Command::LoadCalendarAhead { .. }
                 | Command::Search { .. }
                 | Command::SearchLive { .. }
                 | Command::SearchMore { .. }

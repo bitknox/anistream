@@ -1,5 +1,6 @@
 package tv.anistream.tv
 
+import tv.anistream.i18n.R
 import android.content.ComponentName
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -51,6 +52,7 @@ import org.junit.rules.ExternalResource
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import tv.anistream.store.TorrentWords
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
@@ -102,7 +104,6 @@ import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.shell.TvRoot
 import tv.anistream.tv.signin.LocalPageHost
 import tv.anistream.tv.signin.SignInPage
-import tv.anistream.tv.ui.OFFLINE_LINE
 import tv.anistream.tv.ui.TV_ART_BUDGET
 import tv.anistream.tv.ui.TvArtDecoder
 import tv.anistream.tv.ui.TvTheme
@@ -118,6 +119,7 @@ import tv.anistream.tv.ui.TvTheme
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [36], qualifiers = TvShots.TV)
 class TvShots {
+    private val context = RuntimeEnvironment.getApplication()
     val compose = createAndroidComposeRule<ComponentActivity>()
 
     /**
@@ -369,7 +371,7 @@ class TvShots {
     /** Continue offline: the quiet line under the hero, what was there kept. */
     @Test
     fun continue_offline() = shoot("tv-continue-offline", offline = true) {
-        assertTrue(compose.onAllNodesWithText(OFFLINE_LINE).fetchSemanticsNodes().isNotEmpty())
+        assertTrue(compose.onAllNodesWithText(context.getString(R.string.accounts_offline_changes_tv)).fetchSemanticsNodes().isNotEmpty())
     }
 
     /** Settings › Add a plugin store, from Settings: the QR code for a phone, and Type the link. */
@@ -463,7 +465,7 @@ class TvShots {
         compose.mainClock.advanceTimeBy(1_000)
         settle()
         assertEquals("Turn on", focusedText())
-        compose.onNodeWithText("Checking the proxy").assertExists()
+        compose.onNodeWithText(context.getString(TorrentWords.CHECKING_PROXY)).assertExists()
         compose.onNodeWithText("Type it").assertIsNotEnabled()
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-turn-on-checking.png")
 
@@ -559,7 +561,7 @@ class TvShots {
         compose.mainClock.advanceTimeBy(1_000)
         settle()
         assertEquals("Save", focusedText())
-        compose.onNodeWithText("Checking the proxy").assertExists()
+        compose.onNodeWithText(context.getString(TorrentWords.CHECKING_PROXY)).assertExists()
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-edit-proxy-checking.png")
 
         compose.runOnUiThread { shot.apply(listOf(Event.ProtectionChecked(GuardView.Leaking))) }
@@ -620,7 +622,7 @@ class TvShots {
         // A slow network: half a minute in, still checking.
         compose.mainClock.advanceTimeBy(30_000)
         settle()
-        compose.onNodeWithText("Checking the proxy").assertExists()
+        compose.onNodeWithText(context.getString(TorrentWords.CHECKING_PROXY)).assertExists()
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-edit-proxy-slow.png")
         compose.runOnUiThread { shot.apply(listOf(Event.ProtectionChecked(GuardView.Unreachable))) }
         settle()

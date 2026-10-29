@@ -14,10 +14,6 @@ sources-update-to = Update to { $version }
 # @arg version: text
 sources-update-available-version = { $version } available
 
-# Value of a plugin's response time, in milliseconds.
-# @arg ms: int
-sources-response-ms = { $ms } ms
-
 ## Plugin stores
 
 # Row label on a plugin's page: the plugin store it came from.
@@ -107,9 +103,6 @@ torrents-proxy-optional = Optional
 
 # Line under the question that asks whether torrents may keep running when a check fails.
 torrents-warn-only-detail = { -app-name } will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.
-
-# Notice after the protection was saved.
-torrents-protection-saved = Torrent protection saved
 
 # Line naming where the saved proxy is and who it signs in as.
 # @arg address: text
@@ -218,4 +211,3 @@ sources-remove-title = Remove { $name }?
 
 # Detail of the confirmation that removes a plugin.
 sources-remove-detail-device = It is deleted from this { -device }. A { -plugin-store } can install it again.
-

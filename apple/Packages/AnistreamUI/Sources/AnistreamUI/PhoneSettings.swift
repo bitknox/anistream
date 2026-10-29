@@ -507,7 +507,7 @@ struct PhoneDownloadRow: View {
         case .active where row.total == 0: L.downloadsCaptionMetadata
         case .active:
             ([L.downloadsOfTotal(done: Wording.bytes(row.downloaded), total: Wording.bytes(row.total))]
-                + (store.downloads.secondsLeft(row).map { [L.downloadsTimeLeft(left: Wording.countdown($0))] } ?? []))
+                + (store.downloads.secondsLeft(row).map { [L.downloadsTimeLeftApple(left: Wording.countdown($0))] } ?? []))
                 .joined(separator: " · ")
         case .paused: L.downloadsCaptionPaused(percent: row.fraction.formatted(.percent.precision(.fractionLength(0)).locale(AirTime.locale)))
         case .queued: L.downloadsCaptionQueuedSlot

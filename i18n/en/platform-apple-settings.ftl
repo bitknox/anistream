@@ -30,7 +30,7 @@ settings-results = Results
 
 # Text on the upscaling preview, over the left half, which shows the source untouched.
 # @max 20
-settings-upscaling-source = 480p { -source }
+settings-upscaling-source-apple = 480p { -source }
 
 # VoiceOver description of the upscaling preview. The mode is the chosen upscaling mode.
 # @arg mode: text
@@ -46,10 +46,7 @@ settings-advanced-none = No extra options. The player runs with { -app-name }'s 
 settings-aside-check-title = Connection check
 
 # Side note in Sources while torrents are off.
-settings-aside-sources = { -source-cap-pl } are tried in order, top to bottom. A show can keep its own { -source }, chosen from its title page.
-
-# Side note in Accounts.
-settings-aside-accounts = { -app-name } works without an account. Your watch history stays on this { -device } when you sign out.
+settings-aside-sources-apple = { -source-cap-pl } are tried in order, top to bottom. A show can keep its own { -source }, chosen from its title page.
 
 # Side note in Advanced.
 settings-aside-advanced = An option here can undo a Playback setting, such as upscaling or night mode. Most people never need this pane.

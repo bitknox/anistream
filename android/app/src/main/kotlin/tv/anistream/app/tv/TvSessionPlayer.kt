@@ -3,6 +3,8 @@
 
 package tv.anistream.app.tv
 
+import tv.anistream.i18n.Strings
+import android.content.Context
 import android.os.Looper
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -24,7 +26,7 @@ import tv.anistream.store.TvRemoteModel
  * the TV a command. Its volume is the TV's own, so the volume keys reach the TV.
  */
 @OptIn(UnstableApi::class)
-class TvSessionPlayer(private val tv: TvRemoteModel) : SimpleBasePlayer(Looper.getMainLooper()) {
+class TvSessionPlayer(private val context: Context, private val tv: TvRemoteModel) : SimpleBasePlayer(Looper.getMainLooper()) {
     /** The card changed: the session reads the state again. */
     fun changed() = invalidateState()
 
@@ -49,9 +51,9 @@ class TvSessionPlayer(private val tv: TvRemoteModel) : SimpleBasePlayer(Looper.g
         if (card == null || now == null) return state.setPlaybackState(Player.STATE_IDLE).build()
         val metadata = MediaMetadata.Builder()
             .setTitle(now.title)
-            .setArtist(words(now, card.tvName))
+            .setArtist(words(context, now, card.tvName))
             .setDisplayTitle(now.title)
-            .setSubtitle(words(now, card.tvName))
+            .setSubtitle(words(context, now, card.tvName))
             .setMediaType(MediaMetadata.MEDIA_TYPE_TV_SHOW)
             .build()
         val id = "${now.id}-${now.episode}"
@@ -117,7 +119,7 @@ class TvSessionPlayer(private val tv: TvRemoteModel) : SimpleBasePlayer(Looper.g
         private val DEVICE = DeviceInfo.Builder(DeviceInfo.PLAYBACK_TYPE_REMOTE).setMaxVolume(100).build()
 
         /** "Episode 3 · Low Tide · Living room", or "Starting on Living room". */
-        fun words(now: FfiNowCard, tvName: String): String =
-            if (now.loading) "Starting on $tvName" else "${now.episodeLine} · $tvName"
+        fun words(context: Context, now: FfiNowCard, tvName: String): String =
+            if (now.loading) Strings.tvSessionStarting(context, tvName) else Strings.tvSessionLine(context, now.episodeLine, tvName)
     }
 }

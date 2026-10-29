@@ -310,7 +310,7 @@ struct SettingsAside: View {
                 if store.settings.isOn(.torrents) {
                     aside(L.settingsAsideCheckTitle, L.torrentsCheckNote)
                 } else {
-                    aside(L.sourcesTitle, L.settingsAsideSources)
+                    aside(L.sourcesTitle, L.settingsAsideSourcesApple)
                 }
             case .accounts:
                 aside(L.navAccounts, L.settingsAsideAccounts)
@@ -481,7 +481,7 @@ struct UpscalingPreview: View {
                     .clipped()
                 Rectangle().fill(.silk).frame(width: 2).offset(x: half - 1)
             }
-            .overlay(alignment: .bottomLeading) { chip(L.settingsUpscalingSource).padding(8) }
+            .overlay(alignment: .bottomLeading) { chip(L.settingsUpscalingSourceApple).padding(8) }
             .overlay(alignment: .bottomTrailing) { chip(SettingKey.upscaling.display(mode)).padding(8) }
         }
         .aspectRatio(16 / 9, contentMode: .fit)

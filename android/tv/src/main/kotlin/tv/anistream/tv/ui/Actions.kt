@@ -3,6 +3,11 @@
 
 package tv.anistream.tv.ui
 
+import tv.anistream.i18n.Strings
+import android.content.Context
+import tv.anistream.i18n.R
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
@@ -153,18 +158,18 @@ private fun Sheet(host: ActionsHost, sheet: ActionSheet, modifier: Modifier) {
 }
 
 /** The five lists, the current one marked: Library's Change status. */
-fun statusSheet(store: AppStore, id: AnilistId, title: String, current: LibrarySegment?): ActionSheet = ActionSheet(
+fun statusSheet(context: Context, store: AppStore, id: AnilistId, title: String, current: LibrarySegment?): ActionSheet = ActionSheet(
     title,
     LibrarySegment.entries.map { segment ->
-        CardAction(segment.label.replaceFirstChar { it.uppercase() }, selected = segment == current) { store.setStatus(id, segment) }
+        CardAction(segment.label(context), selected = segment == current) { store.setStatus(id, segment) }
     },
 )
 
 /** A title anywhere it is not yet on a list: Add to Planning, Open the title page. */
-fun planSheet(store: AppStore, entry: Entry, onOpen: (AnilistId) -> Unit): ActionSheet = ActionSheet(
+fun planSheet(context: Context, store: AppStore, entry: Entry, onOpen: (AnilistId) -> Unit): ActionSheet = ActionSheet(
     entry.title,
     listOf(
-        CardAction("Add to Planning") { store.setStatus(entry.id, LibrarySegment.PLANNING) },
-        CardAction("Open the title page") { onOpen(entry.id) },
+        CardAction(Strings.tvAddToPlanning(context)) { store.setStatus(entry.id, LibrarySegment.PLANNING) },
+        CardAction(Strings.tvOpenTitlePage(context)) { onOpen(entry.id) },
     ),
 )

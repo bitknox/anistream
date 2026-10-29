@@ -239,7 +239,7 @@ struct NoticePreview: View {
                 .frame(width: 32, height: 32)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("anistream").font(.mac(11, weight: .medium)) // i18n-skip: the app's name.foregroundStyle(.haze)
+                Text("anistream").font(.mac(11, weight: .medium)).foregroundStyle(.haze) // i18n-skip
                 Text(row?.title ?? L.settingsPreviewShow)
                     .font(.mac(13, weight: .semibold))
                     .foregroundStyle(.silk)

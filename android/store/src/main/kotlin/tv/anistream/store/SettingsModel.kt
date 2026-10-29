@@ -3,6 +3,9 @@
 package tv.anistream.store
 
 import java.util.Locale
+import android.content.Context
+import tv.anistream.i18n.R
+import tv.anistream.i18n.Strings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,13 +34,17 @@ class SettingsModel {
     fun isOn(key: SettingKey, view: SettingsView? = _view.value): Boolean = SettingsCatalog.isOn(row(key, view))
 
     /** "Overridden for 3 shows", under a row some shows set for themselves. */
-    fun overridden(key: SettingKey, view: SettingsView? = _view.value): String? {
+    fun overridden(context: Context, key: SettingKey, view: SettingsView? = _view.value): String? {
         val shows = view?.overridden?.firstOrNull { it.key == key }?.shows?.toInt() ?: return null
-        return "Overridden for ${Wording.plural(shows, "show")}"
+        return context.resources.getQuantityString(R.plurals.settings_overridden, shows, shows)
     }
 }
 
-/** One value a setting can be set to, as `SetSetting` takes it, and the words its row then says. */
+/**
+ * One value a setting can be set to, as `SetSetting` takes it, and the words the engine's row says
+ * once it is chosen. The label is the engine's own token, which a row is matched by; the person
+ * reads [SettingsCatalog.words].
+ */
 data class SettingOption(val value: SettingValue, val label: String)
 
 /**
@@ -81,7 +88,7 @@ object SettingsCatalog {
             .map { SettingOption(SettingValue.Int(it.toLong()), uploadLabel(it.toLong())) }
         SettingKey.DOWNLOAD_QUALITY -> listOf("standard", "higher").map { SettingOption(SettingValue.Str(it), it) }
         SettingKey.KEEP_NEXT_EPISODES -> listOf(0, 1, 2, 3, 5, 10)
-            .map { SettingOption(SettingValue.Int(it.toLong()), if (it == 0) "off" else Wording.plural(it, "episode")) }
+            .map { SettingOption(SettingValue.Int(it.toLong()), if (it == 0) "off" else if (it == 1) "1 episode" else "$it episodes") }
         // Warn only is asked for with its acknowledgement, through the torrent protection command.
         SettingKey.VPN_ON_FAILURE -> listOf("pause" to "pause torrents", "stop" to "stop torrents")
             .map { SettingOption(SettingValue.Str(it.first), it.second) }
@@ -92,8 +99,58 @@ object SettingsCatalog {
         }
     }
 
-    /** An upload cap as people read it: `unlimited`, `524 kB/s`. `upload_label`. */
-    fun uploadLabel(kib: Long): String = if (kib == 0L) "unlimited" else "${Wording.bytes(kib * 1024)}/s"
+    /** An upload cap as the engine says it: `unlimited`, `524 kB/s`. `upload_label`. */
+    fun uploadLabel(kib: Long): String = if (kib == 0L) "unlimited" else "${engineBytes(kib * 1024)}/s"
+
+    /** The engine's size words, which a row is matched by: the same rule in English whatever the language. */
+    private fun engineBytes(bytes: Long): String {
+        for ((unit, scale) in listOf("GB" to 1_000_000_000L, "MB" to 1_000_000L, "kB" to 1_000L, "B" to 1L)) {
+            if (bytes >= scale) {
+                val value = bytes.toDouble() / scale
+                return if (value < 10 && scale > 1) String.format(Locale.ROOT, "%.1f %s", value, unit) else "${Math.round(value)} $unit"
+            }
+        }
+        return "0 B"
+    }
+
+    /** An option as the person reads it, in their language: "Subbed", "Off", "Until ratio 1.5". */
+    fun words(context: Context, key: SettingKey, option: SettingOption): String {
+        val value = option.value
+        return when {
+            key == SettingKey.TITLES && value is SettingValue.Str -> when (value.v1) {
+                "anilist" -> Strings.settingsTitleTracker(context, "AniList")
+                "english" -> Strings.settingsTitleEnglish(context)
+                else -> Strings.settingsTitleRomaji(context)
+            }
+            key == SettingKey.COMMIT_THRESHOLD && value is SettingValue.Float -> percentText(Math.round(value.v1 * 100).toInt())
+            key == SettingKey.UPSCALING && value is SettingValue.Str -> when (value.v1) {
+                "natural" -> Strings.settingsUpscalingNatural(context)
+                "sharp" -> Strings.settingsUpscalingSharp(context)
+                else -> Strings.valueOff(context)
+            }
+            key == SettingKey.TRANSLATION && value is SettingValue.Str -> if (value.v1 == "dub") Strings.audioDubbed(context) else Strings.audioSubbed(context)
+            key == SettingKey.UP_NEXT_COUNTDOWN && value is SettingValue.Int ->
+                if (value.v1 == 0L) Strings.valueOff(context) else Strings.durationSeconds(context, value.v1.toInt())
+            key == SettingKey.SEED_RATIO && value is SettingValue.Float ->
+                if (value.v1 > 0) Strings.settingsSeedRatioUntil(context, java.text.NumberFormat.getInstance().apply { minimumFractionDigits = 1; maximumFractionDigits = 1 }.format(value.v1)) else Strings.valueOff(context)
+            key == SettingKey.SEED_HOURS && value is SettingValue.Int -> Strings.durationHours(context, value.v1.toInt())
+            key == SettingKey.UPLOAD_LIMIT && value is SettingValue.Int ->
+                if (value.v1 == 0L) Strings.settingsUploadUnlimited(context) else Strings.settingsUploadRate(context, Wording.bytes(context, value.v1 * 1024))
+            key == SettingKey.DOWNLOAD_QUALITY && value is SettingValue.Str -> if (value.v1 == "higher") Strings.settingsQualityHigher(context) else Strings.settingsQualityStandard(context)
+            key == SettingKey.KEEP_NEXT_EPISODES && value is SettingValue.Int ->
+                if (value.v1 == 0L) Strings.valueOff(context) else context.resources.getQuantityString(R.plurals.episodes_count, value.v1.toInt(), value.v1.toInt())
+            key == SettingKey.VPN_ON_FAILURE && value is SettingValue.Str -> if (value.v1 == "stop") Strings.torrentsFailStop(context) else Strings.torrentsFailPause(context)
+            value is SettingValue.Bool -> if (value.v1) Strings.valueOn(context) else Strings.valueOff(context)
+            else -> option.label.replaceFirstChar { it.titlecase(AirTime.locale) }
+        }
+    }
+
+    /** The words for a row's value as the engine said it: the option's, else the engine's own in sentence case. */
+    fun words(context: Context, row: SettingRow?): String? {
+        row ?: return null
+        val option = current(row) ?: return row.value.replaceFirstChar { it.titlecase(AirTime.locale) }
+        return words(context, row.key, option)
+    }
 
     /**
      * The option a row stands on, found by its words. Sub or dub says the saved choice first, with

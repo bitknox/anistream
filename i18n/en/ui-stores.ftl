@@ -438,3 +438,14 @@ stores-plugin-name-version = { $name } { $version }
 # Button on the summary row that removes every device that joined with the link.
 # @max 24
 stores-remove-all = Remove all
+
+# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+# @max 24
+stores-copy-link = Copy link
+
+# Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+# @arg count: int
+stores-offers-plugins = { $count ->
+    [one] One { -plugin }
+   *[other] { $count } { -plugin-pl }
+ }

@@ -56,7 +56,7 @@ class DownloadJob : JobService() {
             combine(app.store.downloads.rows, app.store.downloads.rates, ::Pair).collect { (rows, rates) ->
                 if (!app.store.downloads.loaded.value) return@collect
                 session.saw(rows).forEach(notifier::postFinished)
-                val live = LiveDownloads.of(rows, rates, session.finished)
+                val live = LiveDownloads.of(this@DownloadJob, rows, rates, session.finished)
                 if (live == null) {
                     end()
                     return@collect

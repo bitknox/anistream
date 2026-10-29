@@ -26,17 +26,6 @@ player-countdown-label = Countdown to episode { $episode }
 # @arg duration: text
 player-position-of = { $position } of { $duration }
 
-# Line while an episode starts after a few seconds: what the wait is on, and for how long.
-# @arg what: text
-# @arg seconds: int
-player-wait-note = { $what } · { $seconds } s
-
-# Label while scrubbing the seek line at half the pace.
-player-scrub-half = Half-speed scrubbing
-
-# Label while scrubbing the seek line at a quarter of the pace.
-player-scrub-quarter = Quarter-speed scrubbing
-
 # VoiceOver announcement when the up next card shows.
 # @arg episode: text
 player-announce-up-next = { -up-next-cap }: episode { $episode }
@@ -54,10 +43,6 @@ player-voice-forward = Forward
 
 # Short word Voice Control takes for the button that goes back 10 seconds.
 player-voice-back = Back
-
-# Name of an audio or subtitle track that has no language or title.
-# @arg id: int
-player-track-n = Track { $id }
 
 # Text of a menu in the player's controls that opens the subtitles and audio panel.
 player-menu-subtitles = Subtitles…
@@ -146,14 +131,6 @@ player-load-prompt = Load
 # @arg title: text
 # @arg episode: text
 player-title-episode-line = { $title } · { $episode }
-
-# Heading of the starting screen. The episode's number is text, because it may be "7.5".
-# @arg episode: text
-player-starting-text = Starting episode { $episode }
-
-# Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".
-# @arg episode: text
-player-failed-title-text = Couldn't play episode { $episode }
 
 # VoiceOver announcement of the up next card with the episode's name after it.
 # @arg line: text

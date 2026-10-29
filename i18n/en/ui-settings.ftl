@@ -364,6 +364,30 @@ widget-start-label = Play episode { $episode } of { $title }
 # @arg title: text
 widget-resume-dubbed-label = Resume episode { $episode }, { -dubbed }, of { $title }
 
+
+# Line under a signed-in account while changes wait to be sent.
+# @arg count: int
+accounts-changes-waiting = { $count ->
+    [one] One change waiting to sync
+   *[other] { $count } changes waiting to sync
+ }
+
+# Choice for the download quality: larger files with more detail.
+# @max 16
+settings-quality-higher = Higher
+
+# Choice for the download quality: the usual size.
+# @max 16
+settings-quality-standard = Standard
+
+# Value of the upload limit setting when there is no limit.
+# @max 16
+settings-upload-unlimited = Unlimited
+
+# Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+# @max 28
+settings-upscaling-natural = Natural · ArtCNN
+
 # Preview note under the upscaling frame for the natural look.
 settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
 
@@ -387,3 +411,21 @@ settings-presence-title = Presence shows the title
 
 # Under a tracker that is signed in, when its user name is unknown.
 settings-signed-in = Signed in
+
+# Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+# @max 28
+settings-upscaling-sharp = Sharp · Anime4K
+
+
+# Side note in Accounts.
+settings-aside-accounts = { -app-name } works without an account. Your watch history stays on this { -device } when you sign out.
+
+# Today, inside a line such as "Thursday 16:30".
+widget-day-today = today
+
+# Yesterday, inside a line.
+widget-day-yesterday = yesterday
+
+# Line of the Continue widget: what plays next, with the episode already named.
+# @arg episode: text
+widget-line-start = Start { $episode }

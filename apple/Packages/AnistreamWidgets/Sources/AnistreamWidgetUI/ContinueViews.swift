@@ -37,7 +37,7 @@ public struct ContinueWidgetView: View {
         switch content {
         case .signedOut:
             MessageWidget(
-                title: layout == .small ? L.navContinue : L.widgetContinueTitle,
+                title: layout == .small ? L.navContinue : L.widgetContinueTitleApple,
                 message: layout == .small
                     ? L.widgetConnectDetailShort(tracker: trackerName)
                     : L.widgetConnectDetailLong(tracker: trackerName),
@@ -69,14 +69,14 @@ public struct ContinueWidgetView: View {
         switch content {
         case .signedOut:
             VStack(alignment: .leading, spacing: 2) {
-                Text(L.widgetContinueTitle).font(WidgetType.ui(15, weight: .semibold))
+                Text(L.widgetContinueTitleApple).font(WidgetType.ui(15, weight: .semibold))
                 Text(L.continueWidgetConnect).font(WidgetType.ui(13)).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .widgetURL(WidgetLink.accounts.url)
         case .caughtUp(let next, _):
             VStack(alignment: .leading, spacing: 2) {
-                Text(L.widgetCaughtUpTitle).font(WidgetType.ui(15, weight: .semibold))
+                Text(L.widgetCaughtUpTitleApple).font(WidgetType.ui(15, weight: .semibold))
                 if let next {
                     Text(next.title).font(WidgetType.title(13)).lineLimit(1).widgetAccentable()
                     Text(format.airs(next, from: now)).font(WidgetType.ui(13)).foregroundStyle(.secondary).lineLimit(1)
@@ -419,8 +419,8 @@ struct CaughtUp: View {
                 })
         } else {
             MessageWidget(
-                title: L.widgetCaughtUpTitle,
-                message: next == nil ? L.widgetCaughtUpNone : L.widgetCaughtUpNext,
+                title: L.widgetCaughtUpTitleApple,
+                message: next == nil ? L.widgetCaughtUpNone : L.widgetCaughtUpNextApple,
                 extra: {
                     if let next {
                         HStack(spacing: 10) {

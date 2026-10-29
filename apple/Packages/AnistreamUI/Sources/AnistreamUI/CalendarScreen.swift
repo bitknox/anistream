@@ -54,10 +54,10 @@ struct Broadcast: Identifiable, Equatable {
         let number = Int(episode)
         if seconds <= 0 {
             let ago = Wording.ago(-seconds)
-            return dubbed ? L.calendarLineOutDubbed(episode: number, ago: ago) : L.calendarLineOut(episode: number, ago: ago)
+            return dubbed ? L.calendarLineOutDubbed(episode: number, ago: ago) : L.calendarLineOutApple(episode: number, ago: ago)
         }
         let span = Wording.countdown(seconds)
-        return dubbed ? L.calendarLineInDubbed(episode: number, span: span) : L.calendarLineIn(episode: number, span: span)
+        return dubbed ? L.calendarLineInDubbed(episode: number, span: span) : L.calendarLineInApple(episode: number, span: span)
     }
 
     /// "Episode 8", or "Episode 8 · Dubbed" for a dub.

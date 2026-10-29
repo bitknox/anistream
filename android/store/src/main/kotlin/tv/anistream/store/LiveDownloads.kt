@@ -3,9 +3,12 @@
 
 package tv.anistream.store
 
+import android.content.Context
 import kotlin.math.ceil
 import tv.anistream.engine.model.DownloadRow
 import tv.anistream.engine.model.DownloadState
+import tv.anistream.i18n.R
+import tv.anistream.i18n.Strings
 
 /**
  * The download notification for the queue as it stands, as NativeLiveActivity draws it:
@@ -42,7 +45,7 @@ data class LiveDownloads(
          * The notification for [rows], or `null` when nothing is left to download. [finished] are
          * the episodes that finished while the job ran, which keep their full segments.
          */
-        fun of(rows: List<DownloadRow>, rates: Map<Long, Double>, finished: Set<Long> = emptySet()): LiveDownloads? {
+        fun of(context: Context, rows: List<DownloadRow>, rates: Map<Long, Double>, finished: Set<Long> = emptySet()): LiveDownloads? {
             val left = rows.filter { it.state == DownloadState.ACTIVE || it.state == DownloadState.QUEUED || it.state == DownloadState.PAUSED }
             if (left.isEmpty()) return null
             val bar = rows.filter { it in left || (it.state == DownloadState.DONE && it.id in finished) }
@@ -55,18 +58,26 @@ data class LiveDownloads(
             val several = left.size > 1
             val title = when {
                 !several -> lead.title
-                paused -> "${left.size} episodes paused"
-                else -> "Downloading ${left.size} episodes"
+                paused -> context.resources.getQuantityString(R.plurals.downloads_live_paused, left.size, left.size)
+                else -> context.resources.getQuantityString(R.plurals.downloads_notice_running, left.size, left.size)
             }
             val text = if (several) {
-                listOfNotNull("${lead.title} E${lead.episode}", if (known) "${Wording.bytes(bytesLeft)} left" else null).joinToString(" · ")
+                listOfNotNull(
+                    Strings.downloadsLiveLead(context, lead.title, lead.episode.toInt()),
+                    if (known) Strings.downloadsLiveLeft(context, Wording.bytes(context, bytesLeft)) else null,
+                ).joinToString(" · ") // i18n-skip
+            } else if (!paused && seconds != null) {
+                Strings.downloadsNoticeEpisodeLeft(context, lead.episode.toInt(), chipOf(context, seconds))
             } else {
-                "Episode ${lead.episode} · " + when {
-                    paused -> "paused" + (bytesOf(lead)?.let { " · $it" } ?: "")
-                    seconds != null -> "${chipOf(seconds)} left"
-                    lead.state == DownloadState.QUEUED -> "waiting"
-                    else -> bytesOf(lead) ?: "starting"
-                }
+                listOfNotNull(
+                    Strings.episodeNumber(context, lead.episode.toInt()),
+                    when {
+                        paused -> Strings.downloadsLivePausedOne(context)
+                        lead.state == DownloadState.QUEUED -> Strings.downloadsLiveWaiting(context)
+                        else -> bytesOf(context, lead) ?: Strings.downloadsNoticeStarting(context)
+                    },
+                    if (paused) bytesOf(context, lead) else null,
+                ).joinToString(" · ") // i18n-skip
             }
             val (segments, progress) = bar(bar, sizes)
             return LiveDownloads(
@@ -75,15 +86,15 @@ data class LiveDownloads(
                 segments = segments,
                 progress = progress,
                 indeterminate = !known,
-                chip = seconds?.let(::chipOf),
+                chip = seconds?.let { chipOf(context, it) },
                 several = several,
                 paused = paused,
             )
         }
 
         /** "412 MB of 1.1 GB", when the episode's size is known. */
-        private fun bytesOf(row: DownloadRow): String? =
-            if (row.total > 0u) "${Wording.bytes(row.downloaded.toLong())} of ${Wording.bytes(row.total.toLong())}" else null
+        private fun bytesOf(context: Context, row: DownloadRow): String? =
+            if (row.total > 0u) Strings.downloadsLiveProgress(context, Wording.bytes(context, row.downloaded.toLong()), Wording.bytes(context, row.total.toLong())) else null
 
         /** Seconds until everything left is down, at the speeds the running ones go at. */
         private fun secondsLeft(left: List<DownloadRow>, rates: Map<Long, Double>, bytesLeft: Long): Long? {
@@ -93,12 +104,12 @@ data class LiveDownloads(
         }
 
         /** The time left as the chip says it: "5 min", "1 h 20 min", "3 h". */
-        fun chipOf(seconds: Long): String {
+        fun chipOf(context: Context, seconds: Long): String {
             val minutes = maxOf(1L, ceil(seconds / 60.0).toLong())
-            if (minutes < 60) return "$minutes min"
-            val hours = minutes / 60
-            val rest = minutes % 60
-            return if (rest > 0 && hours < 10) "$hours h $rest min" else "$hours h"
+            if (minutes < 60) return Strings.timeMinutes(context, minutes.toInt())
+            val hours = (minutes / 60).toInt()
+            val rest = (minutes % 60).toInt()
+            return if (rest > 0 && hours < 10) Strings.durationHoursMinutes(context, hours, rest) else Strings.durationHours(context, hours)
         }
 
         /**

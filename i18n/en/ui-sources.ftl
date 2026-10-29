@@ -238,3 +238,8 @@ sources-torrents-note = Torrents are part of { -app-name }, not a { -plugin }. W
 
 # Over the { -source } list while the { -source-pl } are set up again after a change.
 sources-rebuilding = { -source-cap-pl } are being set up again
+
+
+# Value of a plugin's response time, in milliseconds.
+# @arg ms: int
+sources-response-ms = { $ms } ms

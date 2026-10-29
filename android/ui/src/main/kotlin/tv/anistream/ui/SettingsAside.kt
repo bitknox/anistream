@@ -4,6 +4,9 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.R
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.Image
@@ -68,20 +71,20 @@ internal fun SettingsAside(pane: SettingsPane, focus: String?) {
             SettingsPane.General -> TitleLanguagePreview()
             SettingsPane.Playback -> UpscalingPreview()
             SettingsPane.Notifications -> Aside(
-                "New episodes",
-                "One notification when an episode of a show you follow comes out: the show and the episode's number, never its name. A show can turn its own off in its settings.",
+                stringResource(R.string.settings_new_episodes),
+                stringResource(R.string.settings_aside_notifications),
             )
             SettingsPane.Downloads -> Aside(
-                "Downloads",
-                "Downloads stay in anistream's own space on this device, which other apps cannot read. Removing the app removes them.",
+                stringResource(R.string.downloads_title),
+                stringResource(R.string.settings_aside_downloads),
             )
             SettingsPane.Sources -> if (store.settings.isOn(SettingKey.TORRENTS, view)) {
-                Aside("Connection check", checkNote(view?.torrent?.onFailure, view?.torrent?.protection))
+                Aside(stringResource(R.string.settings_aside_connection_check), checkNote(LocalContext.current, view?.torrent?.onFailure, view?.torrent?.protection))
             } else {
-                Aside("Sources", "Sources are tried in order, top to bottom. A show can keep its own source, chosen from its title page.")
+                Aside(stringResource(R.string.sources_title), stringResource(R.string.settings_aside_sources))
             }
-            SettingsPane.Accounts -> Aside("Accounts", "anistream works without an account. Your watch history stays on this device when you sign out.")
-            SettingsPane.About -> Aside("anistream", LEGAL_LINE)
+            SettingsPane.Accounts -> Aside(stringResource(R.string.accounts_title), stringResource(R.string.settings_aside_accounts))
+            SettingsPane.About -> Aside("anistream", stringResource(R.string.legal_hosts_no_content)) // i18n-skip
         }
     }
 }
@@ -105,24 +108,27 @@ private fun Aside(title: String, text: String) {
 private fun UpscalingPreview() {
     val store = LocalAppStore.current
     val view by store.settings.view.collectAsStateWithLifecycle()
-    val mode = SettingsCatalog.current(store.settings.row(SettingKey.UPSCALING, view))?.label ?: "natural · ArtCNN"
-    AsideTitle("Upscaling")
+    val row = store.settings.row(SettingKey.UPSCALING, view)
+    val mode = SettingsCatalog.current(row)?.label ?: "natural · ArtCNN" // i18n-skip
+    val modeWords = SettingsCatalog.words(LocalContext.current, row) ?: sentence(mode)
+    val description = stringResource(R.string.settings_upscaling_description, modeWords)
+    AsideTitle(stringResource(R.string.player_upscaling))
     BoxWithConstraints(
         Modifier
             .fillMaxWidth()
             .aspectRatio(16f / 9f)
             .clip(RoundedCornerShape(8.dp))
-            .semantics { contentDescription = "The same still, the left half as the 480p source, the right half with ${sentence(mode)}" },
+            .semantics { contentDescription = description },
     ) {
         val half = maxWidth / 2
         Drawing(mode, Modifier.fillMaxSize())
         // The same drawing at the same size, only its left half shown.
-        Drawing("off", Modifier.fillMaxSize().drawWithContent { clipRect(right = size.width / 2) { this@drawWithContent.drawContent() } })
+        Drawing("off", Modifier.fillMaxSize().drawWithContent { clipRect(right = size.width / 2) { this@drawWithContent.drawContent() } }) // i18n-skip
         Box(Modifier.offset(x = half - 1.dp).width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.onSurface))
-        Chip("480p source", Modifier.align(Alignment.BottomStart).padding(8.dp))
-        Chip(sentence(mode), Modifier.align(Alignment.BottomEnd).padding(8.dp))
+        Chip(stringResource(R.string.settings_upscaling_source), Modifier.align(Alignment.BottomStart).padding(8.dp))
+        Chip(modeWords, Modifier.align(Alignment.BottomEnd).padding(8.dp))
     }
-    Text(upscalingNote(mode), style = MaterialTheme.typography.bodyMedium)
+    Text(stringResource(upscalingNote(mode)), style = MaterialTheme.typography.bodyMedium)
 }
 
 /** The drawing as [mode] shows it: softened for the source, a little more contrast for sharp. */
@@ -169,10 +175,10 @@ private fun Chip(text: String, modifier: Modifier = Modifier) {
 }
 
 /** What each upscaling mode does, under the drawing. */
-internal fun upscalingNote(mode: String): String = when (mode) {
-    "off" -> "The 480p source, scaled to fit without processing."
-    "sharp · Anime4K" -> "Crisper lines and stronger edges, at some cost to texture."
-    else -> "Faithful line work and texture, nothing restyled."
+internal fun upscalingNote(mode: String): Int = when (mode) {
+    "off" -> R.string.settings_upscaling_note_off_original
+    "sharp · Anime4K" -> R.string.settings_upscaling_note_sharp
+    else -> R.string.settings_upscaling_note_natural
 }
 
 /** Three covers with their titles as the current choice names them, and what the choice does. */
@@ -185,7 +191,8 @@ private fun TitleLanguagePreview() {
     val choice = TitleChoice.of(SettingsCatalog.current(store.settings.row(SettingKey.TITLES, view))?.value)
     val examples = titleLanguageExamples()
     LaunchedEffect(Unit) { store.loadContinue() }
-    AsideTitle("Title language")
+    val context = LocalContext.current
+    AsideTitle(stringResource(R.string.settings_title_language))
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         for (entry in examples) {
             Column(Modifier.width(88.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -199,5 +206,5 @@ private fun TitleLanguagePreview() {
             }
         }
     }
-    Text(TitleLanguageWords.note(choice, signedIn, viewer, examples), style = MaterialTheme.typography.bodyMedium)
+    Text(TitleLanguageWords.note(context, choice, signedIn, viewer, examples), style = MaterialTheme.typography.bodyMedium)
 }

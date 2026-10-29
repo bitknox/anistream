@@ -145,7 +145,7 @@ struct DownloadGroupView: View {
     private var summary: String {
         let count = L.episodesCount(count: group.rows.count)
         let bytes = group.bytesOnDisk
-        return bytes > 0 ? L.downloadsGroupSummary(count: count, size: Wording.bytes(bytes)) : count
+        return bytes > 0 ? L.downloadsGroupSummaryApple(count: count, size: Wording.bytes(bytes)) : count
     }
 }
 
@@ -229,10 +229,10 @@ struct DownloadLine: View {
     private var activeLine: String {
         var parts = [L.downloadsOfTotal(done: Wording.bytes(row.downloaded), total: Wording.bytes(row.total))]
         if let rate = store.downloads.rates[row.id], rate > 0 {
-            parts.append(L.downloadsRate(rate: Wording.bytes(UInt64(rate))))
+            parts.append(L.downloadsRateApple(rate: Wording.bytes(UInt64(rate))))
         }
         if let left = store.downloads.secondsLeft(row) {
-            parts.append(L.downloadsTimeLeft(left: Wording.countdown(left)))
+            parts.append(L.downloadsTimeLeftApple(left: Wording.countdown(left)))
         }
         return parts.joined(separator: " · ")
     }
@@ -312,7 +312,7 @@ struct SeedingList: View {
         let ratio = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(1))
         return L.downloadsSeedingUploaded(
             shared: row.ratio.formatted(ratio), goal: row.goal.formatted(ratio),
-            left: L.downloadsTimeLeft(left: Wording.countdown(Int64(row.leftSecs))),
+            left: L.downloadsTimeLeftApple(left: Wording.countdown(Int64(row.leftSecs))),
             size: Wording.bytes(row.uploadedBytes))
     }
 

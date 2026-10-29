@@ -3,6 +3,10 @@
 
 package tv.anistream.player
 
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -394,7 +398,10 @@ class ClosingTest {
     }
 }
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class CardTest {
+    private val context = RuntimeEnvironment.getApplication()
     private fun upNext(rig: Rig, auto: Boolean = true, endingAt: Double? = 42.0, countdown: UInt = 10u, after: UInt = 3u, playback: ULong = 1u) =
         rig.ui(playback, PlayerUi.UpNext(NextEpisode("8", "A Town Without Night", null), auto, endingAt, countdown, after))
 
@@ -644,7 +651,7 @@ class CardTest {
         rig.ui(2u, PlayerUi.Starting(900_001u, "Stardust Wayfarer", "8", null, null, null))
         assertNull(rig.model.skip)
         assertNull(rig.model.resume)
-        assertEquals("Starting episode 8", rig.model.startingLine())
+        assertEquals("Starting episode 8", rig.model.startingLine(context))
     }
 
     @Test
@@ -654,8 +661,8 @@ class CardTest {
         assertTrue("nothing remembered from PlaybackStaged is needed", rig.model.isPresented)
         assertEquals("http://art.example/b.png", rig.model.starting?.bannerUrl)
         advanceTimeBy(4_100)
-        assertEquals("Finding a source · 4 s", rig.model.startingLine())
-        assertEquals("Resolving the stream · 4 s", rig.model.startingLine("resolving the stream"))
+        assertEquals("Finding a source · 4 s", rig.model.startingLine(context))
+        assertEquals("Resolving the stream · 4 s", rig.model.startingLine(context, "resolving the stream"))
     }
 
     @Test

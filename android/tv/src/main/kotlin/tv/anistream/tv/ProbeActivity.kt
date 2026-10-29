@@ -97,7 +97,7 @@ class ProbeActivity : Activity() {
     private suspend fun play(intent: Intent) {
         val url = intent.getStringExtra("url")
         if (url == null) {
-            stats.text = "No stream. Start with --es url <url>."
+            stats.text = "No stream. Start with --es url <url>." // i18n-skip
             return
         }
         Log.i(TAG, "playing $url")

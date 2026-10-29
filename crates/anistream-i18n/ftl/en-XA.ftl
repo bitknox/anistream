@@ -845,12 +845,6 @@ settings-next-value = [Ñéẋţ ṽàļüé~~~]
 # Line after the legal line under the sources settings: where sources come from.
 settings-sources-come-from = [Šöüŕçéš çöɱé ƒŕöɱ ţĥé þļüĝîñ šţöŕéš ýöü ĵöîñ.~~~~~~~~~~~~~~]
 
-# Choice for the download quality: the usual size.
-settings-quality-standard = [Šţàñðàŕð~~~]
-
-# Choice for the download quality: larger files with more detail.
-settings-quality-higher = [Ĥîĝĥéŕ~~]
-
 # Label on the left half of the upscaling preview: the video before processing.
 settings-preview-source = [480þ šöüŕçé~~~~]
 
@@ -901,13 +895,6 @@ accounts-changes-waiting-offline =
     { $count ->
         [one] [Öñé çĥàñĝé ŵàîţîñĝ üñţîļ ýöü'ŕé öñļîñé~~~~~~~~~~~~]
        *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ üñţîļ ýöü'ŕé öñļîñé~~~~~~~~~~~~]
-    }
-
-# Line under a signed-in account while changes wait to be sent.
-accounts-changes-waiting =
-    { $count ->
-        [one] [Öñé çĥàñĝé ŵàîţîñĝ ţö šýñç~~~~~~~~]
-       *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ ţö šýñç~~~~~~~~~]
     }
 
 # Footnote on the Accounts page: where sign-in tokens are kept, when it is the system's keyring.
@@ -1087,9 +1074,6 @@ stores-owner-needs-connection-detail = [Ţŕý àĝàîñ öñçé ţĥîš ðé
 
 # Red line in the invite dialog when this device is offline and a link cannot be made.
 stores-owner-link-offline = [Ṁàķîñĝ à ļîñķ ñééðš à çöññéçţîöñ ţö ţĥé þļüĝîñ šţöŕé.~~~~~~~~~~~~~~~~]
-
-# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
-stores-copy-link = [Çöþý ļîñķ~~~]
 
 # Line over a new invite link made for a named person. The time is the one the link stops working.
 stores-send-link-until = [Šéñð ţĥîš ļîñķ. Îţ ŵöŕķš öñçé, üñţîļ { $until }.~~~~~~~~~~~~~]
@@ -1730,6 +1714,15 @@ keys-action-right = [Ṁöṽé ŕîĝĥţ~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-top = [Ĵüɱþ ţö ţöþ~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-today = [Ĵüɱþ ţö ţöðàý~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-previous-day = [Ĵüɱþ ţö þŕéṽîöüš ðàý~~~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-next-day = [Ĵüɱþ ţö ñéẋţ ðàý~~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-bottom = [Ĵüɱþ ţö ƀöţţöɱ~~~~~]
@@ -3044,6 +3037,9 @@ settings-label-episode-discussions = [Éþîšöðé ðîšçüššîöñš~~~~~
 
 # Settings row: whether images in discussion comments load inline.
 settings-label-comment-images = [Ļöàð îɱàĝéš îñ çöɱɱéñţš~~~~~~~]
+
+# Settings row: whether Calendar shows only the shows on the person's list.
+settings-label-calendar-mine = [Çàļéñðàŕ šĥöŵš öñļý ɱý ļîšţ~~~~~~~~~]
 
 # Note under the titles row.
 settings-note-titles = [ÅñîĻîšţ'š çĥöîçé ƒöļļöŵš ýöüŕ ÅñîĻîšţ àççöüñţ, àñð îš Éñĝļîšĥ ŵĥéñ ýöü'ŕé šîĝñéð öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
@@ -4612,6 +4608,9 @@ progress-episodes-short = [É{ $done } öƒ { $total }~~~~]
 # Short progress under a show when the total is not known.
 progress-episode-short = [É{ $done }~~]
 
+# Row caption: the next unwatched episode, dubbed, which came out a while ago.
+continue-row-start-aired-dubbed = [Þļàý É{ $episode } ðüƀƀéð · öüţ { $ago }~~~~~~~~]
+
 # Format of a show: broadcast on television.
 format-tv = [ŢṼ~]
 
@@ -5355,6 +5354,24 @@ source-picker-empty = [Ñö šöüŕçé ĥàš à šţŕéàɱ ƒöŕ ţĥîš 
 # Title of the picker sheet in the player.
 player-sources = [Šöüŕçéš~~~]
 
+# Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".
+player-failed-title-text = [Çöüļðñ'ţ þļàý éþîšöðé { $episode }~~~~~~~~]
+
+# Label while scrubbing the seek line at half the pace.
+player-scrub-half = [Ĥàļƒ-šþééð šçŕüƀƀîñĝ~~~~~~]
+
+# Label while scrubbing the seek line at a quarter of the pace.
+player-scrub-quarter = [Ǫüàŕţéŕ-šþééð šçŕüƀƀîñĝ~~~~~~~]
+
+# Heading of the starting screen. The episode's number is text, because it may be "7.5".
+player-starting-text = [Šţàŕţîñĝ éþîšöðé { $episode }~~~~~~]
+
+# Name of an audio or subtitle track that has no language or title.
+player-track-n = [Ţŕàçķ { $id }~~~]
+
+# Line while an episode starts after a few seconds: what the wait is on, and for how long.
+player-wait-note = [{ $what } · { $seconds } š~~~~]
+
 # Button that shows the season before.
 seasonal-previous = [Þŕéṽîöüš šéàšöñ~~~~~]
 
@@ -5588,6 +5605,21 @@ filter-hint-remote = [Þŕéšš öñçé ţö îñçļüðé, ţŵîçé ţö �
 
 # Accessibility label of the button that removes one filter.
 filter-remove = [Ŕéɱöṽé { $filter }~~~]
+
+# Search: sort by how many people marked the title a favourite.
+search-sort-favourites = [Ƒàṽöüŕîţéš~~~]
+
+# Search: sort by release date, newest first.
+search-sort-newest = [Ñéŵéšţ~~]
+
+# Search: sort by release date, oldest first.
+search-sort-oldest = [Öļðéšţ~~]
+
+# Search: sort by title, A to Z.
+search-sort-title = [Ţîţļé~~]
+
+# Search: sort by what is popular right now.
+search-sort-trending = [Ţŕéñðîñĝ~~~]
 
 # Settings group and row title for choosing a language.
 settings-language = [Ļàñĝüàĝé~~~]
@@ -5935,6 +5967,25 @@ widget-start-label = [Þļàý éþîšöðé { $episode } öƒ { $title }~~~~~~
 # Accessibility label of a widget row: continue a dubbed episode.
 widget-resume-dubbed-label = [Ŕéšüɱé éþîšöðé { $episode }, ðüƀƀéð, öƒ { $title }~~~~~~~~~~~]
 
+# Line under a signed-in account while changes wait to be sent.
+accounts-changes-waiting =
+    { $count ->
+        [one] [Öñé çĥàñĝé ŵàîţîñĝ ţö šýñç~~~~~~~~]
+       *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ ţö šýñç~~~~~~~~~]
+    }
+
+# Choice for the download quality: larger files with more detail.
+settings-quality-higher = [Ĥîĝĥéŕ~~]
+
+# Choice for the download quality: the usual size.
+settings-quality-standard = [Šţàñðàŕð~~~]
+
+# Value of the upload limit setting when there is no limit.
+settings-upload-unlimited = [Ûñļîɱîţéð~~~]
+
+# Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+settings-upscaling-natural = [Ñàţüŕàļ · ÅŕţÇÑÑ~~~~~]
+
 # Preview note under the upscaling frame for the natural look.
 settings-upscaling-note-natural = [Ƒàîţĥƒüļ ļîñé ŵöŕķ àñð ţéẋţüŕé, ñöţĥîñĝ ŕéšţýļéð.~~~~~~~~~~~~~~~]
 
@@ -5958,6 +6009,21 @@ settings-presence-title = [Þŕéšéñçé šĥöŵš ţĥé ţîţļé~~~~~~~~
 
 # Under a tracker that is signed in, when its user name is unknown.
 settings-signed-in = [Šîĝñéð îñ~~~]
+
+# Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+settings-upscaling-sharp = [Šĥàŕþ · Åñîɱé4Ķ~~~~~]
+
+# Side note in Accounts.
+settings-aside-accounts = [àñîšţŕéàɱ ŵöŕķš ŵîţĥöüţ àñ àççöüñţ. Ýöüŕ ŵàţçĥ ĥîšţöŕý šţàýš öñ ţĥîš ðéṽîçé ŵĥéñ ýöü šîĝñ öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Today, inside a line such as "Thursday 16:30".
+widget-day-today = [ţöðàý~~]
+
+# Yesterday, inside a line.
+widget-day-yesterday = [ýéšţéŕðàý~~~]
+
+# Line of the Continue widget: what plays next, with the episode already named.
+widget-line-start = [Šţàŕţ { $episode }~~~]
 
 # Title of the screen or section that lists sources.
 sources-title = [Šöüŕçéš~~~]
@@ -6165,6 +6231,9 @@ sources-torrents-note = [Ţöŕŕéñţš àŕé þàŕţ öƒ àñîšţŕéà�
 
 # Over the { -source } list while the { -source-pl } are set up again after a change.
 sources-rebuilding = [Šöüŕçéš àŕé ƀéîñĝ šéţ üþ àĝàîñ~~~~~~~~~]
+
+# Value of a plugin's response time, in milliseconds.
+sources-response-ms = [{ $ms } ɱš~~]
 
 # Short label for a joined store, on a row.
 stores-joined = [Ĵöîñéð~~]
@@ -6549,6 +6618,16 @@ stores-plugin-name-version = [{ $name } { $version }~~~]
 # Button on the summary row that removes every device that joined with the link.
 stores-remove-all = [Ŕéɱöṽé àļļ~~~]
 
+# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+stores-copy-link = [Çöþý ļîñķ~~~]
+
+# Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+stores-offers-plugins =
+    { $count ->
+        [one] [Öñé þļüĝîñ~~~]
+       *[other] [{ $count } þļüĝîñš~~~~]
+    }
+
 # Title of the state when a title page could not load.
 title-load-failed = [Çöüļðñ'ţ ļöàð ţĥîš ţîţļé~~~~~~~~]
 
@@ -6729,6 +6808,12 @@ more-show-spoiler-tags =
 
 # An episode's line with the audio it was watched in marked, as Continue and the title page word it.
 episode-line-dubbed = [{ $line } · Ðüƀƀéð~~~~]
+
+# Main button of the title page for a dubbed episode that has not been started.
+title-button-play-dubbed = [Þļàý éþîšöðé { $episode } · Ðüƀƀéð~~~~~~~~]
+
+# Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.
+title-button-resume-dubbed = [Ŕéšüɱé éþîšöðé { $episode } · Ðüƀƀéð · { $time }~~~~~~~~~~]
 
 # Title of the settings group and the screen.
 torrents-title = [Ţöŕŕéñţš~~~]
@@ -6951,6 +7036,9 @@ torrents-page-needs-script = [Ţĥîš þàĝé ñééðš ĴàṽàŠçŕîþţ
 
 # Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
 torrents-check-note = [àñîšţŕéàɱ çĥéçķš ŵĥéŕé ţöŕŕéñţ ţŕàƒƒîç ļéàṽéš ƒŕöɱ ŵĥéñ à ţöŕŕéñţ šţàŕţš àñð éṽéŕý ɱîñüţé ŵĥîļé îţ ŕüñš, àñð þàüšéš ţöŕŕéñţš îƒ ţĥàţ çĥéçķ ƒàîļš. Ýöüŕ ṼÞÑ öŕ þŕöẋý îš ŵĥàţ þŕöţéçţš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Notice after the protection was saved.
+torrents-protection-saved = [Ţöŕŕéñţ þŕöţéçţîöñ šàṽéð~~~~~~~~]
 
 # Title of the accounts screen. The sidebar item is nav-accounts.
 accounts-title = [Åççöüñţš~~~]

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import tv.anistream.engine.model.JobId
+import tv.anistream.engine.model.Msg
 
 /** One job, from the `JobStarted` that names it to the `JobDone` that ends it. */
 data class RunningJob(
@@ -18,7 +19,7 @@ data class RunningJob(
     /** When it started, in milliseconds on the model's clock. */
     val started: Long,
     /** What it is held up on, when that is not the work itself. */
-    val note: String? = null,
+    val note: Msg? = null,
     /** Until when, on the same clock, when that is known, for the note to count down. */
     val waitUntil: Long? = null,
 )
@@ -66,7 +67,7 @@ class JobsModel(
         }
     }
 
-    internal fun note(job: JobId, note: String, waitMillis: Long?) {
+    internal fun note(job: JobId, note: Msg, waitMillis: Long?) {
         _running.value = _running.value.map {
             if (it.id == job) it.copy(note = note, waitUntil = waitMillis?.let { wait -> now() + wait }) else it
         }

@@ -89,6 +89,42 @@ async fn an_ordinary_write_lands_in_the_file_and_is_read_back() {
     assert_eq!(row.unwrap().value, "Off", "the screen shows the file");
 }
 
+/// A native row's value, as the settings say it.
+fn native(view: &SettingsView, key: SettingKey) -> &str {
+    &view.native_rows.iter().find(|row| row.key == key).expect("a native row").value
+}
+
+#[tokio::test]
+async fn the_calendar_opens_on_all_and_remembers_the_pick() {
+    let mut h = Harness::new().await;
+    assert!(!on_disk(&h).meta.calendar_mine, "All, unless the person chose otherwise");
+
+    h.send(Command::StepSetting { key: SettingKey::CalendarMine, delta: 1 });
+    let updates = h.settle().await;
+    assert_eq!(native(settings(&updates[0]), SettingKey::CalendarMine), "on");
+    assert!(on_disk(&h).meta.calendar_mine);
+    let file = std::fs::read_to_string(&h.paths().config_file).unwrap();
+    assert_eq!(file, "[meta]\ncalendar_mine = true\n");
+
+    h.send(Command::SetSetting {
+        key: SettingKey::CalendarMine,
+        value: SettingValue::Bool(false),
+    });
+    let updates = h.settle().await;
+    assert_eq!(native(settings(&updates[0]), SettingKey::CalendarMine), "off");
+    assert!(!on_disk(&h).meta.calendar_mine);
+}
+
+#[tokio::test]
+async fn a_remembered_calendar_pick_is_read_back_at_startup() {
+    let config = "[meta]\ncalendar_mine = true\n";
+    let mut h =
+        Harness::with(Options { config: Some(config.into()), ..Options::default() }).await;
+    h.send(Command::SetSetting { key: SettingKey::AutoNext, value: SettingValue::Bool(false) });
+    let updates = h.settle().await;
+    assert_eq!(native(settings(&updates[0]), SettingKey::CalendarMine), "on");
+}
+
 #[tokio::test]
 async fn a_setting_with_no_row_is_saved_without_a_word() {
     // The volume the player remembers: no front end asks for it, the player says it.

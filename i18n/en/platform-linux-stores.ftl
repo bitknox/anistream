@@ -39,11 +39,6 @@ stores-owner-needs-connection-detail = Try again once this { -device } is back o
 # @only linux
 stores-owner-link-offline = Making a link needs a connection to the { -plugin-store }.
 
-# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
-# @only linux
-# @max 24
-stores-copy-link = Copy link
-
 # Line over a new invite link made for a named person. The time is the one the link stops working.
 # @only linux
 # @arg until: text

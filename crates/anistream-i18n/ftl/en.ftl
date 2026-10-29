@@ -845,12 +845,6 @@ settings-next-value = Next value
 # Line after the legal line under the sources settings: where sources come from.
 settings-sources-come-from = Sources come from the plugin stores you join.
 
-# Choice for the download quality: the usual size.
-settings-quality-standard = Standard
-
-# Choice for the download quality: larger files with more detail.
-settings-quality-higher = Higher
-
 # Label on the left half of the upscaling preview: the video before processing.
 settings-preview-source = 480p source
 
@@ -901,13 +895,6 @@ accounts-changes-waiting-offline =
     { $count ->
         [one] One change waiting until you're online
        *[other] { $count } changes waiting until you're online
-    }
-
-# Line under a signed-in account while changes wait to be sent.
-accounts-changes-waiting =
-    { $count ->
-        [one] One change waiting to sync
-       *[other] { $count } changes waiting to sync
     }
 
 # Footnote on the Accounts page: where sign-in tokens are kept, when it is the system's keyring.
@@ -1087,9 +1074,6 @@ stores-owner-needs-connection-detail = Try again once this device is back online
 
 # Red line in the invite dialog when this device is offline and a link cannot be made.
 stores-owner-link-offline = Making a link needs a connection to the plugin store.
-
-# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
-stores-copy-link = Copy link
 
 # Line over a new invite link made for a named person. The time is the one the link stops working.
 stores-send-link-until = Send this link. It works once, until { $until }.
@@ -1730,6 +1714,15 @@ keys-action-right = Move right
 
 # Action label in the help overlay and the command palette.
 keys-action-top = Jump to top
+
+# Action label in the help overlay and the command palette.
+keys-action-today = Jump to today
+
+# Action label in the help overlay and the command palette.
+keys-action-previous-day = Jump to previous day
+
+# Action label in the help overlay and the command palette.
+keys-action-next-day = Jump to next day
 
 # Action label in the help overlay and the command palette.
 keys-action-bottom = Jump to bottom
@@ -3044,6 +3037,9 @@ settings-label-episode-discussions = Episode discussions
 
 # Settings row: whether images in discussion comments load inline.
 settings-label-comment-images = Load images in comments
+
+# Settings row: whether Calendar shows only the shows on the person's list.
+settings-label-calendar-mine = Calendar shows only my list
 
 # Note under the titles row.
 settings-note-titles = AniList's choice follows your AniList account, and is English when you're signed out.
@@ -4612,6 +4608,9 @@ progress-episodes-short = E{ $done } of { $total }
 # Short progress under a show when the total is not known.
 progress-episode-short = E{ $done }
 
+# Row caption: the next unwatched episode, dubbed, which came out a while ago.
+continue-row-start-aired-dubbed = Play E{ $episode } dubbed · out { $ago }
+
 # Format of a show: broadcast on television.
 format-tv = TV
 
@@ -5355,6 +5354,24 @@ source-picker-empty = No source has a stream for this episode.
 # Title of the picker sheet in the player.
 player-sources = Sources
 
+# Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".
+player-failed-title-text = Couldn't play episode { $episode }
+
+# Label while scrubbing the seek line at half the pace.
+player-scrub-half = Half-speed scrubbing
+
+# Label while scrubbing the seek line at a quarter of the pace.
+player-scrub-quarter = Quarter-speed scrubbing
+
+# Heading of the starting screen. The episode's number is text, because it may be "7.5".
+player-starting-text = Starting episode { $episode }
+
+# Name of an audio or subtitle track that has no language or title.
+player-track-n = Track { $id }
+
+# Line while an episode starts after a few seconds: what the wait is on, and for how long.
+player-wait-note = { $what } · { $seconds } s
+
 # Button that shows the season before.
 seasonal-previous = Previous season
 
@@ -5588,6 +5605,21 @@ filter-hint-remote = Press once to include, twice to leave out.
 
 # Accessibility label of the button that removes one filter.
 filter-remove = Remove { $filter }
+
+# Search: sort by how many people marked the title a favourite.
+search-sort-favourites = Favourites
+
+# Search: sort by release date, newest first.
+search-sort-newest = Newest
+
+# Search: sort by release date, oldest first.
+search-sort-oldest = Oldest
+
+# Search: sort by title, A to Z.
+search-sort-title = Title
+
+# Search: sort by what is popular right now.
+search-sort-trending = Trending
 
 # Settings group and row title for choosing a language.
 settings-language = Language
@@ -5935,6 +5967,25 @@ widget-start-label = Play episode { $episode } of { $title }
 # Accessibility label of a widget row: continue a dubbed episode.
 widget-resume-dubbed-label = Resume episode { $episode }, dubbed, of { $title }
 
+# Line under a signed-in account while changes wait to be sent.
+accounts-changes-waiting =
+    { $count ->
+        [one] One change waiting to sync
+       *[other] { $count } changes waiting to sync
+    }
+
+# Choice for the download quality: larger files with more detail.
+settings-quality-higher = Higher
+
+# Choice for the download quality: the usual size.
+settings-quality-standard = Standard
+
+# Value of the upload limit setting when there is no limit.
+settings-upload-unlimited = Unlimited
+
+# Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+settings-upscaling-natural = Natural · ArtCNN
+
 # Preview note under the upscaling frame for the natural look.
 settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
 
@@ -5958,6 +6009,21 @@ settings-presence-title = Presence shows the title
 
 # Under a tracker that is signed in, when its user name is unknown.
 settings-signed-in = Signed in
+
+# Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+settings-upscaling-sharp = Sharp · Anime4K
+
+# Side note in Accounts.
+settings-aside-accounts = anistream works without an account. Your watch history stays on this device when you sign out.
+
+# Today, inside a line such as "Thursday 16:30".
+widget-day-today = today
+
+# Yesterday, inside a line.
+widget-day-yesterday = yesterday
+
+# Line of the Continue widget: what plays next, with the episode already named.
+widget-line-start = Start { $episode }
 
 # Title of the screen or section that lists sources.
 sources-title = Sources
@@ -6165,6 +6231,9 @@ sources-torrents-note = Torrents are part of anistream, not a plugin. What prote
 
 # Over the { -source } list while the { -source-pl } are set up again after a change.
 sources-rebuilding = Sources are being set up again
+
+# Value of a plugin's response time, in milliseconds.
+sources-response-ms = { $ms } ms
 
 # Short label for a joined store, on a row.
 stores-joined = Joined
@@ -6549,6 +6618,16 @@ stores-plugin-name-version = { $name } { $version }
 # Button on the summary row that removes every device that joined with the link.
 stores-remove-all = Remove all
 
+# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+stores-copy-link = Copy link
+
+# Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+stores-offers-plugins =
+    { $count ->
+        [one] One plugin
+       *[other] { $count } plugins
+    }
+
 # Title of the state when a title page could not load.
 title-load-failed = Couldn't load this title
 
@@ -6729,6 +6808,12 @@ more-show-spoiler-tags =
 
 # An episode's line with the audio it was watched in marked, as Continue and the title page word it.
 episode-line-dubbed = { $line } · Dubbed
+
+# Main button of the title page for a dubbed episode that has not been started.
+title-button-play-dubbed = Play episode { $episode } · Dubbed
+
+# Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.
+title-button-resume-dubbed = Resume episode { $episode } · Dubbed · { $time }
 
 # Title of the settings group and the screen.
 torrents-title = Torrents
@@ -6951,6 +7036,9 @@ torrents-page-needs-script = This page needs JavaScript to send the form to the 
 
 # Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
 torrents-check-note = anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.
+
+# Notice after the protection was saved.
+torrents-protection-saved = Torrent protection saved
 
 # Title of the accounts screen. The sidebar item is nav-accounts.
 accounts-title = Accounts

@@ -663,21 +663,6 @@ public static partial class T
     /// <summary>Search: the Sort drop-down's name before a sort is picked.</summary>
     public static string SearchSortName => Get("SearchSortName");
 
-    /// <summary>Search: sort by what is popular right now.</summary>
-    public static string SearchSortTrending => Get("SearchSortTrending");
-
-    /// <summary>Search: sort by release date, newest first.</summary>
-    public static string SearchSortNewest => Get("SearchSortNewest");
-
-    /// <summary>Search: sort by release date, oldest first.</summary>
-    public static string SearchSortOldest => Get("SearchSortOldest");
-
-    /// <summary>Search: sort by title, A to Z.</summary>
-    public static string SearchSortTitle => Get("SearchSortTitle");
-
-    /// <summary>Search: sort by how many people marked the title a favourite.</summary>
-    public static string SearchSortFavourites => Get("SearchSortFavourites");
-
     /// <summary>Search: a filter drop-down with two values picked, such as two genres.</summary>
     public static string FilterPickedTwo(string first, string second) => Fill(Get("FilterPickedTwo"), ("first", first), ("second", second));
 
@@ -837,12 +822,6 @@ public static partial class T
     /// <summary>Setting: the switch that turns torrents on.</summary>
     public static string SettingsTorrentSource => Get("SettingsTorrentSource");
 
-    /// <summary>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</summary>
-    public static string SettingsUpscalingNatural => Get("SettingsUpscalingNatural");
-
-    /// <summary>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</summary>
-    public static string SettingsUpscalingSharp => Get("SettingsUpscalingSharp");
-
     /// <summary>Value of the theme setting: follows the system's colours.</summary>
     public static string SettingsThemeAdaptive => Get("SettingsThemeAdaptive");
 
@@ -860,9 +839,6 @@ public static partial class T
 
     /// <summary>Value of the seeding setting: share until the ratio is reached. The ratio is already formatted, as in "1.5".</summary>
     public static string SettingsSeedUntilRatio(string ratio) => Fill(Get("SettingsSeedUntilRatio"), ("ratio", ratio));
-
-    /// <summary>Value of the upload limit setting when there is no limit.</summary>
-    public static string SettingsUploadUnlimited => Get("SettingsUploadUnlimited");
 
     /// <summary>Heading over the trackers on the Accounts pane.</summary>
     public static string SettingsTrackers => Get("SettingsTrackers");
@@ -1133,9 +1109,6 @@ public static partial class T
 
     /// <summary>Title of the join dialog when this { -device } has joined that { -plugin-store } already.</summary>
     public static string StoresAlreadyJoinedTitle(string name) => Fill(Get("StoresAlreadyJoinedTitle"), ("name", name));
-
-    /// <summary>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</summary>
-    public static string StoresOffersPlugins(long count) => Fill(GetPlural("StoresOffersPlugins", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
     /// <summary>Label over the box with the name this { -device } joins under.</summary>
     public static string StoresOwnerSeesAs => Get("StoresOwnerSeesAs");
@@ -2073,6 +2046,9 @@ public static partial class T
     /// <summary>Short progress under a show when the total is not known.</summary>
     public static string ProgressEpisodeShort(long done) => Fill(Get("ProgressEpisodeShort"), ("done", done.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>Row caption: the next unwatched episode, dubbed, which came out a while ago.</summary>
+    public static string ContinueRowStartAiredDubbed(long episode, string ago) => Fill(Get("ContinueRowStartAiredDubbed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("ago", ago));
+
     /// <summary>Format of a show: broadcast on television.</summary>
     public static string FormatTv => Get("FormatTv");
 
@@ -2808,6 +2784,24 @@ public static partial class T
     /// <summary>Title of the picker sheet in the player.</summary>
     public static string PlayerSources => Get("PlayerSources");
 
+    /// <summary>Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".</summary>
+    public static string PlayerFailedTitleText(string episode) => Fill(Get("PlayerFailedTitleText"), ("episode", episode));
+
+    /// <summary>Label while scrubbing the seek line at half the pace.</summary>
+    public static string PlayerScrubHalf => Get("PlayerScrubHalf");
+
+    /// <summary>Label while scrubbing the seek line at a quarter of the pace.</summary>
+    public static string PlayerScrubQuarter => Get("PlayerScrubQuarter");
+
+    /// <summary>Heading of the starting screen. The episode's number is text, because it may be "7.5".</summary>
+    public static string PlayerStartingText(string episode) => Fill(Get("PlayerStartingText"), ("episode", episode));
+
+    /// <summary>Name of an audio or subtitle track that has no language or title.</summary>
+    public static string PlayerTrackN(long id) => Fill(Get("PlayerTrackN"), ("id", id.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line while an episode starts after a few seconds: what the wait is on, and for how long.</summary>
+    public static string PlayerWaitNote(string what, long seconds) => Fill(Get("PlayerWaitNote"), ("what", what), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>Button that shows the season before.</summary>
     public static string SeasonalPrevious => Get("SeasonalPrevious");
 
@@ -3041,6 +3035,21 @@ public static partial class T
 
     /// <summary>Accessibility label of the button that removes one filter.</summary>
     public static string FilterRemove(string filter) => Fill(Get("FilterRemove"), ("filter", filter));
+
+    /// <summary>Search: sort by how many people marked the title a favourite.</summary>
+    public static string SearchSortFavourites => Get("SearchSortFavourites");
+
+    /// <summary>Search: sort by release date, newest first.</summary>
+    public static string SearchSortNewest => Get("SearchSortNewest");
+
+    /// <summary>Search: sort by release date, oldest first.</summary>
+    public static string SearchSortOldest => Get("SearchSortOldest");
+
+    /// <summary>Search: sort by title, A to Z.</summary>
+    public static string SearchSortTitle => Get("SearchSortTitle");
+
+    /// <summary>Search: sort by what is popular right now.</summary>
+    public static string SearchSortTrending => Get("SearchSortTrending");
 
     /// <summary>Settings group and row title for choosing a language.</summary>
     public static string SettingsLanguage => Get("SettingsLanguage");
@@ -3384,6 +3393,21 @@ public static partial class T
     /// <summary>Accessibility label of a widget row: continue a dubbed episode.</summary>
     public static string WidgetResumeDubbedLabel(long episode, string title) => Fill(Get("WidgetResumeDubbedLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
 
+    /// <summary>Line under a signed-in account while changes wait to be sent.</summary>
+    public static string AccountsChangesWaiting(long count) => Fill(GetPlural("AccountsChangesWaiting", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Choice for the download quality: larger files with more detail.</summary>
+    public static string SettingsQualityHigher => Get("SettingsQualityHigher");
+
+    /// <summary>Choice for the download quality: the usual size.</summary>
+    public static string SettingsQualityStandard => Get("SettingsQualityStandard");
+
+    /// <summary>Value of the upload limit setting when there is no limit.</summary>
+    public static string SettingsUploadUnlimited => Get("SettingsUploadUnlimited");
+
+    /// <summary>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</summary>
+    public static string SettingsUpscalingNatural => Get("SettingsUpscalingNatural");
+
     /// <summary>Preview note under the upscaling frame for the natural look.</summary>
     public static string SettingsUpscalingNoteNatural => Get("SettingsUpscalingNoteNatural");
 
@@ -3407,6 +3431,21 @@ public static partial class T
 
     /// <summary>Under a tracker that is signed in, when its user name is unknown.</summary>
     public static string SettingsSignedIn => Get("SettingsSignedIn");
+
+    /// <summary>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</summary>
+    public static string SettingsUpscalingSharp => Get("SettingsUpscalingSharp");
+
+    /// <summary>Side note in Accounts.</summary>
+    public static string SettingsAsideAccounts => Get("SettingsAsideAccounts");
+
+    /// <summary>Today, inside a line such as "Thursday 16:30".</summary>
+    public static string WidgetDayToday => Get("WidgetDayToday");
+
+    /// <summary>Yesterday, inside a line.</summary>
+    public static string WidgetDayYesterday => Get("WidgetDayYesterday");
+
+    /// <summary>Line of the Continue widget: what plays next, with the episode already named.</summary>
+    public static string WidgetLineStart(string episode) => Fill(Get("WidgetLineStart"), ("episode", episode));
 
     /// <summary>Title of the screen or section that lists sources.</summary>
     public static string SourcesTitle => Get("SourcesTitle");
@@ -3602,6 +3641,9 @@ public static partial class T
 
     /// <summary>Over the { -source } list while the { -source-pl } are set up again after a change.</summary>
     public static string SourcesRebuilding => Get("SourcesRebuilding");
+
+    /// <summary>Value of a plugin's response time, in milliseconds.</summary>
+    public static string SourcesResponseMs(long ms) => Fill(Get("SourcesResponseMs"), ("ms", ms.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
     /// <summary>Short label for a joined store, on a row.</summary>
     public static string StoresJoined => Get("StoresJoined");
@@ -3978,6 +4020,12 @@ public static partial class T
     /// <summary>Button on the summary row that removes every device that joined with the link.</summary>
     public static string StoresRemoveAll => Get("StoresRemoveAll");
 
+    /// <summary>Button under an invite link that copies it. Reads "Copied" for a moment afterwards.</summary>
+    public static string StoresCopyLink => Get("StoresCopyLink");
+
+    /// <summary>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</summary>
+    public static string StoresOffersPlugins(long count) => Fill(GetPlural("StoresOffersPlugins", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>Title of the state when a title page could not load.</summary>
     public static string TitleLoadFailed => Get("TitleLoadFailed");
 
@@ -4154,6 +4202,12 @@ public static partial class T
 
     /// <summary>An episode's line with the audio it was watched in marked, as Continue and the title page word it.</summary>
     public static string EpisodeLineDubbed(string line) => Fill(Get("EpisodeLineDubbed"), ("line", line));
+
+    /// <summary>Main button of the title page for a dubbed episode that has not been started.</summary>
+    public static string TitleButtonPlayDubbed(long episode) => Fill(Get("TitleButtonPlayDubbed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.</summary>
+    public static string TitleButtonResumeDubbed(long episode, string time) => Fill(Get("TitleButtonResumeDubbed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("time", time));
 
     /// <summary>Title of the settings group and the screen.</summary>
     public static string TorrentsTitle => Get("TorrentsTitle");
@@ -4376,6 +4430,9 @@ public static partial class T
 
     /// <summary>Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.</summary>
     public static string TorrentsCheckNote => Get("TorrentsCheckNote");
+
+    /// <summary>Notice after the protection was saved.</summary>
+    public static string TorrentsProtectionSaved => Get("TorrentsProtectionSaved");
 
     /// <summary>Title of the accounts screen. The sidebar item is nav-accounts.</summary>
     public static string AccountsTitle => Get("AccountsTitle");
@@ -5196,11 +5253,6 @@ public static partial class T
         ["CalendarWatchedSpoken"] = "{title}, {episode}, watched",
         ["LibraryListCount"] = "{list} {count}",
         ["SearchSortName"] = "Sort",
-        ["SearchSortTrending"] = "Trending",
-        ["SearchSortNewest"] = "Newest",
-        ["SearchSortOldest"] = "Oldest",
-        ["SearchSortTitle"] = "Title",
-        ["SearchSortFavourites"] = "Favourites",
         ["FilterPickedTwo"] = "{first}, {second}",
         ["FilterPickedMore"] = "{first} +{more}",
         ["TitleSeasonWhen"] = "{season} · {when}",
@@ -5254,15 +5306,12 @@ public static partial class T
         ["SettingsDownloadsCellular"] = "Downloads on cellular",
         ["SettingsEpisodeNotifications"] = "New episode notifications",
         ["SettingsTorrentSource"] = "Torrent source",
-        ["SettingsUpscalingNatural"] = "Natural · ArtCNN",
-        ["SettingsUpscalingSharp"] = "Sharp · Anime4K",
         ["SettingsThemeAdaptive"] = "Adaptive",
         ["SettingsThemeImmersive"] = "Immersive",
         ["SettingsPlayerUiMpv"] = "Your mpv setup",
         ["SettingsPlayerUiApp"] = "anistream",
         ["SettingsQualityLines"] = "{lines}p",
         ["SettingsSeedUntilRatio"] = "Until ratio {ratio}",
-        ["SettingsUploadUnlimited"] = "Unlimited",
         ["SettingsTrackers"] = "Trackers",
         ["SettingsSync"] = "Sync",
         ["SettingsSyncDetail"] = "Sends what changed here and fetches what changed elsewhere.",
@@ -5358,8 +5407,6 @@ public static partial class T
         ["StoresStandingVersion"] = "{standing} · {version}",
         ["StoresUnreachable"] = "Couldn't reach the plugin store. Check the link and your connection, then try again.",
         ["StoresAlreadyJoinedTitle"] = "{name} is already joined",
-        ["StoresOffersPlugins_one"] = "One plugin",
-        ["StoresOffersPlugins_other"] = "{count} plugins",
         ["StoresOwnerSeesAs"] = "The owner sees this device as",
         ["DownloadsFreeUsed"] = "{free} free · {used} in downloads",
         ["DownloadsGroupLine"] = "{episodes} · {size}",
@@ -5680,6 +5727,7 @@ public static partial class T
         ["LibraryInYourList"] = "In your list",
         ["ProgressEpisodesShort"] = "E{done} of {total}",
         ["ProgressEpisodeShort"] = "E{done}",
+        ["ContinueRowStartAiredDubbed"] = "Play E{episode} dubbed · out {ago}",
         ["FormatTv"] = "TV",
         ["FormatTvShort"] = "TV short",
         ["FormatMovie"] = "Movie",
@@ -5927,6 +5975,12 @@ public static partial class T
         ["SourcePickerFinding"] = "Finding sources…",
         ["SourcePickerEmpty"] = "No source has a stream for this episode.",
         ["PlayerSources"] = "Sources",
+        ["PlayerFailedTitleText"] = "Couldn't play episode {episode}",
+        ["PlayerScrubHalf"] = "Half-speed scrubbing",
+        ["PlayerScrubQuarter"] = "Quarter-speed scrubbing",
+        ["PlayerStartingText"] = "Starting episode {episode}",
+        ["PlayerTrackN"] = "Track {id}",
+        ["PlayerWaitNote"] = "{what} · {seconds} s",
         ["SeasonalPrevious"] = "Previous season",
         ["SeasonalNext"] = "Next season",
         ["SeasonalLoading"] = "Loading this season",
@@ -6005,6 +6059,11 @@ public static partial class T
         ["FilterHintTouch"] = "Tap once to include, twice to leave out.",
         ["FilterHintRemote"] = "Press once to include, twice to leave out.",
         ["FilterRemove"] = "Remove {filter}",
+        ["SearchSortFavourites"] = "Favourites",
+        ["SearchSortNewest"] = "Newest",
+        ["SearchSortOldest"] = "Oldest",
+        ["SearchSortTitle"] = "Title",
+        ["SearchSortTrending"] = "Trending",
         ["SettingsLanguage"] = "Language",
         ["SettingsLanguageApp"] = "App language",
         ["LanguageFollowSystem"] = "Follow system language",
@@ -6120,6 +6179,12 @@ public static partial class T
         ["WidgetResumeLabel"] = "Resume episode {episode} of {title}",
         ["WidgetStartLabel"] = "Play episode {episode} of {title}",
         ["WidgetResumeDubbedLabel"] = "Resume episode {episode}, dubbed, of {title}",
+        ["AccountsChangesWaiting_one"] = "One change waiting to sync",
+        ["AccountsChangesWaiting_other"] = "{count} changes waiting to sync",
+        ["SettingsQualityHigher"] = "Higher",
+        ["SettingsQualityStandard"] = "Standard",
+        ["SettingsUploadUnlimited"] = "Unlimited",
+        ["SettingsUpscalingNatural"] = "Natural · ArtCNN",
         ["SettingsUpscalingNoteNatural"] = "Faithful line work and texture, nothing restyled.",
         ["SettingsUpscalingNoteSharp"] = "Crisper lines and stronger edges, at some cost to texture.",
         ["SettingsAfterDownload"] = "After each download",
@@ -6128,6 +6193,11 @@ public static partial class T
         ["SettingsPresenceRich"] = "Rich presence",
         ["SettingsPresenceTitle"] = "Presence shows the title",
         ["SettingsSignedIn"] = "Signed in",
+        ["SettingsUpscalingSharp"] = "Sharp · Anime4K",
+        ["SettingsAsideAccounts"] = "anistream works without an account. Your watch history stays on this device when you sign out.",
+        ["WidgetDayToday"] = "today",
+        ["WidgetDayYesterday"] = "yesterday",
+        ["WidgetLineStart"] = "Start {episode}",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",
@@ -6196,6 +6266,7 @@ public static partial class T
         ["SourcesSourceOrderRow"] = "Source order",
         ["SourcesTorrentsNote"] = "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.",
         ["SourcesRebuilding"] = "Sources are being set up again",
+        ["SourcesResponseMs"] = "{ms} ms",
         ["StoresJoined"] = "Joined",
         ["StoresEmptyTitle"] = "No plugin stores yet",
         ["StoresEmptyDetail"] = "Plugin stores are run by people you know. Join one with the invite link its owner sends you.",
@@ -6323,6 +6394,9 @@ public static partial class T
         ["StoresPublishNone"] = "No plugins on this device to publish.",
         ["StoresPluginNameVersion"] = "{name} {version}",
         ["StoresRemoveAll"] = "Remove all",
+        ["StoresCopyLink"] = "Copy link",
+        ["StoresOffersPlugins_one"] = "One plugin",
+        ["StoresOffersPlugins_other"] = "{count} plugins",
         ["TitleLoadFailed"] = "Couldn't load this title",
         ["TitleNoAnswer"] = "AniList didn't answer. Try again.",
         ["TitleLoading"] = "Loading this title",
@@ -6383,6 +6457,8 @@ public static partial class T
         ["MoreShowSpoilerTags_one"] = "Show one spoiler tag",
         ["MoreShowSpoilerTags_other"] = "Show {count} spoiler tags",
         ["EpisodeLineDubbed"] = "{line} · Dubbed",
+        ["TitleButtonPlayDubbed"] = "Play episode {episode} · Dubbed",
+        ["TitleButtonResumeDubbed"] = "Resume episode {episode} · Dubbed · {time}",
         ["TorrentsTitle"] = "Torrents",
         ["TorrentsOn"] = "Torrents are on",
         ["TorrentsOffDetail"] = "Off by default. Turning this on asks how to protect your connection first.",
@@ -6457,6 +6533,7 @@ public static partial class T
         ["TorrentsPageUnreadable"] = "The TV couldn't read this. Scan the QR code on the TV again.",
         ["TorrentsPageNeedsScript"] = "This page needs JavaScript to send the form to the TV safely.",
         ["TorrentsCheckNote"] = "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.",
+        ["TorrentsProtectionSaved"] = "Torrent protection saved",
         ["AccountsTitle"] = "Accounts",
         ["AccountsOtherTrackers"] = "Other trackers",
         ["AccountsOtherTrackersNote"] = "Other trackers are in Settings, under Accounts.",
