@@ -110,7 +110,9 @@ async fn load_listed(
         &media.match_target(),
         Translation::Sub,
         now,
-        |source, key| coverage::listing(source, key, Translation::Sub, &media, now),
+        |source, key| {
+            coverage::listing(source, key, Translation::Sub, (store, id), &media, now)
+        },
         |answers| coverage::is_whole(&media, answers, now),
         |answers| progress(build(&media, store, registry, id, answers, now).rows),
     )
@@ -303,7 +305,8 @@ pub(crate) async fn dub_answer(
             let (asked, nothing) = (asked.clone(), nothing.clone());
             async move {
                 let attempt =
-                    coverage::listing(source, key, Translation::Dub, media, now).await;
+                    coverage::listing(source, key, Translation::Dub, (store, id), media, now)
+                        .await;
                 asked.fetch_add(1, Ordering::SeqCst);
                 let not_found = attempt.failures.iter().all(|(_, error)| {
                     matches!(error, anistream_core::error::ProviderError::NotFound)
@@ -688,6 +691,32 @@ mod tests {
         assert_eq!(numbers(&rows)[..3], ["1", "2", "3"], "what aired, and no more");
         assert!(rows.len() <= 4, "at most the next to air after it: {:?}", numbers(&rows));
         assert!(rows[2].unsourced, "3 is out and on no source");
+    }
+
+    #[tokio::test]
+    async fn a_season_out_all_at_once_is_listed_from_the_page_the_user_chose() {
+        // The site has the whole season while AniList's schedule has three out: from the
+        // listing alone that is the season before matched by its name, so it is not taken...
+        let store = store();
+        let meta = sequel::meta(&store, sequel::airing());
+        let registry = ProviderRegistry::new(vec![sequel::both("batch", bare(1..=12)).arc()]);
+        let rows = match load_episodes(&meta, &store, &registry, sequel::SECOND).await {
+            Ok(EpisodeLoad::Rows(rows) | EpisodeLoad::Unlisted { rows, .. }) => rows,
+            _ => panic!("a table"),
+        };
+        assert_eq!(numbers(&rows)[..3], ["1", "2", "3"]);
+        assert!(rows.len() <= 4);
+
+        // ...until the user says this page is the title, and their correction stands.
+        let key = anistream_core::ids::ProviderKey::new("keep-2");
+        store.set_override(sequel::SECOND, "batch", &key, 0).unwrap();
+        let Ok(EpisodeLoad::Rows(rows)) =
+            load_episodes(&meta, &store, &registry, sequel::SECOND).await
+        else {
+            panic!("rows")
+        };
+        assert_eq!(rows.len(), 12);
+        assert!(rows.iter().all(|row| !row.unsourced));
     }
 
     #[tokio::test]

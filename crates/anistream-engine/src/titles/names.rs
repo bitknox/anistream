@@ -427,7 +427,9 @@ async fn look_up(
             &target,
             Translation::Sub,
             now,
-            |source, key| super::coverage::listing(source, key, Translation::Sub, media, now),
+            |source, key| {
+                super::coverage::listing(source, key, Translation::Sub, (store, id), media, now)
+            },
         )
         .await;
         match answer {

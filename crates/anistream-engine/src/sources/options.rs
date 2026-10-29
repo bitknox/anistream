@@ -65,7 +65,14 @@ pub fn load_source_options(
             Translation::Sub,
             now,
             |source, key| {
-                crate::titles::coverage::listing(source, key, Translation::Sub, &media, now)
+                crate::titles::coverage::listing(
+                    source,
+                    key,
+                    Translation::Sub,
+                    (&store, id),
+                    &media,
+                    now,
+                )
             },
         )
         .await;
