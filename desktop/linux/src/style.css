@@ -231,3 +231,6 @@ row.expander:checked image.expander-row-arrow { color: var(--haze); }
 button.calendar-today {
   transition: opacity 200ms ease-out;
 }
+
+/* The hover preview is one surface: Raised, radius 12, the video flush at its top edge. */
+popover.trailer-preview > contents { padding: 0; border-radius: 12px; background-color: var(--raised); }

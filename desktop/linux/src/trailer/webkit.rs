@@ -20,7 +20,7 @@ use glib::{gobject_ffi, translate::*};
 use gtk::{gdk, glib, prelude::*};
 use libloading::Library;
 
-use anistream_model::trailer::{TrailerControl, TrailerMessage};
+use anistream_model::trailer::{ENDING_MESSAGE, TrailerControl, TrailerMessage};
 
 /// What WebKitGTK 6 and its JavaScript engine give, looked up once.
 struct Api {
@@ -126,6 +126,8 @@ fn sandbox_works() -> bool {
 /// What a view says about itself, besides the page's own messages.
 pub enum Signal {
     Message(TrailerMessage),
+    /// Half a second before the trailer ends.
+    Ending,
     /// The page or the web process failed outside the player: the same as the player's own
     /// error, for the viewer's purposes.
     Failed,
@@ -202,7 +204,9 @@ impl Web {
                     }
                     let message = CStr::from_ptr(text).to_string_lossy().into_owned();
                     glib::ffi::g_free(text.cast());
-                    if let Some(message) = TrailerMessage::parse(&message) {
+                    if message.trim() == ENDING_MESSAGE {
+                        sink(Signal::Ending);
+                    } else if let Some(message) = TrailerMessage::parse(&message) {
                         sink(Signal::Message(message));
                     }
                     None
