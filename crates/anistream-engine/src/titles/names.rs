@@ -427,7 +427,7 @@ async fn look_up(
             &target,
             Translation::Sub,
             now,
-            |source, key| async move { source.episodes(&key, Translation::Sub, now).await },
+            |source, key| super::coverage::listing(source, key, Translation::Sub, media, now),
         )
         .await;
         match answer {

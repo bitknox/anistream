@@ -97,7 +97,9 @@ async fn load_listed(
         let rows = data::metadata_rows(&media, store, id, now);
         dated(rows, &media, data::Numbering::Same, store, id, now)
     };
-    if registry.is_empty() {
+    // Nothing to ask a source for, quietly: with none set up, and for a title that has not
+    // started, where all a search can find is another title, as the season before a sequel.
+    if registry.is_empty() || coverage::unstarted(&media, now) {
         return Ok((EpisodeLoad::Unlisted { rows: from_metadata(), reason: None }, None));
     }
     let chain = chain_for(store, registry, id);
@@ -108,7 +110,7 @@ async fn load_listed(
         &media.match_target(),
         Translation::Sub,
         now,
-        |source, key| async move { source.episodes(&key, Translation::Sub, now).await },
+        |source, key| coverage::listing(source, key, Translation::Sub, &media, now),
         |answers| coverage::is_whole(&media, answers, now),
         |answers| progress(build(&media, store, registry, id, answers, now).rows),
     )
@@ -278,6 +280,12 @@ pub(crate) async fn dub_answer(
         atomic::{AtomicBool, AtomicUsize, Ordering},
     };
     crate::sources::arrived(registry, || ()).await;
+    // A title that has not started has no dub to speak of yet, and no source is asked.
+    if coverage::unstarted(media, now) {
+        let answer =
+            anistream_providers::Answer::Unanswered { reasons: Vec::new(), matched: false };
+        return DubAnswer { answer, none: false };
+    }
     let registry = &chain_for(store, registry, id);
     // How many sources were listed, and whether each found nothing: a source that failed says
     // nothing of whether there is a dub.
@@ -294,7 +302,8 @@ pub(crate) async fn dub_answer(
         |source, key| {
             let (asked, nothing) = (asked.clone(), nothing.clone());
             async move {
-                let attempt = source.episodes(&key, Translation::Dub, now).await;
+                let attempt =
+                    coverage::listing(source, key, Translation::Dub, media, now).await;
                 asked.fetch_add(1, Ordering::SeqCst);
                 let not_found = attempt.failures.iter().all(|(_, error)| {
                     matches!(error, anistream_core::error::ProviderError::NotFound)
@@ -542,6 +551,143 @@ mod tests {
             };
             MockProvider::new(id).with_hits(vec![hit]).with_episodes(bare(listed))
         }
+    }
+
+    /// A finished season of twelve and its sequel, named as sequels are: the first season's
+    /// name with a subtitle after it, so a search for the sequel finds the first season too.
+    mod sequel {
+        use anistream_core::{
+            ids::ProviderKey,
+            media::{MediaFormat, SearchHit},
+        };
+        use anistream_providers::MockProvider;
+
+        use super::*;
+
+        pub const FIRST: AnilistId = AnilistId::new(900_401);
+        pub const SECOND: AnilistId = AnilistId::new(900_402);
+
+        /// The first season over offline metadata, and the second as `second` has it.
+        pub fn meta(store: &Store, second: serde_json::Value) -> Meta {
+            let first = serde_json::json!({
+                "id": FIRST.get(),
+                "title": { "romaji": "Kumo no Shiro", "english": "The Cloud Keep" },
+                "format": "TV", "status": "FINISHED", "episodes": 12, "duration": 24,
+                "seasonYear": 2025,
+            });
+            let mut wire = serde_json::json!({
+                "id": SECOND.get(),
+                "title": {
+                    "romaji": "Kumo no Shiro: Kanketsu-hen",
+                    "english": "The Cloud Keep: Final Chapter",
+                },
+                "format": "TV", "duration": 24,
+            });
+            wire.as_object_mut().unwrap().extend(second.as_object().unwrap().clone());
+            store.cache_media(FIRST, &first.to_string(), now_epoch()).unwrap();
+            store.cache_media(SECOND, &wire.to_string(), now_epoch()).unwrap();
+            let http = anistream_net::HttpClient::offline(
+                &anistream_core::config::NetworkConfig::default(),
+            )
+            .unwrap();
+            Meta::new(anistream_meta::AniList::new(http, 30), None, store.clone())
+        }
+
+        /// The sequel announced and not started: no count, no schedule, no year yet.
+        pub fn unreleased() -> serde_json::Value {
+            serde_json::json!({ "status": "NOT_YET_RELEASED" })
+        }
+
+        /// The sequel on the air: three of twelve out, the fourth next.
+        pub fn airing() -> serde_json::Value {
+            let now = now_epoch();
+            let aired: Vec<_> = (1..=3_i64)
+                .map(|n| serde_json::json!({ "episode": n, "airingAt": now - 1_000 * (4 - n) }))
+                .collect();
+            serde_json::json!({
+                "status": "RELEASING", "episodes": 12, "seasonYear": 2026, "aired": aired,
+                "nextAiringEpisode": {
+                    "episode": 4, "airingAt": now + 1_000, "timeUntilAiring": 1_000,
+                },
+            })
+        }
+
+        fn page(key: &str, title: &str, episodes: Option<u32>) -> SearchHit {
+            SearchHit {
+                episode_count: episodes,
+                format: Some(MediaFormat::Tv),
+                ..SearchHit::new(ProviderKey::new(key), title)
+            }
+        }
+
+        /// A source with a page for each season: the first's twelve, and the sequel's
+        /// `listed`.
+        pub fn both(id: &str, listed: Vec<Episode>) -> MockProvider {
+            MockProvider::new(id)
+                .with_hits(vec![
+                    page("keep-1", "The Cloud Keep", Some(12)),
+                    page("keep-2", "The Cloud Keep: Final Chapter", None),
+                ])
+                .with_episodes_for("keep-1", bare(1..=12))
+                .with_episodes_for("keep-2", listed)
+        }
+
+        /// A source with only the first season's page, and no year or count for it: what its
+        /// search finds for the sequel is the first season.
+        pub fn first_only(id: &str) -> MockProvider {
+            let hit = SearchHit {
+                format: Some(MediaFormat::Tv),
+                ..SearchHit::new(ProviderKey::new("keep-1"), "Kumo no Shiro")
+            };
+            MockProvider::new(id).with_hits(vec![hit]).with_episodes_for("keep-1", bare(1..=12))
+        }
+    }
+
+    #[tokio::test]
+    async fn an_unreleased_sequel_lists_nothing_after_its_first_season_was_opened() {
+        let store = store();
+        let meta = sequel::meta(&store, sequel::unreleased());
+        let shelf = sequel::first_only("shelf");
+        let asked = shelf.call_count();
+        let registry =
+            ProviderRegistry::new(vec![sequel::both("batch", Vec::new()).arc(), shelf.arc()]);
+        let Ok(EpisodeLoad::Rows(first)) =
+            load_episodes(&meta, &store, &registry, sequel::FIRST).await
+        else {
+            panic!("the first season is listed")
+        };
+        assert_eq!(first.len(), 12);
+        let before = asked.load(std::sync::atomic::Ordering::SeqCst);
+
+        let rows = match load_episodes(&meta, &store, &registry, sequel::SECOND).await {
+            Ok(EpisodeLoad::Rows(rows) | EpisodeLoad::Unlisted { rows, .. }) => rows,
+            _ => panic!("a table"),
+        };
+        assert!(numbers(&rows).is_empty(), "nothing has aired: {:?}", numbers(&rows));
+        assert_eq!(
+            asked.load(std::sync::atomic::Ordering::SeqCst),
+            before,
+            "a title that has not started has nothing for a source to list"
+        );
+    }
+
+    #[tokio::test]
+    async fn an_airing_sequel_is_not_filled_from_the_season_before() {
+        let store = store();
+        let meta = sequel::meta(&store, sequel::airing());
+        let registry = ProviderRegistry::new(vec![
+            sequel::both("batch", bare(1..=2)).arc(),
+            sequel::first_only("shelf").arc(),
+        ]);
+        let Ok(EpisodeLoad::Rows(rows)) =
+            load_episodes(&meta, &store, &registry, sequel::SECOND).await
+        else {
+            panic!("rows")
+        };
+        assert!(rows.iter().all(|row| row.source.is_none()), "nothing from the first season");
+        assert_eq!(numbers(&rows)[..3], ["1", "2", "3"], "what aired, and no more");
+        assert!(rows.len() <= 4, "at most the next to air after it: {:?}", numbers(&rows));
+        assert!(rows[2].unsourced, "3 is out and on no source");
     }
 
     #[tokio::test]
