@@ -2814,7 +2814,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AniList asked for a pause. Back in %1$@."
+            "value" : "Waiting for AniList · %1$@"
           }
         }
       }

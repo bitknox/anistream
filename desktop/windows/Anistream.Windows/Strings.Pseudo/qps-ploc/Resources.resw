@@ -2536,7 +2536,7 @@
     <comment>Line while the comments are still loading after a few seconds.</comment>
   </data>
   <data name="DiscussionRateLimited" xml:space="preserve">
-    <value>[ÅñîĻîšţ àšķéð ƒöŕ à þàüšé. Ɓàçķ îñ {time}.~~~~~~~~~~~~]</value>
+    <value>[Ŵàîţîñĝ ƒöŕ ÅñîĻîšţ · {time}~~~~~~~~]</value>
     <comment>Line while AniList's request budget is spent. The engine waits, then goes on by itself.</comment>
   </data>
   <data name="DiscussionNoThread" xml:space="preserve">

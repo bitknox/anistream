@@ -1579,7 +1579,7 @@ public enum L {
 
     /// Line while AniList's request budget is spent. The engine waits, then goes on by itself.
     public static func discussionRateLimited(time: String) -> String {
-        Self.format("discussion-rate-limited", fallback: "AniList asked for a pause. Back in %1$@.", time)
+        Self.format("discussion-rate-limited", fallback: "Waiting for AniList · %1$@", time)
     }
 
     /// Title of the state when the episode has no thread on AniList.

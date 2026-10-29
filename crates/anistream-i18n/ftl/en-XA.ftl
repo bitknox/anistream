@@ -4355,7 +4355,7 @@ discussion-delete-body = [Îţ îš ŕéɱöṽéð ƒŕöɱ ÅñîĻîšţ ţö
 discussion-still-loading = [Šţîļļ ļöàðîñĝ ƒŕöɱ ÅñîĻîšţ~~~~~~~~]
 
 # Line while AniList's request budget is spent. The engine waits, then goes on by itself.
-discussion-rate-limited = [ÅñîĻîšţ àšķéð ƒöŕ à þàüšé. Ɓàçķ îñ { $time }.~~~~~~~~~~~~]
+discussion-rate-limited = [Ŵàîţîñĝ ƒöŕ ÅñîĻîšţ · { $time }~~~~~~~~]
 
 # Title of the state when the episode has no thread on AniList.
 discussion-no-thread = [Ñö ðîšçüššîöñ ýéţ~~~~~~]
@@ -4374,6 +4374,18 @@ discussion-offline-cached = [Öƒƒļîñé. Šĥöŵîñĝ çöɱɱéñţš ƒ�
 
 # Heading of the Settings group for discussion rows.
 discussion-settings-group = [Ðîšçüššîöñš~~~~]
+
+# Age of a comment that is on its way to AniList.
+discussion-sending = [Šéñðîñĝ~~~]
+
+# Button under a comment that is cut off after ten lines.
+discussion-show-more = [Šĥöŵ ɱöŕé~~~]
+
+# Comment menu item that copies the comment's text.
+discussion-copy-text = [Çöþý ţéẋţ~~~]
+
+# Line for a picture or video in a comment: what it is and the site it is on.
+discussion-media-line = [{ $kind } · { $host }~~~]
 
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = [Ðöŵñļöàðš~~~]
