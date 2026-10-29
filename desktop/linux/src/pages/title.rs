@@ -1096,6 +1096,7 @@ mod tests {
             airs_at: None,
             delayed_from: None,
             metadata_only,
+            past_progress: false,
             unsourced,
             source: None,
         };
