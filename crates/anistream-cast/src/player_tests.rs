@@ -558,6 +558,39 @@ async fn a_tv_that_never_fetches_ends_the_cast() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn stop_while_the_tv_starts_the_receiver_closes_it_once_up() {
+    let file = matroska(&Fixture { audio: Some(FixtureAudio::aac()), ..Fixture::default() });
+    let base = serve(HashMap::from([("/episode.mkv".to_owned(), file)])).await;
+    let receiver = FakeReceiver::start(FakeOptions {
+        launch: Duration::from_millis(800),
+        ..FakeOptions::default()
+    })
+    .await
+    .unwrap();
+    let (player, _events) = CastPlayer::connect(setup(
+        &receiver,
+        Arc::new(CastMemory::memory()),
+        Arc::new(NoEncoder),
+    ))
+    .await
+    .unwrap();
+    player.load(torrent(format!("{base}/episode.mkv")));
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+    while receiver.heard("LAUNCH").is_empty() {
+        assert!(tokio::time::Instant::now() < deadline, "the load launched the receiver");
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    // Stop on the card while the card still says "Starting".
+    player.quit().await.unwrap();
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+    while !receiver.heard("STOP").iter().any(|m| m["sessionId"].is_string()) {
+        assert!(tokio::time::Instant::now() < deadline, "the receiver was left up on the TV");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(receiver.heard("LOAD").is_empty(), "nothing was loaded after the stop");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn another_sender_taking_over_ends_the_cast() {
     let file = matroska(&Fixture { audio: Some(FixtureAudio::aac()), ..Fixture::default() });
     let base = serve(HashMap::from([("/episode.mkv".to_owned(), file)])).await;

@@ -319,16 +319,32 @@ impl Inner {
     }
 
     /// The running receiver app, launched when there is none yet.
-    async fn app(&self) -> Result<Media, CastError> {
+    ///
+    /// The launch runs in a task of its own, which a Stop doesn't abort: a receiver that comes
+    /// up after the viewer stopped is closed again, so it isn't left on the TV with no sender.
+    async fn app(self: &Arc<Self>) -> Result<Media, CastError> {
         let _launching = self.launching.lock().await;
         if let Some(media) = self.media() {
             return Ok(media);
         }
-        let app = self.device.launch(DEFAULT_MEDIA_RECEIVER).await?;
-        lock(&self.state).app = Some(app.clone());
-        let fresh = Media::new(self.device.channel.clone(), app);
-        *lock(&self.media) = Some(fresh.clone());
-        Ok(fresh)
+        let inner = Arc::clone(self);
+        let launch = tokio::spawn(async move {
+            let app = inner.device.launch(DEFAULT_MEDIA_RECEIVER).await?;
+            {
+                // Under the state's lock, so a quit either sees this media or is seen here.
+                let mut state = lock(&inner.state);
+                if !state.quit {
+                    state.app = Some(app.clone());
+                    let fresh = Media::new(inner.device.channel.clone(), app);
+                    *lock(&inner.media) = Some(fresh.clone());
+                    return Ok(fresh);
+                }
+            }
+            tracing::info!("the receiver came up after the stop; closing it");
+            let _ = tokio::time::timeout(CONTROL_WAIT, inner.device.stop(&app)).await;
+            Err(CastError::Closed)
+        });
+        launch.await.unwrap_or(Err(CastError::Closed))
     }
 
     /// The media session in force, for a command.

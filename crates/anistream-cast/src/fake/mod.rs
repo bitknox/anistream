@@ -85,6 +85,8 @@ pub struct FakeOptions {
     pub control: &'static str,
     /// Whether it fetches at all: a TV behind a firewall doesn't, and a `LOAD` then hangs.
     pub fetches: bool,
+    /// How long the receiver app takes to come up after `LAUNCH`: 3 to 6.5 s on a real TV.
+    pub launch: Duration,
 }
 
 impl Default for FakeOptions {
@@ -95,6 +97,7 @@ impl Default for FakeOptions {
             refuse: Refuse::default(),
             control: "attenuation",
             fetches: true,
+            launch: Duration::ZERO,
         }
     }
 }
@@ -340,6 +343,7 @@ async fn serve(
                         send("receiver-0", &sender, NS_RECEIVER, receiver_status(&app, request, level, muted));
                     }
                     (NS_RECEIVER, "LAUNCH") => {
+                        tokio::time::sleep(options.launch).await;
                         app = Some((format!("session-{request}"), DEFAULT_MEDIA_RECEIVER));
                         send("receiver-0", &sender, NS_RECEIVER, receiver_status(&app, request, level, muted));
                     }
