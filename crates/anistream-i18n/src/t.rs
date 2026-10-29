@@ -10125,6 +10125,16 @@ pub fn widget_line_start(episode: &str) -> String {
     text("widget-line-start", &[("episode", Arg::Text(episode))])
 }
 
+/// Value of the Play trailers setting: trailers play by themselves on any network.
+pub fn settings_trailers_always() -> String {
+    text("settings-trailers-always", &[])
+}
+
+/// Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
+pub fn settings_trailers_wifi_only() -> String {
+    text("settings-trailers-wifi-only", &[])
+}
+
 /// Title of the screen or section that lists sources.
 pub fn sources_title() -> String {
     text("sources-title", &[])

@@ -5087,6 +5087,14 @@
     <value>Start {episode}</value>
     <comment>Line of the Continue widget: what plays next, with the episode already named.</comment>
   </data>
+  <data name="SettingsTrailersAlways" xml:space="preserve">
+    <value>Always</value>
+    <comment>Value of the Play trailers setting: trailers play by themselves on any network.</comment>
+  </data>
+  <data name="SettingsTrailersWifiOnly" xml:space="preserve">
+    <value>Wi-Fi only</value>
+    <comment>Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.</comment>
+  </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>Sources</value>
     <comment>Title of the screen or section that lists sources.</comment>

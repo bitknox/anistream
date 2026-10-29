@@ -1836,12 +1836,6 @@ public enum L {
     /// Settings row: when a title's trailer plays by itself, muted, in place of its banner.
     public static var settingsTrailersRow: String { string("settings-trailers-row", fallback: "Play trailers") }
 
-    /// Value of the Play trailers setting: trailers play by themselves on any network.
-    public static var settingsTrailersAlways: String { string("settings-trailers-always", fallback: "Always") }
-
-    /// Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
-    public static var settingsTrailersWifiOnly: String { string("settings-trailers-wifi-only", fallback: "Wi-Fi only") }
-
     /// Note under the Play trailers setting: what the trailers are and when they do not play.
     public static var settingsTrailersNoteApple: String { string("settings-trailers-note-apple", fallback: "Trailers play muted from YouTube, which sees your IP address. They don't play in Low Data Mode, with Reduce Motion on or in Low Power Mode.") }
 
@@ -5494,6 +5488,12 @@ public enum L {
     public static func widgetLineStart(episode: String) -> String {
         Self.format("widget-line-start", fallback: "Start %1$@", episode)
     }
+
+    /// Value of the Play trailers setting: trailers play by themselves on any network.
+    public static var settingsTrailersAlways: String { string("settings-trailers-always", fallback: "Always") }
+
+    /// Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
+    public static var settingsTrailersWifiOnly: String { string("settings-trailers-wifi-only", fallback: "Wi-Fi only") }
 
     /// Title of the screen or section that lists sources.
     public static var sourcesTitle: String { string("sources-title", fallback: "Sources") }

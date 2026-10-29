@@ -381,16 +381,6 @@ settings-folder-choose = Choose
 # @max 24
 settings-trailers-row = Play trailers
 
-# Value of the Play trailers setting: trailers play by themselves on any network.
-# @only apple
-# @max 16
-settings-trailers-always = Always
-
-# Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
-# @only apple
-# @max 16
-settings-trailers-wifi-only = Wi-Fi only
-
 # Note under the Play trailers setting: what the trailers are and when they do not play.
 # @only apple
 # @max 240

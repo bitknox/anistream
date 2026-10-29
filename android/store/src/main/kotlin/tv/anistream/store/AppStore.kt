@@ -318,8 +318,41 @@ class AppStore(
     fun loadCalendar(force: Boolean = false) {
         if (!force && calendar.list.answered(LIST_FRESH_MILLIS)) return
         calendar.list.asked()
-        send(Command.LoadCalendar)
+        // A refresh the person asked for skips the window the engine keeps for ten minutes.
+        send(if (force) Command.RefreshCalendar else Command.LoadCalendar)
     }
+
+    /** The next earlier stretch of the calendar, asked for as the top comes near; once at a time. */
+    fun loadCalendarPast() {
+        calendar.askPast()?.let { (anchor, page) -> send(Command.LoadCalendarPast(anchor, page, null)) }
+    }
+
+    /** Try again after an earlier stretch failed to load. */
+    fun retryCalendarPast() {
+        calendar.retryPast()?.let { (anchor, page) -> send(Command.LoadCalendarPast(anchor, page, null)) }
+    }
+
+    /** The next later stretch of the calendar, asked for as the bottom comes near; once at a time. */
+    fun loadCalendarAhead(retry: Boolean = false) {
+        calendar.askAhead(retry)?.let { (anchor, page) -> send(Command.LoadCalendarAhead(anchor, page, null)) }
+    }
+
+    /**
+     * Load the calendar through [instant] (epoch seconds), earlier or later than what is there, for
+     * a day picked in the week strip that is not loaded yet.
+     */
+    fun loadCalendarThrough(instant: Long, earlier: Boolean) {
+        if (earlier) {
+            calendar.askPast()?.let { (anchor, page) -> send(Command.LoadCalendarPast(anchor, page, instant)) }
+        } else {
+            calendar.askAhead()?.let { (anchor, page) -> send(Command.LoadCalendarAhead(anchor, page, instant)) }
+        }
+    }
+
+    /** Whether the calendar shows only the person's list; All airing until they choose. */
+    fun calendarMine(): Boolean = settings.isOn(SettingKey.CALENDAR_MINE)
+
+    fun setCalendarMine(on: Boolean) = setSwitch(SettingKey.CALENDAR_MINE, on)
 
     /**
      * Search now, as the search key, a recent search or a rail's See all does: always asked, so
@@ -884,8 +917,11 @@ class AppStore(
 
             is Event.Content -> content(event.content, event.view)
             is Event.Caption -> caption(event.text, event.view)
-            is Event.CalendarWindow -> calendar.window(event.anchor, event.pages, event.morePast)
+            is Event.CalendarWindow -> calendar.window(
+                event.anchor, event.pages, event.morePast, event.floor, event.ceiling, event.aheadPages, event.moreAhead,
+            )
             is Event.CalendarBackfill -> calendar.backfill(event.page, event.entries, event.morePast, titles)
+            is Event.CalendarAhead -> calendar.ahead(event.page, event.entries, event.moreAhead, titles)
             is Event.SearchPaging -> search.paging(event.query, event.hasNext)
             is Event.SearchMore -> search.more(event.query, event.page, event.entries, event.hasNext, titles)
             is Event.LiveSearch -> search.live(event.paused)

@@ -3708,6 +3708,12 @@ public static partial class T
     /// <summary>Line of the Continue widget: what plays next, with the episode already named.</summary>
     public static string WidgetLineStart(string episode) => Fill(Get("WidgetLineStart"), ("episode", episode));
 
+    /// <summary>Value of the Play trailers setting: trailers play by themselves on any network.</summary>
+    public static string SettingsTrailersAlways => Get("SettingsTrailersAlways");
+
+    /// <summary>Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.</summary>
+    public static string SettingsTrailersWifiOnly => Get("SettingsTrailersWifiOnly");
+
     /// <summary>Title of the screen or section that lists sources.</summary>
     public static string SourcesTitle => Get("SourcesTitle");
 
@@ -6557,6 +6563,8 @@ public static partial class T
         ["WidgetDayToday"] = "today",
         ["WidgetDayYesterday"] = "yesterday",
         ["WidgetLineStart"] = "Start {episode}",
+        ["SettingsTrailersAlways"] = "Always",
+        ["SettingsTrailersWifiOnly"] = "Wi-Fi only",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",

@@ -829,6 +829,46 @@ object Strings {
     fun accountButtonNamed(context: Context, name: String): String =
         context.getString(R.string.account_button_named, name)
 
+    /** Line under Today in the calendar when My list is chosen and nothing on it airs in the next four weeks. */
+    fun calendarEmptyMineAhead(context: Context): String =
+        context.getString(R.string.calendar_empty_mine_ahead)
+
+    /** Line above the first day of the calendar: it goes no further back. */
+    fun calendarFloorLine(context: Context): String =
+        context.getString(R.string.calendar_floor_line)
+
+    /** Line below the last day of the calendar: it goes no further ahead. */
+    fun calendarCeilingLine(context: Context): String =
+        context.getString(R.string.calendar_ceiling_line)
+
+    /** Line below the last day when no more broadcasts are scheduled before the calendar's end. */
+    fun calendarEndLine(context: Context): String =
+        context.getString(R.string.calendar_end_line)
+
+    /** Activity line while earlier broadcasts load. */
+    fun calendarLoadingEarlierLine(context: Context): String =
+        context.getString(R.string.calendar_loading_earlier_line)
+
+    /** Activity line while later broadcasts load. */
+    fun calendarLoadingLaterLine(context: Context): String =
+        context.getString(R.string.calendar_loading_later_line)
+
+    /** Line where earlier broadcasts would be when they could not be loaded. */
+    fun calendarEarlierFailedLine(context: Context): String =
+        context.getString(R.string.calendar_earlier_failed_line)
+
+    /** Line where later broadcasts would be when they could not be loaded. */
+    fun calendarLaterFailedLine(context: Context): String =
+        context.getString(R.string.calendar_later_failed_line)
+
+    /** Button under the line saying nothing on the person's list airs: shows every airing show. */
+    fun calendarShowAllAiring(context: Context): String =
+        context.getString(R.string.calendar_show_all_airing)
+
+    /** What a screen reader says for the line that marks the time now. The time is already worded. */
+    fun calendarNowLabel(context: Context, time: String): String =
+        context.getString(R.string.calendar_now_label, time)
+
     /** Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. */
     fun tvPairRequestHeld(context: Context, phone: String, code: String): String =
         context.getString(R.string.tv_pair_request_held, phone, code)
@@ -2128,14 +2168,6 @@ object Strings {
     /** Settings row: when a title's trailer plays by itself, muted, in place of its banner. */
     fun settingsTrailersLabel(context: Context): String =
         context.getString(R.string.settings_trailers_label)
-
-    /** Value of the Play trailers setting: trailers play by themselves on any network. */
-    fun settingsTrailersAlways(context: Context): String =
-        context.getString(R.string.settings_trailers_always)
-
-    /** Value of the Play trailers setting: trailers play by themselves only on Wi-Fi. */
-    fun settingsTrailersWifiOnly(context: Context): String =
-        context.getString(R.string.settings_trailers_wifi_only)
 
     /** Note under the Play trailers setting: what the trailers are and when they do not play. */
     fun settingsTrailersNote(context: Context): String =
@@ -5528,6 +5560,14 @@ object Strings {
     /** Line of the Continue widget: what plays next, with the episode already named. */
     fun widgetLineStart(context: Context, episode: String): String =
         context.getString(R.string.widget_line_start, episode)
+
+    /** Value of the Play trailers setting: trailers play by themselves on any network. */
+    fun settingsTrailersAlways(context: Context): String =
+        context.getString(R.string.settings_trailers_always)
+
+    /** Value of the Play trailers setting: trailers play by themselves only on Wi-Fi. */
+    fun settingsTrailersWifiOnly(context: Context): String =
+        context.getString(R.string.settings_trailers_wifi_only)
 
     /** Title of the screen or section that lists sources. */
     fun sourcesTitle(context: Context): String =

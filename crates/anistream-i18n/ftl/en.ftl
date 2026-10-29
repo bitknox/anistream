@@ -6300,6 +6300,12 @@ widget-day-yesterday = yesterday
 # Line of the Continue widget: what plays next, with the episode already named.
 widget-line-start = Start { $episode }
 
+# Value of the Play trailers setting: trailers play by themselves on any network.
+settings-trailers-always = Always
+
+# Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
+settings-trailers-wifi-only = Wi-Fi only
+
 # Title of the screen or section that lists sources.
 sources-title = Sources
 
