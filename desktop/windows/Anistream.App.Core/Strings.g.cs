@@ -15,6 +15,45 @@ public static partial class T
     /// <summary>The language the resolver answers in, which picks plural forms. Set with the resolver.</summary>
     public static string Language { get; set; } = "en";
 
+    /// <summary>What the TV's loading screen and its own controls show under the show's name.</summary>
+    public static string CastEpisode(string episode) => Fill(Get("CastEpisode"), ("episode", episode));
+
+    /// <summary>What the TV's loading screen and its own controls show under the show's name, with the episode's own title.</summary>
+    public static string CastEpisodeTitled(string episode, string title) => Fill(Get("CastEpisodeTitled"), ("episode", episode), ("title", title));
+
+    /// <summary>The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.</summary>
+    public static string NoticeCastVideoCodec(string codec) => Fill(Get("NoticeCastVideoCodec"), ("codec", codec));
+
+    /// <summary>The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.</summary>
+    public static string NoticeCastAudioCodec(string codec) => Fill(Get("NoticeCastAudioCodec"), ("codec", codec));
+
+    /// <summary>The stream comes in a kind of file the TV can't read.</summary>
+    public static string NoticeCastContainer => Get("NoticeCastContainer");
+
+    /// <summary>The episode opens in another app, which this device can't cast.</summary>
+    public static string NoticeCastDeepLink => Get("NoticeCastDeepLink");
+
+    /// <summary>The TV accepted the stream but never started reading it.</summary>
+    public static string NoticeCastNeverFetches => Get("NoticeCastNeverFetches");
+
+    /// <summary>The TV tried every way of playing the stream and played none of them.</summary>
+    public static string NoticeCastRefused => Get("NoticeCastRefused");
+
+    /// <summary>Someone started something else on the TV, which ends the cast.</summary>
+    public static string NoticeCastTakenOver => Get("NoticeCastTakenOver");
+
+    /// <summary>This device isn't on the TV's network, or reaches it through a VPN.</summary>
+    public static string NoticeCastNotSameNetwork => Get("NoticeCastNotSameNetwork");
+
+    /// <summary>The TV stopped answering mid-cast.</summary>
+    public static string NoticeCastLost => Get("NoticeCastLost");
+
+    /// <summary>The TV picked to cast to has left the network.</summary>
+    public static string NoticeCastNoDevice => Get("NoticeCastNoDevice");
+
+    /// <summary>This build of the app has no casting.</summary>
+    public static string NoticeCastUnavailable => Get("NoticeCastUnavailable");
+
     /// <summary>A comment's age, beside its author, when it was written under a minute ago.</summary>
     public static string DiscussionAgeNow => Get("DiscussionAgeNow");
 
@@ -5303,6 +5342,19 @@ public static partial class T
 
     static readonly Dictionary<string, string> English = new()
     {
+        ["CastEpisode"] = "Episode {episode}",
+        ["CastEpisodeTitled"] = "Episode {episode} · {title}",
+        ["NoticeCastVideoCodec"] = "The TV can't play this video ({codec}). Try another source.",
+        ["NoticeCastAudioCodec"] = "The TV can't play this audio ({codec}), and this device can't convert it. Try another source.",
+        ["NoticeCastContainer"] = "The TV can't play this kind of file. Try another source.",
+        ["NoticeCastDeepLink"] = "This episode opens in another app, so it can't be cast.",
+        ["NoticeCastNeverFetches"] = "The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.",
+        ["NoticeCastRefused"] = "The TV couldn't play this stream. Try another source.",
+        ["NoticeCastTakenOver"] = "Another device started something on the TV, so casting stopped.",
+        ["NoticeCastNotSameNetwork"] = "This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.",
+        ["NoticeCastLost"] = "Lost the TV, so casting stopped.",
+        ["NoticeCastNoDevice"] = "That TV is no longer on the network.",
+        ["NoticeCastUnavailable"] = "This version of anistream can't cast to TVs.",
         ["DiscussionAgeNow"] = "now",
         ["DiscussionAgeMinutes"] = "{minutes} min",
         ["DiscussionAgeHours"] = "{hours} h",

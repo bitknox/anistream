@@ -63,6 +63,13 @@ pub(crate) fn opener_for(
     engine: &EngineState,
     services: &Services,
 ) -> Option<Arc<dyn PlayerOpener>> {
+    // While casting, every play casts to the same TV, auto-next's included.
+    #[cfg(feature = "cast")]
+    if let Some(cast) = &engine.casting
+        && services.casts.casting()
+    {
+        return Some(Arc::clone(cast) as Arc<dyn PlayerOpener>);
+    }
     let hosted = services.hosted_player.then(|| -> Arc<dyn PlayerOpener> {
         Arc::clone(&services.hosted) as Arc<dyn PlayerOpener>
     });
@@ -90,6 +97,67 @@ pub fn play(
         id, episode, None, from_start, false, billing, opener, job, engine, services, tx,
     );
     let _ = tx.send(staged);
+}
+
+/// Cast an episode to the TV with Chromecast built in that `device` names: a play as any other,
+/// in a cast to that TV, and every play after it too, until [`stop_casting`]. From `position`
+/// when it is carried over from this device, from the top when that is close to it.
+#[cfg(feature = "cast")]
+#[allow(clippy::too_many_arguments)]
+pub fn cast_to(
+    device: &str,
+    id: AnilistId,
+    episode: String,
+    position: Option<f64>,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    use crate::playback::link::cast::CastOpener;
+
+    let hub = &services.casts;
+    let Some(device) = hub.device(device) else {
+        let _ = tx.send(Event::Toast(Notice::alert(anistream_model::Msg::NoticeCastNoDevice)));
+        return drop(job);
+    };
+    // Carried over: written down as where the episode was left, which is where a play opens.
+    let from_start = match position {
+        Some(at) if at >= CARRY_FROM => {
+            let event = anistream_store::WatchEvent::new(id, episode.clone(), at);
+            if let Err(e) = services.store.record_event(&event) {
+                tracing::warn!(error = %e, "couldn't carry the position over to the cast");
+            }
+            false
+        }
+        Some(_) => true,
+        None => false,
+    };
+    let scratch = services.paths.runtime_dir().join("cast");
+    if let Err(e) = std::fs::create_dir_all(&scratch) {
+        tracing::warn!(error = %e, "couldn't make the cast's scratch directory");
+    }
+    hub.begin(device.clone());
+    engine.casting = Some(Arc::new(CastOpener::new(Arc::clone(hub), device, scratch)));
+    play(id, episode, from_start, job, engine, services, tx);
+}
+
+/// A position closer to the start than this is not carried over to a cast: it starts from the
+/// top, as Play on TV does.
+#[cfg(feature = "cast")]
+const CARRY_FROM: f64 = 5.0;
+
+/// Stop casting: the playback on the TV stops, the TV goes back to what it showed, and plays
+/// open on this device again.
+#[cfg(feature = "cast")]
+pub fn stop_casting(engine: &mut EngineState, services: &Services) {
+    if engine.casting.take().is_none() && !services.casts.casting() {
+        return;
+    }
+    services.casts.end();
+    control_player(PlayerCommand::Stop, engine);
+    // A TV kept for the next episode is let go too.
+    services.slot.release();
 }
 
 /// Play the release the user picked in the Sources overlay.

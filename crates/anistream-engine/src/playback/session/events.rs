@@ -565,8 +565,11 @@ impl Run<'_> {
                     continue;
                 }
                 PlaybackEvent::Loaded => {
-                    if let Err(e) =
-                        add_subtitles(link, stream, settings.subtitle_language.as_deref()).await
+                    // A cast took them with the file: its tracks are fixed at the load.
+                    if !link.subtitles_with_load()
+                        && let Err(e) =
+                            add_subtitles(link, stream, settings.subtitle_language.as_deref())
+                                .await
                     {
                         tracing::debug!(error = %e, "could not attach external subtitles");
                     }

@@ -5,6 +5,53 @@ import Foundation
 
 /// Every string the apps show, by catalogue id. A missing translation falls back to English per string.
 public enum L {
+    /// What the TV's loading screen and its own controls show under the show's name.
+    public static func castEpisode(episode: String) -> String {
+        Self.format("cast-episode", fallback: "Episode %1$@", episode)
+    }
+
+    /// What the TV's loading screen and its own controls show under the show's name, with the episode's own title.
+    public static func castEpisodeTitled(episode: String, title: String) -> String {
+        Self.format("cast-episode-titled", fallback: "Episode %1$@ · %2$@", episode, title)
+    }
+
+    /// The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
+    public static func noticeCastVideoCodec(codec: String) -> String {
+        Self.format("notice-cast-video-codec", fallback: "The TV can't play this video (%1$@). Try another source.", codec)
+    }
+
+    /// The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
+    public static func noticeCastAudioCodec(codec: String) -> String {
+        Self.format("notice-cast-audio-codec", fallback: "The TV can't play this audio (%1$@), and this device can't convert it. Try another source.", codec)
+    }
+
+    /// The stream comes in a kind of file the TV can't read.
+    public static var noticeCastContainer: String { string("notice-cast-container", fallback: "The TV can't play this kind of file. Try another source.") }
+
+    /// The episode opens in another app, which this device can't cast.
+    public static var noticeCastDeepLink: String { string("notice-cast-deep-link", fallback: "This episode opens in another app, so it can't be cast.") }
+
+    /// The TV accepted the stream but never started reading it.
+    public static var noticeCastNeverFetches: String { string("notice-cast-never-fetches", fallback: "The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.") }
+
+    /// The TV tried every way of playing the stream and played none of them.
+    public static var noticeCastRefused: String { string("notice-cast-refused", fallback: "The TV couldn't play this stream. Try another source.") }
+
+    /// Someone started something else on the TV, which ends the cast.
+    public static var noticeCastTakenOver: String { string("notice-cast-taken-over", fallback: "Another device started something on the TV, so casting stopped.") }
+
+    /// This device isn't on the TV's network, or reaches it through a VPN.
+    public static var noticeCastNotSameNetwork: String { string("notice-cast-not-same-network", fallback: "This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.") }
+
+    /// The TV stopped answering mid-cast.
+    public static var noticeCastLost: String { string("notice-cast-lost", fallback: "Lost the TV, so casting stopped.") }
+
+    /// The TV picked to cast to has left the network.
+    public static var noticeCastNoDevice: String { string("notice-cast-no-device", fallback: "That TV is no longer on the network.") }
+
+    /// This build of the app has no casting.
+    public static var noticeCastUnavailable: String { string("notice-cast-unavailable", fallback: "This version of anistream can't cast to TVs.") }
+
     /// A comment's age, beside its author, when it was written under a minute ago.
     public static var discussionAgeNow: String { string("discussion-age-now", fallback: "now") }
 

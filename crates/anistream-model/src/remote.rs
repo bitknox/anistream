@@ -18,6 +18,8 @@ pub enum FrontIntent {
     /// Step the TV's own volume, the system's, by `step` points of 100; negative turns it down.
     /// Not the player's volume: on many TVs the system's reaches the set itself over HDMI-CEC.
     Volume { step: f64 },
+    /// Mute the TV's own sound, or bring it back.
+    Mute { muted: bool },
     /// Show a pairing code, for the phone named, until [`FrontIntent::HidePairingCode`].
     ShowPairingCode { code: String, phone: String },
     /// The code on screen is used up: a phone paired with it, it ran out, or too many wrong

@@ -84,6 +84,9 @@ pub struct Engine {
     /// Commands sent so far, which an idle engine's word is read against: see `Traced::Idle`.
     #[cfg(feature = "testing")]
     sent: AtomicU64,
+    /// Casting's devices and the cast running now, which the TV picker and the cast's card read.
+    #[cfg(feature = "cast")]
+    casts: Arc<crate::cast::CastHub>,
 }
 
 /// [`Engine::send`] for the remote, held apart from the engine so the remote's server can keep
@@ -94,6 +97,24 @@ pub struct Engine {
 pub struct RemoteSender {
     commands: mpsc::UnboundedSender<Message>,
     jobs: Jobs,
+}
+
+/// A sender whose commands a test reads back, with no engine behind it.
+#[cfg(all(test, feature = "remote"))]
+impl RemoteSender {
+    pub(crate) fn recording() -> (Self, impl FnMut() -> Vec<Command>) {
+        let (commands, mut rx) = mpsc::unbounded_channel();
+        let read = move || {
+            let mut sent = Vec::new();
+            while let Ok(message) = rx.try_recv() {
+                if let Message::Command { command, .. } = message {
+                    sent.push(command);
+                }
+            }
+            sent
+        };
+        (Self { commands, jobs: Jobs::default() }, read)
+    }
 }
 
 #[cfg(feature = "remote")]
@@ -230,6 +251,8 @@ impl Engine {
         let services = match parts {
             Some(parts) => {
                 let (power, hosted) = crate::services::players(&paths);
+                #[cfg(feature = "cast")]
+                let casts = Arc::new(crate::cast::CastHub::in_memory(http.clone()));
                 Services {
                     power,
                     hosted,
@@ -252,6 +275,8 @@ impl Engine {
                     clock: parts.clock,
                     fixture_exit: parts.fixture_exit,
                     party: Default::default(),
+                    #[cfg(feature = "cast")]
+                    casts,
                 }
             }
             None => Services::build(&tracked, paths, http, store, registry, player_theme, host)
@@ -268,6 +293,8 @@ impl Engine {
         let services =
             Services { hosted_player, every_play_a_party, app_clients, stores, ..services };
         let hosted = Arc::clone(&services.hosted);
+        #[cfg(feature = "cast")]
+        let casts = Arc::clone(&services.casts);
 
         // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
         let (arrivals_tx, arrivals) = mpsc::unbounded_channel();
@@ -409,6 +436,8 @@ impl Engine {
             commands: commands_tx,
             jobs,
             hosted,
+            #[cfg(feature = "cast")]
+            casts,
             #[cfg(feature = "testing")]
             sent: AtomicU64::new(0),
         };
@@ -441,6 +470,12 @@ impl Engine {
     /// What a TV's remote sends its commands through: routed as [`Self::send`] routes them, in
     /// the same order as the front end's own, and numbered from the same count. See
     /// [`crate::remote`].
+    /// Casting's devices, what the engine learned of each TV, and the cast running now.
+    #[cfg(feature = "cast")]
+    pub fn casts(&self) -> Arc<crate::cast::CastHub> {
+        Arc::clone(&self.casts)
+    }
+
     #[cfg(feature = "remote")]
     pub fn remote_sender(&self) -> RemoteSender {
         RemoteSender { commands: self.commands.clone(), jobs: self.jobs.clone() }

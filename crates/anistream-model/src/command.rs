@@ -60,6 +60,7 @@ impl Command {
                 format!("starting ep {episode}")
             }
             Self::PlayParty { episode, .. } => format!("starting ep {episode} for the party"),
+            Self::CastTo { episode, .. } => format!("casting ep {episode}"),
             Self::LoadSources { episode, .. } => format!("listing sources for ep {episode}"),
             Self::LoadSourceOptions(_) => "checking sources".into(),
             Self::PinRelease { .. } => "choosing a release".into(),
@@ -300,6 +301,20 @@ pub enum Command {
         #[cfg_attr(feature = "ffi", uniffi(default))]
         from_start: bool,
     },
+    /// Cast an episode to a TV with Chromecast built in, as a play does: the streams are found
+    /// here, and the TV plays what this device serves it or fetches by itself. `device` is the
+    /// Cast device's TXT `id`, as the TV picker's row names it. Carried over from `position`
+    /// when the episode was playing here; from where it was left otherwise. Every play after it
+    /// casts to the same TV until [`Command::StopCasting`], so auto-next keeps going there.
+    CastTo {
+        device: String,
+        id: AnilistId,
+        episode: String,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        position: Option<f64>,
+    },
+    /// Stop casting: the TV goes back to what it showed, and plays open here again.
+    StopCasting,
     /// Play an episode with a watch party: join the room on a Syncplay server, then resolve the
     /// episode from this device's own sources and play it, kept with the room. Answered with
     /// [`Event::PartyJoined`] once in the room, and [`Event::PartyLeft`] with why when the server
