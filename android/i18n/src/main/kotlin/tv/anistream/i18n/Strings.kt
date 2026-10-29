@@ -2677,6 +2677,162 @@ object Strings {
     fun timeJustNowInline(context: Context): String =
         context.getString(R.string.time_just_now_inline)
 
+    /** Controller help: the D-pad and left stick move focus between items. */
+    fun padHelpMove(context: Context): String =
+        context.getString(R.string.pad_help_move)
+
+    /** Controller help: the A button on a list, a button or a switch. */
+    fun padHelpSelect(context: Context): String =
+        context.getString(R.string.pad_help_select)
+
+    /** Controller help: the B button while browsing. */
+    fun padHelpBack(context: Context): String =
+        context.getString(R.string.pad_help_back)
+
+    /** Controller help: the B button while the player's controls are showing. */
+    fun padHelpHideControls(context: Context): String =
+        context.getString(R.string.pad_help_hide_controls)
+
+    /** Controller help: the B button while the player's controls are hidden. */
+    fun padHelpClosePlayer(context: Context): String =
+        context.getString(R.string.pad_help_close_player)
+
+    /** Controller help: opens the menu of the focused item. */
+    fun padHelpItemMenu(context: Context): String =
+        context.getString(R.string.pad_help_item_menu)
+
+    /** Controller help: goes to Search. */
+    fun padHelpSearch(context: Context): String =
+        context.getString(R.string.pad_help_search)
+
+    /** Controller help: opens the window's main menu. */
+    fun padHelpMainMenu(context: Context): String =
+        context.getString(R.string.pad_help_main_menu)
+
+    /** Controller help: shows or hides the sidebar. */
+    fun padHelpSidebar(context: Context): String =
+        context.getString(R.string.pad_help_sidebar)
+
+    /** Controller help: goes to the section before the current one. */
+    fun padHelpPreviousSection(context: Context): String =
+        context.getString(R.string.pad_help_previous_section)
+
+    /** Controller help: goes to the section after the current one. */
+    fun padHelpNextSection(context: Context): String =
+        context.getString(R.string.pad_help_next_section)
+
+    /** Controller help: scrolls the focused list up by a page. */
+    fun padHelpPageUp(context: Context): String =
+        context.getString(R.string.pad_help_page_up)
+
+    /** Controller help: scrolls the focused list down by a page. */
+    fun padHelpPageDown(context: Context): String =
+        context.getString(R.string.pad_help_page_down)
+
+    /** Controller help: seeks back in the player. */
+    fun padHelpSeekBack(context: Context, seconds: Int): String =
+        context.resources.getQuantityString(R.plurals.pad_help_seek_back, seconds, seconds)
+
+    /** Controller help: seeks forward in the player. */
+    fun padHelpSeekForward(context: Context, seconds: Int): String =
+        context.resources.getQuantityString(R.plurals.pad_help_seek_forward, seconds, seconds)
+
+    /** Controller help: skips the opening or ending while its offer shows. */
+    fun padHelpSkip(context: Context): String =
+        context.getString(R.string.pad_help_skip)
+
+    /** Controller help: starts the next episode now, while the Up Next card shows. */
+    fun padHelpPlayNow(context: Context): String =
+        context.getString(R.string.pad_help_play_now)
+
+    /** Controller help: cancels the Up Next card. */
+    fun padHelpCancel(context: Context): String =
+        context.getString(R.string.pad_help_cancel)
+
+    /** Controller help: switches to another source while the buffering card shows. */
+    fun padHelpSwitchSource(context: Context): String =
+        context.getString(R.string.pad_help_switch_source)
+
+    /** Controller help: keeps waiting while the buffering card shows. */
+    fun padHelpKeepWaiting(context: Context): String =
+        context.getString(R.string.pad_help_keep_waiting)
+
+    /** Controller help: opens the subtitles and audio menu. */
+    fun padHelpTracks(context: Context): String =
+        context.getString(R.string.pad_help_tracks)
+
+    /** Controller help: opens the episode list in the player. */
+    fun padHelpEpisodes(context: Context): String =
+        context.getString(R.string.pad_help_episodes)
+
+    /** Controller help: opens the player's More menu. */
+    fun padHelpMore(context: Context): String =
+        context.getString(R.string.pad_help_more)
+
+    /** Controller help: shows the player's stats for nerds. */
+    fun padHelpStats(context: Context): String =
+        context.getString(R.string.pad_help_stats)
+
+    /** Controller help: shows the player's controls with focus on the timeline. */
+    fun padHelpShowSeekLine(context: Context): String =
+        context.getString(R.string.pad_help_show_seek_line)
+
+    /** Controller help: shows the player's controls with focus on the episodes. */
+    fun padHelpShowEpisodes(context: Context): String =
+        context.getString(R.string.pad_help_show_episodes)
+
+    /** Controller help: pauses or plays the video. */
+    fun padHelpPlayPause(context: Context): String =
+        context.getString(R.string.pad_help_play_pause)
+
+    /** Controller help: the right trigger plays at double speed while held. */
+    fun padHelpHoldSpeed(context: Context): String =
+        context.getString(R.string.pad_help_hold_speed)
+
+    /** Controller help: the right stick scrolls the page without moving focus. */
+    fun padHelpScroll(context: Context): String =
+        context.getString(R.string.pad_help_scroll)
+
+    /** Heading in the controller help for the buttons while the player's controls are showing. */
+    fun padHelpControlsShown(context: Context): String =
+        context.getString(R.string.pad_help_controls_shown)
+
+    /** Name of the D-pad as one control, in the controller help. */
+    fun padButtonDpad(context: Context): String =
+        context.getString(R.string.pad_button_dpad)
+
+    /** Name of the D-pad's up direction, in the controller help. */
+    fun padButtonDpadUp(context: Context): String =
+        context.getString(R.string.pad_button_dpad_up)
+
+    /** Name of the D-pad's down direction, in the controller help. */
+    fun padButtonDpadDown(context: Context): String =
+        context.getString(R.string.pad_button_dpad_down)
+
+    /** Name of the D-pad's left direction, in the controller help. */
+    fun padButtonDpadLeft(context: Context): String =
+        context.getString(R.string.pad_button_dpad_left)
+
+    /** Name of the D-pad's right direction, in the controller help. */
+    fun padButtonDpadRight(context: Context): String =
+        context.getString(R.string.pad_button_dpad_right)
+
+    /** Name of the controller's menu button (three lines), in the controller help. */
+    fun padButtonMenu(context: Context): String =
+        context.getString(R.string.pad_button_menu)
+
+    /** Name of the controller's view button (two squares), in the controller help. */
+    fun padButtonView(context: Context): String =
+        context.getString(R.string.pad_button_view)
+
+    /** Name of the controller's left stick, in the controller help. */
+    fun padButtonLeftStick(context: Context): String =
+        context.getString(R.string.pad_button_left_stick)
+
+    /** Name of the controller's right stick, in the controller help. */
+    fun padButtonRightStick(context: Context): String =
+        context.getString(R.string.pad_button_right_stick)
+
     /** Checkbox of the close question. */
     fun closeDontAsk(context: Context): String =
         context.getString(R.string.close_dont_ask)

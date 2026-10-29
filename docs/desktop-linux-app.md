@@ -136,6 +136,24 @@ Episode discussions added:
 - The fixture build answers an opened discussion from `showcase.rs`, so the shots show a thread
   without AniList.
 
+Controller navigation added:
+
+- A game controller drives the whole app. libmanette is loaded at run time with `dlopen`, so
+  nothing links against it and the app starts the same without it. The map from buttons to
+  actions is `anistream-model`'s `input` module, shared with the other desktop clients.
+- The D-pad and the left stick move focus to the nearest widget in that direction, across the
+  sidebar and the page. A confirms, B goes back or closes the open popover, menu or dialog, and
+  Menu opens the controller help. In the player the buttons seek, pause, skip and open the
+  episode list, and the cards (Up Next, skip intro) answer A and B.
+- Controller mode shows a focus ring and hides the pointer. Moving the mouse or pressing a key
+  leaves it. A text field opens Steam's on-screen keyboard through `steam://open/keyboard`.
+- Settings, Controller: use a controller, swap the A and B face buttons (the Nintendo layout),
+  and the help page. The first press of a controller shows the help once.
+- Packaging: a Flatpak needs `--device=all` to read the controller, and a distribution package
+  should depend on libmanette 0.2.12 or later (its Steam Deck driver and dead zone). Without
+  either the setting says no controller was found, and Steam Input's keyboard layouts still work.
+- Not tested on real hardware. The shots press buttons through the same path with a fake pad.
+
 The engine runs in-process on a tokio runtime of its own. The window only queues commands, and
 the engine's events reach GTK's main loop over a channel, where `hub.rs` hands them out.
 

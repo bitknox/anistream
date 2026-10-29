@@ -7537,6 +7537,518 @@
         }
       }
     },
+    "pad-button-dpad" : {
+      "comment" : "Name of the D-pad as one control, in the controller help.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D-pad"
+          }
+        }
+      }
+    },
+    "pad-button-dpad-down" : {
+      "comment" : "Name of the D-pad's down direction, in the controller help.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D-pad down"
+          }
+        }
+      }
+    },
+    "pad-button-dpad-left" : {
+      "comment" : "Name of the D-pad's left direction, in the controller help.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D-pad left"
+          }
+        }
+      }
+    },
+    "pad-button-dpad-right" : {
+      "comment" : "Name of the D-pad's right direction, in the controller help.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D-pad right"
+          }
+        }
+      }
+    },
+    "pad-button-dpad-up" : {
+      "comment" : "Name of the D-pad's up direction, in the controller help.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D-pad up"
+          }
+        }
+      }
+    },
+    "pad-button-left-stick" : {
+      "comment" : "Name of the controller's left stick, in the controller help.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left stick"
+          }
+        }
+      }
+    },
+    "pad-button-menu" : {
+      "comment" : "Name of the controller's menu button (three lines), in the controller help.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu"
+          }
+        }
+      }
+    },
+    "pad-button-right-stick" : {
+      "comment" : "Name of the controller's right stick, in the controller help.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right stick"
+          }
+        }
+      }
+    },
+    "pad-button-view" : {
+      "comment" : "Name of the controller's view button (two squares), in the controller help.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View"
+          }
+        }
+      }
+    },
+    "pad-help-back" : {
+      "comment" : "Controller help: the B button while browsing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
+    "pad-help-cancel" : {
+      "comment" : "Controller help: cancels the Up Next card.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "pad-help-close-player" : {
+      "comment" : "Controller help: the B button while the player's controls are hidden.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close the player"
+          }
+        }
+      }
+    },
+    "pad-help-controls-shown" : {
+      "comment" : "Heading in the controller help for the buttons while the player's controls are showing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Player with the controls showing"
+          }
+        }
+      }
+    },
+    "pad-help-episodes" : {
+      "comment" : "Controller help: opens the episode list in the player.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episodes"
+          }
+        }
+      }
+    },
+    "pad-help-hide-controls" : {
+      "comment" : "Controller help: the B button while the player's controls are showing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide the controls"
+          }
+        }
+      }
+    },
+    "pad-help-hold-speed" : {
+      "comment" : "Controller help: the right trigger plays at double speed while held.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold for double speed"
+          }
+        }
+      }
+    },
+    "pad-help-item-menu" : {
+      "comment" : "Controller help: opens the menu of the focused item.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Item menu"
+          }
+        }
+      }
+    },
+    "pad-help-keep-waiting" : {
+      "comment" : "Controller help: keeps waiting while the buffering card shows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep waiting"
+          }
+        }
+      }
+    },
+    "pad-help-main-menu" : {
+      "comment" : "Controller help: opens the window's main menu.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main menu"
+          }
+        }
+      }
+    },
+    "pad-help-more" : {
+      "comment" : "Controller help: opens the player's More menu.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        }
+      }
+    },
+    "pad-help-move" : {
+      "comment" : "Controller help: the D-pad and left stick move focus between items.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move focus"
+          }
+        }
+      }
+    },
+    "pad-help-next-section" : {
+      "comment" : "Controller help: goes to the section after the current one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next section"
+          }
+        }
+      }
+    },
+    "pad-help-page-down" : {
+      "comment" : "Controller help: scrolls the focused list down by a page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page down"
+          }
+        }
+      }
+    },
+    "pad-help-page-up" : {
+      "comment" : "Controller help: scrolls the focused list up by a page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page up"
+          }
+        }
+      }
+    },
+    "pad-help-play-now" : {
+      "comment" : "Controller help: starts the next episode now, while the Up Next card shows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play now"
+          }
+        }
+      }
+    },
+    "pad-help-play-pause" : {
+      "comment" : "Controller help: pauses or plays the video.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play or pause"
+          }
+        }
+      }
+    },
+    "pad-help-previous-section" : {
+      "comment" : "Controller help: goes to the section before the current one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous section"
+          }
+        }
+      }
+    },
+    "pad-help-scroll" : {
+      "comment" : "Controller help: the right stick scrolls the page without moving focus.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll the page"
+          }
+        }
+      }
+    },
+    "pad-help-search" : {
+      "comment" : "Controller help: goes to Search.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        }
+      }
+    },
+    "pad-help-seek-back" : {
+      "comment" : "Controller help: seeks back in the player. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@seconds@"
+          },
+          "substitutions" : {
+            "seconds" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Back one second"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Back %1$lld seconds"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "pad-help-seek-forward" : {
+      "comment" : "Controller help: seeks forward in the player. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@seconds@"
+          },
+          "substitutions" : {
+            "seconds" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Forward one second"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Forward %1$lld seconds"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "pad-help-select" : {
+      "comment" : "Controller help: the A button on a list, a button or a switch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select"
+          }
+        }
+      }
+    },
+    "pad-help-show-episodes" : {
+      "comment" : "Controller help: shows the player's controls with focus on the episodes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the episodes"
+          }
+        }
+      }
+    },
+    "pad-help-show-seek-line" : {
+      "comment" : "Controller help: shows the player's controls with focus on the timeline.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the timeline"
+          }
+        }
+      }
+    },
+    "pad-help-sidebar" : {
+      "comment" : "Controller help: shows or hides the sidebar.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show or hide the sidebar"
+          }
+        }
+      }
+    },
+    "pad-help-skip" : {
+      "comment" : "Controller help: skips the opening or ending while its offer shows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        }
+      }
+    },
+    "pad-help-stats" : {
+      "comment" : "Controller help: shows the player's stats for nerds.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stats for nerds"
+          }
+        }
+      }
+    },
+    "pad-help-switch-source" : {
+      "comment" : "Controller help: switches to another source while the buffering card shows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch source"
+          }
+        }
+      }
+    },
+    "pad-help-tracks" : {
+      "comment" : "Controller help: opens the subtitles and audio menu.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitles and audio"
+          }
+        }
+      }
+    },
     "party-all-ready" : {
       "comment" : "Line when everyone is ready.",
       "extractionState" : "manual",

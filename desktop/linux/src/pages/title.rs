@@ -514,12 +514,23 @@ impl Page {
                 let button = gtk::Button::builder().child(&text).build();
                 button.add_css_class("pill");
                 button.add_css_class("suggested-action");
+                button.add_css_class("first-focus");
                 button.set_action_name(Some("win.play"));
                 button.set_action_target_value(Some(
                     &(id, item.episode.to_string()).to_variant(),
                 ));
                 button.set_hexpand(narrow);
                 actions.append(&button);
+                // A controller opened the page: the main action takes focus once it exists.
+                if self.ctx.controller_mode.get()
+                    && GtkWindowExt::focus(&self.ctx.window)
+                        .is_none_or(|f| !f.is_ancestor(&self.head))
+                {
+                    let button = button.clone();
+                    glib::idle_add_local_once(move || {
+                        button.grab_focus();
+                    });
+                }
             }
             None => {
                 if let Some(waiting) = item.waiting.clone() {
