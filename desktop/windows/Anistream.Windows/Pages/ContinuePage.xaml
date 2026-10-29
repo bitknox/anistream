@@ -9,6 +9,86 @@
     Background="{ThemeResource GroundBrush}">
   <Page.Resources>
     <CollectionViewSource x:Name="Groups" IsSourceGrouped="True" />
+    <DataTemplate x:Key="QueueRowTemplate" x:DataType="local:QueueRow">
+            <Grid Height="64" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Name}">
+              <Grid.ContextFlyout>
+                <MenuFlyout>
+                  <MenuFlyoutItem Text="{x:Bind MenuPlay}" Click="OnMenuPlay" Tag="{x:Bind}" IsEnabled="{x:Bind Playable}">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE768;" /></MenuFlyoutItem.Icon>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutItem Text="{x:Bind s:T.EpisodePlayFromBeginning}" Click="OnMenuFromStart" Tag="{x:Bind}"
+                                  Visibility="{x:Bind FromStartShown}" IsEnabled="{x:Bind Playable}">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72C;" /></MenuFlyoutItem.Icon>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutItem Text="{x:Bind s:T.EpisodeMarkWatched}" Click="OnMenuWatched" Tag="{x:Bind}" KeyboardAcceleratorTextOverride="Ctrl+Shift+M">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE73E;" /></MenuFlyoutItem.Icon>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutItem Text="{x:Bind s:T.ContinueHide}" Click="OnMenuHide" Tag="{x:Bind}" KeyboardAcceleratorTextOverride="Delete">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xED1A;" /></MenuFlyoutItem.Icon>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutItem Text="{x:Bind s:T.ContinueDrop}" Click="OnMenuDrop" Tag="{x:Bind}">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE711;" /></MenuFlyoutItem.Icon>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutSeparator />
+                  <MenuFlyoutItem Text="{x:Bind s:T.TitleOpen}" Click="OnMenuOpen" Tag="{x:Bind}">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8A7;" /></MenuFlyoutItem.Icon>
+                  </MenuFlyoutItem>
+                </MenuFlyout>
+              </Grid.ContextFlyout>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="36" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Grid Width="36" Height="54" CornerRadius="6" Background="{x:Bind Cover.Placeholder}">
+                <Image Source="{x:Bind Cover.Cover, Mode=OneWay}" Stretch="UniformToFill" />
+              </Grid>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="{x:Bind Cover.Title}" Style="{StaticResource ShowTitleStyle}" />
+                <TextBlock Text="{x:Bind Lead}" Style="{StaticResource HazeCaptionStyle}" />
+                <ProgressBar Maximum="1" Value="{x:Bind Fraction}" Height="3" MinHeight="3" Margin="0,2,0,0"
+                             Visibility="{x:Bind MeterShown}" IsHitTestVisible="False" />
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+    <DataTemplate x:Key="SuggestionRowTemplate" x:DataType="local:QueueRow">
+            <Grid Height="64" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Name}">
+              <Grid.ContextFlyout>
+                <MenuFlyout>
+                  <MenuFlyoutItem Text="{x:Bind s:T.TitleButtonPlay(1)}" Click="OnSuggestionPlay" Tag="{x:Bind}" Visibility="{x:Bind PlayShown}">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE768;" /></MenuFlyoutItem.Icon>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutItem Text="{x:Bind s:T.UpNextAddPlanning}" Click="OnSuggestionPlan" Tag="{x:Bind}" Visibility="{x:Bind PlanShown}">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutItem Text="{x:Bind s:T.TitleOpen}" Click="OnMenuOpen" Tag="{x:Bind}">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8A7;" /></MenuFlyoutItem.Icon>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutSeparator />
+                  <MenuFlyoutItem Text="{x:Bind s:T.UpNextNotInterested}" Click="OnSuggestionDismiss" Tag="{x:Bind}" KeyboardAcceleratorTextOverride="Delete">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xED1A;" /></MenuFlyoutItem.Icon>
+                  </MenuFlyoutItem>
+                </MenuFlyout>
+              </Grid.ContextFlyout>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="36" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Grid Width="36" Height="54" CornerRadius="6" Background="{x:Bind Cover.Placeholder}">
+                <Image Source="{x:Bind Cover.Cover, Mode=OneWay}" Stretch="UniformToFill" />
+              </Grid>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="{x:Bind Cover.Title}" Style="{StaticResource ShowTitleStyle}" />
+                <Grid ColumnSpacing="0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="{x:Bind Lead}" Style="{StaticResource HazeCaptionStyle}" TextWrapping="NoWrap" TextTrimming="None" Margin="0,0,3,0" />
+                  <TextBlock Grid.Column="1" Text="{x:Bind Tail}" Style="{StaticResource HazeCaptionStyle}" />
+                </Grid>
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
   </Page.Resources>
   <Grid Padding="36,20,36,0" RowSpacing="16">
     <Grid.RowDefinitions>
@@ -38,52 +118,14 @@
           <GroupStyle>
             <GroupStyle.HeaderTemplate>
               <DataTemplate x:DataType="local:QueueGroup">
-                <TextBlock Text="{x:Bind Key}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                <TextBlock Text="{x:Bind Key}" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="{x:Bind Gap}" />
               </DataTemplate>
             </GroupStyle.HeaderTemplate>
           </GroupStyle>
         </ListView.GroupStyle>
-        <ListView.ItemTemplate>
-          <DataTemplate x:DataType="local:QueueRow">
-            <Grid Height="62" ColumnSpacing="12" AutomationProperties.Name="{x:Bind Name}">
-              <Grid.ContextFlyout>
-                <MenuFlyout>
-                  <MenuFlyoutItem Text="{x:Bind MenuPlay}" Click="OnMenuPlay" Tag="{x:Bind}" IsEnabled="{x:Bind Item.Playable}">
-                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE768;" /></MenuFlyoutItem.Icon>
-                  </MenuFlyoutItem>
-                  <MenuFlyoutItem Text="{x:Bind s:T.EpisodePlayFromBeginning}" Click="OnMenuFromStart" Tag="{x:Bind}"
-                                  Visibility="{x:Bind FromStartShown}" IsEnabled="{x:Bind Item.Playable}">
-                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72C;" /></MenuFlyoutItem.Icon>
-                  </MenuFlyoutItem>
-                  <MenuFlyoutItem Text="{x:Bind s:T.EpisodeMarkWatched}" Click="OnMenuWatched" Tag="{x:Bind}" KeyboardAcceleratorTextOverride="Ctrl+Shift+M">
-                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE73E;" /></MenuFlyoutItem.Icon>
-                  </MenuFlyoutItem>
-                  <MenuFlyoutItem Text="{x:Bind s:T.ContinueHide}" Click="OnMenuHide" Tag="{x:Bind}" KeyboardAcceleratorTextOverride="Delete">
-                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xED1A;" /></MenuFlyoutItem.Icon>
-                  </MenuFlyoutItem>
-                  <MenuFlyoutItem Text="{x:Bind s:T.ContinueDrop}" Click="OnMenuDrop" Tag="{x:Bind}">
-                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE711;" /></MenuFlyoutItem.Icon>
-                  </MenuFlyoutItem>
-                  <MenuFlyoutSeparator />
-                  <MenuFlyoutItem Text="{x:Bind s:T.TitleOpen}" Click="OnMenuOpen" Tag="{x:Bind}">
-                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8A7;" /></MenuFlyoutItem.Icon>
-                  </MenuFlyoutItem>
-                </MenuFlyout>
-              </Grid.ContextFlyout>
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="36" />
-                <ColumnDefinition Width="*" />
-              </Grid.ColumnDefinitions>
-              <Grid Width="36" Height="54" CornerRadius="6" Background="{x:Bind Cover.Placeholder}">
-                <Image Source="{x:Bind Cover.Cover, Mode=OneWay}" Stretch="UniformToFill" />
-              </Grid>
-              <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                <TextBlock Text="{x:Bind Cover.Title}" Style="{StaticResource ShowTitleStyle}" />
-                <TextBlock Text="{x:Bind Item.Action}" Style="{StaticResource HazeCaptionStyle}" />
-              </StackPanel>
-            </Grid>
-          </DataTemplate>
-        </ListView.ItemTemplate>
+        <ListView.ItemTemplateSelector>
+          <local:QueueTemplates Queue="{StaticResource QueueRowTemplate}" Suggestion="{StaticResource SuggestionRowTemplate}" />
+        </ListView.ItemTemplateSelector>
       </ListView>
 
       <ScrollViewer Grid.Column="1" x:Name="Preview" VerticalScrollBarVisibility="Auto" Padding="0,0,0,24">
@@ -98,7 +140,10 @@
             <ProgressBar x:Name="EpisodeProgress" Maximum="1" Width="320" HorizontalAlignment="Left" />
             <TextBlock x:Name="LeftLine" Style="{StaticResource HazeCaptionStyle}" />
           </StackPanel>
-          <Button x:Name="PlayButton" Style="{StaticResource PrimaryActionStyle}" Click="OnPlay" Margin="0,4,0,0" />
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+            <Button x:Name="PlayButton" Style="{StaticResource PrimaryActionStyle}" Click="OnPlay" />
+            <Button x:Name="OpenButton" MinHeight="40" Padding="16,0" Click="OnOpenPreview" Visibility="Collapsed" Content="{x:Bind s:T.TitleEpisodes}" />
+          </StackPanel>
           <TextBlock x:Name="WaitingLine" Style="{StaticResource HazeBodyStyle}" Visibility="Collapsed" />
           <TextBlock x:Name="Synopsis" Style="{StaticResource HazeBodyStyle}" TextWrapping="WrapWholeWords" MaxLines="8"
                      TextTrimming="WordEllipsis" Margin="0,8,0,0" />
@@ -107,5 +152,79 @@
     </Grid>
 
     </local:StateHost>
+
+    <!-- With nothing watched: what airs today and this season, which needs no account. -->
+    <ScrollViewer x:Name="Welcome" Grid.Row="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Margin="0,0,-12,0">
+      <StackPanel Spacing="12" Padding="0,0,12,24">
+        <StackPanel x:Name="AiringSection" Spacing="8">
+          <Grid>
+            <TextBlock Text="{x:Bind s:T.ContinueAiringToday}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"
+                       AutomationProperties.HeadingLevel="Level2" />
+            <Button HorizontalAlignment="Right" Style="{StaticResource DefaultButtonStyle}" Background="Transparent" BorderThickness="0"
+                    Height="32" Padding="12,0" Click="OnWelcomeCalendar" AutomationProperties.Name="{x:Bind s:T.NavCalendar}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="{x:Bind s:T.NavCalendar}" />
+                <FontIcon Glyph="&#xE76C;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <ItemsRepeater x:Name="AiringCards">
+            <ItemsRepeater.Layout>
+              <UniformGridLayout MinItemWidth="240" MinColumnSpacing="16" MinRowSpacing="16" ItemsStretch="Fill" />
+            </ItemsRepeater.Layout>
+            <ItemsRepeater.ItemTemplate>
+              <DataTemplate x:DataType="local:WelcomeCard">
+                <Button Padding="0" Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Click="OnWelcomeOpen" Tag="{x:Bind}" AutomationProperties.Name="{x:Bind Name}">
+                  <StackPanel>
+                    <Grid Height="152" CornerRadius="4" Background="{x:Bind Cover.Placeholder}">
+                      <Image Source="{x:Bind Art, Mode=OneWay}" Stretch="UniformToFill" />
+                    </Grid>
+                    <TextBlock Text="{x:Bind Cover.Title}" Style="{StaticResource ShowTitleStyle}" Margin="0,8,0,0" />
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <Ellipse Width="6" Height="6" Fill="#7FC7D9" Visibility="{x:Bind DotShown}" VerticalAlignment="Center" />
+                      <TextBlock Text="{x:Bind Line}" Style="{StaticResource HazeCaptionStyle}" />
+                    </StackPanel>
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsRepeater.ItemTemplate>
+          </ItemsRepeater>
+        </StackPanel>
+        <StackPanel x:Name="SeasonSection" Spacing="8" Margin="0,4,0,0">
+          <Grid>
+            <TextBlock Text="{x:Bind s:T.ContinueThisSeason}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"
+                       AutomationProperties.HeadingLevel="Level2" />
+            <Button HorizontalAlignment="Right" Style="{StaticResource DefaultButtonStyle}" Background="Transparent" BorderThickness="0"
+                    Height="32" Padding="12,0" Click="OnWelcomeSeasonal" AutomationProperties.Name="{x:Bind s:T.NavSeasonal}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="{x:Bind s:T.NavSeasonal}" />
+                <FontIcon Glyph="&#xE76C;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" HorizontalScrollMode="Auto">
+            <ItemsRepeater x:Name="SeasonPosters">
+              <ItemsRepeater.Layout>
+                <StackLayout Orientation="Horizontal" Spacing="16" />
+              </ItemsRepeater.Layout>
+              <ItemsRepeater.ItemTemplate>
+                <DataTemplate x:DataType="local:WelcomeCard">
+                  <Button Padding="0" Background="Transparent" BorderThickness="0" Width="132" HorizontalContentAlignment="Stretch"
+                          Click="OnWelcomeOpen" Tag="{x:Bind}" AutomationProperties.Name="{x:Bind Name}">
+                    <StackPanel>
+                      <Grid Width="132" Height="198" CornerRadius="4" Background="{x:Bind Cover.Placeholder}">
+                        <Image Source="{x:Bind Cover.Cover, Mode=OneWay}" Stretch="UniformToFill" />
+                      </Grid>
+                      <TextBlock Text="{x:Bind Cover.Title}" Style="{StaticResource ShowTitleStyle}" FontSize="14" LineHeight="19" Margin="0,8,0,0" />
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+          </ScrollViewer>
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
   </Grid>
 </Page>

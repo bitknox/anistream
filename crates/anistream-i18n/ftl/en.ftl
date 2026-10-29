@@ -4829,6 +4829,21 @@ up-next-add-planning = Add to Planning
 # Menu item on a suggestion. The show stays hidden until it starts airing.
 up-next-not-interested = Not interested
 
+# Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.
+up-next-row-starts = { $reason } · { $starts }
+
+# Notice after Not interested on a suggestion that is already airing.
+up-next-hidden = { $title } is hidden from Up next for you
+
+# Notice after Not interested on a suggestion that has not started airing.
+up-next-hidden-until-airs = { $title } is hidden until it airs
+
+# Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.
+up-next-broadcast = Episode { $episode } · { $when }
+
+# The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
+up-next-out = out { $ago }
+
 # Format of a show: broadcast on television.
 format-tv = TV
 

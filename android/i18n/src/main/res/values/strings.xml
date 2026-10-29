@@ -1896,6 +1896,16 @@
     <string name="up_next_add_planning">Add to Planning</string>
     <!-- Menu item on a suggestion. The show stays hidden until it starts airing. -->
     <string name="up_next_not_interested">Not interested</string>
+    <!-- Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already. -->
+    <string name="up_next_row_starts">%1$s · %2$s</string>
+    <!-- Notice after Not interested on a suggestion that is already airing. -->
+    <string name="up_next_hidden">%1$s is hidden from Up next for you</string>
+    <!-- Notice after Not interested on a suggestion that has not started airing. -->
+    <string name="up_next_hidden_until_airs">%1$s is hidden until it airs</string>
+    <!-- Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already. -->
+    <string name="up_next_broadcast">Episode %1$d · %2$s</string>
+    <!-- The time of an episode that came out earlier today. The span is already worded, such as "2h ago". -->
+    <string name="up_next_out">out %1$s</string>
     <!-- Format of a show: broadcast on television. -->
     <string name="format_tv">TV</string>
     <!-- Format of a show: a short series on television. -->
