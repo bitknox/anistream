@@ -211,6 +211,12 @@ pub trait PlayerOpener: Send + Sync {
     fn target(&self) -> PlayerTarget {
         PlayerTarget::Local
     }
+
+    /// Why the last [`Self::open`] failed, in the opener's own words, where it has them. The
+    /// session says the player failed to start otherwise.
+    fn open_failure_notice(&self) -> Option<anistream_model::Msg> {
+        None
+    }
 }
 
 /// What a play opens its player with, from the config as it stands now; `None` where this build

@@ -38,12 +38,14 @@ pub struct CastOpener {
     hub: Arc<CastHub>,
     device: CastDevice,
     scratch: PathBuf,
+    /// Why the TV couldn't be reached, once it couldn't.
+    unreached: Mutex<Option<CastFailure>>,
 }
 
 impl CastOpener {
     /// A cast to `device`, with its scratch files, the subtitles fetched ahead, in `scratch`.
     pub fn new(hub: Arc<CastHub>, device: CastDevice, scratch: PathBuf) -> Self {
-        Self { hub, device, scratch }
+        Self { hub, device, scratch, unreached: Mutex::new(None) }
     }
 
     pub fn device(&self) -> &CastDevice {
@@ -56,6 +58,10 @@ impl PlayerOpener for CastOpener {
     /// Connect to the TV and open the relay it will read from. Nothing shows on the TV until the
     /// first file loads, so a stream it can't play never takes it over.
     async fn open(&self, request: &PlaybackRequest) -> Result<Opened, LinkError> {
+        // A TV this cast couldn't reach isn't tried again for the play's next stream.
+        if let Some(failure) = lock(&self.unreached).clone() {
+            return Err(LinkError(failure.to_string()));
+        }
         let setup = CastSetup {
             device: self.device.clone(),
             memory: self.hub.memory(),
@@ -65,7 +71,13 @@ impl PlayerOpener for CastOpener {
         };
         let (player, events) = match CastPlayer::connect(setup).await {
             Ok(opened) => opened,
-            Err(failure) => return Err(LinkError(notice(&failure).english())),
+            Err(failure) => {
+                // The card shows why, and the casting ends: no player ever ran to end it.
+                tracing::warn!(%failure, "couldn't reach the TV");
+                *lock(&self.unreached) = Some(failure.clone());
+                self.hub.failed(failure.clone());
+                return Err(LinkError(failure.to_string()));
+            }
         };
         let player = Arc::new(player);
         self.hub.attach(&player);
@@ -87,6 +99,10 @@ impl PlayerOpener for CastOpener {
 
     fn target(&self) -> PlayerTarget {
         PlayerTarget::Cast(self.device.id.clone())
+    }
+
+    fn open_failure_notice(&self) -> Option<Msg> {
+        lock(&self.unreached).as_ref().map(notice)
     }
 }
 
@@ -530,6 +546,39 @@ mod tests {
         let levels = levels();
         assert!((levels[0] - 0.7).abs() < 1e-9, "{levels:?}");
         assert!((levels[1] - 0.5).abs() < 1e-9, "{levels:?}");
+    }
+
+    #[tokio::test]
+    async fn a_tv_that_cant_be_reached_ends_the_cast_and_says_why() {
+        use anistream_cast::{PlainHttp, Timings};
+
+        // A loopback port nothing listens on.
+        let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap();
+        let device = CastDevice {
+            instance: "Chromecast-test".into(),
+            id: "tv-1".into(),
+            name: "Living room".into(),
+            model: "Chromecast".into(),
+            address: closed,
+            video: true,
+            group: false,
+        };
+        let hub = Arc::new(CastHub::with(None, Arc::new(PlainHttp), Timings::default()));
+        hub.begin(device.clone());
+        let dir = tempfile::tempdir().unwrap();
+        let opener = CastOpener::new(Arc::clone(&hub), device, dir.path().to_owned());
+        let request = PlaybackRequest::default();
+        assert!(opener.open(&request).await.is_err());
+
+        assert_eq!(opener.open_failure_notice(), Some(Msg::NoticeCastLost));
+        assert!(!hub.casting(), "the next play opens on this device");
+        let view = hub.view();
+        assert!(view.over, "the card isn't left starting");
+        assert!(matches!(view.status.and_then(|s| s.failure), Some(CastFailure::Lost(_))));
+        // The play's next stream doesn't wait on the TV again.
+        let again = tokio::time::Instant::now();
+        assert!(opener.open(&request).await.is_err());
+        assert!(again.elapsed() < std::time::Duration::from_millis(100));
     }
 
     #[test]

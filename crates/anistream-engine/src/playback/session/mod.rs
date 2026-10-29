@@ -383,10 +383,10 @@ pub async fn play(
             match opener.open(&request).await {
                 Ok((link, events)) => player = Some(Player::new(link, events)),
                 Err(e) if last => {
-                    let _ =
-                        tx.send(Event::Toast(Notice::alert(Msg::NoticePlayerFailedToStart {
-                            reason: e.to_string(),
-                        })));
+                    let notice = opener.open_failure_notice().unwrap_or_else(|| {
+                        Msg::NoticePlayerFailedToStart { reason: e.to_string() }
+                    });
+                    let _ = tx.send(Event::Toast(Notice::alert(notice)));
                     // The player never existed, but the UI has Now Playing up and a control
                     // surface pointed at it. Saying so is what takes them down.
                     let _ = tx.send(Event::playback_ended(false, Ending::Failed));

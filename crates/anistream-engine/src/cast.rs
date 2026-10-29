@@ -19,7 +19,8 @@ use std::{
 
 pub use anistream_cast as protocol;
 use anistream_cast::{
-    AacEncoder, CastDevice, CastMemory, CastPlayer, CastStatus, NoEncoder, PlainHttp, Timings,
+    AacEncoder, CastDevice, CastFailure, CastMemory, CastPlayer, CastState, CastStatus,
+    NoEncoder, PlainHttp, Timings,
     Upstream, UpstreamResponse, formats::is_loopback_url,
 };
 use anistream_model::event::Event;
@@ -188,6 +189,21 @@ impl CastHub {
     pub fn end(&self) {
         {
             let mut cast = lock(&self.cast);
+            cast.over = true;
+            cast.player = Weak::new();
+        }
+        self.bump();
+    }
+
+    /// The cast couldn't reach the TV: the card says why, and casting ends, so the next play
+    /// opens on this device.
+    pub(crate) fn failed(&self, failure: CastFailure) {
+        {
+            let mut cast = lock(&self.cast);
+            let mut status = cast.status.clone().unwrap_or_default();
+            status.state = CastState::Ended;
+            status.failure = Some(failure);
+            cast.status = Some(status);
             cast.over = true;
             cast.player = Weak::new();
         }
