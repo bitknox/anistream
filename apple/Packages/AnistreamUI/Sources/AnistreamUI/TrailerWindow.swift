@@ -221,10 +221,17 @@ struct TrailerPresentation: ViewModifier {
 
     func body(content: Content) -> some View {
         #if os(macOS)
-        content.onChange(of: navigator.trailerRequest) { _, request in
-            guard let request else { return }
-            navigator.trailerRequest = nil
-            openWindow(id: TrailerRequest.windowId, value: request)
+        @Bindable var navigator = navigator
+        if LaunchRoute.current.sheet == "trailer" {
+            // A shot of the window: the screenshot harness has one window, so the trailer shows in
+            // a sheet over it.
+            content.sheet(item: $navigator.trailerRequest) { TrailerWindowView(request: $0).frame(width: 960) }
+        } else {
+            content.onChange(of: navigator.trailerRequest) { _, request in
+                guard let request else { return }
+                navigator.trailerRequest = nil
+                openWindow(id: TrailerRequest.windowId, value: request)
+            }
         }
         #else
         @Bindable var navigator = navigator

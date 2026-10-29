@@ -19,7 +19,8 @@ enum TrailerLayout {
     static let videoTop: CGFloat = 60
     static let soundSize: CGFloat = 28
     #else
-    static let band: CGFloat = 350
+    /// 16 pt taller than the Mac's so the title, which starts at the cover's top, clears the video.
+    static let band: CGFloat = 366
     static let videoTop: CGFloat = 82
     static let soundSize: CGFloat = 44
     #endif
@@ -116,6 +117,13 @@ struct TrailerLifecycle: ViewModifier {
                 visit.begin { signal in
                     TrailerPlayer(trailer: trailer, style: .banner, onSignal: signal)
                 }
+            }
+            .task {
+                // The Fixtures app opens Play trailer at launch for a shot: sheet=trailer.
+                guard navigator.launchSheet == "trailer" else { return }
+                navigator.launchSheet = nil
+                try? await Task.sleep(for: .seconds(2))
+                navigator.playTrailer(store.titles.page(entry.id), store: store)
             }
             .onDisappear { visit.release() }
             .onChange(of: scenePhase) { _, phase in if phase != .active { visit.release() } }
