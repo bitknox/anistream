@@ -2341,6 +2341,46 @@ object Strings {
     fun calendarComingUpEmpty(context: Context): String =
         context.getString(R.string.calendar_coming_up_empty)
 
+    /** Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown. */
+    fun calendarToday(context: Context): String =
+        context.getString(R.string.calendar_today)
+
+    /** Line where days before the first day the calendar reaches would be. */
+    fun calendarFloor(context: Context): String =
+        context.getString(R.string.calendar_floor)
+
+    /** Line where days after the last day the calendar reaches would be. */
+    fun calendarCeiling(context: Context): String =
+        context.getString(R.string.calendar_ceiling)
+
+    /** Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling. */
+    fun calendarEnd(context: Context): String =
+        context.getString(R.string.calendar_end)
+
+    /** Activity line while earlier broadcasts load. */
+    fun calendarLoadingEarlier(context: Context): String =
+        context.getString(R.string.calendar_loading_earlier)
+
+    /** Activity line while later broadcasts load. */
+    fun calendarLoadingLater(context: Context): String =
+        context.getString(R.string.calendar_loading_later)
+
+    /** Line where earlier broadcasts would be when they could not be loaded. */
+    fun calendarLoadEarlierFailed(context: Context): String =
+        context.getString(R.string.calendar_load_earlier_failed)
+
+    /** Line where later broadcasts would be when they could not be loaded. */
+    fun calendarLoadLaterFailed(context: Context): String =
+        context.getString(R.string.calendar_load_later_failed)
+
+    /** Button under the line saying nothing on the person's list airs: shows every airing show. */
+    fun calendarShowAll(context: Context): String =
+        context.getString(R.string.calendar_show_all)
+
+    /** What a screen reader says for the line that marks the time now. The time is already worded. */
+    fun calendarNowSpoken(context: Context, time: String): String =
+        context.getString(R.string.calendar_now_spoken, time)
+
     /** Button that runs a failed action again. */
     fun actionTryAgain(context: Context): String =
         context.getString(R.string.action_try_again)

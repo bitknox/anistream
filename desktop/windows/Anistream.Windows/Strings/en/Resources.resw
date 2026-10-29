@@ -1043,6 +1043,10 @@
     <value>Downloads use the quality in Settings › Downloads.</value>
     <comment>Download dialog: the note under the range.</comment>
   </data>
+  <data name="CalendarTodayTooltip" xml:space="preserve">
+    <value>Today ({keys})</value>
+    <comment>Calendar: tooltip of the button that returns to the current week, with its shortcut.</comment>
+  </data>
   <data name="PlayerEpisodeLineTitled" xml:space="preserve">
     <value>{line} · {title}</value>
     <comment>An episode's line in the player's title bar and in the system media controls: the episode's label (already "Episode 10" or "Episode 10 · Dubbed"), then the episode's own title.</comment>
@@ -1794,6 +1798,46 @@
   <data name="CalendarComingUpEmpty" xml:space="preserve">
     <value>Nothing airs this week for the shows you follow.</value>
     <comment>Line when no show the person follows airs in the next seven days.</comment>
+  </data>
+  <data name="CalendarToday" xml:space="preserve">
+    <value>Today</value>
+    <comment>Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.</comment>
+  </data>
+  <data name="CalendarFloor" xml:space="preserve">
+    <value>The calendar goes back 3 months.</value>
+    <comment>Line where days before the first day the calendar reaches would be.</comment>
+  </data>
+  <data name="CalendarCeiling" xml:space="preserve">
+    <value>The calendar goes 4 weeks ahead.</value>
+    <comment>Line where days after the last day the calendar reaches would be.</comment>
+  </data>
+  <data name="CalendarEnd" xml:space="preserve">
+    <value>Nothing later is scheduled yet.</value>
+    <comment>Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.</comment>
+  </data>
+  <data name="CalendarLoadingEarlier" xml:space="preserve">
+    <value>Loading earlier broadcasts</value>
+    <comment>Activity line while earlier broadcasts load.</comment>
+  </data>
+  <data name="CalendarLoadingLater" xml:space="preserve">
+    <value>Loading later broadcasts</value>
+    <comment>Activity line while later broadcasts load.</comment>
+  </data>
+  <data name="CalendarLoadEarlierFailed" xml:space="preserve">
+    <value>Couldn't load earlier broadcasts</value>
+    <comment>Line where earlier broadcasts would be when they could not be loaded.</comment>
+  </data>
+  <data name="CalendarLoadLaterFailed" xml:space="preserve">
+    <value>Couldn't load later broadcasts</value>
+    <comment>Line where later broadcasts would be when they could not be loaded.</comment>
+  </data>
+  <data name="CalendarShowAll" xml:space="preserve">
+    <value>Show all airing</value>
+    <comment>Button under the line saying nothing on the person's list airs: shows every airing show.</comment>
+  </data>
+  <data name="CalendarNowSpoken" xml:space="preserve">
+    <value>Now, {time}</value>
+    <comment>What a screen reader says for the line that marks the time now. The time is already worded.</comment>
   </data>
   <data name="ActionTryAgain" xml:space="preserve">
     <value>Try again</value>

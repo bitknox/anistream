@@ -3827,6 +3827,36 @@ calendar-coming-up = Coming up · next 7 days
 # Line when no show the person follows airs in the next seven days.
 calendar-coming-up-empty = Nothing airs this week for the shows you follow.
 
+# Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.
+calendar-today = Today
+
+# Line where days before the first day the calendar reaches would be.
+calendar-floor = The calendar goes back 3 months.
+
+# Line where days after the last day the calendar reaches would be.
+calendar-ceiling = The calendar goes 4 weeks ahead.
+
+# Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.
+calendar-end = Nothing later is scheduled yet.
+
+# Activity line while earlier broadcasts load.
+calendar-loading-earlier = Loading earlier broadcasts
+
+# Activity line while later broadcasts load.
+calendar-loading-later = Loading later broadcasts
+
+# Line where earlier broadcasts would be when they could not be loaded.
+calendar-load-earlier-failed = Couldn't load earlier broadcasts
+
+# Line where later broadcasts would be when they could not be loaded.
+calendar-load-later-failed = Couldn't load later broadcasts
+
+# Button under the line saying nothing on the person's list airs: shows every airing show.
+calendar-show-all = Show all airing
+
+# What a screen reader says for the line that marks the time now. The time is already worded.
+calendar-now-spoken = Now, { $time }
+
 # Button that runs a failed action again.
 action-try-again = Try again
 
