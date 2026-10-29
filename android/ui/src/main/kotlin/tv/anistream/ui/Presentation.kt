@@ -138,6 +138,7 @@ data class TitleAction(
             val dub = entry.watchedIn
             if (resume != null) return TitleAction(episode, resume, EpisodeAiring.Aired, translation = dub)
             if (target.unsourced) return TitleAction(episode, null, entry.airing(episode), translation = dub, unsourced = true)
+            if (entry.watchedAll) return TitleAction(episode, null, EpisodeAiring.Aired, translation = dub, watchAgain = true)
             // The schedule says when the very episode airs, where AniList has one.
             val scheduled = entry.detail?.schedule?.firstOrNull { it.episode == episode }
             if (scheduled != null) {
@@ -147,7 +148,6 @@ data class TitleAction(
                     TitleAction(episode, null, EpisodeAiring.Aired, translation = dub)
                 }
             }
-            if (entry.watchedAll) return TitleAction(episode, null, EpisodeAiring.Aired, translation = dub, watchAgain = true)
             return TitleAction(episode, null, entry.airing(episode), translation = dub)
         }
     }

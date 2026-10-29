@@ -78,6 +78,7 @@ data class PlayAction(
             val dub = entry.watchedIn
             if (resume != null) return PlayAction(episode, resume, EpisodeAiring.Aired, translation = dub)
             if (target.unsourced) return PlayAction(episode, null, entry.airing(episode), translation = dub, unsourced = true)
+            if (entry.watchedAll) return PlayAction(episode, null, EpisodeAiring.Aired, translation = dub, watchAgain = true)
             val scheduled = entry.detail?.schedule?.firstOrNull { it.episode == episode }
             if (scheduled != null) {
                 return if (scheduled.airsAt > now) {
@@ -86,7 +87,6 @@ data class PlayAction(
                     PlayAction(episode, null, EpisodeAiring.Aired, translation = dub)
                 }
             }
-            if (entry.watchedAll) return PlayAction(episode, null, EpisodeAiring.Aired, translation = dub, watchAgain = true)
             return PlayAction(episode, null, entry.airing(episode), translation = dub)
         }
     }
