@@ -4695,16 +4695,16 @@ film-length-hours = { $hours } hr
 # Length of a film or a single episode under an hour, such as "46 min".
 film-length-minutes = { $minutes } min
 
-# Country name, after "Made in".
+# Country name: the origin filter and, after "Made in", the title facts.
 country-japan = Japan
 
-# Country name, after "Made in".
+# Country name: the origin filter and, after "Made in", the title facts.
 country-china = China
 
 # Country name, after "Made in".
 country-south-korea = South Korea
 
-# Country name, after "Made in".
+# Country name: the origin filter and, after "Made in", the title facts.
 country-taiwan = Taiwan
 
 # Fact on a show made outside Japan, with the country already named.

@@ -2392,7 +2392,7 @@
       }
     },
     "country-china" : {
-      "comment" : "Country name, after \"Made in\".",
+      "comment" : "Country name: the origin filter and, after \"Made in\", the title facts.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2404,7 +2404,7 @@
       }
     },
     "country-japan" : {
-      "comment" : "Country name, after \"Made in\".",
+      "comment" : "Country name: the origin filter and, after \"Made in\", the title facts.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2428,7 +2428,7 @@
       }
     },
     "country-taiwan" : {
-      "comment" : "Country name, after \"Made in\".",
+      "comment" : "Country name: the origin filter and, after \"Made in\", the title facts.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

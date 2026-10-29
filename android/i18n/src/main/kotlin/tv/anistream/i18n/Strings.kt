@@ -1473,21 +1473,9 @@ object Strings {
     fun updatesOpenRelease(context: Context): String =
         context.getString(R.string.updates_open_release)
 
-    /** Country of origin filter: Japan. */
-    fun countryJapan(context: Context): String =
-        context.getString(R.string.country_japan)
-
-    /** Country of origin filter: China. */
-    fun countryChina(context: Context): String =
-        context.getString(R.string.country_china)
-
     /** Country of origin filter: South Korea. */
     fun countryKorea(context: Context): String =
         context.getString(R.string.country_korea)
-
-    /** Country of origin filter: Taiwan. */
-    fun countryTaiwan(context: Context): String =
-        context.getString(R.string.country_taiwan)
 
     /** Search chip for several genres picked. */
     fun searchGenresPicked(context: Context, count: Int): String =
@@ -3501,11 +3489,11 @@ object Strings {
     fun filmLengthMinutes(context: Context, minutes: Int): String =
         context.getString(R.string.film_length_minutes, minutes)
 
-    /** Country name, after "Made in". */
+    /** Country name: the origin filter and, after "Made in", the title facts. */
     fun countryJapan(context: Context): String =
         context.getString(R.string.country_japan)
 
-    /** Country name, after "Made in". */
+    /** Country name: the origin filter and, after "Made in", the title facts. */
     fun countryChina(context: Context): String =
         context.getString(R.string.country_china)
 
@@ -3513,7 +3501,7 @@ object Strings {
     fun countrySouthKorea(context: Context): String =
         context.getString(R.string.country_south_korea)
 
-    /** Country name, after "Made in". */
+    /** Country name: the origin filter and, after "Made in", the title facts. */
     fun countryTaiwan(context: Context): String =
         context.getString(R.string.country_taiwan)
 

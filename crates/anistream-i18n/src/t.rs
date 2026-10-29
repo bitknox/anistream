@@ -7490,12 +7490,12 @@ pub fn film_length_minutes(minutes: i64) -> String {
     text("film-length-minutes", &[("minutes", Arg::Int(minutes))])
 }
 
-/// Country name, after "Made in".
+/// Country name: the origin filter and, after "Made in", the title facts.
 pub fn country_japan() -> String {
     text("country-japan", &[])
 }
 
-/// Country name, after "Made in".
+/// Country name: the origin filter and, after "Made in", the title facts.
 pub fn country_china() -> String {
     text("country-china", &[])
 }
@@ -7505,7 +7505,7 @@ pub fn country_south_korea() -> String {
     text("country-south-korea", &[])
 }
 
-/// Country name, after "Made in".
+/// Country name: the origin filter and, after "Made in", the title facts.
 pub fn country_taiwan() -> String {
     text("country-taiwan", &[])
 }

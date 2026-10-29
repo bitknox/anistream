@@ -114,16 +114,19 @@ film-length-minutes = { $minutes } min
 
 ## Where a show was made
 
-# Country name, after "Made in".
+# Country name: the origin filter and, after "Made in", the title facts.
+# @max 20
 country-japan = Japan
 
-# Country name, after "Made in".
+# Country name: the origin filter and, after "Made in", the title facts.
+# @max 20
 country-china = China
 
 # Country name, after "Made in".
 country-south-korea = South Korea
 
-# Country name, after "Made in".
+# Country name: the origin filter and, after "Made in", the title facts.
+# @max 20
 country-taiwan = Taiwan
 
 # Fact on a show made outside Japan, with the country already named.

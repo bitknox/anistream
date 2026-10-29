@@ -794,14 +794,8 @@
     <string name="updates_closes_as_installs">anistream closes as it installs</string>
     <!-- Button on the update notice where this build cannot install the update itself: it opens the version's page. -->
     <string name="updates_open_release">Open page</string>
-    <!-- Country of origin filter: Japan. -->
-    <string name="country_japan">Japan</string>
-    <!-- Country of origin filter: China. -->
-    <string name="country_china">China</string>
     <!-- Country of origin filter: South Korea. -->
     <string name="country_korea">Korea</string>
-    <!-- Country of origin filter: Taiwan. -->
-    <string name="country_taiwan">Taiwan</string>
     <!-- Search chip for several genres picked. -->
     <plurals name="search_genres_picked">
         <item quantity="one">One genre</item>
@@ -1856,13 +1850,13 @@
     <string name="film_length_hours">%1$d hr</string>
     <!-- Length of a film or a single episode under an hour, such as "46 min". -->
     <string name="film_length_minutes">%1$d min</string>
-    <!-- Country name, after "Made in". -->
+    <!-- Country name: the origin filter and, after "Made in", the title facts. -->
     <string name="country_japan">Japan</string>
-    <!-- Country name, after "Made in". -->
+    <!-- Country name: the origin filter and, after "Made in", the title facts. -->
     <string name="country_china">China</string>
     <!-- Country name, after "Made in". -->
     <string name="country_south_korea">South Korea</string>
-    <!-- Country name, after "Made in". -->
+    <!-- Country name: the origin filter and, after "Made in", the title facts. -->
     <string name="country_taiwan">Taiwan</string>
     <!-- Fact on a show made outside Japan, with the country already named. -->
     <string name="media_made_in">Made in %1$s</string>

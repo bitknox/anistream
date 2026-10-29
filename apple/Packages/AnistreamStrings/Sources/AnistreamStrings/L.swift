@@ -2027,16 +2027,16 @@ public enum L {
         Self.format("film-length-minutes", fallback: "%1$lld min", minutes)
     }
 
-    /// Country name, after "Made in".
+    /// Country name: the origin filter and, after "Made in", the title facts.
     public static var countryJapan: String { string("country-japan", fallback: "Japan") }
 
-    /// Country name, after "Made in".
+    /// Country name: the origin filter and, after "Made in", the title facts.
     public static var countryChina: String { string("country-china", fallback: "China") }
 
     /// Country name, after "Made in".
     public static var countrySouthKorea: String { string("country-south-korea", fallback: "South Korea") }
 
-    /// Country name, after "Made in".
+    /// Country name: the origin filter and, after "Made in", the title facts.
     public static var countryTaiwan: String { string("country-taiwan", fallback: "Taiwan") }
 
     /// Fact on a show made outside Japan, with the country already named.

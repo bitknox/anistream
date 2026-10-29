@@ -2981,11 +2981,11 @@
   </data>
   <data name="CountryJapan" xml:space="preserve">
     <value>Japan</value>
-    <comment>Country name, after "Made in".</comment>
+    <comment>Country name: the origin filter and, after "Made in", the title facts.</comment>
   </data>
   <data name="CountryChina" xml:space="preserve">
     <value>China</value>
-    <comment>Country name, after "Made in".</comment>
+    <comment>Country name: the origin filter and, after "Made in", the title facts.</comment>
   </data>
   <data name="CountrySouthKorea" xml:space="preserve">
     <value>South Korea</value>
@@ -2993,7 +2993,7 @@
   </data>
   <data name="CountryTaiwan" xml:space="preserve">
     <value>Taiwan</value>
-    <comment>Country name, after "Made in".</comment>
+    <comment>Country name: the origin filter and, after "Made in", the title facts.</comment>
   </data>
   <data name="MediaMadeIn" xml:space="preserve">
     <value>Made in {country}</value>

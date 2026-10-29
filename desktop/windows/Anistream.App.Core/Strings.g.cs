@@ -2145,16 +2145,16 @@ public static partial class T
     /// <summary>Length of a film or a single episode under an hour, such as "46 min".</summary>
     public static string FilmLengthMinutes(long minutes) => Fill(Get("FilmLengthMinutes"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
-    /// <summary>Country name, after "Made in".</summary>
+    /// <summary>Country name: the origin filter and, after "Made in", the title facts.</summary>
     public static string CountryJapan => Get("CountryJapan");
 
-    /// <summary>Country name, after "Made in".</summary>
+    /// <summary>Country name: the origin filter and, after "Made in", the title facts.</summary>
     public static string CountryChina => Get("CountryChina");
 
     /// <summary>Country name, after "Made in".</summary>
     public static string CountrySouthKorea => Get("CountrySouthKorea");
 
-    /// <summary>Country name, after "Made in".</summary>
+    /// <summary>Country name: the origin filter and, after "Made in", the title facts.</summary>
     public static string CountryTaiwan => Get("CountryTaiwan");
 
     /// <summary>Fact on a show made outside Japan, with the country already named.</summary>
