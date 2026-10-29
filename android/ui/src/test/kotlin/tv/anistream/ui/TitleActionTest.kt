@@ -36,4 +36,21 @@ class TitleActionTest {
         assertEquals("Play episode 7", TitleAction.of(entry(null)).label(context))
         assertEquals("Resume episode 7 · 10:06", TitleAction.of(entry(Translation.SUB, ResumePoint(606.0, 0.42))).label(context))
     }
+
+    @Test
+    fun a_finished_show_offers_to_watch_again_from_episode_one() {
+        val finished = Entry(id = 900001u, title = "Stardust Wayfarer", episodes = 12u, progress = TitleProgress(done = 12u, next = 1u))
+        val action = TitleAction.of(finished)
+        assertEquals("Watch again", action.label(context))
+        assertEquals(1u, action.episode)
+        assertEquals(true, action.playable)
+    }
+
+    @Test
+    fun an_unknown_count_or_a_part_watched_show_keeps_play() {
+        val unknown = Entry(id = 900001u, title = "Stardust Wayfarer", progress = TitleProgress(done = 12u, next = 1u))
+        assertEquals("Play episode 1", TitleAction.of(unknown).label(context))
+        val part = Entry(id = 900001u, title = "Stardust Wayfarer", episodes = 12u, progress = TitleProgress(done = 11u, next = 12u))
+        assertEquals("Play episode 12", TitleAction.of(part).label(context))
+    }
 }
