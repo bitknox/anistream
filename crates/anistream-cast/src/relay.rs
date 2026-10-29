@@ -409,7 +409,9 @@ async fn head(
         Some(length) => format!("Content-Length: {length}\r\n"),
         None => "Connection: close\r\n".to_owned(),
     };
-    let head = format!("HTTP/1.1 {status} {reason}\r\n{extra}{length}\r\n");
+    // The same paths carry each load's playlist and segments, so nothing may be kept.
+    let head =
+        format!("HTTP/1.1 {status} {reason}\r\nCache-Control: no-store\r\n{extra}{length}\r\n");
     write.write_all(head.as_bytes()).await
 }
 
@@ -870,6 +872,7 @@ mod tests {
         let response = get(&url, None).await;
         assert_eq!(response.status, 200);
         assert_eq!(response.header("access-control-allow-origin"), Some("*"));
+        assert_eq!(response.header("cache-control"), Some("no-store"));
         assert_eq!(response.bytes(1 << 20).await.unwrap(), body);
         assert!(relay.media_served());
 
@@ -932,7 +935,8 @@ mod tests {
         )
         .await
         .unwrap();
-        let response = get(&relay.upstream_url(&format!("{source}/play?token=abc")), None).await;
+        let response =
+            get(&relay.upstream_url(&format!("{source}/play?token=abc")), None).await;
         assert_eq!(response.status, 200);
         assert!(response.header("content-type").is_some_and(|t| t.contains("mpegurl")));
         let text = String::from_utf8(response.bytes(1 << 20).await.unwrap()).unwrap();
@@ -979,8 +983,8 @@ mod tests {
         .await
         .unwrap();
         let asked = relay.upstream_url("http://origin.example/show/index.m3u8");
-        let text = String::from_utf8(get(&asked, None).await.bytes(1 << 20).await.unwrap())
-            .unwrap();
+        let text =
+            String::from_utf8(get(&asked, None).await.bytes(1 << 20).await.unwrap()).unwrap();
         let segment = format!("{}/u/{}", relay.base(), encode(&format!("{edge}/edge/seg0.ts")));
         assert!(text.contains(&segment), "{text}");
         // And the edge's segments may be fetched from now on.
