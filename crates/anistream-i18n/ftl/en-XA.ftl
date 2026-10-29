@@ -6571,6 +6571,9 @@ title-loading = [Ļöàðîñĝ ţĥîš ţîţļé~~~~~~]
 # Button on the title page that plays the trailer.
 title-trailer = [Ţŕàîļéŕ~~~]
 
+# Main button of the title page when every episode of the show is watched: plays episode 1 again.
+title-button-watch-again = [Ŵàţçĥ àĝàîñ~~~~]
+
 # Menu item that plays the trailer.
 title-play-trailer = [Þļàý ţŕàîļéŕ~~~~]
 
