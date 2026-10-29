@@ -124,6 +124,9 @@ internal object Icons {
     val Chevron = stroked("Chevron", "M10 7 L15 12 L10 17")
     val Check = stroked("Check", "M5 12.5 L10 17.5 L19 7")
     val Trailer = stroked("Trailer", "M8 6.5 V17.5 L17 12 Z")
+    private const val SPEAKER = "M4 9.5 H7.5 L12 6 V18 L7.5 14.5 H4 Z"
+    val SoundOff = stroked("SoundOff", SPEAKER, "M15.5 9.5 L20 14.5 M20 9.5 L15.5 14.5")
+    val SoundOn = stroked("SoundOn", SPEAKER, "M15.5 9 C16.8 10.4 16.8 13.6 15.5 15", "M18 6.5 C20.7 9.5 20.7 14.5 18 17.5")
     val Hidden = stroked(
         "Hidden",
         "M3 3 L21 21",

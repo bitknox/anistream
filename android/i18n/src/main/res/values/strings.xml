@@ -1147,6 +1147,16 @@
         <item quantity="one">One seeder</item>
         <item quantity="other">%1$d seeders</item>
     </plurals>
+    <!-- Settings row: when a title's trailer plays by itself, muted, in place of its banner. -->
+    <string name="settings_trailers_label">Play trailers</string>
+    <!-- Value of the Play trailers setting: trailers play by themselves on any network. -->
+    <string name="settings_trailers_always">Always</string>
+    <!-- Value of the Play trailers setting: trailers play by themselves only on Wi-Fi. -->
+    <string name="settings_trailers_wifi_only">Wi-Fi only</string>
+    <!-- Note under the Play trailers setting: what the trailers are and when they do not play. -->
+    <string name="settings_trailers_note">Trailers play muted from YouTube, which sees your IP address. They don\'t play with Data Saver or Battery Saver on, with animations removed or with TalkBack running.</string>
+    <!-- Heading in the trailer sheet when the video did not start within a few seconds or the player refused it. -->
+    <string name="trailer_failed">Couldn\'t open the trailer</string>
     <!-- Title of the about page. -->
     <string name="about_title">About</string>
     <!-- Title of the about page on desktop. -->

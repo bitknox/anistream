@@ -24,6 +24,12 @@ import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.core.SourceCandidate
 import tv.anistream.engine.ffi.FfiEngine
+import tv.anistream.i18n.Strings
+import tv.anistream.engine.ffi.trailerMayAutoplay as engineTrailerMayAutoplay
+import tv.anistream.engine.ffi.trailerWatchUrl as engineTrailerWatchUrl
+import tv.anistream.engine.model.Entry as EngineEntry
+import tv.anistream.engine.model.Notice as EngineNotice
+import tv.anistream.engine.model.Trailer as EngineTrailer
 import tv.anistream.engine.ffi.FfiException
 import tv.anistream.engine.ffi.FfiHost
 import tv.anistream.engine.ffi.FfiTvBrowser
@@ -87,6 +93,14 @@ class AppStore(
 
     /** The one offline state, as the engine says it from the network path the app reports. */
     val offline: StateFlow<Boolean> = _offline.asStateFlow()
+
+    private val _autoplay = MutableStateFlow(false)
+
+    /**
+     * Whether trailers may start by themselves now, as the engine says it from the setting, the
+     * network and what the device reports. False until it says so, so no page makes room early.
+     */
+    val trailersMayAutoplay: StateFlow<Boolean> = _autoplay.asStateFlow()
 
     val titles = TitleCache()
     val continuing = ContinueModel()
@@ -477,6 +491,15 @@ class AppStore(
         send(Command.OpenExternal(url))
     }
 
+    /**
+     * The player refused the trailer, or has none for it: its watch page in the browser, and the
+     * notice that says so.
+     */
+    fun openTrailerInBrowser(trailer: EngineTrailer) {
+        openExternal(engineTrailerWatchUrl(trailer))
+        notices.post(EngineNotice(kind = NoticeKind.INFO, text = "", hint = null), Strings::noticeTrailerOpened)
+    }
+
     /** The downloads, once a session unless [force]. */
     fun loadDownloads(force: Boolean = false) {
         if (!force && downloads.loaded.value) return
@@ -539,6 +562,18 @@ class AppStore(
     fun networkPath(cellular: Boolean, constrained: Boolean, offline: Boolean = false) {
         send(Command.NetworkPath(cellular, constrained, offline))
     }
+
+    /**
+     * What the device says about itself, for the engine to decide when trailers play: Remove
+     * animations, power saving, a hot device, a screen reader, a low-memory device.
+     */
+    fun deviceState(state: DeviceState) {
+        send(Command.DeviceState(state.reduceMotion, true, state.lowPower, state.thermalSerious, state.screenReader, state.lowMemory))
+    }
+
+    /** Whether [entry]'s trailer may start by itself: the title's side of it, with the spoiler rule. */
+    fun trailerMayAutoplay(entry: EngineEntry): Boolean =
+        _autoplay.value && engineTrailerMayAutoplay(entry, settings.isOn(SettingKey.SPOILER_PROTECTION))
 
     /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
     fun hideFromContinue(id: AnilistId) {
@@ -869,6 +904,7 @@ class AppStore(
 
             is Event.Status -> notices.status(event.v1)
             is Event.Connectivity -> _offline.value = event.offline
+            is Event.Autoplay -> _autoplay.value = event.v1.trailers
             is Event.Toast -> notices.post(event.v1)
 
             is Event.Sync -> accounts.apply(event.v1)
@@ -973,4 +1009,13 @@ data class SourceChoices(
     val episode: String,
     val candidates: List<tv.anistream.engine.core.SourceCandidate>? = null,
     val job: JobId? = null,
+)
+
+/** What the device reports for trailers to be held back by. */
+data class DeviceState(
+    val reduceMotion: Boolean = false,
+    val lowPower: Boolean = false,
+    val thermalSerious: Boolean = false,
+    val screenReader: Boolean = false,
+    val lowMemory: Boolean = false,
 )
