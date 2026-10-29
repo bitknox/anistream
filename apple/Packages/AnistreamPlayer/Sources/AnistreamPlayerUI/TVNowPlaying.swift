@@ -5,6 +5,7 @@
 #if os(macOS)
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import Foundation
 import MediaPlayer
 import Observation
@@ -54,7 +55,7 @@ public final class TVNowPlaying {
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: now.episodeLine,
             MPMediaItemPropertyArtist: now.title,
-            MPMediaItemPropertyAlbumTitle: "Playing on \(tvName)",
+            MPMediaItemPropertyAlbumTitle: L.tvStatusPlaying(name: tvName),
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.video.rawValue,
             MPNowPlayingInfoPropertyElapsedPlaybackTime: playhead,
             MPNowPlayingInfoPropertyPlaybackRate: playing(now, live: live) ? now.speed : 0.0,

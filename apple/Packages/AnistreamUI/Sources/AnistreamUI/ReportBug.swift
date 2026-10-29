@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// Opens the bug report for this device, with an error when the report starts from one.
@@ -18,7 +19,7 @@ struct ReportBugAction {
 
     /// The newest problem the app has told of this session, for a report started from a menu.
     var lastProblem: BugContext? {
-        store.notices.log.first { $0.isAlert }.map { BugContext(kind: "message", message: $0.notice.text) }
+        store.notices.log.first { $0.isAlert }.map { BugContext(kind: "message", message: $0.notice.words) }
     }
 }
 
@@ -33,10 +34,10 @@ struct ReportButton: View {
     var raisedSurface = false
 
     var body: some View {
-        Button("Report") { ReportBugAction(store: store, openURL: openURL)(context) }
+        Button(L.actionReport) { ReportBugAction(store: store, openURL: openURL)(context) }
             .buttonStyle(SecondaryCapsuleStyle(height: height, raisedSurface: raisedSurface, fontSize: fontSize))
-            .accessibilityLabel("Report this problem")
-            .accessibilityHint("Opens a bug report on GitHub in your browser")
+            .accessibilityLabel(L.aboutReportBug)
+            .accessibilityHint(L.aboutReportBugDetail)
     }
 }
 
@@ -47,11 +48,11 @@ struct AboutGroup: View {
 
     var body: some View {
         SettingsGroup(
-            title: "About",
-            footnote: "Opens a bug report on GitHub. You sign in there. It carries your app and device versions and the last error, with no addresses, file paths or titles."
+            title: L.aboutTitle,
+            footnote: L.aboutReportBugDetail
         ) {
-            SettingsRow(title: "Report a bug") {
-                Button("Report") { ReportBugAction(store: store, openURL: openURL)() }
+            SettingsRow(title: L.aboutReportBug) {
+                Button(L.actionReport) { ReportBugAction(store: store, openURL: openURL)() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
         }

@@ -435,6 +435,10 @@ stores-publish-none = No { -plugin-pl } on this { -device } to publish.
 # @arg version: text
 stores-plugin-name-version = { $name } { $version }
 
+# Button on the summary row that removes every device that joined with the link.
+# @max 24
+stores-remove-all = Remove all
+
 # Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
 # @max 24
 stores-copy-link = Copy link
@@ -445,3 +449,6 @@ stores-offers-plugins = { $count ->
     [one] One { -plugin }
    *[other] { $count } { -plugin-pl }
  }
+
+# Button of a notice that opens the plugin stores page.
+notice-open-stores = Open { -plugin-store-pl }

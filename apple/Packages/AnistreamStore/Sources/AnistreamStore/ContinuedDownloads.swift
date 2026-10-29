@@ -6,6 +6,7 @@
 // The Mac has no such window and never asks.
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 import Observation
 
@@ -54,7 +55,7 @@ public final class ContinuedDownloads {
     /// How many downloads waited at the last count, to tell a download started from one ended.
     @ObservationIgnored private var lastPending = 0
 
-    public static let title = "Downloading episodes"
+    public static var title: String { L.downloadsContinuedTitle }
 
     public init() {}
 
@@ -64,7 +65,7 @@ public final class ContinuedDownloads {
     }
 
     static func left(_ count: Int) -> String {
-        count == 1 ? "1 episode left" : "\(count) episodes left"
+        L.downloadsContinuedLeft(count: count)
     }
 
     /// Ask for a window when there are downloads to go on and none is asked or open.

@@ -6,6 +6,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// Whether first launch has been seen, kept in the app's defaults.
@@ -92,7 +93,7 @@ struct FirstLaunch: View {
             HStack {
                 Spacer()
                 if page != .sources {
-                    Button(cased(mac: "Skip", touch: "Skip")) { finish(nil) }
+                    Button(L.actionSkip) { finish(nil) }
                         .buttonStyle(.plain)
                         .font(.plat(mac: 13, touch: 17))
                         .foregroundStyle(.haze)
@@ -143,22 +144,22 @@ struct FirstLaunch: View {
         VStack(alignment: .leading, spacing: 0) {
             Nagare(cell: 5)
                 .accessibilityHidden(true)
-            Text("anistream")
+            Text("anistream") // i18n-skip
                 .font(.plat(mac: 26, touch: 28, weight: .semibold))
                 .foregroundStyle(.silk)
                 .padding(.top, 24)
                 .accessibilityAddTraits(.isHeader)
-            Text("Keep track of anime and play it from sources you choose.")
+            Text(L.onboardingTagline)
                 .font(.plat(mac: 15, touch: 17))
                 .foregroundStyle(.silk)
                 .padding(.top, 8)
-            Text("anistream hosts no content.")
+            Text(L.legalHostsNoContent)
                 .font(.plat(mac: 13, touch: 15))
                 .foregroundStyle(.haze)
                 .padding(.top, 6)
             Spacer(minLength: 24)
             actions {
-                Button { page = .anilist } label: { Text("Continue").touchFill() }
+                Button { page = .anilist } label: { Text(L.onboardingContinue).touchFill() }
                     .buttonStyle(PrimaryCapsuleStyle(height: buttonHeight, fontSize: buttonFont))
                     .keyboardShortcut(.defaultAction)
             }
@@ -170,11 +171,11 @@ struct FirstLaunch: View {
         let working = store.accounts.isWorking("anilist")
         return VStack(alignment: .leading, spacing: 0) {
             heading("AniList")
-            Text("Sign in to AniList to sync your list and where you stopped.")
+            Text(L.accountsWelcomeDetail(tracker: AccountsModel.name("anilist")))
                 .font(.plat(mac: 15, touch: 17))
                 .foregroundStyle(.silk)
                 .padding(.top, 8)
-            Text("Other trackers are in Settings › Accounts.")
+            Text(L.accountsOtherTrackersNote)
                 .font(.plat(mac: 13, touch: 15))
                 .foregroundStyle(.haze)
                 .padding(.top, 6)
@@ -194,14 +195,14 @@ struct FirstLaunch: View {
     private var sources: some View {
         let trimmed = link.trimmingCharacters(in: .whitespacesAndNewlines)
         return VStack(alignment: .leading, spacing: 0) {
-            heading("Sources")
-            Text("Sources are plugins, shared through plugin stores by invite. anistream hosts no content.")
+            heading(L.onboardingSourcesTitle)
+            Text(L.onboardingSourcesDetail + " " + L.legalHostsNoContent)
                 .font(.plat(mac: 15, touch: 17))
                 .foregroundStyle(.silk)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 8)
             HStack(spacing: 8) {
-                TextField(cased(mac: "Invite Link", touch: "Invite link"), text: $link)
+                TextField(L.onboardingInviteHint, text: $link)
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
                     #if os(iOS)
@@ -209,19 +210,19 @@ struct FirstLaunch: View {
                     .keyboardType(.URL)
                     #endif
                     .onSubmit { if !trimmed.isEmpty { finish(trimmed) } }
-                Button(cased(mac: "Join", touch: "Join")) { finish(trimmed) }
+                Button(L.actionJoin) { finish(trimmed) }
                     .buttonStyle(PrimaryCapsuleStyle(height: fieldHeight, fontSize: buttonFont))
                     .disabled(trimmed.isEmpty)
             }
             .padding(.top, 20)
-            Text("Each plugin is someone else's code connecting to someone else's service. Use them at your own risk.")
+            Text(L.pluginRiskWarning)
                 .font(.plat(mac: 13, touch: 15))
                 .foregroundStyle(.haze)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 12)
             Spacer(minLength: 24)
             actions {
-                Button { finish(nil) } label: { Text(cased(mac: "Skip for Now", touch: "Skip for now")).touchFill() }
+                Button { finish(nil) } label: { Text(L.onboardingSkipForNow).touchFill() }
                     .buttonStyle(SecondaryCapsuleStyle(height: buttonHeight, fontSize: buttonFont))
             }
         }
@@ -230,7 +231,7 @@ struct FirstLaunch: View {
     // MARK: Parts
 
     private var notNow: some View {
-        Button { page = .sources } label: { Text(cased(mac: "Not Now", touch: "Not now")).touchFill() }
+        Button { page = .sources } label: { Text(L.actionNotNow).touchFill() }
             .buttonStyle(SecondaryCapsuleStyle(height: buttonHeight, fontSize: buttonFont))
     }
 
@@ -240,7 +241,7 @@ struct FirstLaunch: View {
         } label: {
             HStack(spacing: 8) {
                 if working { ProgressView().controlSize(.small) }
-                Text(cased(mac: "Sign In to AniList", touch: "Sign in to AniList"))
+                Text(L.librarySignedOutAction)
             }
             .touchFill()
         }

@@ -4,6 +4,7 @@
 
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import Foundation
 
 /// A title on the shelf, as the system's search shows it (native-spec/native-layer.md, Spotlight).
@@ -67,7 +68,7 @@ public struct ShelfTitle: Codable, Hashable, Sendable, Identifiable {
         var parts: [String] = []
         if let list { parts.append(list.name) }
         if let episode, list != .completed, list != .planning, episodes.map({ episode <= $0 }) ?? true {
-            parts.append(episodes.map { "Episode \(episode) of \($0)" } ?? "Episode \(episode)")
+            parts.append(episodes.map { L.titleEpisodeOf(episode: Int(episode), total: Int($0)) } ?? L.episodeNumber(number: Int(episode)))
         }
         return parts.joined(separator: " · ")
     }
@@ -96,7 +97,7 @@ public struct Shelf: Codable, Equatable, Sendable {
 
         /// Its name as a line says it: "Watching", "Continue".
         public var name: String {
-            segment.map { $0.label.capitalizedSentence } ?? "Continue"
+            segment?.title ?? L.navContinue
         }
 
         var segment: LibrarySegment? {

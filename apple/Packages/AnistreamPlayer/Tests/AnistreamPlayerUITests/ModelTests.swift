@@ -4,6 +4,7 @@
 import AnistreamKit
 import AnistreamStore
 import AnistreamPlayer
+import AnistreamStrings
 import Foundation
 import Testing
 
@@ -716,13 +717,13 @@ struct ViewerTests {
         var episode = EpisodeOnScreen(
             number: "7", label: "Episode 7", title: "Rain over Kiriya Pass", show: "Stardust Wayfarer",
             translation: .dub)
-        #expect(episode.line == "Episode 7 · Dub · Rain over Kiriya Pass")
+        #expect(episode.line == "Episode 7 · Dubbed · Rain over Kiriya Pass")
         episode.translation = .sub
         #expect(episode.line == "Episode 7 · Rain over Kiriya Pass", "only dubs are marked")
         episode.title = nil
         #expect(episode.line == "Episode 7")
         episode.translation = .dub
-        #expect(episode.line == "Episode 7 · Dub")
+        #expect(episode.line == "Episode 7 · Dubbed")
     }
 
     @Test func theEngineMarksTakeOverFromTheChaptersAndTheBufferedRangesFollowTheFile() async throws {
@@ -832,7 +833,7 @@ struct TrackFileTests {
         rig.mpv.state.withLock { $0.refuses = ["sub-add"] }
         rig.model.loadTrack(.sub, from: "/Users/viewer/notes.txt")
         await rig.handedOver()
-        #expect(rig.model.alert?.text == "Couldn't load that subtitle file")
+        #expect(rig.model.alert?.text == L.playerSubtitleFileFailed)
         #expect(rig.model.alert?.kind == .alert)
     }
 }

@@ -235,7 +235,7 @@ struct StoresTests {
     @Test func aPluginSaysWhatItMayContact() {
         #expect(plugin("a", .available, hosts: ["one.example"]).contactsLine == "Contacts one.example")
         #expect(plugin("a", .available, hosts: ["one.example", "two.example"]).contactsLine
-            == "Contacts one.example and 1 more")
+            == "Contacts one.example and one more")
     }
 
     @Test func anInviteLinkIsReadFromTheStoresAddressOrTheAppsOwn() throws {
@@ -275,7 +275,7 @@ struct StoresTests {
                                    alreadyJoined: false)
         #expect(invited.runByLine == "plugins.example", "a store that does not say")
         invited.owners = ["Ren", "Sora"]
-        #expect(invited.runByLine == "Run by Ren, Sora · plugins.example")
+        #expect(invited.runByLine == "Run by Ren and Sora · plugins.example")
         #expect(plugin("a", .available).standing == nil)
         #expect(plugin("a", .installed).standing == "Installed")
         #expect(plugin("a", .update(from: "1.4.0", newHosts: [])).standing == "1.4.0 installed")
@@ -289,10 +289,10 @@ struct StoresTests {
 
     @Test func aDeviceThatJoinedWithTheLinkHasNoName() {
         var row = storeRow("hotaru", [])
-        #expect(row.joinedAs == "joined as Mika")
+        #expect(row.joinedAs == "Joined as Mika")
         row.anonymous = true
         row.member = ""
-        #expect(row.joinedAs == "joined without a name")
+        #expect(row.joinedAs == "Joined without a name")
     }
 }
 

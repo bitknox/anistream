@@ -5,6 +5,7 @@
 
 import AnistreamDesign
 import AnistreamKit
+import AnistreamStrings
 import SwiftUI
 
 /// The watched run a list folds away: every episode of the watched run it starts with but the
@@ -25,12 +26,13 @@ struct WatchedFold: Equatable {
         last = rows[count - 1].number
     }
 
-    /// "Episodes 1–5 watched".
+    /// "Episodes 1 to 5 watched".
     var label: String {
-        "Episodes \(first)–\(last) watched"
+        L.titleWatchedRange(first: Int(episode: first), last: Int(episode: last))
     }
 
-    static let hide = "Hide watched episodes"
+    static var hide: String { L.titleHideWatched }
+
 }
 
 extension Navigator {
@@ -80,7 +82,7 @@ struct WatchedFoldRow: View {
         }
         .buttonStyle(.plain)
         .pointerHover()
-        .accessibilityHint(shown ? "Folds the watched episodes away" : "Shows the watched episodes")
+        .accessibilityValue(shown ? L.stateExpanded : L.stateCollapsed)
     }
 }
 

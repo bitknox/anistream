@@ -4,6 +4,7 @@
 
 import AnistreamDesign
 import AnistreamKit
+import AnistreamStrings
 import SwiftUI
 #if os(macOS)
 import Darwin
@@ -37,7 +38,7 @@ struct StatsPanel: View {
         if let panel = model.statsPanel {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center, spacing: 8) {
-                    Text("Stats for nerds")
+                    Text(L.playerStats)
                         .font(.system(size: metrics.body, weight: .semibold))
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if compact { copyButton(waiting: model.statsWaitingSince != nil) }
@@ -48,11 +49,11 @@ struct StatsPanel: View {
                             .contentShape(.circle)
                     }
                     .buttonStyle(OverVideoButtonStyle())
-                    .accessibilityLabel("Close stats for nerds")
-                    .help("Close")
+                    .accessibilityLabel(L.playerStatsClose)
+                    .help(L.actionClose)
                 }
                 if panel.waitingLine {
-                    Text("Waiting for the stream")
+                    Text(L.playerStatsWaiting)
                         .foregroundStyle(.haze)
                         .padding(.top, 2)
                 }
@@ -77,7 +78,7 @@ struct StatsPanel: View {
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.glassEdge, lineWidth: 1))
             .shadow(color: Color(rgb: 0x0A0C18, opacity: 0.4), radius: 12, y: 8)
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Stats for nerds")
+            .accessibilityLabel(L.playerStats)
             .transition(.opacity)
         }
     }
@@ -128,14 +129,14 @@ struct StatsPanel: View {
     @ViewBuilder
     private func copyButton(waiting: Bool) -> some View {
         if model.statsCopiedAt != nil {
-            Text("Copied")
+            Text(L.actionCopied)
                 .font(.system(size: metrics.body))
                 .foregroundStyle(.haze)
                 // Where the pill's word was.
                 .padding(.horizontal, metrics.touch ? 16 : 12)
                 .frame(height: metrics.button)
         } else {
-            Button(metrics.label("Copy stats", mac: "Copy Stats")) { model.copyStats() }
+            Button(L.playerStatsCopy) { model.copyStats() }
                 .buttonStyle(PillButtonStyle(kind: .secondary, metrics: metrics))
                 .disabled(waiting)
                 .opacity(waiting ? 0.4 : 1)

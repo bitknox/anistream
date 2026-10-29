@@ -1,5 +1,6 @@
 // The app's sections, as the Mac sidebar and the iPhone tab bar list them.
 
+import AnistreamStrings
 import Foundation
 
 /// Where the app can be. The Mac sidebar lists them all; the iPhone's tabs are Continue,
@@ -11,18 +12,18 @@ public enum AppSection: String, CaseIterable, Identifiable, Hashable, Sendable {
 
     public var id: String { rawValue }
 
-    /// The name, in title case as the Mac sidebar and toolbar say it.
+    /// The name, as the Mac sidebar, the toolbar and the iPhone's tabs say it.
     public var title: String {
         switch self {
-        case .continue: "Continue"
-        case .calendar: "Calendar"
-        case .seasonal: "Seasonal"
-        case .search: "Search"
-        case .library: "Library"
-        case .downloads: "Downloads"
-        case .providers: "Providers"
-        case .pluginStores: "Plugin Stores"
-        case .settings: "Settings"
+        case .continue: L.navContinue
+        case .calendar: L.navCalendar
+        case .seasonal: L.navSeasonal
+        case .search: L.navSearch
+        case .library: L.navLibrary
+        case .downloads: L.navDownloads
+        case .providers: L.sourcesTitle
+        case .pluginStores: L.navPluginStores
+        case .settings: L.navSettings
         }
     }
 

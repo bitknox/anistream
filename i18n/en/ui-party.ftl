@@ -267,3 +267,11 @@ party-sources-label = { -source-cap-pl } for this episode
 # Line of a source: its quality and size already formatted, and the number of seeders.
 # @arg seeders: int
 party-source-seeders = { $seeders } seeders
+
+# Line when no source lists the episode.
+# @arg episode: text
+party-no-source-lists = No { -source } lists episode { $episode }. { -source-cap-pl } come from { -plugin-pl }, which a { -plugin-store } adds.
+
+# Button that plays the chosen source with the room.
+# @max 36
+party-play-with = Play with the { -watch-party }

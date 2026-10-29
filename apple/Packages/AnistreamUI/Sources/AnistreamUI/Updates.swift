@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// What Settings says of updates under this version, and the action it offers.
@@ -33,21 +34,22 @@ struct UpdateWords: Equatable {
     ) {
         switch progress {
         case .preparing:
-            self.init(note: "Preparing the update", action: .cancel)
+            self.init(note: L.updatesPreparing, action: .cancel)
             return
         case .downloading(let received, let expected):
-            let of = expected.map { " of \(Wording.bytes($0))" } ?? ""
-            self.init(note: "Downloading \(Wording.bytes(received))\(of)", action: .cancel)
+            let note = expected.map { L.updatesDownloadingBytesOf(done: Wording.bytes(received), total: Wording.bytes($0)) }
+                ?? L.updatesDownloadingBytes(done: Wording.bytes(received))
+            self.init(note: note, action: .cancel)
             return
         case .unpacking:
-            self.init(note: "Checking the download", action: .cancel)
+            self.init(note: L.updatesCheckingDownloadShort, action: .cancel)
             return
         case .relaunching:
-            self.init(note: "Restarting to finish the update", action: .none)
+            self.init(note: L.updatesRestarting, action: .none)
             return
         case .failed:
             if let latest {
-                self.init(note: "The update did not finish.", problem: true,
+                self.init(note: L.updatesDidNotFinish, problem: true,
                           action: .update(version: latest.version))
                 return
             }
@@ -55,14 +57,14 @@ struct UpdateWords: Equatable {
             break
         }
         if checking {
-            self.init(note: "Checking…", action: .checkNow, disabled: true)
+            self.init(note: L.updatesChecking, action: .checkNow, disabled: true)
         } else if let latest {
             let action: Action = installsHere ? .update(version: latest.version) : mobile ? .updateInStore : .releasePage
-            self.init(note: "Version \(latest.version) is available", action: action)
+            self.init(note: L.updatesVersionOut(version: latest.version), action: action)
         } else {
             switch outcome {
-            case .upToDate: self.init(note: "Up to date", action: .checkNow)
-            case .failed: self.init(note: "Could not check.", problem: true, action: .checkNow)
+            case .upToDate: self.init(note: L.updatesUpToDate, action: .checkNow)
+            case .failed: self.init(note: L.updatesCouldNotCheck, problem: true, action: .checkNow)
             case nil: self.init(note: nil, action: .checkNow)
             }
         }
@@ -89,11 +91,11 @@ struct UpdateWords: Equatable {
     /// The action's label.
     var label: String? {
         switch action {
-        case .checkNow: cased(mac: "Check Now", touch: "Check now")
-        case .update(let version): "Update to v\(version)"
-        case .updateInStore: cased(mac: "Update in SideStore", touch: "Update in SideStore")
-        case .releasePage: cased(mac: "Release Page", touch: "Release page")
-        case .cancel: "Cancel"
+        case .checkNow: L.actionCheckNow
+        case .update(let version): L.updatesUpdateTo(version: "v\(version)")
+        case .updateInStore: L.updatesInSidestore
+        case .releasePage: L.updatesReleasePage
+        case .cancel: L.actionCancel
         case .none: nil
         }
     }
@@ -136,8 +138,8 @@ struct UpdatesGroup: View {
     @Environment(AppStore.self) private var store
 
     var body: some View {
-        SettingsGroup(title: "Updates") {
-            SettingsRow(title: SettingKey.updateCheck.title, note: "Once a day. Nothing is downloaded until you choose to update.") {
+        SettingsGroup(title: L.updatesTitle) {
+            SettingsRow(title: SettingKey.updateCheck.title, note: L.updatesSchedule) {
                 SettingSwitch(key: .updateCheck)
             }
             UpdateVersionRow()
@@ -203,9 +205,9 @@ struct ReleaseNotesRow: View {
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        SettingsRow(title: "What’s new in \(release.version)", note: release.notes) {
+        SettingsRow(title: L.updatesWhatsNewIn(version: release.version), note: release.notes) {
             if let page = URL(string: release.pageUrl) {
-                Button(cased(mac: "Release Notes", touch: "Release notes")) { openURL(page) }
+                Button(L.updatesReleaseNotes) { openURL(page) }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
         }
@@ -224,7 +226,7 @@ struct UpdateNotice: View {
     var body: some View {
         let words = UpdateWords(store.updates)
         HStack(spacing: 12) {
-            Text("anistream \(release.version) is available")
+            Text(L.updatesAvailable(version: release.version))
                 .font(.mac(13))
                 .foregroundStyle(.silk)
                 .lineLimit(2)
@@ -250,7 +252,7 @@ struct UpdateNotice: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Not Now")
+            .accessibilityLabel(L.actionNotNow)
         }
         .padding(.leading, 16)
         .padding(.trailing, 8)
@@ -263,9 +265,9 @@ struct UpdateNotice: View {
     /// The notice's own word for the action: shorter than Settings'.
     private func noticeLabel(_ words: UpdateWords) -> String? {
         switch words.action {
-        case .update: "Update"
-        case .updateInStore: "Update"
-        case .releasePage: cased(mac: "Release Page", touch: "Release page")
+        case .update: L.actionUpdate
+        case .updateInStore: L.actionUpdate
+        case .releasePage: L.updatesReleasePage
         default: nil
         }
     }
@@ -287,7 +289,7 @@ struct PhoneUpdatesCard: View {
                     Text(SettingKey.updateCheck.title)
                         .font(.ui(17))
                         .foregroundStyle(.silk)
-                    Text("Once a day. Nothing is downloaded until you choose to update.")
+                    Text(L.updatesSchedule)
                         .font(.ui(15))
                         .foregroundStyle(.haze)
                         .fixedSize(horizontal: false, vertical: true)

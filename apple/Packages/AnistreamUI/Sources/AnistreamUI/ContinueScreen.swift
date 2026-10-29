@@ -50,8 +50,8 @@ struct ContinueScreen: View {
         ListStates(
             state: store.continuing.list.state,
             placeholder: AnyView(QueueColumn(queue: nil, selection: moving).frame(maxWidth: .infinity, alignment: .leading)),
-            activity: "loading continue watching",
-            failure: "Couldn't load Continue",
+            activity: "loading continue watching", // the engine job this list waits on
+            failure: L.continueLoadFailed,
             retry: { store.loadContinue(force: true) },
             // In line with the queue's group headers.
             offlineInset: 16
@@ -148,19 +148,19 @@ struct QueueColumn: View {
     private func rows(first: EdgeInsets?, rest: EdgeInsets?) -> some View {
         if let queue {
             if !queue.inProgress.isEmpty {
-                GroupHeader(title: "In progress", first: true).listed(first)
+                GroupHeader(title: L.groupInProgress, first: true).listed(first)
                 ForEach(queue.inProgress) {
                     QueueRow(item: $0, selection: $selection, opensOnTap: opensOnTap).swiped($0).listed(rest)
                 }
             }
             if !queue.newThisWeek.isEmpty {
-                GroupHeader(title: "New this week", first: queue.inProgress.isEmpty).listed(queue.inProgress.isEmpty ? first : rest)
+                GroupHeader(title: L.groupNewThisWeek, first: queue.inProgress.isEmpty).listed(queue.inProgress.isEmpty ? first : rest)
                 ForEach(queue.newThisWeek) {
                     QueueRow(item: $0, selection: $selection, opensOnTap: opensOnTap).swiped($0).listed(rest)
                 }
             }
         } else {
-            GroupHeader(title: "In progress", first: true).listed(first)
+            GroupHeader(title: L.groupInProgress, first: true).listed(first)
             ForEach(0..<3, id: \.self) { _ in PlaceholderRow().listed(rest) }
         }
     }
@@ -191,7 +191,7 @@ private struct QueueKeys: ViewModifier {
     }
 }
 
-/// A group's header in a list: "IN PROGRESS".
+/// A group's header in a list: "In progress".
 struct GroupHeader: View {
     let title: String
     var first = false
@@ -271,34 +271,32 @@ struct QueueMenu: View {
     var body: some View {
         let n = item.episode
         if item.playable {
-            // Marked as the row is: "Resume Episode 7 · Dub".
-            let episode = item.marked(cased(mac: "Episode \(n)", touch: "episode \(n)"))
-            Button(item.resume == nil ? "Start \(episode)" : "Resume \(episode)") {
+            // Said as the row's button says it: "Resume episode 7 · Dubbed · 10:06".
+            Button(item.buttonTitle) {
                 store.send(.play(id: item.id, episode: String(n)))
             }
             // A part watched: the episode again from its first second, its place let go.
             if item.resume != nil {
-                Button(cased(mac: "Play from the Beginning", touch: "Play from the beginning")) {
+                Button(L.episodePlayFromBeginning) {
                     store.send(.play(id: item.id, episode: String(n), fromStart: true))
                 }
             }
-            Button(cased(mac: "Mark Episode \(n) as Watched", touch: "Mark episode \(n) as watched")) {
+            Button(L.episodeMarkNWatched(episode: Int(n))) {
                 store.send(.setWatched(id: item.id, episodes: [String(n)], watched: true))
                 navigator.watchedByHand += 1
             }
         } else {
             // Nothing to play yet: when it airs, said and not offered.
-            Button(item.unsourced ? L.episodeUnsourced : item.airing.airs().map { cased(mac: "Episode \(n) Airs \($0)", touch: "Episode \(n) airs \($0)") }
-                   ?? cased(mac: "Episode \(n) Is Not Out Yet", touch: "Episode \(n) is not out yet")) {}
+            Button(item.statusTitle) {}
                 .disabled(true)
         }
         Divider()
-        Button(cased(mac: "Go to Title", touch: "Go to title")) { navigator.openTitle(item.id, fromPreview: true) }
+        Button(L.titleOpen) { navigator.openTitle(item.id, fromPreview: true) }
         Divider()
-        Button("Hide from Continue") {
+        Button(L.continueHide) {
             store.hideFromContinue(item.id)
         }
-        Button("Drop") {
+        Button(L.continueDrop) {
             store.send(.setStatus(id: item.id, status: .dropped))
         }
     }
@@ -310,8 +308,8 @@ struct PlaceholderRow: View {
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 6).fill(.raised).frame(width: 36, height: 54)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Hoshikuzu no Tabibito").font(.macShowTitle(size: 15))
-                Text("Resume E7 · 10:06").font(.mac(13))
+                Text("Hoshikuzu no Tabibito").font(.macShowTitle(size: 15)) // i18n-skip
+                Text("Resume E7 · 10:06").font(.mac(13)) // i18n-skip
             }
             .redacted(reason: .placeholder)
             .foregroundStyle(.haze)
@@ -386,12 +384,12 @@ struct ContinuePreview: View {
                         }
                         .buttonStyle(PrimaryCapsuleStyle())
                         .keyboardShortcut(.defaultAction)
-                        Button("Episodes") { navigator.openTitle(entry.id, fromPreview: true) }
+                        Button(L.titleEpisodes) { navigator.openTitle(entry.id, fromPreview: true) }
                             .buttonStyle(SecondaryCapsuleStyle())
                     } else {
                         // Caught up: when the next episode airs, and the episodes to go back to.
                         AirsStatus(text: item.statusTitle)
-                        Button("Episodes") { navigator.openTitle(entry.id, fromPreview: true) }
+                        Button(L.titleEpisodes) { navigator.openTitle(entry.id, fromPreview: true) }
                             .buttonStyle(SecondaryCapsuleStyle())
                             .keyboardShortcut(.defaultAction)
                     }
@@ -460,8 +458,8 @@ struct NothingToContinue: View {
     @Environment(Navigator.self) private var navigator
 
     var body: some View {
-        EmptyState(title: "Nothing to continue", line: "Pick something from Seasonal, or search for a title.") {
-            Button("Browse Seasonal") { navigator.open(.seasonal) }
+        EmptyState(title: L.continueEmptyTitle, line: L.continueEmptyDetail) {
+            Button(L.continueEmptyAction) { navigator.open(.seasonal) }
                 .buttonStyle(SecondaryCapsuleStyle(height: ScreenFailed.buttonHeight, fontSize: ScreenFailed.buttonFont))
         }
     }

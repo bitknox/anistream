@@ -2,6 +2,7 @@
 // counting down to it, then "Out now". The countdown runs on the air time it carries, and the
 // activity's stale date is that time, so it turns to "Out now" with no update from the app.
 
+import AnistreamStrings
 import Foundation
 #if os(iOS)
 import ActivityKit
@@ -70,13 +71,13 @@ public struct AiringActivityText: Equatable, Sendable {
         style.timeZone = timeZone
         let at = state.airsAt.formatted(style)
         title = state.title
-        episode = "Episode \(state.episode)"
-        time = out ? "Aired at \(at)" : "Airs at \(at)"
+        episode = L.widgetEpisodeLong(episode: state.episode)
+        time = out ? L.widgetAiredAt(time: at) : L.widgetAirsAt(time: at)
         accessibilityLabel = out
-            ? "\(state.title), episode \(state.episode), out now"
-            : "\(state.title), episode \(state.episode), airs at \(at)"
+            ? L.widgetA11yOutNow(title: state.title, episode: state.episode)
+            : L.widgetA11yAirsAt(title: state.title, episode: state.episode, time: at)
     }
 
     /// What the activity says once the episode is out.
-    public static let outNow = "Out now"
+    public static var outNow: String { L.widgetOutNow }
 }

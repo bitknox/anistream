@@ -5,8 +5,3 @@
 # @only android
 # @arg name: text
 account-button-named = { $name }, accounts and settings
-
-# Button on a notice that opens the plugin stores, where its cause can be fixed.
-# @only android
-# @max 24
-notice-open-stores = Open { -plugin-store-pl }

@@ -156,10 +156,6 @@ tv-code-expired = Code expired
 # @only linux
 tv-row-pairs-with = Pairs with this TV
 
-# Row title of the button that pairs another TV once one is paired.
-# @only linux
-tv-another = Another TV
-
 # Under a TV in the list: paired, but not seen on the network.
 # @only linux
 tv-row-away = Paired, not seen on this network
@@ -167,10 +163,6 @@ tv-row-away = Paired, not seen on this network
 # Under a TV in the list: found, not paired yet.
 # @only linux
 tv-row-new = Not paired yet
-
-# Under a TV in the list: its version does not match.
-# @only linux
-tv-row-needs-update = Needs the same { -app-name } version as this { -device }
 
 # What a screen reader hears when a heading and its problem show together.
 # @only linux
@@ -209,10 +201,6 @@ tv-fingerprint-note = A TV lists this { -device } with the code { $code }. Forge
 # @only linux
 # @arg paired: text
 tv-paired-seen-now = { $paired } · seen just now
-
-# Title of the remote's volume row.
-# @only linux
-tv-volume = TV volume
 
 # Accessible name of a track menu: the row, then the track chosen.
 # @only linux

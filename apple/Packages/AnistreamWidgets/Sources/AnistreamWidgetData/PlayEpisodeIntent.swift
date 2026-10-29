@@ -9,16 +9,16 @@ import Foundation
 /// It lives here, in a framework the app links as well as the widget extension, so it runs in
 /// the app once the app is open: the app hands it to the router it registers at launch.
 public struct PlayEpisodeIntent: AppIntent {
-    public static let title: LocalizedStringResource = "Play episode"
-    public static let description = IntentDescription("Opens anistream and plays an episode.")
+    public static let title: LocalizedStringResource = "Play episode" // i18n-skip
+    public static let description = IntentDescription("Opens anistream and plays an episode.") // i18n-skip
     public static let supportedModes: IntentModes = .foreground
     /// The widget's own; Shortcuts offers the app's Continue watching instead.
     public static let isDiscoverable = false
 
-    @Parameter(title: "Title")
+    @Parameter(title: "Title") // i18n-skip
     public var titleID: Int
 
-    @Parameter(title: "Episode")
+    @Parameter(title: "Episode") // i18n-skip
     public var episode: Int
 
     public init() {}

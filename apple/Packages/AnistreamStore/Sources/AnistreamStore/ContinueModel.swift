@@ -1,6 +1,7 @@
 // Continue: what you were watching, from local history, as a short queue.
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 import Observation
 
@@ -29,44 +30,52 @@ public struct ContinueItem: Identifiable, Equatable, Sendable {
     /// one is still to air.
     public var playable: Bool { airing.hasAired && !unsourced }
 
-    /// The episode's mark: "Dub" for a show watched dubbed, the engine's word for it, and nil for
-    /// a sub, which is left unmarked.
-    public var mark: String? { episodeMark(translation: entry.watchedIn) }
+    /// Whether the show was watched dubbed: its episode line says so, and a sub is left unmarked.
+    public var dubbed: Bool { entry.watchedIn == .dub }
 
-    /// `label` with the mark after it, as the engine words it: "E7 · Dub", or "E7" for a sub.
-    public func marked(_ label: String) -> String {
-        episodeLine(label: label, translation: entry.watchedIn)
+    /// The episode as a row names it, "E7", or "E7 · Dubbed" for a dub.
+    public var episodeShort: String {
+        dubbed ? L.titleEpisodeShortDubbed(episode: Int(episode)) : L.episodeNumberShort(number: Int(episode))
     }
 
-    /// What the row says it plays: "Resume E7 · 10:06", "Start E4", "Start E9 · out 2h ago", or
+    /// What the row says it plays: "Continue E7 · 10:06", "Play E4", "Play E9 · out 2h ago", or
     /// with nothing out to watch, "Caught up · E9 Saturday 18:30". A dub is marked after the
-    /// episode, "Resume E7 · Dub · 10:06"; what is still to air is not, as the engine has it.
+    /// episode, "Continue E7 · Dubbed · 10:06"; what is still to air is not.
     public var action: String {
-        if let resume { return "Resume \(marked("E\(episode)")) · \(resume.clock)" }
-        if unsourced { return marked("E\(episode)") }
-        if !playable { return "Caught up · E\(episode) " + (airing.airs() ?? "not out yet") }
-        if let airedAgo { return "Start \(marked("E\(episode)")) · out \(Wording.ago(airedAgo))" }
-        return "Start \(marked("E\(episode)"))"
+        let number = Int(episode)
+        if let resume {
+            return dubbed
+                ? L.continueRowResumeDubbed(episode: number, clock: resume.clock)
+                : L.continueRowResume(episode: number, clock: resume.clock)
+        }
+        if unsourced { return episodeShort }
+        if !playable {
+            guard let when = airing.airs() else { return L.continueRowCaughtUpPlain }
+            return L.continueRowCaughtUp(episode: number, when: when)
+        }
+        if let airedAgo {
+            let ago = Wording.ago(airedAgo)
+            return dubbed
+                ? L.continueRowStartAiredDubbed(episode: number, ago: ago)
+                : L.continueRowStartAired(episode: number, ago: ago)
+        }
+        return dubbed ? L.continueRowStartDubbed(episode: number) : L.continueRowStart(episode: number)
     }
 
-    /// The same, as a button says it: in title case on the Mac, "Resume Episode 7 · 10:06", and
-    /// in sentence case on iPhone and iPad, "Resume episode 7 · 10:06"; a dub marked after the
-    /// episode, "Resume Episode 7 · Dub · 10:06". With nothing out to play it is no button but a
-    /// line: "Episode 9 airs Saturday 18:30".
+    /// The same, as a button says it: "Resume episode 7 · 10:06" or "Play episode 4", a dub
+    /// marked after the episode, "Resume episode 7 · Dubbed · 10:06". With nothing out to play it
+    /// is no button but a line: "Episode 9 airs Saturday 18:30".
     public var buttonTitle: String {
-        #if os(macOS)
-        buttonTitle(titleCase: true)
-        #else
-        buttonTitle(titleCase: false)
-        #endif
-    }
-
-    /// `buttonTitle` in title case, as the Mac's controls are, or in sentence case.
-    public func buttonTitle(titleCase: Bool) -> String {
-        if !playable { return "Episode \(episode) " + (airing.airs().map { "airs \($0)" } ?? "is not out yet") }
-        let episode = marked((titleCase ? "Episode " : "episode ") + String(episode))
-        if let resume { return "Resume \(episode) · \(resume.clock)" }
-        return "Start \(episode)"
+        let number = Int(episode)
+        if !playable {
+            return airing.airs().map { L.episodeAirs(episode: number, when: $0) } ?? L.episodeNotOut(episode: number)
+        }
+        if let resume {
+            return dubbed
+                ? L.titleButtonResumeDubbed(episode: number, time: resume.clock)
+                : L.titleButtonResume(episode: number, time: resume.clock)
+        }
+        return dubbed ? L.titleButtonPlayDubbed(episode: number) : L.titleButtonPlay(episode: number)
     }
 
     /// How far into the episode, for the row's meter, when it was left part-way.

@@ -11,6 +11,7 @@ let package = Package(
         .package(path: "../AnistreamUI"),
         .package(path: "../AnistreamStore"),
         .package(path: "../AnistreamDesign"),
+        .package(path: "../AnistreamStrings"),
         .package(path: "../AnistreamPlayer"),
     ],
     targets: [

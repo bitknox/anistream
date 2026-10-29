@@ -8,6 +8,7 @@
 // TVs).
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 import Network
 import Observation
@@ -346,7 +347,7 @@ public final class TVRemoteModel {
         guard let request = starting else { return card?.now }
         return FfiNowCard(
             id: request.id, title: request.title, episode: request.episode,
-            episodeLine: "Episode \(request.episode)", loading: true, position: request.from ?? 0,
+            episodeLine: L.episodeNumberString(number: request.episode), loading: true, position: request.from ?? 0,
             duration: nil, paused: false, speed: 1, volume: card?.now?.volume, audio: [], subtitles: [],
             subtitlesOff: false, skip: nil)
     }
@@ -368,7 +369,7 @@ public final class TVRemoteModel {
             guard path.status == .satisfied else { return }
             Task { @MainActor in self?.retryNow() }
         }
-        monitor.start(queue: DispatchQueue(label: "tv.anistream.tv-path"))
+        monitor.start(queue: DispatchQueue(label: "tv.anistream.tv-path")) // i18n-skip
         path = monitor
     }
 
@@ -445,7 +446,7 @@ public final class TVRemoteModel {
     /// is often its owner's.
     public static var deviceName: String {
         #if os(macOS)
-        "Mac"
+        "Mac" // i18n-skip
         #else
         UIDevice.current.model
         #endif

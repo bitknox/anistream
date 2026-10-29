@@ -207,3 +207,15 @@ more-show-spoiler-tags = { $count ->
 # An episode's line with the audio it was watched in marked, as Continue and the title page word it.
 # @arg line: text
 episode-line-dubbed = { $line } · { -dubbed-cap }
+
+
+# Main button of the title page for a dubbed episode that has not been started.
+# @arg episode: int
+# @max 40
+title-button-play-dubbed = Play episode { $episode } · { -dubbed-cap }
+
+# Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.
+# @arg episode: int
+# @arg time: text
+# @max 46
+title-button-resume-dubbed = Resume episode { $episode } · { -dubbed-cap } · { $time }

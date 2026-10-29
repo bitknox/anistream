@@ -31,23 +31,23 @@ final class MacPlayerClickTests: XCTestCase {
     func testFullScreenButtonEntersAndLeavesFullScreen() throws {
         let app = launch()
         defer { app.terminate() }
-        click(app, "Enter Full Screen")
+        click(app, "Enter full screen")
         XCTAssertTrue(waitFor { self.isFullScreen(app) }, "the window did not go full screen")
-        click(app, "Exit Full Screen")
+        click(app, "Exit full screen")
         XCTAssertTrue(waitFor { !self.isFullScreen(app) }, "the window stayed full screen")
-        XCTAssertTrue(button(app, "Enter Full Screen").exists, "the player closed")
+        XCTAssertTrue(button(app, "Enter full screen").exists, "the player closed")
     }
 
     func testPictureInPictureButtonOpensAndClosesTheFloatingWindow() throws {
         let app = launch()
         defer { app.terminate() }
-        click(app, "Picture in Picture")
+        click(app, "Picture in picture")
         XCTAssertTrue(waitFor { self.floatingWindow() != nil }, "no Picture in Picture window")
-        XCTAssertTrue(gone(app, "Enter Full Screen"), "the player stayed in the main window")
+        XCTAssertTrue(gone(app, "Enter full screen"), "the player stayed in the main window")
         // Back by the Window menu, clicked as the rest are.
         returnFromPictureInPicture(app)
         XCTAssertTrue(waitFor { self.floatingWindow() == nil }, "the Picture in Picture window stayed up")
-        XCTAssertTrue(button(app, "Enter Full Screen").waitForExistence(timeout: 10), "the picture did not come back")
+        XCTAssertTrue(button(app, "Enter full screen").waitForExistence(timeout: 10), "the picture did not come back")
     }
 
     func testTheBarsControlsTakeClicks() throws {
@@ -109,14 +109,14 @@ final class MacPlayerClickTests: XCTestCase {
 
     func testSkipAndUpNextTakeClicks() throws {
         let skip = launch(shot: "skip")
-        click(skip, "Skip Opening")
-        XCTAssertTrue(gone(skip, "Skip Opening"), "Skip Opening did not skip")
+        click(skip, "Skip opening")
+        XCTAssertTrue(gone(skip, "Skip opening"), "Skip opening did not skip")
         skip.terminate()
 
         let next = launch(shot: "up-next")
         defer { next.terminate() }
         click(next, "Cancel")
-        XCTAssertTrue(gone(next, "Play Now"), "Cancel left Up Next up")
+        XCTAssertTrue(gone(next, "Play now"), "Cancel left Up Next up")
     }
 
     // MARK: The controls brought back by the pointer
@@ -135,11 +135,11 @@ final class MacPlayerClickTests: XCTestCase {
         defer { app.terminate() }
         waitForTheControlsToFade(app)
         wakeTheControls(app)
-        click(app, "Enter Full Screen")
+        click(app, "Enter full screen")
         XCTAssertTrue(waitFor { self.isFullScreen(app) }, "the window did not go full screen")
         waitForTheControlsToFade(app)
         wakeTheControls(app)
-        click(app, "Exit Full Screen")
+        click(app, "Exit full screen")
         XCTAssertTrue(waitFor { !self.isFullScreen(app) }, "the window stayed full screen")
     }
 
@@ -148,7 +148,7 @@ final class MacPlayerClickTests: XCTestCase {
         defer { app.terminate() }
         waitForTheControlsToFade(app)
         wakeTheControls(app)
-        click(app, "Picture in Picture")
+        click(app, "Picture in picture")
         XCTAssertTrue(waitFor { self.floatingWindow() != nil }, "no Picture in Picture window")
         returnFromPictureInPicture(app)
         XCTAssertTrue(waitFor { self.floatingWindow() == nil }, "the Picture in Picture window stayed up")
@@ -160,7 +160,7 @@ final class MacPlayerClickTests: XCTestCase {
         let app = launch(shot: "fading")
         defer { app.terminate() }
         wakeTheControls(app)
-        click(app, "Enter Full Screen")
+        click(app, "Enter full screen")
         XCTAssertTrue(waitFor { self.isFullScreen(app) }, "the window did not go full screen")
 
         // The top bar in full screen, where the menu bar drops in over it.
@@ -173,7 +173,7 @@ final class MacPlayerClickTests: XCTestCase {
         // Picture in Picture from full screen: the window leaves full screen with the player.
         waitForTheControlsToFade(app)
         wakeTheControls(app)
-        click(app, "Picture in Picture")
+        click(app, "Picture in picture")
         XCTAssertTrue(waitFor { self.floatingWindow() != nil }, "no Picture in Picture window")
         returnFromPictureInPicture(app)
         // The picture comes back as it left, full screen.
@@ -217,7 +217,7 @@ final class MacPlayerClickTests: XCTestCase {
         if way == "double click" {
             mainWindow(app).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).doubleClick()
         } else {
-            click(app, isFullScreen(app) ? "Exit Full Screen" : "Enter Full Screen")
+            click(app, isFullScreen(app) ? "Exit full screen" : "Enter full screen")
         }
     }
 
@@ -227,7 +227,7 @@ final class MacPlayerClickTests: XCTestCase {
         wakeTheControls(app)
         guard let window = largestWindow(app)?.1 else { return XCTFail("no window \(when)") }
         let back = button(app, "Back")
-        let full = app.buttons.matching(NSPredicate(format: "label ENDSWITH 'Full Screen'")).firstMatch
+        let full = app.buttons.matching(NSPredicate(format: "label ENDSWITH 'full screen'")).firstMatch
         XCTAssertTrue(back.waitForExistence(timeout: 5) && full.waitForExistence(timeout: 5), "no controls \(when)")
         XCTAssertLessThan(back.frame.minY - window.minY, 60, "the title strip is not along the top \(when)")
         XCTAssertLessThan(window.maxY - full.frame.maxY, 52, "the control row is not along the bottom \(when)")
@@ -251,7 +251,7 @@ final class MacPlayerClickTests: XCTestCase {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 30))
         // The player's controls, there once the shot has played the episode to its place: the
         // pointer brings them up, should they have faded by then.
-        let first = button(app, shot == "skip" ? "Skip Opening" : shot == "up-next" ? "Play Now" : "Enter Full Screen")
+        let first = button(app, shot == "skip" ? "Skip opening" : shot == "up-next" ? "Play now" : "Enter full screen")
         let up = waitFor(timeout: 90) {
             if first.exists { return true }
             if shot == "fading", self.mainWindow(app).exists { self.wakeTheControls(app) }

@@ -5,6 +5,7 @@
 // update from the app.
 
 import AnistreamDesign
+import AnistreamStrings
 import AnistreamWidgetData
 import SwiftUI
 import WidgetKit
@@ -105,7 +106,7 @@ struct PlaybackButton: View {
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(Palette.silk.opacity(0.14)))
                 .frame(width: 44, height: 44)
-            let label = state.paused ? "Play" : "Pause"
+            let label = state.paused ? L.actionPlay : L.actionPause
             #if os(iOS)
             if drawsTaps {
                 if state.paused {
@@ -191,9 +192,9 @@ public struct PlaybackIslandTimeLeft: View {
         Group {
             if state.paused {
                 if compact {
-                    Image(systemName: "pause.fill").font(.system(size: 11)).accessibilityLabel("Paused")
+                    Image(systemName: "pause.fill").font(.system(size: 11)).accessibilityLabel(L.libraryStatusPaused)
                 } else {
-                    Text("Paused")
+                    Text(L.libraryStatusPaused)
                 }
             } else if runsTimers {
                 Text(timerInterval: state.timeline, countsDown: true)

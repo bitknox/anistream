@@ -17,19 +17,19 @@ struct WatchedFoldTests {
     @Test func theListStartsAtTheLastEpisodeWatched() throws {
         let fold = try #require(WatchedFold(rows(12, watched: 6)))
         #expect(fold.count == 5)
-        #expect(fold.label == "Episodes 1–5 watched")
+        #expect(fold.label == "Episodes 1 to 5 watched")
         #expect(WatchedFold.hide == "Hide watched episodes")
     }
 
     @Test func aSecondCourSaysItsOwnNumbers() {
-        #expect(WatchedFold(rows(12, watched: 8, from: 13))?.label == "Episodes 13–19 watched")
+        #expect(WatchedFold(rows(12, watched: 8, from: 13))?.label == "Episodes 13 to 19 watched")
     }
 
     @Test func nothingFoldsWithNothingWatchedOrOnlyTheFirstEpisodeToHide() {
         #expect(WatchedFold(rows(12, watched: 0)) == nil, "nothing watched")
         #expect(WatchedFold(rows(12, watched: 1)) == nil, "the last watched is the first")
         #expect(WatchedFold(rows(12, watched: 2)) == nil, "only episode 1 would go")
-        #expect(WatchedFold(rows(12, watched: 3))?.label == "Episodes 1–2 watched")
+        #expect(WatchedFold(rows(12, watched: 3))?.label == "Episodes 1 to 2 watched")
         #expect(WatchedFold([]) == nil)
     }
 
@@ -38,10 +38,10 @@ struct WatchedFoldTests {
         // than is true.
         var table = rows(8, watched: 4)
         table[5].completed = true
-        #expect(WatchedFold(table)?.label == "Episodes 1–3 watched")
+        #expect(WatchedFold(table)?.label == "Episodes 1 to 3 watched")
     }
 
     @Test func aFinishedShowStartsAtItsLastEpisode() {
-        #expect(WatchedFold(rows(12, watched: 12))?.label == "Episodes 1–11 watched")
+        #expect(WatchedFold(rows(12, watched: 12))?.label == "Episodes 1 to 11 watched")
     }
 }

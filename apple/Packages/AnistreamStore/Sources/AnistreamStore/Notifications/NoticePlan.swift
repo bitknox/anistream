@@ -3,6 +3,7 @@
 // Pure, so it is tested without the system's notification centre.
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 
 /// One notification, to schedule for when an episode airs or to post now.
@@ -64,9 +65,9 @@ public enum NoticePlan {
     /// What every new-episode notification's identifier starts with.
     public static let prefix = "ep."
     /// What the system says under a group: "3 more new episodes".
-    public static let summaryFormat = "%u more new episodes"
+    public static var summaryFormat: String { L.noticeSummary }
     /// What a notification says when previews are hidden.
-    public static let hiddenPreview = "New episode"
+    public static var hiddenPreview: String { L.noticeHiddenPreview }
 
     /// The notification for episode `episode` of `show`: `sub` for one scheduled at the
     /// broadcast, which is the subtitled release's, and `dub` for one the check says once the
@@ -140,10 +141,13 @@ public enum NoticePlan {
     public static func words(episode: UInt32, nextToWatch: UInt32, dubbed: Bool = false)
         -> (body: String, category: NoticeCategory, play: UInt32)
     {
-        let out = "Episode \(episode) is out\(dubbed ? ", dubbed" : "")."
+        let number = Int(episode)
         if nextToWatch < episode {
-            return ("\(out) Next for you: episode \(nextToWatch).", .behind, nextToWatch)
+            let body = dubbed
+                ? L.noticeOutDubbedBehind(episode: number, next: Int(nextToWatch))
+                : L.noticeOutBehind(episode: number, next: Int(nextToWatch))
+            return (body, .behind, nextToWatch)
         }
-        return (out, .newEpisode, episode)
+        return (dubbed ? L.noticeOutDubbed(episode: number) : L.noticeOut(episode: number), .newEpisode, episode)
     }
 }

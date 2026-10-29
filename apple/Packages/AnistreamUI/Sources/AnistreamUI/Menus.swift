@@ -24,10 +24,10 @@ struct TitleMenu: View {
             // Still to air: when, said and not offered.
             .disabled(!action.playable)
         }
-        Button(cased(mac: "Go to Title", touch: "Go to title")) { navigator.openTitle(entry.id) }
+        Button(L.titleOpen) { navigator.openTitle(entry.id) }
         Divider()
-        Menu("Status") { StatusItems(id: entry.id) }
-        Button(cased(mac: "Open on AniList", touch: "Open on AniList")) { store.openOnAniList(entry.id) }
+        Menu(L.filterStatus) { StatusItems(id: entry.id) }
+        Button(L.titleOpenAnilist) { store.openOnAniList(entry.id) }
     }
 }
 
@@ -39,7 +39,7 @@ struct StatusItems: View {
     var body: some View {
         let current = store.titles[id]?.listStatus
         ForEach(LibraryModel.order, id: \.self) { segment in
-            Toggle(segment.label.capitalizedSentence, isOn: Binding(
+            Toggle(segment.title, isOn: Binding(
                 get: { current == segment },
                 set: { on in if on { store.setStatus(id, segment) } }
             ))
@@ -55,35 +55,35 @@ struct TitleMoreItems: View {
 
     var body: some View {
         let next = entry.progress?.next ?? 1
-        Button(cased(mac: "Mark All Previous Watched", touch: "Mark all previous watched")) {
+        Button(L.episodeMarkPreviousWatched) {
             store.send(.setWatched(id: entry.id, episodes: (1..<next).map(String.init), watched: true))
             navigator.watchedByHand += 1
         }
         .disabled(next <= 1)
-        Button(cased(mac: "Hide from Continue", touch: "Hide from Continue")) { store.hideFromContinue(entry.id) }
+        Button(L.continueHide) { store.hideFromContinue(entry.id) }
             .disabled(entry.progress == nil)
         Divider()
         let action = TitleAction(entry, episodes: store.titles.episodes[entry.id])
         // The episode Play would play, with a party: the form asks for the server and room.
-        Button(cased(mac: "Watch Together…", touch: "Watch together…")) {
+        Button(L.partyOpen) {
             store.party.open(.episode(id: entry.id, episode: String(action.episode)))
         }
         .disabled(!action.playable || store.titles.unlisted(entry.id))
-        Button(cased(mac: "Play Trailer", touch: "Play trailer")) {
+        Button(L.titlePlayTrailer) {
             if let trailer = entry.trailerUrl { store.send(.playTrailer(url: trailer, title: entry.title)) }
         }
         .disabled(entry.trailerUrl == nil)
-        Button("Open on AniList") { store.openOnAniList(entry.id) }
+        Button(L.titleOpenAnilist) { store.openOnAniList(entry.id) }
         #if os(macOS)
-        Button("More About This Show…") { navigator.moreAbout = entry.id }
+        Button(L.titleMoreAbout) { navigator.moreAbout = entry.id }
         #else
         if UIDevice.current.userInterfaceIdiom == .pad {
-            Button("More about this show") { navigator.moreAbout = entry.id }
+            Button(L.titleMoreAbout) { navigator.moreAbout = entry.id }
         }
         #endif
         Divider()
         Button(L.sourcePickerTitle) { navigator.sourcePicker = entry.id }
-        Button(cased(mac: "Show Settings for This Show…", touch: "Show settings for this show")) {
+        Button(L.shellShowSettings) {
             navigator.showSettings = entry.id
         }
     }
@@ -106,40 +106,39 @@ struct EpisodeMenu: View {
             // AniList says it is out and no source lists it: the picker, to try another.
             Button(L.sourcePickerTitle) { navigator.sourcePicker = entry.id }
         } else {
-            Button(resuming ? cased(mac: "Resume Episode \(number)", touch: "Resume episode \(number)")
-                            : cased(mac: "Play Episode \(number)", touch: "Play episode \(number)")) {
+            Button(resuming ? L.shellResumeEpisode(episode: Int(number)) : L.titleButtonPlay(episode: Int(number))) {
                 store.send(.play(id: entry.id, episode: row.number))
             }
             // A part watched: the episode again from its first second, its place let go.
             if resuming {
-                Button(cased(mac: "Play from the Beginning", touch: "Play from the beginning")) {
+                Button(L.episodePlayFromBeginning) {
                     store.send(.play(id: entry.id, episode: row.number, fromStart: true))
                 }
             }
             if store.tv.available {
-                Button(cased(mac: "Play on TV", touch: "Play on TV"), systemImage: "tv") {
+                Button(L.tvPlayOn, systemImage: "tv") {
                     store.playOnTV(entry.id, episode: row.number, from: resuming ? entry.resume?.position : nil)
                 }
             }
         }
         Divider()
         if row.completed {
-            Button(cased(mac: "Mark Unwatched", touch: "Mark unwatched")) {
+            Button(L.episodeMarkUnwatched) {
                 store.send(.setWatched(id: entry.id, episodes: [row.number], watched: false))
             }
         } else {
-            Button(cased(mac: "Mark Watched", touch: "Mark watched")) {
+            Button(L.episodeMarkWatched) {
                 store.send(.setWatched(id: entry.id, episodes: [row.number], watched: true))
                 navigator.watchedByHand += 1
             }
         }
-        Button(cased(mac: "Mark All Previous Watched", touch: "Mark all previous watched")) {
+        Button(L.episodeMarkPreviousWatched) {
             store.send(.setWatched(id: entry.id, episodes: (1...max(number, 1)).map(String.init), watched: true))
             navigator.watchedByHand += 1
         }
         if !row.metadataOnly, !row.unsourced {
             Divider()
-            Button("Download") { store.send(.downloadEpisode(id: entry.id, episode: row.number)) }
+            Button(L.shellDownload) { store.send(.downloadEpisode(id: entry.id, episode: row.number)) }
                 .disabled(store.hasDownload(entry.id, episode: row.number))
         }
     }

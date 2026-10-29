@@ -1115,10 +1115,6 @@
     <value>[{label}: {value}~~~]</value>
     <comment>Screen reader name of one row in Stats for nerds: "Dropped frames: 3".</comment>
   </data>
-  <data name="SettingsPanesLabel" xml:space="preserve">
-    <value>[Šéţţîñĝš þàñéš~~~~~]</value>
-    <comment>Name screen readers give the list of panes down the side of Settings.</comment>
-  </data>
   <data name="SettingsLoading" xml:space="preserve">
     <value>[Ļöàðîñĝ šéţţîñĝš~~~~~]</value>
     <comment>Busy line while Settings waits for the engine's values.</comment>
@@ -1163,18 +1159,6 @@
     <value>[Þļàýéŕ îñţéŕƒàçé~~~~~]</value>
     <comment>Setting: the app's own player controls, or mpv's.</comment>
   </data>
-  <data name="SettingsAfterDownload" xml:space="preserve">
-    <value>[Åƒţéŕ éàçĥ ðöŵñļöàð~~~~~~]</value>
-    <comment>Setting: a command run after each download finishes.</comment>
-  </data>
-  <data name="SettingsPresenceTitle" xml:space="preserve">
-    <value>[Þŕéšéñçé šĥöŵš ţĥé ţîţļé~~~~~~~~]</value>
-    <comment>Setting: Discord's status names the show being watched.</comment>
-  </data>
-  <data name="SettingsPresenceRich" xml:space="preserve">
-    <value>[Ŕîçĥ þŕéšéñçé~~~~]</value>
-    <comment>Setting: Discord's status with the cover and a progress bar.</comment>
-  </data>
   <data name="SettingsVpnMode" xml:space="preserve">
     <value>[ṼÞÑ ɱöðé~~~]</value>
     <comment>Setting: how torrent traffic is protected. VPN stays in capitals: it is an abbreviation.</comment>
@@ -1194,10 +1178,6 @@
   <data name="SettingsDownloadsCellular" xml:space="preserve">
     <value>[Ðöŵñļöàðš öñ çéļļüļàŕ~~~~~~~]</value>
     <comment>Setting: downloads run on a cellular connection.</comment>
-  </data>
-  <data name="SettingsMpvOptions" xml:space="preserve">
-    <value>[ɱþṽ öþţîöñš~~~~]</value>
-    <comment>Setting: extra options passed to mpv, the player. mpv stays lower case.</comment>
   </data>
   <data name="SettingsEpisodeNotifications" xml:space="preserve">
     <value>[Ñéŵ éþîšöðé ñöţîƒîçàţîöñš~~~~~~~~]</value>
@@ -1250,10 +1230,6 @@
   <data name="SettingsSyncDetail" xml:space="preserve">
     <value>[Šéñðš ŵĥàţ çĥàñĝéð ĥéŕé àñð ƒéţçĥéš ŵĥàţ çĥàñĝéð éļšéŵĥéŕé.~~~~~~~~~~~~~~~~~~]</value>
     <comment>Under the Sync with trackers card.</comment>
-  </data>
-  <data name="SettingsSignedIn" xml:space="preserve">
-    <value>[Šîĝñéð îñ~~~]</value>
-    <comment>Under a tracker that is signed in, when its user name is unknown.</comment>
   </data>
   <data name="SettingsSignedInWaiting_one" xml:space="preserve">
     <value>[Šîĝñéð îñ · öñé çĥàñĝé ŵàîţîñĝ~~~~~~~~~]</value>
@@ -1555,14 +1531,6 @@
     <value>[Çĥööšé à šöüŕçé ƒöŕ éþîšöðé {episode}~~~~~~~~~~]</value>
     <comment>Title of the dialog once it lists what each { -source } has for the room's episode. The episode is its label, such as 5 or 5.5.</comment>
   </data>
-  <data name="PartyPlayWith" xml:space="preserve">
-    <value>[Þļàý ŵîţĥ ţĥé ŵàţçĥ þàŕţý~~~~~~~~]</value>
-    <comment>Button that plays the chosen { -source } in step with the room.</comment>
-  </data>
-  <data name="PartyNoSourceLists" xml:space="preserve">
-    <value>[Ñö šöüŕçé ļîšţš éþîšöðé {episode}. Šöüŕçéš çöɱé ƒŕöɱ þļüĝîñš, ŵĥîçĥ à þļüĝîñ šţöŕé àððš.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>When no { -source } lists the room's episode. The episode is its label, such as 5 or 5.5.</comment>
-  </data>
   <data name="PartyNosourceUnairedTitle" xml:space="preserve">
     <value>[Éþîšöðé {episode} îšñ'ţ öüţ ýéţ~~~~~~~~]</value>
     <comment>Title of the dialog when the room's episode has not aired yet. The episode is its label, such as 5 or 5.5.</comment>
@@ -1578,10 +1546,6 @@
   <data name="SourcesOriginVersion" xml:space="preserve">
     <value>[{origin} · ṽéŕšîöñ {version}~~~~~~]</value>
     <comment>Under a { -source }'s name in its detail: where it came from, then its version. The origin is already worded, such as "From a store" or "Added by hand".</comment>
-  </data>
-  <data name="SourcesRebuilding" xml:space="preserve">
-    <value>[Šöüŕçéš àŕé ƀéîñĝ šéţ üþ àĝàîñ~~~~~~~~~]</value>
-    <comment>Over the { -source } list while the { -source-pl } are set up again after a change.</comment>
   </data>
   <data name="SourcesStanding" xml:space="preserve">
     <value>[Šţàñðîñĝ~~~]</value>
@@ -2107,6 +2071,30 @@
     <value>[{minutes} ɱîñ~~~]</value>
     <comment>A length in minutes, for an episode.</comment>
   </data>
+  <data name="TimeNowInline" xml:space="preserve">
+    <value>[ñöŵ~]</value>
+    <comment>A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.</comment>
+  </data>
+  <data name="TimeJustNowInline" xml:space="preserve">
+    <value>[ĵüšţ ñöŵ~~~]</value>
+    <comment>How long ago, under a minute. Lower case, as it stands inside a line.</comment>
+  </data>
+  <data name="WhenToday" xml:space="preserve">
+    <value>[ţöðàý {time}~~~]</value>
+    <comment>Later today.</comment>
+  </data>
+  <data name="WhenTomorrow" xml:space="preserve">
+    <value>[ţöɱöŕŕöŵ {time}~~~~]</value>
+    <comment>Tomorrow.</comment>
+  </data>
+  <data name="WhenWeekday" xml:space="preserve">
+    <value>[{day} {time}~~~]</value>
+    <comment>Within the next six days. The day is the weekday's name, already formatted.</comment>
+  </data>
+  <data name="WhenDate" xml:space="preserve">
+    <value>[{date}, {time}~~~]</value>
+    <comment>A week or more away. The date is the day and short month, already formatted, such as "29 Oct".</comment>
+  </data>
   <data name="StateOfflineLine" xml:space="preserve">
     <value>[Öƒƒļîñé. Ðöŵñļöàðéð éþîšöðéš šţîļļ þļàý.~~~~~~~~~~~~]</value>
     <comment>Line under a title when the device has no connection.</comment>
@@ -2158,10 +2146,6 @@
   <data name="StateLoading" xml:space="preserve">
     <value>[Ļöàðîñĝ~~~]</value>
     <comment>Short placeholder while something loads.</comment>
-  </data>
-  <data name="TimeJustNowInline" xml:space="preserve">
-    <value>[ĵüšţ ñöŵ~~~]</value>
-    <comment>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</comment>
   </data>
   <data name="PadHelpMove" xml:space="preserve">
     <value>[Ṁöṽé ƒöçüš~~~]</value>
@@ -3059,6 +3043,10 @@
     <value>[É{done}~~]</value>
     <comment>Short progress under a show when the total is not known.</comment>
   </data>
+  <data name="ContinueRowStartAiredDubbed" xml:space="preserve">
+    <value>[Þļàý É{episode} ðüƀƀéð · öüţ {ago}~~~~~~~~]</value>
+    <comment>Row caption: the next unwatched episode, dubbed, which came out a while ago.</comment>
+  </data>
   <data name="FormatTv" xml:space="preserve">
     <value>[ŢṼ~]</value>
     <comment>Format of a show: broadcast on television.</comment>
@@ -3735,6 +3723,14 @@
     <value>[{seeders} šééðéŕš~~~~]</value>
     <comment>Line of a source: its quality and size already formatted, and the number of seeders.</comment>
   </data>
+  <data name="PartyNoSourceLists" xml:space="preserve">
+    <value>[Ñö šöüŕçé ļîšţš éþîšöðé {episode}. Šöüŕçéš çöɱé ƒŕöɱ þļüĝîñš, ŵĥîçĥ à þļüĝîñ šţöŕé àððš.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line when no source lists the episode.</comment>
+  </data>
+  <data name="PartyPlayWith" xml:space="preserve">
+    <value>[Þļàý ŵîţĥ ţĥé ŵàţçĥ þàŕţý~~~~~~~~]</value>
+    <comment>Button that plays the chosen source with the room.</comment>
+  </data>
   <data name="PlayerUpNext" xml:space="preserve">
     <value>[Ûþ ñéẋţ~~~]</value>
     <comment>Label on the card for the episode that plays after this one.</comment>
@@ -4038,6 +4034,30 @@
   <data name="PlayerSources" xml:space="preserve">
     <value>[Šöüŕçéš~~~]</value>
     <comment>Title of the picker sheet in the player.</comment>
+  </data>
+  <data name="PlayerFailedTitleText" xml:space="preserve">
+    <value>[Çöüļðñ'ţ þļàý éþîšöðé {episode}~~~~~~~~]</value>
+    <comment>Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".</comment>
+  </data>
+  <data name="PlayerScrubHalf" xml:space="preserve">
+    <value>[Ĥàļƒ-šþééð šçŕüƀƀîñĝ~~~~~~]</value>
+    <comment>Label while scrubbing the seek line at half the pace.</comment>
+  </data>
+  <data name="PlayerScrubQuarter" xml:space="preserve">
+    <value>[Ǫüàŕţéŕ-šþééð šçŕüƀƀîñĝ~~~~~~~]</value>
+    <comment>Label while scrubbing the seek line at a quarter of the pace.</comment>
+  </data>
+  <data name="PlayerStartingText" xml:space="preserve">
+    <value>[Šţàŕţîñĝ éþîšöðé {episode}~~~~~~]</value>
+    <comment>Heading of the starting screen. The episode's number is text, because it may be "7.5".</comment>
+  </data>
+  <data name="PlayerTrackN" xml:space="preserve">
+    <value>[Ţŕàçķ {id}~~~]</value>
+    <comment>Name of an audio or subtitle track that has no language or title.</comment>
+  </data>
+  <data name="PlayerWaitNote" xml:space="preserve">
+    <value>[{what} · {seconds} š~~~~]</value>
+    <comment>Line while an episode starts after a few seconds: what the wait is on, and for how long.</comment>
   </data>
   <data name="SeasonalPrevious" xml:space="preserve">
     <value>[Þŕéṽîöüš šéàšöñ~~~~~]</value>
@@ -4863,9 +4883,49 @@
     <value>[Çŕîšþéŕ ļîñéš àñð šţŕöñĝéŕ éðĝéš, àţ šöɱé çöšţ ţö ţéẋţüŕé.~~~~~~~~~~~~~~~~~~]</value>
     <comment>Preview note under the upscaling frame for the sharp look.</comment>
   </data>
+  <data name="SettingsAfterDownload" xml:space="preserve">
+    <value>[Åƒţéŕ éàçĥ ðöŵñļöàð~~~~~~]</value>
+    <comment>Setting: a command run after each download finishes.</comment>
+  </data>
+  <data name="SettingsMpvOptions" xml:space="preserve">
+    <value>[ɱþṽ öþţîöñš~~~~]</value>
+    <comment>Setting: extra options passed to mpv, the player. mpv stays lower case.</comment>
+  </data>
+  <data name="SettingsPanesLabel" xml:space="preserve">
+    <value>[Šéţţîñĝš þàñéš~~~~~]</value>
+    <comment>Name screen readers give the list of panes down the side of Settings.</comment>
+  </data>
+  <data name="SettingsPresenceRich" xml:space="preserve">
+    <value>[Ŕîçĥ þŕéšéñçé~~~~]</value>
+    <comment>Setting: Discord's status with the cover and a progress bar.</comment>
+  </data>
+  <data name="SettingsPresenceTitle" xml:space="preserve">
+    <value>[Þŕéšéñçé šĥöŵš ţĥé ţîţļé~~~~~~~~]</value>
+    <comment>Setting: Discord's status names the show being watched.</comment>
+  </data>
+  <data name="SettingsSignedIn" xml:space="preserve">
+    <value>[Šîĝñéð îñ~~~]</value>
+    <comment>Under a tracker that is signed in, when its user name is unknown.</comment>
+  </data>
   <data name="SettingsUpscalingSharp" xml:space="preserve">
     <value>[Šĥàŕþ · Åñîɱé4Ķ~~~~~]</value>
     <comment>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</comment>
+  </data>
+  <data name="SettingsAsideAccounts" xml:space="preserve">
+    <value>[àñîšţŕéàɱ ŵöŕķš ŵîţĥöüţ àñ àççöüñţ. Ýöüŕ ŵàţçĥ ĥîšţöŕý šţàýš öñ ţĥîš ðéṽîçé ŵĥéñ ýöü šîĝñ öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Side note in Accounts.</comment>
+  </data>
+  <data name="WidgetDayToday" xml:space="preserve">
+    <value>[ţöðàý~~]</value>
+    <comment>Today, inside a line such as "Thursday 16:30".</comment>
+  </data>
+  <data name="WidgetDayYesterday" xml:space="preserve">
+    <value>[ýéšţéŕðàý~~~]</value>
+    <comment>Yesterday, inside a line.</comment>
+  </data>
+  <data name="WidgetLineStart" xml:space="preserve">
+    <value>[Šţàŕţ {episode}~~~]</value>
+    <comment>Line of the Continue widget: what plays next, with the episode already named.</comment>
   </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>[Šöüŕçéš~~~]</value>
@@ -5130,6 +5190,18 @@
   <data name="SourcesSourceOrderRow" xml:space="preserve">
     <value>[Šöüŕçé öŕðéŕ~~~~]</value>
     <comment>Row: where the plugin's page stands.</comment>
+  </data>
+  <data name="SourcesTorrentsNote" xml:space="preserve">
+    <value>[Ţöŕŕéñţš àŕé þàŕţ öƒ àñîšţŕéàɱ, ñöţ à þļüĝîñ. Ŵĥàţ þŕöţéçţš ţĥéîŕ ţŕàƒƒîç, ţĥé çöññéçţîöñ çĥéçķ àñð šééðîñĝ àŕé šéţ îñ Šéţţîñĝš, üñðéŕ Šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.</comment>
+  </data>
+  <data name="SourcesRebuilding" xml:space="preserve">
+    <value>[Šöüŕçéš àŕé ƀéîñĝ šéţ üþ àĝàîñ~~~~~~~~~]</value>
+    <comment>Over the { -source } list while the { -source-pl } are set up again after a change.</comment>
+  </data>
+  <data name="SourcesResponseMs" xml:space="preserve">
+    <value>[{ms} ɱš~~]</value>
+    <comment>Value of a plugin's response time, in milliseconds.</comment>
   </data>
   <data name="StoresJoined" xml:space="preserve">
     <value>[Ĵöîñéð~~]</value>
@@ -5635,6 +5707,10 @@
     <value>[{name} {version}~~~]</value>
     <comment>Version line of a plugin in the publish sheet.</comment>
   </data>
+  <data name="StoresRemoveAll" xml:space="preserve">
+    <value>[Ŕéɱöṽé àļļ~~~]</value>
+    <comment>Button on the summary row that removes every device that joined with the link.</comment>
+  </data>
   <data name="StoresCopyLink" xml:space="preserve">
     <value>[Çöþý ļîñķ~~~]</value>
     <comment>Button under an invite link that copies it. Reads "Copied" for a moment afterwards.</comment>
@@ -5646,6 +5722,10 @@
   <data name="StoresOffersPlugins_other" xml:space="preserve">
     <value>[{count} þļüĝîñš~~~~]</value>
     <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
+  </data>
+  <data name="NoticeOpenStores" xml:space="preserve">
+    <value>[Öþéñ þļüĝîñ šţöŕéš~~~~~~]</value>
+    <comment>Button of a notice that opens the plugin stores page.</comment>
   </data>
   <data name="TitleLoadFailed" xml:space="preserve">
     <value>[Çöüļðñ'ţ ļöàð ţĥîš ţîţļé~~~~~~~~]</value>
@@ -5890,6 +5970,14 @@
   <data name="EpisodeLineDubbed" xml:space="preserve">
     <value>[{line} · Ðüƀƀéð~~~~]</value>
     <comment>An episode's line with the audio it was watched in marked, as Continue and the title page word it.</comment>
+  </data>
+  <data name="TitleButtonPlayDubbed" xml:space="preserve">
+    <value>[Þļàý éþîšöðé {episode} · Ðüƀƀéð~~~~~~~~]</value>
+    <comment>Main button of the title page for a dubbed episode that has not been started.</comment>
+  </data>
+  <data name="TitleButtonResumeDubbed" xml:space="preserve">
+    <value>[Ŕéšüɱé éþîšöðé {episode} · Ðüƀƀéð · {time}~~~~~~~~~~]</value>
+    <comment>Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.</comment>
   </data>
   <data name="TorrentsTitle" xml:space="preserve">
     <value>[Ţöŕŕéñţš~~~]</value>
@@ -6186,6 +6274,10 @@
   <data name="TorrentsCheckNote" xml:space="preserve">
     <value>[àñîšţŕéàɱ çĥéçķš ŵĥéŕé ţöŕŕéñţ ţŕàƒƒîç ļéàṽéš ƒŕöɱ ŵĥéñ à ţöŕŕéñţ šţàŕţš àñð éṽéŕý ɱîñüţé ŵĥîļé îţ ŕüñš, àñð þàüšéš ţöŕŕéñţš îƒ ţĥàţ çĥéçķ ƒàîļš. Ýöüŕ ṼÞÑ öŕ þŕöẋý îš ŵĥàţ þŕöţéçţš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.</comment>
+  </data>
+  <data name="TorrentsProtectionSaved" xml:space="preserve">
+    <value>[Ţöŕŕéñţ þŕöţéçţîöñ šàṽéð~~~~~~~~]</value>
+    <comment>Notice after the protection was saved.</comment>
   </data>
   <data name="AccountsTitle" xml:space="preserve">
     <value>[Åççöüñţš~~~]</value>
@@ -6698,6 +6790,18 @@
   <data name="TvRemotes" xml:space="preserve">
     <value>[Ŕéɱöţéš~~~]</value>
     <comment>Heading of the settings group on the TV that lists the remotes.</comment>
+  </data>
+  <data name="TvAnother" xml:space="preserve">
+    <value>[Åñöţĥéŕ ŢṼ~~~]</value>
+    <comment>Row title of the button that pairs another TV once one is paired.</comment>
+  </data>
+  <data name="TvRowNeedsUpdate" xml:space="preserve">
+    <value>[Ñééðš ţĥé šàɱé àñîšţŕéàɱ ṽéŕšîöñ àš ţĥîš ðéṽîçé~~~~~~~~~~~~~~~]</value>
+    <comment>Under a TV in the list: its version does not match.</comment>
+  </data>
+  <data name="TvVolume" xml:space="preserve">
+    <value>[ŢṼ ṽöļüɱé~~~]</value>
+    <comment>Title of the remote's volume row.</comment>
   </data>
   <data name="UpdatesTitle" xml:space="preserve">
     <value>[Ûþðàţéš~~~]</value>
