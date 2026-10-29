@@ -140,8 +140,10 @@ async fn run_streams(
 ) -> Vec<Event> {
     let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
     let (tx, mut rx) = mpsc::unbounded_channel();
+    // A bound for a playback that hangs. On a busy machine mpv can take most of the 20 s the
+    // playback gives it to open its socket, and then decodes its way to any resume point.
     tokio::time::timeout(
-        Duration::from_secs(30),
+        Duration::from_secs(90),
         playback::play(
             streams,
             context,
@@ -266,6 +268,22 @@ async fn until_playing(updates: &mut mpsc::UnboundedReceiver<Event>) -> Vec<Even
     seen
 }
 
+/// Wait until the playback reports the playhead at `seconds` or later.
+///
+/// Waited for rather than slept for: a busy machine plays the clip slower than the clock on
+/// the wall, so three seconds of waiting can be less than three seconds of playback.
+async fn until_at(updates: &mut mpsc::UnboundedReceiver<Event>, seconds: f64) -> Vec<Event> {
+    let mut seen = Vec::new();
+    while let Some(update) = updates.recv().await {
+        let there = matches!(update, Event::Playback { position, .. } if position >= seconds);
+        seen.push(update);
+        if there {
+            break;
+        }
+    }
+    seen
+}
+
 /// Wait until the playback reports a position past `threshold` by the tracker's own rule: a
 /// known duration, and the playhead at least that far through it.
 ///
@@ -288,7 +306,9 @@ async fn until_watched(
             }
         }
     };
-    tokio::time::timeout(Duration::from_secs(10), past)
+    // A bound for a player that hangs, not a measure of how fast it starts: on a busy machine
+    // mpv can take most of the 20 s the playback gives it to open its socket.
+    tokio::time::timeout(Duration::from_secs(60), past)
         .await
         .expect("the playback never got past the threshold");
     seen
@@ -674,8 +694,7 @@ async fn stopping_records_where_it_was_left_before_saying_it_ended() {
         commands,
         store.clone(),
     );
-    let seen = until_playing(&mut rx).await;
-    tokio::time::sleep(Duration::from_secs(3)).await;
+    let seen = until_at(&mut rx, 3.0).await;
     controls.send(PlayerCommand::Stop).unwrap();
     let updates = finish(task, rx, seen).await;
 
