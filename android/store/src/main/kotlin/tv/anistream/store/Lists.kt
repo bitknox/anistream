@@ -110,17 +110,39 @@ class CalendarModel {
     @Volatile
     var opensOn: Int = 0
 
-    /** The calendar's anchor, its pages, whether AniList has more behind them, and its rows. */
+    /**
+     * The calendar's anchor, its pages either way, whether AniList has more behind them, the
+     * furthest instants it will ever reach (read from the engine, never kept here), and its rows.
+     */
     data class Window(
         val anchor: Long? = null,
         val pages: UInt = 0u,
         val morePast: Boolean = false,
+        /** The furthest back the calendar goes, epoch seconds; `null` until the engine says. */
+        val floor: Long? = null,
+        /** The furthest ahead it goes, epoch seconds. */
+        val ceiling: Long? = null,
+        /** Pages of the days ahead that are loaded. */
+        val aheadPages: UInt = 0u,
+        val moreAhead: Boolean = false,
+        /** An earlier page is on its way. */
+        val loadingPast: Boolean = false,
+        /** A later page is on its way. */
+        val loadingAhead: Boolean = false,
+        /** The last earlier page failed: what arrived stays, and Try again asks for it again. */
+        val pastFailed: Boolean = false,
+        /** The last later page failed. */
+        val aheadFailed: Boolean = false,
         /**
          * The rows, oldest first: the broadcasts, each a title on a day, so not unique by title
          * the way another list's are.
          */
         val rows: List<Entry> = emptyList(),
-    )
+    ) {
+        /** Whether the calendar reaches [instant] (epoch seconds): inside the floor and the ceiling. */
+        fun reaches(instant: Long): Boolean =
+            (floor == null || instant >= floor) && (ceiling == null || instant <= ceiling)
+    }
 
     private val _window = MutableStateFlow(Window())
     val window: StateFlow<Window> = _window.asStateFlow()
@@ -130,22 +152,80 @@ class CalendarModel {
         _window.value = _window.value.copy(rows = (content as? ContentList.Entries)?.v1.orEmpty())
     }
 
-    internal fun window(anchor: Long, pages: UInt, morePast: Boolean) {
-        _window.value = _window.value.copy(anchor = anchor, pages = pages, morePast = morePast)
+    internal fun window(
+        anchor: Long,
+        pages: UInt,
+        morePast: Boolean,
+        floor: Long,
+        ceiling: Long,
+        aheadPages: UInt,
+        moreAhead: Boolean,
+    ) {
+        _window.value = _window.value.copy(
+            anchor = anchor, pages = pages, morePast = morePast, floor = floor, ceiling = ceiling,
+            aheadPages = aheadPages, moreAhead = moreAhead,
+            loadingPast = false, loadingAhead = false, pastFailed = false, aheadFailed = false,
+        )
+    }
+
+    /** The next earlier page to ask for, once, when there is one and none is on its way. */
+    internal fun askPast(): Pair<Long, UInt>? {
+        val now = _window.value
+        val anchor = now.anchor ?: return null
+        if (!now.morePast || now.loadingPast || now.pastFailed) return null
+        _window.value = now.copy(loadingPast = true)
+        return anchor to now.pages
+    }
+
+    /** The next later page to ask for; Try again asks for it after a failure. */
+    internal fun askAhead(retry: Boolean = false): Pair<Long, UInt>? {
+        val now = _window.value
+        val anchor = now.anchor ?: return null
+        if (!now.moreAhead || now.loadingAhead || (now.aheadFailed && !retry)) return null
+        _window.value = now.copy(loadingAhead = true, aheadFailed = false)
+        return anchor to now.aheadPages + 1u
+    }
+
+    /** Ask for the earlier page again after a failure. */
+    internal fun retryPast(): Pair<Long, UInt>? {
+        _window.value = _window.value.copy(pastFailed = false)
+        return askPast()
     }
 
     /**
-     * Older broadcasts, above what is there. A page of `null` failed: nothing to add, and the same
-     * page is asked for again on the next scroll.
+     * Older broadcasts, above what is there. A page of `null` failed: nothing to add; the screen
+     * says so and Try again asks for the same page.
      */
     internal fun backfill(page: UInt?, entries: List<Entry>, morePast: Boolean, titles: TitleCache) {
-        page ?: return
-        titles.merge(entries)
         val now = _window.value
+        if (page == null) {
+            _window.value = now.copy(loadingPast = false, pastFailed = true)
+            return
+        }
+        titles.merge(entries)
         _window.value = now.copy(
             rows = entries + now.rows,
             pages = maxOf(now.pages, page + 1u),
             morePast = morePast,
+            loadingPast = false,
+            pastFailed = false,
+        )
+    }
+
+    /** Later broadcasts, after what is there; a `null` page failed. */
+    internal fun ahead(page: UInt?, entries: List<Entry>, moreAhead: Boolean, titles: TitleCache) {
+        val now = _window.value
+        if (page == null) {
+            _window.value = now.copy(loadingAhead = false, aheadFailed = true)
+            return
+        }
+        titles.merge(entries)
+        _window.value = now.copy(
+            rows = now.rows + entries,
+            aheadPages = maxOf(now.aheadPages, page),
+            moreAhead = moreAhead,
+            loadingAhead = false,
+            aheadFailed = false,
         )
     }
 }

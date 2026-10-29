@@ -25,6 +25,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -56,6 +58,9 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import tv.anistream.tv.ui.ButtonLabel
+import tv.anistream.tv.ui.TonalButton
+import kotlinx.coroutines.launch
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
@@ -116,9 +121,13 @@ fun CalendarModel.Window.airings(now: Instant = AppClock.now()): List<Airing> {
     }.sortedBy { it.at }
 }
 
-/** "Today", then "Wed 21" and so on. */
-fun dayLabel(context: Context, day: LocalDate, today: LocalDate): String =
-    if (day == today) Strings.dayToday(context) else "${day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale)} ${day.dayOfMonth}"
+/** "Today", then "Wed 21" and so on; the 1st names its month: "Sun 1 Nov". */
+fun dayLabel(context: Context, day: LocalDate, today: LocalDate): String = when {
+    day == today -> Strings.dayToday(context)
+    day.dayOfMonth == 1 ->
+        "${day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale)} 1 ${day.month.getDisplayName(TextStyle.SHORT, AirTime.locale)}"
+    else -> "${day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale)} ${day.dayOfMonth}"
+}
 
 /**
  * When it airs on the TV's clock: "16:30", "~16:30" for an estimate, or "16:30 (was 23:00)" when
@@ -155,7 +164,9 @@ private fun Airing.listProgress(context: Context): String? {
     return entry.episodes?.let { Strings.widgetLineOf(context, done.toInt(), it.toInt()) } ?: Strings.episodeNumberShort(context, done.toInt())
 }
 
-private const val DAYS = 7
+/** The tabs start two weeks back; the last is the ceiling the engine reports, four weeks ahead until it says. */
+private const val DAYS_BACK = 14
+private const val DAYS_AHEAD = 28
 
 @Composable
 fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> Unit) {
@@ -166,19 +177,57 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
     val state by store.calendar.list.state.collectAsStateWithLifecycle()
     val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
     val signedIn = trackers.values.any { it.connected }
-    var mine by rememberSaveable { mutableStateOf(true) }
+    val settings by store.settings.view.collectAsStateWithLifecycle()
+    // All airing until the person chooses My list, and then it stays chosen.
+    val mine = remember(settings) { store.calendarMine() }
     val onlyMine = mine && signedIn
     val now = AppClock.now()
     val zone = AppClock.zone
     val today = now.atZone(zone).toLocalDate()
-    var offset by rememberSaveable { mutableIntStateOf(store.calendar.opensOn.coerceIn(0, DAYS - 1)) }
+    // The last tab is the ceiling, counted from the anchor the engine reckoned it against.
+    val ceilingDays = window.ceiling?.let { ceiling -> window.anchor?.let { ((ceiling - it) / 86_400L).toInt() } }
+        ?.coerceAtLeast(0) ?: DAYS_AHEAD
+    var offset by rememberSaveable { mutableIntStateOf(store.calendar.opensOn.coerceIn(-DAYS_BACK, ceilingDays)) }
     val day = today.plusDays(offset.toLong())
     val airings = remember(window) { window.airings(now) }
     val shown = airings.filter { it.at.atZone(zone).toLocalDate() == day && (!onlyMine || it.entry.listStatus != null) }
     // The next airing today leads; on another day, its first.
     val lead = shown.indexOfFirst { it.at >= now }.takeIf { it >= 0 } ?: 0
+    // The line that marks now stands before the lead row; with every broadcast aired, after the last.
+    val nowAt = if (offset == 0 && shown.isNotEmpty()) shown.indexOfFirst { it.at >= now }.takeIf { it >= 0 } ?: shown.size else null
     val list = rememberLazyListState(initialFirstVisibleItemIndex = maxOf(0, lead - 1))
-    ToTop(nav, memory, scrolled = { list.firstVisibleItemIndex > maxOf(0, lead - 1) }) { list.scrollToItem(maxOf(0, lead - 1)) }
+    val tabs = rememberLazyListState(initialFirstVisibleItemIndex = maxOf(0, DAYS_BACK + offset - 1))
+    val scope = rememberCoroutineScope()
+    // Back steps from a row to its tab, then to Today, then lets the rail have it.
+    DisposableEffect(nav, memory) {
+        val mine = {
+            when {
+                memory.last?.startsWith("airing/") == true && memory.focus("day/$offset") -> true
+                offset != 0 -> {
+                    offset = 0
+                    scope.launch {
+                        tabs.scrollToItem(maxOf(0, DAYS_BACK - 1))
+                        repeat(5) {
+                            withFrameNanos { }
+                            if (memory.focus("day/0")) return@launch
+                        }
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+        nav.toTop = mine
+        onDispose { if (nav.toTop === mine) nav.toTop = null }
+    }
+    // A day outside what is loaded asks the engine for the stretch it sits in.
+    LaunchedEffect(offset, window.anchor, window.morePast, window.moreAhead, window.loadingPast, window.loadingAhead) {
+        val start = day.atStartOfDay(zone).toInstant()
+        val first = airings.firstOrNull()?.at
+        val last = airings.lastOrNull()?.at
+        if (window.morePast && first != null && start < first) store.loadCalendarThrough(start.epochSecond, earlier = true)
+        if (window.moreAhead && last != null && start > last) store.loadCalendarThrough(start.plusSeconds(86_400).epochSecond, earlier = false)
+    }
     val loading = (state is ListState.Loading || state is ListState.Idle) && airings.isEmpty()
     val placeholders = placeholdersAfterWait(loading)
     val failed = state as? ListState.Failed
@@ -204,23 +253,24 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
     }
 
     Column(Modifier.fillMaxSize().padding(start = Canvas.Keyline, top = Canvas.SafeY, end = Canvas.SafeX)) {
-        Row(Modifier.focusRestorer(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            repeat(DAYS) { index ->
+        androidx.compose.foundation.lazy.LazyRow(state = tabs, modifier = Modifier.focusRestorer(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(DAYS_BACK + ceilingDays + 1, key = { it }) { index ->
+                val tabOffset = index - DAYS_BACK
                 TvTab(
-                    dayLabel(context, today.plusDays(index.toLong()), today),
-                    selected = index == offset,
-                    onSelect = { offset = index },
-                    modifier = Modifier.firstFocus(memory, "day/$index", shown.isEmpty() && index == offset),
+                    dayLabel(context, today.plusDays(tabOffset.toLong()), today),
+                    selected = tabOffset == offset,
+                    onSelect = { offset = tabOffset },
+                    modifier = Modifier.firstFocus(memory, "day/$tabOffset", shown.isEmpty() && tabOffset == offset),
                 )
             }
         }
         // Under the days: My list when signed in, All airing otherwise; not changeable until sign-in.
         Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.focusRestorer(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TvTab(stringResource(R.string.calendar_filter_all), selected = !onlyMine, onSelect = { store.setCalendarMine(false) }, settle = null, chip = true, modifier = Modifier.remembered(memory, "chip/all"))
                 if (signedIn) {
-                    TvTab(stringResource(R.string.calendar_filter_mine), selected = onlyMine, onSelect = { mine = true }, settle = null, chip = true, modifier = Modifier.remembered(memory, "chip/mine"))
+                    TvTab(stringResource(R.string.calendar_filter_mine), selected = onlyMine, onSelect = { store.setCalendarMine(true) }, settle = null, chip = true, modifier = Modifier.remembered(memory, "chip/mine"))
                 }
-                TvTab(stringResource(R.string.calendar_filter_all), selected = !onlyMine, onSelect = { mine = false }, settle = null, chip = true, modifier = Modifier.remembered(memory, "chip/all"))
             }
             if (!signedIn) {
                 Text(
@@ -243,6 +293,11 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
                 onAction = { store.loadCalendar(force = true) },
                 actionModifier = Modifier.firstFocus(memory, "retry"),
             )
+            shown.isEmpty() && !loading && onlyMine && airings.none { it.entry.listStatus != null && it.at >= now } -> {
+                Text(stringResource(R.string.calendar_empty_mine_ahead), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                Spacer(Modifier.height(12.dp))
+                TonalButton(onClick = { store.setCalendarMine(false) }, modifier = Modifier.remembered(memory, "show-all")) { ButtonLabel(stringResource(R.string.calendar_show_all_airing)) }
+            }
             shown.isEmpty() && !loading -> {
                 Text(if (offset == 0) stringResource(R.string.calendar_empty_today) else stringResource(R.string.calendar_empty_day, day.dayOfWeek.getDisplayName(TextStyle.FULL, AirTime.locale)), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             }
@@ -251,27 +306,50 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
         val spec = remember(density) { with(density) { SafeSpec(Canvas.FocusRoom.toPx(), 40.dp.toPx()) } }
         ScrollRule(spec) {
             LazyColumn(state = list, contentPadding = PaddingValues(bottom = 60.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                items(shown, key = { it.key }, contentType = { "airing" }) { airing ->
-                    val index = shown.indexOf(airing)
-                    AiringRow(
-                        airing,
-                        past = airing.at < now,
-                        onClick = { onOpen(airing.entry.id) },
-                        sheet = { planSheet(context, store, airing.entry, onOpen) },
-                        onDay = { step ->
-                            val next = offset + step
-                            if (next !in 0 until DAYS) return@AiringRow false
-                            offset = next
-                            aim = airing.at.atZone(zone).toLocalTime()
-                            true
-                        },
-                        modifier = swapFade().firstFocus(memory, airing.key, index == lead),
-                    )
+                shown.forEachIndexed { index, airing ->
+                    if (nowAt == index) item(key = "now", contentType = "now") { NowRule(now) }
+                    item(key = airing.key, contentType = "airing") {
+                        AiringRow(
+                            airing,
+                            past = airing.at < now,
+                            onClick = { onOpen(airing.entry.id) },
+                            sheet = { planSheet(context, store, airing.entry, onOpen) },
+                            onDay = { step ->
+                                val next = offset + step
+                                if (next !in -DAYS_BACK..ceilingDays) return@AiringRow false
+                                offset = next
+                                aim = airing.at.atZone(zone).toLocalTime()
+                                true
+                            },
+                            modifier = swapFade().firstFocus(memory, airing.key, index == lead),
+                        )
+                    }
                 }
+                if (nowAt == shown.size) item(key = "now", contentType = "now") { NowRule(now) }
             }
         }
     }
     EnterFocus(memory, entry = shown.isNotEmpty())
+}
+
+/**
+ * The line that marks the time now, between the last broadcast that has aired and the next: silk,
+ * 1 dp, with the time leading. It takes no focus.
+ */
+@Composable
+private fun NowRule(now: Instant) {
+    val context = LocalContext.current
+    val time = airTime(AirTime.clock(now), false)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .semantics(mergeDescendants = true) { contentDescription = Strings.calendarNowLabel(context, time) },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(time, style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk, modifier = Modifier.width(84.dp).clearAndSetSemantics {})
+        Box(Modifier.weight(1f).height(1.dp).background(ObiSilk.Silk))
+    }
 }
 
 /** A row's key in the list and in focus memory. */
