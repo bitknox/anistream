@@ -241,6 +241,8 @@ struct State {
     paused_since: Option<Instant>,
     buffering: bool,
     rate: Option<f64>,
+    /// The speed the viewer asked for, kept for the next load: a `LOAD` starts at normal speed.
+    asked_rate: Option<f64>,
     level: Option<f64>,
     muted: Option<bool>,
     control: VolumeControl,
@@ -466,26 +468,33 @@ impl CastPlayer {
         let inner = Arc::clone(&self.inner);
         let task = tokio::spawn(async move {
             let outcome = attempt(&inner, load).await;
-            let mut state = lock(&inner.state);
-            state.trying = false;
-            match outcome {
-                Ok(plan) => {
-                    tracing::info!(route = ?plan.route, delivery = ?plan.delivery, "cast playing");
-                    state.plan = Some(plan);
-                    // The status that confirmed it is the session's first.
-                    if let Some(last) = state.last.clone() {
-                        apply(&inner, &mut state, &last);
+            let speed = {
+                let mut state = lock(&inner.state);
+                state.trying = false;
+                match outcome {
+                    Ok(plan) => {
+                        tracing::info!(route = ?plan.route, delivery = ?plan.delivery, "cast playing");
+                        state.plan = Some(plan);
+                        // The status that confirmed it is the session's first.
+                        if let Some(last) = state.last.clone() {
+                            apply(&inner, &mut state, &last);
+                        }
+                    }
+                    Err(failure) => {
+                        tracing::warn!(%failure, "nothing cast");
+                        state.failure = Some(failure);
+                        state.ended = true;
+                        inner.say(PlaybackEvent::Ended { complete: false });
                     }
                 }
-                Err(failure) => {
-                    tracing::warn!(%failure, "nothing cast");
-                    state.failure = Some(failure);
-                    state.ended = true;
-                    inner.say(PlaybackEvent::Ended { complete: false });
-                }
-            }
-            drop(state);
+                // A load starts at normal speed: the one asked for is set once it plays.
+                let playing = state.plan.is_some() && !state.ended;
+                state.asked_rate.filter(|r| playing && (r - 1.0).abs() > f64::EPSILON)
+            };
             inner.publish();
+            if let (Some(rate), Some(media)) = (speed, inner.media()) {
+                let _ = answered(async move { media.set_rate(rate).await.map(|_| ()) }).await;
+            }
         });
         if let Some(previous) = lock(&self.attempt).replace(task) {
             previous.abort();
@@ -567,8 +576,11 @@ impl CastPlayer {
     }
 
     pub async fn set_rate(&self, rate: f64) -> Result<(), CastError> {
+        let rate = rate.clamp(0.5, 2.0);
+        lock(&self.inner.state).asked_rate = Some(rate);
+        // Before a load there is nothing to set: the load applies it once it plays.
         let Some(media) = self.inner.media() else { return Ok(()) };
-        answered(async move { media.set_rate(rate.clamp(0.5, 2.0)).await.map(|_| ()) }).await
+        answered(async move { media.set_rate(rate).await.map(|_| ()) }).await
     }
 
     pub fn rate(&self) -> f64 {
@@ -581,9 +593,9 @@ impl CastPlayer {
             return Ok(());
         }
         let device = self.inner.device.clone();
-        answered(async move {
-            device.set_volume(Some((level / 100.0).clamp(0.0, 1.0)), None).await
-        })
+        answered(
+            async move { device.set_volume(Some((level / 100.0).clamp(0.0, 1.0)), None).await },
+        )
         .await
     }
 
@@ -916,7 +928,9 @@ async fn attempt(inner: &Arc<Inner>, load: CastLoad) -> Result<CastPlan, CastFai
                 let noted = match blame {
                     Blame::Nothing => Ok(()),
                     Blame::Format => setup.memory.record(&setup.device.id, &plan, false),
-                    Blame::Audio => setup.memory.record_stall(&setup.device.id, &plan).map(drop),
+                    Blame::Audio => {
+                        setup.memory.record_stall(&setup.device.id, &plan).map(drop)
+                    }
                 };
                 if let Err(e) = noted {
                     tracing::warn!(error = %e, "couldn't note what the TV refused");
@@ -1076,7 +1090,9 @@ async fn try_plan(inner: &Arc<Inner>, relayed: bool, cast: Load) -> Result<Tried
     let never_fetched = || relayed && inner.relay.requests() == 0;
     let closed = || {
         let state = lock(&inner.state);
-        state.closed.then(|| state.failure.clone().unwrap_or(CastFailure::Lost("closed".into())))
+        state
+            .closed
+            .then(|| state.failure.clone().unwrap_or(CastFailure::Lost("closed".into())))
     };
 
     // Until the TV answers the load.

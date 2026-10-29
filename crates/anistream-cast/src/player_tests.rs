@@ -614,6 +614,29 @@ async fn another_sender_taking_over_ends_the_cast() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn the_speed_asked_for_before_a_load_is_set_once_it_plays() {
+    let file = matroska(&Fixture::default());
+    let base = serve(HashMap::from([("/episode.mkv".to_owned(), file)])).await;
+    let receiver = FakeReceiver::start(FakeOptions::default()).await.unwrap();
+    let (player, mut events) = CastPlayer::connect(setup(
+        &receiver,
+        Arc::new(CastMemory::memory()),
+        Arc::new(FakeEncoder::default()),
+    ))
+    .await
+    .unwrap();
+    // The session sets the speed from its options before it loads the first file.
+    player.set_rate(1.5).await.unwrap();
+    assert!(receiver.heard("SET_PLAYBACK_RATE").is_empty());
+    player.load(torrent(format!("{base}/episode.mkv")));
+    next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
+    next(&mut events, |e| *e == PlaybackEvent::Speed(1.5)).await;
+    assert_eq!(receiver.heard("SET_PLAYBACK_RATE")[0]["playbackRate"], 1.5);
+    assert_eq!(player.rate(), 1.5);
+    player.quit().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_tv_that_goes_silent_ends_the_cast_and_never_holds_a_control_up() {
     let file = matroska(&Fixture { audio: Some(FixtureAudio::aac()), ..Fixture::default() });
     let base = serve(HashMap::from([("/episode.mkv".to_owned(), file)])).await;
