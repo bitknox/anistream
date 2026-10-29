@@ -4,6 +4,8 @@
 
 package tv.anistream.widgets
 
+
+import tv.anistream.i18n.Strings
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -49,7 +51,7 @@ class AiringWidget(private val hostOf: (Context) -> WidgetHost? = ::widgetHost) 
         val drawing = drawing(context, host)
         // No record, or none that says anything of today: ask for one, and say so meanwhile.
         val record = host?.widgetRecord?.value?.let(Record::of)
-        if (WidgetModel.airing(record, drawing.now, drawing.zone) == AiringView.NoSchedule) host?.refreshWidgetRecord()
+        if (WidgetModel.airing(record, drawing.now, drawing.zone, drawing.words) == AiringView.NoSchedule) host?.refreshWidgetRecord()
         provideContent {
             // Followed while the widget's session lasts, so a record landing meanwhile is drawn.
             val data by (host?.widgetRecord ?: MutableStateFlow(null)).collectAsState()
@@ -89,11 +91,12 @@ class AiringWideReceiver : AnistreamWidgetReceiver() {
 @Composable
 internal fun AiringContent(view: AiringView, drawing: Drawing) {
     val calendar = drawing.open(AppLink.Calendar)
+    val context = drawing.words.context
     when (view) {
-        AiringView.NoSchedule -> Message("Airing today", "No schedule for today yet. Open anistream to update it.", calendar)
+        AiringView.NoSchedule -> Message(Strings.widgetAiringToday(context), Strings.widgetNoSchedule(context), calendar)
         is AiringView.NothingToday -> Message(
-            "Airing today",
-            view.next?.let { "Nothing airing. Next: ${drawing.airs(it.airsAt)}." } ?: "Nothing airing today.",
+            Strings.widgetAiringToday(context),
+            view.next?.let { Strings.widgetNothingNext(context, drawing.airs(it.airsAt)) } ?: Strings.widgetNothingToday(context),
             calendar,
         )
         is AiringView.Today -> {
@@ -111,7 +114,7 @@ private fun timeWidth(drawing: Drawing, base: Dp): Dp = if (drawing.words.twenty
 private fun Times(view: AiringView.Today, size: DpSize, drawing: Drawing) {
     val count = ((size.height - 48.dp) / 28.dp).toInt().coerceAtLeast(1)
     Column(root(drawing.open(AppLink.Calendar)).padding(start = 16.dp, end = 14.dp, top = 14.dp)) {
-        Text("Airing today", modifier = GlanceModifier.height(22.dp), style = words(14.sp, weight = FontWeight.Medium), maxLines = 1)
+        Text(Strings.widgetAiringToday(drawing.words.context), modifier = GlanceModifier.height(22.dp), style = words(14.sp, weight = FontWeight.Medium), maxLines = 1)
         Spacer(GlanceModifier.height(6.dp))
         for (row in WidgetModel.pick(view.rows, count, withOut = false)) {
             Row(
@@ -123,7 +126,7 @@ private fun Times(view: AiringView.Today, size: DpSize, drawing: Drawing) {
                 Text(row.title, modifier = GlanceModifier.defaultWeight(), style = words(13.sp, titleColour(row, view.marks), FontWeight.Medium), maxLines = 1)
                 if (row.onList) {
                     Spacer(GlanceModifier.width(6.dp))
-                    Image(ImageProvider(R.drawable.widget_bookmark), contentDescription = "In your list", modifier = GlanceModifier.size(10.dp))
+                    Image(ImageProvider(R.drawable.widget_bookmark), contentDescription = Strings.widgetInYourList(drawing.words.context), modifier = GlanceModifier.size(10.dp))
                 }
             }
         }
@@ -139,7 +142,7 @@ private fun TimesAndStates(view: AiringView.Today, size: DpSize, drawing: Drawin
             GlanceModifier.fillMaxWidth().height(24.dp).clickable(drawing.open(AppLink.Calendar)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Airing today", modifier = GlanceModifier.defaultWeight(), style = words(14.sp, weight = FontWeight.Medium), maxLines = 1)
+            Text(Strings.widgetAiringToday(drawing.words.context), modifier = GlanceModifier.defaultWeight(), style = words(14.sp, weight = FontWeight.Medium), maxLines = 1)
             Text(view.weekday, style = words(12.sp, Palette.haze), maxLines = 1)
         }
         for (row in WidgetModel.pick(view.rows, count, withOut = true)) {
@@ -151,13 +154,13 @@ private fun TimesAndStates(view: AiringView.Today, size: DpSize, drawing: Drawin
                 Spacer(GlanceModifier.width(8.dp))
                 Box(GlanceModifier.width(12.dp), contentAlignment = Alignment.CenterStart) {
                     if (row.onList) {
-                        Image(ImageProvider(R.drawable.widget_bookmark), contentDescription = "In your list", modifier = GlanceModifier.size(10.dp))
+                        Image(ImageProvider(R.drawable.widget_bookmark), contentDescription = Strings.widgetInYourList(drawing.words.context), modifier = GlanceModifier.size(10.dp))
                     }
                 }
                 Spacer(GlanceModifier.width(8.dp))
                 Text(row.title, modifier = GlanceModifier.defaultWeight(), style = words(13.sp, titleColour(row, view.marks), FontWeight.Medium), maxLines = 1)
                 Spacer(GlanceModifier.width(8.dp))
-                State(row)
+                State(row, drawing)
             }
         }
     }
@@ -165,7 +168,7 @@ private fun TimesAndStates(view: AiringView.Today, size: DpSize, drawing: Drawin
 
 /** The right-hand column: the water dot for an episode out, the check for one watched, or the episode. */
 @Composable
-private fun State(row: AiringView.Row) {
+private fun State(row: AiringView.Row, drawing: Drawing) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         when {
             row.out -> {
@@ -173,11 +176,11 @@ private fun State(row: AiringView.Row) {
                 Spacer(GlanceModifier.width(5.dp))
             }
             row.watched -> {
-                Image(ImageProvider(R.drawable.widget_check), contentDescription = "Watched", modifier = GlanceModifier.size(11.dp))
+                Image(ImageProvider(R.drawable.widget_check), contentDescription = Strings.widgetWatched(drawing.words.context), modifier = GlanceModifier.size(11.dp))
                 Spacer(GlanceModifier.width(4.dp))
             }
         }
-        Text(row.state, style = words(12.sp, Palette.haze), maxLines = 1)
+        Text(row.state(drawing.words.context), style = words(12.sp, Palette.haze), maxLines = 1)
     }
 }
 

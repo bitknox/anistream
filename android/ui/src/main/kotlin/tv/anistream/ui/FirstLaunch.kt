@@ -6,6 +6,8 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -131,7 +133,7 @@ private fun FirstLaunchPages(start: FirstLaunchPage, finish: () -> Unit) {
     AnimatedContent(
         page,
         transitionSpec = { fadeIn(Motion.fadeIn()) togetherWith fadeOut(Motion.fadeOut()) },
-        label = "first launch",
+        label = "first launch", // i18n-skip
     ) { shown ->
         when (shown) {
             FirstLaunchPage.Welcome -> WelcomePage { page = FirstLaunchPage.AniList }
@@ -151,17 +153,17 @@ private fun FirstLaunchPages(start: FirstLaunchPage, finish: () -> Unit) {
 @Composable
 private fun WelcomePage(next: () -> Unit) {
     PageFrame(
-        buttons = { Button(onClick = next, modifier = Modifier.fillMaxWidth()) { Text("Continue") } },
+        buttons = { Button(onClick = next, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.onboarding_continue)) } },
     ) {
         Nagare(cell = 5, modifier = Modifier.align(Alignment.CenterHorizontally))
         Text(
-            "anistream",
+            "anistream", // i18n-skip
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = 24.dp).semantics { heading() },
         )
-        PageLine("Keep track of anime and play it from sources you choose.", Modifier.padding(top = 8.dp), center = true)
-        PageLine(LEGAL_LINE, Modifier.padding(top = 16.dp), center = true)
+        PageLine(stringResource(R.string.onboarding_tagline), Modifier.padding(top = 8.dp), center = true)
+        PageLine(stringResource(R.string.legal_hosts_no_content), Modifier.padding(top = 16.dp), center = true)
     }
 }
 
@@ -173,18 +175,18 @@ private fun AniListPage(signIn: () -> Unit, notNow: () -> Unit) {
     val busy = store.accounts.isWorking(working, "anilist")
     PageFrame(
         buttons = {
-            Button(onClick = signIn, enabled = !busy, modifier = Modifier.fillMaxWidth()) { WorkLabel("Sign in to AniList", busy) }
+            Button(onClick = signIn, enabled = !busy, modifier = Modifier.fillMaxWidth()) { WorkLabel(stringResource(R.string.accounts_sign_in_to, "AniList"), busy) }
             TextButton(
                 onClick = notNow,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
-            ) { Text("Not now") }
+            ) { Text(stringResource(R.string.onboarding_not_now)) }
         },
     ) {
-        PageTitle("AniList")
-        PageLine("Sign in to AniList to sync your list and where you stopped.", Modifier.padding(top = 8.dp))
+        PageTitle("AniList") // i18n-skip
+        PageLine(stringResource(R.string.accounts_welcome_detail, "AniList"), Modifier.padding(top = 8.dp))
         Text(
-            "Other trackers are in Accounts.",
+            stringResource(R.string.accounts_other_trackers_note),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 16.dp),
@@ -206,11 +208,11 @@ private fun SourcesPage(join: (String) -> Unit, skip: () -> Unit) {
                 onClick = skip,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
-            ) { Text("Skip for now") }
+            ) { Text(stringResource(R.string.onboarding_skip_for_now)) }
         },
     ) {
-        PageTitle("Sources")
-        PageLine("Sources are plugins, shared through plugin stores by invite.", Modifier.padding(top = 8.dp))
+        PageTitle(stringResource(R.string.onboarding_sources_title))
+        PageLine(stringResource(R.string.onboarding_sources_detail), Modifier.padding(top = 8.dp))
         Row(
             Modifier.fillMaxWidth().padding(top = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -219,15 +221,15 @@ private fun SourcesPage(join: (String) -> Unit, skip: () -> Unit) {
             SheetField(
                 link,
                 { link = it },
-                "Invite link",
+                stringResource(R.string.onboarding_invite_hint),
                 Modifier.weight(1f),
                 keyboard = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false, imeAction = ImeAction.Go),
                 actions = KeyboardActions(onGo = { if (ready) join(link.trim()) }),
             )
-            Button(onClick = { join(link.trim()) }, enabled = ready) { Text("Join") }
+            Button(onClick = { join(link.trim()) }, enabled = ready) { Text(stringResource(R.string.onboarding_join)) }
         }
         Text(
-            "Each plugin is someone else's code connecting to someone else's service. Use them at your own risk.",
+            stringResource(R.string.plugin_risk_warning),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 16.dp),

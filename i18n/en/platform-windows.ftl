@@ -9,10 +9,6 @@ source-picker-seeders = { $count ->
 
 ## Wording the app builds from the engine's parts
 
-# How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
-# @only windows
-time-just-now-inline = just now
-
 # A transfer rate. The size is already formatted, such as "1.2 MB".
 # @only windows
 # @arg size: text

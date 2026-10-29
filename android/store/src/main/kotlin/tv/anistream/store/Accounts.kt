@@ -3,6 +3,7 @@
 
 package tv.anistream.store
 
+import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +22,8 @@ import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.StoreRow
 import tv.anistream.engine.model.SyncState
 import tv.anistream.engine.model.TitleLanguage
+import tv.anistream.i18n.R
+import tv.anistream.i18n.Strings
 
 /**
  * A sign-in the engine asked the browser for (`Event::Authorize`): open [url] in it, and hand
@@ -351,11 +354,14 @@ class StoresModel {
 val StoreRow.updates: Int get() = plugins.count { it.status is StorePluginStatus.Update }
 
 /** What a plugin may contact, in a line: "Contacts open-archive.example and 1 more". */
-val StorePluginRow.contactsLine: String
-    get() {
-        val first = hosts.firstOrNull() ?: return "Contacts no hosts"
-        return if (hosts.size > 1) "Contacts $first and ${hosts.size - 1} more" else "Contacts $first"
+fun StorePluginRow.contactsLine(context: Context): String {
+    val first = hosts.firstOrNull() ?: return Strings.sourcesContactsNone(context)
+    return if (hosts.size > 1) {
+        context.resources.getQuantityString(R.plurals.sources_contacts_line, hosts.size - 1, first, hosts.size - 1)
+    } else {
+        Strings.sourcesContactsOne(context, first)
     }
+}
 
 /** The version installed here: the one an update replaces, or the store's own. */
 val StorePluginRow.installedVersion: String
@@ -365,18 +371,17 @@ val StorePluginRow.installedVersion: String
  * Where a plugin stands on this device, in a word or two, when it is here at all: "Installed",
  * "1.4.0 installed", "Added by hand", "From Kumo". Null for one not installed.
  */
-val StorePluginRow.standing: String?
-    get() = when (val status = status) {
-        StorePluginStatus.Available -> null
-        StorePluginStatus.Installed -> "Installed"
-        is StorePluginStatus.Update -> "${status.from} installed"
-        StorePluginStatus.AddedByHand -> "Added by hand"
-        is StorePluginStatus.OtherStore -> "From ${status.v1}"
-    }
+fun StorePluginRow.standing(context: Context): String? = when (val status = status) {
+    StorePluginStatus.Available -> null
+    StorePluginStatus.Installed -> Strings.storesPluginStateInstalled(context)
+    is StorePluginStatus.Update -> Strings.storesPluginUpdateLine(context, status.from, version)
+    StorePluginStatus.AddedByHand -> Strings.sourcesOriginByHand(context)
+    is StorePluginStatus.OtherStore -> Strings.storesPluginFrom(context, status.v1)
+}
 
 /** Who runs a store a link leads to and where it answers: "Run by Ren · plugins.example", or its host. */
-val InvitedStore.runByLine: String
-    get() = if (owners.isEmpty()) host else "Run by ${owners.joinToString(", ")} · $host"
+fun InvitedStore.runByLine(context: Context): String =
+    if (owners.isEmpty()) host else Strings.storesRunBy(context, Wording.list(owners), host)
 
 /** What an invite link the app was handed holds: the store's own `https://…/join/{code}#{key}`. */
 object InviteLinks {

@@ -39,7 +39,7 @@ class UpdatedTest {
         AppUpdates.mark(context, offer, Destination.Library)
         replaced()
         val notification = shadowOf(manager).getNotification(UpdateNotifier.UPDATED)
-        assertEquals("anistream updated to v$version", notification.extras.getString("android.title"))
+        assertEquals("Updated to version $version", notification.extras.getString("android.title"))
         assertEquals("Smoother calendar", notification.extras.getCharSequence("android.text").toString())
         val opens = shadowOf(notification.contentIntent).savedIntent
         assertEquals(AppLink.Section(Destination.Library), opens.appLink())

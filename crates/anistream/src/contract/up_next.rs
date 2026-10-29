@@ -263,7 +263,7 @@ async fn not_interested_hides_it_until_it_airs_and_for_good_once_it_does() {
         &[("PREQUEL", FINISHED_ONE)],
         &[],
     )]);
-    h.clock().advance(31 * 60);
+    h.advance_engine_clock(31 * 60);
     let shown = ids_of(&load(&mut h).await);
     assert!(shown.contains(&NEW_SEASON_ANNOUNCED), "it airs now: {shown:?}");
     assert!(!shown.contains(&NEW_SEASON_AIRING), "it aired when it was dismissed: {shown:?}");
@@ -424,7 +424,7 @@ async fn what_was_found_is_kept_for_half_an_hour() {
     assert_eq!(reasons(&again), reasons(&first));
     assert_eq!(h.server().requests().len(), asked, "from what was kept, asking nothing");
 
-    h.clock().advance(31 * 60);
+    h.advance_engine_clock(31 * 60);
     load(&mut h).await;
     assert!(h.server().requests().len() > asked, "asked again once it is old");
 }

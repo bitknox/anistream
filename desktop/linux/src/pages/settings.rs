@@ -49,6 +49,7 @@ enum Group {
     Seeding,
     WatchParty,
     Discord,
+    Discussions,
     Updates,
     Mpv,
 }
@@ -67,6 +68,7 @@ impl Group {
             Self::Seeding => t::downloads_seeding_title(),
             Self::WatchParty => t::party_title(),
             Self::Discord => t::settings_discord(),
+            Self::Discussions => t::discussion_settings_group(),
             Self::Updates => t::updates_title(),
             // The player's own name.
             Self::Mpv => "mpv".to_owned(), // i18n-skip
@@ -85,7 +87,7 @@ const PANES: [Pane; 9] = [
     Pane {
         name: "general",
         icon: "preferences-system-symbolic", // i18n-skip
-        groups: &[(Group::Titles, &[K::Titles])],
+        groups: &[(Group::Titles, &[K::Titles, K::Trailers])],
     },
     Pane {
         name: "playback",
@@ -141,6 +143,7 @@ const PANES: [Pane; 9] = [
         groups: &[
             (Group::WatchParty, &[K::Syncplay, K::SyncplayServer, K::SyncplayRoom]),
             (Group::Discord, &[K::Presence, K::PresenceTitle]),
+            (Group::Discussions, &[K::EpisodeDiscussions, K::CommentImages]),
             (Group::Updates, &[K::UpdateCheck]),
         ],
     },
@@ -163,6 +166,7 @@ fn follows(switch: SettingKey) -> Option<&'static [SettingKey]> {
     match switch {
         K::Syncplay => Some(&[K::SyncplayServer, K::SyncplayRoom]),
         K::Presence => Some(&[K::PresenceTitle]),
+        K::EpisodeDiscussions => Some(&[K::CommentImages]),
         _ => None,
     }
 }
@@ -601,7 +605,10 @@ impl Inner {
             .settings
             .as_ref()
             .and_then(|v| v.overridden.iter().find(|o| o.key == key).map(|o| o.shows));
-        let subtitle = overridden.map(|n| t::settings_overridden(n as i64));
+        let subtitle = overridden.map(|n| t::settings_overridden(n as i64)).or_else(|| {
+            // The footnote: what trailers are, and when they do not play.
+            (key == K::Trailers).then(t::settings_note_trailers_linux)
+        });
 
         if !catalog::editable(row) {
             let line = adw::ActionRow::builder().title(&title).build();

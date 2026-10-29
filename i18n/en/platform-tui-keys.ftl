@@ -86,6 +86,15 @@ keys-action-right = Move right
 keys-action-top = Jump to top
 
 # Action label in the help overlay and the command palette.
+keys-action-today = Jump to today
+
+# Action label in the help overlay and the command palette.
+keys-action-previous-day = Jump to previous day
+
+# Action label in the help overlay and the command palette.
+keys-action-next-day = Jump to next day
+
+# Action label in the help overlay and the command palette.
 keys-action-bottom = Jump to bottom
 
 # Action label in the help overlay and the command palette.

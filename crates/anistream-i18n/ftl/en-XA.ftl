@@ -845,23 +845,11 @@ settings-next-value = [Ñéẋţ ṽàļüé~~~]
 # Line after the legal line under the sources settings: where sources come from.
 settings-sources-come-from = [Šöüŕçéš çöɱé ƒŕöɱ ţĥé þļüĝîñ šţöŕéš ýöü ĵöîñ.~~~~~~~~~~~~~~]
 
-# Choice for the download quality: the usual size.
-settings-quality-standard = [Šţàñðàŕð~~~]
-
-# Choice for the download quality: larger files with more detail.
-settings-quality-higher = [Ĥîĝĥéŕ~~]
-
 # Label on the left half of the upscaling preview: the video before processing.
 settings-preview-source = [480þ šöüŕçé~~~~]
 
 # Preview note under the upscaling frame when upscaling is off.
 settings-upscaling-note-off = [Ţĥé 480þ šöüŕçé, šçàļéð ţö ƒîţ ŵîţĥöüţ þŕöçéššîñĝ.~~~~~~~~~~~~~~~]
-
-# Preview note under the upscaling frame for the natural look.
-settings-upscaling-note-natural = [Ƒàîţĥƒüļ ļîñé ŵöŕķ àñð ţéẋţüŕé, ñöţĥîñĝ ŕéšţýļéð.~~~~~~~~~~~~~~~]
-
-# Preview note under the upscaling frame for the sharp look.
-settings-upscaling-note-sharp = [Çŕîšþéŕ ļîñéš àñð šţŕöñĝéŕ éðĝéš, àţ šöɱé çöšţ ţö ţéẋţüŕé.~~~~~~~~~~~~~~~~~~]
 
 # A line of sample subtitle over the preview frame. Any short sentence will do.
 settings-caption-sample = [Ţĥé ļàñţéŕñ ŕöàð ŕüñš öñ þàšţ ţĥé ļàšţ ţöŵñ.~~~~~~~~~~~~~~]
@@ -909,13 +897,6 @@ accounts-changes-waiting-offline =
        *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ üñţîļ ýöü'ŕé öñļîñé~~~~~~~~~~~~]
     }
 
-# Line under a signed-in account while changes wait to be sent.
-accounts-changes-waiting =
-    { $count ->
-        [one] [Öñé çĥàñĝé ŵàîţîñĝ ţö šýñç~~~~~~~~]
-       *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ ţö šýñç~~~~~~~~~]
-    }
-
 # Footnote on the Accounts page: where sign-in tokens are kept, when it is the system's keyring.
 accounts-tokens-keyring = [Šîĝñ-îñ ţöķéñš àŕé ķéþţ îñ ţĥîš ðéṽîçé'š ķéýŕîñĝ.~~~~~~~~~~~~~~~]
 
@@ -927,6 +908,9 @@ updates-why-reopen = [Ţĥé ñéŵ ṽéŕšîöñ îš îñšţàļļéð ƀü
 
 # Accessible description of the mascot's picture. Nagare is the mascot's name.
 nagare-description = [Ñàĝàŕé, ţĥé àñîšţŕéàɱ ɱàšçöţ: à ƒîĝüŕé ŵîţĥ à šîļķ ƀöƀ, àñ àɱƀéŕ šçàŕƒ àñð àñ îñðîĝö çļöàķ, ĥöļðîñĝ à šţàƒƒ ŵîţĥ à ŵàţéŕ çĥàŕɱ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Play trailers setting: what the trailers are and when they do not play.
+settings-note-trailers-linux = [Ţŕàîļéŕš þļàý ɱüţéð ƒŕöɱ ÝöüŢüƀé, ŵĥîçĥ šééš ýöüŕ ÎÞ àððŕéšš. Ţĥéý ðöñ'ţ þļàý öñ à ɱéţéŕéð çöññéçţîöñ, ŵîţĥ àñîɱàţîöñš öƒƒ, îñ þöŵéŕ šàṽéŕ ɱöðé öŕ ŵîţĥ à šçŕééñ ŕéàðéŕ ŕüññîñĝ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Button on a notice that asks to open the plugin stores.
 shell-open-stores = [Öþéñ þļüĝîñ šţöŕéš~~~~~~]
@@ -1099,9 +1083,6 @@ stores-owner-needs-connection-detail = [Ţŕý àĝàîñ öñçé ţĥîš ðé
 
 # Red line in the invite dialog when this device is offline and a link cannot be made.
 stores-owner-link-offline = [Ṁàķîñĝ à ļîñķ ñééðš à çöññéçţîöñ ţö ţĥé þļüĝîñ šţöŕé.~~~~~~~~~~~~~~~~]
-
-# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
-stores-copy-link = [Çöþý ļîñķ~~~]
 
 # Line over a new invite link made for a named person. The time is the one the link stops working.
 stores-send-link-until = [Šéñð ţĥîš ļîñķ. Îţ ŵöŕķš öñçé, üñţîļ { $until }.~~~~~~~~~~~~~]
@@ -1748,6 +1729,15 @@ keys-action-right = [Ṁöṽé ŕîĝĥţ~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-top = [Ĵüɱþ ţö ţöþ~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-today = [Ĵüɱþ ţö ţöðàý~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-previous-day = [Ĵüɱþ ţö þŕéṽîöüš ðàý~~~~~~]
+
+# Action label in the help overlay and the command palette.
+keys-action-next-day = [Ĵüɱþ ţö ñéẋţ ðàý~~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-bottom = [Ĵüɱþ ţö ƀöţţöɱ~~~~~]
@@ -3066,6 +3056,9 @@ settings-label-episode-discussions = [Éþîšöðé ðîšçüššîöñš~~~~~
 # Settings row: whether images in discussion comments load inline.
 settings-label-comment-images = [Ļöàð îɱàĝéš îñ çöɱɱéñţš~~~~~~~]
 
+# Settings row: whether Calendar shows only the shows on the person's list.
+settings-label-calendar-mine = [Çàļéñðàŕ šĥöŵš öñļý ɱý ļîšţ~~~~~~~~~]
+
 # Note under the titles row.
 settings-note-titles = [ÅñîĻîšţ'š çĥöîçé ƒöļļöŵš ýöüŕ ÅñîĻîšţ àççöüñţ, àñð îš Éñĝļîšĥ ŵĥéñ ýöü'ŕé šîĝñéð öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
@@ -4059,6 +4052,9 @@ state-working = [Ŵöŕķîñĝ~~~]
 # Short placeholder while something loads.
 state-loading = [Ļöàðîñĝ~~~]
 
+# How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
+time-just-now-inline = [ĵüšţ ñöŵ~~~]
+
 # Checkbox of the close question.
 close-dont-ask = [Ðöñ'ţ àšķ àĝàîñ~~~~~]
 
@@ -4139,6 +4135,102 @@ tv-problem-full = [Ţĥîš ŢṼ ĥàš àš ɱàñý ðéṽîçéš þàîŕ�
 
 # The TV has forgotten this computer.
 tv-problem-unpaired = [Ţĥé ŢṼ ðöéšñ'ţ ķñöŵ ţĥîš ðéṽîçé àñý ɱöŕé. Þàîŕ àĝàîñ.~~~~~~~~~~~~~~~~]
+
+# Menu item that opens an episode's discussion.
+discussion-open = [Ðîšçüššîöñ~~~]
+
+# Title of the discussion window or sheet when the thread has no title yet.
+discussion-title-episode = [Éþîšöðé { $episode } ðîšçüššîöñ~~~~~~~]
+
+# Quiet line under an episode that opens its discussion.
+discussion-row =
+    { $count ->
+        [one] [Ðîšçüššîöñ · öñé çöɱɱéñţ~~~~~~~~]
+       *[other] [Ðîšçüššîöñ · { $count } çöɱɱéñţš~~~~~~~~]
+    }
+
+# Count of comments in the header of the discussion.
+discussion-count =
+    { $count ->
+        [one] [Öñé çöɱɱéñţ~~~~]
+       *[other] [{ $count } çöɱɱéñţš~~~~]
+    }
+
+# Button that likes a comment, with its count after it. Also its accessible name.
+discussion-like = [Ļîķé~~]
+
+# Button that replies to a comment.
+discussion-reply = [Ŕéþļý~~]
+
+# Line under a reply that has more replies folded in it. The line opens them.
+discussion-more-replies =
+    { $count ->
+        [one] [Öñé ɱöŕé ŕéþļý~~~~~]
+       *[other] [{ $count } ɱöŕé ŕéþļîéš~~~~~]
+    }
+
+# Muted bar in place of a spoiler in a comment, until it is opened.
+discussion-spoiler = [Šþöîļéŕ~~~]
+
+# Line in place of an image in a comment. It opens the image in the browser.
+discussion-image = [Îɱàĝé~~]
+
+# Line in place of a video in a comment. It opens the video in the browser.
+discussion-video = [Ṽîðéö~~]
+
+# Placeholder in the field for a new comment.
+discussion-add-comment = [Åðð à çöɱɱéñţ~~~~]
+
+# Placeholder in the field while editing a comment.
+discussion-edit-comment = [Éðîţ ýöüŕ çöɱɱéñţ~~~~~~]
+
+# Button that sends the comment in the field.
+discussion-post = [Þöšţ~~]
+
+# Line above the field while answering a comment.
+discussion-replying-to = [Ŕéþļýîñĝ ţö { $name }~~~~~]
+
+# Accessible name of the button that stops replying or editing.
+discussion-cancel-reply = [Çàñçéļ ŕéþļý~~~~]
+
+# Line in place of the field when nobody is signed in to AniList. It opens the sign-in.
+discussion-sign-in = [Šîĝñ îñ ŵîţĥ ÅñîĻîšţ ţö ŕéþļý~~~~~~~~~]
+
+# Line in place of the field when the viewer is signed in but offline.
+discussion-offline-post = [Þöšţîñĝ ŵàîţš ƒöŕ ţĥé ñéţŵöŕķ~~~~~~~~~]
+
+# Line under a comment AniList did not accept. The button beside it sends it again.
+discussion-post-failed = [Ðîðñ'ţ þöšţ. Ţŕý àĝàîñ~~~~~~~]
+
+# Title of the question asked before deleting the viewer's own comment.
+discussion-delete-title = [Ðéļéţé ţĥîš çöɱɱéñţ?~~~~~~]
+
+# Body of the question asked before deleting the viewer's own comment.
+discussion-delete-body = [Îţ îš ŕéɱöṽéð ƒŕöɱ ÅñîĻîšţ ţöö.~~~~~~~~~~]
+
+# Line while the comments are still loading after a few seconds.
+discussion-still-loading = [Šţîļļ ļöàðîñĝ ƒŕöɱ ÅñîĻîšţ~~~~~~~~]
+
+# Line while AniList's request budget is spent. The engine waits, then goes on by itself.
+discussion-rate-limited = [ÅñîĻîšţ àšķéð ƒöŕ à þàüšé. Ɓàçķ îñ { $time }.~~~~~~~~~~~~]
+
+# Title of the state when the episode has no thread on AniList.
+discussion-no-thread = [Ñö ðîšçüššîöñ ýéţ~~~~~~]
+
+# Line under the no-thread title.
+discussion-no-thread-detail = [Ñöƀöðý ĥàš öþéñéð à ţĥŕéàð ƒöŕ ţĥîš éþîšöðé öñ ÅñîĻîšţ.~~~~~~~~~~~~~~~~~]
+
+# Title of the state when a thread has no comments.
+discussion-no-comments = [Ñö çöɱɱéñţš ýéţ~~~~~]
+
+# Title of the state when the discussion could not be read.
+discussion-failed = [Çöüļðñ'ţ ļöàð ţĥé ðîšçüššîöñ~~~~~~~~~]
+
+# Line over comments that are kept from an earlier visit while offline. The age reads "2h ago".
+discussion-offline-cached = [Öƒƒļîñé. Šĥöŵîñĝ çöɱɱéñţš ƒŕöɱ { $age }.~~~~~~~~~~~]
+
+# Heading of the Settings group for discussion rows.
+discussion-settings-group = [Ðîšçüššîöñš~~~~]
 
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = [Ðöŵñļöàðš~~~]
@@ -5517,6 +5609,21 @@ filter-hint-remote = [Þŕéšš öñçé ţö îñçļüðé, ţŵîçé ţö �
 # Accessibility label of the button that removes one filter.
 filter-remove = [Ŕéɱöṽé { $filter }~~~]
 
+# Search: sort by how many people marked the title a favourite.
+search-sort-favourites = [Ƒàṽöüŕîţéš~~~]
+
+# Search: sort by release date, newest first.
+search-sort-newest = [Ñéŵéšţ~~]
+
+# Search: sort by release date, oldest first.
+search-sort-oldest = [Öļðéšţ~~]
+
+# Search: sort by title, A to Z.
+search-sort-title = [Ţîţļé~~]
+
+# Search: sort by what is popular right now.
+search-sort-trending = [Ţŕéñðîñĝ~~~]
+
 # Settings group and row title for choosing a language.
 settings-language = [Ļàñĝüàĝé~~~]
 
@@ -5862,6 +5969,34 @@ widget-start-label = [Þļàý éþîšöðé { $episode } öƒ { $title }~~~~~~
 
 # Accessibility label of a widget row: continue a dubbed episode.
 widget-resume-dubbed-label = [Ŕéšüɱé éþîšöðé { $episode }, ðüƀƀéð, öƒ { $title }~~~~~~~~~~~]
+
+# Line under a signed-in account while changes wait to be sent.
+accounts-changes-waiting =
+    { $count ->
+        [one] [Öñé çĥàñĝé ŵàîţîñĝ ţö šýñç~~~~~~~~]
+       *[other] [{ $count } çĥàñĝéš ŵàîţîñĝ ţö šýñç~~~~~~~~~]
+    }
+
+# Choice for the download quality: larger files with more detail.
+settings-quality-higher = [Ĥîĝĥéŕ~~]
+
+# Choice for the download quality: the usual size.
+settings-quality-standard = [Šţàñðàŕð~~~]
+
+# Value of the upload limit setting when there is no limit.
+settings-upload-unlimited = [Ûñļîɱîţéð~~~]
+
+# Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+settings-upscaling-natural = [Ñàţüŕàļ · ÅŕţÇÑÑ~~~~~]
+
+# Preview note under the upscaling frame for the natural look.
+settings-upscaling-note-natural = [Ƒàîţĥƒüļ ļîñé ŵöŕķ àñð ţéẋţüŕé, ñöţĥîñĝ ŕéšţýļéð.~~~~~~~~~~~~~~~]
+
+# Preview note under the upscaling frame for the sharp look.
+settings-upscaling-note-sharp = [Çŕîšþéŕ ļîñéš àñð šţŕöñĝéŕ éðĝéš, àţ šöɱé çöšţ ţö ţéẋţüŕé.~~~~~~~~~~~~~~~~~~]
+
+# Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+settings-upscaling-sharp = [Šĥàŕþ · Åñîɱé4Ķ~~~~~]
 
 # Title of the screen or section that lists sources.
 sources-title = [Šöüŕçéš~~~]
@@ -6444,6 +6579,16 @@ stores-publish-none = [Ñö þļüĝîñš öñ ţĥîš ðéṽîçé ţö þü
 # Version line of a plugin in the publish sheet.
 stores-plugin-name-version = [{ $name } { $version }~~~]
 
+# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+stores-copy-link = [Çöþý ļîñķ~~~]
+
+# Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+stores-offers-plugins =
+    { $count ->
+        [one] [Öñé þļüĝîñ~~~]
+       *[other] [{ $count } þļüĝîñš~~~~]
+    }
+
 # Title of the state when a title page could not load.
 title-load-failed = [Çöüļðñ'ţ ļöàð ţĥîš ţîţļé~~~~~~~~]
 
@@ -6456,8 +6601,14 @@ title-loading = [Ļöàðîñĝ ţĥîš ţîţļé~~~~~~]
 # Button on the title page that plays the trailer.
 title-trailer = [Ţŕàîļéŕ~~~]
 
+# Main button of the title page when every episode of the show is watched: plays episode 1 again.
+title-button-watch-again = [Ŵàţçĥ àĝàîñ~~~~]
+
 # Menu item that plays the trailer.
 title-play-trailer = [Þļàý ţŕàîļéŕ~~~~]
+
+# Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+title-trailer-sound = [Ţŕàîļéŕ šöüñð~~~~]
 
 # Menu item that opens the title on the AniList website.
 title-open-anilist = [Öþéñ öñ ÅñîĻîšţ~~~~~]
@@ -6840,6 +6991,9 @@ torrents-page-unreadable = [Ţĥé ŢṼ çöüļðñ'ţ ŕéàð ţĥîš. Šç
 
 # Line when the page needs script.
 torrents-page-needs-script = [Ţĥîš þàĝé ñééðš ĴàṽàŠçŕîþţ ţö šéñð ţĥé ƒöŕɱ ţö ţĥé ŢṼ šàƒéļý.~~~~~~~~~~~~~~~~~~~]
+
+# Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+torrents-check-note = [àñîšţŕéàɱ çĥéçķš ŵĥéŕé ţöŕŕéñţ ţŕàƒƒîç ļéàṽéš ƒŕöɱ ŵĥéñ à ţöŕŕéñţ šţàŕţš àñð éṽéŕý ɱîñüţé ŵĥîļé îţ ŕüñš, àñð þàüšéš ţöŕŕéñţš îƒ ţĥàţ çĥéçķ ƒàîļš. Ýöüŕ ṼÞÑ öŕ þŕöẋý îš ŵĥàţ þŕöţéçţš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Title of the accounts screen. The sidebar item is nav-accounts.
 accounts-title = [Åççöüñţš~~~]

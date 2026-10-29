@@ -3,6 +3,7 @@
 pub mod accounts;
 pub mod calendar;
 pub mod continue_page;
+pub mod discussion;
 pub mod downloads;
 pub mod first_launch;
 pub mod join;

@@ -249,3 +249,23 @@ filter-hint-remote = Press once to include, twice to leave out.
 # Accessibility label of the button that removes one filter.
 # @arg filter: text
 filter-remove = Remove { $filter }
+
+# Search: sort by how many people marked the title a favourite.
+# @max 20
+search-sort-favourites = Favourites
+
+# Search: sort by release date, newest first.
+# @max 20
+search-sort-newest = Newest
+
+# Search: sort by release date, oldest first.
+# @max 20
+search-sort-oldest = Oldest
+
+# Search: sort by title, A to Z.
+# @max 20
+search-sort-title = Title
+
+# Search: sort by what is popular right now.
+# @max 20
+search-sort-trending = Trending

@@ -951,26 +951,6 @@
     <value>Sort</value>
     <comment>Search: the Sort drop-down's name before a sort is picked.</comment>
   </data>
-  <data name="SearchSortTrending" xml:space="preserve">
-    <value>Trending</value>
-    <comment>Search: sort by what is popular right now.</comment>
-  </data>
-  <data name="SearchSortNewest" xml:space="preserve">
-    <value>Newest</value>
-    <comment>Search: sort by release date, newest first.</comment>
-  </data>
-  <data name="SearchSortOldest" xml:space="preserve">
-    <value>Oldest</value>
-    <comment>Search: sort by release date, oldest first.</comment>
-  </data>
-  <data name="SearchSortTitle" xml:space="preserve">
-    <value>Title</value>
-    <comment>Search: sort by title, A to Z.</comment>
-  </data>
-  <data name="SearchSortFavourites" xml:space="preserve">
-    <value>Favourites</value>
-    <comment>Search: sort by how many people marked the title a favourite.</comment>
-  </data>
   <data name="FilterPickedTwo" xml:space="preserve">
     <value>{first}, {second}</value>
     <comment>Search: a filter drop-down with two values picked, such as two genres.</comment>
@@ -1203,14 +1183,6 @@
     <value>Torrent source</value>
     <comment>Setting: the switch that turns torrents on.</comment>
   </data>
-  <data name="SettingsUpscalingNatural" xml:space="preserve">
-    <value>Natural · ArtCNN</value>
-    <comment>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</comment>
-  </data>
-  <data name="SettingsUpscalingSharp" xml:space="preserve">
-    <value>Sharp · Anime4K</value>
-    <comment>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</comment>
-  </data>
   <data name="SettingsThemeAdaptive" xml:space="preserve">
     <value>Adaptive</value>
     <comment>Value of the theme setting: follows the system's colours.</comment>
@@ -1234,10 +1206,6 @@
   <data name="SettingsSeedUntilRatio" xml:space="preserve">
     <value>Until ratio {ratio}</value>
     <comment>Value of the seeding setting: share until the ratio is reached. The ratio is already formatted, as in "1.5".</comment>
-  </data>
-  <data name="SettingsUploadUnlimited" xml:space="preserve">
-    <value>Unlimited</value>
-    <comment>Value of the upload limit setting when there is no limit.</comment>
   </data>
   <data name="SettingsTrackers" xml:space="preserve">
     <value>Trackers</value>
@@ -1270,10 +1238,6 @@
   <data name="SettingsLibmpvLicence" xml:space="preserve">
     <value>Licensed under the Lesser General Public Licence, version 2.1 or later.</value>
     <comment>Notice line for the video library the player uses.</comment>
-  </data>
-  <data name="TorrentsCheckNote" xml:space="preserve">
-    <value>anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.</value>
-    <comment>Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.</comment>
   </data>
   <data name="TorrentsWarnInstead" xml:space="preserve">
     <value>anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.</value>
@@ -1639,14 +1603,6 @@
     <value>{name} is already joined</value>
     <comment>Title of the join dialog when this { -device } has joined that { -plugin-store } already.</comment>
   </data>
-  <data name="StoresOffersPlugins_one" xml:space="preserve">
-    <value>One plugin</value>
-    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
-  </data>
-  <data name="StoresOffersPlugins_other" xml:space="preserve">
-    <value>{count} plugins</value>
-    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
-  </data>
   <data name="StoresOwnerSeesAs" xml:space="preserve">
     <value>The owner sees this device as</value>
     <comment>Label over the box with the name this { -device } joins under.</comment>
@@ -1694,10 +1650,6 @@
   <data name="SourcePickerSeeders_other" xml:space="preserve">
     <value>{count} seeders</value>
     <comment>Under a release in the source picker: how many people share it right now.</comment>
-  </data>
-  <data name="TimeJustNowInline" xml:space="preserve">
-    <value>just now</value>
-    <comment>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</comment>
   </data>
   <data name="RatePerSecond" xml:space="preserve">
     <value>{size}/s</value>
@@ -2175,6 +2127,10 @@
     <value>Loading</value>
     <comment>Short placeholder while something loads.</comment>
   </data>
+  <data name="TimeJustNowInline" xml:space="preserve">
+    <value>just now</value>
+    <comment>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</comment>
+  </data>
   <data name="CloseDontAsk" xml:space="preserve">
     <value>Don't ask again</value>
     <comment>Checkbox of the close question.</comment>
@@ -2282,6 +2238,130 @@
   <data name="TvProblemUnpaired" xml:space="preserve">
     <value>The TV doesn't know this device any more. Pair again.</value>
     <comment>The TV has forgotten this computer.</comment>
+  </data>
+  <data name="DiscussionOpen" xml:space="preserve">
+    <value>Discussion</value>
+    <comment>Menu item that opens an episode's discussion.</comment>
+  </data>
+  <data name="DiscussionTitleEpisode" xml:space="preserve">
+    <value>Episode {episode} discussion</value>
+    <comment>Title of the discussion window or sheet when the thread has no title yet.</comment>
+  </data>
+  <data name="DiscussionRow_one" xml:space="preserve">
+    <value>Discussion · one comment</value>
+    <comment>Quiet line under an episode that opens its discussion.</comment>
+  </data>
+  <data name="DiscussionRow_other" xml:space="preserve">
+    <value>Discussion · {count} comments</value>
+    <comment>Quiet line under an episode that opens its discussion.</comment>
+  </data>
+  <data name="DiscussionCount_one" xml:space="preserve">
+    <value>One comment</value>
+    <comment>Count of comments in the header of the discussion.</comment>
+  </data>
+  <data name="DiscussionCount_other" xml:space="preserve">
+    <value>{count} comments</value>
+    <comment>Count of comments in the header of the discussion.</comment>
+  </data>
+  <data name="DiscussionLike" xml:space="preserve">
+    <value>Like</value>
+    <comment>Button that likes a comment, with its count after it. Also its accessible name.</comment>
+  </data>
+  <data name="DiscussionReply" xml:space="preserve">
+    <value>Reply</value>
+    <comment>Button that replies to a comment.</comment>
+  </data>
+  <data name="DiscussionMoreReplies_one" xml:space="preserve">
+    <value>One more reply</value>
+    <comment>Line under a reply that has more replies folded in it. The line opens them.</comment>
+  </data>
+  <data name="DiscussionMoreReplies_other" xml:space="preserve">
+    <value>{count} more replies</value>
+    <comment>Line under a reply that has more replies folded in it. The line opens them.</comment>
+  </data>
+  <data name="DiscussionSpoiler" xml:space="preserve">
+    <value>Spoiler</value>
+    <comment>Muted bar in place of a spoiler in a comment, until it is opened.</comment>
+  </data>
+  <data name="DiscussionImage" xml:space="preserve">
+    <value>Image</value>
+    <comment>Line in place of an image in a comment. It opens the image in the browser.</comment>
+  </data>
+  <data name="DiscussionVideo" xml:space="preserve">
+    <value>Video</value>
+    <comment>Line in place of a video in a comment. It opens the video in the browser.</comment>
+  </data>
+  <data name="DiscussionAddComment" xml:space="preserve">
+    <value>Add a comment</value>
+    <comment>Placeholder in the field for a new comment.</comment>
+  </data>
+  <data name="DiscussionEditComment" xml:space="preserve">
+    <value>Edit your comment</value>
+    <comment>Placeholder in the field while editing a comment.</comment>
+  </data>
+  <data name="DiscussionPost" xml:space="preserve">
+    <value>Post</value>
+    <comment>Button that sends the comment in the field.</comment>
+  </data>
+  <data name="DiscussionReplyingTo" xml:space="preserve">
+    <value>Replying to {name}</value>
+    <comment>Line above the field while answering a comment.</comment>
+  </data>
+  <data name="DiscussionCancelReply" xml:space="preserve">
+    <value>Cancel reply</value>
+    <comment>Accessible name of the button that stops replying or editing.</comment>
+  </data>
+  <data name="DiscussionSignIn" xml:space="preserve">
+    <value>Sign in with AniList to reply</value>
+    <comment>Line in place of the field when nobody is signed in to AniList. It opens the sign-in.</comment>
+  </data>
+  <data name="DiscussionOfflinePost" xml:space="preserve">
+    <value>Posting waits for the network</value>
+    <comment>Line in place of the field when the viewer is signed in but offline.</comment>
+  </data>
+  <data name="DiscussionPostFailed" xml:space="preserve">
+    <value>Didn't post. Try again</value>
+    <comment>Line under a comment AniList did not accept. The button beside it sends it again.</comment>
+  </data>
+  <data name="DiscussionDeleteTitle" xml:space="preserve">
+    <value>Delete this comment?</value>
+    <comment>Title of the question asked before deleting the viewer's own comment.</comment>
+  </data>
+  <data name="DiscussionDeleteBody" xml:space="preserve">
+    <value>It is removed from AniList too.</value>
+    <comment>Body of the question asked before deleting the viewer's own comment.</comment>
+  </data>
+  <data name="DiscussionStillLoading" xml:space="preserve">
+    <value>Still loading from AniList</value>
+    <comment>Line while the comments are still loading after a few seconds.</comment>
+  </data>
+  <data name="DiscussionRateLimited" xml:space="preserve">
+    <value>AniList asked for a pause. Back in {time}.</value>
+    <comment>Line while AniList's request budget is spent. The engine waits, then goes on by itself.</comment>
+  </data>
+  <data name="DiscussionNoThread" xml:space="preserve">
+    <value>No discussion yet</value>
+    <comment>Title of the state when the episode has no thread on AniList.</comment>
+  </data>
+  <data name="DiscussionNoThreadDetail" xml:space="preserve">
+    <value>Nobody has opened a thread for this episode on AniList.</value>
+    <comment>Line under the no-thread title.</comment>
+  </data>
+  <data name="DiscussionNoComments" xml:space="preserve">
+    <value>No comments yet</value>
+    <comment>Title of the state when a thread has no comments.</comment>
+  </data>
+  <data name="DiscussionFailed" xml:space="preserve">
+    <value>Couldn't load the discussion</value>
+    <comment>Title of the state when the discussion could not be read.</comment>
+  </data>
+  <data name="DiscussionOfflineCached" xml:space="preserve">
+    <value>Offline. Showing comments from {age}.</value>
+    <comment>Line over comments that are kept from an earlier visit while offline. The age reads "2h ago".</comment>
+  </data>
+  <data name="DiscussionSettingsGroup" xml:space="preserve">
+    <value>Discussions</value>
+    <comment>Heading of the Settings group for discussion rows.</comment>
   </data>
   <data name="DownloadsTitle" xml:space="preserve">
     <value>Downloads</value>
@@ -4111,6 +4191,26 @@
     <value>Remove {filter}</value>
     <comment>Accessibility label of the button that removes one filter.</comment>
   </data>
+  <data name="SearchSortFavourites" xml:space="preserve">
+    <value>Favourites</value>
+    <comment>Search: sort by how many people marked the title a favourite.</comment>
+  </data>
+  <data name="SearchSortNewest" xml:space="preserve">
+    <value>Newest</value>
+    <comment>Search: sort by release date, newest first.</comment>
+  </data>
+  <data name="SearchSortOldest" xml:space="preserve">
+    <value>Oldest</value>
+    <comment>Search: sort by release date, oldest first.</comment>
+  </data>
+  <data name="SearchSortTitle" xml:space="preserve">
+    <value>Title</value>
+    <comment>Search: sort by title, A to Z.</comment>
+  </data>
+  <data name="SearchSortTrending" xml:space="preserve">
+    <value>Trending</value>
+    <comment>Search: sort by what is popular right now.</comment>
+  </data>
   <data name="SettingsLanguage" xml:space="preserve">
     <value>Language</value>
     <comment>Settings group and row title for choosing a language.</comment>
@@ -4570,6 +4670,42 @@
   <data name="WidgetResumeDubbedLabel" xml:space="preserve">
     <value>Resume episode {episode}, dubbed, of {title}</value>
     <comment>Accessibility label of a widget row: continue a dubbed episode.</comment>
+  </data>
+  <data name="AccountsChangesWaiting_one" xml:space="preserve">
+    <value>One change waiting to sync</value>
+    <comment>Line under a signed-in account while changes wait to be sent.</comment>
+  </data>
+  <data name="AccountsChangesWaiting_other" xml:space="preserve">
+    <value>{count} changes waiting to sync</value>
+    <comment>Line under a signed-in account while changes wait to be sent.</comment>
+  </data>
+  <data name="SettingsQualityHigher" xml:space="preserve">
+    <value>Higher</value>
+    <comment>Choice for the download quality: larger files with more detail.</comment>
+  </data>
+  <data name="SettingsQualityStandard" xml:space="preserve">
+    <value>Standard</value>
+    <comment>Choice for the download quality: the usual size.</comment>
+  </data>
+  <data name="SettingsUploadUnlimited" xml:space="preserve">
+    <value>Unlimited</value>
+    <comment>Value of the upload limit setting when there is no limit.</comment>
+  </data>
+  <data name="SettingsUpscalingNatural" xml:space="preserve">
+    <value>Natural · ArtCNN</value>
+    <comment>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</comment>
+  </data>
+  <data name="SettingsUpscalingNoteNatural" xml:space="preserve">
+    <value>Faithful line work and texture, nothing restyled.</value>
+    <comment>Preview note under the upscaling frame for the natural look.</comment>
+  </data>
+  <data name="SettingsUpscalingNoteSharp" xml:space="preserve">
+    <value>Crisper lines and stronger edges, at some cost to texture.</value>
+    <comment>Preview note under the upscaling frame for the sharp look.</comment>
+  </data>
+  <data name="SettingsUpscalingSharp" xml:space="preserve">
+    <value>Sharp · Anime4K</value>
+    <comment>Value of the upscaling setting: a sharper look. The name after the dot is the shader used.</comment>
   </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>Sources</value>
@@ -5339,6 +5475,18 @@
     <value>{name} {version}</value>
     <comment>Version line of a plugin in the publish sheet.</comment>
   </data>
+  <data name="StoresCopyLink" xml:space="preserve">
+    <value>Copy link</value>
+    <comment>Button under an invite link that copies it. Reads "Copied" for a moment afterwards.</comment>
+  </data>
+  <data name="StoresOffersPlugins_one" xml:space="preserve">
+    <value>One plugin</value>
+    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
+  </data>
+  <data name="StoresOffersPlugins_other" xml:space="preserve">
+    <value>{count} plugins</value>
+    <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
+  </data>
   <data name="TitleLoadFailed" xml:space="preserve">
     <value>Couldn't load this title</value>
     <comment>Title of the state when a title page could not load.</comment>
@@ -5355,9 +5503,17 @@
     <value>Trailer</value>
     <comment>Button on the title page that plays the trailer.</comment>
   </data>
+  <data name="TitleButtonWatchAgain" xml:space="preserve">
+    <value>Watch again</value>
+    <comment>Main button of the title page when every episode of the show is watched: plays episode 1 again.</comment>
+  </data>
   <data name="TitlePlayTrailer" xml:space="preserve">
     <value>Play trailer</value>
     <comment>Menu item that plays the trailer.</comment>
+  </data>
+  <data name="TitleTrailerSound" xml:space="preserve">
+    <value>Trailer sound</value>
+    <comment>Name and tooltip of the button beside a playing trailer that turns its sound on or off.</comment>
   </data>
   <data name="TitleOpenAnilist" xml:space="preserve">
     <value>Open on AniList</value>
@@ -5866,6 +6022,10 @@
   <data name="TorrentsPageNeedsScript" xml:space="preserve">
     <value>This page needs JavaScript to send the form to the TV safely.</value>
     <comment>Line when the page needs script.</comment>
+  </data>
+  <data name="TorrentsCheckNote" xml:space="preserve">
+    <value>anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.</value>
+    <comment>Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.</comment>
   </data>
   <data name="AccountsTitle" xml:space="preserve">
     <value>Accounts</value>

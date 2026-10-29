@@ -3,6 +3,7 @@
 
 package tv.anistream.player.ui
 
+import tv.anistream.i18n.Strings
 import android.app.PendingIntent
 import android.app.PictureInPictureParams
 import android.app.RemoteAction
@@ -56,10 +57,10 @@ internal fun PictureInPicture(model: PlayerModel, videoBounds: Rect?) {
             .setSeamlessResizeEnabled(true)
             .setActions(
                 listOf(
-                    action(context, R.drawable.pip_back, "Back 10 seconds", BACK, 1),
-                    if (playing) action(context, R.drawable.pip_pause, "Pause", PLAY_PAUSE, 2)
-                    else action(context, R.drawable.pip_play, "Play", PLAY_PAUSE, 2),
-                    action(context, R.drawable.pip_forward, "Forward 10 seconds", FORWARD, 3),
+                    action(context, R.drawable.pip_back, Strings.playerBack10(context), BACK, 1),
+                    if (playing) action(context, R.drawable.pip_pause, Strings.actionPause(context), PLAY_PAUSE, 2)
+                    else action(context, R.drawable.pip_play, Strings.actionPlay(context), PLAY_PAUSE, 2),
+                    action(context, R.drawable.pip_forward, Strings.playerForward10(context), FORWARD, 3),
                 ),
             )
         videoBounds?.takeIf { !it.isEmpty }?.let(params::setSourceRectHint)

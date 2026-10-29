@@ -1,6 +1,8 @@
 package tv.anistream.ui
 
+import tv.anistream.i18n.R
 import android.view.ViewGroup
+import org.robolectric.RuntimeEnvironment
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
@@ -79,6 +81,7 @@ import tv.anistream.testkit.Scene
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [36])
 class BoardShots {
+    private val context = RuntimeEnvironment.getApplication()
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
@@ -365,7 +368,7 @@ class BoardShots {
     @Test
     @Config(qualifiers = TABLET)
     fun tablet_home_selected() = shoot("tablet-home-selected", WATCHING) {
-        compose.onNodeWithText("Resume E2", substring = true).performClick()
+        compose.onNodeWithText("Continue E2", substring = true).performClick()
         compose.waitForIdle()
     }
 
@@ -403,9 +406,9 @@ class BoardShots {
             compose.onAllNodesWithText("E8 \u00b7", substring = true).onFirst().performClick()
             compose.waitForIdle()
             // The page's own button, scrolled away, and the menu's item, which is the last.
-            compose.onAllNodesWithText(ADD_A_SOURCE).onLast().performClick()
+            compose.onAllNodesWithText(context.getString(R.string.title_button_add_source)).onLast().performClick()
             compose.waitForIdle()
-            compose.onAllNodesWithText(ADD_A_SOURCE).assertCountEquals(0)
+            compose.onAllNodesWithText(context.getString(R.string.title_button_add_source)).assertCountEquals(0)
         }
 
     @Test

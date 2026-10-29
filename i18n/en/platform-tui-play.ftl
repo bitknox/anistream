@@ -499,6 +499,9 @@ settings-label-episode-discussions = Episode discussions
 # Settings row: whether images in discussion comments load inline.
 settings-label-comment-images = Load images in comments
 
+# Settings row: whether Calendar shows only the shows on the person's list.
+settings-label-calendar-mine = Calendar shows only my list
+
 ## Settings: the note under the selected row
 
 # Note under the titles row.

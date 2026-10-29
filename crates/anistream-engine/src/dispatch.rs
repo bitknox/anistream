@@ -17,7 +17,7 @@ use crate::{
     artwork,
     catalog::{
         browse,
-        calendar::{load_calendar, load_calendar_past},
+        calendar::{load_calendar, load_calendar_ahead, load_calendar_past},
         detail::{load_detail, open_external, play_trailer},
         lists::{hide_from_continue, load_continue, load_seasonal},
         recents, search,
@@ -195,13 +195,25 @@ pub(crate) fn dispatch(
             spawn(job, services, tx, move |lent| up_next::dismiss(lent, id))
         }
         // Each row marked with its dub where a title page found it: see `Entry::airing_dubbed`.
-        Command::LoadCalendar => {
-            let dubs = engine.dubs.clone();
-            spawn(job, services, tx, move |lent| load_calendar(lent, dubs))
+        Command::LoadCalendar | Command::RefreshCalendar => {
+            let (dubs, memory) = (engine.dubs.clone(), engine.calendar.clone());
+            let clock = services.clock.clone();
+            let remembered = matches!(task, Command::LoadCalendar);
+            spawn(job, services, tx, move |lent| {
+                load_calendar(lent, dubs, memory, clock, remembered)
+            })
         }
-        Command::LoadCalendarPast { anchor, page } => {
-            let dubs = engine.dubs.clone();
-            spawn(job, services, tx, move |lent| load_calendar_past(lent, dubs, anchor, page))
+        Command::LoadCalendarPast { anchor, page, through } => {
+            let (dubs, memory) = (engine.dubs.clone(), engine.calendar.clone());
+            spawn(job, services, tx, move |lent| {
+                load_calendar_past(lent, dubs, memory, anchor, page, through)
+            })
+        }
+        Command::LoadCalendarAhead { anchor, page, through } => {
+            let (dubs, memory) = (engine.dubs.clone(), engine.calendar.clone());
+            spawn(job, services, tx, move |lent| {
+                load_calendar_ahead(lent, dubs, memory, anchor, page, through)
+            })
         }
         Command::Search { query } => search::submit(query, job, engine, services, tx),
         Command::SearchLive { query } => search::live(query, engine, services, tx),

@@ -73,11 +73,25 @@ async fn a_job_ends_last_on_every_way_out_of_its_work() {
         ("seasonal", Plain, Command::LoadSeasonal),
         ("seasonal, failed", Failing, Command::LoadSeasonal),
         ("calendar, failed", Failing, Command::LoadCalendar),
-        ("calendar past", Plain, Command::LoadCalendarPast { anchor: FIXTURE_NOW, page: 2 }),
+        (
+            "calendar past",
+            Plain,
+            Command::LoadCalendarPast { anchor: FIXTURE_NOW, page: 2, through: None },
+        ),
         (
             "calendar past, failed",
             Failing,
-            Command::LoadCalendarPast { anchor: FIXTURE_NOW, page: 2 },
+            Command::LoadCalendarPast { anchor: FIXTURE_NOW, page: 2, through: None },
+        ),
+        (
+            "calendar ahead",
+            Plain,
+            Command::LoadCalendarAhead { anchor: FIXTURE_NOW, page: 2, through: None },
+        ),
+        (
+            "calendar ahead, failed",
+            Failing,
+            Command::LoadCalendarAhead { anchor: FIXTURE_NOW, page: 2, through: None },
         ),
         ("search", Plain, search("hoshikuzu")),
         ("browse", Plain, search("")),

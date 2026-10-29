@@ -63,26 +63,6 @@ library-list-count = { $list } { $count }
 # @only windows
 search-sort-name = Sort
 
-# Search: sort by what is popular right now.
-# @only windows
-search-sort-trending = Trending
-
-# Search: sort by release date, newest first.
-# @only windows
-search-sort-newest = Newest
-
-# Search: sort by release date, oldest first.
-# @only windows
-search-sort-oldest = Oldest
-
-# Search: sort by title, A to Z.
-# @only windows
-search-sort-title = Title
-
-# Search: sort by how many people marked the title a favourite.
-# @only windows
-search-sort-favourites = Favourites
-
 # Search: a filter drop-down with two values picked, such as two genres.
 # @only windows
 # @arg first: text

@@ -25,6 +25,7 @@ pub fn retitle(event: &mut Event, language: TitleLanguage) {
     match event {
         Event::Content { content: ContentList::Entries(entries), .. }
         | Event::CalendarBackfill { entries, .. }
+        | Event::CalendarAhead { entries, .. }
         | Event::SearchMore { entries, .. } => {
             entries.iter_mut().for_each(|entry| retitle_entry(entry, language));
         }

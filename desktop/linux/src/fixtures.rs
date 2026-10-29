@@ -33,11 +33,20 @@ use anistream_track::{
 
 use crate::engine::{Started, open, paths_under, theme};
 
+/// Whether the app runs on the fixture scene, which has no network.
+static ACTIVE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Whether the app runs on the fixture scene.
+pub fn active() -> bool {
+    ACTIVE.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 /// The engine's runtime, for the scene's party server to run on.
 static RUNTIME: std::sync::OnceLock<tokio::runtime::Handle> = std::sync::OnceLock::new();
 
 /// Keep `handle`, the engine's runtime, for [`FakeParty::start`].
 pub fn keep_runtime(handle: tokio::runtime::Handle) {
+    ACTIVE.store(true, std::sync::atomic::Ordering::Relaxed);
     let _ = RUNTIME.set(handle);
 }
 

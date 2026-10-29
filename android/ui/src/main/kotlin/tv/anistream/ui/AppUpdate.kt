@@ -5,6 +5,8 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.plainReason
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -40,41 +42,46 @@ import tv.anistream.store.UpdateCheck
 import tv.anistream.store.UpdateOffer
 import tv.anistream.store.UpdateState
 import tv.anistream.store.Wording
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.Strings
+import android.content.Context
+import tv.anistream.store.percentText
 
 /** What the update's row and notice say at each step. */
 internal object UpdateWords {
-    /** "34 %", or nothing while the size is not known. */
-    fun percent(state: UpdateState.Downloading): String? = state.fraction?.let { "${(it * 100).toInt()} %" }
+    /** "34%", or nothing while the size is not known. */
+    fun percent(state: UpdateState.Downloading): String? = state.fraction?.let { percentText((it * 100).toInt()) }
 
-    /** The row's headline: "Update to v2.0.3", "Downloading 34 %", "Installing". */
-    fun title(state: UpdateState): String? = when (state) {
+    /** The row's headline: "Update to v2.0.3", "Downloading 34%", "Installing". */
+    fun title(context: Context, state: UpdateState): String? = when (state) {
         UpdateState.None -> null
-        is UpdateState.Available, is UpdateState.Allowing, is UpdateState.Failed -> "Update to ${state.offer?.name}"
-        is UpdateState.Downloading -> listOfNotNull("Downloading", percent(state)).joinToString(" ")
-        is UpdateState.Verifying, is UpdateState.Installing -> "Installing"
-        is UpdateState.Done -> "Updated to ${state.offer.name}"
+        is UpdateState.Available, is UpdateState.Allowing, is UpdateState.Failed -> Strings.updatesUpdateTo(context, state.offer?.name.orEmpty())
+        is UpdateState.Downloading -> percent(state)?.let { Strings.updatesDownloadingPercent(context, it) } ?: Strings.downloadsCaptionRunningPlain(context)
+        is UpdateState.Verifying, is UpdateState.Installing -> Strings.updatesInstallingPlain(context)
+        is UpdateState.Done -> Strings.updatesUpdated(context, state.offer.version)
     }
 
     /**
      * The line under it: the APK's size, or that Update opens the release's page where this build
      * does not install it; how much is down; and what the installer waits on.
      */
-    fun line(state: UpdateState, installs: Boolean): String? = when (state) {
+    fun line(context: Context, state: UpdateState, installs: Boolean): String? = when (state) {
         UpdateState.None -> null
         is UpdateState.Available, is UpdateState.Allowing, is UpdateState.Failed ->
-            if (installs) state.offer?.bytes?.takeIf { it > 0 }?.let(Wording::bytes) else "Opens the release page"
+            if (installs) state.offer?.bytes?.takeIf { it > 0 }?.let { Wording.bytes(context, it) } else Strings.updatesOpensPage(context)
         is UpdateState.Downloading ->
-            if (state.total > 0) "${Wording.bytes(state.done)} of ${Wording.bytes(state.total)}" else Wording.bytes(state.done)
-        is UpdateState.Verifying -> "Checking the download"
+            if (state.total > 0) Strings.downloadsLiveProgress(context, Wording.bytes(context, state.done), Wording.bytes(context, state.total)) else Wording.bytes(context, state.done)
+        is UpdateState.Verifying -> Strings.updatesCheckingDownloadShort(context)
         // Android asks to confirm the first time; anistream closes as the update goes in.
-        is UpdateState.Installing -> "anistream closes as it installs"
-        is UpdateState.Done -> "The new version opens next time"
+        is UpdateState.Installing -> Strings.updatesClosesAsInstalls(context)
+        is UpdateState.Done -> Strings.updatesOpensNextTime(context)
     }
 
-    /** The notice under way: "Downloading v2.0.3 · 34 %", "Installing v2.0.3". */
-    fun notice(state: UpdateState): String? = when (state) {
-        is UpdateState.Downloading -> listOfNotNull("Downloading ${state.offer.name}", percent(state)).joinToString(" · ")
-        is UpdateState.Verifying, is UpdateState.Installing -> "Installing ${state.offer?.name}"
+    /** The notice under way: "Downloading version 2.0.3 · 34%", "Installing version 2.0.3". */
+    fun notice(context: Context, state: UpdateState): String? = when (state) {
+        is UpdateState.Downloading -> Strings.updatesDownloading(context, state.offer.version) + (percent(state)?.let { " · $it" } ?: "") // i18n-skip
+        is UpdateState.Verifying, is UpdateState.Installing -> Strings.updatesInstalling(context, state.offer?.version.orEmpty())
         else -> null
     }
 
@@ -82,19 +89,20 @@ internal object UpdateWords {
      * What the last check said: "Checking", "anistream is up to date", or why it did not. A release
      * it found is the row above it.
      */
-    fun check(check: UpdateCheck): String? = when (check) {
+    fun check(context: Context, check: UpdateCheck): String? = when (check) {
         UpdateCheck.Unknown -> null
-        UpdateCheck.Checking -> "Checking"
-        UpdateCheck.UpToDate -> "anistream is up to date"
+        UpdateCheck.Checking -> Strings.updatesChecking(context)
+        UpdateCheck.UpToDate -> Strings.updatesUpToDate(context)
         UpdateCheck.Found -> null
-        is UpdateCheck.Failed -> "Not checked. ${plainReason(check.reason)}"
+        is UpdateCheck.Failed -> Strings.updatesNotCheckedBecause(context, plainReason(context, check.reason))
     }
 
     /** The notice that a release is out. */
-    fun out(offer: UpdateOffer): String = "anistream ${offer.name} is out."
+    fun out(context: Context, offer: UpdateOffer): String = Strings.updatesAvailable(context, offer.version)
 
     /** Its button: Update where this build installs it, the release's page where not. */
-    fun action(offer: UpdateOffer, installs: Boolean): String = if (installs) "Update to ${offer.name}" else "Open release"
+    fun action(context: Context, offer: UpdateOffer, installs: Boolean): String =
+        if (installs) Strings.updatesUpdateTo(context, offer.name) else Strings.updatesOpenRelease(context)
 
     /** How far the bar is: the download's share, full once it is down, none before. */
     fun progress(state: UpdateState): Float? = when (state) {
@@ -126,16 +134,16 @@ internal fun UpdateRow(place: Place) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Icon(Icons.Downloads, contentDescription = null, tint = if (pressable) colors.primary else colors.onSurfaceVariant)
             Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
-                Text(UpdateWords.title(state).orEmpty(), style = MaterialTheme.typography.titleMedium.tabular())
-                UpdateWords.line(state, installs)?.let {
+                Text(UpdateWords.title(LocalContext.current, state).orEmpty(), style = MaterialTheme.typography.titleMedium.tabular())
+                UpdateWords.line(LocalContext.current, state, installs)?.let {
                     Text(it, style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant)
                 }
                 (state as? UpdateState.Failed)?.let {
-                    Text(it.failure.text, style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
+                    Text(it.failure.text(LocalContext.current), style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
                 }
                 if (progress != null) UpdateBar(progress, Modifier.padding(top = 8.dp))
             }
-            if (state.busy && state !is UpdateState.Allowing) QuietButton("Cancel", onClick = store.updates::cancel)
+            if (state.busy && state !is UpdateState.Allowing) QuietButton(stringResource(R.string.action_cancel), onClick = store.updates::cancel)
         }
     }
 }
@@ -148,8 +156,8 @@ internal fun CheckNowRow(place: Place) {
     val checking = check == UpdateCheck.Checking
     InfoRow(
         place,
-        "Check now",
-        UpdateWords.check(check),
+        stringResource(R.string.action_check_now),
+        UpdateWords.check(LocalContext.current, check),
         onClick = if (checking) null else store::checkForUpdates,
         trailing = { WorkRing(checking) },
         modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
@@ -160,7 +168,7 @@ internal fun CheckNowRow(place: Place) {
 @Composable
 private fun UpdateBar(fraction: Float, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
-    val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), Motion.standard(), label = "update")
+    val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), Motion.standard(), label = "update") // i18n-skip
     LinearProgressIndicator(
         progress = { shown },
         modifier = modifier.fillMaxWidth().height(4.dp),
@@ -180,7 +188,7 @@ private fun UpdateBar(fraction: Float, modifier: Modifier = Modifier) {
 internal fun UpdateNotice(hidden: Boolean, modifier: Modifier = Modifier) {
     val store = LocalAppStore.current
     val state by store.updates.state.collectAsStateWithLifecycle()
-    val words = UpdateWords.notice(state)
+    val words = UpdateWords.notice(LocalContext.current, state)
     AnimatedVisibility(
         visible = words != null && !hidden,
         enter = fadeIn(Motion.fadeIn()),
@@ -202,7 +210,7 @@ internal fun UpdateNotice(hidden: Boolean, modifier: Modifier = Modifier) {
                         style = MaterialTheme.typography.bodyMedium.tabular(),
                         modifier = Modifier.weight(1f),
                     )
-                    QuietButton("Cancel", onClick = store.updates::cancel)
+                    QuietButton(stringResource(R.string.action_cancel), onClick = store.updates::cancel)
                 }
                 UpdateBar(UpdateWords.progress(state) ?: 1f, Modifier.padding(end = 12.dp).semantics { contentDescription = last })
             }
@@ -218,11 +226,12 @@ internal fun UpdateNotice(hidden: Boolean, modifier: Modifier = Modifier) {
 internal fun UpdatePrompts() {
     val store = LocalAppStore.current
     val snackbars = LocalSnackbars.current
+    val context = LocalContext.current
     val notice by store.updates.notice.collectAsStateWithLifecycle()
     LaunchedEffect(notice) {
         val offer = notice ?: return@LaunchedEffect
         store.updates.told(offer)
-        snackbars.show(UpdateWords.out(offer), UpdateWords.action(offer, store.updates.installs(offer)), store::takeUpdate)
+        snackbars.show(UpdateWords.out(context, offer), UpdateWords.action(context, offer, store.updates.installs(offer)), store::takeUpdate)
     }
     val state by store.updates.state.collectAsStateWithLifecycle()
     val allowing = state as? UpdateState.Allowing ?: return
@@ -230,10 +239,16 @@ internal fun UpdatePrompts() {
     if (allowing.opened) return
     AlertDialog(
         onDismissRequest = store.updates::notNow,
-        title = { Text("Install unknown apps") },
-        text = { Text("To install updates, Android needs you to turn on Allow from this source for anistream.") },
-        confirmButton = { Button(onClick = store.updates::openInstallSettings) { Text("Open settings") } },
-        dismissButton = { QuietButton("Not now", onClick = store.updates::notNow) },
+        title = { Text(stringResource(R.string.updates_allow_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.updates_allow_step_1))
+                Text(stringResource(R.string.updates_allow_step_2))
+                Text(stringResource(R.string.updates_allow_step_3))
+            }
+        },
+        confirmButton = { Button(onClick = store.updates::openInstallSettings) { Text(stringResource(R.string.action_open_settings)) } },
+        dismissButton = { QuietButton(stringResource(R.string.action_not_now), onClick = store.updates::notNow) },
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     )
 }

@@ -97,6 +97,8 @@ pub struct EngineState {
     /// How far each title's dub goes, kept, and the lookup running: see
     /// [`crate::titles::dub`].
     pub dubs: crate::titles::dub::Dubs,
+    /// The calendar's last window, kept ten minutes: see [`crate::catalog::calendar`].
+    pub calendar: crate::catalog::calendar::CalendarMemory,
     /// Episode titles and stills another source gave a table without them, kept, and the
     /// lookup running: see [`crate::titles::names`].
     pub names: crate::titles::names::Names,
@@ -144,6 +146,7 @@ impl EngineState {
             ahead: Default::default(),
             search: Default::default(),
             dubs: Default::default(),
+            calendar: Default::default(),
             names: Default::default(),
             listed: Default::default(),
             discussion: Default::default(),

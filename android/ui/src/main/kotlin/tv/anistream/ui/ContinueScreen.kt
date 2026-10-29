@@ -3,6 +3,10 @@
 
 package tv.anistream.ui
 
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import tv.anistream.store.text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -105,8 +109,8 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
     val leaving = remember { mutableStateListOf<AnilistId>() }
     val leave = rememberLeave(leaving)
     ScreenFrame(
-        title = "Continue",
-        subtitle = status ?: if (empty) "Nothing watched yet" else null,
+        title = stringResource(R.string.nav_continue),
+        subtitle = status?.text(LocalContext.current) ?: if (empty) stringResource(R.string.continue_empty_title) else null,
         account = Account(user, actions.openSettings),
     ) { padding ->
         Refreshable({ store.loadContinue(force = true) }, top = padding.calculateTopPadding()) {
@@ -114,7 +118,7 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
                 when (val list = state) {
                     ListState.Empty -> welcome(openCalendar, openSeasonal)
                     is ListState.Failed -> item(key = "failed") {
-                        FailedState("Couldn't load Continue", list.reason, retry = { store.loadContinue(force = true) })
+                        FailedState(stringResource(R.string.continue_load_failed), list.reason, retry = { store.loadContinue(force = true) })
                     }
                     is ListState.Loaded -> queue(store.continuing.queue(titles, tables).without(leaving), actions, leave)
                     // Nothing cached: offline says so, and a slow load draws the layout to come.
@@ -138,15 +142,17 @@ private fun rememberLeave(leaving: MutableList<AnilistId>): (ContinueItem) -> Un
     val store = LocalAppStore.current
     val snackbars = LocalSnackbars.current
     val scope = rememberCoroutineScope()
-    return remember(store, snackbars) {
+    val hiddenText = stringResource(R.string.continue_hidden)
+    val undoText = stringResource(R.string.action_undo)
+    return remember(store, snackbars, hiddenText, undoText) {
         { item ->
             leaving += item.id
             scope.launch {
                 var undone = false
                 try {
-                    val result = kotlinx.coroutines.withTimeoutOrNull(snackbarMillis("Hidden from Continue", true)) {
+                    val result = kotlinx.coroutines.withTimeoutOrNull(snackbarMillis(hiddenText, true)) {
                         snackbars.host.currentSnackbarData?.dismiss()
-                        snackbars.host.showSnackbar("Hidden from Continue", actionLabel = "Undo", duration = SnackbarDuration.Indefinite)
+                        snackbars.host.showSnackbar(hiddenText, actionLabel = undoText, duration = SnackbarDuration.Indefinite)
                     }
                     if (result == null) snackbars.host.currentSnackbarData?.dismiss()
                     undone = result == SnackbarResult.ActionPerformed
@@ -207,7 +213,7 @@ private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions, leave
     if (rail.isNotEmpty()) {
         item(key = "rail", contentType = "rail") {
             Column(itemMotion().padding(top = 16.dp)) {
-                Heading("In progress")
+                Heading(stringResource(R.string.group_in_progress))
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -220,7 +226,7 @@ private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions, leave
     }
     val fresh = if (queue.inProgress.isEmpty()) queue.newThisWeek.drop(1) else queue.newThisWeek
     if (fresh.isNotEmpty()) {
-        item(key = "new", contentType = "heading") { Heading("New this week", itemMotion().padding(top = 16.dp)) }
+        item(key = "new", contentType = "heading") { Heading(stringResource(R.string.group_new_this_week), itemMotion().padding(top = 16.dp)) }
         items(fresh, key = { "new-${it.id}" }, contentType = { "new-row" }) { Box(itemMotion()) { SwipeRow(it, actions, leave) { NewRow(it, actions) } } }
     }
 }
@@ -240,7 +246,7 @@ private fun episodeLine(item: ContinueItem): String {
     val store = LocalAppStore.current
     val episodes by store.titles.episodes.collectAsStateWithLifecycle()
     val name = episodes[item.id]?.firstOrNull { it.number == item.episode.toString() }?.title
-    return if (name != null) "${item.longEpisode} · $name" else item.longEpisode
+    return if (name != null) "${item.longEpisode(LocalContext.current)} · $name" else item.longEpisode(LocalContext.current)
 }
 
 /** The next episode: its wide art, the title, the episode, how far into it, and the one amber action. */
@@ -280,7 +286,7 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
             Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item.fraction?.let { Meter(it) }
                 item.minutesLeft?.let {
-                    Text("$it min left", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                    Text(stringResource(R.string.time_minutes_left, it), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                 }
             }
         }
@@ -293,7 +299,7 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(item.action, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
+                Text(item.actionText(), style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
             }
         }
         if (stacked) {
@@ -350,7 +356,7 @@ private fun ProgressCard(item: ContinueItem, actions: AppActions) {
             modifier = Modifier.padding(top = 4.dp),
         )
         Text(
-            item.minutesLeft?.let { "${item.shortEpisode} · $it min left" } ?: item.action,
+            item.minutesLeft?.let { stringResource(R.string.continue_short_left, item.shortEpisode(LocalContext.current), stringResource(R.string.time_minutes_left, it)) } ?: item.actionText(),
             style = MaterialTheme.typography.bodyMedium.tabular(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -382,7 +388,7 @@ private fun NewRow(item: ContinueItem, actions: AppActions) {
             Text(item.entry.showTitle, style = ShowTitle.row, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box(Modifier.size(6.dp).background(colors.secondary, CircleShape))
-                Text(item.action, style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant, maxLines = 1)
+                Text(item.actionText(), style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant, maxLines = 1)
             }
         }
     }
@@ -440,7 +446,7 @@ private fun AiringToday(openCalendar: () -> Unit) {
     }
     if (today.isEmpty()) return
     Column(Modifier.padding(top = 16.dp)) {
-        SectionHeading("Airing today", "Show airing today in Calendar", openCalendar)
+        SectionHeading(stringResource(R.string.continue_airing_today), stringResource(R.string.continue_show_airing_in_calendar), openCalendar)
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -457,14 +463,15 @@ private fun AiringCard(broadcast: Broadcast, now: Instant) {
     val seconds = broadcast.airs.epochSecond - now.epochSecond
     val time = AirTime.clock(broadcast.airs)
     val out = seconds <= 0
-    val line = "E${broadcast.episode} · $time · " + if (out) "out ${Wording.ago(-seconds)}" else "in ${Wording.countdown(seconds)}"
+    val line = if (out) stringResource(R.string.continue_airing_out, broadcast.episode.toInt(), time, Wording.ago(LocalContext.current, -seconds))
+        else stringResource(R.string.continue_airing_in, broadcast.episode.toInt(), time, Wording.countdown(LocalContext.current, seconds))
     val navigator = LocalNavigator.current
     val id = broadcast.entry.id
     Column(
         Modifier
             .width(208.dp)
             .shared(Shared.Page, id, "airing")
-            .clickable(onClickLabel = "Open title") { navigator.openTitle(id, "airing") },
+            .clickable(onClickLabel = stringResource(R.string.title_open)) { navigator.openTitle(id, "airing") },
     ) {
         BannerArt(broadcast.entry, Modifier.size(208.dp, 117.dp).shared(Shared.Art, id, "airing").clip(ArtShape.banner))
         Text(
@@ -497,7 +504,7 @@ private fun ThisSeason(openSeasonal: () -> Unit) {
     val season = state.ids.mapNotNull { titles[it] }.take(if (wideWindow()) 12 else 6)
     if (season.isEmpty()) return
     Column(Modifier.padding(top = 16.dp)) {
-        SectionHeading("This season", "Show this season in Seasonal", openSeasonal)
+        SectionHeading(stringResource(R.string.continue_this_season), stringResource(R.string.continue_show_season_in_seasonal), openSeasonal)
         PosterRows(season, columns = if (wideWindow()) 6 else 3)
     }
 }
@@ -533,7 +540,7 @@ internal fun PosterCell(
     Column(
         modifier
             .shared(Shared.Page, entry.id, from)
-            .clickable(onClickLabel = "Open title") {
+            .clickable(onClickLabel = stringResource(R.string.title_open)) {
                 onOpen?.invoke()
                 navigator.openTitle(entry.id, from)
             },

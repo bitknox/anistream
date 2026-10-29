@@ -5,6 +5,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.plainReason
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -64,6 +65,11 @@ import tv.anistream.store.installedVersion
 import tv.anistream.store.runByLine
 import tv.anistream.store.standing
 import tv.anistream.store.updates
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import tv.anistream.i18n.Strings
+import android.content.Context
 
 internal const val STORES_ROUTE = "stores"
 
@@ -94,7 +100,7 @@ internal fun StoresScreen() {
     val loaded by store.stores.loaded.collectAsStateWithLifecycle()
     val offline by store.offline.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { store.loadStores() }
-    ScreenFrame(title = "Plugin stores", onBack = navigator::back) { padding ->
+    ScreenFrame(title = stringResource(R.string.nav_plugin_stores), onBack = navigator::back) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
@@ -109,8 +115,8 @@ internal fun StoresScreen() {
             } else if (stores.isEmpty()) {
                 Column(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     tv.anistream.design.Nagare(cell = 5)
-                    Text("No plugin stores yet", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
-                    SheetText("Plugin stores are run by people you know. Join one with the invite link its owner sends you.", Modifier.padding(top = 4.dp, start = 24.dp, end = 24.dp))
+                    Text(stringResource(R.string.stores_empty_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+                    SheetText(stringResource(R.string.stores_empty_detail), Modifier.padding(top = 4.dp, start = 24.dp, end = 24.dp))
                 }
             } else {
                 SettingsGroup(
@@ -119,7 +125,7 @@ internal fun StoresScreen() {
                             InfoRow(
                                 place,
                                 row.name,
-                                storeLine(row, offline),
+                                storeLine(LocalContext.current, row, offline),
                                 onClick = { navigator.open(storeRoute(row.id)) },
                             )
                         }
@@ -127,23 +133,23 @@ internal fun StoresScreen() {
                 )
             }
             Row(Modifier.padding(horizontal = 4.dp)) {
-                Button(onClick = { store.stores.openJoin() }) { Text("Join a store") }
+                Button(onClick = { store.stores.openJoin() }) { Text(stringResource(R.string.stores_join_short)) }
             }
-            SettingsFootnote("Plugins come from a store's owner, not from anistream. $LEGAL_LINE")
+            SettingsFootnote(stringResource(R.string.stores_not_from_app))
         }
     }
 }
 
 /** A store's one line: its host, then what it has waiting or why it is not answering. */
-private fun storeLine(row: StoreRow, offline: Boolean): String = listOfNotNull(
+private fun storeLine(context: Context, row: StoreRow, offline: Boolean): String = listOfNotNull(
     row.host,
     when (val state = row.state) {
         // Offline, no store is said to be failing: the one offline line says why.
-        is StoreState.Offline -> if (offline) null else "Not answering"
-        StoreState.Revoked -> "No longer lets this device in"
-        StoreState.Ready -> row.updates.takeIf { it > 0 }?.let { Wording.plural(it, "update") }
+        is StoreState.Offline -> if (offline) null else Strings.storesStatusNotAnswering(context)
+        StoreState.Revoked -> Strings.storesStatusAccessEnded(context)
+        StoreState.Ready -> row.updates.takeIf { it > 0 }?.let { context.resources.getQuantityString(R.plurals.stores_updates_waiting, it, it) }
     },
-).joinToString(" · ")
+).joinToString(" · ") // i18n-skip
 
 /** A store's page: its plugins, each to install or update, and what the store is. */
 @Composable
@@ -157,7 +163,7 @@ internal fun StoreScreen(id: String) {
     var updating by remember { mutableStateOf<StorePluginRow?>(null) }
     var leaving by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { if (!store.stores.loaded.value) store.loadStores() }
-    ScreenFrame(title = row?.name ?: "Plugin store", subtitle = row?.host, onBack = navigator::back) { padding ->
+    ScreenFrame(title = row?.name ?: stringResource(R.string.stores_fallback_title), subtitle = row?.host, onBack = navigator::back) { padding ->
         row ?: return@ScreenFrame
         Column(
             Modifier
@@ -169,20 +175,20 @@ internal fun StoreScreen(id: String) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             when (val state = row.state) {
-                is StoreState.Offline -> if (!offline) SettingsFootnote("${plainReason(state.v1).trimEnd('.')}. The plugins below are the last list that was checked.")
-                StoreState.Revoked -> SettingsFootnote("This store no longer lets this device in. Its plugins stay installed until you remove them.")
+                is StoreState.Offline -> if (!offline) SettingsFootnote(stringResource(R.string.stores_offline_last_list, plainReason(LocalContext.current, state.v1).trimEnd('.')))
+                StoreState.Revoked -> SettingsFootnote(stringResource(R.string.stores_access_ended_page))
                 StoreState.Ready -> {}
             }
             SettingsGroup(
-                title = "Plugins",
-                footer = "Each plugin can contact only the hosts listed with it and cannot read your files.",
+                title = stringResource(R.string.stores_plugins),
+                footer = stringResource(R.string.stores_plugin_limits),
                 rows = row.plugins.map { plugin ->
                     @Composable { place: Place ->
                         val installing = store.stores.isWorking(working, StoresModel.Work.Install(row.id, plugin.id))
                         InfoRow(
                             place,
                             plugin.name,
-                            plugin.contactsLine,
+                            plugin.contactsLine(LocalContext.current),
                             onClick = { navigator.open(pluginRoute(row.id, plugin.id)) },
                             trailing = { PluginAction(plugin, installing, onUpdate = { updating = plugin }) { store.installPlugin(row.id, plugin.id) } },
                         )
@@ -190,16 +196,16 @@ internal fun StoreScreen(id: String) {
                 },
             )
             SettingsGroup(
-                title = "This store",
+                title = stringResource(R.string.stores_this_store),
                 footer = listOfNotNull(
-                    if (row.anonymous) "Joined without a name" else "Joined as ${row.member}",
-                    row.checkedAt?.let { "checked ${AccountWords.agoWords(System.currentTimeMillis() / 1000 - it)}" },
-                ).joinToString(" · "),
+                    if (row.anonymous) stringResource(R.string.stores_joined_nameless) else stringResource(R.string.stores_device_joined_as, row.member),
+                    row.checkedAt?.let { stringResource(R.string.stores_checked_ago, Wording.ago(LocalContext.current, System.currentTimeMillis() / 1000 - it)) },
+                ).joinToString(" · "), // i18n-skip
                 rows = buildList<@Composable (Place) -> Unit> {
-                    add { place -> InfoRow(place, "Address", row.host) }
-                    add { place -> InfoRow(place, "Key fingerprint", row.fingerprint) }
+                    add { place -> InfoRow(place, stringResource(R.string.stores_address), row.host) }
+                    add { place -> InfoRow(place, stringResource(R.string.stores_key_fingerprint), row.fingerprint) }
                     // Who can join is changed on the store's admin page, in a browser.
-                    if (row.open) add { place -> InfoRow(place, "Who can join", "Anyone with the link") }
+                    if (row.open) add { place -> InfoRow(place, stringResource(R.string.stores_who_can_join), stringResource(R.string.stores_anyone_short)) }
                 },
             )
             FlowRow(Modifier.padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -208,10 +214,10 @@ internal fun StoreScreen(id: String) {
                     TextButton(
                         onClick = { store.createInvite(row.id, name = null) },
                         enabled = !store.stores.isWorking(working, StoresModel.Work.Invite(row.id)),
-                    ) { Text("Link another device", color = MaterialTheme.colorScheme.onSurface) }
+                    ) { Text(stringResource(R.string.stores_link_device_title), color = MaterialTheme.colorScheme.onSurface) }
                 }
                 // Destructive, so confirmed; in silk, as vermilion is only for a problem.
-                TextButton(onClick = { leaving = true }) { Text("Leave store", color = MaterialTheme.colorScheme.onSurface) }
+                TextButton(onClick = { leaving = true }) { Text(stringResource(R.string.stores_leave), color = MaterialTheme.colorScheme.onSurface) }
             }
         }
     }
@@ -219,7 +225,7 @@ internal fun StoreScreen(id: String) {
         val status = plugin.status as? StorePluginStatus.Update
         UpdateDialog(
             plugin.name,
-            storeName = row?.name ?: "the store",
+            storeName = row?.name ?: stringResource(R.string.stores_fallback_name),
             from = status?.from,
             to = plugin.version,
             newHosts = status?.newHosts.orEmpty(),
@@ -232,16 +238,16 @@ internal fun StoreScreen(id: String) {
     if (leaving && row != null) {
         AlertDialog(
             onDismissRequest = { leaving = false },
-            title = { Text("Leave ${row.name}?") },
-            text = { Text("Plugins installed from it stay installed. To join again, you need a new invite from its owner.") },
+            title = { Text(stringResource(R.string.stores_leave_title, row.name)) },
+            text = { Text(stringResource(R.string.stores_leave_rejoin)) },
             confirmButton = {
                 TextButton(onClick = {
                     leaving = false
                     store.leaveStore(row.id)
                     navigator.back()
-                }) { Text("Leave", color = MaterialTheme.colorScheme.onSurface) }
+                }) { Text(stringResource(R.string.action_leave), color = MaterialTheme.colorScheme.onSurface) }
             },
-            dismissButton = { QuietButton("Cancel") { leaving = false } },
+            dismissButton = { QuietButton(stringResource(R.string.action_cancel)) { leaving = false } },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         )
     }
@@ -255,12 +261,12 @@ private fun PluginAction(plugin: StorePluginRow, installing: Boolean, onUpdate: 
     when (val status = plugin.status) {
         StorePluginStatus.Installed -> Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Check, contentDescription = null, tint = colors.secondary, modifier = Modifier.size(18.dp))
-            Text("Installed", style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
+            Text(stringResource(R.string.stores_plugin_state_installed), style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
         }
-        is StorePluginStatus.Update -> Button(onClick = onUpdate, enabled = !installing) { Text("Update") }
-        StorePluginStatus.Available -> FilledTonalButton(onClick = onInstall, enabled = !installing) { WorkLabel("Install", installing) }
-        StorePluginStatus.AddedByHand -> FilledTonalButton(onClick = onUpdate, enabled = !installing) { Text("Replace") }
-        is StorePluginStatus.OtherStore -> Text("From ${status.v1}", style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
+        is StorePluginStatus.Update -> Button(onClick = onUpdate, enabled = !installing) { Text(stringResource(R.string.action_update)) }
+        StorePluginStatus.Available -> FilledTonalButton(onClick = onInstall, enabled = !installing) { WorkLabel(stringResource(R.string.action_install), installing) }
+        StorePluginStatus.AddedByHand -> FilledTonalButton(onClick = onUpdate, enabled = !installing) { Text(stringResource(R.string.action_replace)) }
+        is StorePluginStatus.OtherStore -> Text(stringResource(R.string.stores_plugin_from, status.v1), style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
     }
 }
 
@@ -275,7 +281,7 @@ internal fun PluginScreen(storeId: String, pluginId: String) {
     val plugin = row?.plugins?.firstOrNull { it.id == pluginId }
     var updating by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf(false) }
-    ScreenFrame(title = plugin?.name ?: "Plugin", subtitle = row?.let { "From ${it.name}" }, onBack = navigator::back) { padding ->
+    ScreenFrame(title = plugin?.name ?: stringResource(R.string.stores_fallback_plugin), subtitle = row?.let { stringResource(R.string.stores_plugin_from, it.name) }, onBack = navigator::back) { padding ->
         if (row == null || plugin == null) return@ScreenFrame
         val installing = store.stores.isWorking(working, StoresModel.Work.Install(row.id, plugin.id))
         val status = plugin.status
@@ -290,36 +296,36 @@ internal fun PluginScreen(storeId: String, pluginId: String) {
         ) {
             Row(Modifier.padding(horizontal = 4.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when (status) {
-                    is StorePluginStatus.Update -> Button(onClick = { updating = true }, enabled = !installing) { Text("Update to ${plugin.version}") }
-                    StorePluginStatus.Available -> Button(onClick = { store.installPlugin(row.id, plugin.id) }, enabled = !installing) { WorkLabel("Install", installing) }
+                    is StorePluginStatus.Update -> Button(onClick = { updating = true }, enabled = !installing) { Text(stringResource(R.string.updates_update_to, plugin.version)) }
+                    StorePluginStatus.Available -> Button(onClick = { store.installPlugin(row.id, plugin.id) }, enabled = !installing) { WorkLabel(stringResource(R.string.action_install), installing) }
                     else -> {}
                 }
                 if (status is StorePluginStatus.Installed || status is StorePluginStatus.Update) {
-                    TextButton(onClick = { removing = true }) { Text("Remove", color = MaterialTheme.colorScheme.onSurface) }
+                    TextButton(onClick = { removing = true }) { Text(stringResource(R.string.action_remove), color = MaterialTheme.colorScheme.onSurface) }
                 }
             }
             SettingsGroup(
-                footer = "${plugin.name} can contact only these hosts and cannot read your files.",
+                footer = stringResource(R.string.stores_plugin_limits),
                 rows = listOf(
                     { place ->
                         InfoRow(
                             place,
-                            "Version",
+                            stringResource(R.string.sources_version),
                             when (status) {
-                                is StorePluginStatus.Update -> "${status.from} · ${plugin.version} available"
-                                StorePluginStatus.Available -> "${plugin.version}, not installed"
+                                is StorePluginStatus.Update -> stringResource(R.string.stores_plugin_update_line, status.from, plugin.version)
+                                StorePluginStatus.Available -> plugin.version
                                 else -> plugin.installedVersion
                             },
                         )
                     },
-                    { place -> InfoRow(place, "Contacts", plugin.hosts.ifEmpty { listOf("No hosts") }.joinToString("\n")) },
+                    { place -> InfoRow(place, stringResource(R.string.sources_contacts_label), plugin.hosts.ifEmpty { listOf(stringResource(R.string.sources_no_hosts)) }.joinToString("\n")) },
                 ),
             )
         }
     }
     if (updating && plugin != null) {
         val status = plugin.status as? StorePluginStatus.Update
-        UpdateDialog(plugin.name, row?.name ?: "the store", status?.from, plugin.version, status?.newHosts.orEmpty(), onDismiss = { updating = false }) {
+        UpdateDialog(plugin.name, row?.name ?: stringResource(R.string.stores_fallback_name), status?.from, plugin.version, status?.newHosts.orEmpty(), onDismiss = { updating = false }) {
             updating = false
             store.installPlugin(storeId, plugin.id)
         }
@@ -327,15 +333,15 @@ internal fun PluginScreen(storeId: String, pluginId: String) {
     if (removing && plugin != null) {
         AlertDialog(
             onDismissRequest = { removing = false },
-            title = { Text("Remove ${plugin.name}?") },
-            text = { Text("It is deleted from this device. The store can install it again.") },
+            title = { Text(stringResource(R.string.stores_remove_plugin_title, plugin.name)) },
+            text = { Text(stringResource(R.string.stores_remove_plugin_detail)) },
             confirmButton = {
-                QuietButton("Remove") {
+                QuietButton(stringResource(R.string.action_remove)) {
                     removing = false
                     store.removePlugin(plugin.id)
                 }
             },
-            dismissButton = { QuietButton("Cancel") { removing = false } },
+            dismissButton = { QuietButton(stringResource(R.string.action_cancel)) { removing = false } },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         )
     }
@@ -373,15 +379,15 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
         navigator.open(storeRoute(id))
     }
     val invited = (preview as? StoresModel.Preview.Store)?.store
-    val clear: @Composable () -> Unit = { IconButton(onClick = { link = "" }) { Icon(Icons.Clear, contentDescription = "Clear") } }
+    val clear: @Composable () -> Unit = { IconButton(onClick = { link = "" }) { Icon(Icons.Clear, contentDescription = stringResource(R.string.action_clear)) } }
     SettingsSheet(onDismiss, tall = true) {
-        SheetTitle("Join a plugin store")
+        SheetTitle(stringResource(R.string.stores_join_title))
         SheetField(
             link,
             { link = it },
-            "Invite link",
+            stringResource(R.string.stores_invite_link),
             keyboard = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false),
-            supporting = if (link.isEmpty()) "Paste the link the store's owner sent you." else null,
+            supporting = if (link.isEmpty()) stringResource(R.string.stores_join_detail) else null,
             trailing = clear.takeIf { link.isNotEmpty() },
         )
         when (val shown = preview) {
@@ -391,7 +397,7 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 WorkRing(true)
-                SheetText("Checking the link")
+                SheetText(stringResource(R.string.stores_checking_link))
             }
             is StoresModel.Preview.Failed -> {
                 // The link was refused in place: the error glyph, the reason in silk, and Reject.
@@ -402,9 +408,9 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Problem, contentDescription = "Problem", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Problem, contentDescription = stringResource(R.string.error_label), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                     Text(
-                        if (offline) OFFLINE_LINE else plainReason(shown.reason),
+                        if (offline) stringResource(R.string.state_offline_line) else plainReason(LocalContext.current, shown.reason),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
@@ -418,20 +424,20 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
             SheetField(
                 deviceName,
                 store.stores::nameDevice,
-                "Device name",
+                stringResource(R.string.stores_device_name),
                 modifier = Modifier.padding(top = 16.dp),
                 keyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                supporting = "The store's owner sees this device by this name.",
+                supporting = stringResource(R.string.stores_device_name_detail),
             )
         }
         HorizontalDivider(Modifier.padding(top = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
-        SheetText("Plugins come from the store's owner, not from anistream. You can leave a store at any time.", Modifier.padding(top = 16.dp))
+        SheetText(stringResource(R.string.stores_not_from_app), Modifier.padding(top = 16.dp))
         SheetButtons {
-            QuietButton("Cancel", onClick = onDismiss)
+            QuietButton(stringResource(R.string.action_cancel), onClick = onDismiss)
             Button(
                 onClick = { store.joinStore(link) },
                 enabled = invited != null && !invited.alreadyJoined && !busy,
-            ) { WorkLabel("Join store", busy) }
+            ) { WorkLabel(stringResource(R.string.stores_join_button), busy) }
         }
     }
 }
@@ -447,29 +453,31 @@ private fun InvitedStorePreview(invited: tv.anistream.engine.model.InvitedStore)
     val colors = MaterialTheme.colorScheme
     val tabular = MaterialTheme.typography.bodyMedium.tabular()
     HorizontalDivider(Modifier.padding(top = 16.dp), color = colors.outlineVariant)
-    PreviewLine(invited.name, invited.runByLine, titleWeight = FontWeight.Medium) {
+    PreviewLine(invited.name, invited.runByLine(LocalContext.current), titleWeight = FontWeight.Medium) {
         if (invited.plugins.isNotEmpty()) {
-            Text(Wording.plural(invited.plugins.size, "plugin"), style = tabular, color = colors.onSurfaceVariant)
+            Text(pluralStringResource(R.plurals.stores_offers_plugins, invited.plugins.size, invited.plugins.size), style = tabular, color = colors.onSurfaceVariant)
         }
     }
     PreviewLine(
-        if (invited.anonymous) "Key matches the link" else "Key matches the invite",
+        stringResource(if (invited.anonymous) R.string.stores_preview_key_link else R.string.stores_preview_key_invite),
         invited.fingerprint,
         subtitleStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
     ) {
-        Icon(Icons.Shield, contentDescription = "Verified", tint = colors.secondary)
+        Icon(Icons.Shield, contentDescription = stringResource(R.string.stores_key_verified), tint = colors.secondary)
     }
     if (invited.open) {
         PreviewLine(
-            "Anyone with the link can join",
-            if (invited.anonymous) "You join without a name. Another device joins with the same link." else null,
+            stringResource(R.string.stores_anyone_with_link),
+            if (invited.anonymous) stringResource(R.string.stores_anyone_note) else null,
         )
     }
-    if (invited.alreadyJoined) SheetText("This device has joined this store already.", Modifier.padding(vertical = 8.dp))
+    if (invited.alreadyJoined) SheetText(stringResource(R.string.stores_already_joined_note), Modifier.padding(vertical = 8.dp))
     if (invited.plugins.isNotEmpty()) {
         HorizontalDivider(color = colors.outlineVariant)
         invited.plugins.forEach { plugin ->
-            PreviewLine(plugin.name, listOfNotNull(plugin.contactsLine, plugin.standing).joinToString(" · ")) {
+            val context = LocalContext.current
+            val line = listOfNotNull(plugin.contactsLine(context), plugin.standing(context)).joinToString(" · ") // i18n-skip
+            PreviewLine(plugin.name, line) {
                 Text(plugin.version, style = tabular, color = colors.onSurfaceVariant)
             }
         }
@@ -507,19 +515,19 @@ private fun InviteLinkSheetHost() {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     SettingsSheet(onDismiss = store.stores::clearInvite) {
-        SheetTitle("Link another device")
-        SheetText("Open this link on your other device to join the store there. It works once.")
+        SheetTitle(stringResource(R.string.stores_link_device_title))
+        SheetText(stringResource(R.string.stores_link_sheet_detail))
         Text(
             shown.link,
             style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
             modifier = Modifier.padding(top = 16.dp),
         )
         SheetButtons {
-            QuietButton("Copy link") { clipboard.setText(AnnotatedString(shown.link)) }
+            QuietButton(stringResource(R.string.stores_copy_link)) { clipboard.setText(AnnotatedString(shown.link)) }
             Button(onClick = {
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, shown.link)
                 context.startActivity(Intent.createChooser(send, null))
-            }) { Text("Share") }
+            }) { Text(stringResource(R.string.action_share)) }
         }
     }
 }

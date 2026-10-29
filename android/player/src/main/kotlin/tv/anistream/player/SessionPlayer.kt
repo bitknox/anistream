@@ -3,6 +3,7 @@
 
 package tv.anistream.player
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Looper
@@ -26,6 +27,7 @@ import com.google.common.util.concurrent.ListenableFuture
  */
 @OptIn(UnstableApi::class)
 class SessionPlayer(
+    private val context: Context,
     private val model: PlayerModel,
     private val artwork: (String) -> Bitmap? = { null },
 ) : SimpleBasePlayer(Looper.getMainLooper()) {
@@ -58,9 +60,9 @@ class SessionPlayer(
             .setSeekForwardIncrementMs(SEEK_STEP_MS)
         if (!model.isPresented) return state.setPlaybackState(Player.STATE_IDLE).build()
         val metadata = MediaMetadata.Builder()
-            .setTitle(model.episodeLine)
+            .setTitle(model.episodeLine(context))
             .setArtist(model.showTitle)
-            .setDisplayTitle(model.episodeLine)
+            .setDisplayTitle(model.episodeLine(context))
             .setSubtitle(model.showTitle)
             .setMediaType(MediaMetadata.MEDIA_TYPE_TV_SHOW)
             .apply { artworkBytes()?.let { setArtworkData(it, MediaMetadata.PICTURE_TYPE_FRONT_COVER) } }

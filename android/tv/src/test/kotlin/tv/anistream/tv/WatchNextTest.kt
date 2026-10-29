@@ -1,6 +1,7 @@
 package tv.anistream.tv
 
 import org.junit.Assert.assertEquals
+import org.robolectric.RuntimeEnvironment
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,6 +22,7 @@ import tv.anistream.tv.home.playLink
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class WatchNextTest {
+    private val context = RuntimeEnvironment.getApplication()
     private fun entry(id: UInt, next: UInt = 4u, resume: ResumePoint? = null) = Entry(
         id = id,
         title = "Title $id",
@@ -30,7 +32,7 @@ class WatchNextTest {
     )
 
     private fun cards(vararg entries: Entry, episodes: Map<UInt, List<EpisodeRow>> = emptyMap()) =
-        WatchNextCard.of(ContinueQueue.of(entries.map { it.id }, entries.associateBy { it.id }), episodes)
+        WatchNextCard.of(context, ContinueQueue.of(entries.map { it.id }, entries.associateBy { it.id }), episodes)
 
     @Test
     fun an_episode_left_part_way_continues_where_it_stopped() {
@@ -44,7 +46,7 @@ class WatchNextTest {
     @Test
     fun a_dub_is_marked_on_the_episode_line_and_a_sub_is_not() {
         val dub = cards(entry(1u).copy(watchedIn = Translation.DUB)).single()
-        assertEquals("Episode 4 · Dub", dub.description)
+        assertEquals("Episode 4 · Dubbed", dub.description)
         val sub = cards(entry(2u).copy(watchedIn = Translation.SUB)).single()
         assertEquals("Episode 4", sub.description)
     }

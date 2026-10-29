@@ -1300,16 +1300,6 @@ pub fn settings_sources_come_from() -> String {
     text("settings-sources-come-from", &[])
 }
 
-/// Choice for the download quality: the usual size.
-pub fn settings_quality_standard() -> String {
-    text("settings-quality-standard", &[])
-}
-
-/// Choice for the download quality: larger files with more detail.
-pub fn settings_quality_higher() -> String {
-    text("settings-quality-higher", &[])
-}
-
 /// Label on the left half of the upscaling preview: the video before processing.
 pub fn settings_preview_source() -> String {
     text("settings-preview-source", &[])
@@ -1318,16 +1308,6 @@ pub fn settings_preview_source() -> String {
 /// Preview note under the upscaling frame when upscaling is off.
 pub fn settings_upscaling_note_off() -> String {
     text("settings-upscaling-note-off", &[])
-}
-
-/// Preview note under the upscaling frame for the natural look.
-pub fn settings_upscaling_note_natural() -> String {
-    text("settings-upscaling-note-natural", &[])
-}
-
-/// Preview note under the upscaling frame for the sharp look.
-pub fn settings_upscaling_note_sharp() -> String {
-    text("settings-upscaling-note-sharp", &[])
 }
 
 /// A line of sample subtitle over the preview frame. Any short sentence will do.
@@ -1400,11 +1380,6 @@ pub fn accounts_changes_waiting_offline(count: i64) -> String {
     text("accounts-changes-waiting-offline", &[("count", Arg::Int(count))])
 }
 
-/// Line under a signed-in account while changes wait to be sent.
-pub fn accounts_changes_waiting(count: i64) -> String {
-    text("accounts-changes-waiting", &[("count", Arg::Int(count))])
-}
-
 /// Footnote on the Accounts page: where sign-in tokens are kept, when it is the system's keyring.
 pub fn accounts_tokens_keyring() -> String {
     text("accounts-tokens-keyring", &[])
@@ -1423,6 +1398,11 @@ pub fn updates_why_reopen() -> String {
 /// Accessible description of the mascot's picture. Nagare is the mascot's name.
 pub fn nagare_description() -> String {
     text("nagare-description", &[])
+}
+
+/// Note under the Play trailers setting: what the trailers are and when they do not play.
+pub fn settings_note_trailers_linux() -> String {
+    text("settings-note-trailers-linux", &[])
 }
 
 /// Button on a notice that asks to open the plugin stores.
@@ -1683,11 +1663,6 @@ pub fn stores_owner_needs_connection_detail() -> String {
 /// Red line in the invite dialog when this device is offline and a link cannot be made.
 pub fn stores_owner_link_offline() -> String {
     text("stores-owner-link-offline", &[])
-}
-
-/// Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
-pub fn stores_copy_link() -> String {
-    text("stores-copy-link", &[])
 }
 
 /// Line over a new invite link made for a named person. The time is the one the link stops working.
@@ -2718,6 +2693,21 @@ pub fn keys_action_right() -> String {
 /// Action label in the help overlay and the command palette.
 pub fn keys_action_top() -> String {
     text("keys-action-top", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_today() -> String {
+    text("keys-action-today", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_previous_day() -> String {
+    text("keys-action-previous-day", &[])
+}
+
+/// Action label in the help overlay and the command palette.
+pub fn keys_action_next_day() -> String {
+    text("keys-action-next-day", &[])
 }
 
 /// Action label in the help overlay and the command palette.
@@ -4875,6 +4865,11 @@ pub fn settings_label_comment_images() -> String {
     text("settings-label-comment-images", &[])
 }
 
+/// Settings row: whether Calendar shows only the shows on the person's list.
+pub fn settings_label_calendar_mine() -> String {
+    text("settings-label-calendar-mine", &[])
+}
+
 /// Note under the titles row.
 pub fn settings_note_titles() -> String {
     text("settings-note-titles", &[])
@@ -6470,6 +6465,11 @@ pub fn state_loading() -> String {
     text("state-loading", &[])
 }
 
+/// How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
+pub fn time_just_now_inline() -> String {
+    text("time-just-now-inline", &[])
+}
+
 /// Checkbox of the close question.
 pub fn close_dont_ask() -> String {
     text("close-dont-ask", &[])
@@ -6603,6 +6603,146 @@ pub fn tv_problem_full() -> String {
 /// The TV has forgotten this computer.
 pub fn tv_problem_unpaired() -> String {
     text("tv-problem-unpaired", &[])
+}
+
+/// Menu item that opens an episode's discussion.
+pub fn discussion_open() -> String {
+    text("discussion-open", &[])
+}
+
+/// Title of the discussion window or sheet when the thread has no title yet.
+pub fn discussion_title_episode(episode: i64) -> String {
+    text("discussion-title-episode", &[("episode", Arg::Int(episode))])
+}
+
+/// Quiet line under an episode that opens its discussion.
+pub fn discussion_row(count: i64) -> String {
+    text("discussion-row", &[("count", Arg::Int(count))])
+}
+
+/// Count of comments in the header of the discussion.
+pub fn discussion_count(count: i64) -> String {
+    text("discussion-count", &[("count", Arg::Int(count))])
+}
+
+/// Button that likes a comment, with its count after it. Also its accessible name.
+pub fn discussion_like() -> String {
+    text("discussion-like", &[])
+}
+
+/// Button that replies to a comment.
+pub fn discussion_reply() -> String {
+    text("discussion-reply", &[])
+}
+
+/// Line under a reply that has more replies folded in it. The line opens them.
+pub fn discussion_more_replies(count: i64) -> String {
+    text("discussion-more-replies", &[("count", Arg::Int(count))])
+}
+
+/// Muted bar in place of a spoiler in a comment, until it is opened.
+pub fn discussion_spoiler() -> String {
+    text("discussion-spoiler", &[])
+}
+
+/// Line in place of an image in a comment. It opens the image in the browser.
+pub fn discussion_image() -> String {
+    text("discussion-image", &[])
+}
+
+/// Line in place of a video in a comment. It opens the video in the browser.
+pub fn discussion_video() -> String {
+    text("discussion-video", &[])
+}
+
+/// Placeholder in the field for a new comment.
+pub fn discussion_add_comment() -> String {
+    text("discussion-add-comment", &[])
+}
+
+/// Placeholder in the field while editing a comment.
+pub fn discussion_edit_comment() -> String {
+    text("discussion-edit-comment", &[])
+}
+
+/// Button that sends the comment in the field.
+pub fn discussion_post() -> String {
+    text("discussion-post", &[])
+}
+
+/// Line above the field while answering a comment.
+pub fn discussion_replying_to(name: &str) -> String {
+    text("discussion-replying-to", &[("name", Arg::Text(name))])
+}
+
+/// Accessible name of the button that stops replying or editing.
+pub fn discussion_cancel_reply() -> String {
+    text("discussion-cancel-reply", &[])
+}
+
+/// Line in place of the field when nobody is signed in to AniList. It opens the sign-in.
+pub fn discussion_sign_in() -> String {
+    text("discussion-sign-in", &[])
+}
+
+/// Line in place of the field when the viewer is signed in but offline.
+pub fn discussion_offline_post() -> String {
+    text("discussion-offline-post", &[])
+}
+
+/// Line under a comment AniList did not accept. The button beside it sends it again.
+pub fn discussion_post_failed() -> String {
+    text("discussion-post-failed", &[])
+}
+
+/// Title of the question asked before deleting the viewer's own comment.
+pub fn discussion_delete_title() -> String {
+    text("discussion-delete-title", &[])
+}
+
+/// Body of the question asked before deleting the viewer's own comment.
+pub fn discussion_delete_body() -> String {
+    text("discussion-delete-body", &[])
+}
+
+/// Line while the comments are still loading after a few seconds.
+pub fn discussion_still_loading() -> String {
+    text("discussion-still-loading", &[])
+}
+
+/// Line while AniList's request budget is spent. The engine waits, then goes on by itself.
+pub fn discussion_rate_limited(time: &str) -> String {
+    text("discussion-rate-limited", &[("time", Arg::Text(time))])
+}
+
+/// Title of the state when the episode has no thread on AniList.
+pub fn discussion_no_thread() -> String {
+    text("discussion-no-thread", &[])
+}
+
+/// Line under the no-thread title.
+pub fn discussion_no_thread_detail() -> String {
+    text("discussion-no-thread-detail", &[])
+}
+
+/// Title of the state when a thread has no comments.
+pub fn discussion_no_comments() -> String {
+    text("discussion-no-comments", &[])
+}
+
+/// Title of the state when the discussion could not be read.
+pub fn discussion_failed() -> String {
+    text("discussion-failed", &[])
+}
+
+/// Line over comments that are kept from an earlier visit while offline. The age reads "2h ago".
+pub fn discussion_offline_cached(age: &str) -> String {
+    text("discussion-offline-cached", &[("age", Arg::Text(age))])
+}
+
+/// Heading of the Settings group for discussion rows.
+pub fn discussion_settings_group() -> String {
+    text("discussion-settings-group", &[])
 }
 
 /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
@@ -8860,6 +9000,31 @@ pub fn filter_remove(filter: &str) -> String {
     text("filter-remove", &[("filter", Arg::Text(filter))])
 }
 
+/// Search: sort by how many people marked the title a favourite.
+pub fn search_sort_favourites() -> String {
+    text("search-sort-favourites", &[])
+}
+
+/// Search: sort by release date, newest first.
+pub fn search_sort_newest() -> String {
+    text("search-sort-newest", &[])
+}
+
+/// Search: sort by release date, oldest first.
+pub fn search_sort_oldest() -> String {
+    text("search-sort-oldest", &[])
+}
+
+/// Search: sort by title, A to Z.
+pub fn search_sort_title() -> String {
+    text("search-sort-title", &[])
+}
+
+/// Search: sort by what is popular right now.
+pub fn search_sort_trending() -> String {
+    text("search-sort-trending", &[])
+}
+
 /// Settings group and row title for choosing a language.
 pub fn settings_language() -> String {
     text("settings-language", &[])
@@ -9428,6 +9593,46 @@ pub fn widget_start_label(episode: i64, title: &str) -> String {
 /// Accessibility label of a widget row: continue a dubbed episode.
 pub fn widget_resume_dubbed_label(episode: i64, title: &str) -> String {
     text("widget-resume-dubbed-label", &[("episode", Arg::Int(episode)), ("title", Arg::Text(title))])
+}
+
+/// Line under a signed-in account while changes wait to be sent.
+pub fn accounts_changes_waiting(count: i64) -> String {
+    text("accounts-changes-waiting", &[("count", Arg::Int(count))])
+}
+
+/// Choice for the download quality: larger files with more detail.
+pub fn settings_quality_higher() -> String {
+    text("settings-quality-higher", &[])
+}
+
+/// Choice for the download quality: the usual size.
+pub fn settings_quality_standard() -> String {
+    text("settings-quality-standard", &[])
+}
+
+/// Value of the upload limit setting when there is no limit.
+pub fn settings_upload_unlimited() -> String {
+    text("settings-upload-unlimited", &[])
+}
+
+/// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+pub fn settings_upscaling_natural() -> String {
+    text("settings-upscaling-natural", &[])
+}
+
+/// Preview note under the upscaling frame for the natural look.
+pub fn settings_upscaling_note_natural() -> String {
+    text("settings-upscaling-note-natural", &[])
+}
+
+/// Preview note under the upscaling frame for the sharp look.
+pub fn settings_upscaling_note_sharp() -> String {
+    text("settings-upscaling-note-sharp", &[])
+}
+
+/// Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+pub fn settings_upscaling_sharp() -> String {
+    text("settings-upscaling-sharp", &[])
 }
 
 /// Title of the screen or section that lists sources.
@@ -10365,6 +10570,16 @@ pub fn stores_plugin_name_version(name: &str, version: &str) -> String {
     text("stores-plugin-name-version", &[("name", Arg::Text(name)), ("version", Arg::Text(version))])
 }
 
+/// Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+pub fn stores_copy_link() -> String {
+    text("stores-copy-link", &[])
+}
+
+/// Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+pub fn stores_offers_plugins(count: i64) -> String {
+    text("stores-offers-plugins", &[("count", Arg::Int(count))])
+}
+
 /// Title of the state when a title page could not load.
 pub fn title_load_failed() -> String {
     text("title-load-failed", &[])
@@ -10385,9 +10600,19 @@ pub fn title_trailer() -> String {
     text("title-trailer", &[])
 }
 
+/// Main button of the title page when every episode of the show is watched: plays episode 1 again.
+pub fn title_button_watch_again() -> String {
+    text("title-button-watch-again", &[])
+}
+
 /// Menu item that plays the trailer.
 pub fn title_play_trailer() -> String {
     text("title-play-trailer", &[])
+}
+
+/// Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+pub fn title_trailer_sound() -> String {
+    text("title-trailer-sound", &[])
 }
 
 /// Menu item that opens the title on the AniList website.
@@ -11018,6 +11243,11 @@ pub fn torrents_page_unreadable() -> String {
 /// Line when the page needs script.
 pub fn torrents_page_needs_script() -> String {
     text("torrents-page-needs-script", &[])
+}
+
+/// Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+pub fn torrents_check_note() -> String {
+    text("torrents-check-note", &[])
 }
 
 /// Title of the accounts screen. The sidebar item is nav-accounts.

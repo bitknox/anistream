@@ -1295,6 +1295,9 @@ public enum L {
     /// Short placeholder while something loads.
     public static var stateLoading: String { string("state-loading", fallback: "Loading") }
 
+    /// How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
+    public static var timeJustNowInline: String { string("time-just-now-inline", fallback: "just now") }
+
     /// Checkbox of the close question.
     public static var closeDontAsk: String { string("close-dont-ask", fallback: "Don't ask again") }
 
@@ -1379,6 +1382,104 @@ public enum L {
 
     /// The TV has forgotten this computer.
     public static var tvProblemUnpaired: String { string("tv-problem-unpaired", fallback: "The TV doesn't know this device any more. Pair again.") }
+
+    /// Menu item that opens an episode's discussion.
+    public static var discussionOpen: String { string("discussion-open", fallback: "Discussion") }
+
+    /// Title of the discussion window or sheet when the thread has no title yet.
+    public static func discussionTitleEpisode(episode: Int) -> String {
+        Self.format("discussion-title-episode", fallback: "Episode %1$lld discussion", episode)
+    }
+
+    /// Quiet line under an episode that opens its discussion.
+    public static func discussionRow(count: Int) -> String {
+        Self.format("discussion-row", fallback: "Discussion · %1$lld comments", count)
+    }
+
+    /// Count of comments in the header of the discussion.
+    public static func discussionCount(count: Int) -> String {
+        Self.format("discussion-count", fallback: "%1$lld comments", count)
+    }
+
+    /// Button that likes a comment, with its count after it. Also its accessible name.
+    public static var discussionLike: String { string("discussion-like", fallback: "Like") }
+
+    /// Button that replies to a comment.
+    public static var discussionReply: String { string("discussion-reply", fallback: "Reply") }
+
+    /// Line under a reply that has more replies folded in it. The line opens them.
+    public static func discussionMoreReplies(count: Int) -> String {
+        Self.format("discussion-more-replies", fallback: "%1$lld more replies", count)
+    }
+
+    /// Muted bar in place of a spoiler in a comment, until it is opened.
+    public static var discussionSpoiler: String { string("discussion-spoiler", fallback: "Spoiler") }
+
+    /// Line in place of an image in a comment. It opens the image in the browser.
+    public static var discussionImage: String { string("discussion-image", fallback: "Image") }
+
+    /// Line in place of a video in a comment. It opens the video in the browser.
+    public static var discussionVideo: String { string("discussion-video", fallback: "Video") }
+
+    /// Placeholder in the field for a new comment.
+    public static var discussionAddComment: String { string("discussion-add-comment", fallback: "Add a comment") }
+
+    /// Placeholder in the field while editing a comment.
+    public static var discussionEditComment: String { string("discussion-edit-comment", fallback: "Edit your comment") }
+
+    /// Button that sends the comment in the field.
+    public static var discussionPost: String { string("discussion-post", fallback: "Post") }
+
+    /// Line above the field while answering a comment.
+    public static func discussionReplyingTo(name: String) -> String {
+        Self.format("discussion-replying-to", fallback: "Replying to %1$@", name)
+    }
+
+    /// Accessible name of the button that stops replying or editing.
+    public static var discussionCancelReply: String { string("discussion-cancel-reply", fallback: "Cancel reply") }
+
+    /// Line in place of the field when nobody is signed in to AniList. It opens the sign-in.
+    public static var discussionSignIn: String { string("discussion-sign-in", fallback: "Sign in with AniList to reply") }
+
+    /// Line in place of the field when the viewer is signed in but offline.
+    public static var discussionOfflinePost: String { string("discussion-offline-post", fallback: "Posting waits for the network") }
+
+    /// Line under a comment AniList did not accept. The button beside it sends it again.
+    public static var discussionPostFailed: String { string("discussion-post-failed", fallback: "Didn't post. Try again") }
+
+    /// Title of the question asked before deleting the viewer's own comment.
+    public static var discussionDeleteTitle: String { string("discussion-delete-title", fallback: "Delete this comment?") }
+
+    /// Body of the question asked before deleting the viewer's own comment.
+    public static var discussionDeleteBody: String { string("discussion-delete-body", fallback: "It is removed from AniList too.") }
+
+    /// Line while the comments are still loading after a few seconds.
+    public static var discussionStillLoading: String { string("discussion-still-loading", fallback: "Still loading from AniList") }
+
+    /// Line while AniList's request budget is spent. The engine waits, then goes on by itself.
+    public static func discussionRateLimited(time: String) -> String {
+        Self.format("discussion-rate-limited", fallback: "AniList asked for a pause. Back in %1$@.", time)
+    }
+
+    /// Title of the state when the episode has no thread on AniList.
+    public static var discussionNoThread: String { string("discussion-no-thread", fallback: "No discussion yet") }
+
+    /// Line under the no-thread title.
+    public static var discussionNoThreadDetail: String { string("discussion-no-thread-detail", fallback: "Nobody has opened a thread for this episode on AniList.") }
+
+    /// Title of the state when a thread has no comments.
+    public static var discussionNoComments: String { string("discussion-no-comments", fallback: "No comments yet") }
+
+    /// Title of the state when the discussion could not be read.
+    public static var discussionFailed: String { string("discussion-failed", fallback: "Couldn't load the discussion") }
+
+    /// Line over comments that are kept from an earlier visit while offline. The age reads "2h ago".
+    public static func discussionOfflineCached(age: String) -> String {
+        Self.format("discussion-offline-cached", fallback: "Offline. Showing comments from %1$@.", age)
+    }
+
+    /// Heading of the Settings group for discussion rows.
+    public static var discussionSettingsGroup: String { string("discussion-settings-group", fallback: "Discussions") }
 
     /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
     public static var downloadsTitle: String { string("downloads-title", fallback: "Downloads") }
@@ -2917,6 +3018,21 @@ public enum L {
         Self.format("filter-remove", fallback: "Remove %1$@", filter)
     }
 
+    /// Search: sort by how many people marked the title a favourite.
+    public static var searchSortFavourites: String { string("search-sort-favourites", fallback: "Favourites") }
+
+    /// Search: sort by release date, newest first.
+    public static var searchSortNewest: String { string("search-sort-newest", fallback: "Newest") }
+
+    /// Search: sort by release date, oldest first.
+    public static var searchSortOldest: String { string("search-sort-oldest", fallback: "Oldest") }
+
+    /// Search: sort by title, A to Z.
+    public static var searchSortTitle: String { string("search-sort-title", fallback: "Title") }
+
+    /// Search: sort by what is popular right now.
+    public static var searchSortTrending: String { string("search-sort-trending", fallback: "Trending") }
+
     /// Settings group and row title for choosing a language.
     public static var settingsLanguage: String { string("settings-language", fallback: "Language") }
 
@@ -3276,6 +3392,32 @@ public enum L {
     public static func widgetResumeDubbedLabel(episode: Int, title: String) -> String {
         Self.format("widget-resume-dubbed-label", fallback: "Resume episode %1$lld, dubbed, of %2$@", episode, title)
     }
+
+    /// Line under a signed-in account while changes wait to be sent.
+    public static func accountsChangesWaiting(count: Int) -> String {
+        Self.format("accounts-changes-waiting", fallback: "%1$lld changes waiting to sync", count)
+    }
+
+    /// Choice for the download quality: larger files with more detail.
+    public static var settingsQualityHigher: String { string("settings-quality-higher", fallback: "Higher") }
+
+    /// Choice for the download quality: the usual size.
+    public static var settingsQualityStandard: String { string("settings-quality-standard", fallback: "Standard") }
+
+    /// Value of the upload limit setting when there is no limit.
+    public static var settingsUploadUnlimited: String { string("settings-upload-unlimited", fallback: "Unlimited") }
+
+    /// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+    public static var settingsUpscalingNatural: String { string("settings-upscaling-natural", fallback: "Natural · ArtCNN") }
+
+    /// Preview note under the upscaling frame for the natural look.
+    public static var settingsUpscalingNoteNatural: String { string("settings-upscaling-note-natural", fallback: "Faithful line work and texture, nothing restyled.") }
+
+    /// Preview note under the upscaling frame for the sharp look.
+    public static var settingsUpscalingNoteSharp: String { string("settings-upscaling-note-sharp", fallback: "Crisper lines and stronger edges, at some cost to texture.") }
+
+    /// Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+    public static var settingsUpscalingSharp: String { string("settings-upscaling-sharp", fallback: "Sharp · Anime4K") }
 
     /// Title of the screen or section that lists sources.
     public static var sourcesTitle: String { string("sources-title", fallback: "Sources") }
@@ -3930,6 +4072,14 @@ public enum L {
         Self.format("stores-plugin-name-version", fallback: "%1$@ %2$@", name, version)
     }
 
+    /// Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+    public static var storesCopyLink: String { string("stores-copy-link", fallback: "Copy link") }
+
+    /// Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+    public static func storesOffersPlugins(count: Int) -> String {
+        Self.format("stores-offers-plugins", fallback: "%1$lld plugins", count)
+    }
+
     /// Title of the state when a title page could not load.
     public static var titleLoadFailed: String { string("title-load-failed", fallback: "Couldn't load this title") }
 
@@ -3942,8 +4092,14 @@ public enum L {
     /// Button on the title page that plays the trailer.
     public static var titleTrailer: String { string("title-trailer", fallback: "Trailer") }
 
+    /// Main button of the title page when every episode of the show is watched: plays episode 1 again.
+    public static var titleButtonWatchAgain: String { string("title-button-watch-again", fallback: "Watch again") }
+
     /// Menu item that plays the trailer.
     public static var titlePlayTrailer: String { string("title-play-trailer", fallback: "Play trailer") }
+
+    /// Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+    public static var titleTrailerSound: String { string("title-trailer-sound", fallback: "Trailer sound") }
 
     /// Menu item that opens the title on the AniList website.
     public static var titleOpenAnilist: String { string("title-open-anilist", fallback: "Open on AniList") }
@@ -4370,6 +4526,9 @@ public enum L {
 
     /// Line when the page needs script.
     public static var torrentsPageNeedsScript: String { string("torrents-page-needs-script", fallback: "This page needs JavaScript to send the form to the TV safely.") }
+
+    /// Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+    public static var torrentsCheckNote: String { string("torrents-check-note", fallback: "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.") }
 
     /// Title of the accounts screen. The sidebar item is nav-accounts.
     public static var accountsTitle: String { string("accounts-title", fallback: "Accounts") }

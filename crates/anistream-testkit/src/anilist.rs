@@ -209,6 +209,8 @@ struct State {
     extra: HashMap<u64, Value>,
     /// Titles that are also in the search and browse pool: see [`FakeAniList::add_catalogue`].
     catalogue: Vec<AnilistId>,
+    /// Broadcasts beside the fixtures' schedule: see [`FakeAniList::add_broadcasts`].
+    broadcasts: Vec<Value>,
     /// How long each operation's answers are held back: see [`FakeAniList::answer_slowly`].
     slow: HashMap<Operation, std::time::Duration>,
     /// Where image URLs point once the fake serves art: its own `/art/`.
@@ -249,6 +251,7 @@ impl FakeAniList {
             viewer_language: None,
             extra: HashMap::new(),
             catalogue: Vec::new(),
+            broadcasts: Vec::new(),
             slow: HashMap::new(),
             art: None,
             art_trouble: ArtTrouble::default(),
@@ -410,6 +413,18 @@ impl FakeAniList {
         for title in titles {
             let id = title["id"].as_u64().expect("a title has an id");
             state.extra.insert(id, title);
+        }
+    }
+
+    /// Broadcasts beside the fixtures' schedule, as `(title, episode, airing_at)` with the time
+    /// at [`FIXTURE_NOW`]'s clock: they move with [`Self::set_now`] as the fixtures do. For a
+    /// calendar with more than a page of rows in it. The title must be one the fixtures have.
+    pub fn add_broadcasts(&self, rows: impl IntoIterator<Item = (AnilistId, u32, i64)>) {
+        let mut state = lock(&self.state);
+        for (id, episode, airing_at) in rows {
+            state.broadcasts.push(
+                json!({ "mediaId": id.get(), "episode": episode, "airingAt": airing_at }),
+            );
         }
     }
 
@@ -705,7 +720,7 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         return Reply::errors(400, "Max query complexity of 500 exceeded", Value::Null);
     }
 
-    let (failure, (now, ahead), titles, viewer_language, extra, pool) = {
+    let (failure, (now, ahead), titles, viewer_language, extra, pool, rows) = {
         let mut state = lock(state);
         state.requests.push(Request {
             operation,
@@ -718,13 +733,14 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         let clock = (state.now, state.ahead);
         let extra = state.extra.clone();
         let pool = state.catalogue.clone();
-        (failure, clock, state.titles.clone(), state.viewer_language.clone(), extra, pool)
+        let rows = state.broadcasts.clone();
+        (failure, clock, state.titles.clone(), state.viewer_language.clone(), extra, pool, rows)
     };
     match failure {
         Some(failure) => fail(failure),
         None => {
             let clock = Clock { shift: now - FIXTURE_NOW, now: now + ahead };
-            let catalogue = Catalogue { extra: &extra, added: &pool };
+            let catalogue = Catalogue { extra: &extra, added: &pool, broadcasts: &rows };
             let authorized = head.authorization.is_some();
             let writes = matches!(
                 operation,
@@ -815,6 +831,8 @@ struct Catalogue<'a> {
     /// The added titles that a search and a browse also find: see
     /// [`FakeAniList::add_catalogue`].
     added: &'a [AnilistId],
+    /// The broadcasts a test added to the schedule: see [`FakeAniList::add_broadcasts`].
+    broadcasts: &'a [Value],
 }
 
 impl<'a> Catalogue<'a> {
@@ -966,7 +984,7 @@ fn respond(
                 .collect();
             Reply::ok(json!({ "Page": { "media": media } }))
         }
-        Operation::Schedule => Reply::ok(schedule(vars, clock)),
+        Operation::Schedule => Reply::ok(schedule(vars, clock, catalogue.broadcasts)),
         Operation::LastAired => Reply::ok(last_aired(vars, clock)),
         Operation::AiredSince => Reply::ok(aired_since(vars, clock)),
         Operation::Viewer => Reply::ok(json!({ "Viewer": fixtures::library_wire()["viewer"] })),
@@ -1303,12 +1321,13 @@ fn ids(value: &Value) -> Vec<AnilistId> {
 
 /// Broadcasts strictly inside `from`..`to`, as `airingAt_greater` and `airingAt_lesser` have
 /// it, in the order `sort` asks for.
-fn schedule(vars: &Value, clock: Clock) -> Value {
+fn schedule(vars: &Value, clock: Clock, added: &[Value]) -> Value {
     let from = vars["from"].as_i64().unwrap_or(i64::MIN);
     let to = vars["to"].as_i64().unwrap_or(i64::MAX);
     let newest_first = sort_is(vars, "TIME_DESC");
     let mut rows: Vec<(i64, &Value)> = fixtures::schedule_wire()
         .iter()
+        .chain(added)
         .map(|row| (clock.at(&row["airingAt"]), row))
         .filter(|(at, _)| *at > from && *at < to)
         .collect();

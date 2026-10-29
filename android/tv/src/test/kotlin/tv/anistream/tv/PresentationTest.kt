@@ -1,6 +1,10 @@
 package tv.anistream.tv
 
 import java.time.Clock
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -22,7 +26,10 @@ import tv.anistream.tv.screens.SearchKeys
 import tv.anistream.tv.screens.dayLabel
 import tv.anistream.tv.screens.seasonLabel
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class PresentationTest {
+    private val context = RuntimeEnvironment.getApplication()
     /** The brief's now: Tuesday 20 October 2026, 19:30 in Copenhagen. */
     private val now = Instant.parse("2026-10-20T17:30:00Z")
 
@@ -47,21 +54,21 @@ class PresentationTest {
         val action = PlayAction.of(entry(TitleProgress(6u, 7u), ResumePoint(606.0, 0.42)))
         assertEquals(7u, action.episode)
         assertTrue(action.playable)
-        assertEquals("Resume episode 7", action.label())
+        assertEquals("Resume episode 7", action.label(context))
     }
 
     @Test
     fun a_dub_is_marked_on_the_action_and_a_sub_is_not() {
         val progress = TitleProgress(6u, 7u)
         val resume = ResumePoint(606.0, 0.42)
-        assertEquals("Resume episode 7 · Dub", PlayAction.of(entry(progress, resume).copy(watchedIn = Translation.DUB)).label())
-        assertEquals("Resume episode 7", PlayAction.of(entry(progress, resume).copy(watchedIn = Translation.SUB)).label())
-        assertEquals("Play episode 7 · Dub", PlayAction.of(entry(progress).copy(watchedIn = Translation.DUB)).label())
+        assertEquals("Resume episode 7 · Dubbed", PlayAction.of(entry(progress, resume).copy(watchedIn = Translation.DUB)).label(context))
+        assertEquals("Resume episode 7", PlayAction.of(entry(progress, resume).copy(watchedIn = Translation.SUB)).label(context))
+        assertEquals("Play episode 7 · Dubbed", PlayAction.of(entry(progress).copy(watchedIn = Translation.DUB)).label(context))
     }
 
     @Test
     fun a_title_never_started_plays_its_first_episode() {
-        assertEquals("Play episode 1", PlayAction.of(entry()).label())
+        assertEquals("Play episode 1", PlayAction.of(entry()).label(context))
     }
 
     @Test
@@ -70,11 +77,11 @@ class PresentationTest {
         val detail = TitleDetail(schedule = listOf(EpisodeAiring(episode = 10u, airsAt = thursday)))
         val action = PlayAction.of(entry(TitleProgress(9u, 10u), detail = detail), now.epochSecond)
         assertFalse(action.playable)
-        assertEquals("Play episode 10 (out Thursday)", action.label(now))
+        assertEquals("Play episode 10 (out Thursday)", action.label(context, now))
     }
 
     @Test
-    fun the_metadata_line_is_in_capitals() {
+    fun the_metadata_line_is_in_sentence_case() {
         val entry = Entry(
             id = 900001u,
             title = "Stardust Wayfarer",
@@ -85,7 +92,7 @@ class PresentationTest {
             score = 79u,
             studio = "Atelier Hotaru",
         )
-        assertEquals("TV · SUMMER 2026 · 24 EPS · 79 % · ATELIER HOTARU", entry.metadataLine)
+        assertEquals("TV · Summer 2026 · 24 episodes · 79% · Atelier Hotaru", entry.metadataLine(context))
     }
 
     @Test
@@ -95,11 +102,11 @@ class PresentationTest {
 
     @Test
     fun seasons_and_days_read_as_the_rows_have_them() {
-        assertEquals("Fall 2026", seasonLabel(LocalDate.of(2026, 10, 20)))
-        assertEquals("Winter 2027", seasonLabel(LocalDate.of(2026, 12, 3)))
+        assertEquals("Autumn 2026", seasonLabel(context, LocalDate.of(2026, 10, 20)))
+        assertEquals("Winter 2027", seasonLabel(context, LocalDate.of(2026, 12, 3)))
         val today = LocalDate.of(2026, 10, 20)
-        assertEquals("Today", dayLabel(today, today))
-        assertEquals("Wed 21", dayLabel(today.plusDays(1), today))
+        assertEquals("Today", dayLabel(context, today, today))
+        assertEquals("Wed 21", dayLabel(context, today.plusDays(1), today))
     }
 
     @Test
@@ -115,5 +122,13 @@ class PresentationTest {
         assertEquals("", SearchKeys.type("", SearchKeys.Key.Space))
         assertEquals(36, SearchKeys.characters.size)
         assertEquals('0', SearchKeys.characters.last())
+    }
+
+    @Test
+    fun the_synopsis_keeps_the_engines_line_and_paragraph_breaks() {
+        assertEquals(
+            "First line.\nSecond line.\n\nNew paragraph.",
+            synopsisWithoutSpoilers("First line. \nSecond  line.\n\n\n~!Hidden.!~New paragraph. "),
+        )
     }
 }

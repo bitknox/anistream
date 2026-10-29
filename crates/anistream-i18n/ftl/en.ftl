@@ -845,23 +845,11 @@ settings-next-value = Next value
 # Line after the legal line under the sources settings: where sources come from.
 settings-sources-come-from = Sources come from the plugin stores you join.
 
-# Choice for the download quality: the usual size.
-settings-quality-standard = Standard
-
-# Choice for the download quality: larger files with more detail.
-settings-quality-higher = Higher
-
 # Label on the left half of the upscaling preview: the video before processing.
 settings-preview-source = 480p source
 
 # Preview note under the upscaling frame when upscaling is off.
 settings-upscaling-note-off = The 480p source, scaled to fit without processing.
-
-# Preview note under the upscaling frame for the natural look.
-settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
-
-# Preview note under the upscaling frame for the sharp look.
-settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
 
 # A line of sample subtitle over the preview frame. Any short sentence will do.
 settings-caption-sample = The lantern road runs on past the last town.
@@ -909,13 +897,6 @@ accounts-changes-waiting-offline =
        *[other] { $count } changes waiting until you're online
     }
 
-# Line under a signed-in account while changes wait to be sent.
-accounts-changes-waiting =
-    { $count ->
-        [one] One change waiting to sync
-       *[other] { $count } changes waiting to sync
-    }
-
 # Footnote on the Accounts page: where sign-in tokens are kept, when it is the system's keyring.
 accounts-tokens-keyring = Sign-in tokens are kept in this device's keyring.
 
@@ -927,6 +908,9 @@ updates-why-reopen = The new version is installed but couldn't be opened. Open a
 
 # Accessible description of the mascot's picture. Nagare is the mascot's name.
 nagare-description = Nagare, the anistream mascot: a figure with a silk bob, an amber scarf and an indigo cloak, holding a staff with a water charm
+
+# Note under the Play trailers setting: what the trailers are and when they do not play.
+settings-note-trailers-linux = Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animations off, in power saver mode or with a screen reader running.
 
 # Button on a notice that asks to open the plugin stores.
 shell-open-stores = Open plugin stores
@@ -1099,9 +1083,6 @@ stores-owner-needs-connection-detail = Try again once this device is back online
 
 # Red line in the invite dialog when this device is offline and a link cannot be made.
 stores-owner-link-offline = Making a link needs a connection to the plugin store.
-
-# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
-stores-copy-link = Copy link
 
 # Line over a new invite link made for a named person. The time is the one the link stops working.
 stores-send-link-until = Send this link. It works once, until { $until }.
@@ -1748,6 +1729,15 @@ keys-action-right = Move right
 
 # Action label in the help overlay and the command palette.
 keys-action-top = Jump to top
+
+# Action label in the help overlay and the command palette.
+keys-action-today = Jump to today
+
+# Action label in the help overlay and the command palette.
+keys-action-previous-day = Jump to previous day
+
+# Action label in the help overlay and the command palette.
+keys-action-next-day = Jump to next day
 
 # Action label in the help overlay and the command palette.
 keys-action-bottom = Jump to bottom
@@ -3066,6 +3056,9 @@ settings-label-episode-discussions = Episode discussions
 # Settings row: whether images in discussion comments load inline.
 settings-label-comment-images = Load images in comments
 
+# Settings row: whether Calendar shows only the shows on the person's list.
+settings-label-calendar-mine = Calendar shows only my list
+
 # Note under the titles row.
 settings-note-titles = AniList's choice follows your AniList account, and is English when you're signed out.
 
@@ -4059,6 +4052,9 @@ state-working = Working
 # Short placeholder while something loads.
 state-loading = Loading
 
+# How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
+time-just-now-inline = just now
+
 # Checkbox of the close question.
 close-dont-ask = Don't ask again
 
@@ -4139,6 +4135,102 @@ tv-problem-full = This TV has as many devices paired as it can keep. Remove one 
 
 # The TV has forgotten this computer.
 tv-problem-unpaired = The TV doesn't know this device any more. Pair again.
+
+# Menu item that opens an episode's discussion.
+discussion-open = Discussion
+
+# Title of the discussion window or sheet when the thread has no title yet.
+discussion-title-episode = Episode { $episode } discussion
+
+# Quiet line under an episode that opens its discussion.
+discussion-row =
+    { $count ->
+        [one] Discussion · one comment
+       *[other] Discussion · { $count } comments
+    }
+
+# Count of comments in the header of the discussion.
+discussion-count =
+    { $count ->
+        [one] One comment
+       *[other] { $count } comments
+    }
+
+# Button that likes a comment, with its count after it. Also its accessible name.
+discussion-like = Like
+
+# Button that replies to a comment.
+discussion-reply = Reply
+
+# Line under a reply that has more replies folded in it. The line opens them.
+discussion-more-replies =
+    { $count ->
+        [one] One more reply
+       *[other] { $count } more replies
+    }
+
+# Muted bar in place of a spoiler in a comment, until it is opened.
+discussion-spoiler = Spoiler
+
+# Line in place of an image in a comment. It opens the image in the browser.
+discussion-image = Image
+
+# Line in place of a video in a comment. It opens the video in the browser.
+discussion-video = Video
+
+# Placeholder in the field for a new comment.
+discussion-add-comment = Add a comment
+
+# Placeholder in the field while editing a comment.
+discussion-edit-comment = Edit your comment
+
+# Button that sends the comment in the field.
+discussion-post = Post
+
+# Line above the field while answering a comment.
+discussion-replying-to = Replying to { $name }
+
+# Accessible name of the button that stops replying or editing.
+discussion-cancel-reply = Cancel reply
+
+# Line in place of the field when nobody is signed in to AniList. It opens the sign-in.
+discussion-sign-in = Sign in with AniList to reply
+
+# Line in place of the field when the viewer is signed in but offline.
+discussion-offline-post = Posting waits for the network
+
+# Line under a comment AniList did not accept. The button beside it sends it again.
+discussion-post-failed = Didn't post. Try again
+
+# Title of the question asked before deleting the viewer's own comment.
+discussion-delete-title = Delete this comment?
+
+# Body of the question asked before deleting the viewer's own comment.
+discussion-delete-body = It is removed from AniList too.
+
+# Line while the comments are still loading after a few seconds.
+discussion-still-loading = Still loading from AniList
+
+# Line while AniList's request budget is spent. The engine waits, then goes on by itself.
+discussion-rate-limited = AniList asked for a pause. Back in { $time }.
+
+# Title of the state when the episode has no thread on AniList.
+discussion-no-thread = No discussion yet
+
+# Line under the no-thread title.
+discussion-no-thread-detail = Nobody has opened a thread for this episode on AniList.
+
+# Title of the state when a thread has no comments.
+discussion-no-comments = No comments yet
+
+# Title of the state when the discussion could not be read.
+discussion-failed = Couldn't load the discussion
+
+# Line over comments that are kept from an earlier visit while offline. The age reads "2h ago".
+discussion-offline-cached = Offline. Showing comments from { $age }.
+
+# Heading of the Settings group for discussion rows.
+discussion-settings-group = Discussions
 
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = Downloads
@@ -5517,6 +5609,21 @@ filter-hint-remote = Press once to include, twice to leave out.
 # Accessibility label of the button that removes one filter.
 filter-remove = Remove { $filter }
 
+# Search: sort by how many people marked the title a favourite.
+search-sort-favourites = Favourites
+
+# Search: sort by release date, newest first.
+search-sort-newest = Newest
+
+# Search: sort by release date, oldest first.
+search-sort-oldest = Oldest
+
+# Search: sort by title, A to Z.
+search-sort-title = Title
+
+# Search: sort by what is popular right now.
+search-sort-trending = Trending
+
 # Settings group and row title for choosing a language.
 settings-language = Language
 
@@ -5862,6 +5969,34 @@ widget-start-label = Play episode { $episode } of { $title }
 
 # Accessibility label of a widget row: continue a dubbed episode.
 widget-resume-dubbed-label = Resume episode { $episode }, dubbed, of { $title }
+
+# Line under a signed-in account while changes wait to be sent.
+accounts-changes-waiting =
+    { $count ->
+        [one] One change waiting to sync
+       *[other] { $count } changes waiting to sync
+    }
+
+# Choice for the download quality: larger files with more detail.
+settings-quality-higher = Higher
+
+# Choice for the download quality: the usual size.
+settings-quality-standard = Standard
+
+# Value of the upload limit setting when there is no limit.
+settings-upload-unlimited = Unlimited
+
+# Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+settings-upscaling-natural = Natural · ArtCNN
+
+# Preview note under the upscaling frame for the natural look.
+settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
+
+# Preview note under the upscaling frame for the sharp look.
+settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
+
+# Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+settings-upscaling-sharp = Sharp · Anime4K
 
 # Title of the screen or section that lists sources.
 sources-title = Sources
@@ -6444,6 +6579,16 @@ stores-publish-none = No plugins on this device to publish.
 # Version line of a plugin in the publish sheet.
 stores-plugin-name-version = { $name } { $version }
 
+# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+stores-copy-link = Copy link
+
+# Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+stores-offers-plugins =
+    { $count ->
+        [one] One plugin
+       *[other] { $count } plugins
+    }
+
 # Title of the state when a title page could not load.
 title-load-failed = Couldn't load this title
 
@@ -6456,8 +6601,14 @@ title-loading = Loading this title
 # Button on the title page that plays the trailer.
 title-trailer = Trailer
 
+# Main button of the title page when every episode of the show is watched: plays episode 1 again.
+title-button-watch-again = Watch again
+
 # Menu item that plays the trailer.
 title-play-trailer = Play trailer
+
+# Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+title-trailer-sound = Trailer sound
 
 # Menu item that opens the title on the AniList website.
 title-open-anilist = Open on AniList
@@ -6840,6 +6991,9 @@ torrents-page-unreadable = The TV couldn't read this. Scan the QR code on the TV
 
 # Line when the page needs script.
 torrents-page-needs-script = This page needs JavaScript to send the form to the TV safely.
+
+# Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+torrents-check-note = anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.
 
 # Title of the accounts screen. The sidebar item is nav-accounts.
 accounts-title = Accounts

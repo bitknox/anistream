@@ -1,6 +1,10 @@
 package tv.anistream.ui
 
 import org.junit.Assert.assertEquals
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import org.junit.Test
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.LibrarySegment
@@ -10,24 +14,27 @@ import tv.anistream.engine.model.ShowSettingKey
 import tv.anistream.engine.model.ShowSettingRow
 
 /** How the show's sheet words what the engine says of it. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class ShowSettingsTest {
+    private val context = RuntimeEnvironment.getApplication()
     private fun track(language: String?, title: String) = RememberedTrack(language, title, forced = false, hearingImpaired = false)
 
     @Test
     fun a_row_that_follows_settings_says_so_and_what_that_is() {
-        assertEquals("Use default · On", defaultWords("on"))
-        assertEquals("Use default · Off", defaultWords("off"))
-        assertEquals("Use default · On", defaultWords("Use Default · On"))
+        assertEquals("Use default · On", defaultWords(context, "on"))
+        assertEquals("Use default · Off", defaultWords(context, "off"))
+        assertEquals("Use default · On", defaultWords(context, "Use Default · On"))
     }
 
     @Test
     fun a_show_not_being_watched_is_off_for_new_episodes_until_it_turns_them_on() {
         val row = ShowSettingRow(ShowSettingKey.NOTIFY_NEW_EPISODES, own = null, value = "on", default = "on")
-        assertEquals("Use default · On", notifyDefault(row, watching = true))
-        assertEquals("Off · not watching", notifyDefault(row, watching = false))
+        assertEquals("Use default · On", notifyDefault(context, row, watching = true))
+        assertEquals("Off · not watching", notifyDefault(context, row, watching = false))
         // With Settings off, every show is off, watched or not.
         val off = row.copy(value = "off", default = "off")
-        assertEquals("Use default · Off", notifyDefault(off, watching = false))
+        assertEquals("Use default · Off", notifyDefault(context, off, watching = false))
     }
 
     @Test
@@ -59,11 +66,11 @@ class ShowSettingsTest {
 
     @Test
     fun a_remembered_track_is_its_language_and_what_its_title_adds() {
-        assertEquals("Off", subtitleWords(RememberedSubtitles.Off))
-        assertEquals("English (Hotaru)", subtitleWords(RememberedSubtitles.Track(track("eng", "hotaru"))))
-        assertEquals("English (Signs)", trackWords(track("eng", "english signs")))
-        assertEquals("English", trackWords(track("eng", "english")))
-        assertEquals("Signs", trackWords(track(null, "signs")))
-        assertEquals("Unnamed track", trackWords(track(null, "")))
+        assertEquals("Off", subtitleWords(context, RememberedSubtitles.Off))
+        assertEquals("English (Hotaru)", subtitleWords(context, RememberedSubtitles.Track(track("eng", "hotaru"))))
+        assertEquals("English (Signs)", trackWords(context, track("eng", "english signs")))
+        assertEquals("English", trackWords(context, track("eng", "english")))
+        assertEquals("Signs", trackWords(context, track(null, "signs")))
+        assertEquals("Unnamed track", trackWords(context, track(null, "")))
     }
 }

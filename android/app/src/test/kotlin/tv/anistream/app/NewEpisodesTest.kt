@@ -227,7 +227,7 @@ class NewEpisodesTest {
         val summary = summary()!!
         assertEquals("3 new episodes", summary.extras.getString(Notification.EXTRA_TITLE))
         assertEquals(
-            "The Library Above the Clouds, Summer Wind Relay and Stardust Wayfarer",
+            "The Library Above the Clouds, Summer Wind Relay, and Stardust Wayfarer",
             summary.extras.getCharSequence(Notification.EXTRA_TEXT).toString(),
         )
         assertEquals(
@@ -314,10 +314,10 @@ class NewEpisodesTest {
 
     @Test
     fun the_words_say_dubbed_and_the_next_one_for_a_viewer_behind_never_an_episode_name() {
-        assertEquals("Episode 9 is out.", EpisodePlan.textOf(relay.copy(episode = 9u)))
-        assertEquals("Episode 9 is out, dubbed.", EpisodePlan.textOf(relay.copy(episode = 9u, dubbed = true)))
-        assertEquals("Episode 10 is out. Next for you: episode 8.", EpisodePlan.textOf(wayfarer.copy(episode = 10u, nextForYou = 8u)))
-        assertEquals("Episode 10 is out, dubbed. Next for you: episode 8.", EpisodePlan.textOf(wayfarer.copy(episode = 10u, nextForYou = 8u, dubbed = true)))
+        assertEquals("Episode 9 is out.", EpisodePlan.textOf(context, relay.copy(episode = 9u)))
+        assertEquals("Episode 9 is out, dubbed.", EpisodePlan.textOf(context, relay.copy(episode = 9u, dubbed = true)))
+        assertEquals("Episode 10 is out. Next for you: episode 8.", EpisodePlan.textOf(context, wayfarer.copy(episode = 10u, nextForYou = 8u)))
+        assertEquals("Episode 10 is out, dubbed. Next for you: episode 8.", EpisodePlan.textOf(context, wayfarer.copy(episode = 10u, nextForYou = 8u, dubbed = true)))
     }
 
     @Test
@@ -377,7 +377,7 @@ class NewEpisodesTest {
         assertEquals(setOf(tag(relay)), episodeTags())
         // The summary stays while the group has an episode in it: the system would take the
         // episode away with it.
-        assertEquals("1 new episode", summary()?.extras?.getString(Notification.EXTRA_TITLE))
+        assertEquals("One new episode", summary()?.extras?.getString(Notification.EXTRA_TITLE))
 
         EpisodeActionReceiver().onReceive(context, shadowOf(posted(tag(relay)).actions[1].actionIntent).savedIntent)
         shadowOf(Looper.getMainLooper()).idle()

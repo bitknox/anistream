@@ -14,6 +14,7 @@ android {
 
 dependencies {
     api(project(":ui"))
+    implementation(project(":i18n"))
     api(libs.glance.appwidget)
     implementation(libs.work.runtime)
 

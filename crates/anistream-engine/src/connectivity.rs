@@ -78,6 +78,7 @@ fn refreshes(command: &Command) -> bool {
         Command::LoadContinue
             | Command::LoadSeasonal
             | Command::LoadCalendar
+            | Command::RefreshCalendar
             | Command::Search { .. }
             | Command::LoadBrowse
             | Command::LoadUpNext
@@ -97,7 +98,7 @@ fn reload(view: &ContentFor) -> Command {
     match view {
         ContentFor::Continue => Command::LoadContinue,
         ContentFor::Seasonal => Command::LoadSeasonal,
-        ContentFor::Calendar => Command::LoadCalendar,
+        ContentFor::Calendar => Command::RefreshCalendar,
         ContentFor::Search { query } => Command::Search { query: query.clone() },
         ContentFor::Library(segment) => Command::LoadLibrary(*segment),
     }

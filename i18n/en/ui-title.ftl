@@ -12,8 +12,16 @@ title-loading = Loading this title
 # Button on the title page that plays the trailer.
 title-trailer = Trailer
 
+# Main button of the title page when every episode of the show is watched: plays episode 1 again.
+# @max 24
+title-button-watch-again = Watch again
+
 # Menu item that plays the trailer.
 title-play-trailer = Play trailer
+
+# Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+# @max 24
+title-trailer-sound = Trailer sound
 
 # Menu item that opens the title on the AniList website.
 title-open-anilist = Open on AniList

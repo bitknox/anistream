@@ -72,11 +72,21 @@ pub enum Event {
         text: String,
     },
     /// How to continue the calendar that is arriving: the anchor its pages are numbered
-    /// against, how many are loaded, and whether AniList has more behind them.
+    /// against, how many are loaded each way, and whether AniList has more behind them.
+    /// `floor` and `ceiling` are the furthest instants (epoch seconds) the calendar will ever
+    /// reach back and forward, so no front end keeps the constants itself.
     CalendarWindow {
         anchor: i64,
+        /// Pages of past loaded.
         pages: u32,
         more_past: bool,
+        /// The furthest back: three months before the anchor.
+        floor: i64,
+        /// The furthest ahead: 28 days after the anchor.
+        ceiling: i64,
+        /// Pages of future loaded.
+        ahead_pages: u32,
+        more_ahead: bool,
     },
     /// Older broadcasts, to go above what is already on screen.
     ///
@@ -86,6 +96,16 @@ pub enum Event {
         page: Option<u32>,
         entries: Vec<Entry>,
         more_past: bool,
+    },
+    /// Later broadcasts, to go after what is already on screen, in answer to
+    /// [`Command::LoadCalendarAhead`](crate::command::Command::LoadCalendarAhead).
+    ///
+    /// `page` is the last page fetched, and `None` when the fetch failed: nothing to splice in,
+    /// and the same page is tried again.
+    CalendarAhead {
+        page: Option<u32>,
+        entries: Vec<Entry>,
+        more_ahead: bool,
     },
     /// Whether the search arriving has more pages: sent with each first page, before its
     /// [`Event::Content`], so the screen knows to ask for the next as the end comes near.

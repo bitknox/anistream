@@ -4,6 +4,7 @@
 
 package tv.anistream.tv.shell
 
+import tv.anistream.store.text
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
@@ -79,6 +80,10 @@ import tv.anistream.tv.ui.KeyRepeat
 import tv.anistream.tv.ui.LocalActions
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.LocalKeyRepeat
+import tv.anistream.i18n.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import tv.anistream.i18n.Strings
 
 /** The rail's scrim over the content: black at 32 %. */
 private const val SCRIM = 0.32f
@@ -151,15 +156,16 @@ fun TvRoot(
 @Composable
 private fun BoxScope.Notices(store: AppStore, player: PlayerModel, remote: TvRemoteHost?, notices: TvNotices, onUpdatePage: Boolean) {
     val current by store.notices.current.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(current?.id) {
         val item = current ?: return@LaunchedEffect
-        val failure = (store.updates.state.value as? UpdateState.Failed)?.failure?.text
-        if (!(onUpdatePage && item.notice.text == failure)) notices.say(item.notice.text)
+        val failure = (store.updates.state.value as? UpdateState.Failed)?.failure?.text(context)
+        val text = item.notice.text(context)
+        if (!(onUpdatePage && item.notice.msg == null && item.notice.text == failure)) notices.say(text)
         store.notices.dismiss(item)
     }
     // A source pinned for a title that can't be used: said once, whichever page is up.
     val pin by store.sourceChoices.pinNotice.collectAsStateWithLifecycle()
-    val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(pin?.serial) {
         val said = pin ?: return@LaunchedEffect
         notices.say(tv.anistream.i18n.Strings.sourcePinUnavailable(context, said.name))
@@ -173,14 +179,14 @@ private fun BoxScope.Notices(store: AppStore, player: PlayerModel, remote: TvRem
     LaunchedEffect(update, player.isPresented) {
         if (player.isPresented) return@LaunchedEffect
         val offer = update ?: return@LaunchedEffect
-        notices.say("Update available: anistream ${offer.name}. Settings › About")
+        notices.say(tv.anistream.i18n.Strings.updatesAvailableTv(context, offer.name))
         store.updates.told(offer)
     }
     val said = remote?.notices ?: 0
     LaunchedEffect(said) { if (said > 0) remote?.notice?.let(notices::say) }
     val request = remote?.request
     val held = if (request != null && player.isPresented) {
-        ShownNotice(-1, "${request.phone} wants to pair: code ${grouped(request.code)}")
+        ShownNotice(-1, androidx.compose.ui.res.stringResource(tv.anistream.i18n.R.string.tv_pair_request_held, request.phone, grouped(request.code)))
     } else {
         null
     }
@@ -262,7 +268,7 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit, playFromSt
                     transitionSpec = {
                         if (reduced) EnterTransition.None togetherWith ExitTransition.None else fadeIn(Motion.quick()) togetherWith fadeOut(Motion.quick())
                     },
-                    label = "screen",
+                    label = "screen", // i18n-skip
                 ) { target ->
                     val key = (target as? Page)?.key ?: (target as Destination).name
                     screens.SaveableStateProvider(key) {
