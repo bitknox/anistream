@@ -8133,6 +8133,18 @@
         }
       }
     },
+    "notice-open-stores" : {
+      "comment" : "Button of a notice that opens the plugin stores page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open plugin stores"
+          }
+        }
+      }
+    },
     "notice-opened-in-browser" : {
       "comment" : "Toast after a link was handed to the browser.",
       "extractionState" : "manual",
@@ -19321,6 +19333,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Resume episode %1$lld · Dubbed · %2$@"
+          }
+        }
+      }
+    },
+    "title-button-watch-again" : {
+      "comment" : "Main button of the title page when every episode of the show is watched: plays episode 1 again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watch again"
           }
         }
       }

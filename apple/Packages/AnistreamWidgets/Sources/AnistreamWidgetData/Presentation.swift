@@ -44,7 +44,7 @@ public enum ContinuePresentation {
         let episode = episodeShort(item)
         guard item.resumes else { return L.widgetLineStart(episode: episode) }
         if let minutes = item.minutesLeft {
-            return L.widgetLineLeft(episode: episode, left: L.timeMinutesLeft(minutes: minutes))
+            return L.widgetLineLeftApple(episode: episode, left: L.timeMinutesLeft(minutes: minutes))
         }
         return L.widgetLineResume(episode: episode)
     }

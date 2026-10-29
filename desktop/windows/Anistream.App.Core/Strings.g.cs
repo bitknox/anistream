@@ -4026,6 +4026,9 @@ public static partial class T
     /// <summary>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</summary>
     public static string StoresOffersPlugins(long count) => Fill(GetPlural("StoresOffersPlugins", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>Button of a notice that opens the plugin stores page.</summary>
+    public static string NoticeOpenStores => Get("NoticeOpenStores");
+
     /// <summary>Title of the state when a title page could not load.</summary>
     public static string TitleLoadFailed => Get("TitleLoadFailed");
 
@@ -4037,6 +4040,9 @@ public static partial class T
 
     /// <summary>Button on the title page that plays the trailer.</summary>
     public static string TitleTrailer => Get("TitleTrailer");
+
+    /// <summary>Main button of the title page when every episode of the show is watched: plays episode 1 again.</summary>
+    public static string TitleButtonWatchAgain => Get("TitleButtonWatchAgain");
 
     /// <summary>Menu item that plays the trailer.</summary>
     public static string TitlePlayTrailer => Get("TitlePlayTrailer");
@@ -6397,10 +6403,12 @@ public static partial class T
         ["StoresCopyLink"] = "Copy link",
         ["StoresOffersPlugins_one"] = "One plugin",
         ["StoresOffersPlugins_other"] = "{count} plugins",
+        ["NoticeOpenStores"] = "Open plugin stores",
         ["TitleLoadFailed"] = "Couldn't load this title",
         ["TitleNoAnswer"] = "AniList didn't answer. Try again.",
         ["TitleLoading"] = "Loading this title",
         ["TitleTrailer"] = "Trailer",
+        ["TitleButtonWatchAgain"] = "Watch again",
         ["TitlePlayTrailer"] = "Play trailer",
         ["TitleTrailerSound"] = "Trailer sound",
         ["TitleOpenAnilist"] = "Open on AniList",

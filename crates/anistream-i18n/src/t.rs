@@ -10645,6 +10645,11 @@ pub fn stores_offers_plugins(count: i64) -> String {
     text("stores-offers-plugins", &[("count", Arg::Int(count))])
 }
 
+/// Button of a notice that opens the plugin stores page.
+pub fn notice_open_stores() -> String {
+    text("notice-open-stores", &[])
+}
+
 /// Title of the state when a title page could not load.
 pub fn title_load_failed() -> String {
     text("title-load-failed", &[])
@@ -10663,6 +10668,11 @@ pub fn title_loading() -> String {
 /// Button on the title page that plays the trailer.
 pub fn title_trailer() -> String {
     text("title-trailer", &[])
+}
+
+/// Main button of the title page when every episode of the show is watched: plays episode 1 again.
+pub fn title_button_watch_again() -> String {
+    text("title-button-watch-again", &[])
 }
 
 /// Menu item that plays the trailer.

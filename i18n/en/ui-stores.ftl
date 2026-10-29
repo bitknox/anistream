@@ -449,3 +449,6 @@ stores-offers-plugins = { $count ->
     [one] One { -plugin }
    *[other] { $count } { -plugin-pl }
  }
+
+# Button of a notice that opens the plugin stores page.
+notice-open-stores = Open { -plugin-store-pl }

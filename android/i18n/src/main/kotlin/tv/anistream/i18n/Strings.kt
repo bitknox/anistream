@@ -5977,6 +5977,10 @@ object Strings {
     fun storesOffersPlugins(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.stores_offers_plugins, count, count)
 
+    /** Button of a notice that opens the plugin stores page. */
+    fun noticeOpenStores(context: Context): String =
+        context.getString(R.string.notice_open_stores)
+
     /** Title of the state when a title page could not load. */
     fun titleLoadFailed(context: Context): String =
         context.getString(R.string.title_load_failed)
@@ -5992,6 +5996,10 @@ object Strings {
     /** Button on the title page that plays the trailer. */
     fun titleTrailer(context: Context): String =
         context.getString(R.string.title_trailer)
+
+    /** Main button of the title page when every episode of the show is watched: plays episode 1 again. */
+    fun titleButtonWatchAgain(context: Context): String =
+        context.getString(R.string.title_button_watch_again)
 
     /** Menu item that plays the trailer. */
     fun titlePlayTrailer(context: Context): String =

@@ -5527,6 +5527,10 @@
     <value>{count} plugins</value>
     <comment>Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.</comment>
   </data>
+  <data name="NoticeOpenStores" xml:space="preserve">
+    <value>Open plugin stores</value>
+    <comment>Button of a notice that opens the plugin stores page.</comment>
+  </data>
   <data name="TitleLoadFailed" xml:space="preserve">
     <value>Couldn't load this title</value>
     <comment>Title of the state when a title page could not load.</comment>
@@ -5542,6 +5546,10 @@
   <data name="TitleTrailer" xml:space="preserve">
     <value>Trailer</value>
     <comment>Button on the title page that plays the trailer.</comment>
+  </data>
+  <data name="TitleButtonWatchAgain" xml:space="preserve">
+    <value>Watch again</value>
+    <comment>Main button of the title page when every episode of the show is watched: plays episode 1 again.</comment>
   </data>
   <data name="TitlePlayTrailer" xml:space="preserve">
     <value>Play trailer</value>
