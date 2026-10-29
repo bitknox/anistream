@@ -1,5 +1,8 @@
 # anistream
 
+This fork adds a built-in native ani-cli provider for the iOS and other clients.
+See [provider setup and licensing](docs/ani-cli-provider.md).
+
 anistream is an anime client with native apps for Mac, iPhone, iPad, Android, Android TV, Windows
 and Linux, and a terminal app for macOS, Linux and Windows. It browses AniList with no account,
 plays episodes in mpv, keeps your history on your device and syncs it to AniList, MyAnimeList,
