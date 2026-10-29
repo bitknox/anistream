@@ -9,7 +9,10 @@ use anistream_model::{
     command::PlayerCommand, episodes::EpisodeRow, event::Event, notice::Notice,
     playback::PlaybackId,
 };
-use tokio::sync::{mpsc, watch};
+use tokio::{
+    sync::{mpsc, watch},
+    task::JoinHandle,
+};
 
 use crate::{
     cache::{PlayHints, PlayKind},
@@ -220,7 +223,7 @@ fn play_staged(
         opener,
         tracker_ids,
         hints,
-        shader_dir(config, paths),
+        write_shaders(config, paths),
         prefetched,
         job,
         &tx.for_playback(played),
@@ -290,7 +293,7 @@ pub fn play_local(
     if episodes.is_empty() {
         fill_episodes(id, &episode, services, player_tx);
     }
-    let shaders = shader_dir(config, paths);
+    let shaders = write_shaders(config, paths);
     let party = services.party.clone();
     let (config, store, http, machine, tx) = (
         config.clone(),
@@ -329,11 +332,24 @@ pub fn play_local(
             episode_total,
         };
         let settings = playback::PlaySettings {
-            shader_dir: shaders,
+            shader_dir: shaders.await.ok().flatten(),
             ..play_settings(&config, tracker_ids, party)
         };
         playback::play(vec![stream], context, store, http, machine, settings, tx, prx).await;
     });
+}
+
+/// Write the shaders out for a playback, on the blocking pool rather than on the engine's own
+/// task: the first play in a new cache writes every one of them, and while a call blocks that
+/// task the engine routes no command and passes on no event. Awaited once the playback has its
+/// streams, so the writing overlaps the lookup. A write that panics leaves upscaling off, as
+/// one that fails does.
+fn write_shaders(
+    config: &Config,
+    paths: &anistream_core::config::Paths,
+) -> JoinHandle<Option<std::path::PathBuf>> {
+    let (config, paths) = (config.clone(), paths.clone());
+    tokio::task::spawn_blocking(move || shader_dir(&config, &paths))
 }
 
 /// What a playback runs on: `opener`'s player, and the engine's slot, host and power source.
@@ -446,7 +462,8 @@ fn spawn_playback(
     // What the player's Up Next card, its Episodes menu and its starting screen show, from the
     // engine's record of the titles.
     hints: PlayHints,
-    shader_dir: Option<std::path::PathBuf>,
+    // The shaders being written for it, while it looks for its streams.
+    shaders: JoinHandle<Option<std::path::PathBuf>>,
     // This episode's streams, found ahead while the previous one's ending played.
     prefetched: Option<Resolved>,
     job: Option<JobGuard>,
@@ -571,6 +588,7 @@ fn spawn_playback(
             let _ = tx.send(Event::Toast(Notice::info(Msg::verbatim(note))));
         }
 
+        let shader_dir = shaders.await.ok().flatten();
         let settings =
             playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, hub) };
         handoff.complete().await;
