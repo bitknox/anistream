@@ -23,7 +23,7 @@ struct ProviderInfo {
         return nil
     }
 
-    var hosts: [String] { listing?.plugin.hosts ?? [] }
+    var hosts: [String] { listing?.plugin.hosts ?? row.hosts }
 }
 
 extension AppStore {
@@ -35,6 +35,8 @@ extension AppStore {
         switch row.kind {
         case "torrent":
             (name, origin) = ("Torrents", "Built in")
+        case "native":
+            (name, origin) = (row.name, "Built in")
         case "remote":
             (name, origin) = ("Remote", "Set in the config file")
         default:

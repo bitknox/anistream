@@ -294,20 +294,20 @@ impl Provider for AniCliProvider {
         stream.provider_id = self.manifest.id.clone();
         if let Some(tracks) = config.get("subtitles").and_then(Value::as_array) {
             for track in tracks {
-                if let Some(src) = track.get("src").and_then(Value::as_str) {
-                    if let Ok(url) = web_url(src) {
-                        stream.subtitles.push(Subtitle {
-                            url: url.to_string(),
-                            hard: false,
-                            format: Some("vtt".into()),
-                            language: track
-                                .get("srclang")
-                                .or_else(|| track.get("label"))
-                                .and_then(Value::as_str)
-                                .unwrap_or("und")
-                                .to_owned(),
-                        });
-                    }
+                if let Some(src) = track.get("src").and_then(Value::as_str)
+                    && let Ok(url) = web_url(src)
+                {
+                    stream.subtitles.push(Subtitle {
+                        url: url.to_string(),
+                        hard: false,
+                        format: Some("vtt".into()),
+                        language: track
+                            .get("srclang")
+                            .or_else(|| track.get("label"))
+                            .and_then(Value::as_str)
+                            .unwrap_or("und")
+                            .to_owned(),
+                    });
                 }
             }
         }

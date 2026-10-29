@@ -1130,6 +1130,43 @@ mod tests {
         Engine::start(options, host).await.unwrap()
     }
 
+    #[tokio::test]
+    async fn ani_cli_switch_persists_and_keeps_the_native_source_visible() {
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = engine_with(
+            dir.path(),
+            Arc::new(QuietHost::in_dir(&dir.path().join("tokens"))),
+            |options| {
+                options.sources = Some(crate::sources::build_registry_deferred(
+                    &options.config,
+                    &options.http,
+                ));
+            },
+        )
+        .await;
+        events.launch().await;
+        for disabled in [true, false] {
+            engine.send(Command::DisablePlugin { id: "ani-cli".into(), disabled });
+            let seen = seen_until(&mut events, |event| matches!(event,
+                Event::Providers(rows) if rows.iter().any(|row|
+                    row.id == "ani-cli" && row.disabled == disabled && row.usable != disabled)
+            )).await;
+            assert!(!seen.is_empty());
+            let saved = Config::from_toml(
+                &std::fs::read_to_string(dir.path().join("config.toml")).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(saved.providers.disabled.iter().any(|id| id == "ani-cli"), disabled);
+            let registry = crate::sources::build_registry_deferred(
+                &saved,
+                &HttpClient::offline(&saved.network).unwrap(),
+            );
+            assert!(registry.get("ani-cli").is_some());
+            assert_eq!(registry.is_disabled("ani-cli"), disabled);
+        }
+        engine.shutdown().await;
+    }
+
     /// The trackers' states launch says, by tracker.
     async fn launch_states(events: &mut EventStream) -> Vec<anistream_model::sync::SyncState> {
         let launch = events.launch().await.into_iter();

@@ -214,7 +214,7 @@ public final class ArtworkStore {
         guard shown[url] != nil, retries[url] == nil, let failure = failures[url],
               failure.count <= backoff.count
         else { return }
-        let left = wait(after: failure.count) - (now() - failure.at)
+        let left = wait(after: failure.count) - failure.at.duration(to: now())
         let sleep = self.sleep
         retries[url] = Task { [weak self] in
             do { try await sleep(max(left, .zero)) } catch { return }

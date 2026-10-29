@@ -71,7 +71,7 @@ public struct PhonePlayerView: View {
                 }
                 .scaleEffect(reduceMotion ? 1 : 1 - 0.1 * pull)
                 .clipShape(.rect(cornerRadius: reduceMotion ? 0 : 16 * pull))
-                .opacity(reduceMotion ? 1 - 0.5 * pull : 1)
+                .opacity(reduceMotion ? Double(1 - 0.5 * pull) : 1)
                 .offset(y: reduceMotion ? 0 : drag)
                 .animation(.standard, value: drag == 0)
 

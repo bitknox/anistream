@@ -77,7 +77,7 @@ pub async fn build_registry(
 pub fn build_registry_deferred(config: &Config, http: &HttpClient) -> ProviderRegistry {
     let mut providers: Vec<std::sync::Arc<dyn anistream_core::traits::Provider>> = Vec::new();
     for id in &config.providers.order {
-        if config.providers.disabled.contains(id) {
+        if id != "ani-cli" && config.providers.disabled.contains(id) {
             continue;
         }
         match id.as_str() {
@@ -107,9 +107,7 @@ pub fn build_registry_deferred(config: &Config, http: &HttpClient) -> ProviderRe
     }
     // Saved configurations from upstream predate the built-in provider. Keep it available
     // without forcing users to edit a config file; explicit disabling still takes precedence.
-    if !config.providers.order.iter().any(|id| id == "ani-cli")
-        && !config.providers.disabled.iter().any(|id| id == "ani-cli")
-    {
+    if !config.providers.order.iter().any(|id| id == "ani-cli") {
         providers.insert(0, std::sync::Arc::new(AniCliProvider::new(http.clone())));
     }
     let registry = ProviderRegistry::new(providers);
@@ -651,6 +649,10 @@ mod ani_cli_registration_tests {
         let http = HttpClient::offline(&config.network).unwrap();
         assert!(build_registry_deferred(&config, &http).get("ani-cli").is_some());
         config.providers.disabled.push("ani-cli".into());
-        assert!(build_registry_deferred(&config, &http).get("ani-cli").is_none());
+        let registry = build_registry_deferred(&config, &http);
+        assert!(registry.get("ani-cli").is_some(), "kept visible so it can be enabled again");
+        assert!(registry.is_disabled("ani-cli"));
+        config.providers.order.insert(0, "ani-cli".into());
+        assert!(build_registry_deferred(&config, &http).is_disabled("ani-cli"));
     }
 }

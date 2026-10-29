@@ -408,11 +408,11 @@ struct SeekLine: View {
             .overlay(alignment: .topLeading) {
                 if showsPreview, let time = model.scrubbing ?? model.hovering, duration > 0 {
                     let width = ScrubBubble.width
-                    let x = proxy.size.width * time / duration - width / 2
+                    let x: CGFloat = proxy.size.width * CGFloat(time / duration) - width / 2
                     ScrubBubble(model: model, time: time)
                         .frame(width: width, alignment: .bottom)
                         .offset(
-                            x: min(max(x, -16), proxy.size.width - width + 16),
+                            x: min(max(x, CGFloat(-16)), proxy.size.width - width + CGFloat(16)),
                             y: proxy.size.height / 2 - lineHeight - 8 - ScrubBubble.height(model))
                         .allowsHitTesting(false)
                         .transition(.opacity)
