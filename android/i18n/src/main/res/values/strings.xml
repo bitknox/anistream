@@ -1640,6 +1640,10 @@
     <string name="discussion_offline_cached">Offline. Showing comments from %1$s.</string>
     <!-- Heading of the Settings group for discussion rows. -->
     <string name="discussion_settings_group">Discussions</string>
+    <!-- Age of a comment that is on its way to AniList. -->
+    <string name="discussion_sending">Sending</string>
+    <!-- Comment menu item that copies the comment's text. -->
+    <string name="discussion_copy_text">Copy text</string>
     <!-- Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group. -->
     <string name="downloads_title">Downloads</string>
     <!-- Button that pauses every running download. -->

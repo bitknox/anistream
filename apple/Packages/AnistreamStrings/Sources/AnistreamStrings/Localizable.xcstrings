@@ -2691,6 +2691,18 @@
         }
       }
     },
+    "discussion-copy-text" : {
+      "comment" : "Comment menu item that copies the comment's text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy text"
+          }
+        }
+      }
+    },
     "discussion-count" : {
       "comment" : "Count of comments in the header of the discussion. Argument 1: count (Int).",
       "extractionState" : "manual",
@@ -2993,6 +3005,18 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "discussion-sending" : {
+      "comment" : "Age of a comment that is on its way to AniList.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sending"
           }
         }
       }

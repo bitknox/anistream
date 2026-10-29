@@ -1043,14 +1043,6 @@
     <value>[Ðöŵñļöàðš üšé ţĥé ƣüàļîţý îñ Šéţţîñĝš › Ðöŵñļöàðš.~~~~~~~~~~~~~~~]</value>
     <comment>Download dialog: the note under the range.</comment>
   </data>
-  <data name="DiscussionCopyText" xml:space="preserve">
-    <value>[Çöþý ţéẋţ~~~]</value>
-    <comment>Menu item that copies a comment's text.</comment>
-  </data>
-  <data name="DiscussionSending" xml:space="preserve">
-    <value>[Šéñðîñĝ~~~]</value>
-    <comment>Age of a comment that was sent and is not yet confirmed.</comment>
-  </data>
   <data name="DiscussionEditing" xml:space="preserve">
     <value>[Éðîţîñĝ ýöüŕ çöɱɱéñţ~~~~~~]</value>
     <comment>Line above the field while the viewer edits their own comment.</comment>
@@ -2602,6 +2594,14 @@
   <data name="DiscussionSettingsGroup" xml:space="preserve">
     <value>[Ðîšçüššîöñš~~~~]</value>
     <comment>Heading of the Settings group for discussion rows.</comment>
+  </data>
+  <data name="DiscussionSending" xml:space="preserve">
+    <value>[Šéñðîñĝ~~~]</value>
+    <comment>Age of a comment that is on its way to AniList.</comment>
+  </data>
+  <data name="DiscussionCopyText" xml:space="preserve">
+    <value>[Çöþý ţéẋţ~~~]</value>
+    <comment>Comment menu item that copies the comment's text.</comment>
   </data>
   <data name="DownloadsTitle" xml:space="preserve">
     <value>[Ðöŵñļöàðš~~~]</value>

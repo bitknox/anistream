@@ -1634,6 +1634,12 @@ public enum L {
     /// Heading of the Settings group for discussion rows.
     public static var discussionSettingsGroup: String { string("discussion-settings-group", fallback: "Discussions") }
 
+    /// Age of a comment that is on its way to AniList.
+    public static var discussionSending: String { string("discussion-sending", fallback: "Sending") }
+
+    /// Comment menu item that copies the comment's text.
+    public static var discussionCopyText: String { string("discussion-copy-text", fallback: "Copy text") }
+
     /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
     public static var downloadsTitle: String { string("downloads-title", fallback: "Downloads") }
 

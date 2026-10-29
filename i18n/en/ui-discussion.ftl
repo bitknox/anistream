@@ -129,7 +129,6 @@ discussion-offline-cached = Offline. Showing comments from { $age }.
 discussion-settings-group = Discussions
 
 # Age of a comment that is on its way to AniList.
-# @only linux
 # @max 16
 discussion-sending = Sending
 
@@ -139,7 +138,6 @@ discussion-sending = Sending
 discussion-show-more = Show more
 
 # Comment menu item that copies the comment's text.
-# @only linux
 # @max 24
 discussion-copy-text = Copy text
 

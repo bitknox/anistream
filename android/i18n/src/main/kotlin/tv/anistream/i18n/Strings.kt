@@ -3081,6 +3081,14 @@ object Strings {
     fun discussionSettingsGroup(context: Context): String =
         context.getString(R.string.discussion_settings_group)
 
+    /** Age of a comment that is on its way to AniList. */
+    fun discussionSending(context: Context): String =
+        context.getString(R.string.discussion_sending)
+
+    /** Comment menu item that copies the comment's text. */
+    fun discussionCopyText(context: Context): String =
+        context.getString(R.string.discussion_copy_text)
+
     /** Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group. */
     fun downloadsTitle(context: Context): String =
         context.getString(R.string.downloads_title)
