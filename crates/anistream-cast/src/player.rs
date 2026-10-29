@@ -7,10 +7,14 @@
 //!
 //! A load is tried plan by plan, best first ([`crate::formats::cast_plans`]):
 //! - A plan is refused when the receiver answers `LOAD_FAILED`, `LOAD_CANCELLED` or
-//!   `INVALID_REQUEST`, sends `ERROR`, goes idle with `ERROR`, or its position hasn't moved
-//!   [`Timings::movement`] after the load.
+//!   `INVALID_REQUEST`, sends `ERROR` or goes idle with `ERROR`. It stalls when its position
+//!   hasn't moved [`Timings::movement`] after the load.
 //! - A refusal counts against a format part only when the TV asked the relay for media, counted
 //!   as the request arrives: a TV that never asked for the picture said nothing about its codec.
+//! - Nothing counts while the TV waits on the source behind the relay, or after that source was
+//!   slow or failed: a torrent that has only just started is not a codec the TV lacks. A stall
+//!   with the source served in good time blames a copied audio codec alone, never the picture
+//!   or the container.
 //! - Before a file whose picture this TV hasn't played, a capability clip is loaded
 //!   ([`crate::clips`]): a TV with no decoder for a file's picture can play its sound alone and
 //!   report nothing wrong.
@@ -70,6 +74,11 @@ pub struct Timings {
     pub fetch: Duration,
     /// Paused this long, the cast ends.
     pub idle_close: Duration,
+    /// A wait on the source this long, for a request of the TV's, is a slow source: what the
+    /// TV does meanwhile says nothing about the format.
+    pub slow_source: Duration,
+    /// How long a plan may wait on a slow source before it is given up, unlearnt.
+    pub patience: Duration,
     /// The TV said nothing this long, heartbeat and status polls unanswered: it is gone.
     pub silence: Duration,
 }
@@ -81,6 +90,8 @@ impl Default for Timings {
             movement: Duration::from_secs(8),
             fetch: Duration::from_secs(15),
             idle_close: Duration::from_secs(10 * 60),
+            slow_source: Duration::from_secs(4),
+            patience: Duration::from_secs(60),
             silence: crate::channel::SILENCE,
         }
     }
@@ -368,6 +379,7 @@ impl CastPlayer {
         let relay = Relay::start(bind, address.ip(), Arc::clone(&setup.upstream))
             .await
             .map_err(|e| CastFailure::Lost(e.to_string()))?;
+        relay.set_slow_source(setup.timings.slow_source);
         let resources = Arc::new(Resources::default());
         relay.set_dynamic(Some(Arc::clone(&resources) as Arc<dyn Dynamic>));
         let (device, incoming) =
@@ -801,10 +813,19 @@ fn srt_to_vtt(srt: &str) -> String {
 /// What a plan's try came to.
 enum Tried {
     Played,
-    /// Refused, with whether the relay served media bytes for it.
-    Refused {
-        served: bool,
-    },
+    /// Not played, and what that teaches.
+    Refused(Blame),
+}
+
+/// What a plan the TV didn't play is held against.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Blame {
+    /// Nothing: the TV never asked for media, or waited on a slow or failing source.
+    Nothing,
+    /// The format: the receiver refused it in its own words.
+    Format,
+    /// A copied audio codec at most: the plan stalled with every byte served.
+    Audio,
 }
 
 /// Try `load`'s plans in order until one plays.
@@ -873,10 +894,15 @@ async fn attempt(inner: &Arc<Inner>, load: CastLoad) -> Result<CastPlan, CastFai
                 }
                 return Ok(plan);
             }
-            Tried::Refused { served } => {
+            Tried::Refused(blame) => {
                 why = None;
-                tracing::info!(route = ?plan.route, delivery = ?plan.delivery, served, "the TV refused a plan");
-                if served && let Err(e) = setup.memory.record(&setup.device.id, &plan, false) {
+                tracing::info!(route = ?plan.route, delivery = ?plan.delivery, ?blame, "the TV didn't play a plan");
+                let noted = match blame {
+                    Blame::Nothing => Ok(()),
+                    Blame::Format => setup.memory.record(&setup.device.id, &plan, false),
+                    Blame::Audio => setup.memory.record_stall(&setup.device.id, &plan).map(drop),
+                };
+                if let Err(e) = noted {
                     tracing::warn!(error = %e, "couldn't note what the TV refused");
                 }
             }
@@ -911,10 +937,11 @@ async fn ask_with_clip(
         autoplay: true,
     };
     let part = plan.video_part();
+    // A clip has no sound, so only the receiver's own refusal says it lacks the decoder.
     let played = match try_plan(inner, true, cast).await? {
         Tried::Played => true,
-        Tried::Refused { served: true } => false,
-        Tried::Refused { served: false } => return Ok(true),
+        Tried::Refused(Blame::Format) => false,
+        Tried::Refused(Blame::Nothing | Blame::Audio) => return Ok(true),
     };
     tracing::info!(clip = clip.name, part, played, "asked the TV with a clip");
     if let Err(e) = setup.memory.note(&setup.device.id, &part, played) {
@@ -983,9 +1010,42 @@ async fn stage(
     }
 }
 
+/// What a plan the TV didn't play teaches, by how it went.
+fn refused(inner: &Inner) -> Tried {
+    let source = inner.relay.source();
+    // A TV that gave up while it waited on a slow source said nothing about the format.
+    let fair = inner.relay.media_served() && !source.busy && !source.troubled;
+    Tried::Refused(if fair { Blame::Format } else { Blame::Nothing })
+}
+
+/// What a plan that never moved teaches: a stall says less than a refusal (see
+/// [`CastCaps::record_stall`]), and one behind a slow source says nothing.
+///
+/// [`CastCaps::record_stall`]: crate::memory::CastCaps::record_stall
+fn stalled(inner: &Inner) -> Tried {
+    let source = inner.relay.source();
+    let fair = inner.relay.media_served() && !source.busy && !source.troubled;
+    Tried::Refused(if fair { Blame::Audio } else { Blame::Nothing })
+}
+
+/// Whether a plan that hasn't moved `waited` after its load has had its chance: the TV is
+/// waiting on nothing of ours, and when the source was slow, it has had `movement` since the
+/// source caught up.
+fn had_its_chance(inner: &Inner, waited: Duration) -> bool {
+    let movement = inner.setup.timings.movement;
+    let source = inner.relay.source();
+    waited >= movement && !source.busy && (!source.troubled || source.quiet >= movement)
+}
+
 /// Load one plan, or a capability clip, and watch whether it plays. `relayed` when the TV
 /// reads it from the relay.
+///
+/// Only the receiver's own word (`LOAD_FAILED`, `ERROR`, idle with an error) is a refusal of
+/// the format. A plan that doesn't move is a stall, and while the TV waits on the source behind
+/// the relay (a torrent that has only just started, a slow CDN) it is not even that: the plan
+/// is given until [`Timings::patience`].
 async fn try_plan(inner: &Arc<Inner>, relayed: bool, cast: Load) -> Result<Tried, CastFailure> {
+    const TICK: Duration = Duration::from_millis(100);
     let timings = inner.setup.timings;
     inner.relay.reset_stats();
     let lost = |e: CastError| CastFailure::Lost(e.to_string());
@@ -997,45 +1057,84 @@ async fn try_plan(inner: &Arc<Inner>, relayed: bool, cast: Load) -> Result<Tried
         state.load = Some(cast.clone());
     }
     let started = Instant::now();
-    let loaded = tokio::time::timeout(timings.fetch, media.load(&cast)).await;
     let never_fetched = || relayed && inner.relay.requests() == 0;
-    let first = match loaded {
-        Err(_) | Ok(Err(CastError::Timeout(_))) if never_fetched() => {
-            return Err(CastFailure::NeverFetches);
-        }
-        Err(_) | Ok(Err(CastError::Refused(_) | CastError::Timeout(_))) => {
-            return Ok(Tried::Refused { served: inner.relay.media_served() });
-        }
-        Ok(Err(e)) => return Err(lost(e)),
-        Ok(Ok(status)) => status,
+    let closed = || {
+        let state = lock(&inner.state);
+        state.closed.then(|| state.failure.clone().unwrap_or(CastFailure::Lost("closed".into())))
     };
+
+    // Until the TV answers the load.
+    let answer = {
+        let loading = media.load(&cast);
+        tokio::pin!(loading);
+        loop {
+            tokio::select! {
+                answer = &mut loading => break answer,
+                () = tokio::time::sleep(TICK.min(timings.poll)) => {}
+            }
+            if let Some(failure) = closed() {
+                return Err(failure);
+            }
+            if lock(&inner.state).errored {
+                return Ok(refused(inner));
+            }
+            let waited = started.elapsed();
+            if never_fetched() {
+                if waited >= timings.fetch {
+                    return Err(CastFailure::NeverFetches);
+                }
+                continue;
+            }
+            if waited >= timings.fetch && had_its_chance(inner, waited) {
+                return Ok(stalled(inner));
+            }
+            if waited >= timings.patience {
+                return Ok(Tried::Refused(Blame::Nothing));
+            }
+        }
+    };
+    let first = match answer {
+        Ok(status) => status,
+        Err(CastError::Refused(_)) => return Ok(refused(inner)),
+        Err(CastError::Timeout(_)) if never_fetched() => return Err(CastFailure::NeverFetches),
+        Err(CastError::Timeout(_)) => return Ok(stalled(inner)),
+        Err(e) => return Err(lost(e)),
+    };
+
+    // Until its position moves.
     *lock(&inner.media) = Some(media.clone());
     let session = first.media_session_id;
     let from = first.position;
-    let deadline = Instant::now() + timings.movement;
+    let answered = Instant::now();
     loop {
-        tokio::time::sleep(Duration::from_millis(100).min(timings.poll)).await;
-        let state = lock(&inner.state);
-        if state.closed {
-            return Err(state.failure.clone().unwrap_or(CastFailure::Lost("closed".into())));
+        tokio::time::sleep(TICK.min(timings.poll)).await;
+        if let Some(failure) = closed() {
+            return Err(failure);
         }
-        if state.errored {
-            return Ok(Tried::Refused { served: inner.relay.media_served() });
-        }
-        if let Some(last) = state.last.as_ref().filter(|s| s.media_session_id == session) {
-            if last.idle_reason.is_some() {
-                return Ok(Tried::Refused { served: inner.relay.media_served() });
+        {
+            let state = lock(&inner.state);
+            if state.errored {
+                return Ok(refused(inner));
             }
-            if last.position > from + 0.2 {
-                return Ok(Tried::Played);
+            if let Some(last) = state.last.as_ref().filter(|s| s.media_session_id == session) {
+                match last.idle_reason.as_deref() {
+                    // A short file, a capability clip above all, can end between two polls.
+                    Some("FINISHED") => return Ok(Tried::Played),
+                    Some(_) => return Ok(refused(inner)),
+                    None if last.position > from + 0.2 => return Ok(Tried::Played),
+                    None => {}
+                }
             }
         }
-        drop(state);
         if never_fetched() && started.elapsed() >= timings.fetch {
             return Err(CastFailure::NeverFetches);
         }
-        if Instant::now() >= deadline {
-            return Ok(Tried::Refused { served: inner.relay.media_served() });
+        let waited = answered.elapsed();
+        if had_its_chance(inner, waited) {
+            return Ok(stalled(inner));
+        }
+        if waited >= timings.patience {
+            return Ok(Tried::Refused(Blame::Nothing));
         }
     }
 }

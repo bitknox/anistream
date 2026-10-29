@@ -20,11 +20,21 @@ use crate::{
 /// A loopback server answering each path with its body, ranges and all, without CORS: what the
 /// mender and the torrent server look like from here.
 async fn serve(files: HashMap<String, Vec<u8>>) -> String {
+    serve_slowly(files, HashMap::new()).await
+}
+
+/// [`serve`], with each path in `delays` sending its body only after its delay, its head at
+/// once: a torrent's pieces not there yet, or a slow CDN.
+async fn serve_slowly(
+    files: HashMap<String, Vec<u8>>,
+    delays: HashMap<String, Duration>,
+) -> String {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
     tokio::spawn(async move {
         while let Ok((socket, _)) = listener.accept().await {
             let files = files.clone();
+            let delays = delays.clone();
             tokio::spawn(async move {
                 let mut reader = BufReader::new(socket);
                 let mut line = String::new();
@@ -75,6 +85,9 @@ async fn serve(files: HashMap<String, Vec<u8>>) -> String {
                     part.len()
                 );
                 let _ = socket.write_all(head.as_bytes()).await;
+                if let Some(delay) = delays.get(&path) {
+                    tokio::time::sleep(*delay).await;
+                }
                 let _ = socket.write_all(part).await;
             });
         }
@@ -453,6 +466,52 @@ async fn hls_behind_the_mender_is_relayed_with_cors() {
         PlaybackEvent::Ended { complete: true }
     );
     assert!(memory.caps("tv-1").played("hls-ts"));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_slow_first_segment_is_waited_for_and_teaches_nothing() {
+    let playlist = "#EXTM3U\n#EXT-X-TARGETDURATION:4\n#EXTINF:4.0,\nseg0.ts\n#EXTINF:4.0,\nseg1.ts\n#EXT-X-ENDLIST\n";
+    let mut segment = vec![0u8; 188 * 4];
+    for packet in segment.chunks_mut(188) {
+        packet[0] = 0x47;
+    }
+    // The first segment takes twice the movement window and more than the fetch window, as a
+    // torrent that has only just started does.
+    let base = serve_slowly(
+        HashMap::from([
+            ("/a/index.m3u8".to_owned(), playlist.as_bytes().to_vec()),
+            ("/a/seg0.ts".to_owned(), segment.clone()),
+            ("/a/seg1.ts".to_owned(), segment),
+        ]),
+        HashMap::from([("/a/seg0.ts".to_owned(), Duration::from_secs(3))]),
+    )
+    .await;
+    let receiver = FakeReceiver::start(FakeOptions { speed: 4.0, ..FakeOptions::default() })
+        .await
+        .unwrap();
+    let memory = Arc::new(CastMemory::memory());
+    let mut setup = setup(&receiver, Arc::clone(&memory), Arc::new(NoEncoder));
+    setup.timings.slow_source = Duration::from_secs(1);
+    let (player, mut events) = CastPlayer::connect(setup).await.unwrap();
+    let url = format!("{base}/a/index.m3u8");
+    let load = CastLoad {
+        source: CastSource {
+            url: url.clone(),
+            kind: SourceKind::Hls,
+            headers: vec![("Referer".into(), "https://player.example/".into())],
+        },
+        ..torrent(url)
+    };
+    player.load(load);
+    next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
+    assert_eq!(receiver.heard("LOAD").len(), 1, "the first plan played, once it could");
+    let caps = memory.caps("tv-1");
+    assert!(
+        caps.formats.values().all(|answer| answer.played),
+        "a slow source is not a refusal: {:?}",
+        caps.formats
+    );
+    assert!(caps.played("hls-ts"));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

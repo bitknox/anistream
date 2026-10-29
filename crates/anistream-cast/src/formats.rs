@@ -282,13 +282,19 @@ impl CastPlan {
         if !self.video.plays_everywhere(self.height, self.delivery) {
             parts.push(self.video_part());
         }
-        if let AudioPlan::Copy(codec) = &self.audio
-            && *codec != AudioCodec::Aac
-        {
-            parts.push(codec.part_in(self.delivery));
-        }
+        parts.extend(self.audio_part());
         parts.push(self.delivery.part().to_owned());
         parts
+    }
+
+    /// The copied audio's part in a TV's memory, when the audio is copied and isn't AAC.
+    pub fn audio_part(&self) -> Option<String> {
+        match &self.audio {
+            AudioPlan::Copy(codec) if *codec != AudioCodec::Aac => {
+                Some(codec.part_in(self.delivery))
+            }
+            _ => None,
+        }
     }
 
     /// The video's part in a TV's memory.

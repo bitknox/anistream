@@ -27,7 +27,7 @@ use std::{
     pin::Pin,
     sync::{
         Arc, Mutex,
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -75,7 +75,57 @@ struct Shared {
     /// they arrive, playlists and subtitles aside.
     media_requests: AtomicU64,
     last_request: Mutex<Instant>,
+    /// Requests waiting on the source now: the upstream's answer or its next bytes, or what the
+    /// remuxer makes. A TV that waits on these has said nothing about what it plays.
+    source_waits: AtomicU64,
+    /// A wait on the source failed, or took [`Shared::slow_source`] or longer, since the reset.
+    source_trouble: AtomicBool,
+    /// When the last wait on the source ended, or the reset, whichever came later.
+    source_settled: Mutex<Instant>,
+    slow_source: Mutex<Duration>,
 }
+
+/// A wait on the source for one of the TV's requests, counted while it lasts.
+struct SourceWait<'a> {
+    shared: &'a Shared,
+    since: Instant,
+}
+
+impl<'a> SourceWait<'a> {
+    fn begin(shared: &'a Shared) -> Self {
+        shared.source_waits.fetch_add(1, Ordering::Relaxed);
+        Self { shared, since: Instant::now() }
+    }
+
+    /// The source failed this request.
+    fn failed(&self) {
+        self.shared.source_trouble.store(true, Ordering::Relaxed);
+    }
+}
+
+impl Drop for SourceWait<'_> {
+    fn drop(&mut self) {
+        if self.since.elapsed() >= *lock(&self.shared.slow_source) {
+            self.shared.source_trouble.store(true, Ordering::Relaxed);
+        }
+        *lock(&self.shared.source_settled) = Instant::now();
+        self.shared.source_waits.fetch_sub(1, Ordering::Relaxed);
+    }
+}
+
+/// How the source behind the TV's requests has done since the last [`Relay::reset_stats`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SourceHealth {
+    /// A request is waiting on the source now.
+    pub busy: bool,
+    /// A wait on the source failed or was slow.
+    pub troubled: bool,
+    /// Since the last wait on the source ended, or the reset.
+    pub quiet: Duration,
+}
+
+/// A wait on the source this long is a slow source, unless the cast says otherwise.
+const SLOW_SOURCE: Duration = Duration::from_secs(4);
 
 /// A running relay. Dropping it closes it.
 pub struct Relay {
@@ -119,6 +169,10 @@ impl Relay {
             requests: AtomicU64::new(0),
             media_requests: AtomicU64::new(0),
             last_request: Mutex::new(Instant::now()),
+            source_waits: AtomicU64::new(0),
+            source_trouble: AtomicBool::new(false),
+            source_settled: Mutex::new(Instant::now()),
+            slow_source: Mutex::new(SLOW_SOURCE),
         });
         let task = {
             let shared = Arc::clone(&shared);
@@ -216,6 +270,25 @@ impl Relay {
     pub fn reset_stats(&self) {
         self.shared.requests.store(0, Ordering::Relaxed);
         self.shared.media_requests.store(0, Ordering::Relaxed);
+        self.shared.source_trouble.store(false, Ordering::Relaxed);
+        *lock(&self.shared.source_settled) = Instant::now();
+    }
+
+    /// How the source has done for the TV since the last reset: whether the TV is waiting on
+    /// it, and whether it was slow or failed. What a TV does while it waits on a slow source
+    /// says nothing about what it plays.
+    pub fn source(&self) -> SourceHealth {
+        let shared = &self.shared;
+        SourceHealth {
+            busy: shared.source_waits.load(Ordering::Relaxed) > 0,
+            troubled: shared.source_trouble.load(Ordering::Relaxed),
+            quiet: lock(&shared.source_settled).elapsed(),
+        }
+    }
+
+    /// A wait on the source this long or longer counts as a slow source.
+    pub fn set_slow_source(&self, slow: Duration) {
+        *lock(&self.shared.slow_source) = slow;
     }
 
     /// How long since the TV last asked for anything.
@@ -391,9 +464,18 @@ async fn answer(
         return upstream(shared, &decode(encoded), request, &cors, head_only, write).await;
     } else if let Some(path) = rest.strip_prefix("x/") {
         let dynamic = lock(&shared.dynamic).clone();
-        if let Some(dynamic) = dynamic
-            && let Some((content_type, body)) = dynamic.get(path).await
-        {
+        let made = match dynamic {
+            Some(dynamic) => {
+                let wait = SourceWait::begin(shared);
+                let made = dynamic.get(path).await;
+                if made.is_none() {
+                    wait.failed();
+                }
+                made
+            }
+            None => None,
+        };
+        if let Some((content_type, body)) = made {
             if is_media(&content_type) && !head_only {
                 shared.media_requests.fetch_add(1, Ordering::Relaxed);
             }
@@ -509,15 +591,22 @@ async fn upstream(
     if let Some(range) = &request.range {
         headers.push(("Range".into(), range.clone()));
     }
+    let wait = SourceWait::begin(shared);
     let response = match shared.upstream.get(url, &headers).await {
         Ok(response) => response,
         Err(e) => {
             tracing::debug!(error = %e, "relay upstream failed");
+            wait.failed();
+            drop(wait);
             head(write, 502, cors, Some(0)).await?;
             return Ok((502, true));
         }
     };
     let status = response.status;
+    if status >= 400 {
+        wait.failed();
+    }
+    drop(wait);
     let kind = response.header("content-type").map_or_else(
         || content_type(url.split('?').next().unwrap_or(url)).to_owned(),
         str::to_owned,
@@ -547,18 +636,27 @@ async fn upstream(
                 let (from, to) = span.split_once('-').unwrap_or(("", ""));
                 from == "0" && to.parse::<u64>().ok().map(|t| t + 1) == total.parse().ok()
             });
+        let wait = SourceWait::begin(shared);
         let body = if whole {
-            response.bytes(PLAYLIST_LIMIT).await?
+            response.bytes(PLAYLIST_LIMIT).await
         } else {
             let headers = lock(&shared.headers).clone();
             match shared.upstream.get(url, &headers).await {
-                Ok(again) if again.status == 200 => again.bytes(PLAYLIST_LIMIT).await?,
-                _ => {
-                    head(write, 502, cors, Some(0)).await?;
-                    return Ok((502, true));
-                }
+                Ok(again) if again.status == 200 => again.bytes(PLAYLIST_LIMIT).await,
+                _ => Err(std::io::Error::other("the playlist couldn't be read whole")),
             }
         };
+        let body = match body {
+            Ok(body) => body,
+            Err(e) => {
+                wait.failed();
+                drop(wait);
+                tracing::debug!(error = %e, "relay upstream failed");
+                head(write, 502, cors, Some(0)).await?;
+                return Ok((502, true));
+            }
+        };
+        drop(wait);
         let text = String::from_utf8_lossy(&body);
         let origins = std::cell::RefCell::new(Vec::new());
         let rewritten = rewrite_playlist(&text, url, &|u| {
@@ -585,7 +683,16 @@ async fn upstream(
     }
     let mut body = response.body;
     let mut sent = 0u64;
-    while let Some(chunk) = body.next().await {
+    loop {
+        let chunk = {
+            let wait = SourceWait::begin(shared);
+            let chunk = body.next().await;
+            if matches!(chunk, Some(Err(_))) {
+                wait.failed();
+            }
+            chunk
+        };
+        let Some(chunk) = chunk else { break };
         let chunk = chunk?;
         write.write_all(&chunk).await?;
         sent += chunk.len() as u64;

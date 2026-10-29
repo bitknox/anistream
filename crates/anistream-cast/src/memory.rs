@@ -76,6 +76,17 @@ impl CastCaps {
         self.relayed_last = plan.relayed();
     }
 
+    /// Note a plan the TV took and never played, with every byte it asked for served in good
+    /// time. That says less than a refusal: the Nest Hub sits in `BUFFERING` on audio it can't
+    /// decode, but a picture or a container it can't read is refused outright. So only a copied
+    /// audio codec not known to play is blamed, and a plan without one teaches nothing. Returns
+    /// the part blamed.
+    pub fn record_stall(&mut self, plan: &CastPlan, at: i64) -> Option<String> {
+        let part = plan.audio_part().filter(|part| !self.played(part))?;
+        self.remember(&part, false, at);
+        Some(part)
+    }
+
     /// Drop the refusals older than [`REFUSAL_KEPT`].
     fn expire(&mut self, now: i64) {
         self.formats.retain(|_, answer| answer.played || now - answer.at < REFUSAL_KEPT);
@@ -203,6 +214,20 @@ impl CastMemory {
         self.save()
     }
 
+    /// Note that `plan` stalled on the TV `id`, as [`CastCaps::record_stall`] says.
+    pub fn record_stall(&self, id: &str, plan: &CastPlan) -> Result<Option<String>, MemoryError> {
+        let now = (self.clock)();
+        let blamed = self
+            .lock()
+            .entry(id.to_owned())
+            .or_insert_with(|| CastCaps { id: id.to_owned(), ..CastCaps::default() })
+            .record_stall(plan, now);
+        if blamed.is_some() {
+            self.save()?;
+        }
+        Ok(blamed)
+    }
+
     /// Note what TV `id` did with one part alone: a capability clip's answer.
     pub fn note(&self, id: &str, part: &str, played: bool) -> Result<(), MemoryError> {
         let now = (self.clock)();
@@ -255,6 +280,23 @@ mod tests {
         let before = caps.formats.clone();
         caps.record(&plan(VideoFormat::Hevc, AudioCodec::Aac, Delivery::HlsFmp4), false, 3);
         assert_eq!(caps.formats, before);
+    }
+
+    #[test]
+    fn a_stall_blames_copied_audio_and_never_the_picture_or_the_container() {
+        let mut caps = CastCaps::default();
+        let mut tall = plan(VideoFormat::H264, AudioCodec::Aac, Delivery::HlsFmp4);
+        tall.height = Some(1080);
+        assert_eq!(caps.record_stall(&tall, 1), None);
+        let mut mkv = plan(VideoFormat::Hevc, AudioCodec::Aac, Delivery::Mkv);
+        mkv.route = CastRoute::Relayed { remux: false };
+        assert_eq!(caps.record_stall(&mkv, 1), None);
+        assert!(caps.formats.is_empty(), "{:?}", caps.formats);
+
+        let flac = plan(VideoFormat::H264, AudioCodec::Flac, Delivery::HlsFmp4);
+        assert_eq!(caps.record_stall(&flac, 2).as_deref(), Some("flac/hls"));
+        assert!(caps.refused("flac/hls"));
+        assert_eq!(caps.formats.len(), 1);
     }
 
     #[test]
