@@ -750,7 +750,7 @@ public class SceneTests
             [
                 SettingKey.Quality, SettingKey.CommitThreshold, SettingKey.Upscaling, SettingKey.UpNextCountdown,
                 SettingKey.DownloadQuality, SettingKey.KeepNextEpisodes, SettingKey.Titles, SettingKey.AutoNext,
-                SettingKey.NightMode, SettingKey.SeedHours, SettingKey.UploadLimit, SettingKey.SeedRatio,
+                SettingKey.NightMode, SettingKey.Trailers, SettingKey.SeedHours, SettingKey.UploadLimit, SettingKey.SeedRatio,
             ];
             foreach (var key in keys)
             {

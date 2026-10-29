@@ -3277,6 +3277,18 @@ object Strings {
     fun settingsTitleLanguage(context: Context): String =
         context.getString(R.string.settings_title_language)
 
+    /** Value of the trailers setting: trailers play by themselves on any network. */
+    fun settingsValueTrailersAlways(context: Context): String =
+        context.getString(R.string.settings_value_trailers_always)
+
+    /** Value of the trailers setting: trailers play by themselves only on Wi-Fi. */
+    fun settingsValueTrailersWifiOnly(context: Context): String =
+        context.getString(R.string.settings_value_trailers_wifi_only)
+
+    /** Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps. */
+    fun settingsLabelTrailers(context: Context): String =
+        context.getString(R.string.settings_label_trailers)
+
     /** Option: use the tracker's own choice. The tracker is a name. */
     fun settingsTitleTracker(context: Context, tracker: String): String =
         context.getString(R.string.settings_title_tracker, tracker)
@@ -4404,6 +4416,10 @@ object Strings {
     /** Menu item that plays the trailer. */
     fun titlePlayTrailer(context: Context): String =
         context.getString(R.string.title_play_trailer)
+
+    /** Name and tooltip of the button beside a playing trailer that turns its sound on or off. */
+    fun titleTrailerSound(context: Context): String =
+        context.getString(R.string.title_trailer_sound)
 
     /** Menu item that opens the title on the AniList website. */
     fun titleOpenAnilist(context: Context): String =

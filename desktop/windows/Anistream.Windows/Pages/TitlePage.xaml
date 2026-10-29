@@ -12,7 +12,7 @@
       <!-- The banner across the content, up to 360 high, the ground over its lower part. -->
       <Grid x:Name="Banner" VerticalAlignment="Top" Height="300">
         <Image x:Name="BannerImage" Stretch="UniformToFill" VerticalAlignment="Center" />
-        <Rectangle>
+        <Rectangle x:Name="Scrim">
           <Rectangle.Fill>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
               <GradientStop Color="#00161A2E" Offset="0.25" />
@@ -45,6 +45,7 @@
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="Auto" />
                   <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
                   <ColumnDefinition Width="Auto" />
                   <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -90,6 +91,11 @@
                       </MenuFlyoutItem>
                     </MenuFlyout>
                   </Button.Flyout>
+                </Button>
+                <!-- Sound for the playing trailer: off at every start, here only while one shows. -->
+                <Button x:Name="SoundButton" Grid.Column="4" Height="40" Width="40" Padding="0" Visibility="Collapsed"
+                        ToolTipService.ToolTip="{x:Bind s:T.TitleTrailerSound}" AutomationProperties.Name="{x:Bind s:T.TitleTrailerSound}">
+                  <FontIcon Glyph="&#xE74F;" FontSize="16" />
                 </Button>
               </Grid>
               <TextBlock x:Name="WaitingLine" Style="{StaticResource HazeBodyStyle}" Visibility="Collapsed" />

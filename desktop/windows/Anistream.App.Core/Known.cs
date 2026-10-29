@@ -27,6 +27,9 @@ public sealed class Known
 
     public SettingsView? Settings { get; private set; }
 
+    /// <summary>Whether trailers may start by themselves now, as the engine last said; null before it has.</summary>
+    public AutoplayView? Autoplay { get; private set; }
+
     /// <summary>What the search filters choose from, once the engine has said.</summary>
     public SearchFacets? Facets { get; private set; }
     public Dictionary<string, SyncState> Sync { get; } = [];
@@ -145,13 +148,13 @@ public sealed class Known
                 if (c.ContentValue is ContentList.Entries list)
                 {
                     foreach (var entry in list.V1)
-                        Entries[entry.Id] = Merge(entry);
+                        Entries[entry.Id] = Merge(Fixed(entry));
                     if (c.View is ContentFor.Continue)
                         HiddenFromContinue.Clear();
                 }
                 break;
             case Event.Detail d:
-                Entries[d.V1.Id] = d.V1;
+                Entries[d.V1.Id] = Fixed(d.V1);
                 break;
             case Event.Episodes ep:
                 Episodes[ep.Id] = ep.Rows;
@@ -176,6 +179,9 @@ public sealed class Known
                 break;
             case Event.Settings s:
                 Settings = s.V1;
+                break;
+            case Event.Autoplay a:
+                Autoplay = a.V1;
                 break;
             case Event.Facets f:
                 Facets = f.V1;
@@ -252,6 +258,15 @@ public sealed class Known
         }
     }
 
+    /// <summary>The testing build's fixture runs give most titles a made-up trailer.</summary>
+    public bool FixtureTrailers { get; set; }
+
+    Entry Fixed(Entry entry) =>
+#if ANISTREAM_TESTING
+        FixtureTrailers ? Trailers.WithFixtureTrailer(entry) :
+#endif
+        entry;
+
     /// <summary>
     /// A list's row for a title, keeping what the title's own page knew that a list row leaves
     /// out (its synopsis, relations and banner when the row has none).
@@ -264,6 +279,8 @@ public sealed class Known
         {
             Synopsis = row.Synopsis.Length > 0 ? row.Synopsis : page.Synopsis,
             BannerUrl = row.BannerUrl ?? page.BannerUrl,
+            Trailer = row.Trailer ?? page.Trailer,
+            TrailerUrl = row.TrailerUrl ?? page.TrailerUrl,
             Related = row.Related is { Length: > 0 } ? row.Related : page.Related,
             Recommended = row.Recommended is { Length: > 0 } ? row.Recommended : page.Recommended,
         };

@@ -1693,6 +1693,12 @@
     <string name="settings_group_episodes">Episodes</string>
     <!-- Row: how titles are written. -->
     <string name="settings_title_language">Title language</string>
+    <!-- Value of the trailers setting: trailers play by themselves on any network. -->
+    <string name="settings_value_trailers_always">Always</string>
+    <!-- Value of the trailers setting: trailers play by themselves only on Wi-Fi. -->
+    <string name="settings_value_trailers_wifi_only">Wi-Fi only</string>
+    <!-- Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps. -->
+    <string name="settings_label_trailers">Play trailers</string>
     <!-- Option: use the tracker's own choice. The tracker is a name. -->
     <string name="settings_title_tracker">%1$s\'s choice</string>
     <!-- Option: English titles. -->
@@ -2275,6 +2281,8 @@
     <string name="title_trailer">Trailer</string>
     <!-- Menu item that plays the trailer. -->
     <string name="title_play_trailer">Play trailer</string>
+    <!-- Name and tooltip of the button beside a playing trailer that turns its sound on or off. -->
+    <string name="title_trailer_sound">Trailer sound</string>
     <!-- Menu item that opens the title on the AniList website. -->
     <string name="title_open_anilist">Open on AniList</string>
     <!-- Menu item that opens the title page of the show a row belongs to. -->

@@ -2859,12 +2859,6 @@ settings-value-titles-english = [Éñĝļîšĥ~~~]
 # Value of the titles setting: titles in Latin letters as written in Japanese.
 settings-value-titles-romaji = [Ŕöɱàĵî~~]
 
-# Value of the trailers setting: trailers play by themselves on any network.
-settings-value-trailers-always = [Åļŵàýš~~]
-
-# Value of the trailers setting: trailers play by themselves only on Wi-Fi.
-settings-value-trailers-wifi-only = [Ŵî-Ƒî öñļý~~~]
-
 # Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 settings-value-upscaling-natural = [Ñàţüŕàļ · ÅŕţÇÑÑ~~~~~]
 
@@ -2927,9 +2921,6 @@ settings-label-motion = [Ṁöţîöñ~~]
 
 # Settings row: which language titles are shown in.
 settings-label-titles = [Ţîţļéš~~]
-
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
-settings-label-trailers = [Þļàý ţŕàîļéŕš~~~~]
 
 # Settings row: subbed or dubbed audio.
 settings-label-translation = [Åüðîö~~]
@@ -5559,6 +5550,15 @@ settings-group-episodes = [Éþîšöðéš~~~]
 # Row: how titles are written.
 settings-title-language = [Ţîţļé ļàñĝüàĝé~~~~~]
 
+# Value of the trailers setting: trailers play by themselves on any network.
+settings-value-trailers-always = [Åļŵàýš~~]
+
+# Value of the trailers setting: trailers play by themselves only on Wi-Fi.
+settings-value-trailers-wifi-only = [Ŵî-Ƒî öñļý~~~]
+
+# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+settings-label-trailers = [Þļàý ţŕàîļéŕš~~~~]
+
 # Option: use the tracker's own choice. The tracker is a name.
 settings-title-tracker = [{ $tracker }'š çĥöîçé~~~~]
 
@@ -6428,6 +6428,9 @@ title-trailer = [Ţŕàîļéŕ~~~]
 
 # Menu item that plays the trailer.
 title-play-trailer = [Þļàý ţŕàîļéŕ~~~~]
+
+# Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+title-trailer-sound = [Ţŕàîļéŕ šöüñð~~~~]
 
 # Menu item that opens the title on the AniList website.
 title-open-anilist = [Öþéñ öñ ÅñîĻîšţ~~~~~]

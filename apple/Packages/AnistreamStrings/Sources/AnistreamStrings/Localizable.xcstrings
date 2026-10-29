@@ -10331,6 +10331,18 @@
         }
       }
     },
+    "settings-label-trailers" : {
+      "comment" : "Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play trailers"
+          }
+        }
+      }
+    },
     "settings-language" : {
       "comment" : "Settings group and row title for choosing a language.",
       "extractionState" : "manual",
@@ -10889,6 +10901,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Upload limit"
+          }
+        }
+      }
+    },
+    "settings-value-trailers-always" : {
+      "comment" : "Value of the trailers setting: trailers play by themselves on any network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always"
+          }
+        }
+      }
+    },
+    "settings-value-trailers-wifi-only" : {
+      "comment" : "Value of the trailers setting: trailers play by themselves only on Wi-Fi.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi only"
           }
         }
       }
@@ -14679,6 +14715,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trailer"
+          }
+        }
+      }
+    },
+    "title-trailer-sound" : {
+      "comment" : "Name and tooltip of the button beside a playing trailer that turns its sound on or off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trailer sound"
           }
         }
       }

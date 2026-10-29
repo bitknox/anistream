@@ -63,6 +63,8 @@ public static class SettingsCatalog
             Str("english", "English", T.SettingsTitleEnglish),
             Str("romaji", "Romaji", T.SettingsTitleRomaji),
         ],
+        SettingKey.Trailers =>
+            [Str("always", "always", T.SettingsValueTrailersAlways), Str("wifi-only", "Wi-Fi only", T.SettingsValueTrailersWifiOnly), Str("off", "off", T.ValueOff)],
         SettingKey.Quality => [.. new long[] { 480, 720, 1080, 2160 }.Select(q => Int(q, $"{q}p", T.SettingsQualityLines(q)))],
         SettingKey.CommitThreshold =>
             [.. new[] { 70, 80, 85, 90, 95 }.Select(p => new SettingOption(new SettingValue.Float(p / 100.0), $"{p}%", Wording.Percent(p)))],

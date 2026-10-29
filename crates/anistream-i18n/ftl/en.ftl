@@ -2859,12 +2859,6 @@ settings-value-titles-english = English
 # Value of the titles setting: titles in Latin letters as written in Japanese.
 settings-value-titles-romaji = Romaji
 
-# Value of the trailers setting: trailers play by themselves on any network.
-settings-value-trailers-always = Always
-
-# Value of the trailers setting: trailers play by themselves only on Wi-Fi.
-settings-value-trailers-wifi-only = Wi-Fi only
-
 # Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 settings-value-upscaling-natural = Natural · ArtCNN
 
@@ -2927,9 +2921,6 @@ settings-label-motion = Motion
 
 # Settings row: which language titles are shown in.
 settings-label-titles = Titles
-
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
-settings-label-trailers = Play trailers
 
 # Settings row: subbed or dubbed audio.
 settings-label-translation = Audio
@@ -5559,6 +5550,15 @@ settings-group-episodes = Episodes
 # Row: how titles are written.
 settings-title-language = Title language
 
+# Value of the trailers setting: trailers play by themselves on any network.
+settings-value-trailers-always = Always
+
+# Value of the trailers setting: trailers play by themselves only on Wi-Fi.
+settings-value-trailers-wifi-only = Wi-Fi only
+
+# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+settings-label-trailers = Play trailers
+
 # Option: use the tracker's own choice. The tracker is a name.
 settings-title-tracker = { $tracker }'s choice
 
@@ -6428,6 +6428,9 @@ title-trailer = Trailer
 
 # Menu item that plays the trailer.
 title-play-trailer = Play trailer
+
+# Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+title-trailer-sound = Trailer sound
 
 # Menu item that opens the title on the AniList website.
 title-open-anilist = Open on AniList

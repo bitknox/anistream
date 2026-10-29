@@ -4530,16 +4530,6 @@ pub fn settings_value_titles_romaji() -> String {
     text("settings-value-titles-romaji", &[])
 }
 
-/// Value of the trailers setting: trailers play by themselves on any network.
-pub fn settings_value_trailers_always() -> String {
-    text("settings-value-trailers-always", &[])
-}
-
-/// Value of the trailers setting: trailers play by themselves only on Wi-Fi.
-pub fn settings_value_trailers_wifi_only() -> String {
-    text("settings-value-trailers-wifi-only", &[])
-}
-
 /// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 pub fn settings_value_upscaling_natural() -> String {
     text("settings-value-upscaling-natural", &[])
@@ -4643,11 +4633,6 @@ pub fn settings_label_motion() -> String {
 /// Settings row: which language titles are shown in.
 pub fn settings_label_titles() -> String {
     text("settings-label-titles", &[])
-}
-
-/// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
-pub fn settings_label_trailers() -> String {
-    text("settings-label-trailers", &[])
 }
 
 /// Settings row: subbed or dubbed audio.
@@ -8930,6 +8915,21 @@ pub fn settings_title_language() -> String {
     text("settings-title-language", &[])
 }
 
+/// Value of the trailers setting: trailers play by themselves on any network.
+pub fn settings_value_trailers_always() -> String {
+    text("settings-value-trailers-always", &[])
+}
+
+/// Value of the trailers setting: trailers play by themselves only on Wi-Fi.
+pub fn settings_value_trailers_wifi_only() -> String {
+    text("settings-value-trailers-wifi-only", &[])
+}
+
+/// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+pub fn settings_label_trailers() -> String {
+    text("settings-label-trailers", &[])
+}
+
 /// Option: use the tracker's own choice. The tracker is a name.
 pub fn settings_title_tracker(tracker: &str) -> String {
     text("settings-title-tracker", &[("tracker", Arg::Text(tracker))])
@@ -10338,6 +10338,11 @@ pub fn title_trailer() -> String {
 /// Menu item that plays the trailer.
 pub fn title_play_trailer() -> String {
     text("title-play-trailer", &[])
+}
+
+/// Name and tooltip of the button beside a playing trailer that turns its sound on or off.
+pub fn title_trailer_sound() -> String {
+    text("title-trailer-sound", &[])
 }
 
 /// Menu item that opens the title on the AniList website.

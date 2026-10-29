@@ -14,7 +14,7 @@
     </ItemsView.Layout>
     <ItemsView.ItemTemplate>
       <DataTemplate x:DataType="local:CoverItem">
-        <ItemContainer AutomationProperties.Name="{x:Bind Name}" CornerRadius="8">
+        <ItemContainer AutomationProperties.Name="{x:Bind Name}" CornerRadius="8" Tag="{x:Bind Id}" Loaded="OnCoverLoaded">
           <ItemContainer.ContextFlyout>
             <MenuFlyout>
               <MenuFlyoutItem Text="{x:Bind app:T.TitleOpen}" Click="OnOpen" Tag="{x:Bind}">

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
+using Anistream.Windows;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -161,7 +162,28 @@ public sealed partial class TitlePage : Page, IPageKeys
         KeyboardAccelerators.Add(settings);
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
-        Unloaded += (_, _) => ctx.Batch -= Heard;
+        trailer = new PageTrailer(this, Banner, Scroll, SoundButton);
+        Unloaded += (_, _) =>
+        {
+            ctx.Batch -= Heard;
+            trailer.Release();
+        };
+    }
+
+    readonly PageTrailer trailer;
+
+    /// <summary>How far the title block has stepped down below a playing trailer (0 when the banner is clear of it).</summary>
+    double drop;
+
+    /// <summary>Below the playing trailer the title sits clear of it, and back over the banner's lower part when it is gone.</summary>
+    internal void StepTitle(bool below)
+    {
+        var to = below ? 132d : 0d;
+        Motion.Ease(this, drop, to, value =>
+        {
+            drop = value;
+            Columns.Padding = new Thickness(36, Banner.Height - 120 + drop, 36, 24);
+        });
     }
 
     /// <summary>The page's own layout as raised plates: banner, cover and title, then episode rows.</summary>
@@ -197,6 +219,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         ctx.Send(new Command.LoadDownloads());
         ctx.Send(new Command.LoadDub(id));
         DubLine.Opacity = 0;
+        trailer.Open(id);
         Show();
         ShowEpisodes();
         // The cover a grid sent flies in to this one; anything else crossfades.
@@ -233,6 +256,10 @@ public sealed partial class TitlePage : Page, IPageKeys
             {
                 case Event.Detail d when d.V1.Id == id:
                     Show();
+                    trailer.MaybeStart();
+                    break;
+                case Event.Autoplay:
+                    trailer.MaybeStart();
                     break;
                 case Event.Progress p when p.Id == id:
                     Show();
@@ -371,6 +398,7 @@ public sealed partial class TitlePage : Page, IPageKeys
                 link.Content = text;
                 var target = r.Id;
                 link.Click += (_, _) => ctx.OpenTitle(target);
+                HoverPreview.Attach(link, target);
                 list.Children.Add(link);
             }
             host.Children.Add(list);
@@ -472,7 +500,7 @@ public sealed partial class TitlePage : Page, IPageKeys
     void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
         Banner.Height = Math.Min(360, Math.Max(220, e.NewSize.Width * 9 / 32));
-        Columns.Padding = new Thickness(36, Banner.Height - 120, 36, 24);
+        Columns.Padding = new Thickness(36, Banner.Height - 120 + drop, 36, 24);
         if (ctx.Known.Entry(id) is { } entry)
             ShowDetails(entry);
     }
@@ -627,8 +655,8 @@ public sealed partial class TitlePage : Page, IPageKeys
 
     void OnTrailer(object sender, RoutedEventArgs e)
     {
-        if (ctx.Known.Entry(id) is { TrailerUrl: { } url } entry)
-            ctx.Send(new Command.PlayTrailer(url, entry.Title));
+        if (ctx.Known.Entry(id) is { } entry)
+            TrailerWindow.Play(ctx, entry);
     }
 
     static string StatusName(LibrarySegment status) => status switch

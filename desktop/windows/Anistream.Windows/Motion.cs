@@ -65,6 +65,56 @@ static class Motion
         Fade(element, 0, 1, time ?? FadeInTime, EasingMode.EaseOut, null);
     }
 
+    /// <summary>
+    /// A trailer's video fading in over the banner (fade-in) or away again (fade-out), from where
+    /// it stands. <paramref name="done"/> runs when the fade ends, unless another took over.
+    /// </summary>
+    public static void Video(UIElement element, bool shown, Action? done = null)
+    {
+        if (!shown && element.Opacity <= 0)
+        {
+            done?.Invoke();
+            return;
+        }
+        Fade(element, element.Opacity, shown ? 1 : 0, shown ? FadeInTime : FadeOutTime, shown ? EasingMode.EaseOut : EasingMode.EaseIn, done);
+    }
+
+    /// <summary>
+    /// Eases a value from one number to another on the standard token, calling <paramref name="set"/>
+    /// with each step: what a property no animation can reach (a padding) follows. With animation
+    /// effects off it takes the end value at once. Starting another for the same <paramref name="owner"/>
+    /// replaces the first.
+    /// </summary>
+    public static void Ease(object owner, double from, double to, Action<double> set)
+    {
+        if (eases.Remove(owner, out var was))
+            was.Stop();
+        if (!Enabled || Math.Abs(from - to) < 0.5)
+        {
+            set(to);
+            return;
+        }
+        var queue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+        var timer = queue.CreateTimer();
+        timer.Interval = TimeSpan.FromMilliseconds(16);
+        var started = DateTime.UtcNow;
+        timer.Tick += (_, _) =>
+        {
+            var t = Math.Min(1, (DateTime.UtcNow - started) / Standard);
+            var eased = 1 - Math.Pow(1 - t, 3);
+            set(from + (to - from) * eased);
+            if (t >= 1)
+            {
+                timer.Stop();
+                eases.Remove(owner);
+            }
+        };
+        eases[owner] = timer;
+        timer.Start();
+    }
+
+    static readonly Dictionary<object, Microsoft.UI.Dispatching.DispatcherQueueTimer> eases = [];
+
     /// <summary>Stops any fade and sets the element where it would have ended.</summary>
     public static void Set(UIElement element, bool shown)
     {
