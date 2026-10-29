@@ -731,11 +731,11 @@ pub struct ProvidersConfig {
 impl Default for ProvidersConfig {
     fn default() -> Self {
         Self {
-            // Torrent first, plugins second — the order failover walks.
+            // Built-in web provider first, then torrent and plugins.
             //
             // `plugins` after it: a dropped-in `.wasm` is a source you chose to install, so it
             // should be tried, but not ahead of one that is known to work.
-            order: vec!["torrent".into(), "plugins".into()],
+            order: vec!["ani-cli".into(), "torrent".into(), "plugins".into()],
             disabled: Vec::new(),
             torrent: TorrentConfig::default(),
             plugins: PluginsConfig::default(),
