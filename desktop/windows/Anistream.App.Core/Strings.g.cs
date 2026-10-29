@@ -5527,7 +5527,7 @@ public static partial class T
         ["DiscussionDeleteTitle"] = "Delete this comment?",
         ["DiscussionDeleteBody"] = "It is removed from AniList too.",
         ["DiscussionStillLoading"] = "Still loading from AniList",
-        ["DiscussionRateLimited"] = "AniList asked for a pause. Back in {time}.",
+        ["DiscussionRateLimited"] = "Waiting for AniList · {time}",
         ["DiscussionNoThread"] = "No discussion yet",
         ["DiscussionNoThreadDetail"] = "Nobody has opened a thread for this episode on AniList.",
         ["DiscussionNoComments"] = "No comments yet",

@@ -6740,6 +6740,26 @@ pub fn discussion_settings_group() -> String {
     text("discussion-settings-group", &[])
 }
 
+/// Age of a comment that is on its way to AniList.
+pub fn discussion_sending() -> String {
+    text("discussion-sending", &[])
+}
+
+/// Button under a comment that is cut off after ten lines.
+pub fn discussion_show_more() -> String {
+    text("discussion-show-more", &[])
+}
+
+/// Comment menu item that copies the comment's text.
+pub fn discussion_copy_text() -> String {
+    text("discussion-copy-text", &[])
+}
+
+/// Line for a picture or video in a comment: what it is and the site it is on.
+pub fn discussion_media_line(kind: &str, host: &str) -> String {
+    text("discussion-media-line", &[("kind", Arg::Text(kind)), ("host", Arg::Text(host))])
+}
+
 /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 pub fn downloads_title() -> String {
     text("downloads-title", &[])

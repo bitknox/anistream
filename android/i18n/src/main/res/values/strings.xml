@@ -1529,7 +1529,7 @@
     <!-- Line while the comments are still loading after a few seconds. -->
     <string name="discussion_still_loading">Still loading from AniList</string>
     <!-- Line while AniList's request budget is spent. The engine waits, then goes on by itself. -->
-    <string name="discussion_rate_limited">AniList asked for a pause. Back in %1$s.</string>
+    <string name="discussion_rate_limited">Waiting for AniList · %1$s</string>
     <!-- Title of the state when the episode has no thread on AniList. -->
     <string name="discussion_no_thread">No discussion yet</string>
     <!-- Line under the no-thread title. -->

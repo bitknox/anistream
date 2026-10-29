@@ -4209,7 +4209,7 @@ discussion-delete-body = It is removed from AniList too.
 discussion-still-loading = Still loading from AniList
 
 # Line while AniList's request budget is spent. The engine waits, then goes on by itself.
-discussion-rate-limited = AniList asked for a pause. Back in { $time }.
+discussion-rate-limited = Waiting for AniList · { $time }
 
 # Title of the state when the episode has no thread on AniList.
 discussion-no-thread = No discussion yet
@@ -4228,6 +4228,18 @@ discussion-offline-cached = Offline. Showing comments from { $age }.
 
 # Heading of the Settings group for discussion rows.
 discussion-settings-group = Discussions
+
+# Age of a comment that is on its way to AniList.
+discussion-sending = Sending
+
+# Button under a comment that is cut off after ten lines.
+discussion-show-more = Show more
+
+# Comment menu item that copies the comment's text.
+discussion-copy-text = Copy text
+
+# Line for a picture or video in a comment: what it is and the site it is on.
+discussion-media-line = { $kind } · { $host }
 
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = Downloads
