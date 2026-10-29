@@ -288,9 +288,30 @@ struct Timeline {
     advancing_at: Option<Duration>,
     finished: bool,
     failed: Option<Value>,
+    /// The first duration any status reported; later statuses often leave it out.
+    duration: Option<f64>,
 }
 
 impl Timeline {
+    /// A status the probe asked for, rather than one the receiver sent.
+    fn polled(&mut self, t: Duration, status: &MediaStatus) {
+        if self.duration.is_none() {
+            self.duration = status.duration;
+        }
+        if status.state == "PLAYING" && self.playing_at.is_none() {
+            self.playing_at = Some(t);
+        }
+        if status.state == "PLAYING" && status.position > 0.05 && self.advancing_at.is_none() {
+            self.advancing_at = Some(t);
+            self.entries.push(
+                json!({"t": secs(t), "polled": status.state, "position": status.position}),
+            );
+        }
+        if status.idle_reason.as_deref() == Some("FINISHED") {
+            self.finished = true;
+        }
+    }
+
     fn take(&mut self, t: Duration, event: &Incoming) {
         if event.namespace != NS_MEDIA {
             if event.payload["type"] == "CLOSE" {
@@ -316,6 +337,9 @@ impl Timeline {
                 || last.idle_reason != status.idle_reason
                 || last.active_tracks != status.active_tracks
         });
+        if self.duration.is_none() {
+            self.duration = status.duration;
+        }
         if status.state == "PLAYING" && self.playing_at.is_none() {
             self.playing_at = Some(t);
         }
@@ -515,11 +539,19 @@ async fn run(
     let seconds = flags.seconds.unwrap_or(12.0);
     let mut controls = Vec::new();
     if timeline.failed.is_none() {
-        // Until it plays, or fails, or 25 s pass.
-        pump(events, &mut timeline, epoch, Instant::now() + Duration::from_secs(25), |t| {
-            t.advancing_at.is_some() || t.failed.is_some() || t.finished
-        })
-        .await;
+        // Until it plays, or fails, or 25 s pass. The Default Media Receiver reports on changes
+        // only, so ask for the status every half second as well.
+        let deadline = Instant::now() + Duration::from_secs(25);
+        let done = |t: &Timeline| t.advancing_at.is_some() || t.failed.is_some() || t.finished;
+        while Instant::now() < deadline && !done(&timeline) {
+            let tick = (Instant::now() + Duration::from_millis(500)).min(deadline);
+            pump(events, &mut timeline, epoch, tick, done).await;
+            if !done(&timeline)
+                && let Ok(Some(status)) = media.status().await
+            {
+                timeline.polled(epoch.elapsed(), &status);
+            }
+        }
         if flags.controls && timeline.advancing_at.is_some() {
             let step = |kind: &'static str| (kind, Instant::now());
             for (kind, wait) in [
@@ -543,11 +575,7 @@ async fn run(
                     "PAUSE" => media.pause().await,
                     "PLAY" => media.play().await,
                     "SEEK" => {
-                        let target = timeline
-                            .last
-                            .as_ref()
-                            .and_then(|s| s.duration)
-                            .map_or(20.0, |d| (d - 8.0).max(1.0));
+                        let target = timeline.duration.map_or(20.0, |d| (d - 8.0).max(1.0));
                         media.seek(target).await
                     }
                     "TRACKS_OFF" if !load.tracks.is_empty() => media.active_tracks(&[]).await,

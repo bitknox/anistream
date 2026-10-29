@@ -29,6 +29,12 @@ volume=()
 [[ -n "${AUDIBLE:-}" ]] && volume=(--keep-volume)
 
 echo "== discovery"
+if [[ -n "${CAST_IP:-}" ]]; then
+  # The probe's own multicast query can be blocked where unicast isn't (an ad-hoc signed binary
+  # under macOS Local Network privacy). Then find the device with dns-sd and pass its address.
+  echo "discovery skipped: CAST_IP=$CAST_IP" | tee "$out/discovery.txt"
+  ip="$CAST_IP"
+else
 "$probe" discover | tee "$out/devices.jsonl"
 ip="$(python3 - "$out/devices.jsonl" "$want" <<'EOF'
 import json, sys
@@ -45,6 +51,7 @@ print(pick[0]["address"].split(":")[0])
 print(f'casting to {pick[0]["name"]} ({pick[0]["model"]}) at {pick[0]["address"]}', file=sys.stderr)
 EOF
 )"
+fi
 
 echo "== device info"
 "$probe" info "$ip" | tee "$out/info.txt"
