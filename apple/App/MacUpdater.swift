@@ -13,6 +13,7 @@
 #if os(macOS) && !FIXTURES
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import Foundation
 import Sparkle
 
@@ -43,7 +44,7 @@ final class MacUpdater: NSObject, UpdateInstaller, SPUUserDriver {
     func install(_ release: Release, progress: @escaping @MainActor (UpdateProgress) -> Void) {
         report = progress
         guard let updater, updater.canCheckForUpdates else {
-            progress(.failed("The updater is not ready. Try again in a moment."))
+            progress(.failed(L.updatesInstallerNotReady))
             return
         }
         gate.arm(release.version)
@@ -88,7 +89,7 @@ final class MacUpdater: NSObject, UpdateInstaller, SPUUserDriver {
             reply(.dismiss)
             if gate.armed != nil {
                 gate.disarm()
-                say(.failed("The update feed does not have this release yet."))
+                say(.failed(L.updatesFeedMissing))
             }
         }
     }
@@ -100,7 +101,7 @@ final class MacUpdater: NSObject, UpdateInstaller, SPUUserDriver {
     func showUpdateNotFoundWithError(_ error: any Error, acknowledgement: @escaping () -> Void) {
         acknowledgement()
         gate.disarm()
-        say(.failed("The update feed does not have this release yet."))
+        say(.failed(L.updatesFeedMissing))
     }
 
     func showUpdaterError(_ error: any Error, acknowledgement: @escaping () -> Void) {

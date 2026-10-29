@@ -2,11 +2,6 @@
 # widgets and the notifications: short times, the Continue row, the download notification, the
 # settings values, the torrent notes and the facts on a title.
 
-# A countdown that has run out.
-# @only android
-# @max 12
-time-now-inline = now
-
 # The episode in a short form for a title last watched dubbed.
 # @only android
 # @arg episode: int
@@ -18,23 +13,6 @@ episode-short-dubbed = E{ $episode } · { -dubbed-cap }
 # @arg episode: int
 # @max 32
 episode-long-dubbed = Episode { $episode } · { -dubbed-cap }
-
-# Continue row: a new episode, watched dubbed, with how long ago it came out.
-# @only android
-# @arg episode: int
-# @arg ago: text
-continue-row-start-aired-dubbed = Play E{ $episode } { -dubbed } · out { $ago }
-
-# Title page button: continue a dubbed episode part-way through.
-# @only android
-# @arg episode: int
-# @arg time: text
-title-button-resume-dubbed = Resume episode { $episode } · { -dubbed-cap } · { $time }
-
-# Title page button: play the next dubbed episode.
-# @only android
-# @arg episode: int
-title-button-play-dubbed = Play episode { $episode } · { -dubbed-cap }
 
 # Download notification title when several episodes are paused.
 # @only android
@@ -113,10 +91,6 @@ torrents-check-note-warn = { -app-name } checks where torrent traffic leaves fro
 # The same note when a failed check stops torrents.
 # @only android
 torrents-check-note-stop = { -app-name } checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and stops torrents if that check fails. Your VPN or proxy is what protects you.
-
-# Notice after the torrent protection was saved.
-# @only android
-torrents-protection-saved = Torrent protection saved
 
 # Name of the proxy protection.
 # @only android
@@ -373,11 +347,6 @@ sources-reorder = Reorder
 # @only android
 # @arg version: text
 sources-version-available = { $version } available
-
-# Source page: how long the source took to answer, in milliseconds.
-# @only android
-# @arg ms: int
-sources-response-ms = { $ms } ms
 
 # Update dialog: the version, and the store it comes from, for a source that has no version yet.
 # @only android
@@ -685,10 +654,6 @@ settings-aside-connection-check = Connection check
 # @only android
 settings-aside-sources = { -source-cap } are tried in order, top to bottom. A show can keep its own { -source }, chosen from its title page.
 
-# Settings aside on a tablet, Accounts: what signing out keeps.
-# @only android
-settings-aside-accounts = { -app-name } works without an account. Your watch history stays on this { -device } when you sign out.
-
 # Settings aside on a tablet, upscaling picture: what a screen reader hears.
 # @only android
 # @arg mode: text
@@ -945,40 +910,11 @@ episode-number-plain = Episode { $number }
 # @arg title: text
 episode-number-title-text = Episode { $number } · { $title }
 
-# Player, starting screen: the first line.
-# @only android
-# @arg episode: text
-player-starting-text = Starting episode { $episode }
-
-# Player, starting screen: what the wait is on, and for how long.
-# @only android
-# @arg what: text
-# @arg seconds: int
-player-wait-note = { $what } · { $seconds } s
-
-# Player, starting screen: the title when nothing played.
-# @only android
-# @arg episode: text
-player-failed-title-text = Couldn't play episode { $episode }
-
-# Player, track lists: a track with neither language nor title.
-# @only android
-# @arg id: int
-player-track-n = Track { $id }
-
 # Player, seek bar: the position and the length, for a screen reader.
 # @only android
 # @arg at: text
 # @arg total: text
 player-position-state = { $at } of { $total }
-
-# Player, seek bar: the label while scrubbing at a quarter of the speed.
-# @only android
-player-scrub-quarter = Quarter-speed scrubbing
-
-# Player, seek bar: the label while scrubbing at half the speed.
-# @only android
-player-scrub-half = Half-speed scrubbing
 
 # Player, sources sheet: shown while the sources are being asked.
 # @only android
@@ -1049,11 +985,6 @@ tv-session-starting = Starting on { $tv }
 # @arg tv: text
 tv-session-line = { $line } · { $tv }
 
-# Widgets, Continue: the line under a show that has not been started.
-# @only android
-# @arg episode: text
-widget-line-start = Start { $episode }
-
 # Widgets, Continue: the line under a show with time left in the episode.
 # @only android
 # @arg episode: text
@@ -1084,14 +1015,6 @@ widget-caught-up = You’re caught up.
 # @arg episode: int
 # @arg airs: text
 widget-caught-up-next = { $title } E{ $episode } airs { $airs }.
-
-# Widgets: a day word for the Updated line.
-# @only android
-widget-day-today = today
-
-# Widgets: a day word for the Updated line.
-# @only android
-widget-day-yesterday = yesterday
 
 # Widgets: the Updated line's date when it is a week or more back.
 # @only android

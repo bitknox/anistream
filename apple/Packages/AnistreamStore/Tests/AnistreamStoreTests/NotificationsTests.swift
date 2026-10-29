@@ -341,10 +341,10 @@ private func ledger() -> NoticeLedger {
     }
 
     @Test func aShowNotBeingWatchedThatFollowsSettingsSaysOff() {
-        #expect(ShowNoticeChoice.followSettings.label(settingOn: true, watching: false, capitalised: false) == "Off · not watching")
-        #expect(ShowNoticeChoice.followSettings.label(settingOn: true, watching: true, capitalised: true) == "Use Default · On")
-        #expect(ShowNoticeChoice.followSettings.label(settingOn: false, watching: true, capitalised: false) == "Use default · Off")
-        #expect(ShowNoticeChoice.on.label(settingOn: false, watching: false, capitalised: false) == "On")
+        #expect(ShowNoticeChoice.followSettings.label(settingOn: true, watching: false) == "Off · not watching")
+        #expect(ShowNoticeChoice.followSettings.label(settingOn: true, watching: true) == "Use default · On")
+        #expect(ShowNoticeChoice.followSettings.label(settingOn: false, watching: true) == "Use default · Off")
+        #expect(ShowNoticeChoice.on.label(settingOn: false, watching: false) == "On")
     }
 }
 

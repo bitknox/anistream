@@ -1610,11 +1610,6 @@ pub fn tv_row_pairs_with() -> String {
     text("tv-row-pairs-with", &[])
 }
 
-/// Row title of the button that pairs another TV once one is paired.
-pub fn tv_another() -> String {
-    text("tv-another", &[])
-}
-
 /// Under a TV in the list: paired, but not seen on the network.
 pub fn tv_row_away() -> String {
     text("tv-row-away", &[])
@@ -1623,11 +1618,6 @@ pub fn tv_row_away() -> String {
 /// Under a TV in the list: found, not paired yet.
 pub fn tv_row_new() -> String {
     text("tv-row-new", &[])
-}
-
-/// Under a TV in the list: its version does not match.
-pub fn tv_row_needs_update() -> String {
-    text("tv-row-needs-update", &[])
 }
 
 /// What a screen reader hears when a heading and its problem show together.
@@ -1663,11 +1653,6 @@ pub fn tv_fingerprint_note(code: &str) -> String {
 /// Settings line of a paired TV: paired on a date, reached in the last minute.
 pub fn tv_paired_seen_now(paired: &str) -> String {
     text("tv-paired-seen-now", &[("paired", Arg::Text(paired))])
-}
-
-/// Title of the remote's volume row.
-pub fn tv_volume() -> String {
-    text("tv-volume", &[])
 }
 
 /// Accessible name of a track menu: the row, then the track chosen.
@@ -1740,11 +1725,6 @@ pub fn stores_open_keep_working() -> String {
     text("stores-open-keep-working", &[])
 }
 
-/// Button on the summary row that removes every device that joined with the link.
-pub fn stores_remove_all() -> String {
-    text("stores-remove-all", &[])
-}
-
 /// Line under a device that joined with the link: when the store last saw it.
 pub fn stores_device_seen(when: &str) -> String {
     text("stores-device-seen", &[("when", Arg::Text(when))])
@@ -1788,11 +1768,6 @@ pub fn stores_published_state() -> String {
 /// Accessible name of a row's Publish button.
 pub fn stores_publish_label(name: &str, version: &str) -> String {
     text("stores-publish-label", &[("name", Arg::Text(name)), ("version", Arg::Text(version))])
-}
-
-/// Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
-pub fn sources_torrents_note() -> String {
-    text("sources-torrents-note", &[])
 }
 
 /// Under a release in the source picker: how many people share it right now.
@@ -6485,6 +6460,36 @@ pub fn time_minutes(minutes: i64) -> String {
     text("time-minutes", &[("minutes", Arg::Int(minutes))])
 }
 
+/// A countdown that has run out: the thing is happening now. Lower case, as it stands inside a line.
+pub fn time_now_inline() -> String {
+    text("time-now-inline", &[])
+}
+
+/// How long ago, under a minute. Lower case, as it stands inside a line.
+pub fn time_just_now_inline() -> String {
+    text("time-just-now-inline", &[])
+}
+
+/// Later today.
+pub fn when_today(time: &str) -> String {
+    text("when-today", &[("time", Arg::Text(time))])
+}
+
+/// Tomorrow.
+pub fn when_tomorrow(time: &str) -> String {
+    text("when-tomorrow", &[("time", Arg::Text(time))])
+}
+
+/// Within the next six days. The day is the weekday's name, already formatted.
+pub fn when_weekday(day: &str, time: &str) -> String {
+    text("when-weekday", &[("day", Arg::Text(day)), ("time", Arg::Text(time))])
+}
+
+/// A week or more away. The date is the day and short month, already formatted, such as "29 Oct".
+pub fn when_date(date: &str, time: &str) -> String {
+    text("when-date", &[("date", Arg::Text(date)), ("time", Arg::Text(time))])
+}
+
 /// Line under a title when the device has no connection.
 pub fn state_offline_line() -> String {
     text("state-offline-line", &[])
@@ -6548,11 +6553,6 @@ pub fn state_working() -> String {
 /// Short placeholder while something loads.
 pub fn state_loading() -> String {
     text("state-loading", &[])
-}
-
-/// How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
-pub fn time_just_now_inline() -> String {
-    text("time-just-now-inline", &[])
 }
 
 /// Controller help: the D-pad and left stick move focus between items.
@@ -7650,6 +7650,11 @@ pub fn progress_episode_short(done: i64) -> String {
     text("progress-episode-short", &[("done", Arg::Int(done))])
 }
 
+/// Row caption: the next unwatched episode, dubbed, which came out a while ago.
+pub fn continue_row_start_aired_dubbed(episode: i64, ago: &str) -> String {
+    text("continue-row-start-aired-dubbed", &[("episode", Arg::Int(episode)), ("ago", Arg::Text(ago))])
+}
+
 /// Heading over the suggestions under a short { -continue-cap } list.
 pub fn up_next_heading() -> String {
     text("up-next-heading", &[])
@@ -8615,6 +8620,16 @@ pub fn party_source_seeders(seeders: i64) -> String {
     text("party-source-seeders", &[("seeders", Arg::Int(seeders))])
 }
 
+/// Line when no source lists the episode.
+pub fn party_no_source_lists(episode: &str) -> String {
+    text("party-no-source-lists", &[("episode", Arg::Text(episode))])
+}
+
+/// Button that plays the chosen source with the room.
+pub fn party_play_with() -> String {
+    text("party-play-with", &[])
+}
+
 /// Label on the card for the episode that plays after this one.
 pub fn player_up_next() -> String {
     text("player-up-next", &[])
@@ -8988,6 +9003,36 @@ pub fn source_picker_empty() -> String {
 /// Title of the picker sheet in the player.
 pub fn player_sources() -> String {
     text("player-sources", &[])
+}
+
+/// Heading of the starting screen when nothing played. The episode's number is text, because it may be "7.5".
+pub fn player_failed_title_text(episode: &str) -> String {
+    text("player-failed-title-text", &[("episode", Arg::Text(episode))])
+}
+
+/// Label while scrubbing the seek line at half the pace.
+pub fn player_scrub_half() -> String {
+    text("player-scrub-half", &[])
+}
+
+/// Label while scrubbing the seek line at a quarter of the pace.
+pub fn player_scrub_quarter() -> String {
+    text("player-scrub-quarter", &[])
+}
+
+/// Heading of the starting screen. The episode's number is text, because it may be "7.5".
+pub fn player_starting_text(episode: &str) -> String {
+    text("player-starting-text", &[("episode", Arg::Text(episode))])
+}
+
+/// Name of an audio or subtitle track that has no language or title.
+pub fn player_track_n(id: i64) -> String {
+    text("player-track-n", &[("id", Arg::Int(id))])
+}
+
+/// Line while an episode starts after a few seconds: what the wait is on, and for how long.
+pub fn player_wait_note(what: &str, seconds: i64) -> String {
+    text("player-wait-note", &[("what", Arg::Text(what)), ("seconds", Arg::Int(seconds))])
 }
 
 /// Button that shows the season before.
@@ -10025,9 +10070,59 @@ pub fn settings_upscaling_note_sharp() -> String {
     text("settings-upscaling-note-sharp", &[])
 }
 
+/// Setting: a command run after each download finishes.
+pub fn settings_after_download() -> String {
+    text("settings-after-download", &[])
+}
+
+/// Setting: extra options passed to mpv, the player. mpv stays lower case.
+pub fn settings_mpv_options() -> String {
+    text("settings-mpv-options", &[])
+}
+
+/// Name screen readers give the list of panes down the side of Settings.
+pub fn settings_panes_label() -> String {
+    text("settings-panes-label", &[])
+}
+
+/// Setting: Discord's status with the cover and a progress bar.
+pub fn settings_presence_rich() -> String {
+    text("settings-presence-rich", &[])
+}
+
+/// Setting: Discord's status names the show being watched.
+pub fn settings_presence_title() -> String {
+    text("settings-presence-title", &[])
+}
+
+/// Under a tracker that is signed in, when its user name is unknown.
+pub fn settings_signed_in() -> String {
+    text("settings-signed-in", &[])
+}
+
 /// Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
 pub fn settings_upscaling_sharp() -> String {
     text("settings-upscaling-sharp", &[])
+}
+
+/// Side note in Accounts.
+pub fn settings_aside_accounts() -> String {
+    text("settings-aside-accounts", &[])
+}
+
+/// Today, inside a line such as "Thursday 16:30".
+pub fn widget_day_today() -> String {
+    text("widget-day-today", &[])
+}
+
+/// Yesterday, inside a line.
+pub fn widget_day_yesterday() -> String {
+    text("widget-day-yesterday", &[])
+}
+
+/// Line of the Continue widget: what plays next, with the episode already named.
+pub fn widget_line_start(episode: &str) -> String {
+    text("widget-line-start", &[("episode", Arg::Text(episode))])
 }
 
 /// Title of the screen or section that lists sources.
@@ -10343,6 +10438,21 @@ pub fn sources_torrent_source() -> String {
 /// Row: where the plugin's page stands.
 pub fn sources_source_order_row() -> String {
     text("sources-source-order-row", &[])
+}
+
+/// Note under the facts on the Torrents page in Sources. Torrents are built in, not a plugin.
+pub fn sources_torrents_note() -> String {
+    text("sources-torrents-note", &[])
+}
+
+/// Over the { -source } list while the { -source-pl } are set up again after a change.
+pub fn sources_rebuilding() -> String {
+    text("sources-rebuilding", &[])
+}
+
+/// Value of a plugin's response time, in milliseconds.
+pub fn sources_response_ms(ms: i64) -> String {
+    text("sources-response-ms", &[("ms", Arg::Int(ms))])
 }
 
 /// Short label for a joined store, on a row.
@@ -10965,6 +11075,11 @@ pub fn stores_plugin_name_version(name: &str, version: &str) -> String {
     text("stores-plugin-name-version", &[("name", Arg::Text(name)), ("version", Arg::Text(version))])
 }
 
+/// Button on the summary row that removes every device that joined with the link.
+pub fn stores_remove_all() -> String {
+    text("stores-remove-all", &[])
+}
+
 /// Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
 pub fn stores_copy_link() -> String {
     text("stores-copy-link", &[])
@@ -10973,6 +11088,11 @@ pub fn stores_copy_link() -> String {
 /// Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
 pub fn stores_offers_plugins(count: i64) -> String {
     text("stores-offers-plugins", &[("count", Arg::Int(count))])
+}
+
+/// Button of a notice that opens the plugin stores page.
+pub fn notice_open_stores() -> String {
+    text("notice-open-stores", &[])
 }
 
 /// Title of the state when a title page could not load.
@@ -11278,6 +11398,16 @@ pub fn more_show_spoiler_tags(count: i64) -> String {
 /// An episode's line with the audio it was watched in marked, as Continue and the title page word it.
 pub fn episode_line_dubbed(line: &str) -> String {
     text("episode-line-dubbed", &[("line", Arg::Text(line))])
+}
+
+/// Main button of the title page for a dubbed episode that has not been started.
+pub fn title_button_play_dubbed(episode: i64) -> String {
+    text("title-button-play-dubbed", &[("episode", Arg::Int(episode))])
+}
+
+/// Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.
+pub fn title_button_resume_dubbed(episode: i64, time: &str) -> String {
+    text("title-button-resume-dubbed", &[("episode", Arg::Int(episode)), ("time", Arg::Text(time))])
 }
 
 /// Title of the settings group and the screen.
@@ -11648,6 +11778,11 @@ pub fn torrents_page_needs_script() -> String {
 /// Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
 pub fn torrents_check_note() -> String {
     text("torrents-check-note", &[])
+}
+
+/// Notice after the protection was saved.
+pub fn torrents_protection_saved() -> String {
+    text("torrents-protection-saved", &[])
 }
 
 /// Title of the accounts screen. The sidebar item is nav-accounts.
@@ -12283,6 +12418,21 @@ pub fn tv_remove_phone_detail() -> String {
 /// Heading of the settings group on the TV that lists the remotes.
 pub fn tv_remotes() -> String {
     text("tv-remotes", &[])
+}
+
+/// Row title of the button that pairs another TV once one is paired.
+pub fn tv_another() -> String {
+    text("tv-another", &[])
+}
+
+/// Under a TV in the list: its version does not match.
+pub fn tv_row_needs_update() -> String {
+    text("tv-row-needs-update", &[])
+}
+
+/// Title of the remote's volume row.
+pub fn tv_volume() -> String {
+    text("tv-volume", &[])
 }
 
 /// Heading of the update row in settings and about.

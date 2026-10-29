@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// The three choices, as the settings file names them.
@@ -14,9 +15,9 @@ enum TitleChoice: String, CaseIterable, Sendable {
     /// As the menu says it.
     var label: String {
         switch self {
-        case .anilist: "AniList's choice"
-        case .english: "English"
-        case .romaji: "Romaji"
+        case .anilist: L.settingsTitleTracker(tracker: AccountsModel.name("anilist"))
+        case .english: L.settingsTitleEnglish
+        case .romaji: L.settingsTitleRomaji
         }
     }
 }
@@ -28,10 +29,10 @@ enum TitleLanguageWords {
     static func line(_ choice: TitleChoice, signedIn: Bool, viewer: TitleLanguage?) -> String {
         switch choice {
         case .anilist:
-            guard signedIn, let viewer else { return "English while signed out of AniList" }
-            return "\(name(viewer)), from your AniList account"
-        case .english: return "Romaji where there is no English title"
-        case .romaji: return "Japanese titles in Latin letters"
+            guard signedIn, let viewer else { return L.settingsTitleLineSignedOut(tracker: AccountsModel.name("anilist")) }
+            return L.settingsTitleLineFromAccount(language: name(viewer), tracker: AccountsModel.name("anilist"))
+        case .english: return L.settingsTitleLineEnglish
+        case .romaji: return L.settingsTitleLineRomaji
         }
     }
 
@@ -39,16 +40,16 @@ enum TitleLanguageWords {
     static func note(_ choice: TitleChoice, signedIn: Bool, viewer: TitleLanguage?, examples: [Entry]) -> String {
         switch choice {
         case .anilist:
-            let signedOut = "While you are signed out of AniList, titles show in English."
-            guard signedIn, let viewer else { return "Follows your AniList account. " + signedOut }
-            return "Follows your AniList account, which is set to \(name(viewer)). " + signedOut
+            let signedOut = L.settingsTitleNoteSignedOut(tracker: AccountsModel.name("anilist"))
+            guard signedIn, let viewer else { return L.settingsTitleNoteFollows(tracker: AccountsModel.name("anilist"), then: signedOut) }
+            return L.settingsTitleNoteFollowsSet(tracker: AccountsModel.name("anilist"), language: name(viewer), then: signedOut)
         case .english:
             if let kept = examples.first(where: { ($0.titleEnglish ?? "").isEmpty }) {
-                return "\(kept.titleRomaji ?? kept.title) has no English title on AniList, so it keeps its romaji one."
+                return L.settingsTitleNoteKept(title: kept.titleRomaji ?? kept.title, tracker: AccountsModel.name("anilist"))
             }
-            return "English titles as AniList lists them, and romaji where there is none."
+            return L.settingsTitleNoteEnglish(tracker: AccountsModel.name("anilist"))
         case .romaji:
-            return "Japanese titles written in Latin letters, as AniList lists them."
+            return L.settingsTitleNoteRomaji(tracker: AccountsModel.name("anilist"))
         }
     }
 
@@ -56,9 +57,9 @@ enum TitleLanguageWords {
     /// AniList's own word for it is in.
     static func name(_ language: TitleLanguage) -> String {
         switch language {
-        case .romaji: "Romaji"
-        case .english: "English"
-        case .native: "Native"
+        case .romaji: L.settingsTitleRomaji
+        case .english: L.settingsTitleEnglish
+        case .native: L.settingsTitleNative
         }
     }
 
@@ -176,7 +177,7 @@ struct TitleLanguagePreview: View {
         let viewer = store.accounts.viewerTitleLanguage
         let cover = min(88, ((width - 24) / 3).rounded(.down))
         VStack(alignment: .leading, spacing: 12) {
-            Text("Title language").groupHeaderStyle().macLineHeight(14)
+            Text(L.settingsTitleLanguage).groupHeaderStyle().macLineHeight(14)
                 .accessibilityAddTraits(.isHeader)
             HStack(alignment: .top, spacing: 12) {
                 ForEach(examples, id: \.id) { entry in
@@ -239,3 +240,44 @@ struct PhoneTitleLanguageRow: View {
     }
 }
 #endif
+
+// MARK: - App language
+
+/// The language of the app's own text. It follows the system, which keeps one language for each
+/// app: the row says which of the shipped languages is in use and opens that setting.
+struct AppLanguageRow: View {
+    @Environment(\.openURL) private var openURL
+
+    /// The shipped language the system picked for the app.
+    static var current: L.Language {
+        let tags = Bundle.main.preferredLocalizations
+        return tags.lazy.compactMap { tag in L.languages.first { $0.tag == tag || tag.hasPrefix($0.tag + "-") } }.first
+            ?? L.languages[0]
+    }
+
+    /// Where the system keeps the app's language.
+    static var settingsURL: URL? {
+        #if os(macOS)
+        URL(string: "x-apple.systempreferences:com.apple.Localization-Settings.extension")
+        #else
+        URL(string: UIApplication.openSettingsURLString)
+        #endif
+    }
+
+    var body: some View {
+        let language = Self.current
+        SettingsRow(
+            title: L.settingsLanguageApp,
+            note: language.draft ? L.languageDraftNote : nil
+        ) {
+            HStack(spacing: 10) {
+                Text(language.draft ? "\(language.name) · \(L.languageDraftLabel)" : language.name)
+                    .font(.mac(13))
+                    .foregroundStyle(.haze)
+                if let url = Self.settingsURL {
+                    Button(L.actionOpenSettings) { openURL(url) }
+                }
+            }
+        }
+    }
+}

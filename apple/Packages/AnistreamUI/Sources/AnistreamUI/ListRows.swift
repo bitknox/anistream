@@ -4,6 +4,7 @@
 
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 extension View {
@@ -45,14 +46,14 @@ extension View {
             .listRowSeparator(.hidden)
     }
 
-    /// Continue's swipes: Watched, the episode the row plays, from the leading edge, and Remove
+    /// Continue's swipes: Mark watched, the episode the row plays, from the leading edge, and Remove
     /// from the trailing one. Untinted, as Downloads' are: the screen's one amber is not spent on
     /// a swipe. Remove takes no full swipe while it has no Undo to go with it.
     func continueSwipes(_ item: ContinueItem) -> some View {
         modifier(ContinueSwipes(item: item))
     }
 
-    /// An episode's swipes: Watched or Unwatched from the leading edge, the full swipe among them,
+    /// An episode's swipes: Mark watched or Mark unwatched from the leading edge, the full swipe among them,
     /// and Download from the trailing one, where the episode menu offers it.
     func episodeSwipes(_ entry: Entry, _ row: EpisodeRow) -> some View {
         modifier(EpisodeSwipes(entry: entry, row: row))
@@ -68,14 +69,14 @@ private struct ContinueSwipes: ViewModifier {
         content
             .swipeActions(edge: .leading, allowsFullSwipe: false) {
                 if item.playable {
-                    Button("Watched") {
+                    Button(L.episodeMarkWatched) {
                         store.send(.setWatched(id: item.id, episodes: [String(item.episode)], watched: true))
                         navigator.watchedByHand += 1
                     }
                 }
             }
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                Button("Remove", role: .destructive) { store.hideFromContinue(item.id) }
+                Button(L.actionRemove, role: .destructive) { store.hideFromContinue(item.id) }
             }
     }
 }
@@ -90,11 +91,11 @@ private struct EpisodeSwipes: ViewModifier {
         content
             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                 if row.completed {
-                    Button("Unwatched") {
+                    Button(L.episodeMarkUnwatched) {
                         store.send(.setWatched(id: entry.id, episodes: [row.number], watched: false))
                     }
                 } else {
-                    Button("Watched") {
+                    Button(L.episodeMarkWatched) {
                         store.send(.setWatched(id: entry.id, episodes: [row.number], watched: true))
                         navigator.watchedByHand += 1
                     }
@@ -102,7 +103,7 @@ private struct EpisodeSwipes: ViewModifier {
             }
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                 if !row.metadataOnly, !row.unsourced, !store.hasDownload(entry.id, episode: row.number) {
-                    Button("Download") { store.send(.downloadEpisode(id: entry.id, episode: row.number)) }
+                    Button(L.titleSwipeDownload) { store.send(.downloadEpisode(id: entry.id, episode: row.number)) }
                 }
             }
     }

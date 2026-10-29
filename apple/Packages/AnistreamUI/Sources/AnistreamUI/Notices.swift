@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// The latest notice, in a glass capsule at the foot of the window, for a few seconds: longer
@@ -29,7 +30,7 @@ struct NoticeCapsule: View {
     /// every 10 words past 12.
     static func duration(_ item: NoticeItem) -> Duration {
         let base = item.isAlert || item.notice.hint != nil ? 8 : 4
-        let words = item.notice.text.split(whereSeparator: \.isWhitespace).count
+        let words = item.notice.words.split(whereSeparator: \.isWhitespace).count
         return .seconds(base + max(0, words - 12) / 10)
     }
 
@@ -44,7 +45,7 @@ struct NoticeCapsule: View {
                             if item.isAlert {
                                 Circle().fill(.vermilion).frame(width: 6, height: 6)
                             }
-                            Text(item.notice.text.firstCapitalized)
+                            Text(item.notice.words.firstCapitalized)
                                 .font(.mac(13))
                                 .foregroundStyle(.silk)
                                 .lineLimit(2)
@@ -60,7 +61,7 @@ struct NoticeCapsule: View {
                             .buttonStyle(SecondaryCapsuleStyle(height: 24, fontSize: 12))
                             .padding(.trailing, 6)
                     } else if item.isAlert {
-                        ReportButton(context: BugContext(kind: "message", message: item.notice.text), height: 24, fontSize: 12)
+                        ReportButton(context: BugContext(kind: "message", message: item.notice.words), height: 24, fontSize: 12)
                             .padding(.trailing, 6)
                     }
                 }
@@ -72,13 +73,13 @@ struct NoticeCapsule: View {
                 .onHover { hovering = $0 }
                 .contextMenu {
                     if !inSettingsSheet {
-                        Button("Messages", systemImage: "text.bubble") { navigator.messagesShown = true }
+                        Button(L.menuMessages, systemImage: "text.bubble") { navigator.messagesShown = true }
                     }
                 }
                 .transition(.opacity)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(item.notice.text.firstCapitalized)
-                .accessibilityAction(named: "Dismiss") { store.notices.dismiss(item) }
+                .accessibilityLabel(item.notice.words.firstCapitalized)
+                .accessibilityAction(named: L.noticeDismiss) { store.notices.dismiss(item) }
                 .accessibilityFocused($focused)
                 .task(id: item.id) {
                     pull = 0
@@ -108,9 +109,9 @@ struct NoticeCapsule: View {
     /// The hint's button, in the platform's casing.
     static func words(_ hint: NoticeHint) -> String {
         switch hint {
-        case .stopPlayback: "Stop"
-        case .openStores: cased(mac: "Open Stores", touch: "Open stores")
-        case .kitsuCredentials: cased(mac: "Sign In", touch: "Sign in")
+        case .stopPlayback: L.actionStop
+        case .openStores: L.noticeOpenStores
+        case .kitsuCredentials: L.actionSignIn
         }
     }
 
@@ -156,7 +157,7 @@ struct MessagesView: View {
         // One surface, as the Mac's other sheets are: its title, the notices, and Done, with no
         // toolbar bands above and below and no list chrome between.
         VStack(alignment: .leading, spacing: 0) {
-            Text("Messages")
+            Text(L.menuMessages)
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
                 .accessibilityAddTraits(.isHeader)
@@ -183,7 +184,7 @@ struct MessagesView: View {
             }
             HStack {
                 Spacer()
-                Button("Done") { dismiss() }
+                Button(L.actionDone) { dismiss() }
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
             }
@@ -209,11 +210,11 @@ struct MessagesView: View {
                 }
             }
             .background(.ground)
-            .navigationTitle("Messages")
+            .navigationTitle(L.menuMessages)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button(L.actionDone) { dismiss() }
                         .fontWeight(.semibold)
                         .tint(.silk)
                         .keyboardShortcut(.defaultAction)
@@ -224,7 +225,7 @@ struct MessagesView: View {
     }
 
     private var empty: some View {
-        Text("No messages yet")
+        Text(L.messagesEmpty)
             .font(Self.font(13))
             .foregroundStyle(.haze)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -250,7 +251,7 @@ private struct MessageRow: View {
                 .fill(item.isAlert ? Palette.vermilion : .clear)
                 .frame(width: 6, height: 6)
                 .accessibilityHidden(true)
-            Text(item.notice.text.firstCapitalized)
+            Text(item.notice.words.firstCapitalized)
                 .font(MessagesView.font(13))
                 .foregroundStyle(.silk)
                 .textSelection(.enabled)
@@ -258,9 +259,9 @@ private struct MessageRow: View {
                 .fixedSize(horizontal: false, vertical: true)
             if item.isAlert {
                 #if os(macOS)
-                ReportButton(context: BugContext(kind: "message", message: item.notice.text), height: 24, fontSize: 12, raisedSurface: true)
+                ReportButton(context: BugContext(kind: "message", message: item.notice.words), height: 24, fontSize: 12, raisedSurface: true)
                 #else
-                ReportButton(context: BugContext(kind: "message", message: item.notice.text), height: 28, fontSize: 15)
+                ReportButton(context: BugContext(kind: "message", message: item.notice.words), height: 28, fontSize: 15)
                 #endif
             }
             Text(item.at, style: .time)

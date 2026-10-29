@@ -85,7 +85,7 @@ struct OpenTitleIntent: OpenIntent {
     static let description = IntentDescription("Opens a title from your lists.")
     static let supportedModes: IntentModes = .foreground(.immediate)
 
-    @Parameter(title: "Title")
+    @Parameter(title: "Title") // i18n-skip
     var target: TitleEntity
 
     @MainActor

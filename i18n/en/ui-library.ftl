@@ -206,6 +206,11 @@ progress-episodes-short = E{ $done } of { $total }
 # @max 12
 progress-episode-short = E{ $done }
 
+# Row caption: the next unwatched episode, dubbed, which came out a while ago.
+# @arg episode: int
+# @arg ago: text
+continue-row-start-aired-dubbed = Play E{ $episode } { -dubbed } · out { $ago }
+
 # Heading over the suggestions under a short { -continue-cap } list.
 up-next-heading = { -up-next-cap } for you
 

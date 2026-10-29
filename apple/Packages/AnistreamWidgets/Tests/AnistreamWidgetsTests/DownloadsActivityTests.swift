@@ -18,7 +18,7 @@ struct DownloadsActivityTests {
         #expect(text.line2 == "412 MB of 1.1 GB · 5 min left")
         #expect(text.timeLeft == "5 min")
         #expect(text.detail == "412 MB of 1.1 GB · 2.4 MB/s")
-        #expect(text.accessibilityLabel == "Hoshikuzu no Tabibito, episode 8, 37 percent, 5 minutes left")
+        #expect(text.accessibilityLabel == "Hoshikuzu no Tabibito, episode 8, 37%, 5 min left")
         #expect(abs(one.fraction - 0.3745) < 0.001)
     }
 
@@ -42,7 +42,7 @@ struct DownloadsActivityTests {
         #expect(text.line1 == "Paused")
         #expect(text.line2 == "412 MB of 1.1 GB")
         #expect(text.timeLeft == nil)
-        #expect(text.accessibilityLabel == "Hoshikuzu no Tabibito, episode 8, 37 percent, paused")
+        #expect(text.accessibilityLabel == "Hoshikuzu no Tabibito, episode 8, 37%, paused")
     }
 
     @Test("Finished: ready to watch offline")
@@ -66,10 +66,10 @@ struct DownloadsActivityTests {
 
     @Test("Times left round up, in hours past one")
     func minutes() {
-        #expect(DownloadsActivityText.minutes(1) == "1 min")
-        #expect(DownloadsActivityText.minutes(61) == "2 min")
-        #expect(DownloadsActivityText.minutes(3_600) == "1 h")
-        #expect(DownloadsActivityText.minutes(5_000) == "1 h 24 min")
+        #expect(DownloadsActivityText.minutes(1, locale: en) == "1 min")
+        #expect(DownloadsActivityText.minutes(61, locale: en) == "2 min")
+        #expect(DownloadsActivityText.minutes(3_600, locale: en) == "1 hr")
+        #expect(DownloadsActivityText.minutes(5_000, locale: en) == "1 hr, 24 min")
     }
 
     @Test("A change of episode, count, pause or finish shows at once; progress waits")

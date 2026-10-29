@@ -38,7 +38,7 @@ struct AskingTests {
         #expect(store.sentLog == ["loadDub"])
         #expect(store.titles.dubLines[900_001] == nil, "nothing shows before the engine answers")
         store.apply(.titleDub(id: 900_001, dub: try DubExtent(through: 6, complete: false)))
-        #expect(store.titles.dubLines[900_001] == "Dub to episode 6")
+        #expect(store.titles.dubLines[900_001] == "Dubbed to episode 6")
         store.apply(.titleDub(id: 900_001, dub: nil))
         #expect(store.titles.dubLines[900_001] == nil, "a dub the source cannot say shows nothing")
     }

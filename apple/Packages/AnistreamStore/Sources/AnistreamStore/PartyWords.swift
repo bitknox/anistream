@@ -1,32 +1,33 @@
 // The words of a watch party, as the form that starts one, the panel in the player and the
 // no-source sheet say them: who is ready, how the connection stands, which server is suggested
-// and who runs it. The same words as the Windows app's (Parties.cs); the party itself is the
-// engine's.
+// and who runs it. Every sentence is a catalogue message (ui-party.ftl); the party itself, and the
+// engine's own messages about it, are the engine's.
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 
 public enum PartyWords {
     /// What the panel says of a member, beside their name.
     public static func state(_ member: PartyMember) -> String {
         switch member.ready {
-        case true?: "Ready"
-        case false?: "Not ready"
-        case nil: "No ready state"
+        case true?: L.partyMemberReady
+        case false?: L.partyMemberNotReady
+        case nil: L.partyMemberNoReadyState
         }
     }
 
     /// A second line for a member whose episode is not this device's, or nil.
     public static func file(_ member: PartyMember) -> String? {
         if member.you { return nil }
-        if member.fileMatches == false { return "Playing a different file" }
-        if member.file == nil { return "Nothing open yet" }
+        if member.fileMatches == false { return L.partyMemberOtherFile }
+        if member.file == nil { return L.partyMemberNoFile }
         return nil
     }
 
     /// The member's name, with "(you)" for this device's.
     public static func name(_ member: PartyMember) -> String {
-        member.you ? "\(member.name) (you)" : member.name
+        member.you ? L.partyMemberYou(name: member.name) : member.name
     }
 
     /// Every member is ready, and there are at least two: when play starts on its own. A member
@@ -37,14 +38,16 @@ public enum PartyWords {
 
     /// The line under the members: everyone ready, who the room waits for, or alone.
     public static func readyLine(_ members: [PartyMember]) -> String {
-        if members.count < 2 { return "Nobody else is here yet. Send the invite link." }
-        if allReady(members) { return "Everyone is ready" }
-        let waiting = members.filter { $0.ready == false }.map { $0.you ? "you" : $0.name }
+        if members.count < 2 { return L.partyAlone }
+        if allReady(members) { return L.partyAllReady }
+        let waiting = members.filter { $0.ready == false }
         switch waiting.count {
-        case 1 where waiting[0] == "you": return "Play starts once you're ready"
-        case 1: return "Play starts once \(waiting[0]) is ready"
-        case 2: return "Play starts once \(waiting[0]) and \(waiting[1]) are ready"
-        default: return "Play starts once \(waiting.count) more are ready"
+        case 1 where waiting[0].you: return L.partyWaitYou
+        case 1: return L.partyWaitOne(name: waiting[0].name)
+        case 2:
+            return L.partyWaitTwo(first: waiting[0].you ? L.partyYou : waiting[0].name,
+                                  second: waiting[1].you ? L.partyYou : waiting[1].name)
+        default: return L.partyWaitMany(count: waiting.count)
         }
     }
 
@@ -52,10 +55,10 @@ public enum PartyWords {
     public static func connection(_ party: PartyView) -> String {
         switch party.connection {
         case .reconnecting(let attempt, let of):
-            return "Connection lost. Trying again, \(attempt) of \(of)"
+            return L.partyConnectionLost(attempt: Int(attempt), of: Int(of))
         case .connected:
-            let line = party.encrypted ? "Connected, encrypted" : "Connected, not encrypted"
-            return party.latencyMs.map { "\(line) · \($0) ms" } ?? line
+            let line = party.encrypted ? L.partyConnectedEncrypted : L.partyConnectedPlain
+            return party.latencyMs.map { L.partyConnectedLatency(line: line, ms: Int($0)) } ?? line
         }
     }
 
@@ -63,15 +66,15 @@ public enum PartyWords {
     /// before joining.
     public static func serverHint(_ typed: String, form: PartyForm) -> String {
         isSuggested(typed, form: form)
-            ? "A public server run by \(form.suggestedRunBy), not by anistream."
-            : "No server of your own? \(form.suggestedServer) is a public one, run by \(form.suggestedRunBy)."
+            ? L.partyServerPublic(operator: form.suggestedRunBy)
+            : L.partyServerSuggest(server: form.suggestedServer, operator: form.suggestedRunBy)
     }
 
     /// The line under an invite's room: whose server it is.
     public static func inviteServerHint(_ server: String, form: PartyForm) -> String {
         isSuggested(server, form: form)
             ? serverHint(server, form: form)
-            : "A server the person who invited you chose. anistream doesn't run it."
+            : L.partyServerInvited
     }
 
     /// Whether `typed` is the suggested public server.
@@ -84,7 +87,7 @@ public enum PartyWords {
     public static func serverProblem(_ typed: String) -> String? {
         let text = typed.trimmingCharacters(in: .whitespaces)
         if text.isEmpty { return nil }
-        let shape = "Write the server as a host and a port, like party.example:8999."
+        let shape = L.partyServerShape
         if text.contains(" ") || text.contains("/") { return shape }
         let host: Substring
         let port: Substring
@@ -119,41 +122,40 @@ public enum PartyWords {
     /// The form's episode line: "Episode 7 of Stardust Wayfarer", or what the player's button
     /// starts.
     public static func episode(_ number: String?, title: String?) -> String {
-        guard let number else { return "What's playing now plays with the room." }
-        return title.map { "Episode \(number) of \($0)" } ?? "Episode \(number)"
+        guard let number else { return L.partyFormNothing }
+        let episode = episodeNumber(number)
+        return title.map { L.partyFormEpisodeOf(episode: episode, title: $0) } ?? L.partyFormEpisode(episode: episode)
     }
 
     /// Where the viewer is while nothing plays: "You're in quiet-harbor on party.example:8999,
     /// with nothing playing."
     public static func place(_ party: PartyView?) -> String {
-        party.map { "You're in \($0.room) on \($0.server), with nothing playing." }
-            ?? "You're in the room, with nothing playing."
+        party.map { L.partyInRoomIdle(room: $0.room, server: $0.server) } ?? L.partyInRoomIdlePlain
     }
 
     /// The no-source sheet's title and its explanation, for why the party's episode has no
-    /// source here. `what` is "Episode 7 of Stardust Wayfarer".
-    public static func noSource(why: NoSourceWhy, reason: String, episode: String, what: String) -> (title: String, body: String) {
+    /// source here. `reason` is the engine's own message about it; `what` is "Episode 7 of
+    /// Stardust Wayfarer".
+    public static func noSource(why: NoSourceWhy, reason: Msg, episode: String, what: String) -> (title: String, body: String) {
+        let said = reason.text.trimmingCharacters(in: Self.stops)
         switch why {
         case .notAired:
-            // The schedule's own words lead: "Episode 6 airs Tuesday at 13:05", or the episode
+            // The schedule's own words lead: "Episode 6 airs tomorrow at 13:05", or the episode
             // not out yet with when the next one is.
-            let said = sentence(reason.replacing(/\ (\d{1,2}:\d{2})\b/) { " at \($0.output.1)" })
-            if let split = said.range(of: "; ") {
-                let next = sentence(String(said[split.upperBound...]))
-                return (String(said[..<split.lowerBound]), "\(next). Your sources won't have episode \(episode) before it's out.")
+            if case .noticeNotAiredYet = reason {
+                return (said, L.partyNosourceUnaired(episode: episodeNumber(episode)))
             }
-            return (said, "Your sources won't have it before then. It plays with the room once one of them does.")
+            return (said, L.partyNosourceUnairedPlain)
         case .noSources:
-            return ("You have no sources yet", "Sources come from plugins, which Providers adds. \(what) plays with the room once one of them has it.")
+            return (L.partyNosourceNoneTitle, L.partyNosourceNoneDetail(what: what))
         case .notFound:
-            let why = sentence(reason).trimmingCharacters(in: CharacterSet(charactersIn: "."))
-            return ("None of your sources has this episode", "\(why). \(what) plays with the room once you choose a source that has it.")
+            return (L.partyNosourceMissingTitle, L.partyNosourceMissingDetail(why: said, what: what))
         }
     }
 
     /// How many sources list the episode: "1 source has it".
     public static func found(_ count: Int) -> String {
-        count == 1 ? "1 source has it" : "\(count) sources have it"
+        L.partySourcesFound(count: count)
     }
 
     /// A source's second line: "sample-source · 1080p · 1.2 GiB · 40 seeders".
@@ -161,17 +163,16 @@ public enum PartyWords {
         var parts = [candidate.providerId]
         if let quality = candidate.quality { parts.append("\(quality)p") }
         if let size = candidate.size, !size.isEmpty { parts.append(size) }
-        if let seeders = candidate.seeders { parts.append("\(seeders) seeders") }
+        if let seeders = candidate.seeders { parts.append(L.sourceReleaseSeeders(count: Int(seeders))) }
         return parts.joined(separator: " · ")
     }
 
-    /// The engine's words as a sentence: each part it joins with a dash its own, capitalised.
-    static func sentence(_ text: String) -> String {
-        text.components(separatedBy: " — ")
-            .map { part in
-                let part = part.trimmingCharacters(in: .whitespaces)
-                return part.prefix(1).uppercased() + part.dropFirst()
-            }
-            .joined(separator: ". ")
+    /// The full stops that end a sentence, in the languages the catalogue has.
+    private static let stops = CharacterSet(charactersIn: ".。")
+
+    /// An episode's number as the messages take it: whole. A part-episode such as "7.5" shows
+    /// as its whole number.
+    static func episodeNumber(_ episode: String) -> Int {
+        Int(episode) ?? Int(Double(episode) ?? 0)
     }
 }

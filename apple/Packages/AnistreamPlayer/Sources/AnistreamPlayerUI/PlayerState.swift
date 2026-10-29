@@ -2,6 +2,7 @@
 // what mpv says of the file.
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 
 /// The rules the player's cards keep time by.
@@ -109,9 +110,9 @@ extension StartingScreen {
     /// engine's note, with the seconds: "Finding a source · 4 s".
     public func line(at now: ContinuousClock.Instant, note: String?) -> String {
         let waited = now - since
-        guard waited >= PlayerTiming.startingWaits else { return "Starting episode \(episode)" }
-        let what = note.flatMap { $0.isEmpty ? nil : $0.prefix(1).uppercased() + $0.dropFirst() } ?? "Finding a source"
-        return "\(what) · \(waited.components.seconds) s"
+        guard waited >= PlayerTiming.startingWaits else { return L.playerStartingText(episode: episode) }
+        let what = note.flatMap { $0.isEmpty ? nil : $0.prefix(1).uppercased() + $0.dropFirst() } ?? L.playerFindingSourcePlain
+        return L.playerWaitNote(what: what, seconds: Int(waited.components.seconds))
     }
 }
 
@@ -123,7 +124,7 @@ public struct EpisodeOnScreen: Equatable, Sendable {
     public var show: String
     public var translation: Translation
 
-    /// "Episode 7 · Dub · The Lantern Road" for a dub, "Episode 7 · The Lantern Road" for a sub,
+    /// "Episode 7 · Dubbed · The Lantern Road" for a dub, "Episode 7 · The Lantern Road" for a sub,
     /// without the name when it has none. Only dubs are marked, wherever an episode is described.
     public var line: String {
         let episode = label + dubMark
@@ -131,7 +132,7 @@ public struct EpisodeOnScreen: Equatable, Sendable {
         return "\(episode) · \(title)"
     }
 
-    /// " · Dub" after the episode's number when it plays dubbed, or nothing.
+    /// " · Dubbed" after the episode's number when it plays dubbed, or nothing.
     public var dubMark: String {
         translation == .dub ? " · \(translation.label)" : ""
     }
@@ -160,7 +161,7 @@ public struct SkipOffer: Equatable, Sendable {
     public var since: ContinuousClock.Instant
 
     /// "Skip opening".
-    public var label: String { kind == .opening ? "Skip opening" : "Skip ending" }
+    public var label: String { kind == .opening ? L.playerSkipOpening : L.playerSkipEnding }
 }
 
 public struct UndoOffer: Equatable, Sendable {
@@ -171,7 +172,7 @@ public struct UndoOffer: Equatable, Sendable {
     public var since: ContinuousClock.Instant
 
     /// "Skipped opening · Undo" reads this, then Undo.
-    public var label: String { kind == .opening ? "Skipped opening" : "Skipped ending" }
+    public var label: String { kind == .opening ? L.playerSkippedOpening : L.playerSkippedEnding }
 }
 
 public struct UpNextCard: Equatable, Sendable {
@@ -237,7 +238,7 @@ public struct ResumeNote: Equatable, Sendable {
     public var position: Double
 
     /// "Resumed at 12:04".
-    public var label: String { "Resumed at \(PlayerClock.label(position))" }
+    public var label: String { L.playerResumedAt(clock: PlayerClock.label(position)) }
 }
 
 public struct PlayerAlert: Equatable, Sendable {
@@ -269,7 +270,7 @@ public struct Track: Equatable, Sendable, Identifiable {
         case (let language?, let title?): return "\(language) · \(title)"
         case (let language?, nil): return language
         case (nil, let title?): return title
-        case (nil, nil): return "Track \(id)"
+        case (nil, nil): return L.playerTrackN(id: Int(id))
         }
     }
 }

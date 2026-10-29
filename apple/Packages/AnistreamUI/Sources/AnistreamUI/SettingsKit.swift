@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// A group of rows: its heading in small capitals, the rows on a raised card with hairlines
@@ -127,7 +128,7 @@ struct SettingSwitch: View {
 extension SettingsModel {
     /// "Overridden for 3 shows", under a row some shows set for themselves.
     func overriddenNote(_ key: SettingKey) -> String? {
-        overriddenShows(key).map { "Overridden for \(Wording.plural(Int($0), "show"))" }
+        overriddenShows(key).map { L.settingsOverridden(count: Int($0)) }
     }
 }
 
@@ -196,13 +197,13 @@ struct SettingMenu: View {
                 set: { value in if let value { store.setSetting(key, to: value) } }
             )) {
                 ForEach(key.options, id: \.value) { option in
-                    Text(key.display(option.label)).tag(Optional(option.value))
+                    Text(key.display(option)).tag(Optional(option.value))
                 }
             }
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            MenuCapsule(text: row.map { key.display(current?.label ?? $0.value) } ?? "–")
+            MenuCapsule(text: row.map { r in current.map { key.display($0) } ?? key.display(r.value) } ?? "–")
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
@@ -218,60 +219,98 @@ extension SettingKey {
     /// "Counts as watched at".
     var title: String {
         switch self {
-        case .titles: "Title language"
-        case .adultTitles: "Show adult titles"
-        case .upNextCountdown: "Up Next countdown"
-        case .spoilerProtection: "Spoiler protection"
-        case .downloadQuality: "Quality"
-        case .keepNextEpisodes: "Keep next"
-        case .downloadsOnCellular: "Download on cellular"
-        case .torrentsOnCellular: "Torrents on cellular"
-        case .vpnOnFailure: "If a check fails"
-        case .torrentIndex: "Torrent index"
-        case .syncplay: "Syncplay parties"
-        case .syncplayServer: "Syncplay server"
-        case .syncplayRoom: "Syncplay room"
-        case .presence: "Discord presence"
-        case .presenceTitle: "Presence shows the title"
-        case .presenceRich: "Rich presence"
-        case .updateCheck: "Check for updates"
-        case .translation: "Translation"
-        case .subtitles: "Subtitles"
-        case .quality: "Quality"
-        case .commitThreshold: "Counts as watched at"
-        case .autoNext: "Auto-play next"
-        case .skipOpening: "Skip opening automatically"
-        case .skipFiller: "Skip filler automatically"
-        case .markChapters: "Mark opening and ending"
-        case .skipButton: "Show skip button"
-        case .fullscreen: "Start fullscreen"
-        case .upscaling: "Upscaling"
-        case .nightMode: "Night mode"
-        case .downloadDir: "Download folder"
-        case .mergeSubtitles: "Merge subtitles in"
-        case .keepSeeding: "Keep seeding"
-        case .downloadHook: "Command"
-        case .torrents: "Torrent source"
-        case .vpnMode: "Protect with"
-        case .seedRatio: "Seed after watching"
-        case .seedHours: "Seed for at most"
-        case .uploadLimit: "Upload limit"
-        case .sourceOrder: "Source order"
+        case .titles: L.settingsTitleLanguage
+        case .adultTitles: L.settingsAdult
+        case .upNextCountdown: L.settingsUpNextCountdown
+        case .spoilerProtection: L.settingsSpoiler
+        case .downloadQuality: L.settingsQuality
+        case .keepNextEpisodes: L.settingsKeepNext
+        case .downloadsOnCellular: L.settingsDownloadCellular
+        case .torrentsOnCellular: L.settingsTorrentsCellular
+        case .vpnOnFailure: L.torrentsIfCheckFails
+        case .torrentIndex: L.torrentsIndex
+        case .syncplay: L.settingsSyncplay
+        case .syncplayServer: L.settingsSyncplayServer
+        case .syncplayRoom: L.settingsSyncplayRoom
+        case .presence: L.settingsDiscordPresence
+        case .presenceTitle: L.settingsPresenceTitle
+        case .presenceRich: L.settingsPresenceRich
+        case .updateCheck: L.settingsCheckUpdates
+        case .translation: L.settingsTranslation
+        case .subtitles: L.playerSubtitles
+        case .quality: L.settingsQuality
+        case .commitThreshold: L.settingsCountsWatched
+        case .autoNext: L.settingsAutoPlay
+        case .skipOpening: L.settingsSkipOpening
+        case .skipFiller: L.settingsSkipFiller
+        case .markChapters: L.settingsMarkOpening
+        case .skipButton: L.settingsSkipButton
+        case .fullscreen: L.settingsStartFullScreen
+        case .upscaling: L.playerUpscaling
+        case .nightMode: L.playerNightMode
+        case .downloadDir: L.downloadsFolder
+        case .mergeSubtitles: L.settingsMergeSubtitles
+        case .keepSeeding: L.settingsKeepSeeding
+        case .downloadHook: L.settingsHookCommand
+        case .torrents: L.sourcesTorrentSource
+        case .vpnMode: L.torrentsProtectWith
+        case .seedRatio: L.settingsSeedAfter
+        case .seedHours: L.settingsSeedFor
+        case .uploadLimit: L.settingsUploadLimit
+        case .sourceOrder: L.sourcesSourceOrderRow
         default: "\(self)".capitalizedSentence
         }
     }
 
-    /// A choice's words as a menu shows them: the engine's, with a capital, and sub or dub said
-    /// as the boards say it.
+    /// A choice's words as a menu shows them: the engine's, in the person's language, with sub
+    /// or dub said as the boards say it. The numbers follow the person's formats.
+    func display(_ option: SettingOption) -> String {
+        let locale = AirTime.locale
+        switch (self, option.value) {
+        case (.commitThreshold, .float(let fraction)):
+            return fraction.formatted(.percent.locale(locale))
+        case (.seedRatio, .float(let ratio)) where ratio > 0:
+            return L.settingsOptionUntilRatio(ratio: ratio.formatted(.number.precision(.fractionLength(1)).locale(locale)))
+        case (.seedHours, .int(let hours)):
+            return Duration.seconds(hours * 3600).formatted(.units(allowed: [.hours], width: .abbreviated).locale(locale))
+        case (.upNextCountdown, .int(let seconds)) where seconds > 0:
+            return Duration.seconds(seconds).formatted(.units(allowed: [.seconds], width: .abbreviated).locale(locale))
+        case (.uploadLimit, .int(let kib)):
+            return kib == 0 ? L.settingsOptionUnlimited : L.settingsOptionPerSecond(size: Wording.bytes(UInt64(kib) * 1024))
+        case (.keepNextEpisodes, .int(let count)) where count > 0:
+            return L.episodesCount(count: Int(count))
+        default:
+            return display(option.label)
+        }
+    }
+
+    /// A choice's engine words as a menu shows them.
     func display(_ label: String) -> String {
         if self == .translation {
             switch label.split(separator: " · ").first.map(String.init) ?? label {
-            case "sub": return "Subtitled"
-            case "dub": return "Dubbed"
+            case "sub": return L.audioSubbed
+            case "dub": return L.audioDubbed
             default: break
             }
         }
-        return label.firstCapitalized
+        switch (self, label) {
+        case (_, "off"): return L.valueOff
+        case (_, "on"): return L.valueOn
+        case (.upscaling, "natural · ArtCNN"): return L.settingsOptionNatural // i18n-skip: the engine's words
+        case (.upscaling, "sharp · Anime4K"): return L.settingsOptionSharp // i18n-skip: the engine's words
+        case (.downloadQuality, "standard"): return L.settingsOptionStandard
+        case (.downloadQuality, "higher"): return L.settingsOptionHigher
+        case (.theme, "adaptive"): return L.settingsOptionAdaptive
+        case (.theme, "immersive"): return L.settingsOptionImmersive
+        case (.titles, "AniList's choice"): return L.settingsTitleTracker(tracker: AccountsModel.name("anilist"))
+        case (.titles, "English"): return L.settingsTitleEnglish
+        case (.titles, "Romaji"): return L.settingsTitleRomaji
+        case (.playerUi, "your mpv setup"): return L.settingsOptionMpv
+        case (.vpnOnFailure, "pause torrents"): return L.torrentsFailPause
+        case (.vpnOnFailure, "stop torrents"): return L.torrentsFailStop
+        case (.vpnOnFailure, "warn only"): return L.torrentsFailWarn
+        default: return label.firstCapitalized
+        }
     }
 }
 

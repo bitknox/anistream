@@ -1,6 +1,7 @@
 // The config as the engine shows it, and the trackers' sync.
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 import Observation
 
@@ -192,29 +193,28 @@ public final class AccountsModel {
         // AniList first, the tracker the catalogue comes from; any other signed in otherwise.
         let signedIn = trackers.filter(\.connected)
         guard let main = signedIn.first(where: { $0.tracker == "anilist" }) ?? signedIn.first
-        else { return SyncSummary(text: "Not connected", state: .signedOut, tracker: nil) }
+        else { return SyncSummary(text: L.shellSyncNone, state: .signedOut, tracker: nil) }
         let name = Self.name(main.tracker)
         let pending = Int(signedIn.reduce(0) { $0 + $1.outbox }) + queued
         if offline {
             // Quiet, as the brief has it: what waits, or only that AniList is out of reach.
-            let text = pending > 0 ? "\(Wording.plural(pending, "change")) waiting to sync" : "Offline"
+            let text = pending > 0 ? L.settingsChangesWaiting(count: pending) : L.storesStatusOffline
             return SyncSummary(text: text, state: .waiting, tracker: main.tracker)
         }
         if main.needsReauth {
-            return SyncSummary(text: "Sign in to \(name) again", state: .problem, tracker: main.tracker)
+            return SyncSummary(text: L.shellSyncSignInAgain(tracker: name), state: .problem, tracker: main.tracker)
         }
         if pending > 0 {
-            let changes = Wording.plural(pending, "change")
-            return SyncSummary(text: "\(changes) waiting to sync", state: .waiting, tracker: main.tracker)
+            return SyncSummary(text: L.settingsChangesWaiting(count: pending), state: .waiting, tracker: main.tracker)
         }
         if main.pullError != nil {
-            return SyncSummary(text: "\(name) not synced", state: .problem, tracker: main.tracker)
+            return SyncSummary(text: L.shellSyncFailed(tracker: name), state: .problem, tracker: main.tracker)
         }
-        return SyncSummary(text: "\(name) synced", state: .synced, tracker: main.tracker)
+        return SyncSummary(text: L.shellSyncSynced(tracker: name), state: .synced, tracker: main.tracker)
     }
 
     /// A tracker's name as a person writes it.
-    public static func name(_ tracker: String) -> String {
+    public nonisolated static func name(_ tracker: String) -> String {
         switch tracker {
         case "anilist": "AniList"
         case "mal", "myanimelist": "MyAnimeList"

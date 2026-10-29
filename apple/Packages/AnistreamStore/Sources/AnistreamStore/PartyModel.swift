@@ -3,6 +3,7 @@
 // the player; this keeps what it said for the screens, as the Windows app does (#179).
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 import Observation
 
@@ -43,7 +44,7 @@ public struct PartyNoSourceAsk: Equatable, Sendable, Identifiable {
     public var id: AnilistId
     public var episode: String
     public var why: NoSourceWhy
-    public var reason: String
+    public var reason: Msg
 }
 
 /// What leaving a party asks about: quitting the app, or closing the window that holds the
@@ -136,12 +137,12 @@ public final class PartyModel {
     /// Join. A link missing a part, or for the room this device is in already, says so instead.
     public func openInvite(_ link: String, openTitle: (AnilistId) -> Void) {
         guard let invite = parsePartyInvite(link: link) else {
-            let text = "That party link is missing its server, room or episode"
+            let text = L.partyLinkIncomplete
             say(text, text, .alert)
             return
         }
         if let party, party.server == invite.server, party.room == invite.room {
-            say("You're already in this party", "You're already in this party", .info)
+            say(L.partyAlreadyIn, L.partyAlreadyIn, .info)
             return
         }
         if !playerUp() { openTitle(invite.id) }
@@ -277,15 +278,14 @@ public final class PartyModel {
                 start = nil
             }
             if fresh {
-                say("You're in the party. The people button in the player has the invite link.",
-                    "You're in the party. The people button has the invite link.", .info)
+                say(L.partyInNotePlayer, L.partyInNote, .info)
             }
         case .partyState(let view):
             party = view
         case .partyMembers(let members):
             self.members = members
         case .partyLeft(let message):
-            let reason = message.map { msgEnglish(msg: $0) }  // i18n P2: replace with the catalogue
+            let reason = message.map { $0.text }
             let was = party != nil
             party = nil
             members = nil
@@ -296,17 +296,17 @@ public final class PartyModel {
             if joining {
                 // The form says why itself, and Try again keeps what was typed.
                 joining = false
-                failure = reason ?? "The party ended before it began."
+                failure = reason ?? L.partyEndedEarly
             } else if was {
                 // Over the video the engine's own notice says it.
                 if let reason {
                     say(reason, nil, .alert)
                 } else {
-                    say("You left the party. What's playing goes on, just for you.", nil, .info)
+                    say(L.partyLeftNote, nil, .info)
                 }
             }
         case .partyNoSource(let id, let episode, let why, let reason):
-            noSource = PartyNoSourceAsk(id: id, episode: episode, why: why, reason: msgEnglish(msg: reason))  // i18n P2: replace with the catalogue
+            noSource = PartyNoSourceAsk(id: id, episode: episode, why: why, reason: reason)
             choice = nil
         case .sources(let id, let episode, let candidates):
             if choice == .looking, let noSource, noSource.id == id, noSource.episode == episode {
@@ -314,7 +314,7 @@ public final class PartyModel {
             }
         case .toast(let notice):
             if choice == .looking, notice.kind == .alert {
-                choice = .failed(PartyWords.sentence(notice.text))
+                choice = .failed(notice.words)
             }
         default:
             break

@@ -4,6 +4,7 @@
 import AnistreamKit
 import AnistreamPlayer
 import AnistreamStore
+import AnistreamStrings
 import CoreGraphics
 import Foundation
 import Observation
@@ -1108,7 +1109,7 @@ public final class PlayerModel {
     /// a source" when it has one: what the wait is on.
     public func startingLine(note: String?) -> String? {
         guard let starting else {
-            return holdsCurtain ? staged.map { "Starting episode \($0.episode)" } : nil
+            return holdsCurtain ? staged.map { L.playerStartingText(episode: $0.episode) } : nil
         }
         return starting.line(at: clock, note: note)
     }
@@ -1201,7 +1202,7 @@ public final class PlayerModel {
         if let episode { return episode.line }
         let number = staged?.episode ?? starting?.episode ?? ""
         let title = staged?.episodeTitle ?? starting?.episodeTitle
-        return title.map { "Episode \(number) · \($0)" } ?? "Episode \(number)"
+        return title.map { L.episodeTitledText(number: number, title: $0) } ?? L.episodeNumberString(number: number)
     }
 
     // MARK: When it could not play
@@ -1448,7 +1449,7 @@ public final class PlayerModel {
     }
 
     private func trackFileFailed(_ kind: Track.Kind) {
-        let text = kind == .audio ? "Couldn't load that audio file" : "Couldn't load that subtitle file"
+        let text = kind == .audio ? L.playerAudioFileFailed : L.playerSubtitleFileFailed
         alert = PlayerAlert(text: text, kind: .alert, since: time.now())
     }
 

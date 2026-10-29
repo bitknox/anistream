@@ -373,6 +373,7 @@ widget-start-label = Play episode { $episode } of { $title }
 # @arg title: text
 widget-resume-dubbed-label = Resume episode { $episode }, { -dubbed }, of { $title }
 
+
 # Line under a signed-in account while changes wait to be sent.
 # @arg count: int
 accounts-changes-waiting = { $count ->
@@ -402,6 +403,38 @@ settings-upscaling-note-natural = Faithful line work and texture, nothing restyl
 # Preview note under the upscaling frame for the sharp look.
 settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
 
+# Setting: a command run after each download finishes.
+settings-after-download = After each download
+
+# Setting: extra options passed to mpv, the player. mpv stays lower case.
+settings-mpv-options = mpv options
+
+# Name screen readers give the list of panes down the side of Settings.
+settings-panes-label = Settings panes
+
+# Setting: Discord's status with the cover and a progress bar.
+settings-presence-rich = Rich presence
+
+# Setting: Discord's status names the show being watched.
+settings-presence-title = Presence shows the title
+
+# Under a tracker that is signed in, when its user name is unknown.
+settings-signed-in = Signed in
+
 # Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
 # @max 28
 settings-upscaling-sharp = Sharp · Anime4K
+
+
+# Side note in Accounts.
+settings-aside-accounts = { -app-name } works without an account. Your watch history stays on this { -device } when you sign out.
+
+# Today, inside a line such as "Thursday 16:30".
+widget-day-today = today
+
+# Yesterday, inside a line.
+widget-day-yesterday = yesterday
+
+# Line of the Continue widget: what plays next, with the episode already named.
+# @arg episode: text
+widget-line-start = Start { $episode }

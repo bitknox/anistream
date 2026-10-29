@@ -27,8 +27,8 @@ struct PhoneContinue: View {
             ListStates(
                 state: store.continuing.list.state,
                 placeholder: AnyView(PhoneContinuePlaceholder().padding(.horizontal, 16)),
-                activity: "loading continue watching",
-                failure: "Couldn't load Continue",
+                activity: "loading continue watching", // the engine job this list waits on
+                failure: L.continueLoadFailed,
                 retry: { store.loadContinue(force: true) },
                 offlineInset: 16,
                 rowsShown: $rowsShown
@@ -80,7 +80,7 @@ struct PhoneContinue: View {
             }
             let rail = Array(queue.inProgress.dropFirst())
             if !rail.isEmpty {
-                PhoneHeading("In progress").padding(.top, 18)
+                PhoneHeading(L.groupInProgress).padding(.top, 18)
                 ScrollView(.horizontal) {
                     HStack(alignment: .top, spacing: 12) {
                         ForEach(rail) { PhoneCard(item: $0) }
@@ -93,7 +93,7 @@ struct PhoneContinue: View {
             }
             if !fresh.isEmpty {
                 // Its rows follow as rows of the list.
-                PhoneHeading("New this week").padding(.top, 16)
+                PhoneHeading(L.groupNewThisWeek).padding(.top, 16)
             }
         }
         .padding(.horizontal, 16)
@@ -110,17 +110,17 @@ struct PhoneContinuePlaceholder: View {
                 .fill(.raised)
                 .aspectRatio(16 / 9, contentMode: .fit)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Hoshikuzu no Tabibito").font(.showTitle(size: 22, relativeTo: .title2))
-                Text("Episode 7 · The Lantern Road").font(.ui(15))
+                Text("Hoshikuzu no Tabibito").font(.showTitle(size: 22, relativeTo: .title2)) // i18n-skip
+                Text("Episode 7 · The Lantern Road").font(.ui(15)) // i18n-skip
             }
             .padding(.top, 8)
-            Text("In progress").font(.ui(20, weight: .semibold)).padding(.top, 18)
+            Text(L.groupInProgress).font(.ui(20, weight: .semibold)).padding(.top, 18)
             HStack(spacing: 12) {
                 ForEach(0..<2, id: \.self) { _ in
                     VStack(alignment: .leading, spacing: 6) {
                         RoundedRectangle(cornerRadius: ArtShape.bannerRadius).fill(.raised).frame(width: 208, height: 117)
-                        Text("Kumo no Ue no Toshokan").font(.showTitle(size: 17, relativeTo: .body))
-                        Text("E4 · 12 min left").font(.ui(15))
+                        Text("Kumo no Ue no Toshokan").font(.showTitle(size: 17, relativeTo: .body)) // i18n-skip
+                        Text("E4 · 12 min left").font(.ui(15)) // i18n-skip
                     }
                 }
             }
@@ -136,14 +136,14 @@ struct PhoneContinuePlaceholder: View {
 }
 
 
-/// The account button on Continue and Library: Accounts, Providers, Plugin stores and Settings
+/// The account button on Continue and Library: Accounts, Sources, Plugin stores and Settings
 /// in a sheet.
 struct AccountButton: ToolbarContent {
     @Environment(Navigator.self) private var navigator
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button("Accounts and settings", systemImage: "person.crop.circle") {
+            Button(L.navAccountsAndSettings, systemImage: "person.crop.circle") {
                 navigator.phoneSettings = .root
             }
         }
@@ -155,8 +155,8 @@ extension AppStore {
     /// tracker's state, or with none signed in, that nothing is watched yet when that is so.
     func syncSubtitle(nothingWatched: Bool = false) -> String {
         let summary = accounts.summary
-        if summary.state == .signedOut { return nothingWatched ? "Nothing watched yet" : "" }
-        if jobs.shown.contains(where: { $0.activity == "syncing" }) { return "Syncing" }
+        if summary.state == .signedOut { return nothingWatched ? L.continueEmptyTitle : "" }
+        if jobs.shown.contains(where: { $0.activity == "syncing" }) { return L.accountsSyncRunning }
         return summary.text
     }
 }
@@ -311,7 +311,7 @@ struct PhoneCard: View {
                     .padding(.top, 6)
                 HStack(spacing: 6) {
                     if !item.playable { Circle().fill(.water).frame(width: 6, height: 6) }
-                    Text(item.timeLeft.map { "\(item.marked("E\(item.episode)")) · \($0)" } ?? item.action)
+                    Text(item.leftLine ?? item.action)
                 }
                 .font(.ui(15))
                 .foregroundStyle(.haze)
@@ -402,8 +402,8 @@ struct PhoneCalendar: View {
                 ListStates(
                     state: store.calendar.list.state,
                     placeholder: AnyView(PhoneCalendarPlaceholder()),
-                    activity: "loading the calendar",
-                    failure: "Couldn't load the calendar",
+                    activity: "loading the calendar", // the engine job this list waits on
+                    failure: L.calendarLoadFailed,
                     retry: { store.loadCalendar() }
                 ) { _ in
                     VStack(alignment: .leading, spacing: 20) {
@@ -413,7 +413,7 @@ struct PhoneCalendar: View {
                                 PhoneHeading(dayHeading(day))
                                     .accessibilityRotorEntry(id: day, in: rotor)
                                 if today.isEmpty {
-                                    Text("Nothing airing")
+                                    Text(L.calendarEmptyTitle)
                                         .font(.ui(15))
                                         .foregroundStyle(.haze)
                                         .padding(.top, 4)
@@ -429,7 +429,7 @@ struct PhoneCalendar: View {
                     }
                     .padding(.top, 8)
                 } empty: {
-                    QuietLine("Nothing airing")
+                    QuietLine(L.calendarEmptyTitle)
                 }
             }
             .padding(.horizontal, 16)
@@ -439,9 +439,9 @@ struct PhoneCalendar: View {
         .pullToRefresh(store, .calendar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Picker("Show", selection: $navigator.calendarMine) {
-                    Text("My list").tag(true)
-                    Text("All airing").tag(false)
+                Picker(L.filterShow, selection: $navigator.calendarMine) {
+                    Text(L.calendarFilterMine).tag(true)
+                    Text(L.calendarFilterAll).tag(false)
                 }
                 .pickerStyle(.segmented)
                 .fixedSize()
@@ -458,8 +458,8 @@ struct PhoneCalendar: View {
     }
 
     private func dayHeading(_ day: Date) -> String {
-        if Calendar.current.isDateInToday(day) { return "Today" }
-        if Calendar.current.isDateInTomorrow(day) { return "Tomorrow" }
+        if Calendar.current.isDateInToday(day) { return L.dayToday }
+        if Calendar.current.isDateInTomorrow(day) { return L.dayTomorrow }
         return CalendarWords.weekday(day)
     }
 
@@ -473,7 +473,6 @@ struct PhoneCalendar: View {
             VStack(spacing: 4) {
                 Text(CalendarWords.shortWeekday(day))
                     .font(.ui(11, weight: selected || today ? .semibold : .medium))
-                    .kerning(0.88)
                     .foregroundStyle(selected ? .amber : .haze)
                 Text(CalendarWords.dayNumber(day))
                     .font(.ui(17, weight: selected ? .semibold : .regular))
@@ -496,14 +495,14 @@ struct PhoneCalendar: View {
 struct PhoneCalendarPlaceholder: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Today").font(.ui(20, weight: .semibold))
+            Text(L.dayToday).font(.ui(20, weight: .semibold))
             ForEach(0..<3, id: \.self) { _ in
                 HStack(spacing: 14) {
-                    Text("17:30").font(.ui(15)).frame(minWidth: 52, alignment: .leading)
+                    Text("17:30").font(.ui(15)).frame(minWidth: 52, alignment: .leading) // i18n-skip
                     RoundedRectangle(cornerRadius: 6).fill(.raised).frame(width: 50, height: 75)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Natsukaze Relay").font(.showTitle(size: 17, relativeTo: .body))
-                        Text("Episode 9 in 1h 30m").font(.ui(15))
+                        Text("Natsukaze Relay").font(.showTitle(size: 17, relativeTo: .body)) // i18n-skip
+                        Text("Episode 9 in 1h 30m").font(.ui(15)) // i18n-skip
                     }
                     Spacer(minLength: 0)
                 }
@@ -550,14 +549,12 @@ struct PhoneBroadcastRow: View {
                         if broadcast.isNew(now: now) {
                             Circle().fill(.water).frame(width: 6, height: 6)
                         }
-                        Text((broadcast.watched ? "Episode \(broadcast.episode)" : broadcast.line(now: now)
-                            .replacingOccurrences(of: "Ep ", with: "Episode "))
-                            + broadcast.markSuffix)
+                        Text(broadcast.watched ? broadcast.episodeLong : broadcast.line(now: now))
                     }
                     .font(.ui(15))
                     .foregroundStyle(.haze)
                     if !broadcast.watched, let note = broadcast.delayNote {
-                        Text("Delayed \(note)")
+                        Text(note)
                             .font(.ui(13))
                             .monospacedDigit()
                             .foregroundStyle(.haze)
@@ -568,7 +565,7 @@ struct PhoneBroadcastRow: View {
                     Image(systemName: "checkmark")
                         .font(.ui(15, weight: .semibold))
                         .foregroundStyle(.haze)
-                        .accessibilityLabel("Watched")
+                        .accessibilityLabel(L.episodeWatched)
                 }
             }
             .padding(.vertical, 8)
@@ -615,7 +612,7 @@ struct PhoneLibrary: View {
                                         withAnimation(.quick) { navigator.librarySegment = segment }
                                     } label: {
                                         HStack(spacing: 6) {
-                                            Text(segment.label.capitalizedSentence)
+                                            Text(segment.title)
                                             Text("\(count)").foregroundStyle(selected ? .amber : .haze)
                                         }
                                         .font(.ui(17))
@@ -665,7 +662,7 @@ struct DownloadsRow: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "arrow.down.to.line").font(.ui(17)).accessibilityHidden(true)
-                Text("Downloads").font(.ui(17))
+                Text(L.downloadsTitle).font(.ui(17))
                 Spacer()
                 if count > 0 {
                     Text("\(count)").font(.ui(17)).monospacedDigit().foregroundStyle(.haze)
@@ -680,7 +677,7 @@ struct DownloadsRow: View {
         }
         .buttonStyle(.plain)
         .pointerHover()
-        .accessibilityValue(count > 0 ? Wording.plural(count, "episode") : "")
+        .accessibilityValue(count > 0 ? L.episodesCount(count: count) : "")
         .task { store.loadDownloads() }
     }
 }

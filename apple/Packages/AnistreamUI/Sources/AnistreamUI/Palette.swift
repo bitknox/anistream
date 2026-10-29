@@ -48,26 +48,26 @@ func paletteItems(query: String, store: AppStore, navigator: Navigator) -> (titl
         defer { always = false }
         let next = entry.progress?.next ?? 1
         let episodeName = store.titles.episodes[id]?.first { $0.number == String(next) }?.title
-        command("Mark Watched", "checkmark",
-                detail: episodeName.map { "Episode \(next) · \($0)" } ?? "Episode \(next)",
+        command(L.menuMarkWatched, "checkmark",
+                detail: episodeName.map { L.episodeTitledText(number: String(next), title: $0) } ?? L.episodeNumberString(number: String(next)),
                 shortcut: "⇧⌘U") {
             store.send(.setWatched(id: id, episodes: [String(next)], watched: true))
         }
-        command("Hide from Continue", "eye.slash", detail: "Progress is kept", shortcut: "⌘⌫",
+        command(L.continueHide, "eye.slash", detail: L.paletteProgressKept, shortcut: "⌘⌫",
                 enabled: entry.progress != nil) { store.hideFromContinue(id) }
         command(L.sourcePickerTitle, "arrow.triangle.branch") { navigator.sourcePicker = id }
-        command("Show Settings for This Show…", "slider.horizontal.3",
-                detail: "Audio, subtitles, auto-skip, source", shortcut: "⌘I") { navigator.showSettings = id }
+        command(L.menuShowSettings, "slider.horizontal.3",
+                detail: L.paletteShowSettingsDetail, shortcut: "⌘I") { navigator.showSettings = id }
     }
     for (index, section) in [AppSection.continue, .calendar, .seasonal, .library, .downloads].enumerated() {
         command(section.title, section.symbol, shortcut: "⌘\(index + 1)") { navigator.open(section) }
     }
-    command("Search", "magnifyingglass", shortcut: "⌘F") { navigator.open(.search) }
-    command("Providers", AppSection.providers.symbol, shortcut: "⌘6") { navigator.open(.providers) }
-    command("Plugin Stores", AppSection.pluginStores.symbol, shortcut: "⌘7") { navigator.open(.pluginStores) }
-    command("Sync Now", "arrow.triangle.2.circlepath", shortcut: "⌘R") { store.send(.syncNow) }
-    command("Messages", "text.bubble", shortcut: "⌥⌘L") { navigator.messagesShown = true }
-    command("Settings", AppSection.settings.symbol, shortcut: "⌘,") { navigator.open(.settings) }
+    command(L.navSearch, "magnifyingglass", shortcut: "⌘F") { navigator.open(.search) }
+    command(L.sourcesTitle, AppSection.providers.symbol, shortcut: "⌘6") { navigator.open(.providers) }
+    command(L.menuPluginStores, AppSection.pluginStores.symbol, shortcut: "⌘7") { navigator.open(.pluginStores) }
+    command(L.menuSyncNow, "arrow.triangle.2.circlepath", shortcut: "⌘R") { store.send(.syncNow) }
+    command(L.menuMessages, "text.bubble", shortcut: "⌥⌘L") { navigator.messagesShown = true }
+    command(L.navSettings, AppSection.settings.symbol, shortcut: "⌘,") { navigator.open(.settings) }
     // What cannot run now comes last, dimmed.
     commands.sort { lhs, rhs in
         let enabled = { (item: PaletteItem) -> Bool in
@@ -102,7 +102,7 @@ struct PaletteOverlay: View {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     Image(systemName: "magnifyingglass").font(.mac(17)).foregroundStyle(.haze)
-                    TextField("Titles and commands", text: $query)
+                    TextField(L.palettePlaceholder, text: $query)
                         .textFieldStyle(.plain)
                         .font(.mac(20))
                         .foregroundStyle(.silk)
@@ -113,11 +113,11 @@ struct PaletteOverlay: View {
                 .frame(height: 64)
                 Rectangle().fill(Palette.glassRule).frame(height: 1)
                 VStack(alignment: .leading, spacing: 0) {
-                    group("Titles", lists.titles, offset: 0)
-                    group("Commands", lists.commands, offset: lists.titles.count)
-                    group("Recent", lists.recent, offset: lists.titles.count + lists.commands.count)
+                    group(L.paletteTitles, lists.titles, offset: 0)
+                    group(L.paletteCommands, lists.commands, offset: lists.titles.count)
+                    group(L.paletteRecent, lists.recent, offset: lists.titles.count + lists.commands.count)
                     if all.isEmpty {
-                        Text("Return searches for \u{201c}\(query)\u{201d}")
+                        Text(L.paletteSearchFor(query: query))
                             .font(.mac(13))
                             .foregroundStyle(.haze)
                             .padding(.horizontal, 28)
@@ -128,9 +128,9 @@ struct PaletteOverlay: View {
                 Rectangle().fill(Palette.glassRule).frame(height: 1)
                 HStack(spacing: 20) {
                     Spacer()
-                    hint("↩", "Open")
-                    hint("⌘↩", "Play")
-                    hint("esc", "Close")
+                    hint("↩", L.paletteHintOpen)
+                    hint("⌘↩", L.actionPlay)
+                    hint("esc", L.actionClose)
                 }
                 .font(.mac(13))
                 .padding(.horizontal, 20)
@@ -271,12 +271,12 @@ struct PaletteRow: View {
 
     private func paletteAction(_ entry: Entry) -> String {
         guard let progress = entry.progress else {
-            return entry.listStatus == nil ? "Add to Planning" : "Start E1"
+            return entry.listStatus == nil ? L.libraryAddPlanning : L.continueRowStart(episode: 1)
         }
         let next = entry.playableNext(in: store.titles.episodes[entry.id])
         // Nothing from here on has a source: the page, rather than a play that cannot start.
-        if next.unsourced { return "Open" }
-        return entry.resume != nil ? "Resume E\(next.episode)" : "Start E\(next.episode)"
+        if next.unsourced { return L.actionOpen }
+        return entry.resume != nil ? L.paletteResumeEpisode(episode: String(next.episode)) : L.continueRowStart(episode: Int(next.episode))
     }
 }
 

@@ -2,6 +2,7 @@
 // what an owner manages: invites, members, who can join, and plugins to publish.
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 import Observation
 
@@ -172,8 +173,8 @@ extension StoreRow {
 extension StorePluginRow {
     /// What it may contact, in a line: "Contacts open-archive.example and 1 more".
     public var contactsLine: String {
-        guard let first = hosts.first else { return "Contacts no hosts" }
-        return hosts.count > 1 ? "Contacts \(first) and \(hosts.count - 1) more" : "Contacts \(first)"
+        guard let first = hosts.first else { return L.sourcesContactsNone }
+        return hosts.count > 1 ? L.sourcesContactsLine(first: first, more: hosts.count - 1) : L.sourcesContactsOne(first: first)
     }
 
     /// The version installed here: the one an update replaces, or the store's own.
@@ -187,10 +188,10 @@ extension StorePluginRow {
     public var standing: String? {
         switch status {
         case .available: nil
-        case .installed: "Installed"
-        case .update(let from, _): "\(from) installed"
-        case .addedByHand: "Added by hand"
-        case .otherStore(let other): "From \(other)"
+        case .installed: L.storesPluginStateInstalled
+        case .update(let from, _): L.storesInstalledVersion(version: from)
+        case .addedByHand: L.sourcesOriginByHand
+        case .otherStore(let other): L.storesPluginFrom(other: other)
         }
     }
 }
@@ -199,7 +200,7 @@ extension InvitedStore {
     /// Who runs the store and where it answers: "Run by Ren · plugins.example", or the host alone
     /// from a store that does not say who runs it.
     public var runByLine: String {
-        owners.isEmpty ? host : "Run by \(owners.joined(separator: ", ")) · \(host)"
+        owners.isEmpty ? host : L.storesRunBy(owner: owners.formatted(.list(type: .and).locale(AirTime.locale)), host: host)
     }
 }
 
@@ -207,12 +208,12 @@ extension StoreRow {
     /// Who runs the store and where it answers, from its signed list: "Run by Ren ·
     /// plugins.example", or the host alone from a store that does not say who runs it.
     public var runByLine: String {
-        owners.isEmpty ? host : "Run by \(owners.joined(separator: ", ")) · \(host)"
+        owners.isEmpty ? host : L.storesRunBy(owner: owners.formatted(.list(type: .and).locale(AirTime.locale)), host: host)
     }
 
     /// Who this device joined as: a name, or none, for one that joined with the store's link.
     public var joinedAs: String {
-        anonymous ? "joined without a name" : "joined as \(member)"
+        anonymous ? L.storesJoinedNameless : L.storesDeviceJoinedAs(name: member)
     }
 }
 

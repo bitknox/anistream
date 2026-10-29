@@ -3,6 +3,7 @@
 // nothing they do ever shows a banner on the machine.
 
 import AnistreamKit
+import AnistreamStrings
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -101,11 +102,7 @@ public struct SystemNoticeCentre: NoticeCentre {
     /// Play brings the app forward; Mark watched runs in the background. Hidden previews say
     /// "New episode", and a group "3 more new episodes".
     public static func categories() -> Set<UNNotificationCategory> {
-        #if os(macOS)
-        let (play, mark) = ("Play", "Mark Watched")
-        #else
-        let (play, mark) = ("Play", "Mark watched")
-        #endif
+        let (play, mark) = (L.actionPlay, L.episodeMarkWatched)
         let playAction = UNNotificationAction(identifier: NoticeAction.play.rawValue, title: play, options: [.foreground])
         let markAction = UNNotificationAction(identifier: NoticeAction.markWatched.rawValue, title: mark, options: [])
         let category = { (kind: NoticeCategory, actions: [UNNotificationAction]) in

@@ -11,6 +11,9 @@ let package = Package(
     products: [
         .library(name: "AnistreamKit", targets: ["AnistreamKit"]),
     ],
+    dependencies: [
+        .package(path: "../AnistreamStrings"),
+    ],
     targets: [
         // The engine as a static library per slice, with the C headers of the bindings and one
         // module map declaring each crate's C module under the name its generated Swift imports.
@@ -19,7 +22,10 @@ let package = Package(
         // the app adds to it.
         .target(
             name: "AnistreamKit",
-            dependencies: ["AnistreamEngine"],
+            dependencies: [
+                "AnistreamEngine",
+                .product(name: "AnistreamStrings", package: "AnistreamStrings"),
+            ],
             linkerSettings: [
                 // What the Rust library itself links against, as
                 // `cargo rustc -p anistream-ffi --lib -- --print native-static-libs` lists it.

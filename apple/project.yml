@@ -46,6 +46,8 @@ settings:
     MARKETING_VERSION: "2.0.0"
     CURRENT_PROJECT_VERSION: "1"
     DEAD_CODE_STRIPPING: true
+    # Every string comes from the catalogue (AnistreamStrings); a literal must not grow a second one.
+    SWIFT_EMIT_LOC_STRINGS: false
   configs:
     # The cargo profile engine.sh builds the engine with: app-dev to develop, release to keep.
     Debug:
@@ -231,6 +233,9 @@ targets:
   AnistreamKit:
     templates: [Engine]
     templateAttributes: { module: AnistreamKit, flavour: release }
+    dependencies:
+      - target: AnistreamStrings
+        embed: false
   AnistreamDesign:
     templates: [Design]
     templateAttributes: { module: AnistreamDesign }
@@ -240,6 +245,9 @@ targets:
     templates: [Framework]
     templateAttributes: { module: AnistreamWidgetData }
     sources: [Packages/AnistreamWidgets/Sources/AnistreamWidgetData]
+    dependencies:
+      - target: AnistreamStrings
+        embed: false
   AnistreamStrings:
     templates: [Strings]
     templateAttributes: { module: AnistreamStrings }
@@ -249,6 +257,8 @@ targets:
     sources: [Packages/AnistreamStore/Sources/AnistreamStore]
     dependencies:
       - target: AnistreamKit
+        embed: false
+      - target: AnistreamStrings
         embed: false
       - target: AnistreamWidgetData
         embed: false
@@ -264,6 +274,8 @@ targets:
       - target: AnistreamStore
         embed: false
       - target: AnistreamDesign
+        embed: false
+      - target: AnistreamStrings
         embed: false
   AnistreamUI:
     templates: [Framework]
@@ -283,6 +295,9 @@ targets:
   AnistreamKitFixtures:
     templates: [Engine, Fixtures]
     templateAttributes: { module: AnistreamKit, flavour: testing }
+    dependencies:
+      - target: AnistreamStringsFixtures
+        embed: false
   AnistreamDesignFixtures:
     templates: [Design, Fixtures]
     templateAttributes: { module: AnistreamDesign }
@@ -290,6 +305,9 @@ targets:
     templates: [Framework, Fixtures]
     templateAttributes: { module: AnistreamWidgetData }
     sources: [Packages/AnistreamWidgets/Sources/AnistreamWidgetData]
+    dependencies:
+      - target: AnistreamStringsFixtures
+        embed: false
   AnistreamStringsFixtures:
     templates: [Strings, Fixtures]
     templateAttributes: { module: AnistreamStrings }
@@ -299,6 +317,8 @@ targets:
     sources: [Packages/AnistreamStore/Sources/AnistreamStore]
     dependencies:
       - target: AnistreamKitFixtures
+        embed: false
+      - target: AnistreamStringsFixtures
         embed: false
       - target: AnistreamWidgetDataFixtures
         embed: false
@@ -314,6 +334,8 @@ targets:
       - target: AnistreamStoreFixtures
         embed: false
       - target: AnistreamDesignFixtures
+        embed: false
+      - target: AnistreamStringsFixtures
         embed: false
   AnistreamUIFixtures:
     templates: [Framework, Fixtures]
@@ -426,6 +448,8 @@ targets:
       - target: AnistreamWidgetData
         embed: false
       - target: AnistreamDesign
+        embed: false
+      - target: AnistreamStrings
         embed: false
       - sdk: WidgetKit.framework
       - sdk: SwiftUI.framework
