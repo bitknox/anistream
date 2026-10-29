@@ -84,16 +84,19 @@ Play on TV added:
 
 Trailers added:
 
-- The title page plays its trailer, muted, behind the banner once the page has settled. The
-  banner clears over it only when a frame is playing, the title steps down below the video, and a
-  sound button appears at the end of the actions. Scrolling more than 8 px pauses it and brings the
-  banner back; leaving the page, starting an episode, opening a dialog or the window losing focus
-  lets it go.
+- The title page plays its trailer, muted, in the corner of the banner once the page has settled.
+  A title with a trailer opens with its head 100 px below the band, so nothing moves when the
+  trailer plays. The video is 448 by 252, exactly 16:9, so the player never letterboxes; the art
+  fades to the page's colour only when a frame is playing, and the sound button hangs below the
+  video's corner. The banner comes back half a second before the end. Scrolling more than 8 px
+  brings the banner back and then pauses the trailer. Below 700 px wide the page keeps its banner.
+  Leaving the page, starting an episode, opening a dialog or the window losing focus lets it go.
 - Resting the pointer on a cover in Seasonal, Search, Library or Related for 800 ms opens a preview
-  in a popover: the banner, the title, the facts, two lines of synopsis and the main action, with
-  the trailer under the banner where one plays. It closes 150 ms after the pointer leaves, and at
-  once on a scroll, a key, a click elsewhere or the window losing focus.
-- Play trailer opens the trailer in a window with YouTube's controls and sound. If the embed
+  in a popover, one surface with the video flush at the top, then the title, the facts, two lines
+  of synopsis and the main action. When a preview has just closed, the next one opens after 300 ms
+  if the pointer rests within a second. It closes 150 ms after the pointer leaves, and at once on a
+  scroll, a key, a click elsewhere or the window losing focus.
+- Play trailer opens the trailer in a 960 by 540 window under an Adwaita header bar, with YouTube's controls and sound. If the embed
   refuses the video, or there is no web view, the watch URL opens in the browser as before.
 - Settings, General: Play trailers (Always, Wi-Fi only, Off). The engine decides whether a trailer
   starts by itself from that, the network and the device state the window reports (animations off,
