@@ -227,7 +227,11 @@ private fun Header(entry: Entry, episode: UInt, view: DiscussionView?) {
                 modifier = Modifier.heightIn(min = 20.dp),
             )
         }
-        TextButton(onClick = { view?.url?.let(store::openExternal) }, enabled = view != null) {
+        TextButton(
+            onClick = { view?.url?.let(store::openExternal) },
+            enabled = view != null,
+            colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = colors.onSurface),
+        ) {
             Text(stringResource(R.string.title_open_anilist))
         }
     }
@@ -346,8 +350,14 @@ private fun CommentRow(
             .combinedClickable(onClick = {}, onLongClick = { menu = true }),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(avatar).clip(CircleShape)) {
-            if (comment.avatar != null) ArtworkImage(comment.avatar, null, 96, Modifier.size(avatar)) else Avatar(comment.author, avatar.value.toInt())
+        val tint = avatarTint(comment.author)
+        // The picture comes over the initial as it arrives; until then, and without one, the initial stands.
+        val arrived = remember(comment.avatar) { comment.avatar?.let(store.artwork::arrivals) }
+        arrived?.collectAsStateWithLifecycle()?.value
+        val pictured = comment.avatar != null && store.artwork.image(comment.avatar!!) != null
+        Box(Modifier.size(avatar).clip(CircleShape).background(tint), contentAlignment = Alignment.Center) {
+            if (comment.avatar != null) ArtworkImage(comment.avatar, tint, 96, Modifier.size(avatar))
+            if (!pictured) Text(comment.author.take(1).uppercase(), style = MaterialTheme.typography.labelMedium, color = colors.onSurface)
         }
         Column(Modifier.weight(1f)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -434,6 +444,12 @@ private fun CommentRow(
             }
         }
     }
+}
+
+/** A calm tint for a name's initial, the same name always the same one. */
+private fun avatarTint(name: String): Color {
+    val palette = listOf(0xFF4F6382, 0xFF6E5470, 0xFF7A6A45, 0xFF5A6878)
+    return Color(palette[(name.hashCode() and 0x7fffffff) % palette.size])
 }
 
 /** The comment's words as plain text, for Copy. */

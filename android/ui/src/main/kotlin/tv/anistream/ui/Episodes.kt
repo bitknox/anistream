@@ -349,7 +349,8 @@ internal fun discussionCountOf(entry: Entry, row: EpisodeRow): UInt? {
     val store = LocalAppStore.current
     val view by store.settings.view.collectAsStateWithLifecycle()
     val found by store.discussion.found.collectAsStateWithLifecycle()
-    if (!row.completed || !store.settings.isOn(SettingKey.EPISODE_DISCUSSIONS, view)) return null
+    // The engine says nothing of a thread while discussions are off, so an unread setting is not a no.
+    if (!row.completed || (view != null && !store.settings.isOn(SettingKey.EPISODE_DISCUSSIONS, view))) return null
     val number = row.number.toUIntOrNull() ?: return null
     return found[tv.anistream.store.DiscussionKey(entry.id, number)]
 }

@@ -342,7 +342,7 @@ private fun Episodes(
     val placeholders = placeholdersAfterWait(rows == null)
     val found by store.discussion.found.collectAsStateWithLifecycle()
     val settings by store.settings.view.collectAsStateWithLifecycle()
-    val discussions = store.settings.isOn(tv.anistream.engine.model.SettingKey.EPISODE_DISCUSSIONS, settings)
+    val discussions = settings == null || store.settings.isOn(tv.anistream.engine.model.SettingKey.EPISODE_DISCUSSIONS, settings)
     BrowseRow(stringResource(R.string.title_episodes), modifier = modifier, subtitle = dub, state = state, fallback = nextRequester) {
         if (rows == null) {
             if (placeholders) {
@@ -533,7 +533,7 @@ fun episodeSheet(
     val number = row.number.toUIntOrNull()?.takeIf { !row.metadataOnly && !row.unsourced }
     val title = "${entry.title} · ${row.cardTitle(context)}" // i18n-skip
     val episode = row.number.toUIntOrNull()
-    val comments = episode?.takeIf { row.completed && store.discussionsOn() }?.let { store.discussion.count(entry.id, it) }
+    val comments = episode?.takeIf { row.completed && (store.settings.view.value == null || store.discussionsOn()) }?.let { store.discussion.count(entry.id, it) }
     return ActionSheet(
         title,
         listOfNotNull(
