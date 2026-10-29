@@ -156,7 +156,8 @@ pub struct ServerHealth {
 }
 
 impl ServerHealth {
-    fn new(key: ServerKey, at: i64) -> Self {
+    /// A server's first record: tried at `at`, with nothing known of it yet.
+    pub fn new(key: ServerKey, at: i64) -> Self {
         Self {
             key,
             successes: 0,

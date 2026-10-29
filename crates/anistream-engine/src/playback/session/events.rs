@@ -554,7 +554,7 @@ impl Run<'_> {
                         }
                         ScriptEvent::StallSwitch if streams.len() > 1 => {
                             let stalled = ServerFailure::Stalled;
-                            self.servers.failed(self.store, &streams[index], stalled).await;
+                            self.servers.failed(self.store, &streams[index], stalled);
                             break FileOutcome::Switch {
                                 to: (index + 1) % streams.len(),
                                 at: tracker.position(),
@@ -603,7 +603,7 @@ impl Run<'_> {
                     if !ever_played {
                         ever_played = true;
                         let _ = link.overlay(Overlay::Playing).await;
-                        self.servers.served(self.store, &streams[index]).await;
+                        self.servers.served(self.store, &streams[index]);
                     }
                     // Mirror position to the UI so Now Playing can render without querying mpv —
                     // but only when the rendered value would actually change. mpv reports
