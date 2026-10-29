@@ -77,9 +77,11 @@ struct PhoneTitle: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill").font(.ui(13))
-                                // Whole on one line, which it fits; wrapped at the accessibility sizes.
+                                // One line that shrinks a little for a longer translation; wrapped at the
+                                // accessibility sizes. Never wider than the screen.
                                 Text(action.sentence)
-                                    .fixedSize(horizontal: !typeSize.isAccessibilitySize, vertical: false)
+                                    .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+                                    .minimumScaleFactor(typeSize.isAccessibilitySize ? 1 : 0.7)
                             }
                             .frame(maxWidth: .infinity)
                         }

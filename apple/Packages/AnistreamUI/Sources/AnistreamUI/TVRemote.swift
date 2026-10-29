@@ -807,7 +807,7 @@ struct MacTVRemote: View {
                 }
                 Spacer(minLength: 8)
                 if let skip = now.skip {
-                    Button(skip.label.capitalized) { tv.send(.skip) }
+                    Button(skip.label.capitalizedSentence) { tv.send(.skip) }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                         .disabled(!tv.live)
                         .opacity(tv.live ? 1 : 0.4)
