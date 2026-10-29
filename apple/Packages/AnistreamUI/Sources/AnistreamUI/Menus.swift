@@ -121,6 +121,11 @@ struct EpisodeMenu: View {
                 }
             }
         }
+        if DiscussionEntry.offered(entry: entry, number: number, row: row, store: store) {
+            Button(L.discussionOpen, systemImage: "bubble.left.and.bubble.right") {
+                store.discussion.show(DiscussionKey(media: entry.id, episode: number))
+            }
+        }
         Divider()
         if row.completed {
             Button(L.episodeMarkUnwatched) {

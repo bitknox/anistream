@@ -39,6 +39,10 @@ final class AppDelegate: NSObject {
         self.store = store
         let player = PlayerModel(send: { [weak store] command in store?.send(command) })
         self.player = player
+        player.discussionHost = DiscussionHost(
+            enabled: { [weak store] in store?.discussionsOn ?? false },
+            count: { [weak store] key in store?.discussion.count(key.media, episode: key.episode) },
+            open: { [weak store] key in store?.discussion.show(key) })
         phases = SystemPhases(
             send: { [weak store] command in store?.send(command) },
             playing: { [weak player] in player.map { $0.isPresented && !$0.paused } ?? false },

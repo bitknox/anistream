@@ -714,10 +714,13 @@ struct EpisodeRowView: View {
         if row.isUnaired(), let date = row.airsDate {
             UnairedEpisodeRow(row: row, airs: date)
         } else {
-            airedRow
-                #if os(macOS)
-                .help(row.airsDate.map(AirsWords.aired) ?? "")
-                #endif
+            VStack(spacing: 0) {
+                airedRow
+                    #if os(macOS)
+                    .help(row.airsDate.map(AirsWords.aired) ?? "")
+                    #endif
+                DiscussionLine(entry: entry, row: row, inset: 140)
+            }
         }
     }
 

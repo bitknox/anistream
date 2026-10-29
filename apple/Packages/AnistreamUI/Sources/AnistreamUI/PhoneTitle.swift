@@ -344,6 +344,15 @@ struct PhoneEpisodeRow: View {
     let rotor: Namespace.ID
 
     var body: some View {
+        VStack(spacing: 0) {
+            rowBody
+            DiscussionLine(entry: entry, row: row, inset: 118)
+        }
+        .episodeSwipes(entry, row)
+    }
+
+    @ViewBuilder
+    private var rowBody: some View {
         let next = entry.progress?.next ?? 1
         let number = UInt32(row.number) ?? 0
         let current = number == next
@@ -364,7 +373,6 @@ struct PhoneEpisodeRow: View {
                 EpisodeMenu(entry: entry, number: number, row: row)
             }
             .accessibilityRotorEntry(id: row.number, in: rotor)
-            .episodeSwipes(entry, row)
         } else {
             Button {
                 store.send(.play(id: entry.id, episode: row.number))
@@ -378,7 +386,6 @@ struct PhoneEpisodeRow: View {
             }
             .accessibilityRotorEntry(id: row.number, in: rotor)
             .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
-            .episodeSwipes(entry, row)
         }
     }
 

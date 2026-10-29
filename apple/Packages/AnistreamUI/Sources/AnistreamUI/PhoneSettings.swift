@@ -698,6 +698,14 @@ struct PhoneAccountsPage: View {
                 Text(L.accountsLibraryFrom(tracker: AccountsModel.name("anilist")))
             }
             Section {
+                PhoneSettingSwitch(key: .episodeDiscussions, note: L.settingsAppleDiscussionsNote)
+                if store.discussionsOn {
+                    PhoneSettingSwitch(key: .commentImages, note: L.settingsAppleCommentImagesNote)
+                }
+            } header: {
+                PhoneSectionHeader(L.discussionSettingsGroup)
+            }
+            Section {
                 ForEach(["mal", "kitsu", "simkl", "trakt"], id: \.self) { tracker in
                     PhoneTrackerRow(tracker: tracker, kitsu: $kitsu)
                 }

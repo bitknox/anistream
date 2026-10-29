@@ -43,6 +43,17 @@ struct AnistreamApp: App {
                 PictureInPictureMenuItem(model: delegate.player)
             }
         }
+        // An episode's discussion: a window of its own beside the player, one per episode.
+        WindowGroup(L.discussionOpen, id: DiscussionKey.windowId, for: DiscussionKey.self) { $key in
+            if let key {
+                DiscussionWindowView(key: key)
+                    .environment(delegate.store)
+                    .preferredColorScheme(.dark)
+            }
+        }
+        .defaultSize(width: 480, height: 720)
+        .restorationBehavior(.disabled)
+        .defaultLaunchBehavior(.suppressed)
         #else
         WindowGroup {
             content

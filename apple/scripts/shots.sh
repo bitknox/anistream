@@ -8,7 +8,7 @@
 # generated episode first on Continue), then after a colon a section (calendar, seasonal, search, library,
 # downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words>,
 # genre=<name> (Search browsing a genre) or palette=<words>, with more joined by +: pane=<Settings
-# pane>, notice=alert (a failure toast), sheet=<torrent|proxy|join|kitsu|update|show|about|filters|messages>,
+# pane>, notice=alert (a failure toast), sheet=<torrent|proxy|join|kitsu|update|show|about|filters|messages|discussion-<episode>|discussion-row>,
 # tv=<paired|picker|code|expired|remote|lost|refused|empty|bar|away>, Play on TV with the Fixtures app's
 # fake TVs (FixtureTVs.swift says what each shows), day=<days after today>, the calendar opened on
 # that day, for one with broadcasts,

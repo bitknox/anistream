@@ -24,7 +24,8 @@ extension SettingKey {
         switch self {
         case .motion, .autoNext, .skipOpening, .skipFiller, .markChapters, .skipButton, .fullscreen, .nightMode,
              .mergeSubtitles, .keepSeeding, .presence, .presenceTitle, .presenceRich, .torrents, .syncplay,
-             .updateCheck, .spoilerProtection, .downloadsOnCellular, .torrentsOnCellular, .adultTitles:
+             .updateCheck, .spoilerProtection, .downloadsOnCellular, .torrentsOnCellular, .adultTitles,
+             .episodeDiscussions, .commentImages:
             true
         default:
             false

@@ -23,6 +23,8 @@ struct AppSheets: ViewModifier {
             .modifier(TVRemoteSheets())
             // Watch parties: the form, an episode no source has, and their links.
             .modifier(PartySheets())
+            // An episode's discussion: a sheet, a side panel or a window.
+            .modifier(DiscussionSheets())
             .modifier(FirstLaunchPresenter())
             #if os(iOS)
             .sensoryFeedback(.impact(weight: .light), trigger: navigator.watchedByHand)

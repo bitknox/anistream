@@ -17,7 +17,8 @@ import Foundation
 ///     -AnistreamPane accounts       Settings' pane, or on iPhone the Settings sheet at its page
 ///     -AnistreamSheet torrent       a sheet over the screen: torrent, proxy (Edit proxy), join, kitsu, update, show,
 ///                                   source (the source picker), filters (Search's filters), typing (the search field focused),
-///                                   welcome (first launch), messages
+///                                   welcome (first launch), messages, discussion-7 (episode 7's discussion of the
+///                                   title, found as the engine says it after the episode is watched), discussion-row
 ///     -AnistreamFold open           the title page's watched episodes, opened
 ///     -AnistreamDay 2               the calendar opened on the day this many days after today,
 ///                                   for a day with broadcasts: the fixtures' own day can have none
