@@ -732,6 +732,9 @@ public static partial class T
     /// <summary>Download dialog: the note under the range.</summary>
     public static string DownloadRangeQualityNote => Get("DownloadRangeQualityNote");
 
+    /// <summary>Calendar: tooltip of the button that returns to the current week, with its shortcut.</summary>
+    public static string CalendarTodayTooltip(string keys) => Fill(Get("CalendarTodayTooltip"), ("keys", keys));
+
     /// <summary>Line above the field while the viewer edits their own comment.</summary>
     public static string DiscussionEditing => Get("DiscussionEditing");
 
@@ -5465,6 +5468,7 @@ public static partial class T
         ["DownloadRangeFrom"] = "From",
         ["DownloadRangeTo"] = "To",
         ["DownloadRangeQualityNote"] = "Downloads use the quality in Settings › Downloads.",
+        ["CalendarTodayTooltip"] = "Today ({keys})",
         ["DiscussionEditing"] = "Editing your comment",
         ["DiscussionCommentMenu"] = "More for this comment",
         ["DiscussionPaneLabel"] = "Episode {episode} discussion",

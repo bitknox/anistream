@@ -1043,6 +1043,10 @@
     <value>Downloads use the quality in Settings › Downloads.</value>
     <comment>Download dialog: the note under the range.</comment>
   </data>
+  <data name="CalendarTodayTooltip" xml:space="preserve">
+    <value>Today ({keys})</value>
+    <comment>Calendar: tooltip of the button that returns to the current week, with its shortcut.</comment>
+  </data>
   <data name="DiscussionEditing" xml:space="preserve">
     <value>Editing your comment</value>
     <comment>Line above the field while the viewer edits their own comment.</comment>

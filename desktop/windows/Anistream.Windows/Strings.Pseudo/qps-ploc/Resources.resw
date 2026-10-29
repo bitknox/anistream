@@ -1043,6 +1043,10 @@
     <value>[Ðöŵñļöàðš üšé ţĥé ƣüàļîţý îñ Šéţţîñĝš › Ðöŵñļöàðš.~~~~~~~~~~~~~~~]</value>
     <comment>Download dialog: the note under the range.</comment>
   </data>
+  <data name="CalendarTodayTooltip" xml:space="preserve">
+    <value>[Ţöðàý ({keys})~~~~]</value>
+    <comment>Calendar: tooltip of the button that returns to the current week, with its shortcut.</comment>
+  </data>
   <data name="DiscussionEditing" xml:space="preserve">
     <value>[Éðîţîñĝ ýöüŕ çöɱɱéñţ~~~~~~]</value>
     <comment>Line above the field while the viewer edits their own comment.</comment>
