@@ -3,7 +3,7 @@ name = "anistream-providers"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license.workspace = true
+license = "GPL-3.0-or-later"
 description = "Provider registry, health tracking and failover"
 
 [lib]
@@ -21,6 +21,8 @@ async-trait.workspace = true
 futures.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+regex.workspace = true
+base64 = "0.22.1"
 tokio.workspace = true
 tracing.workspace = true
 librqbit = { version = "8.1.1", default-features = false, features = ["rust-tls"] }
