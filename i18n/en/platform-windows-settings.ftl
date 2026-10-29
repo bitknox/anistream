@@ -78,6 +78,14 @@ settings-downloads-cellular = Downloads on cellular
 # @only windows
 settings-episode-notifications = New episode notifications
 
+# Setting: whether an episode's AniList forum thread is looked up and opened in the app.
+# @only windows
+settings-episode-discussions = Episode discussions
+
+# Setting: whether images in discussion comments load inline.
+# @only windows
+settings-comment-images = Load images in comments
+
 # Setting: the switch that turns torrents on.
 # @only windows
 settings-torrent-source = Torrent { -source }

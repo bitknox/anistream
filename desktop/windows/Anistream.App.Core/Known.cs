@@ -25,6 +25,12 @@ public sealed class Known
     /// </summary>
     public Dictionary<uint, bool> Dubbed { get; } = [];
 
+    /// <summary>
+    /// The comments in an episode's discussion, by title and episode number, once the engine has
+    /// found one. An episode with none is absent.
+    /// </summary>
+    public Dictionary<(uint Id, uint Episode), uint> Discussions { get; } = [];
+
     public SettingsView? Settings { get; private set; }
 
     /// <summary>What the search filters choose from, once the engine has said.</summary>
@@ -158,6 +164,9 @@ public sealed class Known
                 break;
             case Event.SourceOptions:
                 SourceChoices.Take(e);
+                break;
+            case Event.DiscussionFound found:
+                Discussions[(found.Media, found.Episode)] = found.Comments;
                 break;
             case Event.TitleDub td:
                 Dubbed[td.Id] = td.Dub is not null;
