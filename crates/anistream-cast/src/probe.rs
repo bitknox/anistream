@@ -85,10 +85,12 @@ pub async fn hls(
     let mut text = String::from_utf8_lossy(&body).into_owned();
     let mut playlist_url = url.to_owned();
 
-    if let Some((variant, codecs)) = best_variant(&text) {
-        if let Some(codecs) = codecs {
+    if let Some(variant) = best_variant(&text) {
+        if let Some(codecs) = variant.codecs {
             read_codecs(&codecs, &mut info);
         }
+        info.height = variant.height;
+        let variant = variant.uri;
         playlist_url = resolve(url, &variant);
         let Ok(response) = get(upstream, &playlist_url, headers, None).await else {
             return (info, probe);
@@ -124,22 +126,32 @@ pub async fn hls(
     (info, probe)
 }
 
-/// The variant with the most bandwidth and its `CODECS`, when `text` is a master playlist.
-fn best_variant(text: &str) -> Option<(String, Option<String>)> {
-    let mut best: Option<(u64, String, Option<String>)> = None;
+/// A master playlist's variant: its address, its `CODECS` and the height its `RESOLUTION` says.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Variant {
+    uri: String,
+    codecs: Option<String>,
+    height: Option<u32>,
+}
+
+/// The variant with the most bandwidth, when `text` is a master playlist.
+fn best_variant(text: &str) -> Option<Variant> {
+    let mut best: Option<(u64, Variant)> = None;
     let mut lines = text.lines().map(str::trim);
     while let Some(line) = lines.next() {
         let Some(attrs) = line.strip_prefix("#EXT-X-STREAM-INF:") else { continue };
         let bandwidth = attribute(attrs, "BANDWIDTH").and_then(|b| b.parse().ok()).unwrap_or(0);
         let codecs = attribute(attrs, "CODECS");
+        let height = attribute(attrs, "RESOLUTION")
+            .and_then(|r| r.split_once(['x', 'X']).and_then(|(_, h)| h.parse().ok()));
         let Some(uri) = lines.by_ref().find(|l| !l.is_empty() && !l.starts_with('#')) else {
             break;
         };
-        if best.as_ref().is_none_or(|(b, _, _)| bandwidth > *b) {
-            best = Some((bandwidth, uri.to_owned(), codecs));
+        if best.as_ref().is_none_or(|(b, _)| bandwidth > *b) {
+            best = Some((bandwidth, Variant { uri: uri.to_owned(), codecs, height }));
         }
     }
-    best.map(|(_, uri, codecs)| (uri, codecs))
+    best.map(|(_, variant)| variant)
 }
 
 /// An attribute of an HLS tag, quoted or not.
@@ -213,6 +225,16 @@ pub fn read_sample_entries(data: &[u8], info: &mut MediaInfo) {
         let size = u32::from_be_bytes([size[0], size[1], size[2], size[3]]) as usize;
         let body = entry.get(8..size.min(entry.len())).unwrap_or_default();
         let kind = String::from_utf8_lossy(kind).into_owned();
+        // A visual sample entry's height follows its reserved and predefined fields.
+        let height = body
+            .get(26..28)
+            .map(|h| u32::from(u16::from_be_bytes([h[0], h[1]])))
+            .filter(|h| *h > 0);
+        if matches!(kind.as_str(), "avc1" | "avc3" | "hvc1" | "hev1" | "vp09" | "av01")
+            && info.video.is_none()
+        {
+            info.height = height;
+        }
         match kind.as_str() {
             "avc1" | "avc3" => {
                 let profile = find(body, b"avcC").and_then(|i| body.get(i + 5)).copied();
@@ -288,6 +310,7 @@ pub fn matroska<R: Read + Seek>(reader: &mut R) -> std::io::Result<MediaInfo> {
     for track in &header.tracks {
         match track.kind {
             1 if info.video.is_none() => {
+                info.height = u32::try_from(track.height).ok().filter(|h| *h > 0);
                 info.video = Some(match track.codec.as_str() {
                     "V_MPEG4/ISO/AVC" => VideoFormat::from_avc_profile(
                         track.private.get(1).copied().unwrap_or(100),
@@ -336,10 +359,11 @@ mod tests {
         let master = "#EXTM3U\n\
             #EXT-X-STREAM-INF:BANDWIDTH=800000,CODECS=\"avc1.4d401f,mp4a.40.2\"\nlow.m3u8\n\
             #EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080,CODECS=\"hvc1.2.4.L120.B0,ec-3\"\nhigh/index.m3u8\n";
-        let (uri, codecs) = best_variant(master).unwrap();
-        assert_eq!(uri, "high/index.m3u8");
+        let variant = best_variant(master).unwrap();
+        assert_eq!(variant.uri, "high/index.m3u8");
+        assert_eq!(variant.height, Some(1080));
         let mut info = MediaInfo::default();
-        read_codecs(&codecs.unwrap(), &mut info);
+        read_codecs(&variant.codecs.unwrap(), &mut info);
         assert_eq!(info.video, Some(VideoFormat::HevcMain10));
         assert_eq!(info.audio[0].codec, Some(AudioCodec::Eac3));
         assert_eq!(best_variant("#EXTM3U\n#EXTINF:4,\nseg0.ts\n"), None);
@@ -367,6 +391,8 @@ mod tests {
         let mut hvcc = b"\0\0\0\x0bhvcC\x01\x02\x00".to_vec();
         hvcc.resize(11, 0);
         let mut entry = vec![0u8; 78];
+        entry[24..26].copy_from_slice(&3840u16.to_be_bytes());
+        entry[26..28].copy_from_slice(&2160u16.to_be_bytes());
         entry.extend(&hvcc);
         let mut stsd = b"\0\0\0\0stsd\0\0\0\0\0\0\0\x01".to_vec();
         stsd.extend(((8 + entry.len()) as u32).to_be_bytes());
@@ -380,6 +406,7 @@ mod tests {
         let mut info = MediaInfo::default();
         read_sample_entries(&stsd, &mut info);
         assert_eq!(info.video, Some(VideoFormat::HevcMain10));
+        assert_eq!(info.height, Some(2160));
         assert_eq!(info.audio[0].codec, Some(AudioCodec::Ac3));
         assert_eq!(info.audio[0].channels, 6);
     }

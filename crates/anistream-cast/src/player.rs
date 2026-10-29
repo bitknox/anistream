@@ -7,10 +7,13 @@
 //!
 //! A load is tried plan by plan, best first ([`crate::formats::cast_plans`]):
 //! - A plan is refused when the receiver answers `LOAD_FAILED`, `LOAD_CANCELLED` or
-//!   `INVALID_REQUEST`, goes idle with `ERROR`, or its position hasn't moved
+//!   `INVALID_REQUEST`, sends `ERROR`, goes idle with `ERROR`, or its position hasn't moved
 //!   [`Timings::movement`] after the load.
-//! - A refusal counts against a format part only when the relay served media bytes for it: a TV
-//!   that never got the picture said nothing about its codec.
+//! - A refusal counts against a format part only when the TV asked the relay for media, counted
+//!   as the request arrives: a TV that never asked for the picture said nothing about its codec.
+//! - Before a file whose picture this TV hasn't played, a capability clip is loaded
+//!   ([`crate::clips`]): a TV with no decoder for a file's picture can play its sound alone and
+//!   report nothing wrong.
 //! - A relayed plan whose bytes nobody fetched within [`Timings::fetch`] ends the cast: the TV
 //!   can't reach this device (a firewall, a guest network), and no other plan would fare better.
 //! - Until a plan plays, the session hears nothing; then `Loaded`, as from mpv.
@@ -42,6 +45,7 @@ use crate::{
         App, DEFAULT_MEDIA_RECEIVER, Device, Load, Media, MediaStatus, Metadata,
         ReceiverStatus, TextTrack, VolumeControl,
     },
+    clips::{Clip, clip},
     device::{CastDevice, local_address_towards, same_network},
     fetch::{RangeFile, Upstream},
     formats::{
@@ -230,6 +234,9 @@ struct State {
     closed: bool,
     quit: bool,
     failure: Option<CastFailure>,
+    /// The receiver sent `ERROR` while a plan was tried: the Nest Hub's word for audio it can't
+    /// decode, after it accepted the load.
+    errored: bool,
     /// The load in force, with its tracks, for a reload when a subtitle comes later.
     load: Option<Load>,
     plan: Option<CastPlan>,
@@ -764,7 +771,22 @@ async fn attempt(inner: &Arc<Inner>, load: CastLoad) -> Result<CastPlan, CastFai
         .into_iter()
         .collect();
 
+    // A clip's refusal, when it is what ended the last plan that could be made.
+    let mut why = None;
     for plan in plans {
+        // What an earlier plan or clip of this load taught is heeded at once.
+        let caps = setup.memory.caps(&setup.device.id);
+        if plan.parts().iter().any(|part| caps.refused(part)) {
+            continue;
+        }
+        if plan.wants_clip()
+            && !caps.played(&plan.video_part())
+            && let Some(clip) = clip(&plan.video, plan.height)
+            && !ask_with_clip(inner, &plan, clip, &load).await?
+        {
+            why = Some(Uncastable::VideoCodec(plan.video.to_string()));
+            continue;
+        }
         let Some((url, content_type)) = stage(inner, &load, &info, &plan).await else {
             continue;
         };
@@ -783,7 +805,7 @@ async fn attempt(inner: &Arc<Inner>, load: CastLoad) -> Result<CastPlan, CastFai
             style: None,
             autoplay: true,
         };
-        match try_plan(inner, &plan, cast).await? {
+        match try_plan(inner, plan.relayed(), cast).await? {
             Tried::Played => {
                 if let Err(e) = setup.memory.record(&setup.device.id, &plan, true) {
                     tracing::warn!(error = %e, "couldn't note what the TV played");
@@ -791,6 +813,7 @@ async fn attempt(inner: &Arc<Inner>, load: CastLoad) -> Result<CastPlan, CastFai
                 return Ok(plan);
             }
             Tried::Refused { served } => {
+                why = None;
                 tracing::info!(route = ?plan.route, delivery = ?plan.delivery, served, "the TV refused a plan");
                 if served && let Err(e) = setup.memory.record(&setup.device.id, &plan, false) {
                     tracing::warn!(error = %e, "couldn't note what the TV refused");
@@ -798,7 +821,45 @@ async fn attempt(inner: &Arc<Inner>, load: CastLoad) -> Result<CastPlan, CastFai
             }
         }
     }
-    Err(CastFailure::Refused)
+    // When what this load taught leaves nothing, the reason is the part the TV refused.
+    let caps = setup.memory.caps(&setup.device.id);
+    cast_plans(&load.source, &info, &caps, &cors, setup.encoder.as_ref())?;
+    Err(why.map_or(CastFailure::Refused, CastFailure::Uncastable))
+}
+
+/// Ask the TV whether it decodes `plan`'s picture with `clip`, before a file whose sound would
+/// play without it. A refusal is noted for this TV and the plan skipped; a clip that plays is
+/// noted too. A TV that never asked for the clip said nothing, and the plan is tried.
+async fn ask_with_clip(
+    inner: &Arc<Inner>,
+    plan: &CastPlan,
+    clip: Clip,
+    load: &CastLoad,
+) -> Result<bool, CastFailure> {
+    let setup = &inner.setup;
+    let url = inner.relay.share_bytes(clip.name, clip.content_type, clip.bytes);
+    let cast = Load {
+        url,
+        content_type: clip.content_type.to_owned(),
+        hls_segment_format: None,
+        metadata: load.metadata.clone(),
+        start: None,
+        tracks: Vec::new(),
+        active_tracks: Vec::new(),
+        style: None,
+        autoplay: true,
+    };
+    let part = plan.video_part();
+    let played = match try_plan(inner, true, cast).await? {
+        Tried::Played => true,
+        Tried::Refused { served: true } => false,
+        Tried::Refused { served: false } => return Ok(true),
+    };
+    tracing::info!(clip = clip.name, part, played, "asked the TV with a clip");
+    if let Err(e) = setup.memory.note(&setup.device.id, &part, played) {
+        tracing::warn!(error = %e, "couldn't note the clip's answer");
+    }
+    Ok(played)
 }
 
 /// Make `plan`'s address ready: the relay's route to the source, or the remuxer's playlist.
@@ -861,20 +922,17 @@ async fn stage(
     }
 }
 
-/// Load one plan and watch whether it plays.
-async fn try_plan(
-    inner: &Arc<Inner>,
-    plan: &CastPlan,
-    cast: Load,
-) -> Result<Tried, CastFailure> {
+/// Load one plan, or a capability clip, and watch whether it plays. `relayed` when the TV
+/// reads it from the relay.
+async fn try_plan(inner: &Arc<Inner>, relayed: bool, cast: Load) -> Result<Tried, CastFailure> {
     let timings = inner.setup.timings;
-    let relayed = plan.relayed();
     inner.relay.reset_stats();
     let lost = |e: CastError| CastFailure::Lost(e.to_string());
     let mut media = inner.app().await.map_err(lost)?;
     {
         let mut state = lock(&inner.state);
         state.last = None;
+        state.errored = false;
         state.load = Some(cast.clone());
     }
     let started = Instant::now();
@@ -899,6 +957,9 @@ async fn try_plan(
         let state = lock(&inner.state);
         if state.closed {
             return Err(state.failure.clone().unwrap_or(CastFailure::Lost("closed".into())));
+        }
+        if state.errored {
+            return Ok(Tried::Refused { served: inner.relay.media_served() });
         }
         if let Some(last) = state.last.as_ref().filter(|s| s.media_session_id == session) {
             if last.idle_reason.is_some() {
@@ -1043,6 +1104,13 @@ fn receive(inner: &Inner, message: &Incoming) {
         return;
     }
     if message.namespace != NS_MEDIA {
+        return;
+    }
+    if message.payload["type"] == "ERROR" {
+        tracing::info!(payload = %message.payload, "the receiver reported an error");
+        if state.trying {
+            state.errored = true;
+        }
         return;
     }
     let Some(status) = MediaStatus::first(&message.payload) else { return };

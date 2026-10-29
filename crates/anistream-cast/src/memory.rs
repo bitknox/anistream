@@ -203,6 +203,16 @@ impl CastMemory {
         self.save()
     }
 
+    /// Note what TV `id` did with one part alone: a capability clip's answer.
+    pub fn note(&self, id: &str, part: &str, played: bool) -> Result<(), MemoryError> {
+        let now = (self.clock)();
+        self.lock()
+            .entry(id.to_owned())
+            .or_insert_with(|| CastCaps { id: id.to_owned(), ..CastCaps::default() })
+            .remember(part, played, now);
+        self.save()
+    }
+
     fn save(&self) -> Result<(), MemoryError> {
         let Some(path) = &self.path else { return Ok(()) };
         let list: Vec<CastCaps> = self.lock().values().cloned().collect();
@@ -225,6 +235,7 @@ mod tests {
         CastPlan {
             route: CastRoute::Relayed { remux: true },
             video,
+            height: None,
             audio: AudioPlan::Copy(audio),
             delivery,
         }
@@ -235,8 +246,8 @@ mod tests {
         let mut caps = CastCaps::default();
         caps.record(&plan(VideoFormat::Hevc, AudioCodec::Aac, Delivery::HlsFmp4), true, 1);
         caps.record(&plan(VideoFormat::Hevc, AudioCodec::Opus, Delivery::HlsFmp4), false, 2);
-        assert!(caps.played("hevc"));
-        assert!(caps.refused("opus"));
+        assert!(caps.played("hevc/1080/hls"));
+        assert!(caps.refused("opus/hls"));
         assert!(!caps.refused("hls-fmp4"));
         assert!(caps.relayed_last);
 
@@ -265,16 +276,16 @@ mod tests {
                 false,
             )
             .unwrap();
-        assert!(memory.caps("tv").refused("hevc-main10"));
+        assert!(memory.caps("tv").refused("hevc-main10/1080/hls"));
 
         // Read back from the file.
         let again = CastMemory::open(dir.path()).unwrap().with_clock(Arc::clone(&clock));
         let caps = again.caps("tv");
-        assert!(caps.refused("hevc-main10"));
+        assert!(caps.refused("hevc-main10/1080/hls"));
         assert_eq!(caps.name, "Living room");
 
         now.store(1_000 + REFUSAL_KEPT, Ordering::Relaxed);
-        assert!(!again.caps("tv").refused("hevc-main10"), "30 days on");
+        assert!(!again.caps("tv").refused("hevc-main10/1080/hls"), "30 days on");
 
         now.store(1_000, Ordering::Relaxed);
         let memory = CastMemory::open(dir.path()).unwrap().with_clock(clock);
@@ -288,7 +299,7 @@ mod tests {
             .seen("tv", "Living room", "Chromecast", Some("1.1"), VolumeControl::MuteOnly)
             .unwrap();
         let caps = memory.caps("tv");
-        assert!(!caps.refused("opus"), "the update may have added it");
+        assert!(!caps.refused("opus/progressive"), "the update may have added it");
         assert!(caps.played("hls-ts"), "what played stays");
         assert_eq!(caps.volume, VolumeControl::MuteOnly);
     }

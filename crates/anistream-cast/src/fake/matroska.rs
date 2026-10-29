@@ -12,6 +12,9 @@ pub struct Fixture {
     pub audio: Option<FixtureAudio>,
     /// Without cues, the remuxer can't plan segments.
     pub cues: bool,
+    /// The picture's size the track header says.
+    pub width: u64,
+    pub height: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -32,6 +35,8 @@ impl Default for Fixture {
             video: "V_MPEG4/ISO/AVC",
             audio: Some(FixtureAudio::ac3()),
             cues: true,
+            width: 640,
+            height: 360,
         }
     }
 }
@@ -119,7 +124,7 @@ pub fn matroska(fixture: &Fixture) -> Vec<u8> {
             text(0x86, fixture.video),
             element(0x63A2, &AVCC),
             uint(0x23_E383, 40_000_000),
-            element(0xE0, &[uint(0xB0, 640), uint(0xBA, 360)].concat()),
+            element(0xE0, &[uint(0xB0, fixture.width), uint(0xBA, fixture.height)].concat()),
         ]
         .concat(),
     );

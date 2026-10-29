@@ -72,6 +72,34 @@ impl VideoFormat {
     fn castable(&self) -> bool {
         !matches!(self, Self::Other(_))
     }
+
+    /// The part for this format at `height`, read the way `delivery` is: what a TV's memory
+    /// keeps, such as `hevc-main10/1080/progressive` or `h264/1080/hls`.
+    pub fn part_in(&self, height: Option<u32>, delivery: Delivery) -> String {
+        format!("{}/{}/{}", self.part(), height_class(height), delivery.family())
+    }
+
+    /// Whether every Chromecast plays it at `height` in `delivery`, so a TV is never asked:
+    /// H.264 up to 720 lines anywhere, and up to 1080 lines as a file. The Nest Hub refuses
+    /// 1080-line H.264 under HLS.
+    pub fn plays_everywhere(&self, height: Option<u32>, delivery: Delivery) -> bool {
+        *self == Self::H264
+            && match height_class(height) {
+                720 => true,
+                1080 => !delivery.is_hls(),
+                _ => false,
+            }
+    }
+}
+
+/// How tall the picture is, as a TV's answer differs by it: up to 720 lines, up to 1080, or
+/// more. A height nobody read is taken as 1080, what most sources send.
+pub fn height_class(height: Option<u32>) -> u32 {
+    match height.unwrap_or(1080) {
+        0..=720 => 720,
+        721..=1080 => 1080,
+        _ => 2160,
+    }
 }
 
 impl fmt::Display for VideoFormat {
@@ -148,6 +176,11 @@ impl AudioCodec {
     fn copied(&self) -> bool {
         matches!(self, Self::Aac | Self::Opus | Self::Flac)
     }
+
+    /// The part for this codec read the way `delivery` is: `flac/hls`, `flac/progressive`.
+    pub fn part_in(&self, delivery: Delivery) -> String {
+        format!("{}/{}", self.part(), delivery.family())
+    }
 }
 
 impl fmt::Display for AudioCodec {
@@ -198,6 +231,12 @@ impl Delivery {
     pub fn is_hls(self) -> bool {
         matches!(self, Self::HlsFmp4 | Self::HlsTs)
     }
+
+    /// How the TV's media element reads it: `hls` through Media Source Extensions, where the
+    /// Nest Hub stops at 720 lines, or `progressive` as a file.
+    pub fn family(self) -> &'static str {
+        if self.is_hls() { "hls" } else { "progressive" }
+    }
 }
 
 /// What happens to the audio.
@@ -226,26 +265,42 @@ pub enum CastRoute {
 pub struct CastPlan {
     pub route: CastRoute,
     pub video: VideoFormat,
+    /// The picture's height in lines, when the stream said.
+    #[serde(default)]
+    pub height: Option<u32>,
     pub audio: AudioPlan,
     pub delivery: Delivery,
 }
 
 impl CastPlan {
     /// The format parts a TV's memory keeps an answer for, in the order a refusal is blamed:
-    /// video, then audio, then the container. H.264 and AAC are left out: every Chromecast
-    /// plays them.
+    /// the video at its height in this delivery's family, then the audio in that family, then
+    /// the container. What every Chromecast plays is left out: AAC, and H.264 where
+    /// [`VideoFormat::plays_everywhere`].
     pub fn parts(&self) -> Vec<String> {
         let mut parts = Vec::new();
-        if self.video != VideoFormat::H264 {
-            parts.push(self.video.part());
+        if !self.video.plays_everywhere(self.height, self.delivery) {
+            parts.push(self.video_part());
         }
         if let AudioPlan::Copy(codec) = &self.audio
             && *codec != AudioCodec::Aac
         {
-            parts.push(codec.part());
+            parts.push(codec.part_in(self.delivery));
         }
         parts.push(self.delivery.part().to_owned());
         parts
+    }
+
+    /// The video's part in a TV's memory.
+    pub fn video_part(&self) -> String {
+        self.video.part_in(self.height, self.delivery)
+    }
+
+    /// Whether the TV should be asked with a capability clip before this plan: a file whose
+    /// picture the TV may not decode, where a TV with no decoder for it can play the sound alone
+    /// and say nothing wrong. HLS refuses cleanly and needs no clip.
+    pub fn wants_clip(&self) -> bool {
+        !self.delivery.is_hls() && !self.video.plays_everywhere(self.height, self.delivery)
     }
 
     pub fn relayed(&self) -> bool {
@@ -312,6 +367,8 @@ pub struct AudioTrack {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct MediaInfo {
     pub video: Option<VideoFormat>,
+    /// The picture's height in lines.
+    pub height: Option<u32>,
     pub audio: Vec<AudioTrack>,
     /// Which of `audio` plays: the one the viewer's language picks.
     pub audio_choice: usize,
@@ -392,7 +449,7 @@ pub fn cast_plans(
         return Err(Uncastable::DeepLink);
     }
     let video = media.video.clone().unwrap_or(VideoFormat::H264);
-    if !video.castable() || caps.refused(&video.part()) {
+    if !video.castable() {
         return Err(Uncastable::VideoCodec(video.to_string()));
     }
     let container = media.container.unwrap_or(match source.kind {
@@ -405,25 +462,20 @@ pub fn cast_plans(
         None if container == Delivery::Mkv => None,
         None => Some(AudioCodec::Aac),
     };
+    let audio_name = || source_audio.as_ref().map(ToString::to_string).unwrap_or_default();
 
-    // Audio as it is, when the container carries it and the TV plays it.
-    let copy = match &source_audio {
+    // Audio as it is in `delivery`, when the container carries it and the TV plays it there.
+    let copy_in = |delivery: Delivery| match &source_audio {
         None => Some(AudioPlan::Silent),
-        Some(codec) if codec.copied() && !caps.refused(&codec.part()) => {
+        Some(codec) if codec.copied() && !caps.refused(&codec.part_in(delivery)) => {
             Some(AudioPlan::Copy(codec.clone()))
         }
         Some(_) => None,
     };
-    // Audio the remuxer turns to AAC.
-    let remuxed = copy.clone().or_else(|| {
-        let codec = source_audio.clone()?;
-        encoder.can_decode(&codec).then_some(AudioPlan::ToAac { from: codec })
-    });
-    let audio_name = || source_audio.as_ref().map(ToString::to_string).unwrap_or_default();
-
     let plan = |route, audio: AudioPlan, delivery| CastPlan {
         route,
         video: video.clone(),
+        height: media.height,
         audio,
         delivery,
     };
@@ -432,31 +484,38 @@ pub fn cast_plans(
     let mut plans = Vec::new();
     match container {
         Delivery::Mkv => {
-            let Some(audio) = remuxed else {
-                return Err(Uncastable::AudioCodec(audio_name()));
+            // Remuxed to HLS first: what every Chromecast plays. The audio goes as it is where
+            // the TV plays it, and then as AAC, for a TV that refuses or stalls on a codec it was
+            // never asked about (the Nest Hub and FLAC).
+            let hls = Delivery::HlsFmp4;
+            let copied = copy_in(hls);
+            let untried = |audio: &AudioPlan| match audio {
+                AudioPlan::Copy(codec) => !caps.played(&codec.part_in(hls)),
+                _ => false,
             };
-            // Remuxed to HLS first: what every Chromecast plays. Then the file as it is, which
-            // a newer TV opens itself, for files the remuxer can't read.
-            if !caps.refused(Delivery::HlsFmp4.part()) {
-                plans.push(plan(CastRoute::Relayed { remux: true }, audio, Delivery::HlsFmp4));
+            let to_aac = source_audio
+                .as_ref()
+                .filter(|codec| **codec != AudioCodec::Aac && encoder.can_decode(codec))
+                .filter(|_| copied.as_ref().is_none_or(untried))
+                .map(|codec| AudioPlan::ToAac { from: codec.clone() });
+            for audio in copied.into_iter().chain(to_aac) {
+                plans.push(plan(CastRoute::Relayed { remux: true }, audio, hls));
             }
-            if let Some(copy) = copy
-                && !caps.refused(Delivery::Mkv.part())
-            {
-                plans.push(plan(CastRoute::Relayed { remux: false }, copy, Delivery::Mkv));
+            // Then the file as it is: for a file the remuxer can't read, and for a TV that
+            // refuses the remux's HLS where it plays the file, as the Nest Hub does at 1080
+            // lines. Its audio can't change.
+            if let Some(audio) = copy_in(Delivery::Mkv) {
+                plans.push(plan(CastRoute::Relayed { remux: false }, audio, Delivery::Mkv));
             }
             if plans.is_empty() {
-                return Err(Uncastable::Container("Matroska".into()));
+                return Err(Uncastable::AudioCodec(audio_name()));
             }
         }
         delivery => {
             // HLS, MP4 and WebM are handed over as they come, so their audio can't change.
-            let Some(audio) = copy else {
+            let Some(audio) = copy_in(delivery) else {
                 return Err(Uncastable::AudioCodec(audio_name()));
             };
-            if caps.refused(delivery.part()) {
-                return Err(Uncastable::Container(delivery.part().to_owned()));
-            }
             // Direct when nothing stands between the TV and the source: no headers, an address
             // it can reach, and for HLS, CORS and segments that are what they say.
             let direct = direct_allowed && (!delivery.is_hls() || probe.passed());
@@ -469,6 +528,29 @@ pub fn cast_plans(
             }
             plans.push(plan(CastRoute::Relayed { remux: false }, audio, delivery));
         }
+    }
+
+    // What this TV is known to refuse is left out, and when nothing is left the reason is
+    // the part it refused: the picture before the sound before the container.
+    let refused: Vec<String> = plans
+        .iter()
+        .filter_map(|plan| plan.parts().into_iter().find(|part| caps.refused(part)))
+        .collect();
+    plans.retain(|plan| plan.parts().iter().all(|part| !caps.refused(part)));
+    if plans.is_empty() {
+        let video_prefix = format!("{}/", video.part());
+        let audio_prefix = source_audio.as_ref().map(|codec| format!("{}/", codec.part()));
+        return Err(if refused.iter().any(|part| part.starts_with(&video_prefix)) {
+            Uncastable::VideoCodec(video.to_string())
+        } else if audio_prefix
+            .is_some_and(|prefix| refused.iter().any(|p| p.starts_with(&prefix)))
+        {
+            Uncastable::AudioCodec(audio_name())
+        } else if container == Delivery::Mkv {
+            Uncastable::Container("Matroska".into())
+        } else {
+            Uncastable::Container(container.part().to_owned())
+        });
     }
     Ok(plans)
 }
@@ -493,6 +575,7 @@ mod tests {
     fn media(video: VideoFormat, audio: AudioCodec, container: Delivery) -> MediaInfo {
         MediaInfo {
             video: Some(video),
+            height: None,
             audio: vec![AudioTrack { codec: Some(audio), channels: 2, language: None }],
             audio_choice: 0,
             container: Some(container),
@@ -543,7 +626,76 @@ mod tests {
         assert_eq!(plans[0].delivery, Delivery::HlsFmp4);
         assert_eq!(plans[1].delivery, Delivery::Mkv);
         assert_eq!(plans[1].audio, AudioPlan::Copy(AudioCodec::Opus));
-        assert_eq!(plans[0].parts(), ["hevc", "opus", "hls-fmp4"]);
+        assert_eq!(plans[0].parts(), ["hevc/1080/hls", "opus/hls", "hls-fmp4"]);
+        assert!(!plans[0].wants_clip(), "HLS refuses cleanly");
+        assert!(plans[1].wants_clip(), "a file with sound may play it alone");
+    }
+
+    #[test]
+    fn a_codec_never_tried_is_followed_by_aac_in_the_same_load() {
+        let mut caps = CastCaps::default();
+        let info = media(VideoFormat::H264, AudioCodec::Flac, Delivery::Mkv);
+        let plans = |caps: &CastCaps| {
+            cast_plans(
+                &source(SourceKind::File, false),
+                &info,
+                caps,
+                &passed(),
+                &FakeEncoder::default(),
+            )
+            .unwrap()
+        };
+        let first = plans(&caps);
+        let audio: Vec<_> = first.iter().map(|p| (p.delivery, p.audio.clone())).collect();
+        assert_eq!(
+            audio,
+            [
+                (Delivery::HlsFmp4, AudioPlan::Copy(AudioCodec::Flac)),
+                (Delivery::HlsFmp4, AudioPlan::ToAac { from: AudioCodec::Flac }),
+                (Delivery::Mkv, AudioPlan::Copy(AudioCodec::Flac)),
+            ]
+        );
+        caps.remember("flac/hls", true, 0);
+        assert_eq!(plans(&caps).len(), 2, "FLAC known to play needs no fallback");
+    }
+
+    #[test]
+    fn the_picture_is_kept_by_its_height_and_how_the_tv_reads_it() {
+        let plan = |video: VideoFormat, height, delivery| CastPlan {
+            route: CastRoute::Relayed { remux: false },
+            video,
+            height: Some(height),
+            audio: AudioPlan::Copy(AudioCodec::Aac),
+            delivery,
+        };
+        assert_eq!(plan(VideoFormat::H264, 720, Delivery::HlsTs).parts(), ["hls-ts"]);
+        assert_eq!(
+            plan(VideoFormat::H264, 1080, Delivery::HlsFmp4).parts(),
+            ["h264/1080/hls", "hls-fmp4"]
+        );
+        assert_eq!(plan(VideoFormat::H264, 1080, Delivery::Mp4).parts(), ["mp4"]);
+        assert!(!plan(VideoFormat::H264, 1080, Delivery::Mp4).wants_clip());
+        assert!(plan(VideoFormat::H264, 2160, Delivery::Mp4).wants_clip());
+        assert_eq!(
+            plan(VideoFormat::HevcMain10, 2160, Delivery::Mkv).parts(),
+            ["hevc-main10/2160/progressive", "mkv"]
+        );
+
+        // A TV that stops HLS at 720 lines still gets a 1080-line Matroska file as it is.
+        let mut caps = CastCaps::default();
+        caps.remember("h264/1080/hls", false, 0);
+        let mut info = media(VideoFormat::H264, AudioCodec::Aac, Delivery::Mkv);
+        info.height = Some(1080);
+        let plans =
+            cast_plans(&source(SourceKind::File, false), &info, &caps, &passed(), &NoEncoder)
+                .unwrap();
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].delivery, Delivery::Mkv);
+        info.height = Some(720);
+        let plans =
+            cast_plans(&source(SourceKind::File, false), &info, &caps, &passed(), &NoEncoder)
+                .unwrap();
+        assert_eq!(plans[0].delivery, Delivery::HlsFmp4, "720 lines are remuxed as before");
     }
 
     #[test]
@@ -581,7 +733,7 @@ mod tests {
     #[test]
     fn what_a_tv_refused_is_left_out() {
         let mut caps = CastCaps::default();
-        caps.remember("opus", false, 0);
+        caps.remember("opus/hls", false, 0);
         let info = media(VideoFormat::H264, AudioCodec::Opus, Delivery::Mkv);
         let plans = cast_plans(
             &source(SourceKind::Torrent, false),
@@ -591,10 +743,12 @@ mod tests {
             &FakeEncoder::default(),
         )
         .unwrap();
-        assert_eq!(plans.len(), 1);
+        assert_eq!(plans.len(), 2);
         assert_eq!(plans[0].audio, AudioPlan::ToAac { from: AudioCodec::Opus });
+        assert_eq!(plans[1].audio, AudioPlan::Copy(AudioCodec::Opus), "files read Opus apart");
 
-        caps.remember("hevc-main10", false, 0);
+        caps.remember("hevc-main10/1080/hls", false, 0);
+        caps.remember("hevc-main10/1080/progressive", false, 0);
         let info = media(VideoFormat::HevcMain10, AudioCodec::Aac, Delivery::Mkv);
         assert_eq!(
             cast_plans(

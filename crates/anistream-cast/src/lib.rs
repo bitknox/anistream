@@ -20,6 +20,7 @@
 pub mod aac;
 pub mod channel;
 pub mod client;
+pub mod clips;
 pub mod device;
 #[cfg(any(test, feature = "fake"))]
 pub mod fake;

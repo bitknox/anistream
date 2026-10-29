@@ -55,6 +55,8 @@ pub enum Refusal {
     Stall,
     /// Accepts the load, then goes idle with `ERROR`.
     IdleError,
+    /// Accepts the load, then sends an `ERROR` message, as the Nest Hub does for FLAC.
+    Error,
 }
 
 /// What the fake refuses: a load whose fetched bytes contain one of `bytes` (a sample entry's
@@ -64,6 +66,11 @@ pub struct Refuse {
     pub bytes: Vec<Vec<u8>>,
     pub content_types: Vec<String>,
     pub how: Option<Refusal>,
+    /// A picture it refuses beside sound it plays goes unremarked: the sound plays, the position
+    /// moves, and nothing is reported, as the Nest Hub does with HEVC in a file.
+    pub sound_alone: bool,
+    /// HLS whose picture is taller than this is `LOAD_FAILED`: the Nest Hub stops at 720 lines.
+    pub hls_taller_than: Option<u32>,
 }
 
 /// How the fake is set up.
@@ -340,10 +347,19 @@ async fn serve(
                         let hls = content_type.contains("mpegurl");
                         let result = fetch_like_a_receiver(&url, hls, &fetched).await;
                         let refused = match &result {
-                            Ok((_, bytes)) => options.refuse.how.filter(|_| {
-                                options.refuse.content_types.contains(&content_type)
-                                    || options.refuse.bytes.iter().any(|needle| contains(bytes, needle))
-                            }),
+                            Ok((_, bytes)) => {
+                                let mut info = crate::formats::MediaInfo::default();
+                                crate::probe::read_sample_entries(bytes, &mut info);
+                                let tall = hls && options.refuse.hls_taller_than.zip(info.height).is_some_and(|(limit, h)| h > limit);
+                                let matched = options.refuse.content_types.contains(&content_type)
+                                    || options.refuse.bytes.iter().any(|needle| contains(bytes, needle));
+                                let sound = SOUND.iter().any(|needle| contains(bytes, needle));
+                                if tall {
+                                    Some(Refusal::LoadFailed)
+                                } else {
+                                    options.refuse.how.filter(|_| matched && !(options.refuse.sound_alone && sound && !hls))
+                                }
+                            }
                             Err(_) => Some(Refusal::LoadFailed),
                         };
                         if refused == Some(Refusal::LoadFailed) {
@@ -370,6 +386,10 @@ async fn serve(
                             stalled: refused == Some(Refusal::Stall),
                         };
                         send(&transport, &sender, NS_MEDIA, json!({"type": "MEDIA_STATUS", "requestId": request, "status": [p.status(None, &volume(level, muted))]}));
+                        if refused == Some(Refusal::Error) {
+                            send(&transport, "*", NS_MEDIA, json!({"type": "ERROR", "requestId": 0, "detailedErrorCode": 100}));
+                            continue;
+                        }
                         if refused == Some(Refusal::IdleError) {
                             send(&transport, "*", NS_MEDIA, json!({"type": "MEDIA_STATUS", "requestId": 0,
                                 "status": [p.status(Some("ERROR"), &volume(level, muted))]}));
@@ -405,6 +425,9 @@ async fn serve(
         }
     }
 }
+
+/// What says a stream has sound: an MP4 audio sample entry, or a Matroska audio codec id.
+const SOUND: [&[u8]; 6] = [b"mp4a", b"Opus", b"fLaC", b"A_AAC", b"A_OPUS", b"A_FLAC"];
 
 fn contains(haystack: &[u8], needle: &[u8]) -> bool {
     !needle.is_empty() && haystack.windows(needle.len()).any(|w| w == needle)

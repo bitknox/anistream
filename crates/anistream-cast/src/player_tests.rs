@@ -224,52 +224,165 @@ async fn a_torrents_matroska_is_remuxed_with_aac_and_driven_as_mpv_is() {
     );
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn a_refused_codec_falls_back_and_the_next_cast_starts_with_what_plays() {
+fn opus() -> FixtureAudio {
     let mut opus = FixtureAudio::aac();
     opus.codec = "A_OPUS";
     opus.private = b"OpusHead\x01\x02\x38\x01\x80\xbb\x00\x00\x00\x00\x00".to_vec();
     opus.frame_ms = 20;
-    let file = matroska(&Fixture { audio: Some(opus), ..Fixture::default() });
+    opus
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_refused_codec_falls_back_to_aac_and_the_next_cast_starts_there() {
+    let file = matroska(&Fixture { audio: Some(opus()), ..Fixture::default() });
     let base = serve(HashMap::from([("/episode.mkv".to_owned(), file)])).await;
+    // However the TV says no: idle with an error, an `ERROR` message, or a stall.
+    for how in [Refusal::IdleError, Refusal::Error, Refusal::Stall] {
+        let receiver = FakeReceiver::start(FakeOptions {
+            speed: 4.0,
+            refuse: Refuse {
+                bytes: vec![b"Opus".to_vec()],
+                how: Some(how),
+                ..Refuse::default()
+            },
+            ..FakeOptions::default()
+        })
+        .await
+        .unwrap();
+        let memory = Arc::new(CastMemory::memory());
+        let (player, mut events) = CastPlayer::connect(setup(
+            &receiver,
+            Arc::clone(&memory),
+            Arc::new(FakeEncoder::default()),
+        ))
+        .await
+        .unwrap();
+
+        // Opus copied is refused, and the same load goes on with the Opus turned to AAC.
+        player.load(torrent(format!("{base}/episode.mkv")));
+        next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
+        assert_eq!(receiver.heard("LOAD").len(), 2, "{how:?}");
+        let plan = player.status().borrow().plan.clone().unwrap();
+        assert_eq!(plan.audio, AudioPlan::ToAac { from: crate::formats::AudioCodec::Opus });
+        assert!(memory.caps("tv-1").refused("opus/hls"), "{how:?}");
+        assert!(!memory.caps("tv-1").refused("hls-fmp4"));
+
+        // The next cast turns the Opus to AAC from the start.
+        player.load(torrent(format!("{base}/episode.mkv")));
+        next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
+        assert_eq!(receiver.heard("LOAD").len(), 3);
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_tv_that_stops_hls_at_720_lines_plays_a_1080_line_file_passed_through() {
+    let tall = Fixture {
+        audio: Some(FixtureAudio::aac()),
+        width: 1920,
+        height: 1080,
+        ..Fixture::default()
+    };
+    let short = Fixture { audio: Some(FixtureAudio::aac()), ..Fixture::default() };
+    let base = serve(HashMap::from([
+        ("/1080.mkv".to_owned(), matroska(&tall)),
+        ("/360.mkv".to_owned(), matroska(&short)),
+    ]))
+    .await;
     let receiver = FakeReceiver::start(FakeOptions {
         speed: 4.0,
+        refuse: Refuse { hls_taller_than: Some(720), ..Refuse::default() },
+        ..FakeOptions::default()
+    })
+    .await
+    .unwrap();
+    let memory = Arc::new(CastMemory::memory());
+    let (player, mut events) =
+        CastPlayer::connect(setup(&receiver, Arc::clone(&memory), Arc::new(NoEncoder)))
+            .await
+            .unwrap();
+
+    // The remux is refused for its height, and the file as it is plays.
+    player.load(torrent(format!("{base}/1080.mkv")));
+    next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
+    let sent = receiver.heard("LOAD");
+    assert_eq!(sent.len(), 2);
+    assert_eq!(sent[1]["media"]["contentType"], "video/x-matroska");
+    let caps = memory.caps("tv-1");
+    assert!(caps.refused("h264/1080/hls"));
+    assert!(!caps.refused("hls-fmp4"), "HLS itself still plays");
+    assert!(caps.played("mkv"));
+
+    // The next 1080-line file goes straight to the file; a smaller one is still remuxed.
+    player.load(torrent(format!("{base}/1080.mkv")));
+    next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
+    assert_eq!(receiver.heard("LOAD").len(), 3);
+    assert_eq!(receiver.heard("LOAD")[2]["media"]["contentType"], "video/x-matroska");
+    player.load(torrent(format!("{base}/360.mkv")));
+    next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
+    assert_eq!(receiver.heard("LOAD")[3]["media"]["contentType"], "application/x-mpegurl");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_file_whose_picture_a_tv_may_lack_is_asked_about_with_a_clip_first() {
+    // A file the remuxer can't read, so it goes as it is: HEVC with sound.
+    let hevc = Fixture {
+        video: "V_MPEGH/ISO/HEVC",
+        cues: false,
+        audio: Some(FixtureAudio::aac()),
+        ..Fixture::default()
+    };
+    let base = serve(HashMap::from([("/episode.mkv".to_owned(), matroska(&hevc))])).await;
+
+    // A TV with no HEVC decoder plays such a file's sound alone and says nothing. The clip,
+    // with no sound, is refused, and the file never reaches the TV.
+    let hub = FakeReceiver::start(FakeOptions {
+        speed: 4.0,
         refuse: Refuse {
-            bytes: vec![b"Opus".to_vec()],
-            content_types: Vec::new(),
-            how: Some(Refusal::IdleError),
+            bytes: vec![b"hvc1".to_vec(), b"V_MPEGH".to_vec()],
+            how: Some(Refusal::LoadFailed),
+            sound_alone: true,
+            ..Refuse::default()
         },
         ..FakeOptions::default()
     })
     .await
     .unwrap();
     let memory = Arc::new(CastMemory::memory());
-    let (player, mut events) = CastPlayer::connect(setup(
-        &receiver,
-        Arc::clone(&memory),
-        Arc::new(FakeEncoder::default()),
-    ))
-    .await
-    .unwrap();
-
-    // Opus copied, remuxed and then as the file is: both refused, and Opus is to blame.
+    let (player, mut events) =
+        CastPlayer::connect(setup(&hub, Arc::clone(&memory), Arc::new(NoEncoder)))
+            .await
+            .unwrap();
     player.load(torrent(format!("{base}/episode.mkv")));
+    next(&mut events, |e| matches!(e, PlaybackEvent::Ended { .. } | PlaybackEvent::Loaded))
+        .await;
+    let sent = hub.heard("LOAD");
+    assert_eq!(sent.len(), 1, "the clip alone");
+    assert_eq!(sent[0]["media"]["contentType"], "video/mp4");
     assert_eq!(
-        next(&mut events, |e| matches!(e, PlaybackEvent::Ended { .. } | PlaybackEvent::Loaded))
-            .await,
-        PlaybackEvent::Ended { complete: false }
+        player.failure(),
+        Some(CastFailure::Uncastable(Uncastable::VideoCodec("HEVC".into())))
     );
-    assert_eq!(player.failure(), Some(CastFailure::Refused));
-    assert_eq!(receiver.heard("LOAD").len(), 2);
-    assert!(memory.caps("tv-1").refused("opus"));
-    assert!(!memory.caps("tv-1").refused("hls-fmp4"));
+    assert!(memory.caps("tv-1").refused("hevc/720/progressive"));
 
-    // The next cast turns the Opus to AAC from the start.
+    // A TV that plays the clip gets the file next, and is not asked again.
+    let tv = FakeReceiver::start(FakeOptions { speed: 4.0, ..FakeOptions::default() })
+        .await
+        .unwrap();
+    let memory = Arc::new(CastMemory::memory());
+    let (player, mut events) =
+        CastPlayer::connect(setup(&tv, Arc::clone(&memory), Arc::new(NoEncoder)))
+            .await
+            .unwrap();
     player.load(torrent(format!("{base}/episode.mkv")));
     next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
-    assert_eq!(receiver.heard("LOAD").len(), 3);
-    let plan = player.status().borrow().plan.clone().unwrap();
-    assert_eq!(plan.audio, AudioPlan::ToAac { from: crate::formats::AudioCodec::Opus });
+    let sent = tv.heard("LOAD");
+    assert_eq!(sent.len(), 2);
+    assert_eq!(sent[0]["media"]["contentType"], "video/mp4");
+    assert_eq!(sent[1]["media"]["contentType"], "video/x-matroska");
+    assert!(memory.caps("tv-1").played("hevc/720/progressive"));
+    player.load(torrent(format!("{base}/episode.mkv")));
+    next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
+    assert_eq!(tv.heard("LOAD").len(), 3, "no clip the second time");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

@@ -65,8 +65,14 @@ struct Shared {
     /// Single files shared under `/s/<id>/`.
     files: Mutex<HashMap<String, PathBuf>>,
     dynamic: Mutex<Option<Arc<dyn Dynamic>>>,
+    /// Small bodies kept in memory under `/b/<id>/`: the capability clips.
+    bytes: Mutex<HashMap<String, (&'static str, &'static [u8])>>,
+    /// Requests that arrived, counted as they arrive: a TV that reads a header and refuses
+    /// closes the connection before the body is done.
     requests: AtomicU64,
-    media_bytes: AtomicU64,
+    /// Requests for the picture and sound (an init or media segment, a progressive range), as
+    /// they arrive, playlists and subtitles aside.
+    media_requests: AtomicU64,
     last_request: Mutex<Instant>,
 }
 
@@ -108,8 +114,9 @@ impl Relay {
             origins: Mutex::default(),
             files: Mutex::default(),
             dynamic: Mutex::default(),
+            bytes: Mutex::default(),
             requests: AtomicU64::new(0),
-            media_bytes: AtomicU64::new(0),
+            media_requests: AtomicU64::new(0),
             last_request: Mutex::new(Instant::now()),
         });
         let task = {
@@ -145,6 +152,18 @@ impl Relay {
         format!("{}/s/{id}/{}", self.shared.base, encode(&name))
     }
 
+    /// Share `body`, kept in memory, as `name` of `content_type`, and return its URL.
+    pub fn share_bytes(
+        &self,
+        name: &str,
+        content_type: &'static str,
+        body: &'static [u8],
+    ) -> String {
+        let id = format!("{:08x}", rand::random::<u32>());
+        lock(&self.shared.bytes).insert(id.clone(), (content_type, body));
+        format!("{}/b/{id}/{}", self.shared.base, encode(name))
+    }
+
     /// The URL that fetches `upstream` with the stream's headers; its origin is allowed from now.
     pub fn upstream_url(&self, upstream: &str) -> String {
         if let Some(origin) = origin(upstream) {
@@ -166,19 +185,20 @@ impl Relay {
         format!("{}/x/{}", self.shared.base, path.trim_start_matches('/'))
     }
 
-    /// Requests answered since the last [`Relay::reset_stats`].
+    /// Requests that arrived since the last [`Relay::reset_stats`].
     pub fn requests(&self) -> u64 {
         self.shared.requests.load(Ordering::Relaxed)
     }
 
-    /// Whether any media bytes went out since the last reset: playlists and subtitles aside.
+    /// Whether the TV asked for the picture or sound since the last reset: an init segment, a
+    /// media segment or a progressive range, counted when the request arrives.
     pub fn media_served(&self) -> bool {
-        self.shared.media_bytes.load(Ordering::Relaxed) > 0
+        self.shared.media_requests.load(Ordering::Relaxed) > 0
     }
 
     pub fn reset_stats(&self) {
         self.shared.requests.store(0, Ordering::Relaxed);
-        self.shared.media_bytes.store(0, Ordering::Relaxed);
+        self.shared.media_requests.store(0, Ordering::Relaxed);
     }
 
     /// How long since the TV last asked for anything.
@@ -251,8 +271,8 @@ async fn connection(socket: TcpStream, shared: &Shared) -> std::io::Result<()> {
             .unwrap_or(Ok(None))?
     {
         *lock(&shared.last_request) = Instant::now();
-        let (status, keep) = answer(&request, shared, &mut write).await?;
         shared.requests.fetch_add(1, Ordering::Relaxed);
+        let (status, keep) = answer(&request, shared, &mut write).await?;
         tracing::debug!(method = %request.method, status, "relayed");
         if request.close || !keep {
             break;
@@ -330,7 +350,21 @@ async fn answer(
         head(write, 405, &cors, Some(0)).await?;
         return Ok((405, true));
     }
-    if let Some(shared_file) = rest.strip_prefix("s/") {
+    if let Some(kept) = rest.strip_prefix("b/") {
+        let id = kept.split('/').next().unwrap_or_default();
+        let found = lock(&shared.bytes).get(id).copied();
+        if let Some((content_type, body)) = found {
+            if !head_only {
+                shared.media_requests.fetch_add(1, Ordering::Relaxed);
+            }
+            let extra = format!("{cors}Content-Type: {content_type}\r\n");
+            head(write, 200, &extra, Some(body.len() as u64)).await?;
+            if !head_only {
+                write.write_all(body).await?;
+            }
+            return Ok((200, true));
+        }
+    } else if let Some(shared_file) = rest.strip_prefix("s/") {
         let id = shared_file.split('/').next().unwrap_or_default();
         let path = lock(&shared.files).get(id).cloned();
         if let Some(path) = path {
@@ -343,8 +377,8 @@ async fn answer(
         if let Some(dynamic) = dynamic
             && let Some((content_type, body)) = dynamic.get(path).await
         {
-            if is_media(&content_type) {
-                shared.media_bytes.fetch_add(body.len() as u64, Ordering::Relaxed);
+            if is_media(&content_type) && !head_only {
+                shared.media_requests.fetch_add(1, Ordering::Relaxed);
             }
             let extra = format!("{cors}Content-Type: {content_type}\r\n");
             head(write, 200, &extra, Some(body.len() as u64)).await?;
@@ -421,6 +455,9 @@ async fn file(
         }
         None => (200, 0, size),
     };
+    if is_media(kind) && !head_only {
+        shared.media_requests.fetch_add(1, Ordering::Relaxed);
+    }
     head(write, status, &extra, Some(len)).await?;
     if head_only {
         return Ok((status, true));
@@ -434,9 +471,6 @@ async fn file(
             break;
         }
         write.write_all(&buffer[..n]).await?;
-        if is_media(kind) {
-            shared.media_bytes.fetch_add(n as u64, Ordering::Relaxed);
-        }
     }
     Ok((status, true))
 }
@@ -525,20 +559,19 @@ async fn upstream(
         return Ok((200, true));
     }
 
+    if (200..300).contains(&status) && is_media(&kind) && !head_only {
+        shared.media_requests.fetch_add(1, Ordering::Relaxed);
+    }
     head(write, status, &extra, length).await?;
     if head_only {
         return Ok((status, length.is_some()));
     }
-    let media = (200..300).contains(&status) && is_media(&kind);
     let mut body = response.body;
     let mut sent = 0u64;
     while let Some(chunk) = body.next().await {
         let chunk = chunk?;
         write.write_all(&chunk).await?;
         sent += chunk.len() as u64;
-        if media {
-            shared.media_bytes.fetch_add(chunk.len() as u64, Ordering::Relaxed);
-        }
     }
     // A body shorter than it said can't leave the connection in step.
     Ok((status, length.is_some_and(|l| l == sent)))
@@ -696,6 +729,28 @@ mod tests {
         relay.reset_stats();
         assert_eq!(relay.requests(), 0);
         assert!(!relay.media_served());
+
+        // A TV that asks, reads the head and hangs up has still asked for media.
+        let (authority, path) = shared.trim_start_matches("http://").split_once('/').unwrap();
+        let mut socket = tokio::net::TcpStream::connect(authority).await.unwrap();
+        socket
+            .write_all(format!("GET /{path} HTTP/1.1\r\nHost: tv\r\n\r\n").as_bytes())
+            .await
+            .unwrap();
+        let mut start = [0u8; 12];
+        socket.read_exact(&mut start).await.unwrap();
+        drop(socket);
+        assert!(start.starts_with(b"HTTP/1.1 200"));
+        assert_eq!(relay.requests(), 1);
+        assert!(relay.media_served());
+
+        // Bytes kept in memory, as the capability clips are.
+        relay.reset_stats();
+        let kept = relay.share_bytes("clip.webm", "video/webm", b"not a real clip");
+        let response = get(&kept, None).await;
+        assert_eq!(response.header("content-type"), Some("video/webm"));
+        assert_eq!(response.bytes(1024).await.unwrap(), b"not a real clip");
+        assert!(relay.media_served());
     }
 
     #[tokio::test]
