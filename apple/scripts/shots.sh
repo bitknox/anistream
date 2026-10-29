@@ -43,6 +43,9 @@
 # The Simulator is shot in portrait. --landscape turns the device first (devicectl's orientation
 # command), and the files are named <device>-landscape-<shot>.png.
 #
+# ANISTREAM_LAUNCH_ARGS adds launch arguments to every iPhone or iPad shot, split on spaces:
+# ANISTREAM_LAUNCH_ARGS="-AppleLanguages (en-XA)" shoots the pseudo-locale.
+#
 # ANISTREAM_DERIVED_DATA picks where xcodebuild builds, apple/.derived unless it says otherwise.
 set -euo pipefail
 # Bash 4.4 and newer only. macOS's own /bin/bash is 3.2.
@@ -221,6 +224,8 @@ for shot in "${shots[@]}"; do
   log="$(mktemp -t anistream-shot)"
   args=()
   while IFS= read -r arg; do args+=("$arg"); done < <(arguments "$shot")
+  # shellcheck disable=SC2206
+  [[ -z "${ANISTREAM_LAUNCH_ARGS:-}" ]] || args+=(${ANISTREAM_LAUNCH_ARGS})
   xcrun simctl terminate "$udid" tv.anistream.fixtures 2>/dev/null || true
   # Attached to the app's console, which ends when the app is terminated: the app's output
   # reaches a file this way, where --stdout leaves it empty.

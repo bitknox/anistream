@@ -872,7 +872,7 @@ private struct RailRow: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 // The engine says it in sentence case, as the iPhone has it; the Mac's headings
                 // are in title case.
-                SectionHeading(compact ? rail.title : rail.title.capitalized, compact: compact)
+                SectionHeading(compact ? rail.title : rail.title.capitalizedSentence, compact: compact)
                 if let detail = rail.detail {
                     Text(detail).font(compact ? .ui(15) : .mac(13)).foregroundStyle(.haze)
                 }
