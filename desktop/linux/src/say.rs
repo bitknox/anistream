@@ -419,6 +419,13 @@ pub fn queue(
     Queue { in_progress, new_this_week }
 }
 
+/// Whether every episode of a show with a known count is watched, so that the engine offers
+/// episode 1 again.
+fn watched_all(entry: &Entry) -> bool {
+    let total = entry.episodes.filter(|total| *total > 0);
+    matches!((total, entry.progress), (Some(total), Some(p)) if p.done >= total && p.next == 1)
+}
+
 /// The row for `entry`. With the title's episodes, it plays the next episode that a source
 /// lists, and with none to play it says so in place of its button.
 pub fn queue_item(entry: &Entry, rows: Option<&[EpisodeRow]>) -> QueueRow {
@@ -444,6 +451,9 @@ pub fn queue_item(entry: &Entry, rows: Option<&[EpisodeRow]>) -> QueueRow {
     let button = match &clock {
         _ if unsourced => None,
         Some(clock) => Some(marked(t::title_button_resume(episode, clock), dubbed)),
+        None if watched_all(entry) => {
+            item.playable.then(|| marked(t::title_button_watch_again(), dubbed))
+        }
         None => item.playable.then(|| marked(t::title_button_play(episode), dubbed)),
     };
     let waiting = if unsourced {
@@ -516,6 +526,21 @@ mod tests {
         let item = queue_item(&entry(2), None);
         assert_eq!(item.action, "Play E1");
         assert_eq!(item.button.as_deref(), Some("Play episode 1"));
+    }
+
+    #[test]
+    fn a_finished_show_offers_to_watch_again_from_its_first_episode() {
+        let mut e = entry(4);
+        e.episodes = Some(12);
+        e.progress = Some(TitleProgress { done: 12, next: 1 });
+        let item = queue_item(&e, None);
+        assert_eq!(item.button.as_deref(), Some("Watch again"));
+        // One episode short, or a show whose count is not known, plays the next as before.
+        e.progress = Some(TitleProgress { done: 11, next: 12 });
+        assert_eq!(queue_item(&e, None).button.as_deref(), Some("Play episode 12"));
+        e.episodes = None;
+        e.progress = Some(TitleProgress { done: 12, next: 13 });
+        assert_eq!(queue_item(&e, None).button.as_deref(), Some("Play episode 13"));
     }
 
     #[test]

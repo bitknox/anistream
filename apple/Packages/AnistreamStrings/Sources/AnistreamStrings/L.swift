@@ -4061,6 +4061,9 @@ public enum L {
     /// Button on the title page that plays the trailer.
     public static var titleTrailer: String { string("title-trailer", fallback: "Trailer") }
 
+    /// Main button of the title page when every episode of the show is watched: plays episode 1 again.
+    public static var titleButtonWatchAgain: String { string("title-button-watch-again", fallback: "Watch again") }
+
     /// Menu item that plays the trailer.
     public static var titlePlayTrailer: String { string("title-play-trailer", fallback: "Play trailer") }
 

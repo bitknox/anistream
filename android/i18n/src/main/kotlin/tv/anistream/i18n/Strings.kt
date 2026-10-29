@@ -5949,6 +5949,10 @@ object Strings {
     fun titleTrailer(context: Context): String =
         context.getString(R.string.title_trailer)
 
+    /** Main button of the title page when every episode of the show is watched: plays episode 1 again. */
+    fun titleButtonWatchAgain(context: Context): String =
+        context.getString(R.string.title_button_watch_again)
+
     /** Menu item that plays the trailer. */
     fun titlePlayTrailer(context: Context): String =
         context.getString(R.string.title_play_trailer)

@@ -5467,6 +5467,10 @@
     <value>Trailer</value>
     <comment>Button on the title page that plays the trailer.</comment>
   </data>
+  <data name="TitleButtonWatchAgain" xml:space="preserve">
+    <value>Watch again</value>
+    <comment>Main button of the title page when every episode of the show is watched: plays episode 1 again.</comment>
+  </data>
   <data name="TitlePlayTrailer" xml:space="preserve">
     <value>Play trailer</value>
     <comment>Menu item that plays the trailer.</comment>
