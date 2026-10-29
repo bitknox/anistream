@@ -62,6 +62,8 @@ pub enum Operation {
     Many,
     /// `query::relations`: several titles' relations, two levels deep, for the season walk.
     Relations,
+    /// `query::recommended_from`: what people who liked each title rated highest, by id.
+    Recommended,
     /// `query::media_pages` with one page of a season and no term: Seasonal.
     Seasonal,
     /// `query::airing_schedule`: broadcasts in a window, for the Calendar.
@@ -130,6 +132,8 @@ impl Operation {
             Self::LastAired
         } else if has("airingSchedules(") {
             Self::Schedule
+        } else if has("media(id_in:") && has("recommendations(") {
+            Self::Recommended
         } else if has("media(id_in:") && has("relations {") && !has("prequels:") {
             Self::Relations
         } else if has("media(id_in:") {
@@ -215,6 +219,8 @@ struct State {
     art_trouble: ArtTrouble,
     /// How often each image has been asked for, and in which order they first were.
     art_asked: HashMap<String, (usize, u32)>,
+    /// The entries of the people the viewer follows, by title: see [`FakeAniList::set_following`].
+    following: HashMap<u64, Vec<Value>>,
     /// Forum threads a test made up: see [`FakeAniList::add_thread`].
     threads: Vec<threads::FakeThread>,
     /// How many comments have been posted to them, for the new comments' ids.
@@ -252,6 +258,7 @@ impl FakeAniList {
             art: None,
             art_trouble: ArtTrouble::default(),
             art_asked: HashMap::new(),
+            following: HashMap::new(),
             threads: Vec::new(),
             posted: 0,
         }));
@@ -395,6 +402,14 @@ impl FakeAniList {
         lock(&self.state).viewer_language = Some(language.to_owned());
     }
 
+    /// The people the signed-in viewer follows who have `id` on a list, as `mediaList` entries in
+    /// AniList's shape (`status`, `score`, `progress`, `private`, `user { name avatar { medium } }`),
+    /// newest first. Answered only to a request that asks for them, with a token: see
+    /// [`following_entry`].
+    pub fn set_following(&self, id: AnilistId, entries: impl IntoIterator<Item = Value>) {
+        lock(&self.state).following.insert(u64::from(id.get()), entries.into_iter().collect());
+    }
+
     /// Hold every answer to `operation` back by `wait` from now on, as a slow AniList would: for
     /// a test of what the app shows while it waits.
     pub fn answer_slowly(&self, operation: Operation, wait: std::time::Duration) {
@@ -451,6 +466,87 @@ impl Drop for FakeAniList {
     fn drop(&mut self) {
         self.accept.abort();
     }
+}
+
+/// What AniList refuses a query for costing more than.
+pub const COMPLEXITY_LIMIT: u64 = 500;
+
+/// What `document` costs as AniList counts it, as far as the fake can tell: one for every field,
+/// and a field with a `perPage` argument (a literal or a variable of `variables`) multiplies what
+/// is selected under it by that many. An estimate of the rule AniList documents, not a replay of
+/// it: the real service is the judge, and a live probe is the way to measure it.
+pub fn complexity(document: &str, variables: &Value) -> u64 {
+    let mut tokens: Vec<String> = Vec::new();
+    let mut word = String::new();
+    for c in document.chars() {
+        if c.is_alphanumeric() || c == '_' || c == '$' {
+            word.push(c);
+        } else {
+            if !word.is_empty() {
+                tokens.push(std::mem::take(&mut word));
+            }
+            if "{}():,[]!".contains(c) {
+                tokens.push(c.to_string());
+            }
+        }
+    }
+    if !word.is_empty() {
+        tokens.push(word);
+    }
+    let Some(start) = tokens.iter().position(|t| t == "{") else { return 0 };
+    let mut at = start + 1;
+    selection(&tokens, &mut at, variables)
+}
+
+/// The cost of the fields up to the `}` that closes the selection `at` is inside.
+fn selection(tokens: &[String], at: &mut usize, variables: &Value) -> u64 {
+    let mut total = 0;
+    while *at < tokens.len() {
+        match tokens[*at].as_str() {
+            "}" => {
+                *at += 1;
+                return total;
+            }
+            "," | ":" => *at += 1,
+            _ => {
+                // A field, or an alias before the `:` that names it.
+                if tokens.get(*at + 1).is_some_and(|t| t == ":") {
+                    *at += 2;
+                }
+                *at += 1;
+                let mut times = 1;
+                if tokens.get(*at).is_some_and(|t| t == "(") {
+                    let mut depth = 0;
+                    while *at < tokens.len() {
+                        match tokens[*at].as_str() {
+                            "(" => depth += 1,
+                            ")" => depth -= 1,
+                            "perPage" => {
+                                let value = tokens.get(*at + 2).map_or("", String::as_str);
+                                times = value.parse().unwrap_or_else(|_| {
+                                    variables[value.trim_start_matches('$')]
+                                        .as_u64()
+                                        .unwrap_or(1)
+                                });
+                            }
+                            _ => {}
+                        }
+                        *at += 1;
+                        if depth == 0 {
+                            break;
+                        }
+                    }
+                }
+                let mut children = 0;
+                if tokens.get(*at).is_some_and(|t| t == "{") {
+                    *at += 1;
+                    children = selection(tokens, at, variables);
+                }
+                total += 1 + children * times;
+            }
+        }
+    }
+    total
 }
 
 /// A poisoned lock means a test already panicked; the state is still worth reading.
@@ -628,7 +724,15 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         Operation::Unknown
     };
 
-    let (failure, (now, ahead), titles, viewer_language, extra, pool, rows) = {
+    let asks_following = query.contains("isFollowing: true");
+    // AniList refuses a query that costs more than 500. Only the queries the fake counts for
+    // are held to it: see [`complexity`].
+    if operation == Operation::Recommended && complexity(&query, &variables) > COMPLEXITY_LIMIT
+    {
+        return Reply::errors(400, "Max query complexity of 500 exceeded", Value::Null);
+    }
+
+    let (failure, (now, ahead), titles, viewer_language, extra, pool, rows, following) = {
         let mut state = lock(state);
         state.requests.push(Request {
             operation,
@@ -642,7 +746,17 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         let extra = state.extra.clone();
         let pool = state.catalogue.clone();
         let rows = state.broadcasts.clone();
-        (failure, clock, state.titles.clone(), state.viewer_language.clone(), extra, pool, rows)
+        let following = state.following.clone();
+        (
+            failure,
+            clock,
+            state.titles.clone(),
+            state.viewer_language.clone(),
+            extra,
+            pool,
+            rows,
+            following,
+        )
     };
     match failure {
         Some(failure) => fail(failure),
@@ -662,7 +776,14 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
                 threads::respond(&mut lock(state), operation, &variables, clock.now)
             };
             let mut reply = thread.unwrap_or_else(|| {
-                respond(operation, &variables, authorized, clock, catalogue)
+                respond(
+                    operation,
+                    &variables,
+                    authorized,
+                    clock,
+                    catalogue,
+                    asks_following.then_some(&following),
+                )
             });
             if let Reply::Answer { body, .. } = &mut reply {
                 retitle(body, &titles);
@@ -818,11 +939,12 @@ fn respond(
     authorized: bool,
     clock: Clock,
     catalogue: Catalogue<'_>,
+    following: Option<&HashMap<u64, Vec<Value>>>,
 ) -> Reply {
     let needs_token = matches!(
         operation,
         Operation::Library | Operation::Viewer | Operation::SaveEntry | Operation::DeleteEntry
-    );
+    ) || (operation == Operation::Detail && following.is_some());
     // The client never sends these without a token; a request that does is a bug worth seeing.
     if needs_token && !authorized {
         return Reply::errors(401, "Invalid token", Value::Null);
@@ -842,7 +964,18 @@ fn respond(
         Operation::Facets => Reply::ok(facets()),
         Operation::Detail => {
             match vars["id"].as_u64().and_then(|id| catalogue.get(id)) {
-                Some(media) => Reply::ok(detail(catalogue.with_neighbours(media), clock)),
+                Some(media) => {
+                    let mut data = detail(catalogue.with_neighbours(media), clock);
+                    // Only to a document that asks, as AniList answers only what is asked.
+                    if let Some(following) = following {
+                        let entries = following
+                            .get(&vars["id"].as_u64().unwrap_or_default())
+                            .cloned()
+                            .unwrap_or_default();
+                        data["following"] = json!({ "mediaList": entries });
+                    }
+                    Reply::ok(data)
+                }
                 // What AniList answers for an id it has no title for: a 404 inside GraphQL's
                 // error shape, which the client reads as an API failure rather than NotFound.
                 None => Reply::errors(404, "Not Found.", json!({ "Media": null })),
@@ -851,12 +984,37 @@ fn respond(
         Operation::Many => {
             let asked = ids(&vars["ids"]);
             // In the catalogue's order, not the order asked: the client puts them back, and
-            // answering in the asked order would let a client that forgot pass anyway.
+            // answering in the asked order would let a client that forgot pass anyway. The
+            // titles a test added come after the fixtures, newest id first.
+            let mut added: Vec<AnilistId> = asked
+                .iter()
+                .copied()
+                .filter(|id| !fixtures::ALL.contains(id))
+                .filter(|id| catalogue.extra.contains_key(&u64::from(id.get())))
+                .collect();
+            added.sort_by_key(|id| std::cmp::Reverse(id.get()));
             let media: Vec<Value> = fixtures::ALL
                 .iter()
                 .filter(|id| asked.contains(id))
                 .filter_map(|id| fixtures::listed_wire(*id))
+                .chain(added.iter().filter_map(|id| catalogue.listed(*id)))
                 .map(|m| clock.media(m))
+                .collect();
+            Reply::ok(json!({ "Page": { "media": media } }))
+        }
+        Operation::Recommended => {
+            let per_page = vars["perPage"].as_u64().unwrap_or(MAX_PER_PAGE as u64) as usize;
+            let media: Vec<Value> = ids(&vars["ids"])
+                .into_iter()
+                .take(per_page)
+                .filter_map(|id| catalogue.wire(id))
+                .map(|m| {
+                    json!({
+                        "id": m["id"],
+                        "title": m["title"],
+                        "recommendations": { "nodes": m["recommendations"]["nodes"] },
+                    })
+                })
                 .collect();
             Reply::ok(json!({ "Page": { "media": media } }))
         }
@@ -929,6 +1087,24 @@ impl Clock {
             row["airingAt"] = at.into();
         }
     }
+}
+
+/// One entry of the people the viewer follows, as AniList answers it: for
+/// [`FakeAniList::set_following`].
+pub fn following_entry(
+    name: &str,
+    status: &str,
+    score: Option<u32>,
+    progress: u32,
+    private: bool,
+) -> Value {
+    json!({
+        "status": status,
+        "score": score.unwrap_or(0),
+        "progress": progress,
+        "private": private,
+        "user": { "name": name, "avatar": { "medium": format!("https://img.example/avatar/{name}.png") } },
+    })
 }
 
 /// The single-title answer, as AniList shapes it: the title, and beside it the broadcasts
@@ -1380,9 +1556,11 @@ mod tests {
                 Operation::Browse,
             ),
             (query::FACETS.to_owned(), Operation::Facets),
-            (query::by_id(), Operation::Detail),
+            (query::by_id(false), Operation::Detail),
+            (query::by_id(true), Operation::Detail),
             (query::by_ids(), Operation::Many),
             (query::relations(), Operation::Relations),
+            (query::recommended_from(), Operation::Recommended),
             (query::airing_schedule(), Operation::Schedule),
             (query::LAST_AIRED.to_owned(), Operation::LastAired),
             (query::AIRED_SINCE.to_owned(), Operation::AiredSince),

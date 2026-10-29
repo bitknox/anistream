@@ -2714,6 +2714,38 @@ public enum L {
     /// Line when no show the person follows airs in the next seven days.
     public static var calendarComingUpEmpty: String { string("calendar-coming-up-empty", fallback: "Nothing airs this week for the shows you follow.") }
 
+    /// Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.
+    public static var calendarToday: String { string("calendar-today", fallback: "Today") }
+
+    /// Line where days before the first day the calendar reaches would be.
+    public static var calendarFloor: String { string("calendar-floor", fallback: "The calendar goes back 3 months.") }
+
+    /// Line where days after the last day the calendar reaches would be.
+    public static var calendarCeiling: String { string("calendar-ceiling", fallback: "The calendar goes 4 weeks ahead.") }
+
+    /// Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.
+    public static var calendarEnd: String { string("calendar-end", fallback: "Nothing later is scheduled yet.") }
+
+    /// Activity line while earlier broadcasts load.
+    public static var calendarLoadingEarlier: String { string("calendar-loading-earlier", fallback: "Loading earlier broadcasts") }
+
+    /// Activity line while later broadcasts load.
+    public static var calendarLoadingLater: String { string("calendar-loading-later", fallback: "Loading later broadcasts") }
+
+    /// Line where earlier broadcasts would be when they could not be loaded.
+    public static var calendarLoadEarlierFailed: String { string("calendar-load-earlier-failed", fallback: "Couldn't load earlier broadcasts") }
+
+    /// Line where later broadcasts would be when they could not be loaded.
+    public static var calendarLoadLaterFailed: String { string("calendar-load-later-failed", fallback: "Couldn't load later broadcasts") }
+
+    /// Button under the line saying nothing on the person's list airs: shows every airing show.
+    public static var calendarShowAll: String { string("calendar-show-all", fallback: "Show all airing") }
+
+    /// What a screen reader says for the line that marks the time now. The time is already worded.
+    public static func calendarNowSpoken(time: String) -> String {
+        Self.format("calendar-now-spoken", fallback: "Now, %1$@", time)
+    }
+
     /// Button that runs a failed action again.
     public static var actionTryAgain: String { string("action-try-again", fallback: "Try again") }
 
@@ -3304,7 +3336,7 @@ public enum L {
 
     /// Line while AniList's request budget is spent. The engine waits, then goes on by itself.
     public static func discussionRateLimited(time: String) -> String {
-        Self.format("discussion-rate-limited", fallback: "AniList asked for a pause. Back in %1$@.", time)
+        Self.format("discussion-rate-limited", fallback: "Waiting for AniList · %1$@", time)
     }
 
     /// Title of the state when the episode has no thread on AniList.
@@ -3326,6 +3358,12 @@ public enum L {
 
     /// Heading of the Settings group for discussion rows.
     public static var discussionSettingsGroup: String { string("discussion-settings-group", fallback: "Discussions") }
+
+    /// Age of a comment that is on its way to AniList.
+    public static var discussionSending: String { string("discussion-sending", fallback: "Sending") }
+
+    /// Comment menu item that copies the comment's text.
+    public static var discussionCopyText: String { string("discussion-copy-text", fallback: "Copy text") }
 
     /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
     public static var downloadsTitle: String { string("downloads-title", fallback: "Downloads") }
@@ -3769,6 +3807,37 @@ public enum L {
         Self.format("continue-row-start-aired-dubbed", fallback: "Play E%1$lld dubbed · out %2$@", episode, ago)
     }
 
+    /// Heading over the suggestions under a short { -continue-cap } list.
+    public static var upNextHeading: String { string("up-next-heading", fallback: "Up next for you") }
+
+    /// Line on a suggestion that has not started airing. The date is written out already, such as "9 January".
+    public static func upNextStarts(date: String) -> String {
+        Self.format("up-next-starts", fallback: "Starts %1$@", date)
+    }
+
+    /// Reason on a suggestion that is a new season of a show the person finished and has not started.
+    public static var upNextReasonNewSeason: String { string("up-next-reason-new-season", fallback: "New season") }
+
+    /// Reason on a suggestion that is on the person's Planning list.
+    public static var upNextReasonPlanning: String { string("up-next-reason-planning", fallback: "On your Planning list") }
+
+    /// Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.
+    public static func upNextReasonRecommended(title: String) -> String {
+        Self.format("up-next-reason-recommended", fallback: "Because you finished %1$@", title)
+    }
+
+    /// Reason on a recommended suggestion when the finished show is not known.
+    public static var upNextReasonRecommendedPlain: String { string("up-next-reason-recommended-plain", fallback: "Recommended for you") }
+
+    /// Reason on a suggestion that airs today, shown when nothing else is left to suggest.
+    public static var upNextReasonAiringToday: String { string("up-next-reason-airing-today", fallback: "Airing today") }
+
+    /// Button on a suggestion that has not started airing. It puts the show on the Planning list.
+    public static var upNextAddPlanning: String { string("up-next-add-planning", fallback: "Add to Planning") }
+
+    /// Menu item on a suggestion. The show stays hidden until it starts airing.
+    public static var upNextNotInterested: String { string("up-next-not-interested", fallback: "Not interested") }
+
     /// Format of a show: broadcast on television.
     public static var formatTv: String { string("format-tv", fallback: "TV") }
 
@@ -3831,6 +3900,72 @@ public enum L {
     public static func mediaAiringFrom(date: String) -> String {
         Self.format("media-airing-from", fallback: "From %1$@", date)
     }
+
+    /// Date line of a show that has finished: when it began and when it ended. Both are already worded dates.
+    public static func mediaAiredRange(from: String, to: String) -> String {
+        Self.format("media-aired-range", fallback: "Aired %1$@ to %2$@", from, to)
+    }
+
+    /// Date line of a show that has finished and ran on one day, such as a film.
+    public static func mediaAiredOn(date: String) -> String {
+        Self.format("media-aired-on", fallback: "Aired %1$@", date)
+    }
+
+    /// Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.
+    public static func mediaHiatusSince(date: String) -> String {
+        Self.format("media-hiatus-since", fallback: "On hiatus since %1$@", date)
+    }
+
+    /// Date line of a show that was cancelled: the last episode that aired.
+    public static func mediaCancelledAfter(episode: Int) -> String {
+        Self.format("media-cancelled-after", fallback: "Cancelled after episode %1$lld", episode)
+    }
+
+    /// Heading of the list of official services that stream a show, in the sheet of more about it.
+    public static var mediaStreamingOn: String { string("media-streaming-on", fallback: "Streaming on") }
+
+    /// Note under the list of official services: AniList's links are not checked against where the viewer is.
+    public static var mediaStreamingRegionNote: String { string("media-streaming-region-note", fallback: "Availability depends on your region.") }
+
+    /// Note beside a link to an official service whose page is in another language, such as "Site in Japanese".
+    public static func mediaLinkLanguage(language: String) -> String {
+        Self.format("media-link-language", fallback: "Site in %1$@", language)
+    }
+
+    /// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+    public static func filmLengthHoursMinutes(hours: Int, minutes: Int) -> String {
+        Self.format("film-length-hours-minutes", fallback: "%1$lld hr %2$lld min", hours, minutes)
+    }
+
+    /// Length of a film or a single episode that is a whole number of hours, such as "2 hr".
+    public static func filmLengthHours(hours: Int) -> String {
+        Self.format("film-length-hours", fallback: "%1$lld hr", hours)
+    }
+
+    /// Length of a film or a single episode under an hour, such as "46 min".
+    public static func filmLengthMinutes(minutes: Int) -> String {
+        Self.format("film-length-minutes", fallback: "%1$lld min", minutes)
+    }
+
+    /// Country name: the origin filter and, after "Made in", the title facts.
+    public static var countryJapan: String { string("country-japan", fallback: "Japan") }
+
+    /// Country name: the origin filter and, after "Made in", the title facts.
+    public static var countryChina: String { string("country-china", fallback: "China") }
+
+    /// Country name, after "Made in".
+    public static var countrySouthKorea: String { string("country-south-korea", fallback: "South Korea") }
+
+    /// Country name: the origin filter and, after "Made in", the title facts.
+    public static var countryTaiwan: String { string("country-taiwan", fallback: "Taiwan") }
+
+    /// Fact on a show made outside Japan, with the country already named.
+    public static func mediaMadeIn(country: String) -> String {
+        Self.format("media-made-in", fallback: "Made in %1$@", country)
+    }
+
+    /// Fact on a show made outside Japan, for a country this app has no name for.
+    public static var mediaMadeElsewhere: String { string("media-made-elsewhere", fallback: "Made outside Japan") }
 
     /// Value of "Based on": a story written for the screen.
     public static var materialOriginal: String { string("material-original", fallback: "Original story") }
@@ -4959,6 +5094,15 @@ public enum L {
     /// Row: how titles are written.
     public static var settingsTitleLanguage: String { string("settings-title-language", fallback: "Title language") }
 
+    /// Value of the trailers setting: trailers play by themselves on any network.
+    public static var settingsValueTrailersAlways: String { string("settings-value-trailers-always", fallback: "Always") }
+
+    /// Value of the trailers setting: trailers play by themselves only on Wi-Fi.
+    public static var settingsValueTrailersWifiOnly: String { string("settings-value-trailers-wifi-only", fallback: "Wi-Fi only") }
+
+    /// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+    public static var settingsLabelTrailers: String { string("settings-label-trailers", fallback: "Play trailers") }
+
     /// Option: use the tracker's own choice. The tracker is a name.
     public static func settingsTitleTracker(tracker: String) -> String {
         Self.format("settings-title-tracker", fallback: "%1$@'s choice", tracker)
@@ -6000,6 +6144,9 @@ public enum L {
 
     /// Menu item that plays the trailer.
     public static var titlePlayTrailer: String { string("title-play-trailer", fallback: "Play trailer") }
+
+    /// Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.
+    public static var titleTrailerFailed: String { string("title-trailer-failed", fallback: "Couldn't open the trailer") }
 
     /// Name and tooltip of the button beside a playing trailer that turns its sound on or off.
     public static var titleTrailerSound: String { string("title-trailer-sound", fallback: "Trailer sound") }

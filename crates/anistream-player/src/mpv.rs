@@ -564,7 +564,11 @@ impl Mpv {
             diagnostics.drain(stderr);
         }
 
-        let socket = connect_with_retry(&socket_path).await?;
+        let socket = connect_with_retry(&socket_path, || match child.try_wait() {
+            Ok(Some(status)) => Some(status.to_string()),
+            _ => None,
+        })
+        .await?;
         let (read_half, write_half) = ipc::split(socket);
         let writer = Arc::new(Mutex::new(write_half));
         let alive = Arc::new(AtomicBool::new(true));
@@ -625,24 +629,36 @@ impl Mpv {
     }
 }
 
+/// How long mpv may take to open its socket while it is still running. A machine busy with
+/// other work can take several seconds to start it.
+const SOCKET_WAIT: Duration = Duration::from_secs(20);
+
 /// Connect to mpv's socket, retrying while it starts up.
 ///
-/// The socket appears a moment after the process does. Treating the first failure as fatal
-/// would make playback flaky for no reason.
-async fn connect_with_retry(path: &Path) -> Result<IpcStream, PlayerError> {
-    const ATTEMPTS: u32 = 50;
-    let mut last = String::new();
-
-    for _ in 0..ATTEMPTS {
+/// The socket appears a moment after the process does, or several seconds after on a busy
+/// machine. `exited` says how mpv ended if it already has: then nothing will ever open the
+/// socket, and waiting longer would only hold up the message.
+async fn connect_with_retry(
+    path: &Path,
+    mut exited: impl FnMut() -> Option<String>,
+) -> Result<IpcStream, PlayerError> {
+    let deadline = tokio::time::Instant::now() + SOCKET_WAIT;
+    loop {
         match ipc::connect(path).await {
             Ok(stream) => return Ok(stream),
             Err(e) => {
-                last = e.to_string();
+                if let Some(status) = exited() {
+                    return Err(PlayerError::Ipc(format!(
+                        "mpv exited before its socket appeared: {status}"
+                    )));
+                }
+                if tokio::time::Instant::now() >= deadline {
+                    return Err(PlayerError::Ipc(format!("socket never appeared: {e}")));
+                }
                 tokio::time::sleep(Duration::from_millis(100)).await;
             }
         }
     }
-    Err(PlayerError::Ipc(format!("socket never appeared: {last}")))
 }
 
 /// Read events off the socket and forward the ones the UI cares about.
@@ -771,7 +787,7 @@ mod tests {
         );
     }
 
-    // Paused time: the retry loop's sleeps resolve instantly instead of costing five real
+    // Paused time: the retry loop's sleeps resolve instantly instead of costing real
     // seconds, and the bound below is measured in the same virtual clock they advance.
     #[tokio::test(start_paused = true)]
     async fn connecting_to_a_socket_that_never_appears_fails_with_a_reason() {
@@ -780,13 +796,28 @@ mod tests {
 
         // Shortened by pointing at a path nothing will ever create; the retry loop bounds it.
         let started = tokio::time::Instant::now();
-        let error = connect_with_retry(&path).await.unwrap_err();
+        let error = connect_with_retry(&path, || None).await.unwrap_err();
         assert!(matches!(error, PlayerError::Ipc(_)));
         assert!(
-            started.elapsed() < Duration::from_secs(15),
+            started.elapsed() <= SOCKET_WAIT + Duration::from_secs(1),
             "retry loop must be bounded, took {:?}",
             started.elapsed()
         );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_player_that_has_exited_is_not_waited_for() {
+        let path = std::env::temp_dir().join("anistream-exited.sock");
+        let _ = std::fs::remove_file(&path);
+
+        let started = tokio::time::Instant::now();
+        let error =
+            connect_with_retry(&path, || Some("exit status: 1".into())).await.unwrap_err();
+        assert!(
+            matches!(&error, PlayerError::Ipc(reason) if reason.contains("exited")),
+            "{error:?}"
+        );
+        assert!(started.elapsed() < Duration::from_secs(1), "{:?}", started.elapsed());
     }
 
     #[test]

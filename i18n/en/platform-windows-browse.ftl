@@ -174,3 +174,8 @@ download-range-to = To
 # Download dialog: the note under the range.
 # @only windows
 download-range-quality-note = Downloads use the quality in Settings › Downloads.
+
+# Calendar: tooltip of the button that returns to the current week, with its shortcut.
+# @only windows
+# @arg keys: text
+calendar-today-tooltip = Today ({ $keys })

@@ -300,6 +300,57 @@ pub fn franchise() -> Vec<Value> {
         .collect()
 }
 
+/// An invented title, for a test that needs a viewer's own shows: [`crate::FakeAniList::add_titles`]
+/// answers its page and every list that asks for it by id. A TV series named `Invented {id}` (its
+/// romaji and English forms), with `episodes` episodes and the `start` date.
+///
+/// `status` is AniList's (`FINISHED`, `RELEASING`, `NOT_YET_RELEASED`). A releasing title has its
+/// next episode a day on. `relations` are `(kind, id)` edges, such as `("SEQUEL", 930002)`, and
+/// `recommends` the ids people who liked it rated highest.
+pub fn invented(
+    id: u32,
+    status: &str,
+    episodes: u32,
+    start: (u16, u8, u8),
+    relations: &[(&str, u32)],
+    recommends: &[u32],
+) -> Value {
+    use serde_json::json;
+    let card = |id: u32| {
+        json!({
+            "id": id,
+            "title": { "romaji": format!("Invented {id}"), "english": format!("Invented {id}"), "native": null },
+            "format": "TV",
+            "coverImage": { "large": format!("{ART_HOST}cover/{id}.jpg"), "color": "#6a8f5c" },
+            "season": "SPRING",
+            "seasonYear": start.0,
+        })
+    };
+    let mut title = card(id);
+    title["idMal"] = Value::Null;
+    title["status"] = json!(status);
+    title["episodes"] = json!(episodes);
+    title["duration"] = json!(24);
+    title["startDate"] = json!({ "year": start.0, "month": start.1, "day": start.2 });
+    title["coverImage"]["extraLarge"] = title["coverImage"]["large"].clone();
+    if status == "RELEASING" {
+        title["nextAiringEpisode"] = json!({
+            "episode": 2,
+            "airingAt": FIXTURE_NOW + 86_400,
+            "timeUntilAiring": 86_400,
+        });
+    }
+    let edges: Vec<Value> = relations
+        .iter()
+        .map(|(kind, to)| json!({ "relationType": kind, "node": card(*to) }))
+        .collect();
+    title["relations"] = json!({ "edges": edges });
+    let nodes: Vec<Value> =
+        recommends.iter().map(|to| json!({ "mediaRecommendation": card(*to) })).collect();
+    title["recommendations"] = json!({ "nodes": nodes });
+    title
+}
+
 /// A long made-up franchise, for a season picker with more seasons than fit across a screen. The
 /// scenes have it beside the six, in no list, search or schedule, as [`franchise`] is: a page
 /// opens on it by id.

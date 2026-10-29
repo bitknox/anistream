@@ -77,9 +77,12 @@ gridview.posters > child { padding: 8px; border-radius: 12px; }
 gridview.posters > child:hover { background: alpha(var(--silk), 0.05); }
 
 /* Calendar: today's column on raised from heading to foot. */
-.calendar-day { padding: 8px 6px; border-radius: 12px; }
-.calendar-day.today { background: var(--raised); }
-.calendar-heading { padding: 0 4px 4px 4px; }
+.calendar-head { padding: 8px 10px 4px 10px; border-radius: 12px 12px 0 0; }
+.calendar-body { padding: 4px 6px 8px 6px; border-radius: 0 0 12px 12px; }
+.calendar-head.today, .calendar-body.today { background: var(--raised); }
+.calendar-now-time { color: var(--silk); font-size: 12px; font-weight: 700; }
+.calendar-now separator { background: var(--silk); min-height: 1px; }
+.calendar-now-row { background: none; padding: 0 12px; }
 .broadcast { padding: 4px; border-radius: 8px; }
 .broadcast:hover { background: alpha(var(--silk), 0.05); }
 .banner.small { border-radius: 6px; }
@@ -219,10 +222,30 @@ row.expander:checked image.expander-row-arrow { color: var(--haze); }
 .code-box.current { box-shadow: inset 0 0 0 1px var(--silk); }
 .tv-play { min-width: 48px; min-height: 48px; -gtk-icon-size: 24px; }
 
-/* Episode discussions: round avatars, quotes set in, a liked comment in amber. */
+/* Episode discussions: the words lead and amber waits for Post. A liked heart fills in silk,
+   quotes are haze behind a hairline, and the comment being answered sits on Raised. */
 .discussion-avatar { border-radius: 16px; }
-.discussion-quote { border-left: 3px solid var(--rule); padding-left: 10px; }
-.discussion-like.liked { color: var(--amber); }
+.discussion-avatar.small { border-radius: 12px; }
+.discussion-quote { border-left: 1px solid var(--rule); padding-left: 10px; color: var(--haze); }
+.discussion-row.top { padding: 10px 8px 2px 8px; border-radius: 8px; }
+.discussion-row.reply { padding: 4px 8px 2px 8px; border-radius: 8px; }
+.discussion-row.answering { background: var(--raised); }
+.discussion-rule { background: var(--faint-rule); min-height: 1px; margin-left: 52px; }
+.discussion-author { font-weight: 600; font-size: 13px; }
+.discussion-age, .discussion-count { font-size: 13px; }
+.discussion-like { color: var(--haze); font-size: 13px; padding: 0 8px; }
+.discussion-like.liked { color: var(--silk); }
+.discussion-reply { color: var(--haze); font-weight: 600; font-size: 13px; }
+.discussion-open { text-decoration: underline; font-size: 13px; font-weight: 400; }
+.discussion-show { font-size: 12px; }
+.discussion-more { opacity: 0; }
+.discussion-row:hover .discussion-more, .discussion-more:focus, .discussion-more:checked { opacity: 1; }
+
+/* Today turns on and off with the quick token's 0.2 s. */
+button.calendar-today {
+  transition: opacity 200ms ease-out;
+}
 
 /* The hover preview is one surface: Raised, radius 12, the video flush at its top edge. */
 popover.trailer-preview > contents { padding: 0; border-radius: 12px; background-color: var(--raised); }
+

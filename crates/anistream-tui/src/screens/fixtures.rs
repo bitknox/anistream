@@ -65,6 +65,7 @@ pub(super) fn episode(
         metadata_only: false,
         source: None,
         unsourced: false,
+        past_progress: false,
         thumbnail: None,
         description: None,
     }

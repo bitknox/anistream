@@ -126,8 +126,29 @@ pub struct Entry {
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub detail: Option<TitleDetail>,
     /// Whether it is airing, has finished, has yet to start, was cancelled or is on hiatus.
+    /// AniList's `status`, and when AniList sends none, what the dates and the schedule say.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub status: Option<AiringStatus>,
+    /// What the title page says of its run, decided here from [`Self::status`] and the dates, so
+    /// no app works it out from dates (see [`AiringFact`]). `None` when nothing is known.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub airing: Option<AiringFact>,
+    /// The length of an episode, in minutes, when AniList knows it. A film's length is
+    /// [`Self::film_length`].
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub duration: Option<u32>,
+    /// How long a film or a single-episode title runs, for its metadata line: "1 h 52 min".
+    /// `None` for a series, whose episodes' length is [`Self::duration`], and when AniList does
+    /// not know. [`crate::present::film_length`] words it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub film_length: Option<RunLength>,
+    /// Where it was made, as AniList's ISO country code: `JP`, `CN`, `KR`, `TW`.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub country: Option<String>,
+    /// It was made outside Japan, so a page shows [`Self::country`] ([`crate::present::made_in`])
+    /// and shows nothing for a Japanese title. `false` when AniList did not say.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub made_outside_japan: bool,
     /// [`Self::synopsis`] in runs, with what AniList marks a spoiler as runs of their own, for a
     /// front end that hides those. Shown one after another, a space between. [`Self::synopsis`]
     /// is the same text with the spoilers left out, which is what the terminal shows.
@@ -188,6 +209,10 @@ pub struct Entry {
     /// [`crate::trailer::trailer_may_autoplay`] holds a sequel's trailer back by there.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub prequels: Vec<EarlierTitle>,
+    /// The ids of the title's sequels, on list rows and the title page alike, as
+    /// [`Self::prequels`] has the prequels: what "Up next for you" finds new seasons by.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub sequels: Vec<AnilistId>,
 }
 
 /// A prequel of a title, by id, and where it was on the viewer's list when the row was built.
@@ -369,6 +394,111 @@ pub struct TitleDetail {
     /// The people who made it, most relevant first.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub staff: Vec<StaffCredit>,
+    /// The official services that stream the title, one link per service and address, for the
+    /// sheet's "Also on". Links AniList has switched off are left out.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub streaming_links: Vec<StreamingLink>,
+    /// People the signed-in viewer follows who have the title on their AniList list, newest
+    /// update first, at most ten. Empty when nobody is signed in to AniList, and never asked
+    /// for then.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub following: Vec<FollowedEntry>,
+}
+
+/// How a title's run reads, decided by the engine. The wording is the catalogue's, so every app
+/// says the same thing: [`Self::message`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum AiringFact {
+    /// On air now. `since` is its first broadcast, when known. Never a show on hiatus.
+    Airing { since: Option<FuzzyDate> },
+    /// Finished. `from` and `to` are its first and last broadcast; `to` is `None` when it ended
+    /// the day it began (a film) or the end is not known.
+    Finished { from: Option<FuzzyDate>, to: Option<FuzzyDate> },
+    /// Not on air yet. `from` is the announced start, when there is one.
+    NotYetReleased { from: Option<FuzzyDate> },
+    /// A break in the run, whatever the dates say. `since` is the month of the last episode that
+    /// aired (year and month, no day): AniList has no date for the break itself. `None` when the
+    /// page has no broadcasts to read it from.
+    Hiatus { since: Option<FuzzyDate> },
+    /// Stopped for good, whatever the dates say. `after_episode` is the last episode that aired,
+    /// when the page has the broadcasts to say.
+    Cancelled { after_episode: Option<u32> },
+}
+
+impl AiringFact {
+    /// Whether episodes are coming. Hiatus and cancelled are not.
+    pub const fn is_airing(self) -> bool {
+        matches!(self, Self::Airing { .. })
+    }
+
+    /// The id of the catalogue message that words this (`i18n/en/ui-metadata.ftl`). The ones with
+    /// dates take them already formatted: `media-airing-since` and `media-airing-from` a `date`,
+    /// `media-aired-on` and `media-hiatus-since` a `date`, `media-aired-range` a `from` and a `to`;
+    /// `media-cancelled-after` an `episode`.
+    pub const fn message(self) -> &'static str {
+        match self {
+            Self::Airing { since: Some(_) } => "media-airing-since",
+            Self::Airing { since: None } => "media-status-airing",
+            Self::Finished { from: Some(_), to: Some(_) } => "media-aired-range",
+            Self::Finished { from: Some(_), to: None }
+            | Self::Finished { from: None, to: Some(_) } => "media-aired-on",
+            Self::Finished { from: None, to: None } => "media-status-aired",
+            Self::NotYetReleased { from: Some(_) } => "media-airing-from",
+            Self::NotYetReleased { from: None } => "media-status-upcoming",
+            Self::Hiatus { since: Some(_) } => "media-hiatus-since",
+            Self::Hiatus { since: None } => "media-status-hiatus",
+            Self::Cancelled { after_episode: Some(_) } => "media-cancelled-after",
+            Self::Cancelled { after_episode: None } => "media-status-cancelled",
+        }
+    }
+}
+
+/// A length of time in whole hours and the minutes past them, for the catalogue to word.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct RunLength {
+    pub hours: u32,
+    pub minutes: u32,
+}
+
+impl RunLength {
+    pub const fn of_minutes(total: u32) -> Self {
+        Self { hours: total / 60, minutes: total % 60 }
+    }
+}
+
+/// A service that streams the title, with the address of its page for it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct StreamingLink {
+    /// The service's name, as AniList spells it.
+    pub site: String,
+    /// An `http` or `https` address.
+    pub url: String,
+    /// The region or language AniList lists the link for, when it says: a front end can keep
+    /// to the viewer's own.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub language: Option<String>,
+}
+
+/// One person the viewer follows and what they have done with the title.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct FollowedEntry {
+    pub name: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub avatar_url: Option<String>,
+    /// Which of their lists it is on. A rewatch is Watching. `None` for a status this build does
+    /// not know.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub status: Option<LibrarySegment>,
+    /// Their score out of 100, whatever scale their list uses. `None` when they gave none.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub score: Option<u32>,
+    /// Episodes they have watched.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub progress: u32,
 }
 
 /// One of a title's tags.
@@ -387,6 +517,13 @@ pub struct TitleTag {
     pub general_spoiler: bool,
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub category: Option<String>,
+}
+
+impl TitleTag {
+    /// It gives something away, of this title or of any: kept behind a button.
+    pub const fn is_spoiler(&self) -> bool {
+        self.media_spoiler || self.general_spoiler
+    }
 }
 
 /// Another title, as a related or recommended card shows it.
@@ -600,6 +737,11 @@ impl Entry {
             adult: false,
             detail: None,
             status: None,
+            airing: None,
+            duration: None,
+            film_length: None,
+            country: None,
+            made_outside_japan: false,
             synopsis_spans: Vec::new(),
             delayed_from: None,
             airing_approximate: false,
@@ -608,6 +750,7 @@ impl Entry {
             watched_in: None,
             trailer: None,
             prequels: Vec::new(),
+            sequels: Vec::new(),
         }
     }
 

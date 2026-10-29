@@ -100,8 +100,8 @@ discussion-still-loading = Still loading from AniList
 
 # Line while AniList's request budget is spent. The engine waits, then goes on by itself.
 # @arg time: text
-# @max 56
-discussion-rate-limited = AniList asked for a pause. Back in { $time }.
+# @max 40
+discussion-rate-limited = Waiting for AniList · { $time }
 
 # Title of the state when the episode has no thread on AniList.
 # @max 36
@@ -127,3 +127,23 @@ discussion-offline-cached = Offline. Showing comments from { $age }.
 # Heading of the Settings group for discussion rows.
 # @max 24
 discussion-settings-group = Discussions
+
+# Age of a comment that is on its way to AniList.
+# @max 16
+discussion-sending = Sending
+
+# Button under a comment that is cut off after ten lines.
+# @only linux
+# @max 24
+discussion-show-more = Show more
+
+# Comment menu item that copies the comment's text.
+# @max 24
+discussion-copy-text = Copy text
+
+# Line for a picture or video in a comment: what it is and the site it is on.
+# @arg kind: text
+# @arg host: text
+# @only linux
+# @max 40
+discussion-media-line = { $kind } · { $host }

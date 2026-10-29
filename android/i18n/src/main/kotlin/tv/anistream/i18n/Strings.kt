@@ -1501,21 +1501,9 @@ object Strings {
     fun updatesOpenRelease(context: Context): String =
         context.getString(R.string.updates_open_release)
 
-    /** Country of origin filter: Japan. */
-    fun countryJapan(context: Context): String =
-        context.getString(R.string.country_japan)
-
-    /** Country of origin filter: China. */
-    fun countryChina(context: Context): String =
-        context.getString(R.string.country_china)
-
     /** Country of origin filter: South Korea. */
     fun countryKorea(context: Context): String =
         context.getString(R.string.country_korea)
-
-    /** Country of origin filter: Taiwan. */
-    fun countryTaiwan(context: Context): String =
-        context.getString(R.string.country_taiwan)
 
     /** Search chip for several genres picked. */
     fun searchGenresPicked(context: Context, count: Int): String =
@@ -2325,6 +2313,46 @@ object Strings {
     fun calendarComingUpEmpty(context: Context): String =
         context.getString(R.string.calendar_coming_up_empty)
 
+    /** Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown. */
+    fun calendarToday(context: Context): String =
+        context.getString(R.string.calendar_today)
+
+    /** Line where days before the first day the calendar reaches would be. */
+    fun calendarFloor(context: Context): String =
+        context.getString(R.string.calendar_floor)
+
+    /** Line where days after the last day the calendar reaches would be. */
+    fun calendarCeiling(context: Context): String =
+        context.getString(R.string.calendar_ceiling)
+
+    /** Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling. */
+    fun calendarEnd(context: Context): String =
+        context.getString(R.string.calendar_end)
+
+    /** Activity line while earlier broadcasts load. */
+    fun calendarLoadingEarlier(context: Context): String =
+        context.getString(R.string.calendar_loading_earlier)
+
+    /** Activity line while later broadcasts load. */
+    fun calendarLoadingLater(context: Context): String =
+        context.getString(R.string.calendar_loading_later)
+
+    /** Line where earlier broadcasts would be when they could not be loaded. */
+    fun calendarLoadEarlierFailed(context: Context): String =
+        context.getString(R.string.calendar_load_earlier_failed)
+
+    /** Line where later broadcasts would be when they could not be loaded. */
+    fun calendarLoadLaterFailed(context: Context): String =
+        context.getString(R.string.calendar_load_later_failed)
+
+    /** Button under the line saying nothing on the person's list airs: shows every airing show. */
+    fun calendarShowAll(context: Context): String =
+        context.getString(R.string.calendar_show_all)
+
+    /** What a screen reader says for the line that marks the time now. The time is already worded. */
+    fun calendarNowSpoken(context: Context, time: String): String =
+        context.getString(R.string.calendar_now_spoken, time)
+
     /** Button that runs a failed action again. */
     fun actionTryAgain(context: Context): String =
         context.getString(R.string.action_try_again)
@@ -3057,6 +3085,14 @@ object Strings {
     fun discussionSettingsGroup(context: Context): String =
         context.getString(R.string.discussion_settings_group)
 
+    /** Age of a comment that is on its way to AniList. */
+    fun discussionSending(context: Context): String =
+        context.getString(R.string.discussion_sending)
+
+    /** Comment menu item that copies the comment's text. */
+    fun discussionCopyText(context: Context): String =
+        context.getString(R.string.discussion_copy_text)
+
     /** Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group. */
     fun downloadsTitle(context: Context): String =
         context.getString(R.string.downloads_title)
@@ -3549,6 +3585,42 @@ object Strings {
     fun continueRowStartAiredDubbed(context: Context, episode: Int, ago: String): String =
         context.getString(R.string.continue_row_start_aired_dubbed, episode, ago)
 
+    /** Heading over the suggestions under a short { -continue-cap } list. */
+    fun upNextHeading(context: Context): String =
+        context.getString(R.string.up_next_heading)
+
+    /** Line on a suggestion that has not started airing. The date is written out already, such as "9 January". */
+    fun upNextStarts(context: Context, date: String): String =
+        context.getString(R.string.up_next_starts, date)
+
+    /** Reason on a suggestion that is a new season of a show the person finished and has not started. */
+    fun upNextReasonNewSeason(context: Context): String =
+        context.getString(R.string.up_next_reason_new_season)
+
+    /** Reason on a suggestion that is on the person's Planning list. */
+    fun upNextReasonPlanning(context: Context): String =
+        context.getString(R.string.up_next_reason_planning)
+
+    /** Reason on a suggestion that people who liked a finished show also rated highly. The title is that show. */
+    fun upNextReasonRecommended(context: Context, title: String): String =
+        context.getString(R.string.up_next_reason_recommended, title)
+
+    /** Reason on a recommended suggestion when the finished show is not known. */
+    fun upNextReasonRecommendedPlain(context: Context): String =
+        context.getString(R.string.up_next_reason_recommended_plain)
+
+    /** Reason on a suggestion that airs today, shown when nothing else is left to suggest. */
+    fun upNextReasonAiringToday(context: Context): String =
+        context.getString(R.string.up_next_reason_airing_today)
+
+    /** Button on a suggestion that has not started airing. It puts the show on the Planning list. */
+    fun upNextAddPlanning(context: Context): String =
+        context.getString(R.string.up_next_add_planning)
+
+    /** Menu item on a suggestion. The show stays hidden until it starts airing. */
+    fun upNextNotInterested(context: Context): String =
+        context.getString(R.string.up_next_not_interested)
+
     /** Format of a show: broadcast on television. */
     fun formatTv(context: Context): String =
         context.getString(R.string.format_tv)
@@ -3624,6 +3696,70 @@ object Strings {
     /** Date line of a show that has not started: when it will. */
     fun mediaAiringFrom(context: Context, date: String): String =
         context.getString(R.string.media_airing_from, date)
+
+    /** Date line of a show that has finished: when it began and when it ended. Both are already worded dates. */
+    fun mediaAiredRange(context: Context, from: String, to: String): String =
+        context.getString(R.string.media_aired_range, from, to)
+
+    /** Date line of a show that has finished and ran on one day, such as a film. */
+    fun mediaAiredOn(context: Context, date: String): String =
+        context.getString(R.string.media_aired_on, date)
+
+    /** Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year. */
+    fun mediaHiatusSince(context: Context, date: String): String =
+        context.getString(R.string.media_hiatus_since, date)
+
+    /** Date line of a show that was cancelled: the last episode that aired. */
+    fun mediaCancelledAfter(context: Context, episode: Int): String =
+        context.getString(R.string.media_cancelled_after, episode)
+
+    /** Heading of the list of official services that stream a show, in the sheet of more about it. */
+    fun mediaStreamingOn(context: Context): String =
+        context.getString(R.string.media_streaming_on)
+
+    /** Note under the list of official services: AniList's links are not checked against where the viewer is. */
+    fun mediaStreamingRegionNote(context: Context): String =
+        context.getString(R.string.media_streaming_region_note)
+
+    /** Note beside a link to an official service whose page is in another language, such as "Site in Japanese". */
+    fun mediaLinkLanguage(context: Context, language: String): String =
+        context.getString(R.string.media_link_language, language)
+
+    /** Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min". */
+    fun filmLengthHoursMinutes(context: Context, hours: Int, minutes: Int): String =
+        context.getString(R.string.film_length_hours_minutes, hours, minutes)
+
+    /** Length of a film or a single episode that is a whole number of hours, such as "2 hr". */
+    fun filmLengthHours(context: Context, hours: Int): String =
+        context.getString(R.string.film_length_hours, hours)
+
+    /** Length of a film or a single episode under an hour, such as "46 min". */
+    fun filmLengthMinutes(context: Context, minutes: Int): String =
+        context.getString(R.string.film_length_minutes, minutes)
+
+    /** Country name: the origin filter and, after "Made in", the title facts. */
+    fun countryJapan(context: Context): String =
+        context.getString(R.string.country_japan)
+
+    /** Country name: the origin filter and, after "Made in", the title facts. */
+    fun countryChina(context: Context): String =
+        context.getString(R.string.country_china)
+
+    /** Country name, after "Made in". */
+    fun countrySouthKorea(context: Context): String =
+        context.getString(R.string.country_south_korea)
+
+    /** Country name: the origin filter and, after "Made in", the title facts. */
+    fun countryTaiwan(context: Context): String =
+        context.getString(R.string.country_taiwan)
+
+    /** Fact on a show made outside Japan, with the country already named. */
+    fun mediaMadeIn(context: Context, country: String): String =
+        context.getString(R.string.media_made_in, country)
+
+    /** Fact on a show made outside Japan, for a country this app has no name for. */
+    fun mediaMadeElsewhere(context: Context): String =
+        context.getString(R.string.media_made_elsewhere)
 
     /** Value of "Based on": a story written for the screen. */
     fun materialOriginal(context: Context): String =
@@ -4981,6 +5117,18 @@ object Strings {
     fun settingsTitleLanguage(context: Context): String =
         context.getString(R.string.settings_title_language)
 
+    /** Value of the trailers setting: trailers play by themselves on any network. */
+    fun settingsValueTrailersAlways(context: Context): String =
+        context.getString(R.string.settings_value_trailers_always)
+
+    /** Value of the trailers setting: trailers play by themselves only on Wi-Fi. */
+    fun settingsValueTrailersWifiOnly(context: Context): String =
+        context.getString(R.string.settings_value_trailers_wifi_only)
+
+    /** Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps. */
+    fun settingsLabelTrailers(context: Context): String =
+        context.getString(R.string.settings_label_trailers)
+
     /** Option: use the tracker's own choice. The tracker is a name. */
     fun settingsTitleTracker(context: Context, tracker: String): String =
         context.getString(R.string.settings_title_tracker, tracker)
@@ -6212,6 +6360,10 @@ object Strings {
     /** Menu item that plays the trailer. */
     fun titlePlayTrailer(context: Context): String =
         context.getString(R.string.title_play_trailer)
+
+    /** Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it. */
+    fun titleTrailerFailed(context: Context): String =
+        context.getString(R.string.title_trailer_failed)
 
     /** Name and tooltip of the button beside a playing trailer that turns its sound on or off. */
     fun titleTrailerSound(context: Context): String =

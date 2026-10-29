@@ -215,7 +215,12 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
     play: function () { if (player && player.playVideo) { player.playVideo(); } },
     pause: function () { if (player && player.pauseVideo) { player.pauseVideo(); } },
     mute: function () { if (player && player.mute) { player.mute(); } },
-    unmute: function () { if (player && player.unMute) { player.unMute(); } }
+    unmute: function () { if (player && player.unMute) { player.unMute(); } },
+    remaining: function () {
+      if (!player || !player.getDuration || !player.getCurrentTime) { return -1; }
+      var left = player.getDuration() - player.getCurrentTime();
+      return left >= 0 && left < 86400 ? left : -1;
+    }
   };
   var api = document.createElement("script");
   api.src = "https://www.youtube.com/iframe_api";
@@ -488,6 +493,8 @@ mod tests {
             "window.webkit.messageHandlers.anistream.postMessage(message)",
             "window.chrome.webview.postMessage(message)",
             "window.anistream.postMessage(message)",
+            // The seconds left, for the banner that returns half a second before the end.
+            "remaining: function ()",
         ] {
             assert!(page.contains(required), "{required}");
         }
@@ -629,6 +636,7 @@ mod tests {
             rankings: Vec::new(),
             characters: Vec::new(),
             staff: Vec::new(),
+            ..TitleDetail::default()
         });
         entry
     }

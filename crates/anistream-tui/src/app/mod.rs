@@ -88,6 +88,8 @@ pub struct App {
     pub content: ContentList,
     /// The caption for the list on screen, with the view it belongs to. See [`Event::Caption`].
     pub caption: Option<(ContentFor, String)>,
+    /// "Up next for you", the short rail under Continue on Home. See [`Event::UpNext`].
+    pub up_next: Vec<anistream_model::up_next::UpNextItem>,
     /// Where each view's highlight is, and the window of each list that keeps one.
     pub cursors: Cursors,
     /// Every text field's line: Search's query and each prompt's. See [`Field`].
@@ -340,6 +342,7 @@ impl App {
             settings,
             content: ContentList::Loading,
             caption: None,
+            up_next: Vec::new(),
             cursors: Cursors::default(),
             texts: Default::default(),
             searched_query: Default::default(),
@@ -477,6 +480,7 @@ impl App {
             | Event::Facets(_)
             | Event::RecentSearches(_) => {}
             Event::Content { view, content } => self.apply_content(view, content),
+            Event::UpNext(items) => self.apply_up_next(items),
             // Every way into a title sets a stand-in `detail` for it before the fetch goes out, so
             // a full record for any other id answers a title the user has already left.
             Event::Detail(entry) => self.apply_detail(entry),

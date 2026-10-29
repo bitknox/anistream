@@ -1877,6 +1877,18 @@
         }
       }
     },
+    "calendar-ceiling" : {
+      "comment" : "Line where days after the last day the calendar reaches would be.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The calendar goes 4 weeks ahead."
+          }
+        }
+      }
+    },
     "calendar-coming-up" : {
       "comment" : "Header of the list of episodes that air in the next seven days.",
       "extractionState" : "manual",
@@ -1973,6 +1985,18 @@
         }
       }
     },
+    "calendar-end" : {
+      "comment" : "Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing later is scheduled yet."
+          }
+        }
+      }
+    },
     "calendar-episode-out" : {
       "comment" : "Row in a small widget: the episode is out. Argument 1: episode (Int).",
       "extractionState" : "manual",
@@ -2005,6 +2029,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "My list"
+          }
+        }
+      }
+    },
+    "calendar-floor" : {
+      "comment" : "Line where days before the first day the calendar reaches would be.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The calendar goes back 3 months."
           }
         }
       }
@@ -2069,6 +2105,18 @@
         }
       }
     },
+    "calendar-load-earlier-failed" : {
+      "comment" : "Line where earlier broadcasts would be when they could not be loaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load earlier broadcasts"
+          }
+        }
+      }
+    },
     "calendar-load-failed" : {
       "comment" : "Title of the state when the calendar could not load.",
       "extractionState" : "manual",
@@ -2077,6 +2125,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't load the calendar"
+          }
+        }
+      }
+    },
+    "calendar-load-later-failed" : {
+      "comment" : "Line where later broadcasts would be when they could not be loaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load later broadcasts"
+          }
+        }
+      }
+    },
+    "calendar-loading-earlier" : {
+      "comment" : "Activity line while earlier broadcasts load.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading earlier broadcasts"
+          }
+        }
+      }
+    },
+    "calendar-loading-later" : {
+      "comment" : "Activity line while later broadcasts load.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading later broadcasts"
           }
         }
       }
@@ -2101,6 +2185,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Next week"
+          }
+        }
+      }
+    },
+    "calendar-now-spoken" : {
+      "comment" : "What a screen reader says for the line that marks the time now. The time is already worded. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now, %1$@"
           }
         }
       }
@@ -2165,6 +2261,18 @@
         }
       }
     },
+    "calendar-show-all" : {
+      "comment" : "Button under the line saying nothing on the person's list airs: shows every airing show.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show all airing"
+          }
+        }
+      }
+    },
     "calendar-this-week" : {
       "comment" : "Button that jumps back to the current week.",
       "extractionState" : "manual",
@@ -2185,6 +2293,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "~%1$@"
+          }
+        }
+      }
+    },
+    "calendar-today" : {
+      "comment" : "Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
           }
         }
       }
@@ -2855,6 +2975,54 @@
         }
       }
     },
+    "country-china" : {
+      "comment" : "Country name: the origin filter and, after \"Made in\", the title facts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "China"
+          }
+        }
+      }
+    },
+    "country-japan" : {
+      "comment" : "Country name: the origin filter and, after \"Made in\", the title facts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Japan"
+          }
+        }
+      }
+    },
+    "country-south-korea" : {
+      "comment" : "Country name, after \"Made in\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "South Korea"
+          }
+        }
+      }
+    },
+    "country-taiwan" : {
+      "comment" : "Country name: the origin filter and, after \"Made in\", the title facts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taiwan"
+          }
+        }
+      }
+    },
     "day-today" : {
       "comment" : "Day word for today.",
       "extractionState" : "manual",
@@ -2983,6 +3151,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cancel reply"
+          }
+        }
+      }
+    },
+    "discussion-copy-text" : {
+      "comment" : "Comment menu item that copies the comment's text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy text"
           }
         }
       }
@@ -3230,7 +3410,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AniList asked for a pause. Back in %1$@."
+            "value" : "Waiting for AniList · %1$@"
           }
         }
       }
@@ -3289,6 +3469,18 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "discussion-sending" : {
+      "comment" : "Age of a comment that is on its way to AniList.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sending"
           }
         }
       }
@@ -4835,6 +5027,42 @@
         }
       }
     },
+    "film-length-hours" : {
+      "comment" : "Length of a film or a single episode that is a whole number of hours, such as \"2 hr\". Argument 1: hours (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld hr"
+          }
+        }
+      }
+    },
+    "film-length-hours-minutes" : {
+      "comment" : "Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as \"1 hr 52 min\". Argument 1: hours (Int). Argument 2: minutes (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld hr %2$lld min"
+          }
+        }
+      }
+    },
+    "film-length-minutes" : {
+      "comment" : "Length of a film or a single episode under an hour, such as \"46 min\". Argument 1: minutes (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld min"
+          }
+        }
+      }
+    },
     "filter-all-formats" : {
       "comment" : "Choice meaning every format on Seasonal.",
       "extractionState" : "manual",
@@ -6275,6 +6503,30 @@
         }
       }
     },
+    "media-aired-on" : {
+      "comment" : "Date line of a show that has finished and ran on one day, such as a film. Argument 1: date (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aired %1$@"
+          }
+        }
+      }
+    },
+    "media-aired-range" : {
+      "comment" : "Date line of a show that has finished: when it began and when it ended. Both are already worded dates. Argument 1: from (Text). Argument 2: to (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aired %1$@ to %2$@"
+          }
+        }
+      }
+    },
     "media-airing-from" : {
       "comment" : "Date line of a show that has not started: when it will. Argument 1: date (Text).",
       "extractionState" : "manual",
@@ -6295,6 +6547,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Since %1$@"
+          }
+        }
+      }
+    },
+    "media-cancelled-after" : {
+      "comment" : "Date line of a show that was cancelled: the last episode that aired. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelled after episode %1$lld"
+          }
+        }
+      }
+    },
+    "media-hiatus-since" : {
+      "comment" : "Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year. Argument 1: date (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On hiatus since %1$@"
+          }
+        }
+      }
+    },
+    "media-link-language" : {
+      "comment" : "Note beside a link to an official service whose page is in another language, such as \"Site in Japanese\". Argument 1: language (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Site in %1$@"
+          }
+        }
+      }
+    },
+    "media-made-elsewhere" : {
+      "comment" : "Fact on a show made outside Japan, for a country this app has no name for.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Made outside Japan"
+          }
+        }
+      }
+    },
+    "media-made-in" : {
+      "comment" : "Fact on a show made outside Japan, with the country already named. Argument 1: country (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Made in %1$@"
           }
         }
       }
@@ -6355,6 +6667,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not yet released"
+          }
+        }
+      }
+    },
+    "media-streaming-on" : {
+      "comment" : "Heading of the list of official services that stream a show, in the sheet of more about it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaming on"
+          }
+        }
+      }
+    },
+    "media-streaming-region-note" : {
+      "comment" : "Note under the list of official services: AniList's links are not checked against where the viewer is.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Availability depends on your region."
           }
         }
       }
@@ -13913,6 +14249,18 @@
         }
       }
     },
+    "settings-label-trailers" : {
+      "comment" : "Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play trailers"
+          }
+        }
+      }
+    },
     "settings-language" : {
       "comment" : "Settings group and row title for choosing a language.",
       "extractionState" : "manual",
@@ -15487,6 +15835,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "480p source"
+          }
+        }
+      }
+    },
+    "settings-value-trailers-always" : {
+      "comment" : "Value of the trailers setting: trailers play by themselves on any network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always"
+          }
+        }
+      }
+    },
+    "settings-value-trailers-wifi-only" : {
+      "comment" : "Value of the trailers setting: trailers play by themselves only on Wi-Fi.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi only"
           }
         }
       }
@@ -20437,6 +20809,18 @@
         }
       }
     },
+    "title-trailer-failed" : {
+      "comment" : "Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open the trailer"
+          }
+        }
+      }
+    },
     "title-trailer-sound" : {
       "comment" : "Name and tooltip of the button beside a playing trailer that turns its sound on or off.",
       "extractionState" : "manual",
@@ -22689,6 +23073,114 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Volume up"
+          }
+        }
+      }
+    },
+    "up-next-add-planning" : {
+      "comment" : "Button on a suggestion that has not started airing. It puts the show on the Planning list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to Planning"
+          }
+        }
+      }
+    },
+    "up-next-heading" : {
+      "comment" : "Heading over the suggestions under a short { -continue-cap } list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up next for you"
+          }
+        }
+      }
+    },
+    "up-next-not-interested" : {
+      "comment" : "Menu item on a suggestion. The show stays hidden until it starts airing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not interested"
+          }
+        }
+      }
+    },
+    "up-next-reason-airing-today" : {
+      "comment" : "Reason on a suggestion that airs today, shown when nothing else is left to suggest.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Airing today"
+          }
+        }
+      }
+    },
+    "up-next-reason-new-season" : {
+      "comment" : "Reason on a suggestion that is a new season of a show the person finished and has not started.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New season"
+          }
+        }
+      }
+    },
+    "up-next-reason-planning" : {
+      "comment" : "Reason on a suggestion that is on the person's Planning list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On your Planning list"
+          }
+        }
+      }
+    },
+    "up-next-reason-recommended" : {
+      "comment" : "Reason on a suggestion that people who liked a finished show also rated highly. The title is that show. Argument 1: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Because you finished %1$@"
+          }
+        }
+      }
+    },
+    "up-next-reason-recommended-plain" : {
+      "comment" : "Reason on a recommended suggestion when the finished show is not known.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended for you"
+          }
+        }
+      }
+    },
+    "up-next-starts" : {
+      "comment" : "Line on a suggestion that has not started airing. The date is written out already, such as \"9 January\". Argument 1: date (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starts %1$@"
           }
         }
       }

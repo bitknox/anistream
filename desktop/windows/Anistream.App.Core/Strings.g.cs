@@ -771,11 +771,8 @@ public static partial class T
     /// <summary>Download dialog: the note under the range.</summary>
     public static string DownloadRangeQualityNote => Get("DownloadRangeQualityNote");
 
-    /// <summary>Menu item that copies a comment's text.</summary>
-    public static string DiscussionCopyText => Get("DiscussionCopyText");
-
-    /// <summary>Age of a comment that was sent and is not yet confirmed.</summary>
-    public static string DiscussionSending => Get("DiscussionSending");
+    /// <summary>Calendar: tooltip of the button that returns to the current week, with its shortcut.</summary>
+    public static string CalendarTodayTooltip(string keys) => Fill(Get("CalendarTodayTooltip"), ("keys", keys));
 
     /// <summary>Line above the field while the viewer edits their own comment.</summary>
     public static string DiscussionEditing => Get("DiscussionEditing");
@@ -968,6 +965,9 @@ public static partial class T
 
     /// <summary>Screen reader name of a protection choice: its name, then what it does.</summary>
     public static string TorrentsChoiceSpoken(string label, string detail) => Fill(Get("TorrentsChoiceSpoken"), ("label", label), ("detail", detail));
+
+    /// <summary>Note under the Play trailers setting: what the trailers are and when they do not play.</summary>
+    public static string SettingsNoteTrailersWindows => Get("SettingsNoteTrailersWindows");
 
     /// <summary>The notification area icon's balloon, the first time the window closes with downloads running: its title.</summary>
     public static string TrayStillDownloading => Get("TrayStillDownloading");
@@ -1313,6 +1313,36 @@ public static partial class T
 
     /// <summary>Line when no show the person follows airs in the next seven days.</summary>
     public static string CalendarComingUpEmpty => Get("CalendarComingUpEmpty");
+
+    /// <summary>Button that jumps back to the current week, and the name of today's column. Turned off while the current week is shown.</summary>
+    public static string CalendarToday => Get("CalendarToday");
+
+    /// <summary>Line where days before the first day the calendar reaches would be.</summary>
+    public static string CalendarFloor => Get("CalendarFloor");
+
+    /// <summary>Line where days after the last day the calendar reaches would be.</summary>
+    public static string CalendarCeiling => Get("CalendarCeiling");
+
+    /// <summary>Line at the foot of the schedule when the engine has no more pages ahead, before the calendar's own ceiling.</summary>
+    public static string CalendarEnd => Get("CalendarEnd");
+
+    /// <summary>Activity line while earlier broadcasts load.</summary>
+    public static string CalendarLoadingEarlier => Get("CalendarLoadingEarlier");
+
+    /// <summary>Activity line while later broadcasts load.</summary>
+    public static string CalendarLoadingLater => Get("CalendarLoadingLater");
+
+    /// <summary>Line where earlier broadcasts would be when they could not be loaded.</summary>
+    public static string CalendarLoadEarlierFailed => Get("CalendarLoadEarlierFailed");
+
+    /// <summary>Line where later broadcasts would be when they could not be loaded.</summary>
+    public static string CalendarLoadLaterFailed => Get("CalendarLoadLaterFailed");
+
+    /// <summary>Button under the line saying nothing on the person's list airs: shows every airing show.</summary>
+    public static string CalendarShowAll => Get("CalendarShowAll");
+
+    /// <summary>What a screen reader says for the line that marks the time now. The time is already worded.</summary>
+    public static string CalendarNowSpoken(string time) => Fill(Get("CalendarNowSpoken"), ("time", time));
 
     /// <summary>Button that runs a failed action again.</summary>
     public static string ActionTryAgain => Get("ActionTryAgain");
@@ -1863,6 +1893,12 @@ public static partial class T
     /// <summary>Heading of the Settings group for discussion rows.</summary>
     public static string DiscussionSettingsGroup => Get("DiscussionSettingsGroup");
 
+    /// <summary>Age of a comment that is on its way to AniList.</summary>
+    public static string DiscussionSending => Get("DiscussionSending");
+
+    /// <summary>Comment menu item that copies the comment's text.</summary>
+    public static string DiscussionCopyText => Get("DiscussionCopyText");
+
     /// <summary>Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.</summary>
     public static string DownloadsTitle => Get("DownloadsTitle");
 
@@ -2229,6 +2265,33 @@ public static partial class T
     /// <summary>Row caption: the next unwatched episode, dubbed, which came out a while ago.</summary>
     public static string ContinueRowStartAiredDubbed(long episode, string ago) => Fill(Get("ContinueRowStartAiredDubbed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("ago", ago));
 
+    /// <summary>Heading over the suggestions under a short { -continue-cap } list.</summary>
+    public static string UpNextHeading => Get("UpNextHeading");
+
+    /// <summary>Line on a suggestion that has not started airing. The date is written out already, such as "9 January".</summary>
+    public static string UpNextStarts(string date) => Fill(Get("UpNextStarts"), ("date", date));
+
+    /// <summary>Reason on a suggestion that is a new season of a show the person finished and has not started.</summary>
+    public static string UpNextReasonNewSeason => Get("UpNextReasonNewSeason");
+
+    /// <summary>Reason on a suggestion that is on the person's Planning list.</summary>
+    public static string UpNextReasonPlanning => Get("UpNextReasonPlanning");
+
+    /// <summary>Reason on a suggestion that people who liked a finished show also rated highly. The title is that show.</summary>
+    public static string UpNextReasonRecommended(string title) => Fill(Get("UpNextReasonRecommended"), ("title", title));
+
+    /// <summary>Reason on a recommended suggestion when the finished show is not known.</summary>
+    public static string UpNextReasonRecommendedPlain => Get("UpNextReasonRecommendedPlain");
+
+    /// <summary>Reason on a suggestion that airs today, shown when nothing else is left to suggest.</summary>
+    public static string UpNextReasonAiringToday => Get("UpNextReasonAiringToday");
+
+    /// <summary>Button on a suggestion that has not started airing. It puts the show on the Planning list.</summary>
+    public static string UpNextAddPlanning => Get("UpNextAddPlanning");
+
+    /// <summary>Menu item on a suggestion. The show stays hidden until it starts airing.</summary>
+    public static string UpNextNotInterested => Get("UpNextNotInterested");
+
     /// <summary>Format of a show: broadcast on television.</summary>
     public static string FormatTv => Get("FormatTv");
 
@@ -2285,6 +2348,54 @@ public static partial class T
 
     /// <summary>Date line of a show that has not started: when it will.</summary>
     public static string MediaAiringFrom(string date) => Fill(Get("MediaAiringFrom"), ("date", date));
+
+    /// <summary>Date line of a show that has finished: when it began and when it ended. Both are already worded dates.</summary>
+    public static string MediaAiredRange(string from, string to) => Fill(Get("MediaAiredRange"), ("from", from), ("to", to));
+
+    /// <summary>Date line of a show that has finished and ran on one day, such as a film.</summary>
+    public static string MediaAiredOn(string date) => Fill(Get("MediaAiredOn"), ("date", date));
+
+    /// <summary>Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.</summary>
+    public static string MediaHiatusSince(string date) => Fill(Get("MediaHiatusSince"), ("date", date));
+
+    /// <summary>Date line of a show that was cancelled: the last episode that aired.</summary>
+    public static string MediaCancelledAfter(long episode) => Fill(Get("MediaCancelledAfter"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Heading of the list of official services that stream a show, in the sheet of more about it.</summary>
+    public static string MediaStreamingOn => Get("MediaStreamingOn");
+
+    /// <summary>Note under the list of official services: AniList's links are not checked against where the viewer is.</summary>
+    public static string MediaStreamingRegionNote => Get("MediaStreamingRegionNote");
+
+    /// <summary>Note beside a link to an official service whose page is in another language, such as "Site in Japanese".</summary>
+    public static string MediaLinkLanguage(string language) => Fill(Get("MediaLinkLanguage"), ("language", language));
+
+    /// <summary>Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".</summary>
+    public static string FilmLengthHoursMinutes(long hours, long minutes) => Fill(Get("FilmLengthHoursMinutes"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Length of a film or a single episode that is a whole number of hours, such as "2 hr".</summary>
+    public static string FilmLengthHours(long hours) => Fill(Get("FilmLengthHours"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Length of a film or a single episode under an hour, such as "46 min".</summary>
+    public static string FilmLengthMinutes(long minutes) => Fill(Get("FilmLengthMinutes"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Country name: the origin filter and, after "Made in", the title facts.</summary>
+    public static string CountryJapan => Get("CountryJapan");
+
+    /// <summary>Country name: the origin filter and, after "Made in", the title facts.</summary>
+    public static string CountryChina => Get("CountryChina");
+
+    /// <summary>Country name, after "Made in".</summary>
+    public static string CountrySouthKorea => Get("CountrySouthKorea");
+
+    /// <summary>Country name: the origin filter and, after "Made in", the title facts.</summary>
+    public static string CountryTaiwan => Get("CountryTaiwan");
+
+    /// <summary>Fact on a show made outside Japan, with the country already named.</summary>
+    public static string MediaMadeIn(string country) => Fill(Get("MediaMadeIn"), ("country", country));
+
+    /// <summary>Fact on a show made outside Japan, for a country this app has no name for.</summary>
+    public static string MediaMadeElsewhere => Get("MediaMadeElsewhere");
 
     /// <summary>Value of "Based on": a story written for the screen.</summary>
     public static string MaterialOriginal => Get("MaterialOriginal");
@@ -3303,6 +3414,15 @@ public static partial class T
     /// <summary>Row: how titles are written.</summary>
     public static string SettingsTitleLanguage => Get("SettingsTitleLanguage");
 
+    /// <summary>Value of the trailers setting: trailers play by themselves on any network.</summary>
+    public static string SettingsValueTrailersAlways => Get("SettingsValueTrailersAlways");
+
+    /// <summary>Value of the trailers setting: trailers play by themselves only on Wi-Fi.</summary>
+    public static string SettingsValueTrailersWifiOnly => Get("SettingsValueTrailersWifiOnly");
+
+    /// <summary>Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.</summary>
+    public static string SettingsLabelTrailers => Get("SettingsLabelTrailers");
+
     /// <summary>Option: use the tracker's own choice. The tracker is a name.</summary>
     public static string SettingsTitleTracker(string tracker) => Fill(Get("SettingsTitleTracker"), ("tracker", tracker));
 
@@ -4226,6 +4346,9 @@ public static partial class T
 
     /// <summary>Menu item that plays the trailer.</summary>
     public static string TitlePlayTrailer => Get("TitlePlayTrailer");
+
+    /// <summary>Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.</summary>
+    public static string TitleTrailerFailed => Get("TitleTrailerFailed");
 
     /// <summary>Name and tooltip of the button beside a playing trailer that turns its sound on or off.</summary>
     public static string TitleTrailerSound => Get("TitleTrailerSound");
@@ -5475,8 +5598,7 @@ public static partial class T
         ["DownloadRangeFrom"] = "From",
         ["DownloadRangeTo"] = "To",
         ["DownloadRangeQualityNote"] = "Downloads use the quality in Settings › Downloads.",
-        ["DiscussionCopyText"] = "Copy text",
-        ["DiscussionSending"] = "Sending",
+        ["CalendarTodayTooltip"] = "Today ({keys})",
         ["DiscussionEditing"] = "Editing your comment",
         ["DiscussionCommentMenu"] = "More for this comment",
         ["DiscussionPaneLabel"] = "Episode {episode} discussion",
@@ -5542,6 +5664,7 @@ public static partial class T
         ["TorrentsDialogEditProxy"] = "Edit proxy",
         ["TorrentsDialogTurnOnAction"] = "Turn on",
         ["TorrentsChoiceSpoken"] = "{label}. {detail}",
+        ["SettingsNoteTrailersWindows"] = "Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animation effects off, in energy saver mode or with Narrator running.",
         ["TrayStillDownloading"] = "anistream is still downloading",
         ["TrayWhere"] = "It's in the notification area.",
         ["TrayOpen"] = "Open anistream",
@@ -5662,6 +5785,16 @@ public static partial class T
         ["EpisodeNotOut"] = "Episode {episode} is not out yet",
         ["CalendarComingUp"] = "Coming up · next 7 days",
         ["CalendarComingUpEmpty"] = "Nothing airs this week for the shows you follow.",
+        ["CalendarToday"] = "Today",
+        ["CalendarFloor"] = "The calendar goes back 3 months.",
+        ["CalendarCeiling"] = "The calendar goes 4 weeks ahead.",
+        ["CalendarEnd"] = "Nothing later is scheduled yet.",
+        ["CalendarLoadingEarlier"] = "Loading earlier broadcasts",
+        ["CalendarLoadingLater"] = "Loading later broadcasts",
+        ["CalendarLoadEarlierFailed"] = "Couldn't load earlier broadcasts",
+        ["CalendarLoadLaterFailed"] = "Couldn't load later broadcasts",
+        ["CalendarShowAll"] = "Show all airing",
+        ["CalendarNowSpoken"] = "Now, {time}",
         ["ActionTryAgain"] = "Try again",
         ["ActionCancel"] = "Cancel",
         ["ActionNotNow"] = "Not now",
@@ -5843,13 +5976,15 @@ public static partial class T
         ["DiscussionDeleteTitle"] = "Delete this comment?",
         ["DiscussionDeleteBody"] = "It is removed from AniList too.",
         ["DiscussionStillLoading"] = "Still loading from AniList",
-        ["DiscussionRateLimited"] = "AniList asked for a pause. Back in {time}.",
+        ["DiscussionRateLimited"] = "Waiting for AniList · {time}",
         ["DiscussionNoThread"] = "No discussion yet",
         ["DiscussionNoThreadDetail"] = "Nobody has opened a thread for this episode on AniList.",
         ["DiscussionNoComments"] = "No comments yet",
         ["DiscussionFailed"] = "Couldn't load the discussion",
         ["DiscussionOfflineCached"] = "Offline. Showing comments from {age}.",
         ["DiscussionSettingsGroup"] = "Discussions",
+        ["DiscussionSending"] = "Sending",
+        ["DiscussionCopyText"] = "Copy text",
         ["DownloadsTitle"] = "Downloads",
         ["DownloadsPauseAll"] = "Pause all",
         ["DownloadsResumeAll"] = "Resume all",
@@ -5976,6 +6111,15 @@ public static partial class T
         ["ProgressEpisodesShort"] = "E{done} of {total}",
         ["ProgressEpisodeShort"] = "E{done}",
         ["ContinueRowStartAiredDubbed"] = "Play E{episode} dubbed · out {ago}",
+        ["UpNextHeading"] = "Up next for you",
+        ["UpNextStarts"] = "Starts {date}",
+        ["UpNextReasonNewSeason"] = "New season",
+        ["UpNextReasonPlanning"] = "On your Planning list",
+        ["UpNextReasonRecommended"] = "Because you finished {title}",
+        ["UpNextReasonRecommendedPlain"] = "Recommended for you",
+        ["UpNextReasonAiringToday"] = "Airing today",
+        ["UpNextAddPlanning"] = "Add to Planning",
+        ["UpNextNotInterested"] = "Not interested",
         ["FormatTv"] = "TV",
         ["FormatTvShort"] = "TV short",
         ["FormatMovie"] = "Movie",
@@ -5995,6 +6139,22 @@ public static partial class T
         ["MediaStatusHiatus"] = "On hiatus",
         ["MediaAiringSince"] = "Since {date}",
         ["MediaAiringFrom"] = "From {date}",
+        ["MediaAiredRange"] = "Aired {from} to {to}",
+        ["MediaAiredOn"] = "Aired {date}",
+        ["MediaHiatusSince"] = "On hiatus since {date}",
+        ["MediaCancelledAfter"] = "Cancelled after episode {episode}",
+        ["MediaStreamingOn"] = "Streaming on",
+        ["MediaStreamingRegionNote"] = "Availability depends on your region.",
+        ["MediaLinkLanguage"] = "Site in {language}",
+        ["FilmLengthHoursMinutes"] = "{hours} hr {minutes} min",
+        ["FilmLengthHours"] = "{hours} hr",
+        ["FilmLengthMinutes"] = "{minutes} min",
+        ["CountryJapan"] = "Japan",
+        ["CountryChina"] = "China",
+        ["CountrySouthKorea"] = "South Korea",
+        ["CountryTaiwan"] = "Taiwan",
+        ["MediaMadeIn"] = "Made in {country}",
+        ["MediaMadeElsewhere"] = "Made outside Japan",
         ["MaterialOriginal"] = "Original story",
         ["MaterialManga"] = "Manga",
         ["MaterialLightNovel"] = "Light novel",
@@ -6336,6 +6496,9 @@ public static partial class T
         ["SettingsGroupStorage"] = "Storage",
         ["SettingsGroupEpisodes"] = "Episodes",
         ["SettingsTitleLanguage"] = "Title language",
+        ["SettingsValueTrailersAlways"] = "Always",
+        ["SettingsValueTrailersWifiOnly"] = "Wi-Fi only",
+        ["SettingsLabelTrailers"] = "Play trailers",
         ["SettingsTitleTracker"] = "{tracker}'s choice",
         ["SettingsTitleEnglish"] = "English",
         ["SettingsTitleRomaji"] = "Romaji",
@@ -6652,6 +6815,7 @@ public static partial class T
         ["TitleTrailer"] = "Trailer",
         ["TitleButtonWatchAgain"] = "Watch again",
         ["TitlePlayTrailer"] = "Play trailer",
+        ["TitleTrailerFailed"] = "Couldn't open the trailer",
         ["TitleTrailerSound"] = "Trailer sound",
         ["TitleOpenAnilist"] = "Open on AniList",
         ["TitleOpen"] = "Open title",

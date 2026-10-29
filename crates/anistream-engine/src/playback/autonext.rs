@@ -216,6 +216,7 @@ mod tests {
                 metadata_only: false,
                 source: None,
                 unsourced: false,
+                past_progress: false,
             })
             .collect();
         let mut cache = TitleCache::default();

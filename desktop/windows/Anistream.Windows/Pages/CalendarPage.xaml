@@ -6,6 +6,12 @@
     xmlns:local="using:Anistream.Windows.Pages"
     xmlns:s="using:Anistream.App"
     Background="{ThemeResource GroundBrush}">
+  <Page.KeyboardAccelerators>
+    <KeyboardAccelerator Key="T" Modifiers="Control" Invoked="OnAccelToday" />
+    <KeyboardAccelerator Key="Left" Modifiers="Control" Invoked="OnAccelEarlier" />
+    <KeyboardAccelerator Key="Right" Modifiers="Control" Invoked="OnAccelLater" />
+    <KeyboardAccelerator Key="R" Modifiers="Control" Invoked="OnAccelRefresh" />
+  </Page.KeyboardAccelerators>
   <Grid Padding="36,20,36,0" RowSpacing="12">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
@@ -24,11 +30,11 @@
         <local:OfflineLine />
       </StackPanel>
       <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-        <Button Click="OnEarlier" ToolTipService.ToolTip="{x:Bind s:T.CalendarPreviousWeek}" AutomationProperties.Name="{x:Bind s:T.CalendarPreviousWeek}" Height="32">
+        <Button x:Name="Earlier" Click="OnEarlier" ToolTipService.ToolTip="{x:Bind s:T.CalendarPreviousWeek}" AutomationProperties.Name="{x:Bind s:T.CalendarPreviousWeek}" Height="32">
           <FontIcon Glyph="&#xE76B;" FontSize="12" />
         </Button>
-        <Button x:Name="ThisWeek" Content="{x:Bind s:T.CalendarThisWeek}" Click="OnThisWeek" Height="32" />
-        <Button Click="OnLater" ToolTipService.ToolTip="{x:Bind s:T.CalendarNextWeek}" AutomationProperties.Name="{x:Bind s:T.CalendarNextWeek}" Height="32">
+        <Button x:Name="ThisWeek" Content="{x:Bind s:T.CalendarToday}" Click="OnThisWeek" Height="32" ToolTipService.ToolTip="{x:Bind TodayTip}" />
+        <Button x:Name="Later" Click="OnLater" ToolTipService.ToolTip="{x:Bind s:T.CalendarNextWeek}" AutomationProperties.Name="{x:Bind s:T.CalendarNextWeek}" Height="32">
           <FontIcon Glyph="&#xE76C;" FontSize="12" />
         </Button>
       </StackPanel>
@@ -39,8 +45,8 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <SelectorBar x:Name="Whose" SelectionChanged="OnWhoseChanged" Margin="-8,0,0,0">
-        <SelectorBarItem Text="{x:Bind s:T.CalendarFilterMine}" Tag="mine" IsSelected="True" />
-        <SelectorBarItem Text="{x:Bind s:T.CalendarFilterAll}" Tag="all" />
+        <SelectorBarItem x:Name="AllItem" Text="{x:Bind s:T.CalendarFilterAll}" Tag="all" />
+        <SelectorBarItem x:Name="MineItem" Text="{x:Bind s:T.CalendarFilterMine}" Tag="mine" />
       </SelectorBar>
       <TextBlock x:Name="WeekTitle" Grid.Column="1" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
     </Grid>

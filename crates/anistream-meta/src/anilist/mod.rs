@@ -596,9 +596,64 @@ impl AniList {
         Ok(ordered)
     }
 
+    /// What people who liked each of `ids` (at most [`query::RECOMMENDED_FROM`]) rated highest:
+    /// each title with its name and the ids recommended off it, best rated first. Titles
+    /// AniList has nothing recommended for come back with none. See [`query::recommended_from`].
+    pub async fn recommended_from(
+        &self,
+        ids: &[AnilistId],
+    ) -> Result<Vec<(AnilistId, String, Vec<AnilistId>)>> {
+        let ids = &ids[..ids.len().min(query::RECOMMENDED_FROM)];
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let raw: Vec<i64> = ids.iter().map(|id| i64::from(id.get())).collect();
+        let data: serde_json::Value = self
+            .execute(
+                &query::recommended_from(),
+                serde_json::json!({ "ids": raw, "perPage": ids.len() }),
+            )
+            .await?;
+        let id_of = |v: &serde_json::Value| v.as_u64().map(|n| AnilistId::new(n as u32));
+        let mut found: Vec<(AnilistId, String, Vec<AnilistId>)> = data["Page"]["media"]
+            .as_array()
+            .map(|media| {
+                media
+                    .iter()
+                    .filter_map(|m| {
+                        let name = ["english", "romaji", "native"]
+                            .iter()
+                            .find_map(|k| m["title"][*k].as_str())
+                            .unwrap_or_default()
+                            .to_owned();
+                        let recommended = m["recommendations"]["nodes"]
+                            .as_array()
+                            .map(|nodes| {
+                                nodes
+                                    .iter()
+                                    .filter_map(|n| id_of(&n["mediaRecommendation"]["id"]))
+                                    .collect()
+                            })
+                            .unwrap_or_default();
+                        Some((id_of(&m["id"])?, name, recommended))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        // In the order asked, as `media_many` does: the caller asked most recent first.
+        found.sort_by_key(|(id, ..)| ids.iter().position(|asked| asked == id));
+        Ok(found)
+    }
+
     pub async fn media(&self, id: AnilistId) -> Result<Media> {
-        let data: serde_json::Value =
-            self.execute(&query::by_id(), serde_json::json!({ "id": id.get() })).await?;
+        // The people the viewer follows are asked for in the same request, and only when someone
+        // is signed in: the filter needs an authenticated viewer.
+        let data: serde_json::Value = self
+            .execute(
+                &query::by_id(self.is_authenticated()),
+                serde_json::json!({ "id": id.get() }),
+            )
+            .await?;
         decode_detail(&data)
     }
 
@@ -838,6 +893,16 @@ fn decode_detail(data: &serde_json::Value) -> Result<Media> {
         .into_iter()
         .flatten()
         .filter_map(|row| serde_json::from_value(row.clone()).ok())
+        .collect();
+    // Best-effort too, and nothing private: AniList withholds those, and this keeps one out if it
+    // does not.
+    media.following = data["following"]["mediaList"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|row| serde_json::from_value::<model::Follower>(row.clone()).ok())
+        .filter(|entry| !entry.private && !entry.user.name.is_empty())
+        .take(query::FOLLOWING_LIMIT as usize)
         .collect();
     Ok(media)
 }

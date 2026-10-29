@@ -43,7 +43,7 @@ public sealed partial class SettingsPage : Page
         [
             // The app's language and how titles read everywhere, not only while watching, so they
             // head the pane on their own.
-            ("language", [K.Titles]),
+            ("language", [K.Titles, K.Trailers]),
             ("watching", [K.Translation, K.Quality, K.Subtitles, K.CommitThreshold]),
             ("player", [K.AutoNext, K.UpNextCountdown, K.SkipOpening, K.SkipFiller, K.MarkChapters, K.SkipButton, K.Fullscreen]),
             ("picture", [K.Upscaling, K.NightMode, K.SpoilerProtection, K.Motion]),
@@ -96,6 +96,7 @@ public sealed partial class SettingsPage : Page
         K.Theme => T.SettingsTheme,
         K.Motion => T.SettingsMotion,
         K.Titles => T.SettingsTitleLanguage,
+        K.Trailers => T.SettingsLabelTrailers,
         K.Translation => T.SettingsAudio,
         K.Quality => T.SettingsQuality,
         K.Subtitles => T.PlayerSubtitles,
@@ -756,6 +757,8 @@ public sealed partial class SettingsPage : Page
         var title = Title(row.Key);
         var overridden = ctx.Known.Settings?.Overridden?.FirstOrDefault(o => o.Key == row.Key);
         string? description = overridden is { Shows: > 0 } o ? T.SettingsOverridden((long)o.Shows) : null;
+        if (row.Key == K.Trailers)
+            description = T.SettingsNoteTrailersWindows;
         if (row.Key == K.PresenceRich)
             description = T.SettingsPresenceRichDetail(AnistreamFfiMethods.TrackerName("anilist"));
         FrameworkElement control;

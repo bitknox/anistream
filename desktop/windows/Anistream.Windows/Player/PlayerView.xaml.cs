@@ -1219,7 +1219,8 @@ public sealed partial class PlayerView : UserControl
         discussion?.Close();
         if (!paused)
             Send(new PlayerCommand.TogglePause());
-        var pane = new DiscussionPane(c, playingId, episode);
+        // The window's caption buttons float over the player; the pane starts below them.
+        var pane = new DiscussionPane(c, playingId, episode) { Padding = new Thickness(0, 40, 0, 0) };
         discussion = pane;
         pane.Closed += () =>
         {
@@ -1459,6 +1460,14 @@ public sealed partial class PlayerView : UserControl
                 break;
             case "mini":
                 ToggleMini();
+                break;
+            case "discussion-player":
+                if (ctx is { } talk && uint.TryParse(playingEpisode, out var talked))
+                {
+                    talk.Known.Take(new Event.DiscussionFound(playingId, talked, 214));
+                    ShowControls();
+                    OpenDiscussion(talked);
+                }
                 break;
             case "preview":
                 ShowControls();

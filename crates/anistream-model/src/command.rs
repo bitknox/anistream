@@ -45,6 +45,7 @@ impl Command {
                 format!("searching \u{201c}{}\u{201d}", query.trimmed_text())
             }
             Self::LoadBrowse => "loading trending titles".into(),
+            Self::LoadUpNext => "finding what is up next".into(),
             Self::LoadDetail(_) => "loading the title".into(),
             Self::LoadEpisodes(_) => "loading episodes".into(),
             Self::ClearMatch { .. } | Self::FixMatch { .. } => "rematching sources".into(),
@@ -178,6 +179,22 @@ pub enum Command {
     /// [`Event::Browse`](crate::event::Event::Browse), at once from what was kept and again once
     /// AniList answers.
     LoadBrowse,
+    /// "Up next for you" under Continue: send it after [`Command::LoadContinue`]. Answered with
+    /// [`Event::UpNext`](crate::event::Event::UpNext), at once from what was kept for half an
+    /// hour and otherwise after a few lookups by id. Never sends more than the queue leaves
+    /// room for, so every app shows the same count.
+    LoadUpNext,
+    /// Not interested in a suggestion. It stays hidden until it starts airing; a title that
+    /// already airs or has finished stays hidden. The reducer drops the row first; this
+    /// persists the dismissal.
+    DismissUpNext {
+        id: AnilistId,
+    },
+    /// Undo of [`Command::DismissUpNext`], for a notice with Undo: the title may be suggested
+    /// again, and a fresh [`Event::UpNext`](crate::event::Event::UpNext) follows.
+    RestoreUpNext {
+        id: AnilistId,
+    },
     /// What the filters choose from: answered with
     /// [`Event::Facets`](crate::event::Event::Facets). Asked of AniList at most once a week.
     LoadSearchFacets,
