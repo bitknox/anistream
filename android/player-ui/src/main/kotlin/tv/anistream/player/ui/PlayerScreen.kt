@@ -101,6 +101,8 @@ import tv.anistream.player.SeekPreview
 import tv.anistream.store.HeroArt
 import tv.anistream.ui.ArtworkImage
 import tv.anistream.ui.LocalAppStore
+import tv.anistream.store.DiscussionKey
+import tv.anistream.store.PlayerDiscussion
 import tv.anistream.ui.LocalPageAnimation
 import tv.anistream.ui.pixels
 
@@ -136,6 +138,7 @@ fun PlayerScreen(
     val context = LocalContext.current
     var surfaceView by remember { mutableStateOf<SurfaceView?>(null) }
     var sheet by remember { mutableStateOf<PlayerSheet?>(null) }
+    val discussion = discussionEntry(model)
 
     // TalkBack and Switch Access keep the controls up, and Up Next waits for them (T4, T5).
     val accessibility = remember { context.getSystemService(AccessibilityManager::class.java) }
@@ -376,6 +379,7 @@ fun PlayerScreen(
                 onEpisodes = { sheet = PlayerSheet.Episodes },
                 preview = preview.takeIf { previewSource != null && !Device.power(context).lowPower },
                 onPlayOnTv = playOnTv,
+                discussion = discussion,
             )
         }
 
@@ -625,5 +629,26 @@ private fun GestureLabel(text: String) {
 private fun FadingLabel(visible: Boolean, text: String) {
     AnimatedVisibility(visible, enter = fadeIn(Motion.fadeIn()), exit = fadeOut(Motion.fadeOut())) {
         GestureLabel(text)
+    }
+}
+
+/**
+ * The discussion of the episode playing, for the More menu: there from 85 % of the episode, while
+ * discussions are on. Opening it pauses the video where it is, and it stays paused as the sheet closes.
+ */
+@Composable
+private fun discussionEntry(model: PlayerModel): DiscussionEntry? {
+    val store = LocalAppStore.current
+    val number = model.episode?.number ?: model.staged?.episode
+    val episode = PlayerDiscussion.episode(number)
+    val media = model.titleId
+    val late = remember(media, number) { PlayerDiscussion() }.see(model.position, model.duration)
+    val settings by store.settings.view.collectAsStateWithLifecycle()
+    val found by store.discussion.found.collectAsStateWithLifecycle()
+    val enabled = settings == null || store.discussionsOn()
+    if (media == null || episode == null || !PlayerDiscussion.offered(late, enabled, episode)) return null
+    return DiscussionEntry(found[DiscussionKey(media, episode)]) {
+        model.setPlaying(false)
+        store.discussion.show(media, episode)
     }
 }

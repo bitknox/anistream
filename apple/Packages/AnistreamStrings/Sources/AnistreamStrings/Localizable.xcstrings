@@ -3699,6 +3699,18 @@
         }
       }
     },
+    "discussion-show-more" : {
+      "comment" : "Button under a comment that is cut off after ten lines.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show more"
+          }
+        }
+      }
+    },
     "discussion-sign-in" : {
       "comment" : "Line in place of the field when nobody is signed in to AniList. It opens the sign-in.",
       "extractionState" : "manual",

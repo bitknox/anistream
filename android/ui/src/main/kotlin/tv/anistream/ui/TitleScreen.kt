@@ -1748,20 +1748,25 @@ private fun EpisodeRowView(entry: Entry, row: EpisodeRow, next: UInt, actions: A
     val unaired = airsAt != null && airsAt > nowSeconds()
     val hidden = spoilerProtected(entry.id) && number > next && !row.completed && !unaired
     var menu by remember { mutableStateOf(false) }
-    Box {
-        EpisodeLine(
-            entry = entry,
-            row = row,
-            current = current,
-            unaired = unaired,
-            hidden = hidden,
-            // One no source has plays nothing: a tap offers what can be done, adding a source among it.
-            onPlay = {
-                if (row.metadataOnly || row.unsourced) menu = true else if (!unaired) actions.play(entry.id, row.number)
-            },
-            onMenu = { menu = true },
-        )
-        EpisodeMenu(entry, row, expanded = menu, onDismiss = { menu = false }, actions = actions)
+    val comments = discussionCountOf(entry, row)
+    Column {
+        Box {
+            EpisodeLine(
+                entry = entry,
+                row = row,
+                current = current,
+                unaired = unaired,
+                hidden = hidden,
+                // One no source has plays nothing: a tap offers what can be done, adding a source among it.
+                onPlay = {
+                    if (row.metadataOnly || row.unsourced) menu = true else if (!unaired) actions.play(entry.id, row.number)
+                },
+                onMenu = { menu = true },
+            )
+            EpisodeMenu(entry, row, expanded = menu, onDismiss = { menu = false }, actions = actions)
+        }
+        // The quiet line under a watched episode that has a thread.
+        if (comments != null) DiscussionRow(entry, row, comments)
     }
 }
 

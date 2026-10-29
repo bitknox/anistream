@@ -3402,6 +3402,9 @@ public enum L {
     /// Age of a comment that is on its way to AniList.
     public static var discussionSending: String { string("discussion-sending", fallback: "Sending") }
 
+    /// Button under a comment that is cut off after ten lines.
+    public static var discussionShowMore: String { string("discussion-show-more", fallback: "Show more") }
+
     /// Comment menu item that copies the comment's text.
     public static var discussionCopyText: String { string("discussion-copy-text", fallback: "Copy text") }
 

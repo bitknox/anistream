@@ -821,6 +821,13 @@ internal fun AccountsPane(actions: AppActions) {
             },
         )
         SettingsGroup(
+            title = stringResource(R.string.discussion_settings_group),
+            rows = listOf(
+                { place -> SettingSwitch(place, SettingKey.EPISODE_DISCUSSIONS, stringResource(R.string.settings_discussions_label), note = stringResource(R.string.settings_discussions_note)) },
+                { place -> SettingSwitch(place, SettingKey.COMMENT_IMAGES, stringResource(R.string.settings_discussion_images_label), note = stringResource(R.string.settings_discussion_images_note)) },
+            ),
+        )
+        SettingsGroup(
             title = stringResource(R.string.accounts_other_trackers),
             footer = stringResource(if (storage?.contains("file", ignoreCase = true) == true) R.string.accounts_tokens_file else R.string.accounts_tokens_keystore),
             rows = AccountsModel.order.drop(1).map { tracker ->

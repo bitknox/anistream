@@ -1857,6 +1857,9 @@ public static partial class T
     /// <summary>Age of a comment that is on its way to AniList.</summary>
     public static string DiscussionSending => Get("DiscussionSending");
 
+    /// <summary>Button under a comment that is cut off after ten lines.</summary>
+    public static string DiscussionShowMore => Get("DiscussionShowMore");
+
     /// <summary>Comment menu item that copies the comment's text.</summary>
     public static string DiscussionCopyText => Get("DiscussionCopyText");
 
@@ -5938,6 +5941,7 @@ public static partial class T
         ["DiscussionOfflineCached"] = "Offline. Showing comments from {age}.",
         ["DiscussionSettingsGroup"] = "Discussions",
         ["DiscussionSending"] = "Sending",
+        ["DiscussionShowMore"] = "Show more",
         ["DiscussionCopyText"] = "Copy text",
         ["DownloadsTitle"] = "Downloads",
         ["DownloadsPauseAll"] = "Pause all",

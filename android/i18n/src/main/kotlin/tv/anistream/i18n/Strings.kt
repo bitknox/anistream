@@ -869,6 +869,42 @@ object Strings {
     fun calendarNowLabel(context: Context, time: String): String =
         context.getString(R.string.calendar_now_label, time)
 
+    /** Settings row: whether an episode's AniList discussion can be opened. */
+    fun settingsDiscussionsLabel(context: Context): String =
+        context.getString(R.string.settings_discussions_label)
+
+    /** Note under the Episode discussions setting. */
+    fun settingsDiscussionsNote(context: Context): String =
+        context.getString(R.string.settings_discussions_note)
+
+    /** Settings row: whether images in comments load inline. */
+    fun settingsDiscussionImagesLabel(context: Context): String =
+        context.getString(R.string.settings_discussion_images_label)
+
+    /** Note under the Load images in comments setting. */
+    fun settingsDiscussionImagesNote(context: Context): String =
+        context.getString(R.string.settings_discussion_images_note)
+
+    /** Line in place of the comments while AniList asks the app to wait. The time is a countdown such as 20 s. */
+    fun discussionWaiting(context: Context, time: String): String =
+        context.getString(R.string.discussion_waiting, time)
+
+    /** Line for an image in a comment when images do not load inline. The host is where it lives. */
+    fun discussionImageHost(context: Context, host: String): String =
+        context.getString(R.string.discussion_image_host, host)
+
+    /** Line for a video in a comment. The host is where it lives. */
+    fun discussionVideoHost(context: Context, host: String): String =
+        context.getString(R.string.discussion_video_host, host)
+
+    /** Player, More menu: under Discussion, how many comments there are and that opening it pauses the video. */
+    fun playerMoreDiscussionNote(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.player_more_discussion_note, count, count)
+
+    /** Player, More menu: under Discussion when the comment count is not known yet; opening it pauses the video. */
+    fun playerMoreDiscussionPauses(context: Context): String =
+        context.getString(R.string.player_more_discussion_pauses)
+
     /** Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. */
     fun tvPairRequestHeld(context: Context, phone: String, code: String): String =
         context.getString(R.string.tv_pair_request_held, phone, code)
@@ -1308,6 +1344,22 @@ object Strings {
     /** Spoken progress on a card for TalkBack, with the formatted percentage */
     fun tvCardProgressSpoken(context: Context, percent: String): String =
         context.getString(R.string.tv_card_progress_spoken, percent)
+
+    /** TV, discussion panel footer: replying needs a phone. */
+    fun tvDiscussionFooter(context: Context): String =
+        context.getString(R.string.tv_discussion_footer)
+
+    /** TV, discussion panel: the comment count under the title, and that nothing can be posted here. */
+    fun tvDiscussionCountReadOnly(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.tv_discussion_count_read_only, count, count)
+
+    /** TV, discussion panel: a comment's like count after its age. */
+    fun tvDiscussionLikes(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.tv_discussion_likes, count, count)
+
+    /** TV, discussion panel: what Select does on a comment with a hidden spoiler. */
+    fun tvDiscussionSelectSpoiler(context: Context): String =
+        context.getString(R.string.tv_discussion_select_spoiler)
 
     /** The episode in a short form for a title last watched dubbed. */
     fun episodeShortDubbed(context: Context, episode: Int): String =
@@ -3088,6 +3140,10 @@ object Strings {
     /** Age of a comment that is on its way to AniList. */
     fun discussionSending(context: Context): String =
         context.getString(R.string.discussion_sending)
+
+    /** Button under a comment that is cut off after ten lines. */
+    fun discussionShowMore(context: Context): String =
+        context.getString(R.string.discussion_show_more)
 
     /** Comment menu item that copies the comment's text. */
     fun discussionCopyText(context: Context): String =

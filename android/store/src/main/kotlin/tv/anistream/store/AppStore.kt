@@ -109,6 +109,7 @@ class AppStore(
     /** A browse by filter alone, nothing typed: another season, sorted another way. Search's own stays. */
     val browse = SearchModel()
     val calendar = CalendarModel()
+    val discussion = DiscussionModel()
     val search = SearchModel()
     val library = LibraryModel()
     val accounts = AccountsModel()
@@ -314,6 +315,30 @@ class AppStore(
         browse.edit(query)
         send(Command.Search(normal))
     }
+
+    /** Whether episode discussions are on in Settings: every entry point hangs on it. */
+    fun discussionsOn(): Boolean = settings.isOn(SettingKey.EPISODE_DISCUSSIONS)
+
+    /** Open the discussion of [episode], which the sheet or panel then reads from [discussion]. */
+    fun openDiscussion(media: AnilistId, episode: UInt) {
+        send(Command.OpenDiscussion(media, episode))
+    }
+
+    /** The sheet or panel closed: nothing more is said of it. */
+    fun closeDiscussion() {
+        discussion.closed()
+        send(Command.CloseDiscussion)
+    }
+
+    fun moreComments() = send(Command.MoreComments)
+
+    fun postComment(text: String, parent: UInt? = null) = send(Command.PostComment(parent, text))
+
+    fun editComment(id: UInt, text: String) = send(Command.EditComment(id, text))
+
+    fun deleteComment(id: UInt) = send(Command.DeleteComment(id))
+
+    fun likeComment(id: UInt) = send(Command.LikeComment(id))
 
     fun loadCalendar(force: Boolean = false) {
         if (!force && calendar.list.answered(LIST_FRESH_MILLIS)) return
@@ -917,6 +942,8 @@ class AppStore(
 
             is Event.Content -> content(event.content, event.view)
             is Event.Caption -> caption(event.text, event.view)
+            is Event.Discussion -> discussion.view(event.v1)
+            is Event.DiscussionFound -> discussion.found(event.media, event.episode, event.comments)
             is Event.CalendarWindow -> calendar.window(
                 event.anchor, event.pages, event.morePast, event.floor, event.ceiling, event.aheadPages, event.moreAhead,
             )

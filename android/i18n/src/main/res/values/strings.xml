@@ -468,6 +468,27 @@
     <string name="calendar_show_all_airing">Show all airing</string>
     <!-- What a screen reader says for the line that marks the time now. The time is already worded. -->
     <string name="calendar_now_label">Now, %1$s</string>
+    <!-- Settings row: whether an episode's AniList discussion can be opened. -->
+    <string name="settings_discussions_label">Episode discussions</string>
+    <!-- Note under the Episode discussions setting. -->
+    <string name="settings_discussions_note">Reads the comments on AniList\'s forum thread for episodes you have watched.</string>
+    <!-- Settings row: whether images in comments load inline. -->
+    <string name="settings_discussion_images_label">Load images in comments</string>
+    <!-- Note under the Load images in comments setting. -->
+    <string name="settings_discussion_images_note">Each image loads from the site that hosts it, which sees your IP address.</string>
+    <!-- Line in place of the comments while AniList asks the app to wait. The time is a countdown such as 20 s. -->
+    <string name="discussion_waiting">Waiting for AniList · %1$s</string>
+    <!-- Line for an image in a comment when images do not load inline. The host is where it lives. -->
+    <string name="discussion_image_host">Image · %1$s</string>
+    <!-- Line for a video in a comment. The host is where it lives. -->
+    <string name="discussion_video_host">Video · %1$s</string>
+    <!-- Player, More menu: under Discussion, how many comments there are and that opening it pauses the video. -->
+    <plurals name="player_more_discussion_note">
+        <item quantity="one">One comment · pauses</item>
+        <item quantity="other">%1$d comments · pauses</item>
+    </plurals>
+    <!-- Player, More menu: under Discussion when the comment count is not known yet; opening it pauses the video. -->
+    <string name="player_more_discussion_pauses">Pauses the video</string>
     <!-- Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. -->
     <string name="tv_pair_request_held">%1$s wants to pair. Code %2$s</string>
     <!-- TV, Continue hero: the action when no source can play yet. -->
@@ -697,6 +718,20 @@
     <string name="tv_show_back_to_defaults">Back to defaults</string>
     <!-- Spoken progress on a card for TalkBack, with the formatted percentage -->
     <string name="tv_card_progress_spoken">%1$s watched</string>
+    <!-- TV, discussion panel footer: replying needs a phone. -->
+    <string name="tv_discussion_footer">To reply, open this discussion on your phone.</string>
+    <!-- TV, discussion panel: the comment count under the title, and that nothing can be posted here. -->
+    <plurals name="tv_discussion_count_read_only">
+        <item quantity="one">One comment · Read only</item>
+        <item quantity="other">%1$d comments · Read only</item>
+    </plurals>
+    <!-- TV, discussion panel: a comment's like count after its age. -->
+    <plurals name="tv_discussion_likes">
+        <item quantity="one">One like</item>
+        <item quantity="other">%1$d likes</item>
+    </plurals>
+    <!-- TV, discussion panel: what Select does on a comment with a hidden spoiler. -->
+    <string name="tv_discussion_select_spoiler">Select to show the spoiler</string>
     <!-- The episode in a short form for a title last watched dubbed. -->
     <string name="episode_short_dubbed">E%1$d · Dubbed</string>
     <!-- The episode in its long form for a title last watched dubbed. -->
@@ -1644,6 +1679,8 @@
     <string name="discussion_settings_group">Discussions</string>
     <!-- Age of a comment that is on its way to AniList. -->
     <string name="discussion_sending">Sending</string>
+    <!-- Button under a comment that is cut off after ten lines. -->
+    <string name="discussion_show_more">Show more</string>
     <!-- Comment menu item that copies the comment's text. -->
     <string name="discussion_copy_text">Copy text</string>
     <!-- Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group. -->
