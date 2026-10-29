@@ -32,6 +32,7 @@ public final class AppStore {
     public let continuing = ContinueModel()
     public let seasonal = ListModel()
     public let calendar = CalendarModel()
+    public let discussion = DiscussionModel()
     public let search = SearchModel()
     public let library = LibraryModel()
     public let jobs: JobsModel
@@ -712,6 +713,11 @@ public final class AppStore {
 
         case .update(let status):
             updates.apply(status)
+
+        case .discussion(let view):
+            discussion.view(view)
+        case .discussionFound(let media, let episode, let comments):
+            discussion.found(DiscussionKey(media: media, episode: episode), comments: comments)
 
         case .searchPaging(let query, let hasNext):
             search.paging(query, hasNext: hasNext)

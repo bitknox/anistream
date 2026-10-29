@@ -93,6 +93,30 @@ extension AppStore {
         return settings.row(.spoilerProtection).map(\.isOn) ?? true
     }
 
+    // MARK: Discussions
+
+    /// Whether episode discussions are on in Settings: every entry point hangs on it.
+    public var discussionsOn: Bool {
+        settings.row(.episodeDiscussions).map(\.isOn) ?? true
+    }
+
+    /// Open the discussion of `episode`, which the sheet, pane or window then reads from `discussion`.
+    public func openDiscussion(_ key: DiscussionKey) {
+        send(.openDiscussion(media: key.media, episode: key.episode))
+    }
+
+    /// The sheet, pane or window closed: nothing more is said of it.
+    public func closeDiscussion() {
+        discussion.closed()
+        send(.closeDiscussion)
+    }
+
+    public func moreComments() { send(.moreComments) }
+    public func postComment(_ text: String, parent: UInt32? = nil) { send(.postComment(parent: parent, text: text)) }
+    public func editComment(_ id: UInt32, text: String) { send(.editComment(id: id, text: text)) }
+    public func deleteComment(_ id: UInt32) { send(.deleteComment(id: id)) }
+    public func likeComment(_ id: UInt32) { send(.likeComment(id: id)) }
+
     // MARK: Accounts
 
     public func syncNow() {

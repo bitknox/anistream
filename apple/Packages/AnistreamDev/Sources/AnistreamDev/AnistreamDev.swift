@@ -61,6 +61,10 @@ final class Delegate: NSObject, NSApplicationDelegate {
     lazy var player: PlayerModel = {
         let player = PlayerModel(send: { [weak store] command in store?.send(command) })
         store.onPlayback = { [weak player] event in player?.apply(event) }
+        player.discussionHost = DiscussionHost(
+            enabled: { [weak store] in store?.discussionsOn ?? false },
+            count: { [weak store] key in store?.discussion.count(key.media, episode: key.episode) },
+            open: { [weak store] key in store?.discussion.show(key) })
         player.playOnTVHandler = { [weak store] request in store?.tv.offer(request) }
         store.tv.handedOff = { [weak player] in player?.viewerClosed() }
         store.party.playerUp = { [weak player] in player?.isPresented ?? false }

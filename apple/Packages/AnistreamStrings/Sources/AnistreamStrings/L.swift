@@ -1077,6 +1077,79 @@ public enum L {
         Self.format("downloads-seeding-uploaded", fallback: "Shared %1$@ of %2$@ · %3$@ · %4$@ up", shared, goal, left, size)
     }
 
+    /// Line under the header while AniList's request budget is spent. The placeholders stay.
+    public static func discussionAppleWaiting(time: String) -> String {
+        Self.format("discussion-apple-waiting", fallback: "Waiting for AniList · %1$@", time)
+    }
+
+    /// Line in place of an image in a comment: the word, then the site that hosts it.
+    public static func discussionAppleImageHost(host: String) -> String {
+        Self.format("discussion-apple-image-host", fallback: "Image · %1$@", host)
+    }
+
+    /// Line in place of a video in a comment: the word, then the site that hosts it.
+    public static func discussionAppleVideoHost(host: String) -> String {
+        Self.format("discussion-apple-video-host", fallback: "Video · %1$@", host)
+    }
+
+    /// Menu item that copies a comment's text.
+    public static var discussionAppleCopyText: String { string("discussion-apple-copy-text", fallback: "Copy text") }
+
+    /// Age of a comment that was sent and is not yet confirmed.
+    public static var discussionAppleSending: String { string("discussion-apple-sending", fallback: "Sending") }
+
+    /// Line above the field while the viewer edits their own comment.
+    public static var discussionAppleEditing: String { string("discussion-apple-editing", fallback: "Editing your comment") }
+
+    /// Accessible name of the button that opens a comment's menu.
+    public static var discussionAppleCommentMenu: String { string("discussion-apple-comment-menu", fallback: "More for this comment") }
+
+    /// After the author's name on a reply to a reply, naming who it answers.
+    public static func discussionAppleAnswering(name: String) -> String {
+        Self.format("discussion-apple-answering", fallback: "to %1$@", name)
+    }
+
+    /// Title of the state when the episode has no thread. Open on AniList goes to the show's page.
+    public static var discussionAppleNoThread: String { string("discussion-apple-no-thread", fallback: "No discussion for this episode") }
+
+    /// Title of the state when the device is offline and no comments were kept.
+    public static var discussionAppleOffline: String { string("discussion-apple-offline", fallback: "You're offline") }
+
+    /// Menu item in the comment field's edit menu that hides the selected words as a spoiler.
+    public static var discussionAppleMarkSpoiler: String { string("discussion-apple-mark-spoiler", fallback: "Spoiler") }
+
+    /// Accessible name of a hidden spoiler that a tap shows.
+    public static var discussionAppleSpoilerHint: String { string("discussion-apple-spoiler-hint", fallback: "Shows the spoiler") }
+
+    /// Accessible name of the button that closes the discussion.
+    public static var discussionAppleClose: String { string("discussion-apple-close", fallback: "Close discussion") }
+
+    /// Accessible name of a comment's heart when the viewer likes it.
+    public static var discussionAppleLiked: String { string("discussion-apple-liked", fallback: "Liked") }
+
+    /// Row in the player's More menu that opens the episode's discussion, with the count and a note.
+    public static func discussionApplePlayerNote(count: Int) -> String {
+        Self.format("discussion-apple-player-note", fallback: "%1$lld comments · pauses", count)
+    }
+
+    /// Name of the Settings switch for episode discussions.
+    public static var settingsAppleDiscussions: String { string("settings-apple-discussions", fallback: "Episode discussions") }
+
+    /// Note under the switch for episode discussions.
+    public static var settingsAppleDiscussionsNote: String { string("settings-apple-discussions-note", fallback: "Reads the comments on AniList's forum thread for episodes you have watched.") }
+
+    /// Name of the Settings switch that loads images in comments.
+    public static var settingsAppleCommentImages: String { string("settings-apple-comment-images", fallback: "Load images in comments") }
+
+    /// Note under the switch that loads images in comments.
+    public static var settingsAppleCommentImagesNote: String { string("settings-apple-comment-images-note", fallback: "Each image loads from the site that hosts it, which sees your IP address.") }
+
+    /// Line under the comment field on the Mac: the keys that post and add a line.
+    public static var discussionAppleKeyHint: String { string("discussion-apple-key-hint", fallback: "⌘Return posts. Return adds a line.") }
+
+    /// Note beside Discussion in the player's menu when the comments are not counted yet.
+    public static var discussionApplePauses: String { string("discussion-apple-pauses", fallback: "Pauses the video") }
+
     /// Body of a new-episode notification when the viewer is caught up.
     public static func noticeOut(episode: Int) -> String {
         Self.format("notice-out", fallback: "Episode %1$lld is out.", episode)

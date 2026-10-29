@@ -8,7 +8,7 @@
 # generated episode first on Continue), then after a colon a section (calendar, seasonal, search, library,
 # downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words>,
 # genre=<name> (Search browsing a genre) or palette=<words>, with more joined by +: pane=<Settings
-# pane>, notice=alert (a failure toast), sheet=<torrent|proxy|join|kitsu|update|show|about|filters|messages>,
+# pane>, notice=alert (a failure toast), sheet=<torrent|proxy|join|kitsu|update|show|about|filters|messages|discussion-<episode>>,
 # tv=<paired|picker|code|expired|remote|lost|refused|empty|bar|away>, Play on TV with the Fixtures app's
 # fake TVs (FixtureTVs.swift says what each shows), day=<days after today>, the calendar opened on
 # that day, for one with broadcasts,
@@ -54,7 +54,7 @@ shopt -s inherit_errexit 2>/dev/null || true
 players=(player-starting player-playing player-skip player-up-next player-still-watching player-stall
   player-buffering player-scrubbing player-tracks player-speed player-picture player-episodes
   player-picture-in-picture player-stats player-stats-hidden player-stats-waiting player-stats-stream
-  player-stats-buffering player-stats-hdr player-stats-paused player-stats-copied)
+  player-stats-buffering player-stats-hdr player-stats-paused player-stats-copied player-discussion player-discussion-open)
 
 usage() {
   echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [<watching|sourceless|fresh|playing>[:<section|key=value>]|player|player-<state>]…" >&2
