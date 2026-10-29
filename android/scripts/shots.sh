@@ -26,6 +26,9 @@
 #   tablet     anistream-tablet         1280 × 800 dp                                       port 5562
 #   fold       anistream-fold           a foldable, unfolded                                port 5564
 #
+# ANISTREAM_SHOTS_LOCALE=en-XA takes the shots in that app language, to look for clipped or
+# unaccented text.
+#
 # The status bar is in demo mode at 19:30, and the system dark. The app says ANISTREAM_READY in the
 # log once its screens have what they asked for, and the shot is taken then.
 set -euo pipefail
@@ -180,6 +183,8 @@ for shot in "${shots[@]}"; do
   shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
   # Every shot from a first launch: no setup card hidden, no permission asked.
   shell pm clear "$package" >/dev/null
+  # A pseudo-locale (en-XA, ar-XB) or any language tag for the app alone; clearing forgets it.
+  [[ -z "${ANISTREAM_SHOTS_LOCALE:-}" ]] || shell cmd locale set-app-locales "$package" --locales "$ANISTREAM_SHOTS_LOCALE" >/dev/null
   "$adb" -s "$serial" logcat -c
   shell am start -W -n "$package/tv.anistream.app.MainActivity" "${args[@]}" >/dev/null
   # This launch's marker, by its process, never one an earlier shot left in the log.

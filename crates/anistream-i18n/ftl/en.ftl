@@ -845,23 +845,11 @@ settings-next-value = Next value
 # Line after the legal line under the sources settings: where sources come from.
 settings-sources-come-from = Sources come from the plugin stores you join.
 
-# Choice for the download quality: the usual size.
-settings-quality-standard = Standard
-
-# Choice for the download quality: larger files with more detail.
-settings-quality-higher = Higher
-
 # Label on the left half of the upscaling preview: the video before processing.
 settings-preview-source = 480p source
 
 # Preview note under the upscaling frame when upscaling is off.
 settings-upscaling-note-off = The 480p source, scaled to fit without processing.
-
-# Preview note under the upscaling frame for the natural look.
-settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
-
-# Preview note under the upscaling frame for the sharp look.
-settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
 
 # A line of sample subtitle over the preview frame. Any short sentence will do.
 settings-caption-sample = The lantern road runs on past the last town.
@@ -907,13 +895,6 @@ accounts-changes-waiting-offline =
     { $count ->
         [one] One change waiting until you're online
        *[other] { $count } changes waiting until you're online
-    }
-
-# Line under a signed-in account while changes wait to be sent.
-accounts-changes-waiting =
-    { $count ->
-        [one] One change waiting to sync
-       *[other] { $count } changes waiting to sync
     }
 
 # Footnote on the Accounts page: where sign-in tokens are kept, when it is the system's keyring.
@@ -1102,9 +1083,6 @@ stores-owner-needs-connection-detail = Try again once this device is back online
 
 # Red line in the invite dialog when this device is offline and a link cannot be made.
 stores-owner-link-offline = Making a link needs a connection to the plugin store.
-
-# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
-stores-copy-link = Copy link
 
 # Line over a new invite link made for a named person. The time is the one the link stops working.
 stores-send-link-until = Send this link. It works once, until { $until }.
@@ -4071,6 +4049,9 @@ state-working = Working
 # Short placeholder while something loads.
 state-loading = Loading
 
+# How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
+time-just-now-inline = just now
+
 # Checkbox of the close question.
 close-dont-ask = Don't ask again
 
@@ -5646,6 +5627,21 @@ filter-hint-remote = Press once to include, twice to leave out.
 # Accessibility label of the button that removes one filter.
 filter-remove = Remove { $filter }
 
+# Search: sort by how many people marked the title a favourite.
+search-sort-favourites = Favourites
+
+# Search: sort by release date, newest first.
+search-sort-newest = Newest
+
+# Search: sort by release date, oldest first.
+search-sort-oldest = Oldest
+
+# Search: sort by title, A to Z.
+search-sort-title = Title
+
+# Search: sort by what is popular right now.
+search-sort-trending = Trending
+
 # Settings group and row title for choosing a language.
 settings-language = Language
 
@@ -5991,6 +5987,34 @@ widget-start-label = Play episode { $episode } of { $title }
 
 # Accessibility label of a widget row: continue a dubbed episode.
 widget-resume-dubbed-label = Resume episode { $episode }, dubbed, of { $title }
+
+# Line under a signed-in account while changes wait to be sent.
+accounts-changes-waiting =
+    { $count ->
+        [one] One change waiting to sync
+       *[other] { $count } changes waiting to sync
+    }
+
+# Choice for the download quality: larger files with more detail.
+settings-quality-higher = Higher
+
+# Choice for the download quality: the usual size.
+settings-quality-standard = Standard
+
+# Value of the upload limit setting when there is no limit.
+settings-upload-unlimited = Unlimited
+
+# Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+settings-upscaling-natural = Natural · ArtCNN
+
+# Preview note under the upscaling frame for the natural look.
+settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
+
+# Preview note under the upscaling frame for the sharp look.
+settings-upscaling-note-sharp = Crisper lines and stronger edges, at some cost to texture.
+
+# Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+settings-upscaling-sharp = Sharp · Anime4K
 
 # Title of the screen or section that lists sources.
 sources-title = Sources
@@ -6573,6 +6597,16 @@ stores-publish-none = No plugins on this device to publish.
 # Version line of a plugin in the publish sheet.
 stores-plugin-name-version = { $name } { $version }
 
+# Button under an invite link that copies it. Reads "Copied" for a moment afterwards.
+stores-copy-link = Copy link
+
+# Heading over the { -plugin-pl } a { -plugin-store } offers, in the join dialog.
+stores-offers-plugins =
+    { $count ->
+        [one] One plugin
+       *[other] { $count } plugins
+    }
+
 # Title of the state when a title page could not load.
 title-load-failed = Couldn't load this title
 
@@ -6584,6 +6618,9 @@ title-loading = Loading this title
 
 # Button on the title page that plays the trailer.
 title-trailer = Trailer
+
+# Main button of the title page when every episode of the show is watched: plays episode 1 again.
+title-button-watch-again = Watch again
 
 # Menu item that plays the trailer.
 title-play-trailer = Play trailer
@@ -6972,6 +7009,9 @@ torrents-page-unreadable = The TV couldn't read this. Scan the QR code on the TV
 
 # Line when the page needs script.
 torrents-page-needs-script = This page needs JavaScript to send the form to the TV safely.
+
+# Under the proxy form when turning torrents on: what the app checks, and that the VPN or proxy is what protects.
+torrents-check-note = anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.
 
 # Title of the accounts screen. The sidebar item is nav-accounts.
 accounts-title = Accounts

@@ -1,6 +1,10 @@
 package tv.anistream.tv
 
 import java.time.LocalDate
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -23,7 +27,10 @@ import tv.anistream.tv.ui.subtitleWords
 import tv.anistream.tv.ui.trackWords
 
 /** The words and rules behind Search's filters, the Titles row, the update and the show's tracks. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class ParityTest {
+    private val context = RuntimeEnvironment.getApplication()
     @Test
     fun a_season_keeps_only_while_the_years_are_one() {
         val one = SearchQuery(years = Bounds(2021u, 2021u), season = Season.SPRING)
@@ -46,16 +53,16 @@ class ParityTest {
         assertEquals(Pick.INCLUDE, SearchFilters.next(Pick.OFF))
         assertEquals(Pick.EXCLUDE, SearchFilters.next(Pick.INCLUDE))
         assertEquals(Pick.OFF, SearchFilters.next(Pick.EXCLUDE))
-        assertNull(SearchFilters.pickWords(Pick.OFF))
+        assertNull(SearchFilters.pickWords(context, Pick.OFF))
     }
 
     @Test
     fun the_chips_name_what_is_set() {
-        assertEquals("Genres", SearchFilters.genresChip(SearchQuery()))
-        assertEquals("3 genres", SearchFilters.genresChip(SearchQuery(genres = listOf("Action", "Drama"), genresExcluded = listOf("Horror"))))
-        assertEquals("Format", SearchFilters.formatChip(SearchQuery()))
+        assertEquals("Genres", SearchFilters.genresChip(context, SearchQuery()))
+        assertEquals("3 genres", SearchFilters.genresChip(context, SearchQuery(genres = listOf("Action", "Drama"), genresExcluded = listOf("Horror"))))
+        assertEquals("Format", SearchFilters.formatChip(context, SearchQuery()))
         val three = SearchQuery(formats = listOf(MediaFormat.TV, MediaFormat.MOVIE, MediaFormat.OVA))
-        assertEquals("3 formats", SearchFilters.formatChip(three))
+        assertEquals("3 formats", SearchFilters.formatChip(context, three))
     }
 
     @Test
@@ -68,8 +75,8 @@ class ParityTest {
 
     @Test
     fun the_titles_row_says_what_each_choice_does() {
-        assertEquals("English while signed out of AniList", TitleChoice.line(TitleChoice.AniList, signedIn = false, viewer = null))
-        assertEquals("Romaji, from your AniList account", TitleChoice.line(TitleChoice.AniList, signedIn = true, viewer = TitleLanguage.ROMAJI))
+        assertEquals("English while signed out of AniList", TitleChoice.line(context, TitleChoice.AniList, signedIn = false, viewer = null))
+        assertEquals("Romaji, from your AniList account", TitleChoice.line(context, TitleChoice.AniList, signedIn = true, viewer = TitleLanguage.ROMAJI))
         assertEquals(TitleChoice.AniList, TitleChoice.of(null))
     }
 
@@ -83,15 +90,15 @@ class ParityTest {
     @Test
     fun the_update_row_says_where_the_update_is() {
         val offer = UpdateOffer("2.1.0", "https://updates.example/a.apk", "ab".repeat(32), 0)
-        assertEquals("Available", updateLine(UpdateState.Available(offer)))
-        assertEquals("Downloading 40 %", updateLine(UpdateState.Downloading(offer, 40, 100)))
-        assertEquals("", updateLine(UpdateState.None))
+        assertEquals("Available", updateLine(context, UpdateState.Available(offer)))
+        assertEquals("Downloading 40%", updateLine(context, UpdateState.Downloading(offer, 40, 100)))
+        assertEquals("", updateLine(context, UpdateState.None))
     }
 
     @Test
     fun a_track_is_named_by_its_language_then_its_own_title() {
-        assertEquals("English (Signs)", trackWords(RememberedTrack("en", "English Signs", false, false)))
-        assertEquals("Unnamed track", trackWords(RememberedTrack(null, "", false, false)))
-        assertEquals("Off", subtitleWords(RememberedSubtitles.Off))
+        assertEquals("English (Signs)", trackWords(context, RememberedTrack("en", "English Signs", false, false)))
+        assertEquals("Unnamed track", trackWords(context, RememberedTrack(null, "", false, false)))
+        assertEquals("Off", subtitleWords(context, RememberedSubtitles.Off))
     }
 }

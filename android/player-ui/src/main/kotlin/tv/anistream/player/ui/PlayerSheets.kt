@@ -4,6 +4,12 @@
 
 package tv.anistream.player.ui
 
+import java.text.NumberFormat
+import androidx.annotation.StringRes
+import tv.anistream.i18n.Strings
+import tv.anistream.i18n.R
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,8 +69,10 @@ enum class PlayerSheet { Tracks, Episodes, Sources }
 private val SPEEDS = listOf(0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
 
 /** "1.0×", "1.25×". */
-internal fun speedLabel(speed: Double): String =
-    if (speed == Math.rint(speed)) String.format(Locale.ROOT, "%.1f×", speed) else "${speed}×"
+internal fun speedLabel(speed: Double): String {
+    val digits = NumberFormat.getNumberInstance().apply { minimumFractionDigits = 1; maximumFractionDigits = 2 }
+    return digits.format(speed) + "×" // i18n-skip
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,25 +139,25 @@ internal fun tracksOpeningRow(subtitles: List<Long>, current: Long?): Int {
 private fun LazyListScope.tracks(model: PlayerModel) {
     item(key = "title") {
         Text(
-            "Subtitles, audio and picture",
+            stringResource(R.string.player_subtitles_audio_picture),
             style = MaterialTheme.typography.titleLarge,
             color = ObiSilk.Silk,
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
         )
     }
-    heading("Subtitles")
-    item(key = "sub-off") { Choice("Off", checked = model.subtitleTrack == null) { model.selectSubtitle(null) } }
+    heading(R.string.player_subtitles)
+    item(key = "sub-off") { Choice(stringResource(R.string.value_off), checked = model.subtitleTrack == null) { model.selectSubtitle(null) } }
     items(model.subtitleTracks, key = { "sub-${it.id}" }) { track ->
-        Choice(track.name, checked = model.subtitleTrack == track.id) { model.selectSubtitle(track.id) }
+        Choice(track.name(LocalContext.current), checked = model.subtitleTrack == track.id) { model.selectSubtitle(track.id) }
     }
     divider("tracks-audio")
-    heading("Audio")
+    heading(R.string.player_audio)
     items(model.audioTracks, key = { "audio-${it.id}" }) { track ->
-        Choice(track.name, checked = model.audioTrack == track.id) { model.selectAudio(track.id) }
+        Choice(track.name(LocalContext.current), checked = model.audioTrack == track.id) { model.selectAudio(track.id) }
     }
     item(key = "remembered") {
         Text(
-            "Remembered for this show",
+            stringResource(R.string.player_remembered),
             style = MaterialTheme.typography.bodyMedium,
             color = ObiSilk.Haze,
             modifier = Modifier.padding(start = 56.dp, top = 4.dp, bottom = 8.dp),
@@ -158,7 +166,7 @@ private fun LazyListScope.tracks(model: PlayerModel) {
     val menus = model.menus
     if (menus != null && menus.upscaling.options.isNotEmpty()) {
         divider("tracks-upscaling")
-        heading("Upscaling")
+        heading(R.string.player_upscaling)
         items(menus.upscaling.options, key = { "look-${it.id}" }) { choice ->
             Choice(choice.label, detail = choice.hint, checked = menus.upscaling.current == choice.id) { model.setUpscaling(choice.id) }
         }
@@ -171,8 +179,8 @@ private fun LazyListScope.tracks(model: PlayerModel) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Night mode", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
-                    Text("Quiet parts louder, loud parts quieter", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+                    Text(stringResource(R.string.player_night_mode), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
+                    Text(stringResource(R.string.player_night_mode_detail), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
                 }
                 Switch(
                     checked = menus.nightMode,
@@ -183,7 +191,7 @@ private fun LazyListScope.tracks(model: PlayerModel) {
         }
     }
     divider("tracks-speed")
-    heading("Speed")
+    heading(R.string.player_speed)
     items(SPEEDS, key = { "speed-$it" }) { speed ->
         Choice(speedLabel(speed), checked = kotlin.math.abs(model.speed - speed) < 0.01) { model.playAt(speed) }
     }
@@ -191,21 +199,21 @@ private fun LazyListScope.tracks(model: PlayerModel) {
 
 private fun LazyListScope.episodes(model: PlayerModel) {
     val menus = model.menus
-    heading("Episodes")
+    heading(R.string.player_episodes)
     if (menus == null || menus.episodes.isEmpty()) {
-        item(key = "no-episodes") { Note("The episode list is on its way.") }
+        item(key = "no-episodes") { Note(stringResource(R.string.player_sheet_episodes_loading)) }
     } else {
         items(menus.episodes, key = { "ep-${it.number}" }) { row ->
             Choice(
                 row.title?.let { "${row.label} · $it" } ?: row.label,
-                detail = if (row.filler) "Filler" else if (row.watched) "Watched" else null,
+                detail = if (row.filler) stringResource(R.string.episode_filler) else if (row.watched) stringResource(R.string.episode_watched) else null,
                 checked = row.current,
             ) { model.choose(PlayerChoice.Episode(row.number)) }
         }
     }
     if (menus != null && menus.sources.isNotEmpty()) {
         divider("episodes-sources")
-        heading("Sources")
+        heading(R.string.player_sources)
         items(menus.sources, key = { "source-${it.id}" }) { source ->
             Choice(source.label, detail = source.health ?: source.detail, checked = source.current) {
                 model.choose(PlayerChoice.Source(source.id))
@@ -215,17 +223,17 @@ private fun LazyListScope.episodes(model: PlayerModel) {
 }
 
 private fun LazyListScope.sources(model: PlayerModel, onDismiss: () -> Unit) {
-    heading("Sources")
+    heading(R.string.player_sources)
     val choices = model.sourceChoices
     when {
-        choices == null -> item(key = "finding") { Note("Finding releases…") }
-        choices.isEmpty() -> item(key = "none") { Note("No releases found for this episode.") }
+        choices == null -> item(key = "finding") { Note(stringResource(R.string.player_sheet_finding)) }
+        choices.isEmpty() -> item(key = "none") { Note(stringResource(R.string.player_sheet_none)) }
         else -> items(choices, key = { "${it.providerId}-${it.id}" }) { candidate ->
             val detail = listOfNotNull(
-                candidate.quality?.let { "${it}p" },
+                candidate.quality?.let { "${it}p" }, // i18n-skip
                 candidate.size,
-                if (candidate.dubbed) "Dub" else null,
-                if (candidate.dualAudio) "Dual audio" else null,
+                if (candidate.dubbed) stringResource(R.string.audio_dubbed) else null,
+                if (candidate.dualAudio) stringResource(R.string.player_dual_audio) else null,
             ).joinToString(" · ").ifEmpty { null }
             Choice(candidate.title, detail = detail, checked = false) {
                 model.play(candidate)
@@ -235,10 +243,10 @@ private fun LazyListScope.sources(model: PlayerModel, onDismiss: () -> Unit) {
     }
 }
 
-private fun LazyListScope.heading(title: String) {
+private fun LazyListScope.heading(@StringRes title: Int) {
     item(key = "heading-$title") {
         Text(
-            title,
+            stringResource(title),
             style = MaterialTheme.typography.titleMedium,
             color = ObiSilk.Haze,
             modifier = Modifier.padding(start = 56.dp, top = 12.dp, bottom = 4.dp),

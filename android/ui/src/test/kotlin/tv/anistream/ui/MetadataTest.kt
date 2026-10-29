@@ -1,6 +1,10 @@
 package tv.anistream.ui
 
 import java.time.Instant
+import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
@@ -22,7 +26,10 @@ import tv.anistream.engine.model.TitleTag
 import tv.anistream.testkit.Scene
 
 /** The metadata rules of native-spec/metadata.md, on a fixture title from the watching scene. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class MetadataTest {
+    private val context = RuntimeEnvironment.getApplication()
     /** 900001's page as the engine sends it, for each test to change what it is about. */
     private val entry: Entry = Scene.named("watching").events
         .filterIsInstance<Event.Detail>()
@@ -61,16 +68,16 @@ class MetadataTest {
     fun the_airing_state_comes_from_the_dates() {
         val today = LocalDate.of(2026, 10, 21)
         val finished = entry.copy(startDate = date(2024, 4, 6), endDate = date(2024, 6, 22))
-        assertEquals(AiringState("Aired", "6 Apr to 22 Jun 2024"), finished.airingState(today))
+        assertEquals("Aired" to "6 Apr to 22 Jun 2024", finished.airingState(context, today)?.let { it.label to it.value })
         val film = entry.copy(startDate = date(2025, 3, 1), endDate = date(2025, 3, 1))
-        assertEquals("1 Mar 2025", film.airingState(today)?.value)
+        assertEquals("1 Mar 2025", film.airingState(context, today)?.value)
         val airing = entry.copy(startDate = date(2026, 8, 20), endDate = null)
-        assertEquals(AiringState("Airing", "Since 20 Aug 2026"), airing.airingState(today))
+        assertEquals("Airing" to "Since 20 Aug 2026", airing.airingState(context, today)?.let { it.label to it.value })
         // An end still to come is airing too.
-        assertEquals("Airing", airing.copy(endDate = date(2026, 12)).airingState(today)?.label)
+        assertEquals("Airing", airing.copy(endDate = date(2026, 12)).airingState(context, today)?.label)
         val upcoming = entry.copy(startDate = date(2027, 1), endDate = null)
-        assertEquals(AiringState("Airs", "From Jan 2027"), upcoming.airingState(today))
-        assertNull(entry.copy(startDate = null, endDate = null).airingState(today))
+        assertEquals("Not yet released" to "From Jan 2027", upcoming.airingState(context, today)?.let { it.label to it.value })
+        assertNull(entry.copy(startDate = null, endDate = null).airingState(context, today))
     }
 
     @Test
@@ -81,9 +88,9 @@ class MetadataTest {
             startDate = date(2020, 8, 20),
             endDate = null,
         )
-        assertEquals("Manga · Atelier Hotaru · Airing since 20 Aug 2020", facts.factsLine())
-        assertEquals("Atelier Hotaru · Airing since 20 Aug 2020", facts.copy(source = SourceMaterial.OTHER).factsLine())
-        assertNull(facts.copy(source = null, studio = null, startDate = null).factsLine())
+        assertEquals("Manga · Atelier Hotaru · Airing since 20 Aug 2020", facts.factsLine(context))
+        assertEquals("Atelier Hotaru · Airing since 20 Aug 2020", facts.copy(source = SourceMaterial.OTHER).factsLine(context))
+        assertNull(facts.copy(source = null, studio = null, startDate = null).factsLine(context))
     }
 
     @Test
@@ -101,9 +108,9 @@ class MetadataTest {
     }
 
     @Test
-    fun an_adult_title_says_so_first_in_its_caps_line() {
-        assertEquals("18+ · " + entry.metadataLine, entry.copy(adult = true).capsLine)
-        assertEquals(entry.metadataLine, entry.copy(adult = false).capsLine)
+    fun an_adult_title_says_so_first_in_its_meta_line() {
+        assertEquals("18+ · " + entry.metadataLine(context), entry.copy(adult = true).headlineMeta(context))
+        assertEquals(entry.metadataLine(context), entry.copy(adult = false).headlineMeta(context))
     }
 
     @Test
@@ -124,8 +131,8 @@ class MetadataTest {
         )
         val related = entry.copy(detail = entry.detail!!.copy(relations = relations)).relatedCards()
         assertEquals(listOf(6u, 5u, 4u, 3u, 2u, 7u), related.map { it.id })
-        assertEquals("Side story · Movie · 2025", related[2].cardLine())
-        assertEquals("Related · Special · 2024", related.last().cardLine())
+        assertEquals("Side story · Movie · 2025", related[2].cardLine(context))
+        assertEquals("Related · Special · 2024", related.last().cardLine(context))
     }
 
     @Test
@@ -176,7 +183,7 @@ class MetadataTest {
         ).inOrder()
         assertEquals(
             listOf("Highest rated, Summer 2026", "Most popular, Summer 2026", "Highest rated, 2026", "Most popular, all time"),
-            rankings.map { it.words() },
+            rankings.map { it.words(context) },
         )
     }
 
@@ -185,12 +192,12 @@ class MetadataTest {
         val zone = ZoneId.of("Europe/Copenhagen")
         val now = Instant.parse("2026-10-21T10:00:00Z") // a Wednesday
         fun airs(at: String, twentyFour: Boolean = true) =
-            airsWords(Instant.parse(at), now, zone, twentyFourHour = twentyFour, locale = Locale.UK)
-        assertEquals("today 16:30", airs("2026-10-21T14:30:00Z"))
-        assertEquals("tomorrow 16:30", airs("2026-10-22T14:30:00Z"))
-        assertEquals("Monday 16:30", airs("2026-10-26T15:30:00Z"))
-        assertEquals("29 Oct, 16:30", airs("2026-10-29T15:30:00Z"))
-        assertEquals("today 4:30 pm", airs("2026-10-21T14:30:00Z", twentyFour = false).lowercase(Locale.UK))
+            airsWords(context, Instant.parse(at), now, zone, twentyFourHour = twentyFour, locale = Locale.UK)
+        assertEquals("today at 16:30", airs("2026-10-21T14:30:00Z"))
+        assertEquals("tomorrow at 16:30", airs("2026-10-22T14:30:00Z"))
+        assertEquals("on Monday at 16:30", airs("2026-10-26T15:30:00Z"))
+        assertEquals("on 29 Oct at 16:30", airs("2026-10-29T15:30:00Z"))
+        assertEquals("today at 4:30 pm", airs("2026-10-21T14:30:00Z", twentyFour = false).lowercase(Locale.UK).replace('\u202f', ' '))
     }
 
     @Test
@@ -198,6 +205,14 @@ class MetadataTest {
         assertEquals(
             "A lamplighter walks the night roads. She keeps going.",
             synopsisWithoutSpoilers("A lamplighter walks the night roads. ~!She is the ferryman.!~ She keeps going."),
+        )
+    }
+
+    @Test
+    fun the_synopsis_keeps_the_engines_line_and_paragraph_breaks() {
+        assertEquals(
+            "First line.\nSecond line.\n\nNew paragraph.",
+            synopsisWithoutSpoilers("First line. \nSecond  line.\n\n\n~!Hidden.!~New paragraph. "),
         )
     }
 }
