@@ -51,6 +51,17 @@ sealed class Ctx
                 });
             return null;
         }
+        // A discussion's shots: the fixture engine has no AniList forum, so the pane is answered with the invented thread.
+        if (command is Command.OpenDiscussion opening && Discussion.DiscussionShowcase.Is(Options.Show))
+        {
+            Window.DispatcherQueue.TryEnqueue(() =>
+            {
+                var events = new Event[] { new Event.Discussion(Discussion.DiscussionShowcase.View(Options.Show!, opening.Media, opening.Episode)) };
+                Session.Known.Take(events[0]);
+                Heard(events);
+            });
+            return null;
+        }
         // A showcase has no store to ask: the invite preview is the one it invented.
         if (Options.Showcase && command is Command.PreviewStore preview)
         {
