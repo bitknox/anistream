@@ -1760,6 +1760,18 @@ public enum L {
     /// Confirm button of the folder picker for the downloads folder.
     public static var settingsFolderChoose: String { string("settings-folder-choose", fallback: "Choose") }
 
+    /// Settings row: when a title's trailer plays by itself, muted, in place of its banner.
+    public static var settingsTrailersRow: String { string("settings-trailers-row", fallback: "Play trailers") }
+
+    /// Value of the Play trailers setting: trailers play by themselves on any network.
+    public static var settingsTrailersAlways: String { string("settings-trailers-always", fallback: "Always") }
+
+    /// Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
+    public static var settingsTrailersWifiOnly: String { string("settings-trailers-wifi-only", fallback: "Wi-Fi only") }
+
+    /// Note under the Play trailers setting: what the trailers are and when they do not play.
+    public static var settingsTrailersNoteApple: String { string("settings-trailers-note-apple", fallback: "Trailers play muted from YouTube, which sees your IP address. They don't play in Low Data Mode, with Reduce Motion on or in Low Power Mode.") }
+
     /// Mac menu bar item that opens Settings.
     public static var menuSettings: String { string("menu-settings", fallback: "Settings…") }
 
@@ -2192,6 +2204,14 @@ public enum L {
 
     /// Option of the episode list's filter that shows the episodes not yet watched.
     public static var titleEpisodesUnwatched: String { string("title-episodes-unwatched", fallback: "Unwatched") }
+
+    /// Heading in the trailer window or sheet when the video did not start within a few seconds or the player refused it.
+    public static var trailerFailedApple: String { string("trailer-failed-apple", fallback: "Couldn't open the trailer") }
+
+    /// Title of the Play trailer window on the Mac and of its sheet on iPhone and iPad.
+    public static func trailerWindowTitleApple(title: String) -> String {
+        Self.format("trailer-window-title-apple", fallback: "%1$@ · Trailer", title)
+    }
 
     /// Status line while the update is being fetched ahead of the download.
     public static var updatesPreparing: String { string("updates-preparing", fallback: "Preparing the update") }

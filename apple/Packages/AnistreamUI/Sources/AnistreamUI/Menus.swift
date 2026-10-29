@@ -69,9 +69,7 @@ struct TitleMoreItems: View {
             store.party.open(.episode(id: entry.id, episode: String(action.episode)))
         }
         .disabled(!action.playable || store.titles.unlisted(entry.id))
-        Button(L.titlePlayTrailer) {
-            if let trailer = entry.trailerUrl { store.send(.playTrailer(url: trailer, title: entry.title)) }
-        }
+        Button(L.titlePlayTrailer) { navigator.playTrailer(entry, store: store) }
         .disabled(entry.trailerUrl == nil)
         Button(L.titleOpenAnilist) { store.openOnAniList(entry.id) }
         #if os(macOS)

@@ -236,8 +236,8 @@ for shot in "${shots[@]}"; do
     sleep 0.5
   done
   (( ready )) || echo "shots.sh: the app did not say it was ready; taking the shot anyway" >&2
-  # The art's and the preview's fade-ins.
-  sleep 0.5
+  # The art's and the preview's fade-ins, and ANISTREAM_SHOT_WAIT seconds more for a trailer.
+  sleep "$(echo "0.5 + ${ANISTREAM_SHOT_WAIT:-0}" | bc)"
   xcrun simctl io "$udid" screenshot --type=png "$out/$prefix-$(name "$shot").png" >/dev/null
   echo "shots.sh: wrote $out/$prefix-$(name "$shot").png"
   xcrun simctl terminate "$udid" tv.anistream.fixtures 2>/dev/null || true

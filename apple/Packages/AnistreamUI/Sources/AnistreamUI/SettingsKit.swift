@@ -220,6 +220,7 @@ extension SettingKey {
     var title: String {
         switch self {
         case .titles: L.settingsTitleLanguage
+        case .trailers: L.settingsTrailersRow
         case .adultTitles: L.settingsAdult
         case .upNextCountdown: L.settingsUpNextCountdown
         case .spoilerProtection: L.settingsSpoiler
@@ -303,6 +304,8 @@ extension SettingKey {
         case (.theme, "adaptive"): return L.settingsOptionAdaptive
         case (.theme, "immersive"): return L.settingsOptionImmersive
         case (.titles, "AniList's choice"): return L.settingsTitleTracker(tracker: AccountsModel.name("anilist"))
+        case (.trailers, "always"): return L.settingsTrailersAlways
+        case (.trailers, "Wi-Fi only"): return L.settingsTrailersWifiOnly
         case (.titles, "English"): return L.settingsTitleEnglish
         case (.titles, "Romaji"): return L.settingsTitleRomaji
         case (.playerUi, "your mpv setup"): return L.settingsOptionMpv

@@ -43,6 +43,19 @@ struct AnistreamApp: App {
                 PictureInPictureMenuItem(model: delegate.player)
             }
         }
+        // Play trailer: the trailer watched properly, in a window of its own.
+        WindowGroup(L.titlePlayTrailer, id: TrailerRequest.windowId, for: TrailerRequest.self) { $request in
+            if let request {
+                TrailerWindowView(request: request)
+                    .environment(delegate.store)
+                    .preferredColorScheme(.dark)
+                    .frame(minWidth: 480, minHeight: 270)
+            }
+        }
+        .defaultSize(width: 960, height: 540)
+        .windowResizability(.contentMinSize)
+        .restorationBehavior(.disabled)
+        .defaultLaunchBehavior(.suppressed)
         #else
         WindowGroup {
             content

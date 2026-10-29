@@ -288,6 +288,7 @@ struct PhoneGeneralPage: View {
         PhoneList {
             Section {
                 PhoneTitleLanguageRow()
+                PhoneSettingPicker(key: .trailers, note: L.settingsTrailersNoteApple)
                 PhoneSettingSwitch(key: .adultTitles, note: L.settingsAdultDetail(tracker: AccountsModel.name("anilist")))
             } header: {
                 PhoneSectionHeader(L.settingsGroupTitles)

@@ -80,6 +80,13 @@ extension AppStore {
         showSettings.sheets[id]?.source
     }
 
+    /// Whether `entry`'s trailer may start by itself on its page: the engine allows trailers now,
+    /// the player plays this one (YouTube's), and the spoiler rule does not hold it back.
+    public func trailerMayAutoplay(_ entry: Entry) -> Bool {
+        guard trailersMayAutoplay, let trailer = entry.trailer, trailerEmbeddable(trailer: trailer) else { return false }
+        return AnistreamKit.trailerMayAutoplay(entry: entry, spoilerProtection: spoilerProtection(for: entry.id))
+    }
+
     /// Whether `id`'s unwatched stills are blurred: as the show sets it, else as Settings does.
     public func spoilerProtection(for id: AnilistId) -> Bool {
         if let row = showSettings.row(.spoilerProtection, of: id) { return row.value == "on" }
