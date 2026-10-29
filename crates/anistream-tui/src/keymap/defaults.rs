@@ -65,6 +65,11 @@ impl Keymap {
             bind(Binding::plain(Right), A::Right);
             bind(Binding::plain(Char('g')), A::Top);
             bind(Binding::plain(Char('G')), A::Bottom);
+            // The calendar's own: `T` for today, and the braces step by day the way they step by
+            // paragraph in a text.
+            bind(Binding::plain(Char('T')), A::Today);
+            bind(Binding::plain(Char('{')), A::PreviousDay);
+            bind(Binding::plain(Char('}')), A::NextDay);
             bind(Binding::ctrl(Char('u')), A::PageUp);
             bind(Binding::ctrl(Char('d')), A::PageDown);
 
@@ -159,6 +164,9 @@ mod tests {
             ('j', Action::Down),
             ('G', Action::Bottom),
             ('g', Action::Top),
+            ('T', Action::Today),
+            ('{', Action::PreviousDay),
+            ('}', Action::NextDay),
             ('s', Action::ShowSources),
             ('K', Action::RaiseSource),
             ('J', Action::LowerSource),

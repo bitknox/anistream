@@ -465,6 +465,9 @@ pub struct MetaConfig {
     /// Load the images in discussion comments inline. Off, each is a line that opens it in the
     /// browser, and the app asks nothing of the hosts people post images on.
     pub discussion_images: bool,
+    /// Calendar shows only the shows on the person's list. Off, it opens on everything airing;
+    /// the choice is remembered.
+    pub calendar_mine: bool,
 }
 
 impl Default for MetaConfig {
@@ -475,6 +478,7 @@ impl Default for MetaConfig {
             adult: false,
             discussions: true,
             discussion_images: false,
+            calendar_mine: false,
         }
     }
 }
