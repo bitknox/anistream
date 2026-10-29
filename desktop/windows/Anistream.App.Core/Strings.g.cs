@@ -732,6 +732,24 @@ public static partial class T
     /// <summary>Download dialog: the note under the range.</summary>
     public static string DownloadRangeQualityNote => Get("DownloadRangeQualityNote");
 
+    /// <summary>Menu item that copies a comment's text.</summary>
+    public static string DiscussionCopyText => Get("DiscussionCopyText");
+
+    /// <summary>Age of a comment that was sent and is not yet confirmed.</summary>
+    public static string DiscussionSending => Get("DiscussionSending");
+
+    /// <summary>Line above the field while the viewer edits their own comment.</summary>
+    public static string DiscussionEditing => Get("DiscussionEditing");
+
+    /// <summary>Accessible name of the button that opens a comment's menu.</summary>
+    public static string DiscussionCommentMenu => Get("DiscussionCommentMenu");
+
+    /// <summary>Accessible name of the discussion pane.</summary>
+    public static string DiscussionPaneLabel(long episode) => Fill(Get("DiscussionPaneLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>After the author's name on a reply to a reply, naming who it answers.</summary>
+    public static string DiscussionAnswering(string name) => Fill(Get("DiscussionAnswering"), ("name", name));
+
     /// <summary>An episode's line in the player's title bar and in the system media controls: the episode's label (already "Episode 10" or "Episode 10 · Dubbed"), then the episode's own title.</summary>
     public static string PlayerEpisodeLineTitled(string line, string title) => Fill(Get("PlayerEpisodeLineTitled"), ("line", line), ("title", title));
 
@@ -833,6 +851,12 @@ public static partial class T
 
     /// <summary>Setting: a notification when a new episode of a followed show comes out.</summary>
     public static string SettingsEpisodeNotifications => Get("SettingsEpisodeNotifications");
+
+    /// <summary>Setting: whether an episode's AniList forum thread is looked up and opened in the app.</summary>
+    public static string SettingsEpisodeDiscussions => Get("SettingsEpisodeDiscussions");
+
+    /// <summary>Setting: whether images in discussion comments load inline.</summary>
+    public static string SettingsCommentImages => Get("SettingsCommentImages");
 
     /// <summary>Setting: the switch that turns torrents on.</summary>
     public static string SettingsTorrentSource => Get("SettingsTorrentSource");
@@ -5204,6 +5228,12 @@ public static partial class T
         ["DownloadRangeFrom"] = "From",
         ["DownloadRangeTo"] = "To",
         ["DownloadRangeQualityNote"] = "Downloads use the quality in Settings › Downloads.",
+        ["DiscussionCopyText"] = "Copy text",
+        ["DiscussionSending"] = "Sending",
+        ["DiscussionEditing"] = "Editing your comment",
+        ["DiscussionCommentMenu"] = "More for this comment",
+        ["DiscussionPaneLabel"] = "Episode {episode} discussion",
+        ["DiscussionAnswering"] = "to {name}",
         ["PlayerEpisodeLineTitled"] = "{line} · {title}",
         ["PlayerEpisodeFraction"] = "Episode {number}",
         ["PlayerStartingFraction"] = "Starting episode {number}",
@@ -5238,6 +5268,8 @@ public static partial class T
         ["SettingsDownloadsCellular"] = "Downloads on cellular",
         ["SettingsMpvOptions"] = "mpv options",
         ["SettingsEpisodeNotifications"] = "New episode notifications",
+        ["SettingsEpisodeDiscussions"] = "Episode discussions",
+        ["SettingsCommentImages"] = "Load images in comments",
         ["SettingsTorrentSource"] = "Torrent source",
         ["SettingsThemeAdaptive"] = "Adaptive",
         ["SettingsThemeImmersive"] = "Immersive",

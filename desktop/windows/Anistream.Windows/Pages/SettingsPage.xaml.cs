@@ -65,6 +65,7 @@ public sealed partial class SettingsPage : Page
         new("integrations", "",
         [
             ("discord", [K.Presence, K.PresenceTitle, K.PresenceRich]),
+            ("discussions", [K.EpisodeDiscussions, K.CommentImages]),
             ("updates", [K.UpdateCheck]),
         ]),
         new("advanced", "", [("mpv", [K.MpvOptions])]),
@@ -84,6 +85,7 @@ public sealed partial class SettingsPage : Page
         "torrents" => T.TorrentsTitle,
         "seeding" => T.DownloadsSeedingTitle,
         "discord" => T.SettingsDiscord,
+        "discussions" => T.DiscussionSettingsGroup,
         "updates" => T.UpdatesTitle,
         _ => T.SettingsGroupMpv,
     };
@@ -135,6 +137,8 @@ public sealed partial class SettingsPage : Page
         K.VpnOnFailure => T.TorrentsIfCheckFails,
         K.AdultTitles => T.SettingsAdult,
         K.EpisodeNotifications => T.SettingsEpisodeNotifications,
+        K.EpisodeDiscussions => T.SettingsEpisodeDiscussions,
+        K.CommentImages => T.SettingsCommentImages,
         _ => T.SettingsMpvOptions,
     };
 
