@@ -7475,12 +7475,37 @@ pub fn media_aired_on(date: &str) -> String {
     text("media-aired-on", &[("date", Arg::Text(date))])
 }
 
-/// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
+/// Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.
+pub fn media_hiatus_since(date: &str) -> String {
+    text("media-hiatus-since", &[("date", Arg::Text(date))])
+}
+
+/// Date line of a show that was cancelled: the last episode that aired.
+pub fn media_cancelled_after(episode: i64) -> String {
+    text("media-cancelled-after", &[("episode", Arg::Int(episode))])
+}
+
+/// Heading of the list of official services that stream a show, in the sheet of more about it.
+pub fn media_streaming_on() -> String {
+    text("media-streaming-on", &[])
+}
+
+/// Note under the list of official services: AniList's links are not checked against where the viewer is.
+pub fn media_streaming_region_note() -> String {
+    text("media-streaming-region-note", &[])
+}
+
+/// Note beside a link to an official service whose page is in another language, such as "Site in Japanese".
+pub fn media_link_language(language: &str) -> String {
+    text("media-link-language", &[("language", Arg::Text(language))])
+}
+
+/// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
 pub fn film_length_hours_minutes(hours: i64, minutes: i64) -> String {
     text("film-length-hours-minutes", &[("hours", Arg::Int(hours)), ("minutes", Arg::Int(minutes))])
 }
 
-/// Length of a film or a single episode that is a whole number of hours, such as "2 h".
+/// Length of a film or a single episode that is a whole number of hours, such as "2 hr".
 pub fn film_length_hours(hours: i64) -> String {
     text("film-length-hours", &[("hours", Arg::Int(hours))])
 }

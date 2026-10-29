@@ -1145,6 +1145,7 @@ fn episode(number: u32, title: &str) -> EpisodeRow {
         metadata_only: false,
         source: None,
         unsourced: false,
+        past_progress: false,
     }
 }
 
@@ -2006,6 +2007,7 @@ fn episodes_from_anilist(s: &mut Screen) {
                 metadata_only: true,
                 source: None,
                 unsourced: false,
+                past_progress: false,
                 ..episode(n, &format!("Letter No. {n}"))
             };
             match n {

@@ -2151,10 +2151,25 @@ public static partial class T
     /// <summary>Date line of a show that has finished and ran on one day, such as a film.</summary>
     public static string MediaAiredOn(string date) => Fill(Get("MediaAiredOn"), ("date", date));
 
-    /// <summary>Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".</summary>
+    /// <summary>Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.</summary>
+    public static string MediaHiatusSince(string date) => Fill(Get("MediaHiatusSince"), ("date", date));
+
+    /// <summary>Date line of a show that was cancelled: the last episode that aired.</summary>
+    public static string MediaCancelledAfter(long episode) => Fill(Get("MediaCancelledAfter"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Heading of the list of official services that stream a show, in the sheet of more about it.</summary>
+    public static string MediaStreamingOn => Get("MediaStreamingOn");
+
+    /// <summary>Note under the list of official services: AniList's links are not checked against where the viewer is.</summary>
+    public static string MediaStreamingRegionNote => Get("MediaStreamingRegionNote");
+
+    /// <summary>Note beside a link to an official service whose page is in another language, such as "Site in Japanese".</summary>
+    public static string MediaLinkLanguage(string language) => Fill(Get("MediaLinkLanguage"), ("language", language));
+
+    /// <summary>Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".</summary>
     public static string FilmLengthHoursMinutes(long hours, long minutes) => Fill(Get("FilmLengthHoursMinutes"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
-    /// <summary>Length of a film or a single episode that is a whole number of hours, such as "2 h".</summary>
+    /// <summary>Length of a film or a single episode that is a whole number of hours, such as "2 hr".</summary>
     public static string FilmLengthHours(long hours) => Fill(Get("FilmLengthHours"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
     /// <summary>Length of a film or a single episode under an hour, such as "46 min".</summary>
@@ -5703,8 +5718,13 @@ public static partial class T
         ["MediaAiringFrom"] = "From {date}",
         ["MediaAiredRange"] = "Aired {from} to {to}",
         ["MediaAiredOn"] = "Aired {date}",
-        ["FilmLengthHoursMinutes"] = "{hours} h {minutes} min",
-        ["FilmLengthHours"] = "{hours} h",
+        ["MediaHiatusSince"] = "On hiatus since {date}",
+        ["MediaCancelledAfter"] = "Cancelled after episode {episode}",
+        ["MediaStreamingOn"] = "Streaming on",
+        ["MediaStreamingRegionNote"] = "Availability depends on your region.",
+        ["MediaLinkLanguage"] = "Site in {language}",
+        ["FilmLengthHoursMinutes"] = "{hours} hr {minutes} min",
+        ["FilmLengthHours"] = "{hours} hr",
         ["FilmLengthMinutes"] = "{minutes} min",
         ["CountryJapan"] = "Japan",
         ["CountryChina"] = "China",

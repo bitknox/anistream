@@ -934,6 +934,7 @@ mod tests {
             metadata_only: false,
             source: None,
             unsourced: false,
+            past_progress: false,
         };
         assert_eq!(crossed(row.clone()), row);
         let dub = DubExtent { through: 6, complete: false };

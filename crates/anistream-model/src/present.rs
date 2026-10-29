@@ -232,7 +232,7 @@ pub fn season_wire(season: Season) -> &'static str {
 }
 
 /// The calendar date of a Unix time, in UTC: (year, month, day).
-fn civil(unix: i64) -> (i32, u32, u32) {
+pub fn civil(unix: i64) -> (i32, u32, u32) {
     // Howard Hinnant's days-to-civil.
     let z = unix.div_euclid(86_400) + 719_468;
     let era = z.div_euclid(146_097);
@@ -276,8 +276,10 @@ pub fn airing_line(entry: &Entry, date: impl Fn(FuzzyDate) -> String) -> Option<
         AiringFact::Finished { from: None, to: None } => t::media_status_aired(),
         AiringFact::NotYetReleased { from: Some(d) } => t::media_airing_from(&date(d)),
         AiringFact::NotYetReleased { from: None } => t::media_status_upcoming(),
-        AiringFact::Hiatus => t::media_status_hiatus(),
-        AiringFact::Cancelled => t::media_status_cancelled(),
+        AiringFact::Hiatus { since: Some(d) } => t::media_hiatus_since(&date(d)),
+        AiringFact::Hiatus { since: None } => t::media_status_hiatus(),
+        AiringFact::Cancelled { after_episode: Some(n) } => t::media_cancelled_after(n.into()),
+        AiringFact::Cancelled { after_episode: None } => t::media_status_cancelled(),
     })
 }
 

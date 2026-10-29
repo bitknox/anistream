@@ -927,6 +927,7 @@ mod tests {
             metadata_only,
             source: None,
             unsourced: false,
+            past_progress: false,
         };
         Event::Episodes { id, rows: (1..=12).map(row).collect() }
     }

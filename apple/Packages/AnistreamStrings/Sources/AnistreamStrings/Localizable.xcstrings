@@ -4232,25 +4232,25 @@
       }
     },
     "film-length-hours" : {
-      "comment" : "Length of a film or a single episode that is a whole number of hours, such as \"2 h\". Argument 1: hours (Int).",
+      "comment" : "Length of a film or a single episode that is a whole number of hours, such as \"2 hr\". Argument 1: hours (Int).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld h"
+            "value" : "%1$lld hr"
           }
         }
       }
     },
     "film-length-hours-minutes" : {
-      "comment" : "Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as \"1 h 52 min\". Argument 1: hours (Int). Argument 2: minutes (Int).",
+      "comment" : "Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as \"1 hr 52 min\". Argument 1: hours (Int). Argument 2: minutes (Int).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld h %2$lld min"
+            "value" : "%1$lld hr %2$lld min"
           }
         }
       }
@@ -5659,6 +5659,42 @@
         }
       }
     },
+    "media-cancelled-after" : {
+      "comment" : "Date line of a show that was cancelled: the last episode that aired. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelled after episode %1$lld"
+          }
+        }
+      }
+    },
+    "media-hiatus-since" : {
+      "comment" : "Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year. Argument 1: date (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On hiatus since %1$@"
+          }
+        }
+      }
+    },
+    "media-link-language" : {
+      "comment" : "Note beside a link to an official service whose page is in another language, such as \"Site in Japanese\". Argument 1: language (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Site in %1$@"
+          }
+        }
+      }
+    },
     "media-made-elsewhere" : {
       "comment" : "Fact on a show made outside Japan, for a country this app has no name for.",
       "extractionState" : "manual",
@@ -5739,6 +5775,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not yet released"
+          }
+        }
+      }
+    },
+    "media-streaming-on" : {
+      "comment" : "Heading of the list of official services that stream a show, in the sheet of more about it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaming on"
+          }
+        }
+      }
+    },
+    "media-streaming-region-note" : {
+      "comment" : "Note under the list of official services: AniList's links are not checked against where the viewer is.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Availability depends on your region."
           }
         }
       }

@@ -4690,11 +4690,26 @@ media-aired-range = Aired { $from } to { $to }
 # Date line of a show that has finished and ran on one day, such as a film.
 media-aired-on = Aired { $date }
 
-# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
-film-length-hours-minutes = { $hours } h { $minutes } min
+# Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.
+media-hiatus-since = On hiatus since { $date }
 
-# Length of a film or a single episode that is a whole number of hours, such as "2 h".
-film-length-hours = { $hours } h
+# Date line of a show that was cancelled: the last episode that aired.
+media-cancelled-after = Cancelled after episode { $episode }
+
+# Heading of the list of official services that stream a show, in the sheet of more about it.
+media-streaming-on = Streaming on
+
+# Note under the list of official services: AniList's links are not checked against where the viewer is.
+media-streaming-region-note = Availability depends on your region.
+
+# Note beside a link to an official service whose page is in another language, such as "Site in Japanese".
+media-link-language = Site in { $language }
+
+# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+film-length-hours-minutes = { $hours } hr { $minutes } min
+
+# Length of a film or a single episode that is a whole number of hours, such as "2 hr".
+film-length-hours = { $hours } hr
 
 # Length of a film or a single episode under an hour, such as "46 min".
 film-length-minutes = { $minutes } min

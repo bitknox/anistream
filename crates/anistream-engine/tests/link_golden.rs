@@ -533,6 +533,7 @@ async fn the_viewers_controls_tell_the_player_what_the_golden_says() {
                 metadata_only: false,
                 source: None,
                 unsourced: false,
+                past_progress: false,
             })
             .collect();
         for command in [

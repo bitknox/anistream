@@ -87,7 +87,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
         source: media.source.map(source_material),
         adult: media.is_adult.unwrap_or(false),
         status,
-        airing: status.map(|status| airing_fact(status, start_date, end_date)),
+        airing: status.map(|status| airing_fact(status, start_date, end_date, media)),
         duration: media.duration.filter(|m| *m > 0),
         film_length: film_length(media),
         country: media.country_of_origin.clone().filter(|c| !c.is_empty()),
@@ -292,15 +292,26 @@ fn decided_status(media: &Media, end_date: Option<FuzzyDate>) -> Option<AiringSt
 }
 
 /// What the page says of a run. Hiatus and cancelled stand on their own: whatever the dates say,
-/// neither is airing. A title that began and ended on one day (a film) has one date.
+/// neither is airing, and each says where the run stopped when the broadcasts are known. A title that began and ended on one day (a film) has one date.
 fn airing_fact(
     status: AiringStatus,
     start: Option<FuzzyDate>,
     end: Option<FuzzyDate>,
+    media: &Media,
 ) -> AiringFact {
+    // The newest broadcast the page has (the detail fetch's, newest first). The break and the
+    // cancellation have no date of their own on AniList: this is the nearest thing.
+    let last = media.aired.iter().max_by_key(|b| b.airing_at);
     match status {
-        AiringStatus::Hiatus => AiringFact::Hiatus,
-        AiringStatus::Cancelled => AiringFact::Cancelled,
+        AiringStatus::Hiatus => AiringFact::Hiatus {
+            since: last.map(|b| {
+                let (year, month, _) = anistream_model::present::civil(b.airing_at);
+                FuzzyDate { year: year as u16, month: Some(month as u8), day: None }
+            }),
+        },
+        AiringStatus::Cancelled => {
+            AiringFact::Cancelled { after_episode: last.map(|b| b.episode) }
+        }
         AiringStatus::Releasing => AiringFact::Airing { since: start },
         AiringStatus::NotYetReleased => AiringFact::NotYetReleased { from: start },
         AiringStatus::Finished => {
@@ -865,6 +876,28 @@ pub fn episode_rows(
     episode_rows_with_filler(episodes, store, anilist_id, None)
 }
 
+/// Mark the episodes the viewer has not reached ([`EpisodeRow::past_progress`]): numbered past
+/// both the tracker's progress and the furthest episode finished here, and not finished
+/// themselves.
+pub fn mark_past_progress(
+    rows: &mut [EpisodeRow],
+    store: &Store,
+    id: anistream_core::ids::AnilistId,
+) {
+    let tracked = store.tracker_progress(id).unwrap_or_default();
+    let finished = rows
+        .iter()
+        .filter(|row| row.completed)
+        .filter_map(|row| row.number.parse::<u32>().ok())
+        .max()
+        .unwrap_or_default();
+    let reached = tracked.max(finished);
+    for row in rows {
+        row.past_progress =
+            !row.completed && row.number.parse::<u32>().is_ok_and(|n| n > reached);
+    }
+}
+
 /// The episodes AniList's own data says a title has out, by number, for a table no source
 /// lists: see [`EpisodeRow::metadata_only`]. Only what it says, never a guess:
 ///
@@ -993,6 +1026,7 @@ pub fn episode_rows_with_filler(
                 metadata_only: false,
                 source: None,
                 unsourced: false,
+                past_progress: false,
             }
         })
         .collect()
@@ -1244,10 +1278,18 @@ mod tests {
         );
         // Hiatus and cancelled hold whatever dates come with them: a show on hiatus has begun and
         // not ended, which is what read as airing; a cancelled one may have no end at all.
-        assert_eq!(fact("HIATUS", None).1, Some(AiringFact::Hiatus));
-        assert_eq!(fact("CANCELLED", None).1, Some(AiringFact::Cancelled));
-        assert_eq!(fact("CANCELLED", Some(&ended)).1, Some(AiringFact::Cancelled));
-        for stopped in [AiringFact::Hiatus, AiringFact::Cancelled] {
+        assert_eq!(fact("HIATUS", None).1, Some(AiringFact::Hiatus { since: None }));
+        assert_eq!(
+            fact("CANCELLED", None).1,
+            Some(AiringFact::Cancelled { after_episode: None })
+        );
+        assert_eq!(
+            fact("CANCELLED", Some(&ended)).1,
+            Some(AiringFact::Cancelled { after_episode: None })
+        );
+        for stopped in
+            [AiringFact::Hiatus { since: None }, AiringFact::Cancelled { after_episode: None }]
+        {
             assert!(!stopped.is_airing());
         }
         assert!(AiringFact::Airing { since: None }.is_airing());
@@ -1311,6 +1353,21 @@ mod tests {
             Some("Aired 4/4/2026 to 20/6/2026")
         );
         assert_eq!(line(serde_json::json!({"status": "FINISHED"})).as_deref(), Some("Aired"));
+        // Where the run stopped, from the last broadcast the page has. 1_772_000_000 is in
+        // February 2026 UTC; 1_774_000_000 in March.
+        let broadcasts = serde_json::json!([
+            {"episode": 9, "airingAt": 1_774_000_000},
+            {"episode": 8, "airingAt": 1_772_000_000},
+        ]);
+        let stopped = |status: &str| {
+            let mut media = title_with(serde_json::json!({"status": status}));
+            media.aired = serde_json::from_value(broadcasts.clone()).unwrap();
+            present::airing_line(&entry_from(&media, None), |d| {
+                format!("{}-{}", d.year, d.month.unwrap())
+            })
+        };
+        assert_eq!(stopped("HIATUS").as_deref(), Some("On hiatus since 2026-3"));
+        assert_eq!(stopped("CANCELLED").as_deref(), Some("Cancelled after episode 9"));
         assert_eq!(
             line(serde_json::json!({"status": "NOT_YET_RELEASED"})).as_deref(),
             Some("Not yet released")
@@ -1326,9 +1383,9 @@ mod tests {
         let film = |minutes: u32| serde_json::json!({"format": "MOVIE", "duration": minutes});
         assert_eq!(
             length(film(112)),
-            (Some(112), Some(RunLength { hours: 1, minutes: 52 }), Some("1 h 52 min".into()))
+            (Some(112), Some(RunLength { hours: 1, minutes: 52 }), Some("1 hr 52 min".into()))
         );
-        assert_eq!(length(film(120)).2.as_deref(), Some("2 h"));
+        assert_eq!(length(film(120)).2.as_deref(), Some("2 hr"));
         assert_eq!(length(film(46)).2.as_deref(), Some("46 min"));
         assert_eq!(length(film(0)), (None, None, None), "no length is not zero minutes");
         assert_eq!(length(serde_json::json!({"format": "MOVIE"})).1, None);
@@ -1349,7 +1406,7 @@ mod tests {
             })),
             None,
         ));
-        assert_eq!(line, "Movie · 2025 · 1 h 52 min · 82%");
+        assert_eq!(line, "Movie · 2025 · 1 hr 52 min · 82%");
     }
 
     #[test]
@@ -1459,6 +1516,47 @@ mod tests {
             "a rewatch is watching, and no score is none"
         );
         assert_eq!((following[2].status, following[2].avatar_url.clone()), (None, None));
+    }
+
+    #[test]
+    fn episodes_past_the_viewers_progress_are_marked() {
+        let store = Store::open_in_memory().unwrap();
+        let id = AnilistId::new(7);
+        let row = |number: &str, completed: bool| EpisodeRow {
+            number: number.into(),
+            title: None,
+            thumbnail: None,
+            description: Some("A summary.".into()),
+            duration_secs: None,
+            watched: 0.0,
+            completed,
+            kind: None,
+            skippable: false,
+            airs_at: None,
+            delayed_from: None,
+            metadata_only: false,
+            source: None,
+            unsourced: false,
+            past_progress: false,
+        };
+        let mut rows =
+            vec![row("1", true), row("2", false), row("3", false), row("OVA", false)];
+        mark_past_progress(&mut rows, &store, id);
+        let marks: Vec<_> = rows.iter().map(|r| r.past_progress).collect();
+        assert_eq!(
+            marks,
+            [false, true, true, false],
+            "finished here: 1; the OVA has no number"
+        );
+
+        store.adopt_progress(id, 2, 1).unwrap();
+        mark_past_progress(&mut rows, &store, id);
+        let marks: Vec<_> = rows.iter().map(|r| r.past_progress).collect();
+        assert_eq!(
+            marks,
+            [false, false, true, false],
+            "progress adopted from the tracker counts too"
+        );
     }
 
     #[test]
@@ -1648,6 +1746,7 @@ mod tests {
                 metadata_only: false,
                 source: None,
                 unsourced: false,
+                past_progress: false,
             })
             .collect();
         date_episodes(&mut rows, &[(1, 100), (2, 200)].into_iter().collect());

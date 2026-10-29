@@ -2991,13 +2991,33 @@
     <value>[Åîŕéð {date}~~~]</value>
     <comment>Date line of a show that has finished and ran on one day, such as a film.</comment>
   </data>
+  <data name="MediaHiatusSince" xml:space="preserve">
+    <value>[Öñ ĥîàţüš šîñçé {date}~~~~~~]</value>
+    <comment>Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.</comment>
+  </data>
+  <data name="MediaCancelledAfter" xml:space="preserve">
+    <value>[Çàñçéļļéð àƒţéŕ éþîšöðé {episode}~~~~~~~~~]</value>
+    <comment>Date line of a show that was cancelled: the last episode that aired.</comment>
+  </data>
+  <data name="MediaStreamingOn" xml:space="preserve">
+    <value>[Šţŕéàɱîñĝ öñ~~~~]</value>
+    <comment>Heading of the list of official services that stream a show, in the sheet of more about it.</comment>
+  </data>
+  <data name="MediaStreamingRegionNote" xml:space="preserve">
+    <value>[Åṽàîļàƀîļîţý ðéþéñðš öñ ýöüŕ ŕéĝîöñ.~~~~~~~~~~~]</value>
+    <comment>Note under the list of official services: AniList's links are not checked against where the viewer is.</comment>
+  </data>
+  <data name="MediaLinkLanguage" xml:space="preserve">
+    <value>[Šîţé îñ {language}~~~~]</value>
+    <comment>Note beside a link to an official service whose page is in another language, such as "Site in Japanese".</comment>
+  </data>
   <data name="FilmLengthHoursMinutes" xml:space="preserve">
-    <value>[{hours} ĥ {minutes} ɱîñ~~~~]</value>
-    <comment>Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".</comment>
+    <value>[{hours} ĥŕ {minutes} ɱîñ~~~~~]</value>
+    <comment>Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".</comment>
   </data>
   <data name="FilmLengthHours" xml:space="preserve">
-    <value>[{hours} ĥ~~]</value>
-    <comment>Length of a film or a single episode that is a whole number of hours, such as "2 h".</comment>
+    <value>[{hours} ĥŕ~~]</value>
+    <comment>Length of a film or a single episode that is a whole number of hours, such as "2 hr".</comment>
   </data>
   <data name="FilmLengthMinutes" xml:space="preserve">
     <value>[{minutes} ɱîñ~~~]</value>

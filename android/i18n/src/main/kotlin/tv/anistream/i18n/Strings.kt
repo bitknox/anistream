@@ -2093,11 +2093,31 @@ object Strings {
     fun mediaAiredOn(context: Context, date: String): String =
         context.getString(R.string.media_aired_on, date)
 
-    /** Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min". */
+    /** Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year. */
+    fun mediaHiatusSince(context: Context, date: String): String =
+        context.getString(R.string.media_hiatus_since, date)
+
+    /** Date line of a show that was cancelled: the last episode that aired. */
+    fun mediaCancelledAfter(context: Context, episode: Int): String =
+        context.getString(R.string.media_cancelled_after, episode)
+
+    /** Heading of the list of official services that stream a show, in the sheet of more about it. */
+    fun mediaStreamingOn(context: Context): String =
+        context.getString(R.string.media_streaming_on)
+
+    /** Note under the list of official services: AniList's links are not checked against where the viewer is. */
+    fun mediaStreamingRegionNote(context: Context): String =
+        context.getString(R.string.media_streaming_region_note)
+
+    /** Note beside a link to an official service whose page is in another language, such as "Site in Japanese". */
+    fun mediaLinkLanguage(context: Context, language: String): String =
+        context.getString(R.string.media_link_language, language)
+
+    /** Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min". */
     fun filmLengthHoursMinutes(context: Context, hours: Int, minutes: Int): String =
         context.getString(R.string.film_length_hours_minutes, hours, minutes)
 
-    /** Length of a film or a single episode that is a whole number of hours, such as "2 h". */
+    /** Length of a film or a single episode that is a whole number of hours, such as "2 hr". */
     fun filmLengthHours(context: Context, hours: Int): String =
         context.getString(R.string.film_length_hours, hours)
 

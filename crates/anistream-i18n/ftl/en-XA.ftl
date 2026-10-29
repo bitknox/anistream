@@ -4690,11 +4690,26 @@ media-aired-range = [Åîŕéð { $from } ţö { $to }~~~~~]
 # Date line of a show that has finished and ran on one day, such as a film.
 media-aired-on = [Åîŕéð { $date }~~~]
 
-# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
-film-length-hours-minutes = [{ $hours } ĥ { $minutes } ɱîñ~~~~]
+# Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.
+media-hiatus-since = [Öñ ĥîàţüš šîñçé { $date }~~~~~~]
 
-# Length of a film or a single episode that is a whole number of hours, such as "2 h".
-film-length-hours = [{ $hours } ĥ~~]
+# Date line of a show that was cancelled: the last episode that aired.
+media-cancelled-after = [Çàñçéļļéð àƒţéŕ éþîšöðé { $episode }~~~~~~~~~]
+
+# Heading of the list of official services that stream a show, in the sheet of more about it.
+media-streaming-on = [Šţŕéàɱîñĝ öñ~~~~]
+
+# Note under the list of official services: AniList's links are not checked against where the viewer is.
+media-streaming-region-note = [Åṽàîļàƀîļîţý ðéþéñðš öñ ýöüŕ ŕéĝîöñ.~~~~~~~~~~~]
+
+# Note beside a link to an official service whose page is in another language, such as "Site in Japanese".
+media-link-language = [Šîţé îñ { $language }~~~~]
+
+# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+film-length-hours-minutes = [{ $hours } ĥŕ { $minutes } ɱîñ~~~~~]
+
+# Length of a film or a single episode that is a whole number of hours, such as "2 hr".
+film-length-hours = [{ $hours } ĥŕ~~]
 
 # Length of a film or a single episode under an hour, such as "46 min".
 film-length-minutes = [{ $minutes } ɱîñ~~~]

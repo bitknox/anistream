@@ -207,6 +207,7 @@ pub(crate) fn dated(
 ) -> Vec<EpisodeRow> {
     data::date_episodes(&mut rows, &numbering.rekey(&media.air_times()));
     data::mark_delays(&mut rows, numbering, store, id, now);
+    data::mark_past_progress(&mut rows, store, id);
     rows
 }
 

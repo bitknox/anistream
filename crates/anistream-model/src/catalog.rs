@@ -413,10 +413,13 @@ pub enum AiringFact {
     Finished { from: Option<FuzzyDate>, to: Option<FuzzyDate> },
     /// Not on air yet. `from` is the announced start, when there is one.
     NotYetReleased { from: Option<FuzzyDate> },
-    /// A break in the run, whatever the dates say.
-    Hiatus,
-    /// Stopped for good, whatever the dates say.
-    Cancelled,
+    /// A break in the run, whatever the dates say. `since` is the month of the last episode that
+    /// aired (year and month, no day): AniList has no date for the break itself. `None` when the
+    /// page has no broadcasts to read it from.
+    Hiatus { since: Option<FuzzyDate> },
+    /// Stopped for good, whatever the dates say. `after_episode` is the last episode that aired,
+    /// when the page has the broadcasts to say.
+    Cancelled { after_episode: Option<u32> },
 }
 
 impl AiringFact {
@@ -427,7 +430,8 @@ impl AiringFact {
 
     /// The id of the catalogue message that words this (`i18n/en/ui-metadata.ftl`). The ones with
     /// dates take them already formatted: `media-airing-since` and `media-airing-from` a `date`,
-    /// `media-aired-on` a `date`, `media-aired-range` a `from` and a `to`.
+    /// `media-aired-on` and `media-hiatus-since` a `date`, `media-aired-range` a `from` and a `to`;
+    /// `media-cancelled-after` an `episode`.
     pub const fn message(self) -> &'static str {
         match self {
             Self::Airing { since: Some(_) } => "media-airing-since",
@@ -438,8 +442,10 @@ impl AiringFact {
             Self::Finished { from: None, to: None } => "media-status-aired",
             Self::NotYetReleased { from: Some(_) } => "media-airing-from",
             Self::NotYetReleased { from: None } => "media-status-upcoming",
-            Self::Hiatus => "media-status-hiatus",
-            Self::Cancelled => "media-status-cancelled",
+            Self::Hiatus { since: Some(_) } => "media-hiatus-since",
+            Self::Hiatus { since: None } => "media-status-hiatus",
+            Self::Cancelled { after_episode: Some(_) } => "media-cancelled-after",
+            Self::Cancelled { after_episode: None } => "media-status-cancelled",
         }
     }
 }

@@ -1988,14 +1988,35 @@ public enum L {
         Self.format("media-aired-on", fallback: "Aired %1$@", date)
     }
 
-    /// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
-    public static func filmLengthHoursMinutes(hours: Int, minutes: Int) -> String {
-        Self.format("film-length-hours-minutes", fallback: "%1$lld h %2$lld min", hours, minutes)
+    /// Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year.
+    public static func mediaHiatusSince(date: String) -> String {
+        Self.format("media-hiatus-since", fallback: "On hiatus since %1$@", date)
     }
 
-    /// Length of a film or a single episode that is a whole number of hours, such as "2 h".
+    /// Date line of a show that was cancelled: the last episode that aired.
+    public static func mediaCancelledAfter(episode: Int) -> String {
+        Self.format("media-cancelled-after", fallback: "Cancelled after episode %1$lld", episode)
+    }
+
+    /// Heading of the list of official services that stream a show, in the sheet of more about it.
+    public static var mediaStreamingOn: String { string("media-streaming-on", fallback: "Streaming on") }
+
+    /// Note under the list of official services: AniList's links are not checked against where the viewer is.
+    public static var mediaStreamingRegionNote: String { string("media-streaming-region-note", fallback: "Availability depends on your region.") }
+
+    /// Note beside a link to an official service whose page is in another language, such as "Site in Japanese".
+    public static func mediaLinkLanguage(language: String) -> String {
+        Self.format("media-link-language", fallback: "Site in %1$@", language)
+    }
+
+    /// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+    public static func filmLengthHoursMinutes(hours: Int, minutes: Int) -> String {
+        Self.format("film-length-hours-minutes", fallback: "%1$lld hr %2$lld min", hours, minutes)
+    }
+
+    /// Length of a film or a single episode that is a whole number of hours, such as "2 hr".
     public static func filmLengthHours(hours: Int) -> String {
-        Self.format("film-length-hours", fallback: "%1$lld h", hours)
+        Self.format("film-length-hours", fallback: "%1$lld hr", hours)
     }
 
     /// Length of a film or a single episode under an hour, such as "46 min".

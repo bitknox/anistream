@@ -1104,10 +1104,20 @@
     <string name="media_aired_range">Aired %1$s to %2$s</string>
     <!-- Date line of a show that has finished and ran on one day, such as a film. -->
     <string name="media_aired_on">Aired %1$s</string>
-    <!-- Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min". -->
-    <string name="film_length_hours_minutes">%1$d h %2$d min</string>
-    <!-- Length of a film or a single episode that is a whole number of hours, such as "2 h". -->
-    <string name="film_length_hours">%1$d h</string>
+    <!-- Date line of a show on a break: the month of the last episode that aired. The date is already worded, as a month and a year. -->
+    <string name="media_hiatus_since">On hiatus since %1$s</string>
+    <!-- Date line of a show that was cancelled: the last episode that aired. -->
+    <string name="media_cancelled_after">Cancelled after episode %1$d</string>
+    <!-- Heading of the list of official services that stream a show, in the sheet of more about it. -->
+    <string name="media_streaming_on">Streaming on</string>
+    <!-- Note under the list of official services: AniList's links are not checked against where the viewer is. -->
+    <string name="media_streaming_region_note">Availability depends on your region.</string>
+    <!-- Note beside a link to an official service whose page is in another language, such as "Site in Japanese". -->
+    <string name="media_link_language">Site in %1$s</string>
+    <!-- Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min". -->
+    <string name="film_length_hours_minutes">%1$d hr %2$d min</string>
+    <!-- Length of a film or a single episode that is a whole number of hours, such as "2 hr". -->
+    <string name="film_length_hours">%1$d hr</string>
     <!-- Length of a film or a single episode under an hour, such as "46 min". -->
     <string name="film_length_minutes">%1$d min</string>
     <!-- Country name, after "Made in". -->
