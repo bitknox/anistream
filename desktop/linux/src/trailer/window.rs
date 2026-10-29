@@ -36,7 +36,8 @@ pub fn play(ctx: &Rc<Ctx>, entry: &Entry) -> bool {
     let dialog = adw::Dialog::builder()
         .title(&entry.title)
         .content_width(960)
-        .content_height(600)
+        // The header bar and a 16:9 content area: 960 by 540 under it.
+        .content_height(540 + 47)
         .build();
     let refused = Rc::new(Cell::new(false));
     let heard = Rc::new(Cell::new(false));
@@ -60,7 +61,7 @@ pub fn play(ctx: &Rc<Ctx>, entry: &Entry) -> bool {
         let heard = Rc::clone(&heard);
         Web::new(&page, &app.base_url(), true, true, move |signal| match signal {
             Signal::Failed | Signal::Message(TrailerMessage::Error { .. }) => give_up(),
-            Signal::Message(_) => heard.set(true),
+            Signal::Ending | Signal::Message(_) => heard.set(true),
         })
     };
     let Some(web) = web else {
@@ -69,8 +70,27 @@ pub fn play(ctx: &Rc<Ctx>, entry: &Entry) -> bool {
     };
     let view = adw::ToolbarView::new();
     view.add_top_bar(&adw::HeaderBar::new());
-    view.set_content(Some(&web.widget));
+    let frame = gtk::AspectFrame::new(0.5, 0.5, 16.0 / 9.0, false);
+    frame.set_child(Some(&web.widget));
+    view.set_content(Some(&frame));
     dialog.set_child(Some(&view));
+    // Ctrl-W closes the trailer window, not the app window behind it. Captured before the web
+    // view sees the key.
+    let close = gtk::ShortcutController::new();
+    close.set_propagation_phase(gtk::PropagationPhase::Capture);
+    close.add_shortcut(gtk::Shortcut::new(
+        gtk::ShortcutTrigger::parse_string("<Control>w"),
+        Some(gtk::CallbackAction::new({
+            let dialog = dialog.downgrade();
+            move |_, _| {
+                if let Some(dialog) = dialog.upgrade() {
+                    dialog.close();
+                }
+                glib::Propagation::Stop
+            }
+        })),
+    ));
+    dialog.add_controller(close);
     // Held until the dialog closes, then let go of: the web process and its decoder go with it.
     let held = std::cell::RefCell::new(Some(web));
     dialog.connect_closed({
@@ -78,8 +98,10 @@ pub fn play(ctx: &Rc<Ctx>, entry: &Entry) -> bool {
         let entry = entry.clone();
         let refused = Rc::clone(&refused);
         move |dialog| {
-            if let Some(child) = dialog.child().and_downcast::<adw::ToolbarView>() {
-                child.set_content(gtk::Widget::NONE);
+            if let Some(child) = dialog.child().and_downcast::<adw::ToolbarView>()
+                && let Some(frame) = child.content().and_downcast::<gtk::AspectFrame>()
+            {
+                frame.set_child(gtk::Widget::NONE);
             }
             held.take();
             if refused.get()

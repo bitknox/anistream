@@ -1405,6 +1405,51 @@ pub fn settings_note_trailers_linux() -> String {
     text("settings-note-trailers-linux", &[])
 }
 
+/// Settings row: whether a connected game controller drives the app.
+pub fn settings_label_controller_input() -> String {
+    text("settings-label-controller-input", &[])
+}
+
+/// Settings row: swaps the A and B buttons, for a controller laid out as Nintendo's are.
+pub fn settings_label_swap_face_buttons() -> String {
+    text("settings-label-swap-face-buttons", &[])
+}
+
+/// Heading of the Settings group for game controllers.
+pub fn settings_group_controller() -> String {
+    text("settings-group-controller", &[])
+}
+
+/// Settings row that names the controller in use.
+pub fn settings_controller_device() -> String {
+    text("settings-controller-device", &[])
+}
+
+/// Value of the controller row when no controller is connected.
+pub fn settings_controller_none() -> String {
+    text("settings-controller-none", &[])
+}
+
+/// Notice when a controller connects for the first time in a session.
+pub fn controller_connected(name: &str) -> String {
+    text("controller-connected", &[("name", Arg::Text(name))])
+}
+
+/// Notice when the controller in use disconnects.
+pub fn controller_disconnected() -> String {
+    text("controller-disconnected", &[])
+}
+
+/// Title of the window that lists what the controller's buttons do.
+pub fn controller_help_title() -> String {
+    text("controller-help-title", &[])
+}
+
+/// Accessible name of the list of controller buttons in the help window.
+pub fn controller_help_buttons() -> String {
+    text("controller-help-buttons", &[])
+}
+
 /// Button on a notice that asks to open the plugin stores.
 pub fn shell_open_stores() -> String {
     text("shell-open-stores", &[])
@@ -6463,6 +6508,201 @@ pub fn state_loading() -> String {
 /// How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".
 pub fn time_just_now_inline() -> String {
     text("time-just-now-inline", &[])
+}
+
+/// Controller help: the D-pad and left stick move focus between items.
+pub fn pad_help_move() -> String {
+    text("pad-help-move", &[])
+}
+
+/// Controller help: the A button on a list, a button or a switch.
+pub fn pad_help_select() -> String {
+    text("pad-help-select", &[])
+}
+
+/// Controller help: the B button while browsing.
+pub fn pad_help_back() -> String {
+    text("pad-help-back", &[])
+}
+
+/// Controller help: the B button while the player's controls are showing.
+pub fn pad_help_hide_controls() -> String {
+    text("pad-help-hide-controls", &[])
+}
+
+/// Controller help: the B button while the player's controls are hidden.
+pub fn pad_help_close_player() -> String {
+    text("pad-help-close-player", &[])
+}
+
+/// Controller help: opens the menu of the focused item.
+pub fn pad_help_item_menu() -> String {
+    text("pad-help-item-menu", &[])
+}
+
+/// Controller help: goes to Search.
+pub fn pad_help_search() -> String {
+    text("pad-help-search", &[])
+}
+
+/// Controller help: opens the window's main menu.
+pub fn pad_help_main_menu() -> String {
+    text("pad-help-main-menu", &[])
+}
+
+/// Controller help: shows or hides the sidebar.
+pub fn pad_help_sidebar() -> String {
+    text("pad-help-sidebar", &[])
+}
+
+/// Controller help: goes to the section before the current one.
+pub fn pad_help_previous_section() -> String {
+    text("pad-help-previous-section", &[])
+}
+
+/// Controller help: goes to the section after the current one.
+pub fn pad_help_next_section() -> String {
+    text("pad-help-next-section", &[])
+}
+
+/// Controller help: scrolls the focused list up by a page.
+pub fn pad_help_page_up() -> String {
+    text("pad-help-page-up", &[])
+}
+
+/// Controller help: scrolls the focused list down by a page.
+pub fn pad_help_page_down() -> String {
+    text("pad-help-page-down", &[])
+}
+
+/// Controller help: seeks back in the player.
+pub fn pad_help_seek_back(seconds: i64) -> String {
+    text("pad-help-seek-back", &[("seconds", Arg::Int(seconds))])
+}
+
+/// Controller help: seeks forward in the player.
+pub fn pad_help_seek_forward(seconds: i64) -> String {
+    text("pad-help-seek-forward", &[("seconds", Arg::Int(seconds))])
+}
+
+/// Controller help: skips the opening or ending while its offer shows.
+pub fn pad_help_skip() -> String {
+    text("pad-help-skip", &[])
+}
+
+/// Controller help: starts the next episode now, while the Up Next card shows.
+pub fn pad_help_play_now() -> String {
+    text("pad-help-play-now", &[])
+}
+
+/// Controller help: cancels the Up Next card.
+pub fn pad_help_cancel() -> String {
+    text("pad-help-cancel", &[])
+}
+
+/// Controller help: switches to another source while the buffering card shows.
+pub fn pad_help_switch_source() -> String {
+    text("pad-help-switch-source", &[])
+}
+
+/// Controller help: keeps waiting while the buffering card shows.
+pub fn pad_help_keep_waiting() -> String {
+    text("pad-help-keep-waiting", &[])
+}
+
+/// Controller help: opens the subtitles and audio menu.
+pub fn pad_help_tracks() -> String {
+    text("pad-help-tracks", &[])
+}
+
+/// Controller help: opens the episode list in the player.
+pub fn pad_help_episodes() -> String {
+    text("pad-help-episodes", &[])
+}
+
+/// Controller help: opens the player's More menu.
+pub fn pad_help_more() -> String {
+    text("pad-help-more", &[])
+}
+
+/// Controller help: shows the player's stats for nerds.
+pub fn pad_help_stats() -> String {
+    text("pad-help-stats", &[])
+}
+
+/// Controller help: shows the player's controls with focus on the timeline.
+pub fn pad_help_show_seek_line() -> String {
+    text("pad-help-show-seek-line", &[])
+}
+
+/// Controller help: shows the player's controls with focus on the episodes.
+pub fn pad_help_show_episodes() -> String {
+    text("pad-help-show-episodes", &[])
+}
+
+/// Controller help: pauses or plays the video.
+pub fn pad_help_play_pause() -> String {
+    text("pad-help-play-pause", &[])
+}
+
+/// Controller help: the right trigger plays at double speed while held.
+pub fn pad_help_hold_speed() -> String {
+    text("pad-help-hold-speed", &[])
+}
+
+/// Controller help: the right stick scrolls the page without moving focus.
+pub fn pad_help_scroll() -> String {
+    text("pad-help-scroll", &[])
+}
+
+/// Heading in the controller help for the buttons while the player's controls are showing.
+pub fn pad_help_controls_shown() -> String {
+    text("pad-help-controls-shown", &[])
+}
+
+/// Name of the D-pad as one control, in the controller help.
+pub fn pad_button_dpad() -> String {
+    text("pad-button-dpad", &[])
+}
+
+/// Name of the D-pad's up direction, in the controller help.
+pub fn pad_button_dpad_up() -> String {
+    text("pad-button-dpad-up", &[])
+}
+
+/// Name of the D-pad's down direction, in the controller help.
+pub fn pad_button_dpad_down() -> String {
+    text("pad-button-dpad-down", &[])
+}
+
+/// Name of the D-pad's left direction, in the controller help.
+pub fn pad_button_dpad_left() -> String {
+    text("pad-button-dpad-left", &[])
+}
+
+/// Name of the D-pad's right direction, in the controller help.
+pub fn pad_button_dpad_right() -> String {
+    text("pad-button-dpad-right", &[])
+}
+
+/// Name of the controller's menu button (three lines), in the controller help.
+pub fn pad_button_menu() -> String {
+    text("pad-button-menu", &[])
+}
+
+/// Name of the controller's view button (two squares), in the controller help.
+pub fn pad_button_view() -> String {
+    text("pad-button-view", &[])
+}
+
+/// Name of the controller's left stick, in the controller help.
+pub fn pad_button_left_stick() -> String {
+    text("pad-button-left-stick", &[])
+}
+
+/// Name of the controller's right stick, in the controller help.
+pub fn pad_button_right_stick() -> String {
+    text("pad-button-right-stick", &[])
 }
 
 /// Checkbox of the close question.

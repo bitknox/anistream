@@ -49,6 +49,7 @@ pub mod downloads;
 pub mod episodes;
 pub mod event;
 pub mod hosted;
+pub mod input;
 pub mod jobs;
 #[rustfmt::skip]
 mod msg;
