@@ -127,3 +127,11 @@ discussion-offline-cached = Offline. Showing comments from { $age }.
 # Heading of the Settings group for discussion rows.
 # @max 24
 discussion-settings-group = Discussions
+
+# Menu item that copies a comment's text.
+# @max 24
+discussion-copy-text = Copy text
+
+# Age of a comment that was sent and is not yet confirmed.
+# @max 16
+discussion-sending = Sending

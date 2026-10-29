@@ -6980,6 +6980,16 @@ pub fn discussion_settings_group() -> String {
     text("discussion-settings-group", &[])
 }
 
+/// Menu item that copies a comment's text.
+pub fn discussion_copy_text() -> String {
+    text("discussion-copy-text", &[])
+}
+
+/// Age of a comment that was sent and is not yet confirmed.
+pub fn discussion_sending() -> String {
+    text("discussion-sending", &[])
+}
+
 /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 pub fn downloads_title() -> String {
     text("downloads-title", &[])

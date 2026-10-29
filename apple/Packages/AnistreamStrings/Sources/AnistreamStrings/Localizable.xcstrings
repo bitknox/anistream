@@ -2523,6 +2523,18 @@
         }
       }
     },
+    "discussion-copy-text" : {
+      "comment" : "Menu item that copies a comment's text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy text"
+          }
+        }
+      }
+    },
     "discussion-count" : {
       "comment" : "Count of comments in the header of the discussion. Argument 1: count (Int).",
       "extractionState" : "manual",
@@ -2825,6 +2837,18 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "discussion-sending" : {
+      "comment" : "Age of a comment that was sent and is not yet confirmed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sending"
           }
         }
       }

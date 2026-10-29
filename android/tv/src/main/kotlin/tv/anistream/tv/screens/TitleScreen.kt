@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import tv.anistream.i18n.Strings
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.ClickableSurfaceDefaults
@@ -83,6 +84,7 @@ import tv.anistream.tv.cardTitle
 import tv.anistream.tv.metadataLine
 import tv.anistream.tv.synopsisWithoutSpoilers
 import tv.anistream.tv.ui.ActionSheet
+import tv.anistream.tv.ui.DiscussionPanel
 import tv.anistream.tv.ui.AmberButton
 import tv.anistream.tv.ui.ArtCard
 import tv.anistream.tv.ui.ArtImage
@@ -338,6 +340,9 @@ private fun Episodes(
     val state = rememberLazyListState(initialFirstVisibleItemIndex = next)
     val nextRequester = remember { FocusRequester() }
     val placeholders = placeholdersAfterWait(rows == null)
+    val found by store.discussion.found.collectAsStateWithLifecycle()
+    val settings by store.settings.view.collectAsStateWithLifecycle()
+    val discussions = store.settings.isOn(tv.anistream.engine.model.SettingKey.EPISODE_DISCUSSIONS, settings)
     BrowseRow(stringResource(R.string.title_episodes), modifier = modifier, subtitle = dub, state = state, fallback = nextRequester) {
         if (rows == null) {
             if (placeholders) {
@@ -354,6 +359,10 @@ private fun Episodes(
                 entry = entry,
                 line = if (row.unsourced) Strings.episodeUnsourced(context) else row.cardLine(context, entry.resume, playsNext),
                 progress = if (playsNext) entry.resume?.fraction?.toFloat() else null,
+                // The quiet line under a watched episode that has a thread: not focusable.
+                discussion = row.number.toUIntOrNull()?.takeIf { row.completed && discussions }
+                    ?.let { found[tv.anistream.store.DiscussionKey(entry.id, it)] }
+                    ?.let { Strings.discussionRow(context, it.toInt()) },
                 // Unwatched stills after the next one keep their colours and none of their detail.
                 // Only an episode's own still can spoil; the show's banner in its place cannot.
                 spoiler = spoilers && index > next && !row.completed && row.thumbnail != null,
@@ -378,6 +387,7 @@ private fun EpisodeCard(
     entry: Entry,
     line: String?,
     progress: Float?,
+    discussion: String?,
     spoiler: Boolean,
     onClick: () -> Unit,
     sheet: () -> ActionSheet,
@@ -407,6 +417,16 @@ private fun EpisodeCard(
             }
         }
         CardText(row.cardTitle(context), line, titleColor = if (row.completed || row.unsourced) ObiSilk.Haze else ObiSilk.Silk)
+        if (discussion != null) {
+            Text(
+                discussion,
+                style = MaterialTheme.typography.bodyMedium,
+                color = ObiSilk.Haze,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp).clearAndSetSemantics {},
+            )
+        }
     }
 }
 
@@ -512,6 +532,8 @@ fun episodeSheet(
     val upTo = rows.takeWhile { it.number != row.number }.map { it.number } + row.number
     val number = row.number.toUIntOrNull()?.takeIf { !row.metadataOnly && !row.unsourced }
     val title = "${entry.title} · ${row.cardTitle(context)}" // i18n-skip
+    val episode = row.number.toUIntOrNull()
+    val comments = episode?.takeIf { row.completed && store.discussionsOn() }?.let { store.discussion.count(entry.id, it) }
     return ActionSheet(
         title,
         listOfNotNull(
@@ -522,6 +544,19 @@ fun episodeSheet(
                 CardAction(Strings.episodeMarkWatched(context)) { store.setWatched(entry.id, listOf(row.number)) }
             },
             CardAction(Strings.tvEpisodeMarkUpToHere(context)) { store.setWatched(entry.id, upTo) },
+            if (comments != null && episode != null) {
+                CardAction(
+                    Strings.discussionOpen(context),
+                    supporting = Strings.discussionCount(context, comments.toInt()),
+                    then = ActionSheet(
+                        Strings.discussionTitleEpisode(context, episode.toInt()),
+                        width = 560.dp,
+                        body = { DiscussionPanel(entry, episode) },
+                    ),
+                )
+            } else {
+                null
+            },
             number?.let {
                 CardAction(Strings.playerChooseSource(context), then = ActionSheet(title, body = { EpisodeReleases(store, entry.id, row.number) }))
             },

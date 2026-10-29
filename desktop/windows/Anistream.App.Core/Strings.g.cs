@@ -732,12 +732,6 @@ public static partial class T
     /// <summary>Download dialog: the note under the range.</summary>
     public static string DownloadRangeQualityNote => Get("DownloadRangeQualityNote");
 
-    /// <summary>Menu item that copies a comment's text.</summary>
-    public static string DiscussionCopyText => Get("DiscussionCopyText");
-
-    /// <summary>Age of a comment that was sent and is not yet confirmed.</summary>
-    public static string DiscussionSending => Get("DiscussionSending");
-
     /// <summary>Line above the field while the viewer edits their own comment.</summary>
     public static string DiscussionEditing => Get("DiscussionEditing");
 
@@ -1835,6 +1829,12 @@ public static partial class T
 
     /// <summary>Heading of the Settings group for discussion rows.</summary>
     public static string DiscussionSettingsGroup => Get("DiscussionSettingsGroup");
+
+    /// <summary>Menu item that copies a comment's text.</summary>
+    public static string DiscussionCopyText => Get("DiscussionCopyText");
+
+    /// <summary>Age of a comment that was sent and is not yet confirmed.</summary>
+    public static string DiscussionSending => Get("DiscussionSending");
 
     /// <summary>Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.</summary>
     public static string DownloadsTitle => Get("DownloadsTitle");
@@ -5345,8 +5345,6 @@ public static partial class T
         ["DownloadRangeFrom"] = "From",
         ["DownloadRangeTo"] = "To",
         ["DownloadRangeQualityNote"] = "Downloads use the quality in Settings › Downloads.",
-        ["DiscussionCopyText"] = "Copy text",
-        ["DiscussionSending"] = "Sending",
         ["DiscussionEditing"] = "Editing your comment",
         ["DiscussionCommentMenu"] = "More for this comment",
         ["DiscussionPaneLabel"] = "Episode {episode} discussion",
@@ -5724,6 +5722,8 @@ public static partial class T
         ["DiscussionFailed"] = "Couldn't load the discussion",
         ["DiscussionOfflineCached"] = "Offline. Showing comments from {age}.",
         ["DiscussionSettingsGroup"] = "Discussions",
+        ["DiscussionCopyText"] = "Copy text",
+        ["DiscussionSending"] = "Sending",
         ["DownloadsTitle"] = "Downloads",
         ["DownloadsPauseAll"] = "Pause all",
         ["DownloadsResumeAll"] = "Resume all",

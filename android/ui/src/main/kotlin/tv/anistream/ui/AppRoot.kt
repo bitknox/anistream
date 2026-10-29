@@ -254,6 +254,7 @@ fun AppRoot(
         UpdatePrompts()
         AccountSheets()
         TvSheetHost()
+        DiscussionHost()
         JoinStoreSheetHost()
         androidx.compose.runtime.LaunchedEffect(startTitle) {
             startTitle?.let { navigator.openTitle(it, "launch") }

@@ -849,10 +849,6 @@ object Strings {
     fun settingsDiscussionImagesNote(context: Context): String =
         context.getString(R.string.settings_discussion_images_note)
 
-    /** Word on a comment that was just sent and has not been answered yet. */
-    fun discussionSending(context: Context): String =
-        context.getString(R.string.discussion_sending)
-
     /** Line in place of the comments while AniList asks the app to wait. The time is a countdown such as 20 s. */
     fun discussionWaiting(context: Context, time: String): String =
         context.getString(R.string.discussion_waiting, time)
@@ -860,10 +856,6 @@ object Strings {
     /** Button that unfolds a comment cut at ten lines. */
     fun discussionShowMore(context: Context): String =
         context.getString(R.string.discussion_show_more)
-
-    /** Menu item that copies a comment's text. */
-    fun discussionCopyText(context: Context): String =
-        context.getString(R.string.discussion_copy_text)
 
     /** Line for an image in a comment when images do not load inline. The host is where it lives. */
     fun discussionImageHost(context: Context, host: String): String =
@@ -1316,6 +1308,18 @@ object Strings {
     /** TV, discussion panel footer: replying needs a phone. */
     fun tvDiscussionFooter(context: Context): String =
         context.getString(R.string.tv_discussion_footer)
+
+    /** TV, discussion panel: the comment count under the title, and that nothing can be posted here. */
+    fun tvDiscussionCountReadOnly(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.tv_discussion_count_read_only, count, count)
+
+    /** TV, discussion panel: a comment's like count after its age. */
+    fun tvDiscussionLikes(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.tv_discussion_likes, count, count)
+
+    /** TV, discussion panel: what Select does on a comment with a hidden spoiler. */
+    fun tvDiscussionSelectSpoiler(context: Context): String =
+        context.getString(R.string.tv_discussion_select_spoiler)
 
     /** A countdown that has run out. */
     fun timeNowInline(context: Context): String =
@@ -3096,6 +3100,14 @@ object Strings {
     /** Heading of the Settings group for discussion rows. */
     fun discussionSettingsGroup(context: Context): String =
         context.getString(R.string.discussion_settings_group)
+
+    /** Menu item that copies a comment's text. */
+    fun discussionCopyText(context: Context): String =
+        context.getString(R.string.discussion_copy_text)
+
+    /** Age of a comment that was sent and is not yet confirmed. */
+    fun discussionSending(context: Context): String =
+        context.getString(R.string.discussion_sending)
 
     /** Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group. */
     fun downloadsTitle(context: Context): String =

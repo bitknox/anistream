@@ -23,6 +23,19 @@ class DiscussionModel {
     /** The episodes the engine found a thread for, with every comment in it. */
     val found: StateFlow<Map<DiscussionKey, UInt>> = _found.asStateFlow()
 
+    private val _target = MutableStateFlow<DiscussionKey?>(null)
+
+    /** The discussion a person asked to read, shown in a sheet (phone) or panel (TV) until dismissed. */
+    val target: StateFlow<DiscussionKey?> = _target.asStateFlow()
+
+    fun show(media: AnilistId, episode: UInt) {
+        _target.value = DiscussionKey(media, episode)
+    }
+
+    fun dismiss() {
+        _target.value = null
+    }
+
     internal fun view(view: DiscussionView) {
         _open.value = view
     }

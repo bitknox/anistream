@@ -458,14 +458,10 @@
     <string name="settings_discussion_images_label">Load images in comments</string>
     <!-- Note under the Load images in comments setting. -->
     <string name="settings_discussion_images_note">Each image loads from the site that hosts it, which sees your IP address.</string>
-    <!-- Word on a comment that was just sent and has not been answered yet. -->
-    <string name="discussion_sending">Sending</string>
     <!-- Line in place of the comments while AniList asks the app to wait. The time is a countdown such as 20 s. -->
     <string name="discussion_waiting">Waiting for AniList · %1$s</string>
     <!-- Button that unfolds a comment cut at ten lines. -->
     <string name="discussion_show_more">Show more</string>
-    <!-- Menu item that copies a comment's text. -->
-    <string name="discussion_copy_text">Copy text</string>
     <!-- Line for an image in a comment when images do not load inline. The host is where it lives. -->
     <string name="discussion_image_host">Image · %1$s</string>
     <!-- Line for a video in a comment. The host is where it lives. -->
@@ -701,6 +697,18 @@
     <string name="tv_card_progress_spoken">%1$s watched</string>
     <!-- TV, discussion panel footer: replying needs a phone. -->
     <string name="tv_discussion_footer">To reply, open this discussion on your phone.</string>
+    <!-- TV, discussion panel: the comment count under the title, and that nothing can be posted here. -->
+    <plurals name="tv_discussion_count_read_only">
+        <item quantity="one">One comment · Read only</item>
+        <item quantity="other">%1$d comments · Read only</item>
+    </plurals>
+    <!-- TV, discussion panel: a comment's like count after its age. -->
+    <plurals name="tv_discussion_likes">
+        <item quantity="one">One like</item>
+        <item quantity="other">%1$d likes</item>
+    </plurals>
+    <!-- TV, discussion panel: what Select does on a comment with a hidden spoiler. -->
+    <string name="tv_discussion_select_spoiler">Select to show the spoiler</string>
     <!-- A countdown that has run out. -->
     <string name="time_now_inline">now</string>
     <!-- The episode in a short form for a title last watched dubbed. -->
@@ -1648,6 +1656,10 @@
     <string name="discussion_offline_cached">Offline. Showing comments from %1$s.</string>
     <!-- Heading of the Settings group for discussion rows. -->
     <string name="discussion_settings_group">Discussions</string>
+    <!-- Menu item that copies a comment's text. -->
+    <string name="discussion_copy_text">Copy text</string>
+    <!-- Age of a comment that was sent and is not yet confirmed. -->
+    <string name="discussion_sending">Sending</string>
     <!-- Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group. -->
     <string name="downloads_title">Downloads</string>
     <!-- Button that pauses every running download. -->

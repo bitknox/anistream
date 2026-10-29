@@ -4381,6 +4381,12 @@ discussion-offline-cached = Offline. Showing comments from { $age }.
 # Heading of the Settings group for discussion rows.
 discussion-settings-group = Discussions
 
+# Menu item that copies a comment's text.
+discussion-copy-text = Copy text
+
+# Age of a comment that was sent and is not yet confirmed.
+discussion-sending = Sending
+
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = Downloads
 

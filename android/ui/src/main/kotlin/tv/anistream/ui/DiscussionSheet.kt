@@ -51,6 +51,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -104,6 +105,17 @@ private const val FOLD_LINES = 10
 /** The line height the fold counts in. */
 private val LINE = 22.dp
 
+/** The discussion a person asked to read, in its sheet, for as long as it stands. */
+@Composable
+fun DiscussionHost() {
+    val store = LocalAppStore.current
+    val target by store.discussion.target.collectAsStateWithLifecycle()
+    val titles by store.titles.entries.collectAsStateWithLifecycle()
+    val shown = target ?: return
+    val entry = titles[shown.media] ?: return
+    DiscussionSheet(entry, shown.episode) { store.discussion.dismiss() }
+}
+
 /** The discussion of [episode] of [entry], read from the engine for as long as the sheet is open. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,14 +125,17 @@ fun DiscussionSheet(entry: Entry, episode: UInt, onDismiss: () -> Unit) {
     val view = open?.takeIf { it.media == entry.id && it.episode == episode }
     LaunchedEffect(entry.id, episode) { store.openDiscussion(entry.id, episode) }
     DisposableEffect(entry.id, episode) { onDispose { store.closeDiscussion() } }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val scope = rememberCoroutineScope()
+    val close: () -> Unit = { scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() } }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrimColor = Color.Black.copy(alpha = 0.32f),
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
     ) {
-        DiscussionContent(entry, episode, view, onDismiss)
+        DiscussionContent(entry, episode, view, close)
     }
 }
 
@@ -322,7 +337,7 @@ private fun CommentRow(
     val avatar = if (depth == 0) 32.dp else 24.dp
     var menu by remember { mutableStateOf(false) }
     var more by remember(comment.id) { mutableStateOf(false) }
-    val pending = comment.pending != PostState.Posted
+    val pending = comment.pending != PostState.POSTED
     Row(
         Modifier
             .fillMaxWidth()
@@ -339,7 +354,7 @@ private fun CommentRow(
                 Text(comment.author, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 Text(
                     when (comment.pending) {
-                        PostState.Sending -> stringResource(R.string.discussion_sending)
+                        PostState.SENDING -> stringResource(R.string.discussion_sending)
                         else -> comment.age.text(context)
                     },
                     style = MaterialTheme.typography.bodySmall,
@@ -350,7 +365,7 @@ private fun CommentRow(
                 }
             }
             Body(comment, view, revealed)
-            if (comment.pending == PostState.Failed) {
+            if (comment.pending == PostState.FAILED) {
                 Text(
                     stringResource(R.string.discussion_post_failed),
                     style = MaterialTheme.typography.bodySmall,
@@ -470,11 +485,11 @@ private fun Block(commentId: Int, index: Int, block: CommentBlock, view: Discuss
             for (span in block.spans) {
                 val link = span.link ?: continue
                 val host = remember(link) { Uri.parse(link).host.orEmpty() }
-                if (span.media == MediaKind.Image && view.loadImages) {
+                if (span.media == MediaKind.IMAGE && view.loadImages) {
                     ArtworkImage(link, colors.surfaceContainerHighest, 960, Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(8.dp)))
                 } else {
                     Text(
-                        if (span.media == MediaKind.Image) Strings.discussionImageHost(context, host) else Strings.discussionVideoHost(context, host),
+                        if (span.media == MediaKind.IMAGE) Strings.discussionImageHost(context, host) else Strings.discussionVideoHost(context, host),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant,
                         modifier = Modifier.clickable { store.openExternal(link) }.padding(vertical = 4.dp),

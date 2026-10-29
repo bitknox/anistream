@@ -115,6 +115,9 @@ internal object Icons {
             addPath(addPathNodes("M12 ${y - 1.5f} A1.5 1.5 0 1 1 11.99 ${y - 1.5f} Z"), fill = SolidColor(Color.Black))
         }
     }.build()
+    /** A speech bubble, for an episode's discussion. */
+    val Discussion = stroked("Discussion", "M4 5 H20 A2 2 0 0 1 22 7 V15 A2 2 0 0 1 20 17 H10 L5.5 21 V17 H4 A2 2 0 0 1 2 15 V7 A2 2 0 0 1 4 5 Z")
+
     /** A heart in outline, and filled once the comment is liked. */
     val Heart = stroked("Heart", "M12 20 C5.5 15.2 3.5 12 3.5 9.2 A4.2 4.2 0 0 1 12 7.4 A4.2 4.2 0 0 1 20.5 9.2 C20.5 12 18.5 15.2 12 20 Z")
     val HeartFilled = ImageVector.Builder(

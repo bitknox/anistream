@@ -31,11 +31,6 @@ settings-discussion-images-label = Load images in comments
 # @max 120
 settings-discussion-images-note = Each image loads from the site that hosts it, which sees your IP address.
 
-# Word on a comment that was just sent and has not been answered yet.
-# @only android
-# @max 16
-discussion-sending = Sending
-
 # Line in place of the comments while AniList asks the app to wait. The time is a countdown such as 20 s.
 # @only android
 # @max 40
@@ -46,11 +41,6 @@ discussion-waiting = Waiting for AniList · { $time }
 # @only android
 # @max 24
 discussion-show-more = Show more
-
-# Menu item that copies a comment's text.
-# @only android
-# @max 24
-discussion-copy-text = Copy text
 
 # Line for an image in a comment when images do not load inline. The host is where it lives.
 # @only android

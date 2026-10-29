@@ -4381,6 +4381,12 @@ discussion-offline-cached = [Öƒƒļîñé. Šĥöŵîñĝ çöɱɱéñţš ƒ�
 # Heading of the Settings group for discussion rows.
 discussion-settings-group = [Ðîšçüššîöñš~~~~]
 
+# Menu item that copies a comment's text.
+discussion-copy-text = [Çöþý ţéẋţ~~~]
+
+# Age of a comment that was sent and is not yet confirmed.
+discussion-sending = [Šéñðîñĝ~~~]
+
 # Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
 downloads-title = [Ðöŵñļöàðš~~~]
 
