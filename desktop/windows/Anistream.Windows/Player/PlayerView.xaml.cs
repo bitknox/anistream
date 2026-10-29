@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
+using Anistream.Windows.Discussion;
 using Anistream.Windows.Pages;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -160,6 +161,7 @@ public sealed partial class PlayerView : UserControl
     {
         if (!Showing)
             return;
+        discussion?.Close();
         tick.Stop();
         idle.Stop();
         ShowPointer();
@@ -1183,11 +1185,102 @@ public sealed partial class PlayerView : UserControl
         SettingsMenu.Items.Add(StatsItem());
     }
 
+    // The episode's discussion: Discussion in the More menu from 85% of the episode, once the engine found a thread.
+
+    DiscussionPane? discussion;
+
+    static bool Within(DependencyObject element, DependencyObject ancestor)
+    {
+        for (var at = element; at is not null; at = VisualTreeHelper.GetParent(at))
+            if (at == ancestor)
+                return true;
+        return false;
+    }
+
+    void OnSettingsMenuOpening(object? sender, object e)
+    {
+        if (SettingsMenu.Items.FirstOrDefault(i => i.Tag as string == "discussion") is { } old)
+            SettingsMenu.Items.Remove(old);
+        if (ctx is not { } c || !uint.TryParse(playingEpisode, out var episode) || !Discussions.Counted(position, duration)
+            || !c.Known.Discussions.ContainsKey((playingId, episode)))
+            return;
+        var item = new MenuFlyoutItem { Text = T.DiscussionOpen, Tag = "discussion" };
+        item.Click += (_, _) => OpenDiscussion(episode);
+        SettingsMenu.Items.Insert(0, item);
+        if (SettingsMenu.Items.Count > 1 && SettingsMenu.Items[1] is not MenuFlyoutSeparator)
+            SettingsMenu.Items.Insert(1, new MenuFlyoutSeparator { Tag = "discussion" });
+    }
+
+    /// <summary>Opens the discussion beside the video. Playback pauses and stays paused: the viewer chooses.</summary>
+    internal void OpenDiscussion(uint episode)
+    {
+        if (ctx is not { } c || playingId == 0)
+            return;
+        discussion?.Close();
+        if (!paused)
+            Send(new PlayerCommand.TogglePause());
+        var pane = new DiscussionPane(c, playingId, episode);
+        discussion = pane;
+        pane.Closed += () =>
+        {
+            if (discussion != pane)
+                return;
+            discussion = null;
+            Root.Children.Remove(pane);
+            if (discussionScrim is not null)
+                Root.Children.Remove(discussionScrim);
+            discussionScrim = null;
+            Root.ColumnDefinitions[1].Width = GridLength.Auto;
+            Focus(FocusState.Programmatic);
+        };
+        Root.Children.Add(pane);
+        PlaceDiscussion();
+        pane.Start();
+    }
+
+    Microsoft.UI.Xaml.Shapes.Rectangle? discussionScrim;
+
+    /// <summary>Beside the video from 1000 epx of window; over it, with a light dismiss, below.</summary>
+    void PlaceDiscussion()
+    {
+        if (discussion is not { } pane)
+            return;
+        var window = XamlRoot?.Size.Width ?? Root.ActualWidth;
+        var over = window > 0 && window < DiscussionPane.OverlayBelow;
+        if (over)
+        {
+            Grid.SetColumn(pane, 0);
+            Grid.SetColumnSpan(pane, 2);
+            if (discussionScrim is null)
+            {
+                discussionScrim = new Microsoft.UI.Xaml.Shapes.Rectangle { Fill = (Brush)Application.Current.Resources["ScrimBrush"] };
+                Grid.SetColumnSpan(discussionScrim, 2);
+                discussionScrim.Tapped += (_, e) =>
+                {
+                    e.Handled = true;
+                    discussion?.Close();
+                };
+                Root.Children.Insert(Root.Children.IndexOf(pane), discussionScrim);
+            }
+        }
+        else
+        {
+            if (discussionScrim is not null)
+                Root.Children.Remove(discussionScrim);
+            discussionScrim = null;
+            Grid.SetColumn(pane, 1);
+            Grid.SetColumnSpan(pane, 1);
+        }
+    }
+
     // Keys: arrows and S act without showing the controls; every other key shows them.
 
     void Key(KeyboardAcceleratorInvokedEventArgs e, Action act, bool show = true)
     {
         if (!Showing)
+            return;
+        // Typing in the discussion's field, or pressing a key on one of its buttons, is not a player key.
+        if (discussion is { } pane && XamlRoot is { } root && FocusManager.GetFocusedElement(root) is DependencyObject focus && Within(focus, pane))
             return;
         e.Handled = true;
         if (show)
@@ -1289,6 +1382,8 @@ public sealed partial class PlayerView : UserControl
     {
         if (still.Asking)
             StillStopNow();
+        else if (discussion is not null)
+            discussion.Close();
         else if (mini)
             ToggleMini();
         else if (cornerCard == UpNextCard)

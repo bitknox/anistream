@@ -36,6 +36,11 @@
   </UserControl.KeyboardAccelerators>
   <Grid x:Name="Root" Background="Black" PointerMoved="OnPointerMoved" Tapped="OnVideoTapped"
         DoubleTapped="OnVideoDoubleTapped" PointerWheelChanged="OnWheel" SizeChanged="OnStatsSized">
+    <!-- The video takes what the discussion pane leaves, so the controls stay on the picture. -->
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="Auto" />
+    </Grid.ColumnDefinitions>
     <!-- The video is the bottom layer; the bars are XAML inside the SwapChainPanel, which
          composition draws under with no airspace. -->
     <SwapChainPanel x:Name="VideoPanel" SizeChanged="OnPanelSizeChanged">
@@ -193,7 +198,7 @@
           <Button x:Name="SettingsButton" Grid.Column="7" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="{x:Bind app:T.SettingsTitle}" AutomationProperties.Name="{x:Bind app:T.PlayerPlaybackSettings}">
             <FontIcon Glyph="&#xE713;" FontSize="16" />
             <Button.Flyout>
-              <MenuFlyout x:Name="SettingsMenu" Placement="TopEdgeAlignedRight" Opened="OnMenuOpened" Closed="OnMenuClosed" />
+              <MenuFlyout x:Name="SettingsMenu" Placement="TopEdgeAlignedRight" Opening="OnSettingsMenuOpening" Opened="OnMenuOpened" Closed="OnMenuClosed" />
             </Button.Flyout>
           </Button>
         </Grid>

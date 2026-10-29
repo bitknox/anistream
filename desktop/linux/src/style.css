@@ -223,3 +223,6 @@ row.expander:checked image.expander-row-arrow { color: var(--haze); }
 .discussion-avatar { border-radius: 16px; }
 .discussion-quote { border-left: 3px solid var(--rule); padding-left: 10px; }
 .discussion-like.liked { color: var(--amber); }
+
+/* The hover preview is one surface: Raised, radius 12, the video flush at its top edge. */
+popover.trailer-preview > contents { padding: 0; border-radius: 12px; background-color: var(--raised); }

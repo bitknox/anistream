@@ -161,6 +161,10 @@
           <SolidColorBrush x:Key="AmberBrush" Color="#F2A64B" />
           <SolidColorBrush x:Key="WaterBrush" Color="#7FC7D9" />
           <SolidColorBrush x:Key="RuleBrush" Color="#434653" />
+          <!-- The trailing pane's fill, one step above the ground. -->
+          <SolidColorBrush x:Key="SidebarBrush" Color="#1C2034" />
+          <!-- The bar over a spoiler, Raised selected. -->
+          <SolidColorBrush x:Key="SpoilerBarBrush" Color="#343A57" />
           <SolidColorBrush x:Key="FaintRuleBrush" Color="#2F3242" />
           <!-- The player's 35% dim of the ground over the frame. -->
           <SolidColorBrush x:Key="DimBrush" Color="#161A2E" Opacity="0.35" />

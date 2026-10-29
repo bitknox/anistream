@@ -732,6 +732,24 @@ public static partial class T
     /// <summary>Download dialog: the note under the range.</summary>
     public static string DownloadRangeQualityNote => Get("DownloadRangeQualityNote");
 
+    /// <summary>Menu item that copies a comment's text.</summary>
+    public static string DiscussionCopyText => Get("DiscussionCopyText");
+
+    /// <summary>Age of a comment that was sent and is not yet confirmed.</summary>
+    public static string DiscussionSending => Get("DiscussionSending");
+
+    /// <summary>Line above the field while the viewer edits their own comment.</summary>
+    public static string DiscussionEditing => Get("DiscussionEditing");
+
+    /// <summary>Accessible name of the button that opens a comment's menu.</summary>
+    public static string DiscussionCommentMenu => Get("DiscussionCommentMenu");
+
+    /// <summary>Accessible name of the discussion pane.</summary>
+    public static string DiscussionPaneLabel(long episode) => Fill(Get("DiscussionPaneLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>After the author's name on a reply to a reply, naming who it answers.</summary>
+    public static string DiscussionAnswering(string name) => Fill(Get("DiscussionAnswering"), ("name", name));
+
     /// <summary>An episode's line in the player's title bar and in the system media controls: the episode's label (already "Episode 10" or "Episode 10 · Dubbed"), then the episode's own title.</summary>
     public static string PlayerEpisodeLineTitled(string line, string title) => Fill(Get("PlayerEpisodeLineTitled"), ("line", line), ("title", title));
 
@@ -833,6 +851,12 @@ public static partial class T
 
     /// <summary>Setting: a notification when a new episode of a followed show comes out.</summary>
     public static string SettingsEpisodeNotifications => Get("SettingsEpisodeNotifications");
+
+    /// <summary>Setting: whether an episode's AniList forum thread is looked up and opened in the app.</summary>
+    public static string SettingsEpisodeDiscussions => Get("SettingsEpisodeDiscussions");
+
+    /// <summary>Setting: whether images in discussion comments load inline.</summary>
+    public static string SettingsCommentImages => Get("SettingsCommentImages");
 
     /// <summary>Setting: the switch that turns torrents on.</summary>
     public static string SettingsTorrentSource => Get("SettingsTorrentSource");
@@ -1529,6 +1553,123 @@ public static partial class T
 
     /// <summary>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</summary>
     public static string TimeJustNowInline => Get("TimeJustNowInline");
+
+    /// <summary>Controller help: the D-pad and left stick move focus between items.</summary>
+    public static string PadHelpMove => Get("PadHelpMove");
+
+    /// <summary>Controller help: the A button on a list, a button or a switch.</summary>
+    public static string PadHelpSelect => Get("PadHelpSelect");
+
+    /// <summary>Controller help: the B button while browsing.</summary>
+    public static string PadHelpBack => Get("PadHelpBack");
+
+    /// <summary>Controller help: the B button while the player's controls are showing.</summary>
+    public static string PadHelpHideControls => Get("PadHelpHideControls");
+
+    /// <summary>Controller help: the B button while the player's controls are hidden.</summary>
+    public static string PadHelpClosePlayer => Get("PadHelpClosePlayer");
+
+    /// <summary>Controller help: opens the menu of the focused item.</summary>
+    public static string PadHelpItemMenu => Get("PadHelpItemMenu");
+
+    /// <summary>Controller help: goes to Search.</summary>
+    public static string PadHelpSearch => Get("PadHelpSearch");
+
+    /// <summary>Controller help: opens the window's main menu.</summary>
+    public static string PadHelpMainMenu => Get("PadHelpMainMenu");
+
+    /// <summary>Controller help: shows or hides the sidebar.</summary>
+    public static string PadHelpSidebar => Get("PadHelpSidebar");
+
+    /// <summary>Controller help: goes to the section before the current one.</summary>
+    public static string PadHelpPreviousSection => Get("PadHelpPreviousSection");
+
+    /// <summary>Controller help: goes to the section after the current one.</summary>
+    public static string PadHelpNextSection => Get("PadHelpNextSection");
+
+    /// <summary>Controller help: scrolls the focused list up by a page.</summary>
+    public static string PadHelpPageUp => Get("PadHelpPageUp");
+
+    /// <summary>Controller help: scrolls the focused list down by a page.</summary>
+    public static string PadHelpPageDown => Get("PadHelpPageDown");
+
+    /// <summary>Controller help: seeks back in the player.</summary>
+    public static string PadHelpSeekBack(long seconds) => Fill(GetPlural("PadHelpSeekBack", seconds), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Controller help: seeks forward in the player.</summary>
+    public static string PadHelpSeekForward(long seconds) => Fill(GetPlural("PadHelpSeekForward", seconds), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Controller help: skips the opening or ending while its offer shows.</summary>
+    public static string PadHelpSkip => Get("PadHelpSkip");
+
+    /// <summary>Controller help: starts the next episode now, while the Up Next card shows.</summary>
+    public static string PadHelpPlayNow => Get("PadHelpPlayNow");
+
+    /// <summary>Controller help: cancels the Up Next card.</summary>
+    public static string PadHelpCancel => Get("PadHelpCancel");
+
+    /// <summary>Controller help: switches to another source while the buffering card shows.</summary>
+    public static string PadHelpSwitchSource => Get("PadHelpSwitchSource");
+
+    /// <summary>Controller help: keeps waiting while the buffering card shows.</summary>
+    public static string PadHelpKeepWaiting => Get("PadHelpKeepWaiting");
+
+    /// <summary>Controller help: opens the subtitles and audio menu.</summary>
+    public static string PadHelpTracks => Get("PadHelpTracks");
+
+    /// <summary>Controller help: opens the episode list in the player.</summary>
+    public static string PadHelpEpisodes => Get("PadHelpEpisodes");
+
+    /// <summary>Controller help: opens the player's More menu.</summary>
+    public static string PadHelpMore => Get("PadHelpMore");
+
+    /// <summary>Controller help: shows the player's stats for nerds.</summary>
+    public static string PadHelpStats => Get("PadHelpStats");
+
+    /// <summary>Controller help: shows the player's controls with focus on the timeline.</summary>
+    public static string PadHelpShowSeekLine => Get("PadHelpShowSeekLine");
+
+    /// <summary>Controller help: shows the player's controls with focus on the episodes.</summary>
+    public static string PadHelpShowEpisodes => Get("PadHelpShowEpisodes");
+
+    /// <summary>Controller help: pauses or plays the video.</summary>
+    public static string PadHelpPlayPause => Get("PadHelpPlayPause");
+
+    /// <summary>Controller help: the right trigger plays at double speed while held.</summary>
+    public static string PadHelpHoldSpeed => Get("PadHelpHoldSpeed");
+
+    /// <summary>Controller help: the right stick scrolls the page without moving focus.</summary>
+    public static string PadHelpScroll => Get("PadHelpScroll");
+
+    /// <summary>Heading in the controller help for the buttons while the player's controls are showing.</summary>
+    public static string PadHelpControlsShown => Get("PadHelpControlsShown");
+
+    /// <summary>Name of the D-pad as one control, in the controller help.</summary>
+    public static string PadButtonDpad => Get("PadButtonDpad");
+
+    /// <summary>Name of the D-pad's up direction, in the controller help.</summary>
+    public static string PadButtonDpadUp => Get("PadButtonDpadUp");
+
+    /// <summary>Name of the D-pad's down direction, in the controller help.</summary>
+    public static string PadButtonDpadDown => Get("PadButtonDpadDown");
+
+    /// <summary>Name of the D-pad's left direction, in the controller help.</summary>
+    public static string PadButtonDpadLeft => Get("PadButtonDpadLeft");
+
+    /// <summary>Name of the D-pad's right direction, in the controller help.</summary>
+    public static string PadButtonDpadRight => Get("PadButtonDpadRight");
+
+    /// <summary>Name of the controller's menu button (three lines), in the controller help.</summary>
+    public static string PadButtonMenu => Get("PadButtonMenu");
+
+    /// <summary>Name of the controller's view button (two squares), in the controller help.</summary>
+    public static string PadButtonView => Get("PadButtonView");
+
+    /// <summary>Name of the controller's left stick, in the controller help.</summary>
+    public static string PadButtonLeftStick => Get("PadButtonLeftStick");
+
+    /// <summary>Name of the controller's right stick, in the controller help.</summary>
+    public static string PadButtonRightStick => Get("PadButtonRightStick");
 
     /// <summary>Checkbox of the close question.</summary>
     public static string CloseDontAsk => Get("CloseDontAsk");
@@ -5204,6 +5345,12 @@ public static partial class T
         ["DownloadRangeFrom"] = "From",
         ["DownloadRangeTo"] = "To",
         ["DownloadRangeQualityNote"] = "Downloads use the quality in Settings › Downloads.",
+        ["DiscussionCopyText"] = "Copy text",
+        ["DiscussionSending"] = "Sending",
+        ["DiscussionEditing"] = "Editing your comment",
+        ["DiscussionCommentMenu"] = "More for this comment",
+        ["DiscussionPaneLabel"] = "Episode {episode} discussion",
+        ["DiscussionAnswering"] = "to {name}",
         ["PlayerEpisodeLineTitled"] = "{line} · {title}",
         ["PlayerEpisodeFraction"] = "Episode {number}",
         ["PlayerStartingFraction"] = "Starting episode {number}",
@@ -5238,6 +5385,8 @@ public static partial class T
         ["SettingsDownloadsCellular"] = "Downloads on cellular",
         ["SettingsMpvOptions"] = "mpv options",
         ["SettingsEpisodeNotifications"] = "New episode notifications",
+        ["SettingsEpisodeDiscussions"] = "Episode discussions",
+        ["SettingsCommentImages"] = "Load images in comments",
         ["SettingsTorrentSource"] = "Torrent source",
         ["SettingsThemeAdaptive"] = "Adaptive",
         ["SettingsThemeImmersive"] = "Immersive",
@@ -5476,6 +5625,47 @@ public static partial class T
         ["StateWorking"] = "Working",
         ["StateLoading"] = "Loading",
         ["TimeJustNowInline"] = "just now",
+        ["PadHelpMove"] = "Move focus",
+        ["PadHelpSelect"] = "Select",
+        ["PadHelpBack"] = "Back",
+        ["PadHelpHideControls"] = "Hide the controls",
+        ["PadHelpClosePlayer"] = "Close the player",
+        ["PadHelpItemMenu"] = "Item menu",
+        ["PadHelpSearch"] = "Search",
+        ["PadHelpMainMenu"] = "Main menu",
+        ["PadHelpSidebar"] = "Show or hide the sidebar",
+        ["PadHelpPreviousSection"] = "Previous section",
+        ["PadHelpNextSection"] = "Next section",
+        ["PadHelpPageUp"] = "Page up",
+        ["PadHelpPageDown"] = "Page down",
+        ["PadHelpSeekBack_one"] = "Back one second",
+        ["PadHelpSeekBack_other"] = "Back {seconds} seconds",
+        ["PadHelpSeekForward_one"] = "Forward one second",
+        ["PadHelpSeekForward_other"] = "Forward {seconds} seconds",
+        ["PadHelpSkip"] = "Skip",
+        ["PadHelpPlayNow"] = "Play now",
+        ["PadHelpCancel"] = "Cancel",
+        ["PadHelpSwitchSource"] = "Switch source",
+        ["PadHelpKeepWaiting"] = "Keep waiting",
+        ["PadHelpTracks"] = "Subtitles and audio",
+        ["PadHelpEpisodes"] = "Episodes",
+        ["PadHelpMore"] = "More",
+        ["PadHelpStats"] = "Stats for nerds",
+        ["PadHelpShowSeekLine"] = "Show the timeline",
+        ["PadHelpShowEpisodes"] = "Show the episodes",
+        ["PadHelpPlayPause"] = "Play or pause",
+        ["PadHelpHoldSpeed"] = "Hold for double speed",
+        ["PadHelpScroll"] = "Scroll the page",
+        ["PadHelpControlsShown"] = "Player with the controls showing",
+        ["PadButtonDpad"] = "D-pad",
+        ["PadButtonDpadUp"] = "D-pad up",
+        ["PadButtonDpadDown"] = "D-pad down",
+        ["PadButtonDpadLeft"] = "D-pad left",
+        ["PadButtonDpadRight"] = "D-pad right",
+        ["PadButtonMenu"] = "Menu",
+        ["PadButtonView"] = "View",
+        ["PadButtonLeftStick"] = "Left stick",
+        ["PadButtonRightStick"] = "Right stick",
         ["CloseDontAsk"] = "Don't ask again",
         ["CloseKeepGoing"] = "Keep going",
         ["PartyLookingSources"] = "Looking through your sources…",

@@ -66,6 +66,15 @@ pub struct Ctx {
     /// Dialogs waiting on the engine, which say its alerts themselves, newest last.
     claims: RefCell<Vec<(u64, Claim)>>,
     next_claim: Cell<u64>,
+    /// Whether the last input came from a game controller: the focus ring shows, the pointer is
+    /// hidden and hover previews stay shut.
+    pub controller_mode: Cell<bool>,
+    /// The name of the controller in use, while one is connected.
+    pub controller_device: RefCell<Option<String>>,
+    /// Where the page last had focus, for Right from the sidebar to go back to.
+    pub content_focus: RefCell<Option<glib::WeakRef<gtk::Widget>>>,
+    /// The sidebar's main menu button, which a controller's Menu button opens.
+    main_menu: RefCell<Option<gtk::MenuButton>>,
 }
 
 /// A dialog's hold on the engine's alerts: given the words, it says whether it showed them.
@@ -94,6 +103,25 @@ impl Ctx {
     pub fn nav(&self) -> Option<adw::NavigationView> {
         let name = self.stack.visible_child_name()?;
         self.navs.borrow().iter().find(|(d, _)| d.name() == name).map(|(_, n)| n.clone())
+    }
+
+    /// The destination on screen.
+    pub fn current_dest(&self) -> Option<Dest> {
+        self.stack.visible_child_name().and_then(|name| Dest::named(&name))
+    }
+
+    /// A controller has been seen: Settings shows the row that swaps its buttons from now on.
+    pub fn controller_seen(&self) {
+        self.prefs.set_controller_seen();
+    }
+
+    /// Open the window's main menu, showing the sidebar it sits in first when that is away.
+    pub fn open_main_menu(&self) {
+        let Some(button) = self.main_menu.borrow().clone() else { return };
+        if !button.is_mapped() {
+            self.split.set_show_sidebar(true);
+        }
+        glib::idle_add_local_once(move || button.popup());
     }
 
     /// A notice of the app's own: information, for 4 s or longer as its words run on.
@@ -229,6 +257,8 @@ pub struct Shell {
     search: pages::search::SearchPage,
     /// Set once the viewer chose what closing does, so the next close goes through.
     closing: Cell<bool>,
+    /// The game controller, once the window is built.
+    pad: std::cell::OnceCell<Rc<crate::pad::Pad>>,
     /// The app kept running with its window closed, until the downloads end.
     held: RefCell<Option<gio::ApplicationHoldGuard>>,
     fixtures: bool,
@@ -285,6 +315,10 @@ impl Shell {
             stack: stack.clone(),
             claims: RefCell::default(),
             next_claim: Cell::new(0),
+            controller_mode: Cell::new(false),
+            controller_device: RefCell::default(),
+            content_focus: RefCell::default(),
+            main_menu: RefCell::default(),
         });
 
         // The destinations, each a navigation view of its own.
@@ -334,6 +368,7 @@ impl Shell {
             settings,
             search,
             closing: Cell::new(false),
+            pad: std::cell::OnceCell::new(),
             held: RefCell::default(),
             fixtures,
             welcome_checked: Cell::new(false),
@@ -341,6 +376,8 @@ impl Shell {
             party_asked: Cell::new(false),
         });
         shell.player.attach(Rc::downgrade(&shell));
+        let _ = shell.pad.set(crate::pad::Pad::attach(&shell));
+        shell.watch_pages();
         crate::tv::sheet::attach(&shell.ctx);
         shell.breakpoints();
         shell.actions(app);
@@ -353,6 +390,52 @@ impl Shell {
         shell.close_request();
         shell.go(Dest::Continue);
         shell
+    }
+
+    /// Where a controller's focus is, as its map reads it.
+    pub fn pad_context(&self) -> anistream_model::input::PadContext {
+        if self.is_player() {
+            self.player.pad_context()
+        } else {
+            anistream_model::input::PadContext::Browse
+        }
+    }
+
+    /// The game controller.
+    pub fn pad(&self) -> Option<&Rc<crate::pad::Pad>> {
+        self.pad.get()
+    }
+
+    /// A page coming on screen puts a controller's focus on its first control, and the page's
+    /// last focus is kept for Right from the sidebar to go back to.
+    fn watch_pages(self: &Rc<Self>) {
+        let ctx = &self.ctx;
+        let weak = Rc::downgrade(self);
+        let shown = move || {
+            if let Some(pad) = weak.upgrade().and_then(|shell| shell.pad().cloned()) {
+                pad.page_shown();
+            }
+        };
+        ctx.stack.connect_visible_child_notify({
+            let shown = shown.clone();
+            move |_| shown()
+        });
+        for (_, nav) in ctx.navs.borrow().iter() {
+            let shown = shown.clone();
+            nav.connect_visible_page_notify(move |_| shown());
+        }
+        let weak = Rc::downgrade(ctx);
+        ctx.window.connect_focus_widget_notify(move |window| {
+            let Some(ctx) = weak.upgrade() else { return };
+            let Some(focus) = GtkWindowExt::focus(window) else { return };
+            let in_sidebar = ctx
+                .split
+                .sidebar()
+                .is_some_and(|sidebar| focus == sidebar || focus.is_ancestor(&sidebar));
+            if !in_sidebar && focus.is::<gtk::Widget>() {
+                ctx.content_focus.replace(Some(focus.downgrade()));
+            }
+        });
     }
 
     /// Show `dest`, as its sidebar row does.
@@ -677,7 +760,18 @@ impl Shell {
                 });
             }),
         );
-        add("shortcuts", None, Box::new(|s, _| pages::shortcuts(&s.ctx)));
+        add(
+            "shortcuts",
+            None,
+            Box::new(|s, _| {
+                // The last input came from a controller: its buttons are what the viewer needs.
+                if s.ctx.controller_mode.get() {
+                    crate::pad::show_help(&s.ctx, &s.pad_context());
+                } else {
+                    pages::shortcuts(&s.ctx);
+                }
+            }),
+        );
         add(
             "connect",
             Some(glib::VariantTy::STRING),
@@ -1166,6 +1260,7 @@ fn sidebar(ctx: &Rc<Ctx>) -> (adw::NavigationPage, gtk::ListBox, gtk::ListBox) {
         .tooltip_text(t::shell_main_menu())
         .primary(true)
         .build();
+    *ctx.main_menu.borrow_mut() = Some(primary.clone());
     let header = adw::HeaderBar::new();
     header.set_title_widget(Some(&adw::WindowTitle::new("anistream", "")));
     header.pack_end(&primary);

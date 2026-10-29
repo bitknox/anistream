@@ -7,7 +7,9 @@
 use std::{path::PathBuf, rc::Rc, time::Duration};
 
 use adw::prelude::*;
-use anistream_model::{command::Command, event::Event, sync::DeviceCodePrompt};
+use anistream_model::{
+    command::Command, event::Event, input::PadButton, sync::DeviceCodePrompt,
+};
 use gtk::glib;
 
 use crate::{hub::SignIn, pages::Dest, window::Shell};
@@ -143,6 +145,18 @@ pub const SOURCES: [&str; 7] = [
     "source-pin-unavailable",
     "source-unsourced",
     "source-unsourced-none",
+];
+
+/// The game controller's shots: the screens as a controller leaves them, with the focus ring
+/// showing. `--shot pad` takes them.
+pub const PAD: [&str; 7] = [
+    "pad-continue",
+    "pad-title",
+    "pad-library",
+    "pad-sidebar",
+    "pad-help",
+    "pad-help-player",
+    "pad-settings",
 ];
 
 /// Stats for nerds' shots, apart from the rest so a run of every shot keeps to its time:
@@ -463,6 +477,62 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             shell.settings_pane("playback");
             1.5
         }
+        "pad-continue" => {
+            shell.go(Dest::Continue);
+            pad_press(
+                shell,
+                &[PadButton::DpadDown, PadButton::DpadDown, PadButton::DpadDown],
+                1500,
+            );
+            3.0
+        }
+        "pad-title" => {
+            shell.go(Dest::Continue);
+            if let Some(pad) = shell.pad() {
+                pad.shot_enter();
+            }
+            let _ =
+                WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
+            3.5
+        }
+        "pad-library" => {
+            shell.go(Dest::Library);
+            pad_press(
+                shell,
+                &[PadButton::DpadDown, PadButton::DpadRight, PadButton::DpadRight],
+                2200,
+            );
+            3.5
+        }
+        "pad-sidebar" => {
+            shell.go(Dest::Continue);
+            pad_press(shell, &[PadButton::DpadDown, PadButton::DpadLeft], 1500);
+            3.0
+        }
+        "pad-help" => {
+            shell.go(Dest::Continue);
+            if let Some(pad) = shell.pad() {
+                pad.shot_enter();
+                pad.shot_help();
+            }
+            1.5
+        }
+        "pad-help-player" => {
+            play(shell);
+            let shell = Rc::clone(shell);
+            glib::timeout_add_local_once(Duration::from_secs(5), move || {
+                if let Some(pad) = shell.pad() {
+                    pad.shot_enter();
+                    pad.shot_help();
+                }
+            });
+            7.0
+        }
+        "pad-settings" => {
+            shell.ctx.prefs.set_controller_seen();
+            shell.settings_pane("general");
+            1.5
+        }
         "settings-general" => {
             shell.settings_pane("general");
             1.5
@@ -688,8 +758,14 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
 
 /// Leave the state a shot put the window in.
 fn unstage(shell: &Rc<Shell>, shot: &str) {
+    if shot.starts_with("pad-") {
+        if let Some(pad) = shell.pad() {
+            pad.shot_leave();
+        }
+        close_dialogs(&shell.ctx.window);
+    }
     match shot {
-        "title" | "title-discussion" => {
+        "title" | "pad-title" | "title-discussion" => {
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
         }
         "trailer-preview" => crate::trailer::close_preview(),
@@ -776,7 +852,9 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
             shell.player.close_menus();
             shell.player.close();
         }
-        "player" | "player-marks" | "player-undo" | "mini" => shell.player.close(),
+        "player" | "player-marks" | "player-undo" | "mini" | "pad-help-player" => {
+            shell.player.close()
+        }
         party if party.starts_with("party-") => party_unstage(shell, party),
         source if source.starts_with("source-") => source_unstage(shell),
         tv if tv.starts_with("tv-") => tv_unstage(shell, tv),
@@ -824,6 +902,19 @@ fn upscaling(shell: &Rc<Shell>, mode: &str) {
 }
 
 /// Play the player shots' episode, paused once it plays so the controls stay up.
+/// A controller pressing `buttons` one after another, the first `after` milliseconds from now.
+fn pad_press(shell: &Rc<Shell>, buttons: &[PadButton], after: u64) {
+    let shell = Rc::clone(shell);
+    let buttons = buttons.to_vec();
+    glib::timeout_add_local_once(Duration::from_millis(after), move || {
+        let Some(pad) = shell.pad() else { return };
+        pad.shot_enter();
+        for button in buttons {
+            pad.shot_press(button);
+        }
+    });
+}
+
 fn play(shell: &Rc<Shell>) {
     let (id, episode) = PLAYING;
     let _ = WidgetExt::activate_action(
@@ -1160,6 +1251,7 @@ pub fn named(list: Option<&str>) -> Vec<String> {
             .flat_map(|s| match s {
                 "party" => PARTY.iter().map(|p| (*p).to_owned()).collect(),
                 "sources" => SOURCES.iter().map(|p| (*p).to_owned()).collect(),
+                "pad" => PAD.iter().map(|p| (*p).to_owned()).collect(),
                 "stats" => STATS.iter().map(|p| (*p).to_owned()).collect(),
                 "tv" => TV.iter().map(|p| (*p).to_owned()).collect(),
                 one => vec![one.to_owned()],

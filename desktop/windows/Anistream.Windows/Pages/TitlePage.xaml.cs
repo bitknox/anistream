@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Anistream.App;
+using Anistream.Windows.Discussion;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Xaml;
@@ -17,11 +18,33 @@ public sealed partial class EpisodeItem : INotifyPropertyChanged
 {
     ImageSource? still;
 
-    internal EpisodeItem(EpisodeRow row, bool spoiler)
+    internal EpisodeItem(EpisodeRow row, bool spoiler, uint title = 0)
     {
         Row = row;
         Spoiler = spoiler;
+        Title = title;
+        Discussion = Ctx.Current is { } ctx && uint.TryParse(row.Number, out var n) ? ctx.Known.Discussions.GetValueOrDefault((title, n)) : 0;
     }
+
+    public uint Title { get; }
+
+    uint discussion;
+
+    /// <summary>The comments in the episode's discussion, once the engine found one.</summary>
+    public uint Discussion
+    {
+        get => discussion;
+        set
+        {
+            if (discussion == value)
+                return;
+            discussion = value;
+            Changed(nameof(DiscussionLine), nameof(DiscussionShown));
+        }
+    }
+
+    public string DiscussionLine => T.DiscussionRow(Discussion);
+    public Visibility DiscussionShown => Discussion > 0 ? Visibility.Visible : Visibility.Collapsed;
 
     public EpisodeRow Row { get; }
     public bool Spoiler { get; }
@@ -161,7 +184,11 @@ public sealed partial class TitlePage : Page, IPageKeys
         KeyboardAccelerators.Add(settings);
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
-        Unloaded += (_, _) => ctx.Batch -= Heard;
+        Unloaded += (_, _) =>
+        {
+            ctx.Batch -= Heard;
+            discussion?.Close();
+        };
     }
 
     /// <summary>The page's own layout as raised plates: banner, cover and title, then episode rows.</summary>
@@ -219,6 +246,24 @@ public sealed partial class TitlePage : Page, IPageKeys
         // --show=source-unsourced-end: the table scrolled to its end, where the last unsourced rows are.
         if (ctx.Options.Show == "source-unsourced-end")
             _ = Task.Delay(2500).ContinueWith(_ => DispatcherQueue.TryEnqueue(() => Scroll.ChangeView(null, Scroll.ScrollableHeight, null, true)));
+        // --show=discussion...: the quiet rows under watched episodes, and the pane open on episode 2.
+        if (Discussion.DiscussionShowcase.Is(ctx.Options.Show) && ctx.Options.Title == id)
+            _ = Task.Delay(1800).ContinueWith(_ => DispatcherQueue.TryEnqueue(() =>
+            {
+                Event[] found = [new Event.DiscussionFound(id, 1, 38), new Event.DiscussionFound(id, 2, 214)];
+                foreach (var f in found)
+                    ctx.Known.Take(f);
+                ctx.Heard(found);
+                if (ctx.Options.Show == "discussion-row")
+                    return;
+                OpenDiscussion(2, null);
+                var show = ctx.Options.Show!;
+                _ = Task.Delay(700).ContinueWith(_ => DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (discussion is { } pane)
+                        Discussion.DiscussionShowcase.Then(show, pane);
+                }));
+            }));
         // --show=source-menu: the More menu open, for a screenshot.
         if (ctx.Options.Show == "source-menu" && ctx.Options.Title == id)
             _ = Task.Delay(1500).ContinueWith(_ => DispatcherQueue.TryEnqueue(() => MoreButton.Flyout.ShowAt(MoreButton)));
@@ -237,6 +282,11 @@ public sealed partial class TitlePage : Page, IPageKeys
                 case Event.Progress p when p.Id == id:
                     Show();
                     ctx.Send(new Command.LoadEpisodes(id));
+                    break;
+                case Event.DiscussionFound found when found.Media == id:
+                    if (EpisodeList.ItemsSource is IEnumerable<EpisodeItem> shown)
+                        foreach (var item in shown.Where(i => i.Row.Number == found.Episode.ToString()))
+                            item.Discussion = found.Comments;
                     break;
                 case Event.TitleDub td when td.Id == id:
                     var line = Wording.DubLine(td.Dub);
@@ -385,7 +435,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         var items = rows.Select(r =>
         {
             var spoiler = uint.TryParse(r.Number, out var n) && n > next && !r.Completed;
-            var item = new EpisodeItem(r, spoiler);
+            var item = new EpisodeItem(r, spoiler, id);
             // A spoiler's still loads too, and shows blurred.
             ctx.Art.Bind(r.Thumbnail, s => item.Still = s);
             return item;
@@ -529,6 +579,79 @@ public sealed partial class TitlePage : Page, IPageKeys
         if (ItemOf(sender) is { } item)
             ctx.Send(new Command.SetWatched(id, [item.Row.Number], !item.Row.Completed));
     }
+
+    // The episode's discussion, in a pane on the trailing side; over the page when the window is narrow.
+
+    DiscussionPane? discussion;
+    FrameworkElement? opener;
+    Microsoft.UI.Xaml.Shapes.Rectangle? scrim;
+
+    void OnEpisodeDiscussion(object sender, RoutedEventArgs e)
+    {
+        if (ItemOf(sender) is { } item && uint.TryParse(item.Row.Number, out var episode))
+            OpenDiscussion(episode, sender as FrameworkElement);
+    }
+
+    internal void OpenDiscussion(uint episode, FrameworkElement? from)
+    {
+        discussion?.Close();
+        opener = from;
+        var pane = new DiscussionPane(ctx, id, episode);
+        discussion = pane;
+        pane.Closed += () =>
+        {
+            if (discussion != pane)
+                return;
+            discussion = null;
+            Shell.Children.Remove(pane);
+            if (scrim is not null)
+                Shell.Children.Remove(scrim);
+            scrim = null;
+            ShellColumn(false);
+            if (opener?.XamlRoot is not null)
+                opener.Focus(FocusState.Programmatic);
+        };
+        Shell.Children.Add(pane);
+        PlaceDiscussion();
+        pane.Start();
+    }
+
+    /// <summary>Beside the page from 1000 epx of window; over it, with a light dismiss, below.</summary>
+    void PlaceDiscussion()
+    {
+        if (discussion is not { } pane)
+            return;
+        var window = XamlRoot?.Size.Width ?? Shell.ActualWidth;
+        var over = window > 0 && window < DiscussionPane.OverlayBelow;
+        Grid.SetRow(pane, 0);
+        if (over)
+        {
+            ShellColumn(false);
+            Grid.SetColumn(pane, 0);
+            Grid.SetColumnSpan(pane, 2);
+            if (scrim is null)
+            {
+                scrim = new Microsoft.UI.Xaml.Shapes.Rectangle { Fill = (Brush)Application.Current.Resources["ScrimBrush"] };
+                Grid.SetColumnSpan(scrim, 2);
+                scrim.Tapped += (_, _) => discussion?.Close();
+                Shell.Children.Insert(Shell.Children.IndexOf(pane), scrim);
+            }
+        }
+        else
+        {
+            if (scrim is not null)
+                Shell.Children.Remove(scrim);
+            scrim = null;
+            Grid.SetColumn(pane, 1);
+            Grid.SetColumnSpan(pane, 1);
+            ShellColumn(true);
+        }
+    }
+
+    void ShellColumn(bool pane) =>
+        Shell.ColumnDefinitions[1].Width = pane ? GridLength.Auto : new GridLength(0);
+
+    void OnShellSized(object sender, SizeChangedEventArgs e) => PlaceDiscussion();
 
     void OnEpisodeDownload(object sender, RoutedEventArgs e)
     {
