@@ -299,6 +299,8 @@ impl Upstream for HttpUpstream {
         }
         let response = request.send().await.map_err(io::Error::other)?;
         let status = response.status().as_u16();
+        // Redirects are followed: a CDN's playlist often comes from an edge host.
+        let landed = Some(response.url().to_string()).filter(|landed| landed != url);
         let headers = response
             .headers()
             .iter()
@@ -309,6 +311,6 @@ impl Upstream for HttpUpstream {
         let body = response
             .bytes_stream()
             .map(|chunk| chunk.map(|bytes| bytes.to_vec()).map_err(io::Error::other));
-        Ok(UpstreamResponse { status, headers, body: Box::pin(body) })
+        Ok(UpstreamResponse { status, headers, body: Box::pin(body), url: landed })
     }
 }

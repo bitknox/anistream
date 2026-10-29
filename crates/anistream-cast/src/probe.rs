@@ -81,9 +81,10 @@ pub async fn hls(
     let mut probe = CorsProbe::default();
     let Ok(response) = get(upstream, url, headers, None).await else { return (info, probe) };
     probe.manifest = cors_allowed(&response);
+    // Relative addresses resolve against where a redirect landed.
+    let mut playlist_url = response.url.clone().unwrap_or_else(|| url.to_owned());
     let Ok(body) = response.bytes(PLAYLIST_LIMIT).await else { return (info, probe) };
     let mut text = String::from_utf8_lossy(&body).into_owned();
-    let mut playlist_url = url.to_owned();
 
     if let Some(variant) = best_variant(&text) {
         if let Some(codecs) = variant.codecs {
@@ -91,10 +92,13 @@ pub async fn hls(
         }
         info.height = variant.height;
         let variant = variant.uri;
-        playlist_url = resolve(url, &variant);
+        playlist_url = resolve(&playlist_url, &variant);
         let Ok(response) = get(upstream, &playlist_url, headers, None).await else {
             return (info, probe);
         };
+        if let Some(landed) = &response.url {
+            playlist_url.clone_from(landed);
+        }
         probe.manifest &= cors_allowed(&response);
         let Ok(body) = response.bytes(PLAYLIST_LIMIT).await else { return (info, probe) };
         text = String::from_utf8_lossy(&body).into_owned();

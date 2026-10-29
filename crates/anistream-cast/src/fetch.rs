@@ -27,6 +27,9 @@ pub struct UpstreamResponse {
     pub status: u16,
     pub headers: Vec<(String, String)>,
     pub body: Body,
+    /// Where the answer came from, when a client that follows redirects ended up elsewhere:
+    /// what a playlist's relative addresses resolve against.
+    pub url: Option<String>,
 }
 
 impl UpstreamResponse {
@@ -167,7 +170,7 @@ impl Upstream for PlainHttp {
                 }
             }))
         };
-        Ok(UpstreamResponse { status, headers, body })
+        Ok(UpstreamResponse { status, headers, body, url: None })
     }
 }
 

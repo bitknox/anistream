@@ -615,6 +615,9 @@ async fn upstream(
         wait.failed();
     }
     drop(wait);
+    // Where the answer came from after any redirect: a playlist's relative addresses are
+    // relative to that.
+    let base = response.url.clone().unwrap_or_else(|| url.to_owned());
     let kind = response.header("content-type").map_or_else(
         || content_type(url.split('?').next().unwrap_or(url)).to_owned(),
         str::to_owned,
@@ -694,7 +697,7 @@ async fn upstream(
         drop(wait);
         let text = String::from_utf8_lossy(&body);
         let origins = std::cell::RefCell::new(Vec::new());
-        let rewritten = rewrite_playlist(&text, url, &|u| {
+        let rewritten = rewrite_playlist(&text, &base, &|u| {
             if let Some(o) = origin(u) {
                 origins.borrow_mut().push(o);
             }
@@ -942,6 +945,47 @@ mod tests {
         let response = get(&relay.upstream_url(&format!("{source}/v?token=abc")), None).await;
         assert_eq!(response.bytes(1 << 20).await.unwrap(), body);
         assert!(relay.media_served());
+    }
+
+    /// An upstream that sends every request on to `edge`, as a CDN's redirect does, and says
+    /// where it landed.
+    struct Redirecting {
+        edge: String,
+    }
+
+    #[async_trait::async_trait]
+    impl Upstream for Redirecting {
+        async fn get(
+            &self,
+            url: &str,
+            headers: &[(String, String)],
+        ) -> std::io::Result<UpstreamResponse> {
+            let landed = format!("{}/edge/index.m3u8", self.edge);
+            let mut response = PlainHttp.get(&self.edge, headers).await?;
+            response.url = Some(landed).filter(|landed| landed != url);
+            Ok(response)
+        }
+    }
+
+    #[tokio::test]
+    async fn a_playlist_reached_through_a_redirect_resolves_against_where_it_landed() {
+        let playlist = "#EXTM3U\n#EXTINF:4.0,\nseg0.ts\n#EXT-X-ENDLIST\n";
+        let edge = crate::fetch::tests::serve(playlist.as_bytes().to_vec(), false).await;
+        let relay = Relay::start(
+            Ipv4Addr::LOCALHOST,
+            IpAddr::V4(Ipv4Addr::LOCALHOST),
+            Arc::new(Redirecting { edge: edge.clone() }),
+        )
+        .await
+        .unwrap();
+        let asked = relay.upstream_url("http://origin.example/show/index.m3u8");
+        let text = String::from_utf8(get(&asked, None).await.bytes(1 << 20).await.unwrap())
+            .unwrap();
+        let segment = format!("{}/u/{}", relay.base(), encode(&format!("{edge}/edge/seg0.ts")));
+        assert!(text.contains(&segment), "{text}");
+        // And the edge's segments may be fetched from now on.
+        let origins = lock(&relay.shared.origins).clone();
+        assert!(origins.contains(&origin(&edge).unwrap()), "{origins:?}");
     }
 
     #[tokio::test]
