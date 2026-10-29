@@ -262,7 +262,7 @@ public static class Wording
         };
         string? button = clock is { } c2
             ? EpisodeButton(T.TitleButtonResume(episode, c2), dub)
-            : item.Playable ? EpisodeButton(T.TitleButtonPlay(episode), dub) : null;
+            : item.Playable ? EpisodeButton(WatchedAll(entry) ? T.TitleButtonWatchAgain : T.TitleButtonPlay(episode), dub) : null;
         string? waiting = item.Playable ? null : airs is { } w ? T.EpisodeAirs(episode, w) : T.EpisodeNotOut(episode);
         string? left = null;
         if (item.Resume is { Fraction: > 0 and var fraction } resume)
@@ -276,6 +276,10 @@ public static class Wording
     /// <summary>Continue's queue, every row <see cref="Said(QueueItem)"/>.</summary>
     public static Queue Said(Queue queue) =>
         queue with { InProgress = [.. queue.InProgress.Select(Said)], NewThisWeek = [.. queue.NewThisWeek.Select(Said)] };
+
+    /// <summary>Every episode of a show with a known count is watched, so the engine offers episode 1 again.</summary>
+    static bool WatchedAll(Entry entry) =>
+        entry.Episodes is > 0 and var total && entry.Progress is { } p && p.Done >= total && p.Next == 1;
 
     static string EpisodeButton(string text, bool dub) => dub ? T.EpisodeLineDubbed(text) : text;
 
