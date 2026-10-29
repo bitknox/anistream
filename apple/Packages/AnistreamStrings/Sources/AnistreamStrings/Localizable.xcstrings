@@ -15191,6 +15191,54 @@
         }
       }
     },
+    "settings-trailers-always" : {
+      "comment" : "Value of the Play trailers setting: trailers play by themselves on any network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always"
+          }
+        }
+      }
+    },
+    "settings-trailers-note-apple" : {
+      "comment" : "Note under the Play trailers setting: what the trailers are and when they do not play.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trailers play muted from YouTube, which sees your IP address. They don't play in Low Data Mode, with Reduce Motion on or in Low Power Mode."
+          }
+        }
+      }
+    },
+    "settings-trailers-row" : {
+      "comment" : "Settings row: when a title's trailer plays by itself, muted, in place of its banner.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play trailers"
+          }
+        }
+      }
+    },
+    "settings-trailers-wifi-only" : {
+      "comment" : "Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi only"
+          }
+        }
+      }
+    },
     "settings-translation" : {
       "comment" : "Settings row for the audio translation, as the engine names the setting.",
       "extractionState" : "manual",
@@ -21405,6 +21453,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address."
+          }
+        }
+      }
+    },
+    "trailer-failed-apple" : {
+      "comment" : "Heading in the trailer window or sheet when the video did not start within a few seconds or the player refused it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open the trailer"
+          }
+        }
+      }
+    },
+    "trailer-window-title-apple" : {
+      "comment" : "Title of the Play trailer window on the Mac and of its sheet on iPhone and iPad. Argument 1: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Trailer"
           }
         }
       }

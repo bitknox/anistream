@@ -355,6 +355,9 @@ struct GeneralPane: View {
     var body: some View {
         SettingsGroup(title: L.settingsGroupTitles) {
             TitleLanguageRow()
+            SettingsRow(title: SettingKey.trailers.title, note: L.settingsTrailersNoteApple) {
+                SettingMenu(key: .trailers)
+            }
             SettingsRow(title: SettingKey.adultTitles.title, note: L.settingsAdultDetail(tracker: AccountsModel.name("anilist"))) {
                 SettingSwitch(key: .adultTitles)
             }

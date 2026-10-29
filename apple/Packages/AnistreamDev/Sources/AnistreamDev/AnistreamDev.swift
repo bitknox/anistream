@@ -92,6 +92,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
     func run() async {
         let (launch, temporary) = options.launch()
         self.temporary = temporary
+        TrailerStandIn.install(keepsWhenInactive: true)
         print("AnistreamDev: \(options.engine) in \(launch.home.data.deletingLastPathComponent().path)")
         let host = AppHost(
             // The real engine on the terminal's directories shares its keychain items; anything
@@ -151,8 +152,9 @@ final class Delegate: NSObject, NSApplicationDelegate {
             print(there ? "AnistreamDev: the party is at \(scene.rawValue)" : "AnistreamDev: the party did not reach \(scene.rawValue)")
         }
         guard let url = options.snapshot else { return }
-        // The art's and the preview's fade-ins.
-        try? await Task.sleep(for: .milliseconds(400))
+        // The art's and the preview's fade-ins, and ANISTREAM_SHOT_WAIT seconds more for a trailer.
+        let more = ProcessInfo.processInfo.environment["ANISTREAM_SHOT_WAIT"].flatMap(Double.init) ?? 0
+        try? await Task.sleep(for: .milliseconds(400 + Int(more * 1000)))
         if let motion = MotionDemo.from(), !options.frames.isEmpty, let window = Snapshot.window {
             await frames(of: motion, in: window, to: url)
         } else if options.artTrouble != nil, !options.frames.isEmpty, let window = Snapshot.window {
