@@ -1,5 +1,5 @@
-// An episode's discussion on TV: a read-only panel from the episode's actions, never from the
-// player. Up and down move comment to comment, each focused with a 3 dp silk ring; Select on one
+// An episode's discussion on TV: a read-only panel from the episode's actions or the player's
+// More panel. Up and down move comment to comment, each focused with a 3 dp silk ring; Select on one
 // with a spoiler opens it. No likes, replies, posting, images or links.
 
 package tv.anistream.tv.ui

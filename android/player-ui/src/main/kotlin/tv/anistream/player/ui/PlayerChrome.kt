@@ -7,7 +7,9 @@ package tv.anistream.player.ui
 import tv.anistream.i18n.Strings
 import tv.anistream.i18n.R
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import tv.anistream.ui.Menu
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.togetherWith
@@ -33,6 +35,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +43,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
@@ -98,6 +102,9 @@ import tv.anistream.player.SeekSegment
 /** The 1 dp shadow the board puts under the controls' text and icons, for a bright frame. */
 private val ControlShadow = Shadow(Color(0xB30A0C18), Offset(0f, 2.6f), 2.6f)
 
+/** The player's More menu entry for the episode's discussion: how many comments, when known. */
+class DiscussionEntry(val comments: UInt?, val onOpen: () -> Unit)
+
 @Composable
 fun PlayerChrome(
     model: PlayerModel,
@@ -108,11 +115,13 @@ fun PlayerChrome(
     preview: SeekPreview? = null,
     /** Play on TV, where the app can: the episode carries on on a TV from here. */
     onPlayOnTv: (() -> Unit)? = null,
+    /** The discussion in the More menu, from the point the episode counts as watched. */
+    discussion: DiscussionEntry? = null,
 ) {
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(ObiSilk.Ground.copy(alpha = 0.35f)))
         TopBar(
-            model, onClose, onTracks, onEpisodes, onPlayOnTv,
+            model, onClose, onTracks, onEpisodes, onPlayOnTv, discussion,
             Modifier.align(Alignment.TopStart).padding(start = 48.dp, end = 48.dp, top = 16.dp).fillMaxWidth().height(48.dp),
         )
         BottomBar(
@@ -130,6 +139,7 @@ private fun TopBar(
     onTracks: () -> Unit,
     onEpisodes: () -> Unit,
     onPlayOnTv: (() -> Unit)?,
+    discussion: DiscussionEntry?,
     modifier: Modifier,
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -162,6 +172,40 @@ private fun TopBar(
         onPlayOnTv?.let { ControlButton(PlayerIcons.Tv, stringResource(R.string.tv_play_on), onClick = it) }
         ControlButton(PlayerIcons.Subtitles, stringResource(R.string.player_subtitles_audio_picture), onClick = onTracks)
         ControlButton(PlayerIcons.Episodes, stringResource(R.string.player_episodes), onClick = onEpisodes)
+        if (discussion != null) MoreMenu(model, discussion)
+    }
+}
+
+/** The More button and its menu, which holds the controls up while it is open. */
+@Composable
+private fun MoreMenu(model: PlayerModel, discussion: DiscussionEntry) {
+    var open by remember { mutableStateOf(false) }
+    DisposableEffect(open) {
+        model.hold("more", open) // i18n-skip
+        onDispose { model.hold("more", false) } // i18n-skip
+    }
+    Box {
+        ControlButton(PlayerIcons.More, stringResource(R.string.action_more)) { open = true }
+        Menu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = {
+                    Column {
+                        Text(stringResource(R.string.discussion_open))
+                        Text(
+                            discussion.comments?.let { pluralStringResource(R.plurals.player_more_discussion_note, it.toInt(), it.toInt()) }
+                                ?: stringResource(R.string.player_more_discussion_pauses),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+                leadingIcon = { Icon(PlayerIcons.Discussion, contentDescription = null) },
+                onClick = {
+                    open = false
+                    discussion.onOpen()
+                },
+            )
+        }
     }
 }
 

@@ -75,4 +75,32 @@ class DiscussionTest {
         store.closeDiscussion()
         assertEquals(listOf(Command.OpenDiscussion(900001u, 7u), Command.CloseDiscussion), store.waiting)
     }
+
+    @Test
+    fun playerOffersTheDiscussionFromEightyFivePercent() {
+        val late = PlayerDiscussion()
+        assertEquals(false, late.see(0.0, null))
+        assertEquals(false, late.see(1000.0, 0.0))
+        assertEquals(false, late.see(1199.0, 1440.0))
+        assertEquals(true, late.see(1224.0, 1440.0))
+    }
+
+    @Test
+    fun playerKeepsOfferingAfterASeekBack() {
+        val late = PlayerDiscussion()
+        late.see(1300.0, 1440.0)
+        assertEquals(true, late.see(10.0, 1440.0))
+        assertEquals(false, PlayerDiscussion().see(10.0, 1440.0))
+    }
+
+    @Test
+    fun playerMenuNeedsTheSettingAndANumberedEpisode() {
+        assertEquals(true, PlayerDiscussion.offered(reached = true, enabled = true, episode = 7u))
+        assertEquals(false, PlayerDiscussion.offered(reached = false, enabled = true, episode = 7u))
+        assertEquals(false, PlayerDiscussion.offered(reached = true, enabled = false, episode = 7u))
+        assertEquals(false, PlayerDiscussion.offered(reached = true, enabled = true, episode = null))
+        assertEquals(7u, PlayerDiscussion.episode("7"))
+        assertNull(PlayerDiscussion.episode("7.5"))
+        assertNull(PlayerDiscussion.episode(null))
+    }
 }

@@ -464,6 +464,13 @@
     <string name="discussion_image_host">Image · %1$s</string>
     <!-- Line for a video in a comment. The host is where it lives. -->
     <string name="discussion_video_host">Video · %1$s</string>
+    <!-- Player, More menu: under Discussion, how many comments there are and that opening it pauses the video. -->
+    <plurals name="player_more_discussion_note">
+        <item quantity="one">One comment · pauses</item>
+        <item quantity="other">%1$d comments · pauses</item>
+    </plurals>
+    <!-- Player, More menu: under Discussion when the comment count is not known yet; opening it pauses the video. -->
+    <string name="player_more_discussion_pauses">Pauses the video</string>
     <!-- Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. -->
     <string name="tv_pair_request_held">%1$s wants to pair. Code %2$s</string>
     <!-- TV, Continue hero: the action when no source can play yet. -->

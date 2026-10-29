@@ -861,6 +861,14 @@ object Strings {
     fun discussionVideoHost(context: Context, host: String): String =
         context.getString(R.string.discussion_video_host, host)
 
+    /** Player, More menu: under Discussion, how many comments there are and that opening it pauses the video. */
+    fun playerMoreDiscussionNote(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.player_more_discussion_note, count, count)
+
+    /** Player, More menu: under Discussion when the comment count is not known yet; opening it pauses the video. */
+    fun playerMoreDiscussionPauses(context: Context): String =
+        context.getString(R.string.player_more_discussion_pauses)
+
     /** Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. */
     fun tvPairRequestHeld(context: Context, phone: String, code: String): String =
         context.getString(R.string.tv_pair_request_held, phone, code)

@@ -48,3 +48,17 @@ discussion-image-host = Image · { $host }
 # @max 60
 # @arg host: text
 discussion-video-host = Video · { $host }
+
+# Player, More menu: under Discussion, how many comments there are and that opening it pauses the video.
+# @only android
+# @max 40
+# @arg count: int
+player-more-discussion-note = { $count ->
+    [one] One comment · pauses
+   *[other] { $count } comments · pauses
+ }
+
+# Player, More menu: under Discussion when the comment count is not known yet; opening it pauses the video.
+# @only android
+# @max 40
+player-more-discussion-pauses = Pauses the video

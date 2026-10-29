@@ -51,3 +51,29 @@ class DiscussionModel {
     /** The comments the engine counts for an episode, `null` when it has no thread or has not said. */
     fun count(media: AnilistId, episode: UInt): UInt? = _found.value[DiscussionKey(media, episode)]
 }
+
+/**
+ * Whether the player offers the discussion of the episode on screen: from 85 % of it, the point it
+ * counts as watched, and then for the rest of that episode, even if someone seeks back. One per
+ * episode playing; a new episode gets a new one.
+ */
+class PlayerDiscussion {
+    private var reached = false
+
+    /** Take the playhead's place; true once the episode has been far enough on. */
+    fun see(position: Double, duration: Double?): Boolean {
+        if (!reached && duration != null && duration > 0.0 && position >= duration * WATCHED_AT) reached = true
+        return reached
+    }
+
+    companion object {
+        /** The share of an episode after which it counts as watched. */
+        const val WATCHED_AT = 0.85
+
+        /** The episode number a discussion belongs to; `null` for a special or a number with a fraction. */
+        fun episode(number: String?): UInt? = number?.toUIntOrNull()
+
+        /** Whether the More menu has the discussion in it. */
+        fun offered(reached: Boolean, enabled: Boolean, episode: UInt?): Boolean = reached && enabled && episode != null
+    }
+}

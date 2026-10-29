@@ -333,6 +333,23 @@ class TvShots {
         assertEquals("Play now", focusedText())
     }
 
+    /** Past 85 % of the episode the chrome has More, which opens a panel with the discussion in it. */
+    @Test
+    fun player_more() = playerShot("tv-player-more") { model ->
+        compose.runOnUiThread {
+            shot.apply(Event.DiscussionFound(900_001u, 7u, 214u))
+            playerMpv!!.emit(MpvEvent.property("time-pos", MpvValue.Real(1250.0)))
+        }
+        compose.mainClock.advanceTimeBy(500)
+        compose.waitForIdle()
+        repeat(8) { if (focusedText() != "More") press(Key.DirectionRight) }
+        assertEquals("More", focusedText())
+        press(Key.DirectionCenter)
+        compose.mainClock.advanceTimeBy(500)
+        compose.waitForIdle()
+        assertTrue("the panel offers the discussion: ${focusedTexts()}", focusedTexts().any { it.startsWith("Discussion") })
+    }
+
     /** The Info panel: the episode, then how it plays. */
     @Test
     fun player_info() = playerShot("tv-player-info") { model ->
@@ -802,6 +819,7 @@ class TvShots {
     private fun playerShot(name: String?, then: (PlayerModel) -> Unit) {
         AppClock.clock = Clock.fixed(Instant.parse("2026-10-20T19:02:00Z"), ZONE)
         val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
+        shot = store
         var mpv: ScriptedMpv? = null
         val model = PlayerModel(send = {}, backend = { ScriptedMpv().also { mpv = it; playerMpv = it } }, scope = scope, now = { time }, hwdec = "no")
         compose.runOnUiThread {
