@@ -1753,6 +1753,15 @@ keys-action-right = Move right
 keys-action-top = Jump to top
 
 # Action label in the help overlay and the command palette.
+keys-action-today = Jump to today
+
+# Action label in the help overlay and the command palette.
+keys-action-previous-day = Jump to previous day
+
+# Action label in the help overlay and the command palette.
+keys-action-next-day = Jump to next day
+
+# Action label in the help overlay and the command palette.
 keys-action-bottom = Jump to bottom
 
 # Action label in the help overlay and the command palette.
@@ -3065,6 +3074,9 @@ settings-label-episode-discussions = Episode discussions
 
 # Settings row: whether images in discussion comments load inline.
 settings-label-comment-images = Load images in comments
+
+# Settings row: whether Calendar shows only the shows on the person's list.
+settings-label-calendar-mine = Calendar shows only my list
 
 # Note under the titles row.
 settings-note-titles = AniList's choice follows your AniList account, and is English when you're signed out.

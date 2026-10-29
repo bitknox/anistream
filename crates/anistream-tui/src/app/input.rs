@@ -153,6 +153,9 @@ impl App {
             | Action::PageDown
             | Action::Top
             | Action::Bottom => return self.move_cursor(action, visible_rows),
+            Action::Today | Action::PreviousDay | Action::NextDay => {
+                self.calendar_day_jump(action, visible_rows)
+            }
             // Left goes left until nothing is further left, then onto the rail. Screens with a
             // horizontal axis step it first — Settings a value, Library its segments — and a
             // pushed view's left is the view it was opened from, so a stack of titles is never

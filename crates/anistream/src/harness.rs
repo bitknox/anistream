@@ -162,6 +162,8 @@ pub struct Harness {
     store: Store,
     paths: Paths,
     registry: ProviderRegistry,
+    /// The engine's clock, which a test moves on with [`Harness::advance_engine_clock`].
+    engine_clock: anistream_engine::clock::Clock,
     /// Last, so it is removed after everything that might still be writing into it.
     _root: tempfile::TempDir,
 }
@@ -267,11 +269,12 @@ impl Harness {
         start.saved = Some(saved);
         start.sources = Some(registry.clone());
         start.background = Background { keep_next: options.keep_next, ..Background::none() };
+        let engine_clock = anistream_engine::clock::Clock::default();
         start.parts = Some(Parts {
             meta,
             sync,
             stores,
-            clock: Default::default(),
+            clock: engine_clock.clone(),
             fixture_exit: Some(anistream_providers::vpn::VpnGuard::fixture_egress()),
         });
         start.free_space = Some(1_000_000_000_000);
@@ -299,6 +302,7 @@ impl Harness {
             store,
             paths,
             registry,
+            engine_clock,
             _root: root,
         }
     }
@@ -542,6 +546,12 @@ impl Harness {
     }
 
     /// The fake AniList: what it was asked, and how it should fail.
+    /// Let `secs` pass for the engine's own clock, which what it keeps for a while ages by. The
+    /// fake AniList and the broadcasts it answers with stay where they are.
+    pub fn advance_engine_clock(&self, secs: i64) {
+        self.engine_clock.advance(secs);
+    }
+
     pub fn server(&self) -> &FakeAniList {
         &self.server
     }
@@ -752,6 +762,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::RecentSearches(_) => "RecentSearches",
         Event::CalendarWindow { .. } => "CalendarWindow",
         Event::CalendarBackfill { .. } => "CalendarBackfill",
+        Event::CalendarAhead { .. } => "CalendarAhead",
         Event::Detail(_) => "Detail",
         Event::ViewerTitleLanguage(_) => "ViewerTitleLanguage",
         Event::TitlesChanged(_) => "TitlesChanged",
@@ -869,9 +880,28 @@ fn copy(update: &Event) -> Event {
         Event::Browse(rails) => Event::Browse(rails.clone()),
         Event::Facets(facets) => Event::Facets(facets.clone()),
         Event::RecentSearches(recent) => Event::RecentSearches(recent.clone()),
-        Event::CalendarWindow { anchor, pages, more_past } => {
-            Event::CalendarWindow { anchor: *anchor, pages: *pages, more_past: *more_past }
-        }
+        Event::CalendarWindow {
+            anchor,
+            pages,
+            more_past,
+            floor,
+            ceiling,
+            ahead_pages,
+            more_ahead,
+        } => Event::CalendarWindow {
+            anchor: *anchor,
+            pages: *pages,
+            more_past: *more_past,
+            floor: *floor,
+            ceiling: *ceiling,
+            ahead_pages: *ahead_pages,
+            more_ahead: *more_ahead,
+        },
+        Event::CalendarAhead { page, entries, more_ahead } => Event::CalendarAhead {
+            page: *page,
+            entries: entries.clone(),
+            more_ahead: *more_ahead,
+        },
         Event::CalendarBackfill { page, entries, more_past } => Event::CalendarBackfill {
             page: *page,
             entries: entries.clone(),
