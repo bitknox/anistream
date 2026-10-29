@@ -3999,6 +3999,9 @@ public static partial class T
     /// <summary>Menu item that plays the trailer.</summary>
     public static string TitlePlayTrailer => Get("TitlePlayTrailer");
 
+    /// <summary>Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.</summary>
+    public static string TitleTrailerFailed => Get("TitleTrailerFailed");
+
     /// <summary>Name and tooltip of the button beside a playing trailer that turns its sound on or off.</summary>
     public static string TitleTrailerSound => Get("TitleTrailerSound");
 
@@ -6328,6 +6331,7 @@ public static partial class T
         ["TitleTrailer"] = "Trailer",
         ["TitleButtonWatchAgain"] = "Watch again",
         ["TitlePlayTrailer"] = "Play trailer",
+        ["TitleTrailerFailed"] = "Couldn't open the trailer",
         ["TitleTrailerSound"] = "Trailer sound",
         ["TitleOpenAnilist"] = "Open on AniList",
         ["TitleOpen"] = "Open title",

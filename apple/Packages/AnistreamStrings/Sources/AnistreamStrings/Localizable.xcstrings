@@ -15369,6 +15369,18 @@
         }
       }
     },
+    "title-trailer-failed" : {
+      "comment" : "Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open the trailer"
+          }
+        }
+      }
+    },
     "title-trailer-sound" : {
       "comment" : "Name and tooltip of the button beside a playing trailer that turns its sound on or off.",
       "extractionState" : "manual",

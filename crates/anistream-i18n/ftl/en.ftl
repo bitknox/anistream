@@ -6577,6 +6577,9 @@ title-button-watch-again = Watch again
 # Menu item that plays the trailer.
 title-play-trailer = Play trailer
 
+# Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.
+title-trailer-failed = Couldn't open the trailer
+
 # Name and tooltip of the button beside a playing trailer that turns its sound on or off.
 title-trailer-sound = Trailer sound
 

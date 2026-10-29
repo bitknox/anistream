@@ -5491,6 +5491,10 @@
     <value>Play trailer</value>
     <comment>Menu item that plays the trailer.</comment>
   </data>
+  <data name="TitleTrailerFailed" xml:space="preserve">
+    <value>Couldn't open the trailer</value>
+    <comment>Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.</comment>
+  </data>
   <data name="TitleTrailerSound" xml:space="preserve">
     <value>Trailer sound</value>
     <comment>Name and tooltip of the button beside a playing trailer that turns its sound on or off.</comment>

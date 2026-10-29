@@ -58,6 +58,17 @@ static class Motion
         });
     }
 
+    /// <summary>Fades an element that keeps its place to the opacity <paramref name="to"/>: in on the fade-in token, away on the fade-out token.</summary>
+    public static void Fade(UIElement element, double to)
+    {
+        if (!Enabled)
+        {
+            element.Opacity = to;
+            return;
+        }
+        Fade(element, element.Opacity, to, to > element.Opacity ? FadeInTime : FadeOutTime, to > element.Opacity ? EasingMode.EaseOut : EasingMode.EaseIn, null);
+    }
+
     /// <summary>Fades freshly arrived content in from nothing: art, a page, a crossfade's new half.</summary>
     public static void FadeIn(UIElement element, TimeSpan? time = null)
     {
@@ -77,6 +88,23 @@ static class Motion
             return;
         }
         Fade(element, element.Opacity, shown ? 1 : 0, shown ? FadeInTime : FadeOutTime, shown ? EasingMode.EaseOut : EasingMode.EaseIn, done);
+    }
+
+    /// <summary>
+    /// A trailer's art over the video (<paramref name="covered"/>) or away from it. The art goes
+    /// when the first frame plays, on the fade-in token (200 ms), and comes back over the
+    /// video on the fade-out token (300 ms).
+    /// </summary>
+    public static void Cover(UIElement art, bool covered, Action? done = null)
+    {
+        if (!Enabled)
+        {
+            Set(art, true);
+            art.Opacity = covered ? 1 : 0;
+            done?.Invoke();
+            return;
+        }
+        Fade(art, art.Opacity, covered ? 1 : 0, covered ? FadeOutTime : FadeInTime, covered ? EasingMode.EaseIn : EasingMode.EaseOut, done);
     }
 
     /// <summary>
@@ -124,17 +152,18 @@ static class Motion
         element.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    /// <summary>The canvas's fade tokens as curves: fade-in cubic-bezier(0, 0, 0.58, 1), fade-out cubic-bezier(0.42, 0, 1, 1).</summary>
+    static KeySpline Spline(EasingMode mode) => mode == EasingMode.EaseOut
+        ? new KeySpline { ControlPoint1 = new global::Windows.Foundation.Point(0, 0), ControlPoint2 = new global::Windows.Foundation.Point(0.58, 1) }
+        : new KeySpline { ControlPoint1 = new global::Windows.Foundation.Point(0.42, 0), ControlPoint2 = new global::Windows.Foundation.Point(1, 1) };
+
     static void Fade(UIElement element, double from, double to, TimeSpan time, EasingMode mode, Action? done)
     {
         if (running.Remove(element, out var was))
             was.Stop();
-        var animation = new DoubleAnimation
-        {
-            From = from,
-            To = to,
-            Duration = time,
-            EasingFunction = new CubicEase { EasingMode = mode },
-        };
+        var animation = new DoubleAnimationUsingKeyFrames();
+        animation.KeyFrames.Add(new DiscreteDoubleKeyFrame { KeyTime = TimeSpan.Zero, Value = from });
+        animation.KeyFrames.Add(new SplineDoubleKeyFrame { KeyTime = time, Value = to, KeySpline = Spline(mode) });
         Storyboard.SetTarget(animation, element);
         Storyboard.SetTargetProperty(animation, "Opacity");
         var board = new Storyboard();

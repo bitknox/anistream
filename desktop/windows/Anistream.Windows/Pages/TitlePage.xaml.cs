@@ -162,7 +162,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         KeyboardAccelerators.Add(settings);
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
-        trailer = new PageTrailer(this, Banner, Scroll, SoundButton);
+        trailer = new PageTrailer(this, Banner, Art, Scroll, SoundButton, () => reserved);
         Unloaded += (_, _) =>
         {
             ctx.Batch -= Heard;
@@ -172,18 +172,30 @@ public sealed partial class TitlePage : Page, IPageKeys
 
     readonly PageTrailer trailer;
 
-    /// <summary>How far the title block has stepped down below a playing trailer (0 when the banner is clear of it).</summary>
-    double drop;
+    /// <summary>
+    /// A trailer may play here, so the band is tall enough for it from the first frame. Decided
+    /// once the title and the engine's word on autoplay are known, and kept for the visit: the
+    /// page never moves for the trailer.
+    /// </summary>
+    bool reserved;
 
-    /// <summary>Below the playing trailer the title sits clear of it, and back over the banner's lower part when it is gone.</summary>
-    internal void StepTitle(bool below)
+    /// <summary>The band under the title bar for a title that may play a trailer.</summary>
+    const double TrailerBand = 280;
+
+    void Reserve()
     {
-        var to = below ? 132d : 0d;
-        Motion.Ease(this, drop, to, value =>
-        {
-            drop = value;
-            Columns.Padding = new Thickness(36, Banner.Height - 120 + drop, 36, 24);
-        });
+        if (reserved || ctx.Known.Entry(id) is not { } entry || !trailer.Wanted(entry))
+            return;
+        reserved = true;
+        Layout();
+    }
+
+    /// <summary>The banner's height and where the cover and title start under it.</summary>
+    void Layout()
+    {
+        var band = reserved ? TrailerBand : Math.Min(360, Math.Max(220, Scroll.ActualWidth * 9 / 32));
+        Banner.Height = band;
+        Columns.Padding = new Thickness(36, reserved ? band - 80 : band - 120, 36, 24);
     }
 
     /// <summary>The page's own layout as raised plates: banner, cover and title, then episode rows.</summary>
@@ -221,6 +233,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         DubLine.Opacity = 0;
         trailer.Open(id);
         Show();
+        Reserve();
         ShowEpisodes();
         // The cover a grid sent flies in to this one; anything else crossfades.
         var flight = ConnectedAnimationService.GetForCurrentView().GetAnimation(CoverAnimation);
@@ -242,6 +255,16 @@ public sealed partial class TitlePage : Page, IPageKeys
         // --show=source-unsourced-end: the table scrolled to its end, where the last unsourced rows are.
         if (ctx.Options.Show == "source-unsourced-end")
             _ = Task.Delay(2500).ContinueWith(_ => DispatcherQueue.TryEnqueue(() => Scroll.ChangeView(null, Scroll.ScrollableHeight, null, true)));
+        // --show=trailer-window, trailer-window-stuck: the Play trailer window open, playing or never starting.
+        if (ctx.Options.Show is "trailer-window" or "trailer-window-stuck" && ctx.Options.Title == id)
+            _ = Task.Delay(3500).ContinueWith(_ => DispatcherQueue.TryEnqueue(() =>
+            {
+                if (ctx.Known.Entry(id) is not { } entry)
+                    return;
+                if (ctx.Options.Show == "trailer-window-stuck")
+                    entry = entry with { Trailer = new Trailer(TrailerHost.YouTube, Trailers.FixtureStuckId) };
+                TrailerWindow.Play(ctx, entry);
+            }));
         // --show=source-menu: the More menu open, for a screenshot.
         if (ctx.Options.Show == "source-menu" && ctx.Options.Title == id)
             _ = Task.Delay(1500).ContinueWith(_ => DispatcherQueue.TryEnqueue(() => MoreButton.Flyout.ShowAt(MoreButton)));
@@ -256,9 +279,11 @@ public sealed partial class TitlePage : Page, IPageKeys
             {
                 case Event.Detail d when d.V1.Id == id:
                     Show();
+                    Reserve();
                     trailer.MaybeStart();
                     break;
                 case Event.Autoplay:
+                    Reserve();
                     trailer.MaybeStart();
                     break;
                 case Event.Progress p when p.Id == id:
@@ -295,7 +320,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         State.Done();
         var cover = new CoverItem(entry);
         CoverFrame.Background = cover.Placeholder;
-        Banner.Background = cover.Placeholder;
+        Art.Background = cover.Placeholder;
         ctx.Art.Bind(entry.CoverUrl, s => CoverImage.Source = s);
         ctx.Art.Bind(entry.BannerUrl ?? entry.CoverUrl, s => BannerImage.Source = s);
         ShowTitle.Text = entry.Title;
@@ -499,8 +524,8 @@ public sealed partial class TitlePage : Page, IPageKeys
 
     void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        Banner.Height = Math.Min(360, Math.Max(220, e.NewSize.Width * 9 / 32));
-        Columns.Padding = new Thickness(36, Banner.Height - 120 + drop, 36, 24);
+        Layout();
+        Reserve();
         if (ctx.Known.Entry(id) is { } entry)
             ShowDetails(entry);
     }

@@ -5969,6 +5969,10 @@ object Strings {
     fun titlePlayTrailer(context: Context): String =
         context.getString(R.string.title_play_trailer)
 
+    /** Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it. */
+    fun titleTrailerFailed(context: Context): String =
+        context.getString(R.string.title_trailer_failed)
+
     /** Name and tooltip of the button beside a playing trailer that turns its sound on or off. */
     fun titleTrailerSound(context: Context): String =
         context.getString(R.string.title_trailer_sound)

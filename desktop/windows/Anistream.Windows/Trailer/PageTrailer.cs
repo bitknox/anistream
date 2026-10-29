@@ -9,11 +9,14 @@ using Microsoft.UI.Xaml.Media;
 namespace Anistream.Windows.Pages;
 
 /// <summary>
-/// A title page's trailer: it plays over the banner once the page has settled, and the video
-/// fades in when a frame is playing. Nothing is drawn over the video, so the title steps down
-/// below it. Scrolling the page by more than 8 px pauses it; scrolling back to the top within
-/// 30 s plays it again, and after 30 s away it is let go of for this visit. Leaving the page,
-/// starting an episode, opening a sheet or the window losing focus releases it at once.
+/// A title page's trailer: a title that may play one opens with the band tall enough for it,
+/// decided once per visit, so nothing on the page moves. It plays in its own 448 by 252 place at
+/// the trailing end of the band once the page has settled; the art fades away entirely when a
+/// frame is playing and comes back half a second before the end. Scrolling the page by more than
+/// 8 px fades the art back and pauses the trailer under it; scrolling back to the top within 30 s
+/// plays it again and fades the art away once it plays, and after 30 s away it is let go of for
+/// this visit. Leaving the page, starting an episode, opening a sheet or the window losing focus
+/// releases it at once.
 /// </summary>
 sealed class PageTrailer
 {
@@ -22,24 +25,33 @@ sealed class PageTrailer
     /// <summary>Scrolling further than this pauses it.</summary>
     const double Scrolled = 8;
 
+    /// <summary>The video's place in the band: 448 by 252, 12 below its top and 36 from its trailing edge.</summary>
+    public const double VideoWidth = 448, VideoHeight = 252, VideoTop = 12, VideoMargin = 36;
+
+    /// <summary>The page is wide enough for the video beside the cover and title.</summary>
+    const double WideEnough = 760;
+
     readonly Ctx ctx = Ctx.Current;
     readonly TitlePage page;
     readonly Grid banner;
     readonly ScrollViewer scroll;
     readonly Button sound;
+    readonly Func<bool> reserved;
     bool soundOn;
     readonly TrailerStage stage;
     readonly DispatcherQueueTimer settle, away, watch;
     uint id;
     bool settled, abandoned, released;
 
-    public PageTrailer(TitlePage page, Grid banner, ScrollViewer scroll, Button sound)
+    public PageTrailer(TitlePage page, Grid banner, UIElement art, ScrollViewer scroll, Button sound, Func<bool> reserved)
     {
         this.page = page;
         this.banner = banner;
         this.scroll = scroll;
         this.sound = sound;
-        stage = new TrailerStage(banner, EmbedStyle.Banner);
+        this.reserved = reserved;
+        stage = new TrailerStage(banner, EmbedStyle.Banner, art);
+        stage.Place(VideoWidth, VideoHeight, new Thickness(0, VideoTop, VideoMargin, 0), HorizontalAlignment.Right);
         stage.Showing += Showing;
         settle = page.DispatcherQueue.CreateTimer();
         settle.Interval = Settle;
@@ -70,12 +82,20 @@ sealed class PageTrailer
         {
             Sound(!soundOn);
         };
-        banner.SizeChanged += (_, e) => stage.Size(e.NewSize.Width, e.NewSize.Height);
         scroll.ViewChanged += OnScroll;
         ctx.Window.Activated += OnActivated;
     }
 
     public bool Playing => stage.Playing;
+
+    /// <summary>
+    /// The title may play a trailer here: the engine allows it on this device and network, the
+    /// title's trailer is one the app plays and the spoiler rule lets it, animation effects are
+    /// on, the web view is there and the page is wide enough. The page asks once per visit and
+    /// opens with the band tall enough when the answer is yes.
+    /// </summary>
+    public bool Wanted(Entry entry) =>
+        TrailerHub.Available && Motion.Enabled && page.ActualWidth >= WideEnough && Trailers.MayAutoplay(ctx.Known, entry);
 
     /// <summary>The page is shown for title <paramref name="title"/>: wait for its transition to end, then see whether the trailer may play.</summary>
     public void Open(uint title)
@@ -121,14 +141,12 @@ sealed class PageTrailer
     public void MaybeStart()
     {
         if (released || !settled || abandoned || stage.Active || scroll.VerticalOffset > Scrolled
-            || !page.IsLoaded || ctx.Window.PlayerUp || !ctx.Window.InFront || SheetOpen())
+            || !reserved() || !Motion.Enabled || !page.IsLoaded || ctx.Window.PlayerUp || !ctx.Window.InFront || SheetOpen())
             return;
         if (ctx.Known.Entry(id) is not { } entry || !Trailers.MayAutoplay(ctx.Known, entry))
             return;
-        var (w, h) = (banner.ActualWidth, banner.ActualHeight);
-        if (!stage.Fits(w, h))
+        if (!stage.Fits(banner.ActualWidth, banner.ActualHeight))
             return;
-        stage.Size(w, h);
         if (stage.Start(entry))
             watch.Start();
     }
@@ -150,7 +168,7 @@ sealed class PageTrailer
         }
     }
 
-    /// <summary>The video fades in or away: the sound button comes and goes, and the title steps below the video or back over the banner.</summary>
+    /// <summary>The video shows or goes: the sound button fades in or away with the art, and the page does not move.</summary>
     void Showing(bool shown)
     {
         TrailerHub.PageShowing = shown;
@@ -158,14 +176,10 @@ sealed class PageTrailer
         {
             HoverPreview.Close();
             Sound(false);
-            sound.Visibility = Visibility.Visible;
             Motion.FadeIn(sound);
         }
         else
-            sound.Visibility = Visibility.Collapsed;
-        // Gone for good, the title goes back over the banner; paused, it stays down.
-        if (shown || !stage.Active)
-            page.StepTitle(shown);
+            Motion.Hide(sound);
         if (!stage.Active)
             watch.Stop();
     }

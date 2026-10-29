@@ -12,9 +12,11 @@ namespace Anistream.Windows;
 
 /// <summary>
 /// A trailer's web view in one place (the title page's banner, a hover preview, the Play trailer
-/// window). The banner shows at once and the web view lies over it, transparent and unseen; the
-/// video fades in only when the page says a frame is playing, so the wait is never seen. Nothing
-/// is ever drawn over the video, and the view takes no pointer or keyboard input of its own.
+/// window). The art lies over the web view and holds the video's place; it fades away only when
+/// the page says a frame is playing, so the wait is never seen, and it comes back over the video
+/// before the trailer is held or let go of, so the player's own pause and end screens are never
+/// seen. Nothing is ever drawn over the video, and the view takes no pointer or keyboard input
+/// of its own.
 /// </summary>
 sealed class TrailerStage
 {
@@ -27,22 +29,32 @@ sealed class TrailerStage
     readonly EmbedStyle style;
     readonly TrailerFlow flow = new();
     readonly Func<Entry, string?> pageFor;
+    readonly UIElement? art;
     WebView2? view;
-    DispatcherQueueTimer? timeout;
+    DispatcherQueueTimer? timeout, ending;
     string? folder;
     int generation;
     double width, height;
+    (double Width, double Height, Thickness Margin, HorizontalAlignment Side)? fixedPlace;
+
+    /// <summary>The art is this far from the end when it starts coming back.</summary>
+    static readonly TimeSpan BeforeTheEnd = TimeSpan.FromMilliseconds(500);
 
     /// <summary>The video is on screen (true) or has gone (false).</summary>
     public event Action<bool>? Showing;
 
+    /// <summary>The window's trailer has not played within 8 s and has been let go of.</summary>
+    public event Action? TimedOut;
+
     /// <summary>The page refused it or it could not start, with YouTube's code (0 for the page's own).</summary>
     public event Action<uint>? Refused;
 
-    public TrailerStage(Panel host, EmbedStyle style, Func<Entry, string?>? pageFor = null)
+    /// <param name="art">What lies over the video's place and fades away when a frame plays (banner and preview only).</param>
+    public TrailerStage(Panel host, EmbedStyle style, UIElement? art = null, Func<Entry, string?>? pageFor = null)
     {
         this.host = host;
         this.style = style;
+        this.art = art;
         this.pageFor = pageFor ?? (entry => Trailers.Page(entry, style));
     }
 
@@ -60,10 +72,26 @@ sealed class TrailerStage
         Fit();
     }
 
+    /// <summary>The video sits in this exact place: the title page's band gives it a 16:9 box of its own.</summary>
+    public void Place(double w, double h, Thickness margin, HorizontalAlignment side)
+    {
+        fixedPlace = (w, h, margin, side);
+        Fit();
+    }
+
     void Fit()
     {
         if (view is null)
             return;
+        if (fixedPlace is { } place)
+        {
+            view.Width = place.Width;
+            view.Height = place.Height;
+            view.Margin = place.Margin;
+            view.HorizontalAlignment = place.Side;
+            view.VerticalAlignment = VerticalAlignment.Top;
+            return;
+        }
         if (style == EmbedStyle.Full)
         {
             // The window's own: the view fills it, and YouTube's player letterboxes inside.
@@ -79,7 +107,9 @@ sealed class TrailerStage
     }
 
     /// <summary>This stage's area would give the player at least 200 by 200.</summary>
-    public bool Fits(double w, double h) => flow.Phase != TrailerPhase.Done && Math.Min(w, h * 16 / 9) >= 356 && h >= MinSide;
+    public bool Fits(double w, double h) =>
+        flow.Phase != TrailerPhase.Done
+        && (fixedPlace is { } place ? w >= place.Width + place.Margin.Right + 260 : Math.Min(w, h * 16 / 9) >= 356 && h >= MinSide);
 
     /// <summary>Load the title's trailer. False when it cannot: no runtime, nothing the player plays, or one already held.</summary>
     public bool Start(Entry entry)
@@ -97,17 +127,23 @@ sealed class TrailerStage
             DefaultBackgroundColor = Colors.Transparent,
             IsHitTestVisible = style == EmbedStyle.Full,
             IsTabStop = style == EmbedStyle.Full,
-            Opacity = style == EmbedStyle.Full ? 1 : 0,
+            Opacity = style == EmbedStyle.Full || art is not null ? 1 : 0,
         };
         AutomationProperties.SetAccessibilityView(view, Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw);
         Fit();
-        host.Children.Add(view);
+        // Under the art, which holds the place until a frame plays.
+        host.Children.Insert(art is null ? host.Children.Count : Math.Max(0, host.Children.IndexOf(art)), view);
         timeout = host.DispatcherQueue.CreateTimer();
         timeout.Interval = GiveUp;
         timeout.IsRepeating = false;
-        timeout.Tick += (_, _) => Apply(flow.GiveUp());
-        if (style == EmbedStyle.Banner)
-            timeout.Start();
+        timeout.Tick += (_, _) =>
+        {
+            var effect = flow.GiveUp();
+            if (effect != TrailerEffect.None && style == EmbedStyle.Full)
+                TimedOut?.Invoke();
+            Apply(effect);
+        };
+        timeout.Start();
         if (style == EmbedStyle.Banner)
             TrailerHub.Claim(this);
         _ = Load(view, page, mine);
@@ -167,24 +203,92 @@ sealed class TrailerStage
     void Apply(TrailerEffect effect)
     {
         if (effect.HasFlag(TrailerEffect.PausePlayer))
-            Control(TrailerControl.Pause);
+        {
+            if (art is not null && effect.HasFlag(TrailerEffect.HideVideo))
+            {
+                // Pause once the art covers it, so the paused screen is never seen.
+                var mine = view;
+                var wait = host.DispatcherQueue.CreateTimer();
+                wait.Interval = Motion.FadeOutTime;
+                wait.IsRepeating = false;
+                wait.Tick += (_, _) =>
+                {
+                    if (view == mine && flow.Phase == TrailerPhase.Paused)
+                        Control(TrailerControl.Pause);
+                };
+                wait.Start();
+            }
+            else
+                Control(TrailerControl.Pause);
+        }
         if (effect.HasFlag(TrailerEffect.PlayPlayer))
             Control(TrailerControl.Play);
         if (effect.HasFlag(TrailerEffect.ShowVideo) && view is not null)
         {
             timeout?.Stop();
-            if (style == EmbedStyle.Banner)
+            if (art is not null)
+                Motion.Cover(art, false);
+            else if (style == EmbedStyle.Banner)
                 Motion.Video(view, true);
+            Watch(true);
             Showing?.Invoke(true);
         }
         if (effect.HasFlag(TrailerEffect.HideVideo))
         {
-            if (!effect.HasFlag(TrailerEffect.Release) && view is not null)
+            Watch(false);
+            if (art is not null)
+            {
+                if (!effect.HasFlag(TrailerEffect.Release))
+                    Motion.Cover(art, true);
+            }
+            else if (!effect.HasFlag(TrailerEffect.Release) && view is not null)
                 Motion.Video(view, false);
             Showing?.Invoke(false);
         }
         if (effect.HasFlag(TrailerEffect.Release))
             Let(fade: effect.HasFlag(TrailerEffect.HideVideo) && style == EmbedStyle.Banner);
+    }
+
+    /// <summary>
+    /// While the video shows, ask the player how long is left: half a second before the end the
+    /// art starts back over it, and the player is let go of under the art.
+    /// </summary>
+    void Watch(bool on)
+    {
+        if (art is null || style != EmbedStyle.Banner)
+            return;
+        if (!on)
+        {
+            ending?.Stop();
+            return;
+        }
+        ending ??= host.DispatcherQueue.CreateTimer();
+        ending.Interval = TimeSpan.FromMilliseconds(100);
+        ending.IsRepeating = true;
+        ending.Tick -= OnEnding;
+        ending.Tick += OnEnding;
+        ending.Start();
+    }
+
+    async void OnEnding(DispatcherQueueTimer sender, object args)
+    {
+        var mine = view;
+        if (mine?.CoreWebView2 is not { } core || !flow.Showing)
+            return;
+        string text;
+        try
+        {
+            text = await core.ExecuteScriptAsync("window.trailer && window.trailer.remaining ? window.trailer.remaining() : -1");
+        }
+        catch (Exception)
+        {
+            return;
+        }
+        if (view != mine || !flow.Showing)
+            return;
+        if (double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var left)
+            && left >= 0 && left <= BeforeTheEnd.TotalSeconds)
+            Apply(flow.Heard(new TrailerMessage.Ended()));
     }
 
     /// <summary>Hold the trailer: it pauses and the banner comes back over it.</summary>
@@ -219,6 +323,7 @@ sealed class TrailerStage
         generation++;
         timeout?.Stop();
         timeout = null;
+        ending?.Stop();
         TrailerHub.Release(this);
         var gone = view;
         view = null;
@@ -236,7 +341,16 @@ sealed class TrailerStage
         }
         if (gone is not null)
         {
-            if (fade)
+            if (fade && art is not null)
+            {
+                // The art comes back over the playing video; the player goes under it.
+                Motion.Cover(art, true, () =>
+                {
+                    _ = gone.CoreWebView2?.ExecuteScriptAsync(AnistreamFfiMethods.TrailerScript(TrailerControl.Pause));
+                    Close();
+                });
+            }
+            else if (fade)
             {
                 _ = gone.CoreWebView2?.ExecuteScriptAsync(AnistreamFfiMethods.TrailerScript(TrailerControl.Pause));
                 Motion.Video(gone, false, Close);

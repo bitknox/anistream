@@ -130,6 +130,8 @@ public static class Trailers
         // The fixture scene's made-up trailer plays a gradient, with no network.
         if (entry.Trailer?.Id == FixtureId)
             return FixturePage;
+        if (entry.Trailer?.Id == FixtureStuckId)
+            return FixtureStuckPage;
 #endif
         return entry.Trailer is { } trailer ? AnistreamFfiMethods.TrailerEmbedPage(trailer, style, Identity) : null;
     }
@@ -161,6 +163,17 @@ public static class Trailers
     /// </summary>
     public const string FixtureId = "fixtureclip1";
 
+    /// <summary>A trailer that never plays: the window's loading, then its "Couldn't open the trailer".</summary>
+    public const string FixtureStuckId = "fixtureclip-stuck";
+
+    public const string FixtureStuckPage = """
+        <!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}</style></head><body><script>
+        function say(m){try{window.chrome.webview.postMessage(m)}catch(e){}}
+        window.trailer={play:function(){},pause:function(){},mute:function(){},unmute:function(){},remaining:function(){return -1}};
+        say("ready");
+        </script></body></html>
+        """;
+
     /// <summary>
     /// A page that says what the real one would, for the shots and for trying the app offline: a
     /// slow gradient in place of the video, <c>ready</c> at once and <c>playing</c> a moment later.
@@ -173,8 +186,10 @@ public static class Trailers
         @keyframes drift{0%{background-position:0% 50%}100%{background-position:100% 50%}}
         </style></head><body><div id="clip"></div><script>
         function say(m){try{window.chrome.webview.postMessage(m)}catch(e){}}
-        window.trailer={play:function(){say("playing")},pause:function(){say("paused")},mute:function(){},unmute:function(){}};
-        say("ready");setTimeout(function(){say("playing")},700);
+        var t0=Date.now(),len=30;
+        window.trailer={play:function(){say("playing")},pause:function(){say("paused")},mute:function(){},unmute:function(){},
+        remaining:function(){return Math.max(0,len-(Date.now()-t0)/1000)}};
+        say("ready");setTimeout(function(){say("playing")},700);setTimeout(function(){say("ended")},len*1000);
         </script></body></html>
         """;
 

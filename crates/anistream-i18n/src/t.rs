@@ -10560,6 +10560,11 @@ pub fn title_play_trailer() -> String {
     text("title-play-trailer", &[])
 }
 
+/// Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.
+pub fn title_trailer_failed() -> String {
+    text("title-trailer-failed", &[])
+}
+
 /// Name and tooltip of the button beside a playing trailer that turns its sound on or off.
 pub fn title_trailer_sound() -> String {
     text("title-trailer-sound", &[])

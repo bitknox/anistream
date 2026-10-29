@@ -3120,6 +3120,8 @@
     <string name="title_button_watch_again">Watch again</string>
     <!-- Menu item that plays the trailer. -->
     <string name="title_play_trailer">Play trailer</string>
+    <!-- Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it. -->
+    <string name="title_trailer_failed">Couldn\'t open the trailer</string>
     <!-- Name and tooltip of the button beside a playing trailer that turns its sound on or off. -->
     <string name="title_trailer_sound">Trailer sound</string>
     <!-- Menu item that opens the title on the AniList website. -->

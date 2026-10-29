@@ -4076,6 +4076,9 @@ public enum L {
     /// Menu item that plays the trailer.
     public static var titlePlayTrailer: String { string("title-play-trailer", fallback: "Play trailer") }
 
+    /// Line in the Play trailer window when the trailer did not start in time or the player gave an error. Try again sits under it.
+    public static var titleTrailerFailed: String { string("title-trailer-failed", fallback: "Couldn't open the trailer") }
+
     /// Name and tooltip of the button beside a playing trailer that turns its sound on or off.
     public static var titleTrailerSound: String { string("title-trailer-sound", fallback: "Trailer sound") }
 

@@ -19,13 +19,18 @@ namespace Anistream.Windows;
 /// The preview a cover opens when the pointer rests on it: the banner, the title, a facts line,
 /// two lines of synopsis and the title's main action, in a flyout. Where the title has a trailer
 /// and trailers may play, it plays muted over the banner as on the title page.
-/// The pointer must rest: less than 4 px of movement for 800 ms. The preview closes 150 ms after
+/// The pointer must rest: less than 4 px of movement for 800 ms, or for 300 ms when a preview
+/// closed less than a second ago (scanning a row). The preview closes 150 ms after
 /// the pointer leaves both the cover and the preview, and at once on a scroll, a key press, a
 /// click elsewhere or the window losing focus. Keyboard focus never opens one.
 /// </summary>
 static class HoverPreview
 {
     static readonly TimeSpan Dwell = TimeSpan.FromMilliseconds(800);
+    /// <summary>The dwell for the next cover when a preview closed less than <see cref="Scanning"/> ago.</summary>
+    static readonly TimeSpan NextDwell = TimeSpan.FromMilliseconds(300);
+    static readonly TimeSpan Scanning = TimeSpan.FromSeconds(1);
+    static DateTime closedAt = DateTime.MinValue;
     static readonly TimeSpan Leave = TimeSpan.FromMilliseconds(150);
     /// <summary>The pointer may drift this far and still be resting.</summary>
     const double Rest = 4;
@@ -85,6 +90,7 @@ static class HoverPreview
     {
         state.Anchor = e.GetCurrentPoint(target).Position;
         state.Timer!.Stop();
+        state.Timer.Interval = DateTime.UtcNow - closedAt < Scanning ? NextDwell : Dwell;
         // A touch has no hover; a pen or a mouse does.
         if (e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Touch)
             return;
@@ -101,6 +107,8 @@ static class HoverPreview
     {
         var was = open;
         open = null;
+        if (was is not null)
+            closedAt = DateTime.UtcNow;
         was?.Dismiss();
     }
 
@@ -134,17 +142,20 @@ static class HoverPreview
         {
             this.ctx = ctx;
             Target = target;
-            var video = new Grid { Width = Width, Height = Width * 9 / 16, Background = (Brush)Application.Current.Resources["RaisedBrush"] };
-            video.Clip = new RectangleGeometry { Rect = new Rect(0, 0, video.Width, video.Height) };
+            // The video is flush at the top of the flyout, clipped only by the flyout's own corners. The
+            // art lies over it and holds its place until a frame plays.
+            var video = new Grid { Width = Width, Height = Width * 9 / 16 };
             var banner = new Image { Stretch = Stretch.UniformToFill };
-            video.Children.Add(banner);
+            var art = new Grid { Background = (Brush)Application.Current.Resources["RaisedBrush"] };
+            art.Children.Add(banner);
+            video.Children.Add(art);
             ctx.Art.Bind(entry.BannerUrl ?? entry.CoverUrl, s => banner.Source = s);
 
             var column = new StackPanel { Width = Width, Spacing = 0 };
             column.Children.Add(video);
-            var text = new StackPanel { Spacing = 6, Padding = new Thickness(14, 12, 14, 14) };
+            var text = new StackPanel { Spacing = 0, Padding = new Thickness(16, 12, 16, 16) };
 
-            var heading = new Grid { ColumnSpacing = 8 };
+            var heading = new Grid { ColumnSpacing = 8, MinHeight = 32 };
             heading.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             heading.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             heading.Children.Add(new TextBlock
@@ -156,10 +167,14 @@ static class HoverPreview
                 TextTrimming = TextTrimming.CharacterEllipsis,
             });
             sound.Content = new FontIcon { Glyph = "\uE74F", FontSize = 14 };
-            sound.Width = 36;
+            sound.Width = 32;
             sound.Height = 32;
             sound.Padding = new Thickness(0);
-            sound.Visibility = Visibility.Collapsed;
+            sound.CornerRadius = new CornerRadius(4);
+            sound.Style = (Style)Application.Current.Resources["SubtleButtonStyle"];
+            // Hidden until a frame plays, but its place stays, so the card is the same size with or without a trailer.
+            sound.Opacity = 0;
+            sound.IsHitTestVisible = false;
             ToolTipService.SetToolTip(sound, T.TitleTrailerSound);
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(sound, T.TitleTrailerSound);
             Grid.SetColumn(sound, 1);
@@ -167,10 +182,15 @@ static class HoverPreview
             text.Children.Add(heading);
 
             if (Wording.MetaLine(entry) is { Length: > 0 } facts)
-                text.Children.Add(Ui.Text(facts, "HazeCaptionStyle"));
+            {
+                var line = Ui.Text(facts, "HazeCaptionStyle");
+                line.Margin = new Thickness(0, 4, 0, 0);
+                text.Children.Add(line);
+            }
             if (Trailers.SpoilerFree(entry) is { Length: > 0 } synopsis)
             {
                 var lines = Ui.Text(synopsis, "BodyTextBlockStyle");
+                lines.Margin = new Thickness(0, 8, 0, 0);
                 lines.MaxLines = 2;
                 lines.TextTrimming = TextTrimming.CharacterEllipsis;
                 text.Children.Add(lines);
@@ -182,7 +202,7 @@ static class HoverPreview
                 {
                     Content = label,
                     Style = (Style)Application.Current.Resources["PrimaryActionStyle"],
-                    Margin = new Thickness(0, 6, 0, 0),
+                    Margin = new Thickness(0, 14, 0, 0),
                     HorizontalAlignment = HorizontalAlignment.Left,
                     IsEnabled = queue.Playable,
                 };
@@ -199,16 +219,23 @@ static class HoverPreview
             presenter.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(0)));
             presenter.Setters.Add(new Setter(FrameworkElement.MaxWidthProperty, Width + 8d));
             presenter.Setters.Add(new Setter(Control.CornerRadiusProperty, new CornerRadius(8)));
+            // The canvas's Raised with its hairline, not the system's grey.
+            presenter.Setters.Add(new Setter(Control.BackgroundProperty, Application.Current.Resources["RaisedBrush"]));
+            presenter.Setters.Add(new Setter(Control.BorderBrushProperty, new SolidColorBrush(global::Windows.UI.Color.FromArgb(0xFF, 0x43, 0x46, 0x53))));
+            presenter.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(1)));
             flyout.FlyoutPresenterStyle = presenter;
             flyout.Content = column;
-            flyout.Placement = FlyoutPlacementMode.Right;
+            flyout.Placement = FlyoutPlacementMode.RightEdgeAlignedTop;
             flyout.ShowMode = FlyoutShowMode.Transient;
             flyout.LightDismissOverlayMode = LightDismissOverlayMode.Off;
             flyout.Closed += (_, _) =>
             {
                 stage?.Stop();
                 if (open?.flyout == flyout)
+                {
                     open = null;
+                    closedAt = DateTime.UtcNow;
+                }
             };
 
             column.PointerEntered += (_, _) => Stay();
@@ -220,14 +247,19 @@ static class HoverPreview
 
             if (TrailerHub.Available && Trailers.Embeddable(entry))
             {
-                stage = new TrailerStage(video, EmbedStyle.Banner);
+                stage = new TrailerStage(video, EmbedStyle.Banner, art);
                 stage.Size(video.Width, video.Height);
                 stage.Showing += shown =>
                 {
                     soundOn = false;
-                    sound.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+                    sound.IsHitTestVisible = shown;
                     if (shown)
+                    {
                         (sound.Content as FontIcon)!.Glyph = "\uE74F";
+                        Motion.Fade(sound, 1);
+                    }
+                    else
+                        Motion.Fade(sound, 0);
                 };
                 sound.Click += (_, _) =>
                 {
@@ -251,9 +283,9 @@ static class HoverPreview
             root = Target.XamlRoot?.Content;
             root?.AddHandler(UIElement.KeyDownEvent, onKey, true);
             root?.AddHandler(UIElement.PointerWheelChangedEvent, onWheel, true);
-            flyout.ShowAt(Target, new FlyoutShowOptions { Placement = FlyoutPlacementMode.Right, ShowMode = FlyoutShowMode.Transient });
+            flyout.ShowAt(Target, new FlyoutShowOptions { Placement = FlyoutPlacementMode.RightEdgeAlignedTop, ShowMode = FlyoutShowMode.Transient });
             // Banner first; the trailer loads under it and fades in only when a frame plays.
-            if (stage is not null && Trailers.MayAutoplay(ctx.Known, entryToPlay))
+            if (stage is not null && Motion.Enabled && Trailers.MayAutoplay(ctx.Known, entryToPlay))
                 stage.Start(entryToPlay);
         }
 
