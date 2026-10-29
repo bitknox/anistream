@@ -27,6 +27,7 @@ mod shots;
 mod showcase;
 mod states;
 mod style;
+mod trailer;
 mod tv;
 mod updater;
 mod updates;

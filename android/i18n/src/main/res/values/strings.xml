@@ -741,6 +741,71 @@
     <string name="tv_problem_full">This TV has as many devices paired as it can keep. Remove one in the TV\'s settings, under Remotes.</string>
     <!-- The TV has forgotten this computer. -->
     <string name="tv_problem_unpaired">The TV doesn\'t know this device any more. Pair again.</string>
+    <!-- Menu item that opens an episode's discussion. -->
+    <string name="discussion_open">Discussion</string>
+    <!-- Title of the discussion window or sheet when the thread has no title yet. -->
+    <string name="discussion_title_episode">Episode %1$d discussion</string>
+    <!-- Quiet line under an episode that opens its discussion. -->
+    <plurals name="discussion_row">
+        <item quantity="one">Discussion · one comment</item>
+        <item quantity="other">Discussion · %1$d comments</item>
+    </plurals>
+    <!-- Count of comments in the header of the discussion. -->
+    <plurals name="discussion_count">
+        <item quantity="one">One comment</item>
+        <item quantity="other">%1$d comments</item>
+    </plurals>
+    <!-- Button that likes a comment, with its count after it. Also its accessible name. -->
+    <string name="discussion_like">Like</string>
+    <!-- Button that replies to a comment. -->
+    <string name="discussion_reply">Reply</string>
+    <!-- Line under a reply that has more replies folded in it. The line opens them. -->
+    <plurals name="discussion_more_replies">
+        <item quantity="one">One more reply</item>
+        <item quantity="other">%1$d more replies</item>
+    </plurals>
+    <!-- Muted bar in place of a spoiler in a comment, until it is opened. -->
+    <string name="discussion_spoiler">Spoiler</string>
+    <!-- Line in place of an image in a comment. It opens the image in the browser. -->
+    <string name="discussion_image">Image</string>
+    <!-- Line in place of a video in a comment. It opens the video in the browser. -->
+    <string name="discussion_video">Video</string>
+    <!-- Placeholder in the field for a new comment. -->
+    <string name="discussion_add_comment">Add a comment</string>
+    <!-- Placeholder in the field while editing a comment. -->
+    <string name="discussion_edit_comment">Edit your comment</string>
+    <!-- Button that sends the comment in the field. -->
+    <string name="discussion_post">Post</string>
+    <!-- Line above the field while answering a comment. -->
+    <string name="discussion_replying_to">Replying to %1$s</string>
+    <!-- Accessible name of the button that stops replying or editing. -->
+    <string name="discussion_cancel_reply">Cancel reply</string>
+    <!-- Line in place of the field when nobody is signed in to AniList. It opens the sign-in. -->
+    <string name="discussion_sign_in">Sign in with AniList to reply</string>
+    <!-- Line in place of the field when the viewer is signed in but offline. -->
+    <string name="discussion_offline_post">Posting waits for the network</string>
+    <!-- Line under a comment AniList did not accept. The button beside it sends it again. -->
+    <string name="discussion_post_failed">Didn\'t post. Try again</string>
+    <!-- Title of the question asked before deleting the viewer's own comment. -->
+    <string name="discussion_delete_title">Delete this comment?</string>
+    <!-- Body of the question asked before deleting the viewer's own comment. -->
+    <string name="discussion_delete_body">It is removed from AniList too.</string>
+    <!-- Line while the comments are still loading after a few seconds. -->
+    <string name="discussion_still_loading">Still loading from AniList</string>
+    <!-- Line while AniList's request budget is spent. The engine waits, then goes on by itself. -->
+    <string name="discussion_rate_limited">AniList asked for a pause. Back in %1$s.</string>
+    <!-- Title of the state when the episode has no thread on AniList. -->
+    <string name="discussion_no_thread">No discussion yet</string>
+    <!-- Line under the no-thread title. -->
+    <string name="discussion_no_thread_detail">Nobody has opened a thread for this episode on AniList.</string>
+    <!-- Title of the state when a thread has no comments. -->
+    <string name="discussion_no_comments">No comments yet</string>
+    <!-- Title of the state when the discussion could not be read. -->
+    <string name="discussion_failed">Couldn\'t load the discussion</string>
+    <!-- Line over comments that are kept from an earlier visit while offline. The age reads "2h ago". -->
+    <string name="discussion_offline_cached">Offline. Showing comments from %1$s.</string>
+    <!-- Heading of the Settings group for discussion rows. -->
+    <string name="discussion_settings_group">Discussions</string>
     <!-- Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group. -->
     <string name="downloads_title">Downloads</string>
     <!-- Button that pauses every running download. -->

@@ -445,3 +445,142 @@ fn seeding() -> Vec<SeedRow> {
         },
     ]
 }
+
+/// How the showcase's discussion reads, for a shot of each state the sheet has.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Thread {
+    #[default]
+    Comments,
+    Nobody,
+    Waiting,
+    Signed,
+}
+
+thread_local! {
+    static THREAD: std::cell::Cell<Thread> = const { std::cell::Cell::new(Thread::Comments) };
+}
+
+/// Answer an opened discussion as `thread` until set again.
+pub fn set_thread(thread: Thread) {
+    THREAD.with(|t| t.set(thread));
+}
+
+/// The discussion a shot opens: made-up people saying made-up things about a made-up show.
+pub fn discussion(
+    media: anistream_core::ids::AnilistId,
+    episode: u32,
+) -> anistream_model::discussion::DiscussionView {
+    use anistream_model::{
+        Msg,
+        discussion::{
+            CommentBlock, CommentSpan, CommentView, DiscussionState, DiscussionView, PostState,
+        },
+    };
+    let thread = THREAD.with(std::cell::Cell::get);
+    let text = |s: &str| CommentSpan { text: s.into(), ..Default::default() };
+    let say = |spans: Vec<CommentSpan>, quote: bool| CommentBlock { spans, quote };
+    let comment = |id: u32, author: &str, hours: u32, body: Vec<CommentBlock>| CommentView {
+        id,
+        author: author.into(),
+        avatar: None,
+        created_at: 0,
+        age: Msg::DiscussionAgeHours { hours: hours.into() },
+        body,
+        like_count: 0,
+        liked: false,
+        own: false,
+        pending: PostState::Posted,
+        replies: Vec::new(),
+        hidden_replies: 0,
+        markdown: String::new(),
+    };
+    let mut first = comment(
+        1,
+        "marlowe",
+        2,
+        vec![
+            say(
+                vec![
+                    text("That ending shot of the lighthouse. I did not expect the "),
+                    CommentSpan {
+                        text: "tide to reverse".into(),
+                        spoiler: true,
+                        ..Default::default()
+                    },
+                    text(" and I am still thinking about it."),
+                ],
+                false,
+            ),
+            say(
+                vec![CommentSpan {
+                    text: "the score alone carries the last minute".into(),
+                    bold: true,
+                    ..Default::default()
+                }],
+                false,
+            ),
+        ],
+    );
+    first.like_count = 14;
+    first.liked = true;
+    let mut answer = comment(
+        2,
+        "tamsin",
+        1,
+        vec![
+            say(vec![text("the score alone carries the last minute")], true),
+            say(vec![text("Agreed. The quiet before it did half the work.")], false),
+        ],
+    );
+    answer.like_count = 3;
+    let mut deeper =
+        comment(3, "ostrava", 1, vec![say(vec![text("Same, I rewatched it twice.")], false)]);
+    deeper.hidden_replies = 0;
+    let mut hidden = comment(4, "wren", 0, vec![say(vec![text("Third time for me.")], false)]);
+    hidden.hidden_replies = 0;
+    answer.hidden_replies = 2;
+    answer.replies = vec![deeper, hidden];
+    first.replies = vec![answer];
+    let mut mine =
+        comment(5, "you", 0, vec![say(vec![text("Posting from the shot run.")], false)]);
+    mine.own = true;
+    mine.pending = PostState::Sending;
+    mine.markdown = "Posting from the shot run.".into();
+    let mut third = comment(
+        6,
+        "juniper",
+        3,
+        vec![say(
+            vec![
+                text("Notes on the animation: "),
+                CommentSpan {
+                    text: "a link to the sketch".into(),
+                    link: Some("https://notes.example/sketch".into()),
+                    ..Default::default()
+                },
+            ],
+            false,
+        )],
+    );
+    third.like_count = 1;
+    let comments = match thread {
+        Thread::Comments | Thread::Signed => vec![first, third, mine],
+        Thread::Nobody | Thread::Waiting => Vec::new(),
+    };
+    DiscussionView {
+        media,
+        episode,
+        title: format!("Lantern Harbour, Episode {episode} discussion"),
+        comment_count: if comments.is_empty() { 0 } else { 214 },
+        url: "https://anilist.example/forum/thread/1".into(),
+        comments,
+        state: match thread {
+            Thread::Comments | Thread::Signed => DiscussionState::Ready { more: false },
+            Thread::Nobody => DiscussionState::NoThread,
+            Thread::Waiting => DiscussionState::Loading,
+        },
+        can_post: thread == Thread::Comments,
+        signed_in: thread != Thread::Signed,
+        load_images: false,
+    }
+}

@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       xvfb xauth x11-apps imagemagick weston \
       libgl1-mesa-dri libegl-mesa0 mesa-utils \
       adwaita-icon-theme librsvg2-common fonts-cantarell fonts-inter dbus \
+      libwebkitgtk-6.0-4 gstreamer1.0-plugins-good gstreamer1.0-libav \
     && rm -rf /var/lib/apt/lists/*
 
 ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo PATH=/opt/cargo/bin:$PATH
