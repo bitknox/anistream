@@ -395,6 +395,25 @@ struct ReducerTests {
         #expect(store.calendar.pages == 2 && !store.calendar.morePast)
     }
 
+    @Test func calendarKeepsItsRangeAppendsLaterPagesAndMarksAFailedOne() {
+        let store = AppStore()
+        store.apply([
+            .calendarWindow(anchor: 1_800_000_000, pages: 1, morePast: true, floor: 1_792_224_000, ceiling: 1_802_419_200, aheadPages: 1, moreAhead: true),
+            .content(view: .calendar, content: .entries([entry(900_006, "Summer Wind Relay")])),
+        ])
+        #expect(store.calendar.floor == 1_792_224_000 && store.calendar.ceiling == 1_802_419_200)
+        // A later page that failed keeps what arrived and says so, until the next ask.
+        store.apply([.calendarAhead(page: nil, entries: [], moreAhead: true)])
+        #expect(store.calendar.aheadFailed && store.calendar.rows.map(\.id) == [900_006])
+        store.apply([.calendarAhead(page: 1, entries: [entry(900_003, "Moonlit Platform")], moreAhead: false)])
+        #expect(!store.calendar.aheadFailed && !store.calendar.moreAhead)
+        #expect(store.calendar.rows.map(\.id) == [900_006, 900_003])
+        #expect(store.calendar.aheadPages == 2)
+        // An earlier page that failed marks the past side only.
+        store.apply([.calendarBackfill(page: nil, entries: [], morePast: true)])
+        #expect(store.calendar.pastFailed && !store.calendar.aheadFailed)
+    }
+
     @Test func noticesAreKeptNewestFirstAndTheCapsuleShowsTheLatest() {
         let store = AppStore()
         store.apply([

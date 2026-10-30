@@ -358,9 +358,11 @@ public final class AppStore {
         send(.loadSeasonal)
     }
 
-    public func loadCalendar() {
+    /// The calendar's first week each way. The engine keeps the last window for a while; a
+    /// refresh the person asks for (`force`) fetches it again.
+    public func loadCalendar(force: Bool = false) {
         calendar.list.asked()
-        send(.loadCalendar)
+        send(force ? .refreshCalendar : .loadCalendar)
     }
 
     /// Earlier broadcasts, walking back until `through` is covered (one page without it).
