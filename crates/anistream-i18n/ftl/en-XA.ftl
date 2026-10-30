@@ -1158,6 +1158,9 @@ shell-device-label = [Ļîñüẋ çöɱþüţéŕ~~~~~]
 # Under a Chromecast TV in Play on TV: this computer sends the TV the episode while it plays.
 tv-cast-through-computer = [Þļàýš ţĥŕöüĝĥ ţĥîš çöɱþüţéŕ~~~~~~~~~]
 
+# The heading over the TVs running anistream in Play on TV, once TVs with Chromecast built in are listed below them.
+tv-network-group = [Öñ ţĥîš ñéţŵöŕķ~~~~~]
+
 # Count of devices on a member's row in the members dialog, and after "Owner ·".
 stores-device-count =
     { $count ->

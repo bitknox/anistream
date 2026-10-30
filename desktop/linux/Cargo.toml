@@ -28,6 +28,8 @@ fixtures = [
   "dep:anistream-remote",
   "anistream-remote/testing",
   "anistream-engine/testing",
+  "dep:anistream-cast",
+  "anistream-cast/fake",
 ]
 
 [dependencies]
@@ -36,9 +38,9 @@ anistream-model = { path = "../../crates/anistream-model" }
 anistream-net = { path = "../../crates/anistream-net" }
 anistream-store = { path = "../../crates/anistream-store" }
 # Without the terminal's mpv child, as this app hosts its own player; with the Discord presence,
-# watch parties and the remote's sender side, for Play on TV.
+# watch parties, the remote's sender side for Play on TV and casting to TVs with Chromecast built in.
 anistream-i18n = { path = "../../crates/anistream-i18n" }
-anistream-engine = { path = "../../crates/anistream-engine", default-features = false, features = ["presence", "party", "remote"] }
+anistream-engine = { path = "../../crates/anistream-engine", default-features = false, features = ["presence", "party", "remote", "cast"] }
 anistream-mpv-host = { path = "../../crates/anistream-mpv-host", features = ["libmpv"] }
 
 anistream-testkit = { path = "../../crates/anistream-testkit", optional = true }
@@ -49,6 +51,8 @@ anistream-track = { path = "../../crates/anistream-track", default-features = fa
 anistream-party = { path = "../../crates/anistream-party", features = ["testing"], optional = true }
 # TVs on loopback with a scripted player, for Play on TV's scenes.
 anistream-remote = { path = "../../crates/anistream-remote", optional = true }
+# TVs with Chromecast built in on loopback, for the casting scenes.
+anistream-cast = { path = "../../crates/anistream-cast", optional = true }
 
 # GraphicsOffload is GTK 4.14's; 4.16 gave it a black background for direct scanout.
 gtk = { package = "gtk4", version = "0.11", features = ["v4_16"] }

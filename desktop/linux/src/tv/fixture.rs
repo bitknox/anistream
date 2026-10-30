@@ -9,14 +9,18 @@ use std::{
     sync::{Arc, Mutex, PoisonError},
 };
 
-use anistream_engine::remote::protocol::{
-    discovery::{Browser, DiscoverySink, FoundTv},
-    fake::{FakeTitle, FakeTv},
+use anistream_cast::fake::{FakeOptions, FakeReceiver, advert_txt};
+use anistream_engine::remote::{
+    protocol::{
+        discovery::{Browser, DiscoverySink, FoundTv},
+        fake::{FakeTitle, FakeTv},
+    },
+    sender::{CastBrowser, CastSink, FoundCast},
 };
 use anistream_testkit::{fixtures, sources};
 use tokio::runtime::Handle;
 
-use super::{Tv, open_sender};
+use super::{Tv, cast::Casting, open_sender};
 
 pub const LIVING_ROOM: &str = "Living room";
 pub const BEDROOM: &str = "Bedroom";
@@ -34,11 +38,15 @@ pub struct Scene {
     handle: Handle,
     tvs: RefCell<Vec<(String, Option<FakeTv>)>>,
     browser: Arc<FixtureBrowser>,
+    casts: Arc<FixtureCasts>,
+    /// The TVs with Chromecast built in on loopback, by name.
+    receivers: RefCell<Vec<(String, FakeReceiver)>>,
 }
 
 /// The model over the scene's TVs, its paired list under `data` as a real run keeps it.
-pub fn tv(handle: Handle, data: &Path) -> Rc<Tv> {
+pub fn tv(handle: Handle, data: &Path, casting: Option<Casting>) -> Rc<Tv> {
     let browser = Arc::new(FixtureBrowser::default());
+    let casts = Arc::new(FixtureCasts::default());
     let mut tvs = Vec::new();
     for name in [LIVING_ROOM, BEDROOM] {
         match start(&handle, name) {
@@ -49,12 +57,25 @@ pub fn tv(handle: Handle, data: &Path) -> Rc<Tv> {
             Err(e) => tracing::warn!(error = %e, name, "a fixture TV did not start"),
         }
     }
-    let sender = open_sender(&handle, data)
+    let sender = open_sender(&handle, data, casting)
         .inspect_err(|e| tracing::warn!(error = %e, "no Play on TV"))
         .ok()
         .map(Arc::new);
-    let tv = Tv::with(handle.clone(), sender, Arc::clone(&browser) as Arc<dyn Browser>);
-    SCENE.with(|s| s.replace(Some(Rc::new(Scene { handle, tvs: RefCell::new(tvs), browser }))));
+    let tv = Tv::with(
+        handle.clone(),
+        sender,
+        Arc::clone(&browser) as Arc<dyn Browser>,
+        Arc::clone(&casts) as Arc<dyn CastBrowser>,
+    );
+    SCENE.with(|s| {
+        s.replace(Some(Rc::new(Scene {
+            handle,
+            tvs: RefCell::new(tvs),
+            browser,
+            casts,
+            receivers: RefCell::default(),
+        })))
+    });
     tv
 }
 
@@ -111,6 +132,101 @@ impl Scene {
     pub fn silence(&self, on: bool) {
         self.browser.silence(on);
     }
+
+    /// The scene's TVs running anistream are found at another address than loopback, where the
+    /// TVs with Chromecast built in are: the picker leaves out a Cast TV at the address of one
+    /// running anistream.
+    pub fn apart(&self) {
+        self.browser.apart();
+    }
+
+    /// A TV with Chromecast built in joins the network: a receiver on loopback set up as
+    /// `options` say, found under `name` by a browse.
+    pub fn cast(&self, name: &str, options: FakeOptions) {
+        let fake = self
+            .handle
+            .block_on(self.handle.spawn(async move { FakeReceiver::start(options).await }));
+        let receiver = match fake {
+            Ok(Ok(receiver)) => receiver,
+            Ok(Err(e)) => {
+                return tracing::warn!(error = %e, name, "a fixture cast TV did not start");
+            }
+            Err(e) => {
+                return tracing::warn!(error = %e, name, "a fixture cast TV did not start");
+            }
+        };
+        let id = name.to_lowercase().replace(' ', "-");
+        self.casts.add(FoundCast {
+            instance: format!("Chromecast-{id}"),
+            address: receiver.address,
+            txt: advert_txt(&id, name, "Chromecast"),
+        });
+        self.receivers.borrow_mut().push((name.to_owned(), receiver));
+    }
+
+    /// Every TV with Chromecast built in leaves the network.
+    pub fn cast_clear(&self) {
+        let gone: Vec<_> = self.receivers.borrow_mut().drain(..).collect();
+        let _entered = self.handle.enter();
+        self.casts.clear();
+        drop(gone);
+    }
+
+    /// Someone else starts something on the TV `name`.
+    pub fn cast_take_over(&self, name: &str) {
+        self.with_receiver(name, FakeReceiver::take_over);
+    }
+
+    /// The TV `name` stops answering, as when switched off at the wall.
+    pub fn cast_go_silent(&self, name: &str) {
+        self.with_receiver(name, FakeReceiver::go_silent);
+    }
+
+    fn with_receiver(&self, name: &str, act: impl FnOnce(&FakeReceiver)) {
+        let receivers = self.receivers.borrow();
+        if let Some((_, receiver)) = receivers.iter().find(|(n, _)| n == name) {
+            let _entered = self.handle.enter();
+            act(receiver);
+        }
+    }
+}
+
+/// Lists the scene's TVs with Chromecast built in as found, as Avahi would.
+#[derive(Default)]
+struct FixtureCasts {
+    found: Mutex<Vec<FoundCast>>,
+    sink: Mutex<Option<CastSink>>,
+}
+
+impl FixtureCasts {
+    fn add(&self, found: FoundCast) {
+        lock(&self.found).push(found.clone());
+        if let Some(sink) = lock(&self.sink).as_ref() {
+            sink.found(found);
+        }
+    }
+
+    fn clear(&self) {
+        let gone: Vec<_> = lock(&self.found).drain(..).collect();
+        if let Some(sink) = lock(&self.sink).as_ref() {
+            for found in gone {
+                sink.lost(&found.instance);
+            }
+        }
+    }
+}
+
+impl CastBrowser for FixtureCasts {
+    fn start(&self, sink: CastSink) {
+        for found in lock(&self.found).iter() {
+            sink.found(found.clone());
+        }
+        lock(&self.sink).replace(sink);
+    }
+
+    fn stop(&self) {
+        lock(&self.sink).take();
+    }
 }
 
 /// Lists the scene's TVs as found, as Avahi would on the same network.
@@ -144,6 +260,22 @@ impl FixtureBrowser {
 
     fn silence(&self, on: bool) {
         *lock(&self.silent) = on;
+    }
+
+    /// Every TV found is found at a documentation address instead of loopback, so a Cast TV
+    /// on loopback is not mistaken for the same TV.
+    fn apart(&self) {
+        let mut found = lock(&self.found);
+        for tv in found.iter_mut() {
+            for address in &mut tv.addresses {
+                address.set_ip(std::net::Ipv4Addr::new(192, 0, 2, 10).into());
+            }
+        }
+        if let Some(sink) = lock(&self.sink).as_ref() {
+            for tv in found.iter() {
+                sink.found(tv.clone());
+            }
+        }
     }
 }
 
