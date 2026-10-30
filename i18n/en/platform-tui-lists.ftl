@@ -345,7 +345,7 @@ accounts-row-queued-held = { $queued } queued, { $held } waiting for an id mappi
 accounts-conflict-keep-mine = Keep mine
 
 # Action under a sync difference in the overlay: Enter keeps the { -tracker }'s value instead.
-# @max 12
+# @max 16
 # @only tui
 accounts-conflict-keep-theirs = Keep theirs
 

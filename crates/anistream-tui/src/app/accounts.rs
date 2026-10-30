@@ -174,7 +174,7 @@ impl App {
     /// mine and keep theirs, and the tracker is told either way so the merge stops asking.
     pub(super) fn confirm_conflict(&mut self) -> Option<Command> {
         let selected = self.cursors.overlay.selected;
-        let (at, keep_local) = (selected / 2, selected % 2 == 0);
+        let (at, keep_local) = (selected / 2, selected.is_multiple_of(2));
         let row = self.conflicts.get(at)?.clone();
         self.conflicts.remove(at);
         // Onto the next difference's first row, or the last one's when this was the end.
