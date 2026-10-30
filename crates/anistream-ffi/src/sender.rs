@@ -1056,7 +1056,7 @@ pub trait FfiAacEncoder: Send + Sync {
     fn can_decode(&self, codec: String) -> bool;
 
     /// Start an encode of `track` to AAC-LC as `track` asks, or `None` when that fails.
-    fn open(&self, track: FfiAudioTrack) -> Option<Arc<dyn FfiAacStream>>;
+    fn open_stream(&self, track: FfiAudioTrack) -> Option<Arc<dyn FfiAacStream>>;
 }
 
 /// One running encode.
@@ -1110,7 +1110,7 @@ impl AacEncoder for AppEncoder {
     fn open(&self, track: &AudioTrackInfo) -> Result<Box<dyn AacStream>, EncodeError> {
         let stream = self
             .0
-            .open(FfiAudioTrack {
+            .open_stream(FfiAudioTrack {
                 codec: track.codec.part(),
                 codec_private: track.codec_private.clone(),
                 sample_rate: track.sample_rate,
