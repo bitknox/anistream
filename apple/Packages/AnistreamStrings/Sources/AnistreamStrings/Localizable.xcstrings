@@ -14716,7 +14716,7 @@
       }
     },
     "settings-label-trailers" : {
-      "comment" : "Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.",
+      "comment" : "Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

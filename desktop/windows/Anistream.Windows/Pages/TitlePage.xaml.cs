@@ -185,41 +185,19 @@ public sealed partial class TitlePage : Page, IPageKeys
         KeyboardAccelerators.Add(settings);
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
-        trailer = new PageTrailer(this, Banner, Art, Scroll, SoundButton, () => reserved);
         Unloaded += (_, _) =>
         {
             ctx.Batch -= Heard;
             discussion?.Close();
-            trailer.Release();
         };
-    }
-
-    readonly PageTrailer trailer;
-
-    /// <summary>
-    /// A trailer may play here, so the band is tall enough for it from the first frame. Decided
-    /// once the title and the engine's word on autoplay are known, and kept for the visit: the
-    /// page never moves for the trailer.
-    /// </summary>
-    bool reserved;
-
-    /// <summary>The band under the title bar for a title that may play a trailer.</summary>
-    const double TrailerBand = 280;
-
-    void Reserve()
-    {
-        if (reserved || ctx.Known.Entry(id) is not { } entry || !trailer.Wanted(entry))
-            return;
-        reserved = true;
-        Layout();
     }
 
     /// <summary>The banner's height and where the cover and title start under it.</summary>
     void Layout()
     {
-        var band = reserved ? TrailerBand : Math.Min(360, Math.Max(220, Scroll.ActualWidth * 9 / 32));
+        var band = Math.Min(360, Math.Max(220, Scroll.ActualWidth * 9 / 32));
         Banner.Height = band;
-        Columns.Padding = new Thickness(36, reserved ? band - 80 : band - 120, 36, 24);
+        Columns.Padding = new Thickness(36, band - 120, 36, 24);
     }
 
     /// <summary>The page's own layout as raised plates: banner, cover and title, then episode rows.</summary>
@@ -255,9 +233,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         ctx.Send(new Command.LoadDownloads());
         ctx.Send(new Command.LoadDub(id));
         DubLine.Opacity = 0;
-        trailer.Open(id);
         Show();
-        Reserve();
         ShowEpisodes();
         // The cover a grid sent flies in to this one; anything else crossfades.
         var flight = ConnectedAnimationService.GetForCurrentView().GetAnimation(CoverAnimation);
@@ -327,12 +303,6 @@ public sealed partial class TitlePage : Page, IPageKeys
             {
                 case Event.Detail d when d.V1.Id == id:
                     Show();
-                    Reserve();
-                    trailer.MaybeStart();
-                    break;
-                case Event.Autoplay:
-                    Reserve();
-                    trailer.MaybeStart();
                     break;
                 case Event.Progress p when p.Id == id:
                     Show();
@@ -637,7 +607,6 @@ public sealed partial class TitlePage : Page, IPageKeys
     void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
         Layout();
-        Reserve();
         if (Current() is { } entry)
             ShowDetails(entry);
     }

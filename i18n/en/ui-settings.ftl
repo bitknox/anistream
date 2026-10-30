@@ -78,7 +78,7 @@ settings-value-trailers-always = Always
 # Value of the trailers setting: trailers play by themselves only on Wi-Fi.
 settings-value-trailers-wifi-only = Wi-Fi only
 
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+# Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 settings-label-trailers = Play trailers
 
 # Option: use the tracker's own choice. The tracker is a name.

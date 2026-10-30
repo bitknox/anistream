@@ -3150,7 +3150,7 @@ settings-label-calendar-mine = [Çàļéñðàŕ šĥöŵš öñļý ɱý ļîš
 settings-note-titles = [ÅñîĻîšţ'š çĥöîçé ƒöļļöŵš ýöüŕ ÅñîĻîšţ àççöüñţ, àñð îš Éñĝļîšĥ ŵĥéñ ýöü'ŕé šîĝñéð öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Note under the trailers row. The terminal never plays trailers by itself; the setting is shared with the apps.
-settings-note-trailers = [Ţĥé àþþš þļàý ţŕàîļéŕš ɱüţéð îñ þļàçé öƒ ţĥé ƀàññéŕ. Ţĥé ţéŕɱîñàļ ķééþš ţĥé šéţţîñĝ àñð þļàýš ñöñé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+settings-note-trailers = [Ţĥé ðéšķţöþ àþþš þļàý ţŕàîļéŕš ɱüţéð îñ ĥöṽéŕ þŕéṽîéŵš. Ţĥé ţéŕɱîñàļ ķééþš ţĥé šéţţîñĝ àñð þļàýš ñöñé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Note under the subtitles row.
 settings-note-subtitles = [Þŕéšš Éñţéŕ ţö ţýþé à ļàñĝüàĝé çöðé. Ţĥéŕé àŕé ţöö ɱàñý ṽàļüéš ţö çýçļé ţĥŕöüĝĥ.~~~~~~~~~~~~~~~~~~~~~~~~]
@@ -6067,7 +6067,7 @@ settings-value-trailers-always = [Åļŵàýš~~]
 # Value of the trailers setting: trailers play by themselves only on Wi-Fi.
 settings-value-trailers-wifi-only = [Ŵî-Ƒî öñļý~~~]
 
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+# Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 settings-label-trailers = [Þļàý ţŕàîļéŕš~~~~]
 
 # Option: use the tracker's own choice. The tracker is a name.

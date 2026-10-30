@@ -116,7 +116,7 @@ static class HoverPreview
     public static void Show(FrameworkElement target, uint id)
     {
         var ctx = Ctx.Current;
-        if (target.XamlRoot is null || !ctx.Window.InFront || TrailerHub.PageShowing)
+        if (target.XamlRoot is null || !ctx.Window.InFront)
             return;
         if (ctx.Known.Entry(id) is not { } entry)
             return;

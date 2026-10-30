@@ -4761,7 +4761,7 @@
   </data>
   <data name="SettingsLabelTrailers" xml:space="preserve">
     <value>[Þļàý ţŕàîļéŕš~~~~]</value>
-    <comment>Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.</comment>
+    <comment>Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.</comment>
   </data>
   <data name="SettingsTitleTracker" xml:space="preserve">
     <value>[{tracker}'š çĥöîçé~~~~]</value>

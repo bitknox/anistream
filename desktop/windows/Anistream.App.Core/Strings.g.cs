@@ -3468,7 +3468,7 @@ public static partial class T
     /// <summary>Value of the trailers setting: trailers play by themselves only on Wi-Fi.</summary>
     public static string SettingsValueTrailersWifiOnly => Get("SettingsValueTrailersWifiOnly");
 
-    /// <summary>Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.</summary>
+    /// <summary>Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.</summary>
     public static string SettingsLabelTrailers => Get("SettingsLabelTrailers");
 
     /// <summary>Option: use the tracker's own choice. The tracker is a name.</summary>

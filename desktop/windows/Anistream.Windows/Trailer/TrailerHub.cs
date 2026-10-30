@@ -71,9 +71,6 @@ static class TrailerHub
 
     public static void Release(TrailerStage stage) => playing.Remove(stage);
 
-    /// <summary>Whether a title page's own trailer is on screen, which gets no previews over it.</summary>
-    public static bool PageShowing { get; set; }
-
     /// <summary>Every trailer is let go of: the window lost focus, an episode starts, a sheet opens.</summary>
     public static void StopAll()
     {

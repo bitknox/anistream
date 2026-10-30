@@ -3150,7 +3150,7 @@ settings-label-calendar-mine = Calendar shows only my list
 settings-note-titles = AniList's choice follows your AniList account, and is English when you're signed out.
 
 # Note under the trailers row. The terminal never plays trailers by itself; the setting is shared with the apps.
-settings-note-trailers = The apps play trailers muted in place of the banner. The terminal keeps the setting and plays none.
+settings-note-trailers = The desktop apps play trailers muted in hover previews. The terminal keeps the setting and plays none.
 
 # Note under the subtitles row.
 settings-note-subtitles = Press Enter to type a language code. There are too many values to cycle through.
@@ -6067,7 +6067,7 @@ settings-value-trailers-always = Always
 # Value of the trailers setting: trailers play by themselves only on Wi-Fi.
 settings-value-trailers-wifi-only = Wi-Fi only
 
-# Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+# Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 settings-label-trailers = Play trailers
 
 # Option: use the tracker's own choice. The tracker is a name.

@@ -2325,14 +2325,6 @@ object Strings {
     fun releaseSeeders(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.release_seeders, count, count)
 
-    /** Settings row: when a title's trailer plays by itself, muted, in place of its banner. */
-    fun settingsTrailersLabel(context: Context): String =
-        context.getString(R.string.settings_trailers_label)
-
-    /** Note under the Play trailers setting: what the trailers are and when they do not play. */
-    fun settingsTrailersNote(context: Context): String =
-        context.getString(R.string.settings_trailers_note)
-
     /** Heading in the trailer sheet when the video did not start within a few seconds or the player refused it. */
     fun trailerFailed(context: Context): String =
         context.getString(R.string.trailer_failed)
@@ -5329,7 +5321,7 @@ object Strings {
     fun settingsValueTrailersWifiOnly(context: Context): String =
         context.getString(R.string.settings_value_trailers_wifi_only)
 
-    /** Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps. */
+    /** Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps. */
     fun settingsLabelTrailers(context: Context): String =
         context.getString(R.string.settings_label_trailers)
 
