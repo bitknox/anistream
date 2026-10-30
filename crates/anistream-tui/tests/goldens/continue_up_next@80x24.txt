@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │    Sakanaya no… Because you finished Ame Furu Machi no Robotto to Chiis…
    │  ▌ Tanuki Densha Monogatari    Because you finished Kumo no Ue no Gakkou
 ────────────────────────────────────────────────────────────────────────────────
-plugins · Subbed · 1080p                            ↵ open   e episodes   ? keys
+plugins · Subbed · 1080p                      x not interested   ↵ open   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -103,9 +103,9 @@ r21 c08-31 fg=text mod=BOLD
 r21 c36-76 fg=text-dim
 r22 c00-79 fg=rule
 r23 c00-23 fg=text-dim
-r23 c52-52 fg=text
-r23 c53-60 fg=text-dim
-r23 c61-61 fg=text
-r23 c62-73 fg=text-dim
+r23 c46-46 fg=text
+r23 c47-64 fg=text-dim
+r23 c65-65 fg=text
+r23 c66-73 fg=text-dim
 r23 c74-74 fg=text
 r23 c75-79 fg=text-dim

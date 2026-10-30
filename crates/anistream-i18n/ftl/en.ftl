@@ -1859,8 +1859,8 @@ keys-action-rate-title = Rate this title
 # Action label in the help overlay and the command palette.
 keys-action-toggle-synopsis = Expand synopsis
 
-# Action label in the help overlay and the command palette.
-keys-action-hide-from-continue = Hide from Continue
+# Action label in the help overlay and the command palette. The key removes a row from { -continue-cap }, and on a suggestion under it says Not interested.
+keys-action-hide-from-continue = Remove, or not interested
 
 # Action label in the help overlay and the command palette.
 keys-action-show-episodes = Episodes
@@ -2026,6 +2026,9 @@ keys-hint-add-source = Add a source to play
 
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 keys-hint-play = Play
+
+# Status line hint on a suggestion under { -continue-cap }: the key hides it from { -up-next } for you.
+keys-hint-not-interested = Not interested
 
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 keys-hint-list = List
@@ -2708,9 +2711,6 @@ lists-sort-trending = Trending
 
 # A search sort order.
 lists-sort-newest = Newest
-
-# Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
-lists-up-next-dismissed = { $title } hidden from up next for you.
 
 # Notice when the person leaves Now Playing while mpv carries on in its own window.
 playback-detached = Detached. mpv is still playing.

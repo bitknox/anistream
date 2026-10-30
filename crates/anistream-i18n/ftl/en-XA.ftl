@@ -1859,8 +1859,8 @@ keys-action-rate-title = [Ŕàţé ţĥîš ţîţļé~~~~~]
 # Action label in the help overlay and the command palette.
 keys-action-toggle-synopsis = [Éẋþàñð šýñöþšîš~~~~~]
 
-# Action label in the help overlay and the command palette.
-keys-action-hide-from-continue = [Ĥîðé ƒŕöɱ Çöñţîñüé~~~~~~]
+# Action label in the help overlay and the command palette. The key removes a row from { -continue-cap }, and on a suggestion under it says Not interested.
+keys-action-hide-from-continue = [Ŕéɱöṽé, öŕ ñöţ îñţéŕéšţéð~~~~~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-show-episodes = [Éþîšöðéš~~~]
@@ -2026,6 +2026,9 @@ keys-hint-add-source = [Åðð à šöüŕçé ţö þļàý~~~~~~]
 
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 keys-hint-play = [Þļàý~~]
+
+# Status line hint on a suggestion under { -continue-cap }: the key hides it from { -up-next } for you.
+keys-hint-not-interested = [Ñöţ îñţéŕéšţéð~~~~~]
 
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 keys-hint-list = [Ļîšţ~~]
@@ -2708,9 +2711,6 @@ lists-sort-trending = [Ţŕéñðîñĝ~~~]
 
 # A search sort order.
 lists-sort-newest = [Ñéŵéšţ~~]
-
-# Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
-lists-up-next-dismissed = [{ $title } ĥîððéñ ƒŕöɱ üþ ñéẋţ ƒöŕ ýöü.~~~~~~~~~~]
 
 # Notice when the person leaves Now Playing while mpv carries on in its own window.
 playback-detached = [Ðéţàçĥéð. ɱþṽ îš šţîļļ þļàýîñĝ.~~~~~~~~~~]

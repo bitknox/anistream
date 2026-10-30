@@ -2910,7 +2910,7 @@ pub fn keys_action_toggle_synopsis() -> String {
     text("keys-action-toggle-synopsis", &[])
 }
 
-/// Action label in the help overlay and the command palette.
+/// Action label in the help overlay and the command palette. The key removes a row from { -continue-cap }, and on a suggestion under it says Not interested.
 pub fn keys_action_hide_from_continue() -> String {
     text("keys-action-hide-from-continue", &[])
 }
@@ -3188,6 +3188,11 @@ pub fn keys_hint_add_source() -> String {
 /// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 pub fn keys_hint_play() -> String {
     text("keys-hint-play", &[])
+}
+
+/// Status line hint on a suggestion under { -continue-cap }: the key hides it from { -up-next } for you.
+pub fn keys_hint_not_interested() -> String {
+    text("keys-hint-not-interested", &[])
 }
 
 /// Status line hint beside a key, saying what that key does here. Keep it to a word or two.
@@ -4298,11 +4303,6 @@ pub fn lists_sort_trending() -> String {
 /// A search sort order.
 pub fn lists_sort_newest() -> String {
     text("lists-sort-newest", &[])
-}
-
-/// Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
-pub fn lists_up_next_dismissed(title: &str) -> String {
-    text("lists-up-next-dismissed", &[("title", Arg::Text(title))])
 }
 
 /// Notice when the person leaves Now Playing while mpv carries on in its own window.

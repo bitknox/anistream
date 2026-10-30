@@ -17,7 +17,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
     Recent messages                L    Set list status                a
   Movement                              Rate this title                *
     Move up                    k / ↑    Expand synopsis                i
-    Move down                  j / ↓    Hide from Continue             x
+    Move down                  j / ↓    Remove, or not interested      x
     Move left                  h / ←    Search filters            ctrl+f
 
 ────────────────────────────────────────────────────────────────────────────────
@@ -164,8 +164,8 @@ r19 c02-12 fg=text-dim bg=ground
 r19 c13-30 fg=rule bg=ground
 r19 c31-35 fg=text bg=ground
 r19 c36-37 fg=rule bg=ground
-r19 c38-57 fg=text-dim bg=ground
-r19 c58-70 fg=rule bg=ground
+r19 c38-64 fg=text-dim bg=ground
+r19 c65-70 fg=rule bg=ground
 r19 c71-71 fg=text bg=ground
 r19 c72-79 fg=rule bg=ground
 r20 c00-01 fg=rule bg=ground
