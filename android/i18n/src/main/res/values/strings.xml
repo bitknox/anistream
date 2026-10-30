@@ -47,6 +47,8 @@
     <string name="cause_source_gone">The source %1$s is no longer available. Choose another.</string>
     <!-- Reason: the release the person picked would not start. The detail comes from the source. -->
     <string name="cause_release_failed">Couldn\'t start that release: %1$s</string>
+    <!-- Reason: a play waited too long for its sources to give it a stream, and gave up. -->
+    <string name="cause_sources_timed_out">The sources took too long to answer. Try again, or choose another source.</string>
     <!-- Reason: every source matched the title but none has the episode. The detail is what each said. -->
     <string name="cause_no_source_has_episode">No source has episode %1$s: %2$s</string>
     <!-- Reason: the source streams episodes but only torrents can be downloaded. -->
@@ -71,10 +73,6 @@
     <string name="status_loading_sources">Loading sources…</string>
     <!-- Job note while the sources are asked for an episode. The episode is its label, often a number. -->
     <string name="status_searching_sources">Searching sources for episode %1$s…</string>
-    <!-- Status while the player opens. -->
-    <string name="status_starting_player">Starting mpv…</string>
-    <!-- Status line while an episode plays. -->
-    <string name="status_playing">Playing %1$s, episode %2$s</string>
     <!-- Toast when the player cannot be started. The reason comes from the system. -->
     <string name="notice_player_failed_to_start">Couldn\'t start mpv. Check that it runs on its own. (%1$s)</string>
     <!-- Toast when a stream never showed a frame and the next one is tried. -->
@@ -87,10 +85,12 @@
     <string name="notice_player_not_playing">mpv hasn\'t started playing after %1$d s. The source may have no data. Check that mpv plays a file on its own.</string>
     <!-- Toast when a play is asked for in a build with no player. -->
     <string name="notice_no_player">This version of anistream can\'t play video.</string>
-    <!-- Toast at launch when the mpv program is missing. The binary is the name the settings give it. -->
+    <!-- Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps. -->
     <string name="notice_mpv_missing">%1$s wasn\'t found. Install mpv to play episodes.</string>
-    <!-- Toast at launch when mpv is too old for anistream's own player. -->
+    <!-- Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps. -->
     <string name="notice_mpv_old">mpv %1$s can play, but anistream\'s player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.</string>
+    <!-- Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded. -->
+    <string name="notice_subtitles_unavailable">This source\'s subtitles couldn\'t be loaded. Choose another source to try again.</string>
     <!-- Toast after a link was handed to the browser. -->
     <string name="notice_opened_in_browser">Opened in your browser.</string>
     <!-- Toast when a link could not be opened. The reason comes from the system. -->
@@ -131,6 +131,10 @@
     <string name="notice_source_choice_failed">Couldn\'t save that choice. %1$s</string>
     <!-- Toast when no source could list a show's episodes. The reason is what the sources said. -->
     <string name="notice_no_source_could_list">No source could list this show: %1$s</string>
+    <!-- Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network. -->
+    <string name="notice_episodes_failed">Couldn\'t load the episodes. %1$s</string>
+    <!-- Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name. -->
+    <string name="notice_match_uncertain">%1$s found more than one show that could be this one, so these episodes are from AniList for now.</string>
     <!-- Toast when a title cannot be taken off the Continue row. The reason comes from the system. -->
     <string name="notice_continue_hide_failed">Couldn\'t remove that from Continue. %1$s</string>
     <!-- Toast after an episode was added to the download queue. -->
@@ -185,8 +189,10 @@
     </plurals>
     <!-- Toast when keep next found no room for another episode. -->
     <string name="notice_keep_next_full">Not enough free space to keep the next episodes downloaded. Free up some space to download more.</string>
-    <!-- Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. -->
+    <!-- Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps. -->
     <string name="party_needs_server">Choose a server for the watch party first, as syncplay.server. %1$s is run by %2$s.</string>
+    <!-- Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it. -->
+    <string name="party_choose_server">Choose a server for the watch party first. %1$s is run by %2$s.</string>
     <!-- Toast when a watch party is asked for in a build without watch parties. -->
     <string name="notice_no_party">Watch parties aren\'t available in this version of anistream.</string>
     <!-- Message when a watch party was asked for with no room named. -->
@@ -317,7 +323,7 @@
     <string name="torrent_interface_closed">The interface closed before torrents started.</string>
     <!-- Error: the torrent session could not start. The reason comes from the torrent engine. -->
     <string name="torrent_session_failed">Couldn\'t start the torrent session. %1$s</string>
-    <!-- Toast when torrents are up but no operating-system firewall rule backs the VPN guard. -->
+    <!-- Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps. -->
     <string name="torrent_no_kill_switch">There is no OS-level kill switch behind the VPN guard. Run \"anistream --doctor\" for advice.</string>
     <!-- Toast when the connection check could not run. The reason comes from the VPN settings. -->
     <string name="torrent_not_checked">Couldn\'t check the connection. %1$s</string>
@@ -373,11 +379,11 @@
     <string name="notice_anilist_implicit_flow">This AniList sign-in method works only in the anistream app. To sign in here, set %1$s to \"loopback\" in the config file.</string>
     <!-- Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated. -->
     <string name="notice_anilist_client_missing">AniList needs a client id and secret. Set %1$s and %2$s in the config file, then sign in again. To get the sign-in address, run anistream --login-url.</string>
-    <!-- Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. -->
+    <!-- Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps. -->
     <string name="notice_anilist_paste_flow">Pasting a code isn\'t possible here. Quit and run anistream --login instead.</string>
     <!-- Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated. -->
     <string name="notice_mal_client_missing">MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set %1$s in the config file.</string>
-    <!-- Status line while the browser sign-in is open and the app waits for it to come back. -->
+    <!-- Job note while the browser sign-in is open and the terminal app waits for it to come back. -->
     <string name="status_waiting_for_redirect">Waiting for %1$s to redirect back…</string>
     <!-- Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month. -->
     <string name="notice_mal_no_refresh_token">MyAnimeList didn\'t issue a refresh token. You\'ll need to sign in again in about a month.</string>
@@ -419,7 +425,7 @@
         <item quantity="one">One new episode of a show you watch aired. The calendar has it.</item>
         <item quantity="other">%1$d new episodes of shows you watch aired. The calendar has them.</item>
     </plurals>
-    <!-- Toast when a new release of anistream is out, on the terminal app. The command is not translated. -->
+    <!-- Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps. -->
     <string name="notice_update_available">%1$s is out. Run anistream --update to install it.</string>
     <!-- The reason a setting was refused until the person confirms having no protection. -->
     <string name="cause_confirm_no_protection">Confirm that you want no protection first.</string>
@@ -441,6 +447,24 @@
     <string name="notice_title_load_failed">Couldn\'t load this title. Check your connection and try again.</string>
     <!-- Toast when playback stops with an error. -->
     <string name="notice_playback_failed">Playback failed. Try another source.</string>
+    <!-- Toast when something went wrong inside the engine and it carried on. -->
+    <string name="notice_engine_fault">Something went wrong inside anistream. It carried on, but if a screen looks stuck, quit and open it again.</string>
+    <!-- Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync. -->
+    <string name="notice_database_set_aside">The database was damaged, so anistream started a new one. The old file is kept at %1$s. Your trackers bring back what they hold at the next sync.</string>
+    <!-- Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system. -->
+    <string name="start_failed_folder">anistream couldn\'t create the folder %1$s. Check that the disk has room and the folder can be written to, then try again. %2$s</string>
+    <!-- Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can. -->
+    <string name="start_failed_config">%1$s has a setting anistream can\'t use: %2$s. Fix or remove it, then try again.</string>
+    <!-- Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system. -->
+    <string name="start_failed_database">anistream couldn\'t open its database at %1$s. If another anistream app is open on this folder, quit it and try again. %2$s</string>
+    <!-- Message when anistream could not start its network connection from the network settings. -->
+    <string name="start_failed_network">anistream couldn\'t set up its network connection from the network settings in config.toml. %1$s</string>
+    <!-- Message when anistream itself could not start. The reason comes from the system or the engine. -->
+    <string name="start_failed">anistream couldn\'t start. Quit and open it again. %1$s</string>
+    <!-- Message when the TV remote could not start listening or could not forget a phone. -->
+    <string name="start_failed_remote">The remote couldn\'t start. %1$s</string>
+    <!-- Message when the built-in player could not start. -->
+    <string name="start_failed_player">The player couldn\'t start. %1$s</string>
     <!-- Toast after episodes are added to the download queue. -->
     <plurals name="notice_episodes_queued">
         <item quantity="one">Queued one episode.</item>

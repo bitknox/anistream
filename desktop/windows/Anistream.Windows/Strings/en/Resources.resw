@@ -123,6 +123,10 @@
     <value>Couldn't start that release: {detail}</value>
     <comment>Reason: the release the person picked would not start. The detail comes from the source.</comment>
   </data>
+  <data name="CauseSourcesTimedOut" xml:space="preserve">
+    <value>The sources took too long to answer. Try again, or choose another source.</value>
+    <comment>Reason: a play waited too long for its sources to give it a stream, and gave up.</comment>
+  </data>
   <data name="CauseNoSourceHasEpisode" xml:space="preserve">
     <value>No source has episode {episode}: {detail}</value>
     <comment>Reason: every source matched the title but none has the episode. The detail is what each said.</comment>
@@ -167,14 +171,6 @@
     <value>Searching sources for episode {episode}…</value>
     <comment>Job note while the sources are asked for an episode. The episode is its label, often a number.</comment>
   </data>
-  <data name="StatusStartingPlayer" xml:space="preserve">
-    <value>Starting mpv…</value>
-    <comment>Status while the player opens.</comment>
-  </data>
-  <data name="StatusPlaying" xml:space="preserve">
-    <value>Playing {title}, episode {episode}</value>
-    <comment>Status line while an episode plays.</comment>
-  </data>
   <data name="NoticePlayerFailedToStart" xml:space="preserve">
     <value>Couldn't start mpv. Check that it runs on its own. ({reason})</value>
     <comment>Toast when the player cannot be started. The reason comes from the system.</comment>
@@ -201,11 +197,15 @@
   </data>
   <data name="NoticeMpvMissing" xml:space="preserve">
     <value>{binary} wasn't found. Install mpv to play episodes.</value>
-    <comment>Toast at launch when the mpv program is missing. The binary is the name the settings give it.</comment>
+    <comment>Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="NoticeMpvOld" xml:space="preserve">
     <value>mpv {version} can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.</value>
-    <comment>Toast at launch when mpv is too old for anistream's own player.</comment>
+    <comment>Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps.</comment>
+  </data>
+  <data name="NoticeSubtitlesUnavailable" xml:space="preserve">
+    <value>This source's subtitles couldn't be loaded. Choose another source to try again.</value>
+    <comment>Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.</comment>
   </data>
   <data name="NoticeOpenedInBrowser" xml:space="preserve">
     <value>Opened in your browser.</value>
@@ -286,6 +286,14 @@
   <data name="NoticeNoSourceCouldList" xml:space="preserve">
     <value>No source could list this show: {reason}</value>
     <comment>Toast when no source could list a show's episodes. The reason is what the sources said.</comment>
+  </data>
+  <data name="NoticeEpisodesFailed" xml:space="preserve">
+    <value>Couldn't load the episodes. {reason}</value>
+    <comment>Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.</comment>
+  </data>
+  <data name="NoticeMatchUncertain" xml:space="preserve">
+    <value>{source} found more than one show that could be this one, so these episodes are from AniList for now.</value>
+    <comment>Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name.</comment>
   </data>
   <data name="NoticeContinueHideFailed" xml:space="preserve">
     <value>Couldn't remove that from Continue. {reason}</value>
@@ -389,7 +397,11 @@
   </data>
   <data name="PartyNeedsServer" xml:space="preserve">
     <value>Choose a server for the watch party first, as syncplay.server. {server} is run by {operator}.</value>
-    <comment>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.</comment>
+    <comment>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.</comment>
+  </data>
+  <data name="PartyChooseServer" xml:space="preserve">
+    <value>Choose a server for the watch party first. {server} is run by {operator}.</value>
+    <comment>Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it.</comment>
   </data>
   <data name="NoticeNoParty" xml:space="preserve">
     <value>Watch parties aren't available in this version of anistream.</value>
@@ -649,7 +661,7 @@
   </data>
   <data name="TorrentNoKillSwitch" xml:space="preserve">
     <value>There is no OS-level kill switch behind the VPN guard. Run "anistream --doctor" for advice.</value>
-    <comment>Toast when torrents are up but no operating-system firewall rule backs the VPN guard.</comment>
+    <comment>Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="TorrentNotChecked" xml:space="preserve">
     <value>Couldn't check the connection. {reason}</value>
@@ -761,7 +773,7 @@
   </data>
   <data name="NoticeAnilistPasteFlow" xml:space="preserve">
     <value>Pasting a code isn't possible here. Quit and run anistream --login instead.</value>
-    <comment>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.</comment>
+    <comment>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="NoticeMalClientMissing" xml:space="preserve">
     <value>MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set {setting} in the config file.</value>
@@ -769,7 +781,7 @@
   </data>
   <data name="StatusWaitingForRedirect" xml:space="preserve">
     <value>Waiting for {tracker} to redirect back…</value>
-    <comment>Status line while the browser sign-in is open and the app waits for it to come back.</comment>
+    <comment>Job note while the browser sign-in is open and the terminal app waits for it to come back.</comment>
   </data>
   <data name="NoticeMalNoRefreshToken" xml:space="preserve">
     <value>MyAnimeList didn't issue a refresh token. You'll need to sign in again in about a month.</value>
@@ -849,7 +861,7 @@
   </data>
   <data name="NoticeUpdateAvailable" xml:space="preserve">
     <value>{tag} is out. Run anistream --update to install it.</value>
-    <comment>Toast when a new release of anistream is out, on the terminal app. The command is not translated.</comment>
+    <comment>Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="CauseConfirmNoProtection" xml:space="preserve">
     <value>Confirm that you want no protection first.</value>
@@ -890,6 +902,42 @@
   <data name="NoticePlaybackFailed" xml:space="preserve">
     <value>Playback failed. Try another source.</value>
     <comment>Toast when playback stops with an error.</comment>
+  </data>
+  <data name="NoticeEngineFault" xml:space="preserve">
+    <value>Something went wrong inside anistream. It carried on, but if a screen looks stuck, quit and open it again.</value>
+    <comment>Toast when something went wrong inside the engine and it carried on.</comment>
+  </data>
+  <data name="NoticeDatabaseSetAside" xml:space="preserve">
+    <value>The database was damaged, so anistream started a new one. The old file is kept at {path}. Your trackers bring back what they hold at the next sync.</value>
+    <comment>Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync.</comment>
+  </data>
+  <data name="StartFailedFolder" xml:space="preserve">
+    <value>anistream couldn't create the folder {path}. Check that the disk has room and the folder can be written to, then try again. {reason}</value>
+    <comment>Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system.</comment>
+  </data>
+  <data name="StartFailedConfig" xml:space="preserve">
+    <value>{path} has a setting anistream can't use: {problem}. Fix or remove it, then try again.</value>
+    <comment>Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.</comment>
+  </data>
+  <data name="StartFailedDatabase" xml:space="preserve">
+    <value>anistream couldn't open its database at {path}. If another anistream app is open on this folder, quit it and try again. {reason}</value>
+    <comment>Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.</comment>
+  </data>
+  <data name="StartFailedNetwork" xml:space="preserve">
+    <value>anistream couldn't set up its network connection from the network settings in config.toml. {reason}</value>
+    <comment>Message when anistream could not start its network connection from the network settings.</comment>
+  </data>
+  <data name="StartFailed" xml:space="preserve">
+    <value>anistream couldn't start. Quit and open it again. {reason}</value>
+    <comment>Message when anistream itself could not start. The reason comes from the system or the engine.</comment>
+  </data>
+  <data name="StartFailedRemote" xml:space="preserve">
+    <value>The remote couldn't start. {reason}</value>
+    <comment>Message when the TV remote could not start listening or could not forget a phone.</comment>
+  </data>
+  <data name="StartFailedPlayer" xml:space="preserve">
+    <value>The player couldn't start. {reason}</value>
+    <comment>Message when the built-in player could not start.</comment>
   </data>
   <data name="NoticeEpisodesQueued_one" xml:space="preserve">
     <value>Queued one episode.</value>

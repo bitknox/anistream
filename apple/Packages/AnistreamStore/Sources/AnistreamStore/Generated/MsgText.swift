@@ -24,8 +24,6 @@ extension Msg {
         case .statusLookingUpTitle: L.statusLookingUpTitle
         case .statusLoadingSources: L.statusLoadingSources
         case .statusSearchingSources(let episode): L.statusSearchingSources(episode: episode)
-        case .statusStartingPlayer: L.statusStartingPlayer
-        case .statusPlaying(let title, let episode): L.statusPlaying(title: title, episode: episode)
         case .noticePlayerFailedToStart(let reason): L.noticePlayerFailedToStart(reason: reason)
         case .noticeStreamNoVideo(let next, let total): L.noticeStreamNoVideo(next: Int(next), total: Int(total))
         case .noticePlayerCouldNotPlay(let reason): L.noticePlayerCouldNotPlay(reason: reason)
@@ -34,6 +32,7 @@ extension Msg {
         case .noticeNoPlayer: L.noticeNoPlayer
         case .noticeMpvMissing(let binary): L.noticeMpvMissing(binary: binary)
         case .noticeMpvOld(let version): L.noticeMpvOld(version: version)
+        case .noticeSubtitlesUnavailable: L.noticeSubtitlesUnavailable
         case .noticeOpenedInBrowser: L.noticeOpenedInBrowser
         case .noticeCouldNotOpen(let reason): L.noticeCouldNotOpen(reason: reason)
         case .noticeTrailerPlaying: L.noticeTrailerPlaying
@@ -54,6 +53,8 @@ extension Msg {
         case .noticeSourceAutomatic: L.noticeSourceAutomatic
         case .noticeSourceChoiceFailed(let reason): L.noticeSourceChoiceFailed(reason: reason)
         case .noticeNoSourceCouldList(let reason): L.noticeNoSourceCouldList(reason: reason)
+        case .noticeEpisodesFailed(let reason): L.noticeEpisodesFailed(reason: reason)
+        case .noticeMatchUncertain(let source): L.noticeMatchUncertain(source: source)
         case .noticeContinueHideFailed(let reason): L.noticeContinueHideFailed(reason: reason)
         case .noticeDownloadQueued(let title, let episode): L.noticeDownloadQueued(title: title, episode: episode)
         case .noticeDownloadAlreadyQueued(let title, let episode): L.noticeDownloadAlreadyQueued(title: title, episode: episode)
@@ -76,6 +77,7 @@ extension Msg {
         case .noticeEpisodesQueuedExistingStopped(let count, let existing, let reason): L.noticeEpisodesQueuedExistingStopped(count: Int(count), existing: existing.text, reason: reason.text)
         case .noticeKeepNextFull: L.noticeKeepNextFull
         case .partyNeedsServer(let server, let `operator`): L.partyNeedsServer(server: server, `operator`: `operator`)
+        case .partyChooseServer(let server, let `operator`): L.partyChooseServer(server: server, `operator`: `operator`)
         case .noticeNoParty: L.noticeNoParty
         case .partyNeedsRoom: L.partyNeedsRoom
         case .partyServerLost: L.partyServerLost
@@ -192,6 +194,15 @@ extension Msg {
         case .noticeNotSaved(let reason): L.noticeNotSaved(reason: reason)
         case .noticeTitleLoadFailed: L.noticeTitleLoadFailed
         case .noticePlaybackFailed: L.noticePlaybackFailed
+        case .noticeEngineFault: L.noticeEngineFault
+        case .noticeDatabaseSetAside(let path): L.noticeDatabaseSetAside(path: path)
+        case .startFailedFolder(let path, let reason): L.startFailedFolder(path: path, reason: reason)
+        case .startFailedConfig(let path, let problem): L.startFailedConfig(path: path, problem: problem)
+        case .startFailedDatabase(let path, let reason): L.startFailedDatabase(path: path, reason: reason)
+        case .startFailedNetwork(let reason): L.startFailedNetwork(reason: reason)
+        case .startFailed(let reason): L.startFailed(reason: reason)
+        case .startFailedRemote(let reason): L.startFailedRemote(reason: reason)
+        case .startFailedPlayer(let reason): L.startFailedPlayer(reason: reason)
         case .noticeEpisodesQueued(let count): L.noticeEpisodesQueued(count: Int(count))
         case let .verbatim(text): text
         }
@@ -210,6 +221,7 @@ extension Cause {
         case .titleNoMatch(let detail): L.causeTitleNoMatch(detail: detail)
         case .sourceGone(let source): L.causeSourceGone(source: source)
         case .releaseFailed(let detail): L.causeReleaseFailed(detail: detail)
+        case .sourcesTimedOut: L.causeSourcesTimedOut
         case .noSourceHasEpisode(let episode, let detail): L.causeNoSourceHasEpisode(episode: episode, detail: detail)
         case .sourceCannotDownload: L.causeSourceCannotDownload
         case .noSourceCouldListShow: L.causeNoSourceCouldListShow

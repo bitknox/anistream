@@ -93,6 +93,10 @@ object Strings {
     fun causeReleaseFailed(context: Context, detail: String): String =
         context.getString(R.string.cause_release_failed, detail)
 
+    /** Reason: a play waited too long for its sources to give it a stream, and gave up. */
+    fun causeSourcesTimedOut(context: Context): String =
+        context.getString(R.string.cause_sources_timed_out)
+
     /** Reason: every source matched the title but none has the episode. The detail is what each said. */
     fun causeNoSourceHasEpisode(context: Context, episode: String, detail: String): String =
         context.getString(R.string.cause_no_source_has_episode, episode, detail)
@@ -129,14 +133,6 @@ object Strings {
     fun statusSearchingSources(context: Context, episode: String): String =
         context.getString(R.string.status_searching_sources, episode)
 
-    /** Status while the player opens. */
-    fun statusStartingPlayer(context: Context): String =
-        context.getString(R.string.status_starting_player)
-
-    /** Status line while an episode plays. */
-    fun statusPlaying(context: Context, title: String, episode: String): String =
-        context.getString(R.string.status_playing, title, episode)
-
     /** Toast when the player cannot be started. The reason comes from the system. */
     fun noticePlayerFailedToStart(context: Context, reason: String): String =
         context.getString(R.string.notice_player_failed_to_start, reason)
@@ -161,13 +157,17 @@ object Strings {
     fun noticeNoPlayer(context: Context): String =
         context.getString(R.string.notice_no_player)
 
-    /** Toast at launch when the mpv program is missing. The binary is the name the settings give it. */
+    /** Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps. */
     fun noticeMpvMissing(context: Context, binary: String): String =
         context.getString(R.string.notice_mpv_missing, binary)
 
-    /** Toast at launch when mpv is too old for anistream's own player. */
+    /** Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps. */
     fun noticeMpvOld(context: Context, version: String): String =
         context.getString(R.string.notice_mpv_old, version)
+
+    /** Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded. */
+    fun noticeSubtitlesUnavailable(context: Context): String =
+        context.getString(R.string.notice_subtitles_unavailable)
 
     /** Toast after a link was handed to the browser. */
     fun noticeOpenedInBrowser(context: Context): String =
@@ -248,6 +248,14 @@ object Strings {
     /** Toast when no source could list a show's episodes. The reason is what the sources said. */
     fun noticeNoSourceCouldList(context: Context, reason: String): String =
         context.getString(R.string.notice_no_source_could_list, reason)
+
+    /** Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network. */
+    fun noticeEpisodesFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_episodes_failed, reason)
+
+    /** Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name. */
+    fun noticeMatchUncertain(context: Context, source: String): String =
+        context.getString(R.string.notice_match_uncertain, source)
 
     /** Toast when a title cannot be taken off the Continue row. The reason comes from the system. */
     fun noticeContinueHideFailed(context: Context, reason: String): String =
@@ -333,9 +341,13 @@ object Strings {
     fun noticeKeepNextFull(context: Context): String =
         context.getString(R.string.notice_keep_next_full)
 
-    /** Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. */
+    /** Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps. */
     fun partyNeedsServer(context: Context, server: String, operator: String): String =
         context.getString(R.string.party_needs_server, server, operator)
+
+    /** Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it. */
+    fun partyChooseServer(context: Context, server: String, operator: String): String =
+        context.getString(R.string.party_choose_server, server, operator)
 
     /** Toast when a watch party is asked for in a build without watch parties. */
     fun noticeNoParty(context: Context): String =
@@ -585,7 +597,7 @@ object Strings {
     fun torrentSessionFailed(context: Context, reason: String): String =
         context.getString(R.string.torrent_session_failed, reason)
 
-    /** Toast when torrents are up but no operating-system firewall rule backs the VPN guard. */
+    /** Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps. */
     fun torrentNoKillSwitch(context: Context): String =
         context.getString(R.string.torrent_no_kill_switch)
 
@@ -697,7 +709,7 @@ object Strings {
     fun noticeAnilistClientMissing(context: Context, client: String, secret: String): String =
         context.getString(R.string.notice_anilist_client_missing, client, secret)
 
-    /** Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. */
+    /** Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps. */
     fun noticeAnilistPasteFlow(context: Context): String =
         context.getString(R.string.notice_anilist_paste_flow)
 
@@ -705,7 +717,7 @@ object Strings {
     fun noticeMalClientMissing(context: Context, setting: String): String =
         context.getString(R.string.notice_mal_client_missing, setting)
 
-    /** Status line while the browser sign-in is open and the app waits for it to come back. */
+    /** Job note while the browser sign-in is open and the terminal app waits for it to come back. */
     fun statusWaitingForRedirect(context: Context, tracker: String): String =
         context.getString(R.string.status_waiting_for_redirect, tracker)
 
@@ -777,7 +789,7 @@ object Strings {
     fun noticeEpisodesAired(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.notice_episodes_aired, count, count)
 
-    /** Toast when a new release of anistream is out, on the terminal app. The command is not translated. */
+    /** Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps. */
     fun noticeUpdateAvailable(context: Context, tag: String): String =
         context.getString(R.string.notice_update_available, tag)
 
@@ -820,6 +832,42 @@ object Strings {
     /** Toast when playback stops with an error. */
     fun noticePlaybackFailed(context: Context): String =
         context.getString(R.string.notice_playback_failed)
+
+    /** Toast when something went wrong inside the engine and it carried on. */
+    fun noticeEngineFault(context: Context): String =
+        context.getString(R.string.notice_engine_fault)
+
+    /** Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync. */
+    fun noticeDatabaseSetAside(context: Context, path: String): String =
+        context.getString(R.string.notice_database_set_aside, path)
+
+    /** Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system. */
+    fun startFailedFolder(context: Context, path: String, reason: String): String =
+        context.getString(R.string.start_failed_folder, path, reason)
+
+    /** Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can. */
+    fun startFailedConfig(context: Context, path: String, problem: String): String =
+        context.getString(R.string.start_failed_config, path, problem)
+
+    /** Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system. */
+    fun startFailedDatabase(context: Context, path: String, reason: String): String =
+        context.getString(R.string.start_failed_database, path, reason)
+
+    /** Message when anistream could not start its network connection from the network settings. */
+    fun startFailedNetwork(context: Context, reason: String): String =
+        context.getString(R.string.start_failed_network, reason)
+
+    /** Message when anistream itself could not start. The reason comes from the system or the engine. */
+    fun startFailed(context: Context, reason: String): String =
+        context.getString(R.string.start_failed, reason)
+
+    /** Message when the TV remote could not start listening or could not forget a phone. */
+    fun startFailedRemote(context: Context, reason: String): String =
+        context.getString(R.string.start_failed_remote, reason)
+
+    /** Message when the built-in player could not start. */
+    fun startFailedPlayer(context: Context, reason: String): String =
+        context.getString(R.string.start_failed_player, reason)
 
     /** Toast after episodes are added to the download queue. */
     fun noticeEpisodesQueued(context: Context, count: Int): String =

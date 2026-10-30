@@ -458,7 +458,7 @@ impl Hub {
     /// A shot's table as if the sources fell short of it.
     #[cfg(feature = "fixtures")]
     fn unsourced_in(&self, mut event: Event) -> Event {
-        if let (Some((title, first, last)), Event::Episodes { id, rows }) =
+        if let (Some((title, first, last)), Event::Episodes { id, rows, .. }) =
             (self.unsourced.get(), &mut event)
             && id.get() == title
         {

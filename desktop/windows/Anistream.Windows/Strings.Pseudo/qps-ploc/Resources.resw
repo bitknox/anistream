@@ -123,6 +123,10 @@
     <value>[Çöüļðñ'ţ šţàŕţ ţĥàţ ŕéļéàšé: {detail}~~~~~~~~~~]</value>
     <comment>Reason: the release the person picked would not start. The detail comes from the source.</comment>
   </data>
+  <data name="CauseSourcesTimedOut" xml:space="preserve">
+    <value>[Ţĥé šöüŕçéš ţööķ ţöö ļöñĝ ţö àñšŵéŕ. Ţŕý àĝàîñ, öŕ çĥööšé àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Reason: a play waited too long for its sources to give it a stream, and gave up.</comment>
+  </data>
   <data name="CauseNoSourceHasEpisode" xml:space="preserve">
     <value>[Ñö šöüŕçé ĥàš éþîšöðé {episode}: {detail}~~~~~~~~~]</value>
     <comment>Reason: every source matched the title but none has the episode. The detail is what each said.</comment>
@@ -167,14 +171,6 @@
     <value>[Šéàŕçĥîñĝ šöüŕçéš ƒöŕ éþîšöðé {episode}…~~~~~~~~~~~]</value>
     <comment>Job note while the sources are asked for an episode. The episode is its label, often a number.</comment>
   </data>
-  <data name="StatusStartingPlayer" xml:space="preserve">
-    <value>[Šţàŕţîñĝ ɱþṽ…~~~~]</value>
-    <comment>Status while the player opens.</comment>
-  </data>
-  <data name="StatusPlaying" xml:space="preserve">
-    <value>[Þļàýîñĝ {title}, éþîšöðé {episode}~~~~~~~~]</value>
-    <comment>Status line while an episode plays.</comment>
-  </data>
   <data name="NoticePlayerFailedToStart" xml:space="preserve">
     <value>[Çöüļðñ'ţ šţàŕţ ɱþṽ. Çĥéçķ ţĥàţ îţ ŕüñš öñ îţš öŵñ. ({reason})~~~~~~~~~~~~~~~~~]</value>
     <comment>Toast when the player cannot be started. The reason comes from the system.</comment>
@@ -201,11 +197,15 @@
   </data>
   <data name="NoticeMpvMissing" xml:space="preserve">
     <value>[{binary} ŵàšñ'ţ ƒöüñð. Îñšţàļļ ɱþṽ ţö þļàý éþîšöðéš.~~~~~~~~~~~~~~~]</value>
-    <comment>Toast at launch when the mpv program is missing. The binary is the name the settings give it.</comment>
+    <comment>Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="NoticeMpvOld" xml:space="preserve">
     <value>[ɱþṽ {version} çàñ þļàý, ƀüţ àñîšţŕéàɱ'š þļàýéŕ ñééðš ɱþṽ 0.36 öŕ ñéŵéŕ ƒöŕ îţš šķîþ ƀüţţöñ, Ûþ ñéẋţ çàŕð, ɱéñüš àñð ţĥüɱƀñàîļš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>Toast at launch when mpv is too old for anistream's own player.</comment>
+    <comment>Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps.</comment>
+  </data>
+  <data name="NoticeSubtitlesUnavailable" xml:space="preserve">
+    <value>[Ţĥîš šöüŕçé'š šüƀţîţļéš çöüļðñ'ţ ƀé ļöàðéð. Çĥööšé àñöţĥéŕ šöüŕçé ţö ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.</comment>
   </data>
   <data name="NoticeOpenedInBrowser" xml:space="preserve">
     <value>[Öþéñéð îñ ýöüŕ ƀŕöŵšéŕ.~~~~~~~]</value>
@@ -286,6 +286,14 @@
   <data name="NoticeNoSourceCouldList" xml:space="preserve">
     <value>[Ñö šöüŕçé çöüļð ļîšţ ţĥîš šĥöŵ: {reason}~~~~~~~~~~~]</value>
     <comment>Toast when no source could list a show's episodes. The reason is what the sources said.</comment>
+  </data>
+  <data name="NoticeEpisodesFailed" xml:space="preserve">
+    <value>[Çöüļðñ'ţ ļöàð ţĥé éþîšöðéš. {reason}~~~~~~~~~~]</value>
+    <comment>Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.</comment>
+  </data>
+  <data name="NoticeMatchUncertain" xml:space="preserve">
+    <value>[{source} ƒöüñð ɱöŕé ţĥàñ öñé šĥöŵ ţĥàţ çöüļð ƀé ţĥîš öñé, šö ţĥéšé éþîšöðéš àŕé ƒŕöɱ ÅñîĻîšţ ƒöŕ ñöŵ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name.</comment>
   </data>
   <data name="NoticeContinueHideFailed" xml:space="preserve">
     <value>[Çöüļðñ'ţ ŕéɱöṽé ţĥàţ ƒŕöɱ Çöñţîñüé. {reason}~~~~~~~~~~~~]</value>
@@ -389,7 +397,11 @@
   </data>
   <data name="PartyNeedsServer" xml:space="preserve">
     <value>[Çĥööšé à šéŕṽéŕ ƒöŕ ţĥé ŵàţçĥ þàŕţý ƒîŕšţ, àš šýñçþļàý.šéŕṽéŕ. {server} îš ŕüñ ƀý {operator}.~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.</comment>
+    <comment>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.</comment>
+  </data>
+  <data name="PartyChooseServer" xml:space="preserve">
+    <value>[Çĥööšé à šéŕṽéŕ ƒöŕ ţĥé ŵàţçĥ þàŕţý ƒîŕšţ. {server} îš ŕüñ ƀý {operator}.~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it.</comment>
   </data>
   <data name="NoticeNoParty" xml:space="preserve">
     <value>[Ŵàţçĥ þàŕţîéš àŕéñ'ţ àṽàîļàƀļé îñ ţĥîš ṽéŕšîöñ öƒ àñîšţŕéàɱ.~~~~~~~~~~~~~~~~~~]</value>
@@ -649,7 +661,7 @@
   </data>
   <data name="TorrentNoKillSwitch" xml:space="preserve">
     <value>[Ţĥéŕé îš ñö ÖŠ-ļéṽéļ ķîļļ šŵîţçĥ ƀéĥîñð ţĥé ṼÞÑ ĝüàŕð. Ŕüñ "àñîšţŕéàɱ --ðöçţöŕ" ƒöŕ àðṽîçé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>Toast when torrents are up but no operating-system firewall rule backs the VPN guard.</comment>
+    <comment>Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="TorrentNotChecked" xml:space="preserve">
     <value>[Çöüļðñ'ţ çĥéçķ ţĥé çöññéçţîöñ. {reason}~~~~~~~~~~~]</value>
@@ -761,7 +773,7 @@
   </data>
   <data name="NoticeAnilistPasteFlow" xml:space="preserve">
     <value>[Þàšţîñĝ à çöðé îšñ'ţ þöššîƀļé ĥéŕé. Ǫüîţ àñð ŕüñ àñîšţŕéàɱ --ļöĝîñ îñšţéàð.~~~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.</comment>
+    <comment>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="NoticeMalClientMissing" xml:space="preserve">
     <value>[ṀýÅñîɱéĻîšţ ñééðš à çļîéñţ îð. Ŕéĝîšţéŕ àñ àþþ öƒ ţýþé öţĥéŕ àţ ɱýàñîɱéļîšţ.ñéţ/àþîçöñƒîĝ, ţĥéñ šéţ {setting} îñ ţĥé çöñƒîĝ ƒîļé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
@@ -769,7 +781,7 @@
   </data>
   <data name="StatusWaitingForRedirect" xml:space="preserve">
     <value>[Ŵàîţîñĝ ƒöŕ {tracker} ţö ŕéðîŕéçţ ƀàçķ…~~~~~~~~~~]</value>
-    <comment>Status line while the browser sign-in is open and the app waits for it to come back.</comment>
+    <comment>Job note while the browser sign-in is open and the terminal app waits for it to come back.</comment>
   </data>
   <data name="NoticeMalNoRefreshToken" xml:space="preserve">
     <value>[ṀýÅñîɱéĻîšţ ðîðñ'ţ îššüé à ŕéƒŕéšĥ ţöķéñ. Ýöü'ļļ ñééð ţö šîĝñ îñ àĝàîñ îñ àƀöüţ à ɱöñţĥ.~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
@@ -849,7 +861,7 @@
   </data>
   <data name="NoticeUpdateAvailable" xml:space="preserve">
     <value>[{tag} îš öüţ. Ŕüñ àñîšţŕéàɱ --üþðàţé ţö îñšţàļļ îţ.~~~~~~~~~~~~~~~]</value>
-    <comment>Toast when a new release of anistream is out, on the terminal app. The command is not translated.</comment>
+    <comment>Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="CauseConfirmNoProtection" xml:space="preserve">
     <value>[Çöñƒîŕɱ ţĥàţ ýöü ŵàñţ ñö þŕöţéçţîöñ ƒîŕšţ.~~~~~~~~~~~~~]</value>
@@ -890,6 +902,42 @@
   <data name="NoticePlaybackFailed" xml:space="preserve">
     <value>[Þļàýƀàçķ ƒàîļéð. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~]</value>
     <comment>Toast when playback stops with an error.</comment>
+  </data>
+  <data name="NoticeEngineFault" xml:space="preserve">
+    <value>[Šöɱéţĥîñĝ ŵéñţ ŵŕöñĝ îñšîðé àñîšţŕéàɱ. Îţ çàŕŕîéð öñ, ƀüţ îƒ à šçŕééñ ļööķš šţüçķ, ƣüîţ àñð öþéñ îţ àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Toast when something went wrong inside the engine and it carried on.</comment>
+  </data>
+  <data name="NoticeDatabaseSetAside" xml:space="preserve">
+    <value>[Ţĥé ðàţàƀàšé ŵàš ðàɱàĝéð, šö àñîšţŕéàɱ šţàŕţéð à ñéŵ öñé. Ţĥé öļð ƒîļé îš ķéþţ àţ {path}. Ýöüŕ ţŕàçķéŕš ƀŕîñĝ ƀàçķ ŵĥàţ ţĥéý ĥöļð àţ ţĥé ñéẋţ šýñç.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync.</comment>
+  </data>
+  <data name="StartFailedFolder" xml:space="preserve">
+    <value>[àñîšţŕéàɱ çöüļðñ'ţ çŕéàţé ţĥé ƒöļðéŕ {path}. Çĥéçķ ţĥàţ ţĥé ðîšķ ĥàš ŕööɱ àñð ţĥé ƒöļðéŕ çàñ ƀé ŵŕîţţéñ ţö, ţĥéñ ţŕý àĝàîñ. {reason}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system.</comment>
+  </data>
+  <data name="StartFailedConfig" xml:space="preserve">
+    <value>[{path} ĥàš à šéţţîñĝ àñîšţŕéàɱ çàñ'ţ üšé: {problem}. Ƒîẋ öŕ ŕéɱöṽé îţ, ţĥéñ ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.</comment>
+  </data>
+  <data name="StartFailedDatabase" xml:space="preserve">
+    <value>[àñîšţŕéàɱ çöüļðñ'ţ öþéñ îţš ðàţàƀàšé àţ {path}. Îƒ àñöţĥéŕ àñîšţŕéàɱ àþþ îš öþéñ öñ ţĥîš ƒöļðéŕ, ƣüîţ îţ àñð ţŕý àĝàîñ. {reason}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.</comment>
+  </data>
+  <data name="StartFailedNetwork" xml:space="preserve">
+    <value>[àñîšţŕéàɱ çöüļðñ'ţ šéţ üþ îţš ñéţŵöŕķ çöññéçţîöñ ƒŕöɱ ţĥé ñéţŵöŕķ šéţţîñĝš îñ çöñƒîĝ.ţöɱļ. {reason}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Message when anistream could not start its network connection from the network settings.</comment>
+  </data>
+  <data name="StartFailed" xml:space="preserve">
+    <value>[àñîšţŕéàɱ çöüļðñ'ţ šţàŕţ. Ǫüîţ àñð öþéñ îţ àĝàîñ. {reason}~~~~~~~~~~~~~~~~]</value>
+    <comment>Message when anistream itself could not start. The reason comes from the system or the engine.</comment>
+  </data>
+  <data name="StartFailedRemote" xml:space="preserve">
+    <value>[Ţĥé ŕéɱöţé çöüļðñ'ţ šţàŕţ. {reason}~~~~~~~~~]</value>
+    <comment>Message when the TV remote could not start listening or could not forget a phone.</comment>
+  </data>
+  <data name="StartFailedPlayer" xml:space="preserve">
+    <value>[Ţĥé þļàýéŕ çöüļðñ'ţ šţàŕţ. {reason}~~~~~~~~~]</value>
+    <comment>Message when the built-in player could not start.</comment>
   </data>
   <data name="NoticeEpisodesQueued_one" xml:space="preserve">
     <value>[Ǫüéüéð öñé éþîšöðé.~~~~~~]</value>

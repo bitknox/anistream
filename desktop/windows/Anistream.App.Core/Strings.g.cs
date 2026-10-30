@@ -78,6 +78,9 @@ public static partial class T
     /// <summary>Reason: the release the person picked would not start. The detail comes from the source.</summary>
     public static string CauseReleaseFailed(string detail) => Fill(Get("CauseReleaseFailed"), ("detail", detail));
 
+    /// <summary>Reason: a play waited too long for its sources to give it a stream, and gave up.</summary>
+    public static string CauseSourcesTimedOut => Get("CauseSourcesTimedOut");
+
     /// <summary>Reason: every source matched the title but none has the episode. The detail is what each said.</summary>
     public static string CauseNoSourceHasEpisode(string episode, string detail) => Fill(Get("CauseNoSourceHasEpisode"), ("episode", episode), ("detail", detail));
 
@@ -105,12 +108,6 @@ public static partial class T
     /// <summary>Job note while the sources are asked for an episode. The episode is its label, often a number.</summary>
     public static string StatusSearchingSources(string episode) => Fill(Get("StatusSearchingSources"), ("episode", episode));
 
-    /// <summary>Status while the player opens.</summary>
-    public static string StatusStartingPlayer => Get("StatusStartingPlayer");
-
-    /// <summary>Status line while an episode plays.</summary>
-    public static string StatusPlaying(string title, string episode) => Fill(Get("StatusPlaying"), ("title", title), ("episode", episode));
-
     /// <summary>Toast when the player cannot be started. The reason comes from the system.</summary>
     public static string NoticePlayerFailedToStart(string reason) => Fill(Get("NoticePlayerFailedToStart"), ("reason", reason));
 
@@ -129,11 +126,14 @@ public static partial class T
     /// <summary>Toast when a play is asked for in a build with no player.</summary>
     public static string NoticeNoPlayer => Get("NoticeNoPlayer");
 
-    /// <summary>Toast at launch when the mpv program is missing. The binary is the name the settings give it.</summary>
+    /// <summary>Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.</summary>
     public static string NoticeMpvMissing(string binary) => Fill(Get("NoticeMpvMissing"), ("binary", binary));
 
-    /// <summary>Toast at launch when mpv is too old for anistream's own player.</summary>
+    /// <summary>Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps.</summary>
     public static string NoticeMpvOld(string version) => Fill(Get("NoticeMpvOld"), ("version", version));
+
+    /// <summary>Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.</summary>
+    public static string NoticeSubtitlesUnavailable => Get("NoticeSubtitlesUnavailable");
 
     /// <summary>Toast after a link was handed to the browser.</summary>
     public static string NoticeOpenedInBrowser => Get("NoticeOpenedInBrowser");
@@ -194,6 +194,12 @@ public static partial class T
 
     /// <summary>Toast when no source could list a show's episodes. The reason is what the sources said.</summary>
     public static string NoticeNoSourceCouldList(string reason) => Fill(Get("NoticeNoSourceCouldList"), ("reason", reason));
+
+    /// <summary>Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.</summary>
+    public static string NoticeEpisodesFailed(string reason) => Fill(Get("NoticeEpisodesFailed"), ("reason", reason));
+
+    /// <summary>Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name.</summary>
+    public static string NoticeMatchUncertain(string source) => Fill(Get("NoticeMatchUncertain"), ("source", source));
 
     /// <summary>Toast when a title cannot be taken off the Continue row. The reason comes from the system.</summary>
     public static string NoticeContinueHideFailed(string reason) => Fill(Get("NoticeContinueHideFailed"), ("reason", reason));
@@ -258,8 +264,11 @@ public static partial class T
     /// <summary>Toast when keep next found no room for another episode.</summary>
     public static string NoticeKeepNextFull => Get("NoticeKeepNextFull");
 
-    /// <summary>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.</summary>
+    /// <summary>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.</summary>
     public static string PartyNeedsServer(string server, string @operator) => Fill(Get("PartyNeedsServer"), ("server", server), ("operator", @operator));
+
+    /// <summary>Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it.</summary>
+    public static string PartyChooseServer(string server, string @operator) => Fill(Get("PartyChooseServer"), ("server", server), ("operator", @operator));
 
     /// <summary>Toast when a watch party is asked for in a build without watch parties.</summary>
     public static string NoticeNoParty => Get("NoticeNoParty");
@@ -447,7 +456,7 @@ public static partial class T
     /// <summary>Error: the torrent session could not start. The reason comes from the torrent engine.</summary>
     public static string TorrentSessionFailed(string reason) => Fill(Get("TorrentSessionFailed"), ("reason", reason));
 
-    /// <summary>Toast when torrents are up but no operating-system firewall rule backs the VPN guard.</summary>
+    /// <summary>Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.</summary>
     public static string TorrentNoKillSwitch => Get("TorrentNoKillSwitch");
 
     /// <summary>Toast when the connection check could not run. The reason comes from the VPN settings.</summary>
@@ -531,13 +540,13 @@ public static partial class T
     /// <summary>Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.</summary>
     public static string NoticeAnilistClientMissing(string client, string secret) => Fill(Get("NoticeAnilistClientMissing"), ("client", client), ("secret", secret));
 
-    /// <summary>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.</summary>
+    /// <summary>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.</summary>
     public static string NoticeAnilistPasteFlow => Get("NoticeAnilistPasteFlow");
 
     /// <summary>Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.</summary>
     public static string NoticeMalClientMissing(string setting) => Fill(Get("NoticeMalClientMissing"), ("setting", setting));
 
-    /// <summary>Status line while the browser sign-in is open and the app waits for it to come back.</summary>
+    /// <summary>Job note while the browser sign-in is open and the terminal app waits for it to come back.</summary>
     public static string StatusWaitingForRedirect(string tracker) => Fill(Get("StatusWaitingForRedirect"), ("tracker", tracker));
 
     /// <summary>Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.</summary>
@@ -591,7 +600,7 @@ public static partial class T
     /// <summary>Toast, and desktop notification, for several episodes that aired while the app was closed.</summary>
     public static string NoticeEpisodesAired(long count) => Fill(GetPlural("NoticeEpisodesAired", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
-    /// <summary>Toast when a new release of anistream is out, on the terminal app. The command is not translated.</summary>
+    /// <summary>Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps.</summary>
     public static string NoticeUpdateAvailable(string tag) => Fill(Get("NoticeUpdateAvailable"), ("tag", tag));
 
     /// <summary>The reason a setting was refused until the person confirms having no protection.</summary>
@@ -623,6 +632,33 @@ public static partial class T
 
     /// <summary>Toast when playback stops with an error.</summary>
     public static string NoticePlaybackFailed => Get("NoticePlaybackFailed");
+
+    /// <summary>Toast when something went wrong inside the engine and it carried on.</summary>
+    public static string NoticeEngineFault => Get("NoticeEngineFault");
+
+    /// <summary>Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync.</summary>
+    public static string NoticeDatabaseSetAside(string path) => Fill(Get("NoticeDatabaseSetAside"), ("path", path));
+
+    /// <summary>Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system.</summary>
+    public static string StartFailedFolder(string path, string reason) => Fill(Get("StartFailedFolder"), ("path", path), ("reason", reason));
+
+    /// <summary>Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.</summary>
+    public static string StartFailedConfig(string path, string problem) => Fill(Get("StartFailedConfig"), ("path", path), ("problem", problem));
+
+    /// <summary>Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.</summary>
+    public static string StartFailedDatabase(string path, string reason) => Fill(Get("StartFailedDatabase"), ("path", path), ("reason", reason));
+
+    /// <summary>Message when anistream could not start its network connection from the network settings.</summary>
+    public static string StartFailedNetwork(string reason) => Fill(Get("StartFailedNetwork"), ("reason", reason));
+
+    /// <summary>Message when anistream itself could not start. The reason comes from the system or the engine.</summary>
+    public static string StartFailed(string reason) => Fill(Get("StartFailed"), ("reason", reason));
+
+    /// <summary>Message when the TV remote could not start listening or could not forget a phone.</summary>
+    public static string StartFailedRemote(string reason) => Fill(Get("StartFailedRemote"), ("reason", reason));
+
+    /// <summary>Message when the built-in player could not start.</summary>
+    public static string StartFailedPlayer(string reason) => Fill(Get("StartFailedPlayer"), ("reason", reason));
 
     /// <summary>Toast after episodes are added to the download queue.</summary>
     public static string NoticeEpisodesQueued(long count) => Fill(GetPlural("NoticeEpisodesQueued", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
@@ -5316,6 +5352,7 @@ public static partial class T
         ["CauseTitleNoMatch"] = "Couldn't match this title: {detail}",
         ["CauseSourceGone"] = "The source {source} is no longer available. Choose another.",
         ["CauseReleaseFailed"] = "Couldn't start that release: {detail}",
+        ["CauseSourcesTimedOut"] = "The sources took too long to answer. Try again, or choose another source.",
         ["CauseNoSourceHasEpisode"] = "No source has episode {episode}: {detail}",
         ["CauseSourceCannotDownload"] = "This source streams episodes but can't download them.",
         ["CauseNoSourceCouldListShow"] = "No source could list this show, so it can't be downloaded.",
@@ -5327,8 +5364,6 @@ public static partial class T
         ["StatusLookingUpTitle"] = "Looking up the title…",
         ["StatusLoadingSources"] = "Loading sources…",
         ["StatusSearchingSources"] = "Searching sources for episode {episode}…",
-        ["StatusStartingPlayer"] = "Starting mpv…",
-        ["StatusPlaying"] = "Playing {title}, episode {episode}",
         ["NoticePlayerFailedToStart"] = "Couldn't start mpv. Check that it runs on its own. ({reason})",
         ["NoticeStreamNoVideo"] = "No video from that stream. Trying {next} of {total}.",
         ["NoticePlayerCouldNotPlay"] = "mpv couldn't play this. {reason}",
@@ -5337,6 +5372,7 @@ public static partial class T
         ["NoticeNoPlayer"] = "This version of anistream can't play video.",
         ["NoticeMpvMissing"] = "{binary} wasn't found. Install mpv to play episodes.",
         ["NoticeMpvOld"] = "mpv {version} can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.",
+        ["NoticeSubtitlesUnavailable"] = "This source's subtitles couldn't be loaded. Choose another source to try again.",
         ["NoticeOpenedInBrowser"] = "Opened in your browser.",
         ["NoticeCouldNotOpen"] = "Couldn't open that. {reason}",
         ["NoticeTrailerPlaying"] = "Trailer playing in mpv.",
@@ -5357,6 +5393,8 @@ public static partial class T
         ["NoticeSourceAutomatic"] = "Back to automatic source selection.",
         ["NoticeSourceChoiceFailed"] = "Couldn't save that choice. {reason}",
         ["NoticeNoSourceCouldList"] = "No source could list this show: {reason}",
+        ["NoticeEpisodesFailed"] = "Couldn't load the episodes. {reason}",
+        ["NoticeMatchUncertain"] = "{source} found more than one show that could be this one, so these episodes are from AniList for now.",
         ["NoticeContinueHideFailed"] = "Couldn't remove that from Continue. {reason}",
         ["NoticeDownloadQueued"] = "Queued episode {episode} of {title}.",
         ["NoticeDownloadAlreadyQueued"] = "Episode {episode} of {title} is already in downloads.",
@@ -5383,6 +5421,7 @@ public static partial class T
         ["NoticeEpisodesQueuedExistingStopped_other"] = "Queued {count} episodes, then it stopped. {existing} {reason}",
         ["NoticeKeepNextFull"] = "Not enough free space to keep the next episodes downloaded. Free up some space to download more.",
         ["PartyNeedsServer"] = "Choose a server for the watch party first, as syncplay.server. {server} is run by {operator}.",
+        ["PartyChooseServer"] = "Choose a server for the watch party first. {server} is run by {operator}.",
         ["NoticeNoParty"] = "Watch parties aren't available in this version of anistream.",
         ["PartyNeedsRoom"] = "A watch party needs a room to meet in. Choose one first.",
         ["PartyServerLost"] = "Lost the watch party server. Trying again.",
@@ -5508,6 +5547,15 @@ public static partial class T
         ["NoticeNotSaved"] = "Couldn't save that setting. {reason}",
         ["NoticeTitleLoadFailed"] = "Couldn't load this title. Check your connection and try again.",
         ["NoticePlaybackFailed"] = "Playback failed. Try another source.",
+        ["NoticeEngineFault"] = "Something went wrong inside anistream. It carried on, but if a screen looks stuck, quit and open it again.",
+        ["NoticeDatabaseSetAside"] = "The database was damaged, so anistream started a new one. The old file is kept at {path}. Your trackers bring back what they hold at the next sync.",
+        ["StartFailedFolder"] = "anistream couldn't create the folder {path}. Check that the disk has room and the folder can be written to, then try again. {reason}",
+        ["StartFailedConfig"] = "{path} has a setting anistream can't use: {problem}. Fix or remove it, then try again.",
+        ["StartFailedDatabase"] = "anistream couldn't open its database at {path}. If another anistream app is open on this folder, quit it and try again. {reason}",
+        ["StartFailedNetwork"] = "anistream couldn't set up its network connection from the network settings in config.toml. {reason}",
+        ["StartFailed"] = "anistream couldn't start. Quit and open it again. {reason}",
+        ["StartFailedRemote"] = "The remote couldn't start. {reason}",
+        ["StartFailedPlayer"] = "The player couldn't start. {reason}",
         ["NoticeEpisodesQueued_one"] = "Queued one episode.",
         ["NoticeEpisodesQueued_other"] = "Queued {count} episodes.",
         ["ContinueMenuResume"] = "Continue",

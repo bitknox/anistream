@@ -102,15 +102,13 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
             return
         }
     }
-    // The engine's status, when it has one: changes waiting to sync.
-    val status by store.notices.status.collectAsStateWithLifecycle()
     val offline by store.offline.collectAsStateWithLifecycle()
     // Rows swiped off, gone from the list while their Undo stands.
     val leaving = remember { mutableStateListOf<AnilistId>() }
     val leave = rememberLeave(leaving)
     ScreenFrame(
         title = stringResource(R.string.nav_continue),
-        subtitle = status?.text(LocalContext.current) ?: if (empty) stringResource(R.string.continue_empty_title) else null,
+        subtitle = if (empty) stringResource(R.string.continue_empty_title) else null,
         account = Account(user, actions.openSettings),
     ) { padding ->
         Refreshable({ store.loadContinue(force = true) }, top = padding.calculateTopPadding()) {

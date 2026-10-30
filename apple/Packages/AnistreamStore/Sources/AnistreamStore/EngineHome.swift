@@ -9,7 +9,8 @@ import Foundation
 /// - macOS: the terminal app's own, so both apps share one config, one database and one set of
 ///   plugins: `~/Library/Application Support/anistream` for config and data, and
 ///   `~/Library/Caches/anistream` for the cache. It is the rule the terminal resolves them by,
-///   `directories::ProjectDirs::from("", "", "anistream")`.
+///   `directories::ProjectDirs::from("", "", "anistream")`. Only one of the two should be open
+///   at a time: nothing stops a second one, and each takes the queued downloads as its own.
 /// - iOS and iPadOS: the app container's Application Support and Caches.
 /// - Either, overridden: a root of the caller's, with `config`, `data` and `cache` under it, from
 ///   the `ANISTREAM_HOME_OVERRIDE` variable or the `-AnistreamHome <path>` launch argument. Tests,

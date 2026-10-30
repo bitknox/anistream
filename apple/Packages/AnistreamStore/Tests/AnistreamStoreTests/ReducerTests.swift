@@ -372,7 +372,6 @@ struct ReducerTests {
         store.apply([
             .toast(Notice(kind: .info, text: "plugin update ready: alpha", hint: .openStores)),
             .toast(Notice(kind: .alert, text: "AniList is not answering", hint: nil)),
-            .status(.verbatim(text: "syncing")),
         ])
         #expect(store.notices.log.map(\.notice.text) == [
             "AniList is not answering", "plugin update ready: alpha",
@@ -381,7 +380,6 @@ struct ReducerTests {
         #expect(current.isAlert)
         store.notices.dismiss(current)
         #expect(store.notices.current == nil)
-        #expect(store.notices.status == "syncing")
     }
 
     @Test func theSyncCapsuleSaysWhereSyncStands() {
