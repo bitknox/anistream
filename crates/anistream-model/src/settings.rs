@@ -510,6 +510,10 @@ pub struct SettingsView {
     pub quality: u32,
     /// The theme in effect, which the terminal paints with.
     pub theme: ThemeMode,
+    /// Whether the front end may animate: off, the terminal's wipe cuts straight to its card and
+    /// its pulses hold still.
+    #[cfg_attr(feature = "ffi", uniffi(default = true))]
+    pub motion: bool,
     /// The sources the config sets up: the header's chips, the source the status line names,
     /// and the order Providers moves a source up and down.
     pub sources: ConfiguredSources,
@@ -570,6 +574,7 @@ pub fn view(effective: &Config, saved: &Config) -> SettingsView {
         translation: effective.playback.translation,
         quality: effective.playback.quality,
         theme: effective.theme.mode,
+        motion: effective.theme.motion,
         sources: ConfiguredSources::of(&effective.providers),
         speed: effective.playback.persisted_speed,
         presence_client: effective.presence.resolved_client_id().is_some(),

@@ -218,8 +218,12 @@ impl App {
     /// Now Playing for a playback just staged: the eyecatch over it while its stream is found,
     /// and the view pushed.
     fn put_up(&mut self, playing: NowPlaying) {
-        self.eyecatch =
-            Some(Eyecatch::new(t::playback_transition_label(&playing.title, &playing.episode)));
+        let label = t::playback_transition_label(&playing.title, &playing.episode);
+        self.eyecatch = Some(if self.settings.motion {
+            Eyecatch::new(label)
+        } else {
+            Eyecatch::still(label)
+        });
         // One that has reported keeps playing until this one is found; one merely staged before
         // this was never going to play.
         let replaced = self.playing.take().filter(|p| p.duration.is_some());
@@ -398,6 +402,20 @@ mod tests {
         let eyecatch = a.eyecatch.as_ref().expect("no eyecatch was raised");
         assert_eq!(eyecatch.stage(), crate::eyecatch::Stage::Covering);
         assert!(a.is_animating(), "the loop has to know to tick faster");
+    }
+
+    /// The Motion setting off: the card is up at once rather than sweeping in, and the pulses
+    /// hold their first frame.
+    #[test]
+    fn with_motion_off_the_eyecatch_does_not_sweep_and_the_pulse_holds() {
+        let mut a = app_at_episodes();
+        a.settings.motion = false;
+        a.handle(Action::Open, 20);
+        let eyecatch = a.eyecatch.as_ref().expect("the card still covers the search");
+        assert_eq!(eyecatch.stage(), crate::eyecatch::Stage::Held);
+        a.tick_toasts();
+        a.tick_toasts();
+        assert_eq!(a.pulse_frame(), 0);
     }
 
     #[test]

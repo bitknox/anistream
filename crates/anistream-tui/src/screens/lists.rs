@@ -449,7 +449,7 @@ pub(super) fn render_loading(buf: &mut Buffer, app: &App, area: Rect) {
     if area.height == 0 || area.width == 0 {
         return;
     }
-    let frame = app.pulse;
+    let frame = app.pulse_frame();
     let pulse = glyph::pulse(frame);
     buf.set_string(area.left(), area.top(), &pulse, app.palette.style(Role::Obi));
     // The word as well as the wave. Motion alone says "something is happening"; it does not say

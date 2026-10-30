@@ -102,7 +102,7 @@ pub(super) fn render_activity(
     let start = area.left() + 1;
     let right = area.right().saturating_sub(1);
     buf.set_string(start, area.top(), " ", app.palette.style(Role::Text));
-    let pulse = glyph::pulse(app.pulse);
+    let pulse = glyph::pulse(app.pulse_frame());
     buf.set_string(start + 1, area.top(), &pulse, app.palette.style(Role::Obi));
     let mut x = start + 1 + pulse.cells() as u16 + 2;
     // The cell between the pulse and the first label, and the one closing the caption.

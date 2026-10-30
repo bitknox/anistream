@@ -201,6 +201,12 @@ impl App {
         self.pulse = self.pulse.wrapping_add(1);
     }
 
+    /// The frame the pulses and the skeleton's shimmer draw: the tick count, or with motion off
+    /// the first frame for good. The count itself keeps going, since notices are stamped by it.
+    pub fn pulse_frame(&self) -> u64 {
+        if self.settings.motion { self.pulse } else { 0 }
+    }
+
     /// Start a [`Job`] for `task`, numbered here, if it is work the user will wait on.
     ///
     /// For a still frame or a test that stages one. The running app's jobs are numbered where
