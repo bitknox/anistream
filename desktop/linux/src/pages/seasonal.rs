@@ -50,6 +50,7 @@ struct Page {
     ctx: Rc<Ctx>,
     grid: PosterGrid,
     body: Rc<States>,
+    caption: gtk::Label,
     empty: adw::StatusPage,
     entries: RefCell<Vec<Entry>>,
     format: Cell<usize>,
@@ -104,6 +105,13 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     bar.set_margin_start(18);
     bar.set_margin_end(18);
     bar.append(&toggles);
+    // What the engine says the list is, when it stopped at one page: said beside the formats.
+    let caption = widgets::haze("", "caption");
+    caption.set_hexpand(true);
+    caption.set_xalign(1.0);
+    caption.set_valign(gtk::Align::Center);
+    caption.set_visible(false);
+    bar.append(&caption);
     column.append(&bar);
     column.append(&body.widget);
 
@@ -111,6 +119,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         ctx: Rc::clone(ctx),
         grid,
         body,
+        caption,
         empty,
         entries: RefCell::default(),
         format: Cell::new(0),
@@ -161,6 +170,7 @@ impl Page {
         } else {
             Command::Search { query: self.query(at) }
         };
+        self.caption.set_visible(false);
         self.body.loading(Some(t::seasonal_loading()));
         self.ctx.hub.send(command);
     }
@@ -178,7 +188,7 @@ impl Page {
             }
             return;
         }
-        let Event::Content { view, content } = event else { return };
+        let (Event::Content { view, .. } | Event::Caption { view, .. }) = event else { return };
         let ours = match view {
             ContentFor::Seasonal => self.picked.get() == self.now,
             ContentFor::Search { query } => {
@@ -189,6 +199,16 @@ impl Page {
         if !ours {
             return;
         }
+        // The caption comes just ahead of its list.
+        let content = match event {
+            Event::Caption { text, .. } => {
+                self.caption.set_label(text);
+                self.caption.set_visible(!text.is_empty());
+                return;
+            }
+            Event::Content { content, .. } => content,
+            _ => return,
+        };
         match content {
             ContentList::Loading => self.body.loading(Some(t::seasonal_loading())),
             ContentList::Failed(why) => {

@@ -484,11 +484,11 @@ fn placeholders(shape: Shape) -> gtk::Widget {
 fn first_clause(why: &str) -> Option<String> {
     let clause = why.split([':', ';', '(', '\n']).next()?.trim().trim_end_matches('.');
     let words = clause.split_whitespace().count();
-    let plain = clause.chars().all(|c| c.is_alphabetic() || c.is_whitespace() || "'’,-".contains(c));
+    let plain =
+        clause.chars().all(|c| c.is_alphabetic() || c.is_whitespace() || "'’,-".contains(c));
     let starts_upper = clause.chars().next().is_some_and(char::is_uppercase);
     ((2..=14).contains(&words) && plain && starts_upper).then(|| format!("{clause}."))
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -497,7 +497,8 @@ mod tests {
     #[test]
     fn a_failed_state_says_the_first_clause_when_it_is_plain_words() {
         assert_eq!(
-            first_clause("Couldn't reach the server: connection refused (os error 111)").as_deref(),
+            first_clause("Couldn't reach the server: connection refused (os error 111)")
+                .as_deref(),
             Some("Couldn't reach the server.")
         );
         assert_eq!(first_clause("error sending request for url (https://x.example)"), None);

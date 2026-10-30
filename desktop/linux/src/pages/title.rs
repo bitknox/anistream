@@ -860,6 +860,12 @@ impl Page {
             let label = gtk::Label::new(Some(&name));
             label.set_xalign(0.0);
             label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+            if narrow {
+                // The name has two lines at the narrow width, where one cut it short.
+                label.set_wrap(true);
+                label.set_wrap_mode(gtk::pango::WrapMode::WordChar);
+                label.set_lines(2);
+            }
             text.append(&label);
             let sub = widgets::haze("", "caption");
             sub.add_css_class("numeric");

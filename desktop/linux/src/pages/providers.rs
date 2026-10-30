@@ -189,7 +189,10 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         if page.shown.get()
             && matches!(
                 event,
-                Event::Providers(_) | Event::ProviderNote(_) | Event::Stores(_) | Event::Settings(_)
+                Event::Providers(_)
+                    | Event::ProviderNote(_)
+                    | Event::Stores(_)
+                    | Event::Settings(_)
             )
         {
             page.show();

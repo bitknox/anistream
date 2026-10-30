@@ -195,12 +195,10 @@ impl Known {
                 let local = matches!(view, ContentFor::Continue);
                 for entry in content.entries() {
                     let mut entry = with_fixture_trailer(entry.clone());
-                    if !local {
-                        if let Some(known) = self.entries.get(&entry.id.get()) {
-                            entry.progress = known.progress;
-                            entry.resume = known.resume;
-                            entry.last_aired = known.last_aired.or(entry.last_aired);
-                        }
+                    if !local && let Some(known) = self.entries.get(&entry.id.get()) {
+                        entry.progress = known.progress;
+                        entry.resume = known.resume;
+                        entry.last_aired = known.last_aired.or(entry.last_aired);
                     }
                     self.entries.insert(entry.id.get(), entry);
                 }
@@ -678,7 +676,11 @@ mod tests {
         });
         let queue =
             crate::say::queue(&[known.entries[&900_001].clone()], &[], &Default::default());
-        assert_eq!(queue.in_progress[0].episode, 7, "Continue says: {}", queue.in_progress[0].action);
+        assert_eq!(
+            queue.in_progress[0].episode, 7,
+            "Continue says: {}",
+            queue.in_progress[0].action
+        );
     }
 
     #[test]

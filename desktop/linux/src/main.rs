@@ -230,7 +230,10 @@ fn main() -> glib::ExitCode {
 /// A panic the app does not catch ends it. Before it does, the engine is asked to wind down, which
 /// saves where the episode on screen had got to; a panic a callback guard catches leaves the
 /// engine alone.
-fn save_on_panic(engine: std::sync::Weak<anistream_engine::engine::Engine>, runtime: tokio::runtime::Handle) {
+fn save_on_panic(
+    engine: std::sync::Weak<anistream_engine::engine::Engine>,
+    runtime: tokio::runtime::Handle,
+) {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         tracing::error!(%info, "the app panicked");

@@ -19,7 +19,10 @@ pub enum Card {
     /// Up next, waiting for Play now or Cancel.
     Waiting,
     /// Up next with seconds still to run, and the fraction of the countdown left.
-    Counting { left: f64, fraction: f64 },
+    Counting {
+        left: f64,
+        fraction: f64,
+    },
 }
 
 impl Coming {
