@@ -145,6 +145,10 @@ public final class AccountsModel {
         working[job] = nil
     }
 
+    func clearWorking() {
+        working = [:]
+    }
+
     /// Whether a sign-in or a sync for `tracker` is under way.
     public func isWorking(_ tracker: String) -> Bool {
         working.values.contains(tracker)

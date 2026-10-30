@@ -4797,6 +4797,10 @@ object Strings {
     fun playerWaitNote(context: Context, what: String, seconds: Int): String =
         context.getString(R.string.player_wait_note, what, seconds)
 
+    /** Message on the video when the player could not make a change the viewer asked for, such as a speed or a track. */
+    fun playerCommandFailed(context: Context): String =
+        context.getString(R.string.player_command_failed)
+
     /** Button that shows the season before. */
     fun seasonalPrevious(context: Context): String =
         context.getString(R.string.seasonal_previous)

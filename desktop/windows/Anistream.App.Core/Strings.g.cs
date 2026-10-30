@@ -3096,6 +3096,9 @@ public static partial class T
     /// <summary>Line while an episode starts after a few seconds: what the wait is on, and for how long.</summary>
     public static string PlayerWaitNote(string what, long seconds) => Fill(Get("PlayerWaitNote"), ("what", what), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.</summary>
+    public static string PlayerCommandFailed => Get("PlayerCommandFailed");
+
     /// <summary>Button that shows the season before.</summary>
     public static string SeasonalPrevious => Get("SeasonalPrevious");
 
@@ -6399,6 +6402,7 @@ public static partial class T
         ["PlayerStartingText"] = "Starting episode {episode}",
         ["PlayerTrackN"] = "Track {id}",
         ["PlayerWaitNote"] = "{what} · {seconds} s",
+        ["PlayerCommandFailed"] = "That didn't work. Try again.",
         ["SeasonalPrevious"] = "Previous season",
         ["SeasonalNext"] = "Next season",
         ["SeasonalLoading"] = "Loading this season",

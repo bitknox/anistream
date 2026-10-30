@@ -220,9 +220,14 @@ struct DownloadLine: View {
         case .queued:
             Text(L.downloadsCaptionQueuedSlot).font(.mac(13)).foregroundStyle(.haze)
         case .failed:
-            // What stopped it is in Messages and the bug report (copy rule 5).
-            FailedLine(L.downloadsCaptionFailed)
-                .lineLimit(2)
+            VStack(alignment: .leading, spacing: 2) {
+                FailedLine(L.downloadsCaptionFailed)
+                    .lineLimit(2)
+                // What stopped it, kept on the row by the engine.
+                if let reason = row.error, !reason.isEmpty {
+                    Text(reason).font(.mac(12)).foregroundStyle(.haze).lineLimit(2)
+                }
+            }
         }
     }
 
@@ -308,7 +313,7 @@ struct SeedingList: View {
     @Environment(AppStore.self) private var store
 
     /// "Shared 0.8 of 1.0 · 2h left · 1.2 GB up".
-    private func seedingLine(_ row: SeedRow) -> String {
+    static func line(_ row: SeedRow) -> String {
         let ratio = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(1))
         return L.downloadsSeedingUploaded(
             shared: row.ratio.formatted(ratio), goal: row.goal.formatted(ratio),
@@ -340,7 +345,7 @@ struct SeedingList: View {
                                 }
                             }
                             .frame(width: 60, height: 3)
-                        Text(seedingLine(row))
+                        Text(Self.line(row))
                             .font(.mac(13))
                             .monospacedDigit()
                             .foregroundStyle(.haze)

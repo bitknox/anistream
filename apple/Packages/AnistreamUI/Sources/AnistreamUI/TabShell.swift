@@ -101,7 +101,7 @@ struct TabShell: View {
         case .providers: ProvidersScreen().toolbar { IPadProvidersToolbar() }
         case .pluginStores: PluginStoresScreen().toolbar { IPadStoresToolbar() }
         case .settings: SettingsScreen()
-        default: NotBuiltYet(section: section)
+        case .search: EmptyView()
         }
     }
 }

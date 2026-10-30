@@ -104,12 +104,18 @@ public final class WidgetFeed {
             guard !urls.isEmpty else { continue }
             let size = kind == .wide ? 1_600 : 400
             let images = await art.images(for: urls, maxPixelSize: size)
-            for (url, image) in images {
-                let name = WidgetFiles.artName(for: url, kind: kind)
-                guard let jpeg = ArtThumbnail.jpeg(from: image, kind: kind) else { continue }
-                try? files.writeArt(jpeg, named: name)
-                names[url] = name
-            }
+            // The encodes and the writes, up to sixty of them, are off the main actor.
+            let written = await Task.detached(priority: .utility) { () -> [String: String] in
+                var written: [String: String] = [:]
+                for (url, image) in images {
+                    let name = WidgetFiles.artName(for: url, kind: kind)
+                    guard let jpeg = ArtThumbnail.jpeg(from: image, kind: kind) else { continue }
+                    try? files.writeArt(jpeg, named: name)
+                    written[url] = name
+                }
+                return written
+            }.value
+            names.merge(written) { _, new in new }
         }
         try files.write(Self.snapshot(data, art: names))
         reload()

@@ -117,6 +117,10 @@ public final class StoresModel {
         working[job] = nil
     }
 
+    func clearWorking() {
+        working = [:]
+    }
+
     /// Forget the invite link being checked: the join sheet closed.
     public func clearPreview() {
         preview = nil

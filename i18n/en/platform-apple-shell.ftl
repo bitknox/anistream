@@ -110,10 +110,6 @@ shell-sync-not-connected = { $tracker } not connected
 # Line in the list of what the engine is doing, when it is doing nothing.
 shell-nothing-running = Nothing is running.
 
-# Line on a screen that this build does not have yet.
-# @arg section: text
-shell-not-built-yet = { $section } comes in a later build.
-
 # Placeholder of the search field while Settings is open.
 shell-search-settings = Search settings
 
@@ -161,3 +157,15 @@ shell-sync-synced = { $tracker } synced
 
 # Title of the page shown instead of the app when the engine could not start. The reason follows.
 shell-start-failed = { -app-name } could not start
+
+# Plain line under the title of the page shown when the engine could not start. The reason follows it, in the engine's words, for a bug report.
+shell-start-failed-body = Something stopped { -app-name } from opening. Try again, and if it keeps happening, send a report.
+
+# Title of the page shown when the engine stopped while the app was open.
+shell-engine-stopped = { -app-name } stopped working
+
+# Plain line under the title of the page shown when the engine stopped while the app was open.
+shell-engine-stopped-body = The part of the app that does the work has stopped. Start it again to carry on.
+
+# Title menu item that queues every unwatched episode that is not downloaded yet.
+shell-download-unwatched = Download unwatched

@@ -4,6 +4,8 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
+import AuthenticationServices
 import SwiftUI
 
 struct AppSheets: ViewModifier {
@@ -51,6 +53,9 @@ struct AppSheets: ViewModifier {
                     store.finishSignIn(request, callback: callback)
                 } catch {
                     store.cancelSignIn(request)
+                    // Closing the sheet is a cancel; anything else says why nothing happened.
+                    if let failure = error as? ASWebAuthenticationSessionError, failure.code == .canceledLogin { return }
+                    store.say(L.signInFailed(tracker: AccountsModel.name(request.tracker)))
                 }
             }
     }
