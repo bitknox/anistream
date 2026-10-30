@@ -30,8 +30,37 @@ class ScriptedMpv : PlayerBackend {
 
     override var listener: ((MpvEvent) -> Unit)? = null
 
+    /** The playlist entries mpv made for the loads, in order: one each, as mpv numbers them. */
+    val entries = mutableListOf<Long>()
+
+    /** The newest entry a `START_FILE` has named. */
+    private var startedThrough = 0L
+
+    /** The newest load's entry: what mpv starts when it takes several loads back to back. */
+    val newestEntry: Long get() = entries.last()
+
+    /**
+     * A `START_FILE` with no entry is for the oldest load not yet started, as mpv starts loads
+     * spaced out enough to start each; [MpvEvent.startFile] names one, for loads it coalesced.
+     */
     fun emit(event: MpvEvent) {
-        listener?.invoke(event)
+        val named = if (event.id == MpvNative.Event.START_FILE && event.json == null) {
+            entries.firstOrNull { it > startedThrough }?.let(MpvEvent::startFile) ?: event
+        } else {
+            event
+        }
+        named.entry?.let { startedThrough = maxOf(startedThrough, it) }
+        listener?.invoke(named)
+    }
+
+    /** Set: a load's answer, the entry mpv made, waits for it, as a busy mpv thread keeps it. */
+    var answering: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+
+    override suspend fun load(call: MpvCall.Load): Long? {
+        perform(call)
+        answering?.await()
+        if (ended) return null
+        return (entries.size + 1L).also { entries += it }
     }
 
     override suspend fun begin(hwdec: String, options: Map<String, String>) {
