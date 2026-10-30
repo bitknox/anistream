@@ -6271,21 +6271,9 @@
     <value>[Ţö ƀé àññöüñçéð~~~~~]</value>
     <comment>Value of the fact on a show with no announced start.</comment>
   </data>
-  <data name="MoreFollowing" xml:space="preserve">
-    <value>[Þéöþļé ýöü ƒöļļöŵ~~~~~~]</value>
-    <comment>Heading of the people the viewer follows who have the show on their list.</comment>
-  </data>
-  <data name="MoreFollowingSource" xml:space="preserve">
-    <value>[Ƒŕöɱ ÅñîĻîšţ~~~~]</value>
-    <comment>Note under that heading: where the list comes from.</comment>
-  </data>
   <data name="MoreFollowingLine" xml:space="preserve">
     <value>[{status} · {score}/10~~~~]</value>
     <comment>A followed person's status and score, such as "Completed · 9/10". The status is already worded.</comment>
-  </data>
-  <data name="MoreLikeThis" xml:space="preserve">
-    <value>[Ṁöŕé ļîķé ţĥîš~~~~~]</value>
-    <comment>Heading of the posters of similar shows under the sheet.</comment>
   </data>
   <data name="TorrentsTitle" xml:space="preserve">
     <value>[Ţöŕŕéñţš~~~]</value>

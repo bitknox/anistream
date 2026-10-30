@@ -128,7 +128,7 @@ sealed class TitleMoreDialog
     UIElement? Follows(TitleDetail detail)
     {
         var section = Section(T.MoreFollowing);
-        section.Children.Add(Ui.Text(T.MoreFollowingSource, "HazeCaptionStyle"));
+        section.Children.Add(Ui.Text(T.MoreFollowingNote, "HazeCaptionStyle"));
         foreach (var f in detail.Following)
         {
             var row = new Grid { ColumnSpacing = 12 };

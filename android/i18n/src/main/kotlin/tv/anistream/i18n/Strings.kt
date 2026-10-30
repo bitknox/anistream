@@ -6777,21 +6777,9 @@ object Strings {
     fun titleFactTba(context: Context): String =
         context.getString(R.string.title_fact_tba)
 
-    /** Heading of the people the viewer follows who have the show on their list. */
-    fun moreFollowing(context: Context): String =
-        context.getString(R.string.more_following)
-
-    /** Note under that heading: where the list comes from. */
-    fun moreFollowingSource(context: Context): String =
-        context.getString(R.string.more_following_source)
-
     /** A followed person's status and score, such as "Completed · 9/10". The status is already worded. */
     fun moreFollowingLine(context: Context, status: String, score: Int): String =
         context.getString(R.string.more_following_line, status, score)
-
-    /** Heading of the posters of similar shows under the sheet. */
-    fun moreLikeThis(context: Context): String =
-        context.getString(R.string.more_like_this)
 
     /** Title of the settings group and the screen. */
     fun torrentsTitle(context: Context): String =

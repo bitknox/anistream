@@ -6520,19 +6520,10 @@ public enum L {
     /// Value of the fact on a show with no announced start.
     public static var titleFactTba: String { string("title-fact-tba", fallback: "To be announced") }
 
-    /// Heading of the people the viewer follows who have the show on their list.
-    public static var moreFollowing: String { string("more-following", fallback: "People you follow") }
-
-    /// Note under that heading: where the list comes from.
-    public static var moreFollowingSource: String { string("more-following-source", fallback: "From AniList") }
-
     /// A followed person's status and score, such as "Completed · 9/10". The status is already worded.
     public static func moreFollowingLine(status: String, score: Int) -> String {
         Self.format("more-following-line", fallback: "%1$@ · %2$lld/10", status, score)
     }
-
-    /// Heading of the posters of similar shows under the sheet.
-    public static var moreLikeThis: String { string("more-like-this", fallback: "More like this") }
 
     /// Title of the settings group and the screen.
     public static var torrentsTitle: String { string("torrents-title", fallback: "Torrents") }

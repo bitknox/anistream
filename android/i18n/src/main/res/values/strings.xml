@@ -3542,14 +3542,8 @@
     <string name="title_fact_now">Now</string>
     <!-- Value of the fact on a show with no announced start. -->
     <string name="title_fact_tba">To be announced</string>
-    <!-- Heading of the people the viewer follows who have the show on their list. -->
-    <string name="more_following">People you follow</string>
-    <!-- Note under that heading: where the list comes from. -->
-    <string name="more_following_source">From AniList</string>
     <!-- A followed person's status and score, such as "Completed · 9/10". The status is already worded. -->
     <string name="more_following_line">%1$s · %2$d/10</string>
-    <!-- Heading of the posters of similar shows under the sheet. -->
-    <string name="more_like_this">More like this</string>
     <!-- Title of the settings group and the screen. -->
     <string name="torrents_title">Torrents</string>
     <!-- Label and short value for the switch. -->

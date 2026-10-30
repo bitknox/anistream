@@ -270,16 +270,7 @@ title-fact-tba = To be announced
 
 ## More about this show, the sheet
 
-# Heading of the people the viewer follows who have the show on their list.
-more-following = People you follow
-
-# Note under that heading: where the list comes from.
-more-following-source = From AniList
-
 # A followed person's status and score, such as "Completed · 9/10". The status is already worded.
 # @arg status: text
 # @arg score: int
 more-following-line = { $status } · { $score }/10
-
-# Heading of the posters of similar shows under the sheet.
-more-like-this = More like this

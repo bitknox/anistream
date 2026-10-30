@@ -4575,17 +4575,8 @@ public static partial class T
     /// <summary>Value of the fact on a show with no announced start.</summary>
     public static string TitleFactTba => Get("TitleFactTba");
 
-    /// <summary>Heading of the people the viewer follows who have the show on their list.</summary>
-    public static string MoreFollowing => Get("MoreFollowing");
-
-    /// <summary>Note under that heading: where the list comes from.</summary>
-    public static string MoreFollowingSource => Get("MoreFollowingSource");
-
     /// <summary>A followed person's status and score, such as "Completed · 9/10". The status is already worded.</summary>
     public static string MoreFollowingLine(string status, long score) => Fill(Get("MoreFollowingLine"), ("status", status), ("score", score.ToString(System.Globalization.CultureInfo.CurrentCulture)));
-
-    /// <summary>Heading of the posters of similar shows under the sheet.</summary>
-    public static string MoreLikeThis => Get("MoreLikeThis");
 
     /// <summary>Title of the settings group and the screen.</summary>
     public static string TorrentsTitle => Get("TorrentsTitle");
@@ -6961,10 +6952,7 @@ public static partial class T
         ["TitleFactAfter"] = "After episode {episode}",
         ["TitleFactNow"] = "Now",
         ["TitleFactTba"] = "To be announced",
-        ["MoreFollowing"] = "People you follow",
-        ["MoreFollowingSource"] = "From AniList",
         ["MoreFollowingLine"] = "{status} · {score}/10",
-        ["MoreLikeThis"] = "More like this",
         ["TorrentsTitle"] = "Torrents",
         ["TorrentsOn"] = "Torrents are on",
         ["TorrentsOffDetail"] = "Off by default. Turning this on asks how to protect your connection first.",

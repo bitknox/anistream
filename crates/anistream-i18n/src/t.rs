@@ -11585,24 +11585,9 @@ pub fn title_fact_tba() -> String {
     text("title-fact-tba", &[])
 }
 
-/// Heading of the people the viewer follows who have the show on their list.
-pub fn more_following() -> String {
-    text("more-following", &[])
-}
-
-/// Note under that heading: where the list comes from.
-pub fn more_following_source() -> String {
-    text("more-following-source", &[])
-}
-
 /// A followed person's status and score, such as "Completed · 9/10". The status is already worded.
 pub fn more_following_line(status: &str, score: i64) -> String {
     text("more-following-line", &[("status", Arg::Text(status)), ("score", Arg::Int(score))])
-}
-
-/// Heading of the posters of similar shows under the sheet.
-pub fn more_like_this() -> String {
-    text("more-like-this", &[])
 }
 
 /// Title of the settings group and the screen.
