@@ -49,7 +49,7 @@ testing = [
 party = ["anistream-engine/party", "dep:anistream-party"]
 # `FfiEngine::start_remote`: the remote a TV runs for phones on its network to drive it. On in
 # Android's builds, which the TV app shares with the phone's.
-remote = ["anistream-engine/remote", "dep:anistream-remote"]
+remote = ["anistream-engine/remote", "anistream-engine/cast", "dep:anistream-remote"]
 # `FfiPlayer`: anistream-mpv-host's libmpv player behind the hosted player protocol, for the
 # Windows app, whose video is mpv's d3d11 composition. Links libmpv, so only that app's build
 # turns it on: desktop/windows/scripts/bindings.sh, with ANISTREAM_LIBMPV_DIR.

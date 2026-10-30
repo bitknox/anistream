@@ -30,6 +30,13 @@ use anistream_remote::{
 };
 use tokio::{sync::watch, task::JoinHandle, time::Instant};
 
+#[cfg(feature = "cast")]
+mod cast;
+#[cfg(feature = "cast")]
+pub use cast::{
+    CastBrowser, CastCard, CastRouteHint, CastRow, CastSession, CastSink, FoundCast,
+};
+
 /// How long Play on TV waits for the TV to start the episode before it gives up carrying the
 /// phone's position over.
 const START_WAIT: Duration = Duration::from_secs(90);
@@ -56,6 +63,9 @@ pub struct TvSender {
     found: Arc<Mutex<BTreeMap<String, FoundTv>>>,
     changes: Arc<watch::Sender<u64>>,
     browsing: Mutex<Option<Browsing>>,
+    /// Casting's side of the picker, once the engine's hub is attached: see [`cast`].
+    #[cfg(feature = "cast")]
+    casting: cast::Casting,
 }
 
 struct Browsing {
@@ -123,6 +133,8 @@ impl TvSender {
             found: Arc::new(Mutex::new(BTreeMap::new())),
             changes: Arc::new(changes),
             browsing: Mutex::new(None),
+            #[cfg(feature = "cast")]
+            casting: cast::Casting::default(),
         }
     }
 
@@ -165,6 +177,8 @@ impl TvSender {
             browsing.task.abort();
         }
         let had = !std::mem::take(&mut *lock(&self.found)).is_empty();
+        #[cfg(feature = "cast")]
+        self.stop_browsing_cast();
         if had {
             self.bump();
         }

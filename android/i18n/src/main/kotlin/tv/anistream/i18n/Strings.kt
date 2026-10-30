@@ -9,6 +9,58 @@ import android.content.Context
  * `stringResource(R.string.x)` and `pluralStringResource(R.plurals.x, n, ...)` directly.
  */
 object Strings {
+    /** What the TV's loading screen and its own controls show under the show's name. */
+    fun castEpisode(context: Context, episode: String): String =
+        context.getString(R.string.cast_episode, episode)
+
+    /** What the TV's loading screen and its own controls show under the show's name, with the episode's own title. */
+    fun castEpisodeTitled(context: Context, episode: String, title: String): String =
+        context.getString(R.string.cast_episode_titled, episode, title)
+
+    /** The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10. */
+    fun noticeCastVideoCodec(context: Context, codec: String): String =
+        context.getString(R.string.notice_cast_video_codec, codec)
+
+    /** The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS. */
+    fun noticeCastAudioCodec(context: Context, codec: String): String =
+        context.getString(R.string.notice_cast_audio_codec, codec)
+
+    /** The stream comes in a kind of file the TV can't read. */
+    fun noticeCastContainer(context: Context): String =
+        context.getString(R.string.notice_cast_container)
+
+    /** The episode opens in another app, which this device can't cast. */
+    fun noticeCastDeepLink(context: Context): String =
+        context.getString(R.string.notice_cast_deep_link)
+
+    /** The TV accepted the stream but never started reading it. */
+    fun noticeCastNeverFetches(context: Context): String =
+        context.getString(R.string.notice_cast_never_fetches)
+
+    /** The TV tried every way of playing the stream and played none of them. */
+    fun noticeCastRefused(context: Context): String =
+        context.getString(R.string.notice_cast_refused)
+
+    /** Someone started something else on the TV, which ends the cast. */
+    fun noticeCastTakenOver(context: Context): String =
+        context.getString(R.string.notice_cast_taken_over)
+
+    /** This device isn't on the TV's network, or reaches it through a VPN. */
+    fun noticeCastNotSameNetwork(context: Context): String =
+        context.getString(R.string.notice_cast_not_same_network)
+
+    /** The TV stopped answering mid-cast. */
+    fun noticeCastLost(context: Context): String =
+        context.getString(R.string.notice_cast_lost)
+
+    /** The TV picked to cast to has left the network. */
+    fun noticeCastNoDevice(context: Context): String =
+        context.getString(R.string.notice_cast_no_device)
+
+    /** This build of the app has no casting. */
+    fun noticeCastUnavailable(context: Context): String =
+        context.getString(R.string.notice_cast_unavailable)
+
     /** A comment's age, beside its author, when it was written under a minute ago. */
     fun discussionAgeNow(context: Context): String =
         context.getString(R.string.discussion_age_now)
@@ -877,6 +929,82 @@ object Strings {
     fun accountButtonNamed(context: Context, name: String): String =
         context.getString(R.string.account_button_named, name)
 
+    /** Line under Today in the calendar when My list is chosen and nothing on it airs in the next four weeks. */
+    fun calendarEmptyMineAhead(context: Context): String =
+        context.getString(R.string.calendar_empty_mine_ahead)
+
+    /** Line above the first day of the calendar: it goes no further back. */
+    fun calendarFloorLine(context: Context): String =
+        context.getString(R.string.calendar_floor_line)
+
+    /** Line below the last day of the calendar: it goes no further ahead. */
+    fun calendarCeilingLine(context: Context): String =
+        context.getString(R.string.calendar_ceiling_line)
+
+    /** Line below the last day when no more broadcasts are scheduled before the calendar's end. */
+    fun calendarEndLine(context: Context): String =
+        context.getString(R.string.calendar_end_line)
+
+    /** Activity line while earlier broadcasts load. */
+    fun calendarLoadingEarlierLine(context: Context): String =
+        context.getString(R.string.calendar_loading_earlier_line)
+
+    /** Activity line while later broadcasts load. */
+    fun calendarLoadingLaterLine(context: Context): String =
+        context.getString(R.string.calendar_loading_later_line)
+
+    /** Line where earlier broadcasts would be when they could not be loaded. */
+    fun calendarEarlierFailedLine(context: Context): String =
+        context.getString(R.string.calendar_earlier_failed_line)
+
+    /** Line where later broadcasts would be when they could not be loaded. */
+    fun calendarLaterFailedLine(context: Context): String =
+        context.getString(R.string.calendar_later_failed_line)
+
+    /** Button under the line saying nothing on the person's list airs: shows every airing show. */
+    fun calendarShowAllAiring(context: Context): String =
+        context.getString(R.string.calendar_show_all_airing)
+
+    /** What a screen reader says for the line that marks the time now. The time is already worded. */
+    fun calendarNowLabel(context: Context, time: String): String =
+        context.getString(R.string.calendar_now_label, time)
+
+    /** Settings row: whether an episode's AniList discussion can be opened. */
+    fun settingsDiscussionsLabel(context: Context): String =
+        context.getString(R.string.settings_discussions_label)
+
+    /** Note under the Episode discussions setting. */
+    fun settingsDiscussionsNote(context: Context): String =
+        context.getString(R.string.settings_discussions_note)
+
+    /** Settings row: whether images in comments load inline. */
+    fun settingsDiscussionImagesLabel(context: Context): String =
+        context.getString(R.string.settings_discussion_images_label)
+
+    /** Note under the Load images in comments setting. */
+    fun settingsDiscussionImagesNote(context: Context): String =
+        context.getString(R.string.settings_discussion_images_note)
+
+    /** Line in place of the comments while AniList asks the app to wait. The time is a countdown such as 20 s. */
+    fun discussionWaiting(context: Context, time: String): String =
+        context.getString(R.string.discussion_waiting, time)
+
+    /** Line for an image in a comment when images do not load inline. The host is where it lives. */
+    fun discussionImageHost(context: Context, host: String): String =
+        context.getString(R.string.discussion_image_host, host)
+
+    /** Line for a video in a comment. The host is where it lives. */
+    fun discussionVideoHost(context: Context, host: String): String =
+        context.getString(R.string.discussion_video_host, host)
+
+    /** Player, More menu: under Discussion, how many comments there are and that opening it pauses the video. */
+    fun playerMoreDiscussionNote(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.player_more_discussion_note, count, count)
+
+    /** Player, More menu: under Discussion when the comment count is not known yet; opening it pauses the video. */
+    fun playerMoreDiscussionPauses(context: Context): String =
+        context.getString(R.string.player_more_discussion_pauses)
+
     /** Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. */
     fun tvPairRequestHeld(context: Context, phone: String, code: String): String =
         context.getString(R.string.tv_pair_request_held, phone, code)
@@ -1316,6 +1444,22 @@ object Strings {
     /** Spoken progress on a card for TalkBack, with the formatted percentage */
     fun tvCardProgressSpoken(context: Context, percent: String): String =
         context.getString(R.string.tv_card_progress_spoken, percent)
+
+    /** TV, discussion panel footer: replying needs a phone. */
+    fun tvDiscussionFooter(context: Context): String =
+        context.getString(R.string.tv_discussion_footer)
+
+    /** TV, discussion panel: the comment count under the title, and that nothing can be posted here. */
+    fun tvDiscussionCountReadOnly(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.tv_discussion_count_read_only, count, count)
+
+    /** TV, discussion panel: a comment's like count after its age. */
+    fun tvDiscussionLikes(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.tv_discussion_likes, count, count)
+
+    /** TV, discussion panel: what Select does on a comment with a hidden spoiler. */
+    fun tvDiscussionSelectSpoiler(context: Context): String =
+        context.getString(R.string.tv_discussion_select_spoiler)
 
     /** The episode in a short form for a title last watched dubbed. */
     fun episodeShortDubbed(context: Context, episode: Int): String =
@@ -2172,6 +2316,18 @@ object Strings {
     /** Under a release in the source picker: how many people share it right now. */
     fun releaseSeeders(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.release_seeders, count, count)
+
+    /** Settings row: when a title's trailer plays by itself, muted, in place of its banner. */
+    fun settingsTrailersLabel(context: Context): String =
+        context.getString(R.string.settings_trailers_label)
+
+    /** Note under the Play trailers setting: what the trailers are and when they do not play. */
+    fun settingsTrailersNote(context: Context): String =
+        context.getString(R.string.settings_trailers_note)
+
+    /** Heading in the trailer sheet when the video did not start within a few seconds or the player refused it. */
+    fun trailerFailed(context: Context): String =
+        context.getString(R.string.trailer_failed)
 
     /** Title of the about page. */
     fun aboutTitle(context: Context): String =
@@ -3084,6 +3240,10 @@ object Strings {
     /** Age of a comment that is on its way to AniList. */
     fun discussionSending(context: Context): String =
         context.getString(R.string.discussion_sending)
+
+    /** Button under a comment that is cut off after ten lines. */
+    fun discussionShowMore(context: Context): String =
+        context.getString(R.string.discussion_show_more)
 
     /** Comment menu item that copies the comment's text. */
     fun discussionCopyText(context: Context): String =
@@ -5556,6 +5716,14 @@ object Strings {
     /** Line of the Continue widget: what plays next, with the episode already named. */
     fun widgetLineStart(context: Context, episode: String): String =
         context.getString(R.string.widget_line_start, episode)
+
+    /** Value of the Play trailers setting: trailers play by themselves on any network. */
+    fun settingsTrailersAlways(context: Context): String =
+        context.getString(R.string.settings_trailers_always)
+
+    /** Value of the Play trailers setting: trailers play by themselves only on Wi-Fi. */
+    fun settingsTrailersWifiOnly(context: Context): String =
+        context.getString(R.string.settings_trailers_wifi_only)
 
     /** Title of the screen or section that lists sources. */
     fun sourcesTitle(context: Context): String =

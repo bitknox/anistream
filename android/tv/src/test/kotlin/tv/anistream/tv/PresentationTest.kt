@@ -67,6 +67,22 @@ class PresentationTest {
     }
 
     @Test
+    fun a_finished_show_says_watch_again_and_plays_episode_one() {
+        val action = PlayAction.of(entry(TitleProgress(12u, 1u)).copy(episodes = 12u))
+        assertEquals("Watch again", action.label(context))
+        assertEquals(1u, action.episode)
+        assertTrue(action.playable)
+    }
+
+    @Test
+    fun a_finished_show_with_a_past_schedule_entry_still_says_watch_again() {
+        val detail = TitleDetail(schedule = listOf(EpisodeAiring(episode = 1u, airsAt = 1_700_000_000L)))
+        val action = PlayAction.of(entry(TitleProgress(12u, 1u), detail = detail).copy(episodes = 12u), now.epochSecond)
+        assertEquals("Watch again", action.label(context))
+        assertEquals(1u, action.episode)
+    }
+
+    @Test
     fun a_title_never_started_plays_its_first_episode() {
         assertEquals("Play episode 1", PlayAction.of(entry()).label(context))
     }

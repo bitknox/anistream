@@ -89,6 +89,9 @@ pub struct Services {
     /// How many player windows the playbacks opened, for a test that counts them.
     #[cfg(feature = "testing")]
     pub windows: Option<Arc<std::sync::atomic::AtomicUsize>>,
+    /// Casting's devices, memory and the cast running now.
+    #[cfg(feature = "cast")]
+    pub casts: Arc<crate::cast::CastHub>,
 }
 
 impl Services {
@@ -119,6 +122,9 @@ impl Services {
         // something to offer a sign-in for, and the outbox accumulates against the id meanwhile.
         let sync = tracking::Sync::with_tokens(config, &store, &http, tokens);
         let (power, hosted) = players(&paths);
+        #[cfg(feature = "cast")]
+        let casts =
+            Arc::new(crate::cast::CastHub::new(paths.data_dir.join("remote"), http.clone()));
         Ok(Self {
             paths,
             http,
@@ -143,6 +149,8 @@ impl Services {
             party: Default::default(),
             #[cfg(feature = "testing")]
             windows: None,
+            #[cfg(feature = "cast")]
+            casts,
         })
     }
 }

@@ -71,6 +71,9 @@ struct PosterCell: View {
             TitleActions(entry: entry)
         }
         .contextMenu { TitleMenu(entry: entry) }
+        #if os(macOS)
+        .trailerPreview(entry)
+        #endif
     }
 
     /// The lines under the title: the detail, the meter, a new episode.

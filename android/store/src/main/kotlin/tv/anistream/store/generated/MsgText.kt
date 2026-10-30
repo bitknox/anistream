@@ -14,6 +14,19 @@ import tv.anistream.i18n.Strings
 /** The message in the person's language. Text anistream does not own is shown as it came. */
 fun Msg.text(context: Context): String =
     when (this) {
+        is Msg.CastEpisode -> Strings.castEpisode(context, this.episode)
+        is Msg.CastEpisodeTitled -> Strings.castEpisodeTitled(context, this.episode, this.title)
+        is Msg.NoticeCastVideoCodec -> Strings.noticeCastVideoCodec(context, this.codec)
+        is Msg.NoticeCastAudioCodec -> Strings.noticeCastAudioCodec(context, this.codec)
+        is Msg.NoticeCastContainer -> Strings.noticeCastContainer(context)
+        is Msg.NoticeCastDeepLink -> Strings.noticeCastDeepLink(context)
+        is Msg.NoticeCastNeverFetches -> Strings.noticeCastNeverFetches(context)
+        is Msg.NoticeCastRefused -> Strings.noticeCastRefused(context)
+        is Msg.NoticeCastTakenOver -> Strings.noticeCastTakenOver(context)
+        is Msg.NoticeCastNotSameNetwork -> Strings.noticeCastNotSameNetwork(context)
+        is Msg.NoticeCastLost -> Strings.noticeCastLost(context)
+        is Msg.NoticeCastNoDevice -> Strings.noticeCastNoDevice(context)
+        is Msg.NoticeCastUnavailable -> Strings.noticeCastUnavailable(context)
         is Msg.DiscussionAgeNow -> Strings.discussionAgeNow(context)
         is Msg.DiscussionAgeMinutes -> Strings.discussionAgeMinutes(context, this.minutes.toInt())
         is Msg.DiscussionAgeHours -> Strings.discussionAgeHours(context, this.hours.toInt())

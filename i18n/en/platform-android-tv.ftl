@@ -487,3 +487,31 @@ tv-show-back-to-defaults = Back to defaults
 # @only android
 # @arg percent: text
 tv-card-progress-spoken = { $percent } watched
+
+# TV, discussion panel footer: replying needs a phone.
+# @only android
+# @max 60
+tv-discussion-footer = To reply, open this discussion on your phone.
+
+# TV, discussion panel: the comment count under the title, and that nothing can be posted here.
+# @only android
+# @arg count: int
+# @max 40
+tv-discussion-count-read-only = { $count ->
+    [one] One comment · Read only
+   *[other] { $count } comments · Read only
+ }
+
+# TV, discussion panel: a comment's like count after its age.
+# @only android
+# @arg count: int
+# @max 16
+tv-discussion-likes = { $count ->
+    [one] One like
+   *[other] { $count } likes
+ }
+
+# TV, discussion panel: what Select does on a comment with a hidden spoiler.
+# @only android
+# @max 40
+tv-discussion-select-spoiler = Select to show the spoiler

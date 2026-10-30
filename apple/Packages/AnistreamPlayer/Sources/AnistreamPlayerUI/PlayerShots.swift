@@ -62,6 +62,11 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     /// Just after Copy stats: "Copied" in its place.
     case statsCopied = "stats-copied"
 
+    /// Past 85% of the episode, the controls up with the discussion offered.
+    case discussion
+    /// The same, with the discussion opened beside the video.
+    case discussionOpen = "discussion-open"
+
     /// The launch argument that names one: `-AnistreamPlayerShot up-next`.
     public static let argument = "-AnistreamPlayerShot"
 
@@ -144,6 +149,15 @@ extension PlayerModel {
             #else
             hideControls()
             #endif
+        case .discussion, .discussionOpen:
+            seek(to: (duration ?? 46) * 0.86)
+            there = await waited(10) { self.discussionOffer != nil && self.paused == false }
+            pinnedControls = true
+            if shot == .discussionOpen {
+                try? await Task.sleep(for: .seconds(1))
+                openDiscussion()
+                try? await Task.sleep(for: .seconds(1.5))
+            }
         case .stillWatching:
             seek(to: 33)
             there = await waited(10) { self.position >= 33.5 }

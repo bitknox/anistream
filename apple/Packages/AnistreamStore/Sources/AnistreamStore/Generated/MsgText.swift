@@ -9,6 +9,19 @@ extension Msg {
     /// The message in the person's language. Text anistream does not own is shown as it came.
     public var text: String {
         switch self {
+        case .castEpisode(let episode): L.castEpisode(episode: episode)
+        case .castEpisodeTitled(let episode, let title): L.castEpisodeTitled(episode: episode, title: title)
+        case .noticeCastVideoCodec(let codec): L.noticeCastVideoCodec(codec: codec)
+        case .noticeCastAudioCodec(let codec): L.noticeCastAudioCodec(codec: codec)
+        case .noticeCastContainer: L.noticeCastContainer
+        case .noticeCastDeepLink: L.noticeCastDeepLink
+        case .noticeCastNeverFetches: L.noticeCastNeverFetches
+        case .noticeCastRefused: L.noticeCastRefused
+        case .noticeCastTakenOver: L.noticeCastTakenOver
+        case .noticeCastNotSameNetwork: L.noticeCastNotSameNetwork
+        case .noticeCastLost: L.noticeCastLost
+        case .noticeCastNoDevice: L.noticeCastNoDevice
+        case .noticeCastUnavailable: L.noticeCastUnavailable
         case .discussionAgeNow: L.discussionAgeNow
         case .discussionAgeMinutes(let minutes): L.discussionAgeMinutes(minutes: Int(minutes))
         case .discussionAgeHours(let hours): L.discussionAgeHours(hours: Int(hours))

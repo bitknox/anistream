@@ -210,46 +210,58 @@ struct PhoneHero: View {
                 titleBlock(entry)
                     .padding(.top, 8)
             }
-            // At the accessibility sizes the action goes under the meter, the width of the screen.
-            let stacked = typeSize.isAccessibilitySize
-            let layout = stacked
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-                : AnyLayout(HStackLayout(spacing: 14))
-            layout {
-                VStack(alignment: .leading, spacing: 6) {
-                    Held(value: item.fraction) { fraction in
-                        if let fraction { Meter(fraction: fraction, height: 4, spoken: item.timeLeft) }
-                    }
-                    Held(value: item.minutesLeft) { minutes in
-                        if let minutes { MinutesLeft(minutes: minutes) }
-                    }
+            // At the accessibility sizes, or when a long label will not fit beside the meter (a
+            // translation), the action goes under the meter, the width of the screen.
+            if typeSize.isAccessibilitySize {
+                actionRow(stacked: true).padding(.top, 8)
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    actionRow(stacked: false)
+                    actionRow(stacked: true)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                // The title above says how far, in words.
-                .accessibilityHidden(true)
-                if item.playable {
-                    Button {
-                        store.send(.play(id: item.id, episode: String(item.episode)))
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "play.fill").font(.ui(12))
-                            Text(item.action)
-                        }
-                        .fixedSize(horizontal: !stacked, vertical: false)
-                        .frame(maxWidth: stacked ? .infinity : nil)
-                    }
-                    .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
-                    .layoutPriority(1)
-                } else {
-                    // Caught up: when the next one airs, in the button's place.
-                    AirsStatus(text: item.statusTitle, height: 44, fontSize: 17, fills: stacked)
-                        .fixedSize(horizontal: !stacked, vertical: false)
-                        .layoutPriority(1)
-                }
+                .padding(.top, 8)
             }
-            .padding(.top, 8)
         }
         .task(id: item.id) { store.loadStills(item.id) }
+    }
+
+    @ViewBuilder
+    private func actionRow(stacked: Bool) -> some View {
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 14))
+        layout {
+            VStack(alignment: .leading, spacing: 6) {
+                Held(value: item.fraction) { fraction in
+                    if let fraction { Meter(fraction: fraction, height: 4, spoken: item.timeLeft) }
+                }
+                Held(value: item.minutesLeft) { minutes in
+                    if let minutes { MinutesLeft(minutes: minutes) }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // The title above says how far, in words.
+            .accessibilityHidden(true)
+            if item.playable {
+                Button {
+                    store.send(.play(id: item.id, episode: String(item.episode)))
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "play.fill").font(.ui(12))
+                        Text(item.action)
+                    }
+                    .fixedSize(horizontal: !stacked, vertical: false)
+                    .frame(maxWidth: stacked ? .infinity : nil)
+                }
+                .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
+                .layoutPriority(1)
+            } else {
+                // Caught up: when the next one airs, in the button's place.
+                AirsStatus(text: item.statusTitle, height: 44, fontSize: 17, fills: stacked)
+                    .fixedSize(horizontal: !stacked, vertical: false)
+                    .layoutPriority(1)
+            }
+        }
     }
 
     private func titleBlock(_ entry: Entry) -> some View {

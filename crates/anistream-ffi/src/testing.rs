@@ -149,6 +149,8 @@ pub(crate) fn options(
     let Opened { paths, config, store, set_aside } = opened;
     // The fixtures' covers, banners and stills, from the fake, for an app that shows them.
     server.serve_art();
+    // The one forum thread the apps' discussion shots read: episode 7 of the finished title.
+    server.add_fixture_thread(anistream_engine::now_epoch());
     let http =
         HttpClient::offline(&NetworkConfig { timeout_secs: 5, ..config.network.clone() })
             .map_err(|e| FfiError::client(Msg::StartFailedNetwork { reason: e.to_string() }))?;

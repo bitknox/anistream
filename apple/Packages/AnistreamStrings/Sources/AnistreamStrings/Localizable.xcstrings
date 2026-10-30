@@ -2321,6 +2321,30 @@
         }
       }
     },
+    "cast-episode" : {
+      "comment" : "What the TV's loading screen and its own controls show under the show's name. Argument 1: episode (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@"
+          }
+        }
+      }
+    },
+    "cast-episode-titled" : {
+      "comment" : "What the TV's loading screen and its own controls show under the show's name, with the episode's own title. Argument 1: episode (Text). Argument 2: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$@ · %2$@"
+          }
+        }
+      }
+    },
     "cause-airs-in-days" : {
       "comment" : "Part of an air time: the broadcast is within the next week. Argument 1: days (Int). Argument 2: time (Text).",
       "extractionState" : "manual",
@@ -3131,6 +3155,232 @@
         }
       }
     },
+    "discussion-apple-answering" : {
+      "comment" : "After the author's name on a reply to a reply, naming who it answers. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "to %1$@"
+          }
+        }
+      }
+    },
+    "discussion-apple-close" : {
+      "comment" : "Accessible name of the button that closes the discussion.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close discussion"
+          }
+        }
+      }
+    },
+    "discussion-apple-comment-menu" : {
+      "comment" : "Accessible name of the button that opens a comment's menu.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More for this comment"
+          }
+        }
+      }
+    },
+    "discussion-apple-copy-text" : {
+      "comment" : "Menu item that copies a comment's text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy text"
+          }
+        }
+      }
+    },
+    "discussion-apple-editing" : {
+      "comment" : "Line above the field while the viewer edits their own comment.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editing your comment"
+          }
+        }
+      }
+    },
+    "discussion-apple-image-host" : {
+      "comment" : "Line in place of an image in a comment: the word, then the site that hosts it. Argument 1: host (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image · %1$@"
+          }
+        }
+      }
+    },
+    "discussion-apple-key-hint" : {
+      "comment" : "Line under the comment field on the Mac: the keys that post and add a line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘Return posts. Return adds a line."
+          }
+        }
+      }
+    },
+    "discussion-apple-liked" : {
+      "comment" : "Accessible name of a comment's heart when the viewer likes it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liked"
+          }
+        }
+      }
+    },
+    "discussion-apple-mark-spoiler" : {
+      "comment" : "Menu item in the comment field's edit menu that hides the selected words as a spoiler.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spoiler"
+          }
+        }
+      }
+    },
+    "discussion-apple-no-thread" : {
+      "comment" : "Title of the state when the episode has no thread. Open on AniList goes to the show's page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No discussion for this episode"
+          }
+        }
+      }
+    },
+    "discussion-apple-offline" : {
+      "comment" : "Title of the state when the device is offline and no comments were kept.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline"
+          }
+        }
+      }
+    },
+    "discussion-apple-pauses" : {
+      "comment" : "Note beside Discussion in the player's menu when the comments are not counted yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pauses the video"
+          }
+        }
+      }
+    },
+    "discussion-apple-player-note" : {
+      "comment" : "Row in the player's More menu that opens the episode's discussion, with the count and a note. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One comment · pauses"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld comments · pauses"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "discussion-apple-sending" : {
+      "comment" : "Age of a comment that was sent and is not yet confirmed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sending"
+          }
+        }
+      }
+    },
+    "discussion-apple-spoiler-hint" : {
+      "comment" : "Accessible name of a hidden spoiler that a tap shows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows the spoiler"
+          }
+        }
+      }
+    },
+    "discussion-apple-video-host" : {
+      "comment" : "Line in place of a video in a comment: the word, then the site that hosts it. Argument 1: host (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video · %1$@"
+          }
+        }
+      }
+    },
+    "discussion-apple-waiting" : {
+      "comment" : "Line under the header while AniList's request budget is spent. The placeholders stay. Argument 1: time (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for AniList · %1$@"
+          }
+        }
+      }
+    },
     "discussion-cancel-reply" : {
       "comment" : "Accessible name of the button that stops replying or editing.",
       "extractionState" : "manual",
@@ -3481,6 +3731,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Discussions"
+          }
+        }
+      }
+    },
+    "discussion-show-more" : {
+      "comment" : "Button under a comment that is cut off after ten lines.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show more"
           }
         }
       }
@@ -7685,6 +7947,138 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't open a browser for the sign-in. Check that one is installed and try again. %1$@"
+          }
+        }
+      }
+    },
+    "notice-cast-audio-codec" : {
+      "comment" : "The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS. Argument 1: codec (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV can't play this audio (%1$@), and this device can't convert it. Try another source."
+          }
+        }
+      }
+    },
+    "notice-cast-container" : {
+      "comment" : "The stream comes in a kind of file the TV can't read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV can't play this kind of file. Try another source."
+          }
+        }
+      }
+    },
+    "notice-cast-deep-link" : {
+      "comment" : "The episode opens in another app, which this device can't cast.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This episode opens in another app, so it can't be cast."
+          }
+        }
+      }
+    },
+    "notice-cast-lost" : {
+      "comment" : "The TV stopped answering mid-cast.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lost the TV, so casting stopped."
+          }
+        }
+      }
+    },
+    "notice-cast-never-fetches" : {
+      "comment" : "The TV accepted the stream but never started reading it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between."
+          }
+        }
+      }
+    },
+    "notice-cast-no-device" : {
+      "comment" : "The TV picked to cast to has left the network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That TV is no longer on the network."
+          }
+        }
+      }
+    },
+    "notice-cast-not-same-network" : {
+      "comment" : "This device isn't on the TV's network, or reaches it through a VPN.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network."
+          }
+        }
+      }
+    },
+    "notice-cast-refused" : {
+      "comment" : "The TV tried every way of playing the stream and played none of them.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV couldn't play this stream. Try another source."
+          }
+        }
+      }
+    },
+    "notice-cast-taken-over" : {
+      "comment" : "Someone started something else on the TV, which ends the cast.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another device started something on the TV, so casting stopped."
+          }
+        }
+      }
+    },
+    "notice-cast-unavailable" : {
+      "comment" : "This build of the app has no casting.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This version of anistream can't cast to TVs."
+          }
+        }
+      }
+    },
+    "notice-cast-video-codec" : {
+      "comment" : "The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10. Argument 1: codec (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The TV can't play this video (%1$@). Try another source."
           }
         }
       }
@@ -13595,6 +13989,54 @@
         }
       }
     },
+    "settings-apple-comment-images" : {
+      "comment" : "Name of the Settings switch that loads images in comments.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load images in comments"
+          }
+        }
+      }
+    },
+    "settings-apple-comment-images-note" : {
+      "comment" : "Note under the switch that loads images in comments.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each image loads from the site that hosts it, which sees your IP address."
+          }
+        }
+      }
+    },
+    "settings-apple-discussions" : {
+      "comment" : "Name of the Settings switch for episode discussions.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode discussions"
+          }
+        }
+      }
+    },
+    "settings-apple-discussions-note" : {
+      "comment" : "Note under the switch for episode discussions.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reads the comments on AniList's forum thread for episodes you have watched."
+          }
+        }
+      }
+    },
     "settings-artwork" : {
       "comment" : "Line about the artwork licence.",
       "extractionState" : "manual",
@@ -15619,6 +16061,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choosing Warn only asks you to confirm first, as No protection does."
+          }
+        }
+      }
+    },
+    "settings-trailers-always" : {
+      "comment" : "Value of the Play trailers setting: trailers play by themselves on any network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always"
+          }
+        }
+      }
+    },
+    "settings-trailers-note-apple" : {
+      "comment" : "Note under the Play trailers setting: what the trailers are and when they do not play.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trailers play muted from YouTube, which sees your IP address. They don't play in Low Data Mode, with Reduce Motion on or in Low Power Mode."
+          }
+        }
+      }
+    },
+    "settings-trailers-row" : {
+      "comment" : "Settings row: when a title's trailer plays by itself, muted, in place of its banner.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play trailers"
+          }
+        }
+      }
+    },
+    "settings-trailers-wifi-only" : {
+      "comment" : "Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wi-Fi only"
           }
         }
       }
@@ -21933,6 +22423,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address."
+          }
+        }
+      }
+    },
+    "trailer-failed-apple" : {
+      "comment" : "Heading in the trailer window or sheet when the video did not start within a few seconds or the player refused it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open the trailer"
+          }
+        }
+      }
+    },
+    "trailer-window-title-apple" : {
+      "comment" : "Title of the Play trailer window on the Mac and of its sheet on iPhone and iPad. Argument 1: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Trailer"
           }
         }
       }

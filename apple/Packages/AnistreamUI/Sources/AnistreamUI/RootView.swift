@@ -38,6 +38,7 @@ public struct RootView: View {
         #endif
         .preferredColorScheme(.dark)
         .modifier(SpotlightResults())
+        .modifier(TrailerPresentation())
         // A pinned source the engine could not use, said once in the notice capsule.
         .onChange(of: store.sourceChoices.pinNotice) { _, notice in
             if let notice { store.say(L.sourcePinUnavailable(name: notice.name)) }

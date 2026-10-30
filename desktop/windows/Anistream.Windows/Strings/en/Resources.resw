@@ -35,6 +35,58 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="CastEpisode" xml:space="preserve">
+    <value>Episode {episode}</value>
+    <comment>What the TV's loading screen and its own controls show under the show's name.</comment>
+  </data>
+  <data name="CastEpisodeTitled" xml:space="preserve">
+    <value>Episode {episode} · {title}</value>
+    <comment>What the TV's loading screen and its own controls show under the show's name, with the episode's own title.</comment>
+  </data>
+  <data name="NoticeCastVideoCodec" xml:space="preserve">
+    <value>The TV can't play this video ({codec}). Try another source.</value>
+    <comment>The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.</comment>
+  </data>
+  <data name="NoticeCastAudioCodec" xml:space="preserve">
+    <value>The TV can't play this audio ({codec}), and this device can't convert it. Try another source.</value>
+    <comment>The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.</comment>
+  </data>
+  <data name="NoticeCastContainer" xml:space="preserve">
+    <value>The TV can't play this kind of file. Try another source.</value>
+    <comment>The stream comes in a kind of file the TV can't read.</comment>
+  </data>
+  <data name="NoticeCastDeepLink" xml:space="preserve">
+    <value>This episode opens in another app, so it can't be cast.</value>
+    <comment>The episode opens in another app, which this device can't cast.</comment>
+  </data>
+  <data name="NoticeCastNeverFetches" xml:space="preserve">
+    <value>The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.</value>
+    <comment>The TV accepted the stream but never started reading it.</comment>
+  </data>
+  <data name="NoticeCastRefused" xml:space="preserve">
+    <value>The TV couldn't play this stream. Try another source.</value>
+    <comment>The TV tried every way of playing the stream and played none of them.</comment>
+  </data>
+  <data name="NoticeCastTakenOver" xml:space="preserve">
+    <value>Another device started something on the TV, so casting stopped.</value>
+    <comment>Someone started something else on the TV, which ends the cast.</comment>
+  </data>
+  <data name="NoticeCastNotSameNetwork" xml:space="preserve">
+    <value>This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.</value>
+    <comment>This device isn't on the TV's network, or reaches it through a VPN.</comment>
+  </data>
+  <data name="NoticeCastLost" xml:space="preserve">
+    <value>Lost the TV, so casting stopped.</value>
+    <comment>The TV stopped answering mid-cast.</comment>
+  </data>
+  <data name="NoticeCastNoDevice" xml:space="preserve">
+    <value>That TV is no longer on the network.</value>
+    <comment>The TV picked to cast to has left the network.</comment>
+  </data>
+  <data name="NoticeCastUnavailable" xml:space="preserve">
+    <value>This version of anistream can't cast to TVs.</value>
+    <comment>This build of the app has no casting.</comment>
+  </data>
   <data name="DiscussionAgeNow" xml:space="preserve">
     <value>now</value>
     <comment>A comment's age, beside its author, when it was written under a minute ago.</comment>
@@ -2635,6 +2687,10 @@
     <value>Sending</value>
     <comment>Age of a comment that is on its way to AniList.</comment>
   </data>
+  <data name="DiscussionShowMore" xml:space="preserve">
+    <value>Show more</value>
+    <comment>Button under a comment that is cut off after ten lines.</comment>
+  </data>
   <data name="DiscussionCopyText" xml:space="preserve">
     <value>Copy text</value>
     <comment>Comment menu item that copies the comment's text.</comment>
@@ -5134,6 +5190,14 @@
   <data name="WidgetLineStart" xml:space="preserve">
     <value>Start {episode}</value>
     <comment>Line of the Continue widget: what plays next, with the episode already named.</comment>
+  </data>
+  <data name="SettingsTrailersAlways" xml:space="preserve">
+    <value>Always</value>
+    <comment>Value of the Play trailers setting: trailers play by themselves on any network.</comment>
+  </data>
+  <data name="SettingsTrailersWifiOnly" xml:space="preserve">
+    <value>Wi-Fi only</value>
+    <comment>Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.</comment>
   </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>Sources</value>

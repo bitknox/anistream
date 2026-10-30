@@ -8,6 +8,7 @@ import AnistreamDesign
 import AnistreamKit
 import AnistreamPlayerUI
 import AnistreamStore
+import AnistreamStrings
 import AnistreamUI
 import SwiftUI
 
@@ -43,6 +44,30 @@ struct AnistreamApp: App {
                 PictureInPictureMenuItem(model: delegate.player)
             }
         }
+        // Play trailer: the trailer watched properly, in a window of its own.
+        WindowGroup(L.titlePlayTrailer, id: TrailerRequest.windowId, for: TrailerRequest.self) { $request in
+            if let request {
+                TrailerWindowView(request: request)
+                    .environment(delegate.store)
+                    .preferredColorScheme(.dark)
+                    .frame(minWidth: 480, minHeight: 270)
+            }
+        }
+        .defaultSize(width: 960, height: 540)
+        .windowResizability(.contentMinSize)
+        .restorationBehavior(.disabled)
+        .defaultLaunchBehavior(.suppressed)
+        // An episode's discussion: a window of its own beside the player, one per episode.
+        WindowGroup(L.discussionOpen, id: DiscussionKey.windowId, for: DiscussionKey.self) { $key in
+            if let key {
+                DiscussionWindowView(key: key)
+                    .environment(delegate.store)
+                    .preferredColorScheme(.dark)
+            }
+        }
+        .defaultSize(width: 480, height: 720)
+        .restorationBehavior(.disabled)
+        .defaultLaunchBehavior(.suppressed)
         #else
         WindowGroup {
             content

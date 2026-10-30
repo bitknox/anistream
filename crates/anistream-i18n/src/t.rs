@@ -5,6 +5,71 @@
 
 use crate::{Arg, text};
 
+/// What the TV's loading screen and its own controls show under the show's name.
+pub fn cast_episode(episode: &str) -> String {
+    text("cast-episode", &[("episode", Arg::Text(episode))])
+}
+
+/// What the TV's loading screen and its own controls show under the show's name, with the episode's own title.
+pub fn cast_episode_titled(episode: &str, title: &str) -> String {
+    text("cast-episode-titled", &[("episode", Arg::Text(episode)), ("title", Arg::Text(title))])
+}
+
+/// The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
+pub fn notice_cast_video_codec(codec: &str) -> String {
+    text("notice-cast-video-codec", &[("codec", Arg::Text(codec))])
+}
+
+/// The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
+pub fn notice_cast_audio_codec(codec: &str) -> String {
+    text("notice-cast-audio-codec", &[("codec", Arg::Text(codec))])
+}
+
+/// The stream comes in a kind of file the TV can't read.
+pub fn notice_cast_container() -> String {
+    text("notice-cast-container", &[])
+}
+
+/// The episode opens in another app, which this device can't cast.
+pub fn notice_cast_deep_link() -> String {
+    text("notice-cast-deep-link", &[])
+}
+
+/// The TV accepted the stream but never started reading it.
+pub fn notice_cast_never_fetches() -> String {
+    text("notice-cast-never-fetches", &[])
+}
+
+/// The TV tried every way of playing the stream and played none of them.
+pub fn notice_cast_refused() -> String {
+    text("notice-cast-refused", &[])
+}
+
+/// Someone started something else on the TV, which ends the cast.
+pub fn notice_cast_taken_over() -> String {
+    text("notice-cast-taken-over", &[])
+}
+
+/// This device isn't on the TV's network, or reaches it through a VPN.
+pub fn notice_cast_not_same_network() -> String {
+    text("notice-cast-not-same-network", &[])
+}
+
+/// The TV stopped answering mid-cast.
+pub fn notice_cast_lost() -> String {
+    text("notice-cast-lost", &[])
+}
+
+/// The TV picked to cast to has left the network.
+pub fn notice_cast_no_device() -> String {
+    text("notice-cast-no-device", &[])
+}
+
+/// This build of the app has no casting.
+pub fn notice_cast_unavailable() -> String {
+    text("notice-cast-unavailable", &[])
+}
+
 /// A comment's age, beside its author, when it was written under a minute ago.
 pub fn discussion_age_now() -> String {
     text("discussion-age-now", &[])
@@ -10178,6 +10243,16 @@ pub fn widget_day_yesterday() -> String {
 /// Line of the Continue widget: what plays next, with the episode already named.
 pub fn widget_line_start(episode: &str) -> String {
     text("widget-line-start", &[("episode", Arg::Text(episode))])
+}
+
+/// Value of the Play trailers setting: trailers play by themselves on any network.
+pub fn settings_trailers_always() -> String {
+    text("settings-trailers-always", &[])
+}
+
+/// Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
+pub fn settings_trailers_wifi_only() -> String {
+    text("settings-trailers-wifi-only", &[])
 }
 
 /// Title of the screen or section that lists sources.

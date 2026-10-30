@@ -438,3 +438,11 @@ widget-day-yesterday = yesterday
 # Line of the Continue widget: what plays next, with the episode already named.
 # @arg episode: text
 widget-line-start = Start { $episode }
+
+# Value of the Play trailers setting: trailers play by themselves on any network.
+# @max 16
+settings-trailers-always = Always
+
+# Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
+# @max 16
+settings-trailers-wifi-only = Wi-Fi only
