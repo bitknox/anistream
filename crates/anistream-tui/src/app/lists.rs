@@ -53,6 +53,15 @@ impl App {
         })
     }
 
+    /// The cursor is on a suggestion under Continue rather than on one of its rows.
+    pub fn on_up_next(&self) -> bool {
+        let continuing = self.content.entries().len();
+        self.section_cursor()
+            .selected
+            .checked_sub(continuing)
+            .is_some_and(|n| n < self.up_next_here().len())
+    }
+
     /// The suggestions under Continue, while Home's list is what is on screen and has rows. A
     /// pushed view keeps the Home list as `content`, and its rail is not selectable there.
     pub fn up_next_here(&self) -> &[anistream_model::up_next::UpNextItem] {
@@ -450,7 +459,13 @@ impl App {
             let item = self.up_next.remove(n);
             let home = &mut self.cursors.home;
             home.selected = home.selected.min(entries.len() + self.up_next.len() - 1);
-            self.push_toast(info(t::lists_up_next_dismissed(&item.entry.title)));
+            // One that has not started airing comes back when it does; one airing is gone.
+            let said = if item.starts.is_some() {
+                t::up_next_hidden_until_airs(&item.entry.title)
+            } else {
+                t::up_next_hidden(&item.entry.title)
+            };
+            self.push_toast(info(said));
             return Some(Command::DismissUpNext { id: item.entry.id });
         }
         // Dropped from the screen before the write: the list answers immediately, and

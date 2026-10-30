@@ -82,7 +82,7 @@ impl Section {
             Self::Downloads => '↓',
             Self::Providers => '◇',
             Self::Accounts => '◎',
-            Self::Settings => '⚙',
+            Self::Settings => '≡', // sliders; the gear draws two cells wide in many fonts
         }
     }
 
@@ -459,6 +459,24 @@ pub enum BackOutcome {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The rail is a grid: a glyph two cells wide in some fonts pushes its label and the divider
+    /// out of line. Misc Symbols and Dingbats are where fonts swap in emoji, so none come from
+    /// there or the emoji planes.
+    #[test]
+    fn every_section_glyph_takes_one_cell_in_any_font() {
+        use unicode_width::UnicodeWidthChar;
+        for section in Section::ALL {
+            let g = section.glyph();
+            assert_eq!(g.width(), Some(1), "{section:?}'s {g:?} is one cell");
+            let code = g as u32;
+            assert!(
+                !(0x2600..=0x27BF).contains(&code),
+                "{section:?}'s {g:?} can draw as emoji"
+            );
+            assert!(code < 0x1F000, "{section:?}'s {g:?} is in the emoji planes");
+        }
+    }
     use anistream_core::ids::AnilistId;
 
     const HOSHIKUZU: AnilistId = AnilistId::new(154_587);

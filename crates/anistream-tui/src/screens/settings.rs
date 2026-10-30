@@ -6,7 +6,7 @@ use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 use crate::{
     app::App,
     theme::{Role, glyph},
-    widgets::{Hairline, truncate},
+    widgets::{Cells, Hairline, truncate, wrap},
 };
 
 use super::chrome::mark_selected;
@@ -55,11 +55,22 @@ pub(super) fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
         .iter()
         .position(|l| matches!(l, SettingsLine::Row(i) if *i == app.cursors.settings.selected))
         .unwrap_or(0);
-    // The bottom two rows are kept for the focused row's note whenever there is height to
+    // The bottom rows are kept for the focused row's note whenever there is height to
     // spare them. The note used to wait for the whole list to fit above it, which the grouped
     // list never does at an ordinary size — so no note was ever shown. Kept whether or not
     // the row has one, or the list would jump two rows as the cursor passed a row without.
-    let reserved = if area.height >= 8 { 2 } else { 0 };
+    // A second line when some row's note needs one and the screen has the height, so an
+    // explanation is read whole rather than cut at the first line. Sized by every note, not the
+    // selected one, for the same reason the room is kept at all.
+    let note_width = area.width.saturating_sub(4) as usize;
+    let longest = rows
+        .iter()
+        .filter_map(|row| row.note.as_deref())
+        .map(|note| wrap(note, note_width, 2).len())
+        .max()
+        .unwrap_or(1);
+    let note_lines: u16 = if area.height >= 12 && longest > 1 { 2 } else { 1 };
+    let reserved = if area.height >= 8 { 1 + note_lines } else { 0 };
     let visible = (area.height - reserved) as usize;
     let offset = selected_line.saturating_sub(visible.saturating_sub(1));
 
@@ -73,7 +84,7 @@ pub(super) fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
                 // and disappeared.
                 let label = truncate(name, area.width as usize);
                 buf.set_string(area.left(), y, &label, app.palette.style(Role::Text));
-                let from = area.left() + label.chars().count() as u16 + 2;
+                let from = area.left() + label.cells() as u16 + 2;
                 for x in from..area.right().saturating_sub(1) {
                     buf[(x, y)]
                         .set_char(glyph::RULE_H)
@@ -99,11 +110,10 @@ pub(super) fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
                     },
                 );
 
-                // A read-only row is dimmed to the hairline weight rather than shown in the
-                // text role: the value is still legible, but it no longer looks like
-                // something an arrow will change.
+                // A read-only row is dimmed rather than shown in the text role: the value is
+                // still legible, but it no longer looks like something an arrow will change.
                 let value_style = match (row.editable, selected) {
-                    (false, _) => app.palette.style(Role::Rule),
+                    (false, _) => app.palette.style(Role::TextDim),
                     (true, true) => app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
                     (true, false) => app.palette.style(Role::Text),
                 };
@@ -117,17 +127,21 @@ pub(super) fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
     // would turn a twelve-line screen into a wall and bury the values it exists to show.
     if let Some(note) = rows.get(app.cursors.settings.selected).and_then(|r| r.note.as_deref())
     {
-        let note_y = area.bottom().saturating_sub(1);
+        let note_lines = if reserved > 0 { note_lines } else { 1 };
+        let note_y = area.bottom().saturating_sub(note_lines);
         let drawn = lines.len().saturating_sub(offset).min(visible);
         if reserved > 0 || note_y > area.top() + drawn as u16 + 1 {
             Hairline::new(&app.palette)
                 .render(Rect { y: note_y.saturating_sub(1), height: 1, ..area }, buf);
-            buf.set_string(
-                area.left() + 2,
-                note_y,
-                truncate(note, area.width.saturating_sub(4) as usize),
-                app.palette.style(Role::TextDim),
-            );
+            let width = area.width.saturating_sub(4) as usize;
+            for (i, text) in wrap(note, width, note_lines as usize).iter().enumerate() {
+                buf.set_string(
+                    area.left() + 2,
+                    note_y + i as u16,
+                    truncate(text, width),
+                    app.palette.style(Role::TextDim),
+                );
+            }
         }
     }
 }

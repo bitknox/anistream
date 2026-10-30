@@ -6,18 +6,18 @@ anistream                                                                       
   /  Search                 │    Tsuki to Kujira … 7 of 12 episodes   ░░░░░░░░░░░░░░░░░
   ▥  Library                │                                         ░░░░░░░░░░░░░░░░░
   ↓  Downloads              │                                         ░░░░░░░░░░░░░░░░░
-  ◇  Sources                │                                         ░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Differences
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   Hoshikuzu no Tabibito  ·  progress: mine 3 / theirs 5                                                    Keep mine
-▌ Kaze no Tegami  ·  status: mine watching / theirs paused                                                 Keep mine
+▌                                                                                                        Keep theirs
+  Kaze no Tegami  ·  status: mine watching / theirs paused                                                 Keep mine
+                                                                                                         Keep theirs
   Tsuki to Kujira no Uta  ·  score: mine 9 / theirs 8                                                      Keep mine
+                                                                                                         Keep theirs
 
-                            │                                         Hoshikuzu no Tabibito
-                            │                                         The Stardust Traveller
                             │
-                            │                                         TV  ·  12 episodes  ·  2026  ·  84  ·  Studio…
+                            │                                         TV  ·  12 episodes  ·  2026  ·  84%  ·  Studi…
                             │                                         Adventure  ·  Fantasy  ·  Slice of Life
                             │
                             │                                         ▏ Continue E4 at 13:32 (57%)
@@ -47,34 +47,40 @@ r04 c00-119 fg=rule
 r05 c00-119 fg=rule
 r06 c00-119 fg=rule
 r07 c00-119 fg=rule
-r08 c00-119 fg=rule
-r09 c00-119 fg=rule bg=ground
-r10 c00-00 fg=obi bg=ground
-r10 c01-01 fg=rule bg=ground
-r10 c02-12 fg=text bg=ground mod=BOLD
-r10 c13-119 fg=rule bg=ground
-r11 c00-119 fg=rule bg=ground
-r12 c00-01 fg=rule bg=ground
-r12 c02-54 fg=text-dim bg=ground
-r12 c55-106 fg=rule bg=ground
-r12 c107-115 fg=text bg=ground
+r08 c00-119 fg=rule bg=ground
+r09 c00-00 fg=obi bg=ground
+r09 c01-01 fg=rule bg=ground
+r09 c02-12 fg=text bg=ground mod=BOLD
+r09 c13-119 fg=rule bg=ground
+r10 c00-119 fg=rule bg=ground
+r11 c00-01 fg=rule bg=ground
+r11 c02-54 fg=text-dim bg=ground
+r11 c55-106 fg=rule bg=ground
+r11 c107-115 fg=text bg=ground
+r11 c116-119 fg=rule bg=ground
+r12 c00-00 fg=obi bg=ground
+r12 c01-104 fg=rule bg=ground
+r12 c105-115 fg=text bg=ground
 r12 c116-119 fg=rule bg=ground
-r13 c00-00 fg=obi bg=ground
-r13 c01-01 fg=rule bg=ground
-r13 c02-57 fg=text bg=ground mod=BOLD
+r13 c00-01 fg=rule bg=ground
+r13 c02-57 fg=text-dim bg=ground
 r13 c58-106 fg=rule bg=ground
 r13 c107-115 fg=text bg=ground
 r13 c116-119 fg=rule bg=ground
-r14 c00-01 fg=rule bg=ground
-r14 c02-52 fg=text-dim bg=ground
-r14 c53-106 fg=rule bg=ground
-r14 c107-115 fg=text bg=ground
+r14 c00-104 fg=rule bg=ground
+r14 c105-115 fg=text bg=ground
 r14 c116-119 fg=rule bg=ground
-r15 c00-119 fg=rule bg=ground
-r16 c00-69 fg=rule
-r16 c70-90 fg=rule mod=BOLD
-r16 c91-119 fg=rule
-r17 c00-119 fg=rule
+r15 c00-01 fg=rule bg=ground
+r15 c02-52 fg=text-dim bg=ground
+r15 c53-106 fg=rule bg=ground
+r15 c107-115 fg=text bg=ground
+r15 c116-119 fg=rule bg=ground
+r16 c00-69 fg=rule bg=ground
+r16 c70-90 fg=rule bg=ground mod=BOLD
+r16 c91-104 fg=rule bg=ground
+r16 c105-115 fg=text bg=ground
+r16 c116-119 fg=rule bg=ground
+r17 c00-119 fg=rule bg=ground
 r18 c00-119 fg=rule
 r19 c00-119 fg=rule
 r20 c00-119 fg=rule

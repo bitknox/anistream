@@ -86,6 +86,10 @@ fn hint_pin() -> &'static str {
     said(t::keys_hint_pin())
 }
 
+fn hint_not_interested() -> &'static str {
+    said(t::keys_hint_not_interested())
+}
+
 fn hint_play() -> &'static str {
     said(t::keys_hint_play())
 }
@@ -192,15 +196,35 @@ pub(crate) fn status_hints_paged(
     // By the table the keys are read from now, so a hint is never a key the player has taken.
     let context = app.key_context();
     let key = |action: Action| keymap.keys_in(action, context).first().map(Binding::render);
+    // Left and Right as one hint: the arrows, as every overlay names them, while they do it,
+    // and the live keys when the player has taken the arrows to seek.
+    let sideways = || {
+        use crossterm::event::KeyCode;
+        let bound = |action: Action, code: KeyCode| {
+            keymap
+                .keys_in(action, context)
+                .iter()
+                .any(|b| b.code == code && b.modifiers.is_empty())
+        };
+        if bound(Action::Left, KeyCode::Left) && bound(Action::Right, KeyCode::Right) {
+            return Some("←→".to_string());
+        }
+        Some(pair(&key(Action::Left)?, &key(Action::Right)?))
+    };
     let in_stage = app.nav.focus() == crate::nav::Focus::Stage;
     let wanted: Vec<(Action, &'static str)> = match app.nav.current() {
         // Now Playing has its own vocabulary, and it is the one view where the browsing
         // hints would be actively wrong.
-        V::NowPlaying => vec![
-            (Action::PlayPause, Action::PlayPause.hint()),
-            (Action::SkipOpening, Action::SkipOpening.hint()),
-            (Action::Detach, Action::Detach.hint()),
-        ],
+        // Skip only while a skip is offered: at any other moment the key does nothing.
+        V::NowPlaying => {
+            let offered = app.playing.as_ref().is_some_and(|playing| playing.skip.is_some());
+            let mut wanted = vec![(Action::PlayPause, Action::PlayPause.hint())];
+            if offered {
+                wanted.push((Action::SkipOpening, Action::SkipOpening.hint()));
+            }
+            wanted.push((Action::Detach, Action::Detach.hint()));
+            wanted
+        }
         // Enter plays in the table; that is the table's whole point. A row from AniList alone
         // has nothing to play it from, and Enter there goes to add a source.
         V::Episodes(_) => vec![
@@ -218,6 +242,8 @@ pub(crate) fn status_hints_paged(
                 (Action::PlayPause, Action::PlayPause.hint())
             } else if app.unlisted(*id) {
                 (Action::PlayNext, hint_add_source())
+            } else if app.target().is_some_and(crate::app::watched_all) {
+                (Action::PlayNext, said(t::title_button_watch_again()))
             } else {
                 (Action::PlayNext, Action::PlayNext.hint())
             },
@@ -232,6 +258,12 @@ pub(crate) fn status_hints_paged(
         V::Section(_) if !in_stage => {
             vec![(Action::Down, Action::Down.hint()), (Action::Right, Action::Right.hint())]
         }
+        V::Section(Section::Home) if app.content.is_empty() => Vec::new(),
+        // On a suggestion `x` is Not interested, the one thing a suggestion offers besides
+        // opening; on a Continue row it is named in help.
+        V::Section(Section::Home) if app.on_up_next() => {
+            vec![(Action::HideFromContinue, hint_not_interested()), (Action::Open, hint_open())]
+        }
         V::Section(Section::Home) => vec![
             // A part-watched row resumes on Enter rather than opening.
             (Action::Open, if app.resumes_on_enter() { hint_play() } else { hint_open() }),
@@ -240,11 +272,13 @@ pub(crate) fn status_hints_paged(
         // The segment keys go first so they are dropped first; Enter is what a row is for.
         V::Section(Section::Library) => {
             let mut hints: Vec<(String, &'static str)> = Vec::new();
-            if let (Some(left), Some(right)) = (key(Action::Left), key(Action::Right)) {
-                hints.push((pair(&left, &right), hint_list()));
+            hints.extend(sideways().map(|keys| (keys, hint_list())));
+            if !app.content.is_empty() {
+                hints.extend(key(Action::Open).map(|k| (k, hint_open())));
+                hints.extend(
+                    key(Action::ShowEpisodes).map(|k| (k, Action::ShowEpisodes.hint())),
+                );
             }
-            hints.extend(key(Action::Open).map(|k| (k, hint_open())));
-            hints.extend(key(Action::ShowEpisodes).map(|k| (k, Action::ShowEpisodes.hint())));
             return with_help(keymap, hints);
         }
         // Enter plays a finished download and starts a waiting one now, ahead of the queue.
@@ -310,12 +344,12 @@ pub(crate) fn status_hints_paged(
         // Settings has nothing to open and no episodes, so offering those keys would be a lie.
         // Left and Right are what actually do something here.
         V::Section(Section::Settings) => {
-            let hints = match (key(Action::Left), key(Action::Right)) {
-                (Some(left), Some(right)) => vec![(pair(&left, &right), hint_change())],
-                _ => Vec::new(),
-            };
+            let hints: Vec<_> =
+                sideways().map(|keys| (keys, hint_change())).into_iter().collect();
             return with_help(keymap, hints);
         }
+        // An empty or failed list has no row to open.
+        V::Section(_) if app.content.is_empty() => Vec::new(),
         V::Section(_) => vec![
             (Action::Open, Action::Open.hint()),
             (Action::ShowEpisodes, Action::ShowEpisodes.hint()),

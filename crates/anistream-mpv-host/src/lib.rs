@@ -14,6 +14,10 @@
 //! a sink for what the player says, or binds the swapchain itself, and moves what the player
 //! says to its own main thread.
 
+#[cfg(any(feature = "libmpv", test))]
+// Without libmpv only its tests read it.
+#[cfg_attr(not(feature = "libmpv"), allow(dead_code))]
+mod book;
 pub mod log;
 mod node;
 pub mod ops;

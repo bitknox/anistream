@@ -31,7 +31,7 @@ anistream                                                                       
 
 
 ─ █▓▒  starting ep 4 · 3 s ─────────────────────────────────────────────────────────────────────────────────────────────
-plugins · Subbed · 1080p                                                        space pause   S skip   q detach   ? keys
+plugins · Subbed · 1080p                                                                 space pause   q detach   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -149,10 +149,8 @@ r32 c20-25 fg=text-dim
 r32 c26-26 fg=text
 r32 c27-119 fg=rule
 r33 c00-23 fg=text-dim
-r33 c80-84 fg=text
-r33 c85-93 fg=text-dim
-r33 c94-94 fg=text
-r33 c95-102 fg=text-dim
+r33 c89-93 fg=text
+r33 c94-102 fg=text-dim
 r33 c103-103 fg=text
 r33 c104-113 fg=text-dim
 r33 c114-114 fg=text

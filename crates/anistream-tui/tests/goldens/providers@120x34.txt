@@ -8,7 +8,7 @@ anistream                                                               torrent 
   ↓  Downloads              │  ▌ tsubame             Plugin      failing
 ▌ ◇  Sources                │    kawasemi            Plugin      Ready           1204 ms
   ◎  Accounts               │
-  ⚙  Settings               │  ───────────────────────────────────────────────────────────────────────────────────────
+  ≡  Settings               │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    tsubame: search timed out after 8 s
                             │
                             │  Plugin stores

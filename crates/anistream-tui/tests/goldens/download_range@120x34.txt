@@ -4,18 +4,18 @@ anistream                                                                       
  ▤ │
  ▦ │    #     Title                                                Run     Watched
  / │  ─────────────────────────────────────────────────────────────────────────────────────
- ▥ │    001   The Last Mail Coach                                  23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ↓ │    002   A Town Under Glass                                   23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ◇ │    003   Lamplight, Lamplight                                 23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ◎ │  ▌ 004   The Cartographer's Daughter                          23:55   █████▊░░░░        ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ▥ │    001   The Last Mail Coach                                  23:55   ████████  Done    ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ↓ │    002   A Town Under Glass                                   23:55   ████████  Done    ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ◇ │    003   Lamplight, Lamplight                                 23:55   ████████  Done    ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ◎ │  ▌ 004   The Cartographer's Daughter                          23:55   ████▌░░░          ░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Download episodes   5-9▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   4 for one episode, 1-12 for a run, 7- for everything from there.
 
-   │    010   The Comet's Wake                                     23:55   ░░░░░░░░░░        places that are not there
-   │    011   Every Lamp at Once                                   23:55   ░░░░░░░░░░        yet asks for passage, and
-   │    012   The Stardust Traveller                               --:--   ░░░░░░░░░░        the coach takes a road
+   │    010   The Comet's Wake                                     23:55   ░░░░░░░░          places that are not there
+   │    011   Every Lamp at Once                                   23:55   ░░░░░░░░          yet asks for passage, and
+   │    012   The Stardust Traveller                               --:--   ░░░░░░░░          the coach takes a road
    │                                                                                         nobody has charted.
    │
    │

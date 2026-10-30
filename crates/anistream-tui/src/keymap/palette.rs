@@ -147,17 +147,17 @@ mod tests {
 
     #[test]
     fn the_palette_names_no_key_the_player_has_taken() {
-        // `L` opens Logs on a list and seeks thirty seconds on while an episode plays.
+        // `x` removes from Continue on a list and stops the player while an episode plays.
         let keymap = Keymap::new();
-        let logs = |context| {
+        let remove = |context| {
             keymap
-                .palette_entries("logs", context)
+                .palette_entries("interested", context)
                 .into_iter()
-                .find(|(a, _)| *a == Action::ShowLogs)
+                .find(|(a, _)| *a == Action::HideFromContinue)
                 .map(|(_, key)| key)
         };
-        assert_eq!(logs(Context::Browsing).as_deref(), Some("L"));
-        assert_eq!(logs(Context::Playing).as_deref(), Some(""), "no key opens Logs then");
+        assert_eq!(remove(Context::Browsing).as_deref(), Some("x"));
+        assert_eq!(remove(Context::Playing).as_deref(), Some(""), "no key removes one then");
     }
 
     #[test]
