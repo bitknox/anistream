@@ -6304,6 +6304,25 @@ public enum L {
     /// Heading of the list of rankings.
     public static var moreRankings: String { string("more-rankings", fallback: "Rankings") }
 
+    /// Heading of the list of people the viewer follows who have the show on their list.
+    public static var moreFollowing: String { string("more-following", fallback: "People you follow") }
+
+    /// Note under that list: where the names come from.
+    public static var moreFollowingNote: String { string("more-following-note", fallback: "From AniList") }
+
+    /// What a followed person gave the show, out of ten. The score is a whole number.
+    public static func moreFollowedScore(score: Int) -> String {
+        Self.format("more-followed-score", fallback: "%1$lld/10", score)
+    }
+
+    /// Heading of the list of titles people who liked this one also liked.
+    public static var moreLikeThis: String { string("more-like-this", fallback: "More like this") }
+
+    /// Line of a followed person's list entry: their status and how far they are. Both are already worded.
+    public static func moreFollowedProgress(status: String, progress: String) -> String {
+        Self.format("more-followed-progress", fallback: "%1$@ · %2$@", status, progress)
+    }
+
     /// Line when AniList has no cast, staff or recommendations for a show.
     public static var moreEmpty: String { string("more-empty", fallback: "AniList has no cast, staff or recommendations for this show yet.") }
 

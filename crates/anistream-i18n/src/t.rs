@@ -11410,6 +11410,31 @@ pub fn more_rankings() -> String {
     text("more-rankings", &[])
 }
 
+/// Heading of the list of people the viewer follows who have the show on their list.
+pub fn more_following() -> String {
+    text("more-following", &[])
+}
+
+/// Note under that list: where the names come from.
+pub fn more_following_note() -> String {
+    text("more-following-note", &[])
+}
+
+/// What a followed person gave the show, out of ten. The score is a whole number.
+pub fn more_followed_score(score: i64) -> String {
+    text("more-followed-score", &[("score", Arg::Int(score))])
+}
+
+/// Heading of the list of titles people who liked this one also liked.
+pub fn more_like_this() -> String {
+    text("more-like-this", &[])
+}
+
+/// Line of a followed person's list entry: their status and how far they are. Both are already worded.
+pub fn more_followed_progress(status: &str, progress: &str) -> String {
+    text("more-followed-progress", &[("status", Arg::Text(status)), ("progress", Arg::Text(progress))])
+}
+
 /// Line when AniList has no cast, staff or recommendations for a show.
 pub fn more_empty() -> String {
     text("more-empty", &[])

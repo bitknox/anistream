@@ -6533,6 +6533,26 @@ object Strings {
     fun moreRankings(context: Context): String =
         context.getString(R.string.more_rankings)
 
+    /** Heading of the list of people the viewer follows who have the show on their list. */
+    fun moreFollowing(context: Context): String =
+        context.getString(R.string.more_following)
+
+    /** Note under that list: where the names come from. */
+    fun moreFollowingNote(context: Context): String =
+        context.getString(R.string.more_following_note)
+
+    /** What a followed person gave the show, out of ten. The score is a whole number. */
+    fun moreFollowedScore(context: Context, score: Int): String =
+        context.getString(R.string.more_followed_score, score)
+
+    /** Heading of the list of titles people who liked this one also liked. */
+    fun moreLikeThis(context: Context): String =
+        context.getString(R.string.more_like_this)
+
+    /** Line of a followed person's list entry: their status and how far they are. Both are already worded. */
+    fun moreFollowedProgress(context: Context, status: String, progress: String): String =
+        context.getString(R.string.more_followed_progress, status, progress)
+
     /** Line when AniList has no cast, staff or recommendations for a show. */
     fun moreEmpty(context: Context): String =
         context.getString(R.string.more_empty)

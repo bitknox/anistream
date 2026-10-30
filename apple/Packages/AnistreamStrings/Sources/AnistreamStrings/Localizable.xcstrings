@@ -7271,6 +7271,54 @@
         }
       }
     },
+    "more-followed-progress" : {
+      "comment" : "Line of a followed person's list entry: their status and how far they are. Both are already worded. Argument 1: status (Text). Argument 2: progress (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "more-followed-score" : {
+      "comment" : "What a followed person gave the show, out of ten. The score is a whole number. Argument 1: score (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld/10"
+          }
+        }
+      }
+    },
+    "more-following" : {
+      "comment" : "Heading of the list of people the viewer follows who have the show on their list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "People you follow"
+          }
+        }
+      }
+    },
+    "more-following-note" : {
+      "comment" : "Note under that list: where the names come from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From AniList"
+          }
+        }
+      }
+    },
     "more-hide-spoiler-tags" : {
       "comment" : "Button that hides the spoiler tags.",
       "extractionState" : "manual",
@@ -7279,6 +7327,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hide spoiler tags"
+          }
+        }
+      }
+    },
+    "more-like-this" : {
+      "comment" : "Heading of the list of titles people who liked this one also liked.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More like this"
           }
         }
       }
