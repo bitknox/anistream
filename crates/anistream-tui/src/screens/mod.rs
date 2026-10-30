@@ -111,7 +111,7 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) -> FrameReport {
 
     if geometry.has_rail() {
         let counts = app.rail_counts();
-        Rail::new(&app.palette, app.nav.rail_width(), app.nav.section(), app.nav.focus())
+        Rail::new(&app.palette, geometry.rail_mode, app.nav.section(), app.nav.focus())
             .counts(&counts)
             .render(geometry.rail, buf);
         Divider::new(&app.palette).render(geometry.divider, buf);

@@ -1,14 +1,14 @@
 anistream                       torrent ○  plugins ●  Metadata ▲  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  Sources
-  ▤│
-  ▦│    Source              Kind        State           Latency
-  /│  ────────────────────────────────────────────────────────────────────────
-  ▥│    yamabiko            Plugin      Ready           182 ms
-  ↓│  ▌ tsubame             Plugin      failing
-▌ ◇│    kawasemi            Plugin      Ready           1204 ms
-  ◎│
-  ⚙│  ────────────────────────────────────────────────────────────────────────
+ ▸ │  Sources
+ ▤ │
+ ▦ │    Source              Kind        State           Latency
+ / │  ────────────────────────────────────────────────────────────────────────
+ ▥ │    yamabiko            Plugin      Ready           182 ms
+ ↓ │  ▌ tsubame             Plugin      failing
+▌◇ │    kawasemi            Plugin      Ready           1204 ms
+ ◎ │
+ ⚙ │  ────────────────────────────────────────────────────────────────────────
    │    tsubame: search timed out after 8 s
    │
    │  Plugin stores
@@ -34,42 +34,42 @@ r00 c66-66 fg=rule
 r00 c67-68 fg=text-dim
 r00 c69-79 fg=state
 r01 c00-79 fg=rule
-r02 c02-02 fg=text-dim
+r02 c01-01 fg=text-dim
 r02 c03-03 fg=rule
 r02 c06-12 fg=text mod=BOLD
-r03 c02-02 fg=text-dim
+r03 c01-01 fg=text-dim
 r03 c03-03 fg=rule
-r04 c02-02 fg=text-dim
+r04 c01-01 fg=text-dim
 r04 c03-03 fg=rule
 r04 c08-13 fg=text-dim
 r04 c28-31 fg=text-dim
 r04 c40-44 fg=text-dim
 r04 c56-62 fg=text-dim
-r05 c02-02 fg=text-dim
+r05 c01-01 fg=text-dim
 r05 c03-03 fg=rule
 r05 c06-77 fg=rule
-r06 c02-02 fg=text-dim
+r06 c01-01 fg=text-dim
 r06 c03-03 fg=rule
 r06 c08-15 fg=text
 r06 c28-33 fg=text-dim
 r06 c40-44 fg=state
 r06 c56-61 fg=text-dim
-r07 c02-02 fg=text-dim
+r07 c01-01 fg=text-dim
 r07 c03-03 fg=rule
 r07 c06-06 fg=obi
 r07 c08-14 fg=text-dim mod=BOLD
 r07 c28-33 fg=text-dim
 r07 c40-46 fg=alert
 r08 c00-00 fg=text-dim
-r08 c02-02 fg=text
+r08 c01-01 fg=text mod=BOLD
 r08 c03-03 fg=rule
 r08 c08-15 fg=text
 r08 c28-33 fg=text-dim
 r08 c40-44 fg=state
 r08 c56-62 fg=text-dim
-r09 c02-02 fg=text-dim
+r09 c01-01 fg=text-dim
 r09 c03-03 fg=rule
-r10 c02-02 fg=text-dim
+r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r10 c06-77 fg=rule
 r11 c03-03 fg=rule

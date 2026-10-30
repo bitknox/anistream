@@ -1,14 +1,14 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-  ▤│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-▌ ▦│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-  /│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-  ▥│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-  ↓│
-  ◇│  Umibe no Kissaten
-  ◎│  The Seaside Café
-  ⚙│
+ ▸ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+ ▤ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+▌▦ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+ / │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+ ▥ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+ ↓ │
+ ◇ │  Umibe no Kissaten
+ ◎ │  The Seaside Café
+ ⚙ │
    │  TV  ·  12 episodes  ·  2026  ·  86  ·  Studio Kawasemi
    │
    │  Umibe no Kissaten: a story told in twelve evenings.
@@ -32,31 +32,31 @@ r00 c66-66 fg=rule
 r00 c67-68 fg=text-dim
 r00 c69-79 fg=state
 r01 c00-79 fg=rule
-r02 c02-02 fg=text-dim
+r02 c01-01 fg=text-dim
 r02 c03-03 fg=rule
 r02 c06-77 fg=rule
-r03 c02-02 fg=text-dim
+r03 c01-01 fg=text-dim
 r03 c03-03 fg=rule
 r03 c06-77 fg=rule
 r04 c00-00 fg=text-dim
-r04 c02-02 fg=text
+r04 c01-01 fg=text mod=BOLD
 r04 c03-03 fg=rule
 r04 c06-77 fg=rule
-r05 c02-02 fg=text-dim
+r05 c01-01 fg=text-dim
 r05 c03-03 fg=rule
 r05 c06-77 fg=rule
-r06 c02-02 fg=text-dim
+r06 c01-01 fg=text-dim
 r06 c03-03 fg=rule
 r06 c06-77 fg=rule
-r07 c02-02 fg=text-dim
+r07 c01-01 fg=text-dim
 r07 c03-03 fg=rule
-r08 c02-02 fg=text-dim
+r08 c01-01 fg=text-dim
 r08 c03-03 fg=rule
 r08 c06-22 fg=text mod=BOLD
-r09 c02-02 fg=text-dim
+r09 c01-01 fg=text-dim
 r09 c03-03 fg=rule
 r09 c06-21 fg=text-dim
-r10 c02-02 fg=text-dim
+r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r11 c03-03 fg=rule
 r11 c06-59 fg=text-dim

@@ -1,8 +1,8 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  Hearth plugins                                                    Owner
-  ▤│  https://plugins.example  ·  Key 489f 49ea 0372 41ac
-  ▦│
+ ▸ │  Hearth plugins                                                    Owner
+ ▤ │  https://plugins.example  ·  Key 489f 49ea 0372 41ac
+ ▦ │
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Invite link   For Kai
 ────────────────────────────────────────────────────────────────────────────────
@@ -40,7 +40,8 @@ r06 c23-79 fg=rule bg=ground
 r07 c00-07 fg=rule bg=ground
 r07 c08-15 fg=rule bg=ground mod=BOLD
 r07 c16-79 fg=rule bg=ground
-r08 c00-01 fg=rule bg=ground
+r08 c00-00 fg=rule bg=ground
+r08 c01-01 fg=rule bg=ground mod=BOLD
 r08 c02-74 fg=text bg=ground mod=BOLD
 r08 c75-79 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground

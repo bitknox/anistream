@@ -1,7 +1,7 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  Plugin stores
-  ▤│
+ ▸ │  Plugin stores
+ ▤ │
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Join Hearth plugins?
 ────────────────────────────────────────────────────────────────────────────────
@@ -40,7 +40,8 @@ r06 c00-79 fg=rule bg=ground
 r07 c00-01 fg=rule bg=ground
 r07 c02-34 fg=text-dim bg=ground
 r07 c35-79 fg=rule bg=ground
-r08 c00-01 fg=rule bg=ground
+r08 c00-00 fg=rule bg=ground
+r08 c01-01 fg=rule bg=ground mod=BOLD
 r08 c02-50 fg=text-dim bg=ground
 r08 c51-79 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground

@@ -1,8 +1,8 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  Members · Hearth plugins
-  ▤│
-  ▦│    Name                        Role      Devices   Last seen
+ ▸ │  Members · Hearth plugins
+ ▤ │
+ ▦ │    Name                        Role      Devices   Last seen
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Link to the plugin store   Hearth plugins
 ────────────────────────────────────────────────────────────────────────────────
@@ -38,7 +38,8 @@ r06 c01-01 fg=rule bg=ground
 r06 c02-42 fg=text bg=ground mod=BOLD
 r06 c43-79 fg=rule bg=ground
 r07 c00-79 fg=rule bg=ground
-r08 c00-01 fg=rule bg=ground
+r08 c00-00 fg=rule bg=ground
+r08 c01-01 fg=rule bg=ground mod=BOLD
 r08 c02-74 fg=text bg=ground mod=BOLD
 r08 c75-79 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground
