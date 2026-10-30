@@ -796,6 +796,139 @@ mod fake {
     }
 }
 
+#[cfg(feature = "testing")]
+pub use fake_cast::{FfiFakeCast, FfiFakeCastOptions};
+
+/// A TV with Chromecast built in on the loopback interface, for the Fixtures apps: the cast
+/// crate's fake receiver, found as a `_googlecast._tcp` browse would find it.
+#[cfg(feature = "testing")]
+mod fake_cast {
+    use std::time::Duration;
+
+    use anistream_cast::fake::{FakeOptions, FakeReceiver, Refusal, Refuse, advert_txt};
+
+    use super::*;
+    use crate::remote::FfiAdvert;
+
+    /// How a fixture's fake TV behaves.
+    #[derive(Debug, Clone, uniffi::Record)]
+    pub struct FfiFakeCastOptions {
+        /// The TV's own volume is in charge (`fixed`), or the receiver takes a level.
+        pub fixed_volume: bool,
+        /// Whether it reads the stream at all: a TV behind a firewall doesn't.
+        pub fetches: bool,
+        /// Refuses every stream it is sent.
+        pub refuses: bool,
+        /// How long the receiver takes to come up on the TV.
+        pub launch_ms: u32,
+    }
+
+    #[derive(uniffi::Object)]
+    pub struct FfiFakeCast {
+        receiver: Mutex<Option<FakeReceiver>>,
+        instance: String,
+        txt: Vec<(String, String)>,
+        handle: Handle,
+    }
+
+    #[uniffi::export]
+    impl FfiEngine {
+        /// A TV with Chromecast built in named `name` on 127.0.0.1, for the Fixtures app's Play
+        /// on TV. It plays the fixture source's test patterns as though it read them, for 24
+        /// minutes. Testing builds only.
+        pub fn start_fake_cast(
+            &self,
+            name: String,
+            options: FfiFakeCastOptions,
+        ) -> Result<Arc<FfiFakeCast>, FfiError> {
+            let refuse = if options.refuses {
+                Refuse {
+                    content_types: ["application/x-mpegurl", "video/mp4", "video/x-matroska"]
+                        .map(str::to_owned)
+                        .to_vec(),
+                    bytes: vec![
+                        b"ftyp".to_vec(),
+                        b"moof".to_vec(),
+                        vec![0x1a, 0x45, 0xdf, 0xa3],
+                    ],
+                    how: Some(Refusal::LoadFailed),
+                    ..Refuse::default()
+                }
+            } else {
+                Refuse::default()
+            };
+            let fake = FakeOptions {
+                plays_unfetched: options.fetches,
+                fetches: options.fetches,
+                duration: 1440.0,
+                control: if options.fixed_volume { "fixed" } else { "attenuation" },
+                launch: Duration::from_millis(u64::from(options.launch_ms)),
+                refuse,
+                ..FakeOptions::default()
+            };
+            let handle = self.runtime_handle();
+            let receiver = handle
+                .block_on(handle.spawn(FakeReceiver::start(fake)))
+                .map_err(|e| {
+                    FfiError::remote(Msg::StartFailedRemote { reason: e.to_string() })
+                })?
+                .map_err(|e| {
+                    FfiError::remote(Msg::StartFailedRemote { reason: e.to_string() })
+                })?;
+            let id = format!("fake-{}", name.to_lowercase().replace(' ', "-"));
+            Ok(Arc::new(FfiFakeCast {
+                receiver: Mutex::new(Some(receiver)),
+                instance: format!("Chromecast-{id}"),
+                txt: advert_txt(&id, &name, "Chromecast"),
+                handle,
+            }))
+        }
+    }
+
+    impl FfiFakeCast {
+        fn with<T>(&self, read: impl FnOnce(&FakeReceiver) -> T) -> Option<T> {
+            self.receiver.lock().unwrap_or_else(PoisonError::into_inner).as_ref().map(read)
+        }
+    }
+
+    #[uniffi::export]
+    impl FfiFakeCast {
+        /// "127.0.0.1".
+        pub fn host(&self) -> String {
+            self.with(|r| r.address.ip().to_string()).unwrap_or_default()
+        }
+
+        /// What a `_googlecast._tcp` browse would find: its instance, port and TXT record.
+        pub fn advert(&self) -> FfiAdvert {
+            FfiAdvert {
+                instance: self.instance.clone(),
+                port: self.with(|r| r.address.port()).unwrap_or_default(),
+                txt: self
+                    .txt
+                    .iter()
+                    .map(|(key, value)| FfiTxtPair { key: key.clone(), value: value.clone() })
+                    .collect(),
+            }
+        }
+
+        /// Another sender starts something on the TV.
+        pub fn take_over(&self) {
+            self.with(FakeReceiver::take_over);
+        }
+
+        /// The TV stops answering, as one switched off at the wall does.
+        pub fn go_silent(&self) {
+            self.with(FakeReceiver::go_silent);
+        }
+
+        pub fn stop(&self) {
+            let receiver = self.receiver.lock().unwrap_or_else(PoisonError::into_inner).take();
+            let _entered = self.handle.enter();
+            drop(receiver);
+        }
+    }
+}
+
 impl Drop for FfiTvLink {
     fn drop(&mut self) {
         let link = self.link.lock().unwrap_or_else(PoisonError::into_inner).take();

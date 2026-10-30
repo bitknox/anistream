@@ -12,8 +12,9 @@ use std::{
 };
 
 use anistream_ffi::{
-    FfiDirs, FfiDiscoverySink, FfiEngine, FfiHost, FfiLinkPhase, FfiRemoteCard, FfiStart,
-    FfiTvBrowser, FfiTvCommand, FfiTvLink, FfiTvProblem, FfiTvRowKind, FfiTvSender,
+    FfiCastBrowser, FfiCastSink, FfiDirs, FfiDiscoverySink, FfiEngine, FfiFakeCast, FfiHost,
+    FfiLinkPhase, FfiRemoteCard, FfiStart, FfiTvBrowser, FfiTvCommand, FfiTvLink, FfiTvProblem,
+    FfiTvRowKind, FfiTvSender,
 };
 use anistream_model::{event::Event, remote::FrontIntent};
 use anistream_testkit::fixtures;
@@ -274,5 +275,67 @@ fn the_fake_tv_plays_to_a_script_for_the_fixtures_apps() {
     assert!(fake.commands().iter().any(|c| c.starts_with("play")));
     fake.revoke_all();
     card_until(&link, "unpaired", |card| card.phase == FfiLinkPhase::Unpaired);
+    phone.engine.shutdown();
+}
+
+/// A `_googlecast._tcp` browse, as an app's browser reports to the sink: the fake TVs' adverts.
+struct CastBrowse(Vec<Arc<FfiFakeCast>>);
+
+impl FfiCastBrowser for CastBrowse {
+    fn start(&self, sink: Arc<FfiCastSink>) {
+        for fake in &self.0 {
+            let advert = fake.advert();
+            sink.found(advert.instance, vec![fake.host()], advert.port, advert.txt);
+        }
+    }
+
+    fn stop(&self) {}
+}
+
+fn fake_cast_options() -> anistream_ffi::FfiFakeCastOptions {
+    anistream_ffi::FfiFakeCastOptions {
+        fixed_volume: true,
+        fetches: true,
+        refuses: false,
+        launch_ms: 0,
+    }
+}
+
+#[test]
+fn a_fixtures_cast_plays_on_a_fake_tv_and_one_that_refuses_says_why() {
+    let phone = start();
+    let living =
+        phone.engine.start_fake_cast("Living room".into(), fake_cast_options()).unwrap();
+    let kitchen = phone
+        .engine
+        .start_fake_cast(
+            "Kitchen display".into(),
+            anistream_ffi::FfiFakeCastOptions { refuses: true, ..fake_cast_options() },
+        )
+        .unwrap();
+    let sender =
+        phone.engine.tv_sender("Mika's laptop".into(), "anistream-test/0".into()).unwrap();
+    sender.browse_cast(Arc::new(CastBrowse(vec![living.clone(), kitchen.clone()])));
+    let rows =
+        until("both TVs listed", || Some(sender.cast_rows()).filter(|rows| rows.len() == 2));
+    let key = |name: &str| rows.iter().find(|r| r.name == name).unwrap().key.clone();
+
+    let cast = sender.cast(key("Living room"), fixtures::FINISHED, "3".into(), None).unwrap();
+    let card = until("the cast playing", || {
+        Some(cast.card()).filter(|c| c.card.now.as_ref().is_some_and(|n| !n.loading))
+    });
+    assert_eq!(card.volume_control, anistream_ffi::FfiVolumeControl::MuteOnly);
+    assert!(card.notice.is_none());
+    cast.command(FfiTvCommand::Mute { muted: true });
+    until("muted", || Some(cast.card()).filter(|c| c.muted == Some(true)));
+    cast.stop();
+    until("stopped", || Some(cast.card()).filter(|c| c.card.over));
+
+    let refused =
+        sender.cast(key("Kitchen display"), fixtures::FINISHED, "3".into(), None).unwrap();
+    let card = until("the refusal", || Some(refused.card()).filter(|c| c.card.over));
+    assert!(matches!(card.notice, Some(anistream_model::Msg::NoticeCastRefused)), "{card:?}");
+    living.stop();
+    kitchen.stop();
     phone.engine.shutdown();
 }
