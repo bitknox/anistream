@@ -84,7 +84,7 @@ Bare-letter keys work only in the player window, and in lists only while no text
 | Move source up or down | ⌥⌘↑, ⌥⌘↓ | K, J |
 | Delete download and its file | ⌘⌫ on Downloads, then confirm | X |
 | Sub or Dub | ⌥⌘T | t |
-| Messages (recent notices) | ⌥⌘L | L |
+| Messages (recent notices) | ⌥⌘L | ! |
 | Settings | ⌘, | 9 |
 | Quit | ⌘Q | Q, Ctrl-C |
 

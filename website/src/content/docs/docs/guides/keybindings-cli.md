@@ -54,7 +54,7 @@ shows what is bound, overrides included.
 | `:` / `Ctrl-K` | Command palette |
 | `/` | Search |
 | `Ctrl-F` | Search filters: genre, year, season, format, status, sort |
-| `L` | Logs |
+| `!` | Logs |
 | `Q` / `Ctrl-C` | Quit |
 
 **On the Downloads screen**, `Space` pauses and `x` cancels, as they do during playback, and:
@@ -71,7 +71,7 @@ shows what is bound, overrides included.
 | `K` / `J` | Move the selected source up / down the failover order |
 
 **While something is playing** a separate table takes priority, and it shadows some of the keys
-above: `L` seeks instead of opening the logs.
+above: `x` stops playback instead of removing a title from Continue. The logs key, `!`, works in both.
 
 | | |
 |---|---|
