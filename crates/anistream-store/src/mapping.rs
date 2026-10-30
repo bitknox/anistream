@@ -57,6 +57,9 @@ pub struct ResolvedMapping {
     pub provider_key: ProviderKey,
     pub confidence: f64,
     pub rung: ResolutionRung,
+    /// The source's name for the entry, as it was when matched. `None` for a match kept
+    /// before titles were.
+    pub title: Option<String>,
 }
 
 impl Store {
@@ -68,18 +71,33 @@ impl Store {
         provider_key: &ProviderKey,
         at: i64,
     ) -> Result<()> {
+        self.set_override_titled(anilist_id, provider_id, provider_key, None, at)
+    }
+
+    /// [`Self::set_override`], keeping the source's name for the entry chosen.
+    pub fn set_override_titled(
+        &self,
+        anilist_id: AnilistId,
+        provider_id: &str,
+        provider_key: &ProviderKey,
+        title: Option<&str>,
+        at: i64,
+    ) -> Result<()> {
         self.with_conn(|c| {
             c.execute(
-                "INSERT INTO mapping_override (anilist_id, provider_id, provider_key, created_at)
-                 VALUES (?1, ?2, ?3, ?4)
+                "INSERT INTO mapping_override
+                    (anilist_id, provider_id, provider_key, created_at, title)
+                 VALUES (?1, ?2, ?3, ?4, ?5)
                  ON CONFLICT(anilist_id, provider_id) DO UPDATE SET
                     provider_key = excluded.provider_key,
-                    created_at   = excluded.created_at",
+                    created_at   = excluded.created_at,
+                    title        = excluded.title",
                 rusqlite::params![
                     anilist_id.get(),
                     provider_id,
                     provider_key.as_str(),
-                    at
+                    at,
+                    title
                 ],
             )?;
             Ok(())
@@ -126,23 +144,48 @@ impl Store {
         rung: ResolutionRung,
         at: i64,
     ) -> Result<()> {
+        self.cache_resolution_titled(
+            anilist_id,
+            provider_id,
+            provider_key,
+            None,
+            confidence,
+            rung,
+            at,
+        )
+    }
+
+    /// [`Self::cache_resolution`], keeping the source's name for the entry matched.
+    #[allow(clippy::too_many_arguments)]
+    pub fn cache_resolution_titled(
+        &self,
+        anilist_id: AnilistId,
+        provider_id: &str,
+        provider_key: &ProviderKey,
+        title: Option<&str>,
+        confidence: f64,
+        rung: ResolutionRung,
+        at: i64,
+    ) -> Result<()> {
         self.with_conn(|c| {
             c.execute(
                 "INSERT INTO mapping_resolution
-                    (anilist_id, provider_id, provider_key, confidence, rung, resolved_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                    (anilist_id, provider_id, provider_key, confidence, rung, resolved_at, title)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
                  ON CONFLICT(anilist_id, provider_id) DO UPDATE SET
                     provider_key = excluded.provider_key,
                     confidence   = excluded.confidence,
                     rung         = excluded.rung,
-                    resolved_at  = excluded.resolved_at",
+                    resolved_at  = excluded.resolved_at,
+                    title        = excluded.title",
                 rusqlite::params![
                     anilist_id.get(),
                     provider_id,
                     provider_key.as_str(),
                     confidence,
                     rung as u8,
-                    at
+                    at,
+                    title
                 ],
             )?;
             Ok(())
@@ -158,34 +201,36 @@ impl Store {
         provider_id: &str,
     ) -> Result<Option<ResolvedMapping>> {
         self.with_conn(|c| {
-            let over: Option<String> = c
+            let over: Option<(String, Option<String>)> = c
                 .query_row(
-                    "SELECT provider_key FROM mapping_override
+                    "SELECT provider_key, title FROM mapping_override
                       WHERE anilist_id = ?1 AND provider_id = ?2",
                     rusqlite::params![anilist_id.get(), provider_id],
-                    |r| r.get(0),
+                    |r| Ok((r.get(0)?, r.get(1)?)),
                 )
                 .ok();
-            if let Some(key) = over {
+            if let Some((key, title)) = over {
                 return Ok(Some(ResolvedMapping {
                     provider_key: ProviderKey::new(key),
                     confidence: 1.0,
                     rung: ResolutionRung::Override,
+                    title,
                 }));
             }
 
-            let cached: Option<(String, f64, u8)> = c
+            let cached: Option<(String, f64, u8, Option<String>)> = c
                 .query_row(
-                    "SELECT provider_key, confidence, rung FROM mapping_resolution
+                    "SELECT provider_key, confidence, rung, title FROM mapping_resolution
                       WHERE anilist_id = ?1 AND provider_id = ?2",
                     rusqlite::params![anilist_id.get(), provider_id],
-                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
                 )
                 .ok();
-            Ok(cached.map(|(key, confidence, rung)| ResolvedMapping {
+            Ok(cached.map(|(key, confidence, rung, title)| ResolvedMapping {
                 provider_key: ProviderKey::new(key),
                 confidence,
                 rung: ResolutionRung::from_u8(rung),
+                title,
             }))
         })
     }
@@ -272,6 +317,37 @@ mod tests {
             "correct"
         );
         assert!(store.lookup_mapping(HOSHIKUZU, "torrent").unwrap().is_none());
+    }
+
+    #[test]
+    fn a_match_keeps_the_title_it_was_made_as() {
+        let store = Store::open_in_memory().unwrap();
+        store
+            .cache_resolution_titled(
+                HOSHIKUZU,
+                "webprov",
+                &ProviderKey::new("guessed"),
+                Some("Hoshikuzu no Tabibito: Night Roads"),
+                0.8,
+                ResolutionRung::ProviderSearch,
+                0,
+            )
+            .unwrap();
+        let cached = store.lookup_mapping(HOSHIKUZU, "webprov").unwrap().unwrap();
+        assert_eq!(cached.title.as_deref(), Some("Hoshikuzu no Tabibito: Night Roads"));
+
+        let key = ProviderKey::new("chosen");
+        store
+            .set_override_titled(HOSHIKUZU, "webprov", &key, Some("Hoshikuzu no Tabibito"), 1)
+            .unwrap();
+        let chosen = store.lookup_mapping(HOSHIKUZU, "webprov").unwrap().unwrap();
+        assert_eq!(chosen.rung, ResolutionRung::Override);
+        assert_eq!(chosen.title.as_deref(), Some("Hoshikuzu no Tabibito"));
+
+        // A choice made without a title forgets the one before, rather than naming the new
+        // key with the old entry's title.
+        store.set_override(HOSHIKUZU, "webprov", &ProviderKey::new("other"), 2).unwrap();
+        assert_eq!(store.lookup_mapping(HOSHIKUZU, "webprov").unwrap().unwrap().title, None);
     }
 
     #[test]

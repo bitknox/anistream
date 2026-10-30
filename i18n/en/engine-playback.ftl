@@ -189,6 +189,28 @@ notice-match-did-not-stick = That match didn't stick. The { -source } may have c
 # @arg query: text
 notice-source-search-empty = Nothing found for “{ $query }”. Try a different search.
 
+# In the list of titles a source offers for a show, in place of how close a title is: it was
+# ruled out because its format cannot be the show's, as an OVA for a TV series.
+# @max 24
+match-ruled-out-format = Different format
+
+# In the list of titles a source offers for a show, in place of how close a title is: it was
+# ruled out because it lists more episodes than the show has.
+# @max 40
+match-ruled-out-episodes = More episodes than this title
+
+# In the list of titles a source offers for a show, in place of how close a title is: it was
+# ruled out because it started in another year.
+# @max 24
+match-ruled-out-year = Different year
+
+# Why a search of a source for a show's match failed, under "Couldn't search" and the source's
+# name: the source took too long to answer.
+match-search-timed-out = It didn't answer in time.
+
+# Why a search of a source for a show's match failed: the source isn't installed or switched on.
+match-search-source-off = It isn't switched on.
+
 # Toast after the person picked a source for one title.
 # @arg source: text
 notice-source-pinned = { $source } will be used for this title.

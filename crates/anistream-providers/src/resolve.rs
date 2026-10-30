@@ -24,7 +24,7 @@ use anistream_core::{
     ids::{AnilistId, ProviderKey},
     media::{SearchHit, Translation},
 };
-use anistream_meta::title::{CONFIDENCE_FLOOR, MatchTarget, rank};
+use anistream_meta::title::{CONFIDENCE_FLOOR, MatchTarget, Rejection, rank};
 use anistream_store::{ResolutionRung, Store};
 
 use crate::registry::{Attempt, ProviderRegistry};
@@ -35,7 +35,7 @@ pub struct Candidate {
     pub hit: SearchHit,
     pub score: f64,
     /// Why this was ruled out, when it was.
-    pub rejected: Option<&'static str>,
+    pub rejected: Option<Rejection>,
 }
 
 /// Where the ladder stopped.
@@ -141,10 +141,11 @@ pub async fn resolve(
         let key = best.hit.key.clone();
         // Cache it, but never as an override: an automatic match stays revisable, and a
         // dataset refresh is allowed to clear it.
-        let _ = store.cache_resolution(
+        let _ = store.cache_resolution_titled(
             anilist_id,
             &provider_id,
             &key,
+            Some(&best.hit.title),
             best.score,
             ResolutionRung::ProviderSearch,
             now,

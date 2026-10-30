@@ -149,6 +149,16 @@
     <string name="notice_match_did_not_stick">That match didn\'t stick. The source may have changed. Try choosing it again.</string>
     <!-- Toast when a search of the sources for a title found nothing. -->
     <string name="notice_source_search_empty">Nothing found for “%1$s”. Try a different search.</string>
+    <!-- In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series. -->
+    <string name="match_ruled_out_format">Different format</string>
+    <!-- In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has. -->
+    <string name="match_ruled_out_episodes">More episodes than this title</string>
+    <!-- In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year. -->
+    <string name="match_ruled_out_year">Different year</string>
+    <!-- Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer. -->
+    <string name="match_search_timed_out">It didn\'t answer in time.</string>
+    <!-- Why a search of a source for a show's match failed: the source isn't installed or switched on. -->
+    <string name="match_search_source_off">It isn\'t switched on.</string>
     <!-- Toast after the person picked a source for one title. -->
     <string name="notice_source_pinned">%1$s will be used for this title.</string>
     <!-- Toast after the person went back to automatic source selection for one title. -->
@@ -3160,6 +3170,57 @@
     <string name="sources_rebuilding">Sources are being set up again</string>
     <!-- Value of a plugin's response time, in milliseconds. -->
     <string name="sources_response_ms">%1$d ms</string>
+    <!-- Menu, palette and source picker entry that opens the sheet. -->
+    <string name="match_fix">Fix this match</string>
+    <!-- The title page's main action while the source couldn't choose, and the sheet's title. -->
+    <string name="match_choose">Choose the match</string>
+    <!-- The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out. -->
+    <plurals name="match_uncertain">
+        <item quantity="one">%2$s lists a title that could be this one. Choose it to play its episodes.</item>
+        <item quantity="other">%2$s lists %1$d titles that could be this one. Choose one to play its episodes.</item>
+    </plurals>
+    <!-- The line on a title page when the source listed no title that fits, so the person searches. -->
+    <string name="match_uncertain_none">%1$s has no title that fits this one. Choose one anyway, or search.</string>
+    <!-- The last row of the source picker, which opens the match sheet. -->
+    <string name="match_source_picker_row">Wrong title? Fix this match</string>
+    <!-- Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes". -->
+    <string name="match_anilist_facts">On AniList: %1$s</string>
+    <!-- Heading over the titles a source offers. -->
+    <string name="match_section_source">On %1$s</string>
+    <!-- Heading over the title the show is matched to now. -->
+    <string name="match_now">Matched now</string>
+    <!-- Beside the title matched now: the person chose it. -->
+    <string name="match_chosen_by_you">Chosen by you</string>
+    <!-- Beside the title matched now: anistream chose it. -->
+    <string name="match_chosen_automatically">Chosen automatically</string>
+    <!-- How closely a source's title matches the show, at the end of its row. -->
+    <string name="match_similarity">%1$s match</string>
+    <!-- Placeholder of the search field in the sheet. -->
+    <string name="match_search_field">Search %1$s</string>
+    <!-- A TV row that opens the search screen from the sheet's panel. -->
+    <string name="match_search_another">Search for another title</string>
+    <!-- While a search of the source runs. -->
+    <string name="match_searching">Searching %1$s for “%2$s”</string>
+    <!-- A search of the source that found nothing. -->
+    <string name="match_search_empty">Nothing on %1$s for “%2$s”.</string>
+    <!-- Under match-search-empty: what to try. -->
+    <string name="match_search_empty_hint">Try fewer words, or the title in another language.</string>
+    <!-- A search of the source that failed. The reason follows on its own line. -->
+    <string name="match_search_failed">Couldn\'t search %1$s.</string>
+    <!-- On the row picked, while the source lists its episodes. -->
+    <string name="match_picking">Matching</string>
+    <!-- A pick that failed. The reason follows on its own line. -->
+    <string name="match_fix_failed">Couldn\'t use that match.</string>
+    <!-- Notice once a picked title's episodes arrive. -->
+    <string name="match_picked">Matched to %1$s on %2$s.</string>
+    <!-- Button that forgets the person's choice, shown only while the match is one they chose. -->
+    <string name="match_automatic">Match automatically</string>
+    <!-- Under "Match automatically", on iPhone, iPad and Android. -->
+    <string name="match_automatic_detail">Forget your choice and let anistream match this title again.</string>
+    <!-- Notice after "Match automatically". -->
+    <string name="match_cleared">Matching automatically again.</string>
+    <!-- Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out. -->
+    <string name="match_row_label">%1$s, %2$s, %3$s</string>
     <!-- Short label for a joined store, on a row. -->
     <string name="stores_joined">Joined</string>
     <!-- Title of the empty list. -->

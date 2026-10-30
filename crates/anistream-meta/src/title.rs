@@ -189,13 +189,24 @@ pub struct MatchTarget {
 /// worse than one extra keystroke.
 pub const CONFIDENCE_FLOOR: f64 = 0.72;
 
+/// Why a candidate was ruled out before its title was compared.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Rejection {
+    /// Its format cannot be the target's, as an OVA for a TV series.
+    Format,
+    /// It lists more episodes than the target has.
+    TooManyEpisodes,
+    /// It started more than a year away from the target.
+    Year,
+}
+
 /// A scored candidate.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Scored<'a> {
     pub hit: &'a SearchHit,
     pub score: f64,
     /// Why this candidate was rejected outright, if it was.
-    pub rejected: Option<&'static str>,
+    pub rejected: Option<Rejection>,
 }
 
 impl Scored<'_> {
@@ -224,20 +235,20 @@ fn score_one<'a>(target: &MatchTarget, hit: &'a SearchHit) -> Scored<'a> {
     if let (Some(want), Some(got)) = (target.format, hit.format)
         && !want.compatible_with(got)
     {
-        return Scored { hit, score: 0.0, rejected: Some("different format") };
+        return Scored { hit, score: 0.0, rejected: Some(Rejection::Format) };
     }
     if let (Some(want), Some(got)) = (target.episode_count, hit.episode_count) {
         // Currently-airing shows legitimately have fewer episodes listed than the total,
         // so only a *surplus* is disqualifying — a provider claiming more episodes than
         // exist is a different work, not a partial upload.
         if got > want.saturating_add(2) {
-            return Scored { hit, score: 0.0, rejected: Some("too many episodes") };
+            return Scored { hit, score: 0.0, rejected: Some(Rejection::TooManyEpisodes) };
         }
     }
     if let (Some(want), Some(got)) = (target.year, hit.year)
         && want.abs_diff(got) > 1
     {
-        return Scored { hit, score: 0.0, rejected: Some("year mismatch") };
+        return Scored { hit, score: 0.0, rejected: Some(Rejection::Year) };
     }
 
     // Best similarity across our titles and the candidate's.
@@ -374,7 +385,7 @@ mod tests {
         };
         let candidates = vec![SearchHit { format: Some(MediaFormat::Ova), ..hit("Hoshikuzu") }];
         let ranked = rank(&target, &candidates);
-        assert_eq!(ranked[0].rejected, Some("different format"));
+        assert_eq!(ranked[0].rejected, Some(Rejection::Format));
         assert!(!ranked[0].is_confident());
     }
 
@@ -386,7 +397,7 @@ mod tests {
             ..Default::default()
         };
         let candidates = vec![SearchHit { episode_count: Some(1000), ..hit("Hoshikuzu") }];
-        assert_eq!(rank(&target, &candidates)[0].rejected, Some("too many episodes"));
+        assert_eq!(rank(&target, &candidates)[0].rejected, Some(Rejection::TooManyEpisodes));
     }
 
     #[test]
@@ -417,7 +428,7 @@ mod tests {
         assert!(rank(&target, &off_by_one)[0].rejected.is_none());
 
         let way_off = vec![SearchHit { year: Some(2010), ..hit("Hoshikuzu") }];
-        assert_eq!(rank(&target, &way_off)[0].rejected, Some("year mismatch"));
+        assert_eq!(rank(&target, &way_off)[0].rejected, Some(Rejection::Year));
     }
 
     #[test]
