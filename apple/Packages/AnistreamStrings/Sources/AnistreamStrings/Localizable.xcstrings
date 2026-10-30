@@ -14751,6 +14751,18 @@
         }
       }
     },
+    "settings-label-hover-cards" : {
+      "comment" : "Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand covers on hover"
+          }
+        }
+      }
+    },
     "settings-label-trailers" : {
       "comment" : "Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.",
       "extractionState" : "manual",

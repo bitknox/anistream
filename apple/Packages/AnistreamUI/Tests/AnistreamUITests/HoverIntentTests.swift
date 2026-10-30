@@ -54,7 +54,8 @@ struct HoverIntentTests {
         #expect(middle.size == CGSize(width: 384, height: 322))
         // At the leading edge and the window's foot it moves inward, 8 pt from each.
         #expect(HoverCardSize.frame(over: layout.covers[0].rect, height: 322, in: layout.area).minX == 8)
-        #expect(HoverCardSize.frame(over: layout.covers[15].rect, height: 322, in: layout.area).maxY == 592)
+        let short = CGRect(x: 0, y: 0, width: 1216, height: 520)
+        #expect(HoverCardSize.frame(over: layout.covers[15].rect, height: 322, in: short).maxY == 512)
         #expect(HoverCardSize.frame(over: layout.covers[7].rect, height: 322, in: layout.area).maxX == 1208)
         #expect(HoverCardSize.height(synopsis: true, action: true) == 322)
         #expect(HoverCardSize.height(synopsis: true, action: false) == 282)
@@ -122,13 +123,15 @@ struct HoverIntentTests {
         _ = rest(&intent, at: centre(3), from: 0, to: 0.5)
         let frame = try #require(intent.open?.frame)
         let flank = try #require(layout.flanks(of: layout.covers[3].id, frame: frame).first { $0.id == layout.covers[4].id })
-        // Straight down into the flank from above it, then a 300 ms pause.
-        let above = CGPoint(x: flank.rect.midX, y: frame.minY + 4)
-        _ = glide(&intent, from: centre(3), to: above, start: 0.5, seconds: 0.1)
-        let into = CGPoint(x: flank.rect.midX, y: frame.minY + 120)
-        var events = glide(&intent, from: CGPoint(x: above.x, y: above.y - 30), to: into, start: 0.61, seconds: 0.1)
+        // Up to the band's top over the open cover, then steeply down and across into the flank,
+        // as on the way to the details.
+        let top = CGPoint(x: layout.covers[3].rect.maxX - 4, y: frame.minY + 10)
+        _ = glide(&intent, from: centre(3), to: top, start: 0.5, seconds: 0.1)
+        let into = CGPoint(x: flank.rect.minX + 6, y: frame.minY + 120)
+        var events = glide(&intent, from: top, to: into, start: 0.61, seconds: 0.1)
         events += rest(&intent, at: into, from: 0.72, to: 1.0)
         #expect(!events.contains { if case .handOff = $0.1 { true } else { false } })
+        #expect(intent.open?.id == layout.covers[3].id)
         events = rest(&intent, at: into, from: 1.01, to: 1.4)
         #expect(events.contains { if case .handOff = $0.1 { true } else { false } })
     }
@@ -173,7 +176,7 @@ struct HoverIntentTests {
         #expect(CoverFillMode.cropTop(width: 384, height: 216, focus: 1 / 3) == -84)
         // Never past either end.
         #expect(CoverFillMode.cropTop(width: 384, height: 216, focus: 0) == 0)
-        #expect(CoverFillMode.cropTop(width: 384, height: 216, focus: 1) == 216 - 576)
+        #expect(CoverFillMode.cropTop(width: 384, height: 216, focus: 1) == -360)
     }
 
     @Test func aCoverTooSmallToCropIsBlurred() {

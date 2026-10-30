@@ -5151,6 +5151,10 @@
     <value>[Ñàţüŕàļ · ÅŕţÇÑÑ~~~~~]</value>
     <comment>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</comment>
   </data>
+  <data name="SettingsLabelHoverCards" xml:space="preserve">
+    <value>[Éẋþàñð çöṽéŕš öñ ĥöṽéŕ~~~~~~~]</value>
+    <comment>Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.</comment>
+  </data>
   <data name="SettingsHoverCardsNote" xml:space="preserve">
     <value>[Šĥöŵš à ļàŕĝéŕ çàŕð ŵîţĥ ţĥé ţŕàîļéŕ ŵĥéñ ýöü ŕéšţ ţĥé þöîñţéŕ öñ à çöṽéŕ.~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.</comment>

@@ -3146,9 +3146,6 @@ settings-label-comment-images = Load images in comments
 # Settings row: whether Calendar shows only the shows on the person's list.
 settings-label-calendar-mine = Calendar shows only my list
 
-# Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
-settings-label-hover-cards = Expand covers on hover
-
 # Note under the titles row.
 settings-note-titles = AniList's choice follows your AniList account, and is English when you're signed out.
 
@@ -6365,6 +6362,9 @@ settings-upload-unlimited = Unlimited
 
 # Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 settings-upscaling-natural = Natural · ArtCNN
+
+# Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+settings-label-hover-cards = Expand covers on hover
 
 # Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
 settings-hover-cards-note = Shows a larger card with the trailer when you rest the pointer on a cover.

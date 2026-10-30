@@ -47,7 +47,7 @@ final class CoverFocus {
     static let shared = CoverFocus()
 
     /// The upper third: where a cover's focus is until Vision has said, and when it finds none.
-    static let fallback: CGFloat = 1 / 3
+    nonisolated static let fallback: CGFloat = 1 / 3
 
     @ObservationIgnored private var found: [String: Found] = [:]
     @ObservationIgnored private var working: Set<String> = []

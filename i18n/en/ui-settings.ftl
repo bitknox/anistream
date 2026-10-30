@@ -397,6 +397,10 @@ settings-upload-unlimited = Unlimited
 # @max 28
 settings-upscaling-natural = Natural · ArtCNN
 
+# Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+# @max 32
+settings-label-hover-cards = Expand covers on hover
+
 # Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
 # @max 110
 settings-hover-cards-note = Shows a larger card with the trailer when you rest the pointer on a cover.

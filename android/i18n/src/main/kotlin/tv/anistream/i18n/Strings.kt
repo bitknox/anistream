@@ -5713,6 +5713,10 @@ object Strings {
     fun settingsUpscalingNatural(context: Context): String =
         context.getString(R.string.settings_upscaling_natural)
 
+    /** Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer. */
+    fun settingsLabelHoverCards(context: Context): String =
+        context.getString(R.string.settings_label_hover_cards)
+
     /** Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it. */
     fun settingsHoverCardsNote(context: Context): String =
         context.getString(R.string.settings_hover_cards_note)

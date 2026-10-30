@@ -3756,6 +3756,9 @@ public static partial class T
     /// <summary>Value of the upscaling setting: a natural look. The name after the dot is the shader used.</summary>
     public static string SettingsUpscalingNatural => Get("SettingsUpscalingNatural");
 
+    /// <summary>Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.</summary>
+    public static string SettingsLabelHoverCards => Get("SettingsLabelHoverCards");
+
     /// <summary>Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.</summary>
     public static string SettingsHoverCardsNote => Get("SettingsHoverCardsNote");
 
@@ -6708,6 +6711,7 @@ public static partial class T
         ["SettingsQualityStandard"] = "Standard",
         ["SettingsUploadUnlimited"] = "Unlimited",
         ["SettingsUpscalingNatural"] = "Natural · ArtCNN",
+        ["SettingsLabelHoverCards"] = "Expand covers on hover",
         ["SettingsHoverCardsNote"] = "Shows a larger card with the trailer when you rest the pointer on a cover.",
         ["SettingsUpscalingNoteNatural"] = "Faithful line work and texture, nothing restyled.",
         ["SettingsUpscalingNoteSharp"] = "Crisper lines and stronger edges, at some cost to texture.",

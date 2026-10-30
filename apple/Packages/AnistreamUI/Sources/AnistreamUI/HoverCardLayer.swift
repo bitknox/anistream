@@ -188,7 +188,7 @@ private struct HoverCardLayer: ViewModifier {
     @State private var monitor: Any?
 
     private var allowed: Bool {
-        let key = activeState == .key || TrailerStandIn.keepsWhenInactive || cards.scripted
+        let key = activeState == .key || cards.scripted
         let covered = playerUp || navigator.trailerRequest != nil || navigator.moreAbout != nil
             || navigator.sourcePicker != nil || navigator.showSettings != nil || navigator.messagesShown
         return store.hoverCardsOn && key && !covered && typeSize <= .xxxLarge
