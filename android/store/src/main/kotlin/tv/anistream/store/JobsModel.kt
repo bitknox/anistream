@@ -41,6 +41,9 @@ class JobsModel(
 ) {
     private val _running = MutableStateFlow<List<RunningJob>>(emptyList())
 
+    /** The model's clock, in milliseconds, for a wait to count down against. */
+    fun clock(): Long = now()
+
     /** Every job running, oldest first. */
     val running: StateFlow<List<RunningJob>> = _running.asStateFlow()
 
@@ -71,6 +74,12 @@ class JobsModel(
         _running.value = _running.value.map {
             if (it.id == job) it.copy(note = note, waitUntil = waitMillis?.let { wait -> now() + wait }) else it
         }
+        refresh()
+    }
+
+    /** The engine stopped: no job will end now. */
+    internal fun clear() {
+        _running.value = emptyList()
         refresh()
     }
 

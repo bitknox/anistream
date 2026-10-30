@@ -2,6 +2,8 @@
 
 package tv.anistream.store
 
+import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,10 +36,25 @@ class EngineClient(
     reading: CoroutineDispatcher = Dispatchers.Default,
 ) {
     private val reader: Job = scope.launch(reading) {
-        while (isActive) {
-            val batch = engine.nextEvents()
-            if (batch.isEmpty()) break
-            withContext(main) { deliver(batch) }
+        try {
+            while (isActive) {
+                val batch = engine.nextEvents()
+                if (batch.isEmpty()) break
+                // A batch that throws is dropped, not the reader: the next one still comes.
+                withContext(main) {
+                    try {
+                        deliver(batch)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.e("anistream", "a batch of events could not be delivered", e)
+                    }
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("anistream", "the engine's events could not be read", e)
         }
         withContext(main) { stopped() }
     }

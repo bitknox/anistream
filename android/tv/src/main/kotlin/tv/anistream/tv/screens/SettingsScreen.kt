@@ -541,7 +541,7 @@ private fun LastCheckRow(store: AppStore, view: SettingsView?, memory: FocusMemo
     val checking = check?.view == GuardView.Checking
     TvListRow(
         stringResource(R.string.torrents_last_check),
-        onClick = { if (!checking) store.checkProviders() },
+        onClick = { if (!checking) store.checkConnection() },
         supporting = listOfNotNull(words.status, words.note).joinToString(" · "),
         supportingLines = 2,
         height = 88.dp,
@@ -686,9 +686,22 @@ private fun LazyListScope.accounts(nav: TvNavigator, memory: FocusMemory, first:
             Trackers.forEachIndexed { index, (id, name) ->
                 TvListRow(
                     name,
-                    onClick = { if (trackers[id]?.connected == true) signingOut = id else nav.openSignIn(id) },
+                    onClick = {
+                        val state = trackers[id]
+                        // Expired: Sign in again, rather than offering to sign out of an account that no longer works.
+                        if (state?.connected == true && !state.needsReauth) signingOut = id else nav.openSignIn(id)
+                    },
                     supporting = accountLine(context, trackers[id]),
                     modifier = (if (index == 0) first else Modifier).remembered(memory, "account/$id"),
+                )
+            }
+            if (trackers.values.any { it.connected && !it.needsReauth }) {
+                val syncing = "sync" in store.accounts.working.collectAsStateWithLifecycle().value.values
+                TvListRow(
+                    stringResource(R.string.accounts_sync_now),
+                    onClick = { if (!syncing) store.syncNow() },
+                    supporting = if (syncing) stringResource(R.string.accounts_sync_running) else null,
+                    modifier = Modifier.remembered(memory, "account/sync"),
                 )
             }
         }
@@ -711,6 +724,9 @@ private fun LazyListScope.accounts(nav: TvNavigator, memory: FocusMemory, first:
 /** "Signed in as Mika", or "Not signed in". */
 fun accountLine(context: Context, state: SyncState?): String = when {
     state == null || !state.connected -> Strings.tvAccountNotSignedIn(context)
+    // A token that no longer works, or a pull that failed, is not "Signed in".
+    state.needsReauth -> Strings.accountsStateExpiredShort(context)
+    state.pullError != null -> Strings.accountsSyncFailed(context, plainReason(context, state.pullError!!.reason))
     state.user != null -> Strings.tvAccountSignedInAs(context, state.user!!)
     else -> Strings.accountsSignedInPlain(context)
 }

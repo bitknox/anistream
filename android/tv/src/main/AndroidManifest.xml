@@ -39,14 +39,5 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- The player probe beside it, started from adb: plays the stream it is given and
-             reports how. -->
-        <activity
-            android:name=".ProbeActivity"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|keyboard|keyboardHidden|navigation|uiMode"
-            android:exported="true"
-            android:launchMode="singleTask"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
     </application>
 </manifest>

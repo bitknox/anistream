@@ -1096,8 +1096,8 @@ close-stop-and-close = [Šţöþ àñð çļöšé~~~~~]
 # Body of the close question when episodes download.
 close-body-downloading =
     { $count ->
-        [one] [Öñé éþîšöðé îš ðöŵñļöàðîñĝ. Ķééþ îţ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ îţ?~~~~~~~~~~~~~~~~~~~~~~~~]
-       *[other] [{ $count } éþîšöðéš àŕé ðöŵñļöàðîñĝ. Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~~~~~~~~~~]
+        [one] [Öñé éþîšöðé îš ðöŵñļöàðîñĝ öŕ ŵàîţîñĝ ţö. Ķééþ îţ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ îţ?~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+       *[other] [{ $count } éþîšöðéš àŕé ðöŵñļöàðîñĝ öŕ ŵàîţîñĝ ţö. Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
     }
 
 # Body of the close question when episodes seed.
@@ -1108,7 +1108,7 @@ close-body-seeding =
     }
 
 # Body of the close question when some episodes download and others seed.
-close-body-both = [Éþîšöðéš: { $downloading } ðöŵñļöàðîñĝ àñð { $seeding } šééðîñĝ. Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+close-body-both = [Éþîšöðéš: { $downloading } ðöŵñļöàðîñĝ öŕ ŵàîţîñĝ àñð { $seeding } šééðîñĝ. Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Status in the sidebar and on the remote: the TV was not found again.
 tv-status-not-found = [{ $name } ñöţ ƒöüñð~~~~]
@@ -1151,6 +1151,9 @@ tv-paired-seen-now = [{ $paired } · šééñ ĵüšţ ñöŵ~~~~~~]
 
 # Accessible name of a track menu: the row, then the track chosen.
 tv-track-choice = [{ $row }, { $track }~~~]
+
+# The name this computer goes by in lists of a person's devices, such as a plugin store's.
+shell-device-label = [Ļîñüẋ çöɱþüţéŕ~~~~~]
 
 # Count of devices on a member's row in the members dialog, and after "Owner ·".
 stores-device-count =
@@ -5733,6 +5736,9 @@ player-track-n = [Ţŕàçķ { $id }~~~]
 
 # Line while an episode starts after a few seconds: what the wait is on, and for how long.
 player-wait-note = [{ $what } · { $seconds } š~~~~]
+
+# Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.
+player-command-failed = [Ţĥàţ ðîðñ'ţ ŵöŕķ. Ţŕý àĝàîñ.~~~~~~~~~]
 
 # Button that shows the season before.
 seasonal-previous = [Þŕéṽîöüš šéàšöñ~~~~~]

@@ -168,6 +168,10 @@ class ArtworkStore(
             keep(url, decoded)
             arrivals[url]?.let { it.value += 1 }
             _landed.value += 1
+        } else if (cached.longSide == decoded.longSide && cached.decodedFor < decoded.decodedFor) {
+            // Same pixels for a larger ask (sample sizes step in halves): keep the claim, or the
+            // store would ask again for a size the pixels already cover.
+            keep(url, decoded)
         }
         // A screen asked for more while these bytes were decoding.
         val wanted = sizes[url]

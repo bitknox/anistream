@@ -372,11 +372,15 @@ struct GuardRow: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             let (note, status, color) = words(now: context.date)
-            // The guard checks again on its own every minute; no command runs it sooner.
+            // The guard checks again on its own every minute; Check now does not wait for it.
             SettingsRow(title: L.torrentsLastCheck, note: note) {
-                HStack(spacing: 6) {
-                    Circle().fill(color).frame(width: 6, height: 6)
-                    Text(status).font(.mac(13)).foregroundStyle(.silk)
+                HStack(spacing: 10) {
+                    HStack(spacing: 6) {
+                        Circle().fill(color).frame(width: 6, height: 6)
+                        Text(status).font(.mac(13)).foregroundStyle(.silk)
+                    }
+                    Button(L.torrentsCheckNow) { store.checkConnection() }
+                        .disabled(store.providers.guardView == .checking)
                 }
             }
         }

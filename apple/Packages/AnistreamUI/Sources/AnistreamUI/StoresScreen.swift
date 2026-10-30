@@ -566,8 +566,8 @@ struct JoinStoreSheet: View {
                 ProgressView().controlSize(.small)
                 Text(L.storesCheckingLink).font(.mac(13)).foregroundStyle(.haze)
             }
-        case .failed?:
-            FailedLine(notAStoreWords)
+        case .failed(let reason)?:
+            FailedLine(joinFailureWords(reason))
                 .fixedSize(horizontal: false, vertical: true)
         case .store(let invited)?:
             JoinPreview(invited: invited)

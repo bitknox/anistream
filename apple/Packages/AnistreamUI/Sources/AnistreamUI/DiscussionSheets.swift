@@ -13,6 +13,8 @@ public struct DiscussionSheets: ViewModifier {
     @Environment(Navigator.self) private var navigator
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// The window's width as it is without the panel, which the panel itself takes from the page.
+    @State private var windowWidth: CGFloat = .infinity
     #else
     @Environment(\.openWindow) private var openWindow
     /// A discussion a launch argument asks for, in a sheet: the dev harness has no second window.
@@ -32,6 +34,15 @@ public struct DiscussionSheets: ViewModifier {
         !overPlayer
         #endif
     }
+
+    private static let panelWidth: CGFloat = 380
+    private static let pageMinimum: CGFloat = 560
+
+    #if os(iOS)
+    private var panelFits: Bool {
+        sizeClass == .regular && windowWidth >= Self.panelWidth + Self.pageMinimum
+    }
+    #endif
 
     private var target: DiscussionKey? { here ? store.discussion.target : nil }
 
@@ -56,7 +67,9 @@ public struct DiscussionSheets: ViewModifier {
 
     public func body(content: Content) -> some View {
         #if os(iOS)
-        let regular = sizeClass == .regular
+        // The side panel only where the page keeps room beside it (the title's own column needs
+        // about 560 pt); a narrower window gets the sheet.
+        let regular = panelFits
         content
             .task { await launched() }
             .inspector(isPresented: Binding(
@@ -66,7 +79,7 @@ public struct DiscussionSheets: ViewModifier {
                 if let key = target {
                     DiscussionPanel(key: key, chrome: .inspector, close: close)
                         .id(key)
-                        .inspectorColumnWidth(380)
+                        .inspectorColumnWidth(Self.panelWidth)
                         .environment(store)
                 }
             }
@@ -81,13 +94,18 @@ public struct DiscussionSheets: ViewModifier {
                     .preferredColorScheme(.dark)
                     .environment(store)
             }
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { width in
+                // Read while the panel is shut; open, the page is narrower by its width.
+                windowWidth = panelFits && target != nil ? width + Self.panelWidth : width
+            }
         #else
         content
             .task { await launched() }
             .sheet(item: $preview) { key in DiscussionWindowView(key: key).environment(store) }
             .onChange(of: store.discussion.target) { _, key in
                 guard here, let key else { return }
-                openWindow(id: DiscussionKey.windowId, value: key)
+                store.discussion.reading = key
+                openWindow(id: DiscussionKey.windowId)
                 store.discussion.target = nil
             }
         #endif
@@ -97,12 +115,26 @@ public struct DiscussionSheets: ViewModifier {
 extension DiscussionKey: Identifiable {
     public var id: String { "\(media)-\(episode)" }
 
-    /// The Mac's discussion windows, one per episode.
+    /// The Mac's discussion window: one, because the engine keeps one discussion open.
     public static let windowId = "discussion"
 }
 
 #if os(macOS)
 /// The Mac's discussion window: 480 by 720 pt, the title in its bar.
+public struct DiscussionWindowHost: View {
+    @Environment(AppStore.self) private var store
+
+    public init() {}
+
+    public var body: some View {
+        if let key = store.discussion.reading {
+            DiscussionWindowView(key: key).id(key)
+        } else {
+            Color.clear
+        }
+    }
+}
+
 public struct DiscussionWindowView: View {
     @Environment(AppStore.self) private var store
     let key: DiscussionKey

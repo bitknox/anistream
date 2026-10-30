@@ -454,15 +454,3 @@ struct JobsPopover: View {
             : L.durationMinutesSeconds(minutes: seconds / 60, seconds: String(seconds % 60))
     }
 }
-
-/// A section that has no screen yet.
-struct NotBuiltYet: View {
-    let section: AppSection
-
-    var body: some View {
-        Text(L.shellNotBuiltYet(section: section.title))
-            .font(.mac(13))
-            .foregroundStyle(.haze)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}

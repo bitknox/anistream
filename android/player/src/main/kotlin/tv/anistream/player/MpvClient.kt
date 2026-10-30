@@ -162,7 +162,9 @@ class MpvClient(private val name: String) {
 
     /**
      * surfaceDestroyed: the VO off and the surface let go, finished before the callback returns,
-     * while the surface still lives. Blocks the caller for as long as mpv's thread is busy.
+     * while the surface still lives. Blocks the caller while mpv's thread is busy, but for no
+     * more than [DETACH_WAIT_MILLIS]: a wedged mpv must not hold the main thread, and its
+     * detach still runs when its thread comes back.
      */
     fun detach() {
         runCatching {
@@ -171,7 +173,7 @@ class MpvClient(private val name: String) {
                 MpvNative.setProperty(h, "vo", "null")
                 MpvNative.setProperty(h, "force-window", "no")
                 MpvNative.detachSurface(h)
-            }.get(5, TimeUnit.SECONDS)
+            }.get(DETACH_WAIT_MILLIS, TimeUnit.MILLISECONDS)
         }.onFailure { Log.w(TAG, "mpv $name: the surface went before mpv let it go: $it") }
     }
 
@@ -209,6 +211,9 @@ class MpvClient(private val name: String) {
 
     companion object {
         const val TAG = "mpv"
+
+        /** How long the main thread waits for mpv to let go of a surface that is going. */
+        private const val DETACH_WAIT_MILLIS = 500L
 
         /** The properties whose latest value is all anyone needs: see [batch]. */
         private val LATEST_ONLY = setOf("time-pos", "duration", "frame-drop-count")

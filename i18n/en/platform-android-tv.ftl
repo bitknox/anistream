@@ -515,3 +515,15 @@ tv-discussion-likes = { $count ->
 # @only android
 # @max 40
 tv-discussion-select-spoiler = Select to show the spoiler
+
+# Where a Google TV keeps the switch that lets an app install updates, as its menus name it: the
+# system's own words, which a translation should follow for that TV's language.
+# @only android
+# @max 80
+# @allow source
+updates-unknown-sources-path = Settings › Apps › Security & restrictions › Unknown sources
+
+# Name a TV gives itself to phones when the system has none set.
+# @only android
+# @max 24
+tv-remote-default-name = { -app-name } TV

@@ -66,6 +66,9 @@ struct Page {
     holder: gtk::Box,
     nagare: adw::StatusPage,
     welcome: RefCell<Option<gtk::Widget>>,
+    /// Under the queue on a narrow window: the welcome's rails, drawn once the queue has rows.
+    tail: gtk::Box,
+    tail_on: Cell<bool>,
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
@@ -98,9 +101,14 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     // Across a medium window, the queue keeps to a readable width.
     let clamp =
         adw::Clamp::builder().maximum_size(720).tightening_threshold(720).child(&list).build();
+    // Narrow, the welcome's two rails follow the queue.
+    let under = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    under.append(&clamp);
+    let tail = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    under.append(&tail);
     let scroll = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
-        .child(&clamp)
+        .child(&under)
         .build();
 
     let browse = gtk::Button::with_label(&t::continue_empty_action());
@@ -180,6 +188,8 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         holder,
         nagare: empty,
         welcome: RefCell::default(),
+        tail,
+        tail_on: Cell::new(false),
     });
     page.wire();
     ctx.hub.send(Command::LoadContinue);
@@ -283,6 +293,26 @@ impl Page {
         });
         if !collapsed {
             self.reselect();
+        }
+        self.tail();
+    }
+
+    /// Narrow with a queue, Airing today and This season go under it; otherwise they go.
+    fn tail(self: &Rc<Self>) {
+        let want = self.ctx.size() != Size::Wide
+            && !self.queue.borrow().is_empty()
+            && self.calendar_in.get()
+            && self.season_in.get();
+        if want == self.tail_on.get() {
+            return;
+        }
+        while let Some(old) = self.tail.first_child() {
+            self.tail.remove(&old);
+        }
+        let view = if want { self.welcome_view() } else { None };
+        self.tail_on.set(want && view.is_some());
+        if let Some(view) = view {
+            self.tail.append(&view);
         }
     }
 
@@ -436,6 +466,8 @@ impl Page {
         if self.continue_in.get() && self.queue.borrow().is_empty() {
             self.empty_state();
         }
+        self.tail_on.set(false);
+        self.tail();
     }
 
     /// The engine's now, in Unix seconds: its calendar's anchor and the time since, which is
@@ -796,12 +828,7 @@ impl Page {
         }
         let Some(item) = self.selected_item() else { return };
         let id = item.entry.id.get();
-        let name = format!(
-            "{id}-{}-{}-{}",
-            self.episodes.borrow().get(&id).map_or(0, Vec::len),
-            item.episode,
-            item.playable
-        );
+        let name = item.preview_key(self.episodes.borrow().get(&id).map_or(0, Vec::len));
         if self.preview.child_by_name(&name).is_none() {
             let view = self.preview_of(&item);
             self.preview.add_named(&view, Some(&name));

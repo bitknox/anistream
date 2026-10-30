@@ -68,6 +68,7 @@ import tv.anistream.tv.screens.UpdateScreen
 import tv.anistream.tv.signin.JoinStoreScreen
 import tv.anistream.tv.signin.SignInScreen
 import tv.anistream.tv.signin.TorrentScreen
+import tv.anistream.tv.ui.EngineDown
 import tv.anistream.tv.ui.LocalNotices
 import tv.anistream.tv.ui.LocalReducedMotion
 import tv.anistream.tv.ui.NoticeView
@@ -144,6 +145,7 @@ fun TvRoot(
             if (firstLaunch && !player.isPresented) FirstLaunch(onCover = { covered = it })
             if (remote != null) RemoteOverlays(remote, playing = player.isPresented, nav = nav)
             Notices(store, player, remote, notices, onUpdatePage = nav.top is Page.Update)
+            EngineDown()
         }
     }
 }

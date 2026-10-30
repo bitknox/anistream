@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
 import kotlinx.coroutines.delay
+import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.model.EmbedStyle
 import tv.anistream.engine.model.Entry
@@ -56,13 +57,6 @@ import tv.anistream.engine.model.TrailerControl
 import tv.anistream.i18n.R
 import tv.anistream.store.TrailerPlayer
 import tv.anistream.store.TrailerVisit
-
-/**
- * The canvas's fade curves, as PathInterpolators: the banner leaves over the video on fade-in,
- * (0, 0, 0.58, 1) for 200 ms, and returns on fade-out, (0.42, 0, 1, 1) for 300 ms.
- */
-internal val TrailerFadeIn = CubicBezierEasing(0f, 0f, 0.58f, 1f)
-internal val TrailerFadeOut = CubicBezierEasing(0.42f, 0f, 1f, 1f)
 
 /** The page's measurements with room for a trailer; the video is 16:9 across the full width. */
 internal object TrailerRoom {
@@ -172,7 +166,7 @@ internal fun TrailerHead(
 
     val artAlpha by animateFloatAsState(
         targetValue = if (shown) 0f else 1f,
-        animationSpec = if (shown) tween(200, easing = TrailerFadeIn) else tween(300, easing = TrailerFadeOut),
+        animationSpec = if (shown) Motion.fadeIn() else Motion.fadeOut(),
         label = "trailer art", // i18n-skip
     )
     Box {
@@ -215,7 +209,7 @@ private fun SoundButton(visible: Boolean, player: TrailerPlayer?, modifier: Modi
     var muted by remember(player) { mutableStateOf(true) }
     val alpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = if (visible) tween(200, easing = TrailerFadeIn) else tween(300, easing = TrailerFadeOut),
+        animationSpec = if (visible) Motion.fadeIn() else Motion.fadeOut(),
         label = "trailer sound", // i18n-skip
     )
     if (player == null || alpha == 0f && !visible) return

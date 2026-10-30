@@ -32,7 +32,15 @@ class WidgetRecord(private val file: File) {
     fun write(data: WidgetData) {
         file.parentFile?.mkdirs()
         val next = File(file.path + ".next")
-        next.writeText(encode(data).toString())
+        try {
+            next.writeText(encode(data).toString())
+        } catch (e: java.io.IOException) {
+            // A full disk: the widgets keep the last record. This must not fail the check for new
+            // episodes that asked for it, whose notifications would never be posted.
+            next.delete()
+            android.util.Log.w("anistream", "the widgets' record could not be written: ${e.message}")
+            return
+        }
         if (!next.renameTo(file)) {
             next.delete()
             return

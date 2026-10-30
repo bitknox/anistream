@@ -142,7 +142,8 @@ class ContinueModel {
         ContinueQueue.of(list.state.value.ids.filterNot { it in _hidden.value }, titles, episodes)
 
     internal fun apply(content: ContentList, titles: TitleCache) {
-        list.apply(content, titles)
+        // Continue's rows carry this device's watch history; no other list's may overwrite it.
+        list.apply(content, titles, local = true)
         _hidden.value = emptySet()
     }
 

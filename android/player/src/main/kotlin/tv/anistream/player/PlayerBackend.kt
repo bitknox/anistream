@@ -52,7 +52,9 @@ class MpvBackend(private val context: Context, private val extra: List<Pair<Stri
 
     override suspend fun begin(hwdec: String, options: Map<String, String>) {
         MpvNative.setAppContext(context.applicationContext)
-        mpv.start(MpvSetup.playerOptions(context, hwdec) + options.toList() + extra, reportedProperties, logLevel = "warn")
+        // fonts.conf and the CA bundle are files to write and read: off the main thread.
+        val base = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { MpvSetup.playerOptions(context, hwdec) }
+        mpv.start(base + options.toList() + extra, reportedProperties, logLevel = "warn")
     }
 
     override suspend fun perform(call: MpvCall): List<PlayerReport> {

@@ -4,6 +4,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.plainReason
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -210,12 +211,26 @@ fun SearchScreen(
         }
     }
     // Each keystroke searches, once the typing stops; the engine waits for the pause.
+    // What the field itself gave the store since they last agreed. The store echoes each of these
+    // a frame or more later; an echo is not words from outside and must not overwrite what was
+    // typed in between.
+    val sent = remember { mutableSetOf<String>() }
     LaunchedEffect(text) {
-        snapshotFlow { text.text.toString() }.drop(1).collect { store.searchLive(it) }
+        snapshotFlow { text.text.toString() }.drop(1).collect {
+            sent += it
+            store.searchLive(it)
+        }
     }
     // A recent search or a rail's See all brings its own words.
     LaunchedEffect(status.query.text) {
-        if (text.text.toString() != status.query.text) text.setTextAndPlaceCursorAtEnd(status.query.text)
+        val stored = status.query.text
+        val typed = text.text.toString()
+        if (stored == typed) {
+            sent.clear()
+        } else if (stored !in sent) {
+            sent.clear()
+            text.setTextAndPlaceCursorAtEnd(stored)
+        }
     }
 
     fun submit() {
@@ -659,7 +674,7 @@ private fun SearchResults(query: SearchQuery, overdue: Boolean) {
                 }
                 is ListState.Failed -> item(span = { GridItemSpan(maxLineSpan) }, key = "failed") {
                     Column {
-                        Text(list.reason, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(plainReason(context, list.reason), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row {
                             QuietButton(stringResource(R.string.action_try_again)) { store.retrySearch() }
                             QuietButton(stringResource(R.string.action_report)) { openBugReport(context, store, BugContext("load", list.reason)) }
@@ -809,7 +824,7 @@ private fun FiltersSheet(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.PartiallyExpanded, SheetValue.Expanded)),
         containerColor = colors.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.32f),
+        scrimColor = androidx.compose.material3.MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
         dragHandle = { BottomSheetDefaults.DragHandle(color = colors.onSurfaceVariant.copy(alpha = 0.4f)) },
         modifier = Modifier.padding(top = 77.dp - 24.dp),
     ) {

@@ -240,7 +240,7 @@ struct UpdateNotice: View {
                 }
                 .buttonStyle(.plain)
                 .font(.mac(13, weight: .semibold))
-                .foregroundStyle(.amber)
+                .foregroundStyle(.silk)
             }
             Button {
                 store.updates.dismissNotice()

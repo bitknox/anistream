@@ -6585,6 +6585,18 @@
         }
       }
     },
+    "list-refresh-failed" : {
+      "comment" : "Notice when a list could not be refreshed and the rows already on screen stay.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't refresh. Showing what was loaded."
+          }
+        }
+      }
+    },
     "material-anime" : {
       "comment" : "Value of \"Based on\": another anime.",
       "extractionState" : "manual",
@@ -11591,6 +11603,18 @@
         }
       }
     },
+    "player-command-failed" : {
+      "comment" : "Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That didn't work. Try again."
+          }
+        }
+      }
+    },
     "player-countdown-label" : {
       "comment" : "VoiceOver label of the countdown bar of the up next card. Argument 1: episode (Text).",
       "extractionState" : "manual",
@@ -16557,6 +16581,42 @@
         }
       }
     },
+    "shell-download-unwatched" : {
+      "comment" : "Title menu item that queues every unwatched episode that is not downloaded yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download unwatched"
+          }
+        }
+      }
+    },
+    "shell-engine-stopped" : {
+      "comment" : "Title of the page shown when the engine stopped while the app was open.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream stopped working"
+          }
+        }
+      }
+    },
+    "shell-engine-stopped-body" : {
+      "comment" : "Plain line under the title of the page shown when the engine stopped while the app was open.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The part of the app that does the work has stopped. Start it again to carry on."
+          }
+        }
+      }
+    },
     "shell-less" : {
       "comment" : "Button under a long synopsis that folds it back to a few lines.",
       "extractionState" : "manual",
@@ -16613,18 +16673,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This link doesn't lead to a plugin store. Ask the plugin store's owner for a new invite."
-          }
-        }
-      }
-    },
-    "shell-not-built-yet" : {
-      "comment" : "Line on a screen that this build does not have yet. Argument 1: section (Text).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ comes in a later build."
           }
         }
       }
@@ -16720,7 +16768,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "anistream couldn't start. Quit it and open it again. If that fails, report a bug from the Help menu."
+            "value" : "anistream could not start"
+          }
+        }
+      }
+    },
+    "shell-start-failed-body" : {
+      "comment" : "Plain line under the title of the page shown when the engine could not start. The reason follows it, in the engine's words, for a bug report.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something stopped anistream from opening. Try again, and if it keeps happening, send a report."
           }
         }
       }
@@ -17105,6 +17165,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unnamed track"
+          }
+        }
+      }
+    },
+    "sign-in-failed" : {
+      "comment" : "Notice when the browser sign-in for a tracker failed, as opposed to being closed by the person. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't sign in to %1$@. Try again."
           }
         }
       }

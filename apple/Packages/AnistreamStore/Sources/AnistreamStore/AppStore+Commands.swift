@@ -102,11 +102,14 @@ extension AppStore {
 
     /// Open the discussion of `episode`, which the sheet, pane or window then reads from `discussion`.
     public func openDiscussion(_ key: DiscussionKey) {
+        discussion.requested(key)
         send(.openDiscussion(media: key.media, episode: key.episode))
     }
 
-    /// The sheet, pane or window closed: nothing more is said of it.
-    public func closeDiscussion() {
+    /// The sheet, pane or window showing `key` closed: nothing more is said of it. The engine keeps
+    /// one discussion, so this does nothing once another has been opened since.
+    public func closeDiscussion(_ key: DiscussionKey) {
+        guard discussion.owns(key) else { return }
         discussion.closed()
         send(.closeDiscussion)
     }
@@ -116,6 +119,11 @@ extension AppStore {
     public func editComment(_ id: UInt32, text: String) { send(.editComment(id: id, text: text)) }
     public func deleteComment(_ id: UInt32) { send(.deleteComment(id: id)) }
     public func likeComment(_ id: UInt32) { send(.likeComment(id: id)) }
+
+    /// Check where torrent traffic leaves from now, rather than at the guard's next check.
+    public func checkConnection() {
+        send(.checkConnection)
+    }
 
     // MARK: Accounts
 

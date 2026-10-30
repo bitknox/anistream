@@ -6,6 +6,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.text
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -128,6 +129,7 @@ internal fun ProvidersScreen() {
     val view by store.settings.view.collectAsStateWithLifecycle()
     val rows by store.providers.rows.collectAsStateWithLifecycle()
     val loaded by store.providers.loaded.collectAsStateWithLifecycle()
+    val note by store.providers.note.collectAsStateWithLifecycle()
     val offline by store.offline.collectAsStateWithLifecycle()
     var editing by rememberSaveable { mutableStateOf(false) }
     var sheet by rememberSaveable { mutableStateOf<TorrentSheetMode?>(null) }
@@ -160,7 +162,8 @@ internal fun ProvidersScreen() {
                 !loaded -> PlaceholderRows()
                 sorted.isEmpty() -> EmptyState(
                     title = stringResource(R.string.sources_empty_title),
-                    line = stringResource(R.string.sources_empty_detail),
+                    // Why there are none, when the engine said: a store that is down, a plugin it could not read.
+                    line = note?.text(LocalContext.current) ?: stringResource(R.string.sources_empty_detail),
                     action = stringResource(R.string.stores_join_action),
                     onAction = { store.stores.openJoin() },
                 )

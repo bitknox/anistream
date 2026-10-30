@@ -21,6 +21,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.focus.focusRequester
+import tv.anistream.store.AppStore
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -109,6 +112,36 @@ fun StateBlock(
             Spacer(Modifier.height(20.dp))
             TonalButton(onClick = onAction, modifier = actionModifier) { ButtonLabel(action) }
         }
+    }
+}
+
+/**
+ * Over the whole TV app when its engine did not start or has stopped: Try again starts it once
+ * more, Quit leaves. Focus starts on Try again.
+ */
+@Composable
+fun EngineDown() {
+    val store = LocalAppStore.current
+    val phase by store.phase.collectAsStateWithLifecycle()
+    val shown = phase
+    if (shown !is AppStore.Phase.Failed && shown !is AppStore.Phase.Stopped) return
+    val activity = androidx.activity.compose.LocalActivity.current
+    val first = remember { androidx.compose.ui.focus.FocusRequester() }
+    androidx.compose.runtime.LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+    Column(
+        Modifier.fillMaxSize().background(ObiSilk.Ground),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        StateBlock(
+            line = stringResource(R.string.engine_down_title),
+            detail = if (shown is AppStore.Phase.Failed) shown.reason else stringResource(R.string.engine_down_stopped),
+            action = stringResource(R.string.action_try_again),
+            onAction = store::restartEngine,
+            actionModifier = Modifier.focusRequester(first),
+        )
+        Spacer(Modifier.height(12.dp))
+        TonalButton(onClick = { activity?.finishAffinity() }) { ButtonLabel(stringResource(R.string.engine_down_quit)) }
     }
 }
 

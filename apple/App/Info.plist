@@ -93,5 +93,10 @@
 		<!-- Downloads after the app leaves: each window's identifier has a suffix of its own. -->
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).downloads.*</string>
 	</array>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
 </dict>
 </plist>

@@ -782,6 +782,10 @@
     </plurals>
     <!-- TV, discussion panel: what Select does on a comment with a hidden spoiler. -->
     <string name="tv_discussion_select_spoiler">Select to show the spoiler</string>
+    <!-- Where a Google TV keeps the switch that lets an app install updates, as its menus name it: the system's own words, which a translation should follow for that TV's language. -->
+    <string name="updates_unknown_sources_path">Settings › Apps › Security &amp; restrictions › Unknown sources</string>
+    <!-- Name a TV gives itself to phones when the system has none set. -->
+    <string name="tv_remote_default_name">anistream TV</string>
     <!-- The episode in a short form for a title last watched dubbed. -->
     <string name="episode_short_dubbed">E%1$d · Dubbed</string>
     <!-- The episode in its long form for a title last watched dubbed. -->
@@ -1258,6 +1262,12 @@
     <string name="settings_trailers_note">Trailers play muted from YouTube, which sees your IP address. They don\'t play with Data Saver or Battery Saver on, with animations removed or with TalkBack running.</string>
     <!-- Heading in the trailer sheet when the video did not start within a few seconds or the player refused it. -->
     <string name="trailer_failed">Couldn\'t open the trailer</string>
+    <!-- Heading on the screen that covers the app when its engine did not start or has stopped. -->
+    <string name="engine_down_title">anistream stopped</string>
+    <!-- Line under it when the engine stopped while the app was open, so lists would sit empty. -->
+    <string name="engine_down_stopped">The part that does the work has stopped. Try again, or quit and open the app once more.</string>
+    <!-- Button on that screen that closes the app. -->
+    <string name="engine_down_quit">Quit</string>
     <!-- Title of the about page. -->
     <string name="about_title">About</string>
     <!-- Title of the about page on desktop. -->
@@ -2561,6 +2571,8 @@
     <string name="player_track_n">Track %1$d</string>
     <!-- Line while an episode starts after a few seconds: what the wait is on, and for how long. -->
     <string name="player_wait_note">%1$s · %2$d s</string>
+    <!-- Message on the video when the player could not make a change the viewer asked for, such as a speed or a track. -->
+    <string name="player_command_failed">That didn\'t work. Try again.</string>
     <!-- Button that shows the season before. -->
     <string name="seasonal_previous">Previous season</string>
     <!-- Button that shows the season after. -->

@@ -78,4 +78,11 @@ struct HandoffTests {
         #expect(navigator.handedOff == nil)
         #expect(TitleAction(entry { _ in }, handedOff: navigator.handedOff).handedOff == nil)
     }
+
+    @Test func theTitlePageOfferDoesNotFollowThePlayer() {
+        let page = entry { _ in }
+        #expect(TitleHandoff.offers(page, onScreen: page.id))
+        #expect(!TitleHandoff.offers(page, onScreen: 900_002))
+        #expect(!TitleHandoff.offers(entry { $0.title = "" }, onScreen: page.id))
+    }
 }

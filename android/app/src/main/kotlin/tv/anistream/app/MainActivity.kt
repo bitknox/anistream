@@ -158,6 +158,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        app.player.hostStarted()
         // The navigation bar's own colour runs under the gesture bar, with no scrim of the system's.
         window.isNavigationBarContrastEnforced = false
         holdPortraitOnPhones(resources.configuration)
@@ -323,6 +324,12 @@ class MainActivity : ComponentActivity() {
         if (!driving || app.player.isPresented) return super.dispatchKeyEvent(event)
         if (event.action == KeyEvent.ACTION_DOWN) tv.send(FfiTvCommand.Volume(step))
         return true
+    }
+
+    override fun onDestroy() {
+        // Back a moment after Play: the engine has not opened the player yet, and must not.
+        if (isFinishing) app.player.hostFinished()
+        super.onDestroy()
     }
 
     override fun onResume() {

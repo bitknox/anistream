@@ -125,7 +125,7 @@ class TvRemoteHost(
     /** What phones call this TV: the system's device name. */
     val name: String
         get() = runCatching { SystemSettings.Global.getString(context.contentResolver, SystemSettings.Global.DEVICE_NAME) }
-            .getOrNull()?.takeIf { it.isNotBlank() } ?: "anistream TV"
+            .getOrNull()?.takeIf { it.isNotBlank() } ?: context.getString(tv.anistream.i18n.R.string.tv_remote_default_name)
 
     init {
         store.onRemote = ::handle

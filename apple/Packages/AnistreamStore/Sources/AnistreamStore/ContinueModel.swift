@@ -142,9 +142,11 @@ public final class ContinueModel {
         ContinueQueue(ids: list.state.ids.filter { !hidden.contains($0) }, titles: titles)
     }
 
-    func apply(_ content: ContentList, titles: TitleCache) {
-        list.apply(content, titles: titles)
+    @discardableResult
+    func apply(_ content: ContentList, titles: TitleCache) -> Bool {
+        if list.apply(content, titles: titles, local: true) { return true }
         hidden = []
+        return false
     }
 
     func hide(_ id: AnilistId) {

@@ -7,6 +7,7 @@
 #
 #   testsrc.mkv   1280×720 H.264 testsrc2 at 24 fps with a stereo tone, 12 s
 #   short.mkv     640×360, 1.5 s: a file that ends
+#   long.mkv      640×360, 25 min at 4 fps: the UI tests' player stress, which resumes at 10 min
 #   subs.mkv      1280×720, 10 s, a styled ASS track: Han-only lines in Helvetica Neue and in a
 #                 font that does not exist (Core Text's PingFang fallback), simplified Han, kana,
 #                 Hangul, and a style in Dela Gothic One, which is attached and not installed
@@ -48,6 +49,11 @@ fi
 if need short.mkv; then
   "${ff[@]}" -f lavfi -i "testsrc2=size=640x360:rate=24:duration=1.5" -f lavfi -i "$(tone 1.5)" \
     -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 96k "$media/short.mkv"
+fi
+
+if need long.mkv; then
+  "${ff[@]}" -f lavfi -i "testsrc2=size=640x360:rate=4:duration=1500" -f lavfi -i "$(tone 1500)" \
+    -c:v libx264 -preset veryfast -crf 30 -g 8 -pix_fmt yuv420p -c:a aac -b:a 48k "$media/long.mkv"
 fi
 
 if need subs.mkv; then

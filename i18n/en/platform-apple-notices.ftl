@@ -31,3 +31,10 @@ notice-dismiss = Dismiss
 # Line of the device sign-in sheet when the code ran out.
 # @arg tracker: text
 accounts-code-expired-detail = This code has expired. Get a new one to sign in to { $tracker }.
+
+# Notice when a list could not be refreshed and the rows already on screen stay.
+list-refresh-failed = Couldn't refresh. Showing what was loaded.
+
+# Notice when the browser sign-in for a tracker failed, as opposed to being closed by the person.
+# @arg tracker: text
+sign-in-failed = Couldn't sign in to { $tracker }. Try again.

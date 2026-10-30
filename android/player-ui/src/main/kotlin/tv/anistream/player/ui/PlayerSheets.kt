@@ -90,7 +90,7 @@ fun PlayerSheets(model: PlayerModel, sheet: PlayerSheet?, onDismiss: () -> Unit)
         },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
         containerColor = ObiSilk.Raised,
-        scrimColor = Color.Black.copy(alpha = 0.32f),
+        scrimColor = androidx.compose.material3.MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
         dragHandle = { BottomSheetDefaults.DragHandle(color = ObiSilk.Haze.copy(alpha = 0.4f)) },
     ) {
         ImmersiveSheet()

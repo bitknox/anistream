@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import tv.anistream.engine.model.Notice
 import tv.anistream.engine.model.NoticeKind
@@ -396,7 +397,7 @@ class UpdateModel(
     fun stopped() {
         val current = _state.value
         if (current is UpdateState.Downloading || current is UpdateState.Verifying) {
-            fail(current.offer ?: return, UpdateFailure.Download("Android stopped the download"))
+            fail(current.offer ?: return, UpdateFailure.Download(null))
         }
     }
 
@@ -445,7 +446,14 @@ class UpdateModel(
                 return
             }
             if (!move<UpdateState.Downloading>(offer, UpdateState.Verifying(offer))) return
-            val failure = withContext(io) { verify(apk, offer, host) }
+            // A file the package manager cannot read throws; it is not an app, and the state must not sit on Verifying.
+            val failure = try {
+                withContext(io) { verify(apk, offer, host) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                UpdateFailure.NotAnApp
+            }
             if (failure != null) {
                 fail(offer, failure)
                 return

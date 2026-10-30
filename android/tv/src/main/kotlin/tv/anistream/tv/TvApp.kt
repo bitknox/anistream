@@ -18,6 +18,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.launch
 import tv.anistream.engine.ffi.startLog
 import tv.anistream.player.CaptionStyle
@@ -42,7 +43,10 @@ import tv.anistream.tv.ui.TvArtDecoder
 
 class TvApp : Application(), PlayerHost {
     /** Where the store's work runs: the main thread, for as long as the process. */
-    private val scope = MainScope()
+    private val scope = MainScope() + kotlinx.coroutines.CoroutineExceptionHandler { _, e ->
+        // A coroutine that fails in the store is logged; it does not take the process with it.
+        android.util.Log.e("anistream", "the store's work failed", e)
+    }
 
     // The TV updates from the release's TV APK, never the phone's.
     val store: AppStore by lazy {
