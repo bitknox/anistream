@@ -1256,6 +1256,9 @@ seasonal-format-ona-ova = ONA and OVA
 # Accessible name of a title's banner, which opens its page.
 title-open-named = Open { $title }
 
+# Accessible name of a card or row in Continue: the title, then what is said under it.
+continue-row-spoken = { $title }, { $detail }
+
 # Accessible name of the pane beside Continue's queue that previews the selected title.
 continue-preview = Preview
 
