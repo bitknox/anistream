@@ -15,42 +15,74 @@ public enum L {
         Self.format("cast-episode-titled", fallback: "Episode %1$@ · %2$@", episode, title)
     }
 
-    /// The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
-    public static func noticeCastVideoCodec(codec: String) -> String {
-        Self.format("notice-cast-video-codec", fallback: "The TV can't play this video (%1$@). Try another source.", codec)
+    /// The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.
+    public static func noticeCastVideoCodec(name: String, codec: String) -> String {
+        Self.format("notice-cast-video-codec", fallback: "%1$@ can't play this video (%2$@). Try another source.", name, codec)
     }
 
-    /// The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
-    public static func noticeCastAudioCodec(codec: String) -> String {
-        Self.format("notice-cast-audio-codec", fallback: "The TV can't play this audio (%1$@), and this device can't convert it. Try another source.", codec)
+    /// The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.
+    public static func noticeCastAudioCodec(name: String, codec: String) -> String {
+        Self.format("notice-cast-audio-codec", fallback: "%1$@ can't play this audio (%2$@), and this device can't convert it. Try another source.", name, codec)
     }
 
-    /// The stream comes in a kind of file the TV can't read.
-    public static var noticeCastContainer: String { string("notice-cast-container", fallback: "The TV can't play this kind of file. Try another source.") }
+    /// The stream comes in a kind of file the TV can't read. The name is the TV's own.
+    public static func noticeCastContainer(name: String) -> String {
+        Self.format("notice-cast-container", fallback: "%1$@ can't play this kind of file. Try another source.", name)
+    }
 
     /// The episode opens in another app, which this device can't cast.
     public static var noticeCastDeepLink: String { string("notice-cast-deep-link", fallback: "This episode opens in another app, so it can't be cast.") }
 
-    /// The TV accepted the stream but never started reading it.
-    public static var noticeCastNeverFetches: String { string("notice-cast-never-fetches", fallback: "The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.") }
+    /// The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.
+    public static func noticeCastNeverFetches(name: String) -> String {
+        Self.format("notice-cast-never-fetches", fallback: "%1$@ didn't start reading the stream. A VPN or a firewall on this device may be in the way.", name)
+    }
 
-    /// The TV tried every way of playing the stream and played none of them.
-    public static var noticeCastRefused: String { string("notice-cast-refused", fallback: "The TV couldn't play this stream. Try another source.") }
+    /// The TV tried every way of playing the stream and played none of them. The name is the TV's own.
+    public static func noticeCastRefused(name: String) -> String {
+        Self.format("notice-cast-refused", fallback: "%1$@ couldn't play this stream. Try another source.", name)
+    }
 
-    /// Someone started something else on the TV, which ends the cast.
-    public static var noticeCastTakenOver: String { string("notice-cast-taken-over", fallback: "Another device started something on the TV, so casting stopped.") }
+    /// Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.
+    public static func noticeCastTakenOver(name: String) -> String {
+        Self.format("notice-cast-taken-over", fallback: "Another device started something on %1$@, so casting stopped.", name)
+    }
 
-    /// This device isn't on the TV's network, or reaches it through a VPN.
-    public static var noticeCastNotSameNetwork: String { string("notice-cast-not-same-network", fallback: "This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.") }
+    /// This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.
+    public static func noticeCastNotSameNetwork(name: String) -> String {
+        Self.format("notice-cast-not-same-network", fallback: "This device isn't on the network %1$@ is on, or reaches it through a VPN. Casting needs both on the same network.", name)
+    }
 
-    /// The TV stopped answering mid-cast.
-    public static var noticeCastLost: String { string("notice-cast-lost", fallback: "Lost the TV, so casting stopped.") }
+    /// The TV stopped answering mid-cast. The name is the TV's own.
+    public static func noticeCastLost(name: String) -> String {
+        Self.format("notice-cast-lost", fallback: "Lost %1$@, so casting stopped.", name)
+    }
 
     /// The TV picked to cast to has left the network.
     public static var noticeCastNoDevice: String { string("notice-cast-no-device", fallback: "That TV is no longer on the network.") }
 
     /// This build of the app has no casting.
     public static var noticeCastUnavailable: String { string("notice-cast-unavailable", fallback: "This version of anistream can't cast to TVs.") }
+
+    /// The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.
+    public static func castPhaseStarting(name: String) -> String {
+        Self.format("cast-phase-starting", fallback: "Starting on %1$@", name)
+    }
+
+    /// The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.
+    public static func castPhaseStartingFor(name: String, seconds: Int) -> String {
+        Self.format("cast-phase-starting-for", fallback: "Starting on %1$@ · %2$lld s", name, seconds)
+    }
+
+    /// The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.
+    public static func castPhaseWaiting(name: String, seconds: Int) -> String {
+        Self.format("cast-phase-waiting", fallback: "Waiting for %1$@ · %2$lld s", name, seconds)
+    }
+
+    /// The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.
+    public static func castPhasePreparing(seconds: Int) -> String {
+        Self.format("cast-phase-preparing", fallback: "Preparing the stream · %1$lld s", seconds)
+    }
 
     /// A comment's age, beside its author, when it was written under a minute ago.
     public static var discussionAgeNow: String { string("discussion-age-now", fallback: "now") }

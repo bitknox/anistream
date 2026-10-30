@@ -44,40 +44,40 @@
     <comment>What the TV's loading screen and its own controls show under the show's name, with the episode's own title.</comment>
   </data>
   <data name="NoticeCastVideoCodec" xml:space="preserve">
-    <value>[Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš ṽîðéö ({codec}). Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~]</value>
-    <comment>The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.</comment>
+    <value>[{name} çàñ'ţ þļàý ţĥîš ṽîðéö ({codec}). Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.</comment>
   </data>
   <data name="NoticeCastAudioCodec" xml:space="preserve">
-    <value>[Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš àüðîö ({codec}), àñð ţĥîš ðéṽîçé çàñ'ţ çöñṽéŕţ îţ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.</comment>
+    <value>[{name} çàñ'ţ þļàý ţĥîš àüðîö ({codec}), àñð ţĥîš ðéṽîçé çàñ'ţ çöñṽéŕţ îţ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.</comment>
   </data>
   <data name="NoticeCastContainer" xml:space="preserve">
-    <value>[Ţĥé ŢṼ çàñ'ţ þļàý ţĥîš ķîñð öƒ ƒîļé. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~]</value>
-    <comment>The stream comes in a kind of file the TV can't read.</comment>
+    <value>[{name} çàñ'ţ þļàý ţĥîš ķîñð öƒ ƒîļé. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~]</value>
+    <comment>The stream comes in a kind of file the TV can't read. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastDeepLink" xml:space="preserve">
     <value>[Ţĥîš éþîšöðé öþéñš îñ àñöţĥéŕ àþþ, šö îţ çàñ'ţ ƀé çàšţ.~~~~~~~~~~~~~~~~~]</value>
     <comment>The episode opens in another app, which this device can't cast.</comment>
   </data>
   <data name="NoticeCastNeverFetches" xml:space="preserve">
-    <value>[Ţĥé ŢṼ ðîðñ'ţ šţàŕţ ŕéàðîñĝ ţĥé šţŕéàɱ. Çĥéçķ ţĥàţ ţĥîš ðéṽîçé àñð ţĥé ŢṼ àŕé öñ ţĥé šàɱé ñéţŵöŕķ, ŵîţĥöüţ à ṼÞÑ îñ ƀéţŵééñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>The TV accepted the stream but never started reading it.</comment>
+    <value>[{name} ðîðñ'ţ šţàŕţ ŕéàðîñĝ ţĥé šţŕéàɱ. Å ṼÞÑ öŕ à ƒîŕéŵàļļ öñ ţĥîš ðéṽîçé ɱàý ƀé îñ ţĥé ŵàý.~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastRefused" xml:space="preserve">
-    <value>[Ţĥé ŢṼ çöüļðñ'ţ þļàý ţĥîš šţŕéàɱ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~]</value>
-    <comment>The TV tried every way of playing the stream and played none of them.</comment>
+    <value>[{name} çöüļðñ'ţ þļàý ţĥîš šţŕéàɱ. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~]</value>
+    <comment>The TV tried every way of playing the stream and played none of them. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastTakenOver" xml:space="preserve">
-    <value>[Åñöţĥéŕ ðéṽîçé šţàŕţéð šöɱéţĥîñĝ öñ ţĥé ŢṼ, šö çàšţîñĝ šţöþþéð.~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>Someone started something else on the TV, which ends the cast.</comment>
+    <value>[Åñöţĥéŕ ðéṽîçé šţàŕţéð šöɱéţĥîñĝ öñ {name}, šö çàšţîñĝ šţöþþéð.~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastNotSameNetwork" xml:space="preserve">
-    <value>[Ţĥîš ðéṽîçé îšñ'ţ öñ ţĥé ŢṼ'š ñéţŵöŕķ, öŕ ŕéàçĥéš îţ ţĥŕöüĝĥ à ṼÞÑ. Çàšţîñĝ ñééðš ƀöţĥ öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
-    <comment>This device isn't on the TV's network, or reaches it through a VPN.</comment>
+    <value>[Ţĥîš ðéṽîçé îšñ'ţ öñ ţĥé ñéţŵöŕķ {name} îš öñ, öŕ ŕéàçĥéš îţ ţĥŕöüĝĥ à ṼÞÑ. Çàšţîñĝ ñééðš ƀöţĥ öñ ţĥé šàɱé ñéţŵöŕķ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastLost" xml:space="preserve">
-    <value>[Ļöšţ ţĥé ŢṼ, šö çàšţîñĝ šţöþþéð.~~~~~~~~~~]</value>
-    <comment>The TV stopped answering mid-cast.</comment>
+    <value>[Ļöšţ {name}, šö çàšţîñĝ šţöþþéð.~~~~~~~~~]</value>
+    <comment>The TV stopped answering mid-cast. The name is the TV's own.</comment>
   </data>
   <data name="NoticeCastNoDevice" xml:space="preserve">
     <value>[Ţĥàţ ŢṼ îš ñö ļöñĝéŕ öñ ţĥé ñéţŵöŕķ.~~~~~~~~~~~]</value>
@@ -86,6 +86,22 @@
   <data name="NoticeCastUnavailable" xml:space="preserve">
     <value>[Ţĥîš ṽéŕšîöñ öƒ àñîšţŕéàɱ çàñ'ţ çàšţ ţö ŢṼš.~~~~~~~~~~~~~~]</value>
     <comment>This build of the app has no casting.</comment>
+  </data>
+  <data name="CastPhaseStarting" xml:space="preserve">
+    <value>[Šţàŕţîñĝ öñ {name}~~~~~]</value>
+    <comment>The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.</comment>
+  </data>
+  <data name="CastPhaseStartingFor" xml:space="preserve">
+    <value>[Šţàŕţîñĝ öñ {name} · {seconds} š~~~~~~~]</value>
+    <comment>The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.</comment>
+  </data>
+  <data name="CastPhaseWaiting" xml:space="preserve">
+    <value>[Ŵàîţîñĝ ƒöŕ {name} · {seconds} š~~~~~~~]</value>
+    <comment>The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.</comment>
+  </data>
+  <data name="CastPhasePreparing" xml:space="preserve">
+    <value>[Þŕéþàŕîñĝ ţĥé šţŕéàɱ · {seconds} š~~~~~~~~~]</value>
+    <comment>The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.</comment>
   </data>
   <data name="DiscussionAgeNow" xml:space="preserve">
     <value>[ñöŵ~]</value>

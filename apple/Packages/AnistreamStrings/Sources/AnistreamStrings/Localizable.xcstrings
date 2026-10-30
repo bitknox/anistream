@@ -2417,6 +2417,54 @@
         }
       }
     },
+    "cast-phase-preparing" : {
+      "comment" : "The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing the stream · %1$lld s"
+          }
+        }
+      }
+    },
+    "cast-phase-starting" : {
+      "comment" : "The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting on %1$@"
+          }
+        }
+      }
+    },
+    "cast-phase-starting-for" : {
+      "comment" : "The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap. Argument 1: name (Text). Argument 2: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting on %1$@ · %2$lld s"
+          }
+        }
+      }
+    },
+    "cast-phase-waiting" : {
+      "comment" : "The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start. Argument 1: name (Text). Argument 2: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for %1$@ · %2$lld s"
+          }
+        }
+      }
+    },
     "cast-play-here" : {
       "comment" : "Button that stops the cast and plays the episode on this device, where the TV was.",
       "extractionState" : "manual",
@@ -8180,25 +8228,25 @@
       }
     },
     "notice-cast-audio-codec" : {
-      "comment" : "The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS. Argument 1: codec (Text).",
+      "comment" : "The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS. Argument 1: name (Text). Argument 2: codec (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The TV can't play this audio (%1$@), and this device can't convert it. Try another source."
+            "value" : "%1$@ can't play this audio (%2$@), and this device can't convert it. Try another source."
           }
         }
       }
     },
     "notice-cast-container" : {
-      "comment" : "The stream comes in a kind of file the TV can't read.",
+      "comment" : "The stream comes in a kind of file the TV can't read. The name is the TV's own. Argument 1: name (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The TV can't play this kind of file. Try another source."
+            "value" : "%1$@ can't play this kind of file. Try another source."
           }
         }
       }
@@ -8216,25 +8264,25 @@
       }
     },
     "notice-cast-lost" : {
-      "comment" : "The TV stopped answering mid-cast.",
+      "comment" : "The TV stopped answering mid-cast. The name is the TV's own. Argument 1: name (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lost the TV, so casting stopped."
+            "value" : "Lost %1$@, so casting stopped."
           }
         }
       }
     },
     "notice-cast-never-fetches" : {
-      "comment" : "The TV accepted the stream but never started reading it.",
+      "comment" : "The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own. Argument 1: name (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between."
+            "value" : "%1$@ didn't start reading the stream. A VPN or a firewall on this device may be in the way."
           }
         }
       }
@@ -8252,37 +8300,37 @@
       }
     },
     "notice-cast-not-same-network" : {
-      "comment" : "This device isn't on the TV's network, or reaches it through a VPN.",
+      "comment" : "This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own. Argument 1: name (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network."
+            "value" : "This device isn't on the network %1$@ is on, or reaches it through a VPN. Casting needs both on the same network."
           }
         }
       }
     },
     "notice-cast-refused" : {
-      "comment" : "The TV tried every way of playing the stream and played none of them.",
+      "comment" : "The TV tried every way of playing the stream and played none of them. The name is the TV's own. Argument 1: name (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The TV couldn't play this stream. Try another source."
+            "value" : "%1$@ couldn't play this stream. Try another source."
           }
         }
       }
     },
     "notice-cast-taken-over" : {
-      "comment" : "Someone started something else on the TV, which ends the cast.",
+      "comment" : "Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own. Argument 1: name (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Another device started something on the TV, so casting stopped."
+            "value" : "Another device started something on %1$@, so casting stopped."
           }
         }
       }
@@ -8300,13 +8348,13 @@
       }
     },
     "notice-cast-video-codec" : {
-      "comment" : "The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10. Argument 1: codec (Text).",
+      "comment" : "The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10. Argument 1: name (Text). Argument 2: codec (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The TV can't play this video (%1$@). Try another source."
+            "value" : "%1$@ can't play this video (%2$@). Try another source."
           }
         }
       }
