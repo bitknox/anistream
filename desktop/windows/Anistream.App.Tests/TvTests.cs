@@ -4,6 +4,7 @@
 using System.Globalization;
 using Anistream.App;
 using Anistream.Engine.Ffi;
+using Anistream.Engine.Model;
 using Xunit;
 
 namespace Anistream.App.Tests;
@@ -69,6 +70,55 @@ public class TvWordsTests
         Assert.Equal("Pair again with Living room", TvWords.BarLine(Card(FfiLinkPhase.Unpaired), playing: true));
     }
 
+    static FfiCastCard Cast(FfiLinkPhase phase, FfiNowCard? now, Msg? notice = null, string? phaseLine = null) =>
+        new(new FfiRemoteCard("Living room", phase, phaseLine, new FfiScreen.Home(), now, 1, Over: notice is not null, Reached: false),
+            FfiVolumeControl.MuteOnly, false, notice);
+
+    static FfiNowCard Now(bool loading) => new(900_001, "The Lantern Road", "7", "Episode 7 · The Lantern Road", loading,
+        492, loading ? null : 1420, false, 1, null, [], [], false, null);
+
+    [Fact]
+    public void ACastsStageIsTheEnginesReasonOrWhetherTheTvShowsAPicture()
+    {
+        Assert.Equal(CastStage.Starting, TvWords.StageOf(null));
+        Assert.Equal(CastStage.Starting, TvWords.StageOf(Cast(FfiLinkPhase.Connecting, null)));
+        Assert.Equal(CastStage.Starting, TvWords.StageOf(Cast(FfiLinkPhase.Connected, Now(loading: true))));
+        Assert.Equal(CastStage.Playing, TvWords.StageOf(Cast(FfiLinkPhase.Connected, Now(loading: false))));
+        Assert.Equal(CastStage.Lost, TvWords.StageOf(Cast(FfiLinkPhase.Connected, Now(false), new Msg.NoticeCastLost())));
+        Assert.Equal(CastStage.Failed, TvWords.StageOf(Cast(FfiLinkPhase.Connected, null, new Msg.NoticeCastRefused())));
+    }
+
+    [Fact]
+    public void ACastThatEndedOffersByItsReason()
+    {
+        Assert.Equal([CastOffer.ChooseSource, CastOffer.PlayHere], TvWords.OffersFor(new Msg.NoticeCastRefused()));
+        Assert.Equal([CastOffer.ChooseSource, CastOffer.PlayHere], TvWords.OffersFor(new Msg.NoticeCastVideoCodec("AV1")));
+        Assert.Equal([CastOffer.TryAgain, CastOffer.PlayHere], TvWords.OffersFor(new Msg.NoticeCastNeverFetches()));
+        Assert.Equal([CastOffer.ChooseSource], TvWords.OffersFor(new Msg.NoticeCastDeepLink()));
+        Assert.Equal([CastOffer.PlayHere, CastOffer.ChooseAnother], TvWords.OffersFor(new Msg.NoticeCastNotSameNetwork()));
+        Assert.Equal([CastOffer.PlayHere, CastOffer.ChooseAnother], TvWords.OffersFor(new Msg.NoticeCastLost()));
+        Assert.True(TvWords.OnCastCard(new Msg.NoticeCastTakenOver()));
+        Assert.False(TvWords.OnCastCard(new Msg.NoticeCastNoDevice()));
+    }
+
+    [Fact]
+    public void ACastsLineCountsPastFourSeconds()
+    {
+        var starting = Cast(FfiLinkPhase.Connecting, null);
+        Assert.Equal("Starting on Living room", TvWords.CastStarting(starting, "Living room", TimeSpan.FromSeconds(3.9)));
+        Assert.Equal("Starting on Living room · 6 s", TvWords.CastStarting(starting, "Living room", TimeSpan.FromSeconds(6.4)));
+        var waiting = Cast(FfiLinkPhase.Connected, null, phaseLine: "Waiting for Living room");
+        Assert.Equal("Waiting for Living room · 5 s", TvWords.CastStarting(waiting, "Living room", TimeSpan.FromSeconds(5)));
+        Assert.Equal("Playing on Living room", TvWords.CastStatus(CastStage.Playing, null, "Living room", TimeSpan.Zero));
+        Assert.Equal("Couldn't start on Living room", TvWords.CastStatus(CastStage.Failed, null, "Living room", TimeSpan.Zero));
+        Assert.Equal("Casting stopped", TvWords.CastStatus(CastStage.Lost, null, "Living room", TimeSpan.Zero));
+        Assert.Equal(TvWords.Dot.Water, TvWords.CastDot(CastStage.Playing));
+        Assert.Equal(TvWords.Dot.Vermilion, TvWords.CastDot(CastStage.Failed));
+        Assert.Equal(TvWords.Dot.Haze, TvWords.CastDot(CastStage.Starting));
+        Assert.Equal("Set on the TV", TvWords.CastVolume(Cast(FfiLinkPhase.Connected, Now(false))));
+        Assert.Equal("Unmute", TvWords.MuteWord(true));
+    }
+
     [Fact]
     public void SettingsSaysWhenATvWasPairedAndSeen()
     {
@@ -84,6 +134,35 @@ public class TvWordsTests
 
 public class TvRemoteTests
 {
+    /// <summary>A network with no TV running the app on it.</summary>
+    sealed class NoTvs : FfiTvBrowser
+    {
+        public void Start(FfiDiscoverySink sink)
+        {
+        }
+
+        public void Stop()
+        {
+        }
+    }
+
+    /// <summary>A <c>_googlecast._tcp</c> browse that finds the fake TVs where they listen.</summary>
+    sealed class FakeCastBrowse(params FfiFakeCast[] tvs) : FfiCastBrowser
+    {
+        public void Start(FfiCastSink sink)
+        {
+            foreach (var tv in tvs)
+            {
+                var advert = tv.Advert();
+                sink.Found(advert.Instance, [tv.Host()], advert.Port, advert.Txt);
+            }
+        }
+
+        public void Stop()
+        {
+        }
+    }
+
     /// <summary>A browse that finds the fake TV where it listens, as DNS-SD would.</summary>
     sealed class FakeBrowse(FfiFakeTv tv) : FfiTvBrowser
     {
@@ -174,6 +253,55 @@ public class TvRemoteTests
         finally
         {
             fake.Stop();
+            engine.Shutdown();
+            engine.Dispose();
+        }
+        SceneTests.DeleteRoot(root);
+    }
+
+    [Fact(Timeout = 90_000)]
+    public async Task CastingPlaysOnTheTvThenPlayHereHandsTheEpisodeBack()
+    {
+        HomeGuard.Check();
+        var root = AppDirs.NewScratchRoot("cs-cast");
+        var engine = FfiEngine.StartScene(AppDirs.Under(root), new QuietHost(), new FfiScene.Fresh(), EngineSession.AppStart());
+        var living = engine.StartFakeCast("Living room", new FfiFakeCastOptions(FixedVolume: true, Fetches: true, Refuses: false, LaunchMs: 0));
+        try
+        {
+            var remote = new TvRemote();
+            var served = 0;
+            remote.Served = () => served++;
+            remote.Attach(engine.TvSender("PC", "anistream-windows/test"), new NoTvs(), new FakeCastBrowse(living));
+            remote.Offer(new TvPlay(900_001, "", "3", null, FromPlayer: true));
+            var handedOff = 0;
+            remote.HandedOff = () => handedOff++;
+            remote.StartBrowsing();
+            await Until(() => remote.CastRows.Any(r => r.Name == "Living room"), "the Chromecast row");
+
+            remote.Cast(remote.CastRows.Single(r => r.Name == "Living room"));
+            Assert.Equal(TvSheet.Cast, remote.Sheet);
+            Assert.True(remote.Casting);
+            Assert.Null(remote.Request);
+            await Until(() => remote.Stage == CastStage.Playing, "the cast playing");
+            Assert.Equal(1, served);
+            Assert.True(remote.CastServed);
+            Assert.Equal(1, handedOff);
+            Assert.Equal(FfiVolumeControl.MuteOnly, remote.CastCard!.VolumeControl);
+
+            remote.SendCast(new FfiTvCommand.Mute(true));
+            await Until(() => remote.CastCard?.Muted == true, "the TV muted");
+
+            // Play here ends the cast and hands back what it played.
+            var here = remote.PlayHere();
+            Assert.Equal(900_001u, here?.Id);
+            Assert.Equal("3", here?.Episode);
+            Assert.False(remote.Casting);
+            Assert.Null(remote.Sheet);
+            remote.StopBrowsing();
+        }
+        finally
+        {
+            living.Stop();
             engine.Shutdown();
             engine.Dispose();
         }

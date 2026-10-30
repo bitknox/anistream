@@ -12,7 +12,8 @@ namespace Anistream.Windows.Pages;
 /// <summary>
 /// A party's episode that none of this device's sources found: the viewer is in the room with
 /// nothing playing. Choose source lists what each source has for the episode, and the one picked
-/// plays with the room; Not now stays in the room, and Leave party leaves it.
+/// plays with the room; Not now stays in the room, and Leave party leaves it. A cast that
+/// couldn't start on a TV opens the same list on its own, for the episode to play here.
 /// </summary>
 sealed class PartySourceDialog
 {
@@ -30,9 +31,15 @@ sealed class PartySourceDialog
 
     readonly NoSourceWhy why;
     readonly string reason;
+    readonly bool alone;
 
-    public PartySourceDialog(Ctx ctx, XamlRoot root, uint id, string episode, NoSourceWhy why, string reason)
+    /// <summary>The episode's sources on their own, outside a party: the one picked plays here.</summary>
+    public static PartySourceDialog ForEpisode(Ctx ctx, XamlRoot root, uint id, string episode) =>
+        new(ctx, root, id, episode, NoSourceWhy.NotFound, "", alone: true);
+
+    public PartySourceDialog(Ctx ctx, XamlRoot root, uint id, string episode, NoSourceWhy why, string reason, bool alone = false)
     {
+        this.alone = alone;
         this.ctx = ctx;
         this.id = id;
         this.episode = episode;
@@ -70,7 +77,14 @@ sealed class PartySourceDialog
         list.SelectionChanged += (_, _) => dialog.IsPrimaryButtonEnabled = list.SelectedIndex >= 0;
         AutomationProperties.SetName(list, T.PartySourcesLabel);
         AutomationProperties.SetLiveSetting(line, AutomationLiveSetting.Polite);
-        First();
+        if (alone)
+        {
+            dialog.SecondaryButtonText = "";
+            dialog.CloseButtonText = T.ActionCancel;
+            Choose();
+        }
+        else
+            First();
     }
 
     /// <summary>The dialog that is up, for a screenshot run to press Choose source in.</summary>
@@ -149,7 +163,7 @@ sealed class PartySourceDialog
     void Choose()
     {
         dialog.Title = T.PartyChooseSourceFor(episode);
-        dialog.PrimaryButtonText = T.PartyPlayWith;
+        dialog.PrimaryButtonText = alone ? T.ActionPlay : T.PartyPlayWith;
         dialog.IsPrimaryButtonEnabled = false;
         if (!choosing)
         {
@@ -191,10 +205,10 @@ sealed class PartySourceDialog
                 case Event.Toast t when choosing && candidates is null && !failed && t.V1.Kind == NoticeKind.Alert:
                     Failed(t.V1.Msg is { } said ? said.Text() : T.SourcesLoadFailed);
                     break;
-                case Event.PartyLeft:
+                case Event.PartyLeft when !alone:
                     dialog.Hide();
                     return;
-                case Event.PartyJoined or Event.PartyState when !choosing:
+                case Event.PartyJoined or Event.PartyState when !choosing && !alone:
                     First();
                     break;
             }

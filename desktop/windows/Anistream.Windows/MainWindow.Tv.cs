@@ -35,18 +35,44 @@ public sealed partial class MainWindow
             return;
         }
         FfiTvBrowser browser = new DnssdBrowser();
+        FfiCastBrowser casts = new CastBrowser();
 #if ANISTREAM_TESTING
         // A fixture run never looks on the real network: the fake TVs beside the engine, or none.
         if (options.Fixture)
+        {
             browser = FixtureTvs(engine);
+            casts = FixtureCasts(engine);
+        }
 #endif
         tv.HandedOff = () =>
         {
             if (Player.Showing)
                 Player.Close();
         };
+        // Windows' firewall asks the first time the cast's relay listens; once a cast has played,
+        // the picker stops saying so.
+        var served = Path.Combine(dirs.Config, "windows-cast-served");
+        tv.CastServed = File.Exists(served);
+#if ANISTREAM_TESTING
+        if (options.Show is not null && options.Show.StartsWith("cast-", StringComparison.Ordinal))
+            tv.CastServed = options.Show == "cast-picker-allowed";
+#endif
+        tv.Served = () =>
+        {
+            try
+            {
+                Directory.CreateDirectory(dirs.Config);
+                File.WriteAllText(served, "");
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "cast", $"the cast mark was not kept: {e.Message}");
+            }
+        };
+        // Someone else took the TV: the card has closed, and the notice offers to carry on here.
+        tv.TakenOver = (play, notice) => Say(notice.Text(), T.TvCastPlayHere, () => ctx.Play(play.Id, play.Episode));
         tv.Changed += TvChanged;
-        tv.Attach(tvSender, browser);
+        tv.Attach(tvSender, browser, casts);
         // The link waits between tries while the TV is away; a network back, or the window
         // brought to the front, tries now.
         NetworkInformation.NetworkStatusChanged += TvNetworkChanged;
@@ -69,6 +95,8 @@ public sealed partial class MainWindow
 #if ANISTREAM_TESTING
         foreach (var fake in fakeTvs)
             fake.Stop();
+        foreach (var fake in fakeCasts)
+            fake.Stop();
         StopSilentTv();
 #endif
     }
@@ -76,9 +104,15 @@ public sealed partial class MainWindow
     void TvChanged()
     {
         ShowTvBar();
-        // While a TV plays, the media keys and Windows' media controls drive it.
-        var now = tv.Connected is null ? null : tv.Now;
-        media?.Tv(now, now is null ? 0 : tv.Playhead() ?? now.Position, tv.Live, Picture(now), c => _ = tv.Send(c));
+        // While a TV plays, the media keys and Windows' media controls drive it: the cast's TV
+        // first, as a cast is what was started last.
+        if (tv.Casting && tv.Stage is CastStage.Starting or CastStage.Playing && tv.CastNow is { } cast)
+            media?.Tv(cast, tv.CastPlayhead() ?? cast.Position, tv.Stage == CastStage.Playing, Picture(cast), tv.SendCast);
+        else
+        {
+            var now = tv.Connected is null ? null : tv.Now;
+            media?.Tv(now, now is null ? 0 : tv.Playhead() ?? now.Position, tv.Live, Picture(now), c => _ = tv.Send(c));
+        }
         if (tv.Sheet is not null && TvDialog.Showing is null && !openingTv)
             OpenTvDialog();
     }
@@ -115,7 +149,7 @@ public sealed partial class MainWindow
     void ShowTvBar()
     {
         var card = tv.Connected is null ? null : tv.Card;
-        if (card is null)
+        if (card is null && !tv.Casting)
         {
             if (tvBar is not null)
                 tvBar.Visibility = Visibility.Collapsed;
@@ -146,16 +180,18 @@ public sealed partial class MainWindow
             AppTitleBar.RightHeader = tvBar;
         }
         var parts = ((StackPanel)tvBar.Content).Children;
-        // The TV's glyph while the link is up; the link's dot, as the remote's status line draws it, while not.
-        var connected = card.Phase == FfiLinkPhase.Connected;
+        // The TV's glyph while the link is up or the cast plays; the dot, as the card's line draws it, while not.
+        var (connected, dot, text, name) = tv.Casting
+            ? (tv.Stage == CastStage.Playing, TvWords.CastDot(tv.Stage),
+                TvWords.CastStatus(tv.Stage, tv.CastCard, tv.CastName, tv.CastWaited()), tv.CastName)
+            : (card!.Phase == FfiLinkPhase.Connected, TvWords.DotFor(card.Phase), TvWords.BarLine(card, tv.Now is not null), card.TvName);
         var glyphAndDot = ((Grid)parts[0]).Children;
         glyphAndDot[0].Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
         glyphAndDot[1].Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
         ((Microsoft.UI.Xaml.Shapes.Ellipse)glyphAndDot[1]).Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(
-            TvWords.DotFor(card.Phase) == TvWords.Dot.Vermilion ? Ui.Vermilion : Colours.Haze);
-        var text = TvWords.BarLine(card, tv.Now is not null);
+            dot == TvWords.Dot.Vermilion ? Ui.Vermilion : Colours.Haze);
         ((TextBlock)parts[1]).Text = text;
-        var tip = T.TvShowRemote(card.TvName);
+        var tip = T.TvShowRemote(name);
         ToolTipService.SetToolTip(tvBar, tip);
         AutomationProperties.SetName(tvBar, text);
         AutomationProperties.SetHelpText(tvBar, tip);
@@ -191,6 +227,13 @@ public sealed partial class MainWindow
     {
         try
         {
+            // A cast scene's Living room has Chromecast built in, so only Bedroom runs the app.
+            if (CastScene)
+            {
+                fakeTvs.Add(engine.StartFakeTv("Bedroom"));
+                fixtureTvs = new FixtureTvBrowser(fakeTvs.ToArray(), null, 0, silent: options.Show == "cast-none-found", apart: true);
+                return fixtureTvs;
+            }
             fakeTvs.Add(engine.StartFakeTv("Living room"));
             fakeTvs.Add(engine.StartFakeTv("Bedroom"));
             FfiFakeTv? slow = options.Show == "tv-slow" ? engine.StartFakeTv("Kitchen") : null;
@@ -205,6 +248,116 @@ public sealed partial class MainWindow
             fixtureTvs = new FixtureTvBrowser([], null, 0, silent: true);
         }
         return fixtureTvs;
+    }
+
+    bool CastScene => options.Show?.StartsWith("cast-", StringComparison.Ordinal) == true;
+
+    readonly List<FfiFakeCast> fakeCasts = [];
+    FixtureCastBrowser? fixtureCasts;
+
+    /// <summary>
+    /// The fixture run's TVs with Chromecast built in: receivers on the loopback interface
+    /// (<c>StartFakeCast</c>), found as a <c>_googlecast._tcp</c> browse would find them. Living
+    /// room has fixed volume and Kitchen display a level; each scene sets how Living room behaves.
+    /// Only a cast scene has any, so the other scenes' pickers stay as they were.
+    /// </summary>
+    FfiCastBrowser FixtureCasts(FfiEngine engine)
+    {
+        var scene = options.Show ?? "";
+        fixtureCasts = new FixtureCastBrowser(fakeCasts);
+        if (!CastScene || scene == "cast-none-found")
+            return fixtureCasts;
+        try
+        {
+            var living = new FfiFakeCastOptions(FixedVolume: true, Fetches: true, Refuses: false, LaunchMs: 0);
+            living = scene switch
+            {
+                "cast-starting" or "cast-counting" => living with { LaunchMs = 7000 },
+                "cast-refused" => living with { Refuses = true },
+                "cast-never-reads" => living with { Fetches = false },
+                _ => living,
+            };
+            fakeCasts.Add(engine.StartFakeCast("Living room", living));
+            fakeCasts.Add(engine.StartFakeCast("Kitchen display", new FfiFakeCastOptions(FixedVolume: false, Fetches: true, Refuses: false, LaunchMs: 0)));
+        }
+        catch (FfiException e)
+        {
+            AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "cast", $"the fake TVs with Chromecast built in did not start: {e.Message}");
+        }
+        return fixtureCasts;
+    }
+
+    sealed class FixtureCastBrowser(List<FfiFakeCast> casts) : FfiCastBrowser
+    {
+        public void Start(FfiCastSink sink)
+        {
+            foreach (var fake in casts)
+            {
+                var advert = fake.Advert();
+                sink.Found(advert.Instance, [fake.Host()], advert.Port, advert.Txt);
+            }
+        }
+
+        public void Stop()
+        {
+        }
+    }
+
+    /// <summary>
+    /// --show=cast-*: Play on TV with the fake TVs with Chromecast built in, in the state a
+    /// screenshot is for. Bedroom runs the app; Living room has fixed volume; Kitchen display a level.
+    ///
+    ///     cast-picker          an episode to play: Bedroom, then the Chromecast group, with the firewall line
+    ///     cast-picker-allowed  the same once a cast has played from this PC: no firewall line
+    ///     cast-none-found      no TV of either kind answers, past the wait
+    ///     cast-starting        Living room picked, while it opens the receiver (under 4 s)
+    ///     cast-counting        the same past 4 s, with the counter
+    ///     cast-playing-fixed   Living room playing: fixed volume, so Mute only
+    ///     cast-playing-level   Kitchen display playing: a level, so a slider
+    ///     cast-refused         Living room refuses every stream
+    ///     cast-never-reads     Living room never reads the stream, after 15 s
+    ///     cast-lost            Living room drops off mid-episode
+    ///     cast-taken-over      someone else takes Living room: the card closes, the notice offers Play here
+    ///     cast-bar             Living room playing with the card closed: the title bar's button
+    ///     cast-stopped         Stop casting from the card
+    /// </summary>
+    async void RehearseCast(string scene)
+    {
+        await Task.Delay(1200);
+        await Until(() => ctx.Known.Entry(900001) is not null, 5);
+        var play = new TvPlay(900001, ctx.Known.Entry(900001)?.Title ?? "", "7", 0);
+        tv.Offer(play);
+        if (scene is "cast-picker" or "cast-picker-allowed" or "cast-none-found")
+            return;
+        var name = scene == "cast-playing-level" ? "Kitchen display" : "Living room";
+        if (!await Until(() => tv.CastRows.Any(r => r.Name == name)))
+            return;
+        await Task.Delay(600);
+        tv.Cast(tv.CastRows.First(r => r.Name == name));
+        if (scene is "cast-starting" or "cast-counting" or "cast-refused" or "cast-never-reads")
+            return;
+        if (!await Until(() => tv.Stage == CastStage.Playing, 20))
+            return;
+        var fake = fakeCasts.FirstOrDefault(f => f.Advert().Txt.Any(t => t.Key == "fn" && t.Value == name));
+        switch (scene)
+        {
+            case "cast-lost":
+                await Task.Delay(1500);
+                fake?.GoSilent();
+                break;
+            case "cast-taken-over":
+                await Task.Delay(1500);
+                fake?.TakeOver();
+                break;
+            case "cast-bar":
+                await Task.Delay(500);
+                TvDialog.Showing?.Close();
+                break;
+            case "cast-stopped":
+                await Task.Delay(1500);
+                tv.StopCasting();
+                break;
+        }
     }
 
     System.Net.Sockets.TcpListener? silentTv;
@@ -246,7 +399,12 @@ public sealed partial class MainWindow
         }
     }
 
-    sealed class FixtureTvBrowser(FfiFakeTv[] tvs, FfiFakeTv? slow, ushort slowPort, bool silent) : FfiTvBrowser
+    /// <summary>
+    /// The fake TVs running the app, found as DNS-SD would find them. <paramref name="apart"/>
+    /// finds them at a documentation address rather than loopback, where the TVs with Chromecast
+    /// built in are, as the picker leaves out a Chromecast at the address of a TV running the app.
+    /// </summary>
+    sealed class FixtureTvBrowser(FfiFakeTv[] tvs, FfiFakeTv? slow, ushort slowPort, bool silent, bool apart = false) : FfiTvBrowser
     {
         public FfiFakeTv[] Tvs => tvs;
 
@@ -257,7 +415,7 @@ public sealed partial class MainWindow
             foreach (var fake in tvs)
             {
                 var advert = fake.Advert();
-                sink.Found(advert.Instance, [fake.Host()], fake.Port(), advert.Txt);
+                sink.Found(advert.Instance, [apart ? "192.0.2.10" : fake.Host()], fake.Port(), advert.Txt);
             }
             if (slow is not null)
             {
