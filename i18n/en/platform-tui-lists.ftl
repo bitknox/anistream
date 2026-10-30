@@ -502,6 +502,12 @@ lists-episode = E{ $episode }
 # @only tui
 lists-episode-dubbed = E{ $episode } · { -dubbed-cap }
 
+# A title's AniList score, out of a hundred, in its facts line and at the end of a list row.
+# @arg score: int
+# @max 8
+# @only tui
+lists-score = { $score }%
+
 # A row on the { -continue-cap } list: the episode and how far into it the person stopped.
 # @arg episode: text
 # @arg percent: int

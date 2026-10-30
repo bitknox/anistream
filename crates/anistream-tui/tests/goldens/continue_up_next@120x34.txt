@@ -1,22 +1,22 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ ▸  Continue               │    Continue watching  ───────────────   ░░░░░░░░░░░░░░░░░
-  ▤  Calendar               │    Hoshikuzu no Tabibito           92   ░░░░░░░░░░░░░░░░░
-  ▦  Seasonal               │    Kaze no Tegami                  91   ░░░░░░░░░░░░░░░░░
-  /  Search                 │    Yoru no Toshokan                90   ░░░░░░░░░░░░░░░░░
-  ▥  Library                │    Tsuki to Kujira no Uta          89   ░░░░░░░░░░░░░░░░░
-  ↓  Downloads              │    Hanabi Shoutengai               88   ░░░░░░░░░░░░░░░░░
-  ◇  Sources                │    Kitsune Ekiben                  87   ░░░░░░░░░░░░░░░░░
-  ◎  Accounts               │    Umibe no Kissaten               86   ░░░░░░░░░░░░░░░░░
-  ≡  Settings               │    Mori no Kajiya                  85   ░░░░░░░░░░░░░░░░░
-                            │    Ginga Yuubinkyoku               84   ░░░░░░░░░░░░░░░░░
-                            │    Komorebi Ryokan                 83   ░░░░░░░░░░░░░░░░░
-                            │    Tetsu no Hanazono               82   ░░░░░░░░░░░░░░░░░
-                            │    Ame Furu Machi no Robotto       81   ░░░░░░░░░░░░░░░░░
-                            │    Kumo no Ue no Gakkou            80
-                            │    Shiosai Radio Kyoku             79   Tanuki Densha Monogatari
-                            │    Fuyu no Shika to Tabi           78
-                            │    Natsukusa Tanteisha             77   MOVIE  ·  1 episode  ·  2026  ·  73  ·  Ateli…
+  ▤  Calendar               │    Hoshikuzu no Tabibito          92%   ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │    Kaze no Tegami                 91%   ░░░░░░░░░░░░░░░░░
+  /  Search                 │    Yoru no Toshokan               90%   ░░░░░░░░░░░░░░░░░
+  ▥  Library                │    Tsuki to Kujira no Uta         89%   ░░░░░░░░░░░░░░░░░
+  ↓  Downloads              │    Hanabi Shoutengai              88%   ░░░░░░░░░░░░░░░░░
+  ◇  Sources                │    Kitsune Ekiben                 87%   ░░░░░░░░░░░░░░░░░
+  ◎  Accounts               │    Umibe no Kissaten              86%   ░░░░░░░░░░░░░░░░░
+  ≡  Settings               │    Mori no Kajiya                 85%   ░░░░░░░░░░░░░░░░░
+                            │    Ginga Yuubinkyoku              84%   ░░░░░░░░░░░░░░░░░
+                            │    Komorebi Ryokan                83%   ░░░░░░░░░░░░░░░░░
+                            │    Tetsu no Hanazono              82%   ░░░░░░░░░░░░░░░░░
+                            │    Ame Furu Machi no Robotto      81%   ░░░░░░░░░░░░░░░░░
+                            │    Kumo no Ue no Gakkou           80%
+                            │    Shiosai Radio Kyoku            79%   Tanuki Densha Monogatari
+                            │    Fuyu no Shika to Tabi          78%
+                            │    Natsukusa Tanteisha            77%   MOVIE  ·  1 episode  ·  2026  ·  73%  ·  Atel…
                             │                                         Mystery
                             │    Up next for you  ─────────────────
                             │    Hotaru Line Kaisoku     New season   Tanuki Densha Monogatari: a story told in
@@ -53,79 +53,79 @@ r03 c02-02 fg=text-dim
 r03 c05-12 fg=text-dim
 r03 c28-28 fg=rule
 r03 c33-53 fg=text-dim
-r03 c65-66 fg=text-dim
+r03 c64-66 fg=text-dim
 r03 c70-86 fg=rule
 r04 c02-02 fg=text-dim
 r04 c05-12 fg=text-dim
 r04 c28-28 fg=rule
 r04 c33-46 fg=text-dim
-r04 c65-66 fg=text-dim
+r04 c64-66 fg=text-dim
 r04 c70-86 fg=rule
 r05 c02-02 fg=text-dim
 r05 c05-10 fg=text-dim
 r05 c28-28 fg=rule
 r05 c33-48 fg=text-dim
-r05 c65-66 fg=text-dim
+r05 c64-66 fg=text-dim
 r05 c70-86 fg=rule
 r06 c02-02 fg=text-dim
 r06 c05-11 fg=text-dim
 r06 c28-28 fg=rule
 r06 c33-54 fg=text-dim
-r06 c65-66 fg=text-dim
+r06 c64-66 fg=text-dim
 r06 c70-86 fg=rule
 r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
 r07 c33-49 fg=text-dim
-r07 c65-66 fg=text-dim
+r07 c64-66 fg=text-dim
 r07 c70-86 fg=rule
 r08 c02-02 fg=text-dim
 r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r08 c33-46 fg=text-dim
-r08 c65-66 fg=text-dim
+r08 c64-66 fg=text-dim
 r08 c70-86 fg=rule
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim
 r09 c28-28 fg=rule
 r09 c33-49 fg=text-dim
-r09 c65-66 fg=text-dim
+r09 c64-66 fg=text-dim
 r09 c70-86 fg=rule
 r10 c02-02 fg=text-dim
 r10 c05-12 fg=text-dim
 r10 c28-28 fg=rule
 r10 c33-46 fg=text-dim
-r10 c65-66 fg=text-dim
+r10 c64-66 fg=text-dim
 r10 c70-86 fg=rule
 r11 c28-28 fg=rule
 r11 c33-49 fg=text-dim
-r11 c65-66 fg=text-dim
+r11 c64-66 fg=text-dim
 r11 c70-86 fg=rule
 r12 c28-28 fg=rule
 r12 c33-47 fg=text-dim
-r12 c65-66 fg=text-dim
+r12 c64-66 fg=text-dim
 r12 c70-86 fg=rule
 r13 c28-28 fg=rule
 r13 c33-49 fg=text-dim
-r13 c65-66 fg=text-dim
+r13 c64-66 fg=text-dim
 r13 c70-86 fg=rule
 r14 c28-28 fg=rule
 r14 c33-57 fg=text-dim
-r14 c65-66 fg=text-dim
+r14 c64-66 fg=text-dim
 r14 c70-86 fg=rule
 r15 c28-28 fg=rule
 r15 c33-52 fg=text-dim
-r15 c65-66 fg=text-dim
+r15 c64-66 fg=text-dim
 r16 c28-28 fg=rule
 r16 c33-51 fg=text-dim
-r16 c65-66 fg=text-dim
+r16 c64-66 fg=text-dim
 r16 c70-93 fg=text mod=BOLD
 r17 c28-28 fg=rule
 r17 c33-53 fg=text-dim
-r17 c65-66 fg=text-dim
+r17 c64-66 fg=text-dim
 r18 c28-28 fg=rule
 r18 c33-51 fg=text-dim
-r18 c65-66 fg=text-dim
+r18 c64-66 fg=text-dim
 r18 c70-115 fg=text-dim
 r19 c28-28 fg=rule
 r19 c70-76 fg=text-dim

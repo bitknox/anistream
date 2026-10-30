@@ -5,7 +5,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ▦ │
  / │    Kaze no Tegami                                                 E9 out
 ▌▥ │  ▌ Tsuki to Kujira no Uta                               7 of 12 episodes
- ↓ │    Ginga Yuubinkyoku                                                  84
+ ↓ │    Ginga Yuubinkyoku                                                 84%
  ◇ │
  ◎ │
  ≡ │
@@ -58,7 +58,7 @@ r06 c61-76 fg=text-dim
 r07 c01-01 fg=text-dim
 r07 c03-03 fg=rule
 r07 c08-24 fg=text-dim
-r07 c75-76 fg=text-dim
+r07 c74-76 fg=text-dim
 r08 c01-01 fg=text-dim
 r08 c03-03 fg=rule
 r09 c01-01 fg=text-dim

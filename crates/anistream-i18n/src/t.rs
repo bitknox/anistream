@@ -4095,6 +4095,11 @@ pub fn lists_episode_dubbed(episode: &str) -> String {
     text("lists-episode-dubbed", &[("episode", Arg::Text(episode))])
 }
 
+/// A title's AniList score, out of a hundred, in its facts line and at the end of a list row.
+pub fn lists_score(score: i64) -> String {
+    text("lists-score", &[("score", Arg::Int(score))])
+}
+
 /// A row on the { -continue-cap } list: the episode and how far into it the person stopped.
 pub fn lists_row_resume_percent(episode: &str, percent: i64) -> String {
     text("lists-row-resume-percent", &[("episode", Arg::Text(episode)), ("percent", Arg::Int(percent))])

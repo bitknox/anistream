@@ -13,6 +13,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   Type what to search for. An empty Enter resets to the automatic match.
 
+                            │
                             │  Available on Hikari Stream
                             │
                             │  A postwoman in a hill town reads the wind for letters nobody sent. When one arrives
@@ -24,7 +25,6 @@ anistream                                                                       
                             │  Drama  ·  Romance
                             │
                             │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
-                            │
                             │
                             │
                             │

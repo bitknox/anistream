@@ -1,19 +1,19 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-▌▸ │    Yoru no Toshokan                                                   90
- ▤ │    Tsuki to Kujira no Uta                                             89
- ▦ │    Hanabi Shoutengai                                                  88
- / │    Kitsune Ekiben                                                     87
- ▥ │    Umibe no Kissaten                                                  86
- ↓ │    Mori no Kajiya                                                     85
- ◇ │    Ginga Yuubinkyoku                                                  84
- ◎ │    Komorebi Ryokan                                                    83
- ≡ │    Tetsu no Hanazono                                                  82
-   │    Ame Furu Machi no Robotto                                          81
-   │    Kumo no Ue no Gakkou                                               80
-   │    Shiosai Radio Kyoku                                                79
-   │    Fuyu no Shika to Tabi                                              78
-   │    Natsukusa Tanteisha                                                77
+▌▸ │    Yoru no Toshokan                                                  90%
+ ▤ │    Tsuki to Kujira no Uta                                            89%
+ ▦ │    Hanabi Shoutengai                                                 88%
+ / │    Kitsune Ekiben                                                    87%
+ ▥ │    Umibe no Kissaten                                                 86%
+ ↓ │    Mori no Kajiya                                                    85%
+ ◇ │    Ginga Yuubinkyoku                                                 84%
+ ◎ │    Komorebi Ryokan                                                   83%
+ ≡ │    Tetsu no Hanazono                                                 82%
+   │    Ame Furu Machi no Robotto                                         81%
+   │    Kumo no Ue no Gakkou                                              80%
+   │    Shiosai Radio Kyoku                                               79%
+   │    Fuyu no Shika to Tabi                                             78%
+   │    Natsukusa Tanteisha                                               77%
    │
    │    Up next for you  ────────────────────────────────────────────────────
    │    Hotaru Line Kaisoku                                        New season
@@ -36,54 +36,54 @@ r02 c00-00 fg=text-dim
 r02 c01-01 fg=text mod=BOLD
 r02 c03-03 fg=rule
 r02 c08-23 fg=text-dim
-r02 c75-76 fg=text-dim
+r02 c74-76 fg=text-dim
 r03 c01-01 fg=text-dim
 r03 c03-03 fg=rule
 r03 c08-29 fg=text-dim
-r03 c75-76 fg=text-dim
+r03 c74-76 fg=text-dim
 r04 c01-01 fg=text-dim
 r04 c03-03 fg=rule
 r04 c08-24 fg=text-dim
-r04 c75-76 fg=text-dim
+r04 c74-76 fg=text-dim
 r05 c01-01 fg=text-dim
 r05 c03-03 fg=rule
 r05 c08-21 fg=text-dim
-r05 c75-76 fg=text-dim
+r05 c74-76 fg=text-dim
 r06 c01-01 fg=text-dim
 r06 c03-03 fg=rule
 r06 c08-24 fg=text-dim
-r06 c75-76 fg=text-dim
+r06 c74-76 fg=text-dim
 r07 c01-01 fg=text-dim
 r07 c03-03 fg=rule
 r07 c08-21 fg=text-dim
-r07 c75-76 fg=text-dim
+r07 c74-76 fg=text-dim
 r08 c01-01 fg=text-dim
 r08 c03-03 fg=rule
 r08 c08-24 fg=text-dim
-r08 c75-76 fg=text-dim
+r08 c74-76 fg=text-dim
 r09 c01-01 fg=text-dim
 r09 c03-03 fg=rule
 r09 c08-22 fg=text-dim
-r09 c75-76 fg=text-dim
+r09 c74-76 fg=text-dim
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r10 c08-24 fg=text-dim
-r10 c75-76 fg=text-dim
+r10 c74-76 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-32 fg=text-dim
-r11 c75-76 fg=text-dim
+r11 c74-76 fg=text-dim
 r12 c03-03 fg=rule
 r12 c08-27 fg=text-dim
-r12 c75-76 fg=text-dim
+r12 c74-76 fg=text-dim
 r13 c03-03 fg=rule
 r13 c08-26 fg=text-dim
-r13 c75-76 fg=text-dim
+r13 c74-76 fg=text-dim
 r14 c03-03 fg=rule
 r14 c08-28 fg=text-dim
-r14 c75-76 fg=text-dim
+r14 c74-76 fg=text-dim
 r15 c03-03 fg=rule
 r15 c08-26 fg=text-dim
-r15 c75-76 fg=text-dim
+r15 c74-76 fg=text-dim
 r16 c03-03 fg=rule
 r17 c03-03 fg=rule
 r17 c08-22 fg=text-dim

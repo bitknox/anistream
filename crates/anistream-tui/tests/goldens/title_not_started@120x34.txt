@@ -11,7 +11,7 @@ anistream                                                                       
   ≡  Settings               │  Umibe no Kissaten
                             │  The Seaside Café
                             │
-                            │  TV  ·  12 episodes  ·  2026  ·  86  ·  Studio Kawasemi
+                            │  TV  ·  12 episodes  ·  2026  ·  86%  ·  Studio Kawasemi
                             │
                             │  Umibe no Kissaten: a story told in twelve evenings.
                             │
@@ -82,7 +82,7 @@ r11 c28-28 fg=rule
 r11 c31-46 fg=text-dim
 r12 c28-28 fg=rule
 r13 c28-28 fg=rule
-r13 c31-84 fg=text-dim
+r13 c31-85 fg=text-dim
 r14 c28-28 fg=rule
 r15 c28-28 fg=rule
 r15 c31-81 fg=text-dim

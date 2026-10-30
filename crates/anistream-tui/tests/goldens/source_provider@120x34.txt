@@ -14,6 +14,7 @@ anistream                                                                       
   yamabiko  ·  plugin
 ▌ tsubame  ·  plugin                                                                                          Chosen
 
+                            │  Available on Hikari Stream
                             │
                             │  A postwoman in a hill town reads the wind for letters nobody sent. When one arrives
                             │  addressed to her in her own hand, dated ten years from now, she starts delivering the
@@ -24,7 +25,6 @@ anistream                                                                       
                             │  Drama  ·  Romance
                             │
                             │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
-                            │
                             │
                             │
                             │

@@ -12,10 +12,15 @@ use ratatui::{buffer::Buffer, layout::Rect, style::Modifier};
 use crate::{
     app::{App, push_detail, status_text},
     theme::Role,
-    widgets::{truncate, wrap},
+    widgets::{truncate, wrap, wrap_meta},
 };
 
-use super::{chrome::render_placeholder, draw_artwork, line, lists::metadata_line, set_meter};
+use super::{
+    chrome::render_placeholder,
+    draw_artwork, line,
+    lists::{airing_fact_text, metadata_line},
+    set_meter,
+};
 
 /// The Title screen: key visual as hero, then the title block.
 pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
@@ -71,17 +76,23 @@ pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     }
     y += 2;
 
-    if fits(y) {
-        let meta = metadata_line(entry);
-        line(
-            buf,
-            area.left(),
-            y,
-            truncate(&meta, area.width as usize),
-            app.palette.style(Role::TextDim),
-        );
+    // The facts wrap onto a second line rather than lose the studio to an ellipsis, and the
+    // run's state follows them: a show on a break or stopped for good says so.
+    let mut facts = wrap_meta(&metadata_line(entry), area.width as usize, 2);
+    facts.extend(entry.airing.map(airing_fact_text));
+    for fact in &facts {
+        if fits(y) {
+            line(
+                buf,
+                area.left(),
+                y,
+                truncate(fact, area.width as usize),
+                app.palette.style(Role::TextDim),
+            );
+        }
+        y += 1;
     }
-    y += 2;
+    y += 1;
 
     if !entry.available_on.is_empty() && y < area.bottom() {
         let services = t::title_available_on(&entry.available_on.join("  ·  "));
@@ -89,7 +100,7 @@ pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
             area.left(),
             y,
             truncate(&services, area.width as usize),
-            app.palette.style(Role::State),
+            app.palette.style(Role::TextDim),
         );
         y += 2;
     }
@@ -122,12 +133,13 @@ pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
                 set_meter(buf, x, y, &app.palette, entry.watched_fraction(), 20, Role::Text);
                 x += 22;
             }
-            buf.set_string(
-                x,
-                y,
-                [label, t::title_up_next(i64::from(next))].join("   "),
-                app.palette.style(Role::TextDim),
-            );
+            // Watched to the end, there is no next episode to name: play says Watch again.
+            let said = if crate::app::watched_all(entry) {
+                label
+            } else {
+                [label, t::title_up_next(i64::from(next))].join("   ")
+            };
+            buf.set_string(x, y, said, app.palette.style(Role::TextDim));
         } else {
             // The same line the preview gives, so the same fact reads the same on both.
             let broadcast = broadcast_line(entry);

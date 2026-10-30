@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ◇ │  Umibe no Kissaten
  ◎ │  The Seaside Café
  ≡ │
-   │  TV  ·  12 episodes  ·  2026  ·  86  ·  Studio Kawasemi
+   │  TV  ·  12 episodes  ·  2026  ·  86%  ·  Studio Kawasemi
    │
    │  Umibe no Kissaten: a story told in twelve evenings.
    │
@@ -59,7 +59,7 @@ r09 c06-21 fg=text-dim
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r11 c03-03 fg=rule
-r11 c06-59 fg=text-dim
+r11 c06-60 fg=text-dim
 r12 c03-03 fg=rule
 r13 c03-03 fg=rule
 r13 c06-56 fg=text-dim

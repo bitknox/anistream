@@ -31,7 +31,10 @@ use anistream_core::{
     traits::SourceCandidate,
 };
 use anistream_model::{
-    catalog::{Aired, ContentList, Entry, LibrarySegment, RelatedTitle, ResumePoint},
+    catalog::{
+        Aired, AiringFact, ContentList, Entry, FuzzyDate, LibrarySegment, RelatedTitle,
+        ResumePoint, Season,
+    },
     command::Command,
     downloads::{DownloadRow, DownloadState, SeedRow},
     episodes::{EpisodeKind, EpisodeRow},
@@ -1147,6 +1150,10 @@ fn kaze_detail() -> Entry {
             .into(),
         banner_url: Some("https://img.example/banner/kaze.jpg".into()),
         available_on: vec!["Hikari Stream".into()],
+        season: Some(Season::Summer),
+        airing: Some(AiringFact::Airing {
+            since: Some(FuzzyDate { year: 2026, month: Some(7), day: Some(3) }),
+        }),
         trailer_url: Some("https://video.example/kaze-pv".into()),
         related: vec![
             related(110, "Kaze no Tegami: Hajimari no Fuukei", "prequel", "OVA"),

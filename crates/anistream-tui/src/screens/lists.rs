@@ -250,7 +250,7 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                     // The same count the preview and the Title page give, rather than a bare
                     // number that read like a score.
                     (Some(_), _, _) => progress_text(entry).map(|label| (label, false)),
-                    _ => entry.score.map(|s| (s.to_string(), false)),
+                    _ => entry.score.map(|s| (t::lists_score(i64::from(s)), false)),
                 };
                 if let Some((text, fresh)) = trailing {
                     row = row.trailing(text).fresh(fresh);
@@ -832,16 +832,77 @@ pub(super) fn metadata_line(entry: &Entry) -> String {
         parts.push(t::episodes_count(i64::from(episodes)));
     }
     if let Some(year) = entry.year {
-        parts.push(year.to_string());
+        // "Summer 2026" when AniList knows the season it premiered in.
+        parts.push(match entry.season {
+            Some(season) => t::season_with_year(&season_name(season), &year.to_string()),
+            None => year.to_string(),
+        });
     }
     if let Some(score) = entry.score {
-        parts.push(score.to_string());
+        parts.push(t::lists_score(i64::from(score)));
     }
     if let Some(studio) = &entry.studio {
         parts.push(studio.clone());
     }
     let refs: Vec<&str> = parts.iter().map(String::as_str).collect();
     crate::widgets::meta_line(&refs)
+}
+
+/// A season of the year, as the facts line words it.
+fn season_name(season: anistream_model::catalog::Season) -> String {
+    use anistream_model::catalog::Season;
+    match season {
+        Season::Winter => t::season_winter(),
+        Season::Spring => t::season_spring(),
+        Season::Summer => t::season_summer(),
+        Season::Fall => t::season_autumn(),
+    }
+}
+
+/// A date as far as AniList knows it: "20 Aug 2026", "August 2026" or "2026".
+pub(super) fn fuzzy_date(date: anistream_model::catalog::FuzzyDate) -> String {
+    let year = i32::from(date.year);
+    let known = match (date.month, date.day) {
+        (Some(month), Some(day)) => {
+            chrono::NaiveDate::from_ymd_opt(year, month.into(), day.into())
+                .map(|d| d.format("%-d %b %Y").to_string())
+        }
+        (Some(month), None) => chrono::NaiveDate::from_ymd_opt(year, month.into(), 1)
+            .map(|d| d.format("%B %Y").to_string()),
+        _ => None,
+    };
+    known.unwrap_or_else(|| date.year.to_string())
+}
+
+/// What the title page says of a title's run: airing since when, aired from when to when, on
+/// hiatus or cancelled. A show on a break or stopped for good never reads as airing.
+pub(super) fn airing_fact_text(fact: anistream_model::catalog::AiringFact) -> String {
+    use anistream_model::catalog::AiringFact as F;
+    match fact {
+        // "Since" and "From" read as the second half of a pair, after the status they date.
+        F::Airing { since: Some(date) } => crate::widgets::meta_line(&[
+            &t::media_status_airing(),
+            &t::media_airing_since(&fuzzy_date(date)),
+        ]),
+        F::Airing { since: None } => t::media_status_airing(),
+        F::Finished { from: Some(from), to: Some(to) } => {
+            t::media_aired_range(&fuzzy_date(from), &fuzzy_date(to))
+        }
+        F::Finished { from: Some(date), to: None }
+        | F::Finished { from: None, to: Some(date) } => t::media_aired_on(&fuzzy_date(date)),
+        F::Finished { from: None, to: None } => t::media_status_aired(),
+        F::NotYetReleased { from: Some(date) } => crate::widgets::meta_line(&[
+            &t::media_status_upcoming(),
+            &t::media_airing_from(&fuzzy_date(date)),
+        ]),
+        F::NotYetReleased { from: None } => t::media_status_upcoming(),
+        F::Hiatus { since: Some(date) } => t::media_hiatus_since(&fuzzy_date(date)),
+        F::Hiatus { since: None } => t::media_status_hiatus(),
+        F::Cancelled { after_episode: Some(episode) } => {
+            t::media_cancelled_after(i64::from(episode))
+        }
+        F::Cancelled { after_episode: None } => t::media_status_cancelled(),
+    }
 }
 
 /// A calendar row's episode column: "E5", with "Dubbed" after it once the episode is out in the
@@ -958,6 +1019,29 @@ mod tests {
 
     /// AniList leaves the length empty while a show airs without an announced one. The card
     /// read "2 / 0" under an empty meter; it counts against what has aired instead.
+    /// A show on a break or stopped for good says so on its title page, never "Airing".
+    #[test]
+    fn the_airing_fact_says_hiatus_and_cancelled_as_they_are() {
+        use anistream_model::catalog::{AiringFact, FuzzyDate};
+        anistream_i18n::set_language("en");
+        let march = FuzzyDate { year: 2026, month: Some(3), day: None };
+        assert_eq!(
+            airing_fact_text(AiringFact::Hiatus { since: Some(march) }),
+            "On hiatus since March 2026"
+        );
+        assert_eq!(
+            airing_fact_text(AiringFact::Cancelled { after_episode: Some(6) }),
+            "Cancelled after episode 6"
+        );
+        let from = FuzzyDate { year: 2023, month: Some(4), day: Some(4) };
+        let to = FuzzyDate { year: 2023, month: Some(6), day: Some(20) };
+        assert_eq!(
+            airing_fact_text(AiringFact::Finished { from: Some(from), to: Some(to) }),
+            "Aired 4 Apr 2023 to 20 Jun 2023"
+        );
+        assert_eq!(fuzzy_date(FuzzyDate { year: 2027, month: None, day: None }), "2027");
+    }
+
     #[test]
     fn progress_on_a_show_with_no_announced_length_counts_what_has_aired() {
         let mut e = entry(1, "Item");

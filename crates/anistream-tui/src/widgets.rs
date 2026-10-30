@@ -503,7 +503,28 @@ impl Widget for StatusLine<'_> {
 /// A metadata line, interpunct-separated: `TV  ·  28 episodes  ·  91`.
 pub fn meta_line(parts: &[&str]) -> String {
     let parts: Vec<&str> = parts.iter().copied().filter(|p| !p.is_empty()).collect();
-    parts.join("  ·  ")
+    parts.join(META_SEPARATOR)
+}
+
+const META_SEPARATOR: &str = "  ·  ";
+
+/// A metadata line laid out on at most `lines` lines `width` cells wide, broken between its
+/// facts rather than inside one. What the last line cannot take is cut with an ellipsis.
+pub fn wrap_meta(meta: &str, width: usize, lines: usize) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for part in meta.split(META_SEPARATOR).filter(|p| !p.is_empty()) {
+        let full = out.len() >= lines;
+        match out.last_mut() {
+            Some(last)
+                if full || last.cells() + META_SEPARATOR.cells() + part.cells() <= width =>
+            {
+                last.push_str(META_SEPARATOR);
+                last.push_str(part);
+            }
+            _ => out.push(part.to_string()),
+        }
+    }
+    out.iter().map(|line| truncate(line, width)).collect()
 }
 
 /// The cells text takes on screen, rather than its characters or bytes: a Japanese title takes
@@ -607,6 +628,20 @@ pub fn wrap(text: &str, width: usize, max_lines: usize) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_metadata_line_wraps_between_its_facts() {
+        let meta = meta_line(&["TV", "24 episodes", "Summer 2026", "79%", "Atelier Hotaru"]);
+        assert_eq!(wrap_meta(&meta, 80, 2), vec![meta.clone()]);
+        assert_eq!(
+            wrap_meta(&meta, 40, 2),
+            vec!["TV  ·  24 episodes  ·  Summer 2026", "79%  ·  Atelier Hotaru"]
+        );
+        // One line only: the rest is cut, as before.
+        let one = wrap_meta(&meta, 40, 1);
+        assert_eq!(one.len(), 1);
+        assert!(one[0].ends_with('…') && one[0].cells() <= 40, "{one:?}");
+    }
     use ratatui::style::Color;
 
     fn buffer(width: u16, height: u16) -> Buffer {

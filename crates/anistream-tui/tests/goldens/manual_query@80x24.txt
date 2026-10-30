@@ -10,12 +10,12 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
   Type what to search for. An empty Enter resets to the automatic match.
 
+   │  Airing  ·  Since 3 Jul 2026
    │
    │  Available on Hikari Stream
    │
    │  A postwoman in a hill town reads the wind for letters nobody sent. When
-   │  one arrives addressed to her in her own hand, dated ten years from now,
-   │  she starts delivering the future one envelope at a time — and learns…
+   │  one arrives addressed to her in her own hand, dated ten years from now,…
    │
    │  Drama  ·  Romance
    │

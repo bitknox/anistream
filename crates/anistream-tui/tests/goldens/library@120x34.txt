@@ -5,7 +5,7 @@ anistream                                                                       
   ▦  Seasonal               │
   /  Search                 │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░
 ▌ ▥  Library                │  ▌ Tsuki to Kujira … 7 of 12 episodes   ░░░░░░░░░░░░░
-  ↓  Downloads              │    Ginga Yuubinkyoku               84   ░░░░░░░░░░░░░
+  ↓  Downloads              │    Ginga Yuubinkyoku              84%   ░░░░░░░░░░░░░
   ◇  Sources                │                                         ░░░░░░░░░░░░░
   ◎  Accounts               │                                         ░░░░░░░░░░░░░
   ≡  Settings               │                                         ░░░░░░░░░░░░░
@@ -17,7 +17,7 @@ anistream                                                                       
                             │                                         Tsuki to Kujira no Uta
                             │                                         Song of the Moon Whale
                             │
-                            │                                         TV  ·  12 episodes  ·  2025  ·  91  ·  Kumo P…
+                            │                                         TV  ·  12 episodes  ·  2025  ·  91%  ·  Kumo …
                             │                                         Drama  ·  Fantasy
                             │
                             │                                         Every hundred years a whale crosses the moon,
@@ -76,7 +76,7 @@ r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
 r07 c33-49 fg=text-dim
-r07 c65-66 fg=text-dim
+r07 c64-66 fg=text-dim
 r07 c70-82 fg=rule
 r08 c02-02 fg=text-dim
 r08 c05-11 fg=text-dim

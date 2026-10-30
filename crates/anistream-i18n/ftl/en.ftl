@@ -2578,6 +2578,9 @@ lists-episode = E{ $episode }
 # An episode in a list row, for a title watched dubbed.
 lists-episode-dubbed = E{ $episode } · Dubbed
 
+# A title's AniList score, out of a hundred, in its facts line and at the end of a list row.
+lists-score = { $score }%
+
 # A row on the { -continue-cap } list: the episode and how far into it the person stopped.
 lists-row-resume-percent = { $episode } · { $percent }%
 
