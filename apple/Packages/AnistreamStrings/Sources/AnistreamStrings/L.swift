@@ -5291,7 +5291,7 @@ public enum L {
     /// Value of the trailers setting: trailers play by themselves only on Wi-Fi.
     public static var settingsValueTrailersWifiOnly: String { string("settings-value-trailers-wifi-only", fallback: "Wi-Fi only") }
 
-    /// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+    /// Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
     public static var settingsLabelTrailers: String { string("settings-label-trailers", fallback: "Play trailers") }
 
     /// Option: use the tracker's own choice. The tracker is a name.

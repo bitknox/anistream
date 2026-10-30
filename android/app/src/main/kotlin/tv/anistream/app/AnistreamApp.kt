@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.model.SettingKey
-import tv.anistream.store.DeviceWatch
 import tv.anistream.store.SettingsCatalog
 import tv.anistream.engine.ffi.startLog
 import tv.anistream.engine.core.AnilistId
@@ -209,8 +208,6 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
         ContinueShortcut(this).follow(store, scope)
         recordWidgetsOnLeaving()
         watchNetwork()
-        // Trailers play only when the device allows it; the engine decides from what it is told.
-        DeviceWatch.watch(this) { state -> scope.launch { store.deviceState(state) } }
         startTv()
         // The fixtures' downloads are seeded where they are; only the app's are kept here.
         if (!Flavour.FIXTURES) keepDownloadsInAppSpace()

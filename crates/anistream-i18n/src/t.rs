@@ -9700,7 +9700,7 @@ pub fn settings_value_trailers_wifi_only() -> String {
     text("settings-value-trailers-wifi-only", &[])
 }
 
-/// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
+/// Settings row: when a title's trailer plays by itself, muted, in a hover preview on the desktop apps.
 pub fn settings_label_trailers() -> String {
     text("settings-label-trailers", &[])
 }
