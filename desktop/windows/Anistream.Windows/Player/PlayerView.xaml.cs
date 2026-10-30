@@ -1332,7 +1332,18 @@ public sealed partial class PlayerView : UserControl
     /// <summary>A seek by key or scroll, with the time it lands on in the flash.</summary>
     void SeekBy(double seconds)
     {
-        Send(new PlayerCommand.Seek(seconds));
+        // Named for the playback on screen, so the engine lets a seek go once the next episode
+        // has taken over instead of carrying it there.
+        ulong now;
+        lock (loads)
+            now = playback;
+        if (now == 0)
+            Send(new PlayerCommand.Seek(seconds));
+        else
+        {
+            still.Input();
+            ctx?.Send(new Command.Control(now, new PlayerCommand.Seek(seconds)));
+        }
         ShowFlash(AnistreamFfiMethods.PlayClock(Math.Clamp(position + seconds, 0, Math.Max(0, duration))));
     }
 
