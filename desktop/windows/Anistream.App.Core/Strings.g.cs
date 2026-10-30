@@ -1101,6 +1101,18 @@ public static partial class T
     /// <summary>Shortcut in the player.</summary>
     public static string ShortcutsClosePlayer => Get("ShortcutsClosePlayer");
 
+    /// <summary>Notice when Windows wouldn't let the app put text on the clipboard, usually because another app holds it.</summary>
+    public static string ClipboardBusy => Get("ClipboardBusy");
+
+    /// <summary>Title of the window shown instead of the app when the engine could not start. The engine's reason, with what to do, follows.</summary>
+    public static string StartFailedTitle => Get("StartFailedTitle");
+
+    /// <summary>Button in that window: opens the folder that holds the settings and the database, in File Explorer.</summary>
+    public static string StartFailedOpenFolder => Get("StartFailedOpenFolder");
+
+    /// <summary>Button in that window: closes it and the app.</summary>
+    public static string StartFailedQuit => Get("StartFailedQuit");
+
     /// <summary>Under the TV picker's title: the episode about to play on the TV, with its show's title.</summary>
     public static string TvPickerEpisodeOf(string title, string episode) => Fill(Get("TvPickerEpisodeOf"), ("title", title), ("episode", episode));
 
@@ -5805,6 +5817,10 @@ public static partial class T
         ["ShortcutsSpeedReset"] = "Slower, faster, normal speed",
         ["ShortcutsCornerCard"] = "Take the corner card's action",
         ["ShortcutsClosePlayer"] = "Close the player",
+        ["ClipboardBusy"] = "Couldn't copy: another app is using the clipboard. Try again in a moment.",
+        ["StartFailedTitle"] = "anistream couldn't start",
+        ["StartFailedOpenFolder"] = "Open the folder",
+        ["StartFailedQuit"] = "Quit",
         ["TvPickerEpisodeOf"] = "{title}, episode {episode}",
         ["EpisodeLabel"] = "Episode {episode}",
         ["EpisodeLabelOf"] = "Episode {episode} of {title}",

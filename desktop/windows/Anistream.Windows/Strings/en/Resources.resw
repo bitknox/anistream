@@ -1551,6 +1551,22 @@
     <value>Close the player</value>
     <comment>Shortcut in the player.</comment>
   </data>
+  <data name="ClipboardBusy" xml:space="preserve">
+    <value>Couldn't copy: another app is using the clipboard. Try again in a moment.</value>
+    <comment>Notice when Windows wouldn't let the app put text on the clipboard, usually because another app holds it.</comment>
+  </data>
+  <data name="StartFailedTitle" xml:space="preserve">
+    <value>anistream couldn't start</value>
+    <comment>Title of the window shown instead of the app when the engine could not start. The engine's reason, with what to do, follows.</comment>
+  </data>
+  <data name="StartFailedOpenFolder" xml:space="preserve">
+    <value>Open the folder</value>
+    <comment>Button in that window: opens the folder that holds the settings and the database, in File Explorer.</comment>
+  </data>
+  <data name="StartFailedQuit" xml:space="preserve">
+    <value>Quit</value>
+    <comment>Button in that window: closes it and the app.</comment>
+  </data>
   <data name="TvPickerEpisodeOf" xml:space="preserve">
     <value>{title}, episode {episode}</value>
     <comment>Under the TV picker's title: the episode about to play on the TV, with its show's title.</comment>
