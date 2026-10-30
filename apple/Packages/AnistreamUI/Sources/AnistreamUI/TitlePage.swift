@@ -302,7 +302,9 @@ struct TitleHero: View {
                     .padding(.top, 4)
                 HStack(spacing: 10) {
                     // No source has it: nothing to play, and the way to one in Play's place.
-                    if action.playable, store.titles.unlisted(entry.id) {
+                    if action.playable, store.match.asks(entry.id) {
+                        ChooseMatchButton(id: entry.id, height: Self.pad ? 48 : 34, fontSize: Self.pad ? 17 : 13)
+                    } else if action.playable, store.titles.unlisted(entry.id) {
                         AddSourceButton(
                             sentence: Self.pad, height: Self.pad ? 48 : 34, fontSize: Self.pad ? 17 : 13
                         )
@@ -350,6 +352,7 @@ struct TitleHero: View {
                     #endif
                 }
                 .padding(.top, Self.pad ? 16 : 12)
+                MatchUncertainLine(id: entry.id, font: Self.pad ? .ui(15) : .mac(13), top: 10)
             }
             // Another season's words swap in place: one short fade.
             .contentTransition(.opacity)

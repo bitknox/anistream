@@ -102,7 +102,7 @@ struct TrailerLifecycle: ViewModifier {
 
     private var sheetOpen: Bool {
         navigator.trailerRequest != nil || navigator.moreAbout != nil || navigator.sourcePicker != nil
-            || navigator.showSettings != nil || navigator.messagesShown
+            || navigator.showSettings != nil || navigator.messagesShown || navigator.matchPicker != nil
     }
 
     func body(content: Content) -> some View {
