@@ -9385,6 +9385,11 @@ pub fn filters_title() -> String {
     text("filters-title", &[])
 }
 
+/// Accessible label and tooltip of the button that closes the filters panel.
+pub fn filters_close() -> String {
+    text("filters-close", &[])
+}
+
 /// Button that opens the filters, with how many are on.
 pub fn filters_button_count(count: i64) -> String {
     text("filters-button-count", &[("count", Arg::Int(count))])

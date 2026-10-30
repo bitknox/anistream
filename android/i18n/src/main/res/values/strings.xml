@@ -2645,6 +2645,8 @@
     <string name="search_loading_more">Loading more titles</string>
     <!-- Title of the filters sheet and panel. -->
     <string name="filters_title">Filters</string>
+    <!-- Accessible label and tooltip of the button that closes the filters panel. -->
+    <string name="filters_close">Close filters</string>
     <!-- Button that opens the filters, with how many are on. -->
     <string name="filters_button_count">All filters · %1$d</string>
     <!-- Button that opens the filters when none is on. -->

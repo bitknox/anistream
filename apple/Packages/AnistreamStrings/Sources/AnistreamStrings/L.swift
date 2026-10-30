@@ -5064,6 +5064,9 @@ public enum L {
     /// Title of the filters sheet and panel.
     public static var filtersTitle: String { string("filters-title", fallback: "Filters") }
 
+    /// Accessible label and tooltip of the button that closes the filters panel.
+    public static var filtersClose: String { string("filters-close", fallback: "Close filters") }
+
     /// Button that opens the filters, with how many are on.
     public static func filtersButtonCount(count: Int) -> String {
         Self.format("filters-button-count", fallback: "All filters · %1$lld", count)
