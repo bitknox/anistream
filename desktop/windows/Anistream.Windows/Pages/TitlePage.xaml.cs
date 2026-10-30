@@ -418,6 +418,8 @@ public sealed partial class TitlePage : Page, IPageKeys
         Secondary.Text = entry.Secondary ?? "";
         Secondary.Visibility = entry.Secondary is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
         Meta.Text = Wording.MetaLine(entry);
+        Synopsis.MaxLines = 8;
+        SynopsisMore.Visibility = Visibility.Collapsed;
         Synopsis.Text = entry.Synopsis;
 
         ShowAction(entry);
@@ -435,6 +437,16 @@ public sealed partial class TitlePage : Page, IPageKeys
     /// The one amber action and what depends on it: the engine's next episode, or once the table
     /// is loaded the first after it that some source lists. With none, a line says so in its place.
     /// </summary>
+    /// <summary>More shows only where the synopsis is cut at its eight lines.</summary>
+    void OnSynopsisTrimmed(TextBlock sender, IsTextTrimmedChangedEventArgs args) =>
+        SynopsisMore.Visibility = sender.IsTextTrimmed ? Visibility.Visible : Visibility.Collapsed;
+
+    void OnSynopsisMore(object sender, RoutedEventArgs args)
+    {
+        Synopsis.MaxLines = 0;
+        SynopsisMore.Visibility = Visibility.Collapsed;
+    }
+
     void ShowAction(Entry entry)
     {
         action = PlayableNext.Item(entry, ctx.Known.Episodes.GetValueOrDefault(id), Casing.Sentence);

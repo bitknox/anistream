@@ -673,7 +673,33 @@ impl Page {
             synopsis.set_xalign(0.0);
             synopsis.set_margin_top(6);
             synopsis.set_max_width_chars(90);
+            // Eight lines, then "More" opens the rest in place, only where the text is cut.
+            synopsis.set_lines(8);
+            synopsis.set_ellipsize(gtk::pango::EllipsizeMode::End);
             self.synopsis.append(&synopsis);
+            let more = gtk::Button::with_label(&t::action_more());
+            more.add_css_class("flat");
+            more.set_halign(gtk::Align::Start);
+            more.set_visible(false);
+            more.connect_clicked({
+                let synopsis = synopsis.clone();
+                move |more| {
+                    synopsis.set_lines(-1);
+                    synopsis.set_ellipsize(gtk::pango::EllipsizeMode::None);
+                    more.set_visible(false);
+                }
+            });
+            synopsis.add_tick_callback({
+                let more = more.clone();
+                move |label, _| {
+                    if label.width() == 0 {
+                        return gtk::glib::ControlFlow::Continue;
+                    }
+                    more.set_visible(label.layout().is_ellipsized());
+                    gtk::glib::ControlFlow::Break
+                }
+            });
+            self.synopsis.append(&more);
         }
 
         self.fill_seasons(entry);

@@ -101,7 +101,13 @@
             </StackPanel>
           </Grid>
 
-          <TextBlock x:Name="Synopsis" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="WrapWholeWords" MaxWidth="720" HorizontalAlignment="Left" />
+          <StackPanel>
+            <TextBlock x:Name="Synopsis" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="WrapWholeWords" MaxLines="8"
+                       TextTrimming="WordEllipsis" MaxWidth="720" HorizontalAlignment="Left"
+                       IsTextTrimmedChanged="OnSynopsisTrimmed" />
+            <HyperlinkButton x:Name="SynopsisMore" Padding="0,4" Visibility="Collapsed" Click="OnSynopsisMore"
+                             Content="{x:Bind s:T.ActionMore}" />
+          </StackPanel>
 
           <StackPanel Spacing="4">
             <!-- The season picker and the dub line sit beside the heading, so their arriving moves nothing. -->
