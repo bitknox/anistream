@@ -21,6 +21,7 @@ dependencies {
     // The strings, for the engine's messages rendered in the person's language (generated/MsgText.kt).
     api(project(":i18n"))
     api(libs.coroutines.android)
+    implementation(libs.webkit)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)

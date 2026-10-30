@@ -181,7 +181,7 @@ public static class Trailers
     public const string FixturePage = """
         <!doctype html><html><head><meta charset="utf-8"><style>
         html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
-        #clip{width:100%;height:100%;background:linear-gradient(120deg,#1d3557,#e76f51,#f4a261,#264653);
+        [id=clip]{width:100%;height:100%;background:linear-gradient(120deg,#1d3557,#e76f51,#f4a261,#264653);
         background-size:300% 300%;animation:drift 6s linear infinite}
         @keyframes drift{0%{background-position:0% 50%}100%{background-position:100% 50%}}
         </style></head><body><div id="clip"></div><script>

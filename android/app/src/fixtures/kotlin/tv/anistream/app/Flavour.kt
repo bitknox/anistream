@@ -19,6 +19,7 @@
 //             continue-wide, airing-small, airing-wide (the launcher asks before each); and the
 //             widgets' record made at once, with its art
 //   tv        a Play on TV scene, on the two fake TVs: paired, picker, code or remote (TvScene)
+//   discussion an episode number of the first fixture whose discussion opens in its sheet
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
 //   player    a player state to shoot (from A3)
 //   code      a tracker whose device-code sheet opens, with a made-up code that expires in 15 minutes
@@ -44,6 +45,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import tv.anistream.engine.model.DeviceCodePrompt
+import tv.anistream.engine.model.DiscussionState
 import tv.anistream.engine.model.Event
 import tv.anistream.store.EngineEpisodeCheck
 import tv.anistream.store.covers
@@ -164,6 +166,15 @@ internal object Flavour {
      * screen: what announceReady waits on besides the store. True with no scene asked for.
      */
     suspend fun reachedTv(intent: Intent, store: AppStore): Boolean {
+        intent.getStringExtra("discussion")?.let { value ->
+            // "row" waits for the thread to be found without opening it, for the episode row's quiet line.
+            if (value == "row") {
+                foundFixtureThread(store, 7u)
+                delay(500)
+            } else {
+                value.toUIntOrNull()?.let { reachedDiscussion(store, it) }
+            }
+        }
         val scene = TvScene.named(intent.getStringExtra("tv")) ?: return true
         val browser = withTimeoutOrNull(60_000) {
             while (store.tv.attachedBrowser == null) delay(50)
@@ -178,6 +189,27 @@ internal object Flavour {
             delay(700)
             true
         } ?: false
+    }
+
+    /**
+     * Marking episodes watched here does not make the engine look their threads up, as playback
+     * does: say the fixture thread found, as the engine would, with its six comments.
+     */
+    private fun foundFixtureThread(store: AppStore, episode: UInt) {
+        store.apply(listOf(Event.DiscussionFound(900001u, episode, 6u)))
+    }
+
+    /**
+     * The discussion of [episode] of the first fixture, open in its sheet once the engine has
+     * found its thread and read the first page: what the `discussion` extra asks for.
+     */
+    private suspend fun reachedDiscussion(store: AppStore, episode: UInt) {
+        val id = 900001u
+        foundFixtureThread(store, episode)
+        store.discussion.show(id, episode)
+        withTimeoutOrNull(30_000) { store.discussion.open.first { it?.state is DiscussionState.Ready } }
+        // The sheet's own animation in, and the avatars.
+        delay(1_200)
     }
 
     /** What the extras ask of the engine once it is up, once per process. */

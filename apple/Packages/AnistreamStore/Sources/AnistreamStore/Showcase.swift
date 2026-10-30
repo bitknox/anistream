@@ -21,9 +21,10 @@ import UIKit
 /// rows given estimated times and Sub and Dub marks; and `signin` and `expired`, Simkl's device
 /// code with most of its time left, or none; `proxy`, Sources with torrents through a saved
 /// proxy, and `checking` and `unsaved`, the same with a check through an edited proxy under way,
-/// or failed with nothing saved. `all` leaves these out too.
+/// or failed with nothing saved; and `trailer`, 900001 and 900002 with a trailer on record, played
+/// by a stand-in page. `all` leaves these out too.
 public enum Showcase: String, CaseIterable, Sendable {
-    case sources, stores, downloads, invite, update, pale, offline, stranded, failed, messages, calendar,
+    case sources, stores, downloads, invite, update, pale, trailer, offline, stranded, failed, messages, calendar,
          signin, expired, proxy, checking, unsaved, picker, all
 
     /// The one the launch arguments name.
@@ -74,6 +75,15 @@ public enum Showcase: String, CaseIterable, Sendable {
                 if let bytes = Self.paleBanner, let title = entry(Self.paleTitle) {
                     events.append(.artworkReady(url: Self.paleBannerUrl, bytes: bytes))
                     events.append(.detail(Self.pale(title)))
+                }
+            case .trailer:
+                // 900001 and 900002 with a trailer on record, which the Fixtures app plays as a
+                // stand-in page: no video is fetched.
+                for id: AnilistId in [900_001, 900_002] {
+                    guard var title = entry(id) else { continue }
+                    title.trailer = Trailer(host: .youTube, id: "stand-in\(id)")
+                    title.trailerUrl = "https://video.example/trailer/\(id)"
+                    events.append(.detail(title))
                 }
             case .offline:
                 events.append(.connectivity(offline: true))

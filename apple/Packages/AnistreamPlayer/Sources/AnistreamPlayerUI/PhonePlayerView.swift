@@ -297,6 +297,18 @@ public struct PhonePlayerView: View {
                             model.toggleStats()
                             if model.statsShown { self.sheet = nil }
                         }
+                        // From 85% of the episode, where it counts as watched.
+                        if let offer = model.discussionOffer {
+                            MenuDivider()
+                            MenuRow(
+                                title: L.discussionOpen,
+                                detail: offer.count.map { L.discussionApplePlayerNote(count: Int($0)) } ?? L.discussionApplePauses,
+                                checked: false, metrics: metrics
+                            ) {
+                                self.sheet = nil
+                                model.openDiscussion()
+                            }
+                        }
                     case .episodes:
                         EpisodeList(model: model, metrics: metrics)
                     case .party:

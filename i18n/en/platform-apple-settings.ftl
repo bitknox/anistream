@@ -375,3 +375,13 @@ settings-title-note-romaji = Japanese titles written in Latin letters, as { $tra
 
 # Confirm button of the folder picker for the downloads folder.
 settings-folder-choose = Choose
+
+# Settings row: when a title's trailer plays by itself, muted, in place of its banner.
+# @only apple
+# @max 24
+settings-trailers-row = Play trailers
+
+# Note under the Play trailers setting: what the trailers are and when they do not play.
+# @only apple
+# @max 240
+settings-trailers-note-apple = Trailers play muted from YouTube, which sees your IP address. They don't play in Low Data Mode, with Reduce Motion on or in Low Power Mode.

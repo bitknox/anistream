@@ -5,6 +5,53 @@ import Foundation
 
 /// Every string the apps show, by catalogue id. A missing translation falls back to English per string.
 public enum L {
+    /// What the TV's loading screen and its own controls show under the show's name.
+    public static func castEpisode(episode: String) -> String {
+        Self.format("cast-episode", fallback: "Episode %1$@", episode)
+    }
+
+    /// What the TV's loading screen and its own controls show under the show's name, with the episode's own title.
+    public static func castEpisodeTitled(episode: String, title: String) -> String {
+        Self.format("cast-episode-titled", fallback: "Episode %1$@ · %2$@", episode, title)
+    }
+
+    /// The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
+    public static func noticeCastVideoCodec(codec: String) -> String {
+        Self.format("notice-cast-video-codec", fallback: "The TV can't play this video (%1$@). Try another source.", codec)
+    }
+
+    /// The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
+    public static func noticeCastAudioCodec(codec: String) -> String {
+        Self.format("notice-cast-audio-codec", fallback: "The TV can't play this audio (%1$@), and this device can't convert it. Try another source.", codec)
+    }
+
+    /// The stream comes in a kind of file the TV can't read.
+    public static var noticeCastContainer: String { string("notice-cast-container", fallback: "The TV can't play this kind of file. Try another source.") }
+
+    /// The episode opens in another app, which this device can't cast.
+    public static var noticeCastDeepLink: String { string("notice-cast-deep-link", fallback: "This episode opens in another app, so it can't be cast.") }
+
+    /// The TV accepted the stream but never started reading it.
+    public static var noticeCastNeverFetches: String { string("notice-cast-never-fetches", fallback: "The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.") }
+
+    /// The TV tried every way of playing the stream and played none of them.
+    public static var noticeCastRefused: String { string("notice-cast-refused", fallback: "The TV couldn't play this stream. Try another source.") }
+
+    /// Someone started something else on the TV, which ends the cast.
+    public static var noticeCastTakenOver: String { string("notice-cast-taken-over", fallback: "Another device started something on the TV, so casting stopped.") }
+
+    /// This device isn't on the TV's network, or reaches it through a VPN.
+    public static var noticeCastNotSameNetwork: String { string("notice-cast-not-same-network", fallback: "This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.") }
+
+    /// The TV stopped answering mid-cast.
+    public static var noticeCastLost: String { string("notice-cast-lost", fallback: "Lost the TV, so casting stopped.") }
+
+    /// The TV picked to cast to has left the network.
+    public static var noticeCastNoDevice: String { string("notice-cast-no-device", fallback: "That TV is no longer on the network.") }
+
+    /// This build of the app has no casting.
+    public static var noticeCastUnavailable: String { string("notice-cast-unavailable", fallback: "This version of anistream can't cast to TVs.") }
+
     /// A comment's age, beside its author, when it was written under a minute ago.
     public static var discussionAgeNow: String { string("discussion-age-now", fallback: "now") }
 
@@ -1077,6 +1124,79 @@ public enum L {
         Self.format("downloads-seeding-uploaded", fallback: "Shared %1$@ of %2$@ · %3$@ · %4$@ up", shared, goal, left, size)
     }
 
+    /// Line under the header while AniList's request budget is spent. The placeholders stay.
+    public static func discussionAppleWaiting(time: String) -> String {
+        Self.format("discussion-apple-waiting", fallback: "Waiting for AniList · %1$@", time)
+    }
+
+    /// Line in place of an image in a comment: the word, then the site that hosts it.
+    public static func discussionAppleImageHost(host: String) -> String {
+        Self.format("discussion-apple-image-host", fallback: "Image · %1$@", host)
+    }
+
+    /// Line in place of a video in a comment: the word, then the site that hosts it.
+    public static func discussionAppleVideoHost(host: String) -> String {
+        Self.format("discussion-apple-video-host", fallback: "Video · %1$@", host)
+    }
+
+    /// Menu item that copies a comment's text.
+    public static var discussionAppleCopyText: String { string("discussion-apple-copy-text", fallback: "Copy text") }
+
+    /// Age of a comment that was sent and is not yet confirmed.
+    public static var discussionAppleSending: String { string("discussion-apple-sending", fallback: "Sending") }
+
+    /// Line above the field while the viewer edits their own comment.
+    public static var discussionAppleEditing: String { string("discussion-apple-editing", fallback: "Editing your comment") }
+
+    /// Accessible name of the button that opens a comment's menu.
+    public static var discussionAppleCommentMenu: String { string("discussion-apple-comment-menu", fallback: "More for this comment") }
+
+    /// After the author's name on a reply to a reply, naming who it answers.
+    public static func discussionAppleAnswering(name: String) -> String {
+        Self.format("discussion-apple-answering", fallback: "to %1$@", name)
+    }
+
+    /// Title of the state when the episode has no thread. Open on AniList goes to the show's page.
+    public static var discussionAppleNoThread: String { string("discussion-apple-no-thread", fallback: "No discussion for this episode") }
+
+    /// Title of the state when the device is offline and no comments were kept.
+    public static var discussionAppleOffline: String { string("discussion-apple-offline", fallback: "You're offline") }
+
+    /// Menu item in the comment field's edit menu that hides the selected words as a spoiler.
+    public static var discussionAppleMarkSpoiler: String { string("discussion-apple-mark-spoiler", fallback: "Spoiler") }
+
+    /// Accessible name of a hidden spoiler that a tap shows.
+    public static var discussionAppleSpoilerHint: String { string("discussion-apple-spoiler-hint", fallback: "Shows the spoiler") }
+
+    /// Accessible name of the button that closes the discussion.
+    public static var discussionAppleClose: String { string("discussion-apple-close", fallback: "Close discussion") }
+
+    /// Accessible name of a comment's heart when the viewer likes it.
+    public static var discussionAppleLiked: String { string("discussion-apple-liked", fallback: "Liked") }
+
+    /// Row in the player's More menu that opens the episode's discussion, with the count and a note.
+    public static func discussionApplePlayerNote(count: Int) -> String {
+        Self.format("discussion-apple-player-note", fallback: "%1$lld comments · pauses", count)
+    }
+
+    /// Name of the Settings switch for episode discussions.
+    public static var settingsAppleDiscussions: String { string("settings-apple-discussions", fallback: "Episode discussions") }
+
+    /// Note under the switch for episode discussions.
+    public static var settingsAppleDiscussionsNote: String { string("settings-apple-discussions-note", fallback: "Reads the comments on AniList's forum thread for episodes you have watched.") }
+
+    /// Name of the Settings switch that loads images in comments.
+    public static var settingsAppleCommentImages: String { string("settings-apple-comment-images", fallback: "Load images in comments") }
+
+    /// Note under the switch that loads images in comments.
+    public static var settingsAppleCommentImagesNote: String { string("settings-apple-comment-images-note", fallback: "Each image loads from the site that hosts it, which sees your IP address.") }
+
+    /// Line under the comment field on the Mac: the keys that post and add a line.
+    public static var discussionAppleKeyHint: String { string("discussion-apple-key-hint", fallback: "⌘Return posts. Return adds a line.") }
+
+    /// Note beside Discussion in the player's menu when the comments are not counted yet.
+    public static var discussionApplePauses: String { string("discussion-apple-pauses", fallback: "Pauses the video") }
+
     /// Body of a new-episode notification when the viewer is caught up.
     public static func noticeOut(episode: Int) -> String {
         Self.format("notice-out", fallback: "Episode %1$lld is out.", episode)
@@ -1760,6 +1880,12 @@ public enum L {
     /// Confirm button of the folder picker for the downloads folder.
     public static var settingsFolderChoose: String { string("settings-folder-choose", fallback: "Choose") }
 
+    /// Settings row: when a title's trailer plays by itself, muted, in place of its banner.
+    public static var settingsTrailersRow: String { string("settings-trailers-row", fallback: "Play trailers") }
+
+    /// Note under the Play trailers setting: what the trailers are and when they do not play.
+    public static var settingsTrailersNoteApple: String { string("settings-trailers-note-apple", fallback: "Trailers play muted from YouTube, which sees your IP address. They don't play in Low Data Mode, with Reduce Motion on or in Low Power Mode.") }
+
     /// Mac menu bar item that opens Settings.
     public static var menuSettings: String { string("menu-settings", fallback: "Settings…") }
 
@@ -2192,6 +2318,14 @@ public enum L {
 
     /// Option of the episode list's filter that shows the episodes not yet watched.
     public static var titleEpisodesUnwatched: String { string("title-episodes-unwatched", fallback: "Unwatched") }
+
+    /// Heading in the trailer window or sheet when the video did not start within a few seconds or the player refused it.
+    public static var trailerFailedApple: String { string("trailer-failed-apple", fallback: "Couldn't open the trailer") }
+
+    /// Title of the Play trailer window on the Mac and of its sheet on iPhone and iPad.
+    public static func trailerWindowTitleApple(title: String) -> String {
+        Self.format("trailer-window-title-apple", fallback: "%1$@ · Trailer", title)
+    }
 
     /// Status line while the update is being fetched ahead of the download.
     public static var updatesPreparing: String { string("updates-preparing", fallback: "Preparing the update") }
@@ -3314,6 +3448,9 @@ public enum L {
 
     /// Age of a comment that is on its way to AniList.
     public static var discussionSending: String { string("discussion-sending", fallback: "Sending") }
+
+    /// Button under a comment that is cut off after ten lines.
+    public static var discussionShowMore: String { string("discussion-show-more", fallback: "Show more") }
 
     /// Comment menu item that copies the comment's text.
     public static var discussionCopyText: String { string("discussion-copy-text", fallback: "Copy text") }
@@ -5401,6 +5538,12 @@ public enum L {
     public static func widgetLineStart(episode: String) -> String {
         Self.format("widget-line-start", fallback: "Start %1$@", episode)
     }
+
+    /// Value of the Play trailers setting: trailers play by themselves on any network.
+    public static var settingsTrailersAlways: String { string("settings-trailers-always", fallback: "Always") }
+
+    /// Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
+    public static var settingsTrailersWifiOnly: String { string("settings-trailers-wifi-only", fallback: "Wi-Fi only") }
 
     /// Title of the screen or section that lists sources.
     public static var sourcesTitle: String { string("sources-title", fallback: "Sources") }

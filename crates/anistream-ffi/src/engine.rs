@@ -176,13 +176,13 @@ impl FfiEngine {
     ) -> Result<Arc<Self>, FfiError> {
         match started {
             Ok((engine, events)) => Ok(Arc::new(Self {
+                #[cfg(feature = "remote")]
+                remote: crate::remote::Attached::new(home, engine.casts()),
                 engine: Mutex::new(Some(engine)),
                 events: Arc::new(tokio::sync::Mutex::new(events)),
                 handle: runtime.handle().clone(),
                 runtime: Mutex::new(Some(runtime)),
                 kept,
-                #[cfg(feature = "remote")]
-                remote: crate::remote::Attached::new(home),
             })),
             Err(e) => {
                 runtime.shutdown_background();

@@ -32,6 +32,8 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::outbox::Outbox;
 
+#[cfg(feature = "cast")]
+pub mod cast;
 #[cfg(test)]
 pub(crate) mod fake;
 pub mod hosted;
@@ -47,6 +49,35 @@ pub use anistream_playback::PlaybackEvent;
 #[error("{0}")]
 pub struct LinkError(pub String);
 
+/// Where a player shows its picture: on this device, or on a TV a cast plays on. A window kept
+/// between episodes is claimed only by a play for the same place.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum PlayerTarget {
+    #[default]
+    Local,
+    /// The Cast device's TXT `id`.
+    Cast(String),
+}
+
+/// What the next [`PlayerLink::load`] plays, for a player that needs more than mpv's per-file
+/// options: a cast chooses how the TV reads the stream from the stream as its source gave it,
+/// sends its subtitles with the file, and shows the title on the TV.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FileFacts {
+    /// The stream as its source gave it, before the mender's loopback address replaced an HLS
+    /// stream's: what decides whether the TV can fetch it by itself.
+    pub source: anistream_core::stream::Stream,
+    /// The stream as the player opens it, with its subtitles on disk.
+    pub played: anistream_core::stream::Stream,
+    pub title: String,
+    pub episode: String,
+    pub episode_title: Option<String>,
+    /// The title's art by URL, for the TV's loading screen.
+    pub image: Option<String>,
+    pub subtitle_language: Option<String>,
+    pub dub: bool,
+}
+
 /// What the session does to the player a playback runs in.
 ///
 /// Called from the playback's task, one call at a time, in the order the session decides; a call
@@ -59,6 +90,27 @@ pub trait PlayerLink: Send + Sync {
     /// took it from the one before. What the link says, it says for that playback, through `tx`.
     /// Nothing for mpv, which hears only the session.
     fn attach(&self, _tx: &Outbox) {}
+
+    /// Where this player shows its picture.
+    fn target(&self) -> PlayerTarget {
+        PlayerTarget::Local
+    }
+
+    /// Told what the next `load` plays, just before it. Nothing for mpv, which takes the
+    /// file's options with the load.
+    fn prepare(&self, _file: &FileFacts) {}
+
+    /// Whether the external subtitles travel with the load, from what `prepare` was told,
+    /// rather than being attached once the file has loaded.
+    fn subtitles_with_load(&self) -> bool {
+        false
+    }
+
+    /// What to tell the viewer when nothing played, in place of what mpv's failures say, for a
+    /// player that knows better.
+    fn failure_notice(&self) -> Option<anistream_model::Msg> {
+        None
+    }
 
     /// Open `url` in place of whatever is playing, with `options` that belong to that file
     /// alone, as mpv's per-file options: the headers, the resume point, the title and the
@@ -154,6 +206,17 @@ pub trait PlayerOpener: Send + Sync {
     /// Where a playback keeps its scratch files beside the player: the subtitles fetched ahead
     /// of it, and the next episode's still.
     fn scratch_dir(&self) -> &Path;
+
+    /// Where the windows it opens show their picture.
+    fn target(&self) -> PlayerTarget {
+        PlayerTarget::Local
+    }
+
+    /// Why the last [`Self::open`] failed, in the opener's own words, where it has them. The
+    /// session says the player failed to start otherwise.
+    fn open_failure_notice(&self) -> Option<anistream_model::Msg> {
+        None
+    }
 }
 
 /// What a play opens its player with, from the config as it stands now; `None` where this build

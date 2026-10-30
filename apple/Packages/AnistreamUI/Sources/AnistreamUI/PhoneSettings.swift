@@ -288,6 +288,7 @@ struct PhoneGeneralPage: View {
         PhoneList {
             Section {
                 PhoneTitleLanguageRow()
+                PhoneSettingPicker(key: .trailers, note: L.settingsTrailersNoteApple)
                 PhoneSettingSwitch(key: .adultTitles, note: L.settingsAdultDetail(tracker: AccountsModel.name("anilist")))
             } header: {
                 PhoneSectionHeader(L.settingsGroupTitles)
@@ -696,6 +697,14 @@ struct PhoneAccountsPage: View {
                 PhoneSectionHeader(AccountsModel.name("anilist"))
             } footer: {
                 Text(L.accountsLibraryFrom(tracker: AccountsModel.name("anilist")))
+            }
+            Section {
+                PhoneSettingSwitch(key: .episodeDiscussions, note: L.settingsAppleDiscussionsNote)
+                if store.discussionsOn {
+                    PhoneSettingSwitch(key: .commentImages, note: L.settingsAppleCommentImagesNote)
+                }
+            } header: {
+                PhoneSectionHeader(L.discussionSettingsGroup)
             }
             Section {
                 ForEach(["mal", "kitsu", "simkl", "trakt"], id: \.self) { tracker in

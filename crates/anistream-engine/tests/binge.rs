@@ -14,7 +14,10 @@ use anistream_core::{
 };
 use anistream_engine::{
     host::Host,
-    playback::{self, Machine, NextEpisode, PlaySettings, PlaybackContext, slot::PlayerSlot},
+    playback::{
+        self, Machine, NextEpisode, PlaySettings, PlaybackContext, link::PlayerTarget,
+        slot::PlayerSlot,
+    },
 };
 use anistream_model::{
     command::PlayerCommand,
@@ -334,7 +337,10 @@ async fn the_next_episode_plays_in_the_window_the_last_one_left() {
     assert!(!spawned(&second), "the second episode must reuse the parked window");
     assert_eq!(ended(&second), Some((true, complete(None))));
     // No episode after the second, so nothing waits: the window closed with it.
-    assert!(slot.take().is_none(), "a finale must not leave a window parked");
+    assert!(
+        slot.take(&PlayerTarget::Local).is_none(),
+        "a finale must not leave a window parked"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -346,7 +352,7 @@ async fn a_cancelled_or_absent_successor_closes_the_window() {
     let updates =
         run(&mpv, &slot, clip(2), context("1", Some("2")), settings(false), commands).await;
     assert_eq!(ended(&updates), Some((true, complete(None))), "nothing is named to roll on to");
-    assert!(slot.take().is_none());
+    assert!(slot.take(&PlayerTarget::Local).is_none());
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -443,7 +449,7 @@ async fn an_episode_list_learned_after_starting_still_keeps_the_window_for_the_n
         .unwrap();
     let updates = run(&mpv, &slot, clip(2), context("1", None), settings(true), commands).await;
     assert_eq!(ended(&updates), Some((true, complete(Some("2")))));
-    assert!(slot.take().is_some(), "the window waits for episode 2");
+    assert!(slot.take(&PlayerTarget::Local).is_some(), "the window waits for episode 2");
 }
 
 /// Start a playback in the background, for a test that acts on it while it plays.
@@ -536,7 +542,10 @@ async fn closing_the_window_after_the_threshold_does_not_roll_on() {
     let updates = finish(task, rx, seen).await;
 
     assert_eq!(ended(&updates), Some((true, Ending::Closed)));
-    assert!(slot.take().is_none(), "a window was kept for an episode that is not coming");
+    assert!(
+        slot.take(&PlayerTarget::Local).is_none(),
+        "a window was kept for an episode that is not coming"
+    );
     assert!(alerts(&updates).is_empty(), "{:?}", alerts(&updates));
 }
 
@@ -562,7 +571,7 @@ async fn closing_the_window_before_the_first_frame_does_not_fall_over() {
     assert_eq!(attempts(&updates), 1, "it fell over to the next stream");
     assert_eq!(windows(&updates), 1);
     assert!(alerts(&updates).is_empty(), "{:?}", alerts(&updates));
-    assert!(slot.take().is_none());
+    assert!(slot.take(&PlayerTarget::Local).is_none());
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -616,7 +625,7 @@ async fn a_cancelled_up_next_holds_for_its_own_episode_only() {
         run(&mpv, &slot, clip(2), context("2", Some("3")), settings(true), commands).await;
     assert!(!spawned(&second));
     assert_eq!(ended(&second), Some((true, complete(Some("3")))), "the cancel carried over");
-    assert!(slot.take().is_some(), "the window waits for episode 3");
+    assert!(slot.take(&PlayerTarget::Local).is_some(), "the window waits for episode 3");
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -639,7 +648,10 @@ async fn a_cancelled_up_next_ends_the_binge_at_this_episode() {
         .await;
     let updates = finish(task, rx, seen).await;
     assert_eq!(ended(&updates), Some((true, complete(None))));
-    assert!(slot.take().is_none(), "a window waited for a cancelled Up Next");
+    assert!(
+        slot.take(&PlayerTarget::Local).is_none(),
+        "a window waited for a cancelled Up Next"
+    );
 }
 
 fn entry(number: &str) -> playback::EpisodeEntry {
@@ -674,7 +686,10 @@ async fn nothing_follows_the_finale() {
         "the terminal is told there is no next episode"
     );
     assert_eq!(ended(&updates), Some((true, complete(None))), "the finale played to its end");
-    assert!(slot.take().is_none(), "a finale must not leave a window parked");
+    assert!(
+        slot.take(&PlayerTarget::Local).is_none(),
+        "a finale must not leave a window parked"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]

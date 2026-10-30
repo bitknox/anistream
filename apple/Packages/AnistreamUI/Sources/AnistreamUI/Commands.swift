@@ -229,7 +229,7 @@ struct EpisodeCommands: View {
             .keyboardShortcut(.delete, modifiers: .command)
             .disabled(entry?.progress == nil)
             Button(L.menuPlayTrailer) {
-                if let entry, let trailer = entry.trailerUrl { store.send(.playTrailer(url: trailer, title: entry.title)) }
+                if let entry { navigator.playTrailer(entry, store: store) }
             }
             .disabled(entry?.trailerUrl == nil)
             Button(L.menuMoreAbout) {

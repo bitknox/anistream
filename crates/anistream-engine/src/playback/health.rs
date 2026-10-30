@@ -25,7 +25,7 @@ use std::{collections::HashMap, time::Instant};
 use anistream_core::stream::Stream;
 use anistream_store::{
     Store,
-    server_health::{ServerFailure, ServerHealth, ServerKey},
+    server_health::{SERVER_RETENTION_SECS, ServerFailure, ServerHealth, ServerKey},
 };
 
 /// The run of failures that puts a server behind its healthy peers. More than one, because a
@@ -179,6 +179,9 @@ pub fn verdict(viewer_ended: bool, late: bool, refused: Option<u16>) -> Option<S
     }
 }
 
+/// How long a playback's ending waits for its servers' records to reach the store.
+const SETTLE: std::time::Duration = std::time::Duration::from_secs(2);
+
 /// What one playback knows of its streams' servers, kept current as it tries them, and the
 /// attempt under way.
 #[derive(Debug, Default)]
@@ -188,6 +191,8 @@ pub(crate) struct Servers {
     began: Option<Instant>,
     /// Whether the attempt under way went past the first-frame timeout without one.
     late: bool,
+    /// The store's writes still under way, the last made: each waits for the one before.
+    writing: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl Servers {
@@ -208,7 +213,7 @@ impl Servers {
         })
         .await
         .unwrap_or_default();
-        Self { known, began: None, late: false }
+        Self { known, began: None, late: false, writing: None }
     }
 
     /// A short note on how `stream`'s server has fared, when it has been failing.
@@ -228,47 +233,41 @@ impl Servers {
     }
 
     /// The attempt under way, on `stream`, showed its first frame.
-    pub(crate) async fn served(&mut self, store: &Store, stream: &Stream) {
+    pub(crate) fn served(&mut self, store: &Store, stream: &Stream) {
         let Some(began) = self.began.take() else { return };
         let first_frame = began.elapsed();
-        let written = self.write(store, stream, move |s, key, at| {
-            s.record_server_served(key, first_frame, at)
-        });
-        if let Some(health) = written.await {
-            tracing::debug!(
-                provider = health.key.provider_id(),
-                server = health.key.host(),
-                first_frame_ms = first_frame.as_millis() as u64,
-                successes = health.successes,
-                "a server showed a frame"
-            );
-        }
+        let Some(key) = server(stream) else { return };
+        let at = anistream_store::now();
+        let health = self.held(key, at).served(at, first_frame);
+        tracing::debug!(
+            provider = health.key.provider_id(),
+            server = health.key.host(),
+            first_frame_ms = first_frame.as_millis() as u64,
+            successes = health.successes,
+            "a server showed a frame"
+        );
+        self.keep(store, health, move |s, key| s.record_server_served(key, first_frame, at));
     }
 
     /// An attempt on `stream` failed as `failure`.
-    pub(crate) async fn failed(
-        &mut self,
-        store: &Store,
-        stream: &Stream,
-        failure: ServerFailure,
-    ) {
+    pub(crate) fn failed(&mut self, store: &Store, stream: &Stream, failure: ServerFailure) {
         self.began = None;
-        let written = self
-            .write(store, stream, move |s, key, at| s.record_server_failure(key, failure, at));
-        if let Some(health) = written.await {
-            tracing::debug!(
-                provider = health.key.provider_id(),
-                server = health.key.host(),
-                %failure,
-                in_a_row = health.consecutive_failures,
-                "a server failed"
-            );
-        }
+        let Some(key) = server(stream) else { return };
+        let at = anistream_store::now();
+        let health = self.held(key, at).failed(at, failure);
+        tracing::debug!(
+            provider = health.key.provider_id(),
+            server = health.key.host(),
+            %failure,
+            in_a_row = health.consecutive_failures,
+            "a server failed"
+        );
+        self.keep(store, health, move |s, key| s.record_server_failure(key, failure, at));
     }
 
     /// The attempt on `stream` ended before it showed a frame: see [`verdict`]. `refused` is the
     /// error status the host answered the stream's requests with, when the mender saw one.
-    pub(crate) async fn unplayed(
+    pub(crate) fn unplayed(
         &mut self,
         store: &Store,
         stream: &Stream,
@@ -276,37 +275,53 @@ impl Servers {
         refused: Option<u16>,
     ) {
         match verdict(viewer_ended, self.late, refused) {
-            Some(failure) => self.failed(store, stream, failure).await,
+            Some(failure) => self.failed(store, stream, failure),
             None => self.began = None,
         }
     }
 
-    /// Write to `stream`'s server's record, off the async worker, and keep what it became.
-    async fn write(
+    /// The records written to the store, for the next playback to read, waiting at most
+    /// [`SETTLE`]: an ending is not held up by a slow disk either. A write still under way then
+    /// lands on its own.
+    pub(crate) async fn settle(&mut self) {
+        if let Some(writing) = self.writing.take() {
+            let _ = tokio::time::timeout(SETTLE, writing).await;
+        }
+    }
+
+    /// What is known of `key`'s server as of `at`, or a first record for it.
+    fn held(&self, key: ServerKey, at: i64) -> ServerHealth {
+        let known = self.known.get(&key).filter(|h| at - h.seen_at <= SERVER_RETENTION_SECS);
+        known.cloned().unwrap_or_else(|| ServerHealth::new(key, at))
+    }
+
+    /// Keep `health` as its server's record, and write it to the store with `write`.
+    ///
+    /// The playback goes on without waiting for the disk: a viewer's switch or the next event
+    /// never waits on a write. The writes still land in the order they were made, each after
+    /// the one before.
+    fn keep(
         &mut self,
         store: &Store,
-        stream: &Stream,
-        change: impl FnOnce(&Store, &ServerKey, i64) -> anistream_store::Result<ServerHealth>
+        health: ServerHealth,
+        write: impl FnOnce(&Store, &ServerKey) -> anistream_store::Result<ServerHealth>
         + Send
         + 'static,
-    ) -> Option<ServerHealth> {
-        let key = server(stream)?;
-        let (store, written_key) = (store.clone(), key.clone());
-        let written = tokio::task::spawn_blocking(move || {
-            change(&store, &written_key, anistream_store::now())
-        })
-        .await;
-        match written {
-            Ok(Ok(health)) => {
-                self.known.insert(key, health.clone());
-                Some(health)
+    ) {
+        let (store, key) = (store.clone(), health.key.clone());
+        self.known.insert(key.clone(), health);
+        let before = self.writing.take();
+        self.writing = Some(tokio::spawn(async move {
+            if let Some(before) = before {
+                let _ = before.await;
             }
-            Ok(Err(e)) => {
+            let written =
+                tokio::task::spawn_blocking(move || write(&store, &key).map_err(|e| (e, key)))
+                    .await;
+            if let Ok(Err((e, key))) = written {
                 tracing::warn!(error = %e, server = key.host(), "could not record a server's health");
-                None
             }
-            Err(_) => None,
-        }
+        }));
     }
 }
 
@@ -545,5 +560,24 @@ mod tests {
             None,
             "the viewer stopped it before it had a chance"
         );
+    }
+
+    #[tokio::test]
+    async fn a_record_is_kept_at_once_and_reaches_the_store_in_the_order_made() {
+        let store = Store::open_in_memory().unwrap();
+        let stream = at("https://cdn-a.example", None);
+        let mut servers = Servers::load(&store, std::slice::from_ref(&stream)).await;
+        servers.begin();
+        servers.served(&store, &stream);
+        servers.failed(&store, &stream, ServerFailure::Stalled);
+        // Known to this playback before the store has it: the menus read it from here.
+        let key = server(&stream).unwrap();
+        let kept = servers.known.get(&key).cloned().unwrap();
+        assert_eq!((kept.successes, kept.failures, kept.consecutive_failures), (1, 1, 1));
+
+        servers.settle().await;
+        let stored = store.server_health(&key, anistream_store::now()).unwrap().unwrap();
+        assert_eq!((stored.successes, stored.failures, stored.consecutive_failures), (1, 1, 1));
+        assert_eq!(stored.last_failure, Some(ServerFailure::Stalled));
     }
 }

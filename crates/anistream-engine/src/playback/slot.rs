@@ -21,7 +21,7 @@ use anistream_core::{ids::AnilistId, media::Translation};
 use anistream_playback::{PlaybackEvent, TrackPolicy, TrackPreferences};
 use tokio::sync::mpsc::UnboundedReceiver;
 
-use crate::playback::link::PlayerLink;
+use crate::playback::link::{PlayerLink, PlayerTarget};
 
 /// How long a parked window waits for the next playback.
 ///
@@ -95,10 +95,16 @@ impl PlayerSlot {
         });
     }
 
-    /// Claim the parked player, if there is one and the viewer has not closed it meanwhile.
-    pub fn take(&self) -> Option<Player> {
+    /// Claim the parked player, if there is one for `target` and the viewer has not closed it
+    /// meanwhile. One parked for another place is closed: a play that casts leaves no window
+    /// waiting here, and one that plays here leaves no TV showing the loading screen.
+    pub fn take(&self, target: &PlayerTarget) -> Option<Player> {
         let (_, mut player) = self.lock().take()?;
         if !player.link.is_alive() {
+            return None;
+        }
+        if player.link.target() != *target {
+            tokio::spawn(player.link.shutdown());
             return None;
         }
         // What arrived while it waited belongs to no playback: the tail of the last file, keys
