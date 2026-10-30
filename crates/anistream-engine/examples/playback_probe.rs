@@ -151,7 +151,6 @@ async fn main() {
                         );
                     }
                 }
-                Event::Status(Some(s)) => println!("  status: {s}"),
                 Event::Toast(t) => println!("  toast: {}", t.text),
                 Event::PlaybackEnded { watched, ending, .. } => {
                     println!("  ended (watched: {watched}, {ending:?})");

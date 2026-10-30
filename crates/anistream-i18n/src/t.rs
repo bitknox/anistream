@@ -110,6 +110,11 @@ pub fn cause_release_failed(detail: &str) -> String {
     text("cause-release-failed", &[("detail", Arg::Text(detail))])
 }
 
+/// Reason: a play waited too long for its sources to give it a stream, and gave up.
+pub fn cause_sources_timed_out() -> String {
+    text("cause-sources-timed-out", &[])
+}
+
 /// Reason: every source matched the title but none has the episode. The detail is what each said.
 pub fn cause_no_source_has_episode(episode: &str, detail: &str) -> String {
     text("cause-no-source-has-episode", &[("episode", Arg::Text(episode)), ("detail", Arg::Text(detail))])
@@ -155,16 +160,6 @@ pub fn status_searching_sources(episode: &str) -> String {
     text("status-searching-sources", &[("episode", Arg::Text(episode))])
 }
 
-/// Status while the player opens.
-pub fn status_starting_player() -> String {
-    text("status-starting-player", &[])
-}
-
-/// Status line while an episode plays.
-pub fn status_playing(title: &str, episode: &str) -> String {
-    text("status-playing", &[("title", Arg::Text(title)), ("episode", Arg::Text(episode))])
-}
-
 /// Toast when the player cannot be started. The reason comes from the system.
 pub fn notice_player_failed_to_start(reason: &str) -> String {
     text("notice-player-failed-to-start", &[("reason", Arg::Text(reason))])
@@ -195,14 +190,19 @@ pub fn notice_no_player() -> String {
     text("notice-no-player", &[])
 }
 
-/// Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+/// Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.
 pub fn notice_mpv_missing(binary: &str) -> String {
     text("notice-mpv-missing", &[("binary", Arg::Text(binary))])
 }
 
-/// Toast at launch when mpv is too old for anistream's own player.
+/// Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps.
 pub fn notice_mpv_old(version: &str) -> String {
     text("notice-mpv-old", &[("version", Arg::Text(version))])
+}
+
+/// Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.
+pub fn notice_subtitles_unavailable() -> String {
+    text("notice-subtitles-unavailable", &[])
 }
 
 /// Toast after a link was handed to the browser.
@@ -303,6 +303,16 @@ pub fn notice_source_choice_failed(reason: &str) -> String {
 /// Toast when no source could list a show's episodes. The reason is what the sources said.
 pub fn notice_no_source_could_list(reason: &str) -> String {
     text("notice-no-source-could-list", &[("reason", Arg::Text(reason))])
+}
+
+/// Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.
+pub fn notice_episodes_failed(reason: &str) -> String {
+    text("notice-episodes-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name.
+pub fn notice_match_uncertain(source: &str) -> String {
+    text("notice-match-uncertain", &[("source", Arg::Text(source))])
 }
 
 /// Toast when a title cannot be taken off the Continue row. The reason comes from the system.
@@ -410,9 +420,14 @@ pub fn notice_keep_next_full() -> String {
     text("notice-keep-next-full", &[])
 }
 
-/// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+/// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.
 pub fn party_needs_server(server: &str, operator: &str) -> String {
     text("party-needs-server", &[("server", Arg::Text(server)), ("operator", Arg::Text(operator))])
+}
+
+/// Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it.
+pub fn party_choose_server(server: &str, operator: &str) -> String {
+    text("party-choose-server", &[("server", Arg::Text(server)), ("operator", Arg::Text(operator))])
 }
 
 /// Toast when a watch party is asked for in a build without watch parties.
@@ -725,7 +740,7 @@ pub fn torrent_session_failed(reason: &str) -> String {
     text("torrent-session-failed", &[("reason", Arg::Text(reason))])
 }
 
-/// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+/// Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.
 pub fn torrent_no_kill_switch() -> String {
     text("torrent-no-kill-switch", &[])
 }
@@ -865,7 +880,7 @@ pub fn notice_anilist_client_missing(client: &str, secret: &str) -> String {
     text("notice-anilist-client-missing", &[("client", Arg::Text(client)), ("secret", Arg::Text(secret))])
 }
 
-/// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+/// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.
 pub fn notice_anilist_paste_flow() -> String {
     text("notice-anilist-paste-flow", &[])
 }
@@ -875,7 +890,7 @@ pub fn notice_mal_client_missing(setting: &str) -> String {
     text("notice-mal-client-missing", &[("setting", Arg::Text(setting))])
 }
 
-/// Status line while the browser sign-in is open and the app waits for it to come back.
+/// Job note while the browser sign-in is open and the terminal app waits for it to come back.
 pub fn status_waiting_for_redirect(tracker: &str) -> String {
     text("status-waiting-for-redirect", &[("tracker", Arg::Text(tracker))])
 }
@@ -965,7 +980,7 @@ pub fn notice_episodes_aired(count: i64) -> String {
     text("notice-episodes-aired", &[("count", Arg::Int(count))])
 }
 
-/// Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+/// Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps.
 pub fn notice_update_available(tag: &str) -> String {
     text("notice-update-available", &[("tag", Arg::Text(tag))])
 }
@@ -1018,6 +1033,51 @@ pub fn notice_title_load_failed() -> String {
 /// Toast when playback stops with an error.
 pub fn notice_playback_failed() -> String {
     text("notice-playback-failed", &[])
+}
+
+/// Toast when something went wrong inside the engine and it carried on.
+pub fn notice_engine_fault() -> String {
+    text("notice-engine-fault", &[])
+}
+
+/// Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync.
+pub fn notice_database_set_aside(path: &str) -> String {
+    text("notice-database-set-aside", &[("path", Arg::Text(path))])
+}
+
+/// Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system.
+pub fn start_failed_folder(path: &str, reason: &str) -> String {
+    text("start-failed-folder", &[("path", Arg::Text(path)), ("reason", Arg::Text(reason))])
+}
+
+/// Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
+pub fn start_failed_config(path: &str, problem: &str) -> String {
+    text("start-failed-config", &[("path", Arg::Text(path)), ("problem", Arg::Text(problem))])
+}
+
+/// Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
+pub fn start_failed_database(path: &str, reason: &str) -> String {
+    text("start-failed-database", &[("path", Arg::Text(path)), ("reason", Arg::Text(reason))])
+}
+
+/// Message when anistream could not start its network connection from the network settings.
+pub fn start_failed_network(reason: &str) -> String {
+    text("start-failed-network", &[("reason", Arg::Text(reason))])
+}
+
+/// Message when anistream itself could not start. The reason comes from the system or the engine.
+pub fn start_failed(reason: &str) -> String {
+    text("start-failed", &[("reason", Arg::Text(reason))])
+}
+
+/// Message when the TV remote could not start listening or could not forget a phone.
+pub fn start_failed_remote(reason: &str) -> String {
+    text("start-failed-remote", &[("reason", Arg::Text(reason))])
+}
+
+/// Message when the built-in player could not start.
+pub fn start_failed_player(reason: &str) -> String {
+    text("start-failed-player", &[("reason", Arg::Text(reason))])
 }
 
 /// Toast after episodes are added to the download queue.
@@ -3613,11 +3673,6 @@ pub fn accounts_screen_title() -> String {
 /// A { -tracker }'s chip in the header when it needs signing in again. The mark is a symbol that says the account is down.
 pub fn accounts_badge_sign_in(tracker: &str, mark: &str) -> String {
     text("accounts-badge-sign-in", &[("tracker", Arg::Text(tracker)), ("mark", Arg::Text(mark))])
-}
-
-/// Status line while the browser is opened for a { -tracker } sign-in.
-pub fn accounts_status_opening_browser() -> String {
-    text("accounts-status-opening-browser", &[])
 }
 
 /// Toast when a { -tracker } needs signing in again. The key opens the Accounts screen, as the key map draws it.

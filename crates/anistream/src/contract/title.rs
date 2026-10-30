@@ -252,7 +252,7 @@ async fn a_matched_titles_episodes_are_named_and_carry_its_history() {
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Episodes", "JobDone"]);
-    let Event::Episodes { id, rows } = &updates[0] else { unreachable!() };
+    let Event::Episodes { id, rows, .. } = &updates[0] else { unreachable!() };
     assert_eq!((*id, rows.len()), (FINISHED, 12));
     assert_eq!(rows[0].title.as_deref(), Some("The Lantern Road"));
     let done: Vec<&str> =

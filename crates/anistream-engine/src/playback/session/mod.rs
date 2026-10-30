@@ -323,7 +323,20 @@ pub async fn play(
         let mut late = None;
         if !localised[index] {
             let scratch = opener.scratch_dir();
-            late = localise_subtitles(&http, scratch, &mut streams[index], SUBTITLE_WAIT).await;
+            // A subbed episode that plays with none says why, rather than leaving the viewer
+            // to wonder whether it has any.
+            let told = tx.clone();
+            let all_dropped = move || {
+                let _ = told.send(Event::Toast(Notice::alert(Msg::NoticeSubtitlesUnavailable)));
+            };
+            late = localise_subtitles(
+                &http,
+                scratch,
+                &mut streams[index],
+                SUBTITLE_WAIT,
+                all_dropped,
+            )
+            .await;
             localised[index] = true;
         }
         let mut stream = streams[index].clone();
@@ -379,7 +392,7 @@ pub async fn play(
             run.night_applied = false;
         }
         if player.is_none() {
-            let _ = tx.send(Event::Status(Some(Msg::StatusStartingPlayer)));
+            tracing::info!("starting the player");
             match opener.open(&request).await {
                 Ok((link, events)) => player = Some(Player::new(link, events)),
                 Err(e) if last => {
@@ -390,7 +403,6 @@ pub async fn play(
                     // The player never existed, but the UI has Now Playing up and a control
                     // surface pointed at it. Saying so is what takes them down.
                     let _ = tx.send(Event::playback_ended(false, Ending::Failed));
-                    let _ = tx.send(Event::Status(None));
                     return;
                 }
                 Err(e) => {
@@ -424,10 +436,6 @@ pub async fn play(
         if let Err(e) = load(current.link.as_ref(), &stream, &request).await {
             tracing::warn!(error = %e, "could not hand the stream to mpv");
         }
-        let _ = tx.send(Event::Status(Some(Msg::StatusPlaying {
-            title: context.title.clone(),
-            episode: context.episode.clone(),
-        })));
         // mpv is already at the resume point by now — `start` handled it. Saying so is what
         // keeps it from looking like the episode began in the wrong place.
         if let Some(position) = resume_at {
@@ -581,7 +589,6 @@ pub async fn play(
                     Ending::Failed
                 };
                 let _ = tx.send(Event::playback_ended(watched.unwrap_or(false), ending));
-                let _ = tx.send(Event::Status(None));
                 return;
             }
         }

@@ -547,7 +547,7 @@ impl App {
     pub fn episodes_here(&self, rows: Vec<EpisodeRow>) -> Event {
         // No title open means the reducer drops the rows whatever id they carry.
         let id = self.detail.as_ref().map_or(AnilistId::new(0), |d| d.id);
-        Event::Episodes { id, rows }
+        Event::Episodes { id, rows, failed: None }
     }
 
     /// [`Self::content_here`] for the open source picker.
@@ -997,6 +997,7 @@ mod tests {
         a.apply(Event::Episodes {
             id: AnilistId::new(90),
             rows: vec![EpisodeRow { number: "1".into(), ..a.episodes_all[0].clone() }],
+            failed: None,
         });
         assert_eq!(a.episodes.len(), 1);
 
@@ -1333,11 +1334,15 @@ mod tests {
             thumbnail: None,
             description: None,
         };
-        a.apply(Event::Episodes { id: AnilistId::new(1), rows: vec![row("1")] });
+        a.apply(Event::Episodes { id: AnilistId::new(1), rows: vec![row("1")], failed: None });
         assert!(a.episodes.is_empty(), "title two's table showed title one's episodes");
         assert!(a.episodes_loading, "title two's own load is still outstanding");
 
-        a.apply(Event::Episodes { id: AnilistId::new(2), rows: vec![row("1"), row("2")] });
+        a.apply(Event::Episodes {
+            id: AnilistId::new(2),
+            rows: vec![row("1"), row("2")],
+            failed: None,
+        });
         assert_eq!(a.episodes.len(), 2);
     }
 

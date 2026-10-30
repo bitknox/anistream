@@ -235,6 +235,7 @@ torrent-interface-closed = The interface closed before torrents started.
 torrent-session-failed = Couldn't start the torrent session. { $reason }
 
 # Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+# Terminal only: the engine never sends it to the apps.
 torrent-no-kill-switch = There is no OS-level kill switch behind the VPN guard. Run "{ -app-name } --doctor" for advice.
 
 # Toast when the connection check could not run. The reason comes from the VPN settings.

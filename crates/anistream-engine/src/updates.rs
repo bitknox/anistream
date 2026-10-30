@@ -416,12 +416,21 @@ fn now() -> i64 {
 
 /// The daily check. Fire-and-forget from startup; a failure is silence, never a toast —
 /// an update notice that cries wolf on every flaky network would be turned off in a week.
-pub fn spawn_check(enabled: bool, cache_dir: &Path, http: &HttpClient, tx: &Outbox) {
+///
+/// `terminal` is whether the front end is the terminal app, the only one told of a release
+/// with a toast: its words say to run `anistream --update`, which an app has no use for.
+pub fn spawn_check(
+    enabled: bool,
+    terminal: bool,
+    cache_dir: &Path,
+    http: &HttpClient,
+    tx: &Outbox,
+) {
     if !enabled {
         return;
     }
     let (files, http, tx) = (Files::in_dir(cache_dir), http.clone(), tx.clone());
-    tokio::spawn(async move { daily(&http, API, CURRENT, &files, now(), &tx).await });
+    tokio::spawn(async move { daily(&http, API, CURRENT, &files, now(), terminal, &tx).await });
 }
 
 async fn daily(
@@ -430,6 +439,7 @@ async fn daily(
     current: &str,
     files: &Files,
     now: i64,
+    terminal: bool,
     tx: &Outbox,
 ) {
     let kept = Answer::read(&files.answer);
@@ -462,7 +472,7 @@ async fn daily(
             if notify {
                 let _ = std::fs::write(&files.told, format!("{now} {tag}"));
                 // The terminal's notice. An app shows its own, from the status.
-                if cfg!(feature = "desktop") {
+                if terminal {
                     let _ = tx.send(Event::Toast(Notice::info(notice_msg(tag))));
                 }
             }
@@ -736,10 +746,15 @@ mod tests {
             Self { github: FakeGitHub::start().await, files, dir, http }
         }
 
+        /// The terminal's check.
         async fn daily(&self, current: &str, now: i64) -> Vec<Event> {
+            self.daily_for(true, current, now).await
+        }
+
+        async fn daily_for(&self, terminal: bool, current: &str, now: i64) -> Vec<Event> {
             let (tx, mut rx) = mpsc::unbounded_channel();
-            daily(&self.http, &self.github.base, current, &self.files, now, &Outbox::from(tx))
-                .await;
+            let (base, files) = (&self.github.base, &self.files);
+            daily(&self.http, base, current, files, now, terminal, &Outbox::from(tx)).await;
             drain(&mut rx)
         }
 
@@ -788,11 +803,7 @@ mod tests {
         let (status, toast) = status(&events);
         let (release, notify) = available(status);
         assert!(notify, "told the first time it is found");
-        assert_eq!(
-            toast,
-            cfg!(feature = "desktop"),
-            "the terminal's notice, in its build only"
-        );
+        assert!(toast, "the terminal's notice");
         assert_eq!(release.version, "2.0.3");
         assert_eq!(release.published_at, 1_792_664_639);
         assert_eq!(release.page_url, format!("https://github.com/{REPO}/releases/tag/v2.0.3"));
@@ -824,6 +835,16 @@ mod tests {
         let linux = release.linux_aarch64.expect("Linux's aarch64 AppImage");
         assert_eq!(linux.name, "anistream-2.0.3-linux-aarch64.AppImage");
         assert_eq!((linux.sha256, linux.size), ("7".repeat(64), 1007));
+    }
+
+    #[tokio::test]
+    async fn an_app_is_told_of_a_release_by_its_status_and_never_by_the_terminals_notice() {
+        let run = Run::new().await;
+        run.github.release("v2.0.3", false);
+        let (status, toast) = status(&run.daily_for(false, "2.0.2", NOW).await);
+        let (release, notify) = available(status);
+        assert_eq!((release.version.as_str(), notify), ("2.0.3", true));
+        assert!(!toast, "the notice says to run a terminal command");
     }
 
     #[tokio::test]
@@ -880,7 +901,7 @@ mod tests {
         let run = Run::new().await;
         // GitHub's own address, which the test's client cannot resolve.
         let (tx, mut rx) = mpsc::unbounded_channel();
-        daily(&run.http, API, "2.0.2", &run.files, NOW, &Outbox::from(tx.clone())).await;
+        daily(&run.http, API, "2.0.2", &run.files, NOW, true, &Outbox::from(tx.clone())).await;
         assert!(drain(&mut rx).is_empty(), "a failed daily check says nothing");
 
         asked(&run.http, API, "2.0.2", &run.files, NOW, &Outbox::from(tx)).await;
@@ -980,7 +1001,7 @@ mod tests {
         let run = Run::new().await;
         run.github.release("v2.0.3", false);
         let (tx, mut rx) = mpsc::unbounded_channel();
-        spawn_check(false, run.dir.path(), &run.http, &Outbox::from(tx));
+        spawn_check(false, true, run.dir.path(), &run.http, &Outbox::from(tx));
         tokio::task::yield_now().await;
         assert!(drain(&mut rx).is_empty());
         assert_eq!(run.github.hits.lock().unwrap().len(), 0);

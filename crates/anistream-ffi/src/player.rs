@@ -158,7 +158,7 @@ impl FfiPlayer {
             }
         });
         let player = Player::new(&host_options(options), host_sink)
-            .map_err(|e| FfiError::Player { reason: e.to_string() })?;
+            .map_err(|e| FfiError::player(Msg::StartFailedPlayer { reason: e.to_string() }))?;
         Ok(Arc::new(Self { player: Mutex::new(Some(player)) }))
     }
 
@@ -218,13 +218,13 @@ impl FfiPlayer {
     /// so the next episode does not carry it. An error when mpv cannot load the file.
     pub fn load_track(&self, kind: TrackKind, path: String) -> Result<(), FfiError> {
         let player = self.player();
-        let player = player
-            .as_ref()
-            .ok_or_else(|| FfiError::Player { reason: "the player has stopped".into() })?;
+        let player = player.as_ref().ok_or_else(|| {
+            FfiError::player(Msg::StartFailedPlayer { reason: "the player has stopped".into() })
+        })?;
         player
             .mpv()
             .command(&[add_command(kind), &path, "select"])
-            .map_err(|e| FfiError::Player { reason: e.to_string() })
+            .map_err(|e| FfiError::player(Msg::StartFailedPlayer { reason: e.to_string() }))
     }
 
     /// The controls' state as it stands.

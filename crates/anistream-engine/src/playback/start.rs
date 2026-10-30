@@ -338,6 +338,13 @@ pub fn play_local(
 
 /// What a playback runs on: `opener`'s player, and the engine's slot, host and power source.
 fn machine(opener: Arc<dyn PlayerOpener>, services: &Services) -> playback::Machine {
+    #[cfg(feature = "testing")]
+    let opener: Arc<dyn PlayerOpener> = match &services.windows {
+        Some(opened) => {
+            Arc::new(crate::playback::link::Counted { inner: opener, opened: opened.clone() })
+        }
+        None => opener,
+    };
     playback::Machine {
         opener,
         slot: services.slot.clone(),
@@ -415,8 +422,6 @@ fn stopped_unopened(slot: &PlayerSlot, tx: &Outbox) {
     tracing::info!("stopped while finding its stream; no player opens for it");
     slot.release();
     let _ = tx.send(Event::playback_ended(false, anistream_model::playback::Ending::Stopped));
-    // The playback this one took over left its "playing" line up for it to replace.
-    let _ = tx.send(Event::Status(None));
 }
 
 /// Resolve a stream and start playing it.
@@ -482,7 +487,6 @@ fn spawn_playback(
                         pick,
                         &playback,
                         job.as_ref(),
-                        &tx,
                     )
                     .await
                 }
@@ -544,8 +548,6 @@ fn spawn_playback(
                     false,
                     anistream_model::playback::Ending::Failed,
                 ));
-                // The playback this one took over left its "playing" line up for it to replace.
-                let _ = tx.send(Event::Status(None));
                 return;
             }
         };

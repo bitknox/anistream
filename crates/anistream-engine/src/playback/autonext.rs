@@ -220,7 +220,7 @@ mod tests {
             })
             .collect();
         let mut cache = TitleCache::default();
-        cache.observe(&Event::Episodes { id: AnilistId::new(id), rows }, None);
+        cache.observe(&Event::Episodes { id: AnilistId::new(id), rows, failed: None }, None);
         cache
     }
 

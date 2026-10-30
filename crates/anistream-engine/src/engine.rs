@@ -17,6 +17,7 @@
 use anistream_model::Msg;
 use std::{
     collections::VecDeque,
+    panic::{self, AssertUnwindSafe},
     sync::{
         Arc,
         atomic::{AtomicU64, Ordering},
@@ -30,6 +31,7 @@ use anistream_model::{
     jobs::JobId,
     notice::{Notice, NoticeHint},
 };
+use futures::FutureExt;
 use tokio::{
     sync::{mpsc, oneshot},
     task::JoinHandle,
@@ -126,6 +128,9 @@ enum Message {
     /// Whether a playback is under way, as the exit would see it: see [`Engine::under_way`].
     #[cfg(feature = "testing")]
     UnderWay(oneshot::Sender<bool>),
+    /// A step that panics, as a bug in one would: see [`Engine::panic_once`].
+    #[cfg(feature = "testing")]
+    Panic,
 }
 
 /// The count jobs are numbered by, from one: shared by [`Engine::send`], which numbers the
@@ -173,6 +178,7 @@ impl Engine {
             device_label,
             sources: given,
             background,
+            set_aside,
             #[cfg(feature = "testing")]
             parts,
             #[cfg(feature = "testing")]
@@ -252,6 +258,7 @@ impl Engine {
                     clock: parts.clock,
                     fixture_exit: parts.fixture_exit,
                     party: Default::default(),
+                    windows: parts.windows,
                 }
             }
             None => Services::build(&tracked, paths, http, store, registry, player_theme, host)
@@ -285,6 +292,11 @@ impl Engine {
         launch.push_back(Event::Settings(state.config.view()));
         // Whether trailers may start, on that config, before the front end says anything.
         launch.push_back(crate::autoplay::at_launch(&mut state));
+        // A database found damaged was moved aside and this one is new: why the history is empty.
+        if let Some(aside) = set_aside {
+            let path = aside.display().to_string();
+            launch.push_back(Event::Toast(Notice::alert(Msg::NoticeDatabaseSetAside { path })));
+        }
 
         // Joined stores as they were left, so Providers can count them on the first frame.
         let joined = match services.stores.rows() {
@@ -312,6 +324,7 @@ impl Engine {
             // The daily update check: one cached request, one quiet toast when a release exists.
             updates::spawn_check(
                 state.config.effective().updates.check,
+                !services.hosted_player,
                 &services.paths.cache_dir,
                 &services.http,
                 &inbox.sender(),
@@ -373,9 +386,10 @@ impl Engine {
             torrent_tasks.bring_up(config.effective(), &services, &tx, arrivals);
         }
 
-        // The player is checked last, as launch always has, and not waited for.
+        // The player is checked last, as launch always has, and not waited for. Only the
+        // terminal app plays in mpv; an app hosting its own player has nothing to install.
         #[cfg(feature = "desktop")]
-        let checking = background.player_check.then(|| {
+        let checking = (background.player_check && !services.hosted_player).then(|| {
             let config = state.config.effective();
             let mpv = player(config, &services.paths, &services.player_theme);
             let binary = config.playback.mpv_binary.clone();
@@ -518,6 +532,12 @@ impl Engine {
         let (tx, rx) = oneshot::channel();
         let _ = self.commands.send(Message::UnderWay(tx));
         rx.await.expect("the engine answers while it runs")
+    }
+
+    /// Have the engine's loop run a step that panics, in its place among the commands.
+    #[cfg(feature = "testing")]
+    pub fn panic_once(&self) {
+        let _ = self.commands.send(Message::Panic);
     }
 }
 
@@ -741,7 +761,12 @@ impl Actor {
             tokio::select! {
                 biased;
                 message = self.commands.recv() => match message {
-                    Some(Message::Command { job, command }) => self.route(job, command),
+                    Some(Message::Command { job, command }) => {
+                        let routed = panic::catch_unwind(AssertUnwindSafe(|| {
+                            self.route(job, command)
+                        }));
+                        self.carry_on("a command", routed);
+                    }
                     Some(Message::Shutdown { done }) => {
                         self.stop().await;
                         let _ = done.send(());
@@ -768,19 +793,42 @@ impl Actor {
                     Some(Message::UnderWay(answer)) => {
                         let _ = answer.send(self.under_way());
                     }
+                    #[cfg(feature = "testing")]
+                    Some(Message::Panic) => {
+                        let step = panic::catch_unwind(|| panic!("a step that panics"));
+                        self.carry_on("a test's step", step);
+                    }
                     // Every handle on the engine has gone.
                     None => return,
                 },
                 envelope = self.inbox.recv(), if !self.inbox.is_empty() => {
                     if let Some(envelope) = envelope {
-                        self.act_on(envelope).await;
+                        let acted = AssertUnwindSafe(self.act_on(envelope)).catch_unwind().await;
+                        self.carry_on("the inbox", acted);
                     }
                 }
                 Some((generation, outcome)) = self.arrivals.recv() => {
-                    self.arrived(generation, outcome);
+                    let arrived = panic::catch_unwind(AssertUnwindSafe(|| {
+                        self.arrived(generation, outcome)
+                    }));
+                    self.carry_on("a torrent source", arrived);
                 }
             }
         }
+    }
+
+    /// After one step of the loop: a step that panicked is logged and said, and the engine
+    /// carries on with the next, rather than every screen waiting on an engine that has gone.
+    /// What the step left half done stays so; the alert says what to do if that shows.
+    fn carry_on(&self, step: &str, outcome: std::thread::Result<()>) {
+        let Err(panic) = outcome else { return };
+        let said = panic
+            .downcast_ref::<&str>()
+            .map(|said| (*said).to_owned())
+            .or_else(|| panic.downcast_ref::<String>().cloned())
+            .unwrap_or_default();
+        tracing::error!(step, panic = %said, "an engine step panicked; carrying on");
+        self.pass_on(Event::Toast(Notice::alert(Msg::NoticeEngineFault)));
     }
 
     /// No command queued, nothing in the inbox, no work holding a way to answer, and no torrent
@@ -1404,6 +1452,22 @@ mod tests {
             }
         }
         seen
+    }
+
+    #[cfg(feature = "testing")]
+    #[tokio::test]
+    async fn a_step_that_panics_is_said_and_the_engine_carries_on() {
+        use anistream_model::notice::NoticeKind;
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        engine.panic_once();
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Toast(fault)] = &seen[..] else { panic!("the alert alone: {seen:?}") };
+        assert_eq!((fault.kind, fault.message()), (NoticeKind::Alert, Msg::NoticeEngineFault));
+        // The next command is routed as ever.
+        engine.send(Command::LoadDownloads);
+        until(&mut events, |e| matches!(e, Event::Downloads(_))).await;
     }
 
     #[tokio::test]

@@ -36,6 +36,7 @@ use anistream_track::{AniListTracker, TokenStore, sync};
 
 use crate::{
     host::Host,
+    jobs::JobGuard,
     outbox::{Internal, Outbox},
 };
 
@@ -771,6 +772,7 @@ pub async fn connect(
     host: Arc<dyn Host>,
     clients: crate::options::AppClients,
     tracker_id: String,
+    job: Option<&JobGuard>,
     tx: Outbox,
 ) {
     // An app's own client signs in through the system's sheet, on the app's own scheme.
@@ -783,7 +785,7 @@ pub async fn connect(
         return;
     }
     if tracker_id == "mal" {
-        connect_mal(sync, host, tx).await;
+        connect_mal(sync, host, job, tx).await;
         return;
     }
     // Kitsu never reaches here: the Accounts screen opens its credential prompt directly
@@ -799,7 +801,7 @@ pub async fn connect(
         let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeSignInUnsupported { tracker })));
         return;
     }
-    connect_anilist(sync, host, tx).await;
+    connect_anilist(sync, host, job, tx).await;
 }
 
 /// AniList and MyAnimeList sign in through a redirect to a listener on this machine, which only
@@ -807,13 +809,13 @@ pub async fn connect(
 /// So without the `desktop` feature their sign-in says so, rather than opening a browser onto
 /// a sign-in that cannot finish.
 #[cfg(not(feature = "desktop"))]
-async fn connect_anilist(_: Sync, _: Arc<dyn Host>, tx: Outbox) {
+async fn connect_anilist(_: Sync, _: Arc<dyn Host>, _: Option<&JobGuard>, tx: Outbox) {
     refuse_redirect("anilist", &tx);
 }
 
 /// See [`connect_anilist`].
 #[cfg(not(feature = "desktop"))]
-async fn connect_mal(_: Sync, _: Arc<dyn Host>, tx: Outbox) {
+async fn connect_mal(_: Sync, _: Arc<dyn Host>, _: Option<&JobGuard>, tx: Outbox) {
     refuse_redirect("mal", &tx);
 }
 
@@ -826,7 +828,7 @@ fn refuse_redirect(tracker_id: &str, tx: &Outbox) {
 /// Sign in to AniList: the authorization code, caught on the loopback redirect, exchanged for
 /// a token.
 #[cfg(feature = "desktop")]
-async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
+async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, job: Option<&JobGuard>, tx: Outbox) {
     let tracker_id = "anilist";
     let auth_config = &sync.config.trackers.anilist;
     // A token arriving in a fragment never reaches a loopback port.
@@ -880,6 +882,9 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
         tracing::info!(%url, "open this to sign in");
     }
 
+    if let (Some(job), Some(_)) = (job, &listening) {
+        job.note(Msg::StatusWaitingForRedirect { tracker: tracker_name(tracker_id) }, None);
+    }
     let Some(listening) = listening else {
         // The paste flow needs a terminal to paste into, which the TUI is currently occupying.
         let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeAnilistPasteFlow)));
@@ -952,7 +957,6 @@ pub async fn connect_kitsu(sync: Sync, username: String, password: String, tx: O
         Ok(pair) => pair,
         Err(e) => {
             let _ = tx.send(Event::Toast(sign_in_failed("kitsu", &e)));
-            let _ = tx.send(Event::Status(None));
             return;
         }
     };
@@ -968,7 +972,6 @@ pub async fn connect_kitsu(sync: Sync, username: String, password: String, tx: O
             let _ = tx.send(Event::Toast(token_not_saved(&e)));
         }
     }
-    let _ = tx.send(Event::Status(None));
 }
 
 /// Sign in to MyAnimeList from inside the app.
@@ -977,7 +980,7 @@ pub async fn connect_kitsu(sync: Sync, username: String, password: String, tx: O
 /// while `--login --tracker mal` worked perfectly from the command line. The PKCE machinery already
 /// existed; only this wiring was missing.
 #[cfg(feature = "desktop")]
-async fn connect_mal(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
+async fn connect_mal(sync: Sync, host: Arc<dyn Host>, job: Option<&JobGuard>, tx: Outbox) {
     use anistream_track::mal;
 
     let auth = &sync.config.trackers.mal;
@@ -1007,19 +1010,19 @@ async fn connect_mal(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
         let _ = tx.send(Event::Toast(browser_not_opened(&e)));
         tracing::info!(%url, "open this to sign in");
     }
-    let tracker = tracker_name("mal");
-    let _ = tx.send(Event::Status(Some(Msg::StatusWaitingForRedirect { tracker })));
+    // On the sign-in's row in the activity list, for as long as the browser has it.
+    if let Some(job) = job {
+        job.note(Msg::StatusWaitingForRedirect { tracker: tracker_name("mal") }, None);
+    }
 
     let code = match waiting.await {
         Ok(Ok(code)) => code,
         Ok(Err(e)) => {
             let _ = tx.send(Event::Toast(Notice::alert(Msg::verbatim(e.to_string()))));
-            let _ = tx.send(Event::Status(None));
             return;
         }
         Err(e) => {
             let _ = tx.send(Event::Toast(sign_in_stopped("mal", &e)));
-            let _ = tx.send(Event::Status(None));
             return;
         }
     };
@@ -1037,7 +1040,6 @@ async fn connect_mal(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
         Ok(pair) => pair,
         Err(e) => {
             let _ = tx.send(Event::Toast(token_exchange_failed("mal", &e)));
-            let _ = tx.send(Event::Status(None));
             return;
         }
     };
@@ -1056,7 +1058,6 @@ async fn connect_mal(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
             let _ = tx.send(Event::Toast(token_not_saved(&e)));
         }
     }
-    let _ = tx.send(Event::Status(None));
 }
 
 /// Make a sign-in take effect immediately, everywhere.
@@ -1198,7 +1199,6 @@ async fn connect_device(
     if flow.current() {
         let _ = tx.send(Event::DeviceCode(None));
     }
-    let _ = tx.send(Event::Status(None));
 }
 
 /// Forget a tracker's token.
@@ -1511,7 +1511,7 @@ mod tests {
 
         let host = Arc::new(crate::host::QuietHost::in_dir(dir.path()));
         let clients = crate::options::AppClients::default();
-        connect(sync, host, clients, "kitsu".into(), Outbox::from(tx)).await;
+        connect(sync, host, clients, "kitsu".into(), None, Outbox::from(tx)).await;
         let Ok(Event::Toast(notice)) = rx.try_recv() else { panic!("no notice") };
         assert_eq!(notice.msg, Some(Msg::NoticeKitsuSignsInOnAccounts));
         assert_eq!(notice.hint, Some(NoticeHint::KitsuCredentials));
@@ -1537,7 +1537,7 @@ mod tests {
             let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
             // No client of the app's own, so no sheet to sign in through either.
             let clients = crate::options::AppClients::default();
-            connect(sync, host, clients, tracker.into(), Outbox::from(tx)).await;
+            connect(sync, host, clients, tracker.into(), None, Outbox::from(tx)).await;
             let Ok(Event::Toast(notice)) = rx.try_recv() else { panic!("no notice") };
             let name = tracker_name(tracker);
             assert_eq!(notice.msg, Some(Msg::NoticeSignInNeedsRedirect { tracker: name }));

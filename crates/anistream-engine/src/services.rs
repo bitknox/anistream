@@ -86,6 +86,9 @@ pub struct Services {
     /// Where playbacks find the watch party, when there is one. Opened by the `party` feature's
     /// party, and never without it.
     pub party: crate::playback::seat::PartyHub,
+    /// How many player windows the playbacks opened, for a test that counts them.
+    #[cfg(feature = "testing")]
+    pub windows: Option<Arc<std::sync::atomic::AtomicUsize>>,
 }
 
 impl Services {
@@ -138,6 +141,8 @@ impl Services {
             clock: Default::default(),
             fixture_exit: None,
             party: Default::default(),
+            #[cfg(feature = "testing")]
+            windows: None,
         })
     }
 }

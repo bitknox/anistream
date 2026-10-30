@@ -426,7 +426,7 @@ impl FfiEngine {
         device_name: String,
         app: String,
     ) -> Result<Arc<FfiTvSender>, FfiError> {
-        let fail = |reason: String| FfiError::Remote { reason };
+        let fail = |reason: String| FfiError::remote(Msg::StartFailedRemote { reason: reason });
         let home = self.remote().home();
         let identity = identity_from(home.secrets.as_ref(), IDENTITY_SECRET)
             .map_err(|e| fail(e.to_string()))?;
@@ -697,8 +697,12 @@ mod fake {
             let handle = self.runtime_handle();
             let tv = handle
                 .block_on(handle.spawn(async move { FakeTv::start(&name, titles).await }))
-                .map_err(|e| FfiError::Remote { reason: e.to_string() })?
-                .map_err(|e| FfiError::Remote { reason: e.to_string() })?;
+                .map_err(|e| {
+                    FfiError::remote(Msg::StartFailedRemote { reason: e.to_string() })
+                })?
+                .map_err(|e| {
+                    FfiError::remote(Msg::StartFailedRemote { reason: e.to_string() })
+                })?;
             Ok(Arc::new(FfiFakeTv { tv: Mutex::new(Some(tv)), handle }))
         }
     }

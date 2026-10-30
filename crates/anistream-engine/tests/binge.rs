@@ -7,6 +7,7 @@
 
 use std::{sync::Arc, time::Duration};
 
+use anistream_core::traits::PlaybackRequest;
 use anistream_core::{
     ids::AnilistId,
     media::Translation,
@@ -14,7 +15,12 @@ use anistream_core::{
 };
 use anistream_engine::{
     host::Host,
-    playback::{self, Machine, NextEpisode, PlaySettings, PlaybackContext, slot::PlayerSlot},
+    outbox::Outbox,
+    playback::{
+        self, Machine, NextEpisode, PlaySettings, PlaybackContext,
+        link::{LinkError, Opened, PlayerOpener},
+        slot::PlayerSlot,
+    },
 };
 use anistream_model::{
     command::PlayerCommand,
@@ -41,9 +47,35 @@ impl Host for NoLinks {
     fn notify(&self, _: &str, _: &str) {}
 }
 
-/// mpv's process, on the desktop as it is, with `slot` for its window.
-fn machine(mpv: &Mpv, slot: &PlayerSlot) -> Machine {
-    Machine::desktop(mpv.clone(), slot.clone(), Arc::new(NoLinks))
+/// What a playback's events say, in this test, as each window opens.
+const WINDOW: &str = "a player window opened";
+
+/// mpv's opener, marking each window it opens in the playback's events: the engine says nothing
+/// of windows itself.
+struct Marking {
+    inner: Arc<dyn PlayerOpener>,
+    tx: Outbox,
+}
+
+#[async_trait::async_trait]
+impl PlayerOpener for Marking {
+    async fn open(&self, request: &PlaybackRequest) -> Result<Opened, LinkError> {
+        let opened = self.inner.open(request).await?;
+        let _ = self.tx.send(Event::Clipboard { text: WINDOW.into() });
+        Ok(opened)
+    }
+
+    fn scratch_dir(&self) -> &std::path::Path {
+        self.inner.scratch_dir()
+    }
+}
+
+/// mpv's process, on the desktop as it is, with `slot` for its window, each window it opens
+/// marked in `tx`.
+fn machine(mpv: &Mpv, slot: &PlayerSlot, tx: &Outbox) -> Machine {
+    let mut machine = Machine::desktop(mpv.clone(), slot.clone(), Arc::new(NoLinks));
+    machine.opener = Arc::new(Marking { inner: machine.opener, tx: tx.clone() });
+    machine
 }
 
 fn clip(seconds: u32) -> Stream {
@@ -140,6 +172,7 @@ async fn run_streams(
 ) -> Vec<Event> {
     let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
     let (tx, mut rx) = mpsc::unbounded_channel();
+    let tx = Outbox::from(tx);
     // A bound for a playback that hangs. On a busy machine mpv can take most of the 20 s the
     // playback gives it to open its socket, and then decodes its way to any resume point.
     tokio::time::timeout(
@@ -149,9 +182,9 @@ async fn run_streams(
             context,
             store,
             http,
-            machine(mpv, slot),
+            machine(mpv, slot, &tx),
             settings,
-            tx.into(),
+            tx,
             commands,
         ),
     )
@@ -170,12 +203,7 @@ fn spawned(updates: &[Event]) -> bool {
 
 /// How many player windows the playback opened.
 fn windows(updates: &[Event]) -> usize {
-    updates
-        .iter()
-        .filter(
-            |u| matches!(u, Event::Status(Some(s)) if s.english().starts_with("Starting mpv")),
-        )
-        .count()
+    updates.iter().filter(|u| matches!(u, Event::Clipboard { text } if text == WINDOW)).count()
 }
 
 /// The tracker's verdict and how the playback ended.
@@ -458,14 +486,15 @@ fn start(
 ) -> (tokio::task::JoinHandle<()>, mpsc::UnboundedReceiver<Event>) {
     let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
     let (tx, rx) = mpsc::unbounded_channel();
+    let tx = Outbox::from(tx);
     let task = tokio::spawn(playback::play(
         streams,
         context,
         store,
         http,
-        machine(mpv, slot),
+        machine(mpv, slot, &tx),
         settings,
-        tx.into(),
+        tx,
         commands,
     ));
     (task, rx)
@@ -487,12 +516,11 @@ async fn finish(
     seen
 }
 
-/// Wait until the playback has handed a file to mpv.
+/// Wait until the playback has opened its window, which it hands the file to next.
 async fn until_loaded(updates: &mut mpsc::UnboundedReceiver<Event>) -> Vec<Event> {
     let mut seen = Vec::new();
     while let Some(update) = updates.recv().await {
-        let loaded =
-            matches!(&update, Event::Status(Some(s)) if s.english().starts_with("Playing"));
+        let loaded = matches!(&update, Event::Clipboard { text } if text == WINDOW);
         seen.push(update);
         if loaded {
             break;

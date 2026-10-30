@@ -43,6 +43,7 @@ pub async fn run(
     store: Store,
     images: bool,
     config_problem: Option<anistream_core::config::ConfigProblem>,
+    set_aside: Option<std::path::PathBuf>,
 ) -> Result<()> {
     let palette = theme::resolve(config.theme.mode);
 
@@ -66,6 +67,7 @@ pub async fn run(
     let mut options =
         EngineOptions::new(paths.clone(), config.clone(), http, store, player_theme());
     options.saved = Some(saved.clone());
+    options.set_aside = set_aside;
     // `syncplay.enabled` sends every play to the party: the terminal's way in, which the apps,
     // starting parties when asked, do without.
     options.every_play_a_party = true;

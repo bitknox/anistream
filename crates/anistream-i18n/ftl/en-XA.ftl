@@ -67,6 +67,9 @@ cause-source-gone = [Ţĥé šöüŕçé { $source } îš ñö ļöñĝéŕ à�
 # Reason: the release the person picked would not start. The detail comes from the source.
 cause-release-failed = [Çöüļðñ'ţ šţàŕţ ţĥàţ ŕéļéàšé: { $detail }~~~~~~~~~~]
 
+# Reason: a play waited too long for its sources to give it a stream, and gave up.
+cause-sources-timed-out = [Ţĥé šöüŕçéš ţööķ ţöö ļöñĝ ţö àñšŵéŕ. Ţŕý àĝàîñ, öŕ çĥööšé àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~~~~~~]
+
 # Reason: every source matched the title but none has the episode. The detail is what each said.
 cause-no-source-has-episode = [Ñö šöüŕçé ĥàš éþîšöðé { $episode }: { $detail }~~~~~~~~~]
 
@@ -102,12 +105,6 @@ status-loading-sources = [Ļöàðîñĝ šöüŕçéš…~~~~~]
 # Job note while the sources are asked for an episode. The episode is its label, often a number.
 status-searching-sources = [Šéàŕçĥîñĝ šöüŕçéš ƒöŕ éþîšöðé { $episode }…~~~~~~~~~~~]
 
-# Status while the player opens.
-status-starting-player = [Šţàŕţîñĝ ɱþṽ…~~~~]
-
-# Status line while an episode plays.
-status-playing = [Þļàýîñĝ { $title }, éþîšöðé { $episode }~~~~~~~~]
-
 # Toast when the player cannot be started. The reason comes from the system.
 notice-player-failed-to-start = [Çöüļðñ'ţ šţàŕţ ɱþṽ. Çĥéçķ ţĥàţ îţ ŕüñš öñ îţš öŵñ. ({ $reason })~~~~~~~~~~~~~~~~~]
 
@@ -126,11 +123,14 @@ notice-player-not-playing = [ɱþṽ ĥàšñ'ţ šţàŕţéð þļàýîñĝ �
 # Toast when a play is asked for in a build with no player.
 notice-no-player = [Ţĥîš ṽéŕšîöñ öƒ àñîšţŕéàɱ çàñ'ţ þļàý ṽîðéö.~~~~~~~~~~~~~]
 
-# Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+# Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.
 notice-mpv-missing = [{ $binary } ŵàšñ'ţ ƒöüñð. Îñšţàļļ ɱþṽ ţö þļàý éþîšöðéš.~~~~~~~~~~~~~~~]
 
-# Toast at launch when mpv is too old for anistream's own player.
+# Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps.
 notice-mpv-old = [ɱþṽ { $version } çàñ þļàý, ƀüţ àñîšţŕéàɱ'š þļàýéŕ ñééðš ɱþṽ 0.36 öŕ ñéŵéŕ ƒöŕ îţš šķîþ ƀüţţöñ, Ûþ ñéẋţ çàŕð, ɱéñüš àñð ţĥüɱƀñàîļš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.
+notice-subtitles-unavailable = [Ţĥîš šöüŕçé'š šüƀţîţļéš çöüļðñ'ţ ƀé ļöàðéð. Çĥööšé àñöţĥéŕ šöüŕçé ţö ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Toast after a link was handed to the browser.
 notice-opened-in-browser = [Öþéñéð îñ ýöüŕ ƀŕöŵšéŕ.~~~~~~~]
@@ -191,6 +191,12 @@ notice-source-choice-failed = [Çöüļðñ'ţ šàṽé ţĥàţ çĥöîçé. 
 
 # Toast when no source could list a show's episodes. The reason is what the sources said.
 notice-no-source-could-list = [Ñö šöüŕçé çöüļð ļîšţ ţĥîš šĥöŵ: { $reason }~~~~~~~~~~~]
+
+# Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.
+notice-episodes-failed = [Çöüļðñ'ţ ļöàð ţĥé éþîšöðéš. { $reason }~~~~~~~~~~]
+
+# Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name.
+notice-match-uncertain = [{ $source } ƒöüñð ɱöŕé ţĥàñ öñé šĥöŵ ţĥàţ çöüļð ƀé ţĥîš öñé, šö ţĥéšé éþîšöðéš àŕé ƒŕöɱ ÅñîĻîšţ ƒöŕ ñöŵ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Toast when a title cannot be taken off the Continue row. The reason comes from the system.
 notice-continue-hide-failed = [Çöüļðñ'ţ ŕéɱöṽé ţĥàţ ƒŕöɱ Çöñţîñüé. { $reason }~~~~~~~~~~~~]
@@ -271,8 +277,11 @@ notice-episodes-queued-existing-stopped =
 # Toast when keep next found no room for another episode.
 notice-keep-next-full = [Ñöţ éñöüĝĥ ƒŕéé šþàçé ţö ķééþ ţĥé ñéẋţ éþîšöðéš ðöŵñļöàðéð. Ƒŕéé üþ šöɱé šþàçé ţö ðöŵñļöàð ɱöŕé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+# Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.
 party-needs-server = [Çĥööšé à šéŕṽéŕ ƒöŕ ţĥé ŵàţçĥ þàŕţý ƒîŕšţ, àš šýñçþļàý.šéŕṽéŕ. { $server } îš ŕüñ ƀý { $operator }.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it.
+party-choose-server = [Çĥööšé à šéŕṽéŕ ƒöŕ ţĥé ŵàţçĥ þàŕţý ƒîŕšţ. { $server } îš ŕüñ ƀý { $operator }.~~~~~~~~~~~~~~~~~~~]
 
 # Toast when a watch party is asked for in a build without watch parties.
 notice-no-party = [Ŵàţçĥ þàŕţîéš àŕéñ'ţ àṽàîļàƀļé îñ ţĥîš ṽéŕšîöñ öƒ àñîšţŕéàɱ.~~~~~~~~~~~~~~~~~~]
@@ -468,7 +477,7 @@ torrent-interface-closed = [Ţĥé îñţéŕƒàçé çļöšéð ƀéƒöŕé 
 # Error: the torrent session could not start. The reason comes from the torrent engine.
 torrent-session-failed = [Çöüļðñ'ţ šţàŕţ ţĥé ţöŕŕéñţ šéššîöñ. { $reason }~~~~~~~~~~~~]
 
-# Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+# Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.
 torrent-no-kill-switch = [Ţĥéŕé îš ñö ÖŠ-ļéṽéļ ķîļļ šŵîţçĥ ƀéĥîñð ţĥé ṼÞÑ ĝüàŕð. Ŕüñ "àñîšţŕéàɱ --ðöçţöŕ" ƒöŕ àðṽîçé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Toast when the connection check could not run. The reason comes from the VPN settings.
@@ -552,13 +561,13 @@ notice-anilist-implicit-flow = [Ţĥîš ÅñîĻîšţ šîĝñ-îñ ɱéţĥö
 # Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.
 notice-anilist-client-missing = [ÅñîĻîšţ ñééðš à çļîéñţ îð àñð šéçŕéţ. Šéţ { $client } àñð { $secret } îñ ţĥé çöñƒîĝ ƒîļé, ţĥéñ šîĝñ îñ àĝàîñ. Ţö ĝéţ ţĥé šîĝñ-îñ àððŕéšš, ŕüñ àñîšţŕéàɱ --ļöĝîñ-üŕļ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+# Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.
 notice-anilist-paste-flow = [Þàšţîñĝ à çöðé îšñ'ţ þöššîƀļé ĥéŕé. Ǫüîţ àñð ŕüñ àñîšţŕéàɱ --ļöĝîñ îñšţéàð.~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
 notice-mal-client-missing = [ṀýÅñîɱéĻîšţ ñééðš à çļîéñţ îð. Ŕéĝîšţéŕ àñ àþþ öƒ ţýþé öţĥéŕ àţ ɱýàñîɱéļîšţ.ñéţ/àþîçöñƒîĝ, ţĥéñ šéţ { $setting } îñ ţĥé çöñƒîĝ ƒîļé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
-# Status line while the browser sign-in is open and the app waits for it to come back.
+# Job note while the browser sign-in is open and the terminal app waits for it to come back.
 status-waiting-for-redirect = [Ŵàîţîñĝ ƒöŕ { $tracker } ţö ŕéðîŕéçţ ƀàçķ…~~~~~~~~~~]
 
 # Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.
@@ -620,7 +629,7 @@ notice-episodes-aired =
        *[other] [{ $count } ñéŵ éþîšöðéš öƒ šĥöŵš ýöü ŵàţçĥ àîŕéð. Ţĥé çàļéñðàŕ ĥàš ţĥéɱ.~~~~~~~~~~~~~~~~~~~~]
     }
 
-# Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+# Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps.
 notice-update-available = [{ $tag } îš öüţ. Ŕüñ àñîšţŕéàɱ --üþðàţé ţö îñšţàļļ îţ.~~~~~~~~~~~~~~~]
 
 # The reason a setting was refused until the person confirms having no protection.
@@ -652,6 +661,33 @@ notice-title-load-failed = [Çöüļðñ'ţ ļöàð ţĥîš ţîţļé. Çĥé
 
 # Toast when playback stops with an error.
 notice-playback-failed = [Þļàýƀàçķ ƒàîļéð. Ţŕý àñöţĥéŕ šöüŕçé.~~~~~~~~~~~]
+
+# Toast when something went wrong inside the engine and it carried on.
+notice-engine-fault = [Šöɱéţĥîñĝ ŵéñţ ŵŕöñĝ îñšîðé àñîšţŕéàɱ. Îţ çàŕŕîéð öñ, ƀüţ îƒ à šçŕééñ ļööķš šţüçķ, ƣüîţ àñð öþéñ îţ àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync.
+notice-database-set-aside = [Ţĥé ðàţàƀàšé ŵàš ðàɱàĝéð, šö àñîšţŕéàɱ šţàŕţéð à ñéŵ öñé. Ţĥé öļð ƒîļé îš ķéþţ àţ { $path }. Ýöüŕ ţŕàçķéŕš ƀŕîñĝ ƀàçķ ŵĥàţ ţĥéý ĥöļð àţ ţĥé ñéẋţ šýñç.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system.
+start-failed-folder = [àñîšţŕéàɱ çöüļðñ'ţ çŕéàţé ţĥé ƒöļðéŕ { $path }. Çĥéçķ ţĥàţ ţĥé ðîšķ ĥàš ŕööɱ àñð ţĥé ƒöļðéŕ çàñ ƀé ŵŕîţţéñ ţö, ţĥéñ ţŕý àĝàîñ. { $reason }~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
+start-failed-config = [{ $path } ĥàš à šéţţîñĝ àñîšţŕéàɱ çàñ'ţ üšé: { $problem }. Ƒîẋ öŕ ŕéɱöṽé îţ, ţĥéñ ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
+start-failed-database = [àñîšţŕéàɱ çöüļðñ'ţ öþéñ îţš ðàţàƀàšé àţ { $path }. Îƒ àñöţĥéŕ àñîšţŕéàɱ àþþ îš öþéñ öñ ţĥîš ƒöļðéŕ, ƣüîţ îţ àñð ţŕý àĝàîñ. { $reason }~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Message when anistream could not start its network connection from the network settings.
+start-failed-network = [àñîšţŕéàɱ çöüļðñ'ţ šéţ üþ îţš ñéţŵöŕķ çöññéçţîöñ ƒŕöɱ ţĥé ñéţŵöŕķ šéţţîñĝš îñ çöñƒîĝ.ţöɱļ. { $reason }~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Message when anistream itself could not start. The reason comes from the system or the engine.
+start-failed = [àñîšţŕéàɱ çöüļðñ'ţ šţàŕţ. Ǫüîţ àñð öþéñ îţ àĝàîñ. { $reason }~~~~~~~~~~~~~~~~]
+
+# Message when the TV remote could not start listening or could not forget a phone.
+start-failed-remote = [Ţĥé ŕéɱöţé çöüļðñ'ţ šţàŕţ. { $reason }~~~~~~~~~]
+
+# Message when the built-in player could not start.
+start-failed-player = [Ţĥé þļàýéŕ çöüļðñ'ţ šţàŕţ. { $reason }~~~~~~~~~]
 
 # Toast after episodes are added to the download queue.
 notice-episodes-queued =
@@ -2281,9 +2317,6 @@ accounts-screen-title = [Åççöüñţš~~~]
 
 # A { -tracker }'s chip in the header when it needs signing in again. The mark is a symbol that says the account is down.
 accounts-badge-sign-in = [{ $tracker } { $mark } šîĝñ îñ~~~~~]
-
-# Status line while the browser is opened for a { -tracker } sign-in.
-accounts-status-opening-browser = [Öþéñîñĝ ýöüŕ ƀŕöŵšéŕ ţö šîĝñ îñ…~~~~~~~~~~]
 
 # Toast when a { -tracker } needs signing in again. The key opens the Accounts screen, as the key map draws it.
 accounts-needs-sign-in = [{ $tracker } ñééðš šîĝñîñĝ îñ àĝàîñ. Þŕéšš { $key } ţö öþéñ Åççöüñţš.~~~~~~~~~~~~~~~~~]

@@ -96,7 +96,8 @@ impl Attached {
 
     /// The TV's key from the host's keychain, made and kept there the first time.
     fn identity(&self) -> Result<Identity, FfiError> {
-        let fail = |e: RemoteError| FfiError::Remote { reason: e.to_string() };
+        let fail =
+            |e: RemoteError| FfiError::remote(Msg::StartFailedRemote { reason: e.to_string() });
         let Some(secrets) = &self.home.secrets else {
             return Identity::generate().map_err(fail);
         };
@@ -195,16 +196,20 @@ impl FfiEngine {
         name: String,
         port: u16,
     ) -> Result<Arc<FfiTvRemote>, FfiError> {
-        let fail = |e: RemoteError| FfiError::Remote { reason: e.to_string() };
+        let fail =
+            |e: RemoteError| FfiError::remote(Msg::StartFailedRemote { reason: e.to_string() });
         let Some(sender) = self.remote_sender() else {
-            return Err(FfiError::Remote { reason: "the engine has stopped".into() });
+            return Err(FfiError::remote(Msg::StartFailedRemote {
+                reason: "the engine has stopped".into(),
+            }));
         };
         let attached = self.remote();
         let identity = attached.identity()?;
         let fingerprint = identity.fingerprint();
         let remote_dir = attached.home.data.join("remote");
-        std::fs::create_dir_all(&remote_dir).map_err(|e| FfiError::Remote {
-            reason: format!("{}: {e}", remote_dir.display()),
+        std::fs::create_dir_all(&remote_dir).map_err(|e| {
+            let reason = format!("{}: {e}", remote_dir.display());
+            FfiError::remote(Msg::StartFailedRemote { reason })
         })?;
         let trust = Arc::new(FileTrust::open(&remote_dir).map_err(fail)?);
         let options = ServerOptions { tv_name: name, ..ServerOptions::default() };
@@ -246,7 +251,11 @@ impl FfiEngine {
                 Ok((advert, port))
             })
             .await
-            .ok_or_else(|| FfiError::Remote { reason: "the engine has stopped".into() })?;
+            .ok_or_else(|| {
+                FfiError::remote(Msg::StartFailedRemote {
+                    reason: "the engine has stopped".into(),
+                })
+            })?;
         let (advert, port) = started.map_err(fail)?;
         Ok(Arc::new(FfiTvRemote {
             running: Arc::clone(&attached.running),
@@ -345,7 +354,9 @@ impl FfiTvRemote {
         let Some(phone) = Fingerprint::from_hex(&fingerprint) else { return Ok(false) };
         let running = lock(&self.running);
         let Some(remote) = running.as_ref() else { return Ok(false) };
-        remote.revoke(&phone).map_err(|e| FfiError::Remote { reason: e.to_string() })
+        remote
+            .revoke(&phone)
+            .map_err(|e| FfiError::remote(Msg::StartFailedRemote { reason: e.to_string() }))
     }
 
     /// Whether it is listening: false once stopped.

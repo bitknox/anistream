@@ -57,6 +57,10 @@ pub struct EngineOptions {
     /// further than they are sent. See [`Background`].
     pub background: Background,
     /// Parts a test stands the engine up with instead of the ones it builds.
+    /// Where a damaged database was moved before this launch, when one was: said at launch,
+    /// so the viewer knows why their history starts over and where the old file is. See
+    /// `Store::open_or_set_aside`.
+    pub set_aside: Option<std::path::PathBuf>,
     #[cfg(feature = "testing")]
     pub parts: Option<Parts>,
     /// What keep next takes to be free on the device, in bytes, in place of asking the disk:
@@ -88,6 +92,7 @@ impl EngineOptions {
             device_label: anistream_model::stores::COMPUTER.to_owned(),
             sources: None,
             background: Background::default(),
+            set_aside: None,
             #[cfg(feature = "testing")]
             parts: None,
             #[cfg(feature = "testing")]
@@ -211,6 +216,8 @@ pub struct Parts {
     /// The exit network the connection check answers with, so that it makes no lookup and brings
     /// no torrent session up: fixtures, never a real one.
     pub fixture_exit: Option<anistream_providers::vpn::Egress>,
+    /// Counted into as each player window opens, when given.
+    pub windows: Option<std::sync::Arc<std::sync::atomic::AtomicUsize>>,
 }
 
 #[cfg(test)]

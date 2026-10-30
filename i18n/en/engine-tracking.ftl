@@ -80,6 +80,7 @@ notice-anilist-implicit-flow = This AniList sign-in method works only in the { -
 notice-anilist-client-missing = AniList needs a client id and secret. Set { $client } and { $secret } in the config file, then sign in again. To get the sign-in address, run { -app-name } --login-url.
 
 # Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+# Terminal only: the engine never sends it to the apps.
 notice-anilist-paste-flow = Pasting a code isn't possible here. Quit and run { -app-name } --login instead.
 
 # Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the
@@ -87,7 +88,7 @@ notice-anilist-paste-flow = Pasting a code isn't possible here. Quit and run { -
 # @arg setting: text
 notice-mal-client-missing = MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set { $setting } in the config file.
 
-# Status line while the browser sign-in is open and the app waits for it to come back.
+# Job note while the browser sign-in is open and the terminal app waits for it to come back.
 # @arg tracker: text
 status-waiting-for-redirect = Waiting for { $tracker } to redirect back…
 
@@ -169,6 +170,7 @@ notice-episodes-aired = { $count ->
  }
 
 # Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+# Terminal only: the engine never sends it to the apps.
 # @arg tag: text
 notice-update-available = { $tag } is out. Run { -app-name } --update to install it.
 

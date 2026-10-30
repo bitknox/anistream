@@ -41,10 +41,6 @@ pub enum Msg {
     StatusLoadingSources,
     /// Job note while the sources are asked for an episode. The episode is its label, often a number.
     StatusSearchingSources { episode: String },
-    /// Status while the player opens.
-    StatusStartingPlayer,
-    /// Status line while an episode plays.
-    StatusPlaying { title: String, episode: String },
     /// Toast when the player cannot be started. The reason comes from the system.
     NoticePlayerFailedToStart { reason: String },
     /// Toast when a stream never showed a frame and the next one is tried.
@@ -57,10 +53,12 @@ pub enum Msg {
     NoticePlayerNotPlaying { seconds: i64 },
     /// Toast when a play is asked for in a build with no player.
     NoticeNoPlayer,
-    /// Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+    /// Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.
     NoticeMpvMissing { binary: String },
-    /// Toast at launch when mpv is too old for anistream's own player.
+    /// Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps.
     NoticeMpvOld { version: String },
+    /// Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.
+    NoticeSubtitlesUnavailable,
     /// Toast after a link was handed to the browser.
     NoticeOpenedInBrowser,
     /// Toast when a link could not be opened. The reason comes from the system.
@@ -101,6 +99,10 @@ pub enum Msg {
     NoticeSourceChoiceFailed { reason: String },
     /// Toast when no source could list a show's episodes. The reason is what the sources said.
     NoticeNoSourceCouldList { reason: String },
+    /// Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.
+    NoticeEpisodesFailed { reason: String },
+    /// Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name.
+    NoticeMatchUncertain { source: String },
     /// Toast when a title cannot be taken off the Continue row. The reason comes from the system.
     NoticeContinueHideFailed { reason: String },
     /// Toast after an episode was added to the download queue.
@@ -143,8 +145,10 @@ pub enum Msg {
     NoticeEpisodesQueuedExistingStopped { count: i64, existing: Cause, reason: Cause },
     /// Toast when keep next found no room for another episode.
     NoticeKeepNextFull,
-    /// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+    /// Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.
     PartyNeedsServer { server: String, operator: String },
+    /// Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it.
+    PartyChooseServer { server: String, operator: String },
     /// Toast when a watch party is asked for in a build without watch parties.
     NoticeNoParty,
     /// Message when a watch party was asked for with no room named.
@@ -269,7 +273,7 @@ pub enum Msg {
     TorrentInterfaceClosed,
     /// Error: the torrent session could not start. The reason comes from the torrent engine.
     TorrentSessionFailed { reason: String },
-    /// Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+    /// Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.
     TorrentNoKillSwitch,
     /// Toast when the connection check could not run. The reason comes from the VPN settings.
     TorrentNotChecked { reason: String },
@@ -325,11 +329,11 @@ pub enum Msg {
     NoticeAnilistImplicitFlow { setting: String },
     /// Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.
     NoticeAnilistClientMissing { client: String, secret: String },
-    /// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+    /// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.
     NoticeAnilistPasteFlow,
     /// Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
     NoticeMalClientMissing { setting: String },
-    /// Status line while the browser sign-in is open and the app waits for it to come back.
+    /// Job note while the browser sign-in is open and the terminal app waits for it to come back.
     StatusWaitingForRedirect { tracker: String },
     /// Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.
     NoticeMalNoRefreshToken,
@@ -365,7 +369,7 @@ pub enum Msg {
     NoticeEpisodeAired { title: String, episode: i64 },
     /// Toast, and desktop notification, for several episodes that aired while the app was closed.
     NoticeEpisodesAired { count: i64 },
-    /// Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+    /// Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps.
     NoticeUpdateAvailable { tag: String },
     /// The legal line. It exists once, so no translation can paraphrase it.
     LegalHostsNoContent,
@@ -377,6 +381,24 @@ pub enum Msg {
     NoticeTitleLoadFailed,
     /// Toast when playback stops with an error.
     NoticePlaybackFailed,
+    /// Toast when something went wrong inside the engine and it carried on.
+    NoticeEngineFault,
+    /// Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync.
+    NoticeDatabaseSetAside { path: String },
+    /// Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system.
+    StartFailedFolder { path: String, reason: String },
+    /// Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
+    StartFailedConfig { path: String, problem: String },
+    /// Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
+    StartFailedDatabase { path: String, reason: String },
+    /// Message when anistream could not start its network connection from the network settings.
+    StartFailedNetwork { reason: String },
+    /// Message when anistream itself could not start. The reason comes from the system or the engine.
+    StartFailed { reason: String },
+    /// Message when the TV remote could not start listening or could not forget a phone.
+    StartFailedRemote { reason: String },
+    /// Message when the built-in player could not start.
+    StartFailedPlayer { reason: String },
     /// Toast after episodes are added to the download queue.
     NoticeEpisodesQueued { count: i64 },
     /// Text anistream does not own, shown as it is: a plugin's note, a tracker's error.
@@ -402,8 +424,6 @@ impl Msg {
             Self::StatusLookingUpTitle => "status-looking-up-title",
             Self::StatusLoadingSources => "status-loading-sources",
             Self::StatusSearchingSources { .. } => "status-searching-sources",
-            Self::StatusStartingPlayer => "status-starting-player",
-            Self::StatusPlaying { .. } => "status-playing",
             Self::NoticePlayerFailedToStart { .. } => "notice-player-failed-to-start",
             Self::NoticeStreamNoVideo { .. } => "notice-stream-no-video",
             Self::NoticePlayerCouldNotPlay { .. } => "notice-player-could-not-play",
@@ -412,6 +432,7 @@ impl Msg {
             Self::NoticeNoPlayer => "notice-no-player",
             Self::NoticeMpvMissing { .. } => "notice-mpv-missing",
             Self::NoticeMpvOld { .. } => "notice-mpv-old",
+            Self::NoticeSubtitlesUnavailable => "notice-subtitles-unavailable",
             Self::NoticeOpenedInBrowser => "notice-opened-in-browser",
             Self::NoticeCouldNotOpen { .. } => "notice-could-not-open",
             Self::NoticeTrailerPlaying => "notice-trailer-playing",
@@ -432,6 +453,8 @@ impl Msg {
             Self::NoticeSourceAutomatic => "notice-source-automatic",
             Self::NoticeSourceChoiceFailed { .. } => "notice-source-choice-failed",
             Self::NoticeNoSourceCouldList { .. } => "notice-no-source-could-list",
+            Self::NoticeEpisodesFailed { .. } => "notice-episodes-failed",
+            Self::NoticeMatchUncertain { .. } => "notice-match-uncertain",
             Self::NoticeContinueHideFailed { .. } => "notice-continue-hide-failed",
             Self::NoticeDownloadQueued { .. } => "notice-download-queued",
             Self::NoticeDownloadAlreadyQueued { .. } => "notice-download-already-queued",
@@ -454,6 +477,7 @@ impl Msg {
             Self::NoticeEpisodesQueuedExistingStopped { .. } => "notice-episodes-queued-existing-stopped",
             Self::NoticeKeepNextFull => "notice-keep-next-full",
             Self::PartyNeedsServer { .. } => "party-needs-server",
+            Self::PartyChooseServer { .. } => "party-choose-server",
             Self::NoticeNoParty => "notice-no-party",
             Self::PartyNeedsRoom => "party-needs-room",
             Self::PartyServerLost => "party-server-lost",
@@ -570,6 +594,15 @@ impl Msg {
             Self::NoticeNotSaved { .. } => "notice-not-saved",
             Self::NoticeTitleLoadFailed => "notice-title-load-failed",
             Self::NoticePlaybackFailed => "notice-playback-failed",
+            Self::NoticeEngineFault => "notice-engine-fault",
+            Self::NoticeDatabaseSetAside { .. } => "notice-database-set-aside",
+            Self::StartFailedFolder { .. } => "start-failed-folder",
+            Self::StartFailedConfig { .. } => "start-failed-config",
+            Self::StartFailedDatabase { .. } => "start-failed-database",
+            Self::StartFailedNetwork { .. } => "start-failed-network",
+            Self::StartFailed { .. } => "start-failed",
+            Self::StartFailedRemote { .. } => "start-failed-remote",
+            Self::StartFailedPlayer { .. } => "start-failed-player",
             Self::NoticeEpisodesQueued { .. } => "notice-episodes-queued",
             Self::Verbatim { .. } => "verbatim",
         }
@@ -593,8 +626,6 @@ impl Msg {
             Self::StatusLookingUpTitle => Vec::new(),
             Self::StatusLoadingSources => Vec::new(),
             Self::StatusSearchingSources { episode } => vec![("episode", Value::Text(episode.clone()))],
-            Self::StatusStartingPlayer => Vec::new(),
-            Self::StatusPlaying { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
             Self::NoticePlayerFailedToStart { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::NoticeStreamNoVideo { next, total } => vec![("next", Value::Int(*next)), ("total", Value::Int(*total))],
             Self::NoticePlayerCouldNotPlay { reason } => vec![("reason", Value::Text(reason.clone()))],
@@ -603,6 +634,7 @@ impl Msg {
             Self::NoticeNoPlayer => Vec::new(),
             Self::NoticeMpvMissing { binary } => vec![("binary", Value::Text(binary.clone()))],
             Self::NoticeMpvOld { version } => vec![("version", Value::Text(version.clone()))],
+            Self::NoticeSubtitlesUnavailable => Vec::new(),
             Self::NoticeOpenedInBrowser => Vec::new(),
             Self::NoticeCouldNotOpen { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::NoticeTrailerPlaying => Vec::new(),
@@ -623,6 +655,8 @@ impl Msg {
             Self::NoticeSourceAutomatic => Vec::new(),
             Self::NoticeSourceChoiceFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::NoticeNoSourceCouldList { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeEpisodesFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeMatchUncertain { source } => vec![("source", Value::Text(source.clone()))],
             Self::NoticeContinueHideFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::NoticeDownloadQueued { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
             Self::NoticeDownloadAlreadyQueued { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Text(episode.clone()))],
@@ -645,6 +679,7 @@ impl Msg {
             Self::NoticeEpisodesQueuedExistingStopped { count, existing, reason } => vec![("count", Value::Int(*count)), ("existing", Value::Cause(existing.clone())), ("reason", Value::Cause(reason.clone()))],
             Self::NoticeKeepNextFull => Vec::new(),
             Self::PartyNeedsServer { server, operator } => vec![("server", Value::Text(server.clone())), ("operator", Value::Text(operator.clone()))],
+            Self::PartyChooseServer { server, operator } => vec![("server", Value::Text(server.clone())), ("operator", Value::Text(operator.clone()))],
             Self::NoticeNoParty => Vec::new(),
             Self::PartyNeedsRoom => Vec::new(),
             Self::PartyServerLost => Vec::new(),
@@ -761,6 +796,15 @@ impl Msg {
             Self::NoticeNotSaved { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::NoticeTitleLoadFailed => Vec::new(),
             Self::NoticePlaybackFailed => Vec::new(),
+            Self::NoticeEngineFault => Vec::new(),
+            Self::NoticeDatabaseSetAside { path } => vec![("path", Value::Text(path.clone()))],
+            Self::StartFailedFolder { path, reason } => vec![("path", Value::Text(path.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::StartFailedConfig { path, problem } => vec![("path", Value::Text(path.clone())), ("problem", Value::Text(problem.clone()))],
+            Self::StartFailedDatabase { path, reason } => vec![("path", Value::Text(path.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::StartFailedNetwork { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::StartFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::StartFailedRemote { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::StartFailedPlayer { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::NoticeEpisodesQueued { count } => vec![("count", Value::Int(*count))],
             Self::Verbatim { text } => vec![("text", Value::Text(text.clone()))],
         }
@@ -789,6 +833,8 @@ pub enum Cause {
     SourceGone { source: String },
     /// Reason: the release the person picked would not start. The detail comes from the source.
     ReleaseFailed { detail: String },
+    /// Reason: a play waited too long for its sources to give it a stream, and gave up.
+    SourcesTimedOut,
     /// Reason: every source matched the title but none has the episode. The detail is what each said.
     NoSourceHasEpisode { episode: String, detail: String },
     /// Reason: the source streams episodes but only torrents can be downloaded.
@@ -828,6 +874,7 @@ impl Cause {
             Self::TitleNoMatch { .. } => "cause-title-no-match",
             Self::SourceGone { .. } => "cause-source-gone",
             Self::ReleaseFailed { .. } => "cause-release-failed",
+            Self::SourcesTimedOut => "cause-sources-timed-out",
             Self::NoSourceHasEpisode { .. } => "cause-no-source-has-episode",
             Self::SourceCannotDownload => "cause-source-cannot-download",
             Self::NoSourceCouldListShow => "cause-no-source-could-list-show",
@@ -855,6 +902,7 @@ impl Cause {
             Self::TitleNoMatch { detail } => vec![("detail", Value::Text(detail.clone()))],
             Self::SourceGone { source } => vec![("source", Value::Text(source.clone()))],
             Self::ReleaseFailed { detail } => vec![("detail", Value::Text(detail.clone()))],
+            Self::SourcesTimedOut => Vec::new(),
             Self::NoSourceHasEpisode { episode, detail } => vec![("episode", Value::Text(episode.clone())), ("detail", Value::Text(detail.clone()))],
             Self::SourceCannotDownload => Vec::new(),
             Self::NoSourceCouldListShow => Vec::new(),
