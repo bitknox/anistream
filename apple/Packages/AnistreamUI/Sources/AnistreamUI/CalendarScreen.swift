@@ -187,12 +187,19 @@ struct CalendarScreen: View {
         let anchor: Int64?
         let rows: Int
         let pages: UInt32
+        /// Today: at midnight this week can become the next.
+        let today: Date
     }
 
     var body: some View {
         // The headings and the line for now move on each minute.
         TimelineView(.everyMinute) { context in
+            let model = store.calendar
             content(now: context.date)
+                .task(id: Need(week: navigator.calendarWeek, anchor: model.anchor, rows: model.rows.count, pages: model.pages + model.aheadPages, today: Calendar.current.startOfDay(for: context.date))) {
+                    let days = weekDays(offset: navigator.calendarWeek, now: context.date)
+                    store.ensureCalendar(from: days[0], to: days[6].addingTimeInterval(86_400))
+                }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .task {
@@ -201,10 +208,6 @@ struct CalendarScreen: View {
                 store.setSwitch(.calendarMine, on: true)
             }
             if store.calendar.list.state == .idle { store.loadCalendar() }
-        }
-        .task(id: Need(week: navigator.calendarWeek, anchor: store.calendar.anchor, rows: store.calendar.rows.count, pages: store.calendar.pages + store.calendar.aheadPages)) {
-            let days = weekDays(offset: navigator.calendarWeek)
-            store.ensureCalendar(from: days[0], to: days[6].addingTimeInterval(86_400))
         }
     }
 
@@ -373,6 +376,12 @@ struct DayBroadcasts: View {
     var kind: ColumnKind = .normal
     var retry: () -> Void = {}
     var showAll: () -> Void = {}
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// How many of the day's broadcasts have aired: where the line for now stands today.
+    private var aired: Int {
+        broadcasts.firstIndex { $0.airs > now } ?? broadcasts.count
+    }
 
     var body: some View {
         let today = Calendar.current.isDate(day, inSameDayAs: now)
@@ -431,6 +440,8 @@ struct DayBroadcasts: View {
             }
         }
         .padding(4)
+        // When a broadcast airs, the line moves below its card and the card up into its space.
+        .animation(reduceMotion ? .easeInOut(duration: 0.2) : .standard, value: today ? aired : 0)
         // As long as the longest day, which the row's fixed height makes every column.
         .frame(maxWidth: .infinity, minHeight: minHeight, maxHeight: .infinity, alignment: .topLeading)
         .background(
@@ -448,9 +459,9 @@ struct DayBroadcasts: View {
                 .foregroundStyle(.haze)
                 .padding(4)
         }
-        let split = today ? broadcasts.firstIndex { $0.airs > now } ?? broadcasts.count : -1
+        let split = today ? aired : -1
         ForEach(Array(broadcasts.enumerated()), id: \.element.id) { index, broadcast in
-            if today, index == split, index > 0 || !broadcasts.isEmpty {
+            if index == split {
                 NowLine(now: now, size: 11).frame(height: 18)
             }
             BroadcastCell(broadcast: broadcast, now: now)
