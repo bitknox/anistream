@@ -344,6 +344,11 @@ accounts-row-queued-held = { $queued } queued, { $held } waiting for an id mappi
 # @only tui
 accounts-conflict-keep-mine = Keep mine
 
+# Action under a sync difference in the overlay: Enter keeps the { -tracker }'s value instead.
+# @max 12
+# @only tui
+accounts-conflict-keep-theirs = Keep theirs
+
 # A sync difference in the overlay: the title, the field that differs, then this device's
 # value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 # @arg title: text

@@ -342,20 +342,24 @@ fn code_expiry(seconds_left: i64) -> String {
 /// The config setting that lists the enabled trackers, as the config file spells it.
 pub(super) const TRACKERS_SETTING: &str = "trackers.enabled"; // i18n-skip
 
-/// Divergences the merge refused to guess at.
+/// Divergences the merge refused to guess at, two rows each: keep this device's value, or the
+/// tracker's. The second row only names the choice, so the pair reads as one difference.
 pub(super) fn conflict_rows(app: &App) -> Vec<(String, String)> {
     app.conflicts
         .iter()
-        .map(|row| {
-            (
-                t::accounts_conflict_keep_mine(),
-                t::accounts_conflict_row(
-                    &truncate(&row.title, 34),
-                    &row.field,
-                    &row.local,
-                    &row.remote,
+        .flat_map(|row| {
+            [
+                (
+                    t::accounts_conflict_keep_mine(),
+                    t::accounts_conflict_row(
+                        &truncate(&row.title, 34),
+                        &row.field,
+                        &row.local,
+                        &row.remote,
+                    ),
                 ),
-            )
+                (t::accounts_conflict_keep_theirs(), String::new()),
+            ]
         })
         .collect()
 }

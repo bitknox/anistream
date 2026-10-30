@@ -3,16 +3,16 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ▌▸ │  ▌ Hoshikuzu no Tabibito                                        E4 · 57%
  ▤ │    Kaze no Tegami                                                 E9 out
  ▦ │    Yoru no Toshokan                                     E6 in 2 h 41 min
- / │    Tsuki to Kujira no Uta                               7 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Differences
 ────────────────────────────────────────────────────────────────────────────────
   Hoshikuzu no Tabibito  ·  progress: mine 3 / theirs 5            Keep mine
-▌ Kaze no Tegami  ·  status: mine watching / theirs paused         Keep mine
+▌                                                                Keep theirs
+  Kaze no Tegami  ·  status: mine watching / theirs paused         Keep mine
+                                                                 Keep theirs
   Tsuki to Kujira no Uta  ·  score: mine 9 / theirs 8              Keep mine
+                                                                 Keep theirs
 
-   │
-   │
    │
    │
    │
@@ -34,32 +34,38 @@ r02 c08-28 fg=rule mod=BOLD
 r02 c29-79 fg=rule
 r03 c00-79 fg=rule
 r04 c00-79 fg=rule
-r05 c00-79 fg=rule
-r06 c00-79 fg=rule bg=ground
-r07 c00-00 fg=obi bg=ground
-r07 c01-01 fg=rule bg=ground
-r07 c02-12 fg=text bg=ground mod=BOLD
-r07 c13-79 fg=rule bg=ground
-r08 c00-79 fg=rule bg=ground
-r09 c00-01 fg=rule bg=ground
-r09 c02-54 fg=text-dim bg=ground
-r09 c55-66 fg=rule bg=ground
-r09 c67-75 fg=text bg=ground
+r05 c00-79 fg=rule bg=ground
+r06 c00-00 fg=obi bg=ground
+r06 c01-01 fg=rule bg=ground
+r06 c02-12 fg=text bg=ground mod=BOLD
+r06 c13-79 fg=rule bg=ground
+r07 c00-79 fg=rule bg=ground
+r08 c00-01 fg=rule bg=ground
+r08 c02-54 fg=text-dim bg=ground
+r08 c55-66 fg=rule bg=ground
+r08 c67-75 fg=text bg=ground
+r08 c76-79 fg=rule bg=ground
+r09 c00-00 fg=obi bg=ground
+r09 c01-64 fg=rule bg=ground
+r09 c65-75 fg=text bg=ground
 r09 c76-79 fg=rule bg=ground
-r10 c00-00 fg=obi bg=ground
-r10 c01-01 fg=rule bg=ground
-r10 c02-57 fg=text bg=ground mod=BOLD
+r10 c00-01 fg=rule bg=ground
+r10 c02-57 fg=text-dim bg=ground
 r10 c58-66 fg=rule bg=ground
 r10 c67-75 fg=text bg=ground
 r10 c76-79 fg=rule bg=ground
-r11 c00-01 fg=rule bg=ground
-r11 c02-52 fg=text-dim bg=ground
-r11 c53-66 fg=rule bg=ground
-r11 c67-75 fg=text bg=ground
+r11 c00-64 fg=rule bg=ground
+r11 c65-75 fg=text bg=ground
 r11 c76-79 fg=rule bg=ground
-r12 c00-79 fg=rule bg=ground
-r13 c00-79 fg=rule
-r14 c00-79 fg=rule
+r12 c00-01 fg=rule bg=ground
+r12 c02-52 fg=text-dim bg=ground
+r12 c53-66 fg=rule bg=ground
+r12 c67-75 fg=text bg=ground
+r12 c76-79 fg=rule bg=ground
+r13 c00-64 fg=rule bg=ground
+r13 c65-75 fg=text bg=ground
+r13 c76-79 fg=rule bg=ground
+r14 c00-79 fg=rule bg=ground
 r15 c00-79 fg=rule
 r16 c00-79 fg=rule
 r17 c00-79 fg=rule

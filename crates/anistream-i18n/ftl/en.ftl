@@ -2482,6 +2482,9 @@ accounts-row-queued-held = { $queued } queued, { $held } waiting for an id mappi
 # Action beside a sync difference in the overlay: Enter keeps the value on this device.
 accounts-conflict-keep-mine = Keep mine
 
+# Action under a sync difference in the overlay: Enter keeps the { -tracker }'s value instead.
+accounts-conflict-keep-theirs = Keep theirs
+
 # A sync difference in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 accounts-conflict-row = { $title }  ·  { $field }: mine { $local } / theirs { $remote }
 

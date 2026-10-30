@@ -3935,6 +3935,11 @@ pub fn accounts_conflict_keep_mine() -> String {
     text("accounts-conflict-keep-mine", &[])
 }
 
+/// Action under a sync difference in the overlay: Enter keeps the { -tracker }'s value instead.
+pub fn accounts_conflict_keep_theirs() -> String {
+    text("accounts-conflict-keep-theirs", &[])
+}
+
 /// A sync difference in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 pub fn accounts_conflict_row(title: &str, field: &str, local: &str, remote: &str) -> String {
     text("accounts-conflict-row", &[("title", Arg::Text(title)), ("field", Arg::Text(field)), ("local", Arg::Text(local)), ("remote", Arg::Text(remote))])
