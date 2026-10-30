@@ -1600,6 +1600,16 @@ pub fn controller_help_buttons() -> String {
     text("controller-help-buttons", &[])
 }
 
+/// Note under the Show TVs with Chromecast built in setting, in the Play on TV group.
+pub fn settings_note_cast_tvs_computer() -> String {
+    text("settings-note-cast-tvs-computer", &[])
+}
+
+/// Note under the Torrents while casting setting, shown while torrents are on.
+pub fn settings_note_torrents_while_casting_computer() -> String {
+    text("settings-note-torrents-while-casting-computer", &[])
+}
+
 /// Button on a notice that asks to open the plugin stores.
 pub fn shell_open_stores() -> String {
     text("shell-open-stores", &[])
@@ -5043,16 +5053,6 @@ pub fn settings_label_comment_images() -> String {
 /// Settings row: whether Calendar shows only the shows on the person's list.
 pub fn settings_label_calendar_mine() -> String {
     text("settings-label-calendar-mine", &[])
-}
-
-/// Settings row: whether the TV picker lists TVs with Chromecast built in.
-pub fn settings_label_cast_tvs() -> String {
-    text("settings-label-cast-tvs", &[])
-}
-
-/// Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
-pub fn settings_label_torrents_while_casting() -> String {
-    text("settings-label-torrents-while-casting", &[])
 }
 
 /// Note under the titles row.
@@ -9795,6 +9795,16 @@ pub fn settings_label_trailers() -> String {
     text("settings-label-trailers", &[])
 }
 
+/// Settings row: whether the TV picker lists TVs with Chromecast built in.
+pub fn settings_label_cast_tvs() -> String {
+    text("settings-label-cast-tvs", &[])
+}
+
+/// Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+pub fn settings_label_torrents_while_casting() -> String {
+    text("settings-label-torrents-while-casting", &[])
+}
+
 /// Option: use the tracker's own choice. The tracker is a name.
 pub fn settings_title_tracker(tracker: &str) -> String {
     text("settings-title-tracker", &[("tracker", Arg::Text(tracker))])
@@ -12768,6 +12778,11 @@ pub fn tv_cast_unmute() -> String {
 /// Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
 pub fn tv_cast_volume_on_tv() -> String {
     text("tv-cast-volume-on-tv", &[])
+}
+
+/// Line over the next episode on the casting card while its count runs. At 0 the TV plays it.
+pub fn tv_cast_up_next_in(seconds: i64) -> String {
+    text("tv-cast-up-next-in", &[("seconds", Arg::Int(seconds))])
 }
 
 /// Heading of the update row in settings and about.

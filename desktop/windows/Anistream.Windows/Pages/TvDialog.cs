@@ -168,6 +168,9 @@ sealed class TvDialog
             body.Children.Add(next.Root);
             Motion.FadeIn(next.Root);
             next.Update();
+            // The row picked has gone with the picker: the focus goes to Done, not the next button along.
+            if (next is CastView)
+                dialog.DispatcherQueue.TryEnqueue(() => (Named(dialog, "CloseButton") as Control)?.Focus(FocusState.Programmatic));
             if (from > 0)
             {
                 next.Root.Measure(new global::Windows.Foundation.Size(body.Width, double.PositiveInfinity));
@@ -176,6 +179,20 @@ sealed class TvDialog
             return;
         }
         next.Update();
+    }
+
+    /// <summary>The element named <paramref name="name"/> in <paramref name="at"/>'s visual tree, such as a dialog's own button.</summary>
+    static DependencyObject? Named(DependencyObject at, string name)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(at); i++)
+        {
+            var child = VisualTreeHelper.GetChild(at, i);
+            if (child is FrameworkElement element && element.Name == name)
+                return child;
+            if (Named(child, name) is { } found)
+                return found;
+        }
+        return null;
     }
 
     /// <summary>The dialog's title and its three buttons, for the view up.</summary>
@@ -442,7 +459,8 @@ sealed class TvDialog
         {
             var words = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
             words.Children.Add(Ui.Text(row.Name, wrap: false));
-            words.Children.Add(Ui.Text(TvWords.CastRoute(row), "HazeCaptionStyle", wrap: false));
+            if (TvWords.CastRoute(row) is { } route)
+                words.Children.Add(Ui.Text(route, "HazeCaptionStyle", wrap: false));
             var button = new Button
             {
                 Content = words,
@@ -454,7 +472,7 @@ sealed class TvDialog
                 BorderThickness = new Thickness(0),
                 CornerRadius = new CornerRadius(6),
             };
-            AutomationProperties.SetName(button, T.TvRowName(row.Name, TvWords.CastRoute(row)));
+            AutomationProperties.SetName(button, TvWords.CastRoute(row) is { } spoken ? T.TvRowName(row.Name, spoken) : row.Name);
             button.Click += (_, _) => owner.tv.Cast(row);
             return button;
         }
@@ -1053,6 +1071,18 @@ sealed class TvDialog
         readonly TextBlock episode = Ui.Text("", "HazeBodyStyle", wrap: false);
         readonly TextBlock reason = Ui.Text("", "BodyTextBlockStyle");
         readonly Button skip = new() { Height = 32 };
+        readonly StackPanel undoNote = new() { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        readonly TextBlock skipped = Ui.Text("", "HazeCaptionStyle", wrap: false);
+        readonly Button undo = new() { Height = 32 };
+        readonly Grid upNext = new() { ColumnSpacing = 12, RowSpacing = 10, Padding = new Thickness(0, 12, 0, 0) };
+        Border upNextCover = new() { Width = 40, Height = 60, CornerRadius = new CornerRadius(4) };
+        uint? upNextCoverFor;
+        readonly TextBlock upNextLine = Ui.Text("", "HazeCaptionStyle", wrap: false);
+        readonly TextBlock upNextEpisode = Ui.Text("", "BodyTextBlockStyle", wrap: false);
+        readonly ProgressBar upNextCount = new() { Minimum = 0, Maximum = 1, Height = 2, MinHeight = 2 };
+        readonly Button upNextCancel = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
+        readonly Button upNextPlay = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
+        (string Number, uint Seconds)? upNextFrom;
         readonly StackPanel playhead = new() { Spacing = 0 };
         readonly Slider seek = new() { Minimum = 0, Maximum = 1, StepFrequency = 1, SmallChange = 10, LargeChange = 60, IsThumbToolTipEnabled = false };
         readonly TextBlock elapsed = Ui.Text("0:00", "HazeCaptionStyle", wrap: false);
@@ -1134,6 +1164,15 @@ sealed class TvDialog
             skip.Click += (_, _) => owner.tv.SendCast(new FfiTvCommand.Skip());
             Grid.SetColumn(skip, 2);
             nowRow.Children.Add(skip);
+            // An automatic skip, in the skip's place while it can be undone: "Skipped opening · Undo".
+            undo.Content = T.ActionUndo;
+            undo.Click += (_, _) => owner.tv.CastUndoSkip();
+            undoNote.Children.Add(skipped);
+            undoNote.Children.Add(undo);
+            undoNote.Visibility = Visibility.Collapsed;
+            AutomationProperties.SetLiveSetting(skipped, AutomationLiveSetting.Polite);
+            Grid.SetColumn(undoNote, 2);
+            nowRow.Children.Add(undoNote);
             root.Children.Add(nowRow);
 
             // The playhead, dragged or stepped to seek.
@@ -1157,6 +1196,46 @@ sealed class TvDialog
             times.Children.Add(total);
             playhead.Children.Add(times);
             root.Children.Add(playhead);
+
+            // Up next, near the end: the next episode, its count, Cancel and Play now.
+            upNext.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            upNext.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            upNext.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            upNext.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            upNext.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            upNext.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            upNext.BorderBrush = Ui.Res<Brush>("CardStrokeColorDefaultBrush");
+            upNext.BorderThickness = new Thickness(0, 1, 0, 0);
+            upNext.Children.Add(upNextCover);
+            var nextWords = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+            nextWords.Children.Add(upNextLine);
+            nextWords.Children.Add(upNextEpisode);
+            AutomationProperties.SetLiveSetting(upNextEpisode, AutomationLiveSetting.Polite);
+            Grid.SetColumn(nextWords, 1);
+            Grid.SetColumnSpan(nextWords, 2);
+            upNext.Children.Add(nextWords);
+            upNextCount.Foreground = new SolidColorBrush(Colours.Water);
+            AutomationProperties.SetAccessibilityView(upNextCount, AccessibilityView.Raw);
+            Grid.SetRow(upNextCount, 1);
+            Grid.SetColumnSpan(upNextCount, 3);
+            upNext.Children.Add(upNextCount);
+            upNextCancel.Content = T.ActionCancel;
+            upNextCancel.Click += (_, _) => owner.tv.CastCancelNext();
+            upNextPlay.Content = T.ActionPlayNow;
+            upNextPlay.Style = Ui.Res<Style>("AccentButtonStyle");
+            upNextPlay.Click += (_, _) => owner.tv.CastPlayNext();
+            var nextButtons = new Grid { ColumnSpacing = 8 };
+            nextButtons.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            nextButtons.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            nextButtons.Children.Add(upNextCancel);
+            Grid.SetColumn(upNextPlay, 1);
+            nextButtons.Children.Add(upNextPlay);
+            Grid.SetRow(nextButtons, 2);
+            Grid.SetColumnSpan(nextButtons, 3);
+            upNext.Children.Add(nextButtons);
+            upNext.Visibility = Visibility.Collapsed;
+            Motion.QuickOpacity(upNext);
+            root.Children.Add(upNext);
 
             // Back and forward 10 seconds, play or pause, and the next episode.
             transport.Children.Add(Glyph(RemoteView.Ten(back: true), T.PlayerBack10, new FfiTvCommand.Seek(-10)));
@@ -1268,7 +1347,12 @@ sealed class TvDialog
             title.Text = now.Title;
             episode.Text = now.EpisodeLine;
             var playing = stage == CastStage.Playing;
-            skip.Visibility = playing && now.Skip is not null ? Visibility.Visible : Visibility.Collapsed;
+            var undoing = playing && card?.Undo is not null;
+            skip.Visibility = playing && now.Skip is not null && !undoing ? Visibility.Visible : Visibility.Collapsed;
+            undoNote.Visibility = undoing ? Visibility.Visible : Visibility.Collapsed;
+            if (card?.Undo is { } undone)
+                skipped.Text = TvWords.CastSkipped(undone);
+            UpNext(card?.UpNext, now, ended);
             if (now.Skip is { } offered)
                 skip.Content = offered.Label == "Skip ending" ? T.PlayerSkipEnding : T.PlayerSkipOpening;
 
@@ -1293,6 +1377,37 @@ sealed class TvDialog
                 Volume(card, playing);
             Tracks(now);
             Tick();
+        }
+
+        /// <summary>Up next while the engine sends it: the line with its count, the episode, and the count as a bar.</summary>
+        void UpNext(FfiCastUpNext? next, FfiNowCard now, bool ended)
+        {
+            upNext.Visibility = next is not null && !ended ? Visibility.Visible : Visibility.Collapsed;
+            if (next is null)
+            {
+                upNextFrom = null;
+                return;
+            }
+            if (upNextCoverFor != now.Id)
+            {
+                upNextCoverFor = now.Id;
+                upNext.Children.Remove(upNextCover);
+                upNextCover = Ui.Cover(owner.ctx, now.Id, 40, 60);
+                upNextCover.CornerRadius = new CornerRadius(4);
+                upNext.Children.Insert(0, upNextCover);
+            }
+            upNextLine.Text = TvWords.CastUpNext(next);
+            upNextEpisode.Text = TvWords.CastUpNextEpisode(next);
+            // The bar fills as the count runs down, from the most seconds it showed for this episode.
+            if (next.SecondsLeft is { } left)
+            {
+                if (upNextFrom is not { } from || from.Number != next.Number || left > from.Seconds)
+                    upNextFrom = (next.Number, Math.Max(left, 1));
+                upNextCount.Value = 1 - (double)left / upNextFrom!.Value.Seconds;
+                upNextCount.Visibility = Visibility.Visible;
+            }
+            else
+                upNextCount.Visibility = Visibility.Collapsed;
         }
 
         void Status()

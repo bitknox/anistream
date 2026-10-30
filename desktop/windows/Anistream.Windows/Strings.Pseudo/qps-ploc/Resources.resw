@@ -1411,6 +1411,14 @@
     <value>[Ţŕàîļéŕš þļàý ɱüţéð ƒŕöɱ ÝöüŢüƀé, ŵĥîçĥ šééš ýöüŕ ÎÞ àððŕéšš. Ţĥéý ðöñ'ţ þļàý öñ à ɱéţéŕéð çöññéçţîöñ, ŵîţĥ àñîɱàţîöñ éƒƒéçţš öƒƒ, îñ éñéŕĝý šàṽéŕ ɱöðé öŕ ŵîţĥ Ñàŕŕàţöŕ ŕüññîñĝ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Note under the Play trailers setting: what the trailers are and when they do not play.</comment>
   </data>
+  <data name="SettingsNoteCastTvsPc" xml:space="preserve">
+    <value>[Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš ÞÇ šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Note under the Show TVs with Chromecast built in setting, in the Play on TV group.</comment>
+  </data>
+  <data name="SettingsNoteTorrentsWhileCastingPc" xml:space="preserve">
+    <value>[Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš ÞÇ šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Note under the Torrents while casting setting, shown while torrents are on.</comment>
+  </data>
   <data name="TrayStillDownloading" xml:space="preserve">
     <value>[àñîšţŕéàɱ îš šţîļļ ðöŵñļöàðîñĝ~~~~~~~~~]</value>
     <comment>The notification area icon's balloon, the first time the window closes with downloads running: its title.</comment>
@@ -4787,6 +4795,14 @@
     <value>[Þļàý ţŕàîļéŕš~~~~]</value>
     <comment>Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.</comment>
   </data>
+  <data name="SettingsLabelCastTvs" xml:space="preserve">
+    <value>[Šĥöŵ ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ~~~~~~~~~~]</value>
+    <comment>Settings row: whether the TV picker lists TVs with Chromecast built in.</comment>
+  </data>
+  <data name="SettingsLabelTorrentsWhileCasting" xml:space="preserve">
+    <value>[Ţöŕŕéñţš ŵĥîļé çàšţîñĝ~~~~~~~]</value>
+    <comment>Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.</comment>
+  </data>
   <data name="SettingsTitleTracker" xml:space="preserve">
     <value>[{tracker}'š çĥöîçé~~~~]</value>
     <comment>Option: use the tracker's own choice. The tracker is a name.</comment>
@@ -7206,6 +7222,10 @@
   <data name="TvCastVolumeOnTv" xml:space="preserve">
     <value>[Šéţ öñ ţĥé ŢṼ~~~~]</value>
     <comment>Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.</comment>
+  </data>
+  <data name="TvCastUpNextIn" xml:space="preserve">
+    <value>[Ûþ ñéẋţ · þļàýš îñ {seconds} š~~~~~~~~]</value>
+    <comment>Line over the next episode on the casting card while its count runs. At 0 the TV plays it.</comment>
   </data>
   <data name="UpdatesTitle" xml:space="preserve">
     <value>[Ûþðàţéš~~~]</value>

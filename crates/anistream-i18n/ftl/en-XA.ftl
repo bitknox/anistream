@@ -1029,6 +1029,12 @@ controller-help-title = [Çöñţŕöļļéŕ~~~]
 # Accessible name of the list of controller buttons in the help window.
 controller-help-buttons = [Çöñţŕöļļéŕ ƀüţţöñš~~~~~~]
 
+# Note under the Show TVs with Chromecast built in setting, in the Play on TV group.
+settings-note-cast-tvs-computer = [Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš çöɱþüţéŕ šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Torrents while casting setting, shown while torrents are on.
+settings-note-torrents-while-casting-computer = [Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš çöɱþüţéŕ šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
 # Button on a notice that asks to open the plugin stores.
 shell-open-stores = [Öþéñ þļüĝîñ šţöŕéš~~~~~~]
 
@@ -3163,12 +3169,6 @@ settings-label-comment-images = [Ļöàð îɱàĝéš îñ çöɱɱéñţš~~~~
 
 # Settings row: whether Calendar shows only the shows on the person's list.
 settings-label-calendar-mine = [Çàļéñðàŕ šĥöŵš öñļý ɱý ļîšţ~~~~~~~~~]
-
-# Settings row: whether the TV picker lists TVs with Chromecast built in.
-settings-label-cast-tvs = [Šĥöŵ ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ~~~~~~~~~~]
-
-# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
-settings-label-torrents-while-casting = [Ţöŕŕéñţš ŵĥîļé çàšţîñĝ~~~~~~~]
 
 # Note under the titles row.
 settings-note-titles = [ÅñîĻîšţ'š çĥöîçé ƒöļļöŵš ýöüŕ ÅñîĻîšţ àççöüñţ, àñð îš Éñĝļîšĥ ŵĥéñ ýöü'ŕé šîĝñéð öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
@@ -6094,6 +6094,12 @@ settings-value-trailers-wifi-only = [Ŵî-Ƒî öñļý~~~]
 # Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
 settings-label-trailers = [Þļàý ţŕàîļéŕš~~~~]
 
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+settings-label-cast-tvs = [Šĥöŵ ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ~~~~~~~~~~]
+
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+settings-label-torrents-while-casting = [Ţöŕŕéñţš ŵĥîļé çàšţîñĝ~~~~~~~]
+
 # Option: use the tracker's own choice. The tracker is a name.
 settings-title-tracker = [{ $tracker }'š çĥöîçé~~~~]
 
@@ -7918,6 +7924,9 @@ tv-cast-unmute = [Ûñɱüţé~~]
 
 # Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
 tv-cast-volume-on-tv = [Šéţ öñ ţĥé ŢṼ~~~~]
+
+# Line over the next episode on the casting card while its count runs. At 0 the TV plays it.
+tv-cast-up-next-in = [Ûþ ñéẋţ · þļàýš îñ { $seconds } š~~~~~~~~]
 
 # Heading of the update row in settings and about.
 updates-title = [Ûþðàţéš~~~]

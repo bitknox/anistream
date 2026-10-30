@@ -140,6 +140,8 @@ public sealed partial class SettingsPage : Page
         K.EpisodeNotifications => T.SettingsEpisodeNotifications,
         K.EpisodeDiscussions => T.SettingsEpisodeDiscussions,
         K.CommentImages => T.SettingsCommentImages,
+        K.CastTvs => T.SettingsLabelCastTvs,
+        K.TorrentsWhileCasting => T.SettingsLabelTorrentsWhileCasting,
         _ => T.SettingsMpvOptions,
     };
 
@@ -292,6 +294,8 @@ public sealed partial class SettingsPage : Page
                         tvGroup = new StackPanel { Spacing = 4 };
                         ShowTvs(tvGroup);
                         Cards.Children.Add(tvGroup);
+                        if (ctx.Known.Setting(K.CastTvs) is { } castTvs)
+                            Cards.Children.Add(Card(castTvs));
                     }
                     // Only where the engine was built with a presence to publish.
                     if (keys.Contains(K.Presence) && ctx.Known.Settings is { PresenceAvailable: false })
@@ -590,6 +594,10 @@ public sealed partial class SettingsPage : Page
                 ctx.Send(command);
         };
         Cards.Children.Add(CardFrame(failedTitle, TorrentWords.FailedNote, failed));
+
+        // Whether a cast plays torrents, which this PC then serves to the TV.
+        if (ctx.Known.Setting(K.TorrentsWhileCasting) is { } casting)
+            Cards.Children.Add(Card(casting));
     }
 
     /// <summary>
@@ -761,6 +769,10 @@ public sealed partial class SettingsPage : Page
             description = T.SettingsNoteTrailersWindows;
         if (row.Key == K.PresenceRich)
             description = T.SettingsPresenceRichDetail(AnistreamFfiMethods.TrackerName("anilist"));
+        if (row.Key == K.CastTvs)
+            description = T.SettingsNoteCastTvsPc;
+        if (row.Key == K.TorrentsWhileCasting)
+            description = T.SettingsNoteTorrentsWhileCastingPc;
         FrameworkElement control;
         switch (SettingsCatalog.ControlFor(row))
         {

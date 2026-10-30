@@ -5326,6 +5326,12 @@ public enum L {
     /// Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
     public static var settingsLabelTrailers: String { string("settings-label-trailers", fallback: "Play trailers") }
 
+    /// Settings row: whether the TV picker lists TVs with Chromecast built in.
+    public static var settingsLabelCastTvs: String { string("settings-label-cast-tvs", fallback: "Show TVs with Chromecast built in") }
+
+    /// Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+    public static var settingsLabelTorrentsWhileCasting: String { string("settings-label-torrents-while-casting", fallback: "Torrents while casting") }
+
     /// Option: use the tracker's own choice. The tracker is a name.
     public static func settingsTitleTracker(tracker: String) -> String {
         Self.format("settings-title-tracker", fallback: "%1$@'s choice", tracker)
@@ -7404,6 +7410,11 @@ public enum L {
 
     /// Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
     public static var tvCastVolumeOnTv: String { string("tv-cast-volume-on-tv", fallback: "Set on the TV") }
+
+    /// Line over the next episode on the casting card while its count runs. At 0 the TV plays it.
+    public static func tvCastUpNextIn(seconds: Int) -> String {
+        Self.format("tv-cast-up-next-in", fallback: "Up next · plays in %1$lld s", seconds)
+    }
 
     /// Heading of the update row in settings and about.
     public static var updatesTitle: String { string("updates-title", fallback: "Updates") }

@@ -320,6 +320,7 @@ public sealed partial class MainWindow
     ///     cast-taken-over      someone else takes Living room: the card closes, the notice offers Play here
     ///     cast-bar             Living room playing with the card closed: the title bar's button
     ///     cast-stopped         Stop casting from the card
+    ///     cast-up-next         Living room near the end of the episode: Up next counts down
     /// </summary>
     async void RehearseCast(string scene)
     {
@@ -356,6 +357,11 @@ public sealed partial class MainWindow
             case "cast-stopped":
                 await Task.Delay(1500);
                 tv.StopCasting();
+                break;
+            case "cast-up-next":
+                await Task.Delay(800);
+                if (tv.CastNow?.Duration is { } duration)
+                    tv.SendCast(new FfiTvCommand.SeekTo(duration - 26));
                 break;
         }
     }

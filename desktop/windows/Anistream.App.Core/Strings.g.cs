@@ -1005,6 +1005,12 @@ public static partial class T
     /// <summary>Note under the Play trailers setting: what the trailers are and when they do not play.</summary>
     public static string SettingsNoteTrailersWindows => Get("SettingsNoteTrailersWindows");
 
+    /// <summary>Note under the Show TVs with Chromecast built in setting, in the Play on TV group.</summary>
+    public static string SettingsNoteCastTvsPc => Get("SettingsNoteCastTvsPc");
+
+    /// <summary>Note under the Torrents while casting setting, shown while torrents are on.</summary>
+    public static string SettingsNoteTorrentsWhileCastingPc => Get("SettingsNoteTorrentsWhileCastingPc");
+
     /// <summary>The notification area icon's balloon, the first time the window closes with downloads running: its title.</summary>
     public static string TrayStillDownloading => Get("TrayStillDownloading");
 
@@ -3489,6 +3495,12 @@ public static partial class T
     /// <summary>Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.</summary>
     public static string SettingsLabelTrailers => Get("SettingsLabelTrailers");
 
+    /// <summary>Settings row: whether the TV picker lists TVs with Chromecast built in.</summary>
+    public static string SettingsLabelCastTvs => Get("SettingsLabelCastTvs");
+
+    /// <summary>Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.</summary>
+    public static string SettingsLabelTorrentsWhileCasting => Get("SettingsLabelTorrentsWhileCasting");
+
     /// <summary>Option: use the tracker's own choice. The tracker is a name.</summary>
     public static string SettingsTitleTracker(string tracker) => Fill(Get("SettingsTitleTracker"), ("tracker", tracker));
 
@@ -5274,6 +5286,9 @@ public static partial class T
     /// <summary>Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.</summary>
     public static string TvCastVolumeOnTv => Get("TvCastVolumeOnTv");
 
+    /// <summary>Line over the next episode on the casting card while its count runs. At 0 the TV plays it.</summary>
+    public static string TvCastUpNextIn(long seconds) => Fill(Get("TvCastUpNextIn"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>Heading of the update row in settings and about.</summary>
     public static string UpdatesTitle => Get("UpdatesTitle");
 
@@ -5818,6 +5833,8 @@ public static partial class T
         ["TorrentsDialogTurnOnAction"] = "Turn on",
         ["TorrentsChoiceSpoken"] = "{label}. {detail}",
         ["SettingsNoteTrailersWindows"] = "Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animation effects off, in energy saver mode or with Narrator running.",
+        ["SettingsNoteCastTvsPc"] = "They appear under Chromecast in Play on TV. This PC sends them the episode.",
+        ["SettingsNoteTorrentsWhileCastingPc"] = "Lets a TV with Chromecast built in play torrents. This PC sends the episode for as long as it plays.",
         ["TrayStillDownloading"] = "anistream is still downloading",
         ["TrayWhere"] = "It's in the notification area.",
         ["TrayOpen"] = "Open anistream",
@@ -6662,6 +6679,8 @@ public static partial class T
         ["SettingsValueTrailersAlways"] = "Always",
         ["SettingsValueTrailersWifiOnly"] = "Wi-Fi only",
         ["SettingsLabelTrailers"] = "Play trailers",
+        ["SettingsLabelCastTvs"] = "Show TVs with Chromecast built in",
+        ["SettingsLabelTorrentsWhileCasting"] = "Torrents while casting",
         ["SettingsTitleTracker"] = "{tracker}'s choice",
         ["SettingsTitleEnglish"] = "English",
         ["SettingsTitleRomaji"] = "Romaji",
@@ -7267,6 +7286,7 @@ public static partial class T
         ["TvCastMute"] = "Mute",
         ["TvCastUnmute"] = "Unmute",
         ["TvCastVolumeOnTv"] = "Set on the TV",
+        ["TvCastUpNextIn"] = "Up next · plays in {seconds} s",
         ["UpdatesTitle"] = "Updates",
         ["UpdatesChecking"] = "Checking for a newer version…",
         ["UpdatesUpToDate"] = "Up to date",

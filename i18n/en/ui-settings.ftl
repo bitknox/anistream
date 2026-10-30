@@ -81,6 +81,12 @@ settings-value-trailers-wifi-only = Wi-Fi only
 # Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.
 settings-label-trailers = Play trailers
 
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+settings-label-cast-tvs = Show TVs with Chromecast built in
+
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+settings-label-torrents-while-casting = Torrents while casting
+
 # Option: use the tracker's own choice. The tracker is a name.
 # @arg tracker: text
 settings-title-tracker = { $tracker }'s choice

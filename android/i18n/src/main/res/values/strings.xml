@@ -2801,6 +2801,10 @@
     <string name="settings_value_trailers_wifi_only">Wi-Fi only</string>
     <!-- Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps. -->
     <string name="settings_label_trailers">Play trailers</string>
+    <!-- Settings row: whether the TV picker lists TVs with Chromecast built in. -->
+    <string name="settings_label_cast_tvs">Show TVs with Chromecast built in</string>
+    <!-- Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile. -->
+    <string name="settings_label_torrents_while_casting">Torrents while casting</string>
     <!-- Option: use the tracker's own choice. The tracker is a name. -->
     <string name="settings_title_tracker">%1$s\'s choice</string>
     <!-- Option: English titles. -->
@@ -4021,6 +4025,8 @@
     <string name="tv_cast_unmute">Unmute</string>
     <!-- Under the TV volume row on the casting card, for a TV whose volume is set with its own remote. -->
     <string name="tv_cast_volume_on_tv">Set on the TV</string>
+    <!-- Line over the next episode on the casting card while its count runs. At 0 the TV plays it. -->
+    <string name="tv_cast_up_next_in">Up next · plays in %1$d s</string>
     <!-- Heading of the update row in settings and about. -->
     <string name="updates_title">Updates</string>
     <!-- Line while the app checks. -->

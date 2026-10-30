@@ -17,7 +17,7 @@ use anistream_engine::{
             command::{RemoteCommand, Track},
             state::TrackInfo,
         },
-        sender::{CastRow, LinkPhase, NowCard, Problem, TvRow, TvRowKind},
+        sender::{CastRow, CastUpNext, LinkPhase, NowCard, Problem, TvRow, TvRowKind},
     },
 };
 use anistream_i18n::t;
@@ -223,6 +223,7 @@ impl Dialog {
                     Some(Face::Remote) => {
                         // A cast's starting line counts the seconds.
                         if me.tv.casting() {
+                            me.tv.cast_tick();
                             me.remote.update(&me.ctx, false);
                         }
                         me.remote.show_playhead(&me.tv);
@@ -456,6 +457,12 @@ impl Dialog {
             }
         });
         self.remote.choose_source.connect_clicked(move |_| choose_source());
+        let undo = on(|me| me.tv.cast_undo_skip());
+        self.remote.undo.connect_clicked(move |_| undo());
+        let cancel_next = on(|me| me.tv.cast_cancel_next());
+        self.remote.up_next_cancel.connect_clicked(move |_| cancel_next());
+        let play_next = on(|me| me.tv.cast_play_next());
+        self.remote.up_next_play.connect_clicked(move |_| play_next());
     }
 }
 
@@ -801,7 +808,7 @@ fn tv_row(row: &TvRow, connected: bool) -> adw::ActionRow {
 fn cast_row(row: &CastRow) -> adw::ActionRow {
     let line = adw::ActionRow::builder()
         .title(&row.name)
-        .subtitle(t::tv_cast_through_computer())
+        .subtitle(super::cast::route_line(row).unwrap_or_default())
         .use_markup(false)
         .activatable(true)
         .build();
@@ -1082,6 +1089,21 @@ struct Remote {
     show: gtk::Label,
     episode: gtk::Label,
     skip: gtk::Button,
+    /// "Skipped opening" and Undo, in the skip's place while an automatic skip can be undone.
+    undo_note: gtk::Box,
+    skipped: gtk::Label,
+    undo: gtk::Button,
+    /// Up next on a cast's card: the episode, its count, Cancel and Play now.
+    up_next: gtk::Box,
+    up_next_cover: gtk::Box,
+    up_next_cover_of: Cell<Option<u32>>,
+    up_next_line: gtk::Label,
+    up_next_episode: gtk::Label,
+    up_next_count: gtk::ProgressBar,
+    /// The most seconds the count showed for its episode, for how full the bar is.
+    up_next_from: RefCell<Option<(String, u32)>>,
+    up_next_cancel: gtk::Button,
+    up_next_play: gtk::Button,
     seek: gtk::Scale,
     position: gtk::Label,
     remaining: gtk::Label,
@@ -1094,6 +1116,7 @@ struct Remote {
     rows: gtk::ListBox,
     subtitles: gtk::MenuButton,
     audio: gtk::MenuButton,
+    audio_row: adw::ActionRow,
     tracks_drawn: RefCell<(Vec<TrackInfo>, Vec<TrackInfo>)>,
     subtitle_action: gio::SimpleAction,
     audio_action: gio::SimpleAction,
@@ -1169,6 +1192,14 @@ impl Remote {
         let skip = gtk::Button::with_label(&t::player_skip_opening());
         skip.set_valign(gtk::Align::Center);
         head.append(&skip);
+        let undo_note = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        undo_note.set_valign(gtk::Align::Center);
+        undo_note.set_visible(false);
+        let skipped = widgets::haze("", "caption");
+        undo_note.append(&skipped);
+        let undo = gtk::Button::with_label(&t::action_undo());
+        undo_note.append(&undo);
+        head.append(&undo_note);
         now.append(&head);
         // Why a cast ended, under the episode, in the engine's words.
         let notice = line();
@@ -1193,6 +1224,40 @@ impl Remote {
         seek_line.append(&seek);
         seek_line.append(&times);
         now.append(&seek_line);
+
+        // Up next, near the end of a cast's episode.
+        let up_next = gtk::Box::new(gtk::Orientation::Vertical, 10);
+        up_next.add_css_class("tv-up-next");
+        up_next.set_visible(false);
+        let up_next_head = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+        let up_next_cover = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        up_next_cover.set_valign(gtk::Align::Center);
+        up_next_head.append(&up_next_cover);
+        let up_next_text = gtk::Box::new(gtk::Orientation::Vertical, 2);
+        up_next_text.set_valign(gtk::Align::Center);
+        up_next_text.set_hexpand(true);
+        let up_next_line = widgets::haze("", "caption");
+        up_next_line.set_xalign(0.0);
+        up_next_text.append(&up_next_line);
+        let up_next_episode = gtk::Label::new(None);
+        up_next_episode.set_xalign(0.0);
+        up_next_episode.set_ellipsize(gtk::pango::EllipsizeMode::End);
+        up_next_text.append(&up_next_episode);
+        up_next_head.append(&up_next_text);
+        up_next.append(&up_next_head);
+        let up_next_count = gtk::ProgressBar::new();
+        up_next_count.add_css_class("tv-up-next-count");
+        up_next_count.add_css_class("water");
+        up_next.append(&up_next_count);
+        let up_next_buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        up_next_buttons.set_homogeneous(true);
+        let up_next_cancel = gtk::Button::with_label(&t::action_cancel());
+        let up_next_play = gtk::Button::with_label(&t::action_play_now());
+        up_next_play.add_css_class("suggested-action");
+        up_next_buttons.append(&up_next_cancel);
+        up_next_buttons.append(&up_next_play);
+        up_next.append(&up_next_buttons);
+        now.append(&up_next);
 
         let back10 = glyph("media-seek-backward-symbolic", &t::player_back_10());
         let play = glyph("media-playback-pause-symbolic", &t::action_pause());
@@ -1308,6 +1373,18 @@ impl Remote {
             show,
             episode,
             skip,
+            undo_note,
+            skipped,
+            undo,
+            up_next,
+            up_next_cover,
+            up_next_cover_of: Cell::new(None),
+            up_next_line,
+            up_next_episode,
+            up_next_count,
+            up_next_from: RefCell::default(),
+            up_next_cancel,
+            up_next_play,
             seek,
             position,
             remaining,
@@ -1319,6 +1396,7 @@ impl Remote {
             rows,
             subtitles,
             audio,
+            audio_row,
             tracks_drawn: RefCell::default(),
             subtitle_action: radio("subtitle"),
             audio_action: radio("audio"),
@@ -1597,6 +1675,9 @@ impl Remote {
         self.seek_line.set_visible(true);
         self.transport.set_visible(true);
         self.rows.set_visible(true);
+        self.audio_row.set_visible(true);
+        self.up_next.set_visible(false);
+        self.undo_note.set_visible(false);
         for part in [
             self.seek_line.upcast_ref::<gtk::Widget>(),
             self.transport.upcast_ref(),
@@ -1657,9 +1738,16 @@ impl Remote {
         self.now.set_visible(view.now.is_some());
         if let Some(now) = &view.now {
             self.draw_now(ctx, now, playing, true);
-            if ended {
+            if ended || view.undo.is_some() {
                 self.skip.set_visible(false);
             }
+            // Audio only while the TV can be given a choice: a change loads the stream again.
+            self.audio_row.set_visible(!now.audio.is_empty());
+            self.draw_up_next(ctx, view.up_next.as_ref(), now);
+        }
+        self.undo_note.set_visible(view.undo.is_some());
+        if let Some(undo) = &view.undo {
+            self.skipped.set_label(&super::cast::skipped_line(undo));
         }
         // Dimmed while it starts, and in full once the TV shows a picture.
         let was = self.stage.replace(Some(view.stage));
@@ -1685,6 +1773,36 @@ impl Remote {
         self.draw_cast_volume(view, playing);
         self.draw_cast_buttons(view);
         self.show_playhead(tv);
+    }
+
+    /// Up next while the engine sends it: the line with its count, the episode, and the count as
+    /// a bar that fills as it runs down.
+    fn draw_up_next(&self, ctx: &Rc<Ctx>, next: Option<&CastUpNext>, now: &NowCard) {
+        self.up_next.set_visible(next.is_some());
+        let Some(next) = next else {
+            self.up_next_from.replace(None);
+            return;
+        };
+        let id = now.id.get();
+        if self.up_next_cover_of.replace(Some(id)) != Some(id) {
+            while let Some(child) = self.up_next_cover.first_child() {
+                self.up_next_cover.remove(&child);
+            }
+            if let Some(entry) = ctx.hub.entry(now.id) {
+                self.up_next_cover.append(&widgets::cover(&ctx.hub, &entry, 40, 60));
+            }
+        }
+        self.up_next_line.set_label(&super::cast::up_next_line(next));
+        self.up_next_episode.set_label(&super::cast::up_next_episode(next));
+        self.up_next_count.set_visible(next.seconds_left.is_some());
+        if let Some(left) = next.seconds_left {
+            let mut from = self.up_next_from.borrow_mut();
+            if from.as_ref().is_none_or(|(number, most)| *number != next.number || left > *most) {
+                from.replace((next.number.clone(), left.max(1)));
+            }
+            let most = from.as_ref().map_or(1, |(_, most)| *most);
+            self.up_next_count.set_fraction(1.0 - f64::from(left) / f64::from(most));
+        }
     }
 
     /// TV volume: a scale for a TV that takes a level, Mute for one whose own volume is in

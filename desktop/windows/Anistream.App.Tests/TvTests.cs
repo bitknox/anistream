@@ -84,20 +84,20 @@ public class TvWordsTests
         Assert.Equal(CastStage.Starting, TvWords.StageOf(Cast(FfiLinkPhase.Connecting, null)));
         Assert.Equal(CastStage.Starting, TvWords.StageOf(Cast(FfiLinkPhase.Connected, Now(loading: true))));
         Assert.Equal(CastStage.Playing, TvWords.StageOf(Cast(FfiLinkPhase.Connected, Now(loading: false))));
-        Assert.Equal(CastStage.Lost, TvWords.StageOf(Cast(FfiLinkPhase.Connected, Now(false), new Msg.NoticeCastLost())));
-        Assert.Equal(CastStage.Failed, TvWords.StageOf(Cast(FfiLinkPhase.Connected, null, new Msg.NoticeCastRefused())));
+        Assert.Equal(CastStage.Lost, TvWords.StageOf(Cast(FfiLinkPhase.Connected, Now(false), new Msg.NoticeCastLost("Living room"))));
+        Assert.Equal(CastStage.Failed, TvWords.StageOf(Cast(FfiLinkPhase.Connected, null, new Msg.NoticeCastRefused("Living room"))));
     }
 
     [Fact]
     public void ACastThatEndedOffersByItsReason()
     {
-        Assert.Equal([CastOffer.ChooseSource, CastOffer.PlayHere], TvWords.OffersFor(new Msg.NoticeCastRefused()));
-        Assert.Equal([CastOffer.ChooseSource, CastOffer.PlayHere], TvWords.OffersFor(new Msg.NoticeCastVideoCodec("AV1")));
-        Assert.Equal([CastOffer.TryAgain, CastOffer.PlayHere], TvWords.OffersFor(new Msg.NoticeCastNeverFetches()));
+        Assert.Equal([CastOffer.ChooseSource, CastOffer.PlayHere], TvWords.OffersFor(new Msg.NoticeCastRefused("Living room")));
+        Assert.Equal([CastOffer.ChooseSource, CastOffer.PlayHere], TvWords.OffersFor(new Msg.NoticeCastVideoCodec("Living room", "AV1")));
+        Assert.Equal([CastOffer.TryAgain, CastOffer.PlayHere], TvWords.OffersFor(new Msg.NoticeCastNeverFetches("Living room")));
         Assert.Equal([CastOffer.ChooseSource], TvWords.OffersFor(new Msg.NoticeCastDeepLink()));
-        Assert.Equal([CastOffer.PlayHere, CastOffer.ChooseAnother], TvWords.OffersFor(new Msg.NoticeCastNotSameNetwork()));
-        Assert.Equal([CastOffer.PlayHere, CastOffer.ChooseAnother], TvWords.OffersFor(new Msg.NoticeCastLost()));
-        Assert.True(TvWords.OnCastCard(new Msg.NoticeCastTakenOver()));
+        Assert.Equal([CastOffer.PlayHere, CastOffer.ChooseAnother], TvWords.OffersFor(new Msg.NoticeCastNotSameNetwork("Living room")));
+        Assert.Equal([CastOffer.PlayHere, CastOffer.ChooseAnother], TvWords.OffersFor(new Msg.NoticeCastLost("Living room")));
+        Assert.True(TvWords.OnCastCard(new Msg.NoticeCastTakenOver("Living room")));
         Assert.False(TvWords.OnCastCard(new Msg.NoticeCastNoDevice()));
     }
 
@@ -109,6 +109,8 @@ public class TvWordsTests
         Assert.Equal("Starting on Living room · 6 s", TvWords.CastStarting(starting, "Living room", TimeSpan.FromSeconds(6.4)));
         var waiting = Cast(FfiLinkPhase.Connected, null, phaseLine: "Waiting for Living room");
         Assert.Equal("Waiting for Living room · 5 s", TvWords.CastStarting(waiting, "Living room", TimeSpan.FromSeconds(5)));
+        var said = Cast(FfiLinkPhase.Connected, null) with { PhaseLine = new Msg.CastPhasePreparing(5) };
+        Assert.Equal("Preparing the stream · 5 s", TvWords.CastStarting(said, "Living room", TimeSpan.FromSeconds(9)));
         Assert.Equal("Playing on Living room", TvWords.CastStatus(CastStage.Playing, null, "Living room", TimeSpan.Zero));
         Assert.Equal("Couldn't start on Living room", TvWords.CastStatus(CastStage.Failed, null, "Living room", TimeSpan.Zero));
         Assert.Equal("Casting stopped", TvWords.CastStatus(CastStage.Lost, null, "Living room", TimeSpan.Zero));
@@ -117,6 +119,21 @@ public class TvWordsTests
         Assert.Equal(TvWords.Dot.Haze, TvWords.CastDot(CastStage.Starting));
         Assert.Equal("Set on the TV", TvWords.CastVolume(Cast(FfiLinkPhase.Connected, Now(false))));
         Assert.Equal("Unmute", TvWords.MuteWord(true));
+    }
+
+    [Fact]
+    public void ACastsUpNextCountsAndASkipCanBeUndone()
+    {
+        var next = new FfiCastUpNext("8", "A Town Without Night", null, true, 6);
+        Assert.Equal("Up next · plays in 6 s", TvWords.CastUpNext(next));
+        Assert.Equal("Episode 8 · A Town Without Night", TvWords.CastUpNextEpisode(next));
+        Assert.Equal("Up next", TvWords.CastUpNext(next with { Auto = false, SecondsLeft = null }));
+        Assert.Equal("Episode 8", TvWords.CastUpNextEpisode(next with { Title = null }));
+        Assert.Equal("Skipped opening", TvWords.CastSkipped(new FfiCastUndo(SkipKind.Opening, 0)));
+        Assert.Equal("Skipped ending", TvWords.CastSkipped(new FfiCastUndo(SkipKind.Ending, 1300)));
+        var row = new FfiCastRow("k", "Living room", "", "192.0.2.20", FfiCastRouteHint.ThroughThisDevice);
+        Assert.Equal("Plays through this PC", TvWords.CastRoute(row));
+        Assert.Null(TvWords.CastRoute(row with { RouteHint = FfiCastRouteHint.Direct }));
     }
 
     [Fact]

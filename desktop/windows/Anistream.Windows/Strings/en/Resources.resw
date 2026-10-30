@@ -1411,6 +1411,14 @@
     <value>Trailers play muted from YouTube, which sees your IP address. They don't play on a metered connection, with animation effects off, in energy saver mode or with Narrator running.</value>
     <comment>Note under the Play trailers setting: what the trailers are and when they do not play.</comment>
   </data>
+  <data name="SettingsNoteCastTvsPc" xml:space="preserve">
+    <value>They appear under Chromecast in Play on TV. This PC sends them the episode.</value>
+    <comment>Note under the Show TVs with Chromecast built in setting, in the Play on TV group.</comment>
+  </data>
+  <data name="SettingsNoteTorrentsWhileCastingPc" xml:space="preserve">
+    <value>Lets a TV with Chromecast built in play torrents. This PC sends the episode for as long as it plays.</value>
+    <comment>Note under the Torrents while casting setting, shown while torrents are on.</comment>
+  </data>
   <data name="TrayStillDownloading" xml:space="preserve">
     <value>anistream is still downloading</value>
     <comment>The notification area icon's balloon, the first time the window closes with downloads running: its title.</comment>
@@ -4787,6 +4795,14 @@
     <value>Play trailers</value>
     <comment>Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.</comment>
   </data>
+  <data name="SettingsLabelCastTvs" xml:space="preserve">
+    <value>Show TVs with Chromecast built in</value>
+    <comment>Settings row: whether the TV picker lists TVs with Chromecast built in.</comment>
+  </data>
+  <data name="SettingsLabelTorrentsWhileCasting" xml:space="preserve">
+    <value>Torrents while casting</value>
+    <comment>Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.</comment>
+  </data>
   <data name="SettingsTitleTracker" xml:space="preserve">
     <value>{tracker}'s choice</value>
     <comment>Option: use the tracker's own choice. The tracker is a name.</comment>
@@ -7206,6 +7222,10 @@
   <data name="TvCastVolumeOnTv" xml:space="preserve">
     <value>Set on the TV</value>
     <comment>Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.</comment>
+  </data>
+  <data name="TvCastUpNextIn" xml:space="preserve">
+    <value>Up next · plays in {seconds} s</value>
+    <comment>Line over the next episode on the casting card while its count runs. At 0 the TV plays it.</comment>
   </data>
   <data name="UpdatesTitle" xml:space="preserve">
     <value>Updates</value>

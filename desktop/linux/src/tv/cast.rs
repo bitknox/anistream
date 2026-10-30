@@ -14,7 +14,10 @@ use anistream_engine::{
     engine::RemoteSender,
     remote::{
         protocol::command::RemoteCommand,
-        sender::{CastCard, CastRow, CastSession, LinkPhase, NowCard},
+        sender::{
+            CastCard, CastRouteHint, CastRow, CastSession, CastUndo, CastUpNext, LinkPhase,
+            NowCard,
+        },
     },
 };
 use anistream_i18n::t;
@@ -71,6 +74,10 @@ pub struct CastView {
     pub offers: Vec<Offer>,
     pub volume: VolumeControl,
     pub muted: bool,
+    /// Up next, while the engine counts down to it.
+    pub up_next: Option<CastUpNext>,
+    /// An automatic skip, while it can be undone.
+    pub undo: Option<CastUndo>,
 }
 
 /// The cast running now, and what it last said.
@@ -97,7 +104,7 @@ fn playing(card: &CastCard) -> bool {
 
 pub fn stage_of(card: &CastCard) -> Stage {
     match &card.notice {
-        Some(Msg::NoticeCastLost) => Stage::Lost,
+        Some(Msg::NoticeCastLost { .. }) => Stage::Lost,
         Some(_) => Stage::Failed,
         None if playing(card) => Stage::Playing,
         None => Stage::Starting,
@@ -107,19 +114,22 @@ pub fn stage_of(card: &CastCard) -> Stage {
 /// What a card that ended offers, by the engine's reason.
 pub fn offers_for(notice: &Msg) -> Vec<Offer> {
     match notice {
-        Msg::NoticeCastRefused
+        Msg::NoticeCastRefused { .. }
         | Msg::NoticeCastVideoCodec { .. }
         | Msg::NoticeCastAudioCodec { .. }
-        | Msg::NoticeCastContainer => vec![Offer::ChooseSource, Offer::PlayHere],
-        Msg::NoticeCastNeverFetches => vec![Offer::TryAgain, Offer::PlayHere],
+        | Msg::NoticeCastContainer { .. } => vec![Offer::ChooseSource, Offer::PlayHere],
+        Msg::NoticeCastNeverFetches { .. } => vec![Offer::TryAgain, Offer::PlayHere],
         Msg::NoticeCastDeepLink => vec![Offer::ChooseSource],
         _ => vec![Offer::PlayHere, Offer::ChooseAnother],
     }
 }
 
-/// The starting line: "Starting on Living room", or the engine's phase line, with the seconds
-/// once it has taken `COUNT_AFTER`.
+/// The starting line: the engine's phase line, which counts its own seconds; before it has one,
+/// "Starting on Living room", with the seconds once it has taken `COUNT_AFTER`.
 fn starting_line(card: &CastCard, waited: Duration) -> String {
+    if let Some(said) = &card.phase_line {
+        return crate::say::msg(said);
+    }
     let line = card
         .card
         .phase_line
@@ -163,6 +173,8 @@ impl Tv {
             offers: run.card.notice.as_ref().map(offers_for).unwrap_or_default(),
             volume: run.card.volume_control,
             muted: run.card.muted.unwrap_or(false),
+            up_next: run.card.up_next.clone().filter(|_| !stage.ended()),
+            undo: run.card.undo.filter(|_| stage == Stage::Playing),
         })
     }
 
@@ -299,7 +311,7 @@ impl Tv {
         match (stage, &notice) {
             // Stopped from the card, or played out: nothing to say.
             (Stage::Starting | Stage::Playing, _) if self.cast_over() => self.finish_cast(),
-            (_, Some(Msg::NoticeCastTakenOver)) => self.taken_over(),
+            (_, Some(taken @ Msg::NoticeCastTakenOver { .. })) => self.taken_over(taken),
             _ => self.changed(),
         }
         true
@@ -326,7 +338,7 @@ impl Tv {
 
     /// Someone else started something on the TV: the card closes, and a notice offers to carry
     /// on here.
-    fn taken_over(&self) {
+    fn taken_over(&self, notice: &Msg) {
         let Some(run) = self.drop_cast() else { return };
         let (id, episode) = Self::episode_of(&run);
         self.taken.replace(Some((id, episode)));
@@ -335,7 +347,7 @@ impl Tv {
         }
         self.changed();
         if let Some(say) = self.on_taken_over.borrow().as_ref() {
-            say(&crate::say::msg(&Msg::NoticeCastTakenOver));
+            say(&crate::say::msg(notice));
         }
     }
 
@@ -393,10 +405,59 @@ impl Tv {
         Some(episode)
     }
 
-    /// Try again: the same episode to the same TV.
+    /// Try again: the same episode to the same TV, from where it got to. The card starts over.
     pub fn cast_try_again(&self) {
+        let again = {
+            let mut cast = self.cast.borrow_mut();
+            let Some(run) = cast.as_mut() else { return };
+            let _entered = self.handle.enter();
+            let again = run.session.try_again();
+            if again {
+                run.asked = Instant::now();
+                run.played = false;
+                run.reopened = false;
+            }
+            again
+        };
+        if again {
+            self.read_cast(self.cast_turn.get());
+            return;
+        }
         let Some(run) = self.drop_cast() else { return };
         self.start_cast(run.key, run.request);
+    }
+
+    /// Up next's Play now: the next episode plays on the TV at once.
+    pub fn cast_play_next(&self) {
+        if let Some(run) = self.cast.borrow().as_ref() {
+            let _entered = self.handle.enter();
+            run.session.play_next();
+        }
+    }
+
+    /// Up next's Cancel: the episode doesn't roll on.
+    pub fn cast_cancel_next(&self) {
+        if let Some(run) = self.cast.borrow().as_ref() {
+            let _entered = self.handle.enter();
+            run.session.cancel_next();
+        }
+    }
+
+    /// Undo on the note an automatic skip leaves: back to where it skipped from.
+    pub fn cast_undo_skip(&self) {
+        if let Some(run) = self.cast.borrow().as_ref() {
+            let _entered = self.handle.enter();
+            run.session.undo_skip();
+        }
+    }
+
+    /// Each tick of the card: while the engine's card counts seconds by itself (the phase line,
+    /// the Undo note), it is read again, as nothing else says it changed.
+    pub fn cast_tick(&self) {
+        let ticking = self.cast.borrow().as_ref().is_some_and(|run| run.session.ticking());
+        if ticking {
+            self.read_cast(self.cast_turn.get());
+        }
     }
 
     /// Choose another TV: the picker, with the same episode to cast.
@@ -438,6 +499,33 @@ impl Tv {
     }
 }
 
+/// Under a Chromecast row in the picker: the stream plays through this computer. A TV that fetches
+/// it by itself has no line yet.
+pub fn route_line(row: &CastRow) -> Option<String> {
+    (row.route_hint == CastRouteHint::ThroughThisDevice).then(t::tv_cast_through_computer)
+}
+
+/// The line over Up next: its count while it runs, else Up next alone.
+pub fn up_next_line(next: &CastUpNext) -> String {
+    next.seconds_left.map_or_else(t::player_up_next, |left| t::tv_cast_up_next_in(i64::from(left)))
+}
+
+/// The next episode as Up next names it: "Episode 8 · A Town Without Night".
+pub fn up_next_episode(next: &CastUpNext) -> String {
+    match next.title.as_deref().filter(|t| !t.is_empty()) {
+        Some(title) => t::cast_episode_titled(&next.number, title),
+        None => t::cast_episode(&next.number),
+    }
+}
+
+/// The note an automatic skip leaves on the card.
+pub fn skipped_line(undo: &CastUndo) -> String {
+    match undo.kind {
+        anistream_model::playback::SkipKind::Opening => t::player_skipped_opening(),
+        anistream_model::playback::SkipKind::Ending => t::player_skipped_ending(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -445,13 +533,17 @@ mod tests {
     #[test]
     fn a_card_that_ended_offers_by_why() {
         use Offer::*;
-        let codec = Msg::NoticeCastVideoCodec { codec: "AV1".into() };
-        assert_eq!(offers_for(&Msg::NoticeCastRefused), vec![ChooseSource, PlayHere]);
+        let name = || "Living room".to_owned();
+        let codec = Msg::NoticeCastVideoCodec { name: name(), codec: "AV1".into() };
+        assert_eq!(offers_for(&Msg::NoticeCastRefused { name: name() }), vec![ChooseSource, PlayHere]);
         assert_eq!(offers_for(&codec), vec![ChooseSource, PlayHere]);
-        assert_eq!(offers_for(&Msg::NoticeCastContainer), vec![ChooseSource, PlayHere]);
-        assert_eq!(offers_for(&Msg::NoticeCastNeverFetches), vec![TryAgain, PlayHere]);
-        assert_eq!(offers_for(&Msg::NoticeCastNotSameNetwork), vec![PlayHere, ChooseAnother]);
+        assert_eq!(offers_for(&Msg::NoticeCastContainer { name: name() }), vec![ChooseSource, PlayHere]);
+        assert_eq!(offers_for(&Msg::NoticeCastNeverFetches { name: name() }), vec![TryAgain, PlayHere]);
+        assert_eq!(
+            offers_for(&Msg::NoticeCastNotSameNetwork { name: name() }),
+            vec![PlayHere, ChooseAnother]
+        );
         assert_eq!(offers_for(&Msg::NoticeCastDeepLink), vec![ChooseSource]);
-        assert_eq!(offers_for(&Msg::NoticeCastLost), vec![PlayHere, ChooseAnother]);
+        assert_eq!(offers_for(&Msg::NoticeCastLost { name: name() }), vec![PlayHere, ChooseAnother]);
     }
 }

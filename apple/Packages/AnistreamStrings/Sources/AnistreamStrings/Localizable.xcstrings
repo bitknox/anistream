@@ -14763,6 +14763,30 @@
         }
       }
     },
+    "settings-label-cast-tvs" : {
+      "comment" : "Settings row: whether the TV picker lists TVs with Chromecast built in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show TVs with Chromecast built in"
+          }
+        }
+      }
+    },
+    "settings-label-torrents-while-casting" : {
+      "comment" : "Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents while casting"
+          }
+        }
+      }
+    },
     "settings-label-trailers" : {
       "comment" : "Settings row: when a title's trailer plays by itself, muted, in place of its banner in the apps.",
       "extractionState" : "manual",
@@ -22913,6 +22937,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unmute"
+          }
+        }
+      }
+    },
+    "tv-cast-up-next-in" : {
+      "comment" : "Line over the next episode on the casting card while its count runs. At 0 the TV plays it. Argument 1: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up next · plays in %1$lld s"
           }
         }
       }

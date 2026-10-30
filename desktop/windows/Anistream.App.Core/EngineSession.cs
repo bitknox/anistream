@@ -51,7 +51,8 @@ public sealed class EngineSession : IDisposable
         Theme: Palette.PlayerTheme,
         Platform: FfiPlatform.Windows,
         SimklClientId: SimklClient,
-        TraktClientId: TraktClient);
+        TraktClientId: TraktClient,
+        Language: T.Language);
 
     /// <summary>The Simkl and Trakt clients registered for the apps, as the Apple apps ship them.</summary>
     public const string SimklClient = "016a3721d77c54d04f5aa6f5a213fe76f047d83d3ae35b2c892074859b88be0b";

@@ -603,6 +603,9 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
         if (was is null || now is null || was.Position != now.Position || was.Paused != now.Paused || was.Loading != now.Loading)
             CastCardAt = clock();
         CastCard = next;
+        // Up next played on the TV: the card, Play here and Try again follow the episode it plays.
+        if (castPlayed && now is { Loading: false } && CastPlay is { } asked && (now.Id != asked.Id || now.Episode != asked.Episode))
+            CastPlay = asked with { Id = now.Id, Title = now.Title, Episode = now.Episode, From = null };
         if (next.Card.Over && next.Notice is Msg.NoticeCastTakenOver taken && CastPlay is { } play)
         {
             DropCast();
@@ -639,7 +642,7 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
         get
         {
             var told = CastCard?.Card.Now ?? castLastNow;
-            if (told is not null && (Stage is CastStage.Playing or CastStage.Lost || CastPlay is null))
+            if (told is not null && (castPlayed || Stage is CastStage.Playing or CastStage.Lost || CastPlay is null))
                 return told;
             if (CastPlay is not { } asked)
                 return told;
@@ -693,15 +696,33 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
         Say();
     }
 
-    /// <summary>Try again: the same episode to the same TV.</summary>
+    /// <summary>Try again: the same episode to the same TV, from where it got to. The card starts over.</summary>
     public void CastAgain()
     {
         if (CastPlay is not { } play || CastRow is not { } row)
             return;
+        if (cast is { } held && held.TryAgain())
+        {
+            CastPicked = clock();
+            castPlayed = false;
+            castReopened = false;
+            castLastNow = null;
+            TakeCast(held.Card());
+            return;
+        }
         DropCast();
         Request = play;
         Cast(row);
     }
+
+    /// <summary>Up next's Play now: the next episode plays on the TV at once.</summary>
+    public void CastPlayNext() => cast?.PlayNext();
+
+    /// <summary>Up next's Cancel: the episode doesn't roll on.</summary>
+    public void CastCancelNext() => cast?.CancelNext();
+
+    /// <summary>Undo on the note an automatic skip leaves: back to where it skipped from.</summary>
+    public void CastUndoSkip() => cast?.UndoSkip();
 
     /// <summary>Choose another TV: the picker, with the same episode to cast.</summary>
     public void CastElsewhere()
@@ -901,6 +922,8 @@ public static class TvWords
     /// </summary>
     public static string CastStarting(FfiCastCard? card, string name, TimeSpan waited)
     {
+        if (card?.PhaseLine is { } said)
+            return said.Text();
         var line = card?.Card.PhaseLine is { Length: > 0 } phase ? phase : T.TvStartingOn(name);
         return waited >= CountAfter ? T.TvCastCounting(line, (long)Math.Floor(waited.TotalSeconds)) : line;
     }
@@ -923,7 +946,17 @@ public static class TvWords
     };
 
     /// <summary>What a Chromecast row says under its name, until the engine knows the route before a pick.</summary>
-    public static string CastRoute(FfiCastRow row) => T.TvCastThroughPc;
+    public static string? CastRoute(FfiCastRow row) => row.RouteHint == FfiCastRouteHint.ThroughThisDevice ? T.TvCastThroughPc : null;
+
+    /// <summary>The line over Up next on the casting card: its count while it runs, else Up next alone.</summary>
+    public static string CastUpNext(FfiCastUpNext next) => next.SecondsLeft is { } left ? T.TvCastUpNextIn(left) : T.PlayerUpNext;
+
+    /// <summary>The next episode as Up next names it: "Episode 8 · A Town Without Night".</summary>
+    public static string CastUpNextEpisode(FfiCastUpNext next) =>
+        next.Title is { Length: > 0 } title ? T.CastEpisodeTitled(next.Number, title) : T.CastEpisode(next.Number);
+
+    /// <summary>The note an automatic skip leaves on the casting card.</summary>
+    public static string CastSkipped(FfiCastUndo undo) => undo.Kind == SkipKind.Opening ? T.PlayerSkippedOpening : T.PlayerSkippedEnding;
 
     /// <summary>The TV volume row's value: the level for a TV that has one, "Set on the TV" for one that doesn't.</summary>
     public static string CastVolume(FfiCastCard card) => card.VolumeControl == FfiVolumeControl.MuteOnly || card.Card.Now?.Volume is null

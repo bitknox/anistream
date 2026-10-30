@@ -5349,6 +5349,14 @@ object Strings {
     fun settingsLabelTrailers(context: Context): String =
         context.getString(R.string.settings_label_trailers)
 
+    /** Settings row: whether the TV picker lists TVs with Chromecast built in. */
+    fun settingsLabelCastTvs(context: Context): String =
+        context.getString(R.string.settings_label_cast_tvs)
+
+    /** Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile. */
+    fun settingsLabelTorrentsWhileCasting(context: Context): String =
+        context.getString(R.string.settings_label_torrents_while_casting)
+
     /** Option: use the tracker's own choice. The tracker is a name. */
     fun settingsTitleTracker(context: Context, tracker: String): String =
         context.getString(R.string.settings_title_tracker, tracker)
@@ -7728,6 +7736,10 @@ object Strings {
     /** Under the TV volume row on the casting card, for a TV whose volume is set with its own remote. */
     fun tvCastVolumeOnTv(context: Context): String =
         context.getString(R.string.tv_cast_volume_on_tv)
+
+    /** Line over the next episode on the casting card while its count runs. At 0 the TV plays it. */
+    fun tvCastUpNextIn(context: Context, seconds: Int): String =
+        context.getString(R.string.tv_cast_up_next_in, seconds)
 
     /** Heading of the update row in settings and about. */
     fun updatesTitle(context: Context): String =
