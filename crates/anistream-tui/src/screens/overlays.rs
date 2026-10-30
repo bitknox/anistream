@@ -267,13 +267,13 @@ pub(super) fn render_overlay(
         }
     }
 
-    Hairline::new(&app.palette).render(Rect { height: 1, ..band }, buf);
-    // The band is clamped to the stage, which on a very short terminal is one or two rows —
-    // so the title row and the rule under it can both fall outside the buffer. An overlay is
-    // the one thing reachable from every screen, `?` included, so an unguarded write here
-    // crashed the app at any height a pane can be dragged to.
+    // The band is clamped to the stage, which on a very short terminal is one or two rows, or
+    // none when a pane is dragged shut: the hairline, the title row and the rule under it can
+    // each fall outside the buffer. An overlay is the one thing reachable from every screen,
+    // `?` included, so every write here is kept inside the band.
+    Hairline::new(&app.palette).render(Rect { height: band.height.min(1), ..band }, buf);
     let title_y = band.top() + 1;
-    if title_y >= band.bottom() {
+    if title_y >= band.bottom() || band.width == 0 {
         return report;
     }
     buf[(band.left(), title_y)].set_char(OBI).set_style(app.palette.style(Role::Obi));

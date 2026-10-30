@@ -694,3 +694,50 @@ fn the_palette_opens_on_its_first_row_wherever_the_overlay_before_it_was_left() 
     assert_eq!(a.overlay_cursor(), 0, "opened where it was itself left");
     assert_eq!(a.cursor(), 0, "none of it moved the list behind");
 }
+
+/// A pane dragged shut, or a detached pty that answers its size query with 0x0, hands the app a
+/// terminal with no rows or no columns. Every overlay is reachable from any screen, so each one
+/// is drawn at every such size, and at the smallest that has a cell.
+#[test]
+fn every_overlay_draws_at_no_rows_or_no_columns() {
+    let overlays = [
+        Overlay::CommandPalette,
+        Overlay::Help,
+        Overlay::Sources,
+        Overlay::SourceProvider,
+        Overlay::SourceRelease,
+        Overlay::Disambiguate,
+        Overlay::ManualQuery,
+        Overlay::WatchOrder,
+        Overlay::Recommendations,
+        Overlay::DownloadRange,
+        Overlay::EditSetting,
+        Overlay::ListStatus,
+        Overlay::Rate,
+        Overlay::SearchFilters,
+        Overlay::KitsuUsername,
+        Overlay::KitsuPassword,
+        Overlay::Accounts,
+        Overlay::Conflicts,
+        Overlay::Logs,
+        Overlay::JoinStore,
+        Overlay::StoreConfirm,
+        Overlay::PluginAction,
+        Overlay::InviteName,
+        Overlay::InviteLink,
+        Overlay::OpenLink,
+        Overlay::PublishPick,
+    ];
+    for (width, height) in [(1, 0), (0, 2), (80, 0), (0, 24), (0, 0), (1, 1), (2, 1), (1, 2)] {
+        for overlay in &overlays {
+            let mut a = app();
+            a.nav.open_overlay(overlay.clone());
+            render_to_buffer(&mut a, width, height);
+        }
+        // And the way the hunt found it: help asked for by its key.
+        let mut a = app();
+        render_to_buffer(&mut a, width, height);
+        press(&mut a, &["?"]);
+        render_to_buffer(&mut a, width, height);
+    }
+}
