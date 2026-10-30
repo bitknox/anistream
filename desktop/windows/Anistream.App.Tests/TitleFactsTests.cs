@@ -35,7 +35,7 @@ public class TitleFactsTests
     public void AFilmsLengthIsHoursAndMinutes()
     {
         Assert.Equal("1 h 52 min", TitleFacts.FilmLength(new RunLength(1, 52)));
-        Assert.Equal("2 hr", TitleFacts.FilmLength(new RunLength(2, 0)));
+        Assert.Equal("2 h", TitleFacts.FilmLength(new RunLength(2, 0)));
         Assert.Equal("46 min", TitleFacts.FilmLength(new RunLength(0, 46)));
     }
 
