@@ -22761,6 +22761,126 @@
         }
       }
     },
+    "tv-cast-couldnt-start" : {
+      "comment" : "Status line of the casting card when the cast didn't start. The reason shows under the episode. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't start on %1$@"
+          }
+        }
+      }
+    },
+    "tv-cast-counting" : {
+      "comment" : "Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked. Argument 1: line (Text). Argument 2: seconds (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld s"
+          }
+        }
+      }
+    },
+    "tv-cast-group" : {
+      "comment" : "Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chromecast"
+          }
+        }
+      }
+    },
+    "tv-cast-mute" : {
+      "comment" : "Button on the casting card's TV volume row: silence the TV.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute"
+          }
+        }
+      }
+    },
+    "tv-cast-none-found" : {
+      "comment" : "Line under the empty state of Play on TV when no TV was found: casting looks for these too.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TVs with Chromecast built in show here too."
+          }
+        }
+      }
+    },
+    "tv-cast-play-here" : {
+      "comment" : "Button on the casting card: stop casting and play the episode on this device, from where the TV was.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play here"
+          }
+        }
+      }
+    },
+    "tv-cast-stop" : {
+      "comment" : "Button on the casting card: stop casting. The TV goes back to what it showed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop casting"
+          }
+        }
+      }
+    },
+    "tv-cast-stopped" : {
+      "comment" : "Status line of the casting card after the TV stopped answering.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Casting stopped"
+          }
+        }
+      }
+    },
+    "tv-cast-unmute" : {
+      "comment" : "The same button while the TV is silenced.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unmute"
+          }
+        }
+      }
+    },
+    "tv-cast-volume-on-tv" : {
+      "comment" : "Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set on the TV"
+          }
+        }
+      }
+    },
     "tv-choose-another" : {
       "comment" : "Button that picks another TV.",
       "extractionState" : "manual",

@@ -3993,6 +3993,26 @@
     <string name="tv_row_needs_update">Needs the same anistream version as this device</string>
     <!-- Title of the remote's volume row. -->
     <string name="tv_volume">TV volume</string>
+    <!-- Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is. -->
+    <string name="tv_cast_group">Chromecast</string>
+    <!-- Line under the empty state of Play on TV when no TV was found: casting looks for these too. -->
+    <string name="tv_cast_none_found">TVs with Chromecast built in show here too.</string>
+    <!-- Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked. -->
+    <string name="tv_cast_counting">%1$s · %2$d s</string>
+    <!-- Status line of the casting card when the cast didn't start. The reason shows under the episode. -->
+    <string name="tv_cast_couldnt_start">Couldn\'t start on %1$s</string>
+    <!-- Status line of the casting card after the TV stopped answering. -->
+    <string name="tv_cast_stopped">Casting stopped</string>
+    <!-- Button on the casting card: stop casting and play the episode on this device, from where the TV was. -->
+    <string name="tv_cast_play_here">Play here</string>
+    <!-- Button on the casting card: stop casting. The TV goes back to what it showed. -->
+    <string name="tv_cast_stop">Stop casting</string>
+    <!-- Button on the casting card's TV volume row: silence the TV. -->
+    <string name="tv_cast_mute">Mute</string>
+    <!-- The same button while the TV is silenced. -->
+    <string name="tv_cast_unmute">Unmute</string>
+    <!-- Under the TV volume row on the casting card, for a TV whose volume is set with its own remote. -->
+    <string name="tv_cast_volume_on_tv">Set on the TV</string>
     <!-- Heading of the update row in settings and about. -->
     <string name="updates_title">Updates</string>
     <!-- Line while the app checks. -->

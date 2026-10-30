@@ -1155,6 +1155,9 @@ tv-track-choice = { $row }, { $track }
 # The name this computer goes by in lists of a person's devices, such as a plugin store's.
 shell-device-label = Linux computer
 
+# Under a Chromecast TV in Play on TV: this computer sends the TV the episode while it plays.
+tv-cast-through-computer = Plays through this computer
+
 # Count of devices on a member's row in the members dialog, and after "Owner ·".
 stores-device-count =
     { $count ->
@@ -7864,6 +7867,36 @@ tv-row-needs-update = Needs the same anistream version as this device
 
 # Title of the remote's volume row.
 tv-volume = TV volume
+
+# Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.
+tv-cast-group = Chromecast
+
+# Line under the empty state of Play on TV when no TV was found: casting looks for these too.
+tv-cast-none-found = TVs with Chromecast built in show here too.
+
+# Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.
+tv-cast-counting = { $line } · { $seconds } s
+
+# Status line of the casting card when the cast didn't start. The reason shows under the episode.
+tv-cast-couldnt-start = Couldn't start on { $name }
+
+# Status line of the casting card after the TV stopped answering.
+tv-cast-stopped = Casting stopped
+
+# Button on the casting card: stop casting and play the episode on this device, from where the TV was.
+tv-cast-play-here = Play here
+
+# Button on the casting card: stop casting. The TV goes back to what it showed.
+tv-cast-stop = Stop casting
+
+# Button on the casting card's TV volume row: silence the TV.
+tv-cast-mute = Mute
+
+# The same button while the TV is silenced.
+tv-cast-unmute = Unmute
+
+# Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
+tv-cast-volume-on-tv = Set on the TV
 
 # Heading of the update row in settings and about.
 updates-title = Updates

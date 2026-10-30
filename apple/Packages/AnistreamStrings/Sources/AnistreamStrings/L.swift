@@ -7339,6 +7339,40 @@ public enum L {
     /// Title of the remote's volume row.
     public static var tvVolume: String { string("tv-volume", fallback: "TV volume") }
 
+    /// Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.
+    public static var tvCastGroup: String { string("tv-cast-group", fallback: "Chromecast") }
+
+    /// Line under the empty state of Play on TV when no TV was found: casting looks for these too.
+    public static var tvCastNoneFound: String { string("tv-cast-none-found", fallback: "TVs with Chromecast built in show here too.") }
+
+    /// Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.
+    public static func tvCastCounting(line: String, seconds: Int) -> String {
+        Self.format("tv-cast-counting", fallback: "%1$@ · %2$lld s", line, seconds)
+    }
+
+    /// Status line of the casting card when the cast didn't start. The reason shows under the episode.
+    public static func tvCastCouldntStart(name: String) -> String {
+        Self.format("tv-cast-couldnt-start", fallback: "Couldn't start on %1$@", name)
+    }
+
+    /// Status line of the casting card after the TV stopped answering.
+    public static var tvCastStopped: String { string("tv-cast-stopped", fallback: "Casting stopped") }
+
+    /// Button on the casting card: stop casting and play the episode on this device, from where the TV was.
+    public static var tvCastPlayHere: String { string("tv-cast-play-here", fallback: "Play here") }
+
+    /// Button on the casting card: stop casting. The TV goes back to what it showed.
+    public static var tvCastStop: String { string("tv-cast-stop", fallback: "Stop casting") }
+
+    /// Button on the casting card's TV volume row: silence the TV.
+    public static var tvCastMute: String { string("tv-cast-mute", fallback: "Mute") }
+
+    /// The same button while the TV is silenced.
+    public static var tvCastUnmute: String { string("tv-cast-unmute", fallback: "Unmute") }
+
+    /// Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
+    public static var tvCastVolumeOnTv: String { string("tv-cast-volume-on-tv", fallback: "Set on the TV") }
+
     /// Heading of the update row in settings and about.
     public static var updatesTitle: String { string("updates-title", fallback: "Updates") }
 

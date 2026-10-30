@@ -7673,6 +7673,46 @@ object Strings {
     fun tvVolume(context: Context): String =
         context.getString(R.string.tv_volume)
 
+    /** Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is. */
+    fun tvCastGroup(context: Context): String =
+        context.getString(R.string.tv_cast_group)
+
+    /** Line under the empty state of Play on TV when no TV was found: casting looks for these too. */
+    fun tvCastNoneFound(context: Context): String =
+        context.getString(R.string.tv_cast_none_found)
+
+    /** Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked. */
+    fun tvCastCounting(context: Context, line: String, seconds: Int): String =
+        context.getString(R.string.tv_cast_counting, line, seconds)
+
+    /** Status line of the casting card when the cast didn't start. The reason shows under the episode. */
+    fun tvCastCouldntStart(context: Context, name: String): String =
+        context.getString(R.string.tv_cast_couldnt_start, name)
+
+    /** Status line of the casting card after the TV stopped answering. */
+    fun tvCastStopped(context: Context): String =
+        context.getString(R.string.tv_cast_stopped)
+
+    /** Button on the casting card: stop casting and play the episode on this device, from where the TV was. */
+    fun tvCastPlayHere(context: Context): String =
+        context.getString(R.string.tv_cast_play_here)
+
+    /** Button on the casting card: stop casting. The TV goes back to what it showed. */
+    fun tvCastStop(context: Context): String =
+        context.getString(R.string.tv_cast_stop)
+
+    /** Button on the casting card's TV volume row: silence the TV. */
+    fun tvCastMute(context: Context): String =
+        context.getString(R.string.tv_cast_mute)
+
+    /** The same button while the TV is silenced. */
+    fun tvCastUnmute(context: Context): String =
+        context.getString(R.string.tv_cast_unmute)
+
+    /** Under the TV volume row on the casting card, for a TV whose volume is set with its own remote. */
+    fun tvCastVolumeOnTv(context: Context): String =
+        context.getString(R.string.tv_cast_volume_on_tv)
+
     /** Heading of the update row in settings and about. */
     fun updatesTitle(context: Context): String =
         context.getString(R.string.updates_title)

@@ -1790,6 +1790,11 @@ pub fn shell_device_label() -> String {
     text("shell-device-label", &[])
 }
 
+/// Under a Chromecast TV in Play on TV: this computer sends the TV the episode while it plays.
+pub fn tv_cast_through_computer() -> String {
+    text("tv-cast-through-computer", &[])
+}
+
 /// Count of devices on a member's row in the members dialog, and after "Owner ·".
 pub fn stores_device_count(count: i64) -> String {
     text("stores-device-count", &[("count", Arg::Int(count))])
@@ -12678,6 +12683,56 @@ pub fn tv_row_needs_update() -> String {
 /// Title of the remote's volume row.
 pub fn tv_volume() -> String {
     text("tv-volume", &[])
+}
+
+/// Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.
+pub fn tv_cast_group() -> String {
+    text("tv-cast-group", &[])
+}
+
+/// Line under the empty state of Play on TV when no TV was found: casting looks for these too.
+pub fn tv_cast_none_found() -> String {
+    text("tv-cast-none-found", &[])
+}
+
+/// Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.
+pub fn tv_cast_counting(line: &str, seconds: i64) -> String {
+    text("tv-cast-counting", &[("line", Arg::Text(line)), ("seconds", Arg::Int(seconds))])
+}
+
+/// Status line of the casting card when the cast didn't start. The reason shows under the episode.
+pub fn tv_cast_couldnt_start(name: &str) -> String {
+    text("tv-cast-couldnt-start", &[("name", Arg::Text(name))])
+}
+
+/// Status line of the casting card after the TV stopped answering.
+pub fn tv_cast_stopped() -> String {
+    text("tv-cast-stopped", &[])
+}
+
+/// Button on the casting card: stop casting and play the episode on this device, from where the TV was.
+pub fn tv_cast_play_here() -> String {
+    text("tv-cast-play-here", &[])
+}
+
+/// Button on the casting card: stop casting. The TV goes back to what it showed.
+pub fn tv_cast_stop() -> String {
+    text("tv-cast-stop", &[])
+}
+
+/// Button on the casting card's TV volume row: silence the TV.
+pub fn tv_cast_mute() -> String {
+    text("tv-cast-mute", &[])
+}
+
+/// The same button while the TV is silenced.
+pub fn tv_cast_unmute() -> String {
+    text("tv-cast-unmute", &[])
+}
+
+/// Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
+pub fn tv_cast_volume_on_tv() -> String {
+    text("tv-cast-volume-on-tv", &[])
 }
 
 /// Heading of the update row in settings and about.

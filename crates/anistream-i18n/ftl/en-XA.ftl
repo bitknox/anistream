@@ -1155,6 +1155,9 @@ tv-track-choice = [{ $row }, { $track }~~~]
 # The name this computer goes by in lists of a person's devices, such as a plugin store's.
 shell-device-label = [Ļîñüẋ çöɱþüţéŕ~~~~~]
 
+# Under a Chromecast TV in Play on TV: this computer sends the TV the episode while it plays.
+tv-cast-through-computer = [Þļàýš ţĥŕöüĝĥ ţĥîš çöɱþüţéŕ~~~~~~~~~]
+
 # Count of devices on a member's row in the members dialog, and after "Owner ·".
 stores-device-count =
     { $count ->
@@ -7864,6 +7867,36 @@ tv-row-needs-update = [Ñééðš ţĥé šàɱé àñîšţŕéàɱ ṽéŕšî
 
 # Title of the remote's volume row.
 tv-volume = [ŢṼ ṽöļüɱé~~~]
+
+# Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.
+tv-cast-group = [Çĥŕöɱéçàšţ~~~]
+
+# Line under the empty state of Play on TV when no TV was found: casting looks for these too.
+tv-cast-none-found = [ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ šĥöŵ ĥéŕé ţöö.~~~~~~~~~~~~~]
+
+# Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.
+tv-cast-counting = [{ $line } · { $seconds } š~~~~]
+
+# Status line of the casting card when the cast didn't start. The reason shows under the episode.
+tv-cast-couldnt-start = [Çöüļðñ'ţ šţàŕţ öñ { $name }~~~~~~~]
+
+# Status line of the casting card after the TV stopped answering.
+tv-cast-stopped = [Çàšţîñĝ šţöþþéð~~~~~]
+
+# Button on the casting card: stop casting and play the episode on this device, from where the TV was.
+tv-cast-play-here = [Þļàý ĥéŕé~~~]
+
+# Button on the casting card: stop casting. The TV goes back to what it showed.
+tv-cast-stop = [Šţöþ çàšţîñĝ~~~~]
+
+# Button on the casting card's TV volume row: silence the TV.
+tv-cast-mute = [Ṁüţé~~]
+
+# The same button while the TV is silenced.
+tv-cast-unmute = [Ûñɱüţé~~]
+
+# Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.
+tv-cast-volume-on-tv = [Šéţ öñ ţĥé ŢṼ~~~~]
 
 # Heading of the update row in settings and about.
 updates-title = [Ûþðàţéš~~~]

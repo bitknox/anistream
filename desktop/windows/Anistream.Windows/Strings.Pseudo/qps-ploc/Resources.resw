@@ -1723,6 +1723,14 @@
     <value>[Ţĥàţ çöðé ĥàš éẋþîŕéð. Åšķ ţĥé ŢṼ ƒöŕ à ñéŵ öñé.~~~~~~~~~~~~~~~]</value>
     <comment>When the TV's code has run out. The pairing starts again with a new code.</comment>
   </data>
+  <data name="TvCastThroughPc" xml:space="preserve">
+    <value>[Þļàýš ţĥŕöüĝĥ ţĥîš ÞÇ~~~~~~~]</value>
+    <comment>Under a Chromecast TV in Play on TV: this PC sends the TV the episode while it plays.</comment>
+  </data>
+  <data name="TvCastFirewallAhead" xml:space="preserve">
+    <value>[Ŵîñðöŵš ŵîļļ àšķ ţö ļéţ àñîšţŕéàɱ ŕéàçĥ ýöüŕ ŢṼ.~~~~~~~~~~~~~~~]</value>
+    <comment>Line under the Chromecast group in Play on TV, until the app has served a TV once: Windows' firewall asks then whether the app may reach the network.</comment>
+  </data>
   <data name="SourcePickerSeeders_one" xml:space="preserve">
     <value>[Öñé šééðéŕ~~~]</value>
     <comment>Under a release in the source picker: how many people share it right now.</comment>
@@ -7142,6 +7150,46 @@
   <data name="TvVolume" xml:space="preserve">
     <value>[ŢṼ ṽöļüɱé~~~]</value>
     <comment>Title of the remote's volume row.</comment>
+  </data>
+  <data name="TvCastGroup" xml:space="preserve">
+    <value>[Çĥŕöɱéçàšţ~~~]</value>
+    <comment>Heading of the Play on TV group that lists TVs with Chromecast built in, below the TVs that run the app. A product name: keep it as it is.</comment>
+  </data>
+  <data name="TvCastNoneFound" xml:space="preserve">
+    <value>[ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ šĥöŵ ĥéŕé ţöö.~~~~~~~~~~~~~]</value>
+    <comment>Line under the empty state of Play on TV when no TV was found: casting looks for these too.</comment>
+  </data>
+  <data name="TvCastCounting" xml:space="preserve">
+    <value>[{line} · {seconds} š~~~~]</value>
+    <comment>Status line of the casting card while a cast takes a while to start: the line, then the seconds since the TV was picked.</comment>
+  </data>
+  <data name="TvCastCouldntStart" xml:space="preserve">
+    <value>[Çöüļðñ'ţ šţàŕţ öñ {name}~~~~~~~]</value>
+    <comment>Status line of the casting card when the cast didn't start. The reason shows under the episode.</comment>
+  </data>
+  <data name="TvCastStopped" xml:space="preserve">
+    <value>[Çàšţîñĝ šţöþþéð~~~~~]</value>
+    <comment>Status line of the casting card after the TV stopped answering.</comment>
+  </data>
+  <data name="TvCastPlayHere" xml:space="preserve">
+    <value>[Þļàý ĥéŕé~~~]</value>
+    <comment>Button on the casting card: stop casting and play the episode on this device, from where the TV was.</comment>
+  </data>
+  <data name="TvCastStop" xml:space="preserve">
+    <value>[Šţöþ çàšţîñĝ~~~~]</value>
+    <comment>Button on the casting card: stop casting. The TV goes back to what it showed.</comment>
+  </data>
+  <data name="TvCastMute" xml:space="preserve">
+    <value>[Ṁüţé~~]</value>
+    <comment>Button on the casting card's TV volume row: silence the TV.</comment>
+  </data>
+  <data name="TvCastUnmute" xml:space="preserve">
+    <value>[Ûñɱüţé~~]</value>
+    <comment>The same button while the TV is silenced.</comment>
+  </data>
+  <data name="TvCastVolumeOnTv" xml:space="preserve">
+    <value>[Šéţ öñ ţĥé ŢṼ~~~~]</value>
+    <comment>Under the TV volume row on the casting card, for a TV whose volume is set with its own remote.</comment>
   </data>
   <data name="UpdatesTitle" xml:space="preserve">
     <value>[Ûþðàţéš~~~]</value>
