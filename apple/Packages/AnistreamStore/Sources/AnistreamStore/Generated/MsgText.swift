@@ -62,6 +62,11 @@ extension Msg {
         case .noticeMatchSaveFailed(let reason): L.noticeMatchSaveFailed(reason: reason)
         case .noticeMatchDidNotStick: L.noticeMatchDidNotStick
         case .noticeSourceSearchEmpty(let query): L.noticeSourceSearchEmpty(query: query)
+        case .matchRuledOutFormat: L.matchRuledOutFormat
+        case .matchRuledOutEpisodes: L.matchRuledOutEpisodes
+        case .matchRuledOutYear: L.matchRuledOutYear
+        case .matchSearchTimedOut: L.matchSearchTimedOut
+        case .matchSearchSourceOff: L.matchSearchSourceOff
         case .noticeSourcePinned(let source): L.noticeSourcePinned(source: source)
         case .noticeSourceAutomatic: L.noticeSourceAutomatic
         case .noticeSourceChoiceFailed(let reason): L.noticeSourceChoiceFailed(reason: reason)

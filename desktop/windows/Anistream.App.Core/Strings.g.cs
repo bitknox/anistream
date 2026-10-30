@@ -222,6 +222,21 @@ public static partial class T
     /// <summary>Toast when a search of the sources for a title found nothing.</summary>
     public static string NoticeSourceSearchEmpty(string query) => Fill(Get("NoticeSourceSearchEmpty"), ("query", query));
 
+    /// <summary>In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.</summary>
+    public static string MatchRuledOutFormat => Get("MatchRuledOutFormat");
+
+    /// <summary>In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.</summary>
+    public static string MatchRuledOutEpisodes => Get("MatchRuledOutEpisodes");
+
+    /// <summary>In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.</summary>
+    public static string MatchRuledOutYear => Get("MatchRuledOutYear");
+
+    /// <summary>Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.</summary>
+    public static string MatchSearchTimedOut => Get("MatchSearchTimedOut");
+
+    /// <summary>Why a search of a source for a show's match failed: the source isn't installed or switched on.</summary>
+    public static string MatchSearchSourceOff => Get("MatchSearchSourceOff");
+
     /// <summary>Toast after the person picked a source for one title.</summary>
     public static string NoticeSourcePinned(string source) => Fill(Get("NoticeSourcePinned"), ("source", source));
 
@@ -3999,6 +4014,75 @@ public static partial class T
     /// <summary>Value of a plugin's response time, in milliseconds.</summary>
     public static string SourcesResponseMs(long ms) => Fill(Get("SourcesResponseMs"), ("ms", ms.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>Menu, palette and source picker entry that opens the sheet.</summary>
+    public static string MatchFix => Get("MatchFix");
+
+    /// <summary>The title page's main action while the source couldn't choose, and the sheet's title.</summary>
+    public static string MatchChoose => Get("MatchChoose");
+
+    /// <summary>The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.</summary>
+    public static string MatchUncertain(long count, string source) => Fill(GetPlural("MatchUncertain", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("source", source));
+
+    /// <summary>The line on a title page when the source listed no title that fits, so the person searches.</summary>
+    public static string MatchUncertainNone(string source) => Fill(Get("MatchUncertainNone"), ("source", source));
+
+    /// <summary>The last row of the source picker, which opens the match sheet.</summary>
+    public static string MatchSourcePickerRow => Get("MatchSourcePickerRow");
+
+    /// <summary>Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".</summary>
+    public static string MatchAnilistFacts(string facts) => Fill(Get("MatchAnilistFacts"), ("facts", facts));
+
+    /// <summary>Heading over the titles a source offers.</summary>
+    public static string MatchSectionSource(string source) => Fill(Get("MatchSectionSource"), ("source", source));
+
+    /// <summary>Heading over the title the show is matched to now.</summary>
+    public static string MatchNow => Get("MatchNow");
+
+    /// <summary>Beside the title matched now: the person chose it.</summary>
+    public static string MatchChosenByYou => Get("MatchChosenByYou");
+
+    /// <summary>Beside the title matched now: anistream chose it.</summary>
+    public static string MatchChosenAutomatically => Get("MatchChosenAutomatically");
+
+    /// <summary>How closely a source's title matches the show, at the end of its row.</summary>
+    public static string MatchSimilarity(string similarity) => Fill(Get("MatchSimilarity"), ("similarity", similarity));
+
+    /// <summary>Placeholder of the search field in the sheet.</summary>
+    public static string MatchSearchField(string source) => Fill(Get("MatchSearchField"), ("source", source));
+
+    /// <summary>While a search of the source runs.</summary>
+    public static string MatchSearching(string source, string query) => Fill(Get("MatchSearching"), ("source", source), ("query", query));
+
+    /// <summary>A search of the source that found nothing.</summary>
+    public static string MatchSearchEmpty(string source, string query) => Fill(Get("MatchSearchEmpty"), ("source", source), ("query", query));
+
+    /// <summary>Under match-search-empty: what to try.</summary>
+    public static string MatchSearchEmptyHint => Get("MatchSearchEmptyHint");
+
+    /// <summary>A search of the source that failed. The reason follows on its own line.</summary>
+    public static string MatchSearchFailed(string source) => Fill(Get("MatchSearchFailed"), ("source", source));
+
+    /// <summary>On the row picked, while the source lists its episodes.</summary>
+    public static string MatchPicking => Get("MatchPicking");
+
+    /// <summary>A pick that failed. The reason follows on its own line.</summary>
+    public static string MatchFixFailed => Get("MatchFixFailed");
+
+    /// <summary>Notice once a picked title's episodes arrive.</summary>
+    public static string MatchPicked(string title, string source) => Fill(Get("MatchPicked"), ("title", title), ("source", source));
+
+    /// <summary>Button that forgets the person's choice, shown only while the match is one they chose.</summary>
+    public static string MatchAutomatic => Get("MatchAutomatic");
+
+    /// <summary>Under "Match automatically", on iPhone, iPad and Android.</summary>
+    public static string MatchAutomaticDetail => Get("MatchAutomaticDetail");
+
+    /// <summary>Notice after "Match automatically".</summary>
+    public static string MatchCleared => Get("MatchCleared");
+
+    /// <summary>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</summary>
+    public static string MatchRowLabel(string title, string facts, string closeness) => Fill(Get("MatchRowLabel"), ("title", title), ("facts", facts), ("closeness", closeness));
+
     /// <summary>Short label for a joined store, on a row.</summary>
     public static string StoresJoined => Get("StoresJoined");
 
@@ -5498,6 +5582,11 @@ public static partial class T
         ["NoticeMatchSaveFailed"] = "Couldn't save that match. {reason}",
         ["NoticeMatchDidNotStick"] = "That match didn't stick. The source may have changed. Try choosing it again.",
         ["NoticeSourceSearchEmpty"] = "Nothing found for “{query}”. Try a different search.",
+        ["MatchRuledOutFormat"] = "Different format",
+        ["MatchRuledOutEpisodes"] = "More episodes than this title",
+        ["MatchRuledOutYear"] = "Different year",
+        ["MatchSearchTimedOut"] = "It didn't answer in time.",
+        ["MatchSearchSourceOff"] = "It isn't switched on.",
         ["NoticeSourcePinned"] = "{source} will be used for this title.",
         ["NoticeSourceAutomatic"] = "Back to automatic source selection.",
         ["NoticeSourceChoiceFailed"] = "Couldn't save that choice. {reason}",
@@ -6789,6 +6878,30 @@ public static partial class T
         ["SourcesTorrentsNote"] = "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.",
         ["SourcesRebuilding"] = "Sources are being set up again",
         ["SourcesResponseMs"] = "{ms} ms",
+        ["MatchFix"] = "Fix this match",
+        ["MatchChoose"] = "Choose the match",
+        ["MatchUncertain_one"] = "{source} lists a title that could be this one. Choose it to play its episodes.",
+        ["MatchUncertain_other"] = "{source} lists {count} titles that could be this one. Choose one to play its episodes.",
+        ["MatchUncertainNone"] = "{source} has no title that fits this one. Choose one anyway, or search.",
+        ["MatchSourcePickerRow"] = "Wrong title? Fix this match",
+        ["MatchAnilistFacts"] = "On AniList: {facts}",
+        ["MatchSectionSource"] = "On {source}",
+        ["MatchNow"] = "Matched now",
+        ["MatchChosenByYou"] = "Chosen by you",
+        ["MatchChosenAutomatically"] = "Chosen automatically",
+        ["MatchSimilarity"] = "{similarity} match",
+        ["MatchSearchField"] = "Search {source}",
+        ["MatchSearching"] = "Searching {source} for “{query}”",
+        ["MatchSearchEmpty"] = "Nothing on {source} for “{query}”.",
+        ["MatchSearchEmptyHint"] = "Try fewer words, or the title in another language.",
+        ["MatchSearchFailed"] = "Couldn't search {source}.",
+        ["MatchPicking"] = "Matching",
+        ["MatchFixFailed"] = "Couldn't use that match.",
+        ["MatchPicked"] = "Matched to {title} on {source}.",
+        ["MatchAutomatic"] = "Match automatically",
+        ["MatchAutomaticDetail"] = "Forget your choice and let anistream match this title again.",
+        ["MatchCleared"] = "Matching automatically again.",
+        ["MatchRowLabel"] = "{title}, {facts}, {closeness}",
         ["StoresJoined"] = "Joined",
         ["StoresEmptyTitle"] = "No plugin stores yet",
         ["StoresEmptyDetail"] = "Plugin stores are run by people you know. Join one with the invite link its owner sends you.",

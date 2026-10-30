@@ -219,6 +219,21 @@ notice-match-did-not-stick = That match didn't stick. The source may have change
 # Toast when a search of the sources for a title found nothing.
 notice-source-search-empty = Nothing found for “{ $query }”. Try a different search.
 
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.
+match-ruled-out-format = Different format
+
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.
+match-ruled-out-episodes = More episodes than this title
+
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.
+match-ruled-out-year = Different year
+
+# Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.
+match-search-timed-out = It didn't answer in time.
+
+# Why a search of a source for a show's match failed: the source isn't installed or switched on.
+match-search-source-off = It isn't switched on.
+
 # Toast after the person picked a source for one title.
 notice-source-pinned = { $source } will be used for this title.
 
@@ -6617,6 +6632,79 @@ sources-rebuilding = Sources are being set up again
 
 # Value of a plugin's response time, in milliseconds.
 sources-response-ms = { $ms } ms
+
+# Menu, palette and source picker entry that opens the sheet.
+match-fix = Fix this match
+
+# The title page's main action while the source couldn't choose, and the sheet's title.
+match-choose = Choose the match
+
+# The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.
+match-uncertain =
+    { $count ->
+        [one] { $source } lists a title that could be this one. Choose it to play its episodes.
+       *[other] { $source } lists { $count } titles that could be this one. Choose one to play its episodes.
+    }
+
+# The line on a title page when the source listed no title that fits, so the person searches.
+match-uncertain-none = { $source } has no title that fits this one. Choose one anyway, or search.
+
+# The last row of the source picker, which opens the match sheet.
+match-source-picker-row = Wrong title? Fix this match
+
+# Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".
+match-anilist-facts = On AniList: { $facts }
+
+# Heading over the titles a source offers.
+match-section-source = On { $source }
+
+# Heading over the title the show is matched to now.
+match-now = Matched now
+
+# Beside the title matched now: the person chose it.
+match-chosen-by-you = Chosen by you
+
+# Beside the title matched now: anistream chose it.
+match-chosen-automatically = Chosen automatically
+
+# How closely a source's title matches the show, at the end of its row.
+match-similarity = { $similarity } match
+
+# Placeholder of the search field in the sheet.
+match-search-field = Search { $source }
+
+# While a search of the source runs.
+match-searching = Searching { $source } for “{ $query }”
+
+# A search of the source that found nothing.
+match-search-empty = Nothing on { $source } for “{ $query }”.
+
+# Under match-search-empty: what to try.
+match-search-empty-hint = Try fewer words, or the title in another language.
+
+# A search of the source that failed. The reason follows on its own line.
+match-search-failed = Couldn't search { $source }.
+
+# On the row picked, while the source lists its episodes.
+match-picking = Matching
+
+# A pick that failed. The reason follows on its own line.
+match-fix-failed = Couldn't use that match.
+
+# Notice once a picked title's episodes arrive.
+match-picked = Matched to { $title } on { $source }.
+
+# Button that forgets the person's choice, shown only while the match is one they chose.
+match-automatic = Match automatically
+
+# Under "Match automatically", on iPhone, iPad and Android.
+match-automatic-detail = Forget your choice and let anistream match this title again.
+
+# Notice after "Match automatically".
+match-cleared = Matching automatically again.
+
+# Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
+match-row-label = { $title }, { $facts }, { $closeness }
 
 # Short label for a joined store, on a row.
 stores-joined = Joined

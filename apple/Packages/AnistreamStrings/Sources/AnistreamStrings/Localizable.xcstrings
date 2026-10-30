@@ -6597,6 +6597,364 @@
         }
       }
     },
+    "match-anilist-facts" : {
+      "comment" : "Under the show's name in the sheet: what AniList says of it, such as \"TV · 2026 · 24 episodes\". Argument 1: facts (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On AniList: %1$@"
+          }
+        }
+      }
+    },
+    "match-automatic" : {
+      "comment" : "Button that forgets the person's choice, shown only while the match is one they chose.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Match automatically"
+          }
+        }
+      }
+    },
+    "match-automatic-detail" : {
+      "comment" : "Under \"Match automatically\", on iPhone, iPad and Android.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forget your choice and let anistream match this title again."
+          }
+        }
+      }
+    },
+    "match-choose" : {
+      "comment" : "The title page's main action while the source couldn't choose, and the sheet's title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the match"
+          }
+        }
+      }
+    },
+    "match-chosen-automatically" : {
+      "comment" : "Beside the title matched now: anistream chose it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chosen automatically"
+          }
+        }
+      }
+    },
+    "match-chosen-by-you" : {
+      "comment" : "Beside the title matched now: the person chose it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chosen by you"
+          }
+        }
+      }
+    },
+    "match-cleared" : {
+      "comment" : "Notice after \"Match automatically\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matching automatically again."
+          }
+        }
+      }
+    },
+    "match-fix" : {
+      "comment" : "Menu, palette and source picker entry that opens the sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fix this match"
+          }
+        }
+      }
+    },
+    "match-fix-failed" : {
+      "comment" : "A pick that failed. The reason follows on its own line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't use that match."
+          }
+        }
+      }
+    },
+    "match-now" : {
+      "comment" : "Heading over the title the show is matched to now.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matched now"
+          }
+        }
+      }
+    },
+    "match-picked" : {
+      "comment" : "Notice once a picked title's episodes arrive. Argument 1: title (Text). Argument 2: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matched to %1$@ on %2$@."
+          }
+        }
+      }
+    },
+    "match-picking" : {
+      "comment" : "On the row picked, while the source lists its episodes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matching"
+          }
+        }
+      }
+    },
+    "match-row-label" : {
+      "comment" : "Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out. Argument 1: title (Text). Argument 2: facts (Text). Argument 3: closeness (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@, %3$@"
+          }
+        }
+      }
+    },
+    "match-ruled-out-episodes" : {
+      "comment" : "In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More episodes than this title"
+          }
+        }
+      }
+    },
+    "match-ruled-out-format" : {
+      "comment" : "In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Different format"
+          }
+        }
+      }
+    },
+    "match-ruled-out-year" : {
+      "comment" : "In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Different year"
+          }
+        }
+      }
+    },
+    "match-search-empty" : {
+      "comment" : "A search of the source that found nothing. Argument 1: source (Text). Argument 2: query (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing on %1$@ for “%2$@”."
+          }
+        }
+      }
+    },
+    "match-search-empty-hint" : {
+      "comment" : "Under match-search-empty: what to try.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try fewer words, or the title in another language."
+          }
+        }
+      }
+    },
+    "match-search-failed" : {
+      "comment" : "A search of the source that failed. The reason follows on its own line. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't search %1$@."
+          }
+        }
+      }
+    },
+    "match-search-field" : {
+      "comment" : "Placeholder of the search field in the sheet. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search %1$@"
+          }
+        }
+      }
+    },
+    "match-search-source-off" : {
+      "comment" : "Why a search of a source for a show's match failed: the source isn't installed or switched on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It isn't switched on."
+          }
+        }
+      }
+    },
+    "match-search-timed-out" : {
+      "comment" : "Why a search of a source for a show's match failed, under \"Couldn't search\" and the source's name: the source took too long to answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It didn't answer in time."
+          }
+        }
+      }
+    },
+    "match-searching" : {
+      "comment" : "While a search of the source runs. Argument 1: source (Text). Argument 2: query (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching %1$@ for “%2$@”"
+          }
+        }
+      }
+    },
+    "match-section-source" : {
+      "comment" : "Heading over the titles a source offers. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On %1$@"
+          }
+        }
+      }
+    },
+    "match-similarity" : {
+      "comment" : "How closely a source's title matches the show, at the end of its row. Argument 1: similarity (Percent).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ match"
+          }
+        }
+      }
+    },
+    "match-source-picker-row" : {
+      "comment" : "The last row of the source picker, which opens the match sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrong title? Fix this match"
+          }
+        }
+      }
+    },
+    "match-uncertain" : {
+      "comment" : "The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out. Argument 1: count (Int). Argument 2: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%2$@ lists a title that could be this one. Choose it to play its episodes."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%2$@ lists %1$lld titles that could be this one. Choose one to play its episodes."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "match-uncertain-none" : {
+      "comment" : "The line on a title page when the source listed no title that fits, so the person searches. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ has no title that fits this one. Choose one anyway, or search."
+          }
+        }
+      }
+    },
     "material-anime" : {
       "comment" : "Value of \"Based on\": another anime.",
       "extractionState" : "manual",
@@ -7037,6 +7395,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exit Full Screen"
+          }
+        }
+      }
+    },
+    "menu-fix-match" : {
+      "comment" : "Mac menu bar item that opens the sheet for choosing which of a source's titles this show is. Title Case, as the menu bar's items are. Everywhere else it is match-fix.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fix This Match…"
           }
         }
       }

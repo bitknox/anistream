@@ -117,6 +117,16 @@ pub enum Msg {
     NoticeMatchDidNotStick,
     /// Toast when a search of the sources for a title found nothing.
     NoticeSourceSearchEmpty { query: String },
+    /// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.
+    MatchRuledOutFormat,
+    /// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.
+    MatchRuledOutEpisodes,
+    /// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.
+    MatchRuledOutYear,
+    /// Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.
+    MatchSearchTimedOut,
+    /// Why a search of a source for a show's match failed: the source isn't installed or switched on.
+    MatchSearchSourceOff,
     /// Toast after the person picked a source for one title.
     NoticeSourcePinned { source: String },
     /// Toast after the person went back to automatic source selection for one title.
@@ -488,6 +498,11 @@ impl Msg {
             Self::NoticeMatchSaveFailed { .. } => "notice-match-save-failed",
             Self::NoticeMatchDidNotStick => "notice-match-did-not-stick",
             Self::NoticeSourceSearchEmpty { .. } => "notice-source-search-empty",
+            Self::MatchRuledOutFormat => "match-ruled-out-format",
+            Self::MatchRuledOutEpisodes => "match-ruled-out-episodes",
+            Self::MatchRuledOutYear => "match-ruled-out-year",
+            Self::MatchSearchTimedOut => "match-search-timed-out",
+            Self::MatchSearchSourceOff => "match-search-source-off",
             Self::NoticeSourcePinned { .. } => "notice-source-pinned",
             Self::NoticeSourceAutomatic => "notice-source-automatic",
             Self::NoticeSourceChoiceFailed { .. } => "notice-source-choice-failed",
@@ -703,6 +718,11 @@ impl Msg {
             Self::NoticeMatchSaveFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::NoticeMatchDidNotStick => Vec::new(),
             Self::NoticeSourceSearchEmpty { query } => vec![("query", Value::Text(query.clone()))],
+            Self::MatchRuledOutFormat => Vec::new(),
+            Self::MatchRuledOutEpisodes => Vec::new(),
+            Self::MatchRuledOutYear => Vec::new(),
+            Self::MatchSearchTimedOut => Vec::new(),
+            Self::MatchSearchSourceOff => Vec::new(),
             Self::NoticeSourcePinned { source } => vec![("source", Value::Text(source.clone()))],
             Self::NoticeSourceAutomatic => Vec::new(),
             Self::NoticeSourceChoiceFailed { reason } => vec![("reason", Value::Text(reason.clone()))],
