@@ -15,40 +15,23 @@ struct PhoneTitle: View {
     @Namespace private var rotor
     /// Whether the main button has scrolled away, for the capsule that takes its place below.
     @State private var mainButtonGone = false
-    /// This visit's trailer.
-    @State private var visit = TrailerVisit()
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
     let id: AnilistId
 
     var body: some View {
         let entry = store.titles.page(id)
         let action = TitleAction(entry, handedOff: navigator.handedOff, episodes: store.titles.episodes[entry.id])
         let art = store.heroArt(entry)
-        // The banner grows to hold the video below Back and More when a trailer may play. In
-        // landscape it would be shorter than YouTube's 200 points, so none starts.
-        let mayPlay = !art.isCompact && verticalSizeClass != .compact && store.trailerMayAutoplay(entry)
-        let band = mayPlay ? TrailerLayout.phoneBand : 250
         // A list, so the episodes take their swipes (native-ux), drawn as the scroll view was.
         List {
             VStack(alignment: .leading, spacing: 0) {
                 // The wide art: it stretches when pulled down and scrolls at half speed (T1).
                 // With none, the page starts under the navigation bar, the cover beside the title.
                 if !art.isCompact {
-                    ZStack(alignment: .top) {
-                        // The trailer across the banner, edge to edge: the art fades away over it.
-                        if mayPlay {
-                            TrailerVideo(visit: visit, size: TrailerLayout.phoneVideo, fillsWidth: true)
-                                .padding(.top, TrailerLayout.phoneVideoTop)
-                        }
-                        HeroArtView(art: art, entry: entry)
-                            .frame(height: band)
-                            // The ground fading up from the art's foot, under the cover and a
-                            // title of three lines.
-                            .overlay(alignment: .bottom) { BannerScrim(held: 38, height: 82) }
-                            .opacity(visit.shown ? 0 : 1)
-                            .animation(visit.shown ? .fadeIn : .fadeOut, value: visit.shown)
-                    }
-                    .frame(height: band)
+                    HeroArtView(art: art, entry: entry)
+                        .frame(height: 250)
+                        // The ground fading up from the art's foot, under the cover and a title
+                        // of three lines.
+                        .overlay(alignment: .bottom) { BannerScrim(held: 38, height: 82) }
                         .visualEffect { [reduceMotion] content, proxy in
                             let y = proxy.frame(in: .scrollView(axis: .vertical)).minY
                             let h = proxy.size.height
@@ -82,7 +65,7 @@ struct PhoneTitle: View {
                 .padding(.horizontal, 16)
                 // Over the art's foot, except at the accessibility sizes, where the title would
                 // grow up into the art and lose its contrast.
-                .padding(.top, art.isCompact || typeSize.isAccessibilitySize ? 8 : mayPlay ? -4 : -60)
+                .padding(.top, art.isCompact || typeSize.isAccessibilitySize ? 8 : -60)
 
                 VStack(alignment: .leading, spacing: 16) {
                     // No source has it: nothing to play, and the way to one in Play's place.
@@ -228,14 +211,6 @@ struct PhoneTitle: View {
                 .padding(.top, 16)
                 .padding(.bottom, 16)
             }
-            .overlay(alignment: .topTrailing) {
-                // At the head's trailing edge, under the video.
-                if mayPlay {
-                    TrailerSoundButton(visit: visit, size: 44)
-                        .padding(.top, TrailerLayout.phoneVideoTop + TrailerLayout.phoneVideo.height + 8)
-                        .padding(.trailing, 12)
-                }
-            }
             .bareRow()
             PhoneEpisodes(entry: entry, spoilers: store.spoilerProtection(for: id), rotor: rotor)
             Color.clear.frame(height: 32).bareRow()
@@ -274,13 +249,7 @@ struct PhoneTitle: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .onScrollGeometryChange(for: Bool.self) { geometry in
-            geometry.contentOffset.y + geometry.contentInsets.top > TrailerLayout.scrollAway
-        } action: { _, away in
-            visit.scrolledAway(away)
-        }
-        .trailerLifecycle(visit: visit, entry: entry, mayPlay: mayPlay)
-        .onChange(of: id) { visit.release(); visit = TrailerVisit() }
+        .trailerLaunchSheet(entry)
         .task(id: id) {
             navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }

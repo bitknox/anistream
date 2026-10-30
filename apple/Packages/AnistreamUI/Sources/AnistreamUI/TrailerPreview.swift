@@ -91,6 +91,11 @@ struct TrailerPreviewHost: ViewModifier {
                 // One at a time: another cover's preview closes this one.
                 if let id, id != entry.id { showing = false }
             }
+            .task(id: store.trailersMayAutoplay) {
+                // The first grid of covers loads the preview's player, so the first hover starts sooner.
+                guard store.trailersMayAutoplay else { return }
+                TrailerPool.shared.prewarm(subtitles: store.settings.value(.subtitles) ?? "")
+            }
             .task {
                 // The Fixtures app can open one at launch, for a shot: sheet=preview, select=<id>.
                 let route = LaunchRoute.current
@@ -196,7 +201,10 @@ struct TrailerPreview: View {
             guard mayPlay, let trailer = entry.trailer else { return }
             try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled else { return }
-            visit.begin { signal in TrailerPlayer(trailer: trailer, style: .banner, onSignal: signal) }
+            let subtitles = store.settings.value(.subtitles) ?? ""
+            visit.begin { signal in
+                TrailerPlayer(trailer: trailer, style: .banner, subtitles: subtitles, onSignal: signal)
+            }
         }
         .onAppear {
             // A scroll or a key press closes it at once.

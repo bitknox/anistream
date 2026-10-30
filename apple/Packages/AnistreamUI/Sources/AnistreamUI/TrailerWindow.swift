@@ -53,6 +53,8 @@ final class TrailerSession {
     private(set) var surface: (any TrailerSurface)?
     /// Whether the first moment of loading has passed, and the system's spinner may show.
     private(set) var waiting = false
+    /// Whether the player is showing captions.
+    private(set) var captions = false
     private var timers: [Task<Void, Never>] = []
     private let timeout: Duration
 
@@ -60,11 +62,15 @@ final class TrailerSession {
         self.timeout = timeout
     }
 
-    func start(_ trailer: Trailer) {
+    /// Play `trailer`, its captions in `subtitles`, the playback setting's language.
+    func start(_ trailer: Trailer, subtitles: String) {
         stop()
         phase = .loading
         waiting = false
-        surface = TrailerPlayer(trailer: trailer, style: .full) { [weak self] in self?.hear($0) }
+        captions = false
+        surface = TrailerPlayer(trailer: trailer, style: .full, subtitles: subtitles) { [weak self] in
+            self?.hear($0)
+        }
         timers = [
             Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(600))
@@ -96,6 +102,8 @@ final class TrailerSession {
             stop()
             // Gone, private or embedding off: the owner's choice, so the watch page opens instead.
             phase = [2, 5, 100, 101, 150].contains(code) ? .refused : .failed
+        case .captions(let on):
+            captions = on
         case .quiet, .ending, .ended:
             break
         }
@@ -132,7 +140,7 @@ public struct TrailerWindowView: View {
         .background(.ground)
         .background(WindowShape())
         .navigationTitle(L.trailerWindowTitleApple(title: request.title))
-        .onAppear { session.start(request.trailer) }
+        .onAppear { session.start(request.trailer, subtitles: store.settings.value(.subtitles) ?? "") }
         .onDisappear { session.stop() }
         .onChange(of: session.phase) { _, phase in
             guard phase == .refused else { return }
@@ -148,8 +156,8 @@ public struct TrailerWindowView: View {
             HeroArtView(art: store.heroArt(entry), entry: entry)
                 .opacity(session.phase == .playing ? 0 : 1)
                 .animation(session.phase == .playing ? .fadeIn : .fadeOut, value: session.phase)
-            if let player = session.surface as? TrailerPlayer {
-                TrailerWebView(player: player)
+            if let player = session.surface as? TrailerPlayer, let view = player.webView {
+                TrailerWebView(view: view)
             }
             switch session.phase {
             case .loading where session.waiting:
@@ -157,7 +165,9 @@ public struct TrailerWindowView: View {
             case .failed:
                 VStack(spacing: 12) {
                     Text(L.trailerFailedApple).font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
-                    Button(L.actionTryAgain) { session.start(request.trailer) }
+                    Button(L.actionTryAgain) {
+                        session.start(request.trailer, subtitles: store.settings.value(.subtitles) ?? "")
+                    }
                         .buttonStyle(SecondaryCapsuleStyle(height: 34, fontSize: 13))
                 }
                 .padding(24)
@@ -259,5 +269,27 @@ private struct EscapeCloses: ViewModifier {
         #else
         content
         #endif
+    }
+}
+
+extension View {
+    /// The Fixtures app opens Play trailer at launch for a shot: sheet=trailer.
+    func trailerLaunchSheet(_ entry: Entry) -> some View {
+        modifier(TrailerLaunchSheet(entry: entry))
+    }
+}
+
+private struct TrailerLaunchSheet: ViewModifier {
+    @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
+    let entry: Entry
+
+    func body(content: Content) -> some View {
+        content.task {
+            guard navigator.launchSheet == "trailer" else { return } // i18n-skip: a shot's sheet name
+            navigator.launchSheet = nil
+            try? await Task.sleep(for: .seconds(2))
+            navigator.playTrailer(store.titles.page(entry.id), store: store)
+        }
     }
 }
