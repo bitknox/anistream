@@ -6191,6 +6191,26 @@
     <value>Rankings</value>
     <comment>Heading of the list of rankings.</comment>
   </data>
+  <data name="MoreFollowing" xml:space="preserve">
+    <value>People you follow</value>
+    <comment>Heading of the list of people the viewer follows who have the show on their list.</comment>
+  </data>
+  <data name="MoreFollowingNote" xml:space="preserve">
+    <value>From AniList</value>
+    <comment>Note under that list: where the names come from.</comment>
+  </data>
+  <data name="MoreFollowedScore" xml:space="preserve">
+    <value>{score}/10</value>
+    <comment>What a followed person gave the show, out of ten. The score is a whole number.</comment>
+  </data>
+  <data name="MoreLikeThis" xml:space="preserve">
+    <value>More like this</value>
+    <comment>Heading of the list of titles people who liked this one also liked.</comment>
+  </data>
+  <data name="MoreFollowedProgress" xml:space="preserve">
+    <value>{status} · {progress}</value>
+    <comment>Line of a followed person's list entry: their status and how far they are. Both are already worded.</comment>
+  </data>
   <data name="MoreEmpty" xml:space="preserve">
     <value>AniList has no cast, staff or recommendations for this show yet.</value>
     <comment>Line when AniList has no cast, staff or recommendations for a show.</comment>

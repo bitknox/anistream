@@ -21,7 +21,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 73] = [
+pub const ALL: [&str; 74] = [
     "home",
     "welcome",
     "offline",
@@ -34,6 +34,7 @@ pub const ALL: [&str; 73] = [
     "search-failed",
     "search-paging",
     "title",
+    "title-more-about",
     "trailer-preview",
     "trailer-window",
     "discussion",
@@ -421,6 +422,23 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             });
             4.0
         }
+        #[cfg(feature = "fixtures")]
+        "title-more-about" => {
+            // The dialog behind the page's More about this show button.
+            shell.go(Dest::Continue);
+            let _ =
+                WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
+            let ctx = Rc::clone(&shell.ctx);
+            glib::timeout_add_local_once(Duration::from_millis(2500), move || {
+                if let Some(button) = button_labelled(
+                    ctx.window.upcast_ref(),
+                    &anistream_i18n::t::title_more_about(),
+                ) {
+                    button.emit_clicked();
+                }
+            });
+            4.0
+        }
         "title-discussion" => {
             // The episode that has a thread says so under its row.
             shell.go(Dest::Continue);
@@ -794,6 +812,10 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         close_dialogs(&shell.ctx.window);
     }
     match shot {
+        "title-more-about" => {
+            close_dialogs(&shell.ctx.window);
+            let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
+        }
         "title" | "pad-title" | "title-discussion" => {
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
         }

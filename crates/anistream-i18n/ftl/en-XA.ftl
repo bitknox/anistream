@@ -7143,6 +7143,21 @@ more-recommendations = [Ŕéçöɱɱéñðàţîöñš~~~~~]
 # Heading of the list of rankings.
 more-rankings = [Ŕàñķîñĝš~~~]
 
+# Heading of the list of people the viewer follows who have the show on their list.
+more-following = [Þéöþļé ýöü ƒöļļöŵ~~~~~~]
+
+# Note under that list: where the names come from.
+more-following-note = [Ƒŕöɱ ÅñîĻîšţ~~~~]
+
+# What a followed person gave the show, out of ten. The score is a whole number.
+more-followed-score = [{ $score }/10~~]
+
+# Heading of the list of titles people who liked this one also liked.
+more-like-this = [Ṁöŕé ļîķé ţĥîš~~~~~]
+
+# Line of a followed person's list entry: their status and how far they are. Both are already worded.
+more-followed-progress = [{ $status } · { $progress }~~~]
+
 # Line when AniList has no cast, staff or recommendations for a show.
 more-empty = [ÅñîĻîšţ ĥàš ñö çàšţ, šţàƒƒ öŕ ŕéçöɱɱéñðàţîöñš ƒöŕ ţĥîš šĥöŵ ýéţ.~~~~~~~~~~~~~~~~~~~~]
 

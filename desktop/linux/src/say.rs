@@ -7,7 +7,10 @@ use std::ops::Deref;
 use anistream_i18n::t;
 use anistream_model::{
     Msg, Size, SizeUnit, Span,
-    catalog::{AiringStatus, Entry, FuzzyDate, RelationKind, Season, SourceMaterial},
+    catalog::{
+        AiringStatus, Entry, FuzzyDate, Ranking, RankingKind, RelationKind, Season,
+        SourceMaterial,
+    },
     episodes::EpisodeRow,
     present::{QUEUE_ROWS, QueueItem},
     up_next::{UpNextItem, UpNextReason},
@@ -139,6 +142,53 @@ pub fn meta_line(entry: &Entry) -> String {
         parts.push(percent(f64::from(score)));
     }
     parts.join(" · ")
+}
+
+/// The title page's own metadata line: "TV · Summer 2026 · 24 episodes · Atelier Hotaru · 79%".
+/// A film has its length where the episodes go and its year where the season does.
+pub fn title_line(entry: &Entry) -> String {
+    let film = entry.film_length.is_some();
+    let mut parts = Vec::new();
+    if let Some(f) = &entry.format {
+        parts.push(format(f));
+    }
+    match (entry.season, entry.year) {
+        (Some(s), Some(y)) if !film => parts.push(season(s, y)),
+        (_, Some(y)) => parts.push(y.to_string()),
+        _ => {}
+    }
+    if let Some(length) = anistream_model::present::film_length(entry) {
+        parts.push(length);
+    } else if let Some(n) = entry.episodes.filter(|n| *n > 0) {
+        parts.push(t::episodes_count(i64::from(n)));
+    }
+    if let Some(studio) = &entry.studio {
+        parts.push(studio.clone());
+    }
+    if let Some(score) = entry.score {
+        parts.push(percent(f64::from(score)));
+    }
+    parts.join(" · ")
+}
+
+/// The title's run in words: "On hiatus", "Aired 4 Apr to 20 Jun 2023", "Cancelled after episode 6".
+pub fn airing_fact(entry: &Entry) -> Option<String> {
+    anistream_model::present::airing_line(entry, fuzzy_date)
+}
+
+/// A ranking as the more-about dialog lists it: "#4 Highest rated, Spring 2026".
+pub fn ranking_line(ranking: &Ranking) -> String {
+    let scope = match (ranking.all_time, ranking.season, ranking.year) {
+        (true, _, _) => t::ranking_all_time(),
+        (_, Some(s), Some(y)) => season(s, y),
+        (_, _, Some(y)) => y.to_string(),
+        _ => t::ranking_all_time(),
+    };
+    let label = match ranking.kind {
+        RankingKind::Rated => t::ranking_highest_rated(&scope),
+        RankingKind::Popular => t::ranking_most_popular(&scope),
+    };
+    t::ranking_line(i64::from(ranking.rank), &label)
 }
 
 /// The line under a cover in a grid, the same two parts on every cover: "TV · 12 episodes", the
@@ -659,6 +709,22 @@ mod tests {
         assert_eq!(SeasonYear::at(1_792_756_800).season, Season::Fall);
         assert_eq!(season(Season::Fall, 2026), "Autumn 2026");
         assert_eq!(season(Season::Summer, 2026), "Summer 2026");
+    }
+
+    #[test]
+    fn the_title_line_carries_the_studio_and_a_films_length() {
+        let mut e = entry(4);
+        e.format = Some("TV".into());
+        e.season = Some(Season::Summer);
+        e.year = Some(2026);
+        e.episodes = Some(24);
+        e.studio = Some("Atelier Hotaru".into());
+        e.score = Some(79);
+        assert_eq!(title_line(&e), "TV · Summer 2026 · 24 episodes · Atelier Hotaru · 79%");
+        e.format = Some("MOVIE".into());
+        e.episodes = None;
+        e.film_length = Some(anistream_model::catalog::RunLength { hours: 1, minutes: 52 });
+        assert_eq!(title_line(&e), "Movie · 2026 · 1 hr 52 min · Atelier Hotaru · 79%");
     }
 
     #[test]
