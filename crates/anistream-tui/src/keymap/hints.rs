@@ -227,6 +227,8 @@ pub(crate) fn status_hints_paged(
                 (Action::PlayPause, Action::PlayPause.hint())
             } else if app.unlisted(*id) {
                 (Action::PlayNext, hint_add_source())
+            } else if app.target().is_some_and(crate::app::watched_all) {
+                (Action::PlayNext, said(t::title_button_watch_again()))
             } else {
                 (Action::PlayNext, Action::PlayNext.hint())
             },
