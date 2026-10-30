@@ -184,7 +184,7 @@ private struct HoverCardLayer: ViewModifier {
         let key = activeState == .key || TrailerStandIn.keepsWhenInactive || cards.scripted
         let covered = playerUp || navigator.trailerRequest != nil || navigator.moreAbout != nil
             || navigator.sourcePicker != nil || navigator.showSettings != nil || navigator.messagesShown
-        return key && !covered && typeSize <= .xxxLarge
+        return store.hoverCardsOn && key && !covered && typeSize <= .xxxLarge
     }
 
     func body(content: Content) -> some View {
@@ -214,10 +214,13 @@ private struct HoverCardLayer: ViewModifier {
                             toggle: { [store] id in store.titles[id].map { store.trailerMayAutoplay($0) } ?? false }
                         )
                     }
+                    .task(id: !place.covers.isEmpty && store.hoverCardsOn && store.trailersMayAutoplay) {
+                        // The warm player loads once a grid that can show cards is here (decision 3),
+                        // and only while cards are on and trailers may play.
+                        if !place.covers.isEmpty, store.hoverCardsOn, store.trailersMayAutoplay { trailer.prewarm() }
+                    }
                     .task(id: place.covers.first?.id) {
                         guard place.covers.first != nil else { return }
-                        // The warm player loads once a grid that can show cards is here (decision 3).
-                        trailer.prewarm()
                         await runScript()
                     }
                 }

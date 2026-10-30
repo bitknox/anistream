@@ -397,6 +397,10 @@ settings-upload-unlimited = Unlimited
 # @max 28
 settings-upscaling-natural = Natural · ArtCNN
 
+# Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+# @max 90
+settings-hover-cards-note = Shows a larger card with the trailer when you rest the pointer on a cover.
+
 # Preview note under the upscaling frame for the natural look.
 settings-upscaling-note-natural = Faithful line work and texture, nothing restyled.
 

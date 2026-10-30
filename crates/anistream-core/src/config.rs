@@ -601,6 +601,10 @@ pub struct ThemeConfig {
     /// (`always`), off cellular and Low Data Mode (`wifi-only`), or never (`off`). The native
     /// apps play them; the terminal keeps the setting and plays none.
     pub trailers: TrailerAutoplay,
+    /// Whether a cover the pointer rests on grows into a card with the title's details and,
+    /// where `trailers` lets one play, its trailer. The Mac's grids have it; the terminal keeps
+    /// the setting and has no pointer to rest.
+    pub hover_cards: bool,
 }
 
 impl Default for ThemeConfig {
@@ -610,6 +614,7 @@ impl Default for ThemeConfig {
             motion: true,
             nerd_font: false,
             trailers: TrailerAutoplay::Always,
+            hover_cards: true,
         }
     }
 }
@@ -1318,6 +1323,15 @@ mod tests {
         assert_eq!(Config::default().language, None);
         let cfg = Config::from_toml("language = \"da\"\n[theme]\nmotion = false").unwrap();
         assert_eq!(cfg.language.as_deref(), Some("da"));
+    }
+
+    #[test]
+    fn hover_cards_are_on_until_the_file_turns_them_off() {
+        assert!(Config::default().theme.hover_cards);
+        let cfg = Config::from_toml("[theme]\nhover_cards = false").unwrap();
+        assert!(!cfg.theme.hover_cards);
+        // Separate from trailers: one off leaves the other as it was.
+        assert_eq!(cfg.theme.trailers, TrailerAutoplay::Always);
     }
 
     #[test]

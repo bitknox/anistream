@@ -493,6 +493,10 @@ settings-label-comment-images = Load images in comments
 # Settings row: whether Calendar shows only the shows on the person's list.
 settings-label-calendar-mine = Calendar shows only my list
 
+# Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+# @max 32
+settings-label-hover-cards = Expand covers on hover
+
 ## Settings: the note under the selected row
 
 # Note under the titles row.
