@@ -1,6 +1,6 @@
 {
  "scene": "fresh",
- "recordedAt": 1793318740138,
+ "recordedAt": 1793347895763,
  "events": [
   {
    "@type": "Settings",
@@ -520,6 +520,16 @@
    "activity": "loading continue watching"
   },
   {
+   "@type": "JobStarted",
+   "job": "2",
+   "activity": "loading this season"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "3",
+   "activity": "loading the calendar"
+  },
+  {
    "@type": "Content",
    "view": {
     "@type": "Continue"
@@ -533,14 +543,17 @@
    "v1": "1"
   },
   {
-   "@type": "JobStarted",
-   "job": "2",
-   "activity": "loading this season"
+   "@type": "Downloads",
+   "v1": []
   },
   {
    "@type": "JobStarted",
-   "job": "3",
-   "activity": "loading the calendar"
+   "job": "4",
+   "activity": "loading trending titles"
+  },
+  {
+   "@type": "RecentSearches",
+   "v1": []
   },
   {
    "@type": "Caption",
@@ -703,11 +716,11 @@
   },
   {
    "@type": "CalendarWindow",
-   "anchor": "1793318741",
+   "anchor": "1793347895",
    "pages": "1",
    "morePast": false,
-   "floor": "1785542741",
-   "ceiling": "1795737941",
+   "floor": "1785571895",
+   "ceiling": "1795767095",
    "aheadPages": "1",
    "moreAhead": false
   },
@@ -1292,6 +1305,11 @@
    "v1": "3"
   },
   {
+   "@type": "JobStarted",
+   "job": "5",
+   "activity": "searching “hoshi”"
+  },
+  {
    "@type": "LastAired",
    "v1": [
     {
@@ -1315,17 +1333,45 @@
    "v1": "2"
   },
   {
-   "@type": "Downloads",
-   "v1": []
+   "@type": "RecentSearches",
+   "v1": [
+    {
+     "text": "hoshi",
+     "sort": null,
+     "genres": [],
+     "genresExcluded": [],
+     "tags": [],
+     "tagsExcluded": [],
+     "minTagRank": null,
+     "formats": [],
+     "statuses": [],
+     "season": null,
+     "years": {
+      "min": null,
+      "max": null
+     },
+     "episodes": {
+      "min": null,
+      "max": null
+     },
+     "minutes": {
+      "min": null,
+      "max": null
+     },
+     "minScore": null,
+     "minPopularity": null,
+     "sources": [],
+     "countries": [],
+     "streamingOn": [],
+     "licensedOnly": false,
+     "onList": null
+    }
+   ]
   },
   {
    "@type": "JobStarted",
-   "job": "4",
-   "activity": "loading trending titles"
-  },
-  {
-   "@type": "RecentSearches",
-   "v1": []
+   "job": "6",
+   "activity": "loading your watching list"
   },
   {
    "@type": "Facets",
@@ -1398,52 +1444,6 @@
   },
   {
    "@type": "JobStarted",
-   "job": "5",
-   "activity": "searching “hoshi”"
-  },
-  {
-   "@type": "RecentSearches",
-   "v1": [
-    {
-     "text": "hoshi",
-     "sort": null,
-     "genres": [],
-     "genresExcluded": [],
-     "tags": [],
-     "tagsExcluded": [],
-     "minTagRank": null,
-     "formats": [],
-     "statuses": [],
-     "season": null,
-     "years": {
-      "min": null,
-      "max": null
-     },
-     "episodes": {
-      "min": null,
-      "max": null
-     },
-     "minutes": {
-      "min": null,
-      "max": null
-     },
-     "minScore": null,
-     "minPopularity": null,
-     "sources": [],
-     "countries": [],
-     "streamingOn": [],
-     "licensedOnly": false,
-     "onList": null
-    }
-   ]
-  },
-  {
-   "@type": "JobStarted",
-   "job": "6",
-   "activity": "loading your watching list"
-  },
-  {
-   "@type": "JobStarted",
    "job": "7",
    "activity": "loading your planning list"
   },
@@ -1456,86 +1456,6 @@
    "@type": "JobStarted",
    "job": "9",
    "activity": "loading your paused list"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "PLANNING"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "7"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "COMPLETED"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "8"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "WATCHING"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "PAUSED"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "6"
-  },
-  {
-   "@type": "JobDone",
-   "v1": "9"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "10",
-   "activity": "loading your dropped list"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "DROPPED"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "10"
   },
   {
    "@type": "Browse",
@@ -3231,11 +3151,6 @@
    "v1": "4"
   },
   {
-   "@type": "JobStarted",
-   "job": "11",
-   "activity": "loading the title"
-  },
-  {
    "@type": "SearchPaging",
    "query": {
     "text": "hoshi",
@@ -3307,10 +3222,6 @@
     }
    },
    "text": ""
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
   },
   {
    "@type": "Content",
@@ -3527,138 +3438,97 @@
   },
   {
    "@type": "JobStarted",
-   "job": "12",
-   "activity": "loading episodes"
+   "job": "10",
+   "activity": "loading your dropped list"
   },
   {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900001",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "COMPLETED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
    }
   },
   {
+   "@type": "JobDone",
+   "v1": "8"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "PLANNING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "7"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "WATCHING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "6"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "PAUSED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "9"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "DROPPED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "10"
+  },
+  {
    "@type": "JobStarted",
-   "job": "13",
+   "job": "11",
    "activity": "loading the title"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "14",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900002",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
   },
   {
    "@type": "ProviderPreference",
    "v1": null
+  },
+  {
+   "@type": "JobStarted",
+   "job": "12",
+   "activity": "loading episodes"
   },
   {
    "@type": "Detail",
@@ -3764,51 +3634,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1713755111"
+       "airsAt": "1713784265"
       },
       {
        "episode": "2",
-       "airsAt": "1714359911"
+       "airsAt": "1714389065"
       },
       {
        "episode": "3",
-       "airsAt": "1714964711"
+       "airsAt": "1714993865"
       },
       {
        "episode": "4",
-       "airsAt": "1715569511"
+       "airsAt": "1715598665"
       },
       {
        "episode": "5",
-       "airsAt": "1716174311"
+       "airsAt": "1716203465"
       },
       {
        "episode": "6",
-       "airsAt": "1716779111"
+       "airsAt": "1716808265"
       },
       {
        "episode": "7",
-       "airsAt": "1717383911"
+       "airsAt": "1717413065"
       },
       {
        "episode": "8",
-       "airsAt": "1717988711"
+       "airsAt": "1718017865"
       },
       {
        "episode": "9",
-       "airsAt": "1718593511"
+       "airsAt": "1718622665"
       },
       {
        "episode": "10",
-       "airsAt": "1719198311"
+       "airsAt": "1719227465"
       },
       {
        "episode": "11",
-       "airsAt": "1719803111"
+       "airsAt": "1719832265"
       },
       {
        "episode": "12",
-       "airsAt": "1720407911"
+       "airsAt": "1720437065"
       }
      ],
      "relations": [
@@ -4002,8 +3872,66 @@
    "v1": "11"
   },
   {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900001",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
    "@type": "JobStarted",
-   "job": "15",
+   "job": "13",
    "activity": "loading the title"
   },
   {
@@ -4012,8 +3940,66 @@
   },
   {
    "@type": "JobStarted",
-   "job": "16",
+   "job": "14",
    "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900002",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
   },
   {
    "@type": "Episodes",
@@ -4029,7 +4015,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1713755111",
+     "airsAt": "1713784265",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4046,7 +4032,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1714359911",
+     "airsAt": "1714389065",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4063,7 +4049,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1714964711",
+     "airsAt": "1714993865",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4080,7 +4066,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1715569511",
+     "airsAt": "1715598665",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4097,7 +4083,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1716174311",
+     "airsAt": "1716203465",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4114,7 +4100,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1716779111",
+     "airsAt": "1716808265",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4131,7 +4117,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1717383911",
+     "airsAt": "1717413065",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4148,7 +4134,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1717988711",
+     "airsAt": "1718017865",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4165,7 +4151,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1718593511",
+     "airsAt": "1718622665",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4182,7 +4168,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1719198311",
+     "airsAt": "1719227465",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4199,7 +4185,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1719803111",
+     "airsAt": "1719832265",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4216,18 +4202,28 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1720407911",
+     "airsAt": "1720437065",
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
      "unsourced": false,
      "pastProgress": true
     }
-   ]
+   ],
+   "failed": null
   },
   {
    "@type": "JobDone",
    "v1": "12"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "15",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
   },
   {
    "@type": "Detail",
@@ -4302,99 +4298,99 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1790479241"
+       "airsAt": "1790508395"
       },
       {
        "episode": "2",
-       "airsAt": "1791084041"
+       "airsAt": "1791113195"
       },
       {
        "episode": "3",
-       "airsAt": "1791688841"
+       "airsAt": "1791717995"
       },
       {
        "episode": "4",
-       "airsAt": "1792293641"
+       "airsAt": "1792322795"
       },
       {
        "episode": "5",
-       "airsAt": "1792898441"
+       "airsAt": "1792927595"
       },
       {
        "episode": "6",
-       "airsAt": "1793503241"
+       "airsAt": "1793532395"
       },
       {
        "episode": "7",
-       "airsAt": "1794108041"
+       "airsAt": "1794137195"
       },
       {
        "episode": "8",
-       "airsAt": "1794712841"
+       "airsAt": "1794741995"
       },
       {
        "episode": "9",
-       "airsAt": "1795317641"
+       "airsAt": "1795346795"
       },
       {
        "episode": "10",
-       "airsAt": "1795922441"
+       "airsAt": "1795951595"
       },
       {
        "episode": "11",
-       "airsAt": "1796527241"
+       "airsAt": "1796556395"
       },
       {
        "episode": "12",
-       "airsAt": "1797132041"
+       "airsAt": "1797161195"
       },
       {
        "episode": "13",
-       "airsAt": "1797736841"
+       "airsAt": "1797765995"
       },
       {
        "episode": "14",
-       "airsAt": "1798341641"
+       "airsAt": "1798370795"
       },
       {
        "episode": "15",
-       "airsAt": "1798946441"
+       "airsAt": "1798975595"
       },
       {
        "episode": "16",
-       "airsAt": "1799551241"
+       "airsAt": "1799580395"
       },
       {
        "episode": "17",
-       "airsAt": "1800156041"
+       "airsAt": "1800185195"
       },
       {
        "episode": "18",
-       "airsAt": "1800760841"
+       "airsAt": "1800789995"
       },
       {
        "episode": "19",
-       "airsAt": "1801365641"
+       "airsAt": "1801394795"
       },
       {
        "episode": "20",
-       "airsAt": "1801970441"
+       "airsAt": "1801999595"
       },
       {
        "episode": "21",
-       "airsAt": "1802575241"
+       "airsAt": "1802604395"
       },
       {
        "episode": "22",
-       "airsAt": "1803180041"
+       "airsAt": "1803209195"
       },
       {
        "episode": "23",
-       "airsAt": "1803784841"
+       "airsAt": "1803813995"
       },
       {
        "episode": "24",
-       "airsAt": "1804389641"
+       "airsAt": "1804418795"
       }
      ],
      "relations": [],
@@ -4495,6 +4491,314 @@
   {
    "@type": "JobDone",
    "v1": "13"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "16",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900003",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "17",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "18",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900002",
+   "rows": [
+    {
+     "number": "1",
+     "title": "The Borrowed Sky",
+     "thumbnail": "https://img.example/ep/900002/1.jpg",
+     "description": null,
+     "durationSecs": "1380",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1790508395",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "2",
+     "title": "Overdue by a Century",
+     "thumbnail": "https://img.example/ep/900002/2.jpg",
+     "description": null,
+     "durationSecs": "1380",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1791113195",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "3",
+     "title": "The Index of Winds",
+     "thumbnail": "https://img.example/ep/900002/3.jpg",
+     "description": null,
+     "durationSecs": "1380",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1791717995",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "4",
+     "title": "A Reading Room for Storms",
+     "thumbnail": "https://img.example/ep/900002/4.jpg",
+     "description": null,
+     "durationSecs": "1380",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1792322795",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "5",
+     "title": "The Librarian Who Never Sleeps",
+     "thumbnail": "https://img.example/ep/900002/5.jpg",
+     "description": null,
+     "durationSecs": "1380",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1792927595",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    }
+   ],
+   "failed": null
+  },
+  {
+   "@type": "JobDone",
+   "v1": "14"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900004",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "19",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "20",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900005",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "21",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
   },
   {
    "@type": "Detail",
@@ -4640,69 +4944,6 @@
    "v1": "15"
   },
   {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900003",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "17",
-   "activity": "loading the title"
-  },
-  {
    "@type": "ProviderPreference",
    "v1": null
   },
@@ -4727,7 +4968,8 @@
      "unsourced": false,
      "pastProgress": true
     }
-   ]
+   ],
+   "failed": null
   },
   {
    "@type": "JobDone",
@@ -4735,24 +4977,24 @@
   },
   {
    "@type": "JobStarted",
-   "job": "18",
+   "job": "22",
    "activity": "loading episodes"
   },
   {
    "@type": "Episodes",
-   "id": "900002",
+   "id": "900005",
    "rows": [
     {
      "number": "1",
-     "title": "The Borrowed Sky",
-     "thumbnail": "https://img.example/ep/900002/1.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/1.jpg",
      "description": null,
-     "durationSecs": "1380",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790479241",
+     "airsAt": null,
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4761,15 +5003,15 @@
     },
     {
      "number": "2",
-     "title": "Overdue by a Century",
-     "thumbnail": "https://img.example/ep/900002/2.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/2.jpg",
      "description": null,
-     "durationSecs": "1380",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791084041",
+     "airsAt": null,
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4778,15 +5020,15 @@
     },
     {
      "number": "3",
-     "title": "The Index of Winds",
-     "thumbnail": "https://img.example/ep/900002/3.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/3.jpg",
      "description": null,
-     "durationSecs": "1380",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791688841",
+     "airsAt": null,
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4795,15 +5037,15 @@
     },
     {
      "number": "4",
-     "title": "A Reading Room for Storms",
-     "thumbnail": "https://img.example/ep/900002/4.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/4.jpg",
      "description": null,
-     "durationSecs": "1380",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1792293641",
+     "airsAt": null,
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
@@ -4812,31 +5054,117 @@
     },
     {
      "number": "5",
-     "title": "The Librarian Who Never Sleeps",
-     "thumbnail": "https://img.example/ep/900002/5.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/5.jpg",
      "description": null,
-     "durationSecs": "1380",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1792898441",
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "6",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/6.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "7",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/7.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "8",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/8.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "9",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/9.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "10",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/10.jpg",
+     "description": null,
+     "durationSecs": "1080",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
      "delayedFrom": null,
      "metadataOnly": false,
      "source": null,
      "unsourced": false,
      "pastProgress": true
     }
-   ]
+   ],
+   "failed": null
   },
   {
    "@type": "JobDone",
-   "v1": "14"
+   "v1": "20"
   },
   {
    "@type": "ShowSettings",
    "v1": {
-    "id": "900004",
+    "id": "900006",
     "rows": [
      {
       "key": "TRANSLATION",
@@ -4893,7 +5221,7 @@
   },
   {
    "@type": "JobStarted",
-   "job": "19",
+   "job": "23",
    "activity": "loading the title"
   },
   {
@@ -5056,6 +5384,263 @@
   {
    "@type": "JobDone",
    "v1": "17"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "24",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "Detail",
+   "v1": {
+    "id": "900005",
+    "title": "The Steel Gardener",
+    "secondary": "Hagane no Niwashi",
+    "format": "ONA",
+    "episodes": "10",
+    "year": "2023",
+    "score": "71",
+    "studio": "Studio Mokusei",
+    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+    "coverUrl": "https://img.example/cover/900005-xl.jpg",
+    "coverColor": "#7ac47f",
+    "bannerUrl": null,
+    "genres": [
+     "Sci-Fi",
+     "Slice of Life"
+    ],
+    "availableOn": [],
+    "progress": null,
+    "airingIn": null,
+    "airingEpisode": null,
+    "nextEpisode": null,
+    "nextAiringIn": null,
+    "lastAired": null,
+    "resume": null,
+    "related": [],
+    "recommended": [],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Hagane no Niwashi",
+    "titleEnglish": "The Steel Gardener",
+    "titleNative": "鋼の庭師",
+    "season": "SUMMER",
+    "startDate": {
+     "year": "2023",
+     "month": "7",
+     "day": "1"
+    },
+    "endDate": {
+     "year": "2023",
+     "month": "9",
+     "day": "2"
+    },
+    "source": "WEB_NOVEL",
+    "adult": false,
+    "detail": {
+     "tags": [
+      {
+       "name": "Gardening",
+       "rank": "85",
+       "mediaSpoiler": false,
+       "generalSpoiler": false,
+       "category": "Theme-Slice of Life"
+      }
+     ],
+     "schedule": [],
+     "relations": [],
+     "seasons": [],
+     "recommendations": [],
+     "rankings": [],
+     "characters": [],
+     "staff": [
+      {
+       "name": "Director of The Steel Gardener",
+       "role": "Director"
+      }
+     ],
+     "streamingLinks": [],
+     "following": []
+    },
+    "status": "FINISHED",
+    "airing": {
+     "@type": "Finished",
+     "from": {
+      "year": "2023",
+      "month": "7",
+      "day": "1"
+     },
+     "to": {
+      "year": "2023",
+      "month": "9",
+      "day": "2"
+     }
+    },
+    "duration": "18",
+    "filmLength": null,
+    "country": null,
+    "madeOutsideJapan": false,
+    "synopsisSpans": [
+     {
+      "text": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+      "spoiler": false
+     }
+    ],
+    "delayedFrom": null,
+    "airingApproximate": false,
+    "airingTranslation": null,
+    "airingDubbed": false,
+    "watchedIn": null,
+    "trailer": null,
+    "prequels": [],
+    "sequels": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "19"
+  },
+  {
+   "@type": "Detail",
+   "v1": {
+    "id": "900006",
+    "title": "Summer Wind Relay",
+    "secondary": "Natsukaze Relay",
+    "format": "TV",
+    "episodes": "12",
+    "year": "2026",
+    "score": null,
+    "studio": null,
+    "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+    "coverUrl": "https://img.example/cover/900006-xl.jpg",
+    "coverColor": null,
+    "bannerUrl": null,
+    "genres": [
+     "Comedy",
+     "Sports"
+    ],
+    "availableOn": [],
+    "progress": null,
+    "airingIn": "536400",
+    "airingEpisode": null,
+    "nextEpisode": "9",
+    "nextAiringIn": "536400",
+    "lastAired": null,
+    "resume": null,
+    "related": [],
+    "recommended": [],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Natsukaze Relay",
+    "titleEnglish": "Summer Wind Relay",
+    "titleNative": "夏風リレー",
+    "season": "FALL",
+    "startDate": {
+     "year": "2026",
+     "month": "8",
+     "day": null
+    },
+    "endDate": null,
+    "source": null,
+    "adult": false,
+    "detail": {
+     "tags": [],
+     "schedule": [
+      {
+       "episode": "1",
+       "airsAt": "1789045895"
+      },
+      {
+       "episode": "2",
+       "airsAt": "1789650695"
+      },
+      {
+       "episode": "3",
+       "airsAt": "1790255495"
+      },
+      {
+       "episode": "4",
+       "airsAt": "1790860295"
+      },
+      {
+       "episode": "5",
+       "airsAt": "1791465095"
+      },
+      {
+       "episode": "6",
+       "airsAt": "1792069895"
+      },
+      {
+       "episode": "7",
+       "airsAt": "1792674695"
+      },
+      {
+       "episode": "8",
+       "airsAt": "1793279495"
+      },
+      {
+       "episode": "9",
+       "airsAt": "1793884295"
+      },
+      {
+       "episode": "10",
+       "airsAt": "1794489095"
+      },
+      {
+       "episode": "11",
+       "airsAt": "1795093895"
+      },
+      {
+       "episode": "12",
+       "airsAt": "1795698695"
+      }
+     ],
+     "relations": [],
+     "seasons": [],
+     "recommendations": [],
+     "rankings": [],
+     "characters": [],
+     "staff": [],
+     "streamingLinks": [],
+     "following": []
+    },
+    "status": "RELEASING",
+    "airing": {
+     "@type": "Airing",
+     "since": {
+      "year": "2026",
+      "month": "8",
+      "day": null
+     }
+    },
+    "duration": "24",
+    "filmLength": null,
+    "country": null,
+    "madeOutsideJapan": false,
+    "synopsisSpans": [
+     {
+      "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "spoiler": false
+     }
+    ],
+    "delayedFrom": null,
+    "airingApproximate": false,
+    "airingTranslation": null,
+    "airingDubbed": false,
+    "watchedIn": null,
+    "trailer": null,
+    "prequels": [],
+    "sequels": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "21"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "25",
+   "activity": "loading the title"
   },
   {
    "@type": "Episodes",
@@ -5265,737 +5850,25 @@
      "unsourced": false,
      "pastProgress": true
     }
-   ]
+   ],
+   "failed": null
   },
   {
    "@type": "JobDone",
    "v1": "18"
   },
   {
-   "@type": "JobStarted",
-   "job": "20",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "Detail",
-   "v1": {
-    "id": "900005",
-    "title": "The Steel Gardener",
-    "secondary": "Hagane no Niwashi",
-    "format": "ONA",
-    "episodes": "10",
-    "year": "2023",
-    "score": "71",
-    "studio": "Studio Mokusei",
-    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
-    "coverUrl": "https://img.example/cover/900005-xl.jpg",
-    "coverColor": "#7ac47f",
-    "bannerUrl": null,
-    "genres": [
-     "Sci-Fi",
-     "Slice of Life"
-    ],
-    "availableOn": [],
-    "progress": null,
-    "airingIn": null,
-    "airingEpisode": null,
-    "nextEpisode": null,
-    "nextAiringIn": null,
-    "lastAired": null,
-    "resume": null,
-    "related": [],
-    "recommended": [],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Hagane no Niwashi",
-    "titleEnglish": "The Steel Gardener",
-    "titleNative": "鋼の庭師",
-    "season": "SUMMER",
-    "startDate": {
-     "year": "2023",
-     "month": "7",
-     "day": "1"
-    },
-    "endDate": {
-     "year": "2023",
-     "month": "9",
-     "day": "2"
-    },
-    "source": "WEB_NOVEL",
-    "adult": false,
-    "detail": {
-     "tags": [
-      {
-       "name": "Gardening",
-       "rank": "85",
-       "mediaSpoiler": false,
-       "generalSpoiler": false,
-       "category": "Theme-Slice of Life"
-      }
-     ],
-     "schedule": [],
-     "relations": [],
-     "seasons": [],
-     "recommendations": [],
-     "rankings": [],
-     "characters": [],
-     "staff": [
-      {
-       "name": "Director of The Steel Gardener",
-       "role": "Director"
-      }
-     ],
-     "streamingLinks": [],
-     "following": []
-    },
-    "status": "FINISHED",
-    "airing": {
-     "@type": "Finished",
-     "from": {
-      "year": "2023",
-      "month": "7",
-      "day": "1"
-     },
-     "to": {
-      "year": "2023",
-      "month": "9",
-      "day": "2"
-     }
-    },
-    "duration": "18",
-    "filmLength": null,
-    "country": null,
-    "madeOutsideJapan": false,
-    "synopsisSpans": [
-     {
-      "text": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
-      "spoiler": false
-     }
-    ],
-    "delayedFrom": null,
-    "airingApproximate": false,
-    "airingTranslation": null,
-    "airingDubbed": false,
-    "watchedIn": null,
-    "trailer": null,
-    "prequels": [],
-    "sequels": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "19"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900005",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "Episodes",
-   "id": "900005",
-   "rows": [
-    {
-     "number": "1",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/1.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "2",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/2.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "3",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/3.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "4",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/4.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "5",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/5.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "6",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/6.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "7",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/7.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "8",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/8.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "9",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/9.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "10",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/10.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "20"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "21",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "Detail",
-   "v1": {
-    "id": "900006",
-    "title": "Summer Wind Relay",
-    "secondary": "Natsukaze Relay",
-    "format": "TV",
-    "episodes": "12",
-    "year": "2026",
-    "score": null,
-    "studio": null,
-    "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
-    "coverUrl": "https://img.example/cover/900006-xl.jpg",
-    "coverColor": null,
-    "bannerUrl": null,
-    "genres": [
-     "Comedy",
-     "Sports"
-    ],
-    "availableOn": [],
-    "progress": null,
-    "airingIn": "536400",
-    "airingEpisode": null,
-    "nextEpisode": "9",
-    "nextAiringIn": "536400",
-    "lastAired": null,
-    "resume": null,
-    "related": [],
-    "recommended": [],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Natsukaze Relay",
-    "titleEnglish": "Summer Wind Relay",
-    "titleNative": "夏風リレー",
-    "season": "FALL",
-    "startDate": {
-     "year": "2026",
-     "month": "8",
-     "day": null
-    },
-    "endDate": null,
-    "source": null,
-    "adult": false,
-    "detail": {
-     "tags": [],
-     "schedule": [
-      {
-       "episode": "1",
-       "airsAt": "1789016741"
-      },
-      {
-       "episode": "2",
-       "airsAt": "1789621541"
-      },
-      {
-       "episode": "3",
-       "airsAt": "1790226341"
-      },
-      {
-       "episode": "4",
-       "airsAt": "1790831141"
-      },
-      {
-       "episode": "5",
-       "airsAt": "1791435941"
-      },
-      {
-       "episode": "6",
-       "airsAt": "1792040741"
-      },
-      {
-       "episode": "7",
-       "airsAt": "1792645541"
-      },
-      {
-       "episode": "8",
-       "airsAt": "1793250341"
-      },
-      {
-       "episode": "9",
-       "airsAt": "1793855141"
-      },
-      {
-       "episode": "10",
-       "airsAt": "1794459941"
-      },
-      {
-       "episode": "11",
-       "airsAt": "1795064741"
-      },
-      {
-       "episode": "12",
-       "airsAt": "1795669541"
-      }
-     ],
-     "relations": [],
-     "seasons": [],
-     "recommendations": [],
-     "rankings": [],
-     "characters": [],
-     "staff": [],
-     "streamingLinks": [],
-     "following": []
-    },
-    "status": "RELEASING",
-    "airing": {
-     "@type": "Airing",
-     "since": {
-      "year": "2026",
-      "month": "8",
-      "day": null
-     }
-    },
-    "duration": "24",
-    "filmLength": null,
-    "country": null,
-    "madeOutsideJapan": false,
-    "synopsisSpans": [
-     {
-      "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
-      "spoiler": false
-     }
-    ],
-    "delayedFrom": null,
-    "airingApproximate": false,
-    "airingTranslation": null,
-    "airingDubbed": false,
-    "watchedIn": null,
-    "trailer": null,
-    "prequels": [],
-    "sequels": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "21"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "22",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900006",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "Episodes",
-   "id": "900006",
-   "rows": [
-    {
-     "number": "1",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1789016741",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "2",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1789621541",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "3",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790226341",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "4",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790831141",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "5",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1791435941",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "6",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1792040741",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "7",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1792645541",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    },
-    {
-     "number": "8",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1793250341",
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "22"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "23",
-   "activity": "loading the title"
-  },
-  {
    "@type": "ProviderPreference",
    "v1": null
   },
   {
    "@type": "JobStarted",
-   "job": "24",
+   "job": "26",
    "activity": "loading episodes"
   },
   {
    "@type": "JobStarted",
-   "job": "25",
+   "job": "27",
    "activity": "loading the title"
   },
   {
@@ -6210,7 +6083,8 @@
      "unsourced": false,
      "pastProgress": true
     }
-   ]
+   ],
+   "failed": null
   },
   {
    "@type": "JobDone",
@@ -6218,22 +6092,155 @@
   },
   {
    "@type": "JobStarted",
-   "job": "26",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "27",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "JobStarted",
    "job": "28",
    "activity": "loading episodes"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900006",
+   "rows": [
+    {
+     "number": "1",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1789045895",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "2",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1789650695",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "3",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1790255495",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "4",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1790860295",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "5",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1791465095",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "6",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1792069895",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "7",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1792674695",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    },
+    {
+     "number": "8",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1793279495",
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
+    }
+   ],
+   "failed": null
+  },
+  {
+   "@type": "JobDone",
+   "v1": "22"
   },
   {
    "@type": "JobStarted",
@@ -6243,11 +6250,6 @@
   {
    "@type": "ProviderPreference",
    "v1": null
-  },
-  {
-   "@type": "JobStarted",
-   "job": "30",
-   "activity": "loading episodes"
   },
   {
    "@type": "Episodes",
@@ -6457,11 +6459,22 @@
      "unsourced": false,
      "pastProgress": true
     }
-   ]
+   ],
+   "failed": null
   },
   {
    "@type": "JobDone",
    "v1": "26"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "30",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "31",
+   "activity": "loading the title"
   },
   {
    "@type": "Episodes",
@@ -6671,7 +6684,8 @@
      "unsourced": false,
      "pastProgress": true
     }
-   ]
+   ],
+   "failed": null
   },
   {
    "@type": "JobDone",
@@ -6679,8 +6693,8 @@
   },
   {
    "@type": "JobStarted",
-   "job": "31",
-   "activity": "loading the title"
+   "job": "32",
+   "activity": "loading episodes"
   },
   {
    "@type": "ProviderPreference",
@@ -6911,7 +6925,8 @@
      "unsourced": false,
      "pastProgress": true
     }
-   ]
+   ],
+   "failed": null
   },
   {
    "@type": "JobDone",
@@ -6919,8 +6934,17 @@
   },
   {
    "@type": "JobStarted",
-   "job": "32",
+   "job": "33",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "34",
    "activity": "loading episodes"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
   },
   {
    "@type": "Detail",
@@ -7231,330 +7255,8 @@
    "v1": "27"
   },
   {
-   "@type": "JobStarted",
-   "job": "33",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "Detail",
-   "v1": {
-    "id": "920010",
-    "title": "Cloudcutter Airship Season 10",
-    "secondary": "Kumokiri Hikousen 10",
-    "format": "TV",
-    "episodes": "12",
-    "year": "2023",
-    "score": null,
-    "studio": null,
-    "synopsis": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship Season 10.",
-    "coverUrl": "https://img.example/cover/920010.jpg",
-    "coverColor": "#5c8a7a",
-    "bannerUrl": null,
-    "genres": [
-     "Adventure",
-     "Slice of Life"
-    ],
-    "availableOn": [],
-    "progress": null,
-    "airingIn": null,
-    "airingEpisode": null,
-    "nextEpisode": null,
-    "nextAiringIn": null,
-    "lastAired": null,
-    "resume": null,
-    "related": [
-     {
-      "id": "920009",
-      "title": "Cloudcutter Airship Season 9",
-      "relation": "prequel",
-      "format": "TV"
-     },
-     {
-      "id": "920011",
-      "title": "Cloudcutter Airship Season 11",
-      "relation": "sequel",
-      "format": "TV"
-     }
-    ],
-    "recommended": [],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Kumokiri Hikousen 10",
-    "titleEnglish": "Cloudcutter Airship Season 10",
-    "titleNative": null,
-    "season": "FALL",
-    "startDate": {
-     "year": "2023",
-     "month": "4",
-     "day": "9"
-    },
-    "endDate": {
-     "year": "2023",
-     "month": "6",
-     "day": "25"
-    },
-    "source": null,
-    "adult": false,
-    "detail": {
-     "tags": [],
-     "schedule": [],
-     "relations": [
-      {
-       "id": "920009",
-       "title": "Cloudcutter Airship Season 9",
-       "titleRomaji": "Kumokiri Hikousen 9",
-       "titleEnglish": "Cloudcutter Airship Season 9",
-       "titleNative": null,
-       "relation": "PREQUEL",
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920009.jpg",
-       "coverColor": "#b07a96",
-       "season": "SPRING",
-       "year": "2022",
-       "listStatus": null
-      },
-      {
-       "id": "920011",
-       "title": "Cloudcutter Airship Season 11",
-       "titleRomaji": "Kumokiri Hikousen 11",
-       "titleEnglish": "Cloudcutter Airship Season 11",
-       "titleNative": null,
-       "relation": "SEQUEL",
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920011.jpg",
-       "coverColor": "#a8875c",
-       "season": "SPRING",
-       "year": "2024",
-       "listStatus": null
-      }
-     ],
-     "seasons": [
-      {
-       "id": "920001",
-       "title": "Cloudcutter Airship",
-       "titleRomaji": "Kumokiri Hikousen",
-       "titleEnglish": "Cloudcutter Airship",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920001.jpg",
-       "coverColor": "#5f8fb0",
-       "season": "SPRING",
-       "year": "2014",
-       "listStatus": null
-      },
-      {
-       "id": "920002",
-       "title": "Cloudcutter Airship Season 2",
-       "titleRomaji": "Kumokiri Hikousen 2",
-       "titleEnglish": "Cloudcutter Airship Season 2",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920002.jpg",
-       "coverColor": "#6f8f6a",
-       "season": "FALL",
-       "year": "2015",
-       "listStatus": null
-      },
-      {
-       "id": "920003",
-       "title": "Cloudcutter Airship Season 3",
-       "titleRomaji": "Kumokiri Hikousen 3",
-       "titleEnglish": "Cloudcutter Airship Season 3",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920003.jpg",
-       "coverColor": "#b08a5f",
-       "season": "SPRING",
-       "year": "2016",
-       "listStatus": null
-      },
-      {
-       "id": "920004",
-       "title": "Cloudcutter Airship Season 4",
-       "titleRomaji": "Kumokiri Hikousen 4",
-       "titleEnglish": "Cloudcutter Airship Season 4",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920004.jpg",
-       "coverColor": "#8a6fa8",
-       "season": "FALL",
-       "year": "2017",
-       "listStatus": null
-      },
-      {
-       "id": "920005",
-       "title": "Cloudcutter Airship Season 5",
-       "titleRomaji": "Kumokiri Hikousen 5",
-       "titleEnglish": "Cloudcutter Airship Season 5",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920005.jpg",
-       "coverColor": "#5f9e96",
-       "season": "SPRING",
-       "year": "2018",
-       "listStatus": null
-      },
-      {
-       "id": "920006",
-       "title": "Cloudcutter Airship Season 6",
-       "titleRomaji": "Kumokiri Hikousen 6",
-       "titleEnglish": "Cloudcutter Airship Season 6",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920006.jpg",
-       "coverColor": "#a86f6f",
-       "season": "FALL",
-       "year": "2019",
-       "listStatus": null
-      },
-      {
-       "id": "920007",
-       "title": "Cloudcutter Airship Season 7",
-       "titleRomaji": "Kumokiri Hikousen 7",
-       "titleEnglish": "Cloudcutter Airship Season 7",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920007.jpg",
-       "coverColor": "#7a86b8",
-       "season": "SPRING",
-       "year": "2020",
-       "listStatus": null
-      },
-      {
-       "id": "920008",
-       "title": "Cloudcutter Airship Season 8",
-       "titleRomaji": "Kumokiri Hikousen 8",
-       "titleEnglish": "Cloudcutter Airship Season 8",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920008.jpg",
-       "coverColor": "#9a9a5c",
-       "season": "FALL",
-       "year": "2021",
-       "listStatus": null
-      },
-      {
-       "id": "920009",
-       "title": "Cloudcutter Airship Season 9",
-       "titleRomaji": "Kumokiri Hikousen 9",
-       "titleEnglish": "Cloudcutter Airship Season 9",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920009.jpg",
-       "coverColor": "#b07a96",
-       "season": "SPRING",
-       "year": "2022",
-       "listStatus": null
-      },
-      {
-       "id": "920010",
-       "title": "Cloudcutter Airship Season 10",
-       "titleRomaji": "Kumokiri Hikousen 10",
-       "titleEnglish": "Cloudcutter Airship Season 10",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920010.jpg",
-       "coverColor": "#5c8a7a",
-       "season": "FALL",
-       "year": "2023",
-       "listStatus": null
-      },
-      {
-       "id": "920011",
-       "title": "Cloudcutter Airship Season 11",
-       "titleRomaji": "Kumokiri Hikousen 11",
-       "titleEnglish": "Cloudcutter Airship Season 11",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920011.jpg",
-       "coverColor": "#a8875c",
-       "season": "SPRING",
-       "year": "2024",
-       "listStatus": null
-      },
-      {
-       "id": "920012",
-       "title": "Cloudcutter Airship Season 12",
-       "titleRomaji": "Kumokiri Hikousen 12",
-       "titleEnglish": "Cloudcutter Airship Season 12",
-       "titleNative": null,
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/920012.jpg",
-       "coverColor": "#6a7f9e",
-       "season": "FALL",
-       "year": "2025",
-       "listStatus": null
-      }
-     ],
-     "recommendations": [],
-     "rankings": [],
-     "characters": [],
-     "staff": [],
-     "streamingLinks": [],
-     "following": []
-    },
-    "status": "FINISHED",
-    "airing": {
-     "@type": "Finished",
-     "from": {
-      "year": "2023",
-      "month": "4",
-      "day": "9"
-     },
-     "to": {
-      "year": "2023",
-      "month": "6",
-      "day": "25"
-     }
-    },
-    "duration": "24",
-    "filmLength": null,
-    "country": null,
-    "madeOutsideJapan": false,
-    "synopsisSpans": [
-     {
-      "text": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship Season 10.",
-      "spoiler": false
-     }
-    ],
-    "delayedFrom": null,
-    "airingApproximate": false,
-    "airingTranslation": null,
-    "airingDubbed": false,
-    "watchedIn": null,
-    "trailer": null,
-    "prequels": [],
-    "sequels": []
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "34",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "JobDone",
-   "v1": "31"
-  },
-  {
    "@type": "Episodes",
-   "id": "920010",
+   "id": "920012",
    "rows": [
     {
      "number": "1",
@@ -7759,12 +7461,30 @@
      "source": null,
      "unsourced": false,
      "pastProgress": true
+    },
+    {
+     "number": "13",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null,
+     "metadataOnly": false,
+     "source": null,
+     "unsourced": false,
+     "pastProgress": true
     }
-   ]
+   ],
+   "failed": null
   },
   {
    "@type": "JobDone",
-   "v1": "32"
+   "v1": "34"
   },
   {
    "@type": "Detail",
@@ -8687,6 +8407,314 @@
   {
    "@type": "Detail",
    "v1": {
+    "id": "920010",
+    "title": "Cloudcutter Airship Season 10",
+    "secondary": "Kumokiri Hikousen 10",
+    "format": "TV",
+    "episodes": "12",
+    "year": "2023",
+    "score": null,
+    "studio": null,
+    "synopsis": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship Season 10.",
+    "coverUrl": "https://img.example/cover/920010.jpg",
+    "coverColor": "#5c8a7a",
+    "bannerUrl": null,
+    "genres": [
+     "Adventure",
+     "Slice of Life"
+    ],
+    "availableOn": [],
+    "progress": null,
+    "airingIn": null,
+    "airingEpisode": null,
+    "nextEpisode": null,
+    "nextAiringIn": null,
+    "lastAired": null,
+    "resume": null,
+    "related": [
+     {
+      "id": "920009",
+      "title": "Cloudcutter Airship Season 9",
+      "relation": "prequel",
+      "format": "TV"
+     },
+     {
+      "id": "920011",
+      "title": "Cloudcutter Airship Season 11",
+      "relation": "sequel",
+      "format": "TV"
+     }
+    ],
+    "recommended": [],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Kumokiri Hikousen 10",
+    "titleEnglish": "Cloudcutter Airship Season 10",
+    "titleNative": null,
+    "season": "FALL",
+    "startDate": {
+     "year": "2023",
+     "month": "4",
+     "day": "9"
+    },
+    "endDate": {
+     "year": "2023",
+     "month": "6",
+     "day": "25"
+    },
+    "source": null,
+    "adult": false,
+    "detail": {
+     "tags": [],
+     "schedule": [],
+     "relations": [
+      {
+       "id": "920009",
+       "title": "Cloudcutter Airship Season 9",
+       "titleRomaji": "Kumokiri Hikousen 9",
+       "titleEnglish": "Cloudcutter Airship Season 9",
+       "titleNative": null,
+       "relation": "PREQUEL",
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920009.jpg",
+       "coverColor": "#b07a96",
+       "season": "SPRING",
+       "year": "2022",
+       "listStatus": null
+      },
+      {
+       "id": "920011",
+       "title": "Cloudcutter Airship Season 11",
+       "titleRomaji": "Kumokiri Hikousen 11",
+       "titleEnglish": "Cloudcutter Airship Season 11",
+       "titleNative": null,
+       "relation": "SEQUEL",
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920011.jpg",
+       "coverColor": "#a8875c",
+       "season": "SPRING",
+       "year": "2024",
+       "listStatus": null
+      }
+     ],
+     "seasons": [
+      {
+       "id": "920001",
+       "title": "Cloudcutter Airship",
+       "titleRomaji": "Kumokiri Hikousen",
+       "titleEnglish": "Cloudcutter Airship",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920001.jpg",
+       "coverColor": "#5f8fb0",
+       "season": "SPRING",
+       "year": "2014",
+       "listStatus": null
+      },
+      {
+       "id": "920002",
+       "title": "Cloudcutter Airship Season 2",
+       "titleRomaji": "Kumokiri Hikousen 2",
+       "titleEnglish": "Cloudcutter Airship Season 2",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920002.jpg",
+       "coverColor": "#6f8f6a",
+       "season": "FALL",
+       "year": "2015",
+       "listStatus": null
+      },
+      {
+       "id": "920003",
+       "title": "Cloudcutter Airship Season 3",
+       "titleRomaji": "Kumokiri Hikousen 3",
+       "titleEnglish": "Cloudcutter Airship Season 3",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920003.jpg",
+       "coverColor": "#b08a5f",
+       "season": "SPRING",
+       "year": "2016",
+       "listStatus": null
+      },
+      {
+       "id": "920004",
+       "title": "Cloudcutter Airship Season 4",
+       "titleRomaji": "Kumokiri Hikousen 4",
+       "titleEnglish": "Cloudcutter Airship Season 4",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920004.jpg",
+       "coverColor": "#8a6fa8",
+       "season": "FALL",
+       "year": "2017",
+       "listStatus": null
+      },
+      {
+       "id": "920005",
+       "title": "Cloudcutter Airship Season 5",
+       "titleRomaji": "Kumokiri Hikousen 5",
+       "titleEnglish": "Cloudcutter Airship Season 5",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920005.jpg",
+       "coverColor": "#5f9e96",
+       "season": "SPRING",
+       "year": "2018",
+       "listStatus": null
+      },
+      {
+       "id": "920006",
+       "title": "Cloudcutter Airship Season 6",
+       "titleRomaji": "Kumokiri Hikousen 6",
+       "titleEnglish": "Cloudcutter Airship Season 6",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920006.jpg",
+       "coverColor": "#a86f6f",
+       "season": "FALL",
+       "year": "2019",
+       "listStatus": null
+      },
+      {
+       "id": "920007",
+       "title": "Cloudcutter Airship Season 7",
+       "titleRomaji": "Kumokiri Hikousen 7",
+       "titleEnglish": "Cloudcutter Airship Season 7",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920007.jpg",
+       "coverColor": "#7a86b8",
+       "season": "SPRING",
+       "year": "2020",
+       "listStatus": null
+      },
+      {
+       "id": "920008",
+       "title": "Cloudcutter Airship Season 8",
+       "titleRomaji": "Kumokiri Hikousen 8",
+       "titleEnglish": "Cloudcutter Airship Season 8",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920008.jpg",
+       "coverColor": "#9a9a5c",
+       "season": "FALL",
+       "year": "2021",
+       "listStatus": null
+      },
+      {
+       "id": "920009",
+       "title": "Cloudcutter Airship Season 9",
+       "titleRomaji": "Kumokiri Hikousen 9",
+       "titleEnglish": "Cloudcutter Airship Season 9",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920009.jpg",
+       "coverColor": "#b07a96",
+       "season": "SPRING",
+       "year": "2022",
+       "listStatus": null
+      },
+      {
+       "id": "920010",
+       "title": "Cloudcutter Airship Season 10",
+       "titleRomaji": "Kumokiri Hikousen 10",
+       "titleEnglish": "Cloudcutter Airship Season 10",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920010.jpg",
+       "coverColor": "#5c8a7a",
+       "season": "FALL",
+       "year": "2023",
+       "listStatus": null
+      },
+      {
+       "id": "920011",
+       "title": "Cloudcutter Airship Season 11",
+       "titleRomaji": "Kumokiri Hikousen 11",
+       "titleEnglish": "Cloudcutter Airship Season 11",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920011.jpg",
+       "coverColor": "#a8875c",
+       "season": "SPRING",
+       "year": "2024",
+       "listStatus": null
+      },
+      {
+       "id": "920012",
+       "title": "Cloudcutter Airship Season 12",
+       "titleRomaji": "Kumokiri Hikousen 12",
+       "titleEnglish": "Cloudcutter Airship Season 12",
+       "titleNative": null,
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/920012.jpg",
+       "coverColor": "#6a7f9e",
+       "season": "FALL",
+       "year": "2025",
+       "listStatus": null
+      }
+     ],
+     "recommendations": [],
+     "rankings": [],
+     "characters": [],
+     "staff": [],
+     "streamingLinks": [],
+     "following": []
+    },
+    "status": "FINISHED",
+    "airing": {
+     "@type": "Finished",
+     "from": {
+      "year": "2023",
+      "month": "4",
+      "day": "9"
+     },
+     "to": {
+      "year": "2023",
+      "month": "6",
+      "day": "25"
+     }
+    },
+    "duration": "24",
+    "filmLength": null,
+    "country": null,
+    "madeOutsideJapan": false,
+    "synopsisSpans": [
+     {
+      "text": "The crew of a patched-up airship carry letters and strangers between islands that float above an endless sea of cloud. Cloudcutter Airship Season 10.",
+      "spoiler": false
+     }
+    ],
+    "delayedFrom": null,
+    "airingApproximate": false,
+    "airingTranslation": null,
+    "airingDubbed": false,
+    "watchedIn": null,
+    "trailer": null,
+    "prequels": [],
+    "sequels": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "31"
+  },
+  {
+   "@type": "Detail",
+   "v1": {
     "id": "920012",
     "title": "Cloudcutter Airship Season 12",
     "secondary": "Kumokiri Hikousen 12",
@@ -8974,7 +9002,7 @@
   },
   {
    "@type": "Episodes",
-   "id": "920012",
+   "id": "920010",
    "rows": [
     {
      "number": "1",
@@ -9179,29 +9207,13 @@
      "source": null,
      "unsourced": false,
      "pastProgress": true
-    },
-    {
-     "number": "13",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null,
-     "metadataOnly": false,
-     "source": null,
-     "unsourced": false,
-     "pastProgress": true
     }
-   ]
+   ],
+   "failed": null
   },
   {
    "@type": "JobDone",
-   "v1": "34"
+   "v1": "32"
   },
   {
    "@type": "JobStarted",
@@ -9643,7 +9655,7 @@
      "id": "900002",
      "aired": {
       "episode": "5",
-      "ago": "420301"
+      "ago": "420302"
      }
     }
    ]
