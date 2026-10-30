@@ -194,12 +194,12 @@ public class TvRemoteTests
         }
     }
 
-    static async Task Until(Func<bool> there, string what)
+    static async Task Until(Func<bool> there, string what, Func<object?>? state = null)
     {
         var deadline = DateTime.UtcNow.AddSeconds(30);
         while (!there())
         {
-            Assert.True(DateTime.UtcNow < deadline, $"waited 30 s for {what}");
+            Assert.True(DateTime.UtcNow < deadline, $"waited 30 s for {what}: {state?.Invoke()}");
             await Task.Delay(50, TestContext.Current.CancellationToken);
         }
     }
@@ -283,6 +283,13 @@ public class TvRemoteTests
         var root = AppDirs.NewScratchRoot("cs-cast");
         var engine = FfiEngine.StartScene(AppDirs.Under(root), new QuietHost(), new FfiScene.Fresh(), EngineSession.AppStart());
         var living = engine.StartFakeCast("Living room", new FfiFakeCastOptions(FixedVolume: true, Fetches: true, Refuses: false, LaunchMs: 0));
+        // The engine's events read as the app reads them, or what it plays waits on them.
+        _ = Task.Run(async () =>
+        {
+            while ((await engine.NextEvents()).Any())
+            {
+            }
+        });
         try
         {
             var remote = new TvRemote();
@@ -299,7 +306,7 @@ public class TvRemoteTests
             Assert.Equal(TvSheet.Cast, remote.Sheet);
             Assert.True(remote.Casting);
             Assert.Null(remote.Request);
-            await Until(() => remote.Stage == CastStage.Playing, "the cast playing");
+            await Until(() => remote.Stage == CastStage.Playing, "the cast playing", () => remote.CastCard);
             Assert.Equal(1, served);
             Assert.True(remote.CastServed);
             Assert.Equal(1, handedOff);

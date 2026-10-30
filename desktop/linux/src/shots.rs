@@ -2087,7 +2087,8 @@ fn cast_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             );
             open();
             pick(LIVING_ROOM, 1800);
-            19.0
+            // The engine gives a TV a minute to start reading before it says why it didn't.
+            70.0
         }
         "cast-lost" => {
             scene.cast(LIVING_ROOM, plays("fixed"));

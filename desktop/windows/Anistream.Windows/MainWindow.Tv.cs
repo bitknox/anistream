@@ -315,7 +315,7 @@ public sealed partial class MainWindow
     ///     cast-playing-fixed   Living room playing: fixed volume, so Mute only
     ///     cast-playing-level   Kitchen display playing: a level, so a slider
     ///     cast-refused         Living room refuses every stream
-    ///     cast-never-reads     Living room never reads the stream, after 15 s
+    ///     cast-never-reads     Living room never reads the stream, after a minute
     ///     cast-lost            Living room drops off mid-episode
     ///     cast-taken-over      someone else takes Living room: the card closes, the notice offers Play here
     ///     cast-bar             Living room playing with the card closed: the title bar's button
