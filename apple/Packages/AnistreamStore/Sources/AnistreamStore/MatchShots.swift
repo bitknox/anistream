@@ -42,7 +42,7 @@ extension AppStore {
         let title = titles[id]?.title ?? ""
         let chosen = { (byYou: Bool) in
             self.match.matched(id: id, to: CurrentMatch(
-                providerId: source.id, source: source.name, title: "Hoshi Tabi Diaries", chosenByYou: byYou
+                providerId: source.id, source: source.name, title: "Hoshi Tabi Diaries", chosenByYou: byYou // i18n-skip
             ))
         }
         defer { lastApplied = .now }
@@ -71,7 +71,7 @@ extension AppStore {
             return MatchShot(fromMenu: false, query: "")
         case "match-picked", "match-cleared":
             let show = MatchCandidate(
-                title: "Stardust Wayfarer", key: "\(source.id):stardust-wayfarer", similarity: 1,
+                title: "Stardust Wayfarer", key: "\(source.id):stardust-wayfarer", similarity: 1, // i18n-skip
                 rejected: nil, year: 2024, episodes: 12, format: .tv
             )
             pickMatch(id, providerId: source.id, source: source.name, candidate: show)
