@@ -56,6 +56,11 @@ struct Restore {
     fullscreen: bool,
 }
 
+/// Whether a mini player toggle may go ahead, `since` the last one.
+fn mini_ready(since: Option<Duration>) -> bool {
+    since.is_none_or(|since| since >= MINI_SETTLE)
+}
+
 /// The frame to bring back after the mini player. A quick toggle finds the window still on its
 /// way back from the mini size, which GTK reports as the default size and which is no frame
 /// worth keeping: the one kept from before stands instead.
@@ -67,6 +72,8 @@ fn frame_to_keep(now: Restore, kept: Option<Restore>) -> Restore {
     }
 }
 
+/// How long a mini player toggle is left to land before the next one counts.
+const MINI_SETTLE: Duration = Duration::from_millis(400);
 /// How long after a mini player toggle the window may still be on its way to its size.
 const SETTLE: Duration = Duration::from_secs(2);
 
@@ -134,6 +141,8 @@ pub struct PlayerView {
     /// The frame kept for the last mini player, for a toggle that comes before the window has
     /// settled.
     frame: Cell<Option<(Restore, Instant)>>,
+    /// When the mini player last toggled.
+    mini_at: Cell<Option<Instant>>,
     /// Since when the starting screen has waited, the line's tick, and the engine's note on
     /// the start's job.
     starting_since: Cell<Option<Instant>>,
@@ -244,7 +253,7 @@ struct Ui {
     up_next_line: gtk::Label,
     up_next_bar: gtk::ProgressBar,
     up_next_still: gtk::Picture,
-    up_next_still_frame: gtk::Frame,
+    up_next_still_frame: crate::fit::Fit,
     stall: Card,
     stall_line: gtk::Label,
     resumed: gtk::Box,
@@ -379,6 +388,7 @@ impl PlayerView {
             speed: Cell::new(1.0),
             speed_asked: Cell::new(None),
             frame: Cell::new(None),
+            mini_at: Cell::new(None),
             stall_since: Cell::new(None),
             stall_tick: RefCell::default(),
             mpris: RefCell::default(),
@@ -1358,10 +1368,21 @@ impl PlayerView {
         }
     }
 
+    /// P and the mini button: the other way. The window takes a moment to change size and
+    /// decoration, and a toggle before it has landed would read a size that is on its way
+    /// somewhere else, so it waits.
+    fn toggle_mini(&self) {
+        if !mini_ready(self.mini_at.get().map(|at| at.elapsed())) {
+            return;
+        }
+        self.set_mini(self.mini.get().is_none());
+    }
+
     /// The mini player: the window itself, small, undecorated and with three controls, or back
     /// to what it was.
     pub fn set_mini(&self, on: bool) {
         let window = &self.ctx.window;
+        self.mini_at.set(Some(Instant::now()));
         match (on, self.mini.get()) {
             (true, None) => {
                 let (width, height) = window.default_size();
@@ -1575,7 +1596,7 @@ impl PlayerView {
         add("back-10", None, Box::new(|v, _| v.send(PlayerCommand::Seek(-10.0))));
         add("forward-10", None, Box::new(|v, _| v.send(PlayerCommand::Seek(10.0))));
         add("fullscreen", None, Box::new(|v, _| v.fullscreen(None)));
-        add("mini", None, Box::new(|v, _| v.set_mini(v.mini.get().is_none())));
+        add("mini", None, Box::new(|v, _| v.toggle_mini()));
         add("skip", None, Box::new(|v, _| v.send(PlayerCommand::TakeSkip)));
         add(
             "undo-skip",
@@ -2103,7 +2124,7 @@ impl PlayerView {
                 }
             }
             Key::f | Key::F | Key::F11 if self.mini.get().is_none() => self.fullscreen(None),
-            Key::p | Key::P => self.set_mini(self.mini.get().is_none()),
+            Key::p | Key::P => self.toggle_mini(),
             Key::s | Key::S if self.ui.skip.shown() => self.send(PlayerCommand::TakeSkip),
             Key::n => self.play_next(),
             Key::N => self.send(PlayerCommand::Step(-1)),
@@ -2533,12 +2554,13 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     up_next_line.add_css_class("numeric");
     let up_next_still = gtk::Picture::new();
     up_next_still.set_content_fit(gtk::ContentFit::Cover);
-    up_next_still.set_size_request(160, 90);
-    let up_next_still_frame = gtk::Frame::new(None);
-    up_next_still_frame.add_css_class("up-next-still");
-    up_next_still_frame.set_overflow(gtk::Overflow::Hidden);
+    up_next_still.set_can_shrink(true);
+    let still_plate = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    still_plate.add_css_class("up-next-still");
+    still_plate.set_overflow(gtk::Overflow::Hidden);
+    still_plate.append(&up_next_still);
+    let up_next_still_frame = crate::fit::Fit::new(&still_plate, 16.0 / 9.0, 160, true, 0);
     up_next_still_frame.set_valign(gtk::Align::Start);
-    up_next_still_frame.set_child(Some(&up_next_still));
     up_next_still_frame.set_visible(false);
     let up_next_text = gtk::Box::new(gtk::Orientation::Vertical, 2);
     up_next_text.set_valign(gtk::Align::Center);
@@ -2740,6 +2762,13 @@ mod tests {
         );
         assert_eq!(episode_line("10", Some(Translation::Sub), None), "Episode 10");
         assert_eq!(episode_line("3", None, Some("")), "Episode 3");
+    }
+
+    #[test]
+    fn a_mini_toggle_waits_for_the_last_one_to_land() {
+        assert!(mini_ready(None));
+        assert!(!mini_ready(Some(Duration::from_millis(5))));
+        assert!(mini_ready(Some(Duration::from_secs(1))));
     }
 
     #[test]
