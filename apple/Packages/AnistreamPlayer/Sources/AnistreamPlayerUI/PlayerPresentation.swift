@@ -97,9 +97,6 @@ struct HostsPlayer<Over: ViewModifier>: ViewModifier {
         let presented = model.inMainWindow
         content
             .environment(\.playerZoom, zoom)
-            // The player's own `statusBarHidden` is not taken from a cover on iPad: the scene
-            // asks the view beneath it, so that one hides the status bar while the player is up.
-            .statusBarHidden(presented)
             .onChange(of: store.home?.cache, initial: true) { _, cache in
                 model.shaderCache = cache?.appending(path: "mpv-shaders", directoryHint: .isDirectory)
             }
