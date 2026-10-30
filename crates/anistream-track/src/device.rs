@@ -165,6 +165,9 @@ fn code_request(
     named(request, endpoints)
 }
 
+/// The longest a device code is waited on, in seconds, whatever the service says.
+const MAX_CODE_LIFE: u64 = 3_600;
+
 /// A device code from the service's answer.
 async fn read_code(
     response: reqwest::Response,
@@ -197,9 +200,12 @@ async fn read_code(
         user_code,
         device_code,
         verification_url,
-        expires_in: json["expires_in"].as_u64().unwrap_or(900),
-        // Floored at one second: a server asking for zero would spin.
-        interval: json["interval"].as_u64().unwrap_or(5).max(1),
+        // Held to an hour: past that a code is no sign-in anyone waits on, and a lifetime near
+        // u64::MAX would overflow the clock the poll's deadline is read on.
+        expires_in: json["expires_in"].as_u64().unwrap_or(900).min(MAX_CODE_LIFE),
+        // Floored at one second, since a server asking for zero would spin, and held to the
+        // minute a slow down is held to.
+        interval: json["interval"].as_u64().unwrap_or(5).clamp(1, 60),
         endpoints: *endpoints,
     })
 }
@@ -215,7 +221,9 @@ pub async fn poll_for_token(
     code: &DeviceCode,
 ) -> Result<TokenPair, DeviceError> {
     let endpoints = &code.endpoints;
-    let deadline = std::time::Instant::now() + Duration::from_secs(code.expires_in);
+    let now = std::time::Instant::now();
+    let life = Duration::from_secs(code.expires_in.min(MAX_CODE_LIFE));
+    let deadline = now.checked_add(life).unwrap_or(now);
     let mut interval = Duration::from_secs(code.interval);
 
     while std::time::Instant::now() < deadline {
@@ -534,6 +542,25 @@ mod tests {
         let empty =
             poll_request(&http, &SIMKL, "client-id", Some(" "), &code(SIMKL)).build().unwrap();
         assert!(!body(&empty).contains("client_secret"));
+    }
+
+    /// A lifetime near u64::MAX panicked the sign-in as its deadline was read, and an interval
+    /// of nought polled with no pause.
+    #[tokio::test]
+    async fn a_code_that_lives_for_ever_or_polls_at_once_is_held_to_bounds() {
+        let answer = answer(
+            200,
+            r#"{"device_code":"DC","user_code":"7633-BNPR","expires_in":18446744073709551615,"interval":0}"#,
+        );
+        let code = read_code(answer, &SIMKL).await.unwrap();
+        assert_eq!((code.expires_in, code.interval), (MAX_CODE_LIFE, 1));
+        let slow = answer_with_interval(86_400);
+        assert_eq!(read_code(slow, &SIMKL).await.unwrap().interval, 60);
+    }
+
+    fn answer_with_interval(interval: u64) -> reqwest::Response {
+        let body = format!(r#"{{"user_code":"7633-BNPR","interval":{interval}}}"#);
+        http::Response::builder().status(200).body(body).unwrap().into()
     }
 
     #[tokio::test]
