@@ -102,10 +102,7 @@ struct TabShell: View {
         case .calendar:
             if wide {
                 // The week's paging and My list or All airing, as on the Mac (PadCalendar).
-                // The week's range under the title, as the Mac's subtitle has it.
-                CalendarScreen()
-                    .toolbar { ToolbarItem(placement: .topBarTrailing) { CalendarToolbar() } }
-                    .screenSubtitle(CalendarWords.range(weekDays(offset: navigator.calendarWeek)))
+                CalendarScreen().toolbar { ToolbarItem(placement: .topBarTrailing) { CalendarToolbar() } }
             } else {
                 PhoneCalendar()
             }
