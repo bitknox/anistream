@@ -88,6 +88,8 @@ anistream-providers = { workspace = true, optional = true }
 anistream-track = { workspace = true, optional = true }
 
 [dev-dependencies]
+# A fixture source that is slow to find one episode's streams.
+async-trait.workspace = true
 # Polls `next_events` on the test's own thread, outside the engine's runtime, as Swift does.
 futures.workspace = true
 # The hosted player's properties, in mpv's own JSON.

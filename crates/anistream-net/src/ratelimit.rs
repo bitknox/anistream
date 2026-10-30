@@ -163,8 +163,8 @@ impl RateLimiter {
             // about, so its number is a ceiling, not a refill.
             state.tokens = state.tokens.min(f64::from(remaining));
             if remaining == 0 {
-                let hold = reset_in.unwrap_or(Duration::from_secs(60));
-                state.hold_until = Some(Instant::now() + hold);
+                let hold = reset_in.unwrap_or(Duration::from_secs(60)).min(MAX_HOLD);
+                state.hold_until = Some(hold_from_now(hold));
                 tracing::warn!(?hold, "rate limit exhausted, holding");
             }
         }
@@ -174,8 +174,19 @@ impl RateLimiter {
     pub async fn back_off(&self, duration: Duration) {
         let mut state = self.state.lock().await;
         state.tokens = 0.0;
-        state.hold_until = Some(Instant::now() + duration);
+        state.hold_until = Some(hold_from_now(duration));
     }
+}
+
+/// The longest a server's word holds requests back: an hour, as `x-ratelimit-reset` is read.
+/// A `Retry-After` of a day, as a block page may send, would otherwise stall every request for
+/// the day, and one near `u64::MAX` would overflow the clock.
+pub const MAX_HOLD: Duration = Duration::from_secs(3_600);
+
+/// Now plus `hold`, held to [`MAX_HOLD`].
+fn hold_from_now(hold: Duration) -> Instant {
+    let now = Instant::now();
+    now.checked_add(hold.min(MAX_HOLD)).unwrap_or(now)
 }
 
 /// Pull rate-limit signals out of response headers.
@@ -198,12 +209,12 @@ pub fn parse_rate_headers(
             } else {
                 reset.max(0)
             };
-            Duration::from_secs(secs.min(3_600) as u64)
+            Duration::from_secs(secs as u64).min(MAX_HOLD)
         })
         .or_else(|| {
             get("retry-after")
                 .and_then(|v| v.trim().parse::<u64>().ok())
-                .map(Duration::from_secs)
+                .map(|secs| Duration::from_secs(secs).min(MAX_HOLD))
         });
 
     (remaining, reset)
@@ -348,6 +359,26 @@ mod tests {
         let (_, reset) =
             parse_rate_headers(headers(&[("x-ratelimit-reset", "1785000030")]), now);
         assert_eq!(reset, Some(Duration::from_secs(30)));
+    }
+
+    #[test]
+    fn a_retry_after_is_held_to_an_hour_too() {
+        for said in ["86400", "18446744073709551615"] {
+            let (_, reset) =
+                parse_rate_headers(headers(&[("retry-after", said)]), 1_792_000_000);
+            assert_eq!(reset, Some(MAX_HOLD), "retry-after: {said}");
+        }
+    }
+
+    /// A hold handed in directly, as a client that reads its own Retry-After hands it in, is
+    /// held to the hour as well, and one too large for the clock is no panic.
+    #[tokio::test(start_paused = true)]
+    async fn no_hold_outlasts_an_hour_however_long_it_is_asked_for() {
+        let limiter = RateLimiter::per_minute(90);
+        limiter.back_off(Duration::MAX).await;
+        assert!(limiter.would_wait().await.is_some_and(|wait| wait <= MAX_HOLD));
+        limiter.observe(Some(0), Some(Duration::from_secs(86_400))).await;
+        assert!(limiter.would_wait().await.is_some_and(|wait| wait <= MAX_HOLD));
     }
 
     #[test]

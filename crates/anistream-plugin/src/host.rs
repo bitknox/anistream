@@ -210,17 +210,40 @@ impl Capabilities {
             })
             .collect();
 
-        let body = response.bytes().await.map_err(|e| HostError::Transport(e.to_string()))?;
-        if body.len() > self.limits.max_response_bytes {
-            return Err(HostError::Denied(format!(
-                "response of {} bytes exceeds the {} byte ceiling",
-                body.len(),
-                self.limits.max_response_bytes
-            )));
-        }
-
-        Ok(Response { status, headers, body: body.to_vec() })
+        let body = read_capped(response, self.limits.max_response_bytes).await?;
+        Ok(Response { status, headers, body })
     }
+}
+
+#[cfg(feature = "fetch")]
+/// A response's body, refused as soon as it is known to pass `ceiling` bytes: from its
+/// Content-Length when it says one, else as it arrives. Read whole first, a body could fill the
+/// host's memory with as much as the client's timeout let through, none of it counted against
+/// the plugin's own memory ceiling.
+async fn read_capped(response: wreq::Response, ceiling: usize) -> Result<Vec<u8>, HostError> {
+    use futures::StreamExt;
+
+    let too_large = |size: u64| {
+        HostError::Denied(format!(
+            "response of {size} bytes exceeds the {ceiling} byte ceiling"
+        ))
+    };
+    let declared = response.content_length();
+    if let Some(declared) = declared
+        && declared > ceiling as u64
+    {
+        return Err(too_large(declared));
+    }
+    let mut body = Vec::with_capacity(declared.map_or(0, |n| n as usize));
+    let mut chunks = response.bytes_stream();
+    while let Some(chunk) = chunks.next().await {
+        let chunk = chunk.map_err(|e| HostError::Transport(e.to_string()))?;
+        if body.len() + chunk.len() > ceiling {
+            return Err(too_large((body.len() + chunk.len()) as u64));
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(body)
 }
 
 /// AES-128-CBC decryption with PKCS#7 padding.
@@ -314,6 +337,24 @@ pub fn regex_captures(pattern: &str, haystack: &str) -> Vec<Vec<String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A body with no length that never ends is refused once it passes the ceiling, rather than
+    /// read until the client's timeout.
+    #[cfg(feature = "fetch")]
+    #[tokio::test]
+    async fn a_body_past_the_ceiling_is_refused_as_it_arrives() {
+        let endless = futures::stream::repeat_with(|| Ok::<_, std::io::Error>(vec![0u8; 1024]));
+        let response: wreq::Response =
+            http::Response::new(wreq::Body::wrap_stream(endless)).into();
+        let error = read_capped(response, 4 * 1024).await.unwrap_err();
+        assert!(
+            matches!(error, HostError::Denied(ref m) if m.contains("4096 byte")),
+            "{error}"
+        );
+
+        let small: wreq::Response = http::Response::new(wreq::Body::from(vec![1u8; 10])).into();
+        assert_eq!(read_capped(small, 4 * 1024).await.unwrap(), vec![1u8; 10]);
+    }
 
     fn caps() -> Capabilities {
         Capabilities::new("example-plugin", vec!["example.com".into()], Limits::default(), None)

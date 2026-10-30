@@ -65,6 +65,14 @@ use crate::{
 /// How long the exit waits for a playback to record where it was left.
 const EXIT_FLUSH: Duration = Duration::from_secs(2);
 
+/// How long the exit routes the commands still queued behind it, once the last position is
+/// saved: enough for a setting changed just before quitting, and no more, however many wait.
+const EXIT_DRAIN: Duration = Duration::from_millis(250);
+
+/// The longest [`Engine::shutdown`] waits for the actor to wind down: the flush, the queue and
+/// the torrents, with a step under way to finish first. Past it the app quits regardless.
+const EXIT_WAIT: Duration = Duration::from_secs(5);
+
 /// How long the exit gives the torrent session to stand down. librqbit's stop ends in a fixed
 /// one-second wait after the work that matters, so this is what a quit with torrents costs.
 const TORRENT_CLOSE: Duration = Duration::from_secs(1);
@@ -75,6 +83,9 @@ const TORRENT_CLOSE: Duration = Duration::from_secs(1);
 /// the runtime it runs on ends, as it always has when the app quits.
 pub struct Engine {
     commands: mpsc::UnboundedSender<Message>,
+    /// Where a shutdown is asked for: apart from the commands, so it is read ahead of every
+    /// command still queued, however many a host has sent.
+    stops: mpsc::UnboundedSender<oneshot::Sender<()>>,
     /// The players a front end hosts, which what they report goes straight to, as mpv's
     /// reports are read off its socket: not behind the commands waiting, nor held up by an
     /// engine winding down, which waits on the player for the episode's last position.
@@ -135,8 +146,6 @@ impl RemoteSender {
 enum Message {
     /// A command, with the job [`Engine::send`] numbered for it, and its activity.
     Command { job: Option<(JobId, String)>, command: Command },
-    /// The app is quitting: see [`Engine::shutdown`].
-    Shutdown { done: oneshot::Sender<()> },
     /// An event, as the work would send it: see [`Engine::inject`].
     #[cfg(feature = "testing")]
     Inject(Event),
@@ -427,6 +436,7 @@ impl Engine {
         let checking = None;
 
         let (commands_tx, commands) = mpsc::unbounded_channel();
+        let (stops_tx, stops) = mpsc::unbounded_channel();
         let (out, live) = mpsc::unbounded_channel();
         let jobs = Jobs::default();
         let actor = Actor {
@@ -434,6 +444,7 @@ impl Engine {
             services,
             inbox,
             commands,
+            stops,
             arrivals,
             out,
             jobs: jobs.clone(),
@@ -448,6 +459,7 @@ impl Engine {
 
         let engine = Self {
             commands: commands_tx,
+            stops: stops_tx,
             jobs,
             hosted,
             #[cfg(feature = "cast")]
@@ -495,12 +507,12 @@ impl Engine {
         RemoteSender { commands: self.commands.clone(), jobs: self.jobs.clone() }
     }
 
-    /// Stop as the app quits, after everything sent before.
+    /// Stop as the app quits, ahead of the commands still queued.
     ///
     /// A playback under way is stopped, the way `x` stops it, and given a moment to record
     /// where it was left: it writes its last history row before it reports its ending, which
     /// is what this waits for. The tracker writes a row every ten seconds of playback, so
-    /// quitting without this lost up to that much of the resume point. Under way is the
+    /// quitting without this would lose up to that much of the resume point. Under way is the
     /// playback Now Playing shows, started and not yet ended, as the engine keeps track of it:
     /// one still finding its source has nothing to save, and its wait would only delay the
     /// exit.
@@ -508,10 +520,24 @@ impl Engine {
     /// Then the torrent session, if there is one, is stood down in order: each torrent paused
     /// so the next launch knows how far it got, then its tasks and connections stopped. That
     /// is bounded at a second, and with torrents off there is nothing to wait for.
+    ///
+    /// It is read ahead of the commands still queued, and the last position is saved before
+    /// any of them is routed: they get a moment, [`EXIT_DRAIN`], and the rest are let go. The
+    /// whole of it is held to [`EXIT_WAIT`].
     pub async fn shutdown(self) {
+        self.stopping().await;
+    }
+
+    /// [`Self::shutdown`], asked for now and waited on in what it returns, with the engine kept:
+    /// a front end whose player reports through [`Self::send`] keeps sending while the last
+    /// position is saved, and that save waits on the player's report.
+    pub fn stopping(&self) -> impl Future<Output = ()> + Send + 'static {
         let (done, stopped) = oneshot::channel();
-        if self.commands.send(Message::Shutdown { done }).is_ok() {
-            let _ = stopped.await;
+        let asked = self.stops.send(done).is_ok();
+        async move {
+            if asked && tokio::time::timeout(EXIT_WAIT, stopped).await.is_err() {
+                tracing::warn!("the engine did not wind down in time; quitting regardless");
+            }
         }
     }
 
@@ -763,6 +789,8 @@ struct Actor {
     services: Services,
     inbox: Inbox,
     commands: mpsc::UnboundedReceiver<Message>,
+    /// Shutdowns asked for: see [`Engine::stopping`].
+    stops: mpsc::UnboundedReceiver<oneshot::Sender<()>>,
     arrivals: mpsc::UnboundedReceiver<(u64, Result<TorrentUp, Msg>)>,
     out: mpsc::UnboundedSender<Out>,
     /// The count the jobs it starts on its own are numbered by: see [`Jobs`]. Only an ending
@@ -795,17 +823,18 @@ impl Actor {
             }
             tokio::select! {
                 biased;
+                // Ahead of the commands, however many are queued: the app is quitting.
+                Some(done) = self.stops.recv() => {
+                    self.stop().await;
+                    let _ = done.send(());
+                    return;
+                }
                 message = self.commands.recv() => match message {
                     Some(Message::Command { job, command }) => {
                         let routed = panic::catch_unwind(AssertUnwindSafe(|| {
                             self.route(job, command)
                         }));
                         self.carry_on("a command", routed);
-                    }
-                    Some(Message::Shutdown { done }) => {
-                        self.stop().await;
-                        let _ = done.send(());
-                        return;
                     }
                     #[cfg(feature = "testing")]
                     Some(Message::Inject(event)) => {
@@ -1097,11 +1126,31 @@ impl Actor {
         let _ = self.out.send(Out::Event(event));
     }
 
-    /// Everything the app does on its way out: the playback's last record, then the torrents.
+    /// Everything the app does on its way out: the playback's last record, then the commands
+    /// queued before the quit for [`EXIT_DRAIN`], then the torrents.
     async fn stop(&mut self) {
         let playing = self.under_way();
         self.flush_playback(playing).await;
+        self.drain_commands();
         self.close_torrents().await;
+    }
+
+    /// Route what is queued, in order, until the queue is empty or [`EXIT_DRAIN`] is up. A
+    /// setting changed as the app quit is written; a flood of commands is let go.
+    fn drain_commands(&mut self) {
+        let deadline = std::time::Instant::now() + EXIT_DRAIN;
+        while let Ok(message) = self.commands.try_recv() {
+            // A command is all there is outside a testing build.
+            #[cfg_attr(not(feature = "testing"), allow(irrefutable_let_patterns))]
+            if let Message::Command { job, command } = message {
+                let routed = panic::catch_unwind(AssertUnwindSafe(|| self.route(job, command)));
+                self.carry_on("a command", routed);
+            }
+            if std::time::Instant::now() >= deadline {
+                tracing::warn!("commands still queued as the app quit were let go");
+                return;
+            }
+        }
     }
 
     /// Stand the torrent session down within [`TORRENT_CLOSE`], then let the guard go.
@@ -1114,7 +1163,8 @@ impl Actor {
     }
 
     /// Stop what is playing, if it is under way, and wait briefly for it to record where it
-    /// ended: everything the inbox holds meanwhile is let go, unread, as the app quits.
+    /// ended. What the inbox holds meanwhile is let go, unread, as the app quits, but for what
+    /// a hosted player is told: its quit is what makes it report the end this waits for.
     async fn flush_playback(&mut self, playing: bool) {
         let Some(controls) = self.state.player_tx.as_ref().filter(|_| playing) else { return };
         if controls.send(PlayerCommand::Stop).is_err() {
@@ -1122,12 +1172,15 @@ impl Actor {
         }
         let ended = async {
             while let Some(envelope) = self.inbox.recv().await {
-                if matches!(
-                    envelope,
-                    Envelope::Event(Event::PlaybackEnded { .. })
-                        | Envelope::Played(_, Event::PlaybackEnded { .. })
-                ) {
-                    break;
+                let (Envelope::Event(event) | Envelope::Played(_, event)) = envelope else {
+                    continue;
+                };
+                match event {
+                    Event::PlaybackEnded { .. } => break,
+                    Event::PlayerOps { .. } | Event::PlayerUi { .. } => {
+                        let _ = self.out.send(Out::Event(event));
+                    }
+                    _ => {}
                 }
             }
         };
