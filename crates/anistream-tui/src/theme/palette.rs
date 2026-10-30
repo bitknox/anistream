@@ -88,6 +88,9 @@ pub const LIGHT_GROUND_RANGE: (f64, f64) = (0.7, 1.0);
 /// The painted ground for immersive mode: dusk indigo, 藍.
 pub const IMMERSIVE_GROUND: Rgb = Rgb::from_hex(0x161A2E);
 
+/// The raised surface on the immersive ground, the shared `raised` token: what an overlay's
+/// band is cleared to, so it reads as lifted over the screen it covers.
+pub const IMMERSIVE_RAISED: Rgb = Rgb::from_hex(0x222638);
 /// Ground assumed for the dark variant when the terminal refuses to answer OSC 11.
 const ASSUMED_DARK_GROUND: Rgb = Rgb::from_hex(0x1A1B26);
 
@@ -154,6 +157,13 @@ impl Palette {
     /// its own luminance, so on some themes it would vanish entirely. Deriving it as a
     /// fixed step away from the real ground keeps it consistently visible whether the
     /// terminal is pure black or Nord.
+    ///
+    /// Immersive takes the shared design tokens (docs/desktop-design-brief.md) as they are,
+    /// since it paints the same ground the apps do. The adaptive variants drift from them on
+    /// purpose, because they must hold AA on a range of grounds rather than one: dark's haze
+    /// is #A8AEC9 for the tokens' #9298B5 and its alert #F59B85 for vermilion #E06B54, both
+    /// lifted to read on grounds up to luminance 0.05; light's colours sit darker than the light
+    /// tokens to read on grounds down to 0.7. The AA test holds each to its range.
     pub fn for_ground(variant: Variant, ground: Rgb) -> Self {
         let (text, text_dim, obi, state, alert) = match variant {
             Variant::Dark => (
@@ -204,6 +214,15 @@ impl Palette {
 
     pub const fn ground(&self) -> Option<Rgb> {
         self.ground
+    }
+
+    /// The raised surface, where this palette paints one: immersive only, as the adaptive
+    /// variants draw on whatever ground the terminal has.
+    pub const fn raised(&self) -> Option<Rgb> {
+        match self.variant {
+            Variant::Immersive => Some(IMMERSIVE_RAISED),
+            Variant::Dark | Variant::Light => None,
+        }
     }
 
     pub fn color(&self, role: Role) -> ratatui::style::Color {
@@ -340,7 +359,10 @@ pub fn player_theme() -> PlayerTheme {
 
 #[cfg(test)]
 mod tests {
-    use super::{super::color::AA_NORMAL, *};
+    use super::{
+        super::color::{AA_NORMAL, contrast_ratio},
+        *,
+    };
 
     /// The load-bearing test for the whole palette: every text role, in every variant,
     /// against the worst ground that variant claims to support.
@@ -360,6 +382,18 @@ mod tests {
             }
         }
         assert!(failures.is_empty(), "contrast failures:\n  {}", failures.join("\n  "));
+    }
+
+    /// An immersive overlay draws its text on the raised surface, which every text role has to
+    /// read on as it does on the ground.
+    #[test]
+    fn every_text_role_meets_aa_on_the_raised_surface() {
+        let palette = Palette::immersive();
+        let raised = palette.raised().expect("immersive paints a raised surface");
+        for role in Role::ALL.into_iter().filter(|r| r.is_text()) {
+            let ratio = contrast_ratio(palette.get(role), raised);
+            assert!(ratio >= AA_NORMAL, "{} = {ratio:.2}:1 on raised", role.name());
+        }
     }
 
     /// Between the dark and light ranges, on greys neither variant was made for, the variant

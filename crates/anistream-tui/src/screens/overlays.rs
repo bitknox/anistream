@@ -257,8 +257,10 @@ pub(super) fn render_overlay(
         }
     }
 
-    // Then clear the band itself so content underneath does not show through it.
-    let ground = app.palette.ground().unwrap_or(app.palette.ground_ref());
+    // Then clear the band itself so content underneath does not show through it: to the raised
+    // surface where the palette paints grounds, so the band sits over the screen.
+    let ground =
+        app.palette.raised().or(app.palette.ground()).unwrap_or(app.palette.ground_ref());
     for y in band.top()..band.bottom() {
         for x in band.left()..band.right() {
             buf[(x, y)].set_char(' ').set_bg(ground.to_ratatui());
