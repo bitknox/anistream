@@ -422,13 +422,15 @@ mod tests {
     fn a_job_held_for_ever_is_held_for_an_hour_at_most() {
         let mut a = app();
         let id = a.begin_job(&Command::CheckProviders).unwrap();
-        for wait in [Duration::MAX, Duration::from_secs(u64::MAX), Duration::from_secs(86_400)] {
+        for wait in [Duration::MAX, Duration::from_secs(u64::MAX), Duration::from_secs(86_400)]
+        {
             a.apply(Event::JobNote {
                 job: id,
                 note: anistream_model::Msg::verbatim("AniList limit"),
                 wait: Some(wait),
             });
-            let until = a.jobs[0].note.as_ref().and_then(|(_, until)| *until).expect("a deadline");
+            let until =
+                a.jobs[0].note.as_ref().and_then(|(_, until)| *until).expect("a deadline");
             let held = until.saturating_duration_since(a.clock.now_instant());
             assert!(held <= Duration::from_secs(3600), "held {held:?} for a wait of {wait:?}");
         }
