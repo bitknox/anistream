@@ -258,6 +258,7 @@ fun AppRoot(
         UpdatePrompts()
         AccountSheets()
         TvSheetHost()
+        CastSheetHost()
         DiscussionHost()
         JoinStoreSheetHost()
         // Two links in a row: the later one's sheet replaces the earlier, never stacks on it.
@@ -302,6 +303,7 @@ fun AppRoot(
             bottomBar = {
                 androidx.compose.foundation.layout.Column {
                     if (!onPlayer) TvNowPlayingBar()
+                    if (!onPlayer) CastNowPlayingBar()
                     if (!wide && !onPage && !onPlayer) PhoneBar(current ?: start, navigator::go)
                 }
             },

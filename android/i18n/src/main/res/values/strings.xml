@@ -539,6 +539,32 @@
     </plurals>
     <!-- Player, More menu: under Discussion when the comment count is not known yet; opening it pauses the video. -->
     <string name="player_more_discussion_pauses">Pauses the video</string>
+    <!-- Play on TV sheet: the heading over the TVs with Chromecast built in. -->
+    <string name="cast_sheet_group">Chromecast</string>
+    <!-- Play on TV sheet: the line under a Chromecast row when the stream goes out through this phone. -->
+    <string name="cast_sheet_through_phone">Plays through this phone</string>
+    <!-- Play on TV sheet: the line under a Chromecast row when the stream goes out through this tablet. -->
+    <string name="cast_sheet_through_tablet">Plays through this tablet</string>
+    <!-- Play on TV sheet: the line under "No TVs found" after the check line. -->
+    <string name="cast_sheet_chromecast_too">TVs with Chromecast built in show here too.</string>
+    <!-- Play on TV sheet: in place of the rows when the local network permission was turned down. Open settings follows it. -->
+    <string name="cast_sheet_local_network">Allow anistream to find devices on your local network</string>
+    <!-- Casting card: the starting line once it has taken a while, then the seconds since the cast was asked for. -->
+    <string name="cast_card_counting">%1$s · %2$d s</string>
+    <!-- Casting card: the line under the title when nothing played. -->
+    <string name="cast_card_failed">Couldn\'t start on %1$s</string>
+    <!-- Casting card: the line under the title when the TV dropped off mid-cast. -->
+    <string name="cast_card_stopped">Casting stopped</string>
+    <!-- Casting card: what the TV volume row says when the TV's own volume is in charge. -->
+    <string name="cast_card_volume_fixed">Set on the TV</string>
+    <!-- Casting card: the button that mutes the TV. -->
+    <string name="cast_card_mute">Mute</string>
+    <!-- Casting card: the button that brings the TV's sound back. -->
+    <string name="cast_card_unmute">Unmute</string>
+    <!-- Casting card: stops the TV and plays on in the player here, from where the TV was. -->
+    <string name="cast_card_play_here">Play here</string>
+    <!-- Casting card and its notification: stops casting, and the app on the TV closes. -->
+    <string name="cast_card_stop">Stop casting</string>
     <!-- Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. -->
     <string name="tv_pair_request_held">%1$s wants to pair. Code %2$s</string>
     <!-- TV, Continue hero: the action when no source can play yet. -->

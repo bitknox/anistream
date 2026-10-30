@@ -127,6 +127,9 @@ class AppStore(
     /** Play on TV: the TVs found and paired, pairing, and the card of the TV driven. */
     val tv = TvRemoteModel(scope, clock)
 
+    /** Casting to TVs with Chromecast built in: the picker's Chromecast rows and the cast card. */
+    val cast = CastModel(scope, clock)
+
     /** The app's own update: the newer release, and the download and install the viewer started. */
     val updates = UpdateModel(notices, asset = updateAsset)
     val artwork = ArtworkStore(scope, decoder, costLimit = artworkBudget) { url ->

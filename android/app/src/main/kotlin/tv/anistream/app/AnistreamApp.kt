@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import tv.anistream.engine.core.SettingValue
+import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.DeviceWatch
 import tv.anistream.store.SettingsCatalog
@@ -41,6 +42,7 @@ import tv.anistream.store.AppHost
 import tv.anistream.store.BackgroundEngine
 import tv.anistream.store.EngineEpisodeCheck
 import tv.anistream.store.EpisodeCheck
+import tv.anistream.app.tv.CastKeeper
 import tv.anistream.app.tv.TvConnection
 import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
@@ -234,7 +236,23 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
             if (!store.startTv(browser, if (tablet) Strings.deviceNameTablet(this@AnistreamApp) else Strings.deviceNamePhone(this@AnistreamApp), "anistream-android/$version")) return@launch
             store.tv.handedOff = { player.viewerClosed() }
             tvConnection = TvConnection(this@AnistreamApp, store.tv, scope)
+            startCasting()
         }
+    }
+
+    /** What keeps a cast going through the background: its service, notification and locks. */
+    private var castKeeper: CastKeeper? = null
+
+    /**
+     * Casting, beside Play on TV on the same sender: the TVs with Chromecast built in Android's
+     * DNS-SD finds (the fixtures' made-up ones in that flavour). Play here plays on in the player
+     * here; a cast from the player closes it once the TV plays.
+     */
+    private fun startCasting() {
+        store.cast.attach(store.tv, Flavour.castBrowser(this))
+        store.cast.handedOff = { player.viewerClosed() }
+        store.cast.playHere = { id, episode -> store.send(Command.Play(id, episode, false)) }
+        castKeeper = CastKeeper(this, store.cast, scope)
     }
 
     /**

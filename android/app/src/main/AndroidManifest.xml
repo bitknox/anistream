@@ -14,6 +14,8 @@
     <!-- Play on TV finds TVs and talks to them on the local network: Android 17 asks the first
          time Play on TV is used. -->
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <!-- A cast's stream goes out through this device: the Wi-Fi and the processor stay awake for it. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- No backup: the tokens are sealed with a key that never leaves this device's keystore, so a
          restored copy could not open them, and everything else comes back from AniList and the stores. -->
@@ -99,6 +101,16 @@
              volume on the volume keys, and the link to it. -->
         <service
             android:name=".tv.TvRemoteService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
+        <!-- The cast running now, kept through the background: its media notification, the TV's
+             volume on the volume keys, and the stream going out through this device. -->
+        <service
+            android:name=".tv.CastService"
             android:exported="true"
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
