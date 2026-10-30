@@ -295,6 +295,8 @@ struct PhoneCalendar: View {
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $stripWeek)
         .scrollIndicators(.never)
+        // As tall as a row of days: a horizontal scroll view takes all the height it is offered.
+        .fixedSize(horizontal: false, vertical: true)
         // Seven to a row: no larger than `.xxxLarge`, as controls are.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .padding(.horizontal, 16)
