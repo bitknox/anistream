@@ -2107,7 +2107,7 @@ public enum L {
     }
 
     /// Title of the page shown instead of the app when the engine could not start. The reason follows.
-    public static var shellStartFailed: String { string("shell-start-failed", fallback: "anistream couldn't start. Quit it and open it again. If that fails, report a bug from the Help menu.") }
+    public static var shellStartFailed: String { string("shell-start-failed", fallback: "anistream could not start") }
 
     /// Plain line under the title of the page shown when the engine could not start. The reason follows it, in the engine's words, for a bug report.
     public static var shellStartFailedBody: String { string("shell-start-failed-body", fallback: "Something stopped anistream from opening. Try again, and if it keeps happening, send a report.") }

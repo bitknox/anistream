@@ -16768,7 +16768,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "anistream couldn't start. Quit it and open it again. If that fails, report a bug from the Help menu."
+            "value" : "anistream could not start"
           }
         }
       }
