@@ -645,7 +645,7 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
             area.left(),
             y,
             truncate(&label, width),
-            app.palette.style(Role::Obi).add_modifier(Modifier::BOLD),
+            app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
         );
         y += 1;
         // The meter makes "halfway" legible at a glance, which a percentage alone does not.
@@ -653,7 +653,7 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
             && y < area.bottom()
         {
             let meter_width = (width.saturating_sub(2)).min(24);
-            set_meter(buf, area.left(), y, &app.palette, fraction, meter_width, Role::Obi);
+            set_meter(buf, area.left(), y, &app.palette, fraction, meter_width, Role::Text);
             y += 1;
         }
         y += 1;
@@ -699,7 +699,7 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
                 &app.palette,
                 entry.watched_fraction(),
                 meter_width,
-                Role::Obi,
+                Role::Text,
             );
             x += meter_width as u16 + 2;
         }

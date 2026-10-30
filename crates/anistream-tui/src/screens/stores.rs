@@ -40,7 +40,7 @@ fn store_state(store: &StoreRow) -> (String, Role) {
                 format!("{} {}", glyph::STATE_READY, t::stores_state_up_to_date()),
                 Role::TextDim,
             ),
-            n => (t::stores_state_updates(n as i64), Role::Obi),
+            n => (t::stores_state_updates(n as i64), Role::State),
         },
     }
 }
@@ -307,7 +307,7 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
                         Role::State,
                     ),
                     StorePluginStatus::Update { from, .. } => {
-                        (t::stores_plugin_update_from(from), Role::Obi)
+                        (t::stores_plugin_update_from(from), Role::State)
                     }
                     StorePluginStatus::AddedByHand => {
                         (t::stores_plugin_added_by_hand(), Role::TextDim)

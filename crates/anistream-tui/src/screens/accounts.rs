@@ -85,7 +85,7 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
             area.left() + 12,
             y,
             truncate(&spaced, area.width.saturating_sub(13) as usize),
-            app.palette.style(Role::Obi).add_modifier(Modifier::BOLD),
+            app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
         );
         // How long the code has left, under it; once it expires, Enter on the row asks again.
         if let Some(at) = prompt.expires_at {
@@ -461,7 +461,7 @@ mod tests {
     }
 
     #[test]
-    fn the_device_code_uses_the_accent_role_not_the_dim_one() {
+    fn the_device_code_is_drawn_bold_in_the_text_role_not_the_dim_one() {
         // The specific defect: it was rendered in `TextDim`, the least visible role there is, for
         // the one string in the app a user has to transcribe by hand.
         let mut app = app_with(ContentList::Empty);
@@ -476,14 +476,17 @@ mod tests {
         )));
         let buf = render_to_buffer(&mut app, 110, 20);
 
-        let obi = app.palette.style(Role::Obi).fg;
+        // Bold text rather than amber, which is the obi's alone.
+        let text = app.palette.style(Role::Text).fg;
         let found = (0..20).any(|y| {
             (0..110).any(|x| {
                 let cell = &buf[(x, y)];
-                cell.symbol() == "F" && cell.style().fg == obi
+                cell.symbol() == "F"
+                    && cell.style().fg == text
+                    && cell.style().add_modifier.contains(Modifier::BOLD)
             })
         });
-        assert!(found, "the code should be drawn in the accent role");
+        assert!(found, "the code should be drawn bold in the text role");
     }
 
     #[test]

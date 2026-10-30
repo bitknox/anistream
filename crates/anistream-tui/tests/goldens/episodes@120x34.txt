@@ -87,7 +87,7 @@ r09 c06-06 fg=obi
 r09 c08-10 fg=text mod=BOLD
 r09 c14-40 fg=text mod=BOLD
 r09 c67-71 fg=text-dim
-r09 c75-79 fg=obi
+r09 c75-79 fg=text
 r09 c80-82 fg=rule
 r09 c93-117 fg=rule
 r10 c01-01 fg=text-dim

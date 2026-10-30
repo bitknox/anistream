@@ -191,12 +191,12 @@ r21 c29-119 bg=#161a2e
 r22 c00-27 bg=#161a2e
 r22 c28-28 fg=#434653 bg=#161a2e
 r22 c29-69 bg=#161a2e
-r22 c70-97 fg=obi bg=#161a2e mod=BOLD
+r22 c70-97 fg=text bg=#161a2e mod=BOLD
 r22 c98-119 bg=#161a2e
 r23 c00-27 bg=#161a2e
 r23 c28-28 fg=#434653 bg=#161a2e
 r23 c29-69 bg=#161a2e
-r23 c70-83 fg=obi bg=#161a2e
+r23 c70-83 fg=text bg=#161a2e
 r23 c84-93 fg=#434653 bg=#161a2e
 r23 c94-119 bg=#161a2e
 r24 c00-27 bg=#161a2e
@@ -231,7 +231,7 @@ r30 c29-119 bg=#161a2e
 r31 c00-27 bg=#161a2e
 r31 c28-28 fg=#434653 bg=#161a2e
 r31 c29-69 bg=#161a2e
-r31 c70-74 fg=obi bg=#161a2e
+r31 c70-74 fg=text bg=#161a2e
 r31 c75-89 fg=#434653 bg=#161a2e
 r31 c90-91 bg=#161a2e
 r31 c92-107 fg=#9298b5 bg=#161a2e

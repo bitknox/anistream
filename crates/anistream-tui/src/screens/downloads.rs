@@ -151,8 +151,12 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
         if meter_x < area.right() {
             let room = area.right().saturating_sub(meter_x) as usize;
             let note = download_note(app, row);
+            // Amber is the obi's alone: a meter fills in the text colour, and in the state
+            // colour once the file is whole.
+            let meter_role =
+                if row.state == DownloadState::Done { Role::State } else { Role::Text };
             if meter_width > 0 {
-                set_meter(buf, meter_x, y, &app.palette, row.fraction, meter_width, Role::Obi);
+                set_meter(buf, meter_x, y, &app.palette, row.fraction, meter_width, meter_role);
             }
             buf.set_string(
                 meter_x + meter_width as u16,

@@ -232,7 +232,7 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
             continue;
         }
 
-        let meter_role = if episode.completed { Role::State } else { Role::Obi };
+        let meter_role = if episode.completed { Role::State } else { Role::Text };
         set_meter(
             buf,
             table.left() + cols.state,

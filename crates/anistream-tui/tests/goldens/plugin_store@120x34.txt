@@ -77,7 +77,7 @@ r08 c28-28 fg=rule
 r08 c31-31 fg=obi
 r08 c33-40 fg=text mod=BOLD
 r08 c61-65 fg=text-dim
-r08 c75-91 fg=obi
+r08 c75-91 fg=state
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim
 r09 c28-28 fg=rule

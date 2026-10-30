@@ -119,7 +119,7 @@ pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
         {
             let mut x = area.left();
             if entry.progress_of().is_some() {
-                set_meter(buf, x, y, &app.palette, entry.watched_fraction(), 20, Role::Obi);
+                set_meter(buf, x, y, &app.palette, entry.watched_fraction(), 20, Role::Text);
                 x += 22;
             }
             buf.set_string(

@@ -28,7 +28,8 @@ pub enum Role {
     /// Hairline rules. Non-text, so exempt from the contrast floor, but still has to be
     /// visible or the layout loses its structure.
     Rule,
-    /// The focus accent. The obi bar, progress fill, and nothing else.
+    /// The focus accent: the obi bar, the playhead that is its twin on Now Playing, and the one
+    /// prompt a screen leads with (skip the opening). Other meters fill in the text colour.
     Obi,
     /// State and progress indication.
     State,
