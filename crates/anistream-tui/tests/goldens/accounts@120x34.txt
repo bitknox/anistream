@@ -8,7 +8,7 @@ anistream                                                   torrent ○  plugins
   ↓  Downloads              │
   ◇  Sources                │  ───────────────────────────────────────────────────────────────────────────────────────
 ▌ ◎  Accounts               │
-  ⚙  Settings               │  Tracker         State             Queued    Token
+  ≡  Settings               │  Tracker         State             Queued    Token
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    AniList       ● Connected       2         OS keychain
                             │    Kitsu         ○ Not connected   0         0600 file

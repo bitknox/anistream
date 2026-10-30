@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │    Nothing published yet. Publish a plugin below.
 ▌ ◇  Sources                │
   ◎  Accounts               │  ▌ Link another device
-  ⚙  Settings               │    Invite someone
+  ≡  Settings               │    Invite someone
                             │    Members
                             │    Who can join                Only people you invite
                             │    Publish a plugin

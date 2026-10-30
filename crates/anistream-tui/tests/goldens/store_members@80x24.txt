@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ↓ │  ▌ Rin                         Member    1         9 days ago
 ▌◇ │    Sora                        Member    3         Never
  ◎ │
- ⚙ │  Invites not used yet
+ ≡ │  Invites not used yet
    │    Kai                                             Expires tomorrow
    │    Mirei, another device                           Expires today
    │

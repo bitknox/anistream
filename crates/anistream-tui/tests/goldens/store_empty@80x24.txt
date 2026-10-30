@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ↓ │    Nothing published yet. Publish a plugin below.
 ▌◇ │
  ◎ │  ▌ Link another device
- ⚙ │    Invite someone
+ ≡ │    Invite someone
    │    Members
    │    Who can join                Only people you invite
    │    Publish a plugin

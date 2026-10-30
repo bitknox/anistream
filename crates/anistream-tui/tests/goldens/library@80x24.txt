@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ↓ │    Ginga Yuubinkyoku                                                  84
  ◇ │
  ◎ │
- ⚙ │
+ ≡ │
    │
    │
    │

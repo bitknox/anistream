@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │  the token was refused — sign in again from Accounts
   ◇  Sources                │
   ◎  Accounts               │
-  ⚙  Settings               │
+  ≡  Settings               │
                             │
                             │
                             │

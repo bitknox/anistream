@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │    Ginga Yuubinkyoku               84   ░░░░░░░░░░░░░
   ◇  Sources                │                                         ░░░░░░░░░░░░░
   ◎  Accounts               │                                         ░░░░░░░░░░░░░
-  ⚙  Settings               │                                         ░░░░░░░░░░░░░
+  ≡  Settings               │                                         ░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░

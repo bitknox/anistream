@@ -99,11 +99,10 @@ pub(super) fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
                     },
                 );
 
-                // A read-only row is dimmed to the hairline weight rather than shown in the
-                // text role: the value is still legible, but it no longer looks like
-                // something an arrow will change.
+                // A read-only row is dimmed rather than shown in the text role: the value is
+                // still legible, but it no longer looks like something an arrow will change.
                 let value_style = match (row.editable, selected) {
-                    (false, _) => app.palette.style(Role::Rule),
+                    (false, _) => app.palette.style(Role::TextDim),
                     (true, true) => app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
                     (true, false) => app.palette.style(Role::Text),
                 };

@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ↓ │    ▀▀▀▀▀▀▀▀▄
  ◇ │    ▀▀▀▀▀▀▀▀▀▄
  ◎ │    ▀ ▀▀   ▀▀
- ⚙ │
+ ≡ │
    │  Nothing to continue
    │
    │  Titles you removed come back when you watch them. Press 3 for this

@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ↓ │  the token was refused — sign in again from Accounts
  ◇ │
  ◎ │
- ⚙ │
+ ≡ │
    │
    │
    │

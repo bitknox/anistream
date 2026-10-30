@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │  Your watch history works without one. The library mirrors the list on a tracker.
   ◇  Sources                │  Press 8 to open Accounts and sign in.
   ◎  Accounts               │
-  ⚙  Settings               │
+  ≡  Settings               │
                             │
                             │
                             │

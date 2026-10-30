@@ -4,18 +4,18 @@ anistream                                                                       
  ▤ │
  ▦ │    #     Title                                                Run     Watched
  / │  ─────────────────────────────────────────────────────────────────────────────────────
- ▥ │    001   The Last Mail Coach                                  23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ↓ │    002   A Town Under Glass                                   23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ◇ │    003   Lamplight, Lamplight                                 23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ▥ │    001   The Last Mail Coach                                  23:55   ████████  Done    ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ↓ │    002   A Town Under Glass                                   23:55   ████████  Done    ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ◇ │    003   Lamplight, Lamplight                                 23:55   ████████  Done    ░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Sources   Episode 4. Enter plays your pick.
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   [Kawasemi-Subs] Hoshikuzu no Tabibito - 04 (1080p)  ·  1.4 GiB  ·  Current pick                                212
-▌ [Tsuki] Hoshikuzu no Tabibito 04 [Dual]  ·  2.1 GiB  ·  Subbed and dubbed                                    ▲  14
+▌ [Lanternlight] Hoshikuzu no Tabibito 04 [Dual]  ·  2.1 GiB  ·  Subbed and dubbed                             ▲  14
   [Nagi] Hoshikuzu no Tabibito - 04  ·  0.9 GiB                                                                ✕   3
   Hoshikuzu no Tabibito — episode 4 (dub)  ·  Dubbed
 
-   │    012   The Stardust Traveller                               --:--   ░░░░░░░░░░        the coach takes a road
+   │    012   The Stardust Traveller                               --:--   ░░░░░░░░          the coach takes a road
    │                                                                                         nobody has charted.
    │
    │
@@ -65,8 +65,8 @@ r12 c111-115 fg=text bg=ground
 r12 c116-119 fg=rule bg=ground
 r13 c00-00 fg=obi bg=ground
 r13 c01-01 fg=rule bg=ground
-r13 c02-74 fg=text bg=ground mod=BOLD
-r13 c75-110 fg=rule bg=ground
+r13 c02-81 fg=text bg=ground mod=BOLD
+r13 c82-110 fg=rule bg=ground
 r13 c111-115 fg=text bg=ground
 r13 c116-119 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground

@@ -4,32 +4,32 @@ anistream                                                                       
  ▤ │
  ▦ │    #     Title                                                                           Run     Watched
  / │  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- ▥ │    007   Station No. 7                                                                   23:55   ██▏░░░░░░░
- ↓ │    008   Station No. 8                                                                   23:55   ░░░░░░░░░░  Canon
- ◇ │    009   Station No. 9                                                                   23:55   ░░░░░░░░░░  Canon
- ◎ │    010   Station No. 10                                                                  23:55   ░░░░░░░░░░  Canon
- ⚙ │    011   Station No. 11                                                                  23:55   ░░░░░░░░░░  Canon
-   │    012   Station No. 12                                                                  23:55   ░░░░░░░░░░  Canon
-   │    013   Station No. 13                                                                  23:55   ░░░░░░░░░░  Canon
-   │    014   Station No. 14                                                                  23:55   ░░░░░░░░░░  Canon
-   │    015   Station No. 15                                                                  23:55   ░░░░░░░░░░  Canon
-   │    016   Station No. 16                                                                  23:55   ░░░░░░░░░░  Canon
-   │    017   Station No. 17                                                                  23:55   ░░░░░░░░░░  Canon
-   │    018   Station No. 18                                                                  23:55   ░░░░░░░░░░  Canon
-   │    019   Station No. 19                                                                  23:55   ░░░░░░░░░░  Canon
-   │    025   Station No. 25                                                                  23:55   ░░░░░░░░░░  Mixed
-   │    026   Station No. 26                                                                  23:55   ░░░░░░░░░░  Canon
-   │    027   Station No. 27                                                                  23:55   ░░░░░░░░░░  Canon
-   │    028   Station No. 28                                                                  23:55   ░░░░░░░░░░  Canon
-   │    029   Station No. 29                                                                  23:55   ░░░░░░░░░░  Canon
-   │    030   Station No. 30                                                                  23:55   ░░░░░░░░░░  Canon
-   │    031   Station No. 31                                                                  23:55   ░░░░░░░░░░  Canon
-   │    032   Station No. 32                                                                  23:55   ░░░░░░░░░░  Canon
-   │    033   Station No. 33                                                                  23:55   ░░░░░░░░░░  Canon
-   │    034   Station No. 34                                                                  23:55   ░░░░░░░░░░  Canon
-   │    035   Station No. 35                                                                  23:55   ░░░░░░░░░░  Canon
-   │    036   Station No. 36                                                                  23:55   ░░░░░░░░░░  Canon
-   │  ▌ 037   Station No. 37                                                                  23:55   ░░░░░░░░░░  Canon
+ ▥ │    007   Station No. 7                                                                   23:55   █▉░░░░░░░
+ ↓ │    008   Station No. 8                                                                   23:55   ░░░░░░░░░  Canon
+ ◇ │    009   Station No. 9                                                                   23:55   ░░░░░░░░░  Canon
+ ◎ │    010   Station No. 10                                                                  23:55   ░░░░░░░░░  Canon
+ ≡ │    011   Station No. 11                                                                  23:55   ░░░░░░░░░  Canon
+   │    012   Station No. 12                                                                  23:55   ░░░░░░░░░  Canon
+   │    013   Station No. 13                                                                  23:55   ░░░░░░░░░  Canon
+   │    014   Station No. 14                                                                  23:55   ░░░░░░░░░  Canon
+   │    015   Station No. 15                                                                  23:55   ░░░░░░░░░  Canon
+   │    016   Station No. 16                                                                  23:55   ░░░░░░░░░  Canon
+   │    017   Station No. 17                                                                  23:55   ░░░░░░░░░  Canon
+   │    018   Station No. 18                                                                  23:55   ░░░░░░░░░  Canon
+   │    019   Station No. 19                                                                  23:55   ░░░░░░░░░  Canon
+   │    025   Station No. 25                                                                  23:55   ░░░░░░░░░  Mixed
+   │    026   Station No. 26                                                                  23:55   ░░░░░░░░░  Canon
+   │    027   Station No. 27                                                                  23:55   ░░░░░░░░░  Canon
+   │    028   Station No. 28                                                                  23:55   ░░░░░░░░░  Canon
+   │    029   Station No. 29                                                                  23:55   ░░░░░░░░░  Canon
+   │    030   Station No. 30                                                                  23:55   ░░░░░░░░░  Canon
+   │    031   Station No. 31                                                                  23:55   ░░░░░░░░░  Canon
+   │    032   Station No. 32                                                                  23:55   ░░░░░░░░░  Canon
+   │    033   Station No. 33                                                                  23:55   ░░░░░░░░░  Canon
+   │    034   Station No. 34                                                                  23:55   ░░░░░░░░░  Canon
+   │    035   Station No. 35                                                                  23:55   ░░░░░░░░░  Canon
+   │    036   Station No. 36                                                                  23:55   ░░░░░░░░░  Canon
+   │  ▌ 037   Station No. 37                                                                  23:55   ░░░░░░░░░  Canon
 ─────────────────────────────────────────────────────────────────────────────── ▌ Showing episodes without filler.  +1 ─
 plugins · Subbed · 1080p                                                            ↵ play   u watched   q back   ? keys
 === styles ===
@@ -62,163 +62,163 @@ r06 c03-03 fg=rule
 r06 c08-10 fg=text-dim
 r06 c14-26 fg=text-dim
 r06 c94-98 fg=text-dim
-r06 c102-104 fg=obi
-r06 c105-111 fg=rule
+r06 c102-103 fg=obi
+r06 c104-110 fg=rule
 r07 c01-01 fg=text-dim
 r07 c03-03 fg=rule
 r07 c08-10 fg=text-dim
 r07 c14-26 fg=text-dim
 r07 c94-98 fg=text-dim
-r07 c102-111 fg=rule
-r07 c114-118 fg=text-dim
+r07 c102-110 fg=rule
+r07 c113-117 fg=text-dim
 r08 c01-01 fg=text-dim
 r08 c03-03 fg=rule
 r08 c08-10 fg=text-dim
 r08 c14-26 fg=text-dim
 r08 c94-98 fg=text-dim
-r08 c102-111 fg=rule
-r08 c114-118 fg=text-dim
+r08 c102-110 fg=rule
+r08 c113-117 fg=text-dim
 r09 c01-01 fg=text-dim
 r09 c03-03 fg=rule
 r09 c08-10 fg=text-dim
 r09 c14-27 fg=text-dim
 r09 c94-98 fg=text-dim
-r09 c102-111 fg=rule
-r09 c114-118 fg=text-dim
+r09 c102-110 fg=rule
+r09 c113-117 fg=text-dim
 r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r10 c08-10 fg=text-dim
 r10 c14-27 fg=text-dim
 r10 c94-98 fg=text-dim
-r10 c102-111 fg=rule
-r10 c114-118 fg=text-dim
+r10 c102-110 fg=rule
+r10 c113-117 fg=text-dim
 r11 c03-03 fg=rule
 r11 c08-10 fg=text-dim
 r11 c14-27 fg=text-dim
 r11 c94-98 fg=text-dim
-r11 c102-111 fg=rule
-r11 c114-118 fg=text-dim
+r11 c102-110 fg=rule
+r11 c113-117 fg=text-dim
 r12 c03-03 fg=rule
 r12 c08-10 fg=text-dim
 r12 c14-27 fg=text-dim
 r12 c94-98 fg=text-dim
-r12 c102-111 fg=rule
-r12 c114-118 fg=text-dim
+r12 c102-110 fg=rule
+r12 c113-117 fg=text-dim
 r13 c03-03 fg=rule
 r13 c08-10 fg=text-dim
 r13 c14-27 fg=text-dim
 r13 c94-98 fg=text-dim
-r13 c102-111 fg=rule
-r13 c114-118 fg=text-dim
+r13 c102-110 fg=rule
+r13 c113-117 fg=text-dim
 r14 c03-03 fg=rule
 r14 c08-10 fg=text-dim
 r14 c14-27 fg=text-dim
 r14 c94-98 fg=text-dim
-r14 c102-111 fg=rule
-r14 c114-118 fg=text-dim
+r14 c102-110 fg=rule
+r14 c113-117 fg=text-dim
 r15 c03-03 fg=rule
 r15 c08-10 fg=text-dim
 r15 c14-27 fg=text-dim
 r15 c94-98 fg=text-dim
-r15 c102-111 fg=rule
-r15 c114-118 fg=text-dim
+r15 c102-110 fg=rule
+r15 c113-117 fg=text-dim
 r16 c03-03 fg=rule
 r16 c08-10 fg=text-dim
 r16 c14-27 fg=text-dim
 r16 c94-98 fg=text-dim
-r16 c102-111 fg=rule
-r16 c114-118 fg=text-dim
+r16 c102-110 fg=rule
+r16 c113-117 fg=text-dim
 r17 c03-03 fg=rule
 r17 c08-10 fg=text-dim
 r17 c14-27 fg=text-dim
 r17 c94-98 fg=text-dim
-r17 c102-111 fg=rule
-r17 c114-118 fg=text-dim
+r17 c102-110 fg=rule
+r17 c113-117 fg=text-dim
 r18 c03-03 fg=rule
 r18 c08-10 fg=text-dim
 r18 c14-27 fg=text-dim
 r18 c94-98 fg=text-dim
-r18 c102-111 fg=rule
-r18 c114-118 fg=text-dim
+r18 c102-110 fg=rule
+r18 c113-117 fg=text-dim
 r19 c03-03 fg=rule
 r19 c08-10 fg=text-dim
 r19 c14-27 fg=text-dim
 r19 c94-98 fg=text-dim
-r19 c102-111 fg=rule
-r19 c114-118 fg=text-dim
+r19 c102-110 fg=rule
+r19 c113-117 fg=text-dim
 r20 c03-03 fg=rule
 r20 c08-10 fg=text-dim
 r20 c14-27 fg=text-dim
 r20 c94-98 fg=text-dim
-r20 c102-111 fg=rule
-r20 c114-118 fg=text-dim
+r20 c102-110 fg=rule
+r20 c113-117 fg=text-dim
 r21 c03-03 fg=rule
 r21 c08-10 fg=text-dim
 r21 c14-27 fg=text-dim
 r21 c94-98 fg=text-dim
-r21 c102-111 fg=rule
-r21 c114-118 fg=text-dim
+r21 c102-110 fg=rule
+r21 c113-117 fg=text-dim
 r22 c03-03 fg=rule
 r22 c08-10 fg=text-dim
 r22 c14-27 fg=text-dim
 r22 c94-98 fg=text-dim
-r22 c102-111 fg=rule
-r22 c114-118 fg=text-dim
+r22 c102-110 fg=rule
+r22 c113-117 fg=text-dim
 r23 c03-03 fg=rule
 r23 c08-10 fg=text-dim
 r23 c14-27 fg=text-dim
 r23 c94-98 fg=text-dim
-r23 c102-111 fg=rule
-r23 c114-118 fg=text-dim
+r23 c102-110 fg=rule
+r23 c113-117 fg=text-dim
 r24 c03-03 fg=rule
 r24 c08-10 fg=text-dim
 r24 c14-27 fg=text-dim
 r24 c94-98 fg=text-dim
-r24 c102-111 fg=rule
-r24 c114-118 fg=text-dim
+r24 c102-110 fg=rule
+r24 c113-117 fg=text-dim
 r25 c03-03 fg=rule
 r25 c08-10 fg=text-dim
 r25 c14-27 fg=text-dim
 r25 c94-98 fg=text-dim
-r25 c102-111 fg=rule
-r25 c114-118 fg=text-dim
+r25 c102-110 fg=rule
+r25 c113-117 fg=text-dim
 r26 c03-03 fg=rule
 r26 c08-10 fg=text-dim
 r26 c14-27 fg=text-dim
 r26 c94-98 fg=text-dim
-r26 c102-111 fg=rule
-r26 c114-118 fg=text-dim
+r26 c102-110 fg=rule
+r26 c113-117 fg=text-dim
 r27 c03-03 fg=rule
 r27 c08-10 fg=text-dim
 r27 c14-27 fg=text-dim
 r27 c94-98 fg=text-dim
-r27 c102-111 fg=rule
-r27 c114-118 fg=text-dim
+r27 c102-110 fg=rule
+r27 c113-117 fg=text-dim
 r28 c03-03 fg=rule
 r28 c08-10 fg=text-dim
 r28 c14-27 fg=text-dim
 r28 c94-98 fg=text-dim
-r28 c102-111 fg=rule
-r28 c114-118 fg=text-dim
+r28 c102-110 fg=rule
+r28 c113-117 fg=text-dim
 r29 c03-03 fg=rule
 r29 c08-10 fg=text-dim
 r29 c14-27 fg=text-dim
 r29 c94-98 fg=text-dim
-r29 c102-111 fg=rule
-r29 c114-118 fg=text-dim
+r29 c102-110 fg=rule
+r29 c113-117 fg=text-dim
 r30 c03-03 fg=rule
 r30 c08-10 fg=text-dim
 r30 c14-27 fg=text-dim
 r30 c94-98 fg=text-dim
-r30 c102-111 fg=rule
-r30 c114-118 fg=text-dim
+r30 c102-110 fg=rule
+r30 c113-117 fg=text-dim
 r31 c03-03 fg=rule
 r31 c06-06 fg=obi
 r31 c08-10 fg=text mod=BOLD
 r31 c14-27 fg=text mod=BOLD
 r31 c94-98 fg=text-dim
-r31 c102-111 fg=rule
-r31 c114-118 fg=text-dim
+r31 c102-110 fg=rule
+r31 c113-117 fg=text-dim
 r32 c00-78 fg=rule
 r32 c79-79 fg=text
 r32 c80-80 fg=state

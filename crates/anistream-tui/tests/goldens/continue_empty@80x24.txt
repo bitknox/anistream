@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ↓ │    ▀▀▀▀▀▀▀▀▄
  ◇ │    ▀▀▀▀▀▀▀▀▀▄
  ◎ │    ▀ ▀▀   ▀▀
- ⚙ │
+ ≡ │
    │  Nothing watched yet
    │
    │  Press 3 for this season, or / to search.

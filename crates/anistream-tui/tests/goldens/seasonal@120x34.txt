@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │    Komorebi Ryokan                 83   ░░░░░░░░░░░░░░░░░
   ◇  Sources                │    Tetsu no Hanazono               82   ░░░░░░░░░░░░░░░░░
   ◎  Accounts               │    Ame Furu Machi no Robotto       81   ░░░░░░░░░░░░░░░░░
-  ⚙  Settings               │    Kumo no Ue no Gakkou            80   ░░░░░░░░░░░░░░░░░
+  ≡  Settings               │    Kumo no Ue no Gakkou            80   ░░░░░░░░░░░░░░░░░
                             │    Shiosai Radio Kyoku             79   ░░░░░░░░░░░░░░░░░
                             │    Fuyu no Shika to Tabi           78   ░░░░░░░░░░░░░░░░░
                             │    Natsukusa Tanteisha             77   ░░░░░░░░░░░░░░░░░

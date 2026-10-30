@@ -8,7 +8,7 @@ anistream           torrent ○  plugins ●  ·  anilist ⇅ 2  kitsu ○  mal 
  ↓ │
  ◇ │  ────────────────────────────────────────────────────────────────────────
 ▌◎ │
- ⚙ │  Tracker         State             Queued    Token
+ ≡ │  Tracker         State             Queued    Token
    │  ────────────────────────────────────────────────────────────────────────
    │    AniList       ● Connected       2         OS keychain
    │    Kitsu         ○ Not connected   0         0600 file

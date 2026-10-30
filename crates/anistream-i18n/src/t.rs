@@ -2065,6 +2065,11 @@ pub fn up_next_airs_at(time: &str) -> String {
     text("up-next-airs-at", &[("time", Arg::Text(time))])
 }
 
+/// Header title on a terminal too narrow for the rail: the product name, then the section on screen.
+pub fn chrome_header_section(section: &str) -> String {
+    text("chrome-header-section", &[("section", Arg::Text(section))])
+}
+
 /// Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 pub fn chrome_meta_chip(mark: &str) -> String {
     text("chrome-meta-chip", &[("mark", Arg::Text(mark))])

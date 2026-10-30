@@ -65,9 +65,15 @@ pub(super) fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
         ));
     }
 
-    Header::new(&app.palette, "anistream") // i18n-skip: the product name
-        .chips(&chips)
-        .render(geometry.header, buf);
+    // Too narrow for the rail, nothing else says which section this is, so the title does.
+    let named = geometry.header.width < crate::layout::VERY_NARROW_WIDTH
+        && matches!(app.nav.current(), crate::nav::StageView::Section(_));
+    let title = if !named {
+        "anistream".to_owned() // i18n-skip: the product name
+    } else {
+        t::chrome_header_section(app.nav.section().label())
+    };
+    Header::new(&app.palette, &title).chips(&chips).render(geometry.header, buf);
 }
 
 /// The running jobs, newest first, each with how long it has taken, written into the status

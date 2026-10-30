@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ↓ │    Mori no Kajiya                                                     85
  ◇ │    Ginga Yuubinkyoku                                                  84
  ◎ │    Komorebi Ryokan                                                    83
- ⚙ │    Tetsu no Hanazono                                                  82
+ ≡ │    Tetsu no Hanazono                                                  82
    │    Ame Furu Machi no Robotto                                          81
    │    Kumo no Ue no Gakkou                                               80
    │    Shiosai Radio Kyoku                                                79

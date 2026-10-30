@@ -163,6 +163,11 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     // enough that anchoring the window to the selection is sufficient.
     let first = app.cursors.episodes.selected.saturating_sub(rows.saturating_sub(1));
 
+    // The meter gives way to the widest tag after it, so `Filler` or `Anime canon` is never cut.
+    let tag_room = app.episodes.iter().filter_map(episode_tag).map(|tag| tag.cells()).max();
+    let meter_width =
+        (table.width.saturating_sub(cols.state + 2 + tag_room.unwrap_or(4) as u16)).min(10)
+            as usize;
     for (i, episode) in app.episodes.iter().enumerate().skip(first).take(rows) {
         let y = body_top + (i - first) as u16;
         let selected = i == app.cursors.episodes.selected;
@@ -184,10 +189,19 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
         );
 
         let title_room = (cols.runtime - cols.title).saturating_sub(2) as usize;
+        // An episode AniList has no title for is named by its number, not a lone dash.
+        let untitled;
+        let title = match episode.title.as_deref() {
+            Some(title) => title,
+            None => {
+                untitled = t::playback_episode_number(&episode.number);
+                &untitled
+            }
+        };
         buf.set_string(
             table.left() + cols.title,
             y,
-            truncate(episode.title.as_deref().unwrap_or("—"), title_room),
+            truncate(title, title_room),
             if selected {
                 app.palette.style(Role::Text).add_modifier(Modifier::BOLD)
             } else {
@@ -195,15 +209,13 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
             },
         );
 
-        // An unknown runtime drops to hairline weight: 26 rows of `--:--` at text weight
-        // form a column of dash noise that competes with the titles.
-        let runtime_role =
-            if episode.duration_secs.is_some() { Role::TextDim } else { Role::Rule };
+        // Known or not, the runtime is read at the dim weight: the hairline role is for
+        // structure and is below the contrast floor for text.
         buf.set_string(
             table.left() + cols.runtime,
             y,
             episode.runtime(),
-            app.palette.style(runtime_role),
+            app.palette.style(Role::TextDim),
         );
 
         // The next episode, from AniList's schedule, before it is out: when it airs, in place
@@ -220,7 +232,6 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
             continue;
         }
 
-        let meter_width = (table.width.saturating_sub(cols.state + 6)).min(10) as usize;
         let meter_role = if episode.completed { Role::State } else { Role::Obi };
         set_meter(
             buf,
@@ -234,15 +245,27 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
 
         // `done` and the filler mark share the column after the meter: an episode is rarely both
         // finished and worth flagging, and two columns for one word each would be noise.
+        // Cut at the table's edge, so a long tag never runs into the still beside it.
         let tail_x = table.left() + cols.state + meter_width as u16 + 2;
-        if episode.completed {
-            buf.set_string(tail_x, y, t::episodes_done(), app.palette.style(Role::TextDim));
-        } else if let Some(kind) = episode.kind {
-            // Only skippable filler earns the alert role. `mixed` is labelled but not coloured,
-            // because it is information rather than a suggestion — skipping it loses story.
-            let role = if episode.skippable { Role::Alert } else { Role::TextDim };
-            buf.set_string(tail_x, y, episode_kind_label(kind), app.palette.style(role));
+        let tail_room = table.right().saturating_sub(tail_x) as usize;
+        if let Some(tail) = episode_tag(episode) {
+            buf.set_string(
+                tail_x,
+                y,
+                truncate(&tail, tail_room),
+                app.palette.style(Role::TextDim),
+            );
         }
+    }
+}
+
+/// What follows an episode's meter: `done`, or else its kind. Filler is information, not a
+/// fault, so it reads at the dim weight like `done`.
+fn episode_tag(episode: &anistream_model::episodes::EpisodeRow) -> Option<String> {
+    if episode.completed {
+        Some(t::episodes_done())
+    } else {
+        episode.kind.map(episode_kind_label)
     }
 }
 

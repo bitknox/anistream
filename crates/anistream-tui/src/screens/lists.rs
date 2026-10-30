@@ -1100,10 +1100,9 @@ mod tests {
         let second =
             super::day_label(&app.clock, super::air_date(&app.clock, 26 * 3600).unwrap());
         assert_ne!(first, second);
-        // Headings are set in capitals at draw time, so compare without case.
-        let shown = text.to_lowercase();
-        assert!(shown.contains(&first.to_lowercase()), "missing the {first} ruling:\n{text}");
-        assert!(shown.contains(&second.to_lowercase()), "missing the {second} ruling:\n{text}");
+        // Headings are drawn as the day's label is worded.
+        assert!(text.contains(&first), "missing the {first} ruling:\n{text}");
+        assert!(text.contains(&second), "missing the {second} ruling:\n{text}");
     }
 
     /// The calendar drawn on a stopped clock: its rulings and times are fixed text, the same

@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ↓ │    Rin's sources               1         Member    ● Up to date
 ▌◇ │  ▌ Kumo club                   0         Member    ▲ Offline
  ◎ │    Old lab                     0         Member    Access removed
- ⚙ │
+ ≡ │
    │    + Join a store
    │
    │

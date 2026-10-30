@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ↓ │    Yamabiko                    1.4.0         ● Installed
 ▌◇ │  ▌ Kawasemi                    2.1.0         Update from 2.0.3
  ◎ │    Hotaru                      0.3.0         Not installed
- ⚙ │
+ ≡ │
    │    Link another device
    │    Invite someone
    │    Members

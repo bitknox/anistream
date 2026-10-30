@@ -97,6 +97,9 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
         width if width < 4 => 0,
         width => width,
     };
+    let episode_column =
+        app.downloads.iter().map(|r| row_episode(r).cells()).max().unwrap_or(0);
+    let widest_title = app.downloads.iter().map(|r| r.title.cells()).max().unwrap_or(0);
     for (i, row) in app.downloads.iter().enumerate().skip(first) {
         if y >= last_row {
             break;
@@ -107,34 +110,27 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
         }
 
         // The title gives way to the episode number, never the other way round: five rows of
-        // one show cut at the same place were five identical rows.
-        // Two cells short of the state column, so the number never runs into the state.
+        // one show cut at the same place were five identical rows. The numbers line up in a
+        // column of their own, two cells short of the state column so they never run into it.
         let room = state_x.saturating_sub(area.left() + 4) as usize;
-        // Queued by keep next rather than asked for, said beside the episode it is.
-        let episode = format!(
-            "  {}",
-            if row.ahead {
-                t::downloads_row_episode_ahead(&row.episode)
-            } else {
-                t::downloads_row_episode(&row.episode)
-            }
-        );
-        let label = match room.checked_sub(episode.cells()) {
-            Some(title_room) if title_room >= 4 => {
-                format!("{}{}", truncate(&row.title, title_room), episode)
-            }
-            _ => truncate(&format!("{}{}", row.title, episode), room),
+        let episode = row_episode(row);
+        let style = if selected {
+            app.palette.style(Role::Text).add_modifier(Modifier::BOLD)
+        } else {
+            app.palette.style(Role::Text)
         };
-        buf.set_string(
-            area.left() + 2,
-            y,
-            label,
-            if selected {
-                app.palette.style(Role::Text).add_modifier(Modifier::BOLD)
-            } else {
-                app.palette.style(Role::Text)
-            },
-        );
+        match room.checked_sub(episode_column + 2) {
+            Some(title_room) if title_room >= 4 => {
+                // As wide as the widest title, so a short list keeps its numbers near.
+                let title_room = title_room.min(widest_title);
+                buf.set_string(area.left() + 2, y, truncate(&row.title, title_room), style);
+                buf.set_string(area.left() + 4 + title_room as u16, y, episode, style);
+            }
+            _ => {
+                let label = truncate(&format!("{}  {}", row.title, episode), room);
+                buf.set_string(area.left() + 2, y, label, style);
+            }
+        }
 
         // A failure is the one state that gets the alert role: everything else is progress.
         let role = match row.state {
@@ -190,6 +186,15 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
 ///
 /// The byte counts matter as much as the fraction: "62%" of an unknown size says less than
 /// "1.2 GB / 1.9 GB", and a stalled download is obvious from bytes that stop moving.
+/// The episode a row is, said as queued by keep next when it was rather than asked for.
+fn row_episode(row: &anistream_model::downloads::DownloadRow) -> String {
+    if row.ahead {
+        t::downloads_row_episode_ahead(&row.episode)
+    } else {
+        t::downloads_row_episode(&row.episode)
+    }
+}
+
 fn download_note(app: &App, row: &anistream_model::downloads::DownloadRow) -> String {
     if row.total > 0 {
         return format!(
@@ -380,7 +385,10 @@ mod tests {
             ahead,
         ]));
         let lines = lines_of(&mut app, 120, 30);
-        assert!(lines.iter().any(|l| l.contains("Show  E6 · ahead")), "{lines:#?}");
+        assert!(
+            lines.iter().any(|l| l.contains("Show ") && l.contains("  E6 · ahead")),
+            "{lines:#?}"
+        );
         assert!(lines.iter().any(|l| l.contains("E5") && !l.contains("ahead")), "{lines:#?}");
         assert!(!lines.iter().any(|l| l.contains("removed a day")), "ep 5 is selected");
 

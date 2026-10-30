@@ -8,7 +8,7 @@ anistream                                     torrent ○  plugins ●  ·  anil
  ↓ │  Your watch history works without one. The library mirrors the list on a…
  ◇ │  Press 8 to open Accounts and sign in.
  ◎ │
- ⚙ │
+ ≡ │
    │
    │
    │

@@ -1,6 +1,11 @@
 # The terminal's frame, its overlays and the notices it raises itself. Platform file: only the
 # terminal shows these.
 
+# Header title on a terminal too narrow for the rail: the product name, then the section on screen.
+# @arg section: text
+# @max 30
+chrome-header-section = anistream · { $section }
+
 # Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside
 # the { -source } chips, which are short.
 # @arg mark: text

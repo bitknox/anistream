@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │    Yamabiko                    1.4.0         ● Installed
 ▌ ◇  Sources                │  ▌ Kawasemi                    2.1.0         Update from 2.0.3
   ◎  Accounts               │    Hotaru                      0.3.0         Not installed
-  ⚙  Settings               │
+  ≡  Settings               │
                             │    Link another device
                             │    Invite someone
                             │    Members

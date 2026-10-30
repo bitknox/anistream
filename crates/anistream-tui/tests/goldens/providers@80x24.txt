@@ -8,7 +8,7 @@ anistream                       torrent ○  plugins ●  Metadata ▲  ·  anil
  ↓ │  ▌ tsubame             Plugin      failing
 ▌◇ │    kawasemi            Plugin      Ready           1204 ms
  ◎ │
- ⚙ │  ────────────────────────────────────────────────────────────────────────
+ ≡ │  ────────────────────────────────────────────────────────────────────────
    │    tsubame: search timed out after 8 s
    │
    │  Plugin stores

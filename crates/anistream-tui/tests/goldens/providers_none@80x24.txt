@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ·  ·  anilist
  ↓ │  set.
 ▌◇ │
  ◎ │  Plugin stores
- ⚙ │    Plugins shared by people you know. Join with an invite link.   ↵ Open
+ ≡ │    Plugins shared by people you know. Join with an invite link.   ↵ Open
    │
    │
    │

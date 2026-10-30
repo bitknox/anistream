@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │    Tsuki to Kujira no Uta          89   ░░░░░░░░░░░░░░░
   ◇  Sources                │    Umibe no Kissaten               86   ░░░░░░░░░░░░░░░
   ◎  Accounts               │    Mori no Kajiya                  85   ░░░░░░░░░░░░░░░
-  ⚙  Settings               │    Tetsu no Hanazono               82   ░░░░░░░░░░░░░░░
+  ≡  Settings               │    Tetsu no Hanazono               82   ░░░░░░░░░░░░░░░
                             │    Ame Furu Machi no Robotto       81   ░░░░░░░░░░░░░░░
                             │    Kumo no Ue no Gakkou            80   ░░░░░░░░░░░░░░░
                             │    Fuyu no Shika to Tabi           78   ░░░░░░░░░░░░░░░

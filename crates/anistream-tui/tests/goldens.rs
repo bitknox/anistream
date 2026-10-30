@@ -1551,7 +1551,7 @@ fn sources(s: &mut Screen) {
         SourceCandidate {
             dual_audio: true,
             ..release(
-                "[Tsuki] Hoshikuzu no Tabibito 04 [Dual]",
+                "[Lanternlight] Hoshikuzu no Tabibito 04 [Dual]",
                 "torrent",
                 Some(14),
                 Some("2.1 GiB"),

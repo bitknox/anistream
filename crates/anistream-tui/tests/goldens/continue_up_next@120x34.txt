@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │    Hanabi Shoutengai               88   ░░░░░░░░░░░░░░░░░
   ◇  Sources                │    Kitsune Ekiben                  87   ░░░░░░░░░░░░░░░░░
   ◎  Accounts               │    Umibe no Kissaten               86   ░░░░░░░░░░░░░░░░░
-  ⚙  Settings               │    Mori no Kajiya                  85   ░░░░░░░░░░░░░░░░░
+  ≡  Settings               │    Mori no Kajiya                  85   ░░░░░░░░░░░░░░░░░
                             │    Ginga Yuubinkyoku               84   ░░░░░░░░░░░░░░░░░
                             │    Komorebi Ryokan                 83   ░░░░░░░░░░░░░░░░░
                             │    Tetsu no Hanazono               82   ░░░░░░░░░░░░░░░░░

@@ -1340,6 +1340,9 @@ continue-preview = Preview
 # Under a suggestion that airs later today when no episode number is known: the time it airs.
 up-next-airs-at = Airs at { $time }
 
+# Header title on a terminal too narrow for the rail: the product name, then the section on screen.
+chrome-header-section = anistream · { $section }
+
 # Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 chrome-meta-chip = Metadata { $mark }
 
