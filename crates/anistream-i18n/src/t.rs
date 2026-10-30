@@ -1120,6 +1120,11 @@ pub fn start_failed_config(path: &str, problem: &str) -> String {
     text("start-failed-config", &[("path", Arg::Text(path)), ("problem", Arg::Text(problem))])
 }
 
+/// Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.
+pub fn config_reset_failed(path: &str, reason: &str) -> String {
+    text("config-reset-failed", &[("path", Arg::Text(path)), ("reason", Arg::Text(reason))])
+}
+
 /// Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
 pub fn start_failed_database(path: &str, reason: &str) -> String {
     text("start-failed-database", &[("path", Arg::Text(path)), ("reason", Arg::Text(reason))])
@@ -10268,6 +10273,26 @@ pub fn settings_trailers_always() -> String {
 /// Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
 pub fn settings_trailers_wifi_only() -> String {
     text("settings-trailers-wifi-only", &[])
+}
+
+/// Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.
+pub fn settings_reset() -> String {
+    text("settings-reset", &[])
+}
+
+/// Title of the confirmation for resetting the settings.
+pub fn settings_reset_title() -> String {
+    text("settings-reset-title", &[])
+}
+
+/// Line under it. The old settings file is moved aside, not deleted.
+pub fn settings_reset_detail() -> String {
+    text("settings-reset-detail", &[])
+}
+
+/// Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
+pub fn settings_reset_done(file: &str) -> String {
+    text("settings-reset-done", &[("file", Arg::Text(file))])
 }
 
 /// Title of the screen or section that lists sources.

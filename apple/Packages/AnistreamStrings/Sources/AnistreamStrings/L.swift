@@ -950,6 +950,11 @@ public enum L {
         Self.format("start-failed-config", fallback: "%1$@ has a setting anistream can't use: %2$@. Fix or remove it, then try again.", path, problem)
     }
 
+    /// Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.
+    public static func configResetFailed(path: String, reason: String) -> String {
+        Self.format("config-reset-failed", fallback: "anistream couldn't move %1$@ aside to reset the settings. %2$@", path, reason)
+    }
+
     /// Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
     public static func startFailedDatabase(path: String, reason: String) -> String {
         Self.format("start-failed-database", fallback: "anistream couldn't open its database at %1$@. If another anistream app is open on this folder, quit it and try again. %2$@", path, reason)
@@ -5687,6 +5692,20 @@ public enum L {
 
     /// Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
     public static var settingsTrailersWifiOnly: String { string("settings-trailers-wifi-only", fallback: "Wi-Fi only") }
+
+    /// Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.
+    public static var settingsReset: String { string("settings-reset", fallback: "Reset settings") }
+
+    /// Title of the confirmation for resetting the settings.
+    public static var settingsResetTitle: String { string("settings-reset-title", fallback: "Reset settings?") }
+
+    /// Line under it. The old settings file is moved aside, not deleted.
+    public static var settingsResetDetail: String { string("settings-reset-detail", fallback: "Every setting goes back to its default, VPN and proxy included. Your watch history stays, and the old settings file is kept.") }
+
+    /// Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
+    public static func settingsResetDone(file: String) -> String {
+        Self.format("settings-reset-done", fallback: "Settings are back to their defaults. The old file is kept as %1$@.", file)
+    }
 
     /// Title of the screen or section that lists sources.
     public static var sourcesTitle: String { string("sources-title", fallback: "Sources") }

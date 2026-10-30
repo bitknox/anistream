@@ -971,6 +971,10 @@
     <value>[{path} ĥàš à šéţţîñĝ àñîšţŕéàɱ çàñ'ţ üšé: {problem}. Ƒîẋ öŕ ŕéɱöṽé îţ, ţĥéñ ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.</comment>
   </data>
+  <data name="ConfigResetFailed" xml:space="preserve">
+    <value>[àñîšţŕéàɱ çöüļðñ'ţ ɱöṽé {path} àšîðé ţö ŕéšéţ ţĥé šéţţîñĝš. {reason}~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.</comment>
+  </data>
   <data name="StartFailedDatabase" xml:space="preserve">
     <value>[àñîšţŕéàɱ çöüļðñ'ţ öþéñ îţš ðàţàƀàšé àţ {path}. Îƒ àñöţĥéŕ àñîšţŕéàɱ àþþ îš öþéñ öñ ţĥîš ƒöļðéŕ, ƣüîţ îţ àñð ţŕý àĝàîñ. {reason}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
     <comment>Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.</comment>
@@ -5222,6 +5226,22 @@
   <data name="SettingsTrailersWifiOnly" xml:space="preserve">
     <value>[Ŵî-Ƒî öñļý~~~]</value>
     <comment>Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.</comment>
+  </data>
+  <data name="SettingsReset" xml:space="preserve">
+    <value>[Ŕéšéţ šéţţîñĝš~~~~~]</value>
+    <comment>Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.</comment>
+  </data>
+  <data name="SettingsResetTitle" xml:space="preserve">
+    <value>[Ŕéšéţ šéţţîñĝš?~~~~~]</value>
+    <comment>Title of the confirmation for resetting the settings.</comment>
+  </data>
+  <data name="SettingsResetDetail" xml:space="preserve">
+    <value>[Éṽéŕý šéţţîñĝ ĝöéš ƀàçķ ţö îţš ðéƒàüļţ, ṼÞÑ àñð þŕöẋý îñçļüðéð. Ýöüŕ ŵàţçĥ ĥîšţöŕý šţàýš, àñð ţĥé öļð šéţţîñĝš ƒîļé îš ķéþţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line under it. The old settings file is moved aside, not deleted.</comment>
+  </data>
+  <data name="SettingsResetDone" xml:space="preserve">
+    <value>[Šéţţîñĝš àŕé ƀàçķ ţö ţĥéîŕ ðéƒàüļţš. Ţĥé öļð ƒîļé îš ķéþţ àš {file}.~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.</comment>
   </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>[Šöüŕçéš~~~]</value>

@@ -454,3 +454,21 @@ settings-trailers-always = Always
 # Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
 # @max 16
 settings-trailers-wifi-only = Wi-Fi only
+
+## Resetting the settings when anistream could not start on them
+
+# Button on the screen shown on iPhone, iPad and Android when anistream could not start because
+# its settings file has something it can't use. It asks first.
+# @max 28
+settings-reset = Reset settings
+
+# Title of the confirmation for resetting the settings.
+settings-reset-title = Reset settings?
+
+# Line under it. The old settings file is moved aside, not deleted.
+settings-reset-detail = Every setting goes back to its default, VPN and proxy included. Your watch history stays, and the old settings file is kept.
+
+# Notice once anistream has started again on the default settings. The file is the name the old
+# settings file is kept under, beside the new one, such as config.damaged-2026-10-30.
+# @arg file: text
+settings-reset-done = Settings are back to their defaults. The old file is kept as { $file }.

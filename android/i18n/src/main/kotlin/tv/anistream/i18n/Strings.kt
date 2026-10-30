@@ -901,6 +901,10 @@ object Strings {
     fun startFailedConfig(context: Context, path: String, problem: String): String =
         context.getString(R.string.start_failed_config, path, problem)
 
+    /** Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system. */
+    fun configResetFailed(context: Context, path: String, reason: String): String =
+        context.getString(R.string.config_reset_failed, path, reason)
+
     /** Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system. */
     fun startFailedDatabase(context: Context, path: String, reason: String): String =
         context.getString(R.string.start_failed_database, path, reason)
@@ -5776,6 +5780,22 @@ object Strings {
     /** Value of the Play trailers setting: trailers play by themselves only on Wi-Fi. */
     fun settingsTrailersWifiOnly(context: Context): String =
         context.getString(R.string.settings_trailers_wifi_only)
+
+    /** Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first. */
+    fun settingsReset(context: Context): String =
+        context.getString(R.string.settings_reset)
+
+    /** Title of the confirmation for resetting the settings. */
+    fun settingsResetTitle(context: Context): String =
+        context.getString(R.string.settings_reset_title)
+
+    /** Line under it. The old settings file is moved aside, not deleted. */
+    fun settingsResetDetail(context: Context): String =
+        context.getString(R.string.settings_reset_detail)
+
+    /** Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30. */
+    fun settingsResetDone(context: Context, file: String): String =
+        context.getString(R.string.settings_reset_done, file)
 
     /** Title of the screen or section that lists sources. */
     fun sourcesTitle(context: Context): String =

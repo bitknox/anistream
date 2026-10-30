@@ -45,6 +45,24 @@ impl Paths {
         self.config_file.parent().unwrap_or(&self.data_dir).join("plugins")
     }
 
+    /// Move `config.toml` aside so the next start reads the defaults: to `config.damaged-<date>`
+    /// beside it, with a count after it when that is taken, and kept there. For an app whose
+    /// start failed on a file nobody on the device can edit. Answers where the file went, or
+    /// `None` when there was none.
+    pub fn set_config_aside(&self) -> std::io::Result<Option<PathBuf>> {
+        if !self.config_file.exists() {
+            return Ok(None);
+        }
+        let stem = format!("config.damaged-{}", jiff::Timestamp::now().strftime("%Y-%m-%d"));
+        let aside = (1..)
+            .map(|n| if n == 1 { stem.clone() } else { format!("{stem}-{n}") })
+            .map(|aside| self.config_file.with_file_name(aside))
+            .find(|aside| !aside.exists())
+            .expect("a free name");
+        std::fs::rename(&self.config_file, &aside)?;
+        Ok(Some(aside))
+    }
+
     /// Where the mpv IPC socket lives.
     ///
     /// Under the cache dir rather than the data dir: a stale socket left by a crash is
@@ -1309,6 +1327,39 @@ impl Default for NetworkConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn paths_in(dir: &std::path::Path) -> Paths {
+        Paths {
+            config_file: dir.join("config.toml"),
+            data_dir: dir.join("data"),
+            cache_dir: dir.join("cache"),
+        }
+    }
+
+    #[test]
+    fn a_config_set_aside_is_kept_and_the_defaults_read_in_its_place() {
+        let dir = std::env::temp_dir().join("anistream-config-set-aside");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let paths = paths_in(&dir);
+        assert_eq!(paths.set_config_aside().unwrap(), None, "no file, nothing moved");
+
+        std::fs::write(&paths.config_file, "[playback\nupscaling = ").unwrap();
+        assert!(Config::read(&paths).is_err());
+        let aside = paths.set_config_aside().unwrap().expect("moved");
+        let name = aside.file_name().unwrap().to_string_lossy().into_owned();
+        assert!(name.starts_with("config.damaged-20"), "{name}");
+        assert_eq!(std::fs::read_to_string(&aside).unwrap(), "[playback\nupscaling = ");
+        assert!(!paths.config_file.exists());
+        assert_eq!(Config::read(&paths).unwrap(), Config::default());
+
+        // A second the same day takes the next name, and the first stays.
+        std::fs::write(&paths.config_file, "junk = [").unwrap();
+        let again = paths.set_config_aside().unwrap().expect("moved");
+        assert_eq!(again.file_name().unwrap().to_string_lossy(), format!("{name}-2"));
+        assert!(aside.exists());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn the_old_anime4k_settings_still_read_as_sharp() {

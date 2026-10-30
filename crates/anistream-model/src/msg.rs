@@ -415,6 +415,8 @@ pub enum Msg {
     StartFailedFolder { path: String, reason: String },
     /// Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
     StartFailedConfig { path: String, problem: String },
+    /// Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.
+    ConfigResetFailed { path: String, reason: String },
     /// Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
     StartFailedDatabase { path: String, reason: String },
     /// Message when anistream could not start its network connection from the network settings.
@@ -637,6 +639,7 @@ impl Msg {
             Self::NoticeDatabaseSetAside { .. } => "notice-database-set-aside",
             Self::StartFailedFolder { .. } => "start-failed-folder",
             Self::StartFailedConfig { .. } => "start-failed-config",
+            Self::ConfigResetFailed { .. } => "config-reset-failed",
             Self::StartFailedDatabase { .. } => "start-failed-database",
             Self::StartFailedNetwork { .. } => "start-failed-network",
             Self::StartFailed { .. } => "start-failed",
@@ -852,6 +855,7 @@ impl Msg {
             Self::NoticeDatabaseSetAside { path } => vec![("path", Value::Text(path.clone()))],
             Self::StartFailedFolder { path, reason } => vec![("path", Value::Text(path.clone())), ("reason", Value::Text(reason.clone()))],
             Self::StartFailedConfig { path, problem } => vec![("path", Value::Text(path.clone())), ("problem", Value::Text(problem.clone()))],
+            Self::ConfigResetFailed { path, reason } => vec![("path", Value::Text(path.clone())), ("reason", Value::Text(reason.clone()))],
             Self::StartFailedDatabase { path, reason } => vec![("path", Value::Text(path.clone())), ("reason", Value::Text(reason.clone()))],
             Self::StartFailedNetwork { reason } => vec![("reason", Value::Text(reason.clone()))],
             Self::StartFailed { reason } => vec![("reason", Value::Text(reason.clone()))],

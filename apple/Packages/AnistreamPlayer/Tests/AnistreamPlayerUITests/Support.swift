@@ -20,6 +20,8 @@ final class ScriptedMpv: PlayerBackend {
         var answers: [String: AnistreamPlayer.MpvValue] = [:]
         /// Commands mpv says no to, by name: `sub-add` for a file it can't read.
         var refuses: Set<String> = []
+        /// The playlist entry of the newest load taken: each load makes the next one.
+        var entry: Int64 = 0
     }
 
     let state = Mutex(State())
@@ -37,6 +39,12 @@ final class ScriptedMpv: PlayerBackend {
     /// mpv says `event`.
     func emit(_ event: MpvEvent) {
         _ = state.withLock { $0.continuation }?.yield(event)
+    }
+
+    /// mpv starts the newest file it was given, as it does with loads back to back: the ones
+    /// before it never start.
+    func startFile() {
+        emit(.startFile(entry: state.withLock { $0.entry }))
     }
 
     func answer(_ property: String, _ value: AnistreamPlayer.MpvValue) {
@@ -63,6 +71,17 @@ final class ScriptedMpv: PlayerBackend {
             throw MpvError.mpv(code: -13, call: words.joined(separator: " "))
         }
         return answers.map { .property(name: $0.0, json: $0.1.json) }
+    }
+
+    func load(_ url: String, options: [String: String]) async throws -> Int64? {
+        let entry = state.withLock { state -> Int64? in
+            guard !state.ended else { return nil }
+            state.calls.append(.load(url: url, options: options))
+            state.entry += 1
+            return state.entry
+        }
+        guard let entry else { throw MpvError.terminated }
+        return entry
     }
 
     func display(_ display: DisplayInfo) async {
@@ -247,7 +266,7 @@ final class Rig {
         ops(playback, [.open(fullscreen: false, speed: nil, volume: nil), .load(url: url, options: options)])
         await handedOver()
         try #require(mpv.calls.contains { if case .load = $0 { true } else { false } }, "the file loaded")
-        mpv.emit(.startFile)
+        mpv.startFile()
         mpv.emit(.fileLoaded)
         try await until("the load reported") { self.reports.contains { $0 == (playback, .fileLoaded) } }
     }

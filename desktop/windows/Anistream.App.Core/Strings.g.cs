@@ -684,6 +684,9 @@ public static partial class T
     /// <summary>Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.</summary>
     public static string StartFailedConfig(string path, string problem) => Fill(Get("StartFailedConfig"), ("path", path), ("problem", problem));
 
+    /// <summary>Message when the settings could not be reset after a start failed on them: the config file could not be moved aside. The path is the file, the reason comes from the system.</summary>
+    public static string ConfigResetFailed(string path, string reason) => Fill(Get("ConfigResetFailed"), ("path", path), ("reason", reason));
+
     /// <summary>Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.</summary>
     public static string StartFailedDatabase(string path, string reason) => Fill(Get("StartFailedDatabase"), ("path", path), ("reason", reason));
 
@@ -3810,6 +3813,18 @@ public static partial class T
     /// <summary>Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.</summary>
     public static string SettingsTrailersWifiOnly => Get("SettingsTrailersWifiOnly");
 
+    /// <summary>Button on the screen shown on iPhone, iPad and Android when anistream could not start because its settings file has something it can't use. It asks first.</summary>
+    public static string SettingsReset => Get("SettingsReset");
+
+    /// <summary>Title of the confirmation for resetting the settings.</summary>
+    public static string SettingsResetTitle => Get("SettingsResetTitle");
+
+    /// <summary>Line under it. The old settings file is moved aside, not deleted.</summary>
+    public static string SettingsResetDetail => Get("SettingsResetDetail");
+
+    /// <summary>Notice once anistream has started again on the default settings. The file is the name the old settings file is kept under, beside the new one, such as config.damaged-2026-10-30.</summary>
+    public static string SettingsResetDone(string file) => Fill(Get("SettingsResetDone"), ("file", file));
+
     /// <summary>Title of the screen or section that lists sources.</summary>
     public static string SourcesTitle => Get("SourcesTitle");
 
@@ -5669,6 +5684,7 @@ public static partial class T
         ["NoticeDatabaseSetAside"] = "The database was damaged, so anistream started a new one. The old file is kept at {path}. Your trackers bring back what they hold at the next sync.",
         ["StartFailedFolder"] = "anistream couldn't create the folder {path}. Check that the disk has room and the folder can be written to, then try again. {reason}",
         ["StartFailedConfig"] = "{path} has a setting anistream can't use: {problem}. Fix or remove it, then try again.",
+        ["ConfigResetFailed"] = "anistream couldn't move {path} aside to reset the settings. {reason}",
         ["StartFailedDatabase"] = "anistream couldn't open its database at {path}. If another anistream app is open on this folder, quit it and try again. {reason}",
         ["StartFailedNetwork"] = "anistream couldn't set up its network connection from the network settings in config.toml. {reason}",
         ["StartFailed"] = "anistream couldn't start. Quit and open it again. {reason}",
@@ -6732,6 +6748,10 @@ public static partial class T
         ["WidgetLineStart"] = "Play {episode}",
         ["SettingsTrailersAlways"] = "Always",
         ["SettingsTrailersWifiOnly"] = "Wi-Fi only",
+        ["SettingsReset"] = "Reset settings",
+        ["SettingsResetTitle"] = "Reset settings?",
+        ["SettingsResetDetail"] = "Every setting goes back to its default, VPN and proxy included. Your watch history stays, and the old settings file is kept.",
+        ["SettingsResetDone"] = "Settings are back to their defaults. The old file is kept as {file}.",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",
