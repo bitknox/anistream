@@ -14,7 +14,7 @@ struct PlaybackHookTests {
         store.apply([
             .playbackStaged(id: 900_001, title: "Stardust Wayfarer", episode: "7", episodeTitle: nil, speed: 1),
             .playerOps(playback: 1, ops: [.open(fullscreen: false, speed: nil, volume: nil)]),
-            .status(.verbatim(text: "Finding a source")),
+            .progressQueued,
             .playerUi(playback: 1, ui: .skipCleared),
             .playbackKept,
             .playbackEnded(watched: true, ending: .complete(next: nil), rollingOn: false),

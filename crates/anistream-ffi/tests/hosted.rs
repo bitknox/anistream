@@ -92,7 +92,7 @@ struct AppTitles {
 impl AppTitles {
     fn apply(&mut self, event: &Event) {
         match event {
-            Event::Episodes { id, rows } => {
+            Event::Episodes { id, rows, .. } => {
                 self.tables.insert(*id, rows.clone());
             }
             Event::Progress { id, progress, episodes, .. } => {

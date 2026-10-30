@@ -9,6 +9,7 @@ use anistream_engine::{
     plugin_stores, tracking,
 };
 use anistream_meta::Meta;
+use anistream_model::Msg;
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
 use anistream_testkit::FakeAniList;
@@ -145,14 +146,14 @@ pub(crate) fn options(
     sources: Option<ProviderRegistry>,
 ) -> Result<EngineOptions, FfiError> {
     let server = &testing.server;
-    let Opened { paths, config, store } = opened;
+    let Opened { paths, config, store, set_aside } = opened;
     // The fixtures' covers, banners and stills, from the fake, for an app that shows them.
     server.serve_art();
     // The one forum thread the apps' discussion shots read: episode 7 of the finished title.
     server.add_fixture_thread(anistream_engine::now_epoch());
     let http =
         HttpClient::offline(&NetworkConfig { timeout_secs: 5, ..config.network.clone() })
-            .map_err(|e| FfiError::Client { reason: e.to_string() })?;
+            .map_err(|e| FfiError::client(Msg::StartFailedNetwork { reason: e.to_string() }))?;
     let meta = Meta::new(
         server.anilist(&http),
         config.meta.fallback.then(|| server.tenrai(&http, &store)),
@@ -171,9 +172,9 @@ pub(crate) fn options(
         sync.anilist = Some(tracker);
     }
     let stores = plugin_stores::Stores::with_offline_tokens(&config, &paths, tokens)
-        .map_err(|reason| FfiError::Engine { reason: reason.english() })?;
+        .map_err(|reason| FfiError::engine(Msg::StartFailed { reason: reason.english() }))?;
 
-    let mut options = Opened { paths, config, store }.options(http, start);
+    let mut options = Opened { paths, config, store, set_aside }.options(http, start);
     options.sources =
         Some(sources.unwrap_or_else(|| {
             anistream_testkit::sources::registry_with_art(&server.art_base())
@@ -186,6 +187,7 @@ pub(crate) fn options(
         stores,
         clock: testing.clock.clone(),
         fixture_exit: Some(anistream_providers::vpn::VpnGuard::fixture_egress()),
+        windows: None,
     });
     Ok(options)
 }

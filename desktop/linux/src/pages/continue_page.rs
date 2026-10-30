@@ -336,7 +336,7 @@ impl Page {
             Event::LastAired(_) => self.rebuild(),
             // Titles are named another way now: the queue and its preview again.
             Event::TitlesChanged(_) => self.ctx.hub.send(Command::LoadContinue),
-            Event::Episodes { id, rows } => {
+            Event::Episodes { id, rows, .. } => {
                 self.episodes.borrow_mut().insert(id.get(), rows.clone());
                 // A row plays the next episode a source lists, so a table can move it.
                 if self.ids.borrow().contains(&id.get()) {

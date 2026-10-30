@@ -63,7 +63,6 @@ pub fn download_episode(
             ))),
         };
         let _ = tx.send(update);
-        let _ = tx.send(Event::Status(None));
         downloads::publish_now(&store, &tx);
     });
 }

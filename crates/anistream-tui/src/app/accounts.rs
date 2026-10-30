@@ -65,7 +65,7 @@ impl App {
             self.nav.open_overlay(Overlay::KitsuUsername);
             return None;
         }
-        self.status = t::accounts_status_opening_browser();
+        // The sign-in's row in the activity list says what it waits for.
         Some(Command::Connect { tracker: tracker.tracker })
     }
 

@@ -655,7 +655,7 @@ class BoardShots {
          */
         fun withoutSources(event: Event): Event = when (event) {
             is Event.Providers -> Event.Providers(emptyList())
-            is Event.Episodes -> Event.Episodes(event.id, event.rows.map { it.copy(metadataOnly = true) })
+            is Event.Episodes -> event.copy(rows = event.rows.map { it.copy(metadataOnly = true) })
             else -> event
         }
 

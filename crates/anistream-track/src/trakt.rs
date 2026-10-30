@@ -255,7 +255,7 @@ impl Tracker for TraktTracker {
             let body = response.text().await.unwrap_or_default();
             return Err(anistream_core::Error::Tracker {
                 tracker: "trakt".into(),
-                message: format!("{} {}", status.as_u16(), body.trim()),
+                message: crate::said(status, &body),
             });
         }
         Ok(())

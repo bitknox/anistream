@@ -523,7 +523,6 @@ impl App {
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),
-            Event::Status(status) => self.status = status.map(|m| say(&m)).unwrap_or_default(),
             Event::Toast(notice) => self.push_toast(notice),
             // Decoded off the loop, and back through `artwork_decoded`.
             Event::ArtworkReady { .. } => {}
@@ -629,7 +628,7 @@ impl App {
             Event::Conflicts(rows) => self.apply_conflicts(rows),
             Event::Resumed { position } => self.apply_resumed(position),
             Event::Vpn(guard) => self.apply_vpn(guard),
-            Event::Episodes { id, rows } => self.apply_episodes(id, rows),
+            Event::Episodes { id, rows, .. } => self.apply_episodes(id, rows),
             Event::Progress { id, progress, resume, episodes } => {
                 self.apply_progress(id, progress, resume, episodes)
             }

@@ -128,20 +128,20 @@ async fn queueing_an_episode_says_what_happened_then_publishes_the_queue() {
         Harness::with(Options { registry: Some(torrents()), ..Options::default() }).await;
     let job = h.send(Command::DownloadEpisode { id: FINISHED, episode: "5".into() });
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
+    assert_eq!(names(&updates), ["Toast", "Downloads", "JobDone"]);
     assert_eq!(toasts(&updates), ["info: Queued episode 5 of Stardust Wayfarer."]);
-    assert_eq!(queue(&updates[2]), ["5 Queued"]);
+    assert_eq!(queue(&updates[1]), ["5 Queued"]);
     ends(&updates, job);
 
     // Asked again: no second resolve, and no second row.
     let job = h.send(Command::DownloadEpisode { id: FINISHED, episode: "5".into() });
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
+    assert_eq!(names(&updates), ["Toast", "Downloads", "JobDone"]);
     assert_eq!(
         toasts(&updates),
         ["info: Episode 5 of Stardust Wayfarer is already in downloads."]
     );
-    assert_eq!(queue(&updates[2]), ["5 Queued"]);
+    assert_eq!(queue(&updates[1]), ["5 Queued"]);
     ends(&updates, job);
 }
 
@@ -153,9 +153,9 @@ async fn queueing_a_failed_episode_again_retries_it_in_place() {
     let job = h.send(Command::DownloadEpisode { id: FINISHED, episode: "5".into() });
     let updates = h.settle().await;
 
-    assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
+    assert_eq!(names(&updates), ["Toast", "Downloads", "JobDone"]);
     assert_eq!(toasts(&updates), ["info: Queued episode 5 of Stardust Wayfarer."]);
-    let Event::Downloads(rows) = &updates[2] else { unreachable!() };
+    let Event::Downloads(rows) = &updates[1] else { unreachable!() };
     assert_eq!(rows.len(), 1, "the same row, not a second one");
     assert_eq!(
         (rows[0].id, rows[0].state, rows[0].error.as_deref()),
@@ -170,12 +170,12 @@ async fn an_episode_that_only_streams_is_refused_in_the_same_shape() {
     let job = h.send(Command::DownloadEpisode { id: FINISHED, episode: "5".into() });
     let updates = h.settle().await;
 
-    assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
+    assert_eq!(names(&updates), ["Toast", "Downloads", "JobDone"]);
     assert_eq!(
         toasts(&updates),
         ["alert: This source streams episodes but can't download them."]
     );
-    assert!(queue(&updates[2]).is_empty());
+    assert!(queue(&updates[1]).is_empty());
     ends(&updates, job);
 }
 

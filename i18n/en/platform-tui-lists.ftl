@@ -160,10 +160,6 @@ accounts-screen-title = Accounts
 # @only tui
 accounts-badge-sign-in = { $tracker } { $mark } sign in
 
-# Status line while the browser is opened for a { -tracker } sign-in.
-# @only tui
-accounts-status-opening-browser = Opening your browser to sign in…
-
 # Toast when a { -tracker } needs signing in again. The key opens the Accounts screen, as the key
 # map draws it.
 # @arg tracker: text

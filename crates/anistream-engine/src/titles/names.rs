@@ -354,7 +354,10 @@ impl Naming {
             Some((borrowed, _)) => unnamed.named(borrowed),
             None => unnamed.episodes.clone(),
         };
-        ticket.send(tx, Event::Episodes { id, rows: unnamed.rows(&sent, store, id) });
+        ticket.send(
+            tx,
+            Event::Episodes { id, rows: unnamed.rows(&sent, store, id), failed: None },
+        );
         let fresh = kept.is_some_and(|(_, fresh)| fresh);
         if offline || fresh || others.is_empty() {
             return;
@@ -398,8 +401,14 @@ impl Naming {
             };
             // Said only when it names more than the table already showed.
             if shown(&named) != shown(&sent) {
-                ticket
-                    .send(&tx, Event::Episodes { id, rows: unnamed.rows(&named, &store, id) });
+                ticket.send(
+                    &tx,
+                    Event::Episodes {
+                        id,
+                        rows: unnamed.rows(&named, &store, id),
+                        failed: None,
+                    },
+                );
             }
         };
         let handle = tokio::spawn(lookup).abort_handle();
@@ -575,7 +584,7 @@ mod tests {
                 ),
                 None => {
                     let rows = data::episode_rows(&episodes, &self.store, SHOW);
-                    let _ = self.tx.send(Event::Episodes { id: SHOW, rows });
+                    let _ = self.tx.send(Event::Episodes { id: SHOW, rows, failed: None });
                 }
             }
         }
@@ -587,7 +596,7 @@ mod tests {
                 .expect("a table")
                 .expect("the channel open");
             match event {
-                Event::Episodes { id: SHOW, rows } => rows,
+                Event::Episodes { id: SHOW, rows, .. } => rows,
                 other => panic!("only tables are said: {other:?}"),
             }
         }

@@ -30,11 +30,15 @@ use tokio::sync::mpsc;
 /// out, which with a dozen languages was a minute before the next stream opened after one that
 /// failed. What has arrived by then is pointed at; what has not is fetched on, and comes back
 /// as [`LateSubtitles`], for the player to be given each track as it is cached.
+///
+/// **When every track it had to fetch was dropped**, `all_dropped` is called once they all
+/// have been, so the viewer is told why the episode plays with no subtitles.
 pub(super) async fn localise_subtitles(
     http: &HttpClient,
     scratch: &std::path::Path,
     stream: &mut Stream,
     wait: Duration,
+    all_dropped: impl FnOnce() + Send + 'static,
 ) -> Option<LateSubtitles> {
     let soft = stream.subtitles.iter().filter(|s| !s.hard).count();
     if soft == 0 {
@@ -54,20 +58,32 @@ pub(super) async fn localise_subtitles(
     // was a dozen round trips back to back before mpv could open. `buffered` keeps the tracks
     // in their listed order, which is the order mpv offers them in, and the bound keeps a long
     // list from opening a connection per language against the subtitle host.
+    let fetched = stream.subtitles.iter().filter(|s| fetches(s)).count();
     let tracks = std::mem::take(&mut stream.subtitles).into_iter().enumerate();
     let (found, mut arriving) = mpsc::unbounded_channel();
     tokio::spawn(async move {
         let (http, headers, dir) = (&http, &headers, &dir);
         let localised = futures::stream::iter(tracks)
             .map(|(index, subtitle)| localise_one(http, headers, dir, index, subtitle))
-            .buffered(SUBTITLE_FETCHES)
-            .filter_map(std::future::ready);
+            .buffered(SUBTITLE_FETCHES);
         futures::pin_mut!(localised);
+        let mut dropped = 0;
         while let Some(subtitle) = localised.next().await {
+            let Some(subtitle) = subtitle else {
+                dropped += 1;
+                continue;
+            };
             // Nobody waits for it any more: the attempt it was for is over.
             if found.send(subtitle).is_err() {
                 return;
             }
+        }
+        if fetched > 0 && dropped == fetched {
+            tracing::info!(
+                tracks = fetched,
+                "no subtitle track of the stream could be fetched"
+            );
+            all_dropped();
         }
     });
 
@@ -112,7 +128,7 @@ async fn localise_one(
     mut subtitle: Subtitle,
 ) -> Option<Subtitle> {
     // Already burned in, or already a local path — nothing to fetch either way.
-    if subtitle.hard || !subtitle.url.starts_with("http") {
+    if !fetches(&subtitle) {
         return Some(subtitle);
     }
 
@@ -183,6 +199,12 @@ async fn localise_one(
         Err(error) => tracing::debug!(%error, "could not cache subtitle; using its url"),
     }
     Some(subtitle)
+}
+
+/// Whether `subtitle` is fetched before the file opens: a soft track at a remote address, not
+/// one burned in or on disk already.
+fn fetches(subtitle: &Subtitle) -> bool {
+    !subtitle.hard && subtitle.url.starts_with("http")
 }
 
 /// Subtitle tracks fetched at once.
@@ -379,7 +401,8 @@ mod tests {
         let opened = tokio::spawn(async move {
             // A wait far past the test's: this is about order and togetherness, not time.
             let wait = Duration::from_secs(3600);
-            let late = localise_subtitles(&client(), scratch.path(), &mut stream, wait).await;
+            let late =
+                localise_subtitles(&client(), scratch.path(), &mut stream, wait, || ()).await;
             (stream, late, scratch)
         });
         let deadline = std::time::Instant::now() + Duration::from_secs(10);
@@ -422,7 +445,8 @@ mod tests {
         ]);
         let scratch = tempfile::tempdir().unwrap();
         let late =
-            localise_subtitles(&client(), scratch.path(), &mut stream, Duration::ZERO).await;
+            localise_subtitles(&client(), scratch.path(), &mut stream, Duration::ZERO, || ())
+                .await;
         let mut late = late.expect("the slow track follows");
         let mut all: Vec<Subtitle> = stream.subtitles.clone();
         assert!(all.iter().all(|s| s.language != "en"), "not before its host answered");
@@ -436,5 +460,43 @@ mod tests {
         assert_eq!(languages, ["en", "ja"].into(), "every track, in time or after");
         let en = all.iter().find(|s| s.language == "en").unwrap();
         assert!(!en.url.starts_with("http"), "at its local copy");
+    }
+
+    #[tokio::test]
+    async fn a_stream_whose_every_track_is_refused_says_so_once() {
+        let release = Arc::new(tokio::sync::Semaphore::new(8));
+        let (origin, _) = host(release).await;
+        let told = |stream: &mut Stream| {
+            let (said, heard) = tokio::sync::oneshot::channel();
+            let scratch = tempfile::tempdir().unwrap();
+            let mut stream = std::mem::replace(stream, stream_with(Vec::new()));
+            async move {
+                let wait = Duration::from_secs(3600);
+                let late =
+                    localise_subtitles(&client(), scratch.path(), &mut stream, wait, || {
+                        let _ = said.send(());
+                    })
+                    .await;
+                assert!(late.is_none(), "every track settled within the wait");
+                // The task that fetched them has ended by now, so it said whatever it was to.
+                heard.await.is_ok()
+            }
+        };
+
+        let mut refused = stream_with(vec![
+            track("en", format!("{origin}/missing-en.vtt"), false),
+            track("de", format!("{origin}/missing-de.vtt"), false),
+            track("ja", "burned-in".into(), true),
+        ]);
+        assert!(told(&mut refused).await, "both tracks it fetched were refused");
+
+        let mut one_left = stream_with(vec![
+            track("en", format!("{origin}/missing-en.vtt"), false),
+            track("fr", format!("{origin}/fr.vtt"), false),
+        ]);
+        assert!(!told(&mut one_left).await, "one track came through");
+
+        let mut nothing_to_fetch = stream_with(vec![track("ja", "burned-in".into(), true)]);
+        assert!(!told(&mut nothing_to_fetch).await, "there was nothing to fetch");
     }
 }

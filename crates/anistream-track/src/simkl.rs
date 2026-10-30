@@ -318,7 +318,7 @@ impl Tracker for SimklTracker {
                 let body = response.text().await.unwrap_or_default();
                 return Err(anistream_core::Error::Tracker {
                     tracker: "simkl".into(),
-                    message: format!("{path}: {} {}", status.as_u16(), body.trim()),
+                    message: format!("{path}: {}", crate::said(status, &body)),
                 });
             }
             // An unreadable body is not a failure: the status said the write was accepted, and

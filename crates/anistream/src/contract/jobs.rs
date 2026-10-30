@@ -148,7 +148,13 @@ async fn a_job_ends_last_on_every_way_out_of_its_work() {
         let job = h.send(task);
         let updates = h.settle().await;
         assert!(job.is_some(), "{case}: a job");
-        assert!(updates.len() > 1, "{case}: an answer before the end: {:?}", names(&updates));
+        // Signed out, a sync has nothing to send and nothing to say: its end is the answer.
+        let answers = if case == "sync, signed out" { 0 } else { 1 };
+        assert!(
+            updates.len() > answers,
+            "{case}: an answer before the end: {:?}",
+            names(&updates)
+        );
         ends(&updates, job);
     }
 }

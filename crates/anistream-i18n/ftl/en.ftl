@@ -106,6 +106,9 @@ cause-source-gone = The source { $source } is no longer available. Choose anothe
 # Reason: the release the person picked would not start. The detail comes from the source.
 cause-release-failed = Couldn't start that release: { $detail }
 
+# Reason: a play waited too long for its sources to give it a stream, and gave up.
+cause-sources-timed-out = The sources took too long to answer. Try again, or choose another source.
+
 # Reason: every source matched the title but none has the episode. The detail is what each said.
 cause-no-source-has-episode = No source has episode { $episode }: { $detail }
 
@@ -141,12 +144,6 @@ status-loading-sources = Loading sources…
 # Job note while the sources are asked for an episode. The episode is its label, often a number.
 status-searching-sources = Searching sources for episode { $episode }…
 
-# Status while the player opens.
-status-starting-player = Starting mpv…
-
-# Status line while an episode plays.
-status-playing = Playing { $title }, episode { $episode }
-
 # Toast when the player cannot be started. The reason comes from the system.
 notice-player-failed-to-start = Couldn't start mpv. Check that it runs on its own. ({ $reason })
 
@@ -165,11 +162,14 @@ notice-player-not-playing = mpv hasn't started playing after { $seconds } s. The
 # Toast when a play is asked for in a build with no player.
 notice-no-player = This version of anistream can't play video.
 
-# Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+# Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.
 notice-mpv-missing = { $binary } wasn't found. Install mpv to play episodes.
 
-# Toast at launch when mpv is too old for anistream's own player.
+# Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps.
 notice-mpv-old = mpv { $version } can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.
+
+# Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.
+notice-subtitles-unavailable = This source's subtitles couldn't be loaded. Choose another source to try again.
 
 # Toast after a link was handed to the browser.
 notice-opened-in-browser = Opened in your browser.
@@ -230,6 +230,12 @@ notice-source-choice-failed = Couldn't save that choice. { $reason }
 
 # Toast when no source could list a show's episodes. The reason is what the sources said.
 notice-no-source-could-list = No source could list this show: { $reason }
+
+# Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.
+notice-episodes-failed = Couldn't load the episodes. { $reason }
+
+# Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name.
+notice-match-uncertain = { $source } found more than one show that could be this one, so these episodes are from AniList for now.
 
 # Toast when a title cannot be taken off the Continue row. The reason comes from the system.
 notice-continue-hide-failed = Couldn't remove that from Continue. { $reason }
@@ -310,8 +316,11 @@ notice-episodes-queued-existing-stopped =
 # Toast when keep next found no room for another episode.
 notice-keep-next-full = Not enough free space to keep the next episodes downloaded. Free up some space to download more.
 
-# Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+# Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.
 party-needs-server = Choose a server for the watch party first, as syncplay.server. { $server } is run by { $operator }.
+
+# Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it.
+party-choose-server = Choose a server for the watch party first. { $server } is run by { $operator }.
 
 # Toast when a watch party is asked for in a build without watch parties.
 notice-no-party = Watch parties aren't available in this version of anistream.
@@ -507,7 +516,7 @@ torrent-interface-closed = anistream closed before torrents started.
 # Error: the torrent session could not start. The reason comes from the torrent engine.
 torrent-session-failed = Couldn't start the torrent session. { $reason }
 
-# Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
+# Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.
 torrent-no-kill-switch = Nothing on this device stops torrent traffic if the VPN drops. Run "anistream --doctor" to set that up.
 
 # Toast when the connection check could not run. The reason comes from the VPN settings.
@@ -591,13 +600,13 @@ notice-anilist-implicit-flow = This AniList sign-in method works only in the ani
 # Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.
 notice-anilist-client-missing = AniList needs a client id and secret. Set { $client } and { $secret } in the config file, then sign in again. To get the sign-in address, run anistream --login-url.
 
-# Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+# Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.
 notice-anilist-paste-flow = Pasting a code isn't possible here. Quit and run anistream --login instead.
 
 # Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
 notice-mal-client-missing = MyAnimeList needs a client id. Register an app with the type "other" at myanimelist.net/apiconfig, then set { $setting } in the config file.
 
-# Status line while the browser sign-in is open and the app waits for it to come back.
+# Job note while the browser sign-in is open and the terminal app waits for it to come back.
 status-waiting-for-redirect = Waiting for { $tracker } to redirect back…
 
 # Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.
@@ -659,7 +668,7 @@ notice-episodes-aired =
        *[other] { $count } new episodes of shows you watch aired. The calendar has them.
     }
 
-# Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+# Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps.
 notice-update-available = { $tag } is out. Run anistream --update to install it.
 
 # The reason a setting was refused until the person confirms having no protection.
@@ -691,6 +700,33 @@ notice-title-load-failed = Couldn't load this title. Check your connection and t
 
 # Toast when playback stops with an error.
 notice-playback-failed = Playback failed. Try another source.
+
+# Toast when something went wrong inside the engine and it carried on.
+notice-engine-fault = Something went wrong inside anistream. It carried on, but if a screen looks stuck, quit and open it again.
+
+# Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync.
+notice-database-set-aside = The database was damaged, so anistream started a new one. The old file is kept at { $path }. Your trackers bring back what they hold at the next sync.
+
+# Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system.
+start-failed-folder = anistream couldn't create the folder { $path }. Check that the disk has room and the folder can be written to, then try again. { $reason }
+
+# Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.
+start-failed-config = { $path } has a setting anistream can't use: { $problem }. Fix or remove it, then try again.
+
+# Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.
+start-failed-database = anistream couldn't open its database at { $path }. If another anistream app is open on this folder, quit it and try again. { $reason }
+
+# Message when anistream could not start its network connection from the network settings.
+start-failed-network = anistream couldn't set up its network connection from the network settings in config.toml. { $reason }
+
+# Message when anistream itself could not start. The reason comes from the system or the engine.
+start-failed = anistream couldn't start. Quit and open it again. { $reason }
+
+# Message when the TV remote could not start listening or could not forget a phone.
+start-failed-remote = The remote couldn't start. { $reason }
+
+# Message when the built-in player could not start.
+start-failed-player = The player couldn't start. { $reason }
 
 # Toast after episodes are added to the download queue.
 notice-episodes-queued =
@@ -2326,9 +2362,6 @@ accounts-screen-title = Accounts
 
 # A { -tracker }'s chip in the header when it needs signing in again. The mark is a symbol that says the account is down.
 accounts-badge-sign-in = { $tracker } { $mark } sign in
-
-# Status line while the browser is opened for a { -tracker } sign-in.
-accounts-status-opening-browser = Opening your browser to sign in…
 
 # Toast when a { -tracker } needs signing in again. The key opens the Accounts screen, as the key map draws it.
 accounts-needs-sign-in = { $tracker } needs signing in again. Press { $key } to open Accounts.

@@ -675,8 +675,7 @@ pub(crate) async fn handle_internal(
                 &engine.shared_config,
                 tx,
                 &engine.arrivals,
-            )
-            .await;
+            );
             crate::titles::refresh::sources_changed(engine, services, tx);
             // Passed on, ahead of what the rebuild reports: the screen says it reloads.
             said.push(Event::SourcesChanged);

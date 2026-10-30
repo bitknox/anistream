@@ -143,13 +143,7 @@ pub fn join_for_play(
         .or_else(|| named(Some(syncplay.server.clone())))
         .or_else(|| syncplay.recent_servers.iter().find_map(|s| named(Some(s.clone()))));
     let Some(server) = server else {
-        return refuse(
-            Msg::PartyNeedsServer {
-                server: SUGGESTED_SERVER.to_owned(),
-                operator: SUGGESTED_SERVER_RUN_BY.to_owned(),
-            },
-            tx,
-        );
+        return refuse(needs_server(services.hosted_player), tx);
     };
     let same_server = current.as_ref().is_some_and(|(going, _)| {
         Server::parse(&server).is_ok_and(|asked| asked.to_string() == *going)
@@ -200,6 +194,18 @@ pub fn leave(engine: &mut EngineState, tx: &Outbox) {
 /// A party command with no party going: the front end is told there is none.
 fn not_in_one(tx: &Outbox) {
     let _ = tx.send(Event::PartyLeft { reason: None });
+}
+
+/// Why a party with no server cannot start: in the terminal's words, which name the setting to
+/// set, or an app's, which has a field for it. `hosted` is whether the front end hosts its
+/// player, as every app does and the terminal does not.
+fn needs_server(hosted: bool) -> Msg {
+    let (server, operator) = (SUGGESTED_SERVER.to_owned(), SUGGESTED_SERVER_RUN_BY.to_owned());
+    if hosted {
+        Msg::PartyChooseServer { server, operator }
+    } else {
+        Msg::PartyNeedsServer { server, operator }
+    }
 }
 
 /// A party that can't be joined: the reason, as the party's end.
@@ -392,5 +398,18 @@ fn message_kind(kind: NoticeKind) -> PartyMessageKind {
         NoticeKind::Seeked { by } => PartyMessageKind::Seeked { by },
         NoticeKind::Corrected => PartyMessageKind::Corrected,
         NoticeKind::AllReady => PartyMessageKind::AllReady,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_the_terminal_is_told_to_set_the_server_in_the_config_file() {
+        assert!(matches!(needs_server(false), Msg::PartyNeedsServer { .. }));
+        let app = needs_server(true);
+        assert!(matches!(app, Msg::PartyChooseServer { .. }), "{app:?}");
+        assert!(!app.english().contains("syncplay.server"), "{}", app.english());
     }
 }

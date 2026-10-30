@@ -2593,6 +2593,18 @@
         }
       }
     },
+    "cause-sources-timed-out" : {
+      "comment" : "Reason: a play waited too long for its sources to give it a stream, and gave up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The sources took too long to answer. Try again, or choose another source."
+          }
+        }
+      }
+    },
     "cause-subtitles-left-apart" : {
       "comment" : "Part of a finished download's toast: merging failed, so the subtitles stay as files beside it. Argument 1: reason (Text).",
       "extractionState" : "manual",
@@ -7952,7 +7964,7 @@
       }
     },
     "notice-anilist-paste-flow" : {
-      "comment" : "Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.",
+      "comment" : "Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8215,6 +8227,18 @@
         }
       }
     },
+    "notice-database-set-aside" : {
+      "comment" : "Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync. Argument 1: path (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The database was damaged, so anistream started a new one. The old file is kept at %1$@. Your trackers bring back what they hold at the next sync."
+          }
+        }
+      }
+    },
     "notice-discussion-sign-in" : {
       "comment" : "Toast when the viewer tried to like or post in a discussion without signing in to AniList.",
       "extractionState" : "manual",
@@ -8453,6 +8477,18 @@
         }
       }
     },
+    "notice-engine-fault" : {
+      "comment" : "Toast when something went wrong inside the engine and it carried on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong inside anistream. It carried on, but if a screen looks stuck, quit and open it again."
+          }
+        }
+      }
+    },
     "notice-episode-aired" : {
       "comment" : "Toast, and desktop notification, for one episode that aired while the app was closed. Argument 1: title (Text). Argument 2: episode (Int).",
       "extractionState" : "manual",
@@ -8495,6 +8531,18 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "notice-episodes-failed" : {
+      "comment" : "Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load the episodes. %1$@"
           }
         }
       }
@@ -8791,6 +8839,18 @@
         }
       }
     },
+    "notice-match-uncertain" : {
+      "comment" : "Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name. Argument 1: source (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ found more than one show that could be this one, so these episodes are from AniList for now."
+          }
+        }
+      }
+    },
     "notice-metadata-cached" : {
       "comment" : "Toast when no metadata service answered and the last cached data is shown.",
       "extractionState" : "manual",
@@ -8804,7 +8864,7 @@
       }
     },
     "notice-mpv-missing" : {
-      "comment" : "Toast at launch when the mpv program is missing. The binary is the name the settings give it. Argument 1: binary (Text).",
+      "comment" : "Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps. Argument 1: binary (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8816,7 +8876,7 @@
       }
     },
     "notice-mpv-old" : {
-      "comment" : "Toast at launch when mpv is too old for anistream's own player. Argument 1: version (Text).",
+      "comment" : "Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps. Argument 1: version (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -9425,6 +9485,18 @@
         }
       }
     },
+    "notice-subtitles-unavailable" : {
+      "comment" : "Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This source's subtitles couldn't be loaded. Choose another source to try again."
+          }
+        }
+      }
+    },
     "notice-summary" : {
       "comment" : "What the system shows under a group of new-episode notifications. The system fills in the count at %u.",
       "extractionState" : "manual",
@@ -9522,7 +9594,7 @@
       }
     },
     "notice-update-available" : {
-      "comment" : "Toast when a new release of anistream is out, on the terminal app. The command is not translated. Argument 1: tag (Text).",
+      "comment" : "Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps. Argument 1: tag (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -10321,6 +10393,18 @@
         }
       }
     },
+    "party-choose-server" : {
+      "comment" : "Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it. Argument 1: server (Text). Argument 2: operator (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a server for the watch party first. %1$@ is run by %2$@."
+          }
+        }
+      }
+    },
     "party-choose-source" : {
       "comment" : "Button that lists what each source has for the episode.",
       "extractionState" : "manual",
@@ -10814,7 +10898,7 @@
       }
     },
     "party-needs-server" : {
-      "comment" : "Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Argument 1: server (Text). Argument 2: operator (Text).",
+      "comment" : "Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps. Argument 1: server (Text). Argument 2: operator (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -18145,6 +18229,90 @@
         }
       }
     },
+    "start-failed" : {
+      "comment" : "Message when anistream itself could not start. The reason comes from the system or the engine. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream couldn't start. Quit and open it again. %1$@"
+          }
+        }
+      }
+    },
+    "start-failed-config" : {
+      "comment" : "Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can. Argument 1: path (Text). Argument 2: problem (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ has a setting anistream can't use: %2$@. Fix or remove it, then try again."
+          }
+        }
+      }
+    },
+    "start-failed-database" : {
+      "comment" : "Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system. Argument 1: path (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream couldn't open its database at %1$@. If another anistream app is open on this folder, quit it and try again. %2$@"
+          }
+        }
+      }
+    },
+    "start-failed-folder" : {
+      "comment" : "Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system. Argument 1: path (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream couldn't create the folder %1$@. Check that the disk has room and the folder can be written to, then try again. %2$@"
+          }
+        }
+      }
+    },
+    "start-failed-network" : {
+      "comment" : "Message when anistream could not start its network connection from the network settings. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream couldn't set up its network connection from the network settings in config.toml. %1$@"
+          }
+        }
+      }
+    },
+    "start-failed-player" : {
+      "comment" : "Message when the built-in player could not start. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The player couldn't start. %1$@"
+          }
+        }
+      }
+    },
+    "start-failed-remote" : {
+      "comment" : "Message when the TV remote could not start listening or could not forget a phone. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The remote couldn't start. %1$@"
+          }
+        }
+      }
+    },
     "state-check-connection" : {
       "comment" : "Next step under any \"couldn't load\" title.",
       "extractionState" : "manual",
@@ -18277,18 +18445,6 @@
         }
       }
     },
-    "status-playing" : {
-      "comment" : "Status line while an episode plays. Argument 1: title (Text). Argument 2: episode (Text).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Playing %1$@, episode %2$@"
-          }
-        }
-      }
-    },
     "status-searching-sources" : {
       "comment" : "Job note while the sources are asked for an episode. The episode is its label, often a number. Argument 1: episode (Text).",
       "extractionState" : "manual",
@@ -18301,20 +18457,8 @@
         }
       }
     },
-    "status-starting-player" : {
-      "comment" : "Status while the player opens.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Starting mpv…"
-          }
-        }
-      }
-    },
     "status-waiting-for-redirect" : {
-      "comment" : "Status line while the browser sign-in is open and the app waits for it to come back. Argument 1: tracker (Text).",
+      "comment" : "Job note while the browser sign-in is open and the terminal app waits for it to come back. Argument 1: tracker (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -21394,7 +21538,7 @@
       }
     },
     "torrent-no-kill-switch" : {
-      "comment" : "Toast when torrents are up but no operating-system firewall rule backs the VPN guard.",
+      "comment" : "Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

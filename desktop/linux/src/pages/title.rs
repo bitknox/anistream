@@ -287,7 +287,7 @@ impl Page {
                 }
                 self.fill(entry);
             }
-            Event::Episodes { id, rows } if *id == self.id => {
+            Event::Episodes { id, rows, .. } if *id == self.id => {
                 self.listed.set(true);
                 self.rows.replace(rows.clone());
                 self.draw_episodes();
@@ -296,7 +296,7 @@ impl Page {
                     self.fill(&entry);
                 }
             }
-            // No table until a match is picked.
+            // The candidates come first, then AniList's table until a match is picked.
             Event::MatchChoices { id, .. } if *id == self.id => {
                 self.listed.set(true);
                 self.episodes_state.empty();

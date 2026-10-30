@@ -29,6 +29,7 @@ mod fake {
         sync::{Arc, Mutex, PoisonError},
     };
 
+    use anistream_model::Msg;
     use anistream_party::fake::{FakeMember, FakeOptions, FakeServer};
     use tokio::runtime::Handle;
 
@@ -55,8 +56,8 @@ mod fake {
             let handle = self.runtime_handle();
             let server = handle
                 .block_on(handle.spawn(FakeServer::start(FakeOptions::default())))
-                .map_err(|e| FfiError::Engine { reason: e.to_string() })?
-                .map_err(|e| FfiError::Engine { reason: e.to_string() })?;
+                .map_err(|e| FfiError::engine(Msg::StartFailed { reason: e.to_string() }))?
+                .map_err(|e| FfiError::engine(Msg::StartFailed { reason: e.to_string() }))?;
             let inner = Inner { server, members: HashMap::new() };
             Ok(Arc::new(FfiFakeParty { inner: Mutex::new(Some(inner)), handle }))
         }

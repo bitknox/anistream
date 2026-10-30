@@ -272,7 +272,9 @@ async fn main() -> Result<()> {
     }
 
     let http = HttpClient::new(&config.network).context("building http client")?;
-    let store = Store::open(paths.database()).context("opening the local database")?;
+    // A damaged database is moved aside for a new one, and the interface says where it went.
+    let (store, set_aside) =
+        Store::open_or_set_aside(paths.database()).context("opening the local database")?;
 
     if args.update {
         return cli::update::self_update(&http).await;
@@ -360,7 +362,7 @@ async fn main() -> Result<()> {
         .await;
     }
 
-    run(config, paths, http, store, !args.no_images, config_problem).await
+    run(config, paths, http, store, !args.no_images, config_problem, set_aside).await
 }
 
 /// What the terminal's graphics support amounts to, in words.

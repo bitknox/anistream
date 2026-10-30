@@ -147,7 +147,6 @@ pub async fn play_cli(
         None,
         &config.playback,
         None,
-        &tx,
     )
     .await
     .map_err(|reason| anyhow::anyhow!(reason))?;
@@ -165,7 +164,6 @@ pub async fn play_cli(
         let mut watched = false;
         while let Some(update) = rx.recv().await {
             match update {
-                Event::Status(Some(s)) => println!("{s}"),
                 Event::Toast(t) => println!("{}", anistream_tui::app::worded(t, &keymap).text),
                 Event::PlaybackEnded { watched: w, .. } => watched = w,
                 _ => {}

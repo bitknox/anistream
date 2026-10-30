@@ -596,13 +596,11 @@ public final class AppStore {
             widgetsChanged()
         case .lastAired(let rows):
             titles.lastAired(rows)
-        case .episodes(let id, let rows):
+        case .episodes(let id, let rows, _):
             titles.episodes(id: id, rows: rows)
         case .titleDub(let id, let dub):
             titles.dub(id: id, extent: dub)
 
-        case .status(let text):
-            notices.status(text.map { $0.text } ?? "")
         case .toast(let notice):
             party.apply(event)
             notices.post(notice)

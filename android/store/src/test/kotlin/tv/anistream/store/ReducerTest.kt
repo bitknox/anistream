@@ -391,10 +391,9 @@ class ReducerTest {
     @Test
     fun a_notice_shows_until_dismissed_and_stays_in_the_log() {
         val notice = Notice(kind = NoticeKind.INFO, text = "Update ready: Hotaru Open Archive", hint = null)
-        store.apply(listOf(Event.Toast(notice), Event.Status(Msg.Verbatim("2 changes waiting to sync"))))
+        store.apply(listOf(Event.Toast(notice)))
         val item = store.notices.current.value!!
         assertEquals("Update ready: Hotaru Open Archive", item.text(context))
-        assertEquals("2 changes waiting to sync", store.notices.status.value?.text(context))
         store.notices.dismiss(item)
         assertNull(store.notices.current.value)
         assertEquals(1, store.notices.log.value.size)

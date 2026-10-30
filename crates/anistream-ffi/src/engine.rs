@@ -15,7 +15,9 @@ use anistream_engine::{
     host::{Host, SecretStore},
     options::EngineOptions,
 };
-use anistream_model::{command::Command, event::Event, jobs::JobId, playback::PlayerTheme};
+use anistream_model::{
+    Msg, command::Command, event::Event, jobs::JobId, playback::PlayerTheme,
+};
 use anistream_net::HttpClient;
 use anistream_store::Store;
 use tokio::runtime::{Handle, Runtime};
@@ -89,8 +91,9 @@ impl FfiEngine {
         let home = RemoteHome::of(&host, &opened.paths);
         let runtime = runtime()?;
         let started = runtime.block_on(async {
-            let http = HttpClient::new(&opened.config.network)
-                .map_err(|e| FfiError::Client { reason: e.to_string() })?;
+            let http = HttpClient::new(&opened.config.network).map_err(|e| {
+                FfiError::client(Msg::StartFailedNetwork { reason: e.to_string() })
+            })?;
             let mut options = opened.options(http, &start);
             options.background = background.into();
             Self::launch(options, host).await
@@ -156,7 +159,7 @@ impl FfiEngine {
         let host: Arc<dyn Host> = Arc::new(host);
         Engine::start(options, host)
             .await
-            .map_err(|e| FfiError::Engine { reason: e.to_string() })
+            .map_err(|e| FfiError::engine(Msg::StartFailed { reason: e.to_string() }))
     }
 
     /// The engine `started` on `runtime`, held for the app, with `kept` beside it; or, when it
@@ -237,14 +240,20 @@ pub(crate) struct Opened {
     pub(crate) paths: Paths,
     pub(crate) config: Config,
     pub(crate) store: Store,
+    /// Where a damaged database was moved, when one was.
+    pub(crate) set_aside: Option<std::path::PathBuf>,
 }
 
 impl Opened {
-    /// Create the directories, read the config and open the database.
+    /// Create the directories, read the config and open the database, a damaged one moved
+    /// aside for a new one.
     pub(crate) fn open(dirs: &FfiDirs) -> Result<Self, FfiError> {
         for dir in [&dirs.config, &dirs.data, &dirs.cache] {
-            std::fs::create_dir_all(dir).map_err(|e| FfiError::Dirs {
-                reason: format!("{dir} cannot be created: {e}"),
+            std::fs::create_dir_all(dir).map_err(|e| {
+                FfiError::dirs(Msg::StartFailedFolder {
+                    path: dir.clone(),
+                    reason: e.to_string(),
+                })
             })?;
         }
         let paths = Paths {
@@ -252,19 +261,24 @@ impl Opened {
             data_dir: dirs.data.clone().into(),
             cache_dir: dirs.cache.clone().into(),
         };
-        let config = Config::read(&paths).map_err(|problem| FfiError::Config {
-            reason: format!("{}, {problem}", paths.config_file.display()),
+        let config = Config::read(&paths).map_err(|problem| {
+            let path = paths.config_file.display().to_string();
+            FfiError::config(Msg::StartFailedConfig { path, problem: problem.to_string() })
         })?;
-        let store = Store::open(paths.database())
-            .map_err(|e| FfiError::Store { reason: format!("the database: {e}") })?;
-        Ok(Self { paths, config, store })
+        let database = paths.database();
+        let (store, set_aside) = Store::open_or_set_aside(&database).map_err(|e| {
+            let path = database.display().to_string();
+            FfiError::store(Msg::StartFailedDatabase { path, reason: e.to_string() })
+        })?;
+        Ok(Self { paths, config, store, set_aside })
     }
 
     /// The options for the app's launch as `start` describes it, with `http` for every request.
     pub(crate) fn options(self, http: HttpClient, start: &FfiStart) -> EngineOptions {
-        let Self { paths, config, store } = self;
+        let Self { paths, config, store, set_aside } = self;
         let theme = start.theme.clone().unwrap_or_else(player_theme);
         let mut options = EngineOptions::new(paths, config.clone(), http, store, theme);
+        options.set_aside = set_aside;
         // What a store joined with an invite calls this device: the kind of device it is.
         if let Some(platform) = start.platform {
             platform.device_label().clone_into(&mut options.device_label);
@@ -283,7 +297,7 @@ pub(crate) fn runtime() -> Result<Runtime, FfiError> {
         .enable_all()
         .thread_name("anistream-engine")
         .build()
-        .map_err(|e| FfiError::Runtime { reason: e.to_string() })
+        .map_err(|e| FfiError::runtime(Msg::StartFailed { reason: e.to_string() }))
 }
 
 /// How mpv's own interface is dressed when the app hands in no theme of its own: the terminal's
@@ -346,6 +360,38 @@ mod tests {
 
     fn offline() -> HttpClient {
         HttpClient::offline(&NetworkConfig::default()).unwrap()
+    }
+
+    fn dirs_in(root: &std::path::Path) -> FfiDirs {
+        let dir = |name: &str| root.join(name).display().to_string();
+        FfiDirs { config: dir("config"), data: dir("data"), cache: dir("cache") }
+    }
+
+    #[test]
+    fn a_setting_this_version_does_not_know_is_no_reason_to_refuse_the_start() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(root.path().join("config")).unwrap();
+        let file = root.path().join("config/config.toml");
+        std::fs::write(&file, "[playback]\nquality = 720\nsparkle = 1\n").unwrap();
+        let files = Opened::open(&dirs_in(root.path())).expect("it opens");
+        assert_eq!(files.config.playback.quality, 720);
+        assert_eq!(
+            std::fs::read_to_string(&file).unwrap(),
+            "[playback]\nquality = 720\nsparkle = 1\n"
+        );
+    }
+
+    #[test]
+    fn a_damaged_database_is_set_aside_and_said_at_launch() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(root.path().join("data")).unwrap();
+        std::fs::write(root.path().join("data/anistream.db"), "a page of something else")
+            .unwrap();
+        let files = Opened::open(&dirs_in(root.path())).expect("it opens on a new database");
+        let aside = files.set_aside.clone().expect("set aside");
+        assert!(aside.exists() && aside.starts_with(root.path().join("data")), "{aside:?}");
+        let options = files.options(offline(), &FfiStart::default());
+        assert_eq!(options.set_aside, Some(aside));
     }
 
     #[test]
