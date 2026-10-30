@@ -38,7 +38,7 @@ overlays-logs-empty = Nothing logged yet
 overlays-hint-manual-query = Type what to search for. An empty Enter resets to the automatic match.
 
 # Prompt hint for the first step of signing in to Kitsu.
-overlays-hint-kitsu-username = Email or username. Enter continues, Esc cancels.
+overlays-hint-kitsu-username = Email or user name. Enter continues, Esc cancels.
 
 # Prompt hint for the second step of signing in to Kitsu. The password is shown as dots.
 overlays-hint-kitsu-password = Your password is exchanged for a token and not stored. Enter signs in.
@@ -54,7 +54,7 @@ overlays-hint-edit-setting = { $setting }. Enter saves, Esc leaves it as it is.
 overlays-hint-edit-setting-bare = Enter saves, Esc leaves it as it is.
 
 # Prompt hint for joining a { -plugin-store }.
-overlays-hint-join-store = Paste the invite or store link you were given. Enter checks it, Esc cancels.
+overlays-hint-join-store = Paste the invite or { -store } link you were given. Enter checks it, Esc cancels.
 
 # Prompt hint for naming the person an invite link is for.
 overlays-hint-invite-name = Their name, as the members list will show it. Enter makes the link.

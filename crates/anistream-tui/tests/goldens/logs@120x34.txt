@@ -2,7 +2,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ ▸  Continue               │  ▌ Hoshikuzu no Tabibito     E4 · 57%   ░░░░░░░░░░░░░░░░░
   ▤  Calendar               │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░░░░░
-  ▦  Seasonal               │    Yoru no Toshokan      E6 in 2h 41m   ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │    Yoru no Toshokan  E6 in 2 h 41 min   ░░░░░░░░░░░░░░░░░
   /  Search                 │    Tsuki to Kujira … 7 of 12 episodes   ░░░░░░░░░░░░░░░░░
   ▥  Library                │                                         ░░░░░░░░░░░░░░░░░
   ↓  Downloads              │                                         ░░░░░░░░░░░░░░░░░
@@ -23,7 +23,7 @@ anistream                                                                       
                             │                                         ▏ Continue E4 at 13:32 (57%)
                             │                                         █████████████▋░░░░░░░░░░
                             │
-                            │                                         E4 out 2d 3h ago  ·  E5 in 4d 20h
+                            │                                         E4 out 2 d 3 h ago  ·  E5 in 4 d 20 h
                             │
                             │                                         A lamplighter on a dying comet rides the last
                             │                                         mail coach between the stars, delivering

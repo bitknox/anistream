@@ -16,7 +16,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │    Skip filler automatically   Off
    │    Mark opening and ending     On
    │    Show skip button            On
-   │    Start fullscreen            Off
+   │    Start in full screen        Off
    │  ▌ Upscaling                   Natural · ArtCNN
    │  ────────────────────────────────────────────────────────────────────────
    │    Adapts to the video and your graphics card. Applies from the next e…
@@ -89,7 +89,7 @@ r17 c03-03 fg=rule
 r17 c08-23 fg=text-dim
 r17 c36-37 fg=text
 r18 c03-03 fg=rule
-r18 c08-23 fg=text-dim
+r18 c08-27 fg=text-dim
 r18 c36-38 fg=text
 r19 c03-03 fg=rule
 r19 c06-06 fg=obi

@@ -361,15 +361,15 @@ object Strings {
     fun noticeDownloadsNoneQueuedStopped(context: Context, reason: String): String =
         context.getString(R.string.notice_downloads_none_queued_stopped, reason)
 
-    /** Toast after a range was asked for and every episode was in the queue already. */
+    /** Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`. */
     fun noticeDownloadsNoneNew(context: Context, existing: String): String =
         context.getString(R.string.notice_downloads_none_new, existing)
 
-    /** Toast as above, with the reason the range stopped. */
+    /** Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped. */
     fun noticeDownloadsNoneNewStopped(context: Context, existing: String, reason: String): String =
         context.getString(R.string.notice_downloads_none_new_stopped, existing, reason)
 
-    /** Toast after a range was asked for, some episodes were queued and some were there already. */
+    /** Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`. */
     fun noticeEpisodesQueuedExisting(context: Context, count: Int, existing: String): String =
         context.resources.getQuantityString(R.plurals.notice_episodes_queued_existing, count, count, existing)
 
@@ -377,7 +377,7 @@ object Strings {
     fun noticeEpisodesQueuedStopped(context: Context, count: Int, reason: String): String =
         context.resources.getQuantityString(R.plurals.notice_episodes_queued_stopped, count, count, reason)
 
-    /** Toast as above, with some episodes in the queue already and the reason the range stopped. */
+    /** Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped. */
     fun noticeEpisodesQueuedExistingStopped(context: Context, count: Int, existing: String, reason: String): String =
         context.resources.getQuantityString(R.plurals.notice_episodes_queued_existing_stopped, count, count, existing, reason)
 
@@ -465,7 +465,7 @@ object Strings {
     fun storeAdminOpened(context: Context): String =
         context.getString(R.string.store_admin_opened)
 
-    /** Toast when the browser could not be opened for the store's admin page. The reason comes from the system. */
+    /** Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run. */
     fun storeAdminOpenFailed(context: Context, reason: String): String =
         context.getString(R.string.store_admin_open_failed, reason)
 
@@ -1897,7 +1897,7 @@ object Strings {
     fun settingsLicenceTitle(context: Context): String =
         context.getString(R.string.settings_licence_title)
 
-    /** Settings, About: the licence row's value. */
+    /** Settings, About: the licence row's value. "Open source" is the licence's kind, not a source in the app's sense, so the words are typed. */
     fun settingsLicenceValue(context: Context): String =
         context.getString(R.string.settings_licence_value)
 
@@ -2877,11 +2877,11 @@ object Strings {
     fun padHelpSkip(context: Context): String =
         context.getString(R.string.pad_help_skip)
 
-    /** Controller help: starts the next episode now, while the Up Next card shows. */
+    /** Controller help: starts the next episode now, while the Up next card shows. */
     fun padHelpPlayNow(context: Context): String =
         context.getString(R.string.pad_help_play_now)
 
-    /** Controller help: cancels the Up Next card. */
+    /** Controller help: cancels the Up next card. */
     fun padHelpCancel(context: Context): String =
         context.getString(R.string.pad_help_cancel)
 
@@ -3857,11 +3857,11 @@ object Strings {
     fun mediaLinkLanguage(context: Context, language: String): String =
         context.getString(R.string.media_link_language, language)
 
-    /** Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min". */
+    /** Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min". */
     fun filmLengthHoursMinutes(context: Context, hours: Int, minutes: Int): String =
         context.getString(R.string.film_length_hours_minutes, hours, minutes)
 
-    /** Length of a film or a single episode that is a whole number of hours, such as "2 hr". */
+    /** Length of a film or a single episode that is a whole number of hours, such as "2 h". */
     fun filmLengthHours(context: Context, hours: Int): String =
         context.getString(R.string.film_length_hours, hours)
 
@@ -4457,7 +4457,7 @@ object Strings {
     fun partyNosourceNoneTitle(context: Context): String =
         context.getString(R.string.party_nosource_none_title)
 
-    /** Line under it. */
+    /** Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence. */
     fun partyNosourceNoneDetail(context: Context, what: String): String =
         context.getString(R.string.party_nosource_none_detail, what)
 
@@ -4465,7 +4465,7 @@ object Strings {
     fun partyNosourceMissingTitle(context: Context): String =
         context.getString(R.string.party_nosource_missing_title)
 
-    /** Line under it. The reason is a sentence without its full stop. */
+    /** Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence. */
     fun partyNosourceMissingDetail(context: Context, why: String, what: String): String =
         context.getString(R.string.party_nosource_missing_detail, why, what)
 

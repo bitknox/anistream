@@ -38,8 +38,11 @@ title-play-on-tv-help = Play this episode on a TV with { -app-name }
 
 # Episode count on a phone's title line, such as "24 ep". Kept short.
 # @arg count: int
-# @max 12
-title-episodes-short = { $count } ep
+# @max 18
+title-episodes-short = { $count ->
+    [one] { $count } episode
+   *[other] { $count } episodes
+}
 
 # VoiceOver label of an episode row that has not aired. The title is already worded, and so is when it airs.
 # @arg title: text
@@ -50,7 +53,7 @@ title-episode-row-unaired = { $title }. { $when }, not out yet
 title-all-watched = Every episode is watched
 
 # Line on the title page when the detail did not arrive in time. A Try again button follows.
-title-no-answer-short = AniList did not answer.
+title-no-answer-short = AniList didn't answer.
 
 # Option of the episode list's filter that shows every episode.
 title-episodes-all = All

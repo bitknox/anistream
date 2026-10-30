@@ -25,6 +25,11 @@
 -plugin-store-pl = plugin stores
 -plugin-store-cap-pl = Plugin stores
 
+# A plugin store on second mention, once the sentence has already said "plugin store". Short
+# forms for tight places such as the terminal. Never the first mention.
+-store = store
+-store-cap = Store
+
 # Shows you have saved, with status.
 -library = library
 -library-cap = Library

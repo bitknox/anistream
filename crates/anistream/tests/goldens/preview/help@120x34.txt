@@ -9,7 +9,7 @@ anistream                                                                       
     Quit                  Q / ctrl+c    Set list status                a  Sources
     Back                     q / esc    Rate this title                *    Move source up                 K
     Toggle rail width            tab    Expand synopsis                i    Move source down               J
-    Refresh this view              r    Remove from Continue           x  Now playing
+    Refresh this view              r    Hide from Continue             x  Now playing
     Force a full resync            R    Search filters            ctrl+f    Play or pause              space
     Subbed or dubbed               t  Title                                 Back 5 seconds                 ←
     Go to section                1–9    Episodes                       e    Forward 5 seconds              →
@@ -22,7 +22,7 @@ anistream                                                                       
     Move right                 l / →    Play the trailer               v    Faster                         ]
     Jump to top                    g    Open on AniList                o    Volume down                    9
     Jump to bottom                 G    Play in a watch party          y    Volume up                      0
-    Jump to today                  T  Episodes                              Fullscreen                     F
+    Jump to today                  T  Episodes                              Full screen                    F
     Jump to previous day           {    Download a range of episodes   D    Leave player running           q
     Jump to next day               }    Toggle watched                 u    Stop playback                  x
     Page up                   ctrl+u    Mark all previous watched      M

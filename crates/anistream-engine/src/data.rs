@@ -1384,9 +1384,9 @@ mod tests {
         let film = |minutes: u32| serde_json::json!({"format": "MOVIE", "duration": minutes});
         assert_eq!(
             length(film(112)),
-            (Some(112), Some(RunLength { hours: 1, minutes: 52 }), Some("1 hr 52 min".into()))
+            (Some(112), Some(RunLength { hours: 1, minutes: 52 }), Some("1 h 52 min".into()))
         );
-        assert_eq!(length(film(120)).2.as_deref(), Some("2 hr"));
+        assert_eq!(length(film(120)).2.as_deref(), Some("2 h"));
         assert_eq!(length(film(46)).2.as_deref(), Some("46 min"));
         assert_eq!(length(film(0)), (None, None, None), "no length is not zero minutes");
         assert_eq!(length(serde_json::json!({"format": "MOVIE"})).1, None);
@@ -1407,7 +1407,7 @@ mod tests {
             })),
             None,
         ));
-        assert_eq!(line, "Movie · 2025 · 1 hr 52 min · 82%");
+        assert_eq!(line, "Movie · 2025 · 1 h 52 min · 82%");
     }
 
     #[test]

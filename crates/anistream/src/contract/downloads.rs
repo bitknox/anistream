@@ -48,7 +48,7 @@ async fn opening_downloads_publishes_the_queue_at_once() {
 
     assert!(job.is_none(), "read from disk, nothing to wait on");
     assert_eq!(names(&updates), ["Downloads"]);
-    assert_eq!(queue(&updates[0]), ["1 Queued", "2 Complete"]);
+    assert_eq!(queue(&updates[0]), ["1 Queued", "2 Downloaded"]);
 }
 
 #[tokio::test]
@@ -66,9 +66,9 @@ async fn pausing_toggles_the_row_and_leaves_finished_ones_alone() {
     for updates in [&paused, &resumed, &unmoved] {
         assert_eq!(names(updates), ["Downloads"]);
     }
-    assert_eq!(queue(&paused[0]), ["1 Paused", "2 Complete"]);
-    assert_eq!(queue(&resumed[0]), ["1 Queued", "2 Complete"]);
-    assert_eq!(queue(&unmoved[0]), ["1 Queued", "2 Complete"]);
+    assert_eq!(queue(&paused[0]), ["1 Paused", "2 Downloaded"]);
+    assert_eq!(queue(&resumed[0]), ["1 Queued", "2 Downloaded"]);
+    assert_eq!(queue(&unmoved[0]), ["1 Queued", "2 Downloaded"]);
 }
 
 #[tokio::test]

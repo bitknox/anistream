@@ -280,13 +280,13 @@ notice-downloads-none-queued = [Ñöţĥîñĝ ƣüéüéð.~~~~~]
 # Toast after a range was asked for and nothing was queued, and the reason it stopped.
 notice-downloads-none-queued-stopped = [Ñöţĥîñĝ ƣüéüéð. { $reason }~~~~~~]
 
-# Toast after a range was asked for and every episode was in the queue already.
+# Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`.
 notice-downloads-none-new = [Ñöţĥîñĝ ñéŵ ƣüéüéð. { $existing }~~~~~~~]
 
-# Toast as above, with the reason the range stopped.
+# Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 notice-downloads-none-new-stopped = [Ñöţĥîñĝ ñéŵ ƣüéüéð. { $existing } { $reason }~~~~~~~~~]
 
-# Toast after a range was asked for, some episodes were queued and some were there already.
+# Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`.
 notice-episodes-queued-existing =
     { $count ->
         [one] [Ǫüéüéð öñé éþîšöðé. { $existing }~~~~~~~]
@@ -300,7 +300,7 @@ notice-episodes-queued-stopped =
        *[other] [Ǫüéüéð { $count } éþîšöðéš, ţĥéñ îţ šţöþþéð. { $reason }~~~~~~~~~~~~~]
     }
 
-# Toast as above, with some episodes in the queue already and the reason the range stopped.
+# Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 notice-episodes-queued-existing-stopped =
     { $count ->
         [one] [Ǫüéüéð öñé éþîšöðé, ţĥéñ îţ šţöþþéð. { $existing } { $reason }~~~~~~~~~~~~~~]
@@ -372,9 +372,9 @@ plugin-published = [Þüƀļîšĥéð { $plugin } { $version }.~~~~~~]
 plugin-unpublished = [{ $plugin } îš ñö ļöñĝéŕ öƒƒéŕéð.~~~~~~~~]
 
 # Toast after the store's admin page opens in the browser.
-store-admin-opened = [Öþéñéð ţĥé àðɱîñ þàĝé îñ ýöüŕ ƀŕöŵšéŕ. Ţĥé ļîñķ ŵöŕķš öñçé, ƒöŕ ţéñ ɱîñüţéš.~~~~~~~~~~~~~~~~~~~~~~~]
+store-admin-opened = [Öþéñéð ţĥé àðɱîñ þàĝé îñ ýöüŕ ƀŕöŵšéŕ. Ţĥé ļîñķ ŵöŕķš öñçé, ƒöŕ 10 ɱîñüţéš.~~~~~~~~~~~~~~~~~~~~~~~]
 
-# Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+# Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run.
 store-admin-open-failed = [Çöüļðñ'ţ öþéñ à ƀŕöŵšéŕ ({ $reason }). Öñ ţĥé þļüĝîñ šţöŕé'š ɱàçĥîñé, ŕüñ "àñîšţŕéàɱ šţöŕé àðɱîñ" ţö þŕîñţ à ļîñķ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Toast after a plugin is installed while plugins are switched off in the source order.
@@ -406,7 +406,7 @@ store-token-missing = [Ţĥéŕé îš ñö ţöķéñ ƒöŕ { $store } öñ ţ
 store-not-joined = [Ţĥàţ þļüĝîñ šţöŕé îš ñö ļöñĝéŕ ĵöîñéð.~~~~~~~~~~~~]
 
 # Error: a store's signing key is unreadable. Shown as the reason a store is offline.
-store-key-damaged = [Ţĥé þļüĝîñ šţöŕé'š ķéý îš ðàɱàĝéð.~~~~~~~~~~~]
+store-key-damaged = [Ţĥîš þļüĝîñ šţöŕé'š ķéý öñ ţĥîš ðéṽîçé îš ðàɱàĝéð. Ļéàṽé ţĥé þļüĝîñ šţöŕé àñð ĵöîñ îţ àĝàîñ ŵîţĥ à ñéŵ îñṽîţé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Error: a store rejected this device's token.
 store-device-refused = [{ $store } ñö ļöñĝéŕ àççéþţš ţĥîš ðéṽîçé. Ĵöîñ îţ àĝàîñ ŵîţĥ à ñéŵ îñṽîţé.~~~~~~~~~~~~~~~~~~~~~]
@@ -460,7 +460,7 @@ plugin-missing-locally = [{ $plugin } îš ñö ļöñĝéŕ îñ ţĥé þļü�
 store-invite-needs-link = [Ţĥîš ðéṽîçé ĵöîñéð { $store } ŵîţĥ îţš ļîñķ. Þàšţé ţĥé šàɱé ļîñķ öñ ţĥé öţĥéŕ ðéṽîçé.~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Error: the store sent an invite link that does not parse. The reason comes from the link parser.
-store-link-malformed = [Ţĥé þļüĝîñ šţöŕé ɱàðé à ƀàð ļîñķ. { $reason }~~~~~~~~~~~~]
+store-link-malformed = [Ţĥé þļüĝîñ šţöŕé šéñţ à ļîñķ ţĥàţ ðöéšñ'ţ ŵöŕķ. Åšķ îţš öŵñéŕ ţö çĥéçķ ţĥé þļüĝîñ šţöŕé. { $reason }~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Error: the store sent a link carrying another store's key.
 store-link-wrong-key = [Ţĥé þļüĝîñ šţöŕé ɱàðé à ļîñķ ŵîţĥ à ðîƒƒéŕéñţ ķéý. Çĥéçķ ţĥé àððŕéšš îţ ŵàš šţàŕţéð ŵîţĥ.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
@@ -481,7 +481,7 @@ source-switched-off = [{ $name } îš öƒƒ. Îţ îš šķîþþéð ŵĥéñ 
 source-switched-on = [{ $name } îš öñ.~~~]
 
 # Error: a command named a plugin that is not loaded.
-plugin-not-loaded = [{ $id } îš ñöţ à þļüĝîñ ţĥàţ îš ļöàðéð.~~~~~~~~~~~]
+plugin-not-loaded = [{ $id } îšñ'ţ ļöàðéð. Çĥéçķ ţĥàţ îţ'š îñšţàļļéð üñðéŕ Šöüŕçéš.~~~~~~~~~~~~~~~~~~]
 
 # Toast after a release is chosen for a title. The name is the release's title.
 release-pinned = [{ $name } ŵîļļ ƀé üšéð ƒöŕ ţĥîš ţîţļé.~~~~~~~~~~]
@@ -502,13 +502,13 @@ torrent-vpn-unverified = [Ţöŕŕéñţš šţàŕţ öñçé ţĥé ṼÞÑ ĝ
 torrent-no-index = [Ţöŕŕéñţš ñééð à ţöŕŕéñţ îñðéẋ. àñîšţŕéàɱ šĥîþš ñöñé, šö àðð ýöüŕ öŵñ àððŕéšš îñ ţĥé šéţţîñĝš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Error: the torrent session did not start because the interface closed first.
-torrent-interface-closed = [Ţĥé îñţéŕƒàçé çļöšéð ƀéƒöŕé ţöŕŕéñţš šţàŕţéð.~~~~~~~~~~~~~~]
+torrent-interface-closed = [àñîšţŕéàɱ çļöšéð ƀéƒöŕé ţöŕŕéñţš šţàŕţéð.~~~~~~~~~~~~~]
 
 # Error: the torrent session could not start. The reason comes from the torrent engine.
 torrent-session-failed = [Çöüļðñ'ţ šţàŕţ ţĥé ţöŕŕéñţ šéššîöñ. { $reason }~~~~~~~~~~~~]
 
 # Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
-torrent-no-kill-switch = [Ţĥéŕé îš ñö ÖŠ-ļéṽéļ ķîļļ šŵîţçĥ ƀéĥîñð ţĥé ṼÞÑ ĝüàŕð. Ŕüñ "àñîšţŕéàɱ --ðöçţöŕ" ƒöŕ àðṽîçé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+torrent-no-kill-switch = [Ñöţĥîñĝ öñ ţĥîš ðéṽîçé šţöþš ţöŕŕéñţ ţŕàƒƒîç îƒ ţĥé ṼÞÑ ðŕöþš. Ŕüñ "àñîšţŕéàɱ --ðöçţöŕ" ţö šéţ ţĥàţ üþ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Toast when the connection check could not run. The reason comes from the VPN settings.
 torrent-not-checked = [Çöüļðñ'ţ çĥéçķ ţĥé çöññéçţîöñ. { $reason }~~~~~~~~~~~]
@@ -526,7 +526,7 @@ job-anilist-limit = [Ŵàîţîñĝ öñ ţĥé ÅñîĻîšţ ŕàţé ļîɱî
 notice-anilist-limit = [Ŵàîţîñĝ { $wait } öñ ţĥé ÅñîĻîšţ ŕàţé ļîɱîţ.~~~~~~~~~~~~]
 
 # Toast when the AniList fallback takes over because AniList cannot be reached.
-notice-anilist-unreachable = [ÅñîĻîšţ îš üñŕéàçĥàƀļé. Ûšîñĝ ţĥé ƒàļļƀàçķ ƒöŕ ƒŕéšĥ ðàţà ƒöŕ ñöŵ.~~~~~~~~~~~~~~~~~~~~]
+notice-anilist-unreachable = [ÅñîĻîšţ îšñ'ţ àñšŵéŕîñĝ. Šĥöŵîñĝ ðàţà ƒŕöɱ àñöţĥéŕ šéŕṽîçé ƒöŕ ñöŵ.~~~~~~~~~~~~~~~~~~~~~]
 
 # Toast when no metadata service answered and the last cached data is shown.
 notice-metadata-cached = [Ñö ɱéţàðàţà šéŕṽîçé àñšŵéŕéð. Šĥöŵîñĝ ŵĥàţ ŵàš ļàšţ çàçĥéð.~~~~~~~~~~~~~~~~~~]
@@ -595,7 +595,7 @@ notice-anilist-client-missing = [ÅñîĻîšţ ñééðš à çļîéñţ îð 
 notice-anilist-paste-flow = [Þàšţîñĝ à çöðé îšñ'ţ þöššîƀļé ĥéŕé. Ǫüîţ àñð ŕüñ àñîšţŕéàɱ --ļöĝîñ îñšţéàð.~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
-notice-mal-client-missing = [ṀýÅñîɱéĻîšţ ñééðš à çļîéñţ îð. Ŕéĝîšţéŕ àñ àþþ öƒ ţýþé öţĥéŕ àţ ɱýàñîɱéļîšţ.ñéţ/àþîçöñƒîĝ, ţĥéñ šéţ { $setting } îñ ţĥé çöñƒîĝ ƒîļé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+notice-mal-client-missing = [ṀýÅñîɱéĻîšţ ñééðš à çļîéñţ îð. Ŕéĝîšţéŕ àñ àþþ ŵîţĥ ţĥé ţýþé "öţĥéŕ" àţ ɱýàñîɱéļîšţ.ñéţ/àþîçöñƒîĝ, ţĥéñ šéţ { $setting } îñ ţĥé çöñƒîĝ ƒîļé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Status line while the browser sign-in is open and the app waits for it to come back.
 status-waiting-for-redirect = [Ŵàîţîñĝ ƒöŕ { $tracker } ţö ŕéðîŕéçţ ƀàçķ…~~~~~~~~~~]
@@ -833,7 +833,7 @@ party-sources-found-line =
     }
 
 # Notice when the player could not start, or could not be reached to add a track.
-player-could-not-start = [Ţĥé þļàýéŕ çöüļð ñöţ šţàŕţ~~~~~~~~]
+player-could-not-start = [Ţĥé þļàýéŕ çöüļðñ'ţ šţàŕţ. Ţŕý àĝàîñ, öŕ çĥööšé àñöţĥéŕ šöüŕçé.~~~~~~~~~~~~~~~~~~~]
 
 # Notice when the file chosen for a subtitle or audio track has no path the app can read.
 player-file-unreadable = [Çöüļðñ'ţ ŕéàð ţĥàţ ƒîļé. Ţŕý àñöţĥéŕ.~~~~~~~~~~~~]
@@ -930,7 +930,7 @@ updates-view-version = [Ṽîéŵ ṽéŕšîöñ~~~~]
 updates-progress-label = [Ûþðàţé þŕöĝŕéšš~~~~~]
 
 # Line under AniList's name on the Accounts page.
-accounts-sync-detail = [Þŕöĝŕéšš àñð ļîšţ çĥàñĝéš šýñç ţö { $tracker }. Ļîƀŕàŕý àñð ţĥé çàļéñðàŕ'š ļîšţ šĥöŵ ýöüŕ { $tracker } ļîšţš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+accounts-sync-detail = [Þŕöĝŕéšš àñð ļîšţ çĥàñĝéš šýñç ţö { $tracker }. Ļîƀŕàŕý àñð ţĥé Çàļéñðàŕ'š Ṁý ļîšţ šĥöŵ ýöüŕ { $tracker } ļîšţš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Line under a signed-in account while changes wait for the connection.
 accounts-changes-waiting-offline =
@@ -991,7 +991,7 @@ shell-restart = [Ŕéšţàŕţ~~~]
 shell-view-release = [Ṽîéŵ~~]
 
 # Notice when the app cannot keep running once its window is closed.
-shell-no-background = [àñîšţŕéàɱ çàñ'ţ ķééþ ŕüññîñĝ îñ ţĥé ƀàçķĝŕöüñð ĥéŕé~~~~~~~~~~~~~~~~]
+shell-no-background = [àñîšţŕéàɱ çàñ'ţ ķééþ ŕüññîñĝ îñ ţĥé ƀàçķĝŕöüñð ĥéŕé, šö ðöŵñļöàðš šţöþ ŵĥéñ ţĥé ŵîñðöŵ çļöšéš~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Tooltip of the main menu button in the sidebar's header.
 shell-main-menu = [Ṁàîñ ɱéñü~~~]
@@ -1326,7 +1326,7 @@ overlays-logs-empty = [Ñöţĥîñĝ ļöĝĝéð ýéţ~~~~~~]
 overlays-hint-manual-query = [Ţýþé ŵĥàţ ţö šéàŕçĥ ƒöŕ. Åñ éɱþţý Éñţéŕ ŕéšéţš ţö ţĥé àüţöɱàţîç ɱàţçĥ.~~~~~~~~~~~~~~~~~~~~~]
 
 # Prompt hint for the first step of signing in to Kitsu.
-overlays-hint-kitsu-username = [Éɱàîļ öŕ üšéŕñàɱé. Éñţéŕ çöñţîñüéš, Éšç çàñçéļš.~~~~~~~~~~~~~~~]
+overlays-hint-kitsu-username = [Éɱàîļ öŕ üšéŕ ñàɱé. Éñţéŕ çöñţîñüéš, Éšç çàñçéļš.~~~~~~~~~~~~~~~]
 
 # Prompt hint for the second step of signing in to Kitsu. The password is shown as dots.
 overlays-hint-kitsu-password = [Ýöüŕ þàššŵöŕð îš éẋçĥàñĝéð ƒöŕ à ţöķéñ àñð ñöţ šţöŕéð. Éñţéŕ šîĝñš îñ.~~~~~~~~~~~~~~~~~~~~~]
@@ -1764,7 +1764,7 @@ keys-action-focus-search = [Šéàŕçĥ~~]
 keys-action-show-accounts = [Åççöüñţš àñð šýñç~~~~~~]
 
 # Action label in the help overlay and the command palette.
-keys-action-show-conflicts = [Ŕéšöļṽé šýñç çöñƒļîçţš~~~~~~~]
+keys-action-show-conflicts = [Ŕéṽîéŵ šýñç ðîƒƒéŕéñçéš~~~~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-show-logs = [Ŕéçéñţ ɱéššàĝéš~~~~~]
@@ -1824,7 +1824,7 @@ keys-action-rate-title = [Ŕàţé ţĥîš ţîţļé~~~~~]
 keys-action-toggle-synopsis = [Éẋþàñð šýñöþšîš~~~~~]
 
 # Action label in the help overlay and the command palette.
-keys-action-hide-from-continue = [Ŕéɱöṽé ƒŕöɱ Çöñţîñüé~~~~~~]
+keys-action-hide-from-continue = [Ĥîðé ƒŕöɱ Çöñţîñüé~~~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-show-episodes = [Éþîšöðéš~~~]
@@ -1914,7 +1914,7 @@ keys-action-volume-down = [Ṽöļüɱé ðöŵñ~~~~]
 keys-action-volume-up = [Ṽöļüɱé üþ~~~]
 
 # Action label in the help overlay and the command palette.
-keys-action-fullscreen = [Ƒüļļšçŕééñ~~~]
+keys-action-fullscreen = [Ƒüļļ šçŕééñ~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-detach = [Ļéàṽé þļàýéŕ ŕüññîñĝ~~~~~~]
@@ -2199,7 +2199,7 @@ nav-overlay-kitsu-password = [Ķîţšü þàššŵöŕð~~~~~]
 nav-overlay-accounts = [Åççöüñţš~~~]
 
 # Title of an overlay panel.
-nav-overlay-conflicts = [Çöñƒļîçţš~~~]
+nav-overlay-conflicts = [Ðîƒƒéŕéñçéš~~~~]
 
 # Title of an overlay panel.
 nav-overlay-logs = [Ļöĝš~~]
@@ -2283,7 +2283,7 @@ downloads-state-active = [Ðöŵñļöàðîñĝ~~~~]
 downloads-state-paused = [Þàüšéð~~]
 
 # A download's state in the table. A narrow column.
-downloads-state-done = [Çöɱþļéţé~~~]
+downloads-state-done = [Ðöŵñļöàðéð~~~]
 
 # A download's state in the table. A narrow column.
 downloads-state-failed = [Ƒàîļéð~~]
@@ -2292,7 +2292,7 @@ downloads-state-failed = [Ƒàîļéð~~]
 downloads-detail-ahead = [Ðöŵñļöàðéð àĥéàð, ŕéɱöṽéð à ðàý àƒţéŕ ýöü ŵàţçĥ îţ~~~~~~~~~~~~~~~]
 
 # Detail line for a download queued ahead of time: where it stands, then what becomes of it.
-downloads-detail-with-ahead = [{ $detail } · Ðöŵñļöàðéð àĥéàð, ŕéɱöṽéð à ðàý àƒţéŕ ýöü ŵàţçĥ îţ~~~~~~~~~~~~~~~~~]
+downloads-detail-with-ahead = [{ $detail } · ðöŵñļöàðéð àĥéàð, ŕéɱöṽéð à ðàý àƒţéŕ ýöü ŵàţçĥ îţ~~~~~~~~~~~~~~~~~]
 
 # Detail line for a paused download. Both sizes are already formatted (such as "734 MB").
 downloads-detail-paused-at = [Þàüšéð àţ { $downloaded } öƒ { $total } (îţ çàŕŕîéš öñ ƒŕöɱ ţĥéŕé)~~~~~~~~~~~~~~~]
@@ -2333,15 +2333,15 @@ accounts-status-opening-browser = [Öþéñîñĝ ýöüŕ ƀŕöŵšéŕ ţö �
 # Toast when a { -tracker } needs signing in again. The key opens the Accounts screen, as the key map draws it.
 accounts-needs-sign-in = [{ $tracker } ñééðš šîĝñîñĝ îñ àĝàîñ. Þŕéšš { $key } ţö öþéñ Åççöüñţš.~~~~~~~~~~~~~~~~~]
 
-# Toast when sync disagreements appear. The key opens the list of them, as the key map draws it.
+# Toast when sync differences appear. The key opens the list of them, as the key map draws it.
 accounts-conflicts-found =
     { $count ->
-        [one] [1 šýñç ðîšàĝŕééɱéñţ ƒöüñð. Þŕéšš { $key } ţö šéţţļé îţ.~~~~~~~~~~~~~~~]
-       *[other] [{ $count } šýñç ðîšàĝŕééɱéñţš ƒöüñð. Þŕéšš { $key } ţö šéţţļé ţĥéɱ.~~~~~~~~~~~~~~~~~]
+        [one] [1 šýñç ðîƒƒéŕéñçé ƒöüñð. Þŕéšš { $key } ţö ŕéṽîéŵ îţ.~~~~~~~~~~~~~~~]
+       *[other] [{ $count } šýñç ðîƒƒéŕéñçéš ƒöüñð. Þŕéšš { $key } ţö ŕéṽîéŵ ţĥéɱ.~~~~~~~~~~~~~~~~]
     }
 
-# Toast when the sync disagreements list is opened and there are none.
-accounts-conflicts-none = [Ţĥéŕé àŕé ñö šýñç ðîšàĝŕééɱéñţš ţö šéţţļé.~~~~~~~~~~~~~]
+# Toast when the sync differences list is opened and there are none.
+accounts-conflicts-none = [Ţĥéŕé àŕé ñö šýñç ðîƒƒéŕéñçéš ţö ŕéṽîéŵ.~~~~~~~~~~~~]
 
 # Toast when a sync is asked for and no { -tracker } is set up. The key opens the Accounts screen, as the key map draws it.
 accounts-no-tracker = [Ñö ţŕàçķéŕ îš çöññéçţéð. Þŕéšš { $key } ţö öþéñ Åççöüñţš.~~~~~~~~~~~~~~~~]
@@ -2440,20 +2440,20 @@ accounts-row-queued =
 # Part of an account's overlay row: changes waiting to be sent, and some of them held back until the title is matched to the { -tracker }'s own id.
 accounts-row-queued-held = [{ $queued } ƣüéüéð, { $held } ŵàîţîñĝ ƒöŕ àñ îð ɱàþþîñĝ~~~~~~~~~~~~~]
 
-# Action beside a sync disagreement in the overlay: Enter keeps the value on this device.
+# Action beside a sync difference in the overlay: Enter keeps the value on this device.
 accounts-conflict-keep-mine = [Ķééþ ɱîñé~~~]
 
-# A sync disagreement in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
+# A sync difference in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 accounts-conflict-row = [{ $title }  ·  { $field }: ɱîñé { $local } / ţĥéîŕš { $remote }~~~~~~~~~~~]
 
 # Title of the Library screen, shown in the placeholder when the terminal is too small.
 lists-library-title = [Ļîƀŕàŕý~~~]
 
 # Toast when the remove key is pressed outside the { -continue-cap } list.
-lists-remove-wrong-list = [Ýöü çàñ öñļý ŕéɱöṽé ţîţļéš ƒŕöɱ ţĥé Çöñţîñüé ļîšţ.~~~~~~~~~~~~~~~]
+lists-remove-wrong-list = [Ýöü çàñ öñļý ĥîðé ţîţļéš îñ ţĥé Çöñţîñüé ļîšţ.~~~~~~~~~~~~~~]
 
 # Toast when a title is removed from the { -continue-cap } list.
-lists-continue-removed = [{ $title } ŕéɱöṽéð ƒŕöɱ Çöñţîñüé. Ŵàţçĥîñĝ îţ àĝàîñ ƀŕîñĝš îţ ƀàçķ.~~~~~~~~~~~~~~~~~~]
+lists-continue-removed = [{ $title } ĥîððéñ ƒŕöɱ Çöñţîñüé. Ŵàţçĥîñĝ îţ àĝàîñ ƀŕîñĝš îţ ƀàçķ.~~~~~~~~~~~~~~~~~~]
 
 # Toast when Enter is pressed on a list with nothing highlighted.
 lists-nothing-selected = [Ñö ţîţļé îš šéļéçţéð.~~~~~~~]
@@ -2776,7 +2776,7 @@ sources-kind-licensed = [Ļîçéñšéð~~~]
 sources-state-ready = [Ŕéàðý~~]
 
 # State of a source: it is working but slowly or only in part.
-sources-state-degraded = [Ðéĝŕàðéð~~~]
+sources-state-degraded = [Šļöŵ~~]
 
 # State of a source: it is not responding.
 sources-state-down = [Ðöŵñ~~]
@@ -2823,16 +2823,16 @@ sources-meta-state-live = [Ļîṽé~~]
 sources-meta-state-unreachable = [Ûñŕéàçĥàƀļé~~~~]
 
 # State of a metadata service: failed recently and is being left alone for a while.
-sources-meta-state-backing-off = [Ɓàçķîñĝ öƒƒ~~~~]
+sources-meta-state-backing-off = [Ŵàîţîñĝ ţö ŕéţŕý~~~~~]
 
 # State of a metadata service: switched off in the config.
 sources-meta-state-off = [Öƒƒ~]
 
 # State of a metadata service: the one answering now, in place of the first choice.
-sources-meta-state-serving = [Šéŕṽîñĝ~~~]
+sources-meta-state-serving = [Îñ üšé~~]
 
 # State of a metadata service: ready if the others fail.
-sources-meta-state-standby = [Šţàñðƀý~~~]
+sources-meta-state-standby = [Ñöţ îñ üšé~~~]
 
 # State of a metadata service: failing.
 sources-meta-state-failing = [Ƒàîļîñĝ~~~]
@@ -3003,7 +3003,7 @@ settings-label-mark-chapters = [Ṁàŕķ öþéñîñĝ àñð éñðîñĝ~~~~
 settings-label-skip-button = [Šĥöŵ šķîþ ƀüţţöñ~~~~~]
 
 # Settings row: whether the player opens fullscreen.
-settings-label-fullscreen = [Šţàŕţ ƒüļļšçŕééñ~~~~~]
+settings-label-fullscreen = [Šţàŕţ îñ ƒüļļ šçŕééñ~~~~~~]
 
 # Settings row: the video upscaling mode.
 settings-label-upscaling = [Ûþšçàļîñĝ~~~]
@@ -3084,10 +3084,10 @@ settings-label-download-quality = [Ðöŵñļöàð ƣüàļîţý~~~~~]
 settings-label-keep-next-episodes = [Ķééþ ñéẋţ éþîšöðéš~~~~~~]
 
 # Settings row: whether downloads run on a mobile connection.
-settings-label-downloads-on-cellular = [Ðöŵñļöàðš öñ çéļļüļàŕ~~~~~~~]
+settings-label-downloads-on-cellular = [Ðöŵñļöàðš öñ ɱöƀîļé ðàţà~~~~~~~~]
 
 # Settings row: whether torrents run on a mobile connection.
-settings-label-torrents-on-cellular = [Ţöŕŕéñţš öñ çéļļüļàŕ~~~~~~]
+settings-label-torrents-on-cellular = [Ţöŕŕéñţš öñ ɱöƀîļé ðàţà~~~~~~~]
 
 # Settings row: what happens to torrents when the VPN check fails.
 settings-label-vpn-on-failure = [Îƒ à çĥéçķ ƒàîļš~~~~~]
@@ -3126,7 +3126,7 @@ settings-note-mark-chapters = [Åððš çĥàþţéŕ ɱàŕķš ţö ţĥé š
 settings-note-skip-button = [Šĥöŵš à ƀüţţöñ öṽéŕ ţĥé öþéñîñĝ àñð éñðîñĝ ŵĥéñ ţĥé šķîþ îšñ'ţ àüţöɱàţîç.~~~~~~~~~~~~~~~~~~~~~~]
 
 # Note under the fullscreen row. "f" is mpv's own key and is not translated.
-settings-note-fullscreen = [ɱþṽ öþéñš ƒüļļšçŕééñ. Îţš öŵñ ƒ ķéý šţîļļ ļéàṽéš ƒüļļšçŕééñ.~~~~~~~~~~~~~~~~~~]
+settings-note-fullscreen = [ɱþṽ öþéñš îñ ƒüļļ šçŕééñ. Îţš öŵñ ƒ ķéý šţîļļ ļéàṽéš ƒüļļ šçŕééñ.~~~~~~~~~~~~~~~~~~~~]
 
 # Note under the upscaling row.
 settings-note-upscaling = [Åðàþţš ţö ţĥé ṽîðéö àñð ýöüŕ ĝŕàþĥîçš çàŕð. Åþþļîéš ƒŕöɱ ţĥé ñéẋţ éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~]
@@ -3894,22 +3894,22 @@ action-cancel = [Çàñçéļ~~]
 action-not-now = [Ñöţ ñöŵ~~~]
 
 # A span of time in whole days. The unit letter belongs to the language.
-duration-days = [{ $days }ð~~]
+duration-days = [{ $days } ð~~]
 
 # A span of time in hours and minutes.
-duration-hours-minutes = [{ $hours }ĥ { $minutes }ɱ~~~]
+duration-hours-minutes = [{ $hours } ĥ { $minutes } ɱîñ~~~~]
 
 # A span of time in whole hours.
-duration-hours = [{ $hours }ĥ~~]
+duration-hours = [{ $hours } ĥ~~]
 
 # A span of time in minutes.
-duration-minutes = [{ $minutes }ɱ~~]
+duration-minutes = [{ $minutes } ɱîñ~~~]
 
 # A short wait in minutes and seconds. The seconds come with a leading zero.
-duration-minutes-seconds = [{ $minutes }ɱ { $seconds }š~~~]
+duration-minutes-seconds = [{ $minutes } ɱîñ { $seconds } š~~~~]
 
 # A short wait in seconds.
-duration-seconds = [{ $seconds }š~~]
+duration-seconds = [{ $seconds } š~~]
 
 # A file size in bytes. The number is already formatted.
 size-byte = [{ $value } Ɓ~~]
@@ -4140,7 +4140,7 @@ error-service-unreachable = [Çöüļðñ'ţ ŕéàçĥ { $name }. Çĥéçķ ý
 error-timed-out = [Ţĥé ŕéƣüéšţ ţööķ ţöö ļöñĝ. Ţŕý àĝàîñ.~~~~~~~~~~~~]
 
 # Failure when a tracker rejects the saved sign-in.
-error-sign-in-expired = [Ýöüŕ šîĝñ-îñ ĥàš éẋþîŕéð. Šîĝñ îñ àĝàîñ üñðéŕ Åççöüñţš.~~~~~~~~~~~~~~~~~]
+error-sign-in-expired = [Ýöüŕ šîĝñ-îñ ĥàš éẋþîŕéð. Šîĝñ îñ àĝàîñ îñ Åççöüñţš.~~~~~~~~~~~~~~~~]
 
 # Accessibility label on the error icon.
 error-label = [Þŕöƀļéɱ~~~]
@@ -4207,10 +4207,10 @@ pad-help-seek-forward =
 # Controller help: skips the opening or ending while its offer shows.
 pad-help-skip = [Šķîþ~~]
 
-# Controller help: starts the next episode now, while the Up Next card shows.
+# Controller help: starts the next episode now, while the Up next card shows.
 pad-help-play-now = [Þļàý ñöŵ~~~]
 
-# Controller help: cancels the Up Next card.
+# Controller help: cancels the Up next card.
 pad-help-cancel = [Çàñçéļ~~]
 
 # Controller help: switches to another source while the buffering card shows.
@@ -4538,7 +4538,7 @@ downloads-caption-done-size = [Ðöŵñļöàðéð · { $size }~~~~~]
 downloads-caption-done = [Ðöŵñļöàðéð~~~]
 
 # Row caption: finished and removed a day after it is watched.
-downloads-caption-ahead = [Ðöŵñļöàðéð àĥéàð · Ŕéɱöṽéð à ðàý àƒţéŕ ýöü ŵàţçĥ îţ~~~~~~~~~~~~~~~~]
+downloads-caption-ahead = [Ðöŵñļöàðéð àĥéàð · ŕéɱöṽéð à ðàý àƒţéŕ ýöü ŵàţçĥ îţ~~~~~~~~~~~~~~~~]
 
 # Short row caption for an episode downloaded before it was asked for.
 downloads-ahead = [Ðöŵñļöàðéð àĥéàð~~~~~]
@@ -4598,7 +4598,7 @@ downloads-seeding-title = [Šééðîñĝ~~~]
 downloads-seeding-after-watching = [Šééðîñĝ àƒţéŕ ŵàţçĥîñĝ~~~~~~~]
 
 # Line under the seeding heading.
-downloads-seeding-note = [Ŵàţçĥéð éþîšöðéš àŕé šĥàŕéð ƀàçķ ŵĥîļé àñîšţŕéàɱ îš öþéñ, üñţîļ ţĥé ŕàţîö öŕ ţĥé ţîɱé ļîɱîţ šéţ îñ Šöüŕçéš îš ŕéàçĥéð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+downloads-seeding-note = [Ŵàţçĥéð éþîšöðéš àŕé šĥàŕéð ƀàçķ ŵĥîļé àñîšţŕéàɱ îš öþéñ, üñţîļ ţĥé ŕàţîö öŕ ţĥé ţîɱé ļîɱîţ šéţ îñ Šéţţîñĝš, üñðéŕ Šöüŕçéš, îš ŕéàçĥéð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Heading of the setting. Shown on desktop only.
 downloads-background-title = [Ŵĥéñ ţĥé ŵîñðöŵ çļöšéš ŵîţĥ ðöŵñļöàðš ŕüññîñĝ~~~~~~~~~~~~~~]
@@ -4619,7 +4619,7 @@ downloads-background-keeps = [Ðöŵñļöàðš ķééþ ĝöîñĝ ŵĥéñ ý
 downloads-background-stops = [Çļöšîñĝ ţĥé ŵîñðöŵ šţöþš ðöŵñļöàðš. Ţĥéý ŕéšüɱé ţĥé ñéẋţ ţîɱé àñîšţŕéàɱ öþéñš.~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Line shown when the setting is Ask each time. Shown on desktop only.
-downloads-background-asks = [Ðöŵñļöàðš ķééþ ĝöîñĝ ŵĥéñ ýöü çļöšé ţĥé ŵîñðöŵ, îƒ ýöü çĥööšé ţö.~~~~~~~~~~~~~~~~~~~~]
+downloads-background-asks = [Çļöšîñĝ ţĥé ŵîñðöŵ àšķš ŵĥéţĥéŕ ţö ķééþ ðöŵñļöàðîñĝ.~~~~~~~~~~~~~~~~]
 
 # Title of the question when the window closes. Shown on desktop only.
 downloads-background-question = [Ķééþ ðöŵñļöàðš ĝöîñĝ?~~~~~~~]
@@ -4671,7 +4671,7 @@ episode-download-paused = [Ðöŵñļöàð þàüšéð àţ { $percent }~~~~~~
 episode-download-done = [Ðöŵñļöàðéð~~~]
 
 # Line under that button after a failure.
-episode-download-failed = [Çöüļðñ'ţ ðöŵñļöàð éþîšöðé { $episode }. Ðöŵñļöàð àĝàîñ.~~~~~~~~~~~~~~]
+episode-download-failed = [Çöüļðñ'ţ ðöŵñļöàð éþîšöðé { $episode }. Ţŕý àĝàîñ.~~~~~~~~~~~~~]
 
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
@@ -4695,7 +4695,7 @@ progress-episodes =
     }
 
 # A span of time to the next episode, in days and hours. The unit letters belong to the language.
-duration-days-hours = [{ $days }ð { $hours }ĥ~~~]
+duration-days-hours = [{ $days } ð { $hours } ĥ~~~~]
 
 # Group header on the library and continue screens.
 group-in-progress = [Îñ þŕöĝŕéšš~~~~]
@@ -4731,16 +4731,16 @@ continue-hide = [Ĥîðé ƒŕöɱ Çöñţîñüé~~~~~~]
 continue-hidden = [Ĥîððéñ ƒŕöɱ Çöñţîñüé.~~~~~~~]
 
 # Menu item that sets a show's status to Dropped and takes it off Continue.
-continue-drop = [Ðŕöþ~~]
+continue-drop = [Ṁöṽé ţö Ðŕöþþéð~~~~~]
 
 # Accessibility label on the overflow button of a row.
 continue-more-for = [Ṁöŕé ƒöŕ { $title }~~~~]
 
 # Row caption: resumes this episode where it stopped. The clock is the stored position.
-continue-row-resume = [Çöñţîñüé É{ $episode } · { $clock }~~~~~~]
+continue-row-resume = [Ŕéšüɱé É{ $episode } · { $clock }~~~~~~]
 
 # Row caption: resumes this episode where it stopped, dubbed.
-continue-row-resume-dubbed = [Çöñţîñüé É{ $episode } ðüƀƀéð · { $clock }~~~~~~~~]
+continue-row-resume-dubbed = [Ŕéšüɱé É{ $episode } ðüƀƀéð · { $clock }~~~~~~~~]
 
 # Row caption: the next unwatched episode.
 continue-row-start = [Þļàý É{ $episode }~~~]
@@ -4827,10 +4827,10 @@ library-loading = [Ļöàðîñĝ ýöüŕ ļîšţš~~~~~~]
 library-add-to-list = [Åðð ţö ļîšţ~~~~]
 
 # Menu item that puts a title in the planning list.
-library-add-planning = [Åðð ţö þļàññîñĝ~~~~~]
+library-add-planning = [Åðð ţö Þļàññîñĝ~~~~~]
 
 # Notice after a title was added to the planning list.
-library-added-planning = [Åððéð ţö þļàññîñĝ.~~~~~~]
+library-added-planning = [Åððéð ţö Þļàññîñĝ.~~~~~~]
 
 # Marker on a title that is already on the person's list.
 library-on-your-list = [Öñ ýöüŕ ļîšţ~~~~]
@@ -4970,11 +4970,11 @@ media-streaming-region-note = [Åṽàîļàƀîļîţý ðéþéñðš öñ ý�
 # Note beside a link to an official service whose page is in another language, such as "Site in Japanese".
 media-link-language = [Šîţé îñ { $language }~~~~]
 
-# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
-film-length-hours-minutes = [{ $hours } ĥŕ { $minutes } ɱîñ~~~~~]
+# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
+film-length-hours-minutes = [{ $hours } ĥ { $minutes } ɱîñ~~~~]
 
-# Length of a film or a single episode that is a whole number of hours, such as "2 hr".
-film-length-hours = [{ $hours } ĥŕ~~]
+# Length of a film or a single episode that is a whole number of hours, such as "2 h".
+film-length-hours = [{ $hours } ĥ~~]
 
 # Length of a film or a single episode under an hour, such as "46 min".
 film-length-minutes = [{ $minutes } ɱîñ~~~]
@@ -5322,7 +5322,7 @@ party-form-episode-of = [Éþîšöðé { $episode } öƒ { $title }~~~~~~]
 party-form-episode = [Éþîšöðé { $episode }~~~~]
 
 # Line on the form when the party could not begin.
-party-ended-early = [Ţĥé þàŕţý éñðéð ƀéƒöŕé îţ ƀéĝàñ.~~~~~~~~~~]
+party-ended-early = [Ţĥé ŵàţçĥ þàŕţý éñðéð ƀéƒöŕé îţ ƀéĝàñ.~~~~~~~~~~~~]
 
 # Line in the panel while nobody has joined.
 party-waiting-members = [Ŵàîţîñĝ ƒöŕ ţĥé ŕööɱ'š ɱéɱƀéŕš~~~~~~~~~]
@@ -5397,7 +5397,7 @@ party-in-room-idle = [Ýöü'ŕé îñ { $room } öñ { $server }, ŵîţĥ ñö
 party-in-room-idle-plain = [Ýöü'ŕé îñ ţĥé ŕööɱ, ŵîţĥ ñöţĥîñĝ þļàýîñĝ.~~~~~~~~~~~~~]
 
 # Note when an invite link lacks parts.
-party-link-incomplete = [Ţĥàţ þàŕţý ļîñķ îš ɱîššîñĝ îţš šéŕṽéŕ, ŕööɱ öŕ éþîšöðé.~~~~~~~~~~~~~~~~~]
+party-link-incomplete = [Ţĥàţ ŵàţçĥ þàŕţý ļîñķ îš ɱîššîñĝ îţš šéŕṽéŕ, ŕööɱ öŕ éþîšöðé.~~~~~~~~~~~~~~~~~~~]
 
 # Note when the link is for the party you are in.
 party-already-in = [Ýöü'ŕé àļŕéàðý îñ ţĥîš ŵàţçĥ þàŕţý.~~~~~~~~~~~]
@@ -5420,13 +5420,13 @@ party-leave-detail = [Çļöšîñĝ àñîšţŕéàɱ ļéàṽéš { $room }.
 # Title when the user has installed no source.
 party-nosource-none-title = [Ýöü ĥàṽé ñö šöüŕçéš ýéţ~~~~~~~]
 
-# Line under it.
+# Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence.
 party-nosource-none-detail = [Šöüŕçéš çöɱé ƒŕöɱ þļüĝîñš, ŵĥîçĥ à þļüĝîñ šţöŕé àððš. { $what } þļàýš ŵîţĥ ţĥé ŕööɱ öñçé öñé öƒ ţĥéɱ ĥàš îţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Title when no source has the episode.
 party-nosource-missing-title = [Ñöñé öƒ ýöüŕ šöüŕçéš ĥàš ţĥîš éþîšöðé~~~~~~~~~~~~]
 
-# Line under it. The reason is a sentence without its full stop.
+# Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence.
 party-nosource-missing-detail = [{ $why }. { $what } þļàýš ŵîţĥ ţĥé ŕööɱ öñçé ýöü çĥööšé à šöüŕçé ţĥàţ ĥàš îţ.~~~~~~~~~~~~~~~~~~~~]
 
 # Line under a title that says the episode has not aired.
@@ -6123,7 +6123,7 @@ settings-wifi-only = [Ŵî-Ƒî öñļý~~~]
 settings-wifi-only-detail = [Ðöŵñļöàðš ŵàîţ ƒöŕ Ŵî-Ƒî~~~~~~~~]
 
 # Row: torrents on a mobile connection.
-settings-torrents-cellular = [Ţöŕŕéñţš öñ çéļļüļàŕ~~~~~~]
+settings-torrents-cellular = [Ţöŕŕéñţš öñ ɱöƀîļé ðàţà~~~~~~~]
 
 # Row: seeding after watching.
 settings-seed-after = [Šééð àƒţéŕ ŵàţçĥîñĝ~~~~~~]
@@ -6361,7 +6361,7 @@ widget-day-today = [ţöðàý~~]
 widget-day-yesterday = [ýéšţéŕðàý~~~]
 
 # Line of the Continue widget: what plays next, with the episode already named.
-widget-line-start = [Šţàŕţ { $episode }~~~]
+widget-line-start = [Þļàý { $episode }~~~]
 
 # Value of the Play trailers setting: trailers play by themselves on any network.
 settings-trailers-always = [Åļŵàýš~~]
@@ -6497,13 +6497,13 @@ sources-detail-not-answering-plain = [Ñöţ àñšŵéŕîñĝ.~~~~~]
 sources-detail-held-back = [Ĥéļð ƀàçķ üñţîļ ţĥé çöññéçţîöñ çĥéçķ þàššéš.~~~~~~~~~~~~~~]
 
 # Status line: disabled.
-sources-detail-disabled = [Ðîšàƀļéð. Îţ ķééþš îţš þļàçé àñð îš ñöţ ţŕîéð.~~~~~~~~~~~~~~]
+sources-detail-disabled = [Öƒƒ. Îţ ķééþš îţš þļàçé àñð îšñ'ţ ţŕîéð.~~~~~~~~~~~~]
 
 # Status line: the source is gone.
 sources-detail-gone = [Ţĥîš šöüŕçé îš ñö ļöñĝéŕ ĥéŕé.~~~~~~~~~]
 
 # Status line: the site did not answer.
-sources-detail-site = [Ţĥé šîţé ðîð ñöţ àñšŵéŕ.~~~~~~~~]
+sources-detail-site = [Ţĥé šöüŕçé ðîðñ'ţ àñšŵéŕ.~~~~~~~~]
 
 # Row label: version.
 sources-version = [Ṽéŕšîöñ~~~]
@@ -6534,7 +6534,7 @@ sources-contacts-line =
     }
 
 # Line: the plugin contacts no host.
-sources-contacts-none = [Çöñţàçţš ñö ĥöšţš~~~~~~]
+sources-contacts-none = [Ļîšţš ñö ĥöšţš ţö çöñţàçţ~~~~~~~~]
 
 # Value when no host is listed.
 sources-no-hosts = [Ñö ĥöšţš~~~]
@@ -7084,7 +7084,7 @@ episode-row-not-out = [Ñöţ öüţ ýéţ~~~~]
 episode-row-airs = [Åîŕš { $when }~~~]
 
 # Accessibility label of an episode's still while spoiler protection hides it.
-episode-spoiler-hidden = [Šţîļļ ĥîððéñ: šþöîļéŕ þŕöţéçţîöñ~~~~~~~~~~]
+episode-spoiler-hidden = [Ĥîððéñ ƀý šþöîļéŕ þŕöţéçţîöñ~~~~~~~~~]
 
 # Accessibility label of the button that opens an episode's menu.
 episode-options = [Éþîšöðé öþţîöñš~~~~~]
@@ -7220,7 +7220,7 @@ torrents-off-detail = [Öƒƒ ƀý ðéƒàüļţ. Ţüŕñîñĝ ţĥîš öñ 
 torrents-risk = [Öţĥéŕ þéöþļé çàñ šéé ýöüŕ ÎÞ àððŕéšš ŵĥîļé ýöü ðöŵñļöàð àñð šĥàŕé à ţöŕŕéñţ. Çĥööšé ŵĥàţ þŕöţéçţš îţ ƀéƒöŕé ţöŕŕéñţš šţàŕţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Line in the Apple sources screen: torrents belong to the app, not to a plugin.
-torrents-not-a-plugin = [Ţöŕŕéñţš àŕé þàŕţ öƒ àñîšţŕéàɱ, ñöţ à þļüĝîñ. Ŵĥàţ þŕöţéçţš ţĥéîŕ ţŕàƒƒîç, ţĥé çöññéçţîöñ çĥéçķ àñð šééðîñĝ àŕé šéţ îñ Šöüŕçéš šéţţîñĝš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+torrents-not-a-plugin = [Ţöŕŕéñţš àŕé þàŕţ öƒ àñîšţŕéàɱ, ñöţ à þļüĝîñ. Ŵĥàţ þŕöţéçţš ţĥéîŕ ţŕàƒƒîç, ţĥé çöññéçţîöñ çĥéçķ àñð šééðîñĝ àŕé šéţ îñ Šéţţîñĝš, üñðéŕ Šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Label of the choice of protection.
 torrents-protect-with = [Þŕöţéçţ ŵîţĥ~~~~]
@@ -7244,7 +7244,7 @@ torrents-protect-vpn-detail = [Ûšéš ţĥé ṼÞÑ àļŕéàðý ŕüññî
 torrents-protect-none-detail = [Ýöüŕ àððŕéšš îš ṽîšîƀļé ţö éṽéŕýöñé îñ ţĥé ţöŕŕéñţ.~~~~~~~~~~~~~~~~]
 
 # Line when no protection is set.
-torrents-protect-none-note = [Ŵîţĥ ñö þŕöţéçţîöñ, àñîšţŕéàɱ ðöéš ñöţ çĥéçķ ţĥé çöññéçţîöñ.~~~~~~~~~~~~~~~~~~]
+torrents-protect-none-note = [Ŵîţĥ ñö þŕöţéçţîöñ, àñîšţŕéàɱ ðöéšñ'ţ çĥéçķ ţĥé çöññéçţîöñ.~~~~~~~~~~~~~~~~~~]
 
 # Summary: a proxy protects. Host and port are already formatted.
 torrents-summary-proxy-at = [Þŕöţéçţéð ƀý à ŠÖÇĶŠ5 þŕöẋý àţ { $host }:{ $port }.~~~~~~~~~~~~]
@@ -7262,7 +7262,7 @@ torrents-summary-none = [Ñöţ þŕöţéçţéð. Ýöüŕ àððŕéšš îš
 torrents-unprotected-title = [Ûšé ţöŕŕéñţš ŵîţĥöüţ þŕöţéçţîöñ?~~~~~~~~~~]
 
 # Line under it.
-torrents-unprotected-detail = [Öţĥéŕ þéöþļé çàñ šéé ýöüŕ ÎÞ àððŕéšš ŵĥîļé ýöü ðöŵñļöàð àñð šĥàŕé à ţöŕŕéñţ, àñð àñîšţŕéàɱ ðöéš ñöţ çĥéçķ ţĥé çöññéçţîöñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+torrents-unprotected-detail = [Öţĥéŕ þéöþļé çàñ šéé ýöüŕ ÎÞ àððŕéšš ŵĥîļé ýöü ðöŵñļöàð àñð šĥàŕé à ţöŕŕéñţ, àñð àñîšţŕéàɱ ðöéšñ'ţ çĥéçķ ţĥé çöññéçţîöñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Button that confirms turning torrents on without protection.
 torrents-turn-on-unprotected = [Ţüŕñ öñ ŵîţĥöüţ þŕöţéçţîöñ~~~~~~~~]
@@ -7301,7 +7301,7 @@ torrents-proxy-saved = [Þŕöẋý šàṽéð~~~~]
 torrents-left-outside-proxy = [Ţöŕŕéñţ ţŕàƒƒîç ļéƒţ öüţšîðé ţĥîš þŕöẋý~~~~~~~~~~~~]
 
 # Why a save was refused: the check could not run through the proxy.
-torrents-check-not-made-proxy = [Ţĥé çĥéçķ çöüļð ñöţ ƀé ɱàðé ţĥŕöüĝĥ ţĥîš þŕöẋý~~~~~~~~~~~~~~]
+torrents-check-not-made-proxy = [Ţĥé çĥéçķ çöüļðñ'ţ ƀé ɱàðé ţĥŕöüĝĥ ţĥîš þŕöẋý~~~~~~~~~~~~~~]
 
 # Notice when a proxy was not saved. The reason is a sentence fragment.
 torrents-proxy-not-saved = [Ñöţ šàṽéð. { $why }, šö ţĥé šàṽéð þŕöẋý šţàýš.~~~~~~~~~~~~~]
@@ -7376,7 +7376,7 @@ torrents-check-running = [Çĥéçķîñĝ~~~]
 torrents-check-leaked = [Ţŕàƒƒîç ļéƒţ öüţšîðé ţĥé þŕöţéçţîöñ. { $then }~~~~~~~~~~~~]
 
 # Check failed: the check could not be made. The consequence follows.
-torrents-check-unmade = [Ţĥé çĥéçķ çöüļð ñöţ ƀé ɱàðé. { $then }~~~~~~~~~~]
+torrents-check-unmade = [Ţĥé çĥéçķ çöüļðñ'ţ ƀé ɱàðé. { $then }~~~~~~~~~~]
 
 # Short word: the check failed.
 torrents-check-failed = [Ƒàîļéð~~]
@@ -7439,7 +7439,7 @@ accounts-title = [Åççöüñţš~~~]
 accounts-other-trackers = [Öţĥéŕ ţŕàçķéŕš~~~~~]
 
 # Line on the welcome screen: where the other trackers are.
-accounts-other-trackers-note = [Öţĥéŕ ţŕàçķéŕš àŕé îñ Šéţţîñĝš, üñðéŕ Åççöüñţš.~~~~~~~~~~~~~~~]
+accounts-other-trackers-note = [Öţĥéŕ ţŕàçķéŕš àŕé îñ Åççöüñţš.~~~~~~~~~~]
 
 # Line on the welcome screen: why to sign in.
 accounts-welcome-detail = [Šîĝñ îñ ţö { $tracker } ţö šýñç ýöüŕ ļîšţ àñð ŵĥéŕé ýöü šţöþþéð.~~~~~~~~~~~~~~~~~]
@@ -7626,7 +7626,7 @@ accounts-open-on = [Öþéñ öñ { $tracker }~~~~]
 accounts-listed-by = [Ļîšţéð ƀý { $tracker }~~~~]
 
 # Line when the tracker did not answer.
-accounts-did-not-answer = [{ $tracker } ðîð ñöţ àñšŵéŕ.~~~~~~]
+accounts-did-not-answer = [{ $tracker } ðîðñ'ţ àñšŵéŕ.~~~~~~]
 
 # Line when the tracker has nothing for the show.
 accounts-no-extras = [{ $tracker } ĥàš ñö çàšţ, šţàƒƒ öŕ ŕéçöɱɱéñðàţîöñš ƒöŕ ţĥîš šĥöŵ ýéţ.~~~~~~~~~~~~~~~~~~]
@@ -7722,10 +7722,10 @@ tv-starting-on = [Šţàŕţîñĝ öñ { $name }~~~~~]
 tv-starting = [Šţàŕţîñĝ öñ ţĥé ŢṼ~~~~~~]
 
 # Line when something failed while talking to the TV.
-tv-talk-failed = [Šöɱéţĥîñĝ ŵéñţ ŵŕöñĝ ţàļķîñĝ ţö ţĥé ŢṼ. Ţŕý àĝàîñ.~~~~~~~~~~~~~~~]
+tv-talk-failed = [Ļöšţ çöñţàçţ ŵîţĥ ţĥé ŢṼ. Çĥéçķ ţĥàţ îţ'š öñ àñð öñ ţĥé šàɱé ñéţŵöŕķ, ţĥéñ ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Line when the TV did not start the episode. The reason is a sentence fragment.
-tv-play-failed = [Þļàý öñ ŢṼ ðîð ñöţ šţàŕţ: { $reason }~~~~~~~~~]
+tv-play-failed = [Þļàý öñ ŢṼ ðîðñ'ţ šţàŕţ: { $reason }~~~~~~~~~]
 
 # Label of the address field.
 tv-address = [Åððŕéšš~~~]
@@ -7935,7 +7935,7 @@ updates-opens-next-time = [Ţĥé ñéŵ ṽéŕšîöñ öþéñš ñéẋţ ţ
 updates-stopped = [Ţĥé üþðàţé ţö ṽéŕšîöñ { $version } šţöþþéð. { $reason }~~~~~~~~~~~~]
 
 # Notice when the new version did not install.
-updates-did-not-install = [Ṽéŕšîöñ { $version } ðîðñ'ţ îñšţàļļ. Åƀöüţ çàñ ţŕý àĝàîñ.~~~~~~~~~~~~~~~]
+updates-did-not-install = [Ṽéŕšîöñ { $version } ðîðñ'ţ îñšţàļļ. Ţŕý àĝàîñ ƒŕöɱ Åƀöüţ.~~~~~~~~~~~~~~~]
 
 # Button that opens About.
 updates-open-about = [Öþéñ Åƀöüţ~~~]
@@ -7950,7 +7950,7 @@ updates-saved-replace = [Ṽéŕšîöñ { $version } šàṽéð ţö Ðöŵñ�
 updates-saved-replace-plain = [Ṽéŕšîöñ { $version } šàṽéð ţö Ðöŵñļöàðš. Ŕéþļàçé ţĥé öļð ƒîļé ŵîţĥ îţ ţö üþðàţé.~~~~~~~~~~~~~~~~~~~~~~]
 
 # The server refused. The code is a number.
-updates-why-server = [Ţĥé ðöŵñļöàð šţöþþéð: ţĥé šéŕṽéŕ àñšŵéŕéð { $code }.~~~~~~~~~~~~~~]
+updates-why-server = [Ţĥé ðöŵñļöàð šţöþþéð: ţĥé šéŕṽéŕ ŕéƒüšéð îţ ({ $code }). Ţŕý àĝàîñ ļàţéŕ.~~~~~~~~~~~~~~~~~~~~~]
 
 # The connection broke.
 updates-why-connection = [Ţĥé ðöŵñļöàð šţöþþéð: ţĥé çöññéçţîöñ ŵàš ļöšţ.~~~~~~~~~~~~~~]

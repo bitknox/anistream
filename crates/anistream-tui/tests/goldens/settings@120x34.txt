@@ -16,7 +16,7 @@ anistream                                                                       
                             │    Skip filler automatically   Off
                             │    Mark opening and ending     On
                             │    Show skip button            On
-                            │    Start fullscreen            Off
+                            │    Start in full screen        Off
                             │  ▌ Upscaling                   Natural · ArtCNN
                             │    Player interface            anistream
                             │    Night mode                  Off
@@ -108,7 +108,7 @@ r17 c28-28 fg=rule
 r17 c33-48 fg=text-dim
 r17 c61-62 fg=text
 r18 c28-28 fg=rule
-r18 c33-48 fg=text-dim
+r18 c33-52 fg=text-dim
 r18 c61-63 fg=text
 r19 c28-28 fg=rule
 r19 c31-31 fg=obi

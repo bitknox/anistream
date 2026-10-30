@@ -26,7 +26,7 @@ progress-episodes = { $watched } of { $total ->
 # A span of time to the next episode, in days and hours. The unit letters belong to the language.
 # @arg days: int
 # @arg hours: int
-duration-days-hours = { $days }d { $hours }h
+duration-days-hours = { $days } d { $hours } h
 
 # Group header on the library and continue screens.
 group-in-progress = In progress
@@ -64,7 +64,7 @@ continue-hide = Hide from { -continue-cap }
 continue-hidden = Hidden from { -continue-cap }.
 
 # Menu item that sets a show's status to Dropped and takes it off Continue.
-continue-drop = Drop
+continue-drop = Move to Dropped
 
 # Accessibility label on the overflow button of a row.
 # @arg title: text
@@ -73,12 +73,12 @@ continue-more-for = More for { $title }
 # Row caption: resumes this episode where it stopped. The clock is the stored position.
 # @arg episode: int
 # @arg clock: text
-continue-row-resume = { -continue-cap } E{ $episode } · { $clock }
+continue-row-resume = Resume E{ $episode } · { $clock }
 
 # Row caption: resumes this episode where it stopped, dubbed.
 # @arg episode: int
 # @arg clock: text
-continue-row-resume-dubbed = { -continue-cap } E{ $episode } { -dubbed } · { $clock }
+continue-row-resume-dubbed = Resume E{ $episode } { -dubbed } · { $clock }
 
 # Row caption: the next unwatched episode.
 # @arg episode: int
@@ -184,10 +184,10 @@ library-loading = Loading your lists
 library-add-to-list = Add to list
 
 # Menu item that puts a title in the planning list.
-library-add-planning = Add to planning
+library-add-planning = Add to Planning
 
 # Notice after a title was added to the planning list.
-library-added-planning = Added to planning.
+library-added-planning = Added to Planning.
 
 # Marker on a title that is already on the person's list.
 library-on-your-list = On your list

@@ -92,7 +92,7 @@ downloads-caption-done-size = Downloaded · { $size }
 downloads-caption-done = Downloaded
 
 # Row caption: finished and removed a day after it is watched.
-downloads-caption-ahead = Downloaded ahead · Removed a day after you watch it
+downloads-caption-ahead = Downloaded ahead · removed a day after you watch it
 
 # Short row caption for an episode downloaded before it was asked for.
 downloads-ahead = Downloaded ahead
@@ -163,7 +163,7 @@ downloads-seeding-title = Seeding
 downloads-seeding-after-watching = Seeding after watching
 
 # Line under the seeding heading.
-downloads-seeding-note = Watched episodes are shared back while { -app-name } is open, until the ratio or the time limit set in { -source-cap-pl } is reached.
+downloads-seeding-note = Watched episodes are shared back while { -app-name } is open, until the ratio or the time limit set in Settings, under { -source-cap-pl }, is reached.
 
 # Line under the seeding heading where seeding cannot run in the background.
 # @only android
@@ -197,7 +197,7 @@ downloads-background-stops = Closing the window stops downloads. They resume the
 
 # Line shown when the setting is Ask each time.
 # Shown on desktop only.
-downloads-background-asks = Downloads keep going when you close the window, if you choose to.
+downloads-background-asks = Closing the window asks whether to keep downloading.
 
 # Title of the question when the window closes.
 # Shown on desktop only.
@@ -264,4 +264,4 @@ episode-download-done = Downloaded
 
 # Line under that button after a failure.
 # @arg episode: int
-episode-download-failed = Couldn't download episode { $episode }. Download again.
+episode-download-failed = Couldn't download episode { $episode }. Try again.

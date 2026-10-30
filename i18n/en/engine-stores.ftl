@@ -50,9 +50,10 @@ plugin-published = Published { $plugin } { $version }.
 plugin-unpublished = { $plugin } is no longer offered.
 
 # Toast after the store's admin page opens in the browser.
-store-admin-opened = Opened the admin page in your browser. The link works once, for ten minutes.
+store-admin-opened = Opened the admin page in your browser. The link works once, for 10 minutes.
 
-# Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+# Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run.
+# @allow store
 # @arg reason: text
 store-admin-open-failed = Couldn't open a browser ({ $reason }). On the { -plugin-store }'s machine, run "{ -app-name } store admin" to print a link.
 
@@ -96,7 +97,7 @@ store-token-missing = There is no token for { $store } on this { -device }. Join
 store-not-joined = That { -plugin-store } is no longer joined.
 
 # Error: a store's signing key is unreadable. Shown as the reason a store is offline.
-store-key-damaged = The { -plugin-store }'s key is damaged.
+store-key-damaged = This { -plugin-store }'s key on this { -device } is damaged. Leave the { -plugin-store } and join it again with a new invite.
 
 # Error: a store rejected this device's token.
 # @arg store: text
@@ -177,7 +178,7 @@ store-invite-needs-link = This { -device } joined { $store } with its link. Past
 
 # Error: the store sent an invite link that does not parse. The reason comes from the link parser.
 # @arg reason: text
-store-link-malformed = The { -plugin-store } made a bad link. { $reason }
+store-link-malformed = The { -plugin-store } sent a link that doesn't work. Ask its owner to check the { -plugin-store }. { $reason }
 
 # Error: the store sent a link carrying another store's key.
 store-link-wrong-key = The { -plugin-store } made a link with a different key. Check the address it was started with.
@@ -204,7 +205,7 @@ source-switched-on = { $name } is on.
 
 # Error: a command named a plugin that is not loaded.
 # @arg id: text
-plugin-not-loaded = { $id } is not a { -plugin } that is loaded.
+plugin-not-loaded = { $id } isn't loaded. Check that it's installed under { -source-cap-pl }.
 
 # Toast after a release is chosen for a title. The name is the release's title.
 # @arg name: text
@@ -228,14 +229,14 @@ torrent-vpn-unverified = Torrents start once the VPN guard passes. The connectio
 torrent-no-index = Torrents need a { -torrent-index }. { -app-name } ships none, so add your own address in the settings.
 
 # Error: the torrent session did not start because the interface closed first.
-torrent-interface-closed = The interface closed before torrents started.
+torrent-interface-closed = { -app-name } closed before torrents started.
 
 # Error: the torrent session could not start. The reason comes from the torrent engine.
 # @arg reason: text
 torrent-session-failed = Couldn't start the torrent session. { $reason }
 
 # Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
-torrent-no-kill-switch = There is no OS-level kill switch behind the VPN guard. Run "{ -app-name } --doctor" for advice.
+torrent-no-kill-switch = Nothing on this { -device } stops torrent traffic if the VPN drops. Run "{ -app-name } --doctor" to set that up.
 
 # Toast when the connection check could not run. The reason comes from the VPN settings.
 # @arg reason: text
@@ -255,7 +256,7 @@ job-anilist-limit = Waiting on the AniList rate limit
 notice-anilist-limit = Waiting { $wait } on the AniList rate limit.
 
 # Toast when the AniList fallback takes over because AniList cannot be reached.
-notice-anilist-unreachable = AniList is unreachable. Using the fallback for fresh data for now.
+notice-anilist-unreachable = AniList isn't answering. Showing data from another service for now.
 
 # Toast when no metadata service answered and the last cached data is shown.
 notice-metadata-cached = No metadata service answered. Showing what was last cached.

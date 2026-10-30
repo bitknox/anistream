@@ -126,7 +126,7 @@ episode-row-not-out = Not out yet
 episode-row-airs = Airs { $when }
 
 # Accessibility label of an episode's still while spoiler protection hides it.
-episode-spoiler-hidden = Still hidden: spoiler protection
+episode-spoiler-hidden = Hidden by spoiler protection
 
 # Accessibility label of the button that opens an episode's menu.
 episode-options = Episode options

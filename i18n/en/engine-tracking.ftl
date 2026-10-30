@@ -85,7 +85,7 @@ notice-anilist-paste-flow = Pasting a code isn't possible here. Quit and run { -
 # Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the
 # address are not translated.
 # @arg setting: text
-notice-mal-client-missing = MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set { $setting } in the config file.
+notice-mal-client-missing = MyAnimeList needs a client id. Register an app with the type "other" at myanimelist.net/apiconfig, then set { $setting } in the config file.
 
 # Status line while the browser sign-in is open and the app waits for it to come back.
 # @arg tracker: text

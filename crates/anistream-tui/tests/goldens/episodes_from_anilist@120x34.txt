@@ -13,7 +13,7 @@ anistream                                                                       
    │  ▌ 007   Letter No. 7                                                                    24:00   ░░░░░░░░░░
    │    008   Letter No. 8                                                                    24:00   ░░░░░░░░░░
    │    009   Letter No. 9                                                                    24:00   ░░░░░░░░░░
-   │    010   —                                                                               24:00   In 3h 2m
+   │    010   —                                                                               24:00   In 3 h 2 min
    │
    │
    │
@@ -116,7 +116,7 @@ r15 c03-03 fg=rule
 r15 c08-10 fg=text-dim
 r15 c14-14 fg=text-dim
 r15 c94-98 fg=text-dim
-r15 c102-109 fg=text-dim
+r15 c102-113 fg=text-dim
 r16 c03-03 fg=rule
 r17 c03-03 fg=rule
 r18 c03-03 fg=rule

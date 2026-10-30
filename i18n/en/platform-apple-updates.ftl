@@ -16,10 +16,10 @@ updates-downloading-bytes-of = Downloading { $done } of { $total }
 updates-restarting = Restarting to finish the update
 
 # Status line after an update that stopped before it was done.
-updates-did-not-finish = The update did not finish.
+updates-did-not-finish = The update didn't finish. Try again.
 
 # Status line when the check for a newer version could not be made.
-updates-could-not-check = Could not check.
+updates-could-not-check = Couldn't check for updates. Try again later.
 
 # Button that opens the app's page in SideStore, where the update is made.
 updates-in-sidestore = Update in SideStore
@@ -35,10 +35,10 @@ updates-release-notes = What's new
 updates-whats-new-in = What's new in { $version }
 
 # Failure shown when the Mac updater is not ready to install yet.
-updates-installer-not-ready = The updater is not ready. Try again in a moment.
+updates-installer-not-ready = The updater isn't ready. Try again in a moment.
 
 # Failure shown when the update feed does not list the version being installed yet.
-updates-feed-missing = The update feed does not have this version yet.
+updates-feed-missing = The update feed doesn't have this version yet.
 
 # Failure shown when the Fixtures app, used for screenshots, is asked to install an update.
-updates-fixtures-no-install = The Fixtures app does not install updates.
+updates-fixtures-no-install = The Fixtures app doesn't install updates.

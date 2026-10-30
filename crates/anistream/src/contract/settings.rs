@@ -260,7 +260,10 @@ async fn a_plugin_switched_off_keeps_its_row_and_is_not_tried() {
     h.send(Command::DisablePlugin { id: "fixture".into(), disabled: true });
     let updates = h.settle().await;
     assert_eq!(h.trace(), ["Toast"]);
-    assert_eq!(toasts(&updates), ["alert: fixture is not a plugin that is loaded."]);
+    assert_eq!(
+        toasts(&updates),
+        ["alert: fixture isn't loaded. Check that it's installed under Sources."]
+    );
 }
 
 #[tokio::test]
