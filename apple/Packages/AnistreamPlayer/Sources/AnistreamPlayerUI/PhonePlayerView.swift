@@ -64,17 +64,28 @@ public struct PhonePlayerView: View {
                 Color.black
                 ZStack {
                     PlayerPicture(model: model)
-                    StartingCurtain(model: model, metrics: metrics)
-                        .opacity(curtain ? 1 : 0)
-                        .animation(curtain ? .easeIn(duration: 0.25) : .fadeIn, value: curtain)
-                        .allowsHitTesting(curtain)
+                    // Out of the tree once it fades, so VoiceOver does not read "Starting episode 7"
+                    // over a playing video.
+                    if curtain {
+                        StartingCurtain(model: model, metrics: metrics)
+                            .transition(.opacity)
+                    }
                     BufferingLine(model: model, reduceMotion: reduceMotion)
                 }
+                .animation(curtain ? .easeIn(duration: 0.25) : .fadeIn, value: curtain)
                 .scaleEffect(reduceMotion ? 1 : 1 - 0.1 * pull)
                 .clipShape(.rect(cornerRadius: reduceMotion ? 0 : 16 * pull))
                 .opacity(reduceMotion ? 1 - 0.5 * pull : 1)
                 .offset(y: reduceMotion ? 0 : drag)
                 .animation(.standard, value: drag == 0)
+
+                // The taps live on their own layer under the chrome, so the chrome's buttons get
+                // their first tap instead of a parent's double-tap gesture waiting on it.
+                Color.clear
+                    .contentShape(.rect)
+                    .onTapGesture(count: 2) { location in doubleTapped(at: location, width: proxy.size.width) }
+                    .onTapGesture { toggleControls() }
+                    .accessibilityHidden(true)
 
                 Group {
                     Palette.controlsDim.allowsHitTesting(false)
@@ -125,7 +136,6 @@ public struct PhonePlayerView: View {
             }
             .foregroundStyle(.silk)
             .contentShape(.rect)
-            .gesture(taps(width: proxy.size.width))
             .simultaneousGesture(dismissal)
             .simultaneousGesture(speedHold(width: proxy.size.width))
             .simultaneousGesture(
@@ -297,6 +307,18 @@ public struct PhonePlayerView: View {
                             model.toggleStats()
                             if model.statsShown { self.sheet = nil }
                         }
+                        // From 85% of the episode, where it counts as watched.
+                        if let offer = model.discussionOffer {
+                            MenuDivider()
+                            MenuRow(
+                                title: L.discussionOpen,
+                                detail: offer.count.map { L.discussionApplePlayerNote(count: Int($0)) } ?? L.discussionApplePauses,
+                                checked: false, metrics: metrics
+                            ) {
+                                self.sheet = nil
+                                model.openDiscussion()
+                            }
+                        }
                     case .episodes:
                         EpisodeList(model: model, metrics: metrics)
                     case .party:
@@ -357,28 +379,24 @@ public struct PhonePlayerView: View {
 
     /// A tap shows or hides the controls and never pauses; a double tap on the left or right
     /// third seeks 10 s, and each further one within 0.6 s adds 10 more.
-    private func taps(width: CGFloat) -> some Gesture {
-        SpatialTapGesture(count: 2)
-            .onEnded { value in
-                let third = value.location.x / max(width, 1)
-                guard third < 1 / 3 || third > 2 / 3 else {
-                    toggleControls()
-                    return
-                }
-                let forward = third > 2 / 3
-                let now = ContinuousClock.now
-                var next = SeekFlash(forward: forward, seconds: 10, at: now)
-                if let flash, flash.forward == forward, now - flash.at < .milliseconds(600) {
-                    next.seconds = flash.seconds + 10
-                }
-                withAnimation(.quick) { flash = next }
-                model.seek(by: forward ? 10 : -10)
-                Task {
-                    try? await Task.sleep(for: .milliseconds(900))
-                    if flash?.at == now { withAnimation(.fadeOut) { flash = nil } }
-                }
-            }
-            .exclusively(before: TapGesture().onEnded { toggleControls() })
+    private func doubleTapped(at location: CGPoint, width: CGFloat) {
+        let third = location.x / max(width, 1)
+        guard third < 1 / 3 || third > 2 / 3 else {
+            toggleControls()
+            return
+        }
+        let forward = third > 2 / 3
+        let now = ContinuousClock.now
+        var next = SeekFlash(forward: forward, seconds: 10, at: now)
+        if let flash, flash.forward == forward, now - flash.at < .milliseconds(600) {
+            next.seconds = flash.seconds + 10
+        }
+        withAnimation(.quick) { flash = next }
+        model.seek(by: forward ? 10 : -10)
+        Task {
+            try? await Task.sleep(for: .milliseconds(900))
+            if flash?.at == now { withAnimation(.fadeOut) { flash = nil } }
+        }
     }
 
     private func toggleControls() {

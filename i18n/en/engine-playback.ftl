@@ -55,6 +55,9 @@ cause-source-gone = The { -source } { $source } is no longer available. Choose a
 # @arg detail: text
 cause-release-failed = Couldn't start that { -release }: { $detail }
 
+# Reason: a play waited too long for its sources to give it a stream, and gave up.
+cause-sources-timed-out = The { -source-pl } took too long to answer. Try again, or choose another { -source }.
+
 # Reason: every source matched the title but none has the episode. The detail is what each said.
 # @arg episode: text
 # @arg detail: text
@@ -94,14 +97,6 @@ status-loading-sources = Loading { -source-pl }…
 # @arg episode: text
 status-searching-sources = Searching { -source-pl } for episode { $episode }…
 
-# Status while the player opens.
-status-starting-player = Starting mpv…
-
-# Status line while an episode plays.
-# @arg title: text
-# @arg episode: text
-status-playing = Playing { $title }, episode { $episode }
-
 # Toast when the player cannot be started. The reason comes from the system.
 # @arg reason: text
 notice-player-failed-to-start = Couldn't start mpv. Check that it runs on its own. ({ $reason })
@@ -126,12 +121,18 @@ notice-player-not-playing = mpv hasn't started playing after { $seconds } s. The
 notice-no-player = This version of { -app-name } can't play video.
 
 # Toast at launch when the mpv program is missing. The binary is the name the settings give it.
+# Terminal only: the engine never sends it to the apps.
 # @arg binary: text
 notice-mpv-missing = { $binary } wasn't found. Install mpv to play episodes.
 
 # Toast at launch when mpv is too old for anistream's own player.
+# Terminal only: the engine never sends it to the apps.
 # @arg version: text
 notice-mpv-old = mpv { $version } can play, but { -app-name }'s player needs mpv 0.36 or newer for its skip button, { -up-next-cap } card, menus and thumbnails.
+
+# Toast when an episode plays with no subtitles because none of the source's subtitle files
+# could be downloaded.
+notice-subtitles-unavailable = This { -source }'s subtitles couldn't be loaded. Choose another { -source } to try again.
 
 # Toast after a link was handed to the browser.
 notice-opened-in-browser = Opened in your browser.
@@ -203,6 +204,16 @@ notice-source-choice-failed = Couldn't save that choice. { $reason }
 # @arg reason: text
 notice-no-source-could-list = No { -source } could list this show: { $reason }
 
+# Why a title's episodes could not be loaded at all, shown on its page and as a toast. The
+# reason comes from AniList or the network.
+# @arg reason: text
+notice-episodes-failed = Couldn't load the episodes. { $reason }
+
+# Toast when a source found several shows that could be this one and could not tell which. The
+# episodes shown are AniList's until one is picked. The source is its name.
+# @arg source: text
+notice-match-uncertain = { $source } found more than one show that could be this one, so these episodes are from AniList for now.
+
 # Toast when a title cannot be taken off the Continue row. The reason comes from the system.
 # @arg reason: text
 notice-continue-hide-failed = Couldn't remove that from { -continue-cap }. { $reason }
@@ -269,16 +280,16 @@ notice-downloads-none-queued = Nothing queued.
 # @arg reason: cause
 notice-downloads-none-queued-stopped = Nothing queued. { $reason }
 
-# Toast after a range was asked for and every episode was in the queue already.
+# Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`.
 # @arg existing: cause
 notice-downloads-none-new = Nothing new queued. { $existing }
 
-# Toast as above, with the reason the range stopped.
+# Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 # @arg existing: cause
 # @arg reason: cause
 notice-downloads-none-new-stopped = Nothing new queued. { $existing } { $reason }
 
-# Toast after a range was asked for, some episodes were queued and some were there already.
+# Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`.
 # @arg count: int
 # @arg existing: cause
 notice-episodes-queued-existing = { $count ->
@@ -294,7 +305,7 @@ notice-episodes-queued-stopped = { $count ->
    *[other] Queued { $count } episodes, then it stopped. { $reason }
  }
 
-# Toast as above, with some episodes in the queue already and the reason the range stopped.
+# Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 # @arg count: int
 # @arg existing: cause
 # @arg reason: cause
@@ -307,9 +318,16 @@ notice-episodes-queued-existing-stopped = { $count ->
 notice-keep-next-full = Not enough free space to keep the next episodes downloaded. Free up some space to download more.
 
 # Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.
+# Terminal only: the engine never sends it to the apps.
 # @arg server: text
 # @arg operator: text
 party-needs-server = Choose a server for the { -watch-party } first, as syncplay.server. { $server } is run by { $operator }.
+
+# Message when an app asked for a watch party with no server chosen. The names are a suggested
+# server and who runs it.
+# @arg server: text
+# @arg operator: text
+party-choose-server = Choose a server for the { -watch-party } first. { $server } is run by { $operator }.
 
 # Toast when a watch party is asked for in a build without watch parties.
 notice-no-party = { -watch-party-cap-pl } aren't available in this version of { -app-name }.

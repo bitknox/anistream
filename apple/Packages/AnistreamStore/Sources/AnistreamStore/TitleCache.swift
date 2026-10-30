@@ -24,8 +24,10 @@ public final class TitleCache {
     }
 
     /// A list's rows. A list carries no detail-only fields, so a page's stay where one was
-    /// loaded, and so does a known list status the list does not know.
-    func merge(_ list: [Entry]) {
+    /// loaded, and so does a known list status the list does not know. Only Continue's list
+    /// speaks for this device's watch history: any other list may carry a tracker's progress, or
+    /// none, so for a title already known it leaves the local progress and resume point alone.
+    func merge(_ list: [Entry], local: Bool = false) {
         for entry in list {
             guard var kept = entries[entry.id] else {
                 entries[entry.id] = entry
@@ -34,7 +36,12 @@ public final class TitleCache {
             let related = kept.related, recommended = kept.recommended
             let trailer = kept.trailerUrl, availableOn = kept.availableOn, detail = kept.detail
             let status = kept.listStatus, lastAired = kept.lastAired
+            let watched = kept.progress, resume = kept.resume
             kept = entry
+            if !local {
+                kept.progress = watched
+                kept.resume = resume
+            }
             if detailed.contains(entry.id) {
                 kept.related = related
                 kept.recommended = recommended

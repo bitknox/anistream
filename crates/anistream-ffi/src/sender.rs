@@ -13,6 +13,9 @@ use std::{
 };
 
 use anistream_core::ids::AnilistId;
+use anistream_engine::cast::protocol::{
+    AacEncoder, AacStream, AacUnit, AudioCodec, AudioTrackInfo, EncodeError, VolumeControl,
+};
 use anistream_engine::remote::{
     protocol::{
         client::Hello,
@@ -23,9 +26,11 @@ use anistream_engine::remote::{
         state::{Screen, TrackInfo},
     },
     sender::{
+        CastBrowser, CastCard, CastRouteHint, CastRow, CastSession, CastSink, FoundCast,
         LinkPhase, NowCard, Pairing, Problem, RemoteCard, TvLink, TvRow, TvRowKind, TvSender,
     },
 };
+use anistream_model::Msg;
 use tokio::{runtime::Handle, sync::watch};
 
 use crate::{FfiEngine, remote::FfiScreen, remote::FfiTxtPair, start::FfiError};
@@ -372,6 +377,10 @@ pub enum FfiTvCommand {
     Volume {
         step: f64,
     },
+    /// Mute the TV's sound, or bring it back. What a cast to a TV whose volume is fixed has.
+    Mute {
+        muted: bool,
+    },
     Speed {
         speed: f64,
     },
@@ -402,6 +411,7 @@ impl From<FfiTvCommand> for RemoteCommand {
             FfiTvCommand::Skip => Self::Skip,
             FfiTvCommand::Stop => Self::Stop,
             FfiTvCommand::Volume { step } => Self::Volume { step },
+            FfiTvCommand::Mute { muted } => Self::Mute { muted },
             FfiTvCommand::Speed { speed } => Self::Speed { speed },
             FfiTvCommand::Track { kind, id } => Self::Track {
                 kind: match kind {
@@ -426,7 +436,7 @@ impl FfiEngine {
         device_name: String,
         app: String,
     ) -> Result<Arc<FfiTvSender>, FfiError> {
-        let fail = |reason: String| FfiError::Remote { reason };
+        let fail = |reason: String| FfiError::remote(Msg::StartFailedRemote { reason });
         let home = self.remote().home();
         let identity = identity_from(home.secrets.as_ref(), IDENTITY_SECRET)
             .map_err(|e| fail(e.to_string()))?;
@@ -434,6 +444,10 @@ impl FfiEngine {
         std::fs::create_dir_all(&dir).map_err(|e| fail(format!("{}: {e}", dir.display())))?;
         let known = KnownTvs::open(&dir).map_err(|e| fail(e.to_string()))?;
         let sender = TvSender::new(identity, Hello { name: device_name, app }, known);
+        if let Some(engine) = self.remote_sender() {
+            let _entered = self.runtime_handle().enter();
+            sender.attach_casting(Arc::clone(self.remote().casts()), engine);
+        }
         let changes = sender.changes();
         Ok(Arc::new(FfiTvSender {
             sender: Arc::new(sender),
@@ -697,8 +711,12 @@ mod fake {
             let handle = self.runtime_handle();
             let tv = handle
                 .block_on(handle.spawn(async move { FakeTv::start(&name, titles).await }))
-                .map_err(|e| FfiError::Remote { reason: e.to_string() })?
-                .map_err(|e| FfiError::Remote { reason: e.to_string() })?;
+                .map_err(|e| {
+                    FfiError::remote(Msg::StartFailedRemote { reason: e.to_string() })
+                })?
+                .map_err(|e| {
+                    FfiError::remote(Msg::StartFailedRemote { reason: e.to_string() })
+                })?;
             Ok(Arc::new(FfiFakeTv { tv: Mutex::new(Some(tv)), handle }))
         }
     }
@@ -815,4 +833,316 @@ fn hex_decode(text: &str) -> Option<Vec<u8>> {
         .step_by(2)
         .map(|i| u8::from_str_radix(text.get(i..i + 2)?, 16).ok())
         .collect()
+}
+
+/// The platform's DNS-SD browse for `_googlecast._tcp`, implemented by the app beside its
+/// [`FfiTvBrowser`]: TVs with Chromecast built in that don't run anistream.
+///
+/// `start` begins browsing and reports to `sink` until `stop`. Called on the engine's threads.
+#[uniffi::export(with_foreign)]
+pub trait FfiCastBrowser: Send + Sync {
+    fn start(&self, sink: Arc<FfiCastSink>);
+    fn stop(&self);
+}
+
+/// Where the app's Cast browse reports what it finds.
+#[derive(uniffi::Object)]
+pub struct FfiCastSink {
+    sink: CastSink,
+}
+
+#[uniffi::export]
+impl FfiCastSink {
+    /// A Cast device was found, or found again with new details: its instance name, the IP
+    /// addresses it resolved to, its port and its TXT record as it came. Cast devices are
+    /// reached over IPv4, so only an IPv4 address is kept.
+    pub fn found(
+        &self,
+        instance: String,
+        addresses: Vec<String>,
+        port: u16,
+        txt: Vec<FfiTxtPair>,
+    ) {
+        let Some(ip) = addresses
+            .iter()
+            .filter_map(|text| text.parse::<IpAddr>().ok())
+            .find(IpAddr::is_ipv4)
+        else {
+            return;
+        };
+        let txt = txt.into_iter().map(|p| (p.key, p.value)).collect();
+        self.sink.found(FoundCast { instance, address: SocketAddr::new(ip, port), txt });
+    }
+
+    pub fn lost(&self, instance: String) {
+        self.sink.lost(&instance);
+    }
+}
+
+/// The app's Cast browser, as the engine's.
+struct AppCastBrowser(Arc<dyn FfiCastBrowser>);
+
+impl CastBrowser for AppCastBrowser {
+    fn start(&self, sink: CastSink) {
+        self.0.start(Arc::new(FfiCastSink { sink }));
+    }
+
+    fn stop(&self) {
+        self.0.stop();
+    }
+}
+
+/// How a cast to a row's TV reaches it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+pub enum FfiCastRouteHint {
+    /// The TV fetches by itself for this title's usual source.
+    Direct,
+    /// This device serves the stream while it plays.
+    ThroughThisDevice,
+}
+
+/// A row of the TV picker for a TV with Chromecast built in that doesn't run anistream.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct FfiCastRow {
+    /// What `FfiTvSender::cast` takes for this row.
+    pub key: String,
+    pub name: String,
+    /// The model the TV reports, which can be empty.
+    pub model: String,
+    pub address: String,
+    pub route_hint: FfiCastRouteHint,
+}
+
+impl From<CastRow> for FfiCastRow {
+    fn from(row: CastRow) -> Self {
+        Self {
+            key: row.key,
+            name: row.name,
+            model: row.model,
+            address: row.address.to_string(),
+            route_hint: match row.route_hint {
+                CastRouteHint::Direct => FfiCastRouteHint::Direct,
+                CastRouteHint::ThroughThisDevice => FfiCastRouteHint::ThroughThisDevice,
+            },
+        }
+    }
+}
+
+/// Whether a cast's TV takes a volume level, or only mute.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+pub enum FfiVolumeControl {
+    Level,
+    /// The TV's own volume is in charge: the card shows mute alone.
+    MuteOnly,
+}
+
+/// The card for a cast: the card Play on TV draws, and what only a cast has.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FfiCastCard {
+    pub card: FfiRemoteCard,
+    pub volume_control: FfiVolumeControl,
+    #[uniffi(default)]
+    pub muted: Option<bool>,
+    /// Why the cast stopped, or why nothing played, for the app to say in its own words.
+    #[uniffi(default)]
+    pub notice: Option<Msg>,
+}
+
+impl From<CastCard> for FfiCastCard {
+    fn from(card: CastCard) -> Self {
+        Self {
+            card: FfiRemoteCard::from(&card.card),
+            volume_control: match card.volume_control {
+                VolumeControl::Level => FfiVolumeControl::Level,
+                VolumeControl::MuteOnly => FfiVolumeControl::MuteOnly,
+            },
+            muted: card.muted,
+            notice: card.notice,
+        }
+    }
+}
+
+#[uniffi::export]
+impl FfiTvSender {
+    /// Browse for TVs with Chromecast built in with the app's browser while the picker is
+    /// open. `stop_browsing` stops it too.
+    pub fn browse_cast(&self, browser: Arc<dyn FfiCastBrowser>) {
+        let _entered = self.handle.enter();
+        self.sender.browse_cast(Arc::new(AppCastBrowser(browser)));
+    }
+
+    /// The picker's Cast rows, by name, after its anistream rows.
+    pub fn cast_rows(&self) -> Vec<FfiCastRow> {
+        self.sender.cast_rows().into_iter().map(FfiCastRow::from).collect()
+    }
+
+    /// Cast `episode` of `id` to the Cast row `key`, carried over from `position` when it was
+    /// playing here. The engine plays it as any play, on the TV: its events say how it goes.
+    pub fn cast(
+        &self,
+        key: String,
+        id: AnilistId,
+        episode: String,
+        position: Option<f64>,
+    ) -> Result<Arc<FfiCastSession>, FfiTvError> {
+        let _entered = self.handle.enter();
+        let session = self.sender.cast(&key, id, episode, position).map_err(tv_error)?;
+        Ok(FfiCastSession::new(session, self.handle.clone()))
+    }
+
+    /// The cast running now, for a card opened again.
+    pub fn cast_session(&self) -> Option<Arc<FfiCastSession>> {
+        let session = self.sender.cast_session()?;
+        Some(FfiCastSession::new(session, self.handle.clone()))
+    }
+}
+
+/// The card's source for a cast.
+#[derive(uniffi::Object)]
+pub struct FfiCastSession {
+    session: Arc<CastSession>,
+    changes: tokio::sync::Mutex<watch::Receiver<u64>>,
+    handle: Handle,
+}
+
+impl FfiCastSession {
+    fn new(session: Arc<CastSession>, handle: Handle) -> Arc<Self> {
+        let changes = tokio::sync::Mutex::new(session.changes());
+        Arc::new(Self { session, changes, handle })
+    }
+}
+
+#[uniffi::export]
+impl FfiCastSession {
+    pub fn device_name(&self) -> String {
+        self.session.device_name().to_owned()
+    }
+
+    /// The card as it stands.
+    pub fn card(&self) -> FfiCastCard {
+        FfiCastCard::from(self.session.card())
+    }
+
+    /// The card once it may read differently. `None` once the engine has stopped.
+    /// Cancel-safe.
+    pub async fn next_card(&self) -> Option<FfiCastCard> {
+        let mut changes = self.changes.lock().await;
+        changes.changed().await.ok()?;
+        changes.borrow_and_update();
+        Some(self.card())
+    }
+
+    /// What the card's controls ask. Volume steps do nothing on a TV whose volume is fixed;
+    /// mute works on every TV.
+    pub fn command(&self, command: FfiTvCommand) {
+        let _entered = self.handle.enter();
+        self.session.command(command.into());
+    }
+
+    /// Stop casting, and the position to play on from here, when it is past the first seconds.
+    pub fn play_here(&self) -> Option<f64> {
+        self.session.play_here()
+    }
+
+    /// Stop casting: the TV goes back to what it showed.
+    pub fn stop(&self) {
+        self.session.stop();
+    }
+}
+
+/// The platform's audio decoder and AAC encoder, implemented by the app, which a cast uses for
+/// audio a TV can't play: AC-3 and E-AC-3 always, and Opus, FLAC, DTS or TrueHD where a TV
+/// refused them. Called on the engine's threads, one stream at a time per cast.
+#[uniffi::export(with_foreign)]
+pub trait FfiAacEncoder: Send + Sync {
+    /// Whether the platform decodes `codec` for the encoder: `ac3`, `eac3`, `dts`, `truehd`,
+    /// `opus` or `flac`.
+    fn can_decode(&self, codec: String) -> bool;
+
+    /// Start an encode of `track` to AAC-LC as `track` asks, or `None` when that fails.
+    fn open_stream(&self, track: FfiAudioTrack) -> Option<Arc<dyn FfiAacStream>>;
+}
+
+/// One running encode.
+#[uniffi::export(with_foreign)]
+pub trait FfiAacStream: Send + Sync {
+    /// One source frame in, at `pts` seconds; the AAC access units ready, or `None` on failure.
+    fn push(&self, frame: Vec<u8>, pts: f64) -> Option<Vec<FfiAacUnit>>;
+
+    /// What the encoder still holds, at the end of a segment's audio.
+    fn flush(&self) -> Option<Vec<FfiAacUnit>>;
+}
+
+/// An audio track to decode, and the AAC to make of it.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct FfiAudioTrack {
+    /// `ac3`, `eac3`, `dts`, `truehd`, `opus` or `flac`.
+    pub codec: String,
+    /// The track's Matroska `CodecPrivate`, what a decoder is configured from. Often empty. No
+    /// `uniffi(default)`: the C# bindings cannot give a byte array a constant default.
+    pub codec_private: Vec<u8>,
+    pub sample_rate: u32,
+    pub channels: u16,
+    /// The AAC to write: 48 kHz, stereo at 192 kbit/s or 5.1 at 384 kbit/s.
+    pub output_sample_rate: u32,
+    pub output_channels: u16,
+    pub output_bitrate: u32,
+}
+
+/// One AAC access unit, without an ADTS header, at `pts` seconds of the source.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FfiAacUnit {
+    pub data: Vec<u8>,
+    pub pts: f64,
+}
+
+/// The app's encoder, as casting's.
+struct AppEncoder(Arc<dyn FfiAacEncoder>);
+
+struct AppStream(Arc<dyn FfiAacStream>);
+
+fn units(units: Option<Vec<FfiAacUnit>>) -> Result<Vec<AacUnit>, EncodeError> {
+    let units = units.ok_or_else(|| EncodeError("the app's encoder failed".into()))?;
+    Ok(units.into_iter().map(|u| AacUnit { data: u.data, pts: u.pts }).collect())
+}
+
+impl AacEncoder for AppEncoder {
+    fn can_decode(&self, codec: &AudioCodec) -> bool {
+        self.0.can_decode(codec.part())
+    }
+
+    fn open(&self, track: &AudioTrackInfo) -> Result<Box<dyn AacStream>, EncodeError> {
+        let stream = self
+            .0
+            .open_stream(FfiAudioTrack {
+                codec: track.codec.part(),
+                codec_private: track.codec_private.clone(),
+                sample_rate: track.sample_rate,
+                channels: track.channels,
+                output_sample_rate: track.output.sample_rate,
+                output_channels: track.output.channels,
+                output_bitrate: track.output.bitrate,
+            })
+            .ok_or_else(|| EncodeError(format!("the app can't encode {}", track.codec)))?;
+        Ok(Box::new(AppStream(stream)))
+    }
+}
+
+impl AacStream for AppStream {
+    fn push(&mut self, frame: &[u8], pts: f64) -> Result<Vec<AacUnit>, EncodeError> {
+        units(self.0.push(frame.to_vec(), pts))
+    }
+
+    fn flush(&mut self) -> Result<Vec<AacUnit>, EncodeError> {
+        units(self.0.flush())
+    }
+}
+
+#[uniffi::export]
+impl FfiEngine {
+    /// Hand casting the app's AAC encoder, once at start. Without one, audio a TV can't play
+    /// makes the stream uncastable.
+    pub fn set_aac_encoder(&self, encoder: Arc<dyn FfiAacEncoder>) {
+        self.remote().casts().set_encoder(Arc::new(AppEncoder(encoder)));
+    }
 }

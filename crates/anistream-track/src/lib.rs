@@ -79,11 +79,41 @@ pub(crate) async fn page_json(
     };
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
-        // Enough of the body to say why (a maintenance notice, a rate limit), not a whole page.
-        let reason: String = body.trim().chars().take(200).collect();
-        return Err(failed(format!("{status}: {reason}")));
+        return Err(failed(said(status, &body)));
     }
     response.json().await.map_err(|e| failed(e.to_string()))
+}
+
+/// What a tracker's refusal says, for a person: the status, and the first sentence of the reason
+/// when the body is JSON that gives one. Never the body itself, which can be a whole HTML page.
+pub(crate) fn said(status: reqwest::StatusCode, body: &str) -> String {
+    match reason_in(body) {
+        Some(reason) => format!("{status}: {reason}"),
+        None => status.to_string(),
+    }
+}
+
+/// The first sentence of the reason a JSON error body gives: OAuth's `error_description`, MAL's
+/// `hint`, a `message`, the first of an `errors` list, or the bare `error` code last.
+fn reason_in(body: &str) -> Option<String> {
+    let parsed: serde_json::Value = serde_json::from_str(body).ok()?;
+    let first = &parsed["errors"][0];
+    let reason = [
+        &parsed["error_description"],
+        &parsed["hint"],
+        &parsed["message"],
+        &first["detail"],
+        &first["message"],
+        &first["title"],
+        &parsed["error"],
+    ]
+    .into_iter()
+    .find_map(|said| said.as_str().map(str::trim).filter(|said| !said.is_empty()))?;
+    // One sentence, and not a long one.
+    let end = reason.find(['\n', '\r']).unwrap_or(reason.len());
+    let line = &reason[..end];
+    let sentence = line.find(". ").map_or(line, |at| &line[..=at]);
+    Some(sentence.chars().take(160).collect())
 }
 
 #[cfg(test)]
@@ -131,5 +161,30 @@ mod tests {
         let err = page_json(answer(500, body), "mal", "myanimelist").await.unwrap_err();
         let anistream_core::Error::Tracker { message, .. } = err else { unreachable!() };
         assert!(message.len() < 300, "{}", message.len());
+    }
+
+    #[test]
+    fn a_refusal_is_its_status_and_one_sentence_of_why_never_a_page() {
+        use reqwest::StatusCode;
+        let page = "<!DOCTYPE html><html><body><h1>503 Service Unavailable</h1></body></html>";
+        assert_eq!(said(StatusCode::SERVICE_UNAVAILABLE, page), "503 Service Unavailable");
+        let oauth = r#"{"error":"invalid_grant","error_description":"The code has expired. Ask for a new one.\nTrace 42"}"#;
+        assert_eq!(
+            said(StatusCode::BAD_REQUEST, oauth),
+            "400 Bad Request: The code has expired."
+        );
+        let mal =
+            r#"{"error":"invalid_request","hint":"Cannot decrypt the authorization code"}"#;
+        assert_eq!(
+            said(StatusCode::BAD_REQUEST, mal),
+            "400 Bad Request: Cannot decrypt the authorization code"
+        );
+        let listed = r#"{"errors":[{"title":"Forbidden","detail":"Not yours to change."}]}"#;
+        assert_eq!(said(StatusCode::FORBIDDEN, listed), "403 Forbidden: Not yours to change.");
+        assert_eq!(
+            said(StatusCode::BAD_REQUEST, r#"{"error":"invalid_client"}"#),
+            "400 Bad Request: invalid_client"
+        );
+        assert_eq!(said(StatusCode::INTERNAL_SERVER_ERROR, ""), "500 Internal Server Error");
     }
 }

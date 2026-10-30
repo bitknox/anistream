@@ -86,6 +86,12 @@ pub struct Services {
     /// Where playbacks find the watch party, when there is one. Opened by the `party` feature's
     /// party, and never without it.
     pub party: crate::playback::seat::PartyHub,
+    /// How many player windows the playbacks opened, for a test that counts them.
+    #[cfg(feature = "testing")]
+    pub windows: Option<Arc<std::sync::atomic::AtomicUsize>>,
+    /// Casting's devices, memory and the cast running now.
+    #[cfg(feature = "cast")]
+    pub casts: Arc<crate::cast::CastHub>,
 }
 
 impl Services {
@@ -116,6 +122,9 @@ impl Services {
         // something to offer a sign-in for, and the outbox accumulates against the id meanwhile.
         let sync = tracking::Sync::with_tokens(config, &store, &http, tokens);
         let (power, hosted) = players(&paths);
+        #[cfg(feature = "cast")]
+        let casts =
+            Arc::new(crate::cast::CastHub::new(paths.data_dir.join("remote"), http.clone()));
         Ok(Self {
             paths,
             http,
@@ -138,6 +147,10 @@ impl Services {
             clock: Default::default(),
             fixture_exit: None,
             party: Default::default(),
+            #[cfg(feature = "testing")]
+            windows: None,
+            #[cfg(feature = "cast")]
+            casts,
         })
     }
 }

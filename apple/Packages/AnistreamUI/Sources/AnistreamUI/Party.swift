@@ -121,6 +121,7 @@ public struct PlayerCoverSheets: ViewModifier {
         content
             .modifier(TVRemoteSheets(overPlayer: true))
             .modifier(PartySheets(overPlayer: true))
+            .modifier(DiscussionSheets(overPlayer: true))
     }
 }
 

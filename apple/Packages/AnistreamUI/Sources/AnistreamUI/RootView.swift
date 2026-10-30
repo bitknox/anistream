@@ -17,7 +17,13 @@ public struct RootView: View {
         Group {
             switch store.phase {
             case .failed(let reason):
-                StartFailed(reason: reason)
+                StartFailed(title: L.shellStartFailed, message: L.shellStartFailedBody, reason: reason) {
+                    Task { await store.restart() }
+                }
+            case .stopped:
+                StartFailed(title: L.shellEngineStopped, message: L.shellEngineStoppedBody, reason: "") {
+                    Task { await store.restart() }
+                }
             default:
                 #if os(macOS)
                 MacShell()
@@ -38,6 +44,7 @@ public struct RootView: View {
         #endif
         .preferredColorScheme(.dark)
         .modifier(SpotlightResults())
+        .modifier(TrailerPresentation())
         // A pinned source the engine could not use, said once in the notice capsule.
         .onChange(of: store.sourceChoices.pinNotice) { _, notice in
             if let notice { store.say(L.sourcePinUnavailable(name: notice.name)) }
@@ -45,23 +52,38 @@ public struct RootView: View {
     }
 }
 
-/// The engine did not start: what it said, plainly, where the screens would be.
+/// The engine did not start, or stopped: what happened in plain words, Try again, and what it
+/// said, for a bug report.
 struct StartFailed: View {
+    let title: String
+    let message: String
     let reason: String
+    let retry: () -> Void
 
     var body: some View {
         VStack(spacing: 8) {
-            Text(L.shellStartFailed)
+            Text(title)
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
-            Text(reason)
+            Text(message)
                 .font(.mac(13))
-                .foregroundStyle(.haze)
+                .foregroundStyle(.silk)
                 .multilineTextAlignment(.center)
-                .textSelection(.enabled)
                 .frame(maxWidth: 480)
-            ReportButton(context: BugContext(kind: "start", message: reason))
-                .padding(.top, 8)
+            if !reason.isEmpty {
+                Text(reason)
+                    .font(.mac(12))
+                    .foregroundStyle(.haze)
+                    .multilineTextAlignment(.center)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: 480)
+            }
+            HStack(spacing: 12) {
+                Button(L.actionTryAgain, action: retry)
+                    .buttonStyle(.borderedProminent)
+                ReportButton(context: BugContext(kind: reason.isEmpty ? "stopped" : "start", message: reason))
+            }
+            .padding(.top, 8)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

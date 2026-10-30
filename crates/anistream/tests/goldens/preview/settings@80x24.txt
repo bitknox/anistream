@@ -16,7 +16,7 @@ anistream                                       torrent ○  plugins ·  ·  kit
    │    Skip filler automatically   Off
    │    Mark opening and ending     On
    │    Show skip button            On
-   │    Start fullscreen            Off
+   │    Start in full screen        Off
    │    Upscaling                   Natural · ArtCNN
    │
    │

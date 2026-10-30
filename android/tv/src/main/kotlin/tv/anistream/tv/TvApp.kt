@@ -18,6 +18,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.launch
 import tv.anistream.engine.ffi.startLog
 import tv.anistream.player.CaptionStyle
@@ -27,6 +28,7 @@ import tv.anistream.player.MpvBackend
 import tv.anistream.player.PlayerConnection
 import tv.anistream.player.PlayerHost
 import tv.anistream.player.PlayerModel
+import tv.anistream.store.DeviceWatch
 import tv.anistream.store.AppHost
 import tv.anistream.store.AppPhases
 import tv.anistream.store.AppStore
@@ -41,7 +43,10 @@ import tv.anistream.tv.ui.TvArtDecoder
 
 class TvApp : Application(), PlayerHost {
     /** Where the store's work runs: the main thread, for as long as the process. */
-    private val scope = MainScope()
+    private val scope = MainScope() + kotlinx.coroutines.CoroutineExceptionHandler { _, e ->
+        // A coroutine that fails in the store is logged; it does not take the process with it.
+        android.util.Log.e("anistream", "the store's work failed", e)
+    }
 
     // The TV updates from the release's TV APK, never the phone's.
     val store: AppStore by lazy {
@@ -109,6 +114,8 @@ class TvApp : Application(), PlayerHost {
         }
         store.start(launch, host(), prepare)
         watchNetwork()
+        // Trailers play only when the device allows it; the engine decides from what it is told.
+        DeviceWatch.watch(this) { state -> scope.launch { store.deviceState(state) } }
         ProcessLifecycleOwner.get().lifecycle.addObserver(remote)
         ProcessLifecycleOwner.get().lifecycle.addObserver(phases())
         watchNext.start()

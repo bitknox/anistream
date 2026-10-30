@@ -20,6 +20,8 @@ final class AppDelegate: NSObject {
     let player: PlayerModel
     /// Where the app is and the network the device uses, told to the engine.
     let phases: SystemPhases
+    /// What the device says of itself, told to the engine for when trailers may play.
+    private let device: DeviceWatch
     private var started = false
     /// Spotlight's titles, kept the shelf's once the engine is up.
     private var spotlight: SpotlightIndexer?
@@ -39,10 +41,15 @@ final class AppDelegate: NSObject {
         self.store = store
         let player = PlayerModel(send: { [weak store] command in store?.send(command) })
         self.player = player
+        player.discussionHost = DiscussionHost(
+            enabled: { [weak store] in store?.discussionsOn ?? false },
+            count: { [weak store] key in store?.discussion.count(key.media, episode: key.episode) },
+            open: { [weak store] key in store?.discussion.show(key) })
         phases = SystemPhases(
             send: { [weak store] command in store?.send(command) },
             playing: { [weak player] in player.map { $0.isPresented && !$0.paused } ?? false },
             downloading: { [weak store] in store?.continued.stage == .running })
+        device = DeviceWatch(send: { [weak store] command in store?.send(command) })
         playing = player.playingActivity { [weak store] id in store?.titles[id]?.showTitle }
         #if os(macOS)
         tvNowPlaying = TVNowPlaying(tv: store.tv, player: player)
@@ -144,9 +151,11 @@ final class AppDelegate: NSObject {
         started = true
         // Said from the start, queued for the engine until it is up.
         phases.watchNetwork()
+        device.start()
         // An engine a background refresh started stops first: one engine on the files at a time.
         await notices.yieldBackgroundEngine()
         #if FIXTURES
+        TrailerStandIn.install()
         let (launch, temporary) = EngineLaunch.fixtures(platform: Self.platform)
         self.temporary = temporary
         // The testing engine keeps tokens in files of its own; nothing reaches the keychain.
@@ -280,7 +289,16 @@ extension AppDelegate: NSApplicationDelegate {
 
     /// Quitting in a watch party leaves it: asked first, with Stay the default.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        store.party.asksBeforeQuitting() ? .terminateCancel : .terminateNow
+        if store.party.asksBeforeQuitting() { return .terminateCancel }
+        guard store.hasEngine else { return .terminateNow }
+        // The windows go first and the engine winds down off the main thread, for at most four
+        // seconds, so quitting does not look like a hang.
+        for window in NSApp.windows { window.orderOut(nil) }
+        Task { @MainActor in
+            await store.shutdown(within: .seconds(4))
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
     }
 
     func applicationWillTerminate(_ notification: Notification) {

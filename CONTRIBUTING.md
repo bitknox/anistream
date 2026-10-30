@@ -28,7 +28,7 @@ To report a vulnerability, follow [SECURITY.md](SECURITY.md) instead of opening 
 ## Building and testing
 
 The folder guides ([crates/CLAUDE.md](crates/CLAUDE.md), [apple/CLAUDE.md](apple/CLAUDE.md),
-[android/CLAUDE.md](android/CLAUDE.md)) list the rules for each part. Tests must not touch your
+[android/CLAUDE.md](android/CLAUDE.md), [website/CLAUDE.md](website/CLAUDE.md)) list the rules for each part. Tests must not touch your
 real home directory or app data; point `HOME` at a temporary directory when you run them.
 
 ### The Rust workspace
@@ -39,7 +39,7 @@ The toolchain is pinned in `rust-toolchain.toml`, and `rustup` installs it.
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
 cargo clippy -p anistream-engine --no-default-features --all-targets -- -D warnings
-cargo fmt --check
+cargo fmt --all -- --check
 tools/check-boundaries.sh
 ```
 

@@ -143,6 +143,9 @@ class PlayerModel(
      */
     private var closedByViewer = false
 
+    /** The app's window was finished (Back, a swipe away) and no new one has started. */
+    private var windowFinished = false
+
     /**
      * A playback has been staged that has said nothing yet: the one on screen, if any, is older,
      * and stopping is for the staged one, which only a Stop for whatever plays reaches.
@@ -217,6 +220,7 @@ class PlayerModel(
 
     /** The engine's last alert since this episode began to start: why, should it never play. */
     private var failedWith: String? = null
+    private var failedMsg: tv.anistream.engine.model.Msg? = null
 
     /** The viewer asked for the episode's releases; [sourceChoices] is null until they come. */
     var choosingSource by mutableStateOf(false)
@@ -368,10 +372,18 @@ class PlayerModel(
             is Event.PlayerTimeline -> if (accepts(event.playback)) timeline = event.marks
             is Event.PlayerBuffered -> if (accepts(event.playback)) buffered = event.ranges
             is Event.PlaybackStaged -> {
+                if (windowFinished) {
+                    // Back (or a swipe away) beat the engine to it: nobody is here to watch it.
+                    note("#${event.id} refused: the app closed before the player opened")
+                    closedByViewer = true
+                    send(Command.Player(PlayerCommand.Stop))
+                    return
+                }
                 closedByViewer = false
                 stagedAhead = true
                 failure = null
                 failedWith = null
+                failedMsg = null
                 choosingSource = false
                 sourceChoices = null
                 verdictPending = false
@@ -386,8 +398,9 @@ class PlayerModel(
                     // It never played: no stream was found, or none showed a frame. Say so where the
                     // viewer is looking, with another source to choose, rather than vanish.
                     verdictPending = false
-                    failure = PlaybackFailure(staged?.id, startingEpisode!!, failedWith?.let(PlaybackFailure::reason))
+                    failure = PlaybackFailure(staged?.id, startingEpisode!!, failedWith?.let(PlaybackFailure::reason), failedMsg)
                     failedWith = null
+                    failedMsg = null
                     // A release build's logcat says why too, as the engine's own log is the app's.
                     note("couldn't play episode ${failure?.episode}" + (failure?.reason?.let { ": $it" } ?: ""))
                 }
@@ -404,7 +417,10 @@ class PlayerModel(
             // The playback staged found nothing; the one before plays on.
             Event.PlaybackKept -> starting = null
             // The alerts that come while the player is up: the one before a failed ending says why.
-            is Event.Toast -> if (isPresented && event.v1.kind == NoticeKind.ALERT) failedWith = event.v1.text
+            is Event.Toast -> if (isPresented && event.v1.kind == NoticeKind.ALERT) {
+                failedWith = event.v1.text
+                failedMsg = event.v1.msg
+            }
             else -> {}
         }
     }
@@ -456,6 +472,7 @@ class PlayerModel(
             is PlayerUi.Starting -> {
                 note("#$playback starting episode ${ui.episode}")
                 failedWith = null
+                failedMsg = null
                 starting = StartingScreen(playback, ui.id, ui.title, ui.episode, ui.episodeTitle, ui.coverUrl, ui.bannerUrl, now)
                 ui.coverUrl?.let { coverUrl = it }
                 ui.bannerUrl?.let { bannerUrl = it }
@@ -569,7 +586,14 @@ class PlayerModel(
 
     /** A new mpv, decoding with [decoding], and the worker that carries out what is asked of it. */
     private fun start(decoding: String) {
-        val mpv = backend()
+        val mpv = try {
+            backend()
+        } catch (e: LinkageError) {
+            // libmpv did not load: an Error, which the catches below would let through.
+            Log.e(TAG, "the player library did not load: $e")
+            failedToStart(e.message)
+            return
+        }
         this.mpv = mpv
         this.decoding = decoding
         hasMpv = true
@@ -579,9 +603,12 @@ class PlayerModel(
         worker = scope.launch {
             try {
                 mpv.begin(decoding, captionOptions())
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // An early close cancels the start; that is not a failure to report.
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                if (e !is Exception && e !is LinkageError) throw e
                 Log.e(TAG, "mpv did not start: $e")
-                failed(mpv)
+                failed(mpv, e.message)
                 return@launch
             }
             note("mpv started, decoding with $decoding")
@@ -597,6 +624,11 @@ class PlayerModel(
                     } catch (e: Exception) {
                         if (e is kotlinx.coroutines.CancellationException) throw e
                         Log.w(TAG, "mpv refused ${item.call::class.simpleName}: $e")
+                        // A file that would not load leaves the starting screen waiting for ever.
+                        if (item.call is MpvCall.Load) {
+                            failed(mpv, e.message)
+                            return@launch
+                        }
                     }
                 }
             }
@@ -648,6 +680,22 @@ class PlayerModel(
         if (stagedAhead) send(Command.Player(PlayerCommand.Stop))
     }
 
+    /** The app's window is starting: a playback staged from now on has somewhere to show. */
+    fun hostStarted() {
+        windowFinished = false
+    }
+
+    /**
+     * The app's window was finished with nothing playing yet, say Back a moment after Play: what is
+     * being found stops, and a playback staged after this is stopped too. With a file open the
+     * audio goes on, as it does for Home.
+     */
+    fun hostFinished() {
+        windowFinished = true
+        if (mpv != null) return
+        if (isPresented) viewerClosed() else send(Command.Player(PlayerCommand.Stop))
+    }
+
     /**
      * Stop what the engine is finding for this player: aimed at the playback on screen, unless one
      * has been staged since that has said nothing yet. Aimed at the one before, a Stop would miss
@@ -668,10 +716,25 @@ class PlayerModel(
     }
 
     /** mpv would not start, or went away by itself: the player is gone. */
-    private fun failed(mpv: PlayerBackend) {
+    private fun failed(mpv: PlayerBackend, why: String? = null) {
         if (mpv !== this.mpv) return
+        failedToStart(why)
+    }
+
+    /**
+     * mpv could not start: the card says so where the viewer is looking, set before the player
+     * comes down, with the way on, rather than a flash and a close.
+     */
+    private fun failedToStart(why: String?) {
+        val episode = startingEpisode
+        val card = if (isPresented && episode != null) PlaybackFailure(staged?.id, episode, why?.let(PlaybackFailure::reason)) else null
         report(PlayerReport.Closed)
-        teardown()
+        teardown(showing = card != null)
+        if (card != null) {
+            starting = null
+            failure = card
+            changed()
+        }
     }
 
     private fun stopMpv() {
@@ -689,7 +752,7 @@ class PlayerModel(
         hasMpv = false
     }
 
-    private fun teardown(awaitingVerdict: Boolean = false) {
+    private fun teardown(awaitingVerdict: Boolean = false, showing: Boolean = false) {
         stopMpv()
         closedThrough = listOfNotNull(playback, current, opened, loads.maxOrNull()).maxOrNull()
         opened = null
@@ -699,6 +762,8 @@ class PlayerModel(
         startOverOnLoad = false
         settings.clear()
         thumbnails = null
+        // The failure card goes up in its place, and stays until the viewer closes it.
+        if (showing) return
         if (!awaitingVerdict || !isPresented) {
             dismiss()
             return
@@ -719,6 +784,7 @@ class PlayerModel(
         isPresented = false
         failure = null
         failedWith = null
+        failedMsg = null
         choosingSource = false
         sourceChoices = null
         verdictPending = false
@@ -1416,7 +1482,7 @@ class PlayerModel(
         /** An op as the log says it: names, never header values, paths or queries. */
         private fun describe(op: PlayerOp): String = when (op) {
             is PlayerOp.Open -> "open${if (op.fullscreen) " full screen" else ""}"
-            is PlayerOp.Load -> "load ${op.url.substringBefore('?').substringAfterLast('/')} with ${op.options.map { it.name }.sorted().joinToString()}"
+            is PlayerOp.Load -> "load a stream with ${op.options.map { it.name }.sorted().joinToString()}"
             is PlayerOp.AddSubtitle -> "add a subtitle track (${op.language ?: "no language"})"
             is PlayerOp.Set -> "set ${op.property}"
             is PlayerOp.Cycle -> "cycle ${op.property}"

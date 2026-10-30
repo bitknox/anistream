@@ -85,7 +85,7 @@ downloads-state-paused = Paused
 # A download's state in the table. A narrow column.
 # @max 13
 # @only tui
-downloads-state-done = Complete
+downloads-state-done = Downloaded
 
 # A download's state in the table. A narrow column.
 # @max 13
@@ -99,7 +99,7 @@ downloads-detail-ahead = Downloaded ahead, removed a day after you watch it
 # Detail line for a download queued ahead of time: where it stands, then what becomes of it.
 # @arg detail: text
 # @only tui
-downloads-detail-with-ahead = { $detail } · Downloaded ahead, removed a day after you watch it
+downloads-detail-with-ahead = { $detail } · downloaded ahead, removed a day after you watch it
 
 # Detail line for a paused download. Both sizes are already formatted (such as "734 MB").
 # @arg downloaded: text
@@ -160,10 +160,6 @@ accounts-screen-title = Accounts
 # @only tui
 accounts-badge-sign-in = { $tracker } { $mark } sign in
 
-# Status line while the browser is opened for a { -tracker } sign-in.
-# @only tui
-accounts-status-opening-browser = Opening your browser to sign in…
-
 # Toast when a { -tracker } needs signing in again. The key opens the Accounts screen, as the key
 # map draws it.
 # @arg tracker: text
@@ -171,18 +167,18 @@ accounts-status-opening-browser = Opening your browser to sign in…
 # @only tui
 accounts-needs-sign-in = { $tracker } needs signing in again. Press { $key } to open Accounts.
 
-# Toast when sync disagreements appear. The key opens the list of them, as the key map draws it.
+# Toast when sync differences appear. The key opens the list of them, as the key map draws it.
 # @arg count: int
 # @arg key: text
 # @only tui
 accounts-conflicts-found = { $count ->
-    [one] 1 sync disagreement found. Press { $key } to settle it.
-   *[other] { $count } sync disagreements found. Press { $key } to settle them.
+    [one] 1 sync difference found. Press { $key } to review it.
+   *[other] { $count } sync differences found. Press { $key } to review them.
  }
 
-# Toast when the sync disagreements list is opened and there are none.
+# Toast when the sync differences list is opened and there are none.
 # @only tui
-accounts-conflicts-none = There are no sync disagreements to settle.
+accounts-conflicts-none = There are no sync differences to review.
 
 # Toast when a sync is asked for and no { -tracker } is set up. The key opens the Accounts screen,
 # as the key map draws it.
@@ -343,12 +339,12 @@ accounts-row-queued = { $count ->
 # @only tui
 accounts-row-queued-held = { $queued } queued, { $held } waiting for an id mapping
 
-# Action beside a sync disagreement in the overlay: Enter keeps the value on this device.
+# Action beside a sync difference in the overlay: Enter keeps the value on this device.
 # @max 12
 # @only tui
 accounts-conflict-keep-mine = Keep mine
 
-# A sync disagreement in the overlay: the title, the field that differs, then this device's
+# A sync difference in the overlay: the title, the field that differs, then this device's
 # value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 # @arg title: text
 # @arg field: text
@@ -365,12 +361,12 @@ lists-library-title = { -library-cap }
 
 # Toast when the remove key is pressed outside the { -continue-cap } list.
 # @only tui
-lists-remove-wrong-list = You can only remove titles from the { -continue-cap } list.
+lists-remove-wrong-list = You can only hide titles in the { -continue-cap } list.
 
 # Toast when a title is removed from the { -continue-cap } list.
 # @arg title: text
 # @only tui
-lists-continue-removed = { $title } removed from { -continue-cap }. Watching it again brings it back.
+lists-continue-removed = { $title } hidden from { -continue-cap }. Watching it again brings it back.
 
 # Toast when Enter is pressed on a list with nothing highlighted.
 # @only tui

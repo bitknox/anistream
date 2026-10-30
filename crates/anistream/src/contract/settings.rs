@@ -29,7 +29,7 @@ use super::toasts;
 use crate::harness::{Harness, Options};
 
 /// A file that does not load: the app runs on the defaults and says so.
-const BROKEN: &str = "[playback]\nqualty = 720\n";
+const BROKEN: &str = "[playback]\nquality = \"high\"\n";
 
 fn order(entries: &[&str]) -> Vec<String> {
     entries.iter().map(|entry| (*entry).to_owned()).collect()
@@ -260,7 +260,10 @@ async fn a_plugin_switched_off_keeps_its_row_and_is_not_tried() {
     h.send(Command::DisablePlugin { id: "fixture".into(), disabled: true });
     let updates = h.settle().await;
     assert_eq!(h.trace(), ["Toast"]);
-    assert_eq!(toasts(&updates), ["alert: fixture is not a plugin that is loaded."]);
+    assert_eq!(
+        toasts(&updates),
+        ["alert: fixture isn't loaded. Check that it's installed under Sources."]
+    );
 }
 
 #[tokio::test]

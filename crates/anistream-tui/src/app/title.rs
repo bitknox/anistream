@@ -966,7 +966,7 @@ mod tests {
             thumbnail: None,
             description: None,
         };
-        a.apply(Event::Episodes { id: child, rows: vec![row("1"), row("2")] });
+        a.apply(Event::Episodes { id: child, rows: vec![row("1"), row("2")], failed: None });
         assert_eq!(a.episodes_for, Some(child));
 
         a.handle(Action::Back, 20);

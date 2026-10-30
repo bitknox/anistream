@@ -364,7 +364,7 @@ mod tests {
         let screen = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(screen.contains("Seeding after watching"), "{screen}");
         assert!(screen.contains("Show - 05.mkv"), "{screen}");
-        assert!(screen.contains("0.4 of 1.0 · 18h left"), "{screen}");
+        assert!(screen.contains("0.4 of 1.0 · 18 h left"), "{screen}");
     }
 
     #[test]
@@ -387,12 +387,12 @@ mod tests {
         // Selected, it says what becomes of it, after where it stands.
         app.cursors.downloads.selected = 1;
         let lines = lines_of(&mut app, 120, 30);
-        let detail = lines.iter().find(|l| l.contains("· Downloaded ahead")).expect("said");
+        let detail = lines.iter().find(|l| l.contains("· downloaded ahead")).expect("said");
         assert!(detail.contains("Downloads need torrents"), "{detail}");
         assert_eq!(
             download_detail(&app, &app.downloads[1]).0,
             format!(
-                "Downloads need torrents, which are off (press {} for Settings) · Downloaded \
+                "Downloads need torrents, which are off (press {} for Settings) · downloaded \
                  ahead, removed a day after you watch it",
                 app.section_key(Section::Settings)
             )

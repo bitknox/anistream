@@ -138,7 +138,7 @@ updates-stopped = The update to version { $version } stopped. { $reason }
 
 # Notice when the new version did not install.
 # @arg version: text
-updates-did-not-install = Version { $version } didn't install. About can try again.
+updates-did-not-install = Version { $version } didn't install. Try again from About.
 
 # Button that opens About.
 updates-open-about = Open About
@@ -160,7 +160,7 @@ updates-saved-replace-plain = Version { $version } saved to Downloads. Replace t
 
 # The server refused. The code is a number.
 # @arg code: int
-updates-why-server = The download stopped: the server answered { $code }.
+updates-why-server = The download stopped: the server refused it ({ $code }). Try again later.
 
 # The connection broke.
 updates-why-connection = The download stopped: the connection was lost.

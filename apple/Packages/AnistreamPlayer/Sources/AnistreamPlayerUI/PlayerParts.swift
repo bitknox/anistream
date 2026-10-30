@@ -349,7 +349,7 @@ struct SeekLine: View {
                     let width = duration > 0 ? usable * (segment.end - segment.start) / duration : 0
                     let played = min(1, max(0, (model.position - segment.start) / max(segment.end - segment.start, 0.001)))
                     Capsule()
-                        .fill(Palette.silk.opacity(0.22))
+                        .fill(Palette.silk.opacity(0.25))
                         .overlay(alignment: .leading) {
                             // What mpv holds ahead, lighter than the track, under the played time.
                             ForEach(Array(held(in: segment).enumerated()), id: \.offset) { _, range in
@@ -676,7 +676,7 @@ struct UpNextCardView: View {
                 }
                 if let countdown {
                     Capsule()
-                        .fill(Palette.silk.opacity(0.22))
+                        .fill(Palette.silk.opacity(0.25))
                         .overlay(alignment: .leading) {
                             GeometryReader { proxy in
                                 Capsule()

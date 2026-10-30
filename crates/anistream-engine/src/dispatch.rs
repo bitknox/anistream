@@ -349,6 +349,20 @@ pub(crate) fn dispatch(
         | Command::PartyLeave => {
             let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticePartyNotBuilt)));
         }
+        #[cfg(feature = "cast")]
+        Command::CastTo { device, id, episode, position } => {
+            engine.dubs.stop();
+            engine.names.stop();
+            crate::playback::start::cast_to(
+                &device, id, episode, position, job, engine, services, tx,
+            );
+        }
+        #[cfg(feature = "cast")]
+        Command::StopCasting => crate::playback::start::stop_casting(engine, services),
+        #[cfg(not(feature = "cast"))]
+        Command::CastTo { .. } | Command::StopCasting => {
+            let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeCastUnavailable)));
+        }
         Command::PlayLocal { id, episode, title, path } => {
             #[cfg(feature = "party")]
             crate::party::join_by_default(engine, services, tx);
@@ -661,8 +675,7 @@ pub(crate) async fn handle_internal(
                 &engine.shared_config,
                 tx,
                 &engine.arrivals,
-            )
-            .await;
+            );
             crate::titles::refresh::sources_changed(engine, services, tx);
             // Passed on, ahead of what the rebuild reports: the screen says it reloads.
             said.push(Event::SourcesChanged);

@@ -26,7 +26,7 @@ progress-episodes = { $watched } of { $total ->
 # A span of time to the next episode, in days and hours. The unit letters belong to the language.
 # @arg days: int
 # @arg hours: int
-duration-days-hours = { $days }d { $hours }h
+duration-days-hours = { $days } d { $hours } h
 
 # Group header on the library and continue screens.
 group-in-progress = In progress
@@ -64,7 +64,7 @@ continue-hide = Hide from { -continue-cap }
 continue-hidden = Hidden from { -continue-cap }.
 
 # Menu item that sets a show's status to Dropped and takes it off Continue.
-continue-drop = Drop
+continue-drop = Move to Dropped
 
 # Accessibility label on the overflow button of a row.
 # @arg title: text
@@ -73,12 +73,12 @@ continue-more-for = More for { $title }
 # Row caption: resumes this episode where it stopped. The clock is the stored position.
 # @arg episode: int
 # @arg clock: text
-continue-row-resume = { -continue-cap } E{ $episode } · { $clock }
+continue-row-resume = Resume E{ $episode } · { $clock }
 
 # Row caption: resumes this episode where it stopped, dubbed.
 # @arg episode: int
 # @arg clock: text
-continue-row-resume-dubbed = { -continue-cap } E{ $episode } { -dubbed } · { $clock }
+continue-row-resume-dubbed = Resume E{ $episode } { -dubbed } · { $clock }
 
 # Row caption: the next unwatched episode.
 # @arg episode: int
@@ -184,10 +184,10 @@ library-loading = Loading your lists
 library-add-to-list = Add to list
 
 # Menu item that puts a title in the planning list.
-library-add-planning = Add to planning
+library-add-planning = Add to Planning
 
 # Notice after a title was added to the planning list.
-library-added-planning = Added to planning.
+library-added-planning = Added to Planning.
 
 # Marker on a title that is already on the person's list.
 library-on-your-list = On your list
@@ -236,6 +236,11 @@ up-next-reason-recommended = Because you finished { $title }
 # @max 28
 up-next-reason-recommended-plain = Recommended for you
 
+# Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+# @arg title: text
+# @max 80
+up-next-because-detail = Recommended on AniList by people who liked { $title }
+
 # Reason on a suggestion that airs today, shown when nothing else is left to suggest.
 # @max 28
 up-next-reason-airing-today = Airing today
@@ -245,3 +250,28 @@ up-next-add-planning = Add to Planning
 
 # Menu item on a suggestion. The show stays hidden until it starts airing.
 up-next-not-interested = Not interested
+
+# Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.
+# @arg reason: text
+# @arg starts: text
+# @max 48
+up-next-row-starts = { $reason } · { $starts }
+
+# Notice after Not interested on a suggestion that is already airing.
+# @arg title: text
+up-next-hidden = { $title } is hidden from { -up-next-cap } for you
+
+# Notice after Not interested on a suggestion that has not started airing.
+# @arg title: text
+up-next-hidden-until-airs = { $title } is hidden until it airs
+
+# Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.
+# @arg episode: int
+# @arg when: text
+# @max 36
+up-next-broadcast = Episode { $episode } · { $when }
+
+# The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
+# @arg ago: text
+# @max 20
+up-next-out = out { $ago }

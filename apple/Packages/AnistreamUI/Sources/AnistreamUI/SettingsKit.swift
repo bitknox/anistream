@@ -220,9 +220,12 @@ extension SettingKey {
     var title: String {
         switch self {
         case .titles: L.settingsTitleLanguage
+        case .trailers: L.settingsTrailersRow
         case .adultTitles: L.settingsAdult
         case .upNextCountdown: L.settingsUpNextCountdown
         case .spoilerProtection: L.settingsSpoiler
+        case .episodeDiscussions: L.settingsAppleDiscussions
+        case .commentImages: L.settingsAppleCommentImages
         case .downloadQuality: L.settingsQuality
         case .keepNextEpisodes: L.settingsKeepNext
         case .downloadsOnCellular: L.settingsDownloadCellular
@@ -236,7 +239,7 @@ extension SettingKey {
         case .presenceTitle: L.settingsPresenceTitle
         case .presenceRich: L.settingsPresenceRich
         case .updateCheck: L.settingsCheckUpdates
-        case .translation: L.settingsTranslation
+        case .translation: L.settingsAudio
         case .subtitles: L.playerSubtitles
         case .quality: L.settingsQuality
         case .commitThreshold: L.settingsCountsWatched
@@ -303,6 +306,8 @@ extension SettingKey {
         case (.theme, "adaptive"): return L.settingsOptionAdaptive
         case (.theme, "immersive"): return L.settingsOptionImmersive
         case (.titles, "AniList's choice"): return L.settingsTitleTracker(tracker: AccountsModel.name("anilist"))
+        case (.trailers, "always"): return L.settingsTrailersAlways
+        case (.trailers, "Wi-Fi only"): return L.settingsTrailersWifiOnly
         case (.titles, "English"): return L.settingsTitleEnglish
         case (.titles, "Romaji"): return L.settingsTitleRomaji
         case (.playerUi, "your mpv setup"): return L.settingsOptionMpv

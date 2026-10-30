@@ -23,10 +23,14 @@ pub enum EpisodeLoad {
         rows: Vec<EpisodeRow>,
         reason: Option<String>,
     },
-    /// The ladder found candidates but could not choose. The user decides.
+    /// The ladder found candidates but could not choose. The user decides; until then the
+    /// table is AniList's, as [`EpisodeLoad::Unlisted`]'s, so the page has episodes to show.
     Choose {
         provider_id: String,
+        /// The source's name, for saying which one could not tell.
+        source: String,
         candidates: Vec<anistream_model::sources::MatchCandidate>,
+        rows: Vec<EpisodeRow>,
     },
 }
 
@@ -133,7 +137,11 @@ async fn load_listed(
                     rejected: candidate.rejected.map(str::to_owned),
                 })
                 .collect();
-            return Ok((EpisodeLoad::Choose { provider_id, candidates }, None));
+            let source = registry
+                .get(&provider_id)
+                .map_or_else(|| provider_id.clone(), |p| p.manifest().display_name.clone());
+            let rows = from_metadata();
+            return Ok((EpisodeLoad::Choose { provider_id, source, candidates, rows }, None));
         }
         anistream_providers::Gathered::Unanswered { .. } => {
             let reason = Some(answer.explain());
@@ -217,29 +225,33 @@ pub(crate) fn dated(
 
 /// What a load of title `id`'s episodes says, in order: the table, always, so the screen
 /// leaves its loading state whatever happened, then why it is empty or from AniList alone when
-/// that needs saying; or the candidates to choose between.
+/// that needs saying. A match the ladder could not make says its candidates first, since a
+/// front end may clear the table when they arrive, then AniList's table and why it is that.
 pub(crate) fn said(
     id: AnilistId,
     load: std::result::Result<EpisodeLoad, String>,
 ) -> Vec<Event> {
     match load {
-        Ok(EpisodeLoad::Rows(rows)) => vec![Event::Episodes { id, rows }],
+        Ok(EpisodeLoad::Rows(rows)) => vec![Event::Episodes { id, rows, failed: None }],
         // Quietly: the table is there, and a play says what is missing when one is asked for.
         Ok(EpisodeLoad::Unlisted { rows, reason }) => {
             let notice = reason.map(|reason| {
                 Event::Toast(Notice::info(Msg::NoticeNoSourceCouldList { reason }))
             });
-            std::iter::once(Event::Episodes { id, rows }).chain(notice).collect()
+            std::iter::once(Event::Episodes { id, rows, failed: None }).chain(notice).collect()
         }
-        Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
-            vec![Event::MatchChoices { id, provider_id, candidates }]
-        }
-        // The Episodes screen shows its own empty state, so the reason belongs in a toast
-        // rather than replacing the whole view.
+        Ok(EpisodeLoad::Choose { provider_id, source, candidates, rows }) => vec![
+            Event::MatchChoices { id, provider_id, candidates },
+            Event::Episodes { id, rows, failed: None },
+            Event::Toast(Notice::info(Msg::NoticeMatchUncertain { source })),
+        ],
+        // The table says it failed, so a page can tell that from a title with no episodes,
+        // and the toast says it to a page that shows only the empty table.
         Err(reason) => {
+            let failed = Msg::NoticeEpisodesFailed { reason };
             vec![
-                Event::Episodes { id, rows: Vec::new() },
-                Event::Toast(Notice::alert(Msg::verbatim(reason))),
+                Event::Episodes { id, rows: Vec::new(), failed: Some(failed.clone()) },
+                Event::Toast(Notice::alert(failed)),
             ]
         }
     }
@@ -875,6 +887,39 @@ mod tests {
             notice.message(),
             Msg::NoticeNoSourceCouldList { reason: "fixture found no matches".into() }
         );
+    }
+
+    #[test]
+    fn a_match_no_source_could_make_still_leaves_the_page_with_anilists_table() {
+        let id = FINISHED;
+        let rows = from_metadata(&fixtures::media(FINISHED), &store());
+        let (provider_id, source) = ("fixture".to_owned(), "Fixture Source".to_owned());
+        let load = EpisodeLoad::Choose { provider_id, source, candidates: Vec::new(), rows };
+        let seen = said(id, Ok(load));
+        let [
+            Event::MatchChoices { .. },
+            Event::Episodes { rows, failed: None, .. },
+            Event::Toast(n),
+        ] = &seen[..]
+        else {
+            panic!("the candidates, AniList's table, then why: {seen:?}")
+        };
+        assert_eq!(rows.len(), 12);
+        assert!(rows.iter().all(|row| row.metadata_only), "AniList's rows, marked as such");
+        assert_eq!(n.message(), Msg::NoticeMatchUncertain { source: "Fixture Source".into() });
+    }
+
+    #[test]
+    fn a_table_that_could_not_load_says_so_rather_than_that_there_are_no_episodes() {
+        let seen = said(FINISHED, Err("AniList is resting".to_owned()));
+        let [Event::Episodes { rows, failed: Some(failed), .. }, Event::Toast(notice)] =
+            &seen[..]
+        else {
+            panic!("the failed table, then the toast: {seen:?}")
+        };
+        assert!(rows.is_empty());
+        assert_eq!(*failed, Msg::NoticeEpisodesFailed { reason: "AniList is resting".into() });
+        assert_eq!(notice.message(), *failed);
     }
 
     #[test]

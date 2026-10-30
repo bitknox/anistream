@@ -30,7 +30,7 @@ import Testing
 
     @Test func textArguments() {
         #expect(L.noticeSaved(label: "Language") == "Saved Language.")
-        #expect(L.durationDaysHours(days: 6, hours: 17) == "6d 17h")
+        #expect(L.durationDaysHours(days: 6, hours: 17) == "6 d 17 h")
     }
 
     @Test func macMenuItemsAreTitleCaseAndOnlyThere() {

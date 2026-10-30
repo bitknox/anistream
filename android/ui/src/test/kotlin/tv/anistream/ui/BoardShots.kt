@@ -368,7 +368,7 @@ class BoardShots {
     @Test
     @Config(qualifiers = TABLET)
     fun tablet_home_selected() = shoot("tablet-home-selected", WATCHING) {
-        compose.onNodeWithText("Continue E2", substring = true).performClick()
+        compose.onNodeWithText("Resume E2", substring = true).performClick()
         compose.waitForIdle()
     }
 
@@ -655,7 +655,7 @@ class BoardShots {
          */
         fun withoutSources(event: Event): Event = when (event) {
             is Event.Providers -> Event.Providers(emptyList())
-            is Event.Episodes -> Event.Episodes(event.id, event.rows.map { it.copy(metadataOnly = true) })
+            is Event.Episodes -> event.copy(rows = event.rows.map { it.copy(metadataOnly = true) })
             else -> event
         }
 

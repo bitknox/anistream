@@ -269,12 +269,7 @@ pub async fn exchange_code(
 
     // AniList's errors are actually informative, so they are passed through rather than
     // flattened into "sign-in failed".
-    let message = parsed["message"]
-        .as_str()
-        .or_else(|| parsed["error"].as_str())
-        .unwrap_or(&body)
-        .to_owned();
-    Err(AuthError::Exchange(format!("{status}: {message}")))
+    Err(AuthError::Exchange(crate::said(status, &body)))
 }
 
 /// When an access token expires, read from the token itself.

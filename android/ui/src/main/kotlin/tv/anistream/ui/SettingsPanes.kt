@@ -264,6 +264,7 @@ internal fun GeneralPane() {
             title = stringResource(R.string.settings_group_titles),
             rows = listOf(
                 { place -> TitleLanguageRow(place) },
+                { place -> SettingMenu(place, SettingKey.TRAILERS, stringResource(R.string.settings_trailers_label), note = stringResource(R.string.settings_trailers_note)) },
                 { place -> SettingSwitch(place, SettingKey.ADULT_TITLES, stringResource(R.string.settings_adult), note = stringResource(R.string.settings_adult_detail, "AniList")) },
             ),
         )
@@ -757,7 +758,7 @@ private fun LastCheckRow(place: Place) {
                 }
                 words.note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant) }
             }
-            TextButton(onClick = store::checkProviders, enabled = check?.view != GuardView.Checking) {
+            TextButton(onClick = store::checkConnection, enabled = check?.view != GuardView.Checking) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     WorkRing(check?.view == GuardView.Checking)
                     Text(stringResource(R.string.torrents_check_now), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
@@ -818,6 +819,13 @@ internal fun AccountsPane(actions: AppActions) {
                     )
                 })
             },
+        )
+        SettingsGroup(
+            title = stringResource(R.string.discussion_settings_group),
+            rows = listOf(
+                { place -> SettingSwitch(place, SettingKey.EPISODE_DISCUSSIONS, stringResource(R.string.settings_discussions_label), note = stringResource(R.string.settings_discussions_note)) },
+                { place -> SettingSwitch(place, SettingKey.COMMENT_IMAGES, stringResource(R.string.settings_discussion_images_label), note = stringResource(R.string.settings_discussion_images_note)) },
+            ),
         )
         SettingsGroup(
             title = stringResource(R.string.accounts_other_trackers),

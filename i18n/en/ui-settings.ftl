@@ -175,7 +175,7 @@ settings-wifi-only = Wi-Fi only
 settings-wifi-only-detail = Downloads wait for Wi-Fi
 
 # Row: torrents on a mobile connection.
-settings-torrents-cellular = Torrents on cellular
+settings-torrents-cellular = Torrents on mobile data
 
 # Row: seeding after watching.
 settings-seed-after = Seed after watching
@@ -437,4 +437,12 @@ widget-day-yesterday = yesterday
 
 # Line of the Continue widget: what plays next, with the episode already named.
 # @arg episode: text
-widget-line-start = Start { $episode }
+widget-line-start = Play { $episode }
+
+# Value of the Play trailers setting: trailers play by themselves on any network.
+# @max 16
+settings-trailers-always = Always
+
+# Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.
+# @max 16
+settings-trailers-wifi-only = Wi-Fi only

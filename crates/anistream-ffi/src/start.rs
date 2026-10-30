@@ -2,7 +2,7 @@
 //! are this crate's own rather than the model's.
 
 use anistream_engine::options::{AppClients, Background};
-use anistream_model::playback::PlayerTheme;
+use anistream_model::{Msg, playback::PlayerTheme};
 
 /// Where the engine keeps its files: directories the app chooses, such as its Application
 /// Support and Caches directories on macOS, or its container's on iOS.
@@ -232,36 +232,66 @@ pub enum SecretsMode {
 }
 
 /// Why [`FfiEngine::start`](crate::FfiEngine::start) could not stand the engine up, by what
-/// failed, each with words a front end can show as they are.
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, uniffi::Error)]
+/// failed. `msg` names the file or setting and what to do about it, for a front end to word in
+/// its language; `reason` is the same in English, to show as it is.
+#[derive(Debug, Clone, PartialEq, thiserror::Error, uniffi::Error)]
 pub enum FfiError {
     /// One of the directories could not be created.
     #[error("{reason}")]
-    Dirs { reason: String },
+    Dirs { reason: String, msg: Msg },
     /// `config.toml` could not be read, or says something unsafe or self-contradictory. Refused
     /// rather than replaced by the defaults, which could mean ignoring a VPN setting.
     #[error("{reason}")]
-    Config { reason: String },
+    Config { reason: String, msg: Msg },
     /// The database could not be opened.
     #[error("{reason}")]
-    Store { reason: String },
+    Store { reason: String, msg: Msg },
     /// The HTTP client could not be built from the network settings.
     #[error("{reason}")]
-    Client { reason: String },
+    Client { reason: String, msg: Msg },
     /// The runtime the engine runs on could not be started.
     #[error("{reason}")]
-    Runtime { reason: String },
+    Runtime { reason: String, msg: Msg },
     /// The engine itself did not start.
     #[error("{reason}")]
-    Engine { reason: String },
+    Engine { reason: String, msg: Msg },
     /// A TV's remote could not start listening, or could not forget a phone.
     #[error("{reason}")]
-    Remote { reason: String },
+    Remote { reason: String, msg: Msg },
     /// The hosted player's libmpv core did not start. Only in a build with the `mpv-host`
     /// feature, so the phones' bindings never have it.
     #[cfg(feature = "mpv-host")]
     #[error("{reason}")]
-    Player { reason: String },
+    Player { reason: String, msg: Msg },
+}
+
+impl FfiError {
+    pub(crate) fn dirs(msg: Msg) -> Self {
+        Self::Dirs { reason: msg.english(), msg }
+    }
+    pub(crate) fn config(msg: Msg) -> Self {
+        Self::Config { reason: msg.english(), msg }
+    }
+    pub(crate) fn store(msg: Msg) -> Self {
+        Self::Store { reason: msg.english(), msg }
+    }
+    pub(crate) fn client(msg: Msg) -> Self {
+        Self::Client { reason: msg.english(), msg }
+    }
+    pub(crate) fn runtime(msg: Msg) -> Self {
+        Self::Runtime { reason: msg.english(), msg }
+    }
+    pub(crate) fn engine(msg: Msg) -> Self {
+        Self::Engine { reason: msg.english(), msg }
+    }
+    #[cfg(feature = "remote")]
+    pub(crate) fn remote(msg: Msg) -> Self {
+        Self::Remote { reason: msg.english(), msg }
+    }
+    #[cfg(feature = "mpv-host")]
+    pub(crate) fn player(msg: Msg) -> Self {
+        Self::Player { reason: msg.english(), msg }
+    }
 }
 
 #[cfg(test)]

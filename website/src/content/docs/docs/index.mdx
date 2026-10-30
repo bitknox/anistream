@@ -10,7 +10,7 @@ up.
 
 :::note[No hosted content]
 anistream hosts no content. The torrent side is a transport with nothing to search until you
-supply an endpoint, and everything else is a plugin or provider API you configure. Which sources
+supply an endpoint, and everything else is a plugin or an API you host. Which sources
 you use, and what you point them at, is your own decision, at your own risk.
 :::
 
@@ -24,9 +24,12 @@ The Android TV app is made for the remote's arrow keys. The Mac, iPhone, iPad, A
 Linux apps can send an episode to it and act as its remote. The [features page](/features/#platforms) shows what
 each app does.
 
+Title pages in the apps play the show's trailer, list its facts and open each episode's
+discussion on AniList.
+
 ## The terminal app
 
-anistream is under active development. What is in the terminal app now:
+The terminal app has:
 
 - Browsing, search and seasonal lists from AniList, with no account. When AniList cannot answer,
   metadata falls back to Tenrai and then to what was last cached (`[meta] fallback`). `Ctrl-F`
@@ -39,7 +42,7 @@ anistream is under active development. What is in the terminal app now:
 - Torrent streaming plays while downloading, can seek, and sits behind the VPN guard, with an
   indexer you supply.
 - [Playback](/docs/guides/player/) runs in mpv with the app's own controls, seekbar thumbnails, a
-  skip button, Up Next and menus, and the next episode plays in the same window. Upscaling uses ArtCNN by
+  skip button, Up next and menus, and the next episode plays in the same window. Upscaling uses ArtCNN by
   default or Anime4K if you ask for it, and how much runs is decided per file. `y` plays an episode
   in a watch party instead.
 - On the command line, `--stats`, `--search`, `--export`/`--import`, `--stream-url`, `--doctor`
@@ -55,17 +58,17 @@ anistream is under active development. What is in the terminal app now:
   another stream when one produces no video.
 - Discord presence is off by default, and it can show that something is playing without saying
   what.
-- Provider plugins are sandboxed WebAssembly components in any WASI 0.2 language. A
+- Plugins are sandboxed WebAssembly components in any WASI 0.2 language. A
   [plugin store](/docs/plugins/stores/) that someone you know runs lets you install their plugins
   and share your own.
 
 ## In development
 
 - More sources, as plugins. The [plugin system](/docs/plugins/authoring/) is the path for new
-  providers.
+  sources.
 - Licensed services open in their own apps. anistream does not circumvent DRM, so a licensed
   stream only opens in its own service. The title screen already lists where AniList says a title is
-  available, and a provider can return a link that opens in that service rather than a stream for
+  available, and a plugin can return a link that opens in that service rather than a stream for
   mpv.
 
 ## Where to go next
@@ -75,5 +78,5 @@ anistream is under active development. What is in the terminal app now:
   terminal, or a build from source.
 - [Quick start](/docs/getting-started/quick-start/): browsing needs no account and no config.
 - [Configuration](/docs/guides/configuration/): every section of `config.toml` is optional.
-- [Writing a provider plugin](/docs/plugins/authoring/): WebAssembly components in Rust,
+- [Writing a plugin](/docs/plugins/authoring/): WebAssembly components in Rust,
   JavaScript, or any language that builds a WASI 0.2 component.

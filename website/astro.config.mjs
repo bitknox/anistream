@@ -67,7 +67,7 @@ export default defineConfig({
 					entry('Plugin stores', 'stores', 'docs/plugins/stores'),
 					entry('Running a store', 'runningStore', 'docs/plugins/running-a-store'),
 					entry('Updating a store', 'updatingStore', 'docs/plugins/updating-a-store'),
-					entry('Writing a provider plugin', 'authoring', 'docs/plugins/authoring'),
+					entry('Writing a plugin', 'authoring', 'docs/plugins/authoring'),
 					entry('The plugin sandbox', 'sandbox', 'docs/plugins/sandbox'),
 				]),
 				group('Reference', 'reference', [

@@ -99,14 +99,14 @@ media-link-language = Site in { $language }
 
 ## How long a film runs
 
-# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
 # @arg hours: int
 # @arg minutes: int
-film-length-hours-minutes = { $hours } hr { $minutes } min
+film-length-hours-minutes = { $hours } h { $minutes } min
 
-# Length of a film or a single episode that is a whole number of hours, such as "2 hr".
+# Length of a film or a single episode that is a whole number of hours, such as "2 h".
 # @arg hours: int
-film-length-hours = { $hours } hr
+film-length-hours = { $hours } h
 
 # Length of a film or a single episode under an hour, such as "46 min".
 # @arg minutes: int

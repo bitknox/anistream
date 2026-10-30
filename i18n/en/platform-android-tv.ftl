@@ -16,7 +16,7 @@ tv-title-page = Title page
 
 # TV, Continue: the line when nothing could be loaded.
 # @only android
-tv-continue-offline-failed = { -app-name } can’t reach AniList right now.
+tv-continue-offline-failed = { -app-name } can't reach AniList right now.
 
 # TV, Continue: the line when there is nothing to continue.
 # @only android
@@ -46,7 +46,7 @@ tv-seasonal-unlisted = Nothing from { $season } is on your lists yet.
 # TV, Seasonal and Library: the line when a season or a list could not be loaded.
 # @only android
 # @arg name: text
-tv-load-failed-named = Couldn’t load { $name }.
+tv-load-failed-named = Couldn't load { $name }.
 
 # TV, Library: the line over an empty list.
 # @only android
@@ -285,11 +285,11 @@ tv-update-installed = This TV has v{ $version }
 
 # Body of the TV's phone page when its address is wrong
 # @only android
-tv-page-not-found-text = This page is not here.
+tv-page-not-found-text = This page no longer exists. Scan the code on the TV again.
 
 # Body of the TV's phone page when it is asked for something else
 # @only android
-tv-page-not-allowed-text = This page only takes its own form.
+tv-page-not-allowed-text = This page only accepts the form it shows. Scan the code on the TV again.
 
 # What the TV does next once the phone sent a plugin store link, for the line telling to look at the TV
 # @only android
@@ -370,7 +370,7 @@ tv-page-sent-title = Sent to the TV
 
 # Line on the phone page when the TV did not answer
 # @only android
-tv-page-no-answer = The TV did not answer. Check that it is on and on the same network as this phone, then send it again.
+tv-page-no-answer = The TV didn't answer. Check that it is on and on the same network as this phone, then send it again.
 
 # Last sentence of the phone page's intro.
 # @only android
@@ -453,7 +453,7 @@ tv-signin-not-on-tv = { $name } doesn't sign in on a TV.
 # Shown under the sign-in page address when the answer was turned down
 # @only android
 # @arg name: text
-tv-signin-did-not = { $name } did not sign in. Check the details and send them again from the page.
+tv-signin-did-not = { $name } didn't sign in. Check the details and send them again from the page.
 
 # Steps for a device-code sign-in on the TV
 # @only android
@@ -487,3 +487,43 @@ tv-show-back-to-defaults = Back to defaults
 # @only android
 # @arg percent: text
 tv-card-progress-spoken = { $percent } watched
+
+# TV, discussion panel footer: replying needs a phone.
+# @only android
+# @max 60
+tv-discussion-footer = To reply, open this discussion on your phone.
+
+# TV, discussion panel: the comment count under the title, and that nothing can be posted here.
+# @only android
+# @arg count: int
+# @max 40
+tv-discussion-count-read-only = { $count ->
+    [one] One comment · Read only
+   *[other] { $count } comments · Read only
+ }
+
+# TV, discussion panel: a comment's like count after its age.
+# @only android
+# @arg count: int
+# @max 16
+tv-discussion-likes = { $count ->
+    [one] One like
+   *[other] { $count } likes
+ }
+
+# TV, discussion panel: what Select does on a comment with a hidden spoiler.
+# @only android
+# @max 40
+tv-discussion-select-spoiler = Select to show the spoiler
+
+# Where a Google TV keeps the switch that lets an app install updates, as its menus name it: the
+# system's own words, which a translation should follow for that TV's language.
+# @only android
+# @max 80
+# @allow source
+updates-unknown-sources-path = Settings › Apps › Security & restrictions › Unknown sources
+
+# Name a TV gives itself to phones when the system has none set.
+# @only android
+# @max 24
+tv-remote-default-name = { -app-name } TV

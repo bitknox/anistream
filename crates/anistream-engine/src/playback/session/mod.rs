@@ -46,7 +46,7 @@ use crate::{
     playback::{
         PlaybackContext,
         health::Servers,
-        link::{LinkError, Overlay, PlayerLink, PlayerOpener},
+        link::{FileFacts, LinkError, Overlay, PlayerLink, PlayerOpener},
         picture::HdrKind,
         power::PowerSource,
         seat::{PartyHub, Seat, SeatReport},
@@ -323,7 +323,20 @@ pub async fn play(
         let mut late = None;
         if !localised[index] {
             let scratch = opener.scratch_dir();
-            late = localise_subtitles(&http, scratch, &mut streams[index], SUBTITLE_WAIT).await;
+            // A subbed episode that plays with none says why, rather than leaving the viewer
+            // to wonder whether it has any.
+            let told = tx.clone();
+            let all_dropped = move || {
+                let _ = told.send(Event::Toast(Notice::alert(Msg::NoticeSubtitlesUnavailable)));
+            };
+            late = localise_subtitles(
+                &http,
+                scratch,
+                &mut streams[index],
+                SUBTITLE_WAIT,
+                all_dropped,
+            )
+            .await;
             localised[index] = true;
         }
         let mut stream = streams[index].clone();
@@ -375,22 +388,22 @@ pub async fn play(
         // A window: the one this playback already has, the one the last episode left open,
         // or a new one.
         if player.as_ref().is_none_or(|p| !p.link.is_alive()) {
-            player = slot.take();
+            player = slot.take(&opener.target());
             run.night_applied = false;
         }
         if player.is_none() {
-            let _ = tx.send(Event::Status(Some(Msg::StatusStartingPlayer)));
+            tracing::info!("starting the player");
             match opener.open(&request).await {
                 Ok((link, events)) => player = Some(Player::new(link, events)),
                 Err(e) if last => {
-                    let _ =
-                        tx.send(Event::Toast(Notice::alert(Msg::NoticePlayerFailedToStart {
-                            reason: e.to_string(),
-                        })));
+                    let notice = opener.open_failure_notice().unwrap_or_else(|| {
+                        Msg::NoticePlayerFailedToStart { reason: e.to_string() }
+                    });
+                    let _ = tx.send(Event::Toast(Notice::alert(notice)));
                     // The player never existed, but the UI has Now Playing up and a control
                     // surface pointed at it. Saying so is what takes them down.
+                    run.servers.settle().await;
                     let _ = tx.send(Event::playback_ended(false, Ending::Failed));
-                    let _ = tx.send(Event::Status(None));
                     return;
                 }
                 Err(e) => {
@@ -421,13 +434,23 @@ pub async fn play(
         }
 
         run.publish(current.link.as_ref(), &streams, index).await;
+        current.link.prepare(&FileFacts {
+            source: streams[index].clone(),
+            played: stream.clone(),
+            title: context.title.clone(),
+            episode: context.episode.clone(),
+            episode_title: run
+                .episodes
+                .iter()
+                .find(|e| e.number == context.episode)
+                .and_then(|e| e.title.clone()),
+            image: context.banner_url.clone().or_else(|| context.cover_url.clone()),
+            subtitle_language: settings.subtitle_language.clone(),
+            dub: context.translation == Translation::Dub,
+        });
         if let Err(e) = load(current.link.as_ref(), &stream, &request).await {
             tracing::warn!(error = %e, "could not hand the stream to mpv");
         }
-        let _ = tx.send(Event::Status(Some(Msg::StatusPlaying {
-            title: context.title.clone(),
-            episode: context.episode.clone(),
-        })));
         // mpv is already at the resume point by now — `start` handled it. Saying so is what
         // keeps it from looking like the episode began in the wrong place.
         if let Some(position) = resume_at {
@@ -478,6 +501,7 @@ pub async fn play(
                     let _ = player.link.stop().await;
                     slot.park(player);
                 }
+                run.servers.settle().await;
                 return;
             }
             FileOutcome::Ended { watched, complete, exited, stopped, quit, no_frames } => {
@@ -485,13 +509,12 @@ pub async fn play(
                     (Some(p), true) => p.link.diagnostics().await,
                     _ => None,
                 };
+                let notice = player.as_ref().and_then(|p| p.link.failure_notice());
                 // What the attempt says of its server, written down before anything else is
                 // decided, so the next play knows which server to try first.
                 if no_frames {
                     let refused = menders.refused(&streams[index].url);
-                    run.servers
-                        .unplayed(&store, &streams[index], stopped || quit, refused)
-                        .await;
+                    run.servers.unplayed(&store, &streams[index], stopped || quit, refused);
                 }
 
                 if no_frames && !stopped && !exited && !last {
@@ -555,9 +578,10 @@ pub async fn play(
                 // Both are checked, because a quit that reaches mpv before the file has started
                 // ends no file, and only the socket closing says anything happened.
                 if no_frames && !stopped && !quit {
-                    let message = match reported {
-                        Some(line) => Msg::NoticePlayerCouldNotPlay { reason: line },
-                        None => Msg::NoticePlayerExitedSilently,
+                    let message = match (notice, reported) {
+                        (Some(notice), _) => notice,
+                        (None, Some(line)) => Msg::NoticePlayerCouldNotPlay { reason: line },
+                        (None, None) => Msg::NoticePlayerExitedSilently,
                     };
                     tracing::warn!(
                         message = %message,
@@ -571,6 +595,9 @@ pub async fn play(
                 // be the last: the tracker's verdict when it reached one, and otherwise the
                 // honest `false` for a session that never played. The ending names the next
                 // episode only when the window was kept for it, which is what auto-next follows.
+                // What this playback learned of its servers is in the store first, for the
+                // next to read.
+                run.servers.settle().await;
                 let ending = if complete {
                     Ending::Complete { next: next.map(|n| n.number.clone()) }
                 } else if stopped {
@@ -581,7 +608,6 @@ pub async fn play(
                     Ending::Failed
                 };
                 let _ = tx.send(Event::playback_ended(watched.unwrap_or(false), ending));
-                let _ = tx.send(Event::Status(None));
                 return;
             }
         }
@@ -666,6 +692,8 @@ struct Run<'a> {
     in_party: bool,
 }
 
+#[cfg(all(test, feature = "cast"))]
+mod cast_tests;
 #[cfg(test)]
 mod tests {
     use anistream_core::ids::AnilistId;

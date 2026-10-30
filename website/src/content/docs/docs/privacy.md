@@ -3,7 +3,7 @@ title: Privacy
 description: What the anistream apps send, where and when, what they keep on your device, and how to turn each part off.
 ---
 
-anistream hosts no content and has no servers of its own. The one exception is this website.
+anistream hosts no content. It has no servers of its own. The one exception is this website.
 There is no anistream account, and nothing the apps do is reported to the people who make
 anistream. Every request an app makes goes straight to one of the services on this page, and most
 of them only happen once you set something up.
@@ -32,18 +32,51 @@ mirror of MyAnimeList's data, and its images come from MyAnimeList's image serve
 off, set `fallback = false` under `[meta]` in `config.toml`, the file the terminal app and the Mac
 app share.
 
-A trailer opens only when you ask for it, in your browser or the video site's app. The terminal app
-plays it in mpv when yt-dlp is installed.
+In the terminal app, a trailer opens only when you ask for it, in your browser or the video site's
+app, or in mpv when yt-dlp is installed. The terminal app never plays one by itself.
+
+The other apps play a title's YouTube trailer inside the app. On the title page it plays by
+itself, muted, in place of the banner, and on Windows and Linux a hover preview does the same.
+**Play trailer** opens it with sound in a sheet or window, and on Android TV in a full-screen
+player, and only when you ask. The player is a page from `www.youtube-nocookie.com`, with its script
+from `www.youtube.com`, loaded in the system's web view. YouTube sees your IP address, which
+video, and an address that names the app, which YouTube needs to play it. No cookies or other site
+data are kept between trailers. A trailer is not sent anything about your account or history.
+
+**Play trailers** in Settings is Always, Wi-Fi only or Off, and Always is the default. Off stops
+trailers from starting by themselves, so YouTube is asked only when you choose Play trailer. A
+trailer also doesn't start by itself in Low Data Mode, on a metered connection, in a power saving
+mode, with reduced or removed animations, or with a screen reader running. While spoiler
+protection is on, the trailer of a title that follows one you haven't finished doesn't start by
+itself.
+
+## Episode discussions
+
+Once an episode counts as watched, the app looks for that episode's discussion thread on AniList's
+forum, at `graphql.anilist.co`. It asks quietly in the background, once an hour at most for the
+same thread, and opening a thread asks for its comments a page at a time. While spoiler
+protection is on, the thread of an episode you haven't reached is neither looked up nor opened.
+The requests carry your AniList token when you are signed in, so AniList can say which comments
+you like. Without a sign-in, reading carries none.
+
+Posting, replying, editing, deleting and liking a comment use your AniList sign-in, and they are
+public on AniList as you. The Android TV app only reads. Images in comments load only if you
+turn on **Load images in comments**, which is off by default. With it off, an image is a line that
+opens in your browser, and the app asks nothing of the hosts that people post images on.
+
+Episode discussions is on by default. Turn it off with **Episode discussions** in Settings, under
+Discussions on Windows and Linux, and nothing is looked up.
 
 ## Background checks
 
 Once a day, each app asks GitHub's API at `api.github.com` whether a newer release exists. The answer
 is kept for 24 hours, and the request carries nothing about you. An update comes from GitHub
-releases, and it is only downloaded when you ask for one, except on Windows, which downloads it
-once it is found and installs it only when you choose **Restart to update**. Every app has a
-switch for the check: **Check for updates** in Settings, under Integrations on a Mac, Windows or
-Linux, under Advanced on an iPad, and under About on an iPhone or Android. In the terminal app it is on the Settings screen, which writes
-`check = false` under `[updates]`.
+releases, and it is only downloaded when you ask for one, except on Windows and on Linux when it
+runs as an AppImage. Those two download it once it is found, check it against the size and
+SHA-256 the release lists, and install it only when you choose **Restart to update**. Every app
+has a switch for the check: **Check for updates** in Settings, under Integrations on a Mac,
+Windows or Linux, under Advanced on an iPad, and under About on an iPhone, Android or Android TV.
+In the terminal app it is on the Settings screen, which writes `check = false` under `[updates]`.
 
 To match a title across the trackers, the engine keeps two public lists of title ids current. They
 come from `raw.githubusercontent.com`: one is checked daily and the other weekly, and a list that
@@ -58,6 +91,10 @@ AniList for new episodes of the shows you follow, about every six hours, when th
 A widget on iPhone, iPad or Mac that has nothing from the app yet asks AniList for the day's
 schedule itself. Turn notifications off under Settings, Notifications, and remove the widgets, and
 these checks stop.
+
+The Windows app asks AniList the same question from a timer while it runs, in its window or in the
+notification area: soon after it starts, then about every 15 minutes. The Linux app does not
+check in the background. It asks only at launch, as above.
 
 ## Playing an episode
 
@@ -77,7 +114,7 @@ The video itself comes from the source that found it, as the next sections descr
 ## Trackers
 
 Sync is off until you sign in to a tracker. Kitsu is listed on the Accounts screen from the start,
-and sends nothing until you sign in.
+and sends nothing until you sign in. In the terminal app, Kitsu is on by default.
 
 | Tracker | Address | What it receives |
 |---|---|---|
@@ -94,8 +131,17 @@ minutes, and when you open Library. AniList also tells the app which form of tit
 prefers.
 
 Signing in uses the tracker's own page. On Apple devices that is the system's sign-in sheet in a
-private browser session, and on Android a browser tab. Kitsu has no sign-in page: your email or
-username and password go once to Kitsu, which answers with a token, and the password is not kept.
+private browser session, and on Android a browser tab. On Windows, AniList and MyAnimeList open
+in your browser and send the answer back to a port on `127.0.0.1`, which is your own computer.
+On Linux they open in your browser and send the answer back through an `anistream://auth` link
+that the desktop hands to the app. Simkl and Trakt give a code that you type on their site. Kitsu has no sign-in page: your email or username and
+password go once to Kitsu, which answers with a token, and the password is not kept.
+
+The TV has no browser to sign in with. For AniList and Kitsu it shows a QR code and an address
+for a page the TV serves on your local network, which a phone opens. That page works for ten
+minutes at a one-time address, and what the phone sends is sealed with a one-time key in the
+address's fragment, so nothing you type crosses your network in plain text. Simkl and Trakt use
+a code on the TV's screen. MyAnimeList has no sign-in on the TV.
 
 On Android, AniList hands the sign-in back through `https://anistream.tv/auth/anilist`, which
 Android opens in the app. The token is in the part of the address after `#`, which browsers never
@@ -108,7 +154,9 @@ Tokens are kept here:
 |---|---|
 | iPhone and iPad | The system Keychain |
 | Mac | Where the terminal app keeps them, so one sign-in serves both: the Keychain, or files if `token_storage = "file"` |
-| Android | A private file in the app, sealed with a key that the Android Keystore holds and never lets out |
+| Android and Android TV | A private file in the app, sealed with a key that the Android Keystore holds and never lets out |
+| Windows | Windows Credential Manager, as generic credentials named `anistream/` and the token's id, kept for your user on that computer |
+| Linux | Files only you can read, in the data directory the terminal app uses, `~/.local/share/anistream` |
 | Terminal | The system's credential store (the Keychain on macOS, the Secret Service on Linux, the Credential Manager on Windows), or owner-only files in the data directory with `token_storage = "file"` or `ANISTREAM_TOKEN_STORAGE=file` |
 
 Where the terminal app finds no credential store, it falls back to the files and says so on the
@@ -135,7 +183,7 @@ A link to a licensed service opens in that service's own app or website. A self-
 set as `remote_url` under `[providers]`, receives searches and episode requests the same way a
 plugin's hosts do.
 
-To stop a plugin, remove it on the Providers screen.
+To stop a plugin, remove it under Sources.
 
 ## Plugin stores
 
@@ -143,8 +191,8 @@ A plugin store is run by someone you know, not by anistream. You join one with a
 gives you.
 
 Joining with an invite sends the invite code and a name for this device. The name starts as the
-kind of device it is, such as "Mac", "iPhone", "iPad", "Android phone" or "Android tablet", or
-"Computer" in the terminal app, and you can change it before you join. anistream never fills in
+kind of device it is, such as "Mac", "iPhone", "iPad", "Android phone", "Android tablet",
+"Windows PC" or "Linux computer", or "Computer" in the terminal app, and you can change it before you join. anistream never fills in
 the device's own name. The store's owner sees the name they gave you, each of your devices by its
 name, when each joined, and when each was last seen, to within ten minutes. Joining with an open
 link sends no name, and the owner sees only when each device joined and was last seen. To limit
@@ -156,7 +204,7 @@ tokens. Like any web server, the store sees the address each request comes from,
 log it. The store doesn't see what you watch: plugins run on your device, and their requests go to
 their own hosts, not through the store.
 
-Choose **leave this store** on the store's page to give up your access. See
+Choose **Leave this store** on the store's page to give up your access. See
 [Plugin stores](/docs/plugins/stores/) and [Running a store](/docs/plugins/running-a-store/) for
 what an owner can do.
 
@@ -177,8 +225,8 @@ Seeding after an episode is off by default.
 
 ## Integrations
 
-Discord presence is off by default, and only the desktop apps (the terminal app and the Mac app) have
-it. When it is on, your Discord profile shows the title and episode while one plays, or only
+Discord presence is off by default, and only the apps on a computer have it: Mac, Windows, Linux
+and the terminal app. When it is on, your Discord profile shows the title and episode while one plays, or only
 "Watching anime" if you keep the title off. The app tells the Discord app on your computer, and
 Discord shows it to others.
 
@@ -190,6 +238,7 @@ names the show, so it goes out only while the title is shown: with the title off
 "Watching anime".
 
 The Mac app's Integrations settings set these for the terminal app too, which shares its config.
+On Windows and Linux the switches are under Discord in Settings.
 
 ## Watch parties
 
@@ -204,7 +253,7 @@ The server, and everyone in the room, sees:
 - when you play, pause and seek, with the position, and whether you're ready;
 - how long messages take to reach you.
 
-They never see the stream's address, your sources or your sign-ins. anistream hosts no content, and a
+They never see the stream's address, your sources or your sign-ins. anistream hosts no content. A
 party shares none: everyone plays the episode from their own sources.
 
 The connection is encrypted when the server supports it. The party panel says whether it is.
@@ -236,8 +285,10 @@ They live here:
 | Mac, and the terminal app on macOS | `~/Library/Application Support/anistream` and `~/Library/Caches/anistream` |
 | Terminal on Linux | `~/.config/anistream`, `~/.local/share/anistream` and `~/.cache/anistream` |
 | Terminal on Windows | `anistream` in `%APPDATA%` and in `%LOCALAPPDATA%` |
+| Windows | Settings in `%APPDATA%\anistream`, and the history, downloads and cache in `%LOCALAPPDATA%\anistream` |
+| Linux | The same folders as the terminal app on Linux, so the two share a history and a config |
 | iPhone and iPad | The app's own storage, which iOS includes in your device backups as it does any app's data |
-| Android | The app's private storage. The app opts out of Android's backups. |
+| Android and Android TV | The app's private storage. The apps opt out of Android's backups. |
 
 Notifications are scheduled on the device. There is no push server.
 
@@ -250,9 +301,10 @@ On Android, installing or updating the app makes Android fetch
 `https://anistream.tv/.well-known/assetlinks.json`, to confirm that the sign-in address belongs to
 the app. Android does this itself.
 
-To remove everything, uninstall the app on iPhone, iPad or Android. On a Mac or with the terminal
-app, delete the folders above, and the items kept under the service `anistream` in the Keychain or
-your system's credential store.
+To remove everything, uninstall the app on iPhone, iPad, Android or Android TV. On a Mac, Windows or
+Linux, or with the terminal app, delete the folders above. Also delete the items kept under the
+service `anistream` in the Keychain or your system's credential store, which on Windows are the
+credentials whose names start with `anistream/` in Credential Manager.
 
 ## This website
 

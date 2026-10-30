@@ -102,15 +102,13 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
             return
         }
     }
-    // The engine's status, when it has one: changes waiting to sync.
-    val status by store.notices.status.collectAsStateWithLifecycle()
     val offline by store.offline.collectAsStateWithLifecycle()
     // Rows swiped off, gone from the list while their Undo stands.
     val leaving = remember { mutableStateListOf<AnilistId>() }
     val leave = rememberLeave(leaving)
     ScreenFrame(
         title = stringResource(R.string.nav_continue),
-        subtitle = status?.text(LocalContext.current) ?: if (empty) stringResource(R.string.continue_empty_title) else null,
+        subtitle = if (empty) stringResource(R.string.continue_empty_title) else null,
         account = Account(user, actions.openSettings),
     ) { padding ->
         Refreshable({ store.loadContinue(force = true) }, top = padding.calculateTopPadding()) {
@@ -299,7 +297,8 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(item.actionText(), style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
+                // Two lines at large text, so the time is never the part that is cut off.
+                Text(item.actionText(), style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
         if (stacked) {

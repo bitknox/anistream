@@ -190,6 +190,11 @@ public struct MacPlayerView: View {
         Button(L.playerMenuPictureSound) { toggle(.picture) }
             .disabled(model.menus == nil)
         Toggle(L.playerStats, isOn: Binding(get: { model.statsShown }, set: { model.showStats($0) }))
+        if let offer = model.discussionOffer {
+            Button(offer.count.map { "\(L.discussionOpen) · \(L.discussionApplePlayerNote(count: Int($0)))" } ?? L.discussionOpen) {
+                model.openDiscussion()
+            }
+        }
         Divider()
         Button(L.playerPictureInPicture) { model.togglePictureInPicture() }
             .disabled(!model.pictureInPictureAvailable)
@@ -629,7 +634,7 @@ struct VolumeLine: View {
     var body: some View {
         GeometryReader { proxy in
             Capsule()
-                .fill(Palette.silk.opacity(0.22))
+                .fill(Palette.silk.opacity(0.25))
                 .overlay(alignment: .leading) {
                     Capsule().fill(.silk).frame(width: proxy.size.width * min(1, model.volume / 100))
                 }

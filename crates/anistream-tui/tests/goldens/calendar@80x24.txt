@@ -1,20 +1,20 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
   ▸│    Yesterday  ──────────────────────────────────────────────────────────
-▌ ▤│    Kaze no Tegami                                         E9   1d 2h ago
-  ▦│    Kitsune Ekiben                                         E3   1d 3h ago
+▌ ▤│    Kaze no Tegami                                     E9     1 d 2 h ago
+  ▦│    Kitsune Ekiben                                     E3     1 d 3 h ago
   /│
   ▥│    Today  ──────────────────────────────────────────────────────────────
-  ↓│    Yoru no Toshokan                                       E5  5h 22m ago
+  ↓│    Yoru no Toshokan                                   E5  5 h 22 min ago
   ◇│
   ◎│    Tomorrow  ───────────────────────────────────────────────────────────
-  ⚙│  ▌ Umibe no Kissaten                                      E2   In 2h 41m
+  ⚙│  ▌ Umibe no Kissaten                                  E2   In 2 h 41 min
    │
    │    Wednesday · 21 Oct  ─────────────────────────────────────────────────
-   │    Mori no Kajiya                                         E7    In 1d 4h
+   │    Mori no Kajiya                                     E7      In 1 d 4 h
    │
    │    Saturday · 24 Oct  ──────────────────────────────────────────────────
-   │    Hoshikuzu no Tabibito                                  E5   In 4d 20h
+   │    Hoshikuzu no Tabibito                              E5     In 4 d 20 h
    │
    │
    │
@@ -40,11 +40,11 @@ r03 c00-00 fg=text-dim
 r03 c02-02 fg=text
 r03 c03-03 fg=rule
 r03 c08-21 fg=text-dim
-r03 c63-76 fg=state
+r03 c59-76 fg=state
 r04 c02-02 fg=text-dim
 r04 c03-03 fg=rule
 r04 c08-21 fg=text-dim
-r04 c63-76 fg=text-dim
+r04 c59-76 fg=text-dim
 r05 c02-02 fg=text-dim
 r05 c03-03 fg=rule
 r06 c02-02 fg=text-dim
@@ -54,7 +54,7 @@ r06 c15-76 fg=rule
 r07 c02-02 fg=text-dim
 r07 c03-03 fg=rule
 r07 c08-23 fg=text-dim
-r07 c63-76 fg=state
+r07 c59-76 fg=state
 r08 c02-02 fg=text-dim
 r08 c03-03 fg=rule
 r09 c02-02 fg=text-dim
@@ -65,21 +65,21 @@ r10 c02-02 fg=text-dim
 r10 c03-03 fg=rule
 r10 c06-06 fg=obi
 r10 c08-24 fg=text mod=BOLD
-r10 c63-76 fg=text-dim
+r10 c59-76 fg=text-dim
 r11 c03-03 fg=rule
 r12 c03-03 fg=rule
 r12 c08-25 fg=text-dim
 r12 c28-76 fg=rule
 r13 c03-03 fg=rule
 r13 c08-21 fg=text-dim
-r13 c63-76 fg=text-dim
+r13 c59-76 fg=text-dim
 r14 c03-03 fg=rule
 r15 c03-03 fg=rule
 r15 c08-24 fg=text-dim
 r15 c27-76 fg=rule
 r16 c03-03 fg=rule
 r16 c08-28 fg=text-dim
-r16 c63-76 fg=text-dim
+r16 c59-76 fg=text-dim
 r17 c03-03 fg=rule
 r18 c03-03 fg=rule
 r19 c03-03 fg=rule

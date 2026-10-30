@@ -145,7 +145,7 @@ impl Ahead {
     /// data alone puts its show among the unlisted, and one a source listed takes it out. An
     /// empty table says neither.
     pub fn observe(&self, event: &Event) {
-        let Event::Episodes { id, rows } = event else { return };
+        let Event::Episodes { id, rows, failed: None } = event else { return };
         let Some(first) = rows.first() else { return };
         self.0.unsourced.lock().unwrap_or_else(|e| e.into_inner()).insert(
             *id,
@@ -929,7 +929,7 @@ mod tests {
             unsourced: false,
             past_progress: false,
         };
-        Event::Episodes { id, rows: (1..=12).map(row).collect() }
+        Event::Episodes { id, rows: (1..=12).map(row).collect(), failed: None }
     }
 
     #[tokio::test]
@@ -938,10 +938,12 @@ mod tests {
         watched(&store, FINISHED, 4, NOW - DAY);
         let work = Fake::on(&store);
         // The table lists 1 to 12, and says 6 and 7 are out with nobody to download them from.
-        let Event::Episodes { id, mut rows } = table(FINISHED, false) else { unreachable!() };
+        let Event::Episodes { id, mut rows, .. } = table(FINISHED, false) else {
+            unreachable!()
+        };
         rows[5].unsourced = true;
         rows[6].unsourced = true;
-        work.ahead.observe(&Event::Episodes { id, rows });
+        work.ahead.observe(&Event::Episodes { id, rows, failed: None });
         top_up_with(&keeping(3), &work, &AtomicBool::new(false)).await;
         assert_eq!(
             work.asked(),
@@ -958,7 +960,7 @@ mod tests {
         let work = Fake::on(&store);
         // Its table came from AniList alone; an empty one says nothing either way.
         work.ahead.observe(&table(FINISHED, true));
-        work.ahead.observe(&Event::Episodes { id: FINISHED, rows: Vec::new() });
+        work.ahead.observe(&Event::Episodes { id: FINISHED, rows: Vec::new(), failed: None });
         assert!(work.ahead.unlisted(FINISHED));
         top_up_with(&keeping(2), &work, &AtomicBool::new(false)).await;
         assert_eq!(

@@ -115,6 +115,22 @@ internal object Icons {
             addPath(addPathNodes("M12 ${y - 1.5f} A1.5 1.5 0 1 1 11.99 ${y - 1.5f} Z"), fill = SolidColor(Color.Black))
         }
     }.build()
+    /** A speech bubble, for an episode's discussion. */
+    val Discussion = stroked("Discussion", "M4 5 H20 A2 2 0 0 1 22 7 V15 A2 2 0 0 1 20 17 H10 L5.5 21 V17 H4 A2 2 0 0 1 2 15 V7 A2 2 0 0 1 4 5 Z")
+
+    /** A heart in outline, and filled once the comment is liked. */
+    val Heart = stroked("Heart", "M12 20 C5.5 15.2 3.5 12 3.5 9.2 A4.2 4.2 0 0 1 12 7.4 A4.2 4.2 0 0 1 20.5 9.2 C20.5 12 18.5 15.2 12 20 Z")
+    val HeartFilled = ImageVector.Builder(
+        name = "HeartFilled", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f,
+    ).apply {
+        addPath(
+            pathData = addPathNodes("M12 20 C5.5 15.2 3.5 12 3.5 9.2 A4.2 4.2 0 0 1 12 7.4 A4.2 4.2 0 0 1 20.5 9.2 C20.5 12 18.5 15.2 12 20 Z"),
+            fill = SolidColor(Color.Black),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineJoin = StrokeJoin.Round,
+        )
+    }.build()
     val Down = stroked("Down", "M7 10 L12 15 L17 10")
 
     /** A menu's own arrow, the filled triangle a dropdown row ends with; tinted like the rest. */
@@ -124,6 +140,9 @@ internal object Icons {
     val Chevron = stroked("Chevron", "M10 7 L15 12 L10 17")
     val Check = stroked("Check", "M5 12.5 L10 17.5 L19 7")
     val Trailer = stroked("Trailer", "M8 6.5 V17.5 L17 12 Z")
+    private const val SPEAKER = "M4 9.5 H7.5 L12 6 V18 L7.5 14.5 H4 Z"
+    val SoundOff = stroked("SoundOff", SPEAKER, "M15.5 9.5 L20 14.5 M20 9.5 L15.5 14.5")
+    val SoundOn = stroked("SoundOn", SPEAKER, "M15.5 9 C16.8 10.4 16.8 13.6 15.5 15", "M18 6.5 C20.7 9.5 20.7 14.5 18 17.5")
     val Hidden = stroked(
         "Hidden",
         "M3 3 L21 21",

@@ -35,6 +35,58 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="CastEpisode" xml:space="preserve">
+    <value>Episode {episode}</value>
+    <comment>What the TV's loading screen and its own controls show under the show's name.</comment>
+  </data>
+  <data name="CastEpisodeTitled" xml:space="preserve">
+    <value>Episode {episode} · {title}</value>
+    <comment>What the TV's loading screen and its own controls show under the show's name, with the episode's own title.</comment>
+  </data>
+  <data name="NoticeCastVideoCodec" xml:space="preserve">
+    <value>The TV can't play this video ({codec}). Try another source.</value>
+    <comment>The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.</comment>
+  </data>
+  <data name="NoticeCastAudioCodec" xml:space="preserve">
+    <value>The TV can't play this audio ({codec}), and this device can't convert it. Try another source.</value>
+    <comment>The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.</comment>
+  </data>
+  <data name="NoticeCastContainer" xml:space="preserve">
+    <value>The TV can't play this kind of file. Try another source.</value>
+    <comment>The stream comes in a kind of file the TV can't read.</comment>
+  </data>
+  <data name="NoticeCastDeepLink" xml:space="preserve">
+    <value>This episode opens in another app, so it can't be cast.</value>
+    <comment>The episode opens in another app, which this device can't cast.</comment>
+  </data>
+  <data name="NoticeCastNeverFetches" xml:space="preserve">
+    <value>The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.</value>
+    <comment>The TV accepted the stream but never started reading it.</comment>
+  </data>
+  <data name="NoticeCastRefused" xml:space="preserve">
+    <value>The TV couldn't play this stream. Try another source.</value>
+    <comment>The TV tried every way of playing the stream and played none of them.</comment>
+  </data>
+  <data name="NoticeCastTakenOver" xml:space="preserve">
+    <value>Another device started something on the TV, so casting stopped.</value>
+    <comment>Someone started something else on the TV, which ends the cast.</comment>
+  </data>
+  <data name="NoticeCastNotSameNetwork" xml:space="preserve">
+    <value>This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.</value>
+    <comment>This device isn't on the TV's network, or reaches it through a VPN.</comment>
+  </data>
+  <data name="NoticeCastLost" xml:space="preserve">
+    <value>Lost the TV, so casting stopped.</value>
+    <comment>The TV stopped answering mid-cast.</comment>
+  </data>
+  <data name="NoticeCastNoDevice" xml:space="preserve">
+    <value>That TV is no longer on the network.</value>
+    <comment>The TV picked to cast to has left the network.</comment>
+  </data>
+  <data name="NoticeCastUnavailable" xml:space="preserve">
+    <value>This version of anistream can't cast to TVs.</value>
+    <comment>This build of the app has no casting.</comment>
+  </data>
   <data name="DiscussionAgeNow" xml:space="preserve">
     <value>now</value>
     <comment>A comment's age, beside its author, when it was written under a minute ago.</comment>
@@ -123,6 +175,10 @@
     <value>Couldn't start that release: {detail}</value>
     <comment>Reason: the release the person picked would not start. The detail comes from the source.</comment>
   </data>
+  <data name="CauseSourcesTimedOut" xml:space="preserve">
+    <value>The sources took too long to answer. Try again, or choose another source.</value>
+    <comment>Reason: a play waited too long for its sources to give it a stream, and gave up.</comment>
+  </data>
   <data name="CauseNoSourceHasEpisode" xml:space="preserve">
     <value>No source has episode {episode}: {detail}</value>
     <comment>Reason: every source matched the title but none has the episode. The detail is what each said.</comment>
@@ -167,14 +223,6 @@
     <value>Searching sources for episode {episode}…</value>
     <comment>Job note while the sources are asked for an episode. The episode is its label, often a number.</comment>
   </data>
-  <data name="StatusStartingPlayer" xml:space="preserve">
-    <value>Starting mpv…</value>
-    <comment>Status while the player opens.</comment>
-  </data>
-  <data name="StatusPlaying" xml:space="preserve">
-    <value>Playing {title}, episode {episode}</value>
-    <comment>Status line while an episode plays.</comment>
-  </data>
   <data name="NoticePlayerFailedToStart" xml:space="preserve">
     <value>Couldn't start mpv. Check that it runs on its own. ({reason})</value>
     <comment>Toast when the player cannot be started. The reason comes from the system.</comment>
@@ -201,11 +249,15 @@
   </data>
   <data name="NoticeMpvMissing" xml:space="preserve">
     <value>{binary} wasn't found. Install mpv to play episodes.</value>
-    <comment>Toast at launch when the mpv program is missing. The binary is the name the settings give it.</comment>
+    <comment>Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="NoticeMpvOld" xml:space="preserve">
     <value>mpv {version} can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.</value>
-    <comment>Toast at launch when mpv is too old for anistream's own player.</comment>
+    <comment>Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps.</comment>
+  </data>
+  <data name="NoticeSubtitlesUnavailable" xml:space="preserve">
+    <value>This source's subtitles couldn't be loaded. Choose another source to try again.</value>
+    <comment>Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.</comment>
   </data>
   <data name="NoticeOpenedInBrowser" xml:space="preserve">
     <value>Opened in your browser.</value>
@@ -287,6 +339,14 @@
     <value>No source could list this show: {reason}</value>
     <comment>Toast when no source could list a show's episodes. The reason is what the sources said.</comment>
   </data>
+  <data name="NoticeEpisodesFailed" xml:space="preserve">
+    <value>Couldn't load the episodes. {reason}</value>
+    <comment>Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.</comment>
+  </data>
+  <data name="NoticeMatchUncertain" xml:space="preserve">
+    <value>{source} found more than one show that could be this one, so these episodes are from AniList for now.</value>
+    <comment>Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name.</comment>
+  </data>
   <data name="NoticeContinueHideFailed" xml:space="preserve">
     <value>Couldn't remove that from Continue. {reason}</value>
     <comment>Toast when a title cannot be taken off the Continue row. The reason comes from the system.</comment>
@@ -353,19 +413,19 @@
   </data>
   <data name="NoticeDownloadsNoneNew" xml:space="preserve">
     <value>Nothing new queued. {existing}</value>
-    <comment>Toast after a range was asked for and every episode was in the queue already.</comment>
+    <comment>Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`.</comment>
   </data>
   <data name="NoticeDownloadsNoneNewStopped" xml:space="preserve">
     <value>Nothing new queued. {existing} {reason}</value>
-    <comment>Toast as above, with the reason the range stopped.</comment>
+    <comment>Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.</comment>
   </data>
   <data name="NoticeEpisodesQueuedExisting_one" xml:space="preserve">
     <value>Queued one episode. {existing}</value>
-    <comment>Toast after a range was asked for, some episodes were queued and some were there already.</comment>
+    <comment>Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`.</comment>
   </data>
   <data name="NoticeEpisodesQueuedExisting_other" xml:space="preserve">
     <value>Queued {count} episodes. {existing}</value>
-    <comment>Toast after a range was asked for, some episodes were queued and some were there already.</comment>
+    <comment>Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`.</comment>
   </data>
   <data name="NoticeEpisodesQueuedStopped_one" xml:space="preserve">
     <value>Queued one episode, then it stopped. {reason}</value>
@@ -377,11 +437,11 @@
   </data>
   <data name="NoticeEpisodesQueuedExistingStopped_one" xml:space="preserve">
     <value>Queued one episode, then it stopped. {existing} {reason}</value>
-    <comment>Toast as above, with some episodes in the queue already and the reason the range stopped.</comment>
+    <comment>Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.</comment>
   </data>
   <data name="NoticeEpisodesQueuedExistingStopped_other" xml:space="preserve">
     <value>Queued {count} episodes, then it stopped. {existing} {reason}</value>
-    <comment>Toast as above, with some episodes in the queue already and the reason the range stopped.</comment>
+    <comment>Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.</comment>
   </data>
   <data name="NoticeKeepNextFull" xml:space="preserve">
     <value>Not enough free space to keep the next episodes downloaded. Free up some space to download more.</value>
@@ -389,7 +449,11 @@
   </data>
   <data name="PartyNeedsServer" xml:space="preserve">
     <value>Choose a server for the watch party first, as syncplay.server. {server} is run by {operator}.</value>
-    <comment>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.</comment>
+    <comment>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.</comment>
+  </data>
+  <data name="PartyChooseServer" xml:space="preserve">
+    <value>Choose a server for the watch party first. {server} is run by {operator}.</value>
+    <comment>Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it.</comment>
   </data>
   <data name="NoticeNoParty" xml:space="preserve">
     <value>Watch parties aren't available in this version of anistream.</value>
@@ -468,12 +532,12 @@
     <comment>Toast after a plugin stops being offered in a store.</comment>
   </data>
   <data name="StoreAdminOpened" xml:space="preserve">
-    <value>Opened the admin page in your browser. The link works once, for ten minutes.</value>
+    <value>Opened the admin page in your browser. The link works once, for 10 minutes.</value>
     <comment>Toast after the store's admin page opens in the browser.</comment>
   </data>
   <data name="StoreAdminOpenFailed" xml:space="preserve">
     <value>Couldn't open a browser ({reason}). On the plugin store's machine, run "anistream store admin" to print a link.</value>
-    <comment>Toast when the browser could not be opened for the store's admin page. The reason comes from the system.</comment>
+    <comment>Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run.</comment>
   </data>
   <data name="PluginInstalledUnused" xml:space="preserve">
     <value>Installed {plugin} {version}, but plugins are switched off in the source order, so it isn't used.</value>
@@ -512,7 +576,7 @@
     <comment>Error: the store the record points to is gone from the saved list.</comment>
   </data>
   <data name="StoreKeyDamaged" xml:space="preserve">
-    <value>The plugin store's key is damaged.</value>
+    <value>This plugin store's key on this device is damaged. Leave the plugin store and join it again with a new invite.</value>
     <comment>Error: a store's signing key is unreadable. Shown as the reason a store is offline.</comment>
   </data>
   <data name="StoreDeviceRefused" xml:space="preserve">
@@ -584,7 +648,7 @@
     <comment>Error: an invite for another device cannot be made from a device that joined with the open link.</comment>
   </data>
   <data name="StoreLinkMalformed" xml:space="preserve">
-    <value>The plugin store made a bad link. {reason}</value>
+    <value>The plugin store sent a link that doesn't work. Ask its owner to check the plugin store. {reason}</value>
     <comment>Error: the store sent an invite link that does not parse. The reason comes from the link parser.</comment>
   </data>
   <data name="StoreLinkWrongKey" xml:space="preserve">
@@ -612,7 +676,7 @@
     <comment>Toast after a source (plugin) is switched on.</comment>
   </data>
   <data name="PluginNotLoaded" xml:space="preserve">
-    <value>{id} is not a plugin that is loaded.</value>
+    <value>{id} isn't loaded. Check that it's installed under Sources.</value>
     <comment>Error: a command named a plugin that is not loaded.</comment>
   </data>
   <data name="ReleasePinned" xml:space="preserve">
@@ -640,7 +704,7 @@
     <comment>Error: torrents are on, but no torrent index is set.</comment>
   </data>
   <data name="TorrentInterfaceClosed" xml:space="preserve">
-    <value>The interface closed before torrents started.</value>
+    <value>anistream closed before torrents started.</value>
     <comment>Error: the torrent session did not start because the interface closed first.</comment>
   </data>
   <data name="TorrentSessionFailed" xml:space="preserve">
@@ -648,8 +712,8 @@
     <comment>Error: the torrent session could not start. The reason comes from the torrent engine.</comment>
   </data>
   <data name="TorrentNoKillSwitch" xml:space="preserve">
-    <value>There is no OS-level kill switch behind the VPN guard. Run "anistream --doctor" for advice.</value>
-    <comment>Toast when torrents are up but no operating-system firewall rule backs the VPN guard.</comment>
+    <value>Nothing on this device stops torrent traffic if the VPN drops. Run "anistream --doctor" to set that up.</value>
+    <comment>Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="TorrentNotChecked" xml:space="preserve">
     <value>Couldn't check the connection. {reason}</value>
@@ -672,7 +736,7 @@
     <comment>Toast when there is no job to carry the wait for AniList's rate limit.</comment>
   </data>
   <data name="NoticeAnilistUnreachable" xml:space="preserve">
-    <value>AniList is unreachable. Using the fallback for fresh data for now.</value>
+    <value>AniList isn't answering. Showing data from another service for now.</value>
     <comment>Toast when the AniList fallback takes over because AniList cannot be reached.</comment>
   </data>
   <data name="NoticeMetadataCached" xml:space="preserve">
@@ -761,15 +825,15 @@
   </data>
   <data name="NoticeAnilistPasteFlow" xml:space="preserve">
     <value>Pasting a code isn't possible here. Quit and run anistream --login instead.</value>
-    <comment>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.</comment>
+    <comment>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="NoticeMalClientMissing" xml:space="preserve">
-    <value>MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set {setting} in the config file.</value>
+    <value>MyAnimeList needs a client id. Register an app with the type "other" at myanimelist.net/apiconfig, then set {setting} in the config file.</value>
     <comment>Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.</comment>
   </data>
   <data name="StatusWaitingForRedirect" xml:space="preserve">
     <value>Waiting for {tracker} to redirect back…</value>
-    <comment>Status line while the browser sign-in is open and the app waits for it to come back.</comment>
+    <comment>Job note while the browser sign-in is open and the terminal app waits for it to come back.</comment>
   </data>
   <data name="NoticeMalNoRefreshToken" xml:space="preserve">
     <value>MyAnimeList didn't issue a refresh token. You'll need to sign in again in about a month.</value>
@@ -849,7 +913,7 @@
   </data>
   <data name="NoticeUpdateAvailable" xml:space="preserve">
     <value>{tag} is out. Run anistream --update to install it.</value>
-    <comment>Toast when a new release of anistream is out, on the terminal app. The command is not translated.</comment>
+    <comment>Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps.</comment>
   </data>
   <data name="CauseConfirmNoProtection" xml:space="preserve">
     <value>Confirm that you want no protection first.</value>
@@ -890,6 +954,42 @@
   <data name="NoticePlaybackFailed" xml:space="preserve">
     <value>Playback failed. Try another source.</value>
     <comment>Toast when playback stops with an error.</comment>
+  </data>
+  <data name="NoticeEngineFault" xml:space="preserve">
+    <value>Something went wrong inside anistream. It carried on, but if a screen looks stuck, quit and open it again.</value>
+    <comment>Toast when something went wrong inside the engine and it carried on.</comment>
+  </data>
+  <data name="NoticeDatabaseSetAside" xml:space="preserve">
+    <value>The database was damaged, so anistream started a new one. The old file is kept at {path}. Your trackers bring back what they hold at the next sync.</value>
+    <comment>Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync.</comment>
+  </data>
+  <data name="StartFailedFolder" xml:space="preserve">
+    <value>anistream couldn't create the folder {path}. Check that the disk has room and the folder can be written to, then try again. {reason}</value>
+    <comment>Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system.</comment>
+  </data>
+  <data name="StartFailedConfig" xml:space="preserve">
+    <value>{path} has a setting anistream can't use: {problem}. Fix or remove it, then try again.</value>
+    <comment>Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.</comment>
+  </data>
+  <data name="StartFailedDatabase" xml:space="preserve">
+    <value>anistream couldn't open its database at {path}. If another anistream app is open on this folder, quit it and try again. {reason}</value>
+    <comment>Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.</comment>
+  </data>
+  <data name="StartFailedNetwork" xml:space="preserve">
+    <value>anistream couldn't set up its network connection from the network settings in config.toml. {reason}</value>
+    <comment>Message when anistream could not start its network connection from the network settings.</comment>
+  </data>
+  <data name="StartFailed" xml:space="preserve">
+    <value>anistream couldn't start. Quit and open it again. {reason}</value>
+    <comment>Message when anistream itself could not start. The reason comes from the system or the engine.</comment>
+  </data>
+  <data name="StartFailedRemote" xml:space="preserve">
+    <value>The remote couldn't start. {reason}</value>
+    <comment>Message when the TV remote could not start listening or could not forget a phone.</comment>
+  </data>
+  <data name="StartFailedPlayer" xml:space="preserve">
+    <value>The player couldn't start. {reason}</value>
+    <comment>Message when the built-in player could not start.</comment>
   </data>
   <data name="NoticeEpisodesQueued_one" xml:space="preserve">
     <value>Queued one episode.</value>
@@ -968,7 +1068,7 @@
     <comment>Title page: an episode row's download button, for an episode numbered other than as a whole number, such as "12.5".</comment>
   </data>
   <data name="EpisodeDownloadFailedText" xml:space="preserve">
-    <value>Couldn't download episode {episode}. Download again.</value>
+    <value>Couldn't download episode {episode}. Try again.</value>
     <comment>Title page: an episode row's download button after a failure, for an episode numbered other than as a whole number.</comment>
   </data>
   <data name="EpisodeNumberText" xml:space="preserve">
@@ -986,14 +1086,6 @@
   <data name="EpisodeListedByAnilist" xml:space="preserve">
     <value>Listed by AniList</value>
     <comment>Title page: the line of an episode that only AniList lists, so nothing can play it yet.</comment>
-  </data>
-  <data name="TitleStudioLine" xml:space="preserve">
-    <value>Studio: {studio}</value>
-    <comment>Title page details: the studio that made the show.</comment>
-  </data>
-  <data name="TitleBasedOnLine" xml:space="preserve">
-    <value>Based on: {material}</value>
-    <comment>Title page details: what the show is adapted from, such as "Based on: Manga".</comment>
   </data>
   <data name="TitleRelationFormat" xml:space="preserve">
     <value>{relation} · {format}</value>
@@ -1148,7 +1240,7 @@
     <comment>Setting: whether the app animates.</comment>
   </data>
   <data name="SettingsStartFullscreen" xml:space="preserve">
-    <value>Start fullscreen</value>
+    <value>Start in full screen</value>
     <comment>Setting: the player opens fullscreen.</comment>
   </data>
   <data name="SettingsPlayerInterface" xml:space="preserve">
@@ -1172,8 +1264,8 @@
     <comment>Setting: the order the app tries sources in.</comment>
   </data>
   <data name="SettingsDownloadsCellular" xml:space="preserve">
-    <value>Downloads on cellular</value>
-    <comment>Setting: downloads run on a cellular connection.</comment>
+    <value>Downloads on mobile data</value>
+    <comment>Setting: downloads run on a mobile data connection.</comment>
   </data>
   <data name="SettingsEpisodeNotifications" xml:space="preserve">
     <value>New episode notifications</value>
@@ -1236,11 +1328,11 @@
     <comment>Under a tracker that is signed in, when its user name is unknown and changes wait to sync.</comment>
   </data>
   <data name="SettingsSignedOutCode" xml:space="preserve">
-    <value>Not signed in · You enter a code on its site</value>
+    <value>Not signed in · you enter a code on its site</value>
     <comment>Under a tracker that signs in with a code typed on its website.</comment>
   </data>
   <data name="SettingsLibmpvLicence" xml:space="preserve">
-    <value>Licensed under the Lesser General Public Licence, version 2.1 or later.</value>
+    <value>Licensed under the GNU Lesser General Public License, version 2.1 or later.</value>
     <comment>Notice line for the video library the player uses.</comment>
   </data>
   <data name="TorrentsWarnInstead" xml:space="preserve">
@@ -1270,14 +1362,6 @@
   <data name="ShowSettingsNotifyDetail" xml:space="preserve">
     <value>A notification when an episode comes out.</value>
     <comment>Under the new episodes row of a show's settings.</comment>
-  </data>
-  <data name="WelcomeSourcesOthers" xml:space="preserve">
-    <value>Every source is run by someone else.</value>
-    <comment>First page of the welcome dialog: the legal line beside it, then this.</comment>
-  </data>
-  <data name="WelcomeNoOwnSources" xml:space="preserve">
-    <value>anistream ships no sources of its own.</value>
-    <comment>Sources page of the welcome dialog, before the line about plugins.</comment>
   </data>
   <data name="SettingsDownloadStandard" xml:space="preserve">
     <value>Standard</value>
@@ -1364,7 +1448,7 @@
     <comment>A toast built from a notice that has a title and a body, while the window is in front.</comment>
   </data>
   <data name="LinkCantOpen" xml:space="preserve">
-    <value>anistream can't open that link.</value>
+    <value>anistream can't open that link. It opens invite, pairing and title links.</value>
     <comment>Toast when the app was opened by a link it does not handle.</comment>
   </data>
   <data name="AccountsPaneSignInAgain" xml:space="preserve">
@@ -1552,7 +1636,7 @@
     <comment>Label in a { -source }'s detail, beside how it stands: failing, slow, off, or working.</comment>
   </data>
   <data name="SourcesStatusWorking" xml:space="preserve">
-    <value>Working</value>
+    <value>Ready</value>
     <comment>How a { -source } stands when nothing is wrong with it.</comment>
   </data>
   <data name="SourcesTorrentIndexes" xml:space="preserve">
@@ -1823,6 +1907,10 @@
     <value>Couldn't load later broadcasts</value>
     <comment>Line where later broadcasts would be when they could not be loaded.</comment>
   </data>
+  <data name="CalendarEmptyMineAhead" xml:space="preserve">
+    <value>Nothing on your list airs in the next 4 weeks.</value>
+    <comment>Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next four weeks.</comment>
+  </data>
   <data name="CalendarShowAll" xml:space="preserve">
     <value>Show all airing</value>
     <comment>Button under the line saying nothing on the person's list airs: shows every airing show.</comment>
@@ -1844,27 +1932,27 @@
     <comment>Button that puts a question off until later.</comment>
   </data>
   <data name="DurationDays" xml:space="preserve">
-    <value>{days}d</value>
+    <value>{days} d</value>
     <comment>A span of time in whole days. The unit letter belongs to the language.</comment>
   </data>
   <data name="DurationHoursMinutes" xml:space="preserve">
-    <value>{hours}h {minutes}m</value>
+    <value>{hours} h {minutes} min</value>
     <comment>A span of time in hours and minutes.</comment>
   </data>
   <data name="DurationHours" xml:space="preserve">
-    <value>{hours}h</value>
+    <value>{hours} h</value>
     <comment>A span of time in whole hours.</comment>
   </data>
   <data name="DurationMinutes" xml:space="preserve">
-    <value>{minutes}m</value>
+    <value>{minutes} min</value>
     <comment>A span of time in minutes.</comment>
   </data>
   <data name="DurationMinutesSeconds" xml:space="preserve">
-    <value>{minutes}m {seconds}s</value>
+    <value>{minutes} min {seconds} s</value>
     <comment>A short wait in minutes and seconds. The seconds come with a leading zero.</comment>
   </data>
   <data name="DurationSeconds" xml:space="preserve">
-    <value>{seconds}s</value>
+    <value>{seconds} s</value>
     <comment>A short wait in seconds.</comment>
   </data>
   <data name="SizeByte" xml:space="preserve">
@@ -2172,7 +2260,7 @@
     <comment>Failure when a request took too long.</comment>
   </data>
   <data name="ErrorSignInExpired" xml:space="preserve">
-    <value>Your sign-in has expired. Sign in again under Accounts.</value>
+    <value>Your sign-in has expired. Sign in again in Accounts.</value>
     <comment>Failure when a tracker rejects the saved sign-in.</comment>
   </data>
   <data name="ErrorLabel" xml:space="preserve">
@@ -2261,11 +2349,11 @@
   </data>
   <data name="PadHelpPlayNow" xml:space="preserve">
     <value>Play now</value>
-    <comment>Controller help: starts the next episode now, while the Up Next card shows.</comment>
+    <comment>Controller help: starts the next episode now, while the Up next card shows.</comment>
   </data>
   <data name="PadHelpCancel" xml:space="preserve">
     <value>Cancel</value>
-    <comment>Controller help: cancels the Up Next card.</comment>
+    <comment>Controller help: cancels the Up next card.</comment>
   </data>
   <data name="PadHelpSwitchSource" xml:space="preserve">
     <value>Switch source</value>
@@ -2587,6 +2675,10 @@
     <value>Sending</value>
     <comment>Age of a comment that is on its way to AniList.</comment>
   </data>
+  <data name="DiscussionShowMore" xml:space="preserve">
+    <value>Show more</value>
+    <comment>Button under a comment that is cut off after ten lines.</comment>
+  </data>
   <data name="DiscussionCopyText" xml:space="preserve">
     <value>Copy text</value>
     <comment>Comment menu item that copies the comment's text.</comment>
@@ -2688,7 +2780,7 @@
     <comment>Row caption: finished.</comment>
   </data>
   <data name="DownloadsCaptionAhead" xml:space="preserve">
-    <value>Downloaded ahead · Removed a day after you watch it</value>
+    <value>Downloaded ahead · removed a day after you watch it</value>
     <comment>Row caption: finished and removed a day after it is watched.</comment>
   </data>
   <data name="DownloadsAhead" xml:space="preserve">
@@ -2768,7 +2860,7 @@
     <comment>Heading of the seeding group on the downloads screen.</comment>
   </data>
   <data name="DownloadsSeedingNote" xml:space="preserve">
-    <value>Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Sources is reached.</value>
+    <value>Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Settings, under Sources, is reached.</value>
     <comment>Line under the seeding heading.</comment>
   </data>
   <data name="DownloadsBackgroundTitle" xml:space="preserve">
@@ -2796,7 +2888,7 @@
     <comment>Line shown when the setting is Stop downloading. Shown on desktop only.</comment>
   </data>
   <data name="DownloadsBackgroundAsks" xml:space="preserve">
-    <value>Downloads keep going when you close the window, if you choose to.</value>
+    <value>Closing the window asks whether to keep downloading.</value>
     <comment>Line shown when the setting is Ask each time. Shown on desktop only.</comment>
   </data>
   <data name="DownloadsBackgroundQuestion" xml:space="preserve">
@@ -2864,7 +2956,7 @@
     <comment>Line under that button once the file is saved.</comment>
   </data>
   <data name="EpisodeDownloadFailed" xml:space="preserve">
-    <value>Couldn't download episode {episode}. Download again.</value>
+    <value>Couldn't download episode {episode}. Try again.</value>
     <comment>Line under that button after a failure.</comment>
   </data>
   <data name="QueueEpisodesLeft_one" xml:space="preserve">
@@ -2892,7 +2984,7 @@
     <comment>How far through a show a person is. The plural follows the total.</comment>
   </data>
   <data name="DurationDaysHours" xml:space="preserve">
-    <value>{days}d {hours}h</value>
+    <value>{days} d {hours} h</value>
     <comment>A span of time to the next episode, in days and hours. The unit letters belong to the language.</comment>
   </data>
   <data name="GroupInProgress" xml:space="preserve">
@@ -2940,7 +3032,7 @@
     <comment>Notice after a show was hidden from Continue.</comment>
   </data>
   <data name="ContinueDrop" xml:space="preserve">
-    <value>Drop</value>
+    <value>Move to Dropped</value>
     <comment>Menu item that sets a show's status to Dropped and takes it off Continue.</comment>
   </data>
   <data name="ContinueMoreFor" xml:space="preserve">
@@ -2948,11 +3040,11 @@
     <comment>Accessibility label on the overflow button of a row.</comment>
   </data>
   <data name="ContinueRowResume" xml:space="preserve">
-    <value>Continue E{episode} · {clock}</value>
+    <value>Resume E{episode} · {clock}</value>
     <comment>Row caption: resumes this episode where it stopped. The clock is the stored position.</comment>
   </data>
   <data name="ContinueRowResumeDubbed" xml:space="preserve">
-    <value>Continue E{episode} dubbed · {clock}</value>
+    <value>Resume E{episode} dubbed · {clock}</value>
     <comment>Row caption: resumes this episode where it stopped, dubbed.</comment>
   </data>
   <data name="ContinueRowStart" xml:space="preserve">
@@ -3068,11 +3160,11 @@
     <comment>Menu item on a title that adds it to a list.</comment>
   </data>
   <data name="LibraryAddPlanning" xml:space="preserve">
-    <value>Add to planning</value>
+    <value>Add to Planning</value>
     <comment>Menu item that puts a title in the planning list.</comment>
   </data>
   <data name="LibraryAddedPlanning" xml:space="preserve">
-    <value>Added to planning.</value>
+    <value>Added to Planning.</value>
     <comment>Notice after a title was added to the planning list.</comment>
   </data>
   <data name="LibraryOnYourList" xml:space="preserve">
@@ -3119,6 +3211,10 @@
     <value>Recommended for you</value>
     <comment>Reason on a recommended suggestion when the finished show is not known.</comment>
   </data>
+  <data name="UpNextBecauseDetail" xml:space="preserve">
+    <value>Recommended on AniList by people who liked {title}</value>
+    <comment>Line in the preview of a recommended suggestion, naming the show the recommendation came from.</comment>
+  </data>
   <data name="UpNextReasonAiringToday" xml:space="preserve">
     <value>Airing today</value>
     <comment>Reason on a suggestion that airs today, shown when nothing else is left to suggest.</comment>
@@ -3130,6 +3226,26 @@
   <data name="UpNextNotInterested" xml:space="preserve">
     <value>Not interested</value>
     <comment>Menu item on a suggestion. The show stays hidden until it starts airing.</comment>
+  </data>
+  <data name="UpNextRowStarts" xml:space="preserve">
+    <value>{reason} · {starts}</value>
+    <comment>Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.</comment>
+  </data>
+  <data name="UpNextHidden" xml:space="preserve">
+    <value>{title} is hidden from Up next for you</value>
+    <comment>Notice after Not interested on a suggestion that is already airing.</comment>
+  </data>
+  <data name="UpNextHiddenUntilAirs" xml:space="preserve">
+    <value>{title} is hidden until it airs</value>
+    <comment>Notice after Not interested on a suggestion that has not started airing.</comment>
+  </data>
+  <data name="UpNextBroadcast" xml:space="preserve">
+    <value>Episode {episode} · {when}</value>
+    <comment>Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.</comment>
+  </data>
+  <data name="UpNextOut" xml:space="preserve">
+    <value>out {ago}</value>
+    <comment>The time of an episode that came out earlier today. The span is already worded, such as "2h ago".</comment>
   </data>
   <data name="FormatTv" xml:space="preserve">
     <value>TV</value>
@@ -3236,12 +3352,12 @@
     <comment>Note beside a link to an official service whose page is in another language, such as "Site in Japanese".</comment>
   </data>
   <data name="FilmLengthHoursMinutes" xml:space="preserve">
-    <value>{hours} hr {minutes} min</value>
-    <comment>Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".</comment>
+    <value>{hours} h {minutes} min</value>
+    <comment>Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".</comment>
   </data>
   <data name="FilmLengthHours" xml:space="preserve">
-    <value>{hours} hr</value>
-    <comment>Length of a film or a single episode that is a whole number of hours, such as "2 hr".</comment>
+    <value>{hours} h</value>
+    <comment>Length of a film or a single episode that is a whole number of hours, such as "2 h".</comment>
   </data>
   <data name="FilmLengthMinutes" xml:space="preserve">
     <value>{minutes} min</value>
@@ -3704,7 +3820,7 @@
     <comment>Line naming the episode of the form when the show has no name.</comment>
   </data>
   <data name="PartyEndedEarly" xml:space="preserve">
-    <value>The party ended before it began.</value>
+    <value>The watch party ended before it began.</value>
     <comment>Line on the form when the party could not begin.</comment>
   </data>
   <data name="PartyWaitingMembers" xml:space="preserve">
@@ -3804,7 +3920,7 @@
     <comment>Line shown in the room with nothing playing, when the room is unknown.</comment>
   </data>
   <data name="PartyLinkIncomplete" xml:space="preserve">
-    <value>That party link is missing its server, room or episode.</value>
+    <value>That watch party link is missing its server, room or episode.</value>
     <comment>Note when an invite link lacks parts.</comment>
   </data>
   <data name="PartyAlreadyIn" xml:space="preserve">
@@ -3837,7 +3953,7 @@
   </data>
   <data name="PartyNosourceNoneDetail" xml:space="preserve">
     <value>Sources come from plugins, which a plugin store adds. {what} plays with the room once one of them has it.</value>
-    <comment>Line under it.</comment>
+    <comment>Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence.</comment>
   </data>
   <data name="PartyNosourceMissingTitle" xml:space="preserve">
     <value>None of your sources has this episode</value>
@@ -3845,7 +3961,7 @@
   </data>
   <data name="PartyNosourceMissingDetail" xml:space="preserve">
     <value>{why}. {what} plays with the room once you choose a source that has it.</value>
-    <comment>Line under it. The reason is a sentence without its full stop.</comment>
+    <comment>Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence.</comment>
   </data>
   <data name="PartyNosourceUnaired" xml:space="preserve">
     <value>Your sources won't have episode {episode} before it's out.</value>
@@ -4206,6 +4322,10 @@
   <data name="PlayerWaitNote" xml:space="preserve">
     <value>{what} · {seconds} s</value>
     <comment>Line while an episode starts after a few seconds: what the wait is on, and for how long.</comment>
+  </data>
+  <data name="PlayerCommandFailed" xml:space="preserve">
+    <value>That didn't work. Try again.</value>
+    <comment>Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.</comment>
   </data>
   <data name="SeasonalPrevious" xml:space="preserve">
     <value>Previous season</value>
@@ -4768,7 +4888,7 @@
     <comment>Line under it.</comment>
   </data>
   <data name="SettingsTorrentsCellular" xml:space="preserve">
-    <value>Torrents on cellular</value>
+    <value>Torrents on mobile data</value>
     <comment>Row: torrents on a mobile connection.</comment>
   </data>
   <data name="SettingsSeedAfter" xml:space="preserve">
@@ -5084,8 +5204,16 @@
     <comment>Yesterday, inside a line.</comment>
   </data>
   <data name="WidgetLineStart" xml:space="preserve">
-    <value>Start {episode}</value>
+    <value>Play {episode}</value>
     <comment>Line of the Continue widget: what plays next, with the episode already named.</comment>
+  </data>
+  <data name="SettingsTrailersAlways" xml:space="preserve">
+    <value>Always</value>
+    <comment>Value of the Play trailers setting: trailers play by themselves on any network.</comment>
+  </data>
+  <data name="SettingsTrailersWifiOnly" xml:space="preserve">
+    <value>Wi-Fi only</value>
+    <comment>Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.</comment>
   </data>
   <data name="SourcesTitle" xml:space="preserve">
     <value>Sources</value>
@@ -5256,7 +5384,7 @@
     <comment>Status line: held back by the check.</comment>
   </data>
   <data name="SourcesDetailDisabled" xml:space="preserve">
-    <value>Disabled. It keeps its place and is not tried.</value>
+    <value>Off. It keeps its place and isn't tried.</value>
     <comment>Status line: disabled.</comment>
   </data>
   <data name="SourcesDetailGone" xml:space="preserve">
@@ -5264,7 +5392,7 @@
     <comment>Status line: the source is gone.</comment>
   </data>
   <data name="SourcesDetailSite" xml:space="preserve">
-    <value>The site did not answer.</value>
+    <value>The source didn't answer.</value>
     <comment>Status line: the site did not answer.</comment>
   </data>
   <data name="SourcesVersion" xml:space="preserve">
@@ -5304,7 +5432,7 @@
     <comment>Line: the plugin contacts several hosts. The count is the hosts after the first.</comment>
   </data>
   <data name="SourcesContactsNone" xml:space="preserve">
-    <value>Contacts no hosts</value>
+    <value>Lists no hosts to contact</value>
     <comment>Line: the plugin contacts no host.</comment>
   </data>
   <data name="SourcesNoHosts" xml:space="preserve">
@@ -6032,7 +6160,7 @@
     <comment>Row note for an episode that has not aired, with when it does.</comment>
   </data>
   <data name="EpisodeSpoilerHidden" xml:space="preserve">
-    <value>Still hidden: spoiler protection</value>
+    <value>Hidden by spoiler protection</value>
     <comment>Accessibility label of an episode's still while spoiler protection hides it.</comment>
   </data>
   <data name="EpisodeOptions" xml:space="preserve">
@@ -6111,6 +6239,26 @@
     <value>Rankings</value>
     <comment>Heading of the list of rankings.</comment>
   </data>
+  <data name="MoreFollowing" xml:space="preserve">
+    <value>People you follow</value>
+    <comment>Heading of the list of people the viewer follows who have the show on their list.</comment>
+  </data>
+  <data name="MoreFollowingNote" xml:space="preserve">
+    <value>From AniList</value>
+    <comment>Note under that list: where the names come from.</comment>
+  </data>
+  <data name="MoreFollowedScore" xml:space="preserve">
+    <value>{score}/10</value>
+    <comment>What a followed person gave the show, out of ten. The score is a whole number.</comment>
+  </data>
+  <data name="MoreLikeThis" xml:space="preserve">
+    <value>More like this</value>
+    <comment>Heading of the list of titles people who liked this one also liked.</comment>
+  </data>
+  <data name="MoreFollowedProgress" xml:space="preserve">
+    <value>{status} · {progress}</value>
+    <comment>Line of a followed person's list entry: their status and how far they are. Both are already worded.</comment>
+  </data>
   <data name="MoreEmpty" xml:space="preserve">
     <value>AniList has no cast, staff or recommendations for this show yet.</value>
     <comment>Line when AniList has no cast, staff or recommendations for a show.</comment>
@@ -6143,6 +6291,38 @@
     <value>Resume episode {episode} · Dubbed · {time}</value>
     <comment>Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.</comment>
   </data>
+  <data name="TitleGenres" xml:space="preserve">
+    <value>Genres</value>
+    <comment>Label of a fact: the genres, joined in its value.</comment>
+  </data>
+  <data name="TitleFactStarts" xml:space="preserve">
+    <value>Starts</value>
+    <comment>Label of a fact: the date a show not yet out starts.</comment>
+  </data>
+  <data name="TitleFactReleased" xml:space="preserve">
+    <value>Released</value>
+    <comment>Label of a fact: the date a film or a one-off was released.</comment>
+  </data>
+  <data name="TitleFactRange" xml:space="preserve">
+    <value>{from} to {to}</value>
+    <comment>Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates.</comment>
+  </data>
+  <data name="TitleFactAfter" xml:space="preserve">
+    <value>After episode {episode}</value>
+    <comment>Value of the fact on a cancelled show: the last episode that aired.</comment>
+  </data>
+  <data name="TitleFactNow" xml:space="preserve">
+    <value>Now</value>
+    <comment>Value of the fact on a show that is airing and has no known start.</comment>
+  </data>
+  <data name="TitleFactTba" xml:space="preserve">
+    <value>To be announced</value>
+    <comment>Value of the fact on a show with no announced start.</comment>
+  </data>
+  <data name="MoreFollowingLine" xml:space="preserve">
+    <value>{status} · {score}/10</value>
+    <comment>A followed person's status and score, such as "Completed · 9/10". The status is already worded.</comment>
+  </data>
   <data name="TorrentsTitle" xml:space="preserve">
     <value>Torrents</value>
     <comment>Title of the settings group and the screen.</comment>
@@ -6160,7 +6340,7 @@
     <comment>Line explaining the risk, before torrents start.</comment>
   </data>
   <data name="TorrentsNotAPlugin" xml:space="preserve">
-    <value>Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Sources settings.</value>
+    <value>Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.</value>
     <comment>Line in the Apple sources screen: torrents belong to the app, not to a plugin.</comment>
   </data>
   <data name="TorrentsProtectWith" xml:space="preserve">
@@ -6192,7 +6372,7 @@
     <comment>Line under the no-protection option.</comment>
   </data>
   <data name="TorrentsProtectNoneNote" xml:space="preserve">
-    <value>With no protection, anistream does not check the connection.</value>
+    <value>With no protection, anistream doesn't check the connection.</value>
     <comment>Line when no protection is set.</comment>
   </data>
   <data name="TorrentsSummaryProxyAt" xml:space="preserve">
@@ -6216,7 +6396,7 @@
     <comment>Title of the question when torrents are turned on without protection.</comment>
   </data>
   <data name="TorrentsUnprotectedDetail" xml:space="preserve">
-    <value>Other people can see your IP address while you download and share a torrent, and anistream does not check the connection.</value>
+    <value>Other people can see your IP address while you download and share a torrent, and anistream doesn't check the connection.</value>
     <comment>Line under it.</comment>
   </data>
   <data name="TorrentsTurnOnUnprotected" xml:space="preserve">
@@ -6268,7 +6448,7 @@
     <comment>Why a save was refused: traffic left outside the proxy.</comment>
   </data>
   <data name="TorrentsCheckNotMadeProxy" xml:space="preserve">
-    <value>The check could not be made through this proxy</value>
+    <value>The check couldn't be made through this proxy</value>
     <comment>Why a save was refused: the check could not run through the proxy.</comment>
   </data>
   <data name="TorrentsProxyNotSaved" xml:space="preserve">
@@ -6368,7 +6548,7 @@
     <comment>Check failed: traffic left outside. The consequence follows.</comment>
   </data>
   <data name="TorrentsCheckUnmade" xml:space="preserve">
-    <value>The check could not be made. {then}</value>
+    <value>The check couldn't be made. {then}</value>
     <comment>Check failed: the check could not be made. The consequence follows.</comment>
   </data>
   <data name="TorrentsCheckFailed" xml:space="preserve">
@@ -6452,7 +6632,7 @@
     <comment>Heading over the trackers other than the first.</comment>
   </data>
   <data name="AccountsOtherTrackersNote" xml:space="preserve">
-    <value>Other trackers are in Settings, under Accounts.</value>
+    <value>Other trackers are in Accounts.</value>
     <comment>Line on the welcome screen: where the other trackers are.</comment>
   </data>
   <data name="AccountsWelcomeDetail" xml:space="preserve">
@@ -6700,7 +6880,7 @@
     <comment>Menu item on the title page, as the title is listed there.</comment>
   </data>
   <data name="AccountsDidNotAnswer" xml:space="preserve">
-    <value>{tracker} did not answer.</value>
+    <value>{tracker} didn't answer.</value>
     <comment>Line when the tracker did not answer.</comment>
   </data>
   <data name="AccountsNoExtras" xml:space="preserve">
@@ -6828,11 +7008,11 @@
     <comment>Line while the app starts on the TV, without a name.</comment>
   </data>
   <data name="TvTalkFailed" xml:space="preserve">
-    <value>Something went wrong talking to the TV. Try again.</value>
+    <value>Lost contact with the TV. Check that it's on and on the same network, then try again.</value>
     <comment>Line when something failed while talking to the TV.</comment>
   </data>
   <data name="TvPlayFailed" xml:space="preserve">
-    <value>Play on TV did not start: {reason}</value>
+    <value>Play on TV didn't start: {reason}</value>
     <comment>Line when the TV did not start the episode. The reason is a sentence fragment.</comment>
   </data>
   <data name="TvAddress" xml:space="preserve">
@@ -7112,7 +7292,7 @@
     <comment>Line when the update stopped.</comment>
   </data>
   <data name="UpdatesDidNotInstall" xml:space="preserve">
-    <value>Version {version} didn't install. About can try again.</value>
+    <value>Version {version} didn't install. Try again from About.</value>
     <comment>Notice when the new version did not install.</comment>
   </data>
   <data name="UpdatesOpenAbout" xml:space="preserve">
@@ -7132,7 +7312,7 @@
     <comment>Line on Linux telling what to replace, file unknown.</comment>
   </data>
   <data name="UpdatesWhyServer" xml:space="preserve">
-    <value>The download stopped: the server answered {code}.</value>
+    <value>The download stopped: the server refused it ({code}). Try again later.</value>
     <comment>The server refused. The code is a number.</comment>
   </data>
   <data name="UpdatesWhyConnection" xml:space="preserve">

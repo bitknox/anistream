@@ -48,9 +48,9 @@ struct ReducerTests {
         let queue = store.continuing.queue(store.titles)
         #expect(queue.inProgress.map(\.id) == [900_001, 900_005, 900_002])
         #expect(queue.inProgress.map(\.action) == [
-            "Continue E7 · 10:06", "Continue E2 · 13:30", "Play E4",
+            "Resume E7 · 10:06", "Resume E2 · 13:30", "Play E4",
         ])
-        #expect(queue.newThisWeek.map(\.action) == ["Play E8 · out 19h ago"])
+        #expect(queue.newThisWeek.map(\.action) == ["Play E8 · out 19 h ago"])
         let first = try! #require(queue.inProgress.first)
         #expect(first.buttonTitle == "Resume episode 7 · 10:06")
         #expect(first.minutesLeft == 14)
@@ -71,12 +71,12 @@ struct ReducerTests {
         ])
         let queue = store.continuing.queue(store.titles)
         #expect(queue.inProgress.map(\.action) == [
-            "Continue E7 · 10:06", "Continue E2 dubbed · 13:30", "Play E4",
+            "Resume E7 · 10:06", "Resume E2 dubbed · 13:30", "Play E4",
         ])
         #expect(queue.inProgress.map(\.buttonTitle) == [
             "Resume episode 7 · 10:06", "Resume episode 2 · Dubbed · 13:30", "Play episode 4",
         ])
-        #expect(queue.newThisWeek.map(\.action) == ["Play E8 dubbed · out 19h ago"])
+        #expect(queue.newThisWeek.map(\.action) == ["Play E8 dubbed · out 19 h ago"])
         #expect(queue.newThisWeek.map(\.buttonTitle) == ["Play episode 8 · Dubbed"])
         #expect(queue.all.map(\.dubbed) == [false, true, false, true])
     }
@@ -141,6 +141,34 @@ struct ReducerTests {
         #expect(store.continuing.list.state == .failed("no disk"))
     }
 
+    @Test func aFailedRefreshKeepsTheRowsOnScreen() {
+        let store = AppStore()
+        store.apply(.content(view: .continue, content: .entries(watching())))
+        let before = store.continuing.list.state
+        store.apply(.content(view: .continue, content: .failed("no network")))
+        #expect(store.continuing.list.state == before, "the loaded list stays")
+        #expect(store.continuing.list.state.ids.count == 4)
+    }
+
+    @Test func aTrackersLibraryRowDoesNotMoveContinueBackToEpisodeOne() {
+        let store = AppStore()
+        store.apply(.content(view: .continue, content: .entries(watching())))
+        // The tracker says the title is completed, 12 of 12; this device stopped at episode 7.
+        var tracked = watching()[0]
+        tracked.progress = TitleProgress(done: 12, next: 1)
+        tracked.resume = nil
+        store.apply(.content(view: .library(.completed), content: .entries([tracked])))
+        #expect(store.titles[900_001]?.progress == TitleProgress(done: 6, next: 7))
+        #expect(store.titles[900_001]?.resume?.position == 606)
+        let row = store.continuing.queue(store.titles).inProgress.first { $0.id == 900_001 }
+        #expect(row?.action == "Resume E7 · 10:06")
+        // Continue's own list still updates it.
+        var moved = watching()[0]
+        moved.progress = TitleProgress(done: 7, next: 8)
+        store.apply(.content(view: .continue, content: .entries([moved])))
+        #expect(store.titles[900_001]?.progress == TitleProgress(done: 7, next: 8))
+    }
+
     @Test func progressMovesATitleEverywhereItShows() {
         let store = AppStore()
         store.apply(.content(view: .continue, content: .entries(watching())))
@@ -153,7 +181,7 @@ struct ReducerTests {
         ))
         #expect(store.titles[900_002]?.progress == TitleProgress(done: 4, next: 5))
         let row = store.continuing.queue(store.titles).inProgress.first { $0.id == 900_002 }
-        #expect(row?.action == "Continue E5 · 5:00")
+        #expect(row?.action == "Resume E5 · 5:00")
         #expect(store.seasonal.state == .loaded([900_002]))
     }
 
@@ -372,7 +400,6 @@ struct ReducerTests {
         store.apply([
             .toast(Notice(kind: .info, text: "plugin update ready: alpha", hint: .openStores)),
             .toast(Notice(kind: .alert, text: "AniList is not answering", hint: nil)),
-            .status(.verbatim(text: "syncing")),
         ])
         #expect(store.notices.log.map(\.notice.text) == [
             "AniList is not answering", "plugin update ready: alpha",
@@ -381,7 +408,6 @@ struct ReducerTests {
         #expect(current.isAlert)
         store.notices.dismiss(current)
         #expect(store.notices.current == nil)
-        #expect(store.notices.status == "syncing")
     }
 
     @Test func theSyncCapsuleSaysWhereSyncStands() {

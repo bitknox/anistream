@@ -17,6 +17,7 @@
 use anistream_model::Msg;
 use std::{
     collections::VecDeque,
+    panic::{self, AssertUnwindSafe},
     sync::{
         Arc,
         atomic::{AtomicU64, Ordering},
@@ -30,6 +31,7 @@ use anistream_model::{
     jobs::JobId,
     notice::{Notice, NoticeHint},
 };
+use futures::FutureExt;
 use tokio::{
     sync::{mpsc, oneshot},
     task::JoinHandle,
@@ -63,6 +65,14 @@ use crate::{
 /// How long the exit waits for a playback to record where it was left.
 const EXIT_FLUSH: Duration = Duration::from_secs(2);
 
+/// How long the exit routes the commands still queued behind it, once the last position is
+/// saved: enough for a setting changed just before quitting, and no more, however many wait.
+const EXIT_DRAIN: Duration = Duration::from_millis(250);
+
+/// The longest [`Engine::shutdown`] waits for the actor to wind down: the flush, the queue and
+/// the torrents, with a step under way to finish first. Past it the app quits regardless.
+const EXIT_WAIT: Duration = Duration::from_secs(5);
+
 /// How long the exit gives the torrent session to stand down. librqbit's stop ends in a fixed
 /// one-second wait after the work that matters, so this is what a quit with torrents costs.
 const TORRENT_CLOSE: Duration = Duration::from_secs(1);
@@ -73,6 +83,9 @@ const TORRENT_CLOSE: Duration = Duration::from_secs(1);
 /// the runtime it runs on ends, as it always has when the app quits.
 pub struct Engine {
     commands: mpsc::UnboundedSender<Message>,
+    /// Where a shutdown is asked for: apart from the commands, so it is read ahead of every
+    /// command still queued, however many a host has sent.
+    stops: mpsc::UnboundedSender<oneshot::Sender<()>>,
     /// The players a front end hosts, which what they report goes straight to, as mpv's
     /// reports are read off its socket: not behind the commands waiting, nor held up by an
     /// engine winding down, which waits on the player for the episode's last position.
@@ -84,6 +97,9 @@ pub struct Engine {
     /// Commands sent so far, which an idle engine's word is read against: see `Traced::Idle`.
     #[cfg(feature = "testing")]
     sent: AtomicU64,
+    /// Casting's devices and the cast running now, which the TV picker and the cast's card read.
+    #[cfg(feature = "cast")]
+    casts: Arc<crate::cast::CastHub>,
 }
 
 /// [`Engine::send`] for the remote, held apart from the engine so the remote's server can keep
@@ -94,6 +110,24 @@ pub struct Engine {
 pub struct RemoteSender {
     commands: mpsc::UnboundedSender<Message>,
     jobs: Jobs,
+}
+
+/// A sender whose commands a test reads back, with no engine behind it.
+#[cfg(all(test, feature = "cast"))]
+impl RemoteSender {
+    pub(crate) fn recording() -> (Self, impl FnMut() -> Vec<Command>) {
+        let (commands, mut rx) = mpsc::unbounded_channel();
+        let read = move || {
+            let mut sent = Vec::new();
+            while let Ok(message) = rx.try_recv() {
+                if let Message::Command { command, .. } = message {
+                    sent.push(command);
+                }
+            }
+            sent
+        };
+        (Self { commands, jobs: Jobs::default() }, read)
+    }
 }
 
 #[cfg(feature = "remote")]
@@ -112,8 +146,6 @@ impl RemoteSender {
 enum Message {
     /// A command, with the job [`Engine::send`] numbered for it, and its activity.
     Command { job: Option<(JobId, String)>, command: Command },
-    /// The app is quitting: see [`Engine::shutdown`].
-    Shutdown { done: oneshot::Sender<()> },
     /// An event, as the work would send it: see [`Engine::inject`].
     #[cfg(feature = "testing")]
     Inject(Event),
@@ -126,6 +158,9 @@ enum Message {
     /// Whether a playback is under way, as the exit would see it: see [`Engine::under_way`].
     #[cfg(feature = "testing")]
     UnderWay(oneshot::Sender<bool>),
+    /// A step that panics, as a bug in one would: see [`Engine::panic_once`].
+    #[cfg(feature = "testing")]
+    Panic,
 }
 
 /// The count jobs are numbered by, from one: shared by [`Engine::send`], which numbers the
@@ -173,6 +208,7 @@ impl Engine {
             device_label,
             sources: given,
             background,
+            set_aside,
             #[cfg(feature = "testing")]
             parts,
             #[cfg(feature = "testing")]
@@ -230,6 +266,8 @@ impl Engine {
         let services = match parts {
             Some(parts) => {
                 let (power, hosted) = crate::services::players(&paths);
+                #[cfg(feature = "cast")]
+                let casts = Arc::new(crate::cast::CastHub::in_memory(http.clone()));
                 Services {
                     power,
                     hosted,
@@ -252,6 +290,9 @@ impl Engine {
                     clock: parts.clock,
                     fixture_exit: parts.fixture_exit,
                     party: Default::default(),
+                    windows: parts.windows,
+                    #[cfg(feature = "cast")]
+                    casts,
                 }
             }
             None => Services::build(&tracked, paths, http, store, registry, player_theme, host)
@@ -268,6 +309,8 @@ impl Engine {
         let services =
             Services { hosted_player, every_play_a_party, app_clients, stores, ..services };
         let hosted = Arc::clone(&services.hosted);
+        #[cfg(feature = "cast")]
+        let casts = Arc::clone(&services.casts);
 
         // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
         let (arrivals_tx, arrivals) = mpsc::unbounded_channel();
@@ -285,6 +328,11 @@ impl Engine {
         launch.push_back(Event::Settings(state.config.view()));
         // Whether trailers may start, on that config, before the front end says anything.
         launch.push_back(crate::autoplay::at_launch(&mut state));
+        // A database found damaged was moved aside and this one is new: why the history is empty.
+        if let Some(aside) = set_aside {
+            let path = aside.display().to_string();
+            launch.push_back(Event::Toast(Notice::alert(Msg::NoticeDatabaseSetAside { path })));
+        }
 
         // Joined stores as they were left, so Providers can count them on the first frame.
         let joined = match services.stores.rows() {
@@ -312,6 +360,7 @@ impl Engine {
             // The daily update check: one cached request, one quiet toast when a release exists.
             updates::spawn_check(
                 state.config.effective().updates.check,
+                !services.hosted_player,
                 &services.paths.cache_dir,
                 &services.http,
                 &inbox.sender(),
@@ -373,9 +422,10 @@ impl Engine {
             torrent_tasks.bring_up(config.effective(), &services, &tx, arrivals);
         }
 
-        // The player is checked last, as launch always has, and not waited for.
+        // The player is checked last, as launch always has, and not waited for. Only the
+        // terminal app plays in mpv; an app hosting its own player has nothing to install.
         #[cfg(feature = "desktop")]
-        let checking = background.player_check.then(|| {
+        let checking = (background.player_check && !services.hosted_player).then(|| {
             let config = state.config.effective();
             let mpv = player(config, &services.paths, &services.player_theme);
             let binary = config.playback.mpv_binary.clone();
@@ -386,6 +436,7 @@ impl Engine {
         let checking = None;
 
         let (commands_tx, commands) = mpsc::unbounded_channel();
+        let (stops_tx, stops) = mpsc::unbounded_channel();
         let (out, live) = mpsc::unbounded_channel();
         let jobs = Jobs::default();
         let actor = Actor {
@@ -393,6 +444,7 @@ impl Engine {
             services,
             inbox,
             commands,
+            stops,
             arrivals,
             out,
             jobs: jobs.clone(),
@@ -407,8 +459,11 @@ impl Engine {
 
         let engine = Self {
             commands: commands_tx,
+            stops: stops_tx,
             jobs,
             hosted,
+            #[cfg(feature = "cast")]
+            casts,
             #[cfg(feature = "testing")]
             sent: AtomicU64::new(0),
         };
@@ -441,17 +496,23 @@ impl Engine {
     /// What a TV's remote sends its commands through: routed as [`Self::send`] routes them, in
     /// the same order as the front end's own, and numbered from the same count. See
     /// [`crate::remote`].
+    /// Casting's devices, what the engine learned of each TV, and the cast running now.
+    #[cfg(feature = "cast")]
+    pub fn casts(&self) -> Arc<crate::cast::CastHub> {
+        Arc::clone(&self.casts)
+    }
+
     #[cfg(feature = "remote")]
     pub fn remote_sender(&self) -> RemoteSender {
         RemoteSender { commands: self.commands.clone(), jobs: self.jobs.clone() }
     }
 
-    /// Stop as the app quits, after everything sent before.
+    /// Stop as the app quits, ahead of the commands still queued.
     ///
     /// A playback under way is stopped, the way `x` stops it, and given a moment to record
     /// where it was left: it writes its last history row before it reports its ending, which
     /// is what this waits for. The tracker writes a row every ten seconds of playback, so
-    /// quitting without this lost up to that much of the resume point. Under way is the
+    /// quitting without this would lose up to that much of the resume point. Under way is the
     /// playback Now Playing shows, started and not yet ended, as the engine keeps track of it:
     /// one still finding its source has nothing to save, and its wait would only delay the
     /// exit.
@@ -459,10 +520,24 @@ impl Engine {
     /// Then the torrent session, if there is one, is stood down in order: each torrent paused
     /// so the next launch knows how far it got, then its tasks and connections stopped. That
     /// is bounded at a second, and with torrents off there is nothing to wait for.
+    ///
+    /// It is read ahead of the commands still queued, and the last position is saved before
+    /// any of them is routed: they get a moment, [`EXIT_DRAIN`], and the rest are let go. The
+    /// whole of it is held to [`EXIT_WAIT`].
     pub async fn shutdown(self) {
+        self.stopping().await;
+    }
+
+    /// [`Self::shutdown`], asked for now and waited on in what it returns, with the engine kept:
+    /// a front end whose player reports through [`Self::send`] keeps sending while the last
+    /// position is saved, and that save waits on the player's report.
+    pub fn stopping(&self) -> impl Future<Output = ()> + Send + 'static {
         let (done, stopped) = oneshot::channel();
-        if self.commands.send(Message::Shutdown { done }).is_ok() {
-            let _ = stopped.await;
+        let asked = self.stops.send(done).is_ok();
+        async move {
+            if asked && tokio::time::timeout(EXIT_WAIT, stopped).await.is_err() {
+                tracing::warn!("the engine did not wind down in time; quitting regardless");
+            }
         }
     }
 
@@ -518,6 +593,12 @@ impl Engine {
         let (tx, rx) = oneshot::channel();
         let _ = self.commands.send(Message::UnderWay(tx));
         rx.await.expect("the engine answers while it runs")
+    }
+
+    /// Have the engine's loop run a step that panics, in its place among the commands.
+    #[cfg(feature = "testing")]
+    pub fn panic_once(&self) {
+        let _ = self.commands.send(Message::Panic);
     }
 }
 
@@ -708,6 +789,8 @@ struct Actor {
     services: Services,
     inbox: Inbox,
     commands: mpsc::UnboundedReceiver<Message>,
+    /// Shutdowns asked for: see [`Engine::stopping`].
+    stops: mpsc::UnboundedReceiver<oneshot::Sender<()>>,
     arrivals: mpsc::UnboundedReceiver<(u64, Result<TorrentUp, Msg>)>,
     out: mpsc::UnboundedSender<Out>,
     /// The count the jobs it starts on its own are numbered by: see [`Jobs`]. Only an ending
@@ -740,12 +823,18 @@ impl Actor {
             }
             tokio::select! {
                 biased;
+                // Ahead of the commands, however many are queued: the app is quitting.
+                Some(done) = self.stops.recv() => {
+                    self.stop().await;
+                    let _ = done.send(());
+                    return;
+                }
                 message = self.commands.recv() => match message {
-                    Some(Message::Command { job, command }) => self.route(job, command),
-                    Some(Message::Shutdown { done }) => {
-                        self.stop().await;
-                        let _ = done.send(());
-                        return;
+                    Some(Message::Command { job, command }) => {
+                        let routed = panic::catch_unwind(AssertUnwindSafe(|| {
+                            self.route(job, command)
+                        }));
+                        self.carry_on("a command", routed);
                     }
                     #[cfg(feature = "testing")]
                     Some(Message::Inject(event)) => {
@@ -768,19 +857,42 @@ impl Actor {
                     Some(Message::UnderWay(answer)) => {
                         let _ = answer.send(self.under_way());
                     }
+                    #[cfg(feature = "testing")]
+                    Some(Message::Panic) => {
+                        let step = panic::catch_unwind(|| panic!("a step that panics"));
+                        self.carry_on("a test's step", step);
+                    }
                     // Every handle on the engine has gone.
                     None => return,
                 },
                 envelope = self.inbox.recv(), if !self.inbox.is_empty() => {
                     if let Some(envelope) = envelope {
-                        self.act_on(envelope).await;
+                        let acted = AssertUnwindSafe(self.act_on(envelope)).catch_unwind().await;
+                        self.carry_on("the inbox", acted);
                     }
                 }
                 Some((generation, outcome)) = self.arrivals.recv() => {
-                    self.arrived(generation, outcome);
+                    let arrived = panic::catch_unwind(AssertUnwindSafe(|| {
+                        self.arrived(generation, outcome)
+                    }));
+                    self.carry_on("a torrent source", arrived);
                 }
             }
         }
+    }
+
+    /// After one step of the loop: a step that panicked is logged and said, and the engine
+    /// carries on with the next, rather than every screen waiting on an engine that has gone.
+    /// What the step left half done stays so; the alert says what to do if that shows.
+    fn carry_on(&self, step: &str, outcome: std::thread::Result<()>) {
+        let Err(panic) = outcome else { return };
+        let said = panic
+            .downcast_ref::<&str>()
+            .map(|said| (*said).to_owned())
+            .or_else(|| panic.downcast_ref::<String>().cloned())
+            .unwrap_or_default();
+        tracing::error!(step, panic = %said, "an engine step panicked; carrying on");
+        self.pass_on(Event::Toast(Notice::alert(Msg::NoticeEngineFault)));
     }
 
     /// No command queued, nothing in the inbox, no work holding a way to answer, and no torrent
@@ -1014,11 +1126,31 @@ impl Actor {
         let _ = self.out.send(Out::Event(event));
     }
 
-    /// Everything the app does on its way out: the playback's last record, then the torrents.
+    /// Everything the app does on its way out: the playback's last record, then the commands
+    /// queued before the quit for [`EXIT_DRAIN`], then the torrents.
     async fn stop(&mut self) {
         let playing = self.under_way();
         self.flush_playback(playing).await;
+        self.drain_commands();
         self.close_torrents().await;
+    }
+
+    /// Route what is queued, in order, until the queue is empty or [`EXIT_DRAIN`] is up. A
+    /// setting changed as the app quit is written; a flood of commands is let go.
+    fn drain_commands(&mut self) {
+        let deadline = std::time::Instant::now() + EXIT_DRAIN;
+        while let Ok(message) = self.commands.try_recv() {
+            // A command is all there is outside a testing build.
+            #[cfg_attr(not(feature = "testing"), allow(irrefutable_let_patterns))]
+            if let Message::Command { job, command } = message {
+                let routed = panic::catch_unwind(AssertUnwindSafe(|| self.route(job, command)));
+                self.carry_on("a command", routed);
+            }
+            if std::time::Instant::now() >= deadline {
+                tracing::warn!("commands still queued as the app quit were let go");
+                return;
+            }
+        }
     }
 
     /// Stand the torrent session down within [`TORRENT_CLOSE`], then let the guard go.
@@ -1031,7 +1163,8 @@ impl Actor {
     }
 
     /// Stop what is playing, if it is under way, and wait briefly for it to record where it
-    /// ended: everything the inbox holds meanwhile is let go, unread, as the app quits.
+    /// ended. What the inbox holds meanwhile is let go, unread, as the app quits, but for what
+    /// a hosted player is told: its quit is what makes it report the end this waits for.
     async fn flush_playback(&mut self, playing: bool) {
         let Some(controls) = self.state.player_tx.as_ref().filter(|_| playing) else { return };
         if controls.send(PlayerCommand::Stop).is_err() {
@@ -1039,12 +1172,15 @@ impl Actor {
         }
         let ended = async {
             while let Some(envelope) = self.inbox.recv().await {
-                if matches!(
-                    envelope,
-                    Envelope::Event(Event::PlaybackEnded { .. })
-                        | Envelope::Played(_, Event::PlaybackEnded { .. })
-                ) {
-                    break;
+                let (Envelope::Event(event) | Envelope::Played(_, event)) = envelope else {
+                    continue;
+                };
+                match event {
+                    Event::PlaybackEnded { .. } => break,
+                    Event::PlayerOps { .. } | Event::PlayerUi { .. } => {
+                        let _ = self.out.send(Out::Event(event));
+                    }
+                    _ => {}
                 }
             }
         };
@@ -1404,6 +1540,22 @@ mod tests {
             }
         }
         seen
+    }
+
+    #[cfg(feature = "testing")]
+    #[tokio::test]
+    async fn a_step_that_panics_is_said_and_the_engine_carries_on() {
+        use anistream_model::notice::NoticeKind;
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        engine.panic_once();
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Toast(fault)] = &seen[..] else { panic!("the alert alone: {seen:?}") };
+        assert_eq!((fault.kind, fault.message()), (NoticeKind::Alert, Msg::NoticeEngineFault));
+        // The next command is routed as ever.
+        engine.send(Command::LoadDownloads);
+        until(&mut events, |e| matches!(e, Event::Downloads(_))).await;
     }
 
     #[tokio::test]

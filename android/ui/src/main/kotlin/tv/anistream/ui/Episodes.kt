@@ -19,6 +19,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,6 +64,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import tv.anistream.i18n.R
@@ -147,7 +149,7 @@ internal fun EpisodeLine(
             fill.animateTo(1f, Motion.standard())
             coroutineScope {
                 launch { dim.animateTo(1f, Motion.quick()) }
-                launch { check.animateTo(1f, tween(300, easing = FastOutSlowInEasing)) }
+                launch { check.animateTo(1f, Motion.standard()) }
             }
         } else {
             coroutineScope {
@@ -339,6 +341,47 @@ internal fun EpisodeStill(entry: Entry, row: EpisodeRow, hidden: Boolean, unaire
 }
 
 /**
+ * How many comments [row]'s discussion has, once the engine found one: nothing while discussions
+ * are off, or for an episode not watched yet.
+ */
+@Composable
+internal fun discussionCountOf(entry: Entry, row: EpisodeRow): UInt? {
+    val store = LocalAppStore.current
+    val view by store.settings.view.collectAsStateWithLifecycle()
+    val found by store.discussion.found.collectAsStateWithLifecycle()
+    // The engine says nothing of a thread while discussions are off, so an unread setting is not a no.
+    if (!row.completed || (view != null && !store.settings.isOn(SettingKey.EPISODE_DISCUSSIONS, view))) return null
+    val number = row.number.toUIntOrNull() ?: return null
+    return found[tv.anistream.store.DiscussionKey(entry.id, number)]
+}
+
+/** "Discussion · 214 comments", quiet under the episode it belongs to, opening the discussion. */
+@Composable
+internal fun DiscussionRow(entry: Entry, row: EpisodeRow, count: UInt) {
+    val store = LocalAppStore.current
+    val colors = MaterialTheme.colorScheme
+    val number = row.number.toUIntOrNull() ?: return
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 40.dp)
+            .clickable { store.discussion.show(entry.id, number) }
+            .padding(start = 128.dp, end = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Discussion, contentDescription = null, tint = colors.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        Text(
+            pluralStringResource(R.plurals.discussion_row, count.toInt(), count.toInt()),
+            style = MaterialTheme.typography.bodyMedium.tabular(),
+            color = colors.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(Icons.Chevron, contentDescription = null, tint = colors.onSurfaceVariant, modifier = Modifier.size(16.dp))
+    }
+}
+
+/**
  * The row's long-press menu: mark it watched or not, or play it from the start. One no source has,
  * AniList's alone, offers to add a source in place of downloading and playing it.
  */
@@ -367,6 +410,26 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
                 }
             },
         )
+        val comments = discussionCountOf(entry, row)
+        if (comments != null) {
+            DropdownMenuItem(
+                text = {
+                    Column {
+                        Text(stringResource(R.string.discussion_open))
+                        Text(
+                            pluralStringResource(R.plurals.discussion_count, comments.toInt(), comments.toInt()),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+                leadingIcon = { Icon(Icons.Discussion, contentDescription = null) },
+                onClick = {
+                    onDismiss()
+                    row.number.toUIntOrNull()?.let { store.discussion.show(entry.id, it) }
+                },
+            )
+        }
         if (row.unsourced) {
             // Nothing to play or download: marking it watched is all that is left.
         } else if (row.metadataOnly) {

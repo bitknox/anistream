@@ -2,10 +2,10 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌ ▸│  ▌ Hoshikuzu no Tabibito                                        E4 · 57%
   ▤│    Kaze no Tegami                                                 E9 out
-  ▦│    Yoru no Toshokan                                         E6 in 2h 41m
+  ▦│    Yoru no Toshokan                                     E6 in 2 h 41 min
   /│    Tsuki to Kujira no Uta                               7 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────
-▌ Conflicts
+▌ Differences
 ────────────────────────────────────────────────────────────────────────────────
   Hoshikuzu no Tabibito  ·  progress: mine 3 / theirs 5            Keep mine
 ▌ Kaze no Tegami  ·  status: mine watching / theirs paused         Keep mine
@@ -20,7 +20,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
    │
- ▌ 3 sync disagreements found. Press “resolve sync conflicts” in the palette … ─
+ ▌ 3 sync differences found. Press “review sync differences” in the palette t… ─
 plugins · Subbed · 1080p                                  ↵ resolve   esc cancel
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
@@ -36,8 +36,8 @@ r05 c00-79 fg=rule
 r06 c00-79 fg=rule bg=ground
 r07 c00-00 fg=obi bg=ground
 r07 c01-01 fg=rule bg=ground
-r07 c02-10 fg=text bg=ground mod=BOLD
-r07 c11-79 fg=rule bg=ground
+r07 c02-12 fg=text bg=ground mod=BOLD
+r07 c13-79 fg=rule bg=ground
 r08 c00-79 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground
 r09 c02-54 fg=text-dim bg=ground

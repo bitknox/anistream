@@ -288,6 +288,7 @@ struct PhoneGeneralPage: View {
         PhoneList {
             Section {
                 PhoneTitleLanguageRow()
+                PhoneSettingPicker(key: .trailers, note: L.settingsTrailersNoteApple)
                 PhoneSettingSwitch(key: .adultTitles, note: L.settingsAdultDetail(tracker: AccountsModel.name("anilist")))
             } header: {
                 PhoneSectionHeader(L.settingsGroupTitles)
@@ -408,6 +409,20 @@ struct PhoneDownloadsPage: View {
                     PhoneSectionHeader(store.titles[group.id]?.showTitle ?? group.title)
                 }
             }
+            if !store.downloads.seeding.isEmpty {
+                Section {
+                    ForEach(Array(store.downloads.seeding.enumerated()), id: \.offset) { _, row in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(row.name).font(.ui(17)).foregroundStyle(.silk).lineLimit(2)
+                            Text(SeedingList.line(row)).font(.ui(13)).foregroundStyle(.haze).monospacedDigit()
+                        }
+                        .accessibilityElement(children: .combine)
+                        .listRowBackground(Palette.raised)
+                    }
+                } header: {
+                    PhoneSectionHeader(L.downloadsSeedingAfterWatching)
+                }
+            }
             Section {
                 PhoneSettingPicker(key: .downloadQuality, note: L.settingsQualityDetail)
                 PhoneSettingPicker(key: .keepNextEpisodes, note: L.settingsKeepNextDetail)
@@ -418,6 +433,9 @@ struct PhoneDownloadsPage: View {
                 PhoneSectionHeader(L.settingsGroupFiles)
             }
             Section {
+                Button(L.downloadsClearFinished) { store.clearCompletedDownloads() }
+                    .disabled(!store.downloads.groups.contains { $0.rows.contains { $0.state == .done } })
+                    .listRowBackground(Palette.raised)
                 Button(L.downloadsDeleteWatched, role: .destructive) { confirmDelete = true }
                     .disabled(watched.rows.isEmpty)
                     .listRowBackground(Palette.raised)
@@ -455,6 +473,9 @@ struct PhoneDownloadRow: View {
             }
             if row.state == .failed {
                 FailedLine(status, size: 11)
+                if let reason = row.error, !reason.isEmpty {
+                    Text(reason).font(.ui(13)).foregroundStyle(.haze).lineLimit(3)
+                }
             } else {
                 Text(status).font(.ui(13)).foregroundStyle(.haze)
             }
@@ -625,19 +646,26 @@ struct PhoneGuardRow: View {
 
     var body: some View {
         let (note, status, color) = GuardWords.words(store.providers.guardView, at: store.providers.guardAt)
-        VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                Text(L.torrentsLastCheck).font(.ui(17)).foregroundStyle(.silk)
-                Spacer()
-                HStack(spacing: 6) {
-                    Circle().fill(color).frame(width: 8, height: 8)
-                    Text(status).font(.ui(17)).foregroundStyle(.haze)
+        VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text(L.torrentsLastCheck).font(.ui(17)).foregroundStyle(.silk)
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Circle().fill(color).frame(width: 8, height: 8)
+                        Text(status).font(.ui(17)).foregroundStyle(.haze)
+                    }
                 }
+                Text(note).font(.ui(13)).foregroundStyle(.haze)
             }
-            Text(note).font(.ui(13)).foregroundStyle(.haze)
+            .accessibilityElement(children: .combine)
+            Button(L.torrentsCheckNow) { store.checkConnection() }
+                .font(.ui(15, weight: .semibold))
+                .buttonStyle(.borderless)
+                .foregroundStyle(.silk)
+                .disabled(store.providers.guardView == .checking)
         }
         .listRowBackground(Palette.raised)
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -696,6 +724,14 @@ struct PhoneAccountsPage: View {
                 PhoneSectionHeader(AccountsModel.name("anilist"))
             } footer: {
                 Text(L.accountsLibraryFrom(tracker: AccountsModel.name("anilist")))
+            }
+            Section {
+                PhoneSettingSwitch(key: .episodeDiscussions, note: L.settingsAppleDiscussionsNote)
+                if store.discussionsOn {
+                    PhoneSettingSwitch(key: .commentImages, note: L.settingsAppleCommentImagesNote)
+                }
+            } header: {
+                PhoneSectionHeader(L.discussionSettingsGroup)
             }
             Section {
                 ForEach(["mal", "kitsu", "simkl", "trakt"], id: \.self) { tracker in

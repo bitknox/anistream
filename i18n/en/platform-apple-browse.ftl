@@ -63,9 +63,6 @@ calendar-loading-week = Loading this week
 # Line where the rest of the week would be when it could not be loaded.
 calendar-load-week-failed = Couldn't load this week
 
-# Line in the iPhone agenda, under Today, when nothing on the person's list airs in the 4 weeks ahead.
-calendar-empty-mine-ahead = Nothing on your list airs in the next 4 weeks.
-
 # Calendar filter on the Mac and iPad, in title case like the menus: every airing show.
 calendar-filter-all-title = All Airing
 

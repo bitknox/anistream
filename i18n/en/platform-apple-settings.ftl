@@ -1,8 +1,8 @@
 ## Apple only: Settings. Rows, notes and previews that the other apps word differently or lack.
 ## Most Settings words are shared and live in ui-settings.ftl and ui-torrents.ftl.
 
-# Settings row: download over cellular data.
-settings-download-cellular = Download on cellular
+# Settings row: download over mobile data.
+settings-download-cellular = Download on mobile data
 
 # Settings row on the Mac: the switch for hosting a Syncplay-compatible watch party.
 settings-syncplay = Syncplay { -watch-party-pl }
@@ -18,9 +18,6 @@ settings-start-full-screen = Start in full screen
 
 # Settings row for the command that runs after each download.
 settings-hook-command = Command
-
-# Settings row for the audio translation, as the engine names the setting.
-settings-translation = Translation
 
 # Shown in Settings when a search matches no row.
 settings-no-match = No setting is called that.
@@ -316,7 +313,7 @@ settings-review-differences = { $count ->
 settings-swipe-resume = Resume
 
 # Swipe action on a download that stopped.
-settings-swipe-retry = Retry
+settings-swipe-retry = Try again
 
 # Value of the Plugin stores row on the iPhone: how many stores, and how many plugins have updates. The updates are already counted.
 # @arg count: int
@@ -349,12 +346,12 @@ settings-title-line-romaji = Japanese titles in Latin letters
 # @arg tracker: text
 settings-title-note-signed-out = While you are signed out of { $tracker }, titles show in English.
 
-# Note under the examples when the tracker's choice is picked and nobody is signed in.
+# Note under the examples when the tracker's choice is picked and nobody is signed in. `then` is a whole sentence, the text of `settings-title-note-signed-out`.
 # @arg tracker: text
 # @arg then: text
 settings-title-note-follows = Follows your { $tracker } account. { $then }
 
-# Note under the examples when the tracker's choice is picked and the account has a language.
+# Note under the examples when the tracker's choice is picked and the account has a language. `then` is a whole sentence, the text of `settings-title-note-signed-out`.
 # @arg tracker: text
 # @arg language: text
 # @arg then: text
@@ -375,3 +372,13 @@ settings-title-note-romaji = Japanese titles written in Latin letters, as { $tra
 
 # Confirm button of the folder picker for the downloads folder.
 settings-folder-choose = Choose
+
+# Settings row: when a title's trailer plays by itself, muted, in place of its banner.
+# @only apple
+# @max 24
+settings-trailers-row = Play trailers
+
+# Note under the Play trailers setting: what the trailers are and when they do not play.
+# @only apple
+# @max 240
+settings-trailers-note-apple = Trailers play muted from YouTube, which sees your IP address. They don't play in Low Data Mode, with Reduce Motion on or in Low Power Mode.

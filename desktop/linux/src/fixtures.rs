@@ -148,7 +148,7 @@ pub struct Scene {
 pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<Started, String> {
     let paths = paths_under(root);
     write_config(&paths.config_file)?;
-    let (config, store) = open(&paths)?;
+    let (config, store, _) = open(&paths)?;
     let clock = Clock::default();
     let now = clock.now();
     seed_history(&store, now);
@@ -199,6 +199,7 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
         stores,
         clock,
         fixture_exit: Some(anistream_providers::vpn::VpnGuard::fixture_egress()),
+        windows: None,
     });
     let (engine, events): (Engine, _) =
         Engine::start(options, host).await.map_err(|e| e.to_string())?;
@@ -270,7 +271,7 @@ mod tests {
     #[test]
     fn the_scene_leaves_four_titles_to_continue_with_the_newest_first() {
         let root = tempfile::tempdir().expect("a scratch directory");
-        let (_config, store) = open(&paths_under(root.path())).expect("it opens");
+        let (_config, store, _) = open(&paths_under(root.path())).expect("it opens");
         seed_history(&store, 1_800_000_000);
         seed_history(&store, 1_800_000_000);
         let ids: Vec<_> =

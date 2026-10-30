@@ -194,7 +194,7 @@ struct SettingsResults: View {
     /// Each row's name, and its pane.
     static let index: [(title: String, pane: SettingsPane)] = [
         (L.settingsTitleLanguage, .general), (L.settingsAdult, .general),
-        (L.settingsTranslation, .playback), (L.playerSubtitles, .playback), (L.settingsQuality, .playback),
+        (L.settingsAudio, .playback), (L.playerSubtitles, .playback), (L.settingsQuality, .playback),
         (L.settingsAutoPlay, .playback), (L.settingsUpNextCountdown, .playback),
         (L.settingsSkipOpening, .playback), (L.settingsSkipFiller, .playback),
         (L.settingsMarkOpening, .playback), (L.settingsCountsWatched, .playback),
@@ -355,6 +355,9 @@ struct GeneralPane: View {
     var body: some View {
         SettingsGroup(title: L.settingsGroupTitles) {
             TitleLanguageRow()
+            SettingsRow(title: SettingKey.trailers.title, note: L.settingsTrailersNoteApple) {
+                SettingMenu(key: .trailers)
+            }
             SettingsRow(title: SettingKey.adultTitles.title, note: L.settingsAdultDetail(tracker: AccountsModel.name("anilist"))) {
                 SettingSwitch(key: .adultTitles)
             }

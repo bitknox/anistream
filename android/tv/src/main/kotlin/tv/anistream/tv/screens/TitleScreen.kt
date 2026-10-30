@@ -8,6 +8,7 @@ package tv.anistream.tv.screens
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import tv.anistream.i18n.R
+import tv.anistream.tv.ui.TrailerScreen
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -58,6 +59,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import tv.anistream.i18n.Strings
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.ClickableSurfaceDefaults
@@ -77,12 +79,15 @@ import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.AppStore
 import tv.anistream.store.label
 import tv.anistream.store.line
+import tv.anistream.store.text
+import tv.anistream.store.words
 import tv.anistream.tv.PlayAction
 import tv.anistream.tv.cardLine
 import tv.anistream.tv.cardTitle
 import tv.anistream.tv.metadataLine
 import tv.anistream.tv.synopsisWithoutSpoilers
 import tv.anistream.tv.ui.ActionSheet
+import tv.anistream.tv.ui.DiscussionPanel
 import tv.anistream.tv.ui.AmberButton
 import tv.anistream.tv.ui.ArtCard
 import tv.anistream.tv.ui.ArtImage
@@ -244,6 +249,7 @@ private fun Header(
     val store = LocalAppStore.current
     val actions = LocalActions.current
     val context = LocalContext.current
+    var watching by remember { mutableStateOf(false) }
     HeroHeader(entry, rows, modifier) {
         Spacer(Modifier.height(6.dp))
         Text(entry.metadataLine(context), style = MaterialTheme.typography.labelSmall, color = ObiSilk.Haze, maxLines = 1)
@@ -260,6 +266,20 @@ private fun Header(
                 ) { ButtonLabel(if (action.unsourced) Strings.episodeUnsourced(context) else action.label(context)) }
             }
             Spacer(Modifier.width(16.dp))
+            val trailer = entry.trailer
+            if (trailer != null) {
+                TonalButton(
+                    onClick = { watching = true },
+                    modifier = Modifier.remembered(memory, "trailer"),
+                ) { ButtonLabel(stringResource(R.string.title_trailer)) }
+                Spacer(Modifier.width(16.dp))
+                if (watching) {
+                    TrailerScreen(trailer) {
+                        watching = false
+                        memory.focus("trailer")
+                    }
+                }
+            }
             val status = entry.listStatus
             TonalButton(
                 onClick = { actions?.open(statusSheet(context, store, entry.id, entry.title, status)) },
@@ -338,7 +358,23 @@ private fun Episodes(
     val state = rememberLazyListState(initialFirstVisibleItemIndex = next)
     val nextRequester = remember { FocusRequester() }
     val placeholders = placeholdersAfterWait(rows == null)
+    val failed = store.titles.episodesFailed.collectAsStateWithLifecycle().value[entry.id]
+    val found by store.discussion.found.collectAsStateWithLifecycle()
+    val settings by store.settings.view.collectAsStateWithLifecycle()
+    val discussions = settings == null || store.settings.isOn(tv.anistream.engine.model.SettingKey.EPISODE_DISCUSSIONS, settings)
     BrowseRow(stringResource(R.string.title_episodes), modifier = modifier, subtitle = dub, state = state, fallback = nextRequester) {
+        if (failed != null && rows.isNullOrEmpty()) {
+            // The table could not be loaded: why, and a way to ask again.
+            item(key = "episodes-failed", contentType = "failed") {
+                Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(failed.text(context), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                    tv.anistream.tv.ui.TonalButton(onClick = { store.loadEpisodes(entry.id, force = true) }) {
+                        tv.anistream.tv.ui.ButtonLabel(stringResource(R.string.action_try_again))
+                    }
+                }
+            }
+            return@BrowseRow
+        }
         if (rows == null) {
             if (placeholders) {
                 items(PLACEHOLDER_CARDS, key = { "placeholder/$it" }) { Box(swapFade()) { tv.anistream.tv.ui.CardPlaceholder(Canvas.CardWidth, Canvas.CardHeight) } }
@@ -354,6 +390,10 @@ private fun Episodes(
                 entry = entry,
                 line = if (row.unsourced) Strings.episodeUnsourced(context) else row.cardLine(context, entry.resume, playsNext),
                 progress = if (playsNext) entry.resume?.fraction?.toFloat() else null,
+                // The quiet line under a watched episode that has a thread: not focusable.
+                discussion = row.number.toUIntOrNull()?.takeIf { row.completed && discussions }
+                    ?.let { found[tv.anistream.store.DiscussionKey(entry.id, it)] }
+                    ?.let { Strings.discussionRow(context, it.toInt()) },
                 // Unwatched stills after the next one keep their colours and none of their detail.
                 // Only an episode's own still can spoil; the show's banner in its place cannot.
                 spoiler = spoilers && index > next && !row.completed && row.thumbnail != null,
@@ -378,6 +418,7 @@ private fun EpisodeCard(
     entry: Entry,
     line: String?,
     progress: Float?,
+    discussion: String?,
     spoiler: Boolean,
     onClick: () -> Unit,
     sheet: () -> ActionSheet,
@@ -407,6 +448,16 @@ private fun EpisodeCard(
             }
         }
         CardText(row.cardTitle(context), line, titleColor = if (row.completed || row.unsourced) ObiSilk.Haze else ObiSilk.Silk)
+        if (discussion != null) {
+            Text(
+                discussion,
+                style = MaterialTheme.typography.bodyMedium,
+                color = ObiSilk.Haze,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp).clearAndSetSemantics {},
+            )
+        }
     }
 }
 
@@ -444,7 +495,7 @@ private fun Details(entry: Entry, memory: FocusMemory, modifier: Modifier) {
                 listOfNotNull(
                     entry.studio?.let { stringResource(R.string.title_studio) to it },
                     entry.genres.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.filter_genres) to it.joinToString(", ") }, // i18n-skip
-                    entry.source?.let { stringResource(R.string.title_based_on) to it.name.lowercase().replace('_', ' ').replaceFirstChar { c -> c.uppercase() } },
+                    entry.source?.words(LocalContext.current)?.let { stringResource(R.string.title_based_on) to it },
                 ).forEach { (label, value) ->
                     Row(Modifier.padding(vertical = 2.dp)) {
                         Text(label, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, modifier = Modifier.width(96.dp))
@@ -512,6 +563,8 @@ fun episodeSheet(
     val upTo = rows.takeWhile { it.number != row.number }.map { it.number } + row.number
     val number = row.number.toUIntOrNull()?.takeIf { !row.metadataOnly && !row.unsourced }
     val title = "${entry.title} · ${row.cardTitle(context)}" // i18n-skip
+    val episode = row.number.toUIntOrNull()
+    val comments = episode?.takeIf { row.completed && (store.settings.view.value == null || store.discussionsOn()) }?.let { store.discussion.count(entry.id, it) }
     return ActionSheet(
         title,
         listOfNotNull(
@@ -522,6 +575,19 @@ fun episodeSheet(
                 CardAction(Strings.episodeMarkWatched(context)) { store.setWatched(entry.id, listOf(row.number)) }
             },
             CardAction(Strings.tvEpisodeMarkUpToHere(context)) { store.setWatched(entry.id, upTo) },
+            if (comments != null && episode != null) {
+                CardAction(
+                    Strings.discussionOpen(context),
+                    supporting = Strings.discussionCount(context, comments.toInt()),
+                    then = ActionSheet(
+                        Strings.discussionTitleEpisode(context, episode.toInt()),
+                        width = 560.dp,
+                        body = { DiscussionPanel(entry, episode) },
+                    ),
+                )
+            } else {
+                null
+            },
             number?.let {
                 CardAction(Strings.playerChooseSource(context), then = ActionSheet(title, body = { EpisodeReleases(store, entry.id, row.number) }))
             },

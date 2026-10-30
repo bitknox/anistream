@@ -236,6 +236,12 @@ struct FailedLine: View {
 /// The fixed words for a link that leads to no store, from the join board.
 var notAStoreWords: String { L.shellNotAStore }
 
+/// Why a link led nowhere: what the engine said, which tells a store that is down from a link
+/// that is not a store's; the fixed words when it said nothing.
+func joinFailureWords(_ reason: String) -> String {
+    reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? notAStoreWords : reason
+}
+
 /// A small spinner beside a button while what it started runs, as the sign-in sheets have it;
 /// nothing otherwise.
 struct Working: View {

@@ -82,7 +82,7 @@ updates-progress-label = Update progress
 # Line under AniList's name on the Accounts page.
 # @only linux
 # @arg tracker: text
-accounts-sync-detail = Progress and list changes sync to { $tracker }. { -library-cap } and the calendar's list show your { $tracker } lists.
+accounts-sync-detail = Progress and list changes sync to { $tracker }. { -library-cap } and the Calendar's My list show your { $tracker } lists.
 
 # Line under a signed-in account while changes wait for the connection.
 # @only linux

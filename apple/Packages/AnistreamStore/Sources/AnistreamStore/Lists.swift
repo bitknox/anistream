@@ -47,7 +47,16 @@ public final class ListModel {
         }
     }
 
-    func apply(_ content: ContentList, titles: TitleCache) {
+    /// Whether rows are on screen.
+    var holdsRows: Bool {
+        if case .loaded(let ids) = state { !ids.isEmpty } else { false }
+    }
+
+    /// Take the engine's answer. A failure to refresh does not take rows away that are on
+    /// screen: they stay, and this says so by returning true.
+    @discardableResult
+    func apply(_ content: ContentList, titles: TitleCache, local: Bool = false) -> Bool {
+        if case .failed = content, holdsRows { return true }
         switch content {
         case .empty:
             state = .empty
@@ -55,12 +64,13 @@ public final class ListModel {
         case .loading:
             state = .loading
         case .entries(let entries):
-            titles.merge(entries)
+            titles.merge(entries, local: local)
             state = .loaded(entries.map(\.id))
             answeredAt = .now
         case .failed(let reason):
             state = .failed(reason)
         }
+        return false
     }
 }
 
@@ -89,9 +99,11 @@ public final class CalendarModel {
 
     public init() {}
 
-    func apply(_ content: ContentList, titles: TitleCache) {
-        list.apply(content, titles: titles)
+    @discardableResult
+    func apply(_ content: ContentList, titles: TitleCache) -> Bool {
+        if list.apply(content, titles: titles) { return true }
         rows = content.entriesOrEmpty
+        return false
     }
 
     func window(
@@ -264,13 +276,15 @@ public final class SearchModel {
     }
 
     /// The answer to `query`, when it is the one asked.
-    func answer(_ content: ContentList, for query: SearchQuery, titles: TitleCache) {
-        guard takes(query) else { return }
-        list.apply(content, titles: titles)
-        if case .loading = content { return }
+    @discardableResult
+    func answer(_ content: ContentList, for query: SearchQuery, titles: TitleCache) -> Bool {
+        guard takes(query) else { return false }
+        let kept = list.apply(content, titles: titles)
+        if case .loading = content { return false }
         answered = query
         overdue = false
         overdueTimer?.cancel()
+        return kept
     }
 
     /// Count the 600 ms from now, for what was just asked.

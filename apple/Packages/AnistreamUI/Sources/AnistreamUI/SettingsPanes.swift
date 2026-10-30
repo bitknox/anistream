@@ -372,11 +372,15 @@ struct GuardRow: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             let (note, status, color) = words(now: context.date)
-            // The guard checks again on its own every minute; no command runs it sooner.
+            // The guard checks again on its own every minute; Check now does not wait for it.
             SettingsRow(title: L.torrentsLastCheck, note: note) {
-                HStack(spacing: 6) {
-                    Circle().fill(color).frame(width: 6, height: 6)
-                    Text(status).font(.mac(13)).foregroundStyle(.silk)
+                HStack(spacing: 10) {
+                    HStack(spacing: 6) {
+                        Circle().fill(color).frame(width: 6, height: 6)
+                        Text(status).font(.mac(13)).foregroundStyle(.silk)
+                    }
+                    Button(L.torrentsCheckNow) { store.checkConnection() }
+                        .disabled(store.providers.guardView == .checking)
                 }
             }
         }
@@ -450,6 +454,9 @@ struct AccountsPane: View {
                 }
             }
         }
+        #if !os(macOS)
+        DiscussionsGroup()
+        #endif
         SettingsGroup(title: L.accountsOtherTrackers, footnote: AccountWords.tokens(store.accounts)) {
             ForEach(["mal", "kitsu", "simkl", "trakt"], id: \.self) { tracker in
                 TrackerRow(tracker: tracker, sheet: $sheet)
@@ -605,8 +612,28 @@ struct IntegrationsPane: View {
                     .opacity(presence && titled ? 1 : 0.45)
             }
         }
+        DiscussionsGroup()
         UpdatesGroup()
         AboutGroup()
+    }
+}
+
+/// Episode discussions and whether their images load: Integrations on the Mac, under AniList on
+/// an iPad.
+struct DiscussionsGroup: View {
+    @Environment(AppStore.self) private var store
+
+    var body: some View {
+        SettingsGroup(title: L.discussionSettingsGroup) {
+            SettingsRow(title: SettingKey.episodeDiscussions.title, note: L.settingsAppleDiscussionsNote) {
+                SettingSwitch(key: .episodeDiscussions)
+            }
+            if store.discussionsOn {
+                SettingsRow(title: SettingKey.commentImages.title, note: L.settingsAppleCommentImagesNote) {
+                    SettingSwitch(key: .commentImages)
+                }
+            }
+        }
     }
 }
 

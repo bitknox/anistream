@@ -27,7 +27,7 @@ struct UpdateWordsTests {
         #expect(words(checking: true) == UpdateWords(note: "Checking for a newer version…", action: .checkNow, disabled: true))
         let failed = words(outcome: .failed("GitHub could not be reached"))
         // The reason stays out of the words (copy rule 5).
-        #expect(failed.note == "Could not check.")
+        #expect(failed.note == "Couldn't check for updates. Try again later.")
         #expect(failed.problem)
         #expect(failed.label == "Check now")
     }
@@ -53,7 +53,7 @@ struct UpdateWordsTests {
         #expect(relaunching.label == nil)
 
         let failed = words(latest: release, progress: .failed("The update could not be verified."), installsHere: true)
-        #expect(failed.note == "The update did not finish.")
+        #expect(failed.note == "The update didn't finish. Try again.")
         #expect(failed.problem)
         #expect(failed.label == "Update to v2.0.3", "pressed again, it tries again")
     }

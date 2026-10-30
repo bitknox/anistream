@@ -278,3 +278,6 @@ player-track-n = Track { $id }
 # @arg what: text
 # @arg seconds: int
 player-wait-note = { $what } · { $seconds } s
+
+# Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.
+player-command-failed = That didn't work. Try again.

@@ -421,9 +421,9 @@ struct PhoneJoinStoreSheet: View {
                 }
                 .listRowBackground(Palette.raised)
             }
-        case .failed?:
+        case .failed(let reason)?:
             Section {
-                FailedLine(notAStoreWords, size: 15).listRowBackground(Palette.raised)
+                FailedLine(joinFailureWords(reason), size: 15).listRowBackground(Palette.raised)
             }
         case .store(let invited)?:
             Section {

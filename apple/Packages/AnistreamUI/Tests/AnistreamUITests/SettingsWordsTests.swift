@@ -141,9 +141,9 @@ struct SettingsWordsTests {
         #expect(ProtectionWords.notSaved(.leaking, .editProxy)
                 == "Not saved. Torrent traffic left outside this proxy, so the saved proxy stays.")
         #expect(ProtectionWords.notSaved(.unreachable, .editProxy)
-                == "Not saved. The check could not be made through this proxy, so the saved proxy stays.")
+                == "Not saved. The check couldn't be made through this proxy, so the saved proxy stays.")
         #expect(ProtectionWords.notSaved(.unreachable, .turnOn)
-                == "Torrents are still off. The check could not be made through this proxy.")
+                == "Torrents are still off. The check couldn't be made through this proxy.")
         #expect(ProtectionWords.notSaved(.leaking, .change)
                 == "Not saved. Torrent traffic left outside this proxy, so the saved protection stays.")
     }
@@ -166,7 +166,7 @@ struct SettingsWordsTests {
     @Test func theGuardSaysWhereTrafficLeftAndHowLongAgo() {
         let at = Date(timeIntervalSince1970: 1_000)
         let (note, status, _) = GuardWords.words(.protected(exit: "Lantern Networks"), at: at, now: at.addingTimeInterval(120))
-        #expect(note == "Leaving through Lantern Networks · 2m ago")
+        #expect(note == "Leaving through Lantern Networks · 2 min ago")
         #expect(status == "Passed")
         #expect(GuardWords.words(.leaking, at: at).1 == "Failed")
         #expect(GuardWords.words(nil, at: nil).0 == "Not checked yet")

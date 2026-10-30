@@ -26,8 +26,7 @@ use super::{
 use crate::harness::{HEADLESS_MPV, Harness, Options, mpv_here, names};
 
 /// What the lookup of a play that has no stream says, once the play is staged.
-const LOOKED_UP: [&str; 6] =
-    ["JobNote", "JobNote", "Toast", "PlaybackEnded", "Status", "JobDone"];
+const LOOKED_UP: [&str; 5] = ["JobNote", "JobNote", "Toast", "PlaybackEnded", "JobDone"];
 
 /// What the engine staged: whose, under what name, which episode, and the episode's own name.
 /// The one `PlaybackStaged` among `updates`, at the speed nothing remembered.
@@ -375,14 +374,6 @@ fn staged_episodes(updates: &[Event]) -> Vec<String> {
         .collect()
 }
 
-/// How many player windows were opened.
-fn windows(updates: &[Event]) -> usize {
-    updates
-        .iter()
-        .filter(|u| matches!(u, Event::Status(Some(s)) if s.english() == "Starting mpv…"))
-        .count()
-}
-
 /// [`FINISHED`]'s table with ten episodes watched, to play for real: mpv with no window and no
 /// sound, and the fixture source's clip for every episode. `None` where there is no mpv.
 async fn before_the_finale_for_real() -> Option<Harness> {
@@ -408,7 +399,7 @@ async fn a_binge_rolls_on_in_the_window_the_last_episode_left() {
     // 11 plays to its end and rolls on to 12, the finale, which ends the binge: one window.
     assert_eq!(staged_episodes(&updates), ["11", "12"]);
     assert_eq!(rolled_on(&updates), [true, false], "{:?}", names(&updates));
-    assert_eq!(windows(&updates), 1, "{:?}", names(&updates));
+    assert_eq!(h.windows(), 1, "{:?}", names(&updates));
     let finished = h.app().episodes.iter().filter(|row| row.completed).count();
     assert_eq!(finished, 12, "both recorded as watched");
     assert!(h.app().playing.is_none());
@@ -420,9 +411,8 @@ async fn n_hands_the_window_to_the_next_episode() {
     let Some(mut h) = before_the_finale_for_real().await else { return };
     h.press_to_play(Action::Open);
     // Once 11 is playing, n asks its playback for the episode after it.
-    let started =
-        h.settle_until(|e| matches!(e, Event::Playback { duration: Some(_), .. })).await;
-    assert_eq!(windows(&started), 1);
+    h.settle_until(|e| matches!(e, Event::Playback { duration: Some(_), .. })).await;
+    assert_eq!(h.windows(), 1);
     h.press(Action::NextEpisode);
     let updates = h.settle().await;
 
@@ -431,7 +421,7 @@ async fn n_hands_the_window_to_the_next_episode() {
         .iter()
         .any(|u| matches!(u, Event::EpisodeLeft { episode, .. } if episode == "11"));
     assert!(left, "11 handed its window over: {:?}", names(&updates));
-    assert_eq!(windows(&updates), 0, "in the same window");
+    assert_eq!(h.windows(), 1, "12 plays in the window 11 opened");
     assert_eq!(rolled_on(&updates), [false], "12 is the finale");
     assert!(h.app().playing.is_none());
 }

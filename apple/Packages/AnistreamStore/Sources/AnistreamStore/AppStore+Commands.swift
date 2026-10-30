@@ -80,10 +80,49 @@ extension AppStore {
         showSettings.sheets[id]?.source
     }
 
+    /// Whether `entry`'s trailer may start by itself on its page: the engine allows trailers now,
+    /// the player plays this one (YouTube's), and the spoiler rule does not hold it back.
+    public func trailerMayAutoplay(_ entry: Entry) -> Bool {
+        guard trailersMayAutoplay, let trailer = entry.trailer, trailerEmbeddable(trailer: trailer) else { return false }
+        return AnistreamKit.trailerMayAutoplay(entry: entry, spoilerProtection: spoilerProtection(for: entry.id))
+    }
+
     /// Whether `id`'s unwatched stills are blurred: as the show sets it, else as Settings does.
     public func spoilerProtection(for id: AnilistId) -> Bool {
         if let row = showSettings.row(.spoilerProtection, of: id) { return row.value == "on" }
         return settings.row(.spoilerProtection).map(\.isOn) ?? true
+    }
+
+    // MARK: Discussions
+
+    /// Whether episode discussions are on in Settings: every entry point hangs on it.
+    public var discussionsOn: Bool {
+        settings.row(.episodeDiscussions).map(\.isOn) ?? true
+    }
+
+    /// Open the discussion of `episode`, which the sheet, pane or window then reads from `discussion`.
+    public func openDiscussion(_ key: DiscussionKey) {
+        discussion.requested(key)
+        send(.openDiscussion(media: key.media, episode: key.episode))
+    }
+
+    /// The sheet, pane or window showing `key` closed: nothing more is said of it. The engine keeps
+    /// one discussion, so this does nothing once another has been opened since.
+    public func closeDiscussion(_ key: DiscussionKey) {
+        guard discussion.owns(key) else { return }
+        discussion.closed()
+        send(.closeDiscussion)
+    }
+
+    public func moreComments() { send(.moreComments) }
+    public func postComment(_ text: String, parent: UInt32? = nil) { send(.postComment(parent: parent, text: text)) }
+    public func editComment(_ id: UInt32, text: String) { send(.editComment(id: id, text: text)) }
+    public func deleteComment(_ id: UInt32) { send(.deleteComment(id: id)) }
+    public func likeComment(_ id: UInt32) { send(.likeComment(id: id)) }
+
+    /// Check where torrent traffic leaves from now, rather than at the guard's next check.
+    public func checkConnection() {
+        send(.checkConnection)
     }
 
     // MARK: Accounts

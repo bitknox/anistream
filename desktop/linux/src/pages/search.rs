@@ -52,6 +52,7 @@ struct Inner {
     asking_more: Cell<bool>,
     /// Under the results while the next page is on its way.
     more_spinner: adw::Spinner,
+    caption: gtk::Label,
     /// Whether searching as you type waits for Return, to stay within AniList's limits.
     paused: Cell<bool>,
     season: PosterGrid,
@@ -154,6 +155,13 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
     let settings_group = section(&t::nav_settings(), &settings);
     let results = gtk::Box::new(gtk::Orientation::Vertical, 12);
     results.set_margin_bottom(24);
+    // What the filters left out, said just above the titles.
+    let caption = widgets::haze("", "caption");
+    caption.set_xalign(0.0);
+    caption.set_margin_start(18);
+    caption.set_margin_end(18);
+    caption.set_visible(false);
+    results.append(&caption);
     results.append(&grid.widget);
     let more_spinner = adw::Spinner::new();
     more_spinner.set_size_request(24, 24);
@@ -209,6 +217,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         next_page: Cell::new(None),
         asking_more: Cell::new(false),
         more_spinner,
+        caption,
         paused: Cell::new(false),
         season,
         settings,
@@ -404,6 +413,7 @@ impl Inner {
             return;
         }
         self.asked.replace(Some(query.clone()));
+        self.caption.set_visible(false);
         self.next_page.set(None);
         self.more_waits(false);
         self.body.set_visible_child_name("results");
@@ -483,6 +493,12 @@ impl Inner {
                 all.extend(new);
                 self.grid.set(&all);
                 self.next_page.set(has_next.then_some(page + 1));
+            }
+            Event::Caption { view: ContentFor::Search { query }, text } => {
+                if self.asked.borrow().as_ref() == Some(query) {
+                    self.caption.set_label(text);
+                    self.caption.set_visible(!text.is_empty());
+                }
             }
             Event::Content { view: ContentFor::Search { query }, content } => {
                 if self.asked.borrow().as_ref() != Some(query) {

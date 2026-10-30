@@ -1,8 +1,8 @@
 # Plugin stores
 
-A plugin store is a small server that shares provider plugins with a group of people. Someone runs
+A plugin store is a small server that shares plugins with a group of people. Someone runs
 one, invites the people they want, and everyone who joins can install and update the store's
-plugins from the Providers screen. anistream ships no store and lists none. Every store is run by
+plugins from the Sources screen. anistream ships no store and lists none. Every store is run by
 someone, for the people they invite or, if they choose, for anyone they give its link. There is no
 directory of stores: a store is reached only through a link its owner gave out.
 
@@ -17,7 +17,7 @@ The owner sends you an invite link. It looks like this:
 https://plugins.example/join/k3TzQe9WbA1xLr7uVn2c0g#Gv8s0qYH3rKj2m5WzT1nB6cXe4fLd9aP7uQiR0sMw8E
 ```
 
-In anistream, open **Providers**, press Enter to open plugin stores, choose **join a store** and
+In anistream, open **Sources**, press Enter to open plugin stores, choose **Join a store** and
 paste the link. anistream checks the link against the store before using it, shows the store's name
 and key, and asks you to confirm. After that the store's page lists its plugins. Enter on one shows
 what it is allowed to contact, and Enter again installs it.
@@ -25,7 +25,7 @@ what it is allowed to contact, and Enter again installs it.
 The link works once. If someone else used it first, joining fails, and the owner can see who joined
 with it. An unused link expires after seven days.
 
-To use the same store on a second computer, open the store and choose **link another device**. That
+To use the same store on a second computer, open the store and choose **Link another device**. That
 gives you a new one-time link for yourself.
 
 ### Joining an open store
@@ -66,7 +66,7 @@ remove someone, decide who can join, and publish a plugin you have installed loc
 
 The admin page has all of that and a little more room: rename people, make someone an owner, revoke
 one lost device without removing its owner, and publish by dropping `.wasm` files onto the page. To
-open it, choose **open the admin page** on the store's page in anistream, and your browser opens it
+open it, choose **Open the admin page** on the store's page in anistream, and your browser opens it
 already signed in. On the machine that runs the store, `anistream store admin ./my-store` prints a
 sign-in link instead. A sign-in link works once, for ten minutes, and a session lasts twelve hours.
 

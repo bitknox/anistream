@@ -107,6 +107,11 @@ calendar-load-earlier-failed = Couldn't load earlier broadcasts
 # Line where later broadcasts would be when they could not be loaded.
 calendar-load-later-failed = Couldn't load later broadcasts
 
+# Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next
+# four weeks.
+# @max 60
+calendar-empty-mine-ahead = Nothing on your list airs in the next 4 weeks.
+
 # Button under the line saying nothing on the person's list airs: shows every airing show.
 calendar-show-all = Show all airing
 

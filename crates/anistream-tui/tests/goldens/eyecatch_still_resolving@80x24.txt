@@ -12,7 +12,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 
                       Hoshikuzu no Tabibito  ·  Episode 4
 
-                         Still finding a stream  ·  3s
+                         Still finding a stream  ·  3 s
 
 
 
@@ -20,7 +20,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 
 
 
-─ █▓▒  starting ep 4 · 3s ──────────────────────────────────────────────────────
+─ █▓▒  starting ep 4 · 3 s ─────────────────────────────────────────────────────
 plugins · Subbed · 1080p                space pause   S skip   q detach   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
@@ -63,8 +63,8 @@ r13 c50-52 bg=obi
 r13 c53-65 fg=text-dim bg=obi
 r13 c66-79 bg=obi
 r14 c00-24 bg=obi
-r14 c25-53 fg=#161a2e bg=obi
-r14 c54-79 bg=obi
+r14 c25-54 fg=#161a2e bg=obi
+r14 c55-79 bg=obi
 r15 c00-60 bg=obi
 r15 c61-65 fg=text-dim bg=obi
 r15 c66-79 bg=obi
@@ -78,9 +78,9 @@ r22 c00-00 fg=rule
 r22 c01-01 fg=text
 r22 c02-04 fg=obi
 r22 c05-19 fg=text
-r22 c20-24 fg=text-dim
-r22 c25-25 fg=text
-r22 c26-79 fg=rule
+r22 c20-25 fg=text-dim
+r22 c26-26 fg=text
+r22 c27-79 fg=rule
 r23 c00-23 fg=text-dim
 r23 c40-44 fg=text
 r23 c45-53 fg=text-dim

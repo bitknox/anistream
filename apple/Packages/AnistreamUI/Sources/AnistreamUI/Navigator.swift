@@ -71,6 +71,8 @@ public final class Navigator {
     public var moreAbout: AnilistId?
     /// The title whose source picker is open.
     public var sourcePicker: AnilistId?
+    /// The trailer Play trailer opened: a window on the Mac, a sheet on iPhone and iPad.
+    var trailerRequest: TrailerRequest?
     /// The titles whose watched episodes are open in their episode lists, for the session.
     var watchedOpen: Set<AnilistId> = []
     /// An episode handed over from another device, which its title's page offers to resume.

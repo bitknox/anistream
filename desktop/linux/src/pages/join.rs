@@ -26,6 +26,8 @@ struct Join {
     device: std::cell::RefCell<Option<adw::EntryRow>>,
     /// Bumped by each edit, so only the last one is checked.
     edits: Cell<u64>,
+    /// Whether a join waits on the engine, which says by an alert why it could not.
+    joining: Cell<bool>,
 }
 
 /// The dialog's name, so a link opened while one is up replaces it.
@@ -183,6 +185,7 @@ pub fn open(ctx: &Rc<Ctx>, link: Option<&str>) {
         store: Default::default(),
         device: Default::default(),
         edits: Cell::new(0),
+        joining: Cell::new(false),
     });
     cancel.connect_clicked({
         let dialog = dialog.clone();
@@ -223,10 +226,27 @@ pub fn open(ctx: &Rc<Ctx>, link: Option<&str>) {
             }
         }
     });
+    // A join the engine could not make is said here, and Join can be pressed again.
+    let claim = ctx.claim_alerts({
+        let weak = Rc::downgrade(&state);
+        move |_, why| {
+            let Some(state) = weak.upgrade() else { return false };
+            if !state.joining.replace(false) {
+                return false;
+            }
+            state.join.set_sensitive(state.store.borrow().is_some());
+            state.say(why, true);
+            true
+        }
+    });
     let hub = Rc::downgrade(&ctx.hub);
+    let ctx_weak = Rc::downgrade(ctx);
     dialog.connect_closed(move |_| {
         if let Some(hub) = hub.upgrade() {
             hub.forget(listening);
+        }
+        if let Some(ctx) = ctx_weak.upgrade() {
+            ctx.release_alerts(claim);
         }
     });
     widgets::keep(&dialog, Rc::clone(&state));
@@ -354,6 +374,7 @@ impl Join {
         let Some(store) = self.store.borrow().clone() else { return };
         let label = self.device.borrow().as_ref().map(|d| d.text().to_string());
         self.join.set_sensitive(false);
+        self.joining.set(true);
         self.ctx.hub.send(Command::JoinStore { link: store.link, label });
     }
 }

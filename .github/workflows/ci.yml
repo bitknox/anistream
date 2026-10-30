@@ -855,6 +855,17 @@ jobs:
         run: ./gradlew --console=plain assembleFixturesDebug compileFixturesDebugUnitTestKotlin
         env:
           ANISTREAM_PLAYER_NATIVE: "off"
+      # The app flavour's Kotlin, which only the Release workflow builds otherwise. It compiles
+      # against the testing engine's bindings, which hold everything the release engine's do, so
+      # an app-only source that no longer matches the engine fails here and not in a release.
+      - name: The app flavour's Kotlin
+        if: ${{ !cancelled() }}
+        working-directory: android
+        run: |
+          ln -sfn testing .engine/release
+          ./gradlew --console=plain -x :engine:checkAppEngine compileAppReleaseKotlin
+        env:
+          ANISTREAM_PLAYER_NATIVE: "off"
       - name: Keep Robolectric's Android builds
         if: github.ref == 'refs/heads/main' && steps.robolectric.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
@@ -986,7 +997,7 @@ jobs:
     name: CI passed
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 240
     permissions:
       checks: read
       statuses: read

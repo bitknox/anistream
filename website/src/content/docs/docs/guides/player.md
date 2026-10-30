@@ -1,10 +1,10 @@
 ---
 title: The player
-description: anistream’s controls, skip button, Up Next, menus and upscaling inside mpv, and the settings for each.
+description: anistream’s controls, skip button, Up next, menus and upscaling inside mpv, and the settings for each.
 ---
 
 anistream plays everything in mpv and gives it the app's look: its own controls, seekbar
-thumbnails, a skip button, an Up Next card and menus, in the same colours and font as the
+thumbnails, a skip button, an Up next card and menus, in the same colours and font as the
 terminal. The next episode loads into the window the last
 one played in, so fullscreen and window position stay put.
 
@@ -22,15 +22,15 @@ player_ui = "anistream"   # or "mpv"
 ```
 
 `anistream` is the default. It brings its own controls (uosc), thumbnails (thumbfast) and the
-companion script that draws the skip button, Up Next and the menus. It still reads your
+companion script that draws the skip button, Up next and the menus. It still reads your
 `mpv.conf`, but scripts in your mpv folder are not loaded, so another controller or track picker
 cannot compete with these.
 
-`mpv` keeps your own setup as it is and adds only the companion script. The skip button, Up Next
+`mpv` keeps your own setup as it is and adds only the companion script. The skip button, Up next
 and the menus work with mpv's built-in controller and with your own uosc. In this mode the
 anistream menu also appears in mpv's right-click menu.
 
-Both need mpv 0.36 or newer for the skip button, Up Next, the menus and thumbnails. Older
+Both need mpv 0.36 or newer for the skip button, Up next, the menus and thumbnails. Older
 versions, such as Debian 12's 0.35, play with mpv's own controls. `anistream --doctor` reports
 your mpv version, which interface is in use and where its files were written.
 
@@ -47,7 +47,7 @@ Keys are written the way the player’s `?` list writes them: `S` is the S key o
 | `←` / `→` | Back · forward 5 seconds |
 | `S` or `Enter` | Skip the opening or ending, while the button is shown |
 | `U` | Undo an automatic skip, while the note is shown |
-| `Enter` / `Esc` | Play now · cancel, while Up Next is shown |
+| `Enter` / `Esc` | Play now · cancel, while Up next is shown |
 | `Enter` / `Esc` | Switch source · keep waiting, when a stream stops mid-episode |
 | Click the picture | Pause and resume. A double click is fullscreen, as in mpv |
 | Mouse wheel | Volume |
@@ -59,7 +59,7 @@ a screenshot and `Enter` and `Esc` do what mpv does. Every binding has a name, s
 `F2 script-binding anistream/menu` in your `input.conf` moves it, and the `?` list shows the key
 you chose. mpv's own full list of bindings is `Shift+I`, then `4`.
 
-## Skipping and Up Next
+## Skipping and Up next
 
 Opening and ending times come from the file's own chapters when it has them, and from aniskip
 otherwise. Either way they are marked on the seekbar. While the playhead is inside one, a skip
@@ -67,7 +67,7 @@ button sits in the corner. With `skip_opening = true` the skip happens on its ow
 offers to undo it. `skip_button = false` takes the button away, and with `skip_opening` and
 `mark_chapters` off too, aniskip is not asked at all.
 
-Near the end of an episode, from the start of its ending when that is known, an Up Next card shows
+Near the end of an episode, from the start of its ending when that is known, an Up next card shows
 the next episode's still and title. With `auto_next = true` the next episode starts in the same
 window when this one ends. Its streams are found while the ending plays, so it starts without a
 search, and a torrent has its first pieces by then. Cancel keeps the player where it is.
@@ -92,8 +92,8 @@ upscaling = "natural"   # "natural", "sharp" or "off"
 
 `natural` uses ArtCNN, small networks trained to reconstruct line work and texture without
 restyling them. Standard-definition sources get the AniSD model. `sharp` uses Anime4K's presets,
-which give crisper lines and heavier cleanup. The old `anime4k-fast` and `anime4k-quality`
-settings read as `sharp`.
+which give crisper lines and heavier cleanup. `anime4k-fast` and `anime4k-quality` are
+read as `sharp`.
 
 Which networks run is decided per file:
 

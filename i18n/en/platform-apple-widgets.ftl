@@ -127,7 +127,7 @@ widget-action-resume = Resume { $episode }
 
 # Button of the large Continue widget: start an episode.
 # @arg episode: text
-widget-action-start = Start { $episode }
+widget-action-start = Play { $episode }
 
 ## Spoken by VoiceOver
 

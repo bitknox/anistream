@@ -17,7 +17,7 @@ shell-view-release = View
 
 # Notice when the app cannot keep running once its window is closed.
 # @only linux
-shell-no-background = { -app-name } can't keep running in the background here
+shell-no-background = { -app-name } can't keep running in the background here, so downloads stop when the window closes
 
 # Tooltip of the main menu button in the sidebar's header.
 # @only linux
@@ -119,8 +119,8 @@ close-stop-and-close = Stop and close
 # @only linux
 # @arg count: int
 close-body-downloading = { $count ->
-    [one] One episode is downloading. Keep it going after the window closes, or stop it?
-   *[other] { $count } episodes are downloading. Keep them going after the window closes, or stop them?
+    [one] One episode is downloading or waiting to. Keep it going after the window closes, or stop it?
+   *[other] { $count } episodes are downloading or waiting to. Keep them going after the window closes, or stop them?
  }
 
 # Body of the close question when episodes seed.
@@ -135,7 +135,7 @@ close-body-seeding = { $count ->
 # @only linux
 # @arg downloading: int
 # @arg seeding: int
-close-body-both = Episodes: { $downloading } downloading and { $seeding } seeding. Keep them going after the window closes, or stop them?
+close-body-both = Episodes: { $downloading } downloading or waiting and { $seeding } seeding. Keep them going after the window closes, or stop them?
 
 ## Play on TV
 
@@ -209,3 +209,8 @@ tv-paired-seen-now = { $paired } · seen just now
 tv-track-choice = { $row }, { $track }
 
 ## Problems with the TV
+
+# The name this computer goes by in lists of a person's devices, such as a plugin store's.
+# @only linux
+# @max 24
+shell-device-label = Linux computer

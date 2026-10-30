@@ -196,6 +196,10 @@ public final class PlayerModel {
     @ObservationIgnored public private(set) var playhead: Double = 0
     public private(set) var duration: Double?
     public private(set) var paused = false
+    /// Whether the episode has been far enough on for its discussion to be offered.
+    private(set) var discussionWatch = PlayerDiscussion()
+    /// The app's discussions, for the More menu and the Playback menu.
+    public var discussionHost: DiscussionHost?
     public private(set) var speed: Double = 1
     public private(set) var volume: Double = 100
     public private(set) var muted = false
@@ -539,7 +543,7 @@ public final class PlayerModel {
                 do {
                     try await backend.begin(on: handed.layer)
                 } catch {
-                    Self.note(.error, "mpv did not start: \(error)")
+                    Self.note(.error, "mpv did not start: \(AppLog.redacting("\(error)"))")
                     self?.failed(backend)
                     return
                 }
@@ -566,6 +570,11 @@ public final class PlayerModel {
                         }
                     } catch {
                         Self.note(.warn, "mpv refused \(Self.describe(item)): \(AppLog.redacting("\(error)"))")
+                        // A change the viewer asked for that mpv refused says so; the periodic
+                        // sampling stays quiet.
+                        if case .call(let call) = item {
+                            if case .sample = call {} else { self?.commandFailed() }
+                        }
                     }
                 }
             }
@@ -664,8 +673,15 @@ public final class PlayerModel {
     /// mpv would not start: the player is gone before it was there.
     private func failed(_ backend: any PlayerBackend) {
         guard backend === self.backend else { return }
+        let episode = startingEpisode
+        let id = staged?.id
         report(.closed)
         teardown()
+        // Say it where the viewer is looking, with the failure card, rather than flash and close.
+        if let episode {
+            isPresented = true
+            failure = PlaybackFailure(id: id, episode: episode)
+        }
     }
 
     private func teardown(awaitingVerdict: Bool = false) {
@@ -746,6 +762,7 @@ public final class PlayerModel {
     }
 
     private func resetFile() {
+        discussionWatch = PlayerDiscussion()
         position = 0
         playhead = 0
         duration = nil
@@ -815,6 +832,7 @@ public final class PlayerModel {
             guard let time = value.double else { return }
             playhead = time
             if scrubbing == nil, abs(time - position) >= 0.25 || time < position { position = time }
+            if !discussionWatch.reached { discussionWatch.see(position: time, duration: duration) }
             played()
         case "duration":
             duration = value.double
@@ -1338,6 +1356,25 @@ public final class PlayerModel {
         poke()
     }
 
+    // MARK: The episode's discussion
+
+    /// The discussion of the episode on screen, once it has been far enough on (85%, where it
+    /// counts as watched) and discussions are on; with the comments the engine counted, when it has.
+    public var discussionOffer: (key: DiscussionKey, count: UInt32?)? {
+        guard let host = discussionHost, host.enabled(), discussionWatch.reached, let id = staged?.id,
+              let number = PlayerDiscussion.episode(episode?.number ?? staged?.episode)
+        else { return nil }
+        let key = DiscussionKey(media: id, episode: number)
+        return (key, host.count(key))
+    }
+
+    /// Open the discussion beside the video: the video pauses, and closing it does not resume.
+    public func openDiscussion() {
+        guard let offer = discussionOffer else { return }
+        pause()
+        discussionHost?.open(offer.key)
+    }
+
     public func togglePause() {
         input()
         control(.togglePause)
@@ -1446,6 +1483,11 @@ public final class PlayerModel {
     /// watch party.
     public func say(_ text: String, kind: NoticeKind = .info) {
         alert = PlayerAlert(text: text, kind: kind, since: time.now())
+    }
+
+    private func commandFailed() {
+        guard alert == nil else { return }
+        alert = PlayerAlert(text: L.playerCommandFailed, kind: .alert, since: time.now())
     }
 
     private func trackFileFailed(_ kind: Track.Kind) {

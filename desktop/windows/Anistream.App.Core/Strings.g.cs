@@ -15,6 +15,45 @@ public static partial class T
     /// <summary>The language the resolver answers in, which picks plural forms. Set with the resolver.</summary>
     public static string Language { get; set; } = "en";
 
+    /// <summary>What the TV's loading screen and its own controls show under the show's name.</summary>
+    public static string CastEpisode(string episode) => Fill(Get("CastEpisode"), ("episode", episode));
+
+    /// <summary>What the TV's loading screen and its own controls show under the show's name, with the episode's own title.</summary>
+    public static string CastEpisodeTitled(string episode, string title) => Fill(Get("CastEpisodeTitled"), ("episode", episode), ("title", title));
+
+    /// <summary>The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.</summary>
+    public static string NoticeCastVideoCodec(string codec) => Fill(Get("NoticeCastVideoCodec"), ("codec", codec));
+
+    /// <summary>The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.</summary>
+    public static string NoticeCastAudioCodec(string codec) => Fill(Get("NoticeCastAudioCodec"), ("codec", codec));
+
+    /// <summary>The stream comes in a kind of file the TV can't read.</summary>
+    public static string NoticeCastContainer => Get("NoticeCastContainer");
+
+    /// <summary>The episode opens in another app, which this device can't cast.</summary>
+    public static string NoticeCastDeepLink => Get("NoticeCastDeepLink");
+
+    /// <summary>The TV accepted the stream but never started reading it.</summary>
+    public static string NoticeCastNeverFetches => Get("NoticeCastNeverFetches");
+
+    /// <summary>The TV tried every way of playing the stream and played none of them.</summary>
+    public static string NoticeCastRefused => Get("NoticeCastRefused");
+
+    /// <summary>Someone started something else on the TV, which ends the cast.</summary>
+    public static string NoticeCastTakenOver => Get("NoticeCastTakenOver");
+
+    /// <summary>This device isn't on the TV's network, or reaches it through a VPN.</summary>
+    public static string NoticeCastNotSameNetwork => Get("NoticeCastNotSameNetwork");
+
+    /// <summary>The TV stopped answering mid-cast.</summary>
+    public static string NoticeCastLost => Get("NoticeCastLost");
+
+    /// <summary>The TV picked to cast to has left the network.</summary>
+    public static string NoticeCastNoDevice => Get("NoticeCastNoDevice");
+
+    /// <summary>This build of the app has no casting.</summary>
+    public static string NoticeCastUnavailable => Get("NoticeCastUnavailable");
+
     /// <summary>A comment's age, beside its author, when it was written under a minute ago.</summary>
     public static string DiscussionAgeNow => Get("DiscussionAgeNow");
 
@@ -78,6 +117,9 @@ public static partial class T
     /// <summary>Reason: the release the person picked would not start. The detail comes from the source.</summary>
     public static string CauseReleaseFailed(string detail) => Fill(Get("CauseReleaseFailed"), ("detail", detail));
 
+    /// <summary>Reason: a play waited too long for its sources to give it a stream, and gave up.</summary>
+    public static string CauseSourcesTimedOut => Get("CauseSourcesTimedOut");
+
     /// <summary>Reason: every source matched the title but none has the episode. The detail is what each said.</summary>
     public static string CauseNoSourceHasEpisode(string episode, string detail) => Fill(Get("CauseNoSourceHasEpisode"), ("episode", episode), ("detail", detail));
 
@@ -105,12 +147,6 @@ public static partial class T
     /// <summary>Job note while the sources are asked for an episode. The episode is its label, often a number.</summary>
     public static string StatusSearchingSources(string episode) => Fill(Get("StatusSearchingSources"), ("episode", episode));
 
-    /// <summary>Status while the player opens.</summary>
-    public static string StatusStartingPlayer => Get("StatusStartingPlayer");
-
-    /// <summary>Status line while an episode plays.</summary>
-    public static string StatusPlaying(string title, string episode) => Fill(Get("StatusPlaying"), ("title", title), ("episode", episode));
-
     /// <summary>Toast when the player cannot be started. The reason comes from the system.</summary>
     public static string NoticePlayerFailedToStart(string reason) => Fill(Get("NoticePlayerFailedToStart"), ("reason", reason));
 
@@ -129,11 +165,14 @@ public static partial class T
     /// <summary>Toast when a play is asked for in a build with no player.</summary>
     public static string NoticeNoPlayer => Get("NoticeNoPlayer");
 
-    /// <summary>Toast at launch when the mpv program is missing. The binary is the name the settings give it.</summary>
+    /// <summary>Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps.</summary>
     public static string NoticeMpvMissing(string binary) => Fill(Get("NoticeMpvMissing"), ("binary", binary));
 
-    /// <summary>Toast at launch when mpv is too old for anistream's own player.</summary>
+    /// <summary>Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps.</summary>
     public static string NoticeMpvOld(string version) => Fill(Get("NoticeMpvOld"), ("version", version));
+
+    /// <summary>Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded.</summary>
+    public static string NoticeSubtitlesUnavailable => Get("NoticeSubtitlesUnavailable");
 
     /// <summary>Toast after a link was handed to the browser.</summary>
     public static string NoticeOpenedInBrowser => Get("NoticeOpenedInBrowser");
@@ -195,6 +234,12 @@ public static partial class T
     /// <summary>Toast when no source could list a show's episodes. The reason is what the sources said.</summary>
     public static string NoticeNoSourceCouldList(string reason) => Fill(Get("NoticeNoSourceCouldList"), ("reason", reason));
 
+    /// <summary>Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network.</summary>
+    public static string NoticeEpisodesFailed(string reason) => Fill(Get("NoticeEpisodesFailed"), ("reason", reason));
+
+    /// <summary>Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name.</summary>
+    public static string NoticeMatchUncertain(string source) => Fill(Get("NoticeMatchUncertain"), ("source", source));
+
     /// <summary>Toast when a title cannot be taken off the Continue row. The reason comes from the system.</summary>
     public static string NoticeContinueHideFailed(string reason) => Fill(Get("NoticeContinueHideFailed"), ("reason", reason));
 
@@ -240,26 +285,29 @@ public static partial class T
     /// <summary>Toast after a range was asked for and nothing was queued, and the reason it stopped.</summary>
     public static string NoticeDownloadsNoneQueuedStopped(string reason) => Fill(Get("NoticeDownloadsNoneQueuedStopped"), ("reason", reason));
 
-    /// <summary>Toast after a range was asked for and every episode was in the queue already.</summary>
+    /// <summary>Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`.</summary>
     public static string NoticeDownloadsNoneNew(string existing) => Fill(Get("NoticeDownloadsNoneNew"), ("existing", existing));
 
-    /// <summary>Toast as above, with the reason the range stopped.</summary>
+    /// <summary>Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.</summary>
     public static string NoticeDownloadsNoneNewStopped(string existing, string reason) => Fill(Get("NoticeDownloadsNoneNewStopped"), ("existing", existing), ("reason", reason));
 
-    /// <summary>Toast after a range was asked for, some episodes were queued and some were there already.</summary>
+    /// <summary>Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`.</summary>
     public static string NoticeEpisodesQueuedExisting(long count, string existing) => Fill(GetPlural("NoticeEpisodesQueuedExisting", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("existing", existing));
 
     /// <summary>Toast as above, with the reason the range stopped.</summary>
     public static string NoticeEpisodesQueuedStopped(long count, string reason) => Fill(GetPlural("NoticeEpisodesQueuedStopped", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("reason", reason));
 
-    /// <summary>Toast as above, with some episodes in the queue already and the reason the range stopped.</summary>
+    /// <summary>Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.</summary>
     public static string NoticeEpisodesQueuedExistingStopped(long count, string existing, string reason) => Fill(GetPlural("NoticeEpisodesQueuedExistingStopped", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("existing", existing), ("reason", reason));
 
     /// <summary>Toast when keep next found no room for another episode.</summary>
     public static string NoticeKeepNextFull => Get("NoticeKeepNextFull");
 
-    /// <summary>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.</summary>
+    /// <summary>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps.</summary>
     public static string PartyNeedsServer(string server, string @operator) => Fill(Get("PartyNeedsServer"), ("server", server), ("operator", @operator));
+
+    /// <summary>Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it.</summary>
+    public static string PartyChooseServer(string server, string @operator) => Fill(Get("PartyChooseServer"), ("server", server), ("operator", @operator));
 
     /// <summary>Toast when a watch party is asked for in a build without watch parties.</summary>
     public static string NoticeNoParty => Get("NoticeNoParty");
@@ -318,7 +366,7 @@ public static partial class T
     /// <summary>Toast after the store's admin page opens in the browser.</summary>
     public static string StoreAdminOpened => Get("StoreAdminOpened");
 
-    /// <summary>Toast when the browser could not be opened for the store's admin page. The reason comes from the system.</summary>
+    /// <summary>Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run.</summary>
     public static string StoreAdminOpenFailed(string reason) => Fill(Get("StoreAdminOpenFailed"), ("reason", reason));
 
     /// <summary>Toast after a plugin is installed while plugins are switched off in the source order.</summary>
@@ -447,7 +495,7 @@ public static partial class T
     /// <summary>Error: the torrent session could not start. The reason comes from the torrent engine.</summary>
     public static string TorrentSessionFailed(string reason) => Fill(Get("TorrentSessionFailed"), ("reason", reason));
 
-    /// <summary>Toast when torrents are up but no operating-system firewall rule backs the VPN guard.</summary>
+    /// <summary>Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps.</summary>
     public static string TorrentNoKillSwitch => Get("TorrentNoKillSwitch");
 
     /// <summary>Toast when the connection check could not run. The reason comes from the VPN settings.</summary>
@@ -531,13 +579,13 @@ public static partial class T
     /// <summary>Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.</summary>
     public static string NoticeAnilistClientMissing(string client, string secret) => Fill(Get("NoticeAnilistClientMissing"), ("client", client), ("secret", secret));
 
-    /// <summary>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.</summary>
+    /// <summary>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps.</summary>
     public static string NoticeAnilistPasteFlow => Get("NoticeAnilistPasteFlow");
 
     /// <summary>Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.</summary>
     public static string NoticeMalClientMissing(string setting) => Fill(Get("NoticeMalClientMissing"), ("setting", setting));
 
-    /// <summary>Status line while the browser sign-in is open and the app waits for it to come back.</summary>
+    /// <summary>Job note while the browser sign-in is open and the terminal app waits for it to come back.</summary>
     public static string StatusWaitingForRedirect(string tracker) => Fill(Get("StatusWaitingForRedirect"), ("tracker", tracker));
 
     /// <summary>Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.</summary>
@@ -591,7 +639,7 @@ public static partial class T
     /// <summary>Toast, and desktop notification, for several episodes that aired while the app was closed.</summary>
     public static string NoticeEpisodesAired(long count) => Fill(GetPlural("NoticeEpisodesAired", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
-    /// <summary>Toast when a new release of anistream is out, on the terminal app. The command is not translated.</summary>
+    /// <summary>Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps.</summary>
     public static string NoticeUpdateAvailable(string tag) => Fill(Get("NoticeUpdateAvailable"), ("tag", tag));
 
     /// <summary>The reason a setting was refused until the person confirms having no protection.</summary>
@@ -623,6 +671,33 @@ public static partial class T
 
     /// <summary>Toast when playback stops with an error.</summary>
     public static string NoticePlaybackFailed => Get("NoticePlaybackFailed");
+
+    /// <summary>Toast when something went wrong inside the engine and it carried on.</summary>
+    public static string NoticeEngineFault => Get("NoticeEngineFault");
+
+    /// <summary>Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync.</summary>
+    public static string NoticeDatabaseSetAside(string path) => Fill(Get("NoticeDatabaseSetAside"), ("path", path));
+
+    /// <summary>Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system.</summary>
+    public static string StartFailedFolder(string path, string reason) => Fill(Get("StartFailedFolder"), ("path", path), ("reason", reason));
+
+    /// <summary>Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can.</summary>
+    public static string StartFailedConfig(string path, string problem) => Fill(Get("StartFailedConfig"), ("path", path), ("problem", problem));
+
+    /// <summary>Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system.</summary>
+    public static string StartFailedDatabase(string path, string reason) => Fill(Get("StartFailedDatabase"), ("path", path), ("reason", reason));
+
+    /// <summary>Message when anistream could not start its network connection from the network settings.</summary>
+    public static string StartFailedNetwork(string reason) => Fill(Get("StartFailedNetwork"), ("reason", reason));
+
+    /// <summary>Message when anistream itself could not start. The reason comes from the system or the engine.</summary>
+    public static string StartFailed(string reason) => Fill(Get("StartFailed"), ("reason", reason));
+
+    /// <summary>Message when the TV remote could not start listening or could not forget a phone.</summary>
+    public static string StartFailedRemote(string reason) => Fill(Get("StartFailedRemote"), ("reason", reason));
+
+    /// <summary>Message when the built-in player could not start.</summary>
+    public static string StartFailedPlayer(string reason) => Fill(Get("StartFailedPlayer"), ("reason", reason));
 
     /// <summary>Toast after episodes are added to the download queue.</summary>
     public static string NoticeEpisodesQueued(long count) => Fill(GetPlural("NoticeEpisodesQueued", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
@@ -689,12 +764,6 @@ public static partial class T
 
     /// <summary>Title page: the line of an episode that only AniList lists, so nothing can play it yet.</summary>
     public static string EpisodeListedByAnilist => Get("EpisodeListedByAnilist");
-
-    /// <summary>Title page details: the studio that made the show.</summary>
-    public static string TitleStudioLine(string studio) => Fill(Get("TitleStudioLine"), ("studio", studio));
-
-    /// <summary>Title page details: what the show is adapted from, such as "Based on: Manga".</summary>
-    public static string TitleBasedOnLine(string material) => Fill(Get("TitleBasedOnLine"), ("material", material));
 
     /// <summary>Title page: a related title's line, its relation and its format, such as "Sequel · TV".</summary>
     public static string TitleRelationFormat(string relation, string format) => Fill(Get("TitleRelationFormat"), ("relation", relation), ("format", format));
@@ -828,7 +897,7 @@ public static partial class T
     /// <summary>Setting: the order the app tries sources in.</summary>
     public static string SettingsSourceOrder => Get("SettingsSourceOrder");
 
-    /// <summary>Setting: downloads run on a cellular connection.</summary>
+    /// <summary>Setting: downloads run on a mobile data connection.</summary>
     public static string SettingsDownloadsCellular => Get("SettingsDownloadsCellular");
 
     /// <summary>Setting: a notification when a new episode of a followed show comes out.</summary>
@@ -899,12 +968,6 @@ public static partial class T
 
     /// <summary>Under the new episodes row of a show's settings.</summary>
     public static string ShowSettingsNotifyDetail => Get("ShowSettingsNotifyDetail");
-
-    /// <summary>First page of the welcome dialog: the legal line beside it, then this.</summary>
-    public static string WelcomeSourcesOthers => Get("WelcomeSourcesOthers");
-
-    /// <summary>Sources page of the welcome dialog, before the line about plugins.</summary>
-    public static string WelcomeNoOwnSources => Get("WelcomeNoOwnSources");
 
     /// <summary>Value of the download quality setting: the usual version of an episode.</summary>
     public static string SettingsDownloadStandard => Get("SettingsDownloadStandard");
@@ -1299,6 +1362,9 @@ public static partial class T
     /// <summary>Line where later broadcasts would be when they could not be loaded.</summary>
     public static string CalendarLoadLaterFailed => Get("CalendarLoadLaterFailed");
 
+    /// <summary>Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next four weeks.</summary>
+    public static string CalendarEmptyMineAhead => Get("CalendarEmptyMineAhead");
+
     /// <summary>Button under the line saying nothing on the person's list airs: shows every airing show.</summary>
     public static string CalendarShowAll => Get("CalendarShowAll");
 
@@ -1620,10 +1686,10 @@ public static partial class T
     /// <summary>Controller help: skips the opening or ending while its offer shows.</summary>
     public static string PadHelpSkip => Get("PadHelpSkip");
 
-    /// <summary>Controller help: starts the next episode now, while the Up Next card shows.</summary>
+    /// <summary>Controller help: starts the next episode now, while the Up next card shows.</summary>
     public static string PadHelpPlayNow => Get("PadHelpPlayNow");
 
-    /// <summary>Controller help: cancels the Up Next card.</summary>
+    /// <summary>Controller help: cancels the Up next card.</summary>
     public static string PadHelpCancel => Get("PadHelpCancel");
 
     /// <summary>Controller help: switches to another source while the buffering card shows.</summary>
@@ -1856,6 +1922,9 @@ public static partial class T
 
     /// <summary>Age of a comment that is on its way to AniList.</summary>
     public static string DiscussionSending => Get("DiscussionSending");
+
+    /// <summary>Button under a comment that is cut off after ten lines.</summary>
+    public static string DiscussionShowMore => Get("DiscussionShowMore");
 
     /// <summary>Comment menu item that copies the comment's text.</summary>
     public static string DiscussionCopyText => Get("DiscussionCopyText");
@@ -2244,6 +2313,9 @@ public static partial class T
     /// <summary>Reason on a recommended suggestion when the finished show is not known.</summary>
     public static string UpNextReasonRecommendedPlain => Get("UpNextReasonRecommendedPlain");
 
+    /// <summary>Line in the preview of a recommended suggestion, naming the show the recommendation came from.</summary>
+    public static string UpNextBecauseDetail(string title) => Fill(Get("UpNextBecauseDetail"), ("title", title));
+
     /// <summary>Reason on a suggestion that airs today, shown when nothing else is left to suggest.</summary>
     public static string UpNextReasonAiringToday => Get("UpNextReasonAiringToday");
 
@@ -2252,6 +2324,21 @@ public static partial class T
 
     /// <summary>Menu item on a suggestion. The show stays hidden until it starts airing.</summary>
     public static string UpNextNotInterested => Get("UpNextNotInterested");
+
+    /// <summary>Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.</summary>
+    public static string UpNextRowStarts(string reason, string starts) => Fill(Get("UpNextRowStarts"), ("reason", reason), ("starts", starts));
+
+    /// <summary>Notice after Not interested on a suggestion that is already airing.</summary>
+    public static string UpNextHidden(string title) => Fill(Get("UpNextHidden"), ("title", title));
+
+    /// <summary>Notice after Not interested on a suggestion that has not started airing.</summary>
+    public static string UpNextHiddenUntilAirs(string title) => Fill(Get("UpNextHiddenUntilAirs"), ("title", title));
+
+    /// <summary>Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.</summary>
+    public static string UpNextBroadcast(long episode, string when) => Fill(Get("UpNextBroadcast"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("when", when));
+
+    /// <summary>The time of an episode that came out earlier today. The span is already worded, such as "2h ago".</summary>
+    public static string UpNextOut(string ago) => Fill(Get("UpNextOut"), ("ago", ago));
 
     /// <summary>Format of a show: broadcast on television.</summary>
     public static string FormatTv => Get("FormatTv");
@@ -2331,10 +2418,10 @@ public static partial class T
     /// <summary>Note beside a link to an official service whose page is in another language, such as "Site in Japanese".</summary>
     public static string MediaLinkLanguage(string language) => Fill(Get("MediaLinkLanguage"), ("language", language));
 
-    /// <summary>Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".</summary>
+    /// <summary>Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".</summary>
     public static string FilmLengthHoursMinutes(long hours, long minutes) => Fill(Get("FilmLengthHoursMinutes"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
-    /// <summary>Length of a film or a single episode that is a whole number of hours, such as "2 hr".</summary>
+    /// <summary>Length of a film or a single episode that is a whole number of hours, such as "2 h".</summary>
     public static string FilmLengthHours(long hours) => Fill(Get("FilmLengthHours"), ("hours", hours.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
     /// <summary>Length of a film or a single episode under an hour, such as "46 min".</summary>
@@ -2781,13 +2868,13 @@ public static partial class T
     /// <summary>Title when the user has installed no source.</summary>
     public static string PartyNosourceNoneTitle => Get("PartyNosourceNoneTitle");
 
-    /// <summary>Line under it.</summary>
+    /// <summary>Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence.</summary>
     public static string PartyNosourceNoneDetail(string what) => Fill(Get("PartyNosourceNoneDetail"), ("what", what));
 
     /// <summary>Title when no source has the episode.</summary>
     public static string PartyNosourceMissingTitle => Get("PartyNosourceMissingTitle");
 
-    /// <summary>Line under it. The reason is a sentence without its full stop.</summary>
+    /// <summary>Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence.</summary>
     public static string PartyNosourceMissingDetail(string why, string what) => Fill(Get("PartyNosourceMissingDetail"), ("why", why), ("what", what));
 
     /// <summary>Line under a title that says the episode has not aired.</summary>
@@ -3053,6 +3140,9 @@ public static partial class T
 
     /// <summary>Line while an episode starts after a few seconds: what the wait is on, and for how long.</summary>
     public static string PlayerWaitNote(string what, long seconds) => Fill(Get("PlayerWaitNote"), ("what", what), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.</summary>
+    public static string PlayerCommandFailed => Get("PlayerCommandFailed");
 
     /// <summary>Button that shows the season before.</summary>
     public static string SeasonalPrevious => Get("SeasonalPrevious");
@@ -3707,6 +3797,12 @@ public static partial class T
 
     /// <summary>Line of the Continue widget: what plays next, with the episode already named.</summary>
     public static string WidgetLineStart(string episode) => Fill(Get("WidgetLineStart"), ("episode", episode));
+
+    /// <summary>Value of the Play trailers setting: trailers play by themselves on any network.</summary>
+    public static string SettingsTrailersAlways => Get("SettingsTrailersAlways");
+
+    /// <summary>Value of the Play trailers setting: trailers play by themselves only on Wi-Fi.</summary>
+    public static string SettingsTrailersWifiOnly => Get("SettingsTrailersWifiOnly");
 
     /// <summary>Title of the screen or section that lists sources.</summary>
     public static string SourcesTitle => Get("SourcesTitle");
@@ -4458,6 +4554,21 @@ public static partial class T
     /// <summary>Heading of the list of rankings.</summary>
     public static string MoreRankings => Get("MoreRankings");
 
+    /// <summary>Heading of the list of people the viewer follows who have the show on their list.</summary>
+    public static string MoreFollowing => Get("MoreFollowing");
+
+    /// <summary>Note under that list: where the names come from.</summary>
+    public static string MoreFollowingNote => Get("MoreFollowingNote");
+
+    /// <summary>What a followed person gave the show, out of ten. The score is a whole number.</summary>
+    public static string MoreFollowedScore(long score) => Fill(Get("MoreFollowedScore"), ("score", score.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Heading of the list of titles people who liked this one also liked.</summary>
+    public static string MoreLikeThis => Get("MoreLikeThis");
+
+    /// <summary>Line of a followed person's list entry: their status and how far they are. Both are already worded.</summary>
+    public static string MoreFollowedProgress(string status, string progress) => Fill(Get("MoreFollowedProgress"), ("status", status), ("progress", progress));
+
     /// <summary>Line when AniList has no cast, staff or recommendations for a show.</summary>
     public static string MoreEmpty => Get("MoreEmpty");
 
@@ -4478,6 +4589,30 @@ public static partial class T
 
     /// <summary>Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.</summary>
     public static string TitleButtonResumeDubbed(long episode, string time) => Fill(Get("TitleButtonResumeDubbed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("time", time));
+
+    /// <summary>Label of a fact: the genres, joined in its value.</summary>
+    public static string TitleGenres => Get("TitleGenres");
+
+    /// <summary>Label of a fact: the date a show not yet out starts.</summary>
+    public static string TitleFactStarts => Get("TitleFactStarts");
+
+    /// <summary>Label of a fact: the date a film or a one-off was released.</summary>
+    public static string TitleFactReleased => Get("TitleFactReleased");
+
+    /// <summary>Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates.</summary>
+    public static string TitleFactRange(string from, string to) => Fill(Get("TitleFactRange"), ("from", from), ("to", to));
+
+    /// <summary>Value of the fact on a cancelled show: the last episode that aired.</summary>
+    public static string TitleFactAfter(long episode) => Fill(Get("TitleFactAfter"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Value of the fact on a show that is airing and has no known start.</summary>
+    public static string TitleFactNow => Get("TitleFactNow");
+
+    /// <summary>Value of the fact on a show with no announced start.</summary>
+    public static string TitleFactTba => Get("TitleFactTba");
+
+    /// <summary>A followed person's status and score, such as "Completed · 9/10". The status is already worded.</summary>
+    public static string MoreFollowingLine(string status, long score) => Fill(Get("MoreFollowingLine"), ("status", status), ("score", score.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
     /// <summary>Title of the settings group and the screen.</summary>
     public static string TorrentsTitle => Get("TorrentsTitle");
@@ -5294,6 +5429,19 @@ public static partial class T
 
     static readonly Dictionary<string, string> English = new()
     {
+        ["CastEpisode"] = "Episode {episode}",
+        ["CastEpisodeTitled"] = "Episode {episode} · {title}",
+        ["NoticeCastVideoCodec"] = "The TV can't play this video ({codec}). Try another source.",
+        ["NoticeCastAudioCodec"] = "The TV can't play this audio ({codec}), and this device can't convert it. Try another source.",
+        ["NoticeCastContainer"] = "The TV can't play this kind of file. Try another source.",
+        ["NoticeCastDeepLink"] = "This episode opens in another app, so it can't be cast.",
+        ["NoticeCastNeverFetches"] = "The TV didn't start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.",
+        ["NoticeCastRefused"] = "The TV couldn't play this stream. Try another source.",
+        ["NoticeCastTakenOver"] = "Another device started something on the TV, so casting stopped.",
+        ["NoticeCastNotSameNetwork"] = "This device isn't on the TV's network, or reaches it through a VPN. Casting needs both on the same network.",
+        ["NoticeCastLost"] = "Lost the TV, so casting stopped.",
+        ["NoticeCastNoDevice"] = "That TV is no longer on the network.",
+        ["NoticeCastUnavailable"] = "This version of anistream can't cast to TVs.",
         ["DiscussionAgeNow"] = "now",
         ["DiscussionAgeMinutes"] = "{minutes} min",
         ["DiscussionAgeHours"] = "{hours} h",
@@ -5316,6 +5464,7 @@ public static partial class T
         ["CauseTitleNoMatch"] = "Couldn't match this title: {detail}",
         ["CauseSourceGone"] = "The source {source} is no longer available. Choose another.",
         ["CauseReleaseFailed"] = "Couldn't start that release: {detail}",
+        ["CauseSourcesTimedOut"] = "The sources took too long to answer. Try again, or choose another source.",
         ["CauseNoSourceHasEpisode"] = "No source has episode {episode}: {detail}",
         ["CauseSourceCannotDownload"] = "This source streams episodes but can't download them.",
         ["CauseNoSourceCouldListShow"] = "No source could list this show, so it can't be downloaded.",
@@ -5327,8 +5476,6 @@ public static partial class T
         ["StatusLookingUpTitle"] = "Looking up the title…",
         ["StatusLoadingSources"] = "Loading sources…",
         ["StatusSearchingSources"] = "Searching sources for episode {episode}…",
-        ["StatusStartingPlayer"] = "Starting mpv…",
-        ["StatusPlaying"] = "Playing {title}, episode {episode}",
         ["NoticePlayerFailedToStart"] = "Couldn't start mpv. Check that it runs on its own. ({reason})",
         ["NoticeStreamNoVideo"] = "No video from that stream. Trying {next} of {total}.",
         ["NoticePlayerCouldNotPlay"] = "mpv couldn't play this. {reason}",
@@ -5337,6 +5484,7 @@ public static partial class T
         ["NoticeNoPlayer"] = "This version of anistream can't play video.",
         ["NoticeMpvMissing"] = "{binary} wasn't found. Install mpv to play episodes.",
         ["NoticeMpvOld"] = "mpv {version} can play, but anistream's player needs mpv 0.36 or newer for its skip button, Up next card, menus and thumbnails.",
+        ["NoticeSubtitlesUnavailable"] = "This source's subtitles couldn't be loaded. Choose another source to try again.",
         ["NoticeOpenedInBrowser"] = "Opened in your browser.",
         ["NoticeCouldNotOpen"] = "Couldn't open that. {reason}",
         ["NoticeTrailerPlaying"] = "Trailer playing in mpv.",
@@ -5357,6 +5505,8 @@ public static partial class T
         ["NoticeSourceAutomatic"] = "Back to automatic source selection.",
         ["NoticeSourceChoiceFailed"] = "Couldn't save that choice. {reason}",
         ["NoticeNoSourceCouldList"] = "No source could list this show: {reason}",
+        ["NoticeEpisodesFailed"] = "Couldn't load the episodes. {reason}",
+        ["NoticeMatchUncertain"] = "{source} found more than one show that could be this one, so these episodes are from AniList for now.",
         ["NoticeContinueHideFailed"] = "Couldn't remove that from Continue. {reason}",
         ["NoticeDownloadQueued"] = "Queued episode {episode} of {title}.",
         ["NoticeDownloadAlreadyQueued"] = "Episode {episode} of {title} is already in downloads.",
@@ -5383,6 +5533,7 @@ public static partial class T
         ["NoticeEpisodesQueuedExistingStopped_other"] = "Queued {count} episodes, then it stopped. {existing} {reason}",
         ["NoticeKeepNextFull"] = "Not enough free space to keep the next episodes downloaded. Free up some space to download more.",
         ["PartyNeedsServer"] = "Choose a server for the watch party first, as syncplay.server. {server} is run by {operator}.",
+        ["PartyChooseServer"] = "Choose a server for the watch party first. {server} is run by {operator}.",
         ["NoticeNoParty"] = "Watch parties aren't available in this version of anistream.",
         ["PartyNeedsRoom"] = "A watch party needs a room to meet in. Choose one first.",
         ["PartyServerLost"] = "Lost the watch party server. Trying again.",
@@ -5402,7 +5553,7 @@ public static partial class T
         ["StoreDevicesRemoved"] = "Removed every device that joined with the link.",
         ["PluginPublished"] = "Published {plugin} {version}.",
         ["PluginUnpublished"] = "{plugin} is no longer offered.",
-        ["StoreAdminOpened"] = "Opened the admin page in your browser. The link works once, for ten minutes.",
+        ["StoreAdminOpened"] = "Opened the admin page in your browser. The link works once, for 10 minutes.",
         ["StoreAdminOpenFailed"] = "Couldn't open a browser ({reason}). On the plugin store's machine, run \"anistream store admin\" to print a link.",
         ["PluginInstalledUnused"] = "Installed {plugin} {version}, but plugins are switched off in the source order, so it isn't used.",
         ["PluginInstalledNameClash"] = "Installed {plugin}, but {id} is the name of a built-in source, so it wasn't loaded.",
@@ -5413,7 +5564,7 @@ public static partial class T
         ["PluginsLoadFailed"] = "Couldn't load plugins. {reason}",
         ["StoreTokenMissing"] = "There is no token for {store} on this device. Join it again with a new invite.",
         ["StoreNotJoined"] = "That plugin store is no longer joined.",
-        ["StoreKeyDamaged"] = "The plugin store's key is damaged.",
+        ["StoreKeyDamaged"] = "This plugin store's key on this device is damaged. Leave the plugin store and join it again with a new invite.",
         ["StoreDeviceRefused"] = "{store} no longer accepts this device. Join it again with a new invite.",
         ["StoreUnreachable"] = "Couldn't reach {store}. {reason}",
         ["StoreMoved"] = "{store} is joined at {current}, but this link points to {target}. If the plugin store has moved, leave it first and join again.",
@@ -5431,29 +5582,29 @@ public static partial class T
         ["PluginPublishFailed"] = "Couldn't publish {plugin}. {reason}",
         ["PluginMissingLocally"] = "{plugin} is no longer in the plugin folder.",
         ["StoreInviteNeedsLink"] = "This device joined {store} with its link. Paste the same link on the other device.",
-        ["StoreLinkMalformed"] = "The plugin store made a bad link. {reason}",
+        ["StoreLinkMalformed"] = "The plugin store sent a link that doesn't work. Ask its owner to check the plugin store. {reason}",
         ["StoreLinkWrongKey"] = "The plugin store made a link with a different key. Check the address it was started with.",
         ["StoreAdminMissing"] = "{store} has no admin page. Its server may be older.",
         ["StoreAdminLinkForeign"] = "{store} sent an admin link for another address.",
         ["StoreOpenJoinUnsupported"] = "{store}'s server is older and can't let anyone join with a link. Update it first.",
         ["SourceSwitchedOff"] = "{name} is off. It is skipped when looking for episodes.",
         ["SourceSwitchedOn"] = "{name} is on.",
-        ["PluginNotLoaded"] = "{id} is not a plugin that is loaded.",
+        ["PluginNotLoaded"] = "{id} isn't loaded. Check that it's installed under Sources.",
         ["ReleasePinned"] = "{name} will be used for this title.",
         ["NoticeChoiceNotSaved"] = "Couldn't save that choice. {reason}",
         ["TorrentCheckFailedRunning"] = "The connection check failed. Torrents keep running.",
         ["TorrentVpnWaiting"] = "Torrents start once the VPN guard passes. {reason}",
         ["TorrentVpnUnverified"] = "Torrents start once the VPN guard passes. The connection hasn't been verified yet.",
         ["TorrentNoIndex"] = "Torrents need a torrent index. anistream ships none, so add your own address in the settings.",
-        ["TorrentInterfaceClosed"] = "The interface closed before torrents started.",
+        ["TorrentInterfaceClosed"] = "anistream closed before torrents started.",
         ["TorrentSessionFailed"] = "Couldn't start the torrent session. {reason}",
-        ["TorrentNoKillSwitch"] = "There is no OS-level kill switch behind the VPN guard. Run \"anistream --doctor\" for advice.",
+        ["TorrentNoKillSwitch"] = "Nothing on this device stops torrent traffic if the VPN drops. Run \"anistream --doctor\" to set that up.",
         ["TorrentNotChecked"] = "Couldn't check the connection. {reason}",
         ["SourcesReloadedTorrentsPending"] = "Sources reloaded. Torrents start once the VPN guard passes.",
         ["SourcesReloadedTorrentsOff"] = "Torrents are off. The session was stopped.",
         ["JobAnilistLimit"] = "Waiting on the AniList rate limit",
         ["NoticeAnilistLimit"] = "Waiting {wait} on the AniList rate limit.",
-        ["NoticeAnilistUnreachable"] = "AniList is unreachable. Using the fallback for fresh data for now.",
+        ["NoticeAnilistUnreachable"] = "AniList isn't answering. Showing data from another service for now.",
         ["NoticeMetadataCached"] = "No metadata service answered. Showing what was last cached.",
         ["NoticeAnilistBack"] = "AniList is back.",
         ["NoticePartyNotBuilt"] = "Watch parties aren't built into this app.",
@@ -5476,7 +5627,7 @@ public static partial class T
         ["NoticeAnilistImplicitFlow"] = "This AniList sign-in method works only in the anistream app. To sign in here, set {setting} to \"loopback\" in the config file.",
         ["NoticeAnilistClientMissing"] = "AniList needs a client id and secret. Set {client} and {secret} in the config file, then sign in again. To get the sign-in address, run anistream --login-url.",
         ["NoticeAnilistPasteFlow"] = "Pasting a code isn't possible here. Quit and run anistream --login instead.",
-        ["NoticeMalClientMissing"] = "MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set {setting} in the config file.",
+        ["NoticeMalClientMissing"] = "MyAnimeList needs a client id. Register an app with the type \"other\" at myanimelist.net/apiconfig, then set {setting} in the config file.",
         ["StatusWaitingForRedirect"] = "Waiting for {tracker} to redirect back…",
         ["NoticeMalNoRefreshToken"] = "MyAnimeList didn't issue a refresh token. You'll need to sign in again in about a month.",
         ["NoticeClientIdMissing"] = "Set {setting} in the config file first.",
@@ -5508,6 +5659,15 @@ public static partial class T
         ["NoticeNotSaved"] = "Couldn't save that setting. {reason}",
         ["NoticeTitleLoadFailed"] = "Couldn't load this title. Check your connection and try again.",
         ["NoticePlaybackFailed"] = "Playback failed. Try another source.",
+        ["NoticeEngineFault"] = "Something went wrong inside anistream. It carried on, but if a screen looks stuck, quit and open it again.",
+        ["NoticeDatabaseSetAside"] = "The database was damaged, so anistream started a new one. The old file is kept at {path}. Your trackers bring back what they hold at the next sync.",
+        ["StartFailedFolder"] = "anistream couldn't create the folder {path}. Check that the disk has room and the folder can be written to, then try again. {reason}",
+        ["StartFailedConfig"] = "{path} has a setting anistream can't use: {problem}. Fix or remove it, then try again.",
+        ["StartFailedDatabase"] = "anistream couldn't open its database at {path}. If another anistream app is open on this folder, quit it and try again. {reason}",
+        ["StartFailedNetwork"] = "anistream couldn't set up its network connection from the network settings in config.toml. {reason}",
+        ["StartFailed"] = "anistream couldn't start. Quit and open it again. {reason}",
+        ["StartFailedRemote"] = "The remote couldn't start. {reason}",
+        ["StartFailedPlayer"] = "The player couldn't start. {reason}",
         ["NoticeEpisodesQueued_one"] = "Queued one episode.",
         ["NoticeEpisodesQueued_other"] = "Queued {count} episodes.",
         ["ContinueMenuResume"] = "Continue",
@@ -5527,13 +5687,11 @@ public static partial class T
         ["FilterPickedMore"] = "{first} +{more}",
         ["TitleSeasonWhen"] = "{season} · {when}",
         ["EpisodeDownloadText"] = "Download episode {episode}",
-        ["EpisodeDownloadFailedText"] = "Couldn't download episode {episode}. Download again.",
+        ["EpisodeDownloadFailedText"] = "Couldn't download episode {episode}. Try again.",
         ["EpisodeNumberText"] = "Episode {episode}",
         ["EpisodeTextWithTitle"] = "Episode {episode} · {title}",
         ["EpisodeRowSpoken"] = "{heading}, {line}",
         ["EpisodeListedByAnilist"] = "Listed by AniList",
-        ["TitleStudioLine"] = "Studio: {studio}",
-        ["TitleBasedOnLine"] = "Based on: {material}",
         ["TitleRelationFormat"] = "{relation} · {format}",
         ["TitleEpisodeOutAgo"] = "E{episode} out {ago}",
         ["TitleNextAirs"] = "Next episode airs {when}",
@@ -5572,13 +5730,13 @@ public static partial class T
         ["SettingsAnotherTv"] = "Another TV",
         ["SettingsTheme"] = "Theme",
         ["SettingsMotion"] = "Motion",
-        ["SettingsStartFullscreen"] = "Start fullscreen",
+        ["SettingsStartFullscreen"] = "Start in full screen",
         ["SettingsPlayerInterface"] = "Player interface",
         ["SettingsVpnMode"] = "VPN mode",
         ["SettingsTokenStorage"] = "Token storage",
         ["SettingsWatchParties"] = "Watch parties",
         ["SettingsSourceOrder"] = "Source order",
-        ["SettingsDownloadsCellular"] = "Downloads on cellular",
+        ["SettingsDownloadsCellular"] = "Downloads on mobile data",
         ["SettingsEpisodeNotifications"] = "New episode notifications",
         ["SettingsEpisodeDiscussions"] = "Episode discussions",
         ["SettingsCommentImages"] = "Load images in comments",
@@ -5594,8 +5752,8 @@ public static partial class T
         ["SettingsSyncDetail"] = "Sends what changed here and fetches what changed elsewhere.",
         ["SettingsSignedInWaiting_one"] = "Signed in · one change waiting",
         ["SettingsSignedInWaiting_other"] = "Signed in · {count} changes waiting",
-        ["SettingsSignedOutCode"] = "Not signed in · You enter a code on its site",
-        ["SettingsLibmpvLicence"] = "Licensed under the Lesser General Public Licence, version 2.1 or later.",
+        ["SettingsSignedOutCode"] = "Not signed in · you enter a code on its site",
+        ["SettingsLibmpvLicence"] = "Licensed under the GNU Lesser General Public License, version 2.1 or later.",
         ["TorrentsWarnInstead"] = "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.",
         ["ShowSettingsLabel"] = "Settings for {title}",
         ["ShowSettingsLoading"] = "Loading this show's settings",
@@ -5603,8 +5761,6 @@ public static partial class T
         ["ShowSettingsNoSource"] = "Add a source to keep one for this show.",
         ["ShowSettingsKeepNextDetail"] = "Downloads the episodes after the one you watch.",
         ["ShowSettingsNotifyDetail"] = "A notification when an episode comes out.",
-        ["WelcomeSourcesOthers"] = "Every source is run by someone else.",
-        ["WelcomeNoOwnSources"] = "anistream ships no sources of its own.",
         ["SettingsDownloadStandard"] = "Standard",
         ["SettingsDownloadHigher"] = "Higher",
         ["TorrentsDialogTurnOn"] = "Turn on torrents",
@@ -5626,7 +5782,7 @@ public static partial class T
         ["CloseStop"] = "Stop and close",
         ["ToastOpenStores"] = "Open plugin stores",
         ["ToastTitled"] = "{title}: {body}",
-        ["LinkCantOpen"] = "anistream can't open that link.",
+        ["LinkCantOpen"] = "anistream can't open that link. It opens invite, pairing and title links.",
         ["AccountsPaneSignInAgain"] = "Sign in again",
         ["StateLoadFailed"] = "Couldn't load this page",
         ["NotifyEpisodeOut"] = "Episode {episode} is out.",
@@ -5673,7 +5829,7 @@ public static partial class T
         ["SourcesCheck"] = "Check sources",
         ["SourcesOriginVersion"] = "{origin} · version {version}",
         ["SourcesStanding"] = "Standing",
-        ["SourcesStatusWorking"] = "Working",
+        ["SourcesStatusWorking"] = "Ready",
         ["SourcesTorrentIndexes"] = "Searches the torrent indexes you have turned on under Settings.",
         ["SourcesVersionReady"] = "Version {version} is ready",
         ["SourcesUseThis"] = "Use this source",
@@ -5741,17 +5897,18 @@ public static partial class T
         ["CalendarLoadingLater"] = "Loading later broadcasts",
         ["CalendarLoadEarlierFailed"] = "Couldn't load earlier broadcasts",
         ["CalendarLoadLaterFailed"] = "Couldn't load later broadcasts",
+        ["CalendarEmptyMineAhead"] = "Nothing on your list airs in the next 4 weeks.",
         ["CalendarShowAll"] = "Show all airing",
         ["CalendarNowSpoken"] = "Now, {time}",
         ["ActionTryAgain"] = "Try again",
         ["ActionCancel"] = "Cancel",
         ["ActionNotNow"] = "Not now",
-        ["DurationDays"] = "{days}d",
-        ["DurationHoursMinutes"] = "{hours}h {minutes}m",
-        ["DurationHours"] = "{hours}h",
-        ["DurationMinutes"] = "{minutes}m",
-        ["DurationMinutesSeconds"] = "{minutes}m {seconds}s",
-        ["DurationSeconds"] = "{seconds}s",
+        ["DurationDays"] = "{days} d",
+        ["DurationHoursMinutes"] = "{hours} h {minutes} min",
+        ["DurationHours"] = "{hours} h",
+        ["DurationMinutes"] = "{minutes} min",
+        ["DurationMinutesSeconds"] = "{minutes} min {seconds} s",
+        ["DurationSeconds"] = "{seconds} s",
         ["SizeByte"] = "{value} B",
         ["SizeKilobyte"] = "{value} kB",
         ["SizeMegabyte"] = "{value} MB",
@@ -5828,7 +5985,7 @@ public static partial class T
         ["ErrorListUnreadable"] = "Couldn't read the list. Try again.",
         ["ErrorServiceUnreachable"] = "Couldn't reach {name}. Check your connection and try again.",
         ["ErrorTimedOut"] = "The request took too long. Try again.",
-        ["ErrorSignInExpired"] = "Your sign-in has expired. Sign in again under Accounts.",
+        ["ErrorSignInExpired"] = "Your sign-in has expired. Sign in again in Accounts.",
         ["ErrorLabel"] = "Problem",
         ["StateWorking"] = "Working",
         ["StateLoading"] = "Loading",
@@ -5932,6 +6089,7 @@ public static partial class T
         ["DiscussionOfflineCached"] = "Offline. Showing comments from {age}.",
         ["DiscussionSettingsGroup"] = "Discussions",
         ["DiscussionSending"] = "Sending",
+        ["DiscussionShowMore"] = "Show more",
         ["DiscussionCopyText"] = "Copy text",
         ["DownloadsTitle"] = "Downloads",
         ["DownloadsPauseAll"] = "Pause all",
@@ -5957,7 +6115,7 @@ public static partial class T
         ["DownloadsCaptionPaused"] = "Paused · {percent}",
         ["DownloadsCaptionDoneSize"] = "Downloaded · {size}",
         ["DownloadsCaptionDone"] = "Downloaded",
-        ["DownloadsCaptionAhead"] = "Downloaded ahead · Removed a day after you watch it",
+        ["DownloadsCaptionAhead"] = "Downloaded ahead · removed a day after you watch it",
         ["DownloadsAhead"] = "Downloaded ahead",
         ["DownloadsCaptionFailedWhy"] = "Failed · {why}",
         ["DownloadsCaptionFailed"] = "Failed",
@@ -5977,14 +6135,14 @@ public static partial class T
         ["DownloadsDeleteWatched"] = "Delete watched downloads",
         ["DownloadsSeedingTitle"] = "Seeding",
         ["DownloadsSeedingAfterWatching"] = "Seeding after watching",
-        ["DownloadsSeedingNote"] = "Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Sources is reached.",
+        ["DownloadsSeedingNote"] = "Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Settings, under Sources, is reached.",
         ["DownloadsBackgroundTitle"] = "When the window closes with downloads running",
         ["DownloadsBackgroundKeep"] = "Keep downloading",
         ["DownloadsBackgroundStop"] = "Stop downloading",
         ["DownloadsBackgroundAsk"] = "Ask each time",
         ["DownloadsBackgroundKeeps"] = "Downloads keep going when you close the window.",
         ["DownloadsBackgroundStops"] = "Closing the window stops downloads. They resume the next time anistream opens.",
-        ["DownloadsBackgroundAsks"] = "Downloads keep going when you close the window, if you choose to.",
+        ["DownloadsBackgroundAsks"] = "Closing the window asks whether to keep downloading.",
         ["DownloadsBackgroundQuestion"] = "Keep downloads going?",
         ["DownloadsBackgroundNote"] = "Downloads keep going after you leave anistream.",
         ["DownloadsFolder"] = "Download folder",
@@ -6001,14 +6159,14 @@ public static partial class T
         ["EpisodeDownloadRunning"] = "Downloading · {percent}",
         ["EpisodeDownloadPaused"] = "Download paused at {percent}",
         ["EpisodeDownloadDone"] = "Downloaded",
-        ["EpisodeDownloadFailed"] = "Couldn't download episode {episode}. Download again.",
+        ["EpisodeDownloadFailed"] = "Couldn't download episode {episode}. Try again.",
         ["QueueEpisodesLeft_one"] = "One episode left in {title}",
         ["QueueEpisodesLeft_other"] = "{count} episodes left in {title}",
         ["EpisodesCount_one"] = "{count} episode",
         ["EpisodesCount_other"] = "{count} episodes",
         ["ProgressEpisodes_one"] = "{watched} of {total} episode",
         ["ProgressEpisodes_other"] = "{watched} of {total} episodes",
-        ["DurationDaysHours"] = "{days}d {hours}h",
+        ["DurationDaysHours"] = "{days} d {hours} h",
         ["GroupInProgress"] = "In progress",
         ["GroupNewThisWeek"] = "New this week",
         ["ContinueEmptyTitle"] = "Nothing watched yet",
@@ -6020,10 +6178,10 @@ public static partial class T
         ["ContinueThisSeason"] = "This season",
         ["ContinueHide"] = "Hide from Continue",
         ["ContinueHidden"] = "Hidden from Continue.",
-        ["ContinueDrop"] = "Drop",
+        ["ContinueDrop"] = "Move to Dropped",
         ["ContinueMoreFor"] = "More for {title}",
-        ["ContinueRowResume"] = "Continue E{episode} · {clock}",
-        ["ContinueRowResumeDubbed"] = "Continue E{episode} dubbed · {clock}",
+        ["ContinueRowResume"] = "Resume E{episode} · {clock}",
+        ["ContinueRowResumeDubbed"] = "Resume E{episode} dubbed · {clock}",
         ["ContinueRowStart"] = "Play E{episode}",
         ["ContinueRowStartDubbed"] = "Play E{episode} dubbed",
         ["ContinueRowStartAired"] = "Play E{episode} · out {ago}",
@@ -6052,8 +6210,8 @@ public static partial class T
         ["LibraryListLoadFailed"] = "Couldn't load your {list} list",
         ["LibraryLoading"] = "Loading your lists",
         ["LibraryAddToList"] = "Add to list",
-        ["LibraryAddPlanning"] = "Add to planning",
-        ["LibraryAddedPlanning"] = "Added to planning.",
+        ["LibraryAddPlanning"] = "Add to Planning",
+        ["LibraryAddedPlanning"] = "Added to Planning.",
         ["LibraryOnYourList"] = "On your list",
         ["LibraryInYourList"] = "In your list",
         ["ProgressEpisodesShort"] = "E{done} of {total}",
@@ -6065,9 +6223,15 @@ public static partial class T
         ["UpNextReasonPlanning"] = "On your Planning list",
         ["UpNextReasonRecommended"] = "Because you finished {title}",
         ["UpNextReasonRecommendedPlain"] = "Recommended for you",
+        ["UpNextBecauseDetail"] = "Recommended on AniList by people who liked {title}",
         ["UpNextReasonAiringToday"] = "Airing today",
         ["UpNextAddPlanning"] = "Add to Planning",
         ["UpNextNotInterested"] = "Not interested",
+        ["UpNextRowStarts"] = "{reason} · {starts}",
+        ["UpNextHidden"] = "{title} is hidden from Up next for you",
+        ["UpNextHiddenUntilAirs"] = "{title} is hidden until it airs",
+        ["UpNextBroadcast"] = "Episode {episode} · {when}",
+        ["UpNextOut"] = "out {ago}",
         ["FormatTv"] = "TV",
         ["FormatTvShort"] = "TV short",
         ["FormatMovie"] = "Movie",
@@ -6094,8 +6258,8 @@ public static partial class T
         ["MediaStreamingOn"] = "Streaming on",
         ["MediaStreamingRegionNote"] = "Availability depends on your region.",
         ["MediaLinkLanguage"] = "Site in {language}",
-        ["FilmLengthHoursMinutes"] = "{hours} hr {minutes} min",
-        ["FilmLengthHours"] = "{hours} hr",
+        ["FilmLengthHoursMinutes"] = "{hours} h {minutes} min",
+        ["FilmLengthHours"] = "{hours} h",
         ["FilmLengthMinutes"] = "{minutes} min",
         ["CountryJapan"] = "Japan",
         ["CountryChina"] = "China",
@@ -6211,7 +6375,7 @@ public static partial class T
         ["PartyFormNothing"] = "What's playing now plays with the room.",
         ["PartyFormEpisodeOf"] = "Episode {episode} of {title}",
         ["PartyFormEpisode"] = "Episode {episode}",
-        ["PartyEndedEarly"] = "The party ended before it began.",
+        ["PartyEndedEarly"] = "The watch party ended before it began.",
         ["PartyWaitingMembers"] = "Waiting for the room's members",
         ["PartyOtherApp"] = "For Syncplay's own app",
         ["PartyOtherAppDetail"] = "Server {server}. Room {room}.",
@@ -6236,7 +6400,7 @@ public static partial class T
         ["PartyInviteDetail"] = "It names the room and the episode. Each friend plays it from their own sources.",
         ["PartyInRoomIdle"] = "You're in {room} on {server}, with nothing playing.",
         ["PartyInRoomIdlePlain"] = "You're in the room, with nothing playing.",
-        ["PartyLinkIncomplete"] = "That party link is missing its server, room or episode.",
+        ["PartyLinkIncomplete"] = "That watch party link is missing its server, room or episode.",
         ["PartyAlreadyIn"] = "You're already in this watch party.",
         ["PartyInNote"] = "You're in the watch party. The people button has the invite link.",
         ["PartyInNotePlayer"] = "You're in the watch party. The people button in the player has the invite link.",
@@ -6337,6 +6501,7 @@ public static partial class T
         ["PlayerStartingText"] = "Starting episode {episode}",
         ["PlayerTrackN"] = "Track {id}",
         ["PlayerWaitNote"] = "{what} · {seconds} s",
+        ["PlayerCommandFailed"] = "That didn't work. Try again.",
         ["SeasonalPrevious"] = "Previous season",
         ["SeasonalNext"] = "Next season",
         ["SeasonalLoading"] = "Loading this season",
@@ -6477,7 +6642,7 @@ public static partial class T
         ["SettingsKeepSeeding"] = "Keep seeding",
         ["SettingsWifiOnly"] = "Wi-Fi only",
         ["SettingsWifiOnlyDetail"] = "Downloads wait for Wi-Fi",
-        ["SettingsTorrentsCellular"] = "Torrents on cellular",
+        ["SettingsTorrentsCellular"] = "Torrents on mobile data",
         ["SettingsSeedAfter"] = "Seed after watching",
         ["SettingsSeedFor"] = "Seed for at most",
         ["SettingsUploadLimit"] = "Upload limit",
@@ -6556,7 +6721,9 @@ public static partial class T
         ["SettingsAsideAccounts"] = "anistream works without an account. Your watch history stays on this device when you sign out.",
         ["WidgetDayToday"] = "today",
         ["WidgetDayYesterday"] = "yesterday",
-        ["WidgetLineStart"] = "Start {episode}",
+        ["WidgetLineStart"] = "Play {episode}",
+        ["SettingsTrailersAlways"] = "Always",
+        ["SettingsTrailersWifiOnly"] = "Wi-Fi only",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",
@@ -6599,9 +6766,9 @@ public static partial class T
         ["SourcesDetailNotAnswering"] = "Not answering. {why}",
         ["SourcesDetailNotAnsweringPlain"] = "Not answering.",
         ["SourcesDetailHeldBack"] = "Held back until the connection check passes.",
-        ["SourcesDetailDisabled"] = "Disabled. It keeps its place and is not tried.",
+        ["SourcesDetailDisabled"] = "Off. It keeps its place and isn't tried.",
         ["SourcesDetailGone"] = "This source is no longer here.",
-        ["SourcesDetailSite"] = "The site did not answer.",
+        ["SourcesDetailSite"] = "The source didn't answer.",
         ["SourcesVersion"] = "Version",
         ["SourcesResponseTime"] = "Response time",
         ["SourcesNoAnswer"] = "No answer",
@@ -6611,7 +6778,7 @@ public static partial class T
         ["SourcesContactsOne"] = "Contacts {first}",
         ["SourcesContactsLine_one"] = "Contacts {first} and one more",
         ["SourcesContactsLine_other"] = "Contacts {first} and {more} more",
-        ["SourcesContactsNone"] = "Contacts no hosts",
+        ["SourcesContactsNone"] = "Lists no hosts to contact",
         ["SourcesNoHosts"] = "No hosts",
         ["SourcesUpdateContactsOne"] = "This update also contacts {first}.",
         ["SourcesUpdateContacts_one"] = "This update also contacts {first} and one more.",
@@ -6793,7 +6960,7 @@ public static partial class T
         ["EpisodeFiller"] = "Filler",
         ["EpisodeRowNotOut"] = "Not out yet",
         ["EpisodeRowAirs"] = "Airs {when}",
-        ["EpisodeSpoilerHidden"] = "Still hidden: spoiler protection",
+        ["EpisodeSpoilerHidden"] = "Hidden by spoiler protection",
         ["EpisodeOptions"] = "Episode options",
         ["EpisodeMarkWatched"] = "Mark watched",
         ["EpisodeMarkUnwatched"] = "Mark unwatched",
@@ -6813,6 +6980,11 @@ public static partial class T
         ["MoreStaff"] = "Staff",
         ["MoreRecommendations"] = "Recommendations",
         ["MoreRankings"] = "Rankings",
+        ["MoreFollowing"] = "People you follow",
+        ["MoreFollowingNote"] = "From AniList",
+        ["MoreFollowedScore"] = "{score}/10",
+        ["MoreLikeThis"] = "More like this",
+        ["MoreFollowedProgress"] = "{status} · {progress}",
         ["MoreEmpty"] = "AniList has no cast, staff or recommendations for this show yet.",
         ["MoreSpoiler"] = "Spoiler",
         ["MoreHideSpoilerTags"] = "Hide spoiler tags",
@@ -6821,11 +6993,19 @@ public static partial class T
         ["EpisodeLineDubbed"] = "{line} · Dubbed",
         ["TitleButtonPlayDubbed"] = "Play episode {episode} · Dubbed",
         ["TitleButtonResumeDubbed"] = "Resume episode {episode} · Dubbed · {time}",
+        ["TitleGenres"] = "Genres",
+        ["TitleFactStarts"] = "Starts",
+        ["TitleFactReleased"] = "Released",
+        ["TitleFactRange"] = "{from} to {to}",
+        ["TitleFactAfter"] = "After episode {episode}",
+        ["TitleFactNow"] = "Now",
+        ["TitleFactTba"] = "To be announced",
+        ["MoreFollowingLine"] = "{status} · {score}/10",
         ["TorrentsTitle"] = "Torrents",
         ["TorrentsOn"] = "Torrents are on",
         ["TorrentsOffDetail"] = "Off by default. Turning this on asks how to protect your connection first.",
         ["TorrentsRisk"] = "Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.",
-        ["TorrentsNotAPlugin"] = "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Sources settings.",
+        ["TorrentsNotAPlugin"] = "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.",
         ["TorrentsProtectWith"] = "Protect with",
         ["TorrentsProtectNone"] = "No protection",
         ["TorrentsProtectProxy"] = "Proxy",
@@ -6833,13 +7013,13 @@ public static partial class T
         ["TorrentsProtectProxyDetail"] = "Torrent traffic goes through a proxy you run or rent.",
         ["TorrentsProtectVpnDetail"] = "Uses the VPN already running on this device.",
         ["TorrentsProtectNoneDetail"] = "Your address is visible to everyone in the torrent.",
-        ["TorrentsProtectNoneNote"] = "With no protection, anistream does not check the connection.",
+        ["TorrentsProtectNoneNote"] = "With no protection, anistream doesn't check the connection.",
         ["TorrentsSummaryProxyAt"] = "Protected by a SOCKS5 proxy at {host}:{port}.",
         ["TorrentsSummaryProxy"] = "Protected by a SOCKS5 proxy.",
         ["TorrentsSummaryVpn"] = "Protected by the VPN on this device.",
         ["TorrentsSummaryNone"] = "Not protected. Your address is visible to everyone in the torrent.",
         ["TorrentsUnprotectedTitle"] = "Use torrents without protection?",
-        ["TorrentsUnprotectedDetail"] = "Other people can see your IP address while you download and share a torrent, and anistream does not check the connection.",
+        ["TorrentsUnprotectedDetail"] = "Other people can see your IP address while you download and share a torrent, and anistream doesn't check the connection.",
         ["TorrentsTurnOnUnprotected"] = "Turn on without protection",
         ["TorrentsUseUnprotected"] = "Use without protection",
         ["TorrentsProxyHost"] = "Proxy host",
@@ -6852,7 +7032,7 @@ public static partial class T
         ["TorrentsCheckingProxy"] = "Checking the proxy…",
         ["TorrentsProxySaved"] = "Proxy saved",
         ["TorrentsLeftOutsideProxy"] = "Torrent traffic left outside this proxy",
-        ["TorrentsCheckNotMadeProxy"] = "The check could not be made through this proxy",
+        ["TorrentsCheckNotMadeProxy"] = "The check couldn't be made through this proxy",
         ["TorrentsProxyNotSaved"] = "Not saved. {why}, so the saved proxy stays.",
         ["TorrentsProtectionNotSaved"] = "Not saved. {why}, so the saved protection stays.",
         ["TorrentsStillOff"] = "Torrents are still off. {why}.",
@@ -6877,7 +7057,7 @@ public static partial class T
         ["TorrentsCheckRunningLine"] = "Checking where torrent traffic leaves from",
         ["TorrentsCheckRunning"] = "Checking",
         ["TorrentsCheckLeaked"] = "Traffic left outside the protection. {then}",
-        ["TorrentsCheckUnmade"] = "The check could not be made. {then}",
+        ["TorrentsCheckUnmade"] = "The check couldn't be made. {then}",
         ["TorrentsCheckFailed"] = "Failed",
         ["TorrentsCheckNoneLine"] = "No protection is set",
         ["TorrentsCheckNone"] = "Unprotected",
@@ -6898,7 +7078,7 @@ public static partial class T
         ["TorrentsProtectionSaved"] = "Torrent protection saved",
         ["AccountsTitle"] = "Accounts",
         ["AccountsOtherTrackers"] = "Other trackers",
-        ["AccountsOtherTrackersNote"] = "Other trackers are in Settings, under Accounts.",
+        ["AccountsOtherTrackersNote"] = "Other trackers are in Accounts.",
         ["AccountsWelcomeDetail"] = "Sign in to {tracker} to sync your list and where you stopped.",
         ["AccountsBringsLists"] = "Brings in your lists and fills Continue with what you are watching.",
         ["AccountsLibraryNeeds"] = "Library and sync need a {tracker} account",
@@ -6960,7 +7140,7 @@ public static partial class T
         ["AccountsKeepTheirs"] = "Keep {tracker}'s",
         ["AccountsOpenOn"] = "Open on {tracker}",
         ["AccountsListedBy"] = "Listed by {tracker}",
-        ["AccountsDidNotAnswer"] = "{tracker} did not answer.",
+        ["AccountsDidNotAnswer"] = "{tracker} didn't answer.",
         ["AccountsNoExtras"] = "{tracker} has no cast, staff or recommendations for this show yet.",
         ["AccountsEpisodesFrom"] = "Episodes from {tracker}. Add a source to play them.",
         ["AccountsAddsSeason"] = "{tracker} adds a season's titles as they're announced.",
@@ -6992,8 +7172,8 @@ public static partial class T
         ["TvAfterPairing"] = "Choose Play on TV on an episode, or search on the TV from here.",
         ["TvStartingOn"] = "Starting on {name}",
         ["TvStarting"] = "Starting on the TV",
-        ["TvTalkFailed"] = "Something went wrong talking to the TV. Try again.",
-        ["TvPlayFailed"] = "Play on TV did not start: {reason}",
+        ["TvTalkFailed"] = "Lost contact with the TV. Check that it's on and on the same network, then try again.",
+        ["TvPlayFailed"] = "Play on TV didn't start: {reason}",
         ["TvAddress"] = "Address",
         ["TvTypeAddress"] = "Type an address…",
         ["TvConnect"] = "Connect",
@@ -7063,12 +7243,12 @@ public static partial class T
         ["UpdatesUpdated"] = "Updated to version {version}",
         ["UpdatesOpensNextTime"] = "The new version opens next time",
         ["UpdatesStopped"] = "The update to version {version} stopped. {reason}",
-        ["UpdatesDidNotInstall"] = "Version {version} didn't install. About can try again.",
+        ["UpdatesDidNotInstall"] = "Version {version} didn't install. Try again from About.",
         ["UpdatesOpenAbout"] = "Open About",
         ["UpdatesSaved"] = "Version {version} saved to Downloads",
         ["UpdatesSavedReplace"] = "Version {version} saved to Downloads. Replace the old file, {file}, with it to update.",
         ["UpdatesSavedReplacePlain"] = "Version {version} saved to Downloads. Replace the old file with it to update.",
-        ["UpdatesWhyServer"] = "The download stopped: the server answered {code}.",
+        ["UpdatesWhyServer"] = "The download stopped: the server refused it ({code}). Try again later.",
         ["UpdatesWhyConnection"] = "The download stopped: the connection was lost.",
         ["UpdatesWhySave"] = "The download couldn't be saved: {reason}",
         ["UpdatesWhySize"] = "The download is {got}, not the {expected} listed for this version.",

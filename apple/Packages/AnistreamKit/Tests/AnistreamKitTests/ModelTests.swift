@@ -103,14 +103,14 @@ struct ModelTests {
 struct WordingTests {
     @Test func spansReadAsTheTerminalReadsThem() {
         #expect(Wording.countdown(0) == "now")
-        #expect(Wording.countdown(59) == "0m")
-        #expect(Wording.countdown(4 * 60) == "4m")
-        #expect(Wording.countdown(2 * 3600) == "2h")
-        #expect(Wording.countdown(2 * 3600 + 5 * 60) == "2h 5m")
-        #expect(Wording.countdown(6 * 86_400 + 17 * 3600) == "6d 17h")
-        #expect(Wording.countdown(9 * 86_400 + 17 * 3600) == "9d")
+        #expect(Wording.countdown(59) == "0 min")
+        #expect(Wording.countdown(4 * 60) == "4 min")
+        #expect(Wording.countdown(2 * 3600) == "2 h")
+        #expect(Wording.countdown(2 * 3600 + 5 * 60) == "2 h 5 min")
+        #expect(Wording.countdown(6 * 86_400 + 17 * 3600) == "6 d 17 h")
+        #expect(Wording.countdown(9 * 86_400 + 17 * 3600) == "9 d")
         #expect(Wording.ago(30) == "just now")
-        #expect(Wording.ago(2 * 86_400) == "2d ago")
+        #expect(Wording.ago(2 * 86_400) == "2 d ago")
         #expect(Wording.plural(1, "episode") == "1 episode")
         #expect(Wording.plural(3, "episode") == "3 episodes")
     }

@@ -9,7 +9,7 @@ anistream                                                                       
     Quit                  Q / ctrl+c    Set list status                a  Sources
     Back                     q / esc    Rate this title                *    Move source up                 K
     Toggle rail width            tab    Expand synopsis                i    Move source down               J
-    Refresh this view              r    Remove from Continue           x  Now playing
+    Refresh this view              r    Hide from Continue             x  Now playing
     Force a full resync            R    Search filters            ctrl+f    Play or pause              space
     Subbed or dubbed               t  Title                                 Back 5 seconds                 ←
     Go to section                1–9    Episodes                       e    Forward 5 seconds              →
@@ -22,7 +22,7 @@ anistream                                                                       
     Move right                 l / →    Play the trailer               v    Faster                         ]
     Jump to top                    g    Open on AniList                o    Volume down                    9
     Jump to bottom                 G    Play in a watch party          y    Volume up                      0
-    Jump to today                  T  Episodes                              Fullscreen                     F
+    Jump to today                  T  Episodes                              Full screen                    F
     Jump to previous day           {    Download a range of episodes   D    Leave player running           q
     Jump to next day               }    Toggle watched                 u    Stop playback                  x
     Page up                   ctrl+u    Mark all previous watched      M
@@ -122,8 +122,8 @@ r11 c02-20 fg=text-dim bg=ground
 r11 c21-34 fg=rule bg=ground
 r11 c35-35 fg=text bg=ground
 r11 c36-37 fg=rule bg=ground
-r11 c38-59 fg=text-dim bg=ground
-r11 c60-70 fg=rule bg=ground
+r11 c38-57 fg=text-dim bg=ground
+r11 c58-70 fg=rule bg=ground
 r11 c71-71 fg=text bg=ground
 r11 c72-73 fg=rule bg=ground
 r11 c74-84 fg=text bg=ground
@@ -291,8 +291,8 @@ r24 c35-35 fg=text bg=ground
 r24 c36-37 fg=rule bg=ground
 r24 c38-45 fg=text bg=ground
 r24 c46-73 fg=rule bg=ground
-r24 c74-85 fg=text-dim bg=ground
-r24 c86-106 fg=rule bg=ground
+r24 c74-86 fg=text-dim bg=ground
+r24 c87-106 fg=rule bg=ground
 r24 c107-107 fg=text bg=ground
 r24 c108-119 fg=rule bg=ground
 r25 c00-01 fg=rule bg=ground

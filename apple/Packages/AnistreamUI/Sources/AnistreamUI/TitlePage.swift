@@ -120,6 +120,8 @@ struct TitlePage: View {
     @State private var laidOut: AnilistId?
     /// The title that has been waited for long enough, laid out with what is known of it.
     @State private var waited: AnilistId?
+    /// This visit's trailer, one per title opened.
+    @State private var visit = TrailerVisit()
 
     /// How long a season picked waits for its page before it shows what is known of it.
     static let waitFor: Duration = .milliseconds(400)
@@ -131,10 +133,13 @@ struct TitlePage: View {
         let ready = laidOut == nil || laidOut == id || waited == id || store.titles.detailed.contains(id)
         let entry = store.titles.page(ready ? id : laidOut ?? id)
         let art = store.heroArt(entry)
+        // A page that may play a trailer opens with room for it, so nothing moves when it starts.
+        let mayPlay = !art.isCompact && store.trailerMayAutoplay(entry)
+        let band = mayPlay ? TrailerLayout.band : 280
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 // With no wide art the page starts higher: under the toolbar, not under a banner.
-                Color.clear.frame(height: art.isCompact ? 64 : 96)
+                Color.clear.frame(height: art.isCompact ? 64 : mayPlay ? band - TrailerLayout.overlap : 96)
                 TitleHero(entry: entry)
                 let family = TitleFamily(entry, this: id)
                 if !family.seasons.isEmpty || !family.related.isEmpty {
@@ -156,29 +161,58 @@ struct TitlePage: View {
             // differs changes, by its own animation: the season picked (quick), the hero's words
             // (quick), the episodes as one block (standard), and the art as it lands (fade-in).
             .transaction(value: id) { $0.animation = nil }
+            .overlay(alignment: .topTrailing) {
+                // Under the video's trailing corner; the video itself is behind the art.
+                if mayPlay {
+                    TrailerSoundButton(visit: visit, size: TrailerLayout.soundSize)
+                        .padding(.top, TrailerLayout.videoTop + TrailerLayout.wide.height + 8)
+                        .padding(.trailing, 28)
+                }
+            }
             .background(alignment: .top) {
                 // The wide art, under the clear toolbar, with the ground over its lower part,
                 // where the cover and the title sit, and fading up into the art above that, where
                 // a title of two lines starts. None at all where there is none. Across a season
                 // switch the last season's art stays until the next one's is here, and fades to it.
                 if !art.isCompact {
-                    HeroArtView(art: art, entry: entry, holds: true)
-                        .frame(height: 280)
-                        .clipped()
-                        .overlay(alignment: .bottom) {
-                            VStack(spacing: 0) {
-                                BannerScrim()
-                                Palette.ground.frame(height: 96)
-                            }
+                    ZStack(alignment: .top) {
+                        // The trailer, at the band's trailing end: the art fades away over it.
+                        if mayPlay {
+                            TrailerVideo(visit: visit)
+                                .padding(.top, TrailerLayout.videoTop)
+                                .padding(.trailing, 28)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                         }
-                        .modifier(BannerMatch(id: entry.id, space: bannerSpace))
-                        .playerZoomSource(entry.id)
+                        HeroArtView(art: art, entry: entry, holds: true)
+                            .frame(height: band)
+                            .clipped()
+                            .overlay(alignment: .bottom) {
+                                VStack(spacing: 0) {
+                                    BannerScrim()
+                                    Palette.ground.frame(height: 96)
+                                }
+                            }
+                            .opacity(visit.shown ? 0 : 1)
+                            .animation(visit.shown ? .fadeIn : .fadeOut, value: visit.shown)
+                            .modifier(BannerMatch(id: entry.id, space: bannerSpace))
+                            .playerZoomSource(entry.id)
+                    }
+                    .frame(height: band)
                 }
             }
         }
         .nudgeableScroll()
         .scrollIndicators(.never)
         .ignoresSafeArea(edges: .top)
+        // The page sliding over a playing player is not allowed, so past a few points the trailer
+        // gives way to the banner.
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top > TrailerLayout.scrollAway
+        } action: { _, away in
+            visit.scrolledAway(away)
+        }
+        .trailerLifecycle(visit: visit, entry: entry, mayPlay: mayPlay)
+        .onChange(of: id) { visit.release(); visit = TrailerVisit() }
         .background(.ground)
         .unwatchedRotor(store.titles.episodes[entry.id] ?? [], in: rotor)
         .handsOff(title: entry)
@@ -286,9 +320,9 @@ struct TitleHero: View {
                     } else {
                         AirsStatus(text: Self.pad ? action.sentence : action.title)
                     }
-                    if let trailer = entry.trailerUrl {
+                    if entry.trailerUrl != nil {
                         Button(L.titleTrailer) {
-                            store.send(.playTrailer(url: trailer, title: entry.title))
+                            navigator.playTrailer(entry, store: store)
                         }
                         .buttonStyle(SecondaryCapsuleStyle(height: Self.pad ? 48 : 28, fontSize: Self.pad ? 17 : 13))
                     }
@@ -714,10 +748,13 @@ struct EpisodeRowView: View {
         if row.isUnaired(), let date = row.airsDate {
             UnairedEpisodeRow(row: row, airs: date)
         } else {
-            airedRow
-                #if os(macOS)
-                .help(row.airsDate.map(AirsWords.aired) ?? "")
-                #endif
+            VStack(spacing: 0) {
+                airedRow
+                    #if os(macOS)
+                    .help(row.airsDate.map(AirsWords.aired) ?? "")
+                    #endif
+                DiscussionLine(entry: entry, row: row, inset: 140)
+            }
         }
     }
 

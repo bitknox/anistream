@@ -32,8 +32,6 @@ public final class NoticesModel {
     public private(set) var current: NoticeItem?
     /// Every notice, newest first.
     public private(set) var log: [NoticeItem] = []
-    /// The engine's status line, when it last set one.
-    public private(set) var status: String?
 
     @ObservationIgnored private var count = 0
     @ObservationIgnored private let clock: @Sendable () -> Date
@@ -56,10 +54,6 @@ public final class NoticesModel {
         count += 1
         log.insert(NoticeItem(id: count, notice: notice, at: clock()), at: 0)
         if log.count > Self.kept { log.removeLast(log.count - Self.kept) }
-    }
-
-    func status(_ text: String) {
-        status = text.isEmpty ? nil : text
     }
 
     /// Take the capsule down, if it still shows `item`.

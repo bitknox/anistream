@@ -106,7 +106,7 @@ public final class SeekPreview {
                 options["start"] = String(seconds)
                 _ = try await backend.perform(.load(url: source.url, options: options))
             } catch {
-                AppLog.warn("preview", "the preview did not open: \(error)")
+                AppLog.warn("preview", "the preview did not open: \(AppLog.redacting("\(error)"))")
             }
             guard let self, self.backend === backend else { return }
             self.busy = false

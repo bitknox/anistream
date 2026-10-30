@@ -7,9 +7,13 @@ use std::ops::Deref;
 use anistream_i18n::t;
 use anistream_model::{
     Msg, Size, SizeUnit, Span,
-    catalog::{AiringStatus, Entry, RelationKind, Season, SourceMaterial},
+    catalog::{
+        AiringStatus, Entry, FuzzyDate, Ranking, RankingKind, RelationKind, Season,
+        SourceMaterial,
+    },
     episodes::EpisodeRow,
     present::{QUEUE_ROWS, QueueItem},
+    up_next::{UpNextItem, UpNextReason},
 };
 
 use crate::choices;
@@ -69,7 +73,7 @@ pub fn countdown(seconds: i64) -> String {
     if seconds <= 0 { t::time_now() } else { span(Span::countdown(seconds)) }
 }
 
-/// How long ago, as a sentence part: "2h 5m ago", or "Just now" inside the first minute.
+/// How long ago, as a sentence part: "2 h 5 min ago", or "Just now" inside the first minute.
 pub fn ago(seconds: i64) -> String {
     if seconds < 60 { t::time_just_now() } else { t::time_ago(&countdown(seconds)) }
 }
@@ -138,6 +142,53 @@ pub fn meta_line(entry: &Entry) -> String {
         parts.push(percent(f64::from(score)));
     }
     parts.join(" · ")
+}
+
+/// The title page's own metadata line: "TV · Summer 2026 · 24 episodes · Atelier Hotaru · 79%".
+/// A film has its length where the episodes go and its year where the season does.
+pub fn title_line(entry: &Entry) -> String {
+    let film = entry.film_length.is_some();
+    let mut parts = Vec::new();
+    if let Some(f) = &entry.format {
+        parts.push(format(f));
+    }
+    match (entry.season, entry.year) {
+        (Some(s), Some(y)) if !film => parts.push(season(s, y)),
+        (_, Some(y)) => parts.push(y.to_string()),
+        _ => {}
+    }
+    if let Some(length) = anistream_model::present::film_length(entry) {
+        parts.push(length);
+    } else if let Some(n) = entry.episodes.filter(|n| *n > 0) {
+        parts.push(t::episodes_count(i64::from(n)));
+    }
+    if let Some(studio) = &entry.studio {
+        parts.push(studio.clone());
+    }
+    if let Some(score) = entry.score {
+        parts.push(percent(f64::from(score)));
+    }
+    parts.join(" · ")
+}
+
+/// The title's run in words: "On hiatus", "Aired 4 Apr to 20 Jun 2023", "Cancelled after episode 6".
+pub fn airing_fact(entry: &Entry) -> Option<String> {
+    anistream_model::present::airing_line(entry, fuzzy_date)
+}
+
+/// A ranking as the more-about dialog lists it: "#4 Highest rated, Spring 2026".
+pub fn ranking_line(ranking: &Ranking) -> String {
+    let scope = match (ranking.all_time, ranking.season, ranking.year) {
+        (true, _, _) => t::ranking_all_time(),
+        (_, Some(s), Some(y)) => season(s, y),
+        (_, _, Some(y)) => y.to_string(),
+        _ => t::ranking_all_time(),
+    };
+    let label = match ranking.kind {
+        RankingKind::Rated => t::ranking_highest_rated(&scope),
+        RankingKind::Popular => t::ranking_most_popular(&scope),
+    };
+    t::ranking_line(i64::from(ranking.rank), &label)
 }
 
 /// The line under a cover in a grid, the same two parts on every cover: "TV · 12 episodes", the
@@ -368,7 +419,7 @@ pub fn marked(line: String, dubbed: bool) -> String {
 #[derive(Debug, Clone, PartialEq)]
 pub struct QueueRow {
     item: QueueItem,
-    /// "Continue E7 · 10:06", "Play E4", "Caught up · E9 airs in 2d 3h".
+    /// "Resume E7 · 10:06", "Play E4", "Caught up · E9 airs in 2 d 3 h".
     pub action: String,
     /// "Resume episode 7 · 10:06", "Play episode 8"; `None` with nothing out to play.
     pub button: Option<String>,
@@ -376,6 +427,25 @@ pub struct QueueRow {
     pub waiting: Option<String>,
     /// "14 min left", when the runtime is known.
     pub left: Option<String>,
+}
+
+impl QueueRow {
+    /// What a cached preview of this row is filed under. Everything the preview says goes in
+    /// it, so a row whose progress, button or wait moved is drawn again rather than shown from
+    /// the cache as it was.
+    pub fn preview_key(&self, episodes: usize) -> String {
+        format!(
+            "{}-{episodes}-{}-{}-{:?}-{:?}-{:?}-{:?}-{:?}",
+            self.entry.id.get(),
+            self.episode,
+            self.playable,
+            self.action,
+            self.button,
+            self.waiting,
+            self.left,
+            self.fraction,
+        )
+    }
 }
 
 impl Deref for QueueRow {
@@ -472,6 +542,60 @@ pub fn queue_item(entry: &Entry, rows: Option<&[EpisodeRow]>) -> QueueRow {
     QueueRow { item, action, button, waiting, left }
 }
 
+/// A date AniList may know only in part: "9 January", "January 2027" or "2027".
+pub fn fuzzy_date(date: FuzzyDate) -> String {
+    let written = |format: &str, day: i32, month: i32| {
+        gtk::glib::DateTime::from_local(i32::from(date.year), month, day, 0, 0, 0.0)
+            .ok()
+            .and_then(|d| d.format(format).ok())
+            .map(|s| s.to_string())
+    };
+    let month = date.month.map(i32::from).filter(|m| (1..=12).contains(m));
+    let day = date.day.map(i32::from).filter(|d| (1..=31).contains(d));
+    match (month, day) {
+        (Some(m), Some(d)) => written("%-d %B", d, m),
+        (Some(m), None) => written("%B %Y", 1, m),
+        _ => None,
+    }
+    .unwrap_or_else(|| date.year.to_string())
+}
+
+/// The line under a suggestion's title: why it is there, and when it starts when it has not
+/// started. A suggestion that airs today says when instead. `clock` words a time of day.
+pub fn up_next_line(item: &UpNextItem, now: i64, clock: &dyn Fn(i64) -> String) -> String {
+    let reason = match (item.reason, item.because.as_deref()) {
+        (UpNextReason::NewSeason, _) => t::up_next_reason_new_season(),
+        (UpNextReason::Planning, _) => t::up_next_reason_planning(),
+        (UpNextReason::Recommended, Some(title)) => t::up_next_reason_recommended(title),
+        (UpNextReason::Recommended, None) => t::up_next_reason_recommended_plain(),
+        (UpNextReason::AiringToday, _) => return airing_line(item, now, clock),
+    };
+    match item.starts {
+        Some(date) => t::up_next_row_starts(&reason, &t::up_next_starts(&fuzzy_date(date))),
+        None => reason,
+    }
+}
+
+/// "Episode 9 · out 2h ago" or "Episode 6 · 18:30", by what the title's schedule says; with no
+/// episode known, only the time.
+fn airing_line(item: &UpNextItem, now: i64, clock: &dyn Fn(i64) -> String) -> String {
+    let airs = item.airs_at.unwrap_or(now);
+    let entry = &item.entry;
+    if airs <= now {
+        let ago = ago(now - airs);
+        return match entry.last_aired {
+            Some(aired) => {
+                t::up_next_broadcast(i64::from(aired.episode), &t::up_next_out(&ago))
+            }
+            None => ago,
+        };
+    }
+    match entry.next_episode {
+        Some(episode) => t::up_next_broadcast(i64::from(episode), &clock(airs)),
+        None => t::up_next_airs_at(&clock(airs)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -510,13 +634,13 @@ mod tests {
         e.resume = Some(ResumePoint { position: 606.0, fraction: Some(606.0 / 1440.0) });
         e.watched_in = Some(Translation::Dub);
         let item = queue_item(&e, None);
-        assert_eq!(item.action, "Continue E7 dubbed · 10:06");
+        assert_eq!(item.action, "Resume E7 dubbed · 10:06");
         assert_eq!(item.button.as_deref(), Some("Resume episode 7 · 10:06 · Dubbed"));
         assert_eq!(item.left.as_deref(), Some("14 min left"));
         for watched_in in [Some(Translation::Sub), None] {
             e.watched_in = watched_in;
             let item = queue_item(&e, None);
-            assert_eq!(item.action, "Continue E7 · 10:06");
+            assert_eq!(item.action, "Resume E7 · 10:06");
             assert_eq!(item.button.as_deref(), Some("Resume episode 7 · 10:06"));
         }
     }
@@ -553,8 +677,8 @@ mod tests {
         e.watched_in = Some(Translation::Dub);
         let item = queue_item(&e, None);
         assert!(!item.playable);
-        assert_eq!(item.action, "Caught up · E10 airs in 1d 3h");
-        assert_eq!(item.waiting.as_deref(), Some("Episode 10 airs in 1d 3h"));
+        assert_eq!(item.action, "Caught up · E10 airs in 1 d 3 h");
+        assert_eq!(item.waiting.as_deref(), Some("Episode 10 airs in 1 d 3 h"));
         assert_eq!(item.button, None);
     }
 
@@ -588,6 +712,26 @@ mod tests {
         assert_eq!(item.button, None);
     }
 
+    /// The row and its preview read the same queue: a play that moves the same episode from
+    /// "Play" to "Resume" must not be answered from the preview cached before it.
+    #[test]
+    fn a_preview_is_filed_under_everything_it_says() {
+        let mut e = entry(1);
+        e.progress = Some(TitleProgress { done: 6, next: 7 });
+        let before = queue_item(&e, None);
+        assert_eq!(before.action, "Play E7");
+        e.resume = Some(ResumePoint { position: 606.0, fraction: Some(606.0 / 1440.0) });
+        let after = queue_item(&e, None);
+        assert_eq!(after.action, "Resume E7 \u{b7} 10:06");
+        let row =
+            |item| queue(&[item], &[], &Default::default()).all().next().cloned().unwrap();
+        let (a, b) = (row(before.entry.clone()), row(after.entry.clone()));
+        assert_eq!(a.episode, b.episode);
+        assert_ne!(a.preview_key(0), b.preview_key(0));
+        assert_eq!(b.preview_key(0), b.clone().preview_key(0));
+        assert_ne!(b.preview_key(0), b.preview_key(3));
+    }
+
     #[test]
     fn the_queue_keeps_five_rows_less_the_hidden_and_puts_new_ones_last() {
         let mut entries: Vec<_> = (1..=7).map(entry).collect();
@@ -604,6 +748,22 @@ mod tests {
         assert_eq!(SeasonYear::at(1_792_756_800).season, Season::Fall);
         assert_eq!(season(Season::Fall, 2026), "Autumn 2026");
         assert_eq!(season(Season::Summer, 2026), "Summer 2026");
+    }
+
+    #[test]
+    fn the_title_line_carries_the_studio_and_a_films_length() {
+        let mut e = entry(4);
+        e.format = Some("TV".into());
+        e.season = Some(Season::Summer);
+        e.year = Some(2026);
+        e.episodes = Some(24);
+        e.studio = Some("Atelier Hotaru".into());
+        e.score = Some(79);
+        assert_eq!(title_line(&e), "TV · Summer 2026 · 24 episodes · Atelier Hotaru · 79%");
+        e.format = Some("MOVIE".into());
+        e.episodes = None;
+        e.film_length = Some(anistream_model::catalog::RunLength { hours: 1, minutes: 52 });
+        assert_eq!(title_line(&e), "Movie · 2026 · 1 h 52 min · Atelier Hotaru · 79%");
     }
 
     #[test]
@@ -632,7 +792,7 @@ mod tests {
         assert_eq!(rate(1_500_000), "1.5 MB/s");
         assert_eq!(percent(82.0), "82%");
         assert_eq!(ago(30), "Just now");
-        assert_eq!(ago(2 * 3600 + 5 * 60), "2h 5m ago");
+        assert_eq!(ago(2 * 3600 + 5 * 60), "2 h 5 min ago");
     }
 
     #[test]
@@ -652,5 +812,50 @@ mod tests {
         assert_eq!(progress_caption(&e), "E7 of 24");
         e.episodes = None;
         assert_eq!(progress_caption(&e), "E7");
+    }
+
+    fn suggestion(reason: UpNextReason) -> UpNextItem {
+        UpNextItem {
+            entry: entry(7),
+            reason,
+            because: None,
+            starts: None,
+            action: anistream_model::up_next::UpNextAction::PlayFirstEpisode,
+            airs_at: None,
+            fallback: false,
+        }
+    }
+
+    #[test]
+    fn a_partly_known_date_is_written_as_far_as_it_is_known() {
+        let date = |month, day| FuzzyDate { year: 2027, month, day };
+        assert_eq!(fuzzy_date(date(Some(1), Some(9))), "9 January");
+        assert_eq!(fuzzy_date(date(Some(1), None)), "January 2027");
+        assert_eq!(fuzzy_date(date(None, None)), "2027");
+    }
+
+    #[test]
+    fn a_suggestion_says_why_and_when_it_starts() {
+        let clock = |_| "18:30".to_owned();
+        let mut item = suggestion(UpNextReason::NewSeason);
+        assert_eq!(up_next_line(&item, 0, &clock), "New season");
+        item.starts = Some(FuzzyDate { year: 2027, month: Some(1), day: Some(9) });
+        assert_eq!(up_next_line(&item, 0, &clock), "New season · Starts 9 January");
+        let mut item = suggestion(UpNextReason::Recommended);
+        assert_eq!(up_next_line(&item, 0, &clock), "Recommended for you");
+        item.because = Some("Title 1".into());
+        assert_eq!(up_next_line(&item, 0, &clock), "Because you finished Title 1");
+    }
+
+    #[test]
+    fn an_airing_suggestion_says_its_episode_and_time() {
+        let clock = |_| "18:30".to_owned();
+        let mut item = suggestion(UpNextReason::AiringToday);
+        item.airs_at = Some(1_000);
+        assert_eq!(up_next_line(&item, 0, &clock), "Airs at 18:30");
+        item.entry.next_episode = Some(6);
+        assert_eq!(up_next_line(&item, 0, &clock), "Episode 6 · 18:30");
+        item.entry.last_aired = Some(Aired { episode: 5, ago: 0 });
+        assert!(up_next_line(&item, 8_200, &clock).starts_with("Episode 5 · out 2 h"));
     }
 }

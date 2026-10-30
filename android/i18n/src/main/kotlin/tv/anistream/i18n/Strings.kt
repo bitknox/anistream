@@ -9,6 +9,58 @@ import android.content.Context
  * `stringResource(R.string.x)` and `pluralStringResource(R.plurals.x, n, ...)` directly.
  */
 object Strings {
+    /** What the TV's loading screen and its own controls show under the show's name. */
+    fun castEpisode(context: Context, episode: String): String =
+        context.getString(R.string.cast_episode, episode)
+
+    /** What the TV's loading screen and its own controls show under the show's name, with the episode's own title. */
+    fun castEpisodeTitled(context: Context, episode: String, title: String): String =
+        context.getString(R.string.cast_episode_titled, episode, title)
+
+    /** The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10. */
+    fun noticeCastVideoCodec(context: Context, codec: String): String =
+        context.getString(R.string.notice_cast_video_codec, codec)
+
+    /** The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS. */
+    fun noticeCastAudioCodec(context: Context, codec: String): String =
+        context.getString(R.string.notice_cast_audio_codec, codec)
+
+    /** The stream comes in a kind of file the TV can't read. */
+    fun noticeCastContainer(context: Context): String =
+        context.getString(R.string.notice_cast_container)
+
+    /** The episode opens in another app, which this device can't cast. */
+    fun noticeCastDeepLink(context: Context): String =
+        context.getString(R.string.notice_cast_deep_link)
+
+    /** The TV accepted the stream but never started reading it. */
+    fun noticeCastNeverFetches(context: Context): String =
+        context.getString(R.string.notice_cast_never_fetches)
+
+    /** The TV tried every way of playing the stream and played none of them. */
+    fun noticeCastRefused(context: Context): String =
+        context.getString(R.string.notice_cast_refused)
+
+    /** Someone started something else on the TV, which ends the cast. */
+    fun noticeCastTakenOver(context: Context): String =
+        context.getString(R.string.notice_cast_taken_over)
+
+    /** This device isn't on the TV's network, or reaches it through a VPN. */
+    fun noticeCastNotSameNetwork(context: Context): String =
+        context.getString(R.string.notice_cast_not_same_network)
+
+    /** The TV stopped answering mid-cast. */
+    fun noticeCastLost(context: Context): String =
+        context.getString(R.string.notice_cast_lost)
+
+    /** The TV picked to cast to has left the network. */
+    fun noticeCastNoDevice(context: Context): String =
+        context.getString(R.string.notice_cast_no_device)
+
+    /** This build of the app has no casting. */
+    fun noticeCastUnavailable(context: Context): String =
+        context.getString(R.string.notice_cast_unavailable)
+
     /** A comment's age, beside its author, when it was written under a minute ago. */
     fun discussionAgeNow(context: Context): String =
         context.getString(R.string.discussion_age_now)
@@ -93,6 +145,10 @@ object Strings {
     fun causeReleaseFailed(context: Context, detail: String): String =
         context.getString(R.string.cause_release_failed, detail)
 
+    /** Reason: a play waited too long for its sources to give it a stream, and gave up. */
+    fun causeSourcesTimedOut(context: Context): String =
+        context.getString(R.string.cause_sources_timed_out)
+
     /** Reason: every source matched the title but none has the episode. The detail is what each said. */
     fun causeNoSourceHasEpisode(context: Context, episode: String, detail: String): String =
         context.getString(R.string.cause_no_source_has_episode, episode, detail)
@@ -129,14 +185,6 @@ object Strings {
     fun statusSearchingSources(context: Context, episode: String): String =
         context.getString(R.string.status_searching_sources, episode)
 
-    /** Status while the player opens. */
-    fun statusStartingPlayer(context: Context): String =
-        context.getString(R.string.status_starting_player)
-
-    /** Status line while an episode plays. */
-    fun statusPlaying(context: Context, title: String, episode: String): String =
-        context.getString(R.string.status_playing, title, episode)
-
     /** Toast when the player cannot be started. The reason comes from the system. */
     fun noticePlayerFailedToStart(context: Context, reason: String): String =
         context.getString(R.string.notice_player_failed_to_start, reason)
@@ -161,13 +209,17 @@ object Strings {
     fun noticeNoPlayer(context: Context): String =
         context.getString(R.string.notice_no_player)
 
-    /** Toast at launch when the mpv program is missing. The binary is the name the settings give it. */
+    /** Toast at launch when the mpv program is missing. The binary is the name the settings give it. Terminal only: the engine never sends it to the apps. */
     fun noticeMpvMissing(context: Context, binary: String): String =
         context.getString(R.string.notice_mpv_missing, binary)
 
-    /** Toast at launch when mpv is too old for anistream's own player. */
+    /** Toast at launch when mpv is too old for anistream's own player. Terminal only: the engine never sends it to the apps. */
     fun noticeMpvOld(context: Context, version: String): String =
         context.getString(R.string.notice_mpv_old, version)
+
+    /** Toast when an episode plays with no subtitles because none of the source's subtitle files could be downloaded. */
+    fun noticeSubtitlesUnavailable(context: Context): String =
+        context.getString(R.string.notice_subtitles_unavailable)
 
     /** Toast after a link was handed to the browser. */
     fun noticeOpenedInBrowser(context: Context): String =
@@ -249,6 +301,14 @@ object Strings {
     fun noticeNoSourceCouldList(context: Context, reason: String): String =
         context.getString(R.string.notice_no_source_could_list, reason)
 
+    /** Why a title's episodes could not be loaded at all, shown on its page and as a toast. The reason comes from AniList or the network. */
+    fun noticeEpisodesFailed(context: Context, reason: String): String =
+        context.getString(R.string.notice_episodes_failed, reason)
+
+    /** Toast when a source found several shows that could be this one and could not tell which. The episodes shown are AniList's until one is picked. The source is its name. */
+    fun noticeMatchUncertain(context: Context, source: String): String =
+        context.getString(R.string.notice_match_uncertain, source)
+
     /** Toast when a title cannot be taken off the Continue row. The reason comes from the system. */
     fun noticeContinueHideFailed(context: Context, reason: String): String =
         context.getString(R.string.notice_continue_hide_failed, reason)
@@ -309,15 +369,15 @@ object Strings {
     fun noticeDownloadsNoneQueuedStopped(context: Context, reason: String): String =
         context.getString(R.string.notice_downloads_none_queued_stopped, reason)
 
-    /** Toast after a range was asked for and every episode was in the queue already. */
+    /** Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`. */
     fun noticeDownloadsNoneNew(context: Context, existing: String): String =
         context.getString(R.string.notice_downloads_none_new, existing)
 
-    /** Toast as above, with the reason the range stopped. */
+    /** Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped. */
     fun noticeDownloadsNoneNewStopped(context: Context, existing: String, reason: String): String =
         context.getString(R.string.notice_downloads_none_new_stopped, existing, reason)
 
-    /** Toast after a range was asked for, some episodes were queued and some were there already. */
+    /** Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`. */
     fun noticeEpisodesQueuedExisting(context: Context, count: Int, existing: String): String =
         context.resources.getQuantityString(R.plurals.notice_episodes_queued_existing, count, count, existing)
 
@@ -325,7 +385,7 @@ object Strings {
     fun noticeEpisodesQueuedStopped(context: Context, count: Int, reason: String): String =
         context.resources.getQuantityString(R.plurals.notice_episodes_queued_stopped, count, count, reason)
 
-    /** Toast as above, with some episodes in the queue already and the reason the range stopped. */
+    /** Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped. */
     fun noticeEpisodesQueuedExistingStopped(context: Context, count: Int, existing: String, reason: String): String =
         context.resources.getQuantityString(R.plurals.notice_episodes_queued_existing_stopped, count, count, existing, reason)
 
@@ -333,9 +393,13 @@ object Strings {
     fun noticeKeepNextFull(context: Context): String =
         context.getString(R.string.notice_keep_next_full)
 
-    /** Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. */
+    /** Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it. Terminal only: the engine never sends it to the apps. */
     fun partyNeedsServer(context: Context, server: String, operator: String): String =
         context.getString(R.string.party_needs_server, server, operator)
+
+    /** Message when an app asked for a watch party with no server chosen. The names are a suggested server and who runs it. */
+    fun partyChooseServer(context: Context, server: String, operator: String): String =
+        context.getString(R.string.party_choose_server, server, operator)
 
     /** Toast when a watch party is asked for in a build without watch parties. */
     fun noticeNoParty(context: Context): String =
@@ -413,7 +477,7 @@ object Strings {
     fun storeAdminOpened(context: Context): String =
         context.getString(R.string.store_admin_opened)
 
-    /** Toast when the browser could not be opened for the store's admin page. The reason comes from the system. */
+    /** Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run. */
     fun storeAdminOpenFailed(context: Context, reason: String): String =
         context.getString(R.string.store_admin_open_failed, reason)
 
@@ -585,7 +649,7 @@ object Strings {
     fun torrentSessionFailed(context: Context, reason: String): String =
         context.getString(R.string.torrent_session_failed, reason)
 
-    /** Toast when torrents are up but no operating-system firewall rule backs the VPN guard. */
+    /** Toast when torrents are up but no operating-system firewall rule backs the VPN guard. Terminal only: the engine never sends it to the apps. */
     fun torrentNoKillSwitch(context: Context): String =
         context.getString(R.string.torrent_no_kill_switch)
 
@@ -697,7 +761,7 @@ object Strings {
     fun noticeAnilistClientMissing(context: Context, client: String, secret: String): String =
         context.getString(R.string.notice_anilist_client_missing, client, secret)
 
-    /** Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. */
+    /** Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. Terminal only: the engine never sends it to the apps. */
     fun noticeAnilistPasteFlow(context: Context): String =
         context.getString(R.string.notice_anilist_paste_flow)
 
@@ -705,7 +769,7 @@ object Strings {
     fun noticeMalClientMissing(context: Context, setting: String): String =
         context.getString(R.string.notice_mal_client_missing, setting)
 
-    /** Status line while the browser sign-in is open and the app waits for it to come back. */
+    /** Job note while the browser sign-in is open and the terminal app waits for it to come back. */
     fun statusWaitingForRedirect(context: Context, tracker: String): String =
         context.getString(R.string.status_waiting_for_redirect, tracker)
 
@@ -777,7 +841,7 @@ object Strings {
     fun noticeEpisodesAired(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.notice_episodes_aired, count, count)
 
-    /** Toast when a new release of anistream is out, on the terminal app. The command is not translated. */
+    /** Toast when a new release of anistream is out, on the terminal app. The command is not translated. Terminal only: the engine never sends it to the apps. */
     fun noticeUpdateAvailable(context: Context, tag: String): String =
         context.getString(R.string.notice_update_available, tag)
 
@@ -821,6 +885,42 @@ object Strings {
     fun noticePlaybackFailed(context: Context): String =
         context.getString(R.string.notice_playback_failed)
 
+    /** Toast when something went wrong inside the engine and it carried on. */
+    fun noticeEngineFault(context: Context): String =
+        context.getString(R.string.notice_engine_fault)
+
+    /** Toast at launch when the database was damaged, so a fresh one was started. The path is where the damaged file was moved, kept for recovery. Watch history and downloads start over; what the trackers hold comes back with the next sync. */
+    fun noticeDatabaseSetAside(context: Context, path: String): String =
+        context.getString(R.string.notice_database_set_aside, path)
+
+    /** Message when anistream could not start because a folder could not be made. The path is the folder, the reason comes from the system. */
+    fun startFailedFolder(context: Context, path: String, reason: String): String =
+        context.getString(R.string.start_failed_folder, path, reason)
+
+    /** Message when anistream could not start because the config file has a setting it can't use. The path is the file; the problem names the line where it can. */
+    fun startFailedConfig(context: Context, path: String, problem: String): String =
+        context.getString(R.string.start_failed_config, path, problem)
+
+    /** Message when anistream could not start because its database could not be opened. The path is the database file, the reason comes from the system. */
+    fun startFailedDatabase(context: Context, path: String, reason: String): String =
+        context.getString(R.string.start_failed_database, path, reason)
+
+    /** Message when anistream could not start its network connection from the network settings. */
+    fun startFailedNetwork(context: Context, reason: String): String =
+        context.getString(R.string.start_failed_network, reason)
+
+    /** Message when anistream itself could not start. The reason comes from the system or the engine. */
+    fun startFailed(context: Context, reason: String): String =
+        context.getString(R.string.start_failed, reason)
+
+    /** Message when the TV remote could not start listening or could not forget a phone. */
+    fun startFailedRemote(context: Context, reason: String): String =
+        context.getString(R.string.start_failed_remote, reason)
+
+    /** Message when the built-in player could not start. */
+    fun startFailedPlayer(context: Context, reason: String): String =
+        context.getString(R.string.start_failed_player, reason)
+
     /** Toast after episodes are added to the download queue. */
     fun noticeEpisodesQueued(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.notice_episodes_queued, count, count)
@@ -828,6 +928,78 @@ object Strings {
     /** Accessibility label of the account button in the top bar when someone is signed in. */
     fun accountButtonNamed(context: Context, name: String): String =
         context.getString(R.string.account_button_named, name)
+
+    /** Line above the first day of the calendar: it goes no further back. */
+    fun calendarFloorLine(context: Context): String =
+        context.getString(R.string.calendar_floor_line)
+
+    /** Line below the last day of the calendar: it goes no further ahead. */
+    fun calendarCeilingLine(context: Context): String =
+        context.getString(R.string.calendar_ceiling_line)
+
+    /** Line below the last day when no more broadcasts are scheduled before the calendar's end. */
+    fun calendarEndLine(context: Context): String =
+        context.getString(R.string.calendar_end_line)
+
+    /** Activity line while earlier broadcasts load. */
+    fun calendarLoadingEarlierLine(context: Context): String =
+        context.getString(R.string.calendar_loading_earlier_line)
+
+    /** Activity line while later broadcasts load. */
+    fun calendarLoadingLaterLine(context: Context): String =
+        context.getString(R.string.calendar_loading_later_line)
+
+    /** Line where earlier broadcasts would be when they could not be loaded. */
+    fun calendarEarlierFailedLine(context: Context): String =
+        context.getString(R.string.calendar_earlier_failed_line)
+
+    /** Line where later broadcasts would be when they could not be loaded. */
+    fun calendarLaterFailedLine(context: Context): String =
+        context.getString(R.string.calendar_later_failed_line)
+
+    /** Button under the line saying nothing on the person's list airs: shows every airing show. */
+    fun calendarShowAllAiring(context: Context): String =
+        context.getString(R.string.calendar_show_all_airing)
+
+    /** What a screen reader says for the line that marks the time now. The time is already worded. */
+    fun calendarNowLabel(context: Context, time: String): String =
+        context.getString(R.string.calendar_now_label, time)
+
+    /** Settings row: whether an episode's AniList discussion can be opened. */
+    fun settingsDiscussionsLabel(context: Context): String =
+        context.getString(R.string.settings_discussions_label)
+
+    /** Note under the Episode discussions setting. */
+    fun settingsDiscussionsNote(context: Context): String =
+        context.getString(R.string.settings_discussions_note)
+
+    /** Settings row: whether images in comments load inline. */
+    fun settingsDiscussionImagesLabel(context: Context): String =
+        context.getString(R.string.settings_discussion_images_label)
+
+    /** Note under the Load images in comments setting. */
+    fun settingsDiscussionImagesNote(context: Context): String =
+        context.getString(R.string.settings_discussion_images_note)
+
+    /** Line in place of the comments while AniList asks the app to wait. The time is a countdown such as 20 s. */
+    fun discussionWaiting(context: Context, time: String): String =
+        context.getString(R.string.discussion_waiting, time)
+
+    /** Line for an image in a comment when images do not load inline. The host is where it lives. */
+    fun discussionImageHost(context: Context, host: String): String =
+        context.getString(R.string.discussion_image_host, host)
+
+    /** Line for a video in a comment. The host is where it lives. */
+    fun discussionVideoHost(context: Context, host: String): String =
+        context.getString(R.string.discussion_video_host, host)
+
+    /** Player, More menu: under Discussion, how many comments there are and that opening it pauses the video. */
+    fun playerMoreDiscussionNote(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.player_more_discussion_note, count, count)
+
+    /** Player, More menu: under Discussion when the comment count is not known yet; opening it pauses the video. */
+    fun playerMoreDiscussionPauses(context: Context): String =
+        context.getString(R.string.player_more_discussion_pauses)
 
     /** Notice at the top right while an episode plays and a phone asks to pair. The code is six digits, grouped. */
     fun tvPairRequestHeld(context: Context, phone: String, code: String): String =
@@ -1268,6 +1440,30 @@ object Strings {
     /** Spoken progress on a card for TalkBack, with the formatted percentage */
     fun tvCardProgressSpoken(context: Context, percent: String): String =
         context.getString(R.string.tv_card_progress_spoken, percent)
+
+    /** TV, discussion panel footer: replying needs a phone. */
+    fun tvDiscussionFooter(context: Context): String =
+        context.getString(R.string.tv_discussion_footer)
+
+    /** TV, discussion panel: the comment count under the title, and that nothing can be posted here. */
+    fun tvDiscussionCountReadOnly(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.tv_discussion_count_read_only, count, count)
+
+    /** TV, discussion panel: a comment's like count after its age. */
+    fun tvDiscussionLikes(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.tv_discussion_likes, count, count)
+
+    /** TV, discussion panel: what Select does on a comment with a hidden spoiler. */
+    fun tvDiscussionSelectSpoiler(context: Context): String =
+        context.getString(R.string.tv_discussion_select_spoiler)
+
+    /** Where a Google TV keeps the switch that lets an app install updates, as its menus name it: the system's own words, which a translation should follow for that TV's language. */
+    fun updatesUnknownSourcesPath(context: Context): String =
+        context.getString(R.string.updates_unknown_sources_path)
+
+    /** Name a TV gives itself to phones when the system has none set. */
+    fun tvRemoteDefaultName(context: Context): String =
+        context.getString(R.string.tv_remote_default_name)
 
     /** The episode in a short form for a title last watched dubbed. */
     fun episodeShortDubbed(context: Context, episode: Int): String =
@@ -1753,7 +1949,7 @@ object Strings {
     fun settingsLicenceTitle(context: Context): String =
         context.getString(R.string.settings_licence_title)
 
-    /** Settings, About: the licence row's value. */
+    /** Settings, About: the licence row's value. "Open source" is the licence's kind, not a source in the app's sense, so the words are typed. */
     fun settingsLicenceValue(context: Context): String =
         context.getString(R.string.settings_licence_value)
 
@@ -2125,6 +2321,30 @@ object Strings {
     fun releaseSeeders(context: Context, count: Int): String =
         context.resources.getQuantityString(R.plurals.release_seeders, count, count)
 
+    /** Settings row: when a title's trailer plays by itself, muted, in place of its banner. */
+    fun settingsTrailersLabel(context: Context): String =
+        context.getString(R.string.settings_trailers_label)
+
+    /** Note under the Play trailers setting: what the trailers are and when they do not play. */
+    fun settingsTrailersNote(context: Context): String =
+        context.getString(R.string.settings_trailers_note)
+
+    /** Heading in the trailer sheet when the video did not start within a few seconds or the player refused it. */
+    fun trailerFailed(context: Context): String =
+        context.getString(R.string.trailer_failed)
+
+    /** Heading on the screen that covers the app when its engine did not start or has stopped. */
+    fun engineDownTitle(context: Context): String =
+        context.getString(R.string.engine_down_title)
+
+    /** Line under it when the engine stopped while the app was open, so lists would sit empty. */
+    fun engineDownStopped(context: Context): String =
+        context.getString(R.string.engine_down_stopped)
+
+    /** Button on that screen that closes the app. */
+    fun engineDownQuit(context: Context): String =
+        context.getString(R.string.engine_down_quit)
+
     /** Title of the about page. */
     fun aboutTitle(context: Context): String =
         context.getString(R.string.about_title)
@@ -2292,6 +2512,10 @@ object Strings {
     /** Line where later broadcasts would be when they could not be loaded. */
     fun calendarLoadLaterFailed(context: Context): String =
         context.getString(R.string.calendar_load_later_failed)
+
+    /** Line under Today in the phone agenda when My list is chosen and nothing on it airs in the next four weeks. */
+    fun calendarEmptyMineAhead(context: Context): String =
+        context.getString(R.string.calendar_empty_mine_ahead)
 
     /** Button under the line saying nothing on the person's list airs: shows every airing show. */
     fun calendarShowAll(context: Context): String =
@@ -2721,11 +2945,11 @@ object Strings {
     fun padHelpSkip(context: Context): String =
         context.getString(R.string.pad_help_skip)
 
-    /** Controller help: starts the next episode now, while the Up Next card shows. */
+    /** Controller help: starts the next episode now, while the Up next card shows. */
     fun padHelpPlayNow(context: Context): String =
         context.getString(R.string.pad_help_play_now)
 
-    /** Controller help: cancels the Up Next card. */
+    /** Controller help: cancels the Up next card. */
     fun padHelpCancel(context: Context): String =
         context.getString(R.string.pad_help_cancel)
 
@@ -3036,6 +3260,10 @@ object Strings {
     /** Age of a comment that is on its way to AniList. */
     fun discussionSending(context: Context): String =
         context.getString(R.string.discussion_sending)
+
+    /** Button under a comment that is cut off after ten lines. */
+    fun discussionShowMore(context: Context): String =
+        context.getString(R.string.discussion_show_more)
 
     /** Comment menu item that copies the comment's text. */
     fun discussionCopyText(context: Context): String =
@@ -3557,6 +3785,10 @@ object Strings {
     fun upNextReasonRecommendedPlain(context: Context): String =
         context.getString(R.string.up_next_reason_recommended_plain)
 
+    /** Line in the preview of a recommended suggestion, naming the show the recommendation came from. */
+    fun upNextBecauseDetail(context: Context, title: String): String =
+        context.getString(R.string.up_next_because_detail, title)
+
     /** Reason on a suggestion that airs today, shown when nothing else is left to suggest. */
     fun upNextReasonAiringToday(context: Context): String =
         context.getString(R.string.up_next_reason_airing_today)
@@ -3568,6 +3800,26 @@ object Strings {
     /** Menu item on a suggestion. The show stays hidden until it starts airing. */
     fun upNextNotInterested(context: Context): String =
         context.getString(R.string.up_next_not_interested)
+
+    /** Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already. */
+    fun upNextRowStarts(context: Context, reason: String, starts: String): String =
+        context.getString(R.string.up_next_row_starts, reason, starts)
+
+    /** Notice after Not interested on a suggestion that is already airing. */
+    fun upNextHidden(context: Context, title: String): String =
+        context.getString(R.string.up_next_hidden, title)
+
+    /** Notice after Not interested on a suggestion that has not started airing. */
+    fun upNextHiddenUntilAirs(context: Context, title: String): String =
+        context.getString(R.string.up_next_hidden_until_airs, title)
+
+    /** Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already. */
+    fun upNextBroadcast(context: Context, episode: Int, `when`: String): String =
+        context.getString(R.string.up_next_broadcast, episode, `when`)
+
+    /** The time of an episode that came out earlier today. The span is already worded, such as "2h ago". */
+    fun upNextOut(context: Context, ago: String): String =
+        context.getString(R.string.up_next_out, ago)
 
     /** Format of a show: broadcast on television. */
     fun formatTv(context: Context): String =
@@ -3673,11 +3925,11 @@ object Strings {
     fun mediaLinkLanguage(context: Context, language: String): String =
         context.getString(R.string.media_link_language, language)
 
-    /** Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min". */
+    /** Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min". */
     fun filmLengthHoursMinutes(context: Context, hours: Int, minutes: Int): String =
         context.getString(R.string.film_length_hours_minutes, hours, minutes)
 
-    /** Length of a film or a single episode that is a whole number of hours, such as "2 hr". */
+    /** Length of a film or a single episode that is a whole number of hours, such as "2 h". */
     fun filmLengthHours(context: Context, hours: Int): String =
         context.getString(R.string.film_length_hours, hours)
 
@@ -4273,7 +4525,7 @@ object Strings {
     fun partyNosourceNoneTitle(context: Context): String =
         context.getString(R.string.party_nosource_none_title)
 
-    /** Line under it. */
+    /** Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence. */
     fun partyNosourceNoneDetail(context: Context, what: String): String =
         context.getString(R.string.party_nosource_none_detail, what)
 
@@ -4281,7 +4533,7 @@ object Strings {
     fun partyNosourceMissingTitle(context: Context): String =
         context.getString(R.string.party_nosource_missing_title)
 
-    /** Line under it. The reason is a sentence without its full stop. */
+    /** Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence. */
     fun partyNosourceMissingDetail(context: Context, why: String, what: String): String =
         context.getString(R.string.party_nosource_missing_detail, why, what)
 
@@ -4636,6 +4888,10 @@ object Strings {
     /** Line while an episode starts after a few seconds: what the wait is on, and for how long. */
     fun playerWaitNote(context: Context, what: String, seconds: Int): String =
         context.getString(R.string.player_wait_note, what, seconds)
+
+    /** Message on the video when the player could not make a change the viewer asked for, such as a speed or a track. */
+    fun playerCommandFailed(context: Context): String =
+        context.getString(R.string.player_command_failed)
 
     /** Button that shows the season before. */
     fun seasonalPrevious(context: Context): String =
@@ -5508,6 +5764,14 @@ object Strings {
     /** Line of the Continue widget: what plays next, with the episode already named. */
     fun widgetLineStart(context: Context, episode: String): String =
         context.getString(R.string.widget_line_start, episode)
+
+    /** Value of the Play trailers setting: trailers play by themselves on any network. */
+    fun settingsTrailersAlways(context: Context): String =
+        context.getString(R.string.settings_trailers_always)
+
+    /** Value of the Play trailers setting: trailers play by themselves only on Wi-Fi. */
+    fun settingsTrailersWifiOnly(context: Context): String =
+        context.getString(R.string.settings_trailers_wifi_only)
 
     /** Title of the screen or section that lists sources. */
     fun sourcesTitle(context: Context): String =
@@ -6509,6 +6773,26 @@ object Strings {
     fun moreRankings(context: Context): String =
         context.getString(R.string.more_rankings)
 
+    /** Heading of the list of people the viewer follows who have the show on their list. */
+    fun moreFollowing(context: Context): String =
+        context.getString(R.string.more_following)
+
+    /** Note under that list: where the names come from. */
+    fun moreFollowingNote(context: Context): String =
+        context.getString(R.string.more_following_note)
+
+    /** What a followed person gave the show, out of ten. The score is a whole number. */
+    fun moreFollowedScore(context: Context, score: Int): String =
+        context.getString(R.string.more_followed_score, score)
+
+    /** Heading of the list of titles people who liked this one also liked. */
+    fun moreLikeThis(context: Context): String =
+        context.getString(R.string.more_like_this)
+
+    /** Line of a followed person's list entry: their status and how far they are. Both are already worded. */
+    fun moreFollowedProgress(context: Context, status: String, progress: String): String =
+        context.getString(R.string.more_followed_progress, status, progress)
+
     /** Line when AniList has no cast, staff or recommendations for a show. */
     fun moreEmpty(context: Context): String =
         context.getString(R.string.more_empty)
@@ -6536,6 +6820,38 @@ object Strings {
     /** Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted. */
     fun titleButtonResumeDubbed(context: Context, episode: Int, time: String): String =
         context.getString(R.string.title_button_resume_dubbed, episode, time)
+
+    /** Label of a fact: the genres, joined in its value. */
+    fun titleGenres(context: Context): String =
+        context.getString(R.string.title_genres)
+
+    /** Label of a fact: the date a show not yet out starts. */
+    fun titleFactStarts(context: Context): String =
+        context.getString(R.string.title_fact_starts)
+
+    /** Label of a fact: the date a film or a one-off was released. */
+    fun titleFactReleased(context: Context): String =
+        context.getString(R.string.title_fact_released)
+
+    /** Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates. */
+    fun titleFactRange(context: Context, from: String, to: String): String =
+        context.getString(R.string.title_fact_range, from, to)
+
+    /** Value of the fact on a cancelled show: the last episode that aired. */
+    fun titleFactAfter(context: Context, episode: Int): String =
+        context.getString(R.string.title_fact_after, episode)
+
+    /** Value of the fact on a show that is airing and has no known start. */
+    fun titleFactNow(context: Context): String =
+        context.getString(R.string.title_fact_now)
+
+    /** Value of the fact on a show with no announced start. */
+    fun titleFactTba(context: Context): String =
+        context.getString(R.string.title_fact_tba)
+
+    /** A followed person's status and score, such as "Completed · 9/10". The status is already worded. */
+    fun moreFollowingLine(context: Context, status: String, score: Int): String =
+        context.getString(R.string.more_following_line, status, score)
 
     /** Title of the settings group and the screen. */
     fun torrentsTitle(context: Context): String =

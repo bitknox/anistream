@@ -10,7 +10,7 @@
 
 use std::{
     io::{Read, Write},
-    sync::{Arc, mpsc},
+    sync::{Arc, OnceLock, mpsc},
     thread,
     time::{Duration, Instant},
 };
@@ -92,7 +92,7 @@ struct AppTitles {
 impl AppTitles {
     fn apply(&mut self, event: &Event) {
         match event {
-            Event::Episodes { id, rows } => {
+            Event::Episodes { id, rows, .. } => {
                 self.tables.insert(*id, rows.clone());
             }
             Event::Progress { id, progress, episodes, .. } => {
@@ -1242,15 +1242,19 @@ fn bad_gateway() -> String {
 }
 
 /// A subtitle host on loopback that takes every connection and answers after `delay`, or
-/// never when there is none.
-fn subtitle_host(delay: Option<Duration>) -> String {
+/// never when there is none, and when it was first asked for a track.
+fn subtitle_host(delay: Option<Duration>) -> (String, Arc<OnceLock<Instant>>) {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();
+    let asked = Arc::new(OnceLock::new());
+    let first = Arc::clone(&asked);
     thread::spawn(move || {
         for mut connection in listener.incoming().flatten() {
+            let first = Arc::clone(&first);
             thread::spawn(move || {
                 let mut request = [0_u8; 4096];
                 let _ = connection.read(&mut request);
+                first.get_or_init(Instant::now);
                 let Some(delay) = delay else {
                     // Held open and never answered, until the test is over.
                     thread::sleep(Duration::from_secs(600));
@@ -1266,7 +1270,7 @@ fn subtitle_host(delay: Option<Duration>) -> String {
             });
         }
     });
-    format!("http://{address}")
+    (format!("http://{address}"), asked)
 }
 
 /// A stream at `url` listing a dozen subtitle languages, all at `host`.
@@ -1286,7 +1290,7 @@ fn with_subtitles(url: &str, host: &str) -> Stream {
 fn the_next_stream_opens_without_waiting_out_a_subtitle_host_that_never_answers() {
     // What a minute between streams was: every round of a dozen subtitle fetches timing out
     // before the next stream's file was opened.
-    let host = subtitle_host(None);
+    let (host, _) = subtitle_host(None);
     let first = "https://cdn.example/stardust-wayfarer/12/first.mp4";
     let second = "https://cdn.example/stardust-wayfarer/12/second.mp4";
     let mut app = App::start(
@@ -1309,13 +1313,16 @@ fn the_next_stream_opens_without_waiting_out_a_subtitle_host_that_never_answers(
 
 #[test]
 fn a_subtitle_that_arrives_after_the_file_opened_is_added_to_it() {
-    let host = subtitle_host(Some(Duration::from_secs(3)));
+    let (host, asked) = subtitle_host(Some(Duration::from_secs(3)));
     let url = "https://cdn.example/stardust-wayfarer/12/a.mp4";
     let mut app = App::start(with_streams(vec![with_subtitles(url, &host)]), "");
     app.play(FINISHED, "12");
-    let started = Instant::now();
     let load = app.load();
-    assert!(started.elapsed() < Duration::from_secs(3), "the file did not wait for them");
+    // Timed from the first track asked for, when the wait for them begins: the title's lookup
+    // and the rest of the start come before it, and take what a busy machine gives them.
+    let asked = asked.get().expect("the tracks are asked for before the file opens");
+    let waited = asked.elapsed();
+    assert!(waited < Duration::from_secs(3), "the file did not wait for them: {waited:?}");
     app.opened(load.playback, &[]);
     let (_, added) = app.op("a late subtitle", |op| matches!(op, PlayerOp::AddSubtitle { .. }));
     let PlayerOp::AddSubtitle { url, .. } = added else { unreachable!() };

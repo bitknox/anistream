@@ -114,6 +114,8 @@ type OnId = Box<dyn Fn(&Rc<Page>, String)>;
 struct Page {
     ctx: Rc<Ctx>,
     body: Rc<States>,
+    /// The empty page, whose line is the engine's reason there are no sources when it has one.
+    empty: adw::StatusPage,
     list: gtk::ListBox,
     shown: Cell<bool>,
     /// Check Again, a spinner inside it while the check it started runs.
@@ -159,6 +161,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
         body,
+        empty,
         list,
         shown: Cell::new(false),
         check,
@@ -184,7 +187,13 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
             page.check.set_sensitive(true);
         }
         if page.shown.get()
-            && matches!(event, Event::Providers(_) | Event::Stores(_) | Event::Settings(_))
+            && matches!(
+                event,
+                Event::Providers(_)
+                    | Event::ProviderNote(_)
+                    | Event::Stores(_)
+                    | Event::Settings(_)
+            )
         {
             page.show();
         }
@@ -287,13 +296,14 @@ impl Page {
     }
 
     fn show(self: &Rc<Self>) {
-        let (rows, said) = {
+        let (rows, said, note) = {
             let known = self.ctx.hub.known.borrow();
-            (known.ordered_providers(), known.providers_said)
+            (known.ordered_providers(), known.providers_said, known.provider_note.clone())
         };
         if !said {
             return;
         }
+        self.empty.set_description(Some(note.as_deref().unwrap_or(&t::sources_empty_detail())));
         while let Some(child) = self.list.first_child() {
             self.list.remove(&child);
         }

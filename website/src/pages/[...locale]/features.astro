@@ -40,6 +40,7 @@ const TERMINAL = 640 / 382;
 // `features.also.<group>` in the language files.
 const ALSO: Record<string, string[]> = {
 	watching: ['skip', 'resume', 'source', 'dub', 'tracks', 'pip', 'parties'],
+	titles: ['trailers', 'facts', 'more', 'discussions', 'upnext', 'again'],
 	downloads: ['next', 'now', 'offline'],
 	alerts: ['alerts', 'widgets', 'handoff', 'live'],
 	other: ['updates', 'torrents', 'titles', 'cli'],
@@ -68,6 +69,15 @@ const matrix: [string, [string, Cell[]][]][] = [
 		],
 	],
 	[
+		t('features.matrix.group.titles'),
+		[
+			[t('features.matrix.row.discussions'), ['Y', 'Y', 'Y', 'Y', t('features.matrix.cell.readOnly'), 'Y', 'Y', 'N']],
+			[t('features.matrix.row.moreAbout'), ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', t('features.matrix.cell.similar')]],
+			[t('features.matrix.row.upNext'), ['D', 'D', 'D', 'D', 'D', 'Y', 'Y', 'Y']],
+			[t('features.matrix.row.again'), ['D', 'D', 'D', 'Y', 'Y', 'Y', 'Y', 'N']],
+		],
+	],
+	[
 		t('features.matrix.group.tracking'),
 		[
 			[t('features.matrix.row.mal'), ['Y', 'Y', 'Y', 'Y', t('features.matrix.cell.kitsuOnly'), 'Y', 'Y', 'Y']],
@@ -80,7 +90,7 @@ const matrix: [string, [string, Cell[]][]][] = [
 		t('features.matrix.group.devices'),
 		[
 			[t('features.matrix.row.tv'), ['Y', 'Y', 'Y', 'Y', t('features.matrix.cell.receives'), 'Y', 'Y', 'D']],
-			[t('features.matrix.row.alerts'), ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', t('features.matrix.cell.inConfig')]],
+			[t('features.matrix.row.alerts'), ['Y', 'Y', 'Y', 'Y', 'N', 'Y', t('features.matrix.cell.atLaunch'), t('features.matrix.cell.inConfig')]],
 			[t('features.matrix.row.widgets'), ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'N', 'N']],
 			[t('features.matrix.row.live'), ['N', 'Y', 'N', 'N', 'N', 'N', 'N', 'N']],
 			[t('features.matrix.row.handoff'), ['Y', 'Y', 'Y', 'N', 'N', 'N', 'N', 'N']],

@@ -19,15 +19,16 @@ none of it needs an account.
 
 To play anything you need a source. [Torrent streaming](/docs/guides/torrents-vpn/) is off until
 you choose a VPN mode and the guard passes. A self-hosted API or a plugin are the other routes.
-anistream hosts no content, and which sources you use is your own decision.
+anistream hosts no content. Which sources you use is your own decision.
 
-Sync to AniList, MyAnimeList, Kitsu, Simkl or Trakt is opt-in. Kitsu is on by default and needs
-one sign-in on the Accounts screen. The others need an app you register. See
+Sync to AniList, MyAnimeList, Kitsu, Simkl or Trakt is opt-in. In the terminal app, Kitsu is on by
+default and needs one sign-in on the Accounts screen, and the others need an app you register. The
+native apps sign in to all five from Accounts with nothing to register. See
 [Trackers and sync](/docs/guides/trackers-sync/).
 
 Plugins add sources. If someone you know runs a [plugin store](/docs/plugins/stores/), open
-Providers, press Enter, choose **join a store** and paste their invite link. To make your own, see
-[Writing a provider plugin](/docs/plugins/authoring/).
+Sources (`7`), press Enter, choose **Join a store** and paste their invite link. To make your own, see
+[Writing a plugin](/docs/plugins/authoring/).
 
 ## First keys to know
 

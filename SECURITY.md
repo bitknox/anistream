@@ -19,7 +19,7 @@ You'll get a reply in the advisory, and the discussion and the fix are worked ou
 
 ## In scope
 
-- The apps: the terminal app, the Mac, iPhone and iPad app, and the Android app.
+- The apps: Mac, iPhone, iPad, Android, Android TV, Windows, Linux and the terminal app.
 - The engine: the Rust crates under `crates/` that the apps share, including the local database,
   account sign-in and token storage, tracker sync and playback.
 - The plugin sandbox: anything that lets a plugin reach a host its manifest doesn't declare, read
@@ -33,7 +33,11 @@ You'll get a reply in the advisory, and the discussion and the fix are worked ou
   downloaded, are not vulnerabilities.
 - Releases: the workflows that build and publish them, the Android release signing, the
   SHA-256 checksums published beside every file, and the apps' updates: the Mac's signed appcast,
-  the SideStore source, and the Android app's installer.
+  the SideStore source, the Android and Android TV apps' installer, the Windows app's installer
+  and the Linux app's AppImage updater. The Windows and Linux updaters check the download against
+  the size and SHA-256 the release lists. The Android and Android TV updaters check the SHA-256,
+  then the package name, signing key and version, before handing the file to Android's installer,
+  which asks you to confirm.
 
 ## Out of scope
 

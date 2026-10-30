@@ -24,6 +24,12 @@ import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.core.SourceCandidate
 import tv.anistream.engine.ffi.FfiEngine
+import tv.anistream.i18n.Strings
+import tv.anistream.engine.ffi.trailerMayAutoplay as engineTrailerMayAutoplay
+import tv.anistream.engine.ffi.trailerWatchUrl as engineTrailerWatchUrl
+import tv.anistream.engine.model.Entry as EngineEntry
+import tv.anistream.engine.model.Notice as EngineNotice
+import tv.anistream.engine.model.Trailer as EngineTrailer
 import tv.anistream.engine.ffi.FfiException
 import tv.anistream.engine.ffi.FfiHost
 import tv.anistream.engine.ffi.FfiTvBrowser
@@ -88,6 +94,14 @@ class AppStore(
     /** The one offline state, as the engine says it from the network path the app reports. */
     val offline: StateFlow<Boolean> = _offline.asStateFlow()
 
+    private val _autoplay = MutableStateFlow(false)
+
+    /**
+     * Whether trailers may start by themselves now, as the engine says it from the setting, the
+     * network and what the device reports. False until it says so, so no page makes room early.
+     */
+    val trailersMayAutoplay: StateFlow<Boolean> = _autoplay.asStateFlow()
+
     val titles = TitleCache()
     val continuing = ContinueModel()
     val seasonal = ListModel()
@@ -95,6 +109,7 @@ class AppStore(
     /** A browse by filter alone, nothing typed: another season, sorted another way. Search's own stays. */
     val browse = SearchModel()
     val calendar = CalendarModel()
+    val discussion = DiscussionModel()
     val search = SearchModel()
     val library = LibraryModel()
     val accounts = AccountsModel()
@@ -178,6 +193,7 @@ class AppStore(
      * loads it and JNA, so that never happens on the main thread.
      */
     fun start(launch: EngineLaunch, host: FfiHost, prepare: () -> Unit = {}) {
+        lastStart = Triple(launch, host, prepare)
         _phase.value = Phase.Starting
         imageFiles = launch.home.cache.resolve("img")
         scope.launch {
@@ -190,8 +206,24 @@ class AppStore(
             } catch (e: FfiException) {
                 _phase.value = Phase.Failed(e.reason)
                 early.clear()
+            } catch (e: LinkageError) {
+                // The engine's library did not load: UnsatisfiedLinkError is an Error, not an Exception.
+                android.util.Log.e("anistream", "the engine did not load", e)
+                _phase.value = Phase.Failed(e.message ?: "the engine library did not load")
+                early.clear()
             }
         }
+    }
+
+    private var lastStart: Triple<EngineLaunch, FfiHost, () -> Unit>? = null
+
+    /** Start the engine again, as the failed or stopped screen's Try again asks. */
+    fun restartEngine() {
+        if (_phase.value is Phase.Starting || _phase.value is Phase.Running) return
+        val (launch, host, prepare) = lastStart ?: return
+        client?.cancel()
+        client = null
+        start(launch, host, prepare)
     }
 
     /**
@@ -232,7 +264,11 @@ class AppStore(
             engine,
             scope,
             deliver = ::apply,
-            stopped = { _phase.value = Phase.Stopped },
+            stopped = {
+                // Nothing it was doing will be answered now.
+                jobs.clear()
+                _phase.value = Phase.Stopped
+            },
         )
         this.client = client
         _phase.value = Phase.Running
@@ -301,11 +337,68 @@ class AppStore(
         send(Command.Search(normal))
     }
 
+    /** Whether episode discussions are on in Settings: every entry point hangs on it. */
+    fun discussionsOn(): Boolean = settings.isOn(SettingKey.EPISODE_DISCUSSIONS)
+
+    /** Open the discussion of [episode], which the sheet or panel then reads from [discussion]. */
+    fun openDiscussion(media: AnilistId, episode: UInt) {
+        send(Command.OpenDiscussion(media, episode))
+    }
+
+    /** The sheet or panel closed: nothing more is said of it. */
+    fun closeDiscussion() {
+        discussion.closed()
+        send(Command.CloseDiscussion)
+    }
+
+    fun moreComments() = send(Command.MoreComments)
+
+    fun postComment(text: String, parent: UInt? = null) = send(Command.PostComment(parent, text))
+
+    fun editComment(id: UInt, text: String) = send(Command.EditComment(id, text))
+
+    fun deleteComment(id: UInt) = send(Command.DeleteComment(id))
+
+    fun likeComment(id: UInt) = send(Command.LikeComment(id))
+
     fun loadCalendar(force: Boolean = false) {
         if (!force && calendar.list.answered(LIST_FRESH_MILLIS)) return
         calendar.list.asked()
-        send(Command.LoadCalendar)
+        // A refresh the person asked for skips the window the engine keeps for ten minutes.
+        send(if (force) Command.RefreshCalendar else Command.LoadCalendar)
     }
+
+    /** The next earlier stretch of the calendar, asked for as the top comes near; once at a time. */
+    fun loadCalendarPast() {
+        calendar.askPast()?.let { (anchor, page) -> send(Command.LoadCalendarPast(anchor, page, null)) }
+    }
+
+    /** Try again after an earlier stretch failed to load. */
+    fun retryCalendarPast() {
+        calendar.retryPast()?.let { (anchor, page) -> send(Command.LoadCalendarPast(anchor, page, null)) }
+    }
+
+    /** The next later stretch of the calendar, asked for as the bottom comes near; once at a time. */
+    fun loadCalendarAhead(retry: Boolean = false) {
+        calendar.askAhead(retry)?.let { (anchor, page) -> send(Command.LoadCalendarAhead(anchor, page, null)) }
+    }
+
+    /**
+     * Load the calendar through [instant] (epoch seconds), earlier or later than what is there, for
+     * a day picked in the week strip that is not loaded yet.
+     */
+    fun loadCalendarThrough(instant: Long, earlier: Boolean) {
+        if (earlier) {
+            calendar.askPast()?.let { (anchor, page) -> send(Command.LoadCalendarPast(anchor, page, instant)) }
+        } else {
+            calendar.askAhead()?.let { (anchor, page) -> send(Command.LoadCalendarAhead(anchor, page, instant)) }
+        }
+    }
+
+    /** Whether the calendar shows only the person's list; All airing until they choose. */
+    fun calendarMine(): Boolean = settings.isOn(SettingKey.CALENDAR_MINE)
+
+    fun setCalendarMine(on: Boolean) = setSwitch(SettingKey.CALENDAR_MINE, on)
 
     /**
      * Search now, as the search key, a recent search or a rail's See all does: always asked, so
@@ -477,6 +570,15 @@ class AppStore(
         send(Command.OpenExternal(url))
     }
 
+    /**
+     * The player refused the trailer, or has none for it: its watch page in the browser, and the
+     * notice that says so.
+     */
+    fun openTrailerInBrowser(trailer: EngineTrailer) {
+        openExternal(engineTrailerWatchUrl(trailer))
+        notices.post(EngineNotice(kind = NoticeKind.INFO, text = "", hint = null), Strings::noticeTrailerOpened)
+    }
+
     /** The downloads, once a session unless [force]. */
     fun loadDownloads(force: Boolean = false) {
         if (!force && downloads.loaded.value) return
@@ -539,6 +641,18 @@ class AppStore(
     fun networkPath(cellular: Boolean, constrained: Boolean, offline: Boolean = false) {
         send(Command.NetworkPath(cellular, constrained, offline))
     }
+
+    /**
+     * What the device says about itself, for the engine to decide when trailers play: Remove
+     * animations, power saving, a hot device, a screen reader, a low-memory device.
+     */
+    fun deviceState(state: DeviceState) {
+        send(Command.DeviceState(state.reduceMotion, true, state.lowPower, state.thermalSerious, state.screenReader, state.lowMemory))
+    }
+
+    /** Whether [entry]'s trailer may start by itself: the title's side of it, with the spoiler rule. */
+    fun trailerMayAutoplay(entry: EngineEntry): Boolean =
+        _autoplay.value && engineTrailerMayAutoplay(entry, settings.isOn(SettingKey.SPOILER_PROTECTION))
 
     /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
     fun hideFromContinue(id: AnilistId) {
@@ -711,6 +825,11 @@ class AppStore(
         providers.trialAsked(mode, proxy)?.let { send(Command.CheckTorrentProtection(it.mode, it.proxy)) }
     }
 
+    /** Check the connection against the torrent guard again: the VPN check, on its own. */
+    fun checkConnection() {
+        send(Command.CheckConnection)
+    }
+
     /** Check every provider again. */
     fun checkProviders() {
         send(Command.CheckProviders)
@@ -826,9 +945,21 @@ class AppStore(
     // Applying
 
     fun apply(events: List<Event>) = traced("apply ${events.size} events") {
-        for (event in events) apply(event)
+        // One event that throws is logged and skipped; it must not take the rest of the batch, or
+        // the process, with it.
+        for (event in events) {
+            try {
+                apply(event)
+            } catch (e: Exception) {
+                android.util.Log.e("anistream", "an event could not be applied: ${event::class.simpleName}", e)
+            }
+        }
         lastApplied = clock()
-        onApplied?.invoke(events)
+        try {
+            onApplied?.invoke(events)
+        } catch (e: Exception) {
+            android.util.Log.e("anistream", "a listener failed on a batch of events", e)
+        }
     }
 
     fun apply(event: Event) {
@@ -849,8 +980,13 @@ class AppStore(
 
             is Event.Content -> content(event.content, event.view)
             is Event.Caption -> caption(event.text, event.view)
-            is Event.CalendarWindow -> calendar.window(event.anchor, event.pages, event.morePast)
+            is Event.Discussion -> discussion.view(event.v1)
+            is Event.DiscussionFound -> discussion.found(event.media, event.episode, event.comments)
+            is Event.CalendarWindow -> calendar.window(
+                event.anchor, event.pages, event.morePast, event.floor, event.ceiling, event.aheadPages, event.moreAhead,
+            )
             is Event.CalendarBackfill -> calendar.backfill(event.page, event.entries, event.morePast, titles)
+            is Event.CalendarAhead -> calendar.ahead(event.page, event.entries, event.moreAhead, titles)
             is Event.SearchPaging -> search.paging(event.query, event.hasNext)
             is Event.SearchMore -> search.more(event.query, event.page, event.entries, event.hasNext, titles)
             is Event.LiveSearch -> search.live(event.paused)
@@ -864,11 +1000,11 @@ class AppStore(
             is Event.TitlesChanged -> titlesChanged()
             is Event.Progress -> titles.progress(event.id, event.progress, event.resume, event.episodes)
             is Event.LastAired -> titles.lastAired(event.v1)
-            is Event.Episodes -> titles.episodes(event.id, event.rows)
+            is Event.Episodes -> titles.episodes(event.id, event.rows, event.failed)
             is Event.TitleDub -> titles.dub(event.id, event.dub)
 
-            is Event.Status -> notices.status(event.v1)
             is Event.Connectivity -> _offline.value = event.offline
+            is Event.Autoplay -> _autoplay.value = event.v1.trailers
             is Event.Toast -> notices.post(event.v1)
 
             is Event.Sync -> accounts.apply(event.v1)
@@ -973,4 +1109,13 @@ data class SourceChoices(
     val episode: String,
     val candidates: List<tv.anistream.engine.core.SourceCandidate>? = null,
     val job: JobId? = null,
+)
+
+/** What the device reports for trailers to be held back by. */
+data class DeviceState(
+    val reduceMotion: Boolean = false,
+    val lowPower: Boolean = false,
+    val thermalSerious: Boolean = false,
+    val screenReader: Boolean = false,
+    val lowMemory: Boolean = false,
 )

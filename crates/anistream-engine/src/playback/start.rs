@@ -9,7 +9,10 @@ use anistream_model::{
     command::PlayerCommand, episodes::EpisodeRow, event::Event, notice::Notice,
     playback::PlaybackId,
 };
-use tokio::sync::{mpsc, watch};
+use tokio::{
+    sync::{mpsc, watch},
+    task::JoinHandle,
+};
 
 use crate::{
     cache::{PlayHints, PlayKind},
@@ -60,6 +63,13 @@ pub(crate) fn opener_for(
     engine: &EngineState,
     services: &Services,
 ) -> Option<Arc<dyn PlayerOpener>> {
+    // While casting, every play casts to the same TV, auto-next's included.
+    #[cfg(feature = "cast")]
+    if let Some(cast) = &engine.casting
+        && services.casts.casting()
+    {
+        return Some(Arc::clone(cast) as Arc<dyn PlayerOpener>);
+    }
     let hosted = services.hosted_player.then(|| -> Arc<dyn PlayerOpener> {
         Arc::clone(&services.hosted) as Arc<dyn PlayerOpener>
     });
@@ -87,6 +97,67 @@ pub fn play(
         id, episode, None, from_start, false, billing, opener, job, engine, services, tx,
     );
     let _ = tx.send(staged);
+}
+
+/// Cast an episode to the TV with Chromecast built in that `device` names: a play as any other,
+/// in a cast to that TV, and every play after it too, until [`stop_casting`]. From `position`
+/// when it is carried over from this device, from the top when that is close to it.
+#[cfg(feature = "cast")]
+#[allow(clippy::too_many_arguments)]
+pub fn cast_to(
+    device: &str,
+    id: AnilistId,
+    episode: String,
+    position: Option<f64>,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    use crate::playback::link::cast::CastOpener;
+
+    let hub = &services.casts;
+    let Some(device) = hub.device(device) else {
+        let _ = tx.send(Event::Toast(Notice::alert(anistream_model::Msg::NoticeCastNoDevice)));
+        return drop(job);
+    };
+    // Carried over: written down as where the episode was left, which is where a play opens.
+    let from_start = match position {
+        Some(at) if at >= CARRY_FROM => {
+            let event = anistream_store::WatchEvent::new(id, episode.clone(), at);
+            if let Err(e) = services.store.record_event(&event) {
+                tracing::warn!(error = %e, "couldn't carry the position over to the cast");
+            }
+            false
+        }
+        Some(_) => true,
+        None => false,
+    };
+    let scratch = services.paths.runtime_dir().join("cast");
+    if let Err(e) = std::fs::create_dir_all(&scratch) {
+        tracing::warn!(error = %e, "couldn't make the cast's scratch directory");
+    }
+    hub.begin(device.clone());
+    engine.casting = Some(Arc::new(CastOpener::new(Arc::clone(hub), device, scratch)));
+    play(id, episode, from_start, job, engine, services, tx);
+}
+
+/// A position closer to the start than this is not carried over to a cast: it starts from the
+/// top, as Play on TV does.
+#[cfg(feature = "cast")]
+const CARRY_FROM: f64 = 5.0;
+
+/// Stop casting: the playback on the TV stops, the TV goes back to what it showed, and plays
+/// open on this device again.
+#[cfg(feature = "cast")]
+pub fn stop_casting(engine: &mut EngineState, services: &Services) {
+    if engine.casting.take().is_none() && !services.casts.casting() {
+        return;
+    }
+    services.casts.end();
+    control_player(PlayerCommand::Stop, engine);
+    // A TV kept for the next episode is let go too.
+    services.slot.release();
 }
 
 /// Play the release the user picked in the Sources overlay.
@@ -220,7 +291,7 @@ fn play_staged(
         opener,
         tracker_ids,
         hints,
-        shader_dir(config, paths),
+        write_shaders(config, paths),
         prefetched,
         job,
         &tx.for_playback(played),
@@ -290,7 +361,7 @@ pub fn play_local(
     if episodes.is_empty() {
         fill_episodes(id, &episode, services, player_tx);
     }
-    let shaders = shader_dir(config, paths);
+    let shaders = write_shaders(config, paths);
     let party = services.party.clone();
     let (config, store, http, machine, tx) = (
         config.clone(),
@@ -329,15 +400,35 @@ pub fn play_local(
             episode_total,
         };
         let settings = playback::PlaySettings {
-            shader_dir: shaders,
+            shader_dir: shaders.await.ok().flatten(),
             ..play_settings(&config, tracker_ids, party)
         };
         playback::play(vec![stream], context, store, http, machine, settings, tx, prx).await;
     });
 }
 
+/// Write the shaders out for a playback, on the blocking pool rather than on the engine's own
+/// task: the first play in a new cache writes every one of them, and while a call blocks that
+/// task the engine routes no command and passes on no event. Awaited once the playback has its
+/// streams, so the writing overlaps the lookup. A write that panics leaves upscaling off, as
+/// one that fails does.
+fn write_shaders(
+    config: &Config,
+    paths: &anistream_core::config::Paths,
+) -> JoinHandle<Option<std::path::PathBuf>> {
+    let (config, paths) = (config.clone(), paths.clone());
+    tokio::task::spawn_blocking(move || shader_dir(&config, &paths))
+}
+
 /// What a playback runs on: `opener`'s player, and the engine's slot, host and power source.
 fn machine(opener: Arc<dyn PlayerOpener>, services: &Services) -> playback::Machine {
+    #[cfg(feature = "testing")]
+    let opener: Arc<dyn PlayerOpener> = match &services.windows {
+        Some(opened) => {
+            Arc::new(crate::playback::link::Counted { inner: opener, opened: opened.clone() })
+        }
+        None => opener,
+    };
     playback::Machine {
         opener,
         slot: services.slot.clone(),
@@ -401,12 +492,26 @@ fn watch_for_stop(finding: &mut Option<watch::Sender<bool>>) -> watch::Receiver<
     stopped
 }
 
-/// Until a Stop reaches the playback `stopped` watches for; never, once nothing can send one,
-/// a newer playback having taken the controls.
-async fn stop_asked(stopped: &mut watch::Receiver<bool>) {
-    if stopped.wait_for(|stop| *stop).await.is_err() {
-        std::future::pending::<()>().await;
+/// What ended a playback's wait for its stream before the stream was found.
+enum Overtaken {
+    /// The viewer stopped it.
+    Stopped,
+    /// A newer playback was asked for, which took its controls and dropped its watch.
+    Superseded,
+}
+
+/// Until a Stop reaches the playback `stopped` watches for, or a newer playback replaces the
+/// watch, which only a newer one does.
+async fn stop_asked(stopped: &mut watch::Receiver<bool>) -> Overtaken {
+    match stopped.wait_for(|stop| *stop).await {
+        Ok(_) => Overtaken::Stopped,
+        Err(_) => Overtaken::Superseded,
     }
+}
+
+/// Whether a newer playback has replaced the watch `stopped` reads.
+fn superseded(stopped: &watch::Receiver<bool>) -> bool {
+    stopped.has_changed().is_err() && !*stopped.borrow()
 }
 
 /// A playback stopped before it opened a player: it says it ended, stopped, and nothing opens.
@@ -415,8 +520,6 @@ fn stopped_unopened(slot: &PlayerSlot, tx: &Outbox) {
     tracing::info!("stopped while finding its stream; no player opens for it");
     slot.release();
     let _ = tx.send(Event::playback_ended(false, anistream_model::playback::Ending::Stopped));
-    // The playback this one took over left its "playing" line up for it to replace.
-    let _ = tx.send(Event::Status(None));
 }
 
 /// Resolve a stream and start playing it.
@@ -446,7 +549,8 @@ fn spawn_playback(
     // What the player's Up Next card, its Episodes menu and its starting screen show, from the
     // engine's record of the titles.
     hints: PlayHints,
-    shader_dir: Option<std::path::PathBuf>,
+    // The shaders being written for it, while it looks for its streams.
+    shaders: JoinHandle<Option<std::path::PathBuf>>,
     // This episode's streams, found ahead while the previous one's ending played.
     prefetched: Option<Resolved>,
     job: Option<JobGuard>,
@@ -482,7 +586,6 @@ fn spawn_playback(
                         pick,
                         &playback,
                         job.as_ref(),
-                        &tx,
                     )
                     .await
                 }
@@ -492,14 +595,26 @@ fn spawn_playback(
         // it was to take the window from. Read in the controls, it would open the player first.
         let resolved = tokio::select! {
             biased;
-            () = stop_asked(&mut stopped) => None,
-            resolved = resolving => Some(resolved),
+            overtaken = stop_asked(&mut stopped) => Err(overtaken),
+            resolved = resolving => Ok(resolved),
         };
-        let Some(resolved) = resolved else {
+        let resolved = match resolved {
+            Ok(resolved) => resolved,
             // The episode it was to take over stops with it: what the viewer stopped.
-            handoff.stop();
-            stopped_unopened(&slot, &tx);
-            return;
+            Err(Overtaken::Stopped) => {
+                handoff.stop();
+                stopped_unopened(&slot, &tx);
+                return;
+            }
+            // Asked past, as N pressed again: the newer playback takes the window from the
+            // episode on screen through this one's controls, and this one finds nothing more.
+            // It says no ending, since its successor is the playback the apps now show.
+            Err(Overtaken::Superseded) => {
+                tracing::info!(episode = %episode, "a newer playback was asked for; giving way");
+                drop(job);
+                handoff.pass_on(commands).await;
+                return;
+            }
         };
         let context = match resolved {
             Ok(pair) => pair,
@@ -544,8 +659,6 @@ fn spawn_playback(
                     false,
                     anistream_model::playback::Ending::Failed,
                 ));
-                // The playback this one took over left its "playing" line up for it to replace.
-                let _ = tx.send(Event::Status(None));
                 return;
             }
         };
@@ -571,12 +684,19 @@ fn spawn_playback(
             let _ = tx.send(Event::Toast(Notice::info(Msg::verbatim(note))));
         }
 
+        let shader_dir = shaders.await.ok().flatten();
         let settings =
             playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, hub) };
         handoff.complete().await;
         // Stopped while the window was handed over: the one parked for it closes.
         if *stopped.borrow() {
             stopped_unopened(&slot, &tx);
+            return;
+        }
+        // Asked past while the window was handed over: the window stays parked for the newer
+        // playback, which is waiting for these controls to close.
+        if superseded(&stopped) {
+            tracing::info!(episode = %episode, "a newer playback was asked for; leaving it the window");
             return;
         }
         // Opening from here: a Stop is the session's, read off its controls.

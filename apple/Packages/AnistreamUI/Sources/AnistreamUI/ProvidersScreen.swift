@@ -24,7 +24,8 @@ struct ProviderInfo {
         return nil
     }
 
-    var hosts: [String] { listing?.plugin.hosts ?? [] }
+    /// The hosts it may contact: its store listing's, or what the plugin declares when it was added by hand.
+    var hosts: [String] { listing?.plugin.hosts ?? row.hosts }
 }
 
 extension AppStore {
@@ -380,7 +381,7 @@ struct ProviderDetail: View {
                 fact(L.sourcesContactsLabel) {
                     VStack(alignment: .leading, spacing: 6) {
                         if info.hosts.isEmpty {
-                            Text(L.sourcesListedByStore).foregroundStyle(.haze)
+                            Text(L.sourcesNoHosts).foregroundStyle(.haze)
                         }
                         ForEach(info.hosts, id: \.self) { Text($0).foregroundStyle(.silk) }
                     }

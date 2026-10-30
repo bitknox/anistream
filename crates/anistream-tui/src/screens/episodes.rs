@@ -628,7 +628,7 @@ mod tests {
         app.apply(Event::Providers(vec![provider("someplugin", "ready", true, false)]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains(&t::episodes_empty_unaired()), "{text}");
-        assert!(text.contains("Episode 1 airs in 1d 12h"), "{text}");
+        assert!(text.contains("Episode 1 airs in 1 d 12 h"), "{text}");
     }
 
     #[test]

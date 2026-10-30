@@ -19,7 +19,7 @@ stores-members-placeholder-heading = Members
 
 # Column heading over the names of the stores joined.
 # @only tui
-stores-column-store = Store
+stores-column-store = { -store-cap }
 
 # Column heading over how many plugins each store offers. Ten cells wide.
 # @max 10
@@ -51,7 +51,7 @@ stores-role-member = Member
 
 # Row under the list of stores that opens the prompt for joining another.
 # @only tui
-stores-join-row = + Join a store
+stores-join-row = + Join a { -store }
 
 # State of a store whose owner removed this device. Column of about 30 cells.
 # @only tui
@@ -75,7 +75,7 @@ stores-state-updates = { $count ->
 
 # Footer of the list of stores when the focused store has removed this device's access.
 # @only tui
-stores-footer-revoked = This store no longer accepts this { -device }. Its owner can send a new invite.
+stores-footer-revoked = This { -store } no longer accepts this { -device }. Its owner can send a new invite.
 
 # Footer of the list of stores when the focused store cannot be reached. The reason comes from the network.
 # @arg url: text
@@ -99,7 +99,7 @@ stores-joined-as = Joined as { $name }
 
 # Footer of the list of stores when the focused row is the one that joins another store.
 # @only tui
-stores-footer-join = Paste the invite or store link you were given
+stores-footer-join = Paste the invite or { -store } link you were given
 
 # Tag at the top right of a store's page when this person owns it. Up to seven cells wide.
 # @max 7
@@ -117,7 +117,7 @@ stores-note-offline = Offline, showing the last list it sent ({ $reason })
 
 # Note under a store's name when it removed this device's access.
 # @only tui
-stores-note-revoked = This store no longer accepts this { -device }. What it installed keeps working.
+stores-note-revoked = This { -store } no longer accepts this { -device }. What it installed keeps working.
 
 # Column heading of a store's page over the plugin names.
 # @only tui
@@ -162,7 +162,7 @@ stores-line-admin = Open the admin page
 
 # Row on a store's page: leaves the store.
 # @only tui
-stores-line-leave = Leave this store
+stores-line-leave = Leave this { -store }
 
 # What a plugin is, in a store's page, when it is not installed. Column of about 20 cells.
 # @only tui
@@ -183,7 +183,7 @@ stores-plugin-added-by-hand = Added by hand
 
 # What a plugin is, in a store's page, when another store installed it.
 # @only tui
-stores-plugin-from-another-store = From another store
+stores-plugin-from-another-store = From another { -store }
 
 # Footer of a store's page on a plugin whose update asks to contact more hosts than before.
 # @arg hosts: text
@@ -213,7 +213,7 @@ stores-footer-close-join = ↵ Only let people you invite join, and stop the lin
 
 # Footer of a store's page on the row that changes who can join, while the store is invite-only. Enter is the key on this screen.
 # @only tui
-stores-footer-open-join = ↵ Let anyone with the store's link join, without a name
+stores-footer-open-join = ↵ Let anyone with the { -store }'s link join, without a name
 
 # Footer of a store's page on the row that publishes a plugin.
 # @only tui
@@ -410,7 +410,7 @@ stores-joined-devices = { $count ->
 
 # Row on the members screen that shows the store's open link.
 # @only tui
-stores-open-link-row = The store's link
+stores-open-link-row = The { -store }'s link
 
 # Note beside the row of the store's link.
 # @only tui
@@ -440,7 +440,7 @@ stores-remove-devices = { $count ->
 
 # Footer of the members screen on this person's own row.
 # @only tui
-stores-footer-you = You are the owner. A store always keeps its owner.
+stores-footer-you = You are the owner. A { -store } always keeps its owner.
 
 # Footer of the members screen on another member's row. Enter is the key on this screen.
 # @only tui
@@ -476,7 +476,7 @@ stores-open-link-warning = Anyone with it can join, without a name, as often as 
 
 # Line in the store's link overlay.
 # @only tui
-stores-open-link-lasts = It works until the store goes back to invites only.
+stores-open-link-lasts = It works until the { -store } goes back to invites only.
 
 # Last line of the link overlays: Enter is the key.
 # @only tui
@@ -582,7 +582,7 @@ stores-join-already = Already joined. Joining again gives this { -device } a new
 
 # Note under the device name field in the join confirmation.
 # @only tui
-stores-join-device-note = The store's owner sees this name. Type to change it.
+stores-join-device-note = The { -store }'s owner sees this name. Type to change it.
 
 # Last line of the join confirmation: Enter and Esc are the keys.
 # @only tui
@@ -594,7 +594,7 @@ stores-leave-plugins = { -plugin-cap-pl } installed from it stay on this machine
 
 # Lines of the leave confirmation.
 # @only tui
-stores-leave-revoked = This { -device }'s access to the store is revoked.
+stores-leave-revoked = This { -device }'s access to the { -store } is revoked.
 
 # Last line of the leave confirmation.
 # @only tui
@@ -604,8 +604,8 @@ stores-leave-keys = Enter leaves · Esc stays
 # @arg count: int
 # @only tui
 stores-remove-member-devices = { $count ->
-    [one] Their { -device } stops working with this store at once.
-   *[other] Their { $count } { -device-pl } stop working with this store at once.
+    [one] Their { -device } stops working with this { -store } at once.
+   *[other] Their { $count } { -device-pl } stop working with this { -store } at once.
  }
 
 # Line of the remove member confirmation.
@@ -634,7 +634,7 @@ stores-unpublish-keys = Enter withdraws it · Esc keeps it
 
 # Line of the confirmation to let anyone with the store's link join.
 # @only tui
-stores-open-anyone = Anyone with the store's link can join it, without a name.
+stores-open-anyone = Anyone with the { -store }'s link can join it, without a name.
 
 # Line of the confirmation to let anyone with the store's link join.
 # @only tui
@@ -642,7 +642,7 @@ stores-open-link-new = The link is new each time, so an earlier one stays dead.
 
 # Line of the confirmation to let anyone with the store's link join.
 # @only tui
-stores-open-members-see = Members see that the store is open.
+stores-open-members-see = Members see that the { -store } is open.
 
 # Last line of the confirmation to let anyone with the store's link join.
 # @only tui
@@ -662,11 +662,11 @@ stores-close-keys = Enter limits it to invites · Esc keeps it open
 
 # Line of the confirmation to remove one device that joined with the store's link.
 # @only tui
-stores-anonymous-one-stops = It stops working with this store at once.
+stores-anonymous-one-stops = It stops working with this { -store } at once.
 
 # Line of the confirmation to remove all devices that joined with the store's link.
 # @only tui
-stores-anonymous-all-stop = They stop working with this store at once.
+stores-anonymous-all-stop = They stop working with this { -store } at once.
 
 # Line of the confirmation to remove devices that joined with the store's link.
 # @only tui
@@ -674,7 +674,7 @@ stores-anonymous-plugins = { -plugin-cap-pl } already installed stay where they 
 
 # Line of the confirmation to remove devices that joined with the store's link.
 # @only tui
-stores-anonymous-still-joins = While the store is open, the link still joins anyone.
+stores-anonymous-still-joins = While the { -store } is open, the link still joins anyone.
 
 # Last line of the confirmation to remove devices that joined with the store's link.
 # @only tui
@@ -701,7 +701,7 @@ stores-plugin-added-by-hand-note = { $id }.wasm is already in the { -plugin } di
 
 # Line of the plugin overlay when another store installed the plugin.
 # @only tui
-stores-plugin-other-store-note = Installed from another store, which keeps it updated.
+stores-plugin-other-store-note = Installed from another { -store }, which keeps it updated.
 
 # Choice in the plugin overlay: install the plugin.
 # @only tui
@@ -722,7 +722,7 @@ stores-choice-remove = Remove from this machine
 
 # Choice in the plugin overlay: owners stop offering the plugin in the store.
 # @only tui
-stores-choice-unpublish = Stop offering it in this store
+stores-choice-unpublish = Stop offering it in this { -store }
 
 # Choice in the plugin overlay: close without doing anything.
 # @only tui
@@ -752,4 +752,4 @@ stores-toast-nothing-to-publish = There are no { -plugin-pl } in your { -plugin 
 
 # Toast when the person tries to remove themselves from a store's members.
 # @only tui
-stores-toast-that-is-you = That is you. A store always keeps its owner.
+stores-toast-that-is-you = That is you. A { -store } always keeps its owner.

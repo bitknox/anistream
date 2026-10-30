@@ -133,7 +133,6 @@ discussion-settings-group = Discussions
 discussion-sending = Sending
 
 # Button under a comment that is cut off after ten lines.
-# @only linux
 # @max 24
 discussion-show-more = Show more
 

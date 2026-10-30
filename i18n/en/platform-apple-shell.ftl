@@ -4,8 +4,9 @@
 # Mac menu bar item that opens Settings.
 menu-settings = Settings…
 
-# Mac menu bar item that opens the sheet for joining a plugin store.
-menu-join-plugin-store = Join Store…
+# Mac menu bar item that opens the sheet for joining a plugin store. Title Case, so the words are typed.
+# @allow plugin, store
+menu-join-plugin-store = Join Plugin Store…
 
 # Mac menu bar item that opens the invite link on the clipboard.
 menu-open-invite-link = Open Invite Link
@@ -119,10 +120,6 @@ shell-sync-not-connected = { $tracker } not connected
 # Line in the list of what the engine is doing, when it is doing nothing.
 shell-nothing-running = Nothing is running.
 
-# Line on a screen that this build does not have yet.
-# @arg section: text
-shell-not-built-yet = { $section } comes in a later build.
-
 # Placeholder of the search field while Settings is open.
 shell-search-settings = Search settings
 
@@ -144,7 +141,7 @@ shell-library-order-label = Order
 shell-library-segment = { $name } { $count }
 
 # Error when a link that was pasted or opened is not a plugin store's invite.
-shell-not-a-store = This link does not lead to a { -plugin-store }. Ask the { -plugin-store }'s owner for a new invite.
+shell-not-a-store = This link doesn't lead to a { -plugin-store }. Ask the { -plugin-store }'s owner for a new invite.
 
 # Context menu item that carries on with an episode that was left part-way.
 # @arg episode: int
@@ -170,3 +167,15 @@ shell-sync-synced = { $tracker } synced
 
 # Title of the page shown instead of the app when the engine could not start. The reason follows.
 shell-start-failed = { -app-name } could not start
+
+# Plain line under the title of the page shown when the engine could not start. The reason follows it, in the engine's words, for a bug report.
+shell-start-failed-body = Something stopped { -app-name } from opening. Try again, and if it keeps happening, send a report.
+
+# Title of the page shown when the engine stopped while the app was open.
+shell-engine-stopped = { -app-name } stopped working
+
+# Plain line under the title of the page shown when the engine stopped while the app was open.
+shell-engine-stopped-body = The part of the app that does the work has stopped. Start it again to carry on.
+
+# Title menu item that queues every unwatched episode that is not downloaded yet.
+shell-download-unwatched = Download unwatched

@@ -88,6 +88,14 @@ public final class JobsModel {
         refresh()
     }
 
+    /// The engine is gone: no job will be done.
+    func clear() {
+        running = []
+        rechecks.values.forEach { $0.cancel() }
+        rechecks = [:]
+        refresh()
+    }
+
     func done(_ job: JobId) {
         running.removeAll { $0.id == job }
         refresh()

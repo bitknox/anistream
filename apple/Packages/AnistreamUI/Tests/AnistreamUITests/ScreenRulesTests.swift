@@ -12,11 +12,11 @@ struct ScreenRulesTests {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         var e = entry { $0.progress = TitleProgress(done: 7, next: 8) }
         let aired = Broadcast(entry: e, episode: 8, airs: now.addingTimeInterval(-19 * 3600))
-        #expect(aired.line(now: now) == "E8 out 19h ago")
+        #expect(aired.line(now: now) == "E8 out 19 h ago")
         #expect(aired.isNew(now: now))
         #expect(!aired.watched)
         let coming = Broadcast(entry: e, episode: 9, airs: now.addingTimeInterval(90 * 60))
-        #expect(coming.line(now: now) == "E9 in 1h 30m")
+        #expect(coming.line(now: now) == "E9 in 1 h 30 min")
         #expect(!coming.isNew(now: now))
         e.progress = TitleProgress(done: 8, next: 9)
         #expect(Broadcast(entry: e, episode: 8, airs: aired.airs).watched)
@@ -103,7 +103,7 @@ struct ScreenRulesTests {
     @Test func aTitlesPageSaysItsScore() {
         AirTime.$locale.withValue(Locale(identifier: "en_GB")) {
             #expect(entry { _ in }.titleMetadata == "TV · 12 episodes · 2024 · Kujaku Animation Works · 82%")
-            #expect(entry { _ in }.phoneMetadata == "TV · 12 ep · 2024 · 82%")
+            #expect(entry { _ in }.phoneMetadata == "TV · 12 episodes · 2024 · 82%")
         }
     }
 

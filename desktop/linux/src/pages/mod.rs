@@ -8,6 +8,7 @@ pub mod downloads;
 pub mod first_launch;
 pub mod join;
 pub mod library;
+pub mod more_about;
 pub mod plugin;
 pub mod providers;
 pub mod search;
@@ -108,6 +109,10 @@ impl Dest {
 
 /// The keyboard shortcuts, as rows: Ctrl+? opens them.
 pub fn shortcuts(ctx: &Ctx) {
+    // One at a time: asking again with it up leaves it where it is.
+    if ctx.window.visible_dialog().is_some_and(|d| d.widget_name() == "shortcuts") {
+        return;
+    }
     let page = adw::PreferencesPage::new();
     let groups: [(String, Vec<(String, &str)>); 3] = [
         (
@@ -171,6 +176,7 @@ pub fn shortcuts(ctx: &Ctx) {
     view.add_top_bar(&adw::HeaderBar::new());
     view.set_content(Some(&page));
     let dialog = adw::Dialog::builder()
+        .name("shortcuts") // i18n-skip
         .title(t::shortcuts_title())
         .content_width(520)
         .content_height(640)
@@ -217,7 +223,7 @@ pub fn close_dialog(shell: &Rc<Shell>, downloading: usize, seeding: usize) {
     dialog.present(Some(&shell.ctx.window));
 }
 
-/// "Episodes: 2 downloading and 1 seeding. Keep them going after the window closes, or stop
+/// "Episodes: 2 downloading or waiting and 1 seeding. Keep them going after the window closes, or stop
 /// them?"
 pub fn running_body(downloading: usize, seeding: usize) -> String {
     let count = |n: usize| i64::try_from(n).unwrap_or(i64::MAX);
@@ -236,12 +242,12 @@ mod tests {
     fn the_close_question_counts_what_runs() {
         assert_eq!(
             running_body(2, 1),
-            "Episodes: 2 downloading and 1 seeding. Keep them going after the window closes, \
+            "Episodes: 2 downloading or waiting and 1 seeding. Keep them going after the window closes, \
              or stop them?"
         );
         assert_eq!(
             running_body(1, 0),
-            "One episode is downloading. Keep it going after the window closes, or stop it?"
+            "One episode is downloading or waiting to. Keep it going after the window closes, or stop it?"
         );
     }
 

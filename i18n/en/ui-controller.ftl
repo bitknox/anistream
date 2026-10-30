@@ -56,10 +56,10 @@ pad-help-seek-forward = { $seconds ->
 # Controller help: skips the opening or ending while its offer shows.
 pad-help-skip = Skip
 
-# Controller help: starts the next episode now, while the Up Next card shows.
+# Controller help: starts the next episode now, while the Up next card shows.
 pad-help-play-now = Play now
 
-# Controller help: cancels the Up Next card.
+# Controller help: cancels the Up next card.
 pad-help-cancel = Cancel
 
 # Controller help: switches to another source while the buffering card shows.

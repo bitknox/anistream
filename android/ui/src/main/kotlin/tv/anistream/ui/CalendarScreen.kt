@@ -15,12 +15,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,11 +39,13 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -78,6 +82,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tv.anistream.design.ArtShape
 import tv.anistream.design.Motion
@@ -109,6 +114,9 @@ private fun dayName(context: Context, day: LocalDate, today: LocalDate): String 
     else -> dayHeading.format(day)
 }
 
+/** What stands at an end of the page besides days: a floor or ceiling line, a load, a failure, or nothing. */
+internal enum class Edge { None, Floor, Ceiling, End, Loading, Failed }
+
 /**
  * The page as it stands: the broadcasts by day, every day with a heading, where each heading is in
  * the list and which day each of its items belongs to, read against [now].
@@ -117,24 +125,42 @@ private fun dayName(context: Context, day: LocalDate, today: LocalDate): String 
 internal class CalendarPage(
     val now: Instant,
     val today: LocalDate,
-    /** This week's days, Monday first, for the strip. */
-    val week: List<LocalDate>,
     /** Every day the page heads, in order. */
     val days: List<LocalDate>,
     val byDay: Map<LocalDate, List<Broadcast>>,
-    /** Whether any broadcast is of a title of yours, which picks My list when nothing else has. */
-    val anyMine: Boolean,
+    /** Whether the page shows only the person's list. */
+    val mine: Boolean,
+    /** My list is chosen and nothing on it airs from today on. */
+    val mineAheadEmpty: Boolean,
+    /** How many of today's rows have aired: the now line stands after them. `null` when today has no rows. */
+    val nowAfter: Int?,
+    /** What stands above the first day and below the last. */
+    val top: Edge,
+    val bottom: Edge,
+    /** The first and last day the calendar reaches, when the engine has said. */
+    val firstDay: LocalDate?,
+    val lastDay: LocalDate?,
     /** Where each day's heading is in the list. */
     val headings: Map<LocalDate, Int>,
     /** The day each of the list's items belongs to, by its index. */
     val dayOf: List<LocalDate>,
 ) {
+    /** The number of list items the day takes: its heading, its rows or its one line, and the now line. */
+    fun itemsOf(day: LocalDate): Int {
+        val rows = byDay[day].orEmpty().size
+        val line = if (day == today && nowAfter != null) 1 else 0
+        return 1 + maxOf(1, rows) + line
+    }
+
+    /** Whether [day] is inside what the calendar reaches. */
+    fun reaches(day: LocalDate): Boolean = (firstDay == null || day >= firstDay) && (lastDay == null || day <= lastDay)
+
     companion object {
         /** A page and what it was worked out from. */
         private class Made(
             val window: CalendarModel.Window,
             val titles: Map<AnilistId, Entry>,
-            val mine: Boolean?,
+            val mine: Boolean,
             val minute: Long,
             val zone: ZoneId,
             val page: CalendarPage,
@@ -148,7 +174,7 @@ internal class CalendarPage(
          * nothing it was made from has changed within the minute, so a return to Calendar does
          * none of this work in the frame it opens on.
          */
-        fun of(window: CalendarModel.Window, titles: Map<AnilistId, Entry>, mine: Boolean?, now: Instant, zone: ZoneId): CalendarPage {
+        fun of(window: CalendarModel.Window, titles: Map<AnilistId, Entry>, mine: Boolean, now: Instant, zone: ZoneId): CalendarPage {
             val minute = now.epochSecond / 60
             last?.let {
                 if (it.window === window && it.titles === titles && it.mine == mine && it.minute == minute && it.zone == zone) return it.page
@@ -156,7 +182,7 @@ internal class CalendarPage(
             return make(window, titles, mine, now, zone).also { last = Made(window, titles, mine, minute, zone, it) }
         }
 
-        private fun make(window: CalendarModel.Window, titles: Map<AnilistId, Entry>, mine: Boolean?, now: Instant, zone: ZoneId): CalendarPage {
+        private fun make(window: CalendarModel.Window, titles: Map<AnilistId, Entry>, mine: Boolean, now: Instant, zone: ZoneId): CalendarPage {
             val today = LocalDate.ofInstant(now, zone)
             // The titles as they now stand: progress may have moved since the calendar came.
             val broadcasts = window.broadcasts(now).map { b ->
@@ -164,21 +190,44 @@ internal class CalendarPage(
                 if (known == null || known.progress == b.entry.progress && known.listStatus == b.entry.listStatus) b
                 else b.copy(entry = b.entry.copy(progress = known.progress, listStatus = known.listStatus))
             }
-            val anyMine = broadcasts.any { it.entry.isMine() }
-            val shown = if (mine ?: anyMine) broadcasts.filter { it.entry.isMine() } else broadcasts
+            val shown = if (mine) broadcasts.filter { it.entry.isMine() } else broadcasts
             val byDay = shown.groupBy { LocalDate.ofInstant(it.airs, zone) }.toSortedMap()
-            val week = (0L until 7L).map { today.with(DayOfWeek.MONDAY).plusDays(it) }
+            val mineAheadEmpty = mine && byDay.keys.none { it >= today }
             // Every day of this week and the next seven has a heading, so today can stand at the top
-            // of the page, and so does every other day with something on it.
+            // of the page, and so does every other day with something on it. With nothing on your
+            // list ahead, the days after today are left out: the line says so under Today.
+            val week = (0L until 7L).map { today.with(DayOfWeek.MONDAY).plusDays(it) }
             val ahead = (0L..7L).map { today.plusDays(it) }
-            val days = (byDay.keys + week + ahead).toSortedSet().toList()
+            val days = (byDay.keys + (week + ahead).filter { !mineAheadEmpty || it <= today }).toSortedSet().toList()
+            val todayRows = byDay[today].orEmpty()
+            val nowAfter = if (todayRows.isEmpty()) null else todayRows.count { !it.airs.isAfter(now) }
+            val firstDay = window.floor?.let { LocalDate.ofInstant(Instant.ofEpochSecond(it), zone) }
+            val lastDay = window.ceiling?.let { LocalDate.ofInstant(Instant.ofEpochSecond(it), zone) }
+            val top = when {
+                window.pastFailed -> Edge.Failed
+                window.loadingPast || window.morePast -> Edge.Loading
+                firstDay != null -> Edge.Floor
+                else -> Edge.None
+            }
+            val lastLoaded = byDay.keys.lastOrNull()
+            val bottom = when {
+                window.aheadFailed -> Edge.Failed
+                window.loadingAhead || window.moreAhead -> Edge.Loading
+                lastDay != null && (lastLoaded == null || lastLoaded.plusDays(2) >= lastDay) -> Edge.Ceiling
+                window.ceiling != null -> Edge.End
+                else -> Edge.None
+            }
             val headings = mutableMapOf<LocalDate, Int>()
             val dayOf = mutableListOf<LocalDate>()
+            // The top edge is the list's first item and the bottom edge its last.
+            dayOf += days.firstOrNull() ?: today
+            val page = CalendarPage(now, today, days, byDay, mine, mineAheadEmpty, nowAfter, top, bottom, firstDay, lastDay, headings, dayOf)
             for (day in days) {
                 headings[day] = dayOf.size
-                repeat(1 + maxOf(1, byDay[day]?.size ?: 0)) { dayOf += day }
+                repeat(page.itemsOf(day)) { dayOf += day }
             }
-            return CalendarPage(now, today, week, days, byDay, anyMine, headings, dayOf)
+            dayOf += days.lastOrNull() ?: today
+            return page
         }
     }
 }
@@ -190,13 +239,21 @@ fun CalendarScreen() {
     val window by store.calendar.window.collectAsStateWithLifecycle()
     val state by store.calendar.list.state.collectAsStateWithLifecycle()
     val titles by store.titles.entries.collectAsStateWithLifecycle()
+    val settings by store.settings.view.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { store.loadCalendar() }
 
-    var mine by rememberSaveable { mutableStateOf<Boolean?>(null) }
-    // Worked out once each time the calendar, the titles or the choice changes, never again on a
-    // frame of a scroll or a transition. The time the rows read their words off is taken then too.
-    val page = remember(window, titles, mine) { CalendarPage.of(window, titles, mine, AppClock.now(), AppClock.zone) }
-    val showMine = mine ?: page.anyMine
+    // All airing until the person chooses My list, and then it stays chosen.
+    val mine = remember(settings) { store.calendarMine() }
+    // The minute the hairline reads: the page is worked out again each time it turns.
+    val minute by produceState(AppClock.now().epochSecond / 60) {
+        while (true) {
+            delay(60_000 - AppClock.now().toEpochMilli() % 60_000)
+            value = AppClock.now().epochSecond / 60
+        }
+    }
+    // Worked out once each time the calendar, the titles, the choice or the minute changes, never
+    // again on a frame of a scroll or a transition.
+    val page = remember(window, titles, mine, minute) { CalendarPage.of(window, titles, mine, AppClock.now(), AppClock.zone) }
     val answered = state is ListState.Loaded || state is ListState.Empty
     val offline by store.offline.collectAsStateWithLifecycle()
 
@@ -212,27 +269,83 @@ fun CalendarScreen() {
     val selected = remember(list, page, answered) {
         derivedStateOf { if (answered) page.dayOf.getOrNull(list.firstVisibleItemIndex) ?: page.today else page.today }
     }
-    // Earlier broadcasts, as the page reaches its top: watched in a flow, so a scroll never
+    // Today's section has left the screen: the Today button appears.
+    val away = remember(list, page, answered) {
+        derivedStateOf {
+            val start = page.headings[page.today]
+            if (!answered || start == null) false
+            else {
+                val end = start + page.itemsOf(page.today) - 1
+                val info = list.layoutInfo
+                val last = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+                list.firstVisibleItemIndex > end || last < start
+            }
+        }
+    }
+    // A day the strip asked for that is not in the list yet: scrolled to once its stretch arrives.
+    var pendingDay by remember { mutableStateOf<LocalDate?>(null) }
+    LaunchedEffect(pendingDay, page) {
+        val day = pendingDay ?: return@LaunchedEffect
+        val heading = page.headings[day]
+        if (heading != null) {
+            list.animateScrollToItem(heading)
+            pendingDay = null
+        } else if (!window.loadingPast && !window.loadingAhead) {
+            // The stretch is in and the day has nothing on it: stop at the nearest day after it.
+            page.days.firstOrNull { it > day }?.let { page.headings[it] }?.let { list.animateScrollToItem(it) }
+            pendingDay = null
+        }
+    }
+    // More of the calendar as either end comes within a screen, watched in a flow so a scroll never
     // recomposes the page.
     LaunchedEffect(list, answered) {
         if (!answered) return@LaunchedEffect
-        snapshotFlow { list.firstVisibleItemIndex == 0 && window.morePast }.collect { top ->
-            val anchor = window.anchor
-            if (top && anchor != null) store.send(Command.LoadCalendarPast(anchor, window.pages))
+        snapshotFlow {
+            val info = list.layoutInfo
+            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+            (list.firstVisibleItemIndex <= EDGE_ITEMS) to (lastVisible >= info.totalItemsCount - 1 - EDGE_ITEMS)
+        }.collect { (top, bottom) ->
+            if (top) store.loadCalendarPast()
+            if (bottom) store.loadCalendarAhead()
         }
     }
 
-    ScreenFrame(title = stringResource(R.string.nav_calendar)) { padding ->
+    ScreenFrame(
+        title = stringResource(R.string.nav_calendar),
+        actions = {
+            // Fades in as the last of today leaves the screen, and out as any of it returns.
+            AnimatedVisibility(away.value, enter = fadeIn(Motion.fadeIn()), exit = fadeOut(Motion.fadeOut())) {
+                TextButton(onClick = {
+                    scope.launch {
+                        val start = page.headings[page.today] ?: return@launch
+                        // Jump to one screen short of today, then scroll the last stretch on standard.
+                        val below = list.firstVisibleItemIndex > start
+                        list.scrollToItem((if (below) start + EDGE_ITEMS else start - EDGE_ITEMS).coerceAtLeast(0))
+                        list.animateScrollToItem(start)
+                    }
+                }) { Text(stringResource(R.string.day_today)) }
+            }
+        },
+    ) { padding ->
         Column(Modifier.padding(top = padding.calculateTopPadding())) {
             // Pinned above the days: which broadcasts, and the week's days to jump to.
             ConnectedChoice(
-                choices = listOf(stringResource(R.string.calendar_filter_mine), stringResource(R.string.calendar_filter_all)),
-                selected = if (showMine) 0 else 1,
-                onSelect = { mine = it == 0 },
+                choices = listOf(stringResource(R.string.calendar_filter_all), stringResource(R.string.calendar_filter_mine)),
+                selected = if (mine) 1 else 0,
+                onSelect = { store.setCalendarMine(it == 1) },
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
-            WeekStrip(page.week, page.today, { selected.value }, aired = page.byDay.keys) { day ->
-                page.headings[day]?.let { scope.launch { list.animateScrollToItem(it) } }
+            WeekStrip(page, { selected.value }) { day ->
+                val heading = page.headings[day]
+                if (heading != null) {
+                    scope.launch { list.animateScrollToItem(heading) }
+                } else if (page.firstDay != null && day < page.days.first()) {
+                    pendingDay = day
+                    store.loadCalendarThrough(day.atStartOfDay(AppClock.zone).toEpochSecond(), earlier = true)
+                } else {
+                    pendingDay = day
+                    store.loadCalendarThrough(day.plusDays(1).atStartOfDay(AppClock.zone).toEpochSecond(), earlier = false)
+                }
             }
             // Nothing for the first 600 ms, then placeholders, then the days in one crossfade (T8).
             // The gap above the days is outside the list, so a day scrolled to the top leaves
@@ -249,7 +362,14 @@ fun CalendarScreen() {
                     placeholders = { if (offline) OfflineState() else CalendarPlaceholders() },
                 ) {
                     Refreshable({ store.loadCalendar(force = true) }) {
-                        CalendarDays(page, list) { navigator.openTitle(it, "calendar") }
+                        CalendarDays(
+                            page,
+                            list,
+                            onOpen = { navigator.openTitle(it, "calendar") },
+                            onShowAll = { store.setCalendarMine(false) },
+                            onRetryPast = { store.retryCalendarPast() },
+                            onRetryAhead = { store.loadCalendarAhead(retry = true) },
+                        )
                     }
                 }
             }
@@ -257,13 +377,25 @@ fun CalendarScreen() {
     }
 }
 
+/** How many list items make a screen: the ends are asked for, and Today jumps, this far off. */
+private const val EDGE_ITEMS = 6
+
 /**
  * Every day's broadcasts under its heading. Headings, rows and "Nothing airing" all move together
- * as the rows change, each with its kind for the list to reuse.
+ * as the rows change, each with its kind for the list to reuse. The first and last items are the
+ * ends: the floor or ceiling line, a load, or a failure with Try again.
  */
 @Composable
-private fun CalendarDays(page: CalendarPage, list: LazyListState, onOpen: (AnilistId) -> Unit) {
+private fun CalendarDays(
+    page: CalendarPage,
+    list: LazyListState,
+    onOpen: (AnilistId) -> Unit,
+    onShowAll: () -> Unit,
+    onRetryPast: () -> Unit,
+    onRetryAhead: () -> Unit,
+) {
     LazyColumn(state = list, contentPadding = PaddingValues(bottom = 24.dp)) {
+        item(key = "edge-top", contentType = "edge") { EdgeLine(page.top, earlier = true, onRetry = onRetryPast) }
         for (day in page.days) {
             item(key = "day-$day", contentType = "day") {
                 Text(
@@ -273,7 +405,18 @@ private fun CalendarDays(page: CalendarPage, list: LazyListState, onOpen: (Anili
                 )
             }
             val rows = page.byDay[day].orEmpty()
-            if (rows.isEmpty()) {
+            if (day == page.today && page.mineAheadEmpty) {
+                item(key = "none-$day", contentType = "none") {
+                    Column(itemMotion().padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) {
+                        Text(
+                            stringResource(R.string.calendar_empty_mine_ahead),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        TextButton(onClick = onShowAll) { Text(stringResource(R.string.calendar_show_all_airing)) }
+                    }
+                }
+            } else if (rows.isEmpty()) {
                 item(key = "none-$day", contentType = "none") {
                     Text(
                         stringResource(R.string.calendar_empty_title),
@@ -283,10 +426,104 @@ private fun CalendarDays(page: CalendarPage, list: LazyListState, onOpen: (Anili
                     )
                 }
             } else {
-                items(rows, key = { "row-${it.entry.id}-${it.episode}-${it.airs.epochSecond}" }, contentType = { "row" }) { broadcast ->
-                    Box(itemMotion()) { BroadcastRow(broadcast, page.now) { onOpen(broadcast.entry.id) } }
+                val line = if (day == page.today) page.nowAfter else null
+                rows.forEachIndexed { index, broadcast ->
+                    if (line == index) item(key = "now-$day", contentType = "now") { NowLine(page.now) }
+                    item(key = "row-${broadcast.entry.id}-${broadcast.episode}-${broadcast.airs.epochSecond}", contentType = "row") {
+                        Box(itemMotion()) { BroadcastRow(broadcast, page.now) { onOpen(broadcast.entry.id) } }
+                    }
                 }
+                // Every broadcast has aired: the line closes the day.
+                if (line == rows.size) item(key = "now-$day", contentType = "now") { NowLine(page.now) }
             }
+        }
+        item(key = "edge-bottom", contentType = "edge") { EdgeLine(page.bottom, earlier = false, onRetry = onRetryAhead) }
+    }
+}
+
+/**
+ * The line that marks the time now, between the last broadcast that has aired and the next: silk,
+ * 1 dp, with the time at the trailing edge where the times sit. It overlays the separator and
+ * takes no room of its own beyond the label.
+ */
+@Composable
+private fun NowLine(now: Instant) {
+    val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    val time = airTime(AirTime.clock(now), false)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 24.dp)
+            .semantics(mergeDescendants = true) { contentDescription = Strings.calendarNowLabel(context, time) },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(Modifier.weight(1f).height(1.dp).background(colors.onSurface))
+        Text(time, style = MaterialTheme.typography.labelMedium.tabular(), color = colors.onSurface)
+    }
+}
+
+/**
+ * What stands at an end of the calendar, quiet: the floor or ceiling line, nothing for the first
+ * 600 ms of a load, placeholders after that and the activity line after 4 s; a failure keeps what
+ * arrived and puts one line with Try again in place.
+ */
+@Composable
+private fun EdgeLine(edge: Edge, earlier: Boolean, onRetry: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    when (edge) {
+        Edge.None -> Spacer(Modifier.height(1.dp))
+        Edge.Floor, Edge.Ceiling, Edge.End -> Text(
+            when (edge) {
+                Edge.Floor -> Strings.calendarFloorLine(context)
+                Edge.Ceiling -> Strings.calendarCeilingLine(context)
+                else -> Strings.calendarEndLine(context)
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+        )
+        Edge.Loading -> {
+            var waited by remember { mutableStateOf(0) }
+            LaunchedEffect(Unit) {
+                delay(600)
+                waited = 1
+                delay(3_400)
+                waited = 2
+            }
+            if (waited >= 1) {
+                Column {
+                    TextPlaceholder(0.25f, 24.dp, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                    TextPlaceholder(0.7f, 24.dp, Modifier.padding(horizontal = 16.dp))
+                    if (waited >= 2) {
+                        Text(
+                            if (earlier) Strings.calendarLoadingEarlierLine(context) else Strings.calendarLoadingLaterLine(context),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+            } else {
+                Spacer(Modifier.height(1.dp))
+            }
+        }
+        Edge.Failed -> Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Vermilion on the glyph only.
+            Icon(Icons.Problem, contentDescription = null, tint = colors.error, modifier = Modifier.size(20.dp))
+            Text(
+                if (earlier) Strings.calendarEarlierFailedLine(context) else Strings.calendarLaterFailedLine(context),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onRetry) { Text(stringResource(R.string.action_try_again)) }
         }
     }
 }
@@ -428,11 +665,19 @@ internal val markIn = fadeIn(Motion.fadeIn()) + expandHorizontally(Motion.standa
 /** The old choice's check leaving: out on quick as its room closes. */
 internal val markOut = fadeOut(Motion.quick()) + shrinkHorizontally(Motion.standard())
 
-/** The week, Monday first: each day a 48 × 64 pill, today's selected, a water dot where something airs. */
+/**
+ * The week of the selected day, Monday first: each day a 48 × 64 pill, the selected one tinted, a
+ * water dot where something airs. Today wears a 1 dp ring round its numeral while another day is
+ * selected, and its weekday turns silk. Days outside what the calendar reaches drop to 32 % and
+ * cannot be picked.
+ */
 @Composable
-private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: () -> LocalDate, aired: Set<LocalDate>, onDay: (LocalDate) -> Unit) {
+private fun WeekStrip(page: CalendarPage, selected: () -> LocalDate, onDay: (LocalDate) -> Unit) {
     val colors = MaterialTheme.colorScheme
     val chosenDay = selected()
+    val week = (0L until 7L).map { chosenDay.with(DayOfWeek.MONDAY).plusDays(it) }
+    val today = page.today
+    val aired = page.byDay.keys
     Row(
         Modifier.padding(top = 8.dp).padding(horizontal = 16.dp).fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -450,13 +695,16 @@ private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: () -> L
                 else -> Strings.calendarDayLabel(context, dayText)
             }
             val on by animateFloatAsState(if (day == chosenDay) 1f else 0f, Motion.quick(), label = "day") // i18n-skip
+            val reaches = page.reaches(day)
+            val ringed = day == today && day != chosenDay
             Column(
                 Modifier
                     .widthIn(min = 48.dp)
                     .heightIn(min = 64.dp)
+                    .graphicsLayer { alpha = if (reaches) 1f else 0.32f }
                     .clip(RoundedCornerShape(24.dp))
                     .drawBehind { drawRect(colors.primaryContainer.copy(alpha = on)) }
-                    .clickable { onDay(day) }
+                    .clickable(enabled = reaches) { onDay(day) }
                     .semantics {
                         contentDescription = dayLabel
                     },
@@ -469,15 +717,20 @@ private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: () -> L
                 Text(
                     name,
                     style = MaterialTheme.typography.labelSmall,
-                    color = lerp(colors.onSurfaceVariant, colors.onPrimaryContainer, on),
+                    color = lerp(if (ringed) colors.onSurface else colors.onSurfaceVariant, colors.onPrimaryContainer, on),
                     maxLines = 1,
                     softWrap = false,
                 )
-                Text(
-                    day.dayOfMonth.toString(),
-                    style = MaterialTheme.typography.bodyLarge.tabular(),
-                    color = lerp(colors.onSurface, colors.onPrimaryContainer, on),
-                )
+                Box(
+                    Modifier.size(30.dp).then(if (ringed) Modifier.border(1.dp, colors.onSurface, CircleShape) else Modifier),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        day.dayOfMonth.toString(),
+                        style = MaterialTheme.typography.bodyLarge.tabular(),
+                        color = lerp(colors.onSurface, colors.onPrimaryContainer, on),
+                    )
+                }
                 Box(Modifier.size(4.dp).background(if (day in aired) colors.secondary else androidx.compose.ui.graphics.Color.Transparent, CircleShape))
             }
         }

@@ -208,7 +208,10 @@ targetTemplates:
         # to every size and puts his pixels on fractions.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.entertainment
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
+        # The manifest is written by hand in App/Info.plist: one window. The store, the navigator
+        # and the player are shared by the whole app, so a second iPad window would run sign-in,
+        # the player and Picture in Picture twice.
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: false
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight

@@ -367,6 +367,50 @@ pub fn seed_done(
     have > 0 && uploaded as f64 >= goal.ratio * have as f64
 }
 
+/// How long a magnet may take to find a peer that sends its metadata. A release nobody seeds
+/// never answers, and librqbit waits on it for as long as it is asked to, so without a bound
+/// one dead release held up whatever waited on it: the download queue, or the starting screen.
+pub const METADATA_WAIT: std::time::Duration = std::time::Duration::from_secs(90);
+
+/// What a release with no one sharing it fails with, once [`METADATA_WAIT`] has passed. The
+/// words reach the person as the reason a download failed or a play found nothing.
+pub const NO_PEERS: &str = "No one is sharing this release";
+
+/// [`Session::add_torrent`] for `magnet`, given [`METADATA_WAIT`] to resolve. Cancelling the
+/// add drops its peer search, so nothing is left running for a release that never answered.
+async fn add_bounded(
+    session: &Arc<Session>,
+    magnet: &str,
+    options: AddTorrentOptions,
+    what: &str,
+) -> Result<librqbit::AddTorrentResponse, ProviderError> {
+    add_within(
+        METADATA_WAIT,
+        session.add_torrent(AddTorrent::from_url(magnet), Some(options)),
+        what,
+    )
+    .await
+}
+
+/// `adding`, given `wait` to finish: the bound [`add_bounded`] puts on a magnet, apart from the
+/// session so a test can give it a future that never ends.
+async fn add_within<T, E: std::fmt::Display>(
+    wait: std::time::Duration,
+    adding: impl std::future::Future<Output = Result<T, E>>,
+    what: &str,
+) -> Result<T, ProviderError> {
+    match tokio::time::timeout(wait, adding).await {
+        Ok(added) => added.map_err(|e| ProviderError::Transport(format!("{what}: {e}"))),
+        Err(_) => {
+            tracing::info!(
+                secs = wait.as_secs(),
+                "no peer sent the torrent's metadata in time"
+            );
+            Err(ProviderError::Other(NO_PEERS.into()))
+        }
+    }
+}
+
 /// Stream servers kept at once: the episode playing and the next one, fetched ahead.
 const KEPT_SERVERS: usize = 2;
 
@@ -477,14 +521,13 @@ impl TorrentSession {
     pub async fn list_files(&self, magnet: &str) -> Result<Vec<TorrentFile>, ProviderError> {
         self.guard.permit()?;
 
-        let response = self
-            .session
-            .add_torrent(
-                AddTorrent::from_url(magnet),
-                Some(AddTorrentOptions { list_only: true, ..Default::default() }),
-            )
-            .await
-            .map_err(|e| ProviderError::Transport(format!("reading torrent metadata: {e}")))?;
+        let response = add_bounded(
+            &self.session,
+            magnet,
+            AddTorrentOptions { list_only: true, ..Default::default() },
+            "reading torrent metadata",
+        )
+        .await?;
 
         match response {
             librqbit::AddTorrentResponse::ListOnly(list) => Ok(list
@@ -522,21 +565,20 @@ impl TorrentSession {
         self.guard.permit()?;
         self.network_permit()?;
 
-        let response = self
-            .session
-            .add_torrent(
-                AddTorrent::from_url(magnet),
-                Some(AddTorrentOptions {
-                    // Required for *resuming*. librqbit refuses to touch existing files by
-                    // default, which means the second time you open an episode — or resume
-                    // a partial download — adding the torrent fails outright. Caught by
-                    // re-running the live probe, where the first run had left files behind.
-                    overwrite: true,
-                    ..Default::default()
-                }),
-            )
-            .await
-            .map_err(|e| ProviderError::Transport(format!("adding torrent: {e}")))?;
+        let response = add_bounded(
+            &self.session,
+            magnet,
+            AddTorrentOptions {
+                // Required for *resuming*. librqbit refuses to touch existing files by
+                // default, which means the second time you open an episode — or resume
+                // a partial download — adding the torrent fails outright. Caught by
+                // re-running the live probe, where the first run had left files behind.
+                overwrite: true,
+                ..Default::default()
+            },
+            "adding torrent",
+        )
+        .await?;
 
         let handle = response
             .into_handle()
@@ -642,14 +684,13 @@ impl TorrentSession {
         // which makes it the *most* important thing to gate rather than the least.
         self.guard.permit()?;
 
-        let response = self
-            .session
-            .add_torrent(
-                AddTorrent::from_url(magnet),
-                Some(AddTorrentOptions { overwrite: true, ..Default::default() }),
-            )
-            .await
-            .map_err(|e| ProviderError::Transport(format!("adding torrent: {e}")))?;
+        let response = add_bounded(
+            &self.session,
+            magnet,
+            AddTorrentOptions { overwrite: true, ..Default::default() },
+            "adding torrent",
+        )
+        .await?;
 
         let handle = response
             .into_handle()
@@ -1140,6 +1181,20 @@ mod tests {
 
     fn file(index: usize, name: &str, length: u64) -> TorrentFile {
         TorrentFile { index, name: name.into(), length }
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_magnet_nobody_shares_fails_once_its_wait_is_over() {
+        let never = std::future::pending::<Result<(), String>>();
+        let failed = add_within(METADATA_WAIT, never, "adding torrent").await.unwrap_err();
+        assert_eq!(failed, ProviderError::Other(NO_PEERS.into()));
+        assert!(failed.should_failover() && !failed.counts_against_health(), "{failed:?}");
+
+        let refused = add_within(METADATA_WAIT, async { Err::<(), _>("bad magnet") }, "adding");
+        assert_eq!(
+            refused.await.unwrap_err(),
+            ProviderError::Transport("adding: bad magnet".into())
+        );
     }
 
     #[test]

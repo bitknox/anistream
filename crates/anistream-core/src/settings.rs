@@ -310,6 +310,21 @@ mod tests {
     }
 
     #[test]
+    fn a_key_this_version_does_not_know_survives_a_write() {
+        // Written by a newer app sharing the file: read past, and kept for it.
+        let dir = temp_dir("unknown");
+        let paths = paths_in(&dir);
+        std::fs::write(&paths.config_file, "[playback]\nquality = 1080\nsparkle = \"lots\"\n")
+            .unwrap();
+
+        write_key(&paths, &["playback"], "quality", SettingValue::Int(720)).unwrap();
+
+        let after = std::fs::read_to_string(&paths.config_file).unwrap();
+        assert!(after.contains("quality = 720"), "value not written:\n{after}");
+        assert!(after.contains("sparkle = \"lots\""), "unknown key lost:\n{after}");
+    }
+
+    #[test]
     fn a_list_is_written_as_an_array_and_the_rest_of_the_file_survives() {
         let dir = temp_dir("list");
         let paths = paths_in(&dir);
@@ -613,7 +628,7 @@ i_understand_a_failed_check_keeps_torrents_running = true
         // change to the defaults on screen — not an instruction to rewrite the user's file.
         let dir = temp_dir("unloadable");
         let paths = paths_in(&dir);
-        let broken = "[playback]\nquality = 1080\nqualty = 720\n";
+        let broken = "[playback]\nquality = 1080\ntranslation = 7\n";
         std::fs::write(&paths.config_file, broken).unwrap();
 
         let err =

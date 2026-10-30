@@ -65,7 +65,7 @@ impl App {
             self.nav.open_overlay(Overlay::KitsuUsername);
             return None;
         }
-        self.status = t::accounts_status_opening_browser();
+        // The sign-in's row in the activity list says what it waits for.
         Some(Command::Connect { tracker: tracker.tracker })
     }
 
@@ -256,7 +256,7 @@ mod tests {
         let mut a = app();
         a.apply(Event::Conflicts(vec![conflict("Hoshikuzu")]));
         assert_eq!(a.conflicts.len(), 1);
-        assert!(a.toasts.iter().any(|t| t.notice.text.contains("disagreement")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("difference")));
 
         // A second pull returning the same set must not re-announce.
         let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();

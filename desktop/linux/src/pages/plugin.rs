@@ -316,7 +316,7 @@ fn fill(ctx: &Rc<Ctx>, column: &gtk::Box, info: &Info) {
     let hosts = info.hosts();
     let contacts = fact(
         &t::sources_contacts_label(),
-        &if hosts.is_empty() { t::sources_listed_by_store() } else { hosts.join("\n") },
+        &if hosts.is_empty() { t::sources_no_hosts() } else { hosts.join("\n") },
     );
     contacts.set_subtitle_lines(0);
     column.append(&facts);

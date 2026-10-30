@@ -5,6 +5,7 @@
 
 package tv.anistream.tv.ui
 
+import tv.anistream.store.plainReason
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -162,7 +163,7 @@ object SourceWords {
         SourceNote.Resting -> Strings.sourceNoteResting(context)
         SourceNote.Gone -> Strings.sourceNoteGone(context)
         SourceNote.Ambiguous -> Strings.sourceNoteAmbiguous(context)
-        is SourceNote.Failed -> note.reason
+        is SourceNote.Failed -> plainReason(context, note.reason)
     }
 
     /** A release's quality, size and seeders: "1080p · 14.2 GiB · 84 seeders". */

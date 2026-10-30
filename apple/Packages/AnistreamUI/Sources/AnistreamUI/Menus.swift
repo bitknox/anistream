@@ -62,6 +62,11 @@ struct TitleMoreItems: View {
         .disabled(next <= 1)
         Button(L.continueHide) { store.hideFromContinue(entry.id) }
             .disabled(entry.progress == nil)
+        let unwatched = (store.titles.episodes[entry.id] ?? [])
+            .filter { !$0.completed && !store.hasDownload(entry.id, episode: $0.number) }
+            .map(\.number)
+        Button(L.shellDownloadUnwatched) { store.send(.downloadMany(id: entry.id, episodes: unwatched)) }
+            .disabled(unwatched.isEmpty)
         Divider()
         let action = TitleAction(entry, episodes: store.titles.episodes[entry.id])
         // The episode Play would play, with a party: the form asks for the server and room.
@@ -69,9 +74,7 @@ struct TitleMoreItems: View {
             store.party.open(.episode(id: entry.id, episode: String(action.episode)))
         }
         .disabled(!action.playable || store.titles.unlisted(entry.id))
-        Button(L.titlePlayTrailer) {
-            if let trailer = entry.trailerUrl { store.send(.playTrailer(url: trailer, title: entry.title)) }
-        }
+        Button(L.titlePlayTrailer) { navigator.playTrailer(entry, store: store) }
         .disabled(entry.trailerUrl == nil)
         Button(L.titleOpenAnilist) { store.openOnAniList(entry.id) }
         #if os(macOS)
@@ -119,6 +122,11 @@ struct EpisodeMenu: View {
                 Button(L.tvPlayOn, systemImage: "tv") {
                     store.playOnTV(entry.id, episode: row.number, from: resuming ? entry.resume?.position : nil)
                 }
+            }
+        }
+        if DiscussionEntry.offered(entry: entry, number: number, row: row, store: store) {
+            Button(L.discussionOpen, systemImage: "bubble.left.and.bubble.right") {
+                store.discussion.show(DiscussionKey(media: entry.id, episode: number))
             }
         }
         Divider()

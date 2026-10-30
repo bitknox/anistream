@@ -168,6 +168,8 @@ pub struct Harness {
     registry: ProviderRegistry,
     /// The engine's clock, which a test moves on with [`Harness::advance_engine_clock`].
     engine_clock: anistream_engine::clock::Clock,
+    /// How many player windows the engine's playbacks have opened.
+    windows: Arc<std::sync::atomic::AtomicUsize>,
     /// Last, so it is removed after everything that might still be writing into it.
     _root: tempfile::TempDir,
 }
@@ -274,12 +276,14 @@ impl Harness {
         start.sources = Some(registry.clone());
         start.background = Background { keep_next: options.keep_next, ..Background::none() };
         let engine_clock = options.clock.unwrap_or_default();
+        let windows = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         start.parts = Some(Parts {
             meta,
             sync,
             stores,
             clock: engine_clock.clone(),
             fixture_exit: Some(anistream_providers::vpn::VpnGuard::fixture_egress()),
+            windows: Some(windows.clone()),
         });
         start.free_space = Some(1_000_000_000_000);
         if let Some(seed) = options.before_start {
@@ -307,6 +311,7 @@ impl Harness {
             paths,
             registry,
             engine_clock,
+            windows,
             _root: root,
         }
     }
@@ -564,6 +569,11 @@ impl Harness {
         &self.store
     }
 
+    /// How many player windows the engine's playbacks have opened so far.
+    pub fn windows(&self) -> usize {
+        self.windows.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
     /// Where the app's files are: all of them under one temporary directory.
     pub fn paths(&self) -> &Paths {
         &self.paths
@@ -770,7 +780,6 @@ pub fn name(update: &Event) -> &'static str {
         Event::Detail(_) => "Detail",
         Event::ViewerTitleLanguage(_) => "ViewerTitleLanguage",
         Event::TitlesChanged(_) => "TitlesChanged",
-        Event::Status(_) => "Status",
         Event::Toast(_) => "Toast",
         Event::Providers(_) => "Providers",
         Event::MetaStatus(_) => "MetaStatus",
@@ -915,7 +924,6 @@ fn copy(update: &Event) -> Event {
         Event::Detail(entry) => Event::Detail(entry.clone()),
         Event::ViewerTitleLanguage(language) => Event::ViewerTitleLanguage(*language),
         Event::TitlesChanged(language) => Event::TitlesChanged(*language),
-        Event::Status(text) => Event::Status(text.clone()),
         Event::Toast(toast) => Event::Toast(toast.clone()),
         Event::Providers(rows) => Event::Providers(rows.clone()),
         Event::MetaStatus(rows) => Event::MetaStatus(rows.clone()),
@@ -1007,7 +1015,9 @@ fn copy(update: &Event) -> Event {
         Event::Sync(state) => Event::Sync(state.clone()),
         Event::ProgressQueued => Event::ProgressQueued,
         Event::Conflicts(rows) => Event::Conflicts(rows.clone()),
-        Event::Episodes { id, rows } => Event::Episodes { id: *id, rows: rows.clone() },
+        Event::Episodes { id, rows, failed } => {
+            Event::Episodes { id: *id, rows: rows.clone(), failed: failed.clone() }
+        }
         Event::TitleDub { id, dub } => Event::TitleDub { id: *id, dub: *dub },
         Event::Progress { id, progress, resume, episodes } => Event::Progress {
             id: *id,
