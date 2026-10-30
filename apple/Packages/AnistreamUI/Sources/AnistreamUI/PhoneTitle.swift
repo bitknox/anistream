@@ -214,7 +214,8 @@ struct PhoneTitle: View {
                                     }
                                     .font(.ui(15))
                                     .padding(.horizontal, 14)
-                                    .frame(height: 32)
+                                    .padding(.vertical, 4)
+                                    .frame(minHeight: 32)
                                     .overlay(Capsule().strokeBorder(.faintRule))
                                 }
                                 .buttonStyle(.plain)
@@ -306,7 +307,9 @@ struct PhoneTitle: View {
             }
             .font(.ui(15))
             .padding(.horizontal, 14)
-            .frame(height: 32)
+            // Taller than 32 points only when larger text needs it.
+            .padding(.vertical, 4)
+            .frame(minHeight: 32)
             .background(season.isThis ? Palette.selection : .clear, in: .capsule)
             .overlay(Capsule().strokeBorder(season.isThis ? .clear : Palette.faintRule))
         }
