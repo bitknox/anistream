@@ -78,6 +78,9 @@ struct ContinueScreen: View {
                     .padding(EdgeInsets(top: 4, leading: 12, bottom: 24, trailing: 16))
             }
             .scrollIndicators(.never)
+            #if os(macOS)
+            .hoverCards()
+            #endif
         }
         // The ground under the whole screen, however narrow the list.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

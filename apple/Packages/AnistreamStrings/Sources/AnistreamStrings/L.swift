@@ -1068,6 +1068,12 @@ public enum L {
         Self.format("access-download", fallback: "%1$@, %2$@, %3$@", title, episode, standing)
     }
 
+    /// VoiceOver: the heading of a cover's more content that holds its facts line, such as "TV · 12 episodes · Autumn 2026".
+    public static var accessHoverFacts: String { string("access-hover-facts", fallback: "Facts") }
+
+    /// VoiceOver: the heading of a cover's more content that holds the show's synopsis.
+    public static var accessHoverSynopsis: String { string("access-hover-synopsis", fallback: "Synopsis") }
+
     /// Short episode name for a dubbed episode, in a row or a widget.
     public static func titleEpisodeShortDubbed(episode: Int) -> String {
         Self.format("title-episode-short-dubbed", fallback: "E%1$lld dubbed", episode)

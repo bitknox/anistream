@@ -257,6 +257,7 @@ struct SearchScreen: View {
                 .presentationDragIndicator(.visible)
         }
         #else
+        .hoverCards()
         // Every filter in a panel at the trailing edge, inside Search rather than the system's
         // inspector column: an inspector splits the window's title bar and AppKit draws its own
         // toolbar backdrop across it, a grey band in place of the ground. Here the results'

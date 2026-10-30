@@ -229,6 +229,30 @@
         }
       }
     },
+    "access-hover-facts" : {
+      "comment" : "VoiceOver: the heading of a cover's more content that holds its facts line, such as \"TV · 12 episodes · Autumn 2026\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facts"
+          }
+        }
+      }
+    },
+    "access-hover-synopsis" : {
+      "comment" : "VoiceOver: the heading of a cover's more content that holds the show's synopsis.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synopsis"
+          }
+        }
+      }
+    },
     "access-in-span" : {
       "comment" : "VoiceOver: when an episode will come out. The span is spoken in full, such as \"1 hour 30 minutes\". Argument 1: span (Text).",
       "extractionState" : "manual",

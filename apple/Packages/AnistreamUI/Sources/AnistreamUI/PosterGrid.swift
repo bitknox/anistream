@@ -72,7 +72,7 @@ struct PosterCell: View {
         }
         .contextMenu { TitleMenu(entry: entry) }
         #if os(macOS)
-        .trailerPreview(entry)
+        .hoverCardSource(entry)
         #endif
     }
 
