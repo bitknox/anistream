@@ -15,7 +15,7 @@ use anistream_core::ids::AnilistId;
 use anistream_engine::engine::Engine;
 use anistream_model::jobs::JobId;
 use anistream_model::{
-    catalog::Entry,
+    catalog::{ContentFor, Entry},
     command::Command,
     downloads::{DownloadRow, DownloadState, SeedRow},
     event::Event,
@@ -186,9 +186,21 @@ impl Known {
 
     fn take(&mut self, event: &Event) {
         match event {
-            Event::Content { content, .. } => {
+            Event::Content { view, content } => {
+                // Continue's list carries the local watch history. The other views' rows may
+                // carry a tracker's progress, or none, so they refresh a known title's details
+                // and leave what this device watched alone.
+                let local = matches!(view, ContentFor::Continue);
                 for entry in content.entries() {
-                    self.entries.insert(entry.id.get(), with_fixture_trailer(entry.clone()));
+                    let mut entry = with_fixture_trailer(entry.clone());
+                    if !local {
+                        if let Some(known) = self.entries.get(&entry.id.get()) {
+                            entry.progress = known.progress;
+                            entry.resume = known.resume;
+                            entry.last_aired = known.last_aired.or(entry.last_aired);
+                        }
+                    }
+                    self.entries.insert(entry.id.get(), entry);
                 }
             }
             Event::Detail(entry) => {
@@ -584,7 +596,7 @@ fn with_fixture_trailer(entry: Entry) -> Entry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_model::catalog::{ContentFor, ContentList, ResumePoint};
+    use anistream_model::catalog::{ContentList, ResumePoint};
     use anistream_model::progress::TitleProgress;
 
     #[test]
@@ -604,6 +616,61 @@ mod tests {
         let entry = &known.entries[&7];
         assert_eq!(entry.progress, Some(TitleProgress { done: 3, next: 4 }));
         assert_eq!(entry.resume.map(|r| r.position), Some(60.0));
+    }
+
+    #[test]
+    fn the_library_list_does_not_move_continue_back_to_episode_one() {
+        use anistream_model::catalog::LibrarySegment;
+        let mut known = Known::default();
+        let id = AnilistId::new(900_001);
+        let mut local = Entry::new(id, "A title");
+        local.episodes = Some(12);
+        local.progress = Some(TitleProgress { done: 6, next: 7 });
+        local.resume = Some(ResumePoint { position: 606.0, fraction: Some(0.42) });
+        known.take(&Event::Content {
+            view: ContentFor::Continue,
+            content: ContentList::Entries(vec![local.clone()]),
+        });
+        let mut tracked = local.clone();
+        tracked.progress = Some(TitleProgress { done: 12, next: 1 });
+        known.take(&Event::Content {
+            view: ContentFor::Library(LibrarySegment::Completed),
+            content: ContentList::Entries(vec![tracked]),
+        });
+        let queue =
+            crate::say::queue(&[known.entries[&900_001].clone()], &[], &Default::default());
+        assert_eq!(queue.in_progress[0].episode, 7, "Continue says: {}", queue.in_progress[0].action);
+    }
+
+    #[test]
+    fn a_view_without_air_dates_keeps_what_the_title_already_aired() {
+        use anistream_model::catalog::Aired;
+        let mut known = Known::default();
+        let id = AnilistId::new(5);
+        let mut local = Entry::new(id, "A title");
+        local.last_aired = Some(Aired { episode: 3, ago: 600 });
+        known.take(&Event::Content {
+            view: ContentFor::Continue,
+            content: ContentList::Entries(vec![local]),
+        });
+        known.take(&Event::Content {
+            view: ContentFor::Calendar,
+            content: ContentList::Entries(vec![Entry::new(id, "A title")]),
+        });
+        assert_eq!(known.entries[&5].last_aired.map(|a| a.episode), Some(3));
+    }
+
+    #[test]
+    fn a_title_first_seen_in_another_view_is_kept_as_it_came() {
+        let mut known = Known::default();
+        let id = AnilistId::new(6);
+        let mut tracked = Entry::new(id, "A title");
+        tracked.progress = Some(TitleProgress { done: 2, next: 3 });
+        known.take(&Event::Content {
+            view: ContentFor::Calendar,
+            content: ContentList::Entries(vec![tracked]),
+        });
+        assert_eq!(known.entries[&6].progress.map(|p| p.next), Some(3));
     }
 
     #[test]
