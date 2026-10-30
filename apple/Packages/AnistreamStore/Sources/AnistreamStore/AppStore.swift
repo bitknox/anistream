@@ -24,11 +24,15 @@ public final class AppStore {
     /// Whether the device has no network, as the engine last said (`Event::Connectivity`): the
     /// screens keep what they have under the offline line, and one with nothing says so.
     public private(set) var offline = false
+    /// Whether trailers may start by themselves now, as the engine says it from the Play trailers
+    /// setting, the network and what the device says of itself (`Event::Autoplay`).
+    public private(set) var trailersMayAutoplay = false
 
     public let titles = TitleCache()
     public let continuing = ContinueModel()
     public let seasonal = ListModel()
     public let calendar = CalendarModel()
+    public let discussion = DiscussionModel()
     public let search = SearchModel()
     public let library = LibraryModel()
     public let jobs: JobsModel
@@ -606,6 +610,10 @@ public final class AppStore {
             AppLog.info("store", offline ? "offline" : "online")
             self.offline = offline
 
+        case .autoplay(let view):
+            trailersMayAutoplay = view.trailers
+            AppLog.info("store", view.trailers ? "trailers may play" : "trailers held: \(String(describing: view.heldBy))")
+
         case .settings(let view):
             let adult = settings.view.map { _ in settings.isOn(.adultTitles) }
             settings.apply(view)
@@ -705,6 +713,11 @@ public final class AppStore {
 
         case .update(let status):
             updates.apply(status)
+
+        case .discussion(let view):
+            discussion.view(view)
+        case .discussionFound(let media, let episode, let comments):
+            discussion.found(DiscussionKey(media: media, episode: episode), comments: comments)
 
         case .searchPaging(let query, let hasNext):
             search.paging(query, hasNext: hasNext)

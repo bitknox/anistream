@@ -196,6 +196,10 @@ public final class PlayerModel {
     @ObservationIgnored public private(set) var playhead: Double = 0
     public private(set) var duration: Double?
     public private(set) var paused = false
+    /// Whether the episode has been far enough on for its discussion to be offered.
+    private(set) var discussionWatch = PlayerDiscussion()
+    /// The app's discussions, for the More menu and the Playback menu.
+    public var discussionHost: DiscussionHost?
     public private(set) var speed: Double = 1
     public private(set) var volume: Double = 100
     public private(set) var muted = false
@@ -746,6 +750,7 @@ public final class PlayerModel {
     }
 
     private func resetFile() {
+        discussionWatch = PlayerDiscussion()
         position = 0
         playhead = 0
         duration = nil
@@ -815,6 +820,7 @@ public final class PlayerModel {
             guard let time = value.double else { return }
             playhead = time
             if scrubbing == nil, abs(time - position) >= 0.25 || time < position { position = time }
+            if !discussionWatch.reached { discussionWatch.see(position: time, duration: duration) }
             played()
         case "duration":
             duration = value.double
@@ -1336,6 +1342,25 @@ public final class PlayerModel {
     public func hold(_ reason: String, _ on: Bool) {
         if on { holds.insert(reason) } else { holds.remove(reason) }
         poke()
+    }
+
+    // MARK: The episode's discussion
+
+    /// The discussion of the episode on screen, once it has been far enough on (85%, where it
+    /// counts as watched) and discussions are on; with the comments the engine counted, when it has.
+    public var discussionOffer: (key: DiscussionKey, count: UInt32?)? {
+        guard let host = discussionHost, host.enabled(), discussionWatch.reached, let id = staged?.id,
+              let number = PlayerDiscussion.episode(episode?.number ?? staged?.episode)
+        else { return nil }
+        let key = DiscussionKey(media: id, episode: number)
+        return (key, host.count(key))
+    }
+
+    /// Open the discussion beside the video: the video pauses, and closing it does not resume.
+    public func openDiscussion() {
+        guard let offer = discussionOffer else { return }
+        pause()
+        discussionHost?.open(offer.key)
     }
 
     public func togglePause() {

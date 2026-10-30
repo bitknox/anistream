@@ -11,6 +11,32 @@ use crate::msg_text::{Size, Span, Value};
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Msg {
+    /// What the TV's loading screen and its own controls show under the show's name.
+    CastEpisode { episode: String },
+    /// What the TV's loading screen and its own controls show under the show's name, with the episode's own title.
+    CastEpisodeTitled { episode: String, title: String },
+    /// The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
+    NoticeCastVideoCodec { codec: String },
+    /// The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
+    NoticeCastAudioCodec { codec: String },
+    /// The stream comes in a kind of file the TV can't read.
+    NoticeCastContainer,
+    /// The episode opens in another app, which this device can't cast.
+    NoticeCastDeepLink,
+    /// The TV accepted the stream but never started reading it.
+    NoticeCastNeverFetches,
+    /// The TV tried every way of playing the stream and played none of them.
+    NoticeCastRefused,
+    /// Someone started something else on the TV, which ends the cast.
+    NoticeCastTakenOver,
+    /// This device isn't on the TV's network, or reaches it through a VPN.
+    NoticeCastNotSameNetwork,
+    /// The TV stopped answering mid-cast.
+    NoticeCastLost,
+    /// The TV picked to cast to has left the network.
+    NoticeCastNoDevice,
+    /// This build of the app has no casting.
+    NoticeCastUnavailable,
     /// A comment's age, beside its author, when it was written under a minute ago.
     DiscussionAgeNow,
     /// A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it.
@@ -387,6 +413,19 @@ impl Msg {
     /// The catalogue id of the message.
     pub fn id(&self) -> &'static str {
         match self {
+            Self::CastEpisode { .. } => "cast-episode",
+            Self::CastEpisodeTitled { .. } => "cast-episode-titled",
+            Self::NoticeCastVideoCodec { .. } => "notice-cast-video-codec",
+            Self::NoticeCastAudioCodec { .. } => "notice-cast-audio-codec",
+            Self::NoticeCastContainer => "notice-cast-container",
+            Self::NoticeCastDeepLink => "notice-cast-deep-link",
+            Self::NoticeCastNeverFetches => "notice-cast-never-fetches",
+            Self::NoticeCastRefused => "notice-cast-refused",
+            Self::NoticeCastTakenOver => "notice-cast-taken-over",
+            Self::NoticeCastNotSameNetwork => "notice-cast-not-same-network",
+            Self::NoticeCastLost => "notice-cast-lost",
+            Self::NoticeCastNoDevice => "notice-cast-no-device",
+            Self::NoticeCastUnavailable => "notice-cast-unavailable",
             Self::DiscussionAgeNow => "discussion-age-now",
             Self::DiscussionAgeMinutes { .. } => "discussion-age-minutes",
             Self::DiscussionAgeHours { .. } => "discussion-age-hours",
@@ -578,6 +617,19 @@ impl Msg {
     /// The message's arguments, by catalogue name.
     pub fn values(&self) -> Vec<(&'static str, Value)> {
         match self {
+            Self::CastEpisode { episode } => vec![("episode", Value::Text(episode.clone()))],
+            Self::CastEpisodeTitled { episode, title } => vec![("episode", Value::Text(episode.clone())), ("title", Value::Text(title.clone()))],
+            Self::NoticeCastVideoCodec { codec } => vec![("codec", Value::Text(codec.clone()))],
+            Self::NoticeCastAudioCodec { codec } => vec![("codec", Value::Text(codec.clone()))],
+            Self::NoticeCastContainer => Vec::new(),
+            Self::NoticeCastDeepLink => Vec::new(),
+            Self::NoticeCastNeverFetches => Vec::new(),
+            Self::NoticeCastRefused => Vec::new(),
+            Self::NoticeCastTakenOver => Vec::new(),
+            Self::NoticeCastNotSameNetwork => Vec::new(),
+            Self::NoticeCastLost => Vec::new(),
+            Self::NoticeCastNoDevice => Vec::new(),
+            Self::NoticeCastUnavailable => Vec::new(),
             Self::DiscussionAgeNow => Vec::new(),
             Self::DiscussionAgeMinutes { minutes } => vec![("minutes", Value::Int(*minutes))],
             Self::DiscussionAgeHours { hours } => vec![("hours", Value::Int(*hours))],

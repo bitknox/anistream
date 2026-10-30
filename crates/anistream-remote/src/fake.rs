@@ -55,13 +55,13 @@ struct Playing {
 struct Sink(mpsc::UnboundedSender<Routed>);
 
 enum Routed {
-    Engine(Command),
+    Engine(Box<Command>),
     Front(FrontIntent),
 }
 
 impl CommandSink for Sink {
     fn engine(&self, command: Command) {
-        let _ = self.0.send(Routed::Engine(command));
+        let _ = self.0.send(Routed::Engine(Box::new(command)));
     }
 
     fn front(&self, intent: FrontIntent) {
@@ -186,7 +186,7 @@ async fn run(
         let mut script = lock(&script);
         match routed {
             None => advance(&server, &mut script),
-            Some(Routed::Engine(command)) => engine(&server, &mut script, &titles, command),
+            Some(Routed::Engine(command)) => engine(&server, &mut script, &titles, *command),
             Some(Routed::Front(intent)) => front(&server, &mut script, intent),
         }
     }
@@ -361,6 +361,7 @@ fn front(server: &RemoteServer, script: &mut Script, intent: FrontIntent) {
             }
         }
         FrontIntent::Navigate { key } => script.commands.push(format!("{key:?}")),
+        FrontIntent::Mute { muted } => script.commands.push(format!("mute {muted}")),
         FrontIntent::Paired { .. } => {}
     }
 }

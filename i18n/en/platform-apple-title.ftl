@@ -57,3 +57,14 @@ title-episodes-all = All
 
 # Option of the episode list's filter that shows the episodes not yet watched.
 title-episodes-unwatched = Unwatched
+
+# Heading in the trailer window or sheet when the video did not start within a few seconds or the player refused it.
+# @only apple
+# @max 40
+trailer-failed-apple = Couldn't open the trailer
+
+# Title of the Play trailer window on the Mac and of its sheet on iPhone and iPad.
+# @only apple
+# @arg title: text
+# @max 80
+trailer-window-title-apple = { $title } · Trailer

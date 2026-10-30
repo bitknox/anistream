@@ -96,6 +96,8 @@ pub mod artwork;
 pub mod autoplay;
 pub mod background;
 pub mod cache;
+#[cfg(feature = "cast")]
+pub mod cast;
 pub mod catalog;
 pub mod clock;
 pub mod config;

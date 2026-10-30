@@ -47,5 +47,11 @@ internal object PlayerIcons {
 
     val Play = icon("Play", emptyList(), listOf("M8 5.5 V18.5 L18.5 12 Z"))
 
+    /** More: three dots in a column. */
+    val More = icon("More", emptyList(), listOf("M12 4.5 A1.5 1.5 0 1 1 11.99 4.5 Z", "M12 10.5 A1.5 1.5 0 1 1 11.99 10.5 Z", "M12 16.5 A1.5 1.5 0 1 1 11.99 16.5 Z"))
+
+    /** A speech bubble, for an episode's discussion. */
+    val Discussion = icon("Discussion", listOf("M4 5 H20 A2 2 0 0 1 22 7 V15 A2 2 0 0 1 20 17 H10 L5.5 21 V17 H4 A2 2 0 0 1 2 15 V7 A2 2 0 0 1 4 5 Z"))
+
     val SkipNext = icon("SkipNext", listOf("M17.5 6 V18"), listOf("M6 6.5 V17.5 L14 12 Z"))
 }

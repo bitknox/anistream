@@ -23,7 +23,24 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.core.Translation
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import tv.anistream.engine.model.CommentBlock
+import tv.anistream.engine.model.CommentSpan
+import tv.anistream.engine.model.CommentView
+import tv.anistream.engine.model.DiscussionState
+import tv.anistream.engine.model.DiscussionView
+import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.Msg
+import tv.anistream.engine.model.PostState
+import tv.anistream.ui.Destination
+import tv.anistream.ui.DiscussionSheet
+import tv.anistream.ui.LocalNavigator
+import tv.anistream.ui.Navigator
 import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerUi
@@ -107,11 +124,58 @@ class PlayerShots {
         )
     }
 
-    private fun shoot(name: String, picture: Boolean = true, at: (PlayerModel, ScriptedMpv) -> Unit) {
-        val store = AppStore(scope, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
+    /** The store of the shot being taken, for the steps that act on the screen. */
+    private lateinit var store: AppStore
+    private lateinit var model: PlayerModel
+    private var playing: ScriptedMpv? = null
+    private val sent = mutableListOf<tv.anistream.engine.model.Command>()
+
+    /**
+     * AndroidPlayerMore: past 85 % of the episode, the More button in the top bar, opened onto the
+     * discussion with its count and that opening it pauses.
+     */
+    @Test
+    fun phone_player_more_menu() = shoot("phone-player-more-menu", discussionSheet = true, after = {
+        compose.onNodeWithContentDescription("More").performClick()
+    }) { _, mpv ->
+        mpv.emit(MpvEvent.property("time-pos", MpvValue.Real(1250.0)))
+    }
+
+    @Test
+    fun phone_player_more_button_waits_for_the_watched_point() {
+        shoot("phone-player-before-85", discussionSheet = true) { _, mpv -> mpv.emit(MpvEvent.property("time-pos", MpvValue.Real(151.0))) }
+        compose.onNodeWithContentDescription("More").assertDoesNotExist()
+    }
+
+    /** The discussion sheet opened from the player: the video pauses where it is. */
+    @Test
+    fun phone_player_discussion_sheet() = shoot("phone-player-discussion", discussionSheet = true, after = {
+        compose.onNodeWithContentDescription("More").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Discussion").performClick()
+        compose.waitForIdle()
+        // The engine is not there to answer, so the pause shows as the command it was sent.
+        check(sent.any { it.toString().contains("TogglePause") }) { "opening the discussion pauses the video: $sent" }
+        playing!!.emit(MpvEvent.property("pause", MpvValue.Flag(true)))
+    }) { _, mpv ->
+        mpv.emit(MpvEvent.property("time-pos", MpvValue.Real(1250.0)))
+    }
+
+    private fun shoot(
+        name: String,
+        picture: Boolean = true,
+        discussionSheet: Boolean = false,
+        after: () -> Unit = {},
+        at: (PlayerModel, ScriptedMpv) -> Unit,
+    ) {
+        store = AppStore(scope, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
+        if (discussionSheet) {
+            store.apply(Event.DiscussionFound(900_001u, 7u, 214u))
+            store.apply(Event.Discussion(THREAD))
+        }
         var mpv: ScriptedMpv? = null
         // The clock held, so the controls stay up for the shot as after a tap.
-        val model = PlayerModel(send = {}, backend = { ScriptedMpv().also { mpv = it } }, scope = scope, now = { time }, hwdec = "no")
+        model = PlayerModel(send = { sent += it }, backend = { ScriptedMpv().also { mpv = it; playing = it } }, scope = scope, now = { time }, hwdec = "no")
         compose.runOnUiThread {
             model.apply(Event.PlaybackStaged(900_001u, TITLE, "7", EPISODE, 1.0))
             model.apply(Event.PlayerOps(1u, listOf(PlayerOp.Open(true, null, null), PlayerOp.Load("/media/episode.mkv", emptyList()))))
@@ -123,10 +187,17 @@ class PlayerShots {
         compose.setContent {
             AnistreamTheme {
                 // As a preview draws it: what moves for ever, such as the buffering line, as a still.
-                CompositionLocalProvider(LocalAppStore provides store, LocalInspectionMode provides true) {
+                val nav = androidx.navigation.compose.rememberNavController()
+                CompositionLocalProvider(
+                    LocalAppStore provides store,
+                    LocalNavigator provides androidx.compose.runtime.remember(nav) { Navigator(nav, Destination.Continue) },
+                    LocalInspectionMode provides true,
+                ) {
                     PlayerScreen(model, video = { _, modifier, _ ->
                         Image(still, contentDescription = null, contentScale = ContentScale.Crop, modifier = modifier)
                     })
+                    val target by store.discussion.target.collectAsState()
+                    target?.let { DiscussionSheet(ENTRY, it.episode) { store.discussion.dismiss() } }
                 }
             }
         }
@@ -146,6 +217,9 @@ class PlayerShots {
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
         awaitArt(store)
+        after()
+        compose.mainClock.advanceTimeBy(600)
+        compose.waitForIdle()
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/$name.png")
     }
 
@@ -163,6 +237,33 @@ class PlayerShots {
     companion object {
         /** The player boards: 915 × 412 dp, landscape, at 420 dpi, as the emulator's phone turned. */
         const val PHONE_LANDSCAPE = "w915dp-h412dp-land-420dpi"
+
+        private val ENTRY = Entry(
+            id = 900_001u, title = "Hoshikuzu no Tabibito", secondary = null, format = "TV", episodes = 13u, year = 2026u, score = null,
+            studio = null, synopsis = "", coverUrl = "${FixtureArt.HOST}cover/900001-xl.jpg", bannerUrl = null,
+            genres = emptyList(), availableOn = emptyList(), progress = null, airingIn = null,
+            airingEpisode = null, nextEpisode = null, nextAiringIn = null, lastAired = null, resume = null,
+            related = emptyList(), recommended = emptyList(), trailerUrl = null, listStatus = null,
+            titleRomaji = "Hoshikuzu no Tabibito", titleEnglish = null, titleNative = null, season = null, startDate = null,
+            endDate = null, source = null, adult = false, detail = null,
+            status = null, synopsisSpans = emptyList(),
+        )
+
+        private fun comment(id: UInt, who: String, text: String, hours: Long, likes: UInt, replies: List<CommentView> = emptyList()) = CommentView(
+            id = id, author = who, avatar = null, createdAt = 0L, age = Msg.DiscussionAgeHours(hours),
+            body = listOf(CommentBlock(spans = listOf(CommentSpan(text = text)))), likeCount = likes,
+            pending = PostState.POSTED, replies = replies,
+        )
+
+        private val THREAD = DiscussionView(
+            media = 900_001u, episode = 7u, title = "Episode 7 Discussion", commentCount = 214u,
+            url = "https://anilist.example/forum/thread/1",
+            comments = listOf(
+                comment(11u, "lampwick", "Nobody spoke for almost a minute, and it was the best part of the episode.", 2, 41u, listOf(comment(12u, "tamsin", "And the music came back on the exact frame her lantern caught.", 1, 13u))),
+                comment(14u, "ferrylog", "The lantern light on the faces is drawn frame by frame, not a filter.", 1, 8u),
+            ),
+            state = DiscussionState.Ready(more = false), canPost = false, signedIn = false, loadImages = false,
+        )
 
         const val TITLE = "Hoshikuzu no Tabibito"
         const val EPISODE = "The Lantern Road"

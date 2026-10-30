@@ -24,7 +24,8 @@ extension SettingKey {
         switch self {
         case .motion, .autoNext, .skipOpening, .skipFiller, .markChapters, .skipButton, .fullscreen, .nightMode,
              .mergeSubtitles, .keepSeeding, .presence, .presenceTitle, .presenceRich, .torrents, .syncplay,
-             .updateCheck, .spoilerProtection, .downloadsOnCellular, .torrentsOnCellular, .adultTitles:
+             .updateCheck, .spoilerProtection, .downloadsOnCellular, .torrentsOnCellular, .adultTitles,
+             .episodeDiscussions, .commentImages:
             true
         default:
             false
@@ -65,6 +66,9 @@ extension SettingKey {
             ["adaptive", "immersive"].map { SettingOption(value: .str($0), label: $0) }
         case .titles:
             [("anilist", "AniList's choice"), ("english", "English"), ("romaji", "Romaji")]
+                .map { SettingOption(value: .str($0.0), label: $0.1) }
+        case .trailers:
+            [("always", "always"), ("wifi-only", "Wi-Fi only"), ("off", "off")] // i18n-skip: the engine's words
                 .map { SettingOption(value: .str($0.0), label: $0.1) }
         case .playerUi:
             [("anistream", "anistream"), ("mpv", "your mpv setup")]

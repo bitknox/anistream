@@ -1,7 +1,7 @@
 //! AniList's forum threads, as the episode discussions read and write them.
 //!
 //! A test makes up the threads it needs with [`FakeAniList::add_thread`]; there are none in
-//! the fixtures. Comments are kept in AniList's own wire shape, replies nested under
+//! the fixtures unless asked for with [`FakeAniList::add_fixture_thread`]. Comments are kept in AniList's own wire shape, replies nested under
 //! `childComments`, so what the fake answers is what the client decodes. Posting, editing,
 //! deleting and liking change the fake's copy, as they would AniList's, so a test can read a
 //! thread back after writing to it.
@@ -59,6 +59,58 @@ impl FakeAniList {
             comments,
         });
         id
+    }
+
+    /// Open the one thread the testing engine's apps show: episode 7 of the finished fixture
+    /// title, made-up users and text, comments written the last five hours before `now`, one
+    /// of them the fixture viewer's own. Its id is returned.
+    pub fn add_fixture_thread(&self, now: i64) -> u32 {
+        const HOUR: i64 = 3_600;
+        let mut own =
+            comment(26, "fixture-viewer", "Rewatching it tonight.", now - HOUR, Vec::new());
+        own["user"]["id"] = json!(fixtures::VIEWER_ID);
+        let reply = comment(
+            22,
+            "tamsin",
+            "Same. The quiet scene at the harbour stayed with me.",
+            now - 3 * HOUR,
+            Vec::new(),
+        );
+        self.add_thread(
+            fixtures::FINISHED,
+            "Stardust Wayfarer Episode 7 Discussion",
+            vec![
+                comment(
+                    21,
+                    "lampwick",
+                    "That ending. I did not see the lantern coming.",
+                    now - 5 * HOUR,
+                    vec![reply],
+                ),
+                comment(
+                    23,
+                    "marlowe",
+                    "The soundtrack in the second half is **so good**.",
+                    now - 4 * HOUR,
+                    Vec::new(),
+                ),
+                comment(
+                    24,
+                    "juniper",
+                    "Does the ferry captain come back? ~!She sails home in the finale.!~",
+                    now - 3 * HOUR,
+                    Vec::new(),
+                ),
+                comment(
+                    25,
+                    "ferrylog",
+                    "Adding this to my rewatch list.",
+                    now - 2 * HOUR,
+                    Vec::new(),
+                ),
+                own,
+            ],
+        )
     }
 
     /// The top-level comments of thread `id` as the fake now holds them, replies nested.

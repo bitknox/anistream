@@ -112,6 +112,11 @@ public struct PlaybackMenu: View {
         Toggle(L.menuStatsForNerds, isOn: Binding(get: { model.statsShown }, set: { model.showStats($0) }))
             .keyboardShortcut("i", modifiers: [])
             .disabled(!keys)
+        Divider()
+        // Dimmed in place when discussions are off, the episode is not far enough on, or nothing plays.
+        Button(L.discussionOpen) { model.openDiscussion() }
+            .keyboardShortcut("d", modifiers: [.command, .option])
+            .disabled(model.discussionOffer == nil)
         // Picture in Picture is the Window menu's, PictureInPictureMenuItem below.
     }
 

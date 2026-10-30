@@ -64,7 +64,12 @@ language. `ANISTREAM_LANG` still overrides all three, for trying a language or t
 
 Accented, 30% longer English for checking layouts and finding strings that were never moved.
 
-- Apple: the scheme option "Double-Length Pseudolanguage", or `-AppleLanguages (en-XA)`.
+- Apple: the scheme option "Double-Length Pseudolanguage", or the launch arguments
+  `-NSDoubleLocalizedStrings YES -NSAccentuateLocalizedStrings YES`. `-AppleLanguages (en-XA)` shows
+  plain English, because the app has no en-XA localisation. This doubles the length, which is harsher
+  than the 30% of the other platforms, and it also mangles `%1$@` style arguments in the output.
+  `ANISTREAM_LAUNCH_ARGS="..." apple/scripts/shots.sh iphone` passes them to the Simulator shots.
+  Rail titles and sort names come from the engine and stay English here.
 - Android: debug builds enable `en-XA` and `ar-XB` in the system language list.
 - Windows: the `qps-ploc` language.
 - Linux and TUI: `ANISTREAM_LANG=en-XA` (debug builds, or the `pseudo` feature).

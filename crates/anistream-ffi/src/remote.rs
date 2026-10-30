@@ -16,6 +16,7 @@ use std::{
 
 use anistream_core::ids::AnilistId;
 use anistream_engine::{
+    cast::CastHub,
     engine::EventStream,
     remote::{
         TvRemote,
@@ -41,16 +42,19 @@ const IDENTITY_SECRET: &str = "remote-identity";
 /// end, waiting to go out with the next events.
 pub(crate) struct Attached {
     home: RemoteHome,
+    /// Casting's hub, which reads the engine's events for a cast's card.
+    casts: Arc<CastHub>,
     running: Arc<Mutex<Option<TvRemote>>>,
     intents: mpsc::UnboundedSender<FrontIntent>,
     waiting: tokio::sync::Mutex<mpsc::UnboundedReceiver<FrontIntent>>,
 }
 
 impl Attached {
-    pub(crate) fn new(home: RemoteHome) -> Self {
+    pub(crate) fn new(home: RemoteHome, casts: Arc<CastHub>) -> Self {
         let (intents, waiting) = mpsc::unbounded_channel();
         Self {
             home,
+            casts,
             running: Arc::new(Mutex::new(None)),
             intents,
             waiting: tokio::sync::Mutex::new(waiting),
@@ -79,7 +83,15 @@ impl Attached {
                 remote.observe(event);
             }
         }
+        for event in &batch {
+            self.casts.observe(event);
+        }
         batch
+    }
+
+    /// Casting's hub, for the sender side.
+    pub(crate) fn casts(&self) -> &Arc<CastHub> {
+        &self.casts
     }
 
     /// Where the remote's keys are kept and its files written, for the sender side too.

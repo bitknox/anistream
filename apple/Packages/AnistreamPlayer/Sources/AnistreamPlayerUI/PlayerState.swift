@@ -2,6 +2,7 @@
 // what mpv says of the file.
 
 import AnistreamKit
+import AnistreamStore
 import AnistreamStrings
 import Foundation
 
@@ -360,4 +361,22 @@ public func bufferedSpans(_ ranges: [TimeRange], in segment: SeekSegment) -> [(f
 struct SubtitleLift: Equatable {
     var visible: Bool
     var height: CGFloat
+}
+
+/// What the player asks of the app's discussions: whether they are on, how many comments an
+/// episode has, and to open one.
+public struct DiscussionHost {
+    public var enabled: @MainActor () -> Bool
+    public var count: @MainActor (DiscussionKey) -> UInt32?
+    public var open: @MainActor (DiscussionKey) -> Void
+
+    public init(
+        enabled: @escaping @MainActor () -> Bool,
+        count: @escaping @MainActor (DiscussionKey) -> UInt32?,
+        open: @escaping @MainActor (DiscussionKey) -> Void
+    ) {
+        self.enabled = enabled
+        self.count = count
+        self.open = open
+    }
 }

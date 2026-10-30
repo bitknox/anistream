@@ -877,6 +877,30 @@ private fun PrefetchSeasons(family: TitleFamily, around: androidx.compose.runtim
 @Composable
 private fun TitleHead(entry: Entry, episodes: List<EpisodeRow>?, list: LazyListState, inset: Dp, shared: Boolean) {
     val art = HeroArt.of(entry, episodes)
+    // A title whose trailer may play has its banner taller from the first frame, decided once, so
+    // the page never moves when the video arrives.
+    if (rememberTrailerRoom(entry)) {
+        TrailerHead(
+            entry = entry,
+            art = { modifier ->
+                if (art != HeroArt.Compact) {
+                    ArtworkImage(
+                        url = art.url,
+                        plate = null,
+                        maxPixelSize = pixels(412.dp),
+                        modifier = modifier.then(if (shared) Modifier.shared(Shared.Player, entry.id).shared(Shared.Art, entry.id) else Modifier),
+                    )
+                } else {
+                    Box(modifier)
+                }
+            },
+            list = list,
+            inset = inset,
+            active = shared,
+            header = { modifier -> TitleHeader(entry, shared, modifier, trailingGap = TrailerRoom.titleGap) },
+        )
+        return
+    }
     Box {
         if (art != HeroArt.Compact) {
             ArtworkImage(
@@ -994,7 +1018,7 @@ private fun RelatedRail(related: List<tv.anistream.engine.model.LinkedTitle>) {
 
 /** The poster, the title, the other title and the metadata line, standing on the banner's foot. */
 @Composable
-private fun TitleHeader(entry: Entry, shared: Boolean, modifier: Modifier = Modifier) {
+private fun TitleHeader(entry: Entry, shared: Boolean, modifier: Modifier = Modifier, trailingGap: Dp = 0.dp) {
     Row(
         modifier.padding(horizontal = 16.dp).heightIn(min = 120.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -1010,7 +1034,7 @@ private fun TitleHeader(entry: Entry, shared: Boolean, modifier: Modifier = Modi
                 .clip(ArtShape.cover(80.dp))
                 .border(1.dp, ObiSilk.Silk.copy(alpha = 0.1f), ArtShape.cover(80.dp)),
         )
-        Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f).padding(end = trailingGap)) {
             Text(
                 entry.showTitle,
                 style = TitleOverArt,
@@ -1197,8 +1221,10 @@ private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
                     }
                 }
             }
-            entry.trailerUrl?.let { trailer ->
-                OutlinedButton(onClick = { store.openExternal(trailer) }, modifier = Modifier.weight(1f)) {
+            if (entry.trailerUrl != null) {
+                var sheet by rememberSaveable(entry.id) { mutableStateOf(false) }
+                if (sheet) entry.trailer?.let { TrailerSheet(entry, it) { sheet = false } }
+                OutlinedButton(onClick = { playTrailer(store, entry) { sheet = true } }, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Trailer, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.title_trailer))
@@ -1722,20 +1748,25 @@ private fun EpisodeRowView(entry: Entry, row: EpisodeRow, next: UInt, actions: A
     val unaired = airsAt != null && airsAt > nowSeconds()
     val hidden = spoilerProtected(entry.id) && number > next && !row.completed && !unaired
     var menu by remember { mutableStateOf(false) }
-    Box {
-        EpisodeLine(
-            entry = entry,
-            row = row,
-            current = current,
-            unaired = unaired,
-            hidden = hidden,
-            // One no source has plays nothing: a tap offers what can be done, adding a source among it.
-            onPlay = {
-                if (row.metadataOnly || row.unsourced) menu = true else if (!unaired) actions.play(entry.id, row.number)
-            },
-            onMenu = { menu = true },
-        )
-        EpisodeMenu(entry, row, expanded = menu, onDismiss = { menu = false }, actions = actions)
+    val comments = discussionCountOf(entry, row)
+    Column {
+        Box {
+            EpisodeLine(
+                entry = entry,
+                row = row,
+                current = current,
+                unaired = unaired,
+                hidden = hidden,
+                // One no source has plays nothing: a tap offers what can be done, adding a source among it.
+                onPlay = {
+                    if (row.metadataOnly || row.unsourced) menu = true else if (!unaired) actions.play(entry.id, row.number)
+                },
+                onMenu = { menu = true },
+            )
+            EpisodeMenu(entry, row, expanded = menu, onDismiss = { menu = false }, actions = actions)
+        }
+        // The quiet line under a watched episode that has a thread.
+        if (comments != null) DiscussionRow(entry, row, comments)
     }
 }
 
@@ -1972,8 +2003,10 @@ private fun TabletActions(entry: Entry, actions: AppActions, unlisted: Boolean, 
                 }
             }
         }
-        entry.trailerUrl?.let { trailer ->
-            OutlinedButton(onClick = { store.openExternal(trailer) }, contentPadding = PaddingValues(start = 16.dp, end = 24.dp)) {
+        if (entry.trailerUrl != null) {
+            var sheet by rememberSaveable(entry.id) { mutableStateOf(false) }
+            if (sheet) entry.trailer?.let { TrailerSheet(entry, it) { sheet = false } }
+            OutlinedButton(onClick = { playTrailer(store, entry) { sheet = true } }, contentPadding = PaddingValues(start = 16.dp, end = 24.dp)) {
                 Icon(Icons.Trailer, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.title_trailer))

@@ -27,6 +27,7 @@ import tv.anistream.player.MpvBackend
 import tv.anistream.player.PlayerConnection
 import tv.anistream.player.PlayerHost
 import tv.anistream.player.PlayerModel
+import tv.anistream.store.DeviceWatch
 import tv.anistream.store.AppHost
 import tv.anistream.store.AppPhases
 import tv.anistream.store.AppStore
@@ -109,6 +110,8 @@ class TvApp : Application(), PlayerHost {
         }
         store.start(launch, host(), prepare)
         watchNetwork()
+        // Trailers play only when the device allows it; the engine decides from what it is told.
+        DeviceWatch.watch(this) { state -> scope.launch { store.deviceState(state) } }
         ProcessLifecycleOwner.get().lifecycle.addObserver(remote)
         ProcessLifecycleOwner.get().lifecycle.addObserver(phases())
         watchNext.start()

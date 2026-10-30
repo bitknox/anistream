@@ -92,6 +92,15 @@ internal object Flavour {
      */
     fun started(store: AppStore, intent: Intent) {
         intent.getStringExtra("day")?.toIntOrNull()?.let { store.calendar.opensOn = it }
+        // Episodes of the first fixture marked watched, 1,2,3: playback would also have the engine
+        // look their threads up, so the one with a fixture thread is said found as it would be.
+        intent.getStringExtra("watched")?.let { episodes ->
+            val marks = episodes.split(',').filter(String::isNotBlank)
+            store.setWatched(900001u, marks)
+            store.loadContinue(force = true)
+            store.loadDetail(900001u)
+            if ("7" in marks) store.apply(listOf(Event.DiscussionFound(900001u, 7u, 6u)))
+        }
         val tracker = intent.getStringExtra("signin") ?: return
         val expiresAt = System.currentTimeMillis() / 1000 + (intent.getStringExtra("expires")?.toLongOrNull()?.coerceAtLeast(0) ?: 899)
         MainScope().launch {
