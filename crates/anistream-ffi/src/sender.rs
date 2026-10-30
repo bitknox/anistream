@@ -1074,8 +1074,8 @@ pub trait FfiAacStream: Send + Sync {
 pub struct FfiAudioTrack {
     /// `ac3`, `eac3`, `dts`, `truehd`, `opus` or `flac`.
     pub codec: String,
-    /// The track's Matroska `CodecPrivate`, what a decoder is configured from. Often empty.
-    #[uniffi(default)]
+    /// The track's Matroska `CodecPrivate`, what a decoder is configured from. Often empty. No
+    /// `uniffi(default)`: the C# bindings cannot give a byte array a constant default.
     pub codec_private: Vec<u8>,
     pub sample_rate: u32,
     pub channels: u16,
