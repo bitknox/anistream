@@ -468,7 +468,7 @@ impl Hub {
             let listeners: Vec<_> =
                 self.listeners.borrow().iter().map(|(_, l)| l.clone()).collect();
             for listener in listeners {
-                guarded("a page listener", || listener(&event));
+                guarded("a page listener", || listener(&event)); // i18n-skip
             }
         }
     }

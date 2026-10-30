@@ -520,6 +520,7 @@ tv-discussion-select-spoiler = Select to show the spoiler
 # system's own words, which a translation should follow for that TV's language.
 # @only android
 # @max 80
+# @allow source
 updates-unknown-sources-path = Settings › Apps › Security & restrictions › Unknown sources
 
 # Name a TV gives itself to phones when the system has none set.
