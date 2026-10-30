@@ -281,10 +281,17 @@ public actor MpvClient {
         }
     }
 
-    public func load(_ url: String, options: [String: String] = [:]) throws {
+    /// Loads `url` in place of the playlist, and answers with the playlist entry mpv made for
+    /// it: the one its `start-file` names.
+    @discardableResult
+    public func load(_ url: String, options: [String: String] = [:]) throws -> Int64? {
         var arguments: [String: MpvValue] = ["url": .string(url), "flags": "replace"]
         if !options.isEmpty { arguments["options"] = .map(options.mapValues(MpvValue.string)) }
-        try command("loadfile", arguments)
+        guard case .map(let answer) = try command("loadfile", arguments) else { return nil }
+        return switch answer["playlist_entry_id"] {
+        case .int(let entry): entry
+        default: nil
+        }
     }
 
     public func addSubtitle(
