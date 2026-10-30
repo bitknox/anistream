@@ -1013,6 +1013,24 @@ public enum L {
         Self.format("calendar-time-approximate", fallback: "~%1$@", time)
     }
 
+    /// Name of a day with nothing airing, in the calendar's columns and agenda.
+    public static var calendarDayEmptyApple: String { string("calendar-day-empty-apple", fallback: "Nothing airs") }
+
+    /// Activity line in the first column of a week that is loading.
+    public static var calendarLoadingWeek: String { string("calendar-loading-week", fallback: "Loading this week") }
+
+    /// Line where the rest of the week would be when it could not be loaded.
+    public static var calendarLoadWeekFailed: String { string("calendar-load-week-failed", fallback: "Couldn't load this week") }
+
+    /// Line in the iPhone agenda, under Today, when nothing on the person's list airs in the 4 weeks ahead.
+    public static var calendarEmptyMineAhead: String { string("calendar-empty-mine-ahead", fallback: "Nothing on your list airs in the next 4 weeks.") }
+
+    /// Calendar filter on the Mac and iPad, in title case like the menus: every airing show.
+    public static var calendarFilterAllTitle: String { string("calendar-filter-all-title", fallback: "All Airing") }
+
+    /// Calendar filter on the Mac and iPad, in title case like the menus: only the person's list.
+    public static var calendarFilterMineTitle: String { string("calendar-filter-mine-title", fallback: "My List") }
+
     /// Name of the week before this one, in the calendar's toolbar.
     public static var calendarLastWeek: String { string("calendar-last-week", fallback: "Last week") }
 
@@ -1777,6 +1795,15 @@ public enum L {
 
     /// Mac menu bar item that opens the command palette.
     public static var menuCommandPalette: String { string("menu-command-palette", fallback: "Command Palette") }
+
+    /// Mac and iPad View menu item that shows the calendar's current week.
+    public static var menuGoToToday: String { string("menu-go-to-today", fallback: "Go to Today") }
+
+    /// Mac and iPad View menu item that shows the calendar's week before.
+    public static var menuPreviousWeek: String { string("menu-previous-week", fallback: "Previous Week") }
+
+    /// Mac and iPad View menu item that shows the calendar's week after.
+    public static var menuNextWeek: String { string("menu-next-week", fallback: "Next Week") }
 
     /// Mac menu bar item that syncs with the tracker accounts now.
     public static var menuSyncNow: String { string("menu-sync-now", fallback: "Sync Now") }

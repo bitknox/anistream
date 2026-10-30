@@ -19,6 +19,15 @@ menu-search-filters = Search Filters
 # Mac menu bar item that opens the command palette.
 menu-command-palette = Command Palette
 
+# Mac and iPad View menu item that shows the calendar's current week.
+menu-go-to-today = Go to Today
+
+# Mac and iPad View menu item that shows the calendar's week before.
+menu-previous-week = Previous Week
+
+# Mac and iPad View menu item that shows the calendar's week after.
+menu-next-week = Next Week
+
 # Mac menu bar item that syncs with the tracker accounts now.
 menu-sync-now = Sync Now
 

@@ -110,6 +110,27 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
             Button(L.menuCheckForUpdates) { store.loadStores() }
         }
 
+        // View: the calendar's weeks, outside text fields, while the calendar is the section.
+        CommandGroup(after: .toolbar) {
+            let bounds = store.calendarBounds
+            let week = navigator.calendarWeek
+            let here = navigator.section == .calendar && navigator.titleOnMac == nil
+            Button(L.menuGoToToday) { navigator.showCalendarWeek(0) }
+                .keyboardShortcut("t", modifiers: .command)
+                .disabled(!here || week == 0)
+            Button(L.menuPreviousWeek) { navigator.showCalendarWeek(week - 1) }
+                .keyboardShortcut(.leftArrow, modifiers: .command)
+                .disabled(!here || !bounds.touches(weekDays(offset: week - 1)))
+            Button(L.menuNextWeek) { navigator.showCalendarWeek(week + 1) }
+                .keyboardShortcut(.rightArrow, modifiers: .command)
+                .disabled(!here || !bounds.touches(weekDays(offset: week + 1)))
+            Divider()
+            Button(L.calendarFilterAllTitle) { store.setSwitch(.calendarMine, on: false) }
+                .disabled(navigator.section != .calendar)
+            Button(L.calendarFilterMineTitle) { store.setSwitch(.calendarMine, on: true) }
+                .disabled(navigator.section != .calendar)
+        }
+
         CommandGroup(after: .windowArrangement) {
             Divider()
             #if os(macOS)

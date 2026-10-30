@@ -21,6 +21,7 @@ import Foundation
 ///     -AnistreamFold open           the title page's watched episodes, opened
 ///     -AnistreamDay 2               the calendar opened on the day this many days after today,
 ///                                   for a day with broadcasts: the fixtures' own day can have none
+///     -AnistreamCalendarMine 1      the calendar on My list (it opens on All airing)
 ///     -AnistreamShowcase stores     invented rows beside the testing engine's: see `Showcase`
 ///     -AnistreamCatalogue           Search's browse with the test kit's eight more titles beside the six
 public struct LaunchRoute: Equatable, Sendable {
@@ -36,6 +37,8 @@ public struct LaunchRoute: Equatable, Sendable {
     public var fold: String?
     /// Days after today the calendar opens on.
     public var day: Int?
+    /// The calendar on My list.
+    public var calendarMine = false
 
     public init() {}
 
@@ -55,6 +58,7 @@ public struct LaunchRoute: Equatable, Sendable {
         sheet = value("-AnistreamSheet")
         fold = value("-AnistreamFold")
         day = value("-AnistreamDay").flatMap { Int($0) }
+        calendarMine = value("-AnistreamCalendarMine") == "1"
         library = value("-AnistreamLibrary").flatMap { name in
             LibraryModelOrder.segments.first { "\($0)" == name }
         }

@@ -72,6 +72,17 @@ public final class CalendarModel {
     public private(set) var anchor: Int64?
     public private(set) var pages: UInt32 = 0
     public private(set) var morePast = false
+    /// The furthest back and forward the calendar reaches, in epoch seconds, as the engine says.
+    public private(set) var floor: Int64?
+    public private(set) var ceiling: Int64?
+    /// Pages of the future loaded, and whether there is more behind them.
+    public private(set) var aheadPages: UInt32 = 0
+    public private(set) var moreAhead = false
+    /// Whether earlier or later broadcasts are on their way, and whether the last ask failed.
+    public private(set) var loadingPast = false
+    public private(set) var loadingAhead = false
+    public private(set) var pastFailed = false
+    public private(set) var aheadFailed = false
     /// The calendar's rows, oldest first: the broadcasts, each a title on a day, so not unique by
     /// title the way another list's are.
     public private(set) var rows: [Entry] = []
@@ -83,20 +94,65 @@ public final class CalendarModel {
         rows = content.entriesOrEmpty
     }
 
-    func window(anchor: Int64, pages: UInt32, morePast: Bool) {
+    func window(
+        anchor: Int64, pages: UInt32, morePast: Bool,
+        floor: Int64, ceiling: Int64, aheadPages: UInt32, moreAhead: Bool
+    ) {
         self.anchor = anchor
         self.pages = pages
         self.morePast = morePast
+        self.floor = floor
+        self.ceiling = ceiling
+        self.aheadPages = aheadPages
+        self.moreAhead = moreAhead
+        loadingPast = false
+        loadingAhead = false
+        pastFailed = false
+        aheadFailed = false
     }
 
     /// Older broadcasts, above what is there. A page of `nil` failed: nothing to add, and the
-    /// same page is asked for again on the next scroll.
+    /// same page is asked for again when the person tries again.
     func backfill(page: UInt32?, entries: [Entry], morePast: Bool, titles: TitleCache) {
-        guard let page else { return }
+        loadingPast = false
+        guard let page else {
+            pastFailed = true
+            return
+        }
+        pastFailed = false
         titles.merge(entries)
         rows.insert(contentsOf: entries, at: 0)
         pages = max(pages, page + 1)
         self.morePast = morePast
+    }
+
+    /// Later broadcasts, after what is there; a page of `nil` failed.
+    func ahead(page: UInt32?, entries: [Entry], moreAhead: Bool, titles: TitleCache) {
+        loadingAhead = false
+        guard let page else {
+            aheadFailed = true
+            return
+        }
+        aheadFailed = false
+        titles.merge(entries)
+        rows.append(contentsOf: entries)
+        aheadPages = max(aheadPages, page + 1)
+        self.moreAhead = moreAhead
+    }
+
+    func clearFailures() {
+        pastFailed = false
+        aheadFailed = false
+    }
+
+    func askedPast() {
+        loadingPast = true
+        pastFailed = false
+    }
+
+    func askedAhead() {
+        loadingAhead = true
+        aheadFailed = false
     }
 }
 

@@ -156,20 +156,65 @@ func weekDays(offset: Int, now: Date = .now) -> [Date] {
     return (0..<7).map { calendar.date(byAdding: .day, value: $0, to: start)! }
 }
 
+/// What a day's column holds when it is not simply its broadcasts.
+enum ColumnKind: Equatable {
+    case normal
+    /// Before the floor or after the ceiling: nothing, and a line in the first of them.
+    case outside(line: String?)
+    /// Not loaded yet: placeholders, and the activity line in the first column.
+    case loading(activity: Bool)
+    /// A page failed: the line with Try again in the first column missing.
+    case failed(first: Bool)
+    /// My list with nothing this week: the line with the way out, in the first column.
+    case mineEmpty(first: Bool)
+    /// The data ends before the ceiling: a quiet line in the first day after it.
+    case dataEnd(first: Bool)
+}
+
 /// The calendar on the Mac and a wide iPad: the week as seven columns, today's set apart.
 struct CalendarScreen: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var rotor
     /// The page's height, and the headings', which the columns fill between them at least.
     @State private var page: CGFloat = 0
     @State private var heading: CGFloat = 0
 
+    /// What the week needs asked again for: another week, a window, more rows.
+    private struct Need: Hashable {
+        let week: Int
+        let anchor: Int64?
+        let rows: Int
+        let pages: UInt32
+    }
+
     var body: some View {
-        let days = weekDays(offset: navigator.calendarWeek)
-        let broadcasts = store.broadcasts(mine: navigator.calendarMine)
-        let now = Date.now
-        ListStates(
+        // The headings and the line for now move on each minute.
+        TimelineView(.everyMinute) { context in
+            content(now: context.date)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .task {
+            if navigator.launchCalendarMine {
+                navigator.launchCalendarMine = false
+                store.setSwitch(.calendarMine, on: true)
+            }
+            if store.calendar.list.state == .idle { store.loadCalendar() }
+        }
+        .task(id: Need(week: navigator.calendarWeek, anchor: store.calendar.anchor, rows: store.calendar.rows.count, pages: store.calendar.pages + store.calendar.aheadPages)) {
+            let days = weekDays(offset: navigator.calendarWeek)
+            store.ensureCalendar(from: days[0], to: days[6].addingTimeInterval(86_400))
+        }
+    }
+
+    private func content(now: Date) -> some View {
+        let days = weekDays(offset: navigator.calendarWeek, now: now)
+        let broadcasts = store.broadcasts(mine: store.calendarMine)
+        let slide: AnyTransition = reduceMotion
+            ? .opacity
+            : .push(from: navigator.calendarForward ? .trailing : .leading)
+        return ListStates(
             state: store.calendar.list.state,
             placeholder: AnyView(CalendarPlaceholder(days: days).padding(EdgeInsets(top: 4, leading: 12, bottom: 12, trailing: 16))),
             activity: "loading the calendar", // the engine job this list waits on
@@ -177,72 +222,132 @@ struct CalendarScreen: View {
             retry: { store.loadCalendar() },
             offlineInset: 12
         ) { _ in
-            // One page that scrolls, the days' headings pinned above it: each column as long as
-            // its day, and every one as long as the longest, or the window when that is longer.
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                    Section {
-                        HStack(alignment: .top, spacing: 4) {
-                            ForEach(days, id: \.self) { day in
-                                DayBroadcasts(
-                                    day: day,
-                                    broadcasts: broadcasts.filter { Calendar.current.isDate($0.airs, inSameDayAs: day) },
-                                    now: now,
-                                    minHeight: max(0, page - heading)
-                                )
-                            }
-                        }
-                        .fixedSize(horizontal: false, vertical: true)
-                    } header: {
-                        HStack(alignment: .top, spacing: 4) {
-                            ForEach(days, id: \.self) { day in
-                                DayHeading(day: day, rotor: rotor)
-                            }
-                        }
-                        .background(.ground)
-                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { heading = $0 }
-                    }
-                }
-                .padding(EdgeInsets(top: 4, leading: 12, bottom: 12, trailing: 16))
+            ZStack {
+                weekView(days: days, broadcasts: broadcasts, now: now)
+                    .id(navigator.calendarWeek)
+                    .transition(slide)
             }
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { page = $0 - 16 }
-            .daysRotor(days, broadcasts: broadcasts, in: rotor)
+            .clipped()
         } empty: {
-            QuietLine(L.calendarEmptyTitle)
+            weekView(days: days, broadcasts: broadcasts, now: now)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .task { if store.calendar.list.state == .idle { store.loadCalendar() } }
-        .onChange(of: navigator.calendarWeek) { _, week in
-            // An earlier week than is loaded asks for the broadcasts before.
-            guard week < 0, store.calendar.morePast, let first = days.first,
-                  let earliest = broadcasts.first?.airs, earliest > first,
-                  let anchor = store.calendar.anchor
-            else { return }
-            store.send(.loadCalendarPast(anchor: anchor, page: store.calendar.pages))
+    }
+
+    private func weekView(days: [Date], broadcasts: [Broadcast], now: Date) -> some View {
+        let kinds = columnKinds(days: days, broadcasts: broadcasts)
+        let bounds = store.calendarBounds
+        let span = days[0]...days[6].addingTimeInterval(86_400)
+        // One page that scrolls, the days' headings pinned above it: each column as long as
+        // its day, and every one as long as the longest, or the window when that is longer.
+        return ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                Section {
+                    HStack(alignment: .top, spacing: 4) {
+                        ForEach(Array(days.enumerated()), id: \.element) { index, day in
+                            DayBroadcasts(
+                                day: day,
+                                broadcasts: broadcasts.filter { Calendar.current.isDate($0.airs, inSameDayAs: day) },
+                                now: now,
+                                minHeight: max(0, page - heading),
+                                kind: kinds[index],
+                                retry: { store.retryCalendar(from: span.lowerBound, to: span.upperBound) },
+                                showAll: { store.setSwitch(.calendarMine, on: false) }
+                            )
+                        }
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                } header: {
+                    HStack(alignment: .top, spacing: 4) {
+                        ForEach(days, id: \.self) { day in
+                            DayHeading(day: day, now: now, outside: !bounds.contains(day), rotor: rotor)
+                        }
+                    }
+                    .background(.ground)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { heading = $0 }
+                }
+            }
+            .padding(EdgeInsets(top: 4, leading: 12, bottom: 12, trailing: 16))
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { page = $0 - 16 }
+        .daysRotor(days, broadcasts: broadcasts, in: rotor)
+    }
+
+    /// What each day's column holds, from the range, what is loaded and what failed.
+    private func columnKinds(days: [Date], broadcasts: [Broadcast]) -> [ColumnKind] {
+        let bounds = store.calendarBounds
+        let calendar = Calendar.current
+        let model = store.calendar
+        let anchor = TimeInterval(model.anchor ?? 0)
+        let airs = model.rows.compactMap { $0.airingIn.map { Date(timeIntervalSince1970: anchor + TimeInterval($0)) } }
+        let firstDay = airs.first.map { calendar.startOfDay(for: $0) }
+        let lastDay = airs.last.map { calendar.startOfDay(for: $0) }
+        let anyInRange = days.contains { bounds.contains($0) }
+        var firstOutside = true, firstMissing = true, firstEnd = true
+        var kinds: [ColumnKind] = []
+        let weekEmpty = anyInRange && model.list.state != .loading && broadcasts.allSatisfy { b in
+            !days.contains { calendar.isDate(b.airs, inSameDayAs: $0) }
+        }
+        var mineLine = true
+        for day in days {
+            if !bounds.contains(day) {
+                let line = day < bounds.floor ? L.calendarFloor : L.calendarCeiling
+                // The line sits in the first day of the run: the first after the floor's run
+                // reads left to right, and the ceiling's run starts at its first day.
+                let isFirst = day < bounds.floor ? day == days.first : (firstOutside && day > bounds.ceiling)
+                if day > bounds.ceiling { firstOutside = false }
+                kinds.append(.outside(line: isFirst ? line : nil))
+                continue
+            }
+            let missing = ((model.morePast && (firstDay.map { day < $0 } ?? true))
+                || (model.moreAhead && (lastDay.map { day > $0 } ?? true)))
+            if missing {
+                let failed = (model.pastFailed && firstDay.map { day < $0 } == true)
+                    || (model.aheadFailed && lastDay.map { day > $0 } == true)
+                if failed {
+                    kinds.append(.failed(first: firstMissing))
+                } else {
+                    kinds.append(.loading(activity: firstMissing))
+                }
+                firstMissing = false
+                continue
+            }
+            if !model.moreAhead, let lastDay, day > lastDay, model.list.state != .loading {
+                kinds.append(.dataEnd(first: firstEnd))
+                firstEnd = false
+                continue
+            }
+            if weekEmpty, store.calendarMine {
+                kinds.append(.mineEmpty(first: mineLine))
+                mineLine = false
+                continue
+            }
+            kinds.append(.normal)
+        }
+        return kinds
     }
 }
 
-/// A day's heading over its column: its name and date, today marked, on the raised colour that
-/// runs down today's column.
+/// A day's heading over its column: its name and date, today marked with the word, on the
+/// raised colour that runs down today's column. Days outside the range are in haze.
 struct DayHeading: View {
     let day: Date
+    var now: Date = .now
+    var outside = false
     /// Where the Days rotor finds this heading.
     let rotor: Namespace.ID
 
     var body: some View {
-        let today = Calendar.current.isDateInToday(day)
+        let today = Calendar.current.isDate(day, inSameDayAs: now)
         VStack(alignment: .leading, spacing: 0) {
-            Text(CalendarWords.weekday(day))
+            Text(today ? L.calendarToday : CalendarWords.weekday(day))
                 .font(.mac(13, weight: today ? .bold : .semibold))
-                .foregroundStyle(.silk)
-            // Today beside the date, or beneath it in a column too narrow for both.
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) { dayMonth; if today { todayMark } }
-                VStack(alignment: .leading, spacing: 0) { dayMonth; if today { todayMark } }
-            }
-            .font(.mac(12))
-            .lineLimit(1)
+                .foregroundStyle(outside ? .haze : .silk)
+            // Today names its weekday beside the date, or beneath it in a column too narrow.
+            Text(today ? "\(CalendarWords.weekday(day)) \(CalendarWords.dayMonth(day))" : CalendarWords.dayMonth(day))
+                .font(.mac(12))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .foregroundStyle(.haze)
         }
         .macLineHeight(16)
         .padding(8)
@@ -256,17 +361,6 @@ struct DayHeading: View {
         .accessibilityAddTraits(.isHeader)
         .accessibilityRotorEntry(id: day, in: rotor)
     }
-
-    private var dayMonth: some View {
-        Text(CalendarWords.dayMonth(day)).foregroundStyle(.haze)
-    }
-
-    private var todayMark: some View {
-        HStack(spacing: 4) {
-            Circle().fill(.amber).frame(width: 6, height: 6)
-            Text(L.dayToday).fontWeight(.medium).foregroundStyle(.silk)
-        }
-    }
 }
 
 /// A day's broadcasts, newest episodes with their art, in its column of the page.
@@ -276,18 +370,64 @@ struct DayBroadcasts: View {
     let now: Date
     /// At least this tall: the page below the headings, so today's colour runs to its foot.
     var minHeight: CGFloat = 0
+    var kind: ColumnKind = .normal
+    var retry: () -> Void = {}
+    var showAll: () -> Void = {}
 
     var body: some View {
-        let today = Calendar.current.isDateInToday(day)
+        let today = Calendar.current.isDate(day, inSameDayAs: now)
         VStack(alignment: .leading, spacing: 4) {
-            if broadcasts.isEmpty {
-                Text(L.calendarEmptyTitle)
-                    .font(.mac(12))
-                    .foregroundStyle(.haze)
+            switch kind {
+            case .normal:
+                normal(today: today)
+            case .outside(let line):
+                // Empty, with one line that runs on over the days beside it.
+                Color.clear.frame(height: 20)
+                    .overlay(alignment: .topLeading) {
+                        if let line {
+                            CalendarEdgeLine(line, size: 12)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .padding(4)
+                        }
+                    }
+            case .loading(let activity):
+                StagedLoad(loading: true, activity: nil) {
+                    CalendarColumnPlaceholder()
+                } answer: {
+                    Color.clear.frame(height: 20)
+                }
+                .overlay(alignment: .topLeading) {
+                    if activity {
+                        // The activity line, past 4 s, is this one.
+                        CalendarSlowLine(text: L.calendarLoadingWeek)
+                    }
+                }
+            case .failed(let first):
+                if first {
+                    CalendarFailedLine(text: L.calendarLoadWeekFailed, retry: retry, size: 12)
+                        .fixedSize()
+                        .padding(4)
+                } else {
+                    Color.clear.frame(height: 20)
+                }
+            case .mineEmpty(let first):
+                if first {
+                    VStack(alignment: .leading, spacing: 8) {
+                        CalendarEdgeLine(L.calendarEmptyMine, size: 12).fixedSize()
+                        Button(L.calendarShowAll, action: showAll)
+                            .buttonStyle(SecondaryCapsuleStyle(height: 28, fontSize: 13))
+                    }
                     .padding(4)
-            }
-            ForEach(broadcasts) { broadcast in
-                BroadcastCell(broadcast: broadcast, now: now)
+                } else {
+                    Color.clear.frame(height: 20)
+                }
+            case .dataEnd(let first):
+                if first {
+                    CalendarEdgeLine(L.calendarEnd, size: 12).fixedSize().padding(4)
+                } else {
+                    Color.clear.frame(height: 20)
+                }
             }
         }
         .padding(4)
@@ -297,6 +437,70 @@ struct DayBroadcasts: View {
             today ? Palette.raised.opacity(0.6) : .clear,
             in: UnevenRoundedRectangle(bottomLeadingRadius: 12, bottomTrailingRadius: 12)
         )
+    }
+
+    /// The day's broadcasts, with the line for now between the last that aired and the next.
+    @ViewBuilder
+    private func normal(today: Bool) -> some View {
+        if broadcasts.isEmpty {
+            Text(L.calendarDayEmptyApple)
+                .font(.mac(12))
+                .foregroundStyle(.haze)
+                .padding(4)
+        }
+        let split = today ? broadcasts.firstIndex { $0.airs > now } ?? broadcasts.count : -1
+        ForEach(Array(broadcasts.enumerated()), id: \.element.id) { index, broadcast in
+            if today, index == split, index > 0 || !broadcasts.isEmpty {
+                NowLine(now: now, size: 11).frame(height: 18)
+            }
+            BroadcastCell(broadcast: broadcast, now: now)
+        }
+        if today, split == broadcasts.count, !broadcasts.isEmpty {
+            NowLine(now: now, size: 11).frame(height: 18)
+        }
+    }
+}
+
+/// The activity line of a stretch that has loaded past 4 s, in the first column.
+struct CalendarSlowLine: View {
+    let text: String
+    @State private var shown = false
+
+    var body: some View {
+        Text(text)
+            .font(.mac(12))
+            .foregroundStyle(.haze)
+            .fixedSize()
+            .padding(.top, 150)
+            .padding(.leading, 4)
+            .opacity(shown ? 1 : 0)
+            .task {
+                try? await Task.sleep(for: .seconds(4))
+                withAnimation(.easeOut(duration: 0.2)) { shown = true }
+            }
+            .accessibilityHidden(!shown)
+    }
+}
+
+/// A column while its week loads: a cell or two where the broadcasts will stand.
+struct CalendarColumnPlaceholder: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(0..<2, id: \.self) { _ in
+                VStack(alignment: .leading, spacing: 8) {
+                    RoundedRectangle(cornerRadius: 6).fill(.raised).aspectRatio(16 / 9, contentMode: .fit)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("17:30").font(.mac(13)) // i18n-skip
+                        Text("Natsukaze Relay").font(.macShowTitle(size: 13)) // i18n-skip
+                        Text("E9 in 1h 30m").font(.mac(12)) // i18n-skip
+                    }
+                    .redacted(reason: .placeholder)
+                    .foregroundStyle(.haze)
+                }
+            }
+        }
+        .padding(4)
+        .accessibilityHidden(true)
     }
 }
 
@@ -388,38 +592,34 @@ struct BroadcastCell: View {
     }
 }
 
-/// The calendar's toolbar: the week, and whether it shows your titles or every airing one.
+/// The calendar's toolbar: back, Today and forward grouped, and whether it shows every airing
+/// title or only your list. Today is off while this week shows.
 struct CalendarToolbar: View {
+    @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
 
     var body: some View {
-        @Bindable var navigator = navigator
+        let bounds = store.calendarBounds
+        let week = navigator.calendarWeek
         HStack(spacing: 8) {
-            HStack(spacing: 0) {
-                Button(L.calendarPreviousWeek, systemImage: "chevron.left") { navigator.calendarWeek -= 1 }
+            ControlGroup {
+                Button(L.calendarPreviousWeek, systemImage: "chevron.left") { navigator.showCalendarWeek(week - 1) }
                     .labelStyle(.iconOnly)
-                Text(weekName)
-                    .font(.mac(13))
-                    .frame(minWidth: 84)
-                Button(L.calendarNextWeek, systemImage: "chevron.right") { navigator.calendarWeek += 1 }
+                    .disabled(!bounds.touches(weekDays(offset: week - 1)))
+                Button(L.calendarToday) { navigator.showCalendarWeek(0) }
+                    .disabled(week == 0)
+                    .help(L.calendarToday)
+                Button(L.calendarNextWeek, systemImage: "chevron.right") { navigator.showCalendarWeek(week + 1) }
                     .labelStyle(.iconOnly)
+                    .disabled(!bounds.touches(weekDays(offset: week + 1)))
             }
-            Picker(L.filterShow, selection: $navigator.calendarMine) {
-                Text(L.calendarFilterMine).tag(true)
-                Text(L.calendarFilterAll).tag(false)
+            Picker(L.filterShow, selection: Binding(get: { store.calendarMine }, set: { store.setSwitch(.calendarMine, on: $0) })) {
+                Text(L.calendarFilterAllTitle).tag(false)
+                Text(L.calendarFilterMineTitle).tag(true)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             .fixedSize()
-        }
-    }
-
-    private var weekName: String {
-        switch navigator.calendarWeek {
-        case 0: L.calendarThisWeek
-        case -1: L.calendarLastWeek
-        case 1: L.calendarNextWeek
-        default: CalendarWords.range(weekDays(offset: navigator.calendarWeek))
         }
     }
 }

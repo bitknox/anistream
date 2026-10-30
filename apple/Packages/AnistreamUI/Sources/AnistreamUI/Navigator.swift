@@ -47,8 +47,10 @@ public final class Navigator {
     public var calendarWeek = 0
     /// The day the calendar opens on, as days after today, until it has: the launch route's.
     public var calendarOpensOn = 0
-    /// Whether the calendar shows only the titles on your lists.
-    public var calendarMine = true
+    /// Whether the last step in the calendar went forward, for the way the week slides.
+    public var calendarForward = true
+    /// The launch route asks for My list: set on the first look at the calendar.
+    var launchCalendarMine = false
     /// The Settings pane on screen, on the Mac and iPad.
     public var settingsPane: SettingsPane = .general
     /// What Settings' own search field holds.
@@ -91,6 +93,7 @@ public final class Navigator {
         if route.sheet == "source" { sourcePicker = route.title }
         if route.sheet == "messages" { messagesShown = true }
         if route.fold == "open", let title = route.title { watchedOpen.insert(title) }
+        launchCalendarMine = route.calendarMine
         if let day = route.day {
             calendarOpensOn = day
             calendarWeek = weekOffset(ofDaysAhead: day)
