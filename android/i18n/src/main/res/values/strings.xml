@@ -1890,20 +1890,24 @@
     <string name="up_next_reason_recommended">Because you finished %1$s</string>
     <!-- Reason on a recommended suggestion when the finished show is not known. -->
     <string name="up_next_reason_recommended_plain">Recommended for you</string>
+    <!-- Line in the preview of a recommended suggestion, naming the show the recommendation came from. -->
+    <string name="up_next_because_detail">Recommended on AniList by people who liked %1$s</string>
     <!-- Reason on a suggestion that airs today, shown when nothing else is left to suggest. -->
     <string name="up_next_reason_airing_today">Airing today</string>
     <!-- Button on a suggestion that has not started airing. It puts the show on the Planning list. -->
     <string name="up_next_add_planning">Add to Planning</string>
     <!-- Menu item on a suggestion. The show stays hidden until it starts airing. -->
     <string name="up_next_not_interested">Not interested</string>
-    <!-- Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January". -->
+    <!-- Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already. -->
     <string name="up_next_row_starts">%1$s · %2$s</string>
-    <!-- Notice after Not interested on a suggestion that is already airing or has aired. -->
+    <!-- Notice after Not interested on a suggestion that is already airing. -->
     <string name="up_next_hidden">%1$s is hidden from Up next for you</string>
     <!-- Notice after Not interested on a suggestion that has not started airing. -->
     <string name="up_next_hidden_until_airs">%1$s is hidden until it airs</string>
-    <!-- Line in the preview of a recommended suggestion, naming the show the recommendation came from. -->
-    <string name="up_next_because_detail">Recommended on AniList by people who liked %1$s</string>
+    <!-- Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already. -->
+    <string name="up_next_broadcast">Episode %1$d · %2$s</string>
+    <!-- The time of an episode that came out earlier today. The span is already worded, such as "2h ago". -->
+    <string name="up_next_out">out %1$s</string>
     <!-- Format of a show: broadcast on television. -->
     <string name="format_tv">TV</string>
     <!-- Format of a show: a short series on television. -->

@@ -22945,6 +22945,18 @@
         }
       }
     },
+    "up-next-broadcast" : {
+      "comment" : "Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already. Argument 1: episode (Int). Argument 2: when (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode %1$lld · %2$@"
+          }
+        }
+      }
+    },
     "up-next-heading" : {
       "comment" : "Heading over the suggestions under a short { -continue-cap } list.",
       "extractionState" : "manual",
@@ -22958,7 +22970,7 @@
       }
     },
     "up-next-hidden" : {
-      "comment" : "Notice after Not interested on a suggestion that is already airing or has aired. Argument 1: title (Text).",
+      "comment" : "Notice after Not interested on a suggestion that is already airing. Argument 1: title (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -22989,6 +23001,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not interested"
+          }
+        }
+      }
+    },
+    "up-next-out" : {
+      "comment" : "The time of an episode that came out earlier today. The span is already worded, such as \"2h ago\". Argument 1: ago (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "out %1$@"
           }
         }
       }
@@ -23054,7 +23078,7 @@
       }
     },
     "up-next-row-starts" : {
-      "comment" : "Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as \"9 January\". Argument 1: reason (Text). Argument 2: starts (Text).",
+      "comment" : "Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already. Argument 1: reason (Text). Argument 2: starts (Text).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

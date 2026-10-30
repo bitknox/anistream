@@ -236,6 +236,11 @@ up-next-reason-recommended = Because you finished { $title }
 # @max 28
 up-next-reason-recommended-plain = Recommended for you
 
+# Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+# @arg title: text
+# @max 80
+up-next-because-detail = Recommended on AniList by people who liked { $title }
+
 # Reason on a suggestion that airs today, shown when nothing else is left to suggest.
 # @max 28
 up-next-reason-airing-today = Airing today
@@ -246,24 +251,27 @@ up-next-add-planning = Add to Planning
 # Menu item on a suggestion. The show stays hidden until it starts airing.
 up-next-not-interested = Not interested
 
-# Second line of a suggestion that has not started airing: why it is there, then when it starts.
-# The date is written out already, such as "9 January".
+# Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.
 # @arg reason: text
 # @arg starts: text
-# @max 40
+# @max 48
 up-next-row-starts = { $reason } · { $starts }
 
-# Notice after Not interested on a suggestion that is already airing or has aired.
+# Notice after Not interested on a suggestion that is already airing.
 # @arg title: text
-# @max 80
 up-next-hidden = { $title } is hidden from { -up-next-cap } for you
 
 # Notice after Not interested on a suggestion that has not started airing.
 # @arg title: text
-# @max 80
 up-next-hidden-until-airs = { $title } is hidden until it airs
 
-# Line in the preview of a recommended suggestion, naming the show the recommendation came from.
-# @arg title: text
-# @max 80
-up-next-because-detail = Recommended on AniList by people who liked { $title }
+# Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.
+# @arg episode: int
+# @arg when: text
+# @max 36
+up-next-broadcast = Episode { $episode } · { $when }
+
+# The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
+# @arg ago: text
+# @max 20
+up-next-out = out { $ago }

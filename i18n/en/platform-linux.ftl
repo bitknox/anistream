@@ -159,20 +159,6 @@ title-open-named = Open { $title }
 # @only linux
 continue-preview = Preview
 
-# Under a card in the welcome on Continue: an episode that has aired today and how long ago.
-# @only linux
-# @arg episode: int
-# @arg ago: text
-# @max 40
-continue-welcome-out = Episode { $episode } · out { $ago }
-
-# Under a card in the welcome on Continue: an episode that airs later today, and when.
-# @only linux
-# @arg episode: int
-# @arg time: text
-# @max 40
-continue-welcome-at = Episode { $episode } · { $time }
-
 # Under a suggestion that airs later today when no episode number is known: the time it airs.
 # @only linux
 # @arg time: text

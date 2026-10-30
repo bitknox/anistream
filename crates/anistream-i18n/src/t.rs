@@ -1930,16 +1930,6 @@ pub fn continue_preview() -> String {
     text("continue-preview", &[])
 }
 
-/// Under a card in the welcome on Continue: an episode that has aired today and how long ago.
-pub fn continue_welcome_out(episode: i64, ago: &str) -> String {
-    text("continue-welcome-out", &[("episode", Arg::Int(episode)), ("ago", Arg::Text(ago))])
-}
-
-/// Under a card in the welcome on Continue: an episode that airs later today, and when.
-pub fn continue_welcome_at(episode: i64, time: &str) -> String {
-    text("continue-welcome-at", &[("episode", Arg::Int(episode)), ("time", Arg::Text(time))])
-}
-
 /// Under a suggestion that airs later today when no episode number is known: the time it airs.
 pub fn up_next_airs_at(time: &str) -> String {
     text("up-next-airs-at", &[("time", Arg::Text(time))])
@@ -7700,6 +7690,11 @@ pub fn up_next_reason_recommended_plain() -> String {
     text("up-next-reason-recommended-plain", &[])
 }
 
+/// Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+pub fn up_next_because_detail(title: &str) -> String {
+    text("up-next-because-detail", &[("title", Arg::Text(title))])
+}
+
 /// Reason on a suggestion that airs today, shown when nothing else is left to suggest.
 pub fn up_next_reason_airing_today() -> String {
     text("up-next-reason-airing-today", &[])
@@ -7715,12 +7710,12 @@ pub fn up_next_not_interested() -> String {
     text("up-next-not-interested", &[])
 }
 
-/// Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January".
+/// Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.
 pub fn up_next_row_starts(reason: &str, starts: &str) -> String {
     text("up-next-row-starts", &[("reason", Arg::Text(reason)), ("starts", Arg::Text(starts))])
 }
 
-/// Notice after Not interested on a suggestion that is already airing or has aired.
+/// Notice after Not interested on a suggestion that is already airing.
 pub fn up_next_hidden(title: &str) -> String {
     text("up-next-hidden", &[("title", Arg::Text(title))])
 }
@@ -7730,9 +7725,14 @@ pub fn up_next_hidden_until_airs(title: &str) -> String {
     text("up-next-hidden-until-airs", &[("title", Arg::Text(title))])
 }
 
-/// Line in the preview of a recommended suggestion, naming the show the recommendation came from.
-pub fn up_next_because_detail(title: &str) -> String {
-    text("up-next-because-detail", &[("title", Arg::Text(title))])
+/// Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.
+pub fn up_next_broadcast(episode: i64, when: &str) -> String {
+    text("up-next-broadcast", &[("episode", Arg::Int(episode)), ("when", Arg::Text(when))])
+}
+
+/// The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
+pub fn up_next_out(ago: &str) -> String {
+    text("up-next-out", &[("ago", Arg::Text(ago))])
 }
 
 /// Format of a show: broadcast on television.

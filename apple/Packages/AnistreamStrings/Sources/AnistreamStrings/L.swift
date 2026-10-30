@@ -3782,6 +3782,11 @@ public enum L {
     /// Reason on a recommended suggestion when the finished show is not known.
     public static var upNextReasonRecommendedPlain: String { string("up-next-reason-recommended-plain", fallback: "Recommended for you") }
 
+    /// Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+    public static func upNextBecauseDetail(title: String) -> String {
+        Self.format("up-next-because-detail", fallback: "Recommended on AniList by people who liked %1$@", title)
+    }
+
     /// Reason on a suggestion that airs today, shown when nothing else is left to suggest.
     public static var upNextReasonAiringToday: String { string("up-next-reason-airing-today", fallback: "Airing today") }
 
@@ -3791,12 +3796,12 @@ public enum L {
     /// Menu item on a suggestion. The show stays hidden until it starts airing.
     public static var upNextNotInterested: String { string("up-next-not-interested", fallback: "Not interested") }
 
-    /// Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January".
+    /// Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.
     public static func upNextRowStarts(reason: String, starts: String) -> String {
         Self.format("up-next-row-starts", fallback: "%1$@ · %2$@", reason, starts)
     }
 
-    /// Notice after Not interested on a suggestion that is already airing or has aired.
+    /// Notice after Not interested on a suggestion that is already airing.
     public static func upNextHidden(title: String) -> String {
         Self.format("up-next-hidden", fallback: "%1$@ is hidden from Up next for you", title)
     }
@@ -3806,9 +3811,14 @@ public enum L {
         Self.format("up-next-hidden-until-airs", fallback: "%1$@ is hidden until it airs", title)
     }
 
-    /// Line in the preview of a recommended suggestion, naming the show the recommendation came from.
-    public static func upNextBecauseDetail(title: String) -> String {
-        Self.format("up-next-because-detail", fallback: "Recommended on AniList by people who liked %1$@", title)
+    /// Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.
+    public static func upNextBroadcast(episode: Int, when: String) -> String {
+        Self.format("up-next-broadcast", fallback: "Episode %1$lld · %2$@", episode, when)
+    }
+
+    /// The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
+    public static func upNextOut(ago: String) -> String {
+        Self.format("up-next-out", fallback: "out %1$@", ago)
     }
 
     /// Format of a show: broadcast on television.

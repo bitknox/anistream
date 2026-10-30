@@ -3119,6 +3119,10 @@
     <value>[Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]</value>
     <comment>Reason on a recommended suggestion when the finished show is not known.</comment>
   </data>
+  <data name="UpNextBecauseDetail" xml:space="preserve">
+    <value>[Ŕéçöɱɱéñðéð öñ ÅñîĻîšţ ƀý þéöþļé ŵĥö ļîķéð {title}~~~~~~~~~~~~~~]</value>
+    <comment>Line in the preview of a recommended suggestion, naming the show the recommendation came from.</comment>
+  </data>
   <data name="UpNextReasonAiringToday" xml:space="preserve">
     <value>[Åîŕîñĝ ţöðàý~~~~]</value>
     <comment>Reason on a suggestion that airs today, shown when nothing else is left to suggest.</comment>
@@ -3133,19 +3137,23 @@
   </data>
   <data name="UpNextRowStarts" xml:space="preserve">
     <value>[{reason} · {starts}~~~]</value>
-    <comment>Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January".</comment>
+    <comment>Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.</comment>
   </data>
   <data name="UpNextHidden" xml:space="preserve">
     <value>[{title} îš ĥîððéñ ƒŕöɱ Ûþ ñéẋţ ƒöŕ ýöü~~~~~~~~~~~]</value>
-    <comment>Notice after Not interested on a suggestion that is already airing or has aired.</comment>
+    <comment>Notice after Not interested on a suggestion that is already airing.</comment>
   </data>
   <data name="UpNextHiddenUntilAirs" xml:space="preserve">
     <value>[{title} îš ĥîððéñ üñţîļ îţ àîŕš~~~~~~~~~]</value>
     <comment>Notice after Not interested on a suggestion that has not started airing.</comment>
   </data>
-  <data name="UpNextBecauseDetail" xml:space="preserve">
-    <value>[Ŕéçöɱɱéñðéð öñ ÅñîĻîšţ ƀý þéöþļé ŵĥö ļîķéð {title}~~~~~~~~~~~~~~]</value>
-    <comment>Line in the preview of a recommended suggestion, naming the show the recommendation came from.</comment>
+  <data name="UpNextBroadcast" xml:space="preserve">
+    <value>[Éþîšöðé {episode} · {when}~~~~~~]</value>
+    <comment>Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.</comment>
+  </data>
+  <data name="UpNextOut" xml:space="preserve">
+    <value>[öüţ {ago}~~~]</value>
+    <comment>The time of an episode that came out earlier today. The span is already worded, such as "2h ago".</comment>
   </data>
   <data name="FormatTv" xml:space="preserve">
     <value>[ŢṼ~]</value>

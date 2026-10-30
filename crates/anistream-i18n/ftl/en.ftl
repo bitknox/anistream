@@ -1259,12 +1259,6 @@ title-open-named = Open { $title }
 # Accessible name of the pane beside Continue's queue that previews the selected title.
 continue-preview = Preview
 
-# Under a card in the welcome on Continue: an episode that has aired today and how long ago.
-continue-welcome-out = Episode { $episode } · out { $ago }
-
-# Under a card in the welcome on Continue: an episode that airs later today, and when.
-continue-welcome-at = Episode { $episode } · { $time }
-
 # Under a suggestion that airs later today when no episode number is known: the time it airs.
 up-next-airs-at = Airs at { $time }
 
@@ -4829,6 +4823,9 @@ up-next-reason-recommended = Because you finished { $title }
 # Reason on a recommended suggestion when the finished show is not known.
 up-next-reason-recommended-plain = Recommended for you
 
+# Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+up-next-because-detail = Recommended on AniList by people who liked { $title }
+
 # Reason on a suggestion that airs today, shown when nothing else is left to suggest.
 up-next-reason-airing-today = Airing today
 
@@ -4838,17 +4835,20 @@ up-next-add-planning = Add to Planning
 # Menu item on a suggestion. The show stays hidden until it starts airing.
 up-next-not-interested = Not interested
 
-# Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January".
+# Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.
 up-next-row-starts = { $reason } · { $starts }
 
-# Notice after Not interested on a suggestion that is already airing or has aired.
+# Notice after Not interested on a suggestion that is already airing.
 up-next-hidden = { $title } is hidden from Up next for you
 
 # Notice after Not interested on a suggestion that has not started airing.
 up-next-hidden-until-airs = { $title } is hidden until it airs
 
-# Line in the preview of a recommended suggestion, naming the show the recommendation came from.
-up-next-because-detail = Recommended on AniList by people who liked { $title }
+# Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.
+up-next-broadcast = Episode { $episode } · { $when }
+
+# The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
+up-next-out = out { $ago }
 
 # Format of a show: broadcast on television.
 format-tv = TV

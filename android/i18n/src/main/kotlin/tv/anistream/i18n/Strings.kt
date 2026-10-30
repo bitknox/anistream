@@ -3557,6 +3557,10 @@ object Strings {
     fun upNextReasonRecommendedPlain(context: Context): String =
         context.getString(R.string.up_next_reason_recommended_plain)
 
+    /** Line in the preview of a recommended suggestion, naming the show the recommendation came from. */
+    fun upNextBecauseDetail(context: Context, title: String): String =
+        context.getString(R.string.up_next_because_detail, title)
+
     /** Reason on a suggestion that airs today, shown when nothing else is left to suggest. */
     fun upNextReasonAiringToday(context: Context): String =
         context.getString(R.string.up_next_reason_airing_today)
@@ -3569,11 +3573,11 @@ object Strings {
     fun upNextNotInterested(context: Context): String =
         context.getString(R.string.up_next_not_interested)
 
-    /** Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January". */
+    /** Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already. */
     fun upNextRowStarts(context: Context, reason: String, starts: String): String =
         context.getString(R.string.up_next_row_starts, reason, starts)
 
-    /** Notice after Not interested on a suggestion that is already airing or has aired. */
+    /** Notice after Not interested on a suggestion that is already airing. */
     fun upNextHidden(context: Context, title: String): String =
         context.getString(R.string.up_next_hidden, title)
 
@@ -3581,9 +3585,13 @@ object Strings {
     fun upNextHiddenUntilAirs(context: Context, title: String): String =
         context.getString(R.string.up_next_hidden_until_airs, title)
 
-    /** Line in the preview of a recommended suggestion, naming the show the recommendation came from. */
-    fun upNextBecauseDetail(context: Context, title: String): String =
-        context.getString(R.string.up_next_because_detail, title)
+    /** Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already. */
+    fun upNextBroadcast(context: Context, episode: Int, `when`: String): String =
+        context.getString(R.string.up_next_broadcast, episode, `when`)
+
+    /** The time of an episode that came out earlier today. The span is already worded, such as "2h ago". */
+    fun upNextOut(context: Context, ago: String): String =
+        context.getString(R.string.up_next_out, ago)
 
     /** Format of a show: broadcast on television. */
     fun formatTv(context: Context): String =

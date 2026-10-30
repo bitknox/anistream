@@ -1259,12 +1259,6 @@ title-open-named = [Öþéñ { $title }~~~]
 # Accessible name of the pane beside Continue's queue that previews the selected title.
 continue-preview = [Þŕéṽîéŵ~~~]
 
-# Under a card in the welcome on Continue: an episode that has aired today and how long ago.
-continue-welcome-out = [Éþîšöðé { $episode } · öüţ { $ago }~~~~~~~]
-
-# Under a card in the welcome on Continue: an episode that airs later today, and when.
-continue-welcome-at = [Éþîšöðé { $episode } · { $time }~~~~~~]
-
 # Under a suggestion that airs later today when no episode number is known: the time it airs.
 up-next-airs-at = [Åîŕš àţ { $time }~~~~]
 
@@ -4829,6 +4823,9 @@ up-next-reason-recommended = [Ɓéçàüšé ýöü ƒîñîšĥéð { $title }~
 # Reason on a recommended suggestion when the finished show is not known.
 up-next-reason-recommended-plain = [Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]
 
+# Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+up-next-because-detail = [Ŕéçöɱɱéñðéð öñ ÅñîĻîšţ ƀý þéöþļé ŵĥö ļîķéð { $title }~~~~~~~~~~~~~~]
+
 # Reason on a suggestion that airs today, shown when nothing else is left to suggest.
 up-next-reason-airing-today = [Åîŕîñĝ ţöðàý~~~~]
 
@@ -4838,17 +4835,20 @@ up-next-add-planning = [Åðð ţö Þļàññîñĝ~~~~~]
 # Menu item on a suggestion. The show stays hidden until it starts airing.
 up-next-not-interested = [Ñöţ îñţéŕéšţéð~~~~~]
 
-# Second line of a suggestion that has not started airing: why it is there, then when it starts. The date is written out already, such as "9 January".
+# Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.
 up-next-row-starts = [{ $reason } · { $starts }~~~]
 
-# Notice after Not interested on a suggestion that is already airing or has aired.
+# Notice after Not interested on a suggestion that is already airing.
 up-next-hidden = [{ $title } îš ĥîððéñ ƒŕöɱ Ûþ ñéẋţ ƒöŕ ýöü~~~~~~~~~~~]
 
 # Notice after Not interested on a suggestion that has not started airing.
 up-next-hidden-until-airs = [{ $title } îš ĥîððéñ üñţîļ îţ àîŕš~~~~~~~~~]
 
-# Line in the preview of a recommended suggestion, naming the show the recommendation came from.
-up-next-because-detail = [Ŕéçöɱɱéñðéð öñ ÅñîĻîšţ ƀý þéöþļé ŵĥö ļîķéð { $title }~~~~~~~~~~~~~~]
+# Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.
+up-next-broadcast = [Éþîšöðé { $episode } · { $when }~~~~~~]
+
+# The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
+up-next-out = [öüţ { $ago }~~~]
 
 # Format of a show: broadcast on television.
 format-tv = [ŢṼ~]

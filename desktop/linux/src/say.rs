@@ -515,12 +515,14 @@ fn airing_line(item: &UpNextItem, now: i64, clock: &dyn Fn(i64) -> String) -> St
     if airs <= now {
         let ago = ago(now - airs);
         return match entry.last_aired {
-            Some(aired) => t::continue_welcome_out(i64::from(aired.episode), &ago),
+            Some(aired) => {
+                t::up_next_broadcast(i64::from(aired.episode), &t::up_next_out(&ago))
+            }
             None => ago,
         };
     }
     match entry.next_episode {
-        Some(episode) => t::continue_welcome_at(i64::from(episode), &clock(airs)),
+        Some(episode) => t::up_next_broadcast(i64::from(episode), &clock(airs)),
         None => t::up_next_airs_at(&clock(airs)),
     }
 }

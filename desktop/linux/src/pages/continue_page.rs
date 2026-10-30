@@ -57,6 +57,8 @@ struct Page {
     /// the season's titles. A source that has not answered holds the empty state back.
     calendar: RefCell<Vec<Entry>>,
     anchor: Cell<i64>,
+    /// The wall clock when the anchor arrived, so the engine's now can be told later.
+    anchor_at: Cell<i64>,
     calendar_in: Cell<bool>,
     season: RefCell<Vec<Entry>>,
     season_in: Cell<bool>,
@@ -171,6 +173,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         fallback,
         calendar: RefCell::default(),
         anchor: Cell::new(0),
+        anchor_at: Cell::new(0),
         calendar_in: Cell::new(false),
         season: RefCell::default(),
         season_in: Cell::new(false),
@@ -306,7 +309,10 @@ impl Page {
                 *self.up.borrow_mut() = items.clone();
                 self.rebuild();
             }
-            Event::CalendarWindow { anchor, .. } => self.anchor.set(*anchor),
+            Event::CalendarWindow { anchor, .. } => {
+                self.anchor.set(*anchor);
+                self.anchor_at.set(now());
+            }
             Event::Content { view: ContentFor::Calendar, content } => {
                 *self.calendar.borrow_mut() = content.entries().to_vec();
                 self.calendar_in.set(!matches!(content, ContentList::Loading));
@@ -432,10 +438,21 @@ impl Page {
         }
     }
 
+    /// The engine's now, in Unix seconds: its calendar's anchor and the time since, which is
+    /// the wall clock wherever the engine has no clock of its own to set.
+    fn engine_now(&self) -> i64 {
+        match self.anchor.get() {
+            0 => now(),
+            anchor => anchor + (now() - self.anchor_at.get()),
+        }
+    }
+
     /// What airs today, in the order it airs, one card to a title.
     fn airing_today(&self) -> Vec<(Entry, u32, i64)> {
         let anchor = self.anchor.get();
-        let today = glib::DateTime::now_local().ok().and_then(|d| d.format("%F").ok());
+        let today = glib::DateTime::from_unix_local(self.engine_now())
+            .ok()
+            .and_then(|d| d.format("%F").ok());
         let mut seen = Vec::new();
         let mut out: Vec<(Entry, u32, i64)> = self
             .calendar
@@ -467,7 +484,7 @@ impl Page {
             return None;
         }
         let hub = &self.ctx.hub;
-        let now = glib::DateTime::now_utc().map_or(0, |t| t.to_unix());
+        let now = self.engine_now();
         let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
         column.set_margin_start(24);
         column.set_margin_end(24);
@@ -489,9 +506,12 @@ impl Page {
                 card.append(&art);
                 card.append(&caption_title(&entry.title, 8));
                 let line = if *airs <= now {
-                    t::continue_welcome_out(i64::from(*episode), &say::ago(now - airs))
+                    t::up_next_broadcast(
+                        i64::from(*episode),
+                        &t::up_next_out(&say::ago(now - airs)),
+                    )
                 } else {
-                    t::continue_welcome_at(i64::from(*episode), &calendar::time(*airs))
+                    t::up_next_broadcast(i64::from(*episode), &calendar::time(*airs))
                 };
                 let dot = gtk::Box::new(gtk::Orientation::Horizontal, 6);
                 if *airs <= now && !entry_watched(entry, *episode) {
@@ -610,7 +630,7 @@ impl Page {
         title.set_wrap(false);
         title.set_ellipsize(gtk::pango::EllipsizeMode::End);
         text.append(&title);
-        let why = say::up_next_line(item, now(), &calendar::time);
+        let why = say::up_next_line(item, self.engine_now(), &calendar::time);
         let reason = widgets::haze(&why, "caption");
         reason.add_css_class("numeric");
         reason.set_wrap(false);
@@ -851,7 +871,7 @@ impl Page {
             meta.add_css_class("numeric");
             head.append(&meta);
         }
-        let why = say::up_next_line(item, now(), &calendar::time);
+        let why = say::up_next_line(item, self.engine_now(), &calendar::time);
         let why = gtk::Label::builder().label(&why).xalign(0.0).wrap(true).build();
         why.set_margin_top(6);
         let detail = match (item.reason, item.because.as_deref()) {
@@ -1076,6 +1096,8 @@ fn flow(columns: u32) -> gtk::FlowBox {
     flow.set_column_spacing(16);
     flow.set_row_spacing(16);
     flow.set_valign(gtk::Align::Start);
+    // Takes the room its cells ask for, so they sit together at the start.
+    flow.set_halign(gtk::Align::Start);
     flow
 }
 
