@@ -7,6 +7,15 @@ import AnistreamStrings
 import SwiftUI
 
 struct CommentRow: View {
+    /// The comment menu's button: a finger's size on touch, a pointer's on the Mac.
+    static let menuSize: CGFloat = {
+        #if os(iOS)
+        44
+        #else
+        28
+        #endif
+    }()
+
     @Environment(AppStore.self) private var store
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -133,7 +142,7 @@ struct CommentRow: View {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.haze)
-                        .frame(width: 28, height: 28)
+                        .frame(width: Self.menuSize, height: Self.menuSize)
                         .background(hovering ? Palette.silk.opacity(0.14) : .clear, in: .circle)
                         .contentShape(.circle)
                 }

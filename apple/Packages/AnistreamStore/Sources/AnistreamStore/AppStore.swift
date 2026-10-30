@@ -1,6 +1,7 @@
 // The app's state: the engine's events applied, each by the feature model that owns it.
 
 import AnistreamKit
+import AnistreamStrings
 import Foundation
 import Observation
 
@@ -21,6 +22,10 @@ public final class AppStore {
     }
 
     public private(set) var phase: Phase = .starting
+    /// Whether the engine has been told to stop, so it is not told twice.
+    @ObservationIgnored private var shutDown = false
+    /// What the engine was last started with, for Try again.
+    @ObservationIgnored private var launched: (launch: EngineLaunch, host: any FfiHost)?
     /// Whether the device has no network, as the engine last said (`Event::Connectivity`): the
     /// screens keep what they have under the offline line, and one with nothing says so.
     public private(set) var offline = false
@@ -136,6 +141,8 @@ public final class AppStore {
     /// Start the engine `launch` describes with `host`, off the main thread, and read its events.
     public func start(_ launch: EngineLaunch, host: any FfiHost) async {
         phase = .starting
+        launched = (launch, host)
+        shutDown = false
         #if FIXTURES
         if case .fixtures = launch.engine { testing = true }
         #endif
@@ -159,11 +166,27 @@ public final class AppStore {
             AppLog.error("store", "engine did not start: \(error.reason)")
             phase = .failed(error.reason)
             early = []
+            engineGone()
         } catch {
             AppLog.error("store", "engine did not start: \(error.localizedDescription)")
             phase = .failed(error.localizedDescription)
             early = []
+            engineGone()
         }
+    }
+
+    /// Start the engine again with what it was started with, after it failed to start or stopped.
+    public func restart() async {
+        guard let launched, phase != .starting, phase != .running else { return }
+        await start(launched.launch, host: launched.host)
+    }
+
+    /// The engine stopped, or never started: nothing is going to answer what was asked, so no
+    /// spinner waits on it.
+    func engineGone() {
+        jobs.clear()
+        stores.clearWorking()
+        accounts.clearWorking()
     }
 
     #if FIXTURES
@@ -200,7 +223,10 @@ public final class AppStore {
         client = EngineClient(
             engine: engine,
             deliver: { [weak self] events in self?.apply(events) },
-            stopped: { [weak self] in self?.phase = .stopped }
+            stopped: { [weak self] in
+                self?.phase = .stopped
+                self?.engineGone()
+            }
         )
         phase = .running
         attachTV(engine)
@@ -284,8 +310,31 @@ public final class AppStore {
 
     /// Stop the engine, waiting while it winds down: at quit.
     public func shutdown() {
+        guard !shutDown else { return }
+        shutDown = true
         client?.shutdown()
     }
+
+    /// Stop the engine off the main thread, giving up waiting after `limit`: quitting hides the
+    /// windows first and the engine's few seconds of winding down no longer freeze the app.
+    public func shutdown(within limit: Duration) async {
+        guard !shutDown, let client else { return }
+        shutDown = true
+        let once = ResumeOnce()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            once.set(continuation)
+            DispatchQueue.global(qos: .userInitiated).async {
+                client.shutdown()
+                once.resume()
+            }
+            DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(Int(limit.components.seconds * 1000))) {
+                once.resume()
+            }
+        }
+    }
+
+    /// Whether there is an engine to stop.
+    public var hasEngine: Bool { client != nil && !shutDown }
 
     // MARK: Asking
 
@@ -751,18 +800,21 @@ public final class AppStore {
         if case .failed(let reason) = content {
             notices.record(Notice(kind: .alert, text: reason, hint: nil))
         }
+        let kept: Bool
         switch view {
         case .continue:
-            continuing.apply(content, titles: titles)
+            kept = continuing.apply(content, titles: titles)
         case .seasonal:
-            seasonal.apply(content, titles: titles)
+            kept = seasonal.apply(content, titles: titles)
         case .calendar:
-            calendar.apply(content, titles: titles)
+            kept = calendar.apply(content, titles: titles)
         case .search(let query):
-            search.answer(content, for: query, titles: titles)
+            kept = search.answer(content, for: query, titles: titles)
         case .library(let segment):
-            library.segment(segment).apply(content, titles: titles)
+            kept = library.segment(segment).apply(content, titles: titles)
         }
+        // What was loaded stays on screen; the notice says the refresh failed.
+        if kept, !offline { say(L.listRefreshFailed) }
     }
 
     private func caption(_ text: String, for view: ContentFor) {
@@ -788,3 +840,24 @@ extension Event {
     }
 }
 #endif
+
+/// Resumes a continuation once, from whichever of two threads gets there first.
+private final class ResumeOnce: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var done = false
+
+    func set(_ continuation: CheckedContinuation<Void, Never>) {
+        lock.lock()
+        defer { lock.unlock() }
+        if done { continuation.resume() } else { self.continuation = continuation }
+    }
+
+    func resume() {
+        lock.lock()
+        defer { lock.unlock() }
+        done = true
+        continuation?.resume()
+        continuation = nil
+    }
+}

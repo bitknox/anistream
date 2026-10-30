@@ -24,8 +24,22 @@ public final class DiscussionModel {
     public private(set) var found: [DiscussionKey: UInt32] = [:]
     /// The discussion a person asked to read, shown until dismissed.
     public var target: DiscussionKey?
+    /// The discussion the engine was last asked to open. The engine keeps one at a time, so a
+    /// view closing the one it showed must not close the one asked for since.
+    public private(set) var requested: DiscussionKey?
+    /// What the Mac's one discussion window reads; opening another episode swaps it.
+    public var reading: DiscussionKey?
 
     public init() {}
+
+    func requested(_ key: DiscussionKey) {
+        requested = key
+    }
+
+    /// Whether `key` is still the discussion in the engine, so closing it closes nothing else.
+    func owns(_ key: DiscussionKey) -> Bool {
+        requested == key
+    }
 
     /// Ask to read `key`: the sheet, pane or window it opens in follows.
     public func show(_ key: DiscussionKey) {
@@ -42,6 +56,7 @@ public final class DiscussionModel {
 
     func closed() {
         open = nil
+        requested = nil
     }
 
     /// The comments the engine counts for an episode; nil when it has no thread or has not said.

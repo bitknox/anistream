@@ -98,7 +98,7 @@ struct DiscussionPanel: View {
             try? await Task.sleep(for: .milliseconds(3400))
             slow = true
         }
-        .onDisappear { store.closeDiscussion() }
+        .onDisappear { store.closeDiscussion(key) }
         .alert(L.discussionDeleteTitle, isPresented: Binding(
             get: { draft.deleting != nil }, set: { if !$0 { draft.deleting = nil } }
         )) {

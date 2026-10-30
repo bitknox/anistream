@@ -9200,6 +9200,11 @@ pub fn player_wait_note(what: &str, seconds: i64) -> String {
     text("player-wait-note", &[("what", Arg::Text(what)), ("seconds", Arg::Int(seconds))])
 }
 
+/// Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.
+pub fn player_command_failed() -> String {
+    text("player-command-failed", &[])
+}
+
 /// Button that shows the season before.
 pub fn seasonal_previous() -> String {
     text("seasonal-previous", &[])

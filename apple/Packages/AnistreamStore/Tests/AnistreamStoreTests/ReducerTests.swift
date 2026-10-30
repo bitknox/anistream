@@ -141,6 +141,34 @@ struct ReducerTests {
         #expect(store.continuing.list.state == .failed("no disk"))
     }
 
+    @Test func aFailedRefreshKeepsTheRowsOnScreen() {
+        let store = AppStore()
+        store.apply(.content(view: .continue, content: .entries(watching())))
+        let before = store.continuing.list.state
+        store.apply(.content(view: .continue, content: .failed("no network")))
+        #expect(store.continuing.list.state == before, "the loaded list stays")
+        #expect(store.continuing.list.state.ids.count == 4)
+    }
+
+    @Test func aTrackersLibraryRowDoesNotMoveContinueBackToEpisodeOne() {
+        let store = AppStore()
+        store.apply(.content(view: .continue, content: .entries(watching())))
+        // The tracker says the title is completed, 12 of 12; this device stopped at episode 7.
+        var tracked = watching()[0]
+        tracked.progress = TitleProgress(done: 12, next: 1)
+        tracked.resume = nil
+        store.apply(.content(view: .library(.completed), content: .entries([tracked])))
+        #expect(store.titles[900_001]?.progress == TitleProgress(done: 6, next: 7))
+        #expect(store.titles[900_001]?.resume?.position == 606)
+        let row = store.continuing.queue(store.titles).inProgress.first { $0.id == 900_001 }
+        #expect(row?.action == "Continue E7 · 10:06")
+        // Continue's own list still updates it.
+        var moved = watching()[0]
+        moved.progress = TitleProgress(done: 7, next: 8)
+        store.apply(.content(view: .continue, content: .entries([moved])))
+        #expect(store.titles[900_001]?.progress == TitleProgress(done: 7, next: 8))
+    }
+
     @Test func progressMovesATitleEverywhereItShows() {
         let store = AppStore()
         store.apply(.content(view: .continue, content: .entries(watching())))

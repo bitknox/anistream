@@ -57,13 +57,11 @@ struct AnistreamApp: App {
         .windowResizability(.contentMinSize)
         .restorationBehavior(.disabled)
         .defaultLaunchBehavior(.suppressed)
-        // An episode's discussion: a window of its own beside the player, one per episode.
-        WindowGroup(L.discussionOpen, id: DiscussionKey.windowId, for: DiscussionKey.self) { $key in
-            if let key {
-                DiscussionWindowView(key: key)
-                    .environment(delegate.store)
-                    .preferredColorScheme(.dark)
-            }
+        // An episode's discussion: one window beside the player, which another episode swaps.
+        Window(L.discussionOpen, id: DiscussionKey.windowId) {
+            DiscussionWindowHost()
+                .environment(delegate.store)
+                .preferredColorScheme(.dark)
         }
         .defaultSize(width: 480, height: 720)
         .restorationBehavior(.disabled)

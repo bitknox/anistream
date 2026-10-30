@@ -1287,6 +1287,14 @@ public enum L {
         Self.format("accounts-code-expired-detail", fallback: "This code has expired. Get a new one to sign in to %1$@.", tracker)
     }
 
+    /// Notice when a list could not be refreshed and the rows already on screen stay.
+    public static var listRefreshFailed: String { string("list-refresh-failed", fallback: "Couldn't refresh. Showing what was loaded.") }
+
+    /// Notice when the browser sign-in for a tracker failed, as opposed to being closed by the person.
+    public static func signInFailed(tracker: String) -> String {
+        Self.format("sign-in-failed", fallback: "Couldn't sign in to %1$@. Try again.", tracker)
+    }
+
     /// Placeholder of the command palette's field.
     public static var palettePlaceholder: String { string("palette-placeholder", fallback: "Titles and commands") }
 
@@ -2049,11 +2057,6 @@ public enum L {
     /// Line in the list of what the engine is doing, when it is doing nothing.
     public static var shellNothingRunning: String { string("shell-nothing-running", fallback: "Nothing is running.") }
 
-    /// Line on a screen that this build does not have yet.
-    public static func shellNotBuiltYet(section: String) -> String {
-        Self.format("shell-not-built-yet", fallback: "%1$@ comes in a later build.", section)
-    }
-
     /// Placeholder of the search field while Settings is open.
     public static var shellSearchSettings: String { string("shell-search-settings", fallback: "Search settings") }
 
@@ -2105,6 +2108,18 @@ public enum L {
 
     /// Title of the page shown instead of the app when the engine could not start. The reason follows.
     public static var shellStartFailed: String { string("shell-start-failed", fallback: "anistream couldn't start. Quit it and open it again. If that fails, report a bug from the Help menu.") }
+
+    /// Plain line under the title of the page shown when the engine could not start. The reason follows it, in the engine's words, for a bug report.
+    public static var shellStartFailedBody: String { string("shell-start-failed-body", fallback: "Something stopped anistream from opening. Try again, and if it keeps happening, send a report.") }
+
+    /// Title of the page shown when the engine stopped while the app was open.
+    public static var shellEngineStopped: String { string("shell-engine-stopped", fallback: "anistream stopped working") }
+
+    /// Plain line under the title of the page shown when the engine stopped while the app was open.
+    public static var shellEngineStoppedBody: String { string("shell-engine-stopped-body", fallback: "The part of the app that does the work has stopped. Start it again to carry on.") }
+
+    /// Title menu item that queues every unwatched episode that is not downloaded yet.
+    public static var shellDownloadUnwatched: String { string("shell-download-unwatched", fallback: "Download unwatched") }
 
     /// Line under the heading of the sources list on a phone, where the order is changed with Edit.
     public static var sourcesOrderDetailEdit: String { string("sources-order-detail-edit", fallback: "Sources are tried top to bottom. Tap Edit to change the order.") }
@@ -4921,6 +4936,9 @@ public enum L {
     public static func playerWaitNote(what: String, seconds: Int) -> String {
         Self.format("player-wait-note", fallback: "%1$@ · %2$lld s", what, seconds)
     }
+
+    /// Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.
+    public static var playerCommandFailed: String { string("player-command-failed", fallback: "That didn't work. Try again.") }
 
     /// Button that shows the season before.
     public static var seasonalPrevious: String { string("seasonal-previous", fallback: "Previous season") }

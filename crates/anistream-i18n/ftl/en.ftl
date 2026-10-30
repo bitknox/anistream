@@ -5737,6 +5737,9 @@ player-track-n = Track { $id }
 # Line while an episode starts after a few seconds: what the wait is on, and for how long.
 player-wait-note = { $what } · { $seconds } s
 
+# Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.
+player-command-failed = That didn't work. Try again.
+
 # Button that shows the season before.
 seasonal-previous = Previous season
 

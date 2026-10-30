@@ -289,7 +289,16 @@ extension AppDelegate: NSApplicationDelegate {
 
     /// Quitting in a watch party leaves it: asked first, with Stay the default.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        store.party.asksBeforeQuitting() ? .terminateCancel : .terminateNow
+        if store.party.asksBeforeQuitting() { return .terminateCancel }
+        guard store.hasEngine else { return .terminateNow }
+        // The windows go first and the engine winds down off the main thread, for at most four
+        // seconds, so quitting does not look like a hang.
+        for window in NSApp.windows { window.orderOut(nil) }
+        Task { @MainActor in
+            await store.shutdown(within: .seconds(4))
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
     }
 
     func applicationWillTerminate(_ notification: Notification) {

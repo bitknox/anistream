@@ -543,7 +543,7 @@ public final class PlayerModel {
                 do {
                     try await backend.begin(on: handed.layer)
                 } catch {
-                    Self.note(.error, "mpv did not start: \(error)")
+                    Self.note(.error, "mpv did not start: \(AppLog.redacting("\(error)"))")
                     self?.failed(backend)
                     return
                 }
@@ -570,6 +570,11 @@ public final class PlayerModel {
                         }
                     } catch {
                         Self.note(.warn, "mpv refused \(Self.describe(item)): \(AppLog.redacting("\(error)"))")
+                        // A change the viewer asked for that mpv refused says so; the periodic
+                        // sampling stays quiet.
+                        if case .call(let call) = item {
+                            if case .sample = call {} else { self?.commandFailed() }
+                        }
                     }
                 }
             }
@@ -668,8 +673,15 @@ public final class PlayerModel {
     /// mpv would not start: the player is gone before it was there.
     private func failed(_ backend: any PlayerBackend) {
         guard backend === self.backend else { return }
+        let episode = startingEpisode
+        let id = staged?.id
         report(.closed)
         teardown()
+        // Say it where the viewer is looking, with the failure card, rather than flash and close.
+        if let episode {
+            isPresented = true
+            failure = PlaybackFailure(id: id, episode: episode)
+        }
     }
 
     private func teardown(awaitingVerdict: Bool = false) {
@@ -1471,6 +1483,11 @@ public final class PlayerModel {
     /// watch party.
     public func say(_ text: String, kind: NoticeKind = .info) {
         alert = PlayerAlert(text: text, kind: kind, since: time.now())
+    }
+
+    private func commandFailed() {
+        guard alert == nil else { return }
+        alert = PlayerAlert(text: L.playerCommandFailed, kind: .alert, since: time.now())
     }
 
     private func trackFileFailed(_ kind: Track.Kind) {

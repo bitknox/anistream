@@ -4319,6 +4319,10 @@
     <value>[{what} · {seconds} š~~~~]</value>
     <comment>Line while an episode starts after a few seconds: what the wait is on, and for how long.</comment>
   </data>
+  <data name="PlayerCommandFailed" xml:space="preserve">
+    <value>[Ţĥàţ ðîðñ'ţ ŵöŕķ. Ţŕý àĝàîñ.~~~~~~~~~]</value>
+    <comment>Message on the video when the player could not make a change the viewer asked for, such as a speed or a track.</comment>
+  </data>
   <data name="SeasonalPrevious" xml:space="preserve">
     <value>[Þŕéṽîöüš šéàšöñ~~~~~]</value>
     <comment>Button that shows the season before.</comment>
