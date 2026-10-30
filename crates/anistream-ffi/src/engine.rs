@@ -41,6 +41,9 @@ pub struct FfiEngine {
     handle: Handle,
     /// The runtime the engine runs on, until [`Self::shutdown`] stops it.
     runtime: Mutex<Option<Runtime>>,
+    /// Held for the whole of a shutdown, so two at once are one after the other: the second
+    /// finds the runtime gone and does nothing.
+    stopping: Mutex<()>,
     /// What the engine's parts lean on, kept for as long as the engine: the fake AniList of an
     /// engine started for a test, and the clock it goes by. Read only by the testing build's
     /// accessors.
@@ -130,23 +133,29 @@ impl FfiEngine {
         InRuntime { handle: self.handle.clone(), future: Box::pin(read) }.await
     }
 
-    /// Stop, after everything sent before: the engine winds down as the app quits, and then
+    /// Stop as the app quits: the engine winds down, ahead of the commands still queued, and then
     /// its runtime stops, without waiting for work still running on it.
     ///
-    /// Blocks while the engine winds down, which with torrents on takes up to a second. Any
-    /// thread may call it, one of a host's calls among them. Calls after the first do nothing.
+    /// Blocks while the engine winds down: the playing episode's last position saved, which
+    /// waits on the player reporting its end through [`Self::send`], then the torrents, all of
+    /// it bounded at a few seconds. The engine takes commands until then, so the player's
+    /// reports reach it. Any thread may call it, one of a host's calls among them. A call while
+    /// one is under way waits for it, and calls after the first do nothing.
     pub fn shutdown(&self) {
-        let engine = lock(&self.engine).take();
+        let _one = lock(&self.stopping);
         let Some(runtime) = lock(&self.runtime).take() else { return };
+        let stopped = lock(&self.engine).as_ref().map(Engine::stopping);
         // On a thread of its own, since a thread of the runtime cannot block on it: a host's
         // calls run on those.
         let stopping = std::thread::spawn(move || {
-            if let Some(engine) = engine {
-                runtime.block_on(engine.shutdown());
+            if let Some(stopped) = stopped {
+                runtime.block_on(stopped);
             }
             runtime.shutdown_background();
         });
         let _ = stopping.join();
+        // Only now: until the save was done, the player's reports went through it.
+        drop(lock(&self.engine).take());
     }
 }
 
@@ -185,6 +194,7 @@ impl FfiEngine {
                 events: Arc::new(tokio::sync::Mutex::new(events)),
                 handle: runtime.handle().clone(),
                 runtime: Mutex::new(Some(runtime)),
+                stopping: Mutex::new(()),
                 kept,
             })),
             Err(e) => {
