@@ -59,6 +59,8 @@ pub struct Known {
     pub downloads_said: bool,
     /// Whether the engine has said which providers there are yet.
     pub providers_said: bool,
+    /// Why no sources are available, in the engine's words, while none are.
+    pub provider_note: Option<String>,
     /// The jobs running, by number, with their activity: "syncing".
     pub jobs: HashMap<JobId, String>,
     /// The trackers being signed in to, and how.
@@ -237,6 +239,12 @@ impl Known {
             Event::Providers(rows) => {
                 self.providers = rows.clone();
                 self.providers_said = true;
+                if !rows.is_empty() {
+                    self.provider_note = None;
+                }
+            }
+            Event::ProviderNote(note) => {
+                self.provider_note = Some(crate::say::msg(note));
             }
             Event::Stores(rows) => self.stores = rows.clone(),
             Event::SourceOptions { id, options } => {
@@ -462,7 +470,7 @@ impl Hub {
             let listeners: Vec<_> =
                 self.listeners.borrow().iter().map(|(_, l)| l.clone()).collect();
             for listener in listeners {
-                listener(&event);
+                guarded("a page listener", || listener(&event));
             }
         }
     }
@@ -588,6 +596,28 @@ fn with_fixture_trailer(mut entry: Entry) -> Entry {
     entry
 }
 
+thread_local! {
+    /// Whether a panic here would be caught: the panic hook leaves the engine running then.
+    static GUARDED: Cell<u32> = const { Cell::new(0) };
+}
+
+/// Whether the code running now is inside [`guarded`].
+pub fn in_guard() -> bool {
+    GUARDED.with(|depth| depth.get() > 0)
+}
+
+/// Run `work`, and when it panics log that and go on: one page's bug in a callback from GTK's
+/// main loop would otherwise abort the whole app, mid-episode.
+pub fn guarded(what: &str, work: impl FnOnce()) -> bool {
+    GUARDED.with(|depth| depth.set(depth.get() + 1));
+    let done = std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)).is_ok();
+    GUARDED.with(|depth| depth.set(depth.get() - 1));
+    if !done {
+        tracing::error!(what, "a callback panicked and was skipped");
+    }
+    done
+}
+
 #[cfg(not(feature = "fixtures"))]
 fn with_fixture_trailer(entry: Entry) -> Entry {
     entry
@@ -598,6 +628,15 @@ mod tests {
     use super::*;
     use anistream_model::catalog::{ContentList, ResumePoint};
     use anistream_model::progress::TitleProgress;
+
+    #[test]
+    fn a_panic_in_one_listener_is_caught_and_the_next_one_still_runs() {
+        let mut heard = Vec::new();
+        assert!(!guarded("a test", || panic!("a page broke")));
+        assert!(!in_guard(), "the guard is left");
+        assert!(guarded("a test", || heard.push(2)));
+        assert_eq!(heard, [2]);
+    }
 
     #[test]
     fn progress_moves_the_title_wherever_it_was_seen() {
@@ -671,6 +710,17 @@ mod tests {
             content: ContentList::Entries(vec![tracked]),
         });
         assert_eq!(known.entries[&6].progress.map(|p| p.next), Some(3));
+    }
+
+    #[test]
+    fn the_reason_there_are_no_sources_stands_until_there_are_some() {
+        let mut known = Known::default();
+        known.take(&Event::ProviderNote(anistream_model::Msg::PluginsLoadFailed {
+            reason: "a folder".into(),
+        }));
+        assert!(known.provider_note.as_deref().is_some_and(|note| note.contains("a folder")));
+        known.take(&Event::Providers(Vec::new()));
+        assert!(known.provider_note.is_some(), "an empty list keeps it");
     }
 
     #[test]

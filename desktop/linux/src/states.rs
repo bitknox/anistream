@@ -278,7 +278,8 @@ impl States {
             self.answer(Phase::Offline);
             return;
         }
-        self.failed.set_description(Some(&t::error_generic()));
+        let line = first_clause(why).unwrap_or_else(t::error_generic);
+        self.failed.set_description(Some(&line));
         self.answer(Phase::Failed);
     }
 
@@ -474,5 +475,33 @@ fn placeholders(shape: Shape) -> gtk::Widget {
             shapes.add_named(&agenda, Some("agenda"));
             shapes.upcast()
         }
+    }
+}
+
+/// The first clause of the engine's error chain, when it reads as plain words: "Couldn't reach
+/// the server". A chain that starts with a URL, a path, a code or a system message says nothing
+/// to a viewer, and gives the generic line instead.
+fn first_clause(why: &str) -> Option<String> {
+    let clause = why.split([':', ';', '(', '\n']).next()?.trim().trim_end_matches('.');
+    let words = clause.split_whitespace().count();
+    let plain = clause.chars().all(|c| c.is_alphabetic() || c.is_whitespace() || "'’,-".contains(c));
+    let starts_upper = clause.chars().next().is_some_and(char::is_uppercase);
+    ((2..=14).contains(&words) && plain && starts_upper).then(|| format!("{clause}."))
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_failed_state_says_the_first_clause_when_it_is_plain_words() {
+        assert_eq!(
+            first_clause("Couldn't reach the server: connection refused (os error 111)").as_deref(),
+            Some("Couldn't reach the server.")
+        );
+        assert_eq!(first_clause("error sending request for url (https://x.example)"), None);
+        assert_eq!(first_clause("HTTP 503: down"), None);
+        assert_eq!(first_clause(""), None);
     }
 }

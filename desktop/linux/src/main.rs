@@ -149,6 +149,7 @@ fn main() -> glib::ExitCode {
     let cache_dir = paths.cache_dir.clone();
     let engine::Started { engine, mut events, keep, rebuilt } = started;
     let engine = Arc::new(engine);
+    save_on_panic(Arc::downgrade(&engine), runtime.handle().clone());
 
     // The engine's events, in batches, onto the main loop.
     let (events_tx, events_rx) = async_channel::unbounded::<Vec<Event>>();
@@ -224,6 +225,24 @@ fn main() -> glib::ExitCode {
     drop(keep);
     runtime.shutdown_timeout(Duration::from_secs(2));
     code
+}
+
+/// A panic the app does not catch ends it. Before it does, the engine is asked to wind down, which
+/// saves where the episode on screen had got to; a panic a callback guard catches leaves the
+/// engine alone.
+fn save_on_panic(engine: std::sync::Weak<anistream_engine::engine::Engine>, runtime: tokio::runtime::Handle) {
+    let previous = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        tracing::error!(%info, "the app panicked");
+        if !hub::in_guard()
+            && tokio::runtime::Handle::try_current().is_err()
+            && let Some(engine) = engine.upgrade()
+        {
+            tracing::error!("saving the last position before the app ends");
+            runtime.block_on(engine.stopping());
+        }
+        previous(info);
+    }));
 }
 
 /// Where the window keeps its own preferences, the cache and data directories, and the engine's

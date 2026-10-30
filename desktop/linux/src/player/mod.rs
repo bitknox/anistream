@@ -836,7 +836,7 @@ impl PlayerView {
                 self.wake();
             }
             PlayerUi::StallCleared => self.stall_over(),
-            PlayerUi::Alert { text, .. } => self.ctx.toast(&crate::catalog::shown(text)),
+            PlayerUi::Alert { text, .. } => self.ctx.alert(&crate::catalog::shown(text)),
             PlayerUi::Thumbnails { url } => self.preview.thumbnails(url.as_deref()),
             PlayerUi::Resumed { position } => self.resumed(*position),
             _ => {}

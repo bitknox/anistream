@@ -156,7 +156,7 @@ pub fn haze(text: &str, class: &str) -> gtk::Label {
     label
 }
 
-/// A heading over a section of a page, in header capitals: "New This Week".
+/// A heading over a section of a page, in sentence case: "New this week".
 pub fn heading(text: &str) -> gtk::Label {
     let label = gtk::Label::new(Some(text));
     label.add_css_class("title-4");

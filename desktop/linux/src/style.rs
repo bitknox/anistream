@@ -41,8 +41,8 @@ pub fn install(display: &gtk::gdk::Display) {
     register_fonts();
 }
 
-/// Zen Kaku Gothic New for the show titles. The Flatpak ships it under `/app/share/fonts`, where
-/// fontconfig finds it by itself; a build run from the repository adds the copy in its assets.
+/// Zen Kaku Gothic New for the show titles. An installed copy is found by fontconfig on its own;
+/// a build run from the repository adds the copy in its assets.
 fn register_fonts() {
     let map = pangocairo::FontMap::default();
     for file in font_files() {
