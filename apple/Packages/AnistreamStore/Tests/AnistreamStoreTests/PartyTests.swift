@@ -198,6 +198,6 @@ struct PartyTests {
 
         party.openInvite("anistream://party?room=tuesday") { opened = $0 }
         #expect(party.start == nil)
-        #expect(store.notices.current?.notice.text == "That party link is missing its server, room or episode.")
+        #expect(store.notices.current?.notice.text == "That watch party link is missing its server, room or episode.")
     }
 }

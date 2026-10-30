@@ -68,11 +68,11 @@ struct LaunchTests {
         ])
         // The Steel Gardener is watched dubbed, so its row is marked, as the engine's queue is.
         #expect(queue.inProgress.map(\.action) == [
-            "Continue E7 · 10:06", "Continue E2 dubbed · 13:30", "Play E4",
+            "Resume E7 · 10:06", "Resume E2 dubbed · 13:30", "Play E4",
         ])
         #expect(queue.inProgress.map(\.dubbed) == [false, true, false])
         #expect(queue.newThisWeek.map(\.entry.secondary) == ["Natsukaze Relay"])
-        #expect(queue.newThisWeek.first?.action.hasPrefix("Play E8 · out 19h") == true)
+        #expect(queue.newThisWeek.first?.action.hasPrefix("Play E8 · out 19 h") == true)
     }
 
     @Test func aTitleWatchedUpToItsNextBroadcastIsCaughtUpAndOffersNothingToPlay() async throws {
