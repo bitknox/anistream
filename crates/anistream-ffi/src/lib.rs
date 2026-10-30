@@ -24,6 +24,10 @@
 //! [`FfiHost`] callback interface; with the model's words for counts, sizes and spans of time as
 //! free functions, and, behind the `mpv-host` feature, the Windows app's hosted player.
 
+// FfiError carries a Msg for the apps to word, which makes it large. It is made once, when a
+// start fails, and uniffi takes no Box, so the size is kept.
+#![allow(clippy::result_large_err)]
+
 uniffi::setup_scaffolding!();
 
 mod bug_report;
