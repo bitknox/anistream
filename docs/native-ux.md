@@ -6,7 +6,7 @@ The apps behave like Apple's own apps and look like anistream. Navigation, contr
 
 Later decisions win where they disagree with this text:
 
-- The design review settled: Settings sits inside the Mac and iPad main window, a ⌘K palette is built, torrents run on every device, and Up Next counts down 10 s and fades through the ground colour.
+- The design review settled: Settings sits inside the Mac and iPad main window, a ⌘K palette is built, torrents run on every device, and Up next counts down 10 s and fades through the ground colour.
 - Copy, 23 October 2026: the legal line is "anistream hosts no content." Drop "ships no sources of its own" and "Every source is run by someone else" where they appear below.
 - Android TV, Windows and Linux follow the same principles, states, motion tokens and copy rules through their own platform's controls. Their own notes are `android/docs/tv-design-brief.md` and `docs/desktop-*.md`.
 
@@ -43,7 +43,7 @@ One SwiftUI app with three shapes: a split view on Mac, the same split view on i
 
 ### iPhone
 
-- Five tabs: Continue, Calendar, Seasonal, Library and Search (`Tab(role: .search)`, with its field at the bottom). Downloads is Library's first row. Accounts, Providers, Plugin stores and Settings open as a sheet from the account button on Continue and Library.
+- Five tabs: Continue, Calendar, Seasonal, Library and Search (`Tab(role: .search)`, with its field at the bottom). Downloads is Library's first row. Accounts, Sources, Plugin stores and Settings open as a sheet from the account button on Continue and Library.
 - The tab bar minimises on scroll and the large title collapses, both the system's (T6).
 - The main action sits low. When a title page's Resume button scrolls away, a Resume capsule fades into the bottom toolbar. Sheets open at the medium detent with their action at the bottom.
 - Long press opens `contextMenu(menuItems:preview:)` with the banner as the preview. Pull to refresh (`refreshable`) works on Continue, Calendar, Seasonal, Library (where it also syncs) and Downloads, and its spinner lasts until the engine's job ends, at most 15 s.
@@ -56,7 +56,7 @@ Swipe actions on iPhone and iPad:
 | Continue | Watched (the current episode) | Remove | Trailing, with Undo in a notice |
 | Episode | Watched or Unwatched | Download | Leading |
 | Download | none | Cancel, Delete | None. Delete asks first |
-| Source on Providers | none | none | Reordered by drag in edit mode |
+| A source in Sources | none | none | Reordered by drag in edit mode |
 
 ## Keyboard and menus
 
@@ -104,7 +104,7 @@ The keys follow the mpv companion, so the same hands work in both players.
 | Next or previous episode | N, ⇧N | n, N (TUI) |
 | Skip opening or ending | S, or Return while the button shows | S |
 | Undo an automatic skip | ⌘Z, or U while the note shows | u |
-| Up Next: Play now or Cancel | Return, Esc | Enter, Esc |
+| Up next: Play now or Cancel | Return, Esc | Enter, Esc |
 | Stall: Switch source or Keep waiting | Return, Esc | Enter, Esc |
 | Faster, slower, normal speed | \], \[, ⌫ | \], \[ |
 | Full screen | F, ⌃⌘F, double-click | F |
@@ -116,13 +116,13 @@ The keys follow the mpv companion, so the same hands work in both players.
 | Show the main window, keep playing | ⌘0 | q |
 | Stop | ⌘. or ⌘W | x |
 
-Esc answers the top thing first: an open menu or popover closes, then a card is answered (Up Next is cancelled, the stall prompt keeps waiting), then full screen ends. Any key or pointer movement shows the controls; arrow keys and S act without showing them, and their result shows in a small time or label flash for 1.2 s, as the companion's volume pill does.
+Esc answers the top thing first: an open menu or popover closes, then a card is answered (Up next is cancelled, the stall prompt keeps waiting), then full screen ends. Any key or pointer movement shows the controls; arrow keys and S act without showing them, and their result shows in a small time or label flash for 1.2 s, as the companion's volume pill does.
 
 ## Haptics
 
 Haptics confirm what the hand did while the eye is elsewhere: a control pressed on the video, a threshold crossed in a drag, a state flipped in a list. Most actions get none. iPhone plays them. iPad has no Taptic Engine, so the calls do nothing there and no iPad behaviour depends on them. On Mac, SwiftUI's `.alignment` and `.levelChange` reach a Force Touch trackpad through `NSHapticFeedbackManager`, and nothing plays on a mouse. The System Haptics setting turns them all off.
 
-1. Only the user's own touch, drag or press triggers one. Engine events never do: an automatic skip, Up Next rolling on, a finished download, a notice.
+1. Only the user's own touch, drag or press triggers one. Engine events never do: an automatic skip, Up next rolling on, a finished download, a notice.
 2. A button that navigates gets none, because the new screen confirms it. A control that changes playback in place (Skip, Undo, Play now) and a watched mark get a light impact (`.impact(weight: .light)`).
 3. One per threshold, never a continuous buzz, at most one per 80 ms.
 4. Where a system control already plays one (a full swipe, a context menu lifting, a wheel picker, `Toggle`), we add nothing.
@@ -157,10 +157,10 @@ Motion is fixed in the design brief and drawn on the canvas boards MotionSystem,
 | Token | SwiftUI | Used for |
 | --- | --- | --- |
 | quick | `.spring(duration: 0.2, bounce: 0)` | Selection tint, segmented control, toggles, row dim after marking watched |
-| standard | `.spring(duration: 0.3, bounce: 0)` | Content changes inside a screen: progress bars, cards appearing (Skip opening, Up Next), list insert and remove, Mac banner morph |
+| standard | `.spring(duration: 0.3, bounce: 0)` | Content changes inside a screen: progress bars, cards appearing (Skip opening, Up next), list insert and remove, Mac banner morph |
 | fade-in | `.easeOut(duration: 0.2)` | Player controls appearing, artwork arriving, first video frame over the poster |
 | fade-out | `.easeIn(duration: 0.3)` | Player controls hiding |
-| linear | `.linear(duration: n)` | Countdowns only (Up Next 8 s) |
+| linear | `.linear(duration: n)` | Countdowns only (Up next 8 s) |
 | system | The platform's own | Navigation push and zoom, sheets, menus, tab bar, window open, full screen |
 
 Reduce Motion: zoom and matched geometry become crossfades (standard), parallax and the banner stretch are off, the player dismiss drag fades instead of scaling, and draw-on becomes an instant change. Numeric text and fades stay.
@@ -180,7 +180,7 @@ libmpv draws into the app's own view and SwiftUI controls sit on top, which keep
 - At rest the screen is bare video. Controls fade in on a tap, pointer movement or key press, and fade out after 3 s idle on touch (T4) or 2 s on Mac with the pointer hidden (M5). They stay while scrubbing, while a menu is open, while the pointer is over the bar and while VoiceOver runs.
 - Bottom: the seek line at full width, with elapsed and remaining time at its ends in 15 pt monospaced digits, in silk. Below it, play/pause and volume on the leading side, always there. On the trailing side: Subtitles, Audio, Episodes, AirPlay, Picture in Picture and Full Screen (Mac), and a More menu with Speed, Upscaling, Night mode, Sources and Sync subtitles. iPhone merges Subtitles and Audio. Top: the show and episode, and on iPhone a close button that runs the same close as the swipe down (T3).
 - A ground-coloured scrim rises 110 pt from the bottom edge to 72% at the bar, as the companion draws it. Labels over bright video get a 1 px dark outline.
-- The bottom trailing corner holds one card at a time: the stall prompt, then the Undo note, then Up Next, then the Skip button. Skip dims after 8 s and returns to full strength under a finger or pointer.
+- The bottom trailing corner holds one card at a time: the stall prompt, then the Undo note, then Up next, then the Skip button. Skip dims after 8 s and returns to full strength under a finger or pointer.
 
 ### Gestures on iPhone and iPad
 
@@ -212,12 +212,12 @@ libmpv draws into the app's own view and SwiftUI controls sit on top, which keep
 - Moving the finger up off the line slows scrubbing to half speed past 48 pt and quarter speed past 96 pt, labelled “Half-speed scrubbing” and “Quarter-speed scrubbing”. On Mac, ⌥-drag scrubs at quarter speed.
 - Arrow keys and double taps seek exactly, because mpv's keyframe seeks turned 5 s into 7 or 8 s on HLS streams.
 
-### Up Next and auto-next
+### Up next and auto-next
 
 - The card fades in when the ending starts (T5), or 30 s before the end of anything over 2 minutes when there is no ending data. The engine is already finding the next episode's streams by then (`PrefetchNext`), so Play now usually starts within a second.
-- It shows Up Next, Episode 8, “A Town Without Night”, the episode's still at 160 × 90 pt, Play now and Cancel.
+- It shows Up next, Episode 8, “A Town Without Night”, the episode's still at 160 × 90 pt, Play now and Cancel.
 - With auto-play next on, the last 8 s count down (“Plays in 8 s”) on a linear bar. At zero the last frame fades to black over 0.25 s and the next episode fades in, in the same player (T5). The countdown pauses with the video.
-- Cancel fades the card out (quick) for the rest of the episode. Up Next outranks the ending's Skip button, and S still skips. After the last available episode the player closes to the title page.
+- Cancel fades the card out (quick) for the rest of the episode. Up next outranks the ending's Skip button, and S still skips. After the last available episode the player closes to the title page.
 
 ### Skip and Undo
 
@@ -309,7 +309,7 @@ Nagare (cell 5, 100 × 160 pt) stands above a title, one line and at most one bu
 | Continue | Nothing watched yet | Pick something from Seasonal, or search for a title. | Browse Seasonal |
 | Library, signed out | Your AniList list shows here | Sign in to sync what you watch and where you stopped. | Sign in to AniList |
 | Downloads | No downloads | Downloaded episodes play without a connection. | none |
-| Providers, no sources | No sources yet | anistream ships no sources of its own. Sources come as plugins from a plugin store. | Join a plugin store |
+| Sources, no sources | No sources yet | anistream ships no sources of its own. Sources come as plugins from a plugin store. | Join a plugin store |
 | Search, no results | `ContentUnavailableView.search(text:)` |  |  |
 
 ### Offline
@@ -342,7 +342,7 @@ A job (`JobStarted`, `JobNote`, `JobDone`) shows where its result will land, aft
 | Search | A row under the field: Searching for “lantern” |
 | Sync | Mac: “Syncing” with a small `ProgressView` in the toolbar status. iPhone: `navigationSubtitle` on Continue and Library |
 | Starting an episode | The starting screen (T2) |
-| Checking providers, installing a plugin, signing in | A `ProgressView` in the affected row or button |
+| Checking sources, installing a plugin, signing in | A `ProgressView` in the affected row or button |
 | Queueing downloads | The episode rows show Queued at once; the job shows nothing |
 | A `JobNote` with a wait | Added where the job shows, counting down: “Waiting for AniList · 12 s” |
 
@@ -374,7 +374,7 @@ On iPhone and iPad, torrents run while the app is open:
 
 - Streaming and downloading run in the foreground. When the app goes to the background, the torrent session pauses. When it comes back, the check runs again and then the session resumes, so the check never runs in the background.
 - Seeding happens only while the app is open, so seed after watching is best effort. Its row says so and names the device: “On this iPhone, seeding happens only while anistream is open.”
-- A “Torrents on cellular” row, off by default, appears on devices with cellular. While it is off, torrents pause on cellular and resume on Wi-Fi.
+- A “Torrents on mobile data” row, off by default, appears on devices with mobile data. While it is off, torrents pause on mobile data and resume on Wi-Fi.
 - A torrent episode playing with the phone locked is open; see Decisions for you.
 
 ## Accessibility
@@ -384,7 +384,7 @@ On iPhone and iPad, torrents run while the app is open:
 - A cover or row is one element. Its label is the show title, then the English title when it differs (“Hoshikuzu no Tabibito, Stardust Wayfarer”). Its value is the progress in words (“Episode 7, 14 minutes left”). The context menu's items are its custom actions (Mark as watched, Remove from Continue, Download), and the default action opens the title. The Japanese title is read in Japanese (`accessibilitySpeechLanguage` set to `ja`).
 - A title page reads title, metadata, main button, progress, episodes, then synopsis (`accessibilitySortPriority`). Section headings are headers, for the headings rotor. Custom rotors (`accessibilityRotor`) give Unwatched episodes on a title page, Days on Calendar and In progress on Downloads.
 - In the player the controls stay up while VoiceOver runs. The seek line adjusts in 10 s steps, with the value “12 minutes 4 seconds of 23 minutes 40 seconds”. The magic tap plays or pauses, and the escape gesture closes the player.
-- Up Next is announced when it appears and once at “Plays in 8 seconds”, never every second. A skip offer is announced once. Every notice is announced (`AccessibilityNotification.Announcement`), alerts at high priority.
+- Up next is announced when it appears and once at “Plays in 8 seconds”, never every second. A skip offer is announced once. Every notice is announced (`AccessibilityNotification.Announcement`), alerts at high priority.
 - For Voice Control, icon-only controls get `accessibilityInputLabels` (“Skip”, “Subtitles”).
 
 ### Dynamic Type
@@ -421,7 +421,7 @@ On the ground (`#161A2E`): silk 13.0:1, water 9.1:1, amber 8.5:1 (and ground on 
 ### Game controllers
 
 - Desktop clients with a gamepad (Linux first) use the one map in `anistream-model`'s `input` module: D-pad and left stick move focus, A confirms, B goes back or closes what is open, Menu opens the controller help.
-- In the player the D-pad seeks and opens the controls, A pauses, and the Up Next and skip cards answer A and B.
+- In the player the D-pad seeks and opens the controls, A pauses, and the Up next and skip cards answer A and B.
 - A focus ring shows while a controller is in use and the pointer hides. Moving the pointer or pressing a key returns to normal.
 - Settings has a Controller group with a switch to turn it off and one to swap the A and B face buttons.
 
@@ -452,7 +452,7 @@ v1 takes what a video app is expected to have and what the TUI already does. The
 
 Labels are short and concrete, in the words the platform uses for the same thing.
 
-1. Use the system's words: Sign in, Download, Remove, Up Next, Resume, Done, Cancel, Settings, Picture in Picture.
+1. Use the system's words: Sign in, Download, Remove, Up next, Resume, Done, Cancel, Settings, Picture in Picture.
 2. Sentence case for every string the app writes: buttons, labels, settings rows, notices. The Mac menu bar is the one exception, in title case like the system menus around it (see Decisions for you).
 3. Name the thing and its number: “Episode 7 · 14 min left”, “Plays in 8 s”. Numbers, durations and dates go through the system formatters (`Duration.formatted`, `Date.FormatStyle`), so they follow the locale and its clock.
 4. A middle dot joins facts. No dashes, exclamation marks, emoji, “please”, “oops” or “simply”, and no marketing words such as free, unlimited, powerful or seamless.
@@ -468,9 +468,9 @@ Labels are short and concrete, in the words the platform uses for the same thing
 | Episode menu | Mark as watched | Toggle watched (the TUI's palette label) |
 | Skip button | Skip opening | Skip intro, Skip OP |
 | After an automatic skip | Skipped opening · Undo | Opening skipped automatically for you |
-| Up Next | Up Next · Episode 8 · Play now · Cancel | Next episode starting soon… |
+| Up next | Up next · Episode 8 · Play now · Cancel | Next episode starting soon… |
 | Stall prompt | Source is buffering · 9 s, Switch source, Keep waiting | The stream stalled. Try another? |
-| Notice with a hint | Plugin update ready: alpha, with an Open stores button | plugin update ready: alpha — Providers, Enter |
+| Notice with a hint | Plugin update ready: alpha, with an Open stores button | Plugin update ready: alpha. Go to Sources and press Enter to open the plugin stores. |
 | First frame timeout | Couldn't start episode 8, with Choose source and Stop | mpv has not started playing after 20s — press x to stop; the source may have no data |
 | Failed action | Couldn't open the trailer, with Try again | could not open the trailer: error sending request for url (…) |
 | Empty Continue | Nothing watched yet | Your journey begins here |
@@ -492,7 +492,7 @@ The Compose app keeps every rule above and changes only the means: Material 3 wi
 | Swipe, long press, pull to refresh | `SwipeToDismissBox`, `combinedClickable(onLongClick)` with a `DropdownMenu`, `PullToRefreshBox` |
 | Player and Picture in Picture | libmpv in a `SurfaceView` under Compose controls. Android's PiP (`setAutoEnterEnabled(true)`) takes the `SurfaceView` as it is, so Android gets PiP without the iOS frame copy |
 | Now Playing and background audio | Media3 `MediaSession` around a `SimpleBasePlayer` that wraps libmpv, in a `mediaPlayback` foreground service |
-| Torrents | The same rules as iPhone: foreground only, a re-check on resume, Torrents on cellular off by default |
+| Torrents | The same rules as iPhone: foreground only, a re-check on resume, Torrents on mobile data off by default |
 | Text size, TalkBack, keyboard | Font scale in `sp` with the same caps; `semantics` with `contentDescription`, `stateDescription`, `customActions` and `heading()`; `onPreviewKeyEvent` with the same keys, and `onProvideKeyboardShortcuts` for Meta + / |
 | Glass chrome | No glass. Bars and capsules are solid Raised, with tonal elevation off |
 
@@ -505,9 +505,9 @@ Each has a recommendation. The spec is written as if you take it.
 3. Engine notice casing: the engine writes the terminal's lower case. Recommended: write sentence case in the engine's wording and let the TUI lower-case it if it wants. Until then the app capitalises the first letter.
 4. Picture in Picture on Mac: the public sample-buffer route, or the private PIP.framework that IINA uses. Recommended: the public route. It survives macOS updates, and it is the same frame path the iOS spike needs.
 5. Picture in Picture on iPhone and iPad: a spike of mpv's software renderer at 540p in the background. Recommended: run it once v1's player works, and ship v1 without PiP on iOS.
-6. Engine work for torrents on iPhone and iPad: pause the torrent session when the app goes to the background, and on return re-run the VPN check before resuming; plus a cellular flag the front end passes, so torrents pause on cellular while Torrents on cellular is off. Recommended as engine tasks ahead of the iOS torrent screens.
+6. Engine work for torrents on iPhone and iPad: pause the torrent session when the app goes to the background, and on return re-run the VPN check before resuming; plus a mobile data flag the front end passes, so torrents pause on mobile data while Torrents on mobile data is off. Recommended as engine tasks ahead of the iOS torrent screens.
 7. A torrent episode playing in the background on iPhone. Background audio keeps the app running, so iOS does not suspend it, and pausing the session would stop the episode once mpv's buffer runs out. Recommended: keep only the playing stream's session running while its audio plays, with the minute check still running, and pause everything else. The alternative is to pause playback with the session and resume on return.
 8. Double-tap seek: 10 s on touch, against 5 s for the arrow keys. Recommended: 10 s. A tap costs more than a key press, and 10 s matches the lock screen's skip buttons.
 9. Long press for 2× speed on touch. Recommended: keep it. It is the touch form of the TUI's speed keys.
-10. Lock screen buttons on iPhone: skip 10 s, or next and previous episode. Recommended: skip 10 s. The next episode is one tap away in the player and in Up Next.
+10. Lock screen buttons on iPhone: skip 10 s, or next and previous episode. Recommended: skip 10 s. The next episode is one tap away in the player and in Up next.
 11. iPhone mini player: T3 closes the player, so browsing on iPhone stops playback. Recommended: ship T3 as drawn and add a mini player in `tabViewBottomAccessory` later if you miss it.

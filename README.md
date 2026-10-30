@@ -256,7 +256,7 @@ cargo clippy --workspace --all-targets
 | `apple/` | The SwiftUI app for Mac, iPhone and iPad |
 | `android/` | The Kotlin and Compose apps for Android and Android TV |
 | `desktop/` | The WinUI 3 app for Windows and the GTK 4 app for Linux |
-| `plugins/` | Example plugins in Rust and TypeScript |
+| `plugins/` | Example plugins in Rust and JavaScript |
 | `wit/` | The interface plugins are written against |
 | `deploy/` | Ways to run a plugin store: containers and serverless hosts |
 | `packaging/` | Release builds, installers and the release scripts |

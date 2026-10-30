@@ -49,10 +49,10 @@ The brief's open questions, answered the same day:
 |---|---|---|
 | Obi & Silk palette, amber as the only accent | Kept. Amber replaces the Windows accent colour in the app's resources | Kept. Amber replaces the libadwaita accent through its CSS variables |
 | Glass chrome (Apple) | Replaced by Mica, tinted to the ground, on the title bar and navigation pane only | Replaced by solid surfaces: GNOME has no translucent chrome |
-| Show titles in Zen Kaku Gothic New 700 | Kept, font bundled with the app | Kept, font bundled in the Flatpak |
+| Show titles in Zen Kaku Gothic New 700 | Kept, font bundled with the app | Kept, font bundled in the AppImage |
 | UI type (SF on Apple, Roboto Flex on Android) | Segoe UI Variable and the Fluent type ramp | The system font (Adwaita Sans on GNOME) and libadwaita's type classes |
 | Metadata in spaced caps (11/500, 0.08em) | Replaced by Fluent's Caption style in haze, no caps | Replaced by `.caption` and `.caption-heading`, no caps (the HIG avoids all caps) |
-| Mac title case for controls | Replaced by sentence case everywhere ("Resume episode 7 · 10:06", "Join store…") | Header capitalisation for buttons, menu items, headings and page titles ("Resume Episode 7 · 10:06", "Join Store…"); sentence case for row labels, check boxes and body text |
+| Mac title case for controls | Replaced by sentence case everywhere ("Resume episode 7 · 10:06", "Join store…") | Sentence case for buttons, menu items, headings, page titles, row labels, check boxes and body text, as the catalogue writes them ("Resume episode 7 · 10:06", "Join store…") |
 | Cover art as the hero, 2:3 covers, 16:9 banners, flat placeholders in the cover's colour | Kept | Kept |
 | Nagare, static, integer cells, empty states, first launch and About | Kept | Kept, inside `AdwStatusPage` empty states |
 | Voice and the legal line "anistream hosts no content." | Kept | Kept |
@@ -237,8 +237,8 @@ sizes, so the text follows GNOME's Large Text setting.
 | `.numeric` | times, counts, sizes (tabular figures) |
 
 Show titles: Zen Kaku Gothic New 700. In CSS they take relative sizes (`1.07em` in rows, `2em` on
-the title page) so they follow the text scale. The font file ships in the Flatpak under
-`/app/share/fonts`.
+the title page) so they follow the text scale. The font file ships in the AppImage under
+`usr/share/anistream/fonts`, which `AppRun` hands to the app as `ANISTREAM_FONTS`.
 
 ### Shape and size
 
@@ -341,7 +341,7 @@ Offline shows a quiet line such as "2 changes waiting to sync".
   36×54 covers, grouped under In progress and New this week. Beside it the preview of the selected
   row: the banner at 16:9 of the column's width up to 360 high, the show title, the episode line,
   the progress bar with "14 min left", the one amber action ("Resume episode 7 · 10:06" on
-  Windows, "Resume Episode 7 · 10:06" on Linux) and the synopsis. Arrow keys move the selection;
+  Windows, "Resume episode 7 · 10:06" on Linux) and the synopsis. Arrow keys move the selection;
   Enter plays; double-click or the banner opens the title page.
 - Windows medium: the same two columns while the content is 780 or wider (it is at 960, with the
   48 epx rail). Linux medium: the inner split collapses; the queue fills the content and a row
@@ -353,7 +353,7 @@ Offline shows a quiet line such as "2 changes waiting to sync".
   context menu is a `MenuFlyout`: Resume, Mark watched, Hide from Continue, Drop, Open title.
 - Linux: the queue is the sidebar of an inner `AdwNavigationSplitView` (its background stays the
   ground, not the sidebar colour, so it reads as content). The preview is its content page with a
-  flat header bar. The same menu as a `GtkPopoverMenu`, in header capitalisation.
+  flat header bar. The same menu as a `GtkPopoverMenu`, in sentence case.
 
 ### Search
 
@@ -495,7 +495,7 @@ the Mac.
   sub-page with a `BreadcrumbBar`. Ctrl+, opens Settings.
 - Linux: Settings is the sidebar's last destination (Ctrl+, selects it), laid out as Windows
   lays it out. Wide: an inner `AdwNavigationSplitView` with the panes as a `.navigation-sidebar`
-  list (220 wide, icons and names in header capitalisation), the pane as an `AdwPreferencesPage`
+  list (220 wide, icons and names in sentence case), the pane as an `AdwPreferencesPage`
   in an `AdwClamp` of 640, and, at 1280 and wider, the Mac's preview column on the end. Medium:
   the pane list and the pane; rows whose effect needs a picture (upscaling, subtitle style, night
   mode) open a subpage that holds it. Narrow: the pane list is a page and a pane is pushed over
@@ -552,7 +552,7 @@ paused.
   `extend-content-to-top-edge` and `extend-content-to-bottom-edge`, revealing its bars; menus are
   popovers; the timeline is a `GtkScale` with marks.
 - Corner cards, at the bottom end over the dim or alone when the controls are hidden: Skip opening
-  (one per segment), Up Next (Play now in amber, Cancel, the 10 s countdown bar, "Plays in 8 s"),
+  (one per segment), Up next (Play now in amber, Cancel, the 10 s countdown bar, "Plays in 8 s"),
   the stall prompt (try another source or keep waiting). "Still watching?" after three episodes in
   a row with no input is a centred card that pauses playback.
 - The starting screen: the banner art full frame, "Starting episode 7" and a 32 px `ProgressRing`
@@ -583,7 +583,7 @@ controls; every other key shows them.
 | Up, Down | Volume up or down 5 |
 | M | Mute |
 | F, F11 | Fullscreen |
-| Esc | Close a menu, then cancel Up Next or the stall prompt, then leave fullscreen, then close the player |
+| Esc | Close a menu, then cancel Up next or the stall prompt, then leave fullscreen, then close the player |
 | Enter | Take the corner card's action (skip, play now, try another source) |
 | S | Skip the current segment; U undoes it |
 | N, Shift+N | Next or previous episode |
@@ -641,7 +641,7 @@ no overshoot.
 | standard | Same, period 300 ms | Same, stiffness 440 |
 | fade-in | 200 ms, decelerate easing | `AdwTimedAnimation`, 200 ms, `ease-out-cubic` |
 | fade-out | 300 ms, accelerate easing | 300 ms, `ease-in-cubic` |
-| linear | Linear key frames (Up Next's 10 s countdown only) | `linear` easing |
+| linear | Linear key frames (Up next's 10 s countdown only) | `linear` easing |
 | system | Fluent page transitions, flyouts, dialogs, window presenters | libadwaita's navigation, dialogs, popovers, split views |
 
 The periods give the same stiffness as Android's `spring(1f, 1000f)` and `spring(1f, 440f)`.
@@ -652,7 +652,7 @@ The periods give the same stiffness as Android's `spring(1f, 1000f)` and `spring
 - Continue selection to preview: the preview crossfades (fade-in), skipped when the selection
   moves again within 0.15 s (M2).
 - Player chrome: fade only, never a slide; corner cards fade with the standard token.
-- Up Next at zero: the last frame fades through the ground colour over 0.25 s, never black.
+- Up next at zero: the last frame fades through the ground colour over 0.25 s, never black.
 - Reduce motion: Windows' "Animation effects" off (`UISettings.AnimationsEnabled`) turns the
   connected animation and drill-in into crossfades and keeps fades. GNOME's "Reduce Animation"
   (`gtk-enable-animations` off) makes libadwaita's animations jump to their end, fades included;
@@ -664,8 +664,8 @@ The periods give the same stiffness as Android's `spring(1f, 1000f)` and `spring
   on every icon button, headings marked with `HeadingLevel`, notices announced with
   `LiveSetting`), Orca through AT-SPI on Linux (`GtkAccessible` labels and roles, notices through
   `gtk_accessible_announce`). Covers are named by their show; decorative art is hidden from both.
-- The player names its state: "Playing, 10:06 of 24:00". Skip and Up Next cards stay for the whole
-  segment and Up Next waits for input while a screen reader is running, as on Apple.
+- The player names its state: "Playing, 10:06 of 24:00". Skip and Up next cards stay for the whole
+  segment and Up next waits for input while a screen reader is running, as on Apple.
 - Scaling: Windows display scale (100% to 300% and up) and text size (100% to 225%) separately.
   Text scaling grows rows and wraps labels; nothing truncates a show title to one line at 225%
   except in grids, which take two lines and a tooltip. Linux fractional scaling and Large Text
@@ -694,7 +694,7 @@ The periods give the same stiffness as Android's `spring(1f, 1000f)` and `spring
 | Running with the window closed | Only after the user chooses Keep going (below): a notification area icon (Open anistream, Pause all downloads, Quit) | Only after Keep going: the Background portal, so GNOME lists anistream under Background Apps; on KDE a StatusNotifierItem with the same menu |
 | Single instance | `AppInstance` key, later launches redirect their arguments | `GApplication` over D-Bus |
 | Deep links | `anistream://` registered under `HKCU\Software\Classes` by the installer | `x-scheme-handler/anistream` in the `.desktop` file |
-| Updates | Velopack: an `InfoBar` "Version 1.4 is ready. Restart to update." and a row in About | Flathub updates the app; the engine's check only says "Version 1.4 is out" in About |
+| Updates | Velopack: an `InfoBar` "Version 1.4 is ready. Restart to update." and a row in About | The AppImage downloads and checks the new version, puts it in place and restarts into it (`updater.rs`); in a folder it cannot write to, it saves the file to Downloads and says so |
 
 Deep links are the routes the other apps answer: `anistream://auth/anilist` and the other
 trackers' sign-in returns, `anistream://join/…` for store invites, `anistream://title/…`,
@@ -703,7 +703,7 @@ activation path.
 
 Tracker sign-in, both platforms:
 
-1. Settings › Accounts › AniList › "Sign in…" (Linux: "Sign In…") opens the default browser.
+1. Settings › Accounts › AniList › "Sign in…" opens the default browser.
 2. The row reads "Waiting for the browser…" with a Cancel button.
 3. The tracker redirects to `anistream://auth/anilist`; the running instance takes it, comes
    forward, and the row turns into "Mika · synced 19:30", with a toast "Signed in to AniList".
@@ -726,8 +726,8 @@ first; the app never keeps running without saying so.
   It's in the notification area." Stop and close pauses everything and quits; the downloads
   resume at the next launch.
 - Linux: the window's `close-request` is stopped and an `AdwAlertDialog` opens, which is a bottom
-  sheet on a narrow window. Heading "Keep Downloads Going?". Body as on Windows. Responses: Cancel,
-  Stop and Close, Keep Going (suggested, amber). A "Don't ask again" check button as the dialog's
+  sheet on a narrow window. Heading "Keep downloads going?". Body as on Windows. Responses: Cancel,
+  Stop and close, Keep going (suggested, amber). A "Don't ask again" check button as the dialog's
   extra child. Keep Going asks the Background portal; if the user or the desktop refuses, a toast
   in the still-open window says "anistream can't keep running in the background here" and the
   dialog's choice falls back to Stop and Close. On KDE the StatusNotifierItem appears.
