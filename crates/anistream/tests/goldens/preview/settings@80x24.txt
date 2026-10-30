@@ -1,14 +1,14 @@
 anistream                                       torrent ○  plugins ·  ·  kitsu ○
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  Appearance  ───────────────────────────────────────────────────────────
-  ▤│  ▌ Theme                       Adaptive
-  ▦│    Motion                      On
-  /│    Titles                      AniList's choice
-  ▥│    Play trailers               Always
-  ↓│
-  ◇│  Playback  ─────────────────────────────────────────────────────────────
-  ◎│    Audio                       Subbed
-▌ ⚙│    Quality                     1080p
+ ▸ │  Appearance  ───────────────────────────────────────────────────────────
+ ▤ │  ▌ Theme                       Adaptive
+ ▦ │    Motion                      On
+ / │    Titles                      AniList's choice
+ ▥ │    Play trailers               Always
+ ↓ │
+ ◇ │  Playback  ─────────────────────────────────────────────────────────────
+ ◎ │    Audio                       Subbed
+▌≡ │    Quality                     1080p
    │    Subtitles                   eng
    │    Counts as watched at        85%
    │    Auto-play next              On
@@ -17,8 +17,8 @@ anistream                                       torrent ○  plugins ·  ·  kit
    │    Mark opening and ending     On
    │    Show skip button            On
    │    Start in full screen        Off
-   │    Upscaling                   Natural · ArtCNN
+   │
    │
    │
 ────────────────────────────────────────────────────────────────────────────────
-plugins · Subbed · 1080p                                     h/l change   ? keys
+plugins · Subbed · 1080p                                      ←→ change   ? keys

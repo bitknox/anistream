@@ -28,7 +28,8 @@ pub enum Role {
     /// Hairline rules. Non-text, so exempt from the contrast floor, but still has to be
     /// visible or the layout loses its structure.
     Rule,
-    /// The focus accent. The obi bar, progress fill, and nothing else.
+    /// The focus accent: the obi bar, the playhead that is its twin on Now Playing, and the one
+    /// prompt a screen leads with (skip the opening). Other meters fill in the text colour.
     Obi,
     /// State and progress indication.
     State,
@@ -87,6 +88,9 @@ pub const LIGHT_GROUND_RANGE: (f64, f64) = (0.7, 1.0);
 /// The painted ground for immersive mode: dusk indigo, 藍.
 pub const IMMERSIVE_GROUND: Rgb = Rgb::from_hex(0x161A2E);
 
+/// The raised surface on the immersive ground, the shared `raised` token: what an overlay's
+/// band is cleared to, so it reads as lifted over the screen it covers.
+pub const IMMERSIVE_RAISED: Rgb = Rgb::from_hex(0x222638);
 /// Ground assumed for the dark variant when the terminal refuses to answer OSC 11.
 const ASSUMED_DARK_GROUND: Rgb = Rgb::from_hex(0x1A1B26);
 
@@ -153,6 +157,13 @@ impl Palette {
     /// its own luminance, so on some themes it would vanish entirely. Deriving it as a
     /// fixed step away from the real ground keeps it consistently visible whether the
     /// terminal is pure black or Nord.
+    ///
+    /// Immersive takes the shared design tokens (docs/desktop-design-brief.md) as they are,
+    /// since it paints the same ground the apps do. The adaptive variants drift from them on
+    /// purpose, because they must hold AA on a range of grounds rather than one: dark's haze
+    /// is #A8AEC9 for the tokens' #9298B5 and its alert #F59B85 for vermilion #E06B54, both
+    /// lifted to read on grounds up to luminance 0.05; light's colours sit darker than the light
+    /// tokens to read on grounds down to 0.7. The AA test holds each to its range.
     pub fn for_ground(variant: Variant, ground: Rgb) -> Self {
         let (text, text_dim, obi, state, alert) = match variant {
             Variant::Dark => (
@@ -205,12 +216,32 @@ impl Palette {
         self.ground
     }
 
-    pub const fn color(&self, role: Role) -> ratatui::style::Color {
+    /// The raised surface, where this palette paints one: immersive only, as the adaptive
+    /// variants draw on whatever ground the terminal has.
+    pub const fn raised(&self) -> Option<Rgb> {
+        match self.variant {
+            Variant::Immersive => Some(IMMERSIVE_RAISED),
+            Variant::Dark | Variant::Light => None,
+        }
+    }
+
+    pub fn color(&self, role: Role) -> ratatui::style::Color {
         self.get(role).to_ratatui()
     }
 
     pub fn style(&self, role: Role) -> ratatui::style::Style {
-        ratatui::style::Style::default().fg(self.color(role))
+        use ratatui::style::Modifier;
+        let style = ratatui::style::Style::default().fg(self.color(role));
+        // Without colour the roles are told apart by weight: the accent and faults bold,
+        // what recedes dim.
+        if super::color::depth() != super::color::Depth::NoColor {
+            return style;
+        }
+        match role {
+            Role::Obi | Role::Alert => style.add_modifier(Modifier::BOLD),
+            Role::TextDim | Role::Rule => style.add_modifier(Modifier::DIM),
+            Role::Text | Role::State => style,
+        }
     }
 
     /// A foreground guaranteed readable on top of `role` used as a fill.
@@ -222,12 +253,23 @@ impl Palette {
     pub fn on_fill(&self, role: Role) -> ratatui::style::Style {
         let fill = self.get(role);
         let ink = if fill.luminance() > 0.35 { INK_ON_LIGHT } else { INK_ON_DARK };
+        if super::color::depth() == super::color::Depth::NoColor {
+            return Self::reversed().add_modifier(ratatui::style::Modifier::BOLD);
+        }
         ratatui::style::Style::default().fg(ink.to_ratatui()).bg(fill.to_ratatui())
     }
 
     /// A style that fills with `role`, for painting a band.
     pub fn fill(&self, role: Role) -> ratatui::style::Style {
+        if super::color::depth() == super::color::Depth::NoColor {
+            return Self::reversed();
+        }
         ratatui::style::Style::default().bg(self.color(role))
+    }
+
+    /// A band without colour: reverse video.
+    fn reversed() -> ratatui::style::Style {
+        ratatui::style::Style::default().add_modifier(ratatui::style::Modifier::REVERSED)
     }
 
     /// The worst-case ground luminance this variant must remain readable against.
@@ -267,14 +309,36 @@ impl Palette {
 pub fn select(mode: ThemeMode, detected_background: Option<Rgb>) -> Variant {
     match mode {
         ThemeMode::Immersive => Variant::Immersive,
+        // Said outright, for a terminal that never answers the background query.
+        ThemeMode::Light => Variant::Light,
+        ThemeMode::Dark => Variant::Dark,
         ThemeMode::Adaptive => match detected_background {
-            Some(bg) if bg.luminance() > 0.5 => Variant::Light,
+            // Whichever reads better on the ground found: between the two ranges, on a grey
+            // neither was made for, a fixed luminance threshold could pick the worse.
+            Some(bg) => {
+                let legibility = |variant| text_contrast_on(&Palette::of(variant), bg);
+                if legibility(Variant::Light) > legibility(Variant::Dark) {
+                    Variant::Light
+                } else {
+                    Variant::Dark
+                }
+            }
             // Default to dark when the terminal does not answer the OSC 11 query. Dark
             // is both the commoner setup and the safer guess: light text on an unknown
-            // ground is more often readable than dark text on one.
-            _ => Variant::Dark,
+            // ground is more often readable than dark text on one. Light and Dark in the
+            // Theme setting are for a terminal where the guess is wrong.
+            None => Variant::Dark,
         },
     }
+}
+
+/// The lowest contrast any text role of `palette` has on `ground`.
+fn text_contrast_on(palette: &Palette, ground: Rgb) -> f64 {
+    Role::ALL
+        .into_iter()
+        .filter(|role| role.is_text())
+        .map(|role| contrast_from_luminance(palette.get(role).luminance(), ground.luminance()))
+        .fold(f64::INFINITY, f64::min)
 }
 
 /// The player's colours and font, as this interface dresses it: the immersive palette, because a
@@ -295,7 +359,10 @@ pub fn player_theme() -> PlayerTheme {
 
 #[cfg(test)]
 mod tests {
-    use super::{super::color::AA_NORMAL, *};
+    use super::{
+        super::color::{AA_NORMAL, contrast_ratio},
+        *,
+    };
 
     /// The load-bearing test for the whole palette: every text role, in every variant,
     /// against the worst ground that variant claims to support.
@@ -315,6 +382,38 @@ mod tests {
             }
         }
         assert!(failures.is_empty(), "contrast failures:\n  {}", failures.join("\n  "));
+    }
+
+    /// An immersive overlay draws its text on the raised surface, which every text role has to
+    /// read on as it does on the ground.
+    #[test]
+    fn every_text_role_meets_aa_on_the_raised_surface() {
+        let palette = Palette::immersive();
+        let raised = palette.raised().expect("immersive paints a raised surface");
+        for role in Role::ALL.into_iter().filter(|r| r.is_text()) {
+            let ratio = contrast_ratio(palette.get(role), raised);
+            assert!(ratio >= AA_NORMAL, "{} = {ratio:.2}:1 on raised", role.name());
+        }
+    }
+
+    /// Between the dark and light ranges, on greys neither variant was made for, the variant
+    /// picked is the one whose text reads better there: a threshold alone picked the worse
+    /// one for part of the band.
+    #[test]
+    fn a_ground_between_the_ranges_gets_the_more_legible_variant() {
+        for step in 0..=100u8 {
+            let level = (u16::from(step) * 255 / 100) as u8;
+            let grey = Rgb::new(level, level, level);
+            let chosen = select(ThemeMode::Adaptive, Some(grey));
+            let other = if chosen == Variant::Light { Variant::Dark } else { Variant::Light };
+            let (mine, theirs) = (
+                text_contrast_on(&Palette::of(chosen), grey),
+                text_contrast_on(&Palette::of(other), grey),
+            );
+            assert!(mine >= theirs, "#{level:02x}: {chosen:?} {mine:.2} under {theirs:.2}");
+        }
+        assert_eq!(select(ThemeMode::Light, None), Variant::Light);
+        assert_eq!(select(ThemeMode::Dark, Some(Rgb::new(255, 255, 255))), Variant::Dark);
     }
 
     #[test]

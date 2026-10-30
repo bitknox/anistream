@@ -73,7 +73,7 @@ pub use self::{
 };
 pub(crate) use self::{
     episodes::countdown_text,
-    title::{push_detail, status_text, watch_order},
+    title::{push_detail, status_text, watch_order, watched_all},
 };
 
 /// The whole application state.

@@ -64,6 +64,9 @@ jobs:
             rust:
               - 'crates/**'
               - 'wit/**'
+              - 'plugins/example-rust/**'
+              - 'plugins/example-ts/**'
+              - 'plugins/test-hostile/**'
               - 'assets/**'
               - 'deploy/**'
               - 'packaging/**'
@@ -270,16 +273,32 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - run: tools/ci-toolchain.sh
+      - run: tools/ci-toolchain.sh wasm32-wasip2
       # Formatting is checked first: it needs no build, so a stray space fails in seconds.
       - name: Format
         run: cargo fmt --all --check
+      # The two plugins are their own workspaces, so their targets are cached with the rest.
       - uses: Swatinem/rust-cache@v2
         with:
+          workspaces: |
+            .
+            plugins/example-rust
+            plugins/test-hostile
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
+      # The components the sandbox tests load: the Rust reference plugin, the hostile fixture and
+      # the JavaScript reference plugin. Without them those tests skip, so the Test step below
+      # sets ANISTREAM_REQUIRE_PLUGINS and a missing one fails it. Built on main as well, for the
+      # cache.
+      - name: Build the plugins the sandbox tests load
+        run: |
+          for plugin in example-rust test-hostile; do
+            cargo build --locked --release --target wasm32-wasip2 --manifest-path "plugins/$plugin/Cargo.toml"
+          done
+          npm ci --prefix plugins/example-ts
+          npm run build --prefix plugins/example-ts
       - name: Build the tests
         run: cargo nextest archive --workspace --archive-file "$RUNNER_TEMP/linux-tests.tar.zst"
       - uses: actions/upload-artifact@v7
@@ -294,6 +313,8 @@ jobs:
       # The build above, which cargo finds current. On main, only built, for the cache.
       - name: Test
         if: github.event_name == 'pull_request'
+        env:
+          ANISTREAM_REQUIRE_PLUGINS: "1"
         run: cargo nextest run --workspace --profile ci
       - name: Test the engine without the desktop feature
         run: >-

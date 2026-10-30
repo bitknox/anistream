@@ -1,14 +1,14 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  Title                       State         Progress
-  ▤│  ────────────────────────────────────────────────────────────────────────
-  ▦│    Hoshikuzu no Tabibi…  E4  Downloading   ████▌░░░░░░░  512 MB / 1.4 GB
-  /│    Hoshikuzu no Tabibi…  E5  Queued        ░░░░░░░░░░░░  Torrents are off
-  ▥│    Kaze no Tegami  E9        Paused        ██▏░░░░░░░░░  201 MB / 1.1 GB
-▌2↓│  ▌ Yoru no Toshokan  E5      Failed        ▉░░░░░░░░░░░  88 MB / 1.2 GB
-  ◇│    Tsuki to Kujira no …  E7  Downloaded    ████████████  1.3 GB / 1.3 GB
-  ◎│
-  ⚙│
+ ▸ │  Title                       State         Progress
+ ▤ │  ────────────────────────────────────────────────────────────────────────
+ ▦ │    Hoshikuzu no Tabibi…  E4  Downloading   ████▌░░░░░░░  512 MB / 1.4 GB
+ / │    Hoshikuzu no Tabibi…  E5  Queued        ░░░░░░░░░░░░  Torrents are off
+ ▥ │    Kaze no Tegami        E9  Paused        ██▏░░░░░░░░░  201 MB / 1.1 GB
+▌↓2│  ▌ Yoru no Toshokan      E5  Failed        ▉░░░░░░░░░░░  88 MB / 1.2 GB
+ ◇ │    Tsuki to Kujira no …  E7  Downloaded    ████████████  1.3 GB / 1.3 GB
+ ◎ │
+ ≡ │
    │
    │
    │
@@ -32,52 +32,58 @@ r00 c66-66 fg=rule
 r00 c67-68 fg=text-dim
 r00 c69-79 fg=state
 r01 c00-79 fg=rule
-r02 c02-02 fg=text-dim
+r02 c01-01 fg=text-dim
 r02 c03-03 fg=rule
 r02 c06-10 fg=text-dim
 r02 c34-38 fg=text-dim
 r02 c48-55 fg=text-dim
-r03 c02-02 fg=text-dim
+r03 c01-01 fg=text-dim
 r03 c03-03 fg=rule
 r03 c06-77 fg=rule
-r04 c02-02 fg=text-dim
+r04 c01-01 fg=text-dim
 r04 c03-03 fg=rule
-r04 c08-31 fg=text
+r04 c08-27 fg=text
+r04 c30-31 fg=text
 r04 c34-44 fg=text
-r04 c48-52 fg=obi
+r04 c48-52 fg=text
 r04 c53-59 fg=rule
 r04 c60-76 fg=text-dim
-r05 c02-02 fg=text-dim
+r05 c01-01 fg=text-dim
 r05 c03-03 fg=rule
-r05 c08-31 fg=text
+r05 c08-27 fg=text
+r05 c30-31 fg=text
 r05 c34-39 fg=text-dim
 r05 c48-59 fg=rule
 r05 c60-77 fg=text-dim
-r06 c02-02 fg=text-dim
+r06 c01-01 fg=text-dim
 r06 c03-03 fg=rule
-r06 c08-25 fg=text
+r06 c08-21 fg=text
+r06 c30-31 fg=text
 r06 c34-39 fg=text-dim
-r06 c48-50 fg=obi
+r06 c48-50 fg=text
 r06 c51-59 fg=rule
 r06 c60-76 fg=text-dim
-r07 c00-01 fg=text-dim
-r07 c02-02 fg=text
+r07 c00-00 fg=text-dim
+r07 c01-01 fg=text mod=BOLD
+r07 c02-02 fg=text-dim
 r07 c03-03 fg=rule
 r07 c06-06 fg=obi
-r07 c08-27 fg=text mod=BOLD
+r07 c08-23 fg=text mod=BOLD
+r07 c30-31 fg=text mod=BOLD
 r07 c34-39 fg=alert
-r07 c48-48 fg=obi
+r07 c48-48 fg=text
 r07 c49-59 fg=rule
 r07 c60-75 fg=text-dim
-r08 c02-02 fg=text-dim
+r08 c01-01 fg=text-dim
 r08 c03-03 fg=rule
-r08 c08-31 fg=text
+r08 c08-27 fg=text
+r08 c30-31 fg=text
 r08 c34-43 fg=state
-r08 c48-59 fg=obi
+r08 c48-59 fg=state
 r08 c60-76 fg=text-dim
-r09 c02-02 fg=text-dim
+r09 c01-01 fg=text-dim
 r09 c03-03 fg=rule
-r10 c02-02 fg=text-dim
+r10 c01-01 fg=text-dim
 r10 c03-03 fg=rule
 r11 c03-03 fg=rule
 r12 c03-03 fg=rule

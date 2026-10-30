@@ -194,6 +194,18 @@ impl Rig {
         context: PlaybackContext,
         settings: PlaySettings,
     ) -> Vec<Event> {
+        let (_controls, commands) = mpsc::unbounded_channel::<PlayerCommand>();
+        self.play_steered(streams, context, settings, commands).await
+    }
+
+    /// Play `streams` steered by `commands`, which the test sends, and return what was said.
+    async fn play_steered(
+        &self,
+        streams: Vec<Stream>,
+        context: PlaybackContext,
+        settings: PlaySettings,
+        commands: mpsc::UnboundedReceiver<PlayerCommand>,
+    ) -> Vec<Event> {
         let http =
             HttpClient::offline(&anistream_core::config::NetworkConfig::default()).unwrap();
         let machine = Machine {
@@ -204,7 +216,6 @@ impl Rig {
             offline: Default::default(),
         };
         let (tx, mut rx) = mpsc::unbounded_channel();
-        let (_controls, commands) = mpsc::unbounded_channel::<PlayerCommand>();
         let playing = play(
             streams,
             context,
@@ -705,4 +716,119 @@ async fn a_party_play_left_part_way_keeps_no_position() {
     let id = AnilistId::new(900_001);
     assert_eq!(rig.store.resume_position(id, "1").unwrap(), None);
     assert!(rig.store.completed_episodes(id).unwrap().is_empty());
+}
+
+/// Until `calls` holds a call `matches` accepts, for a test that reports more once the session
+/// has done something.
+async fn until_called(rig: &Rig, matches: impl Fn(&Call) -> bool) {
+    for _ in 0..500 {
+        if rig.opener.calls().iter().any(&matches) {
+            return;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+    panic!("never called: {:#?}", rig.opener.calls());
+}
+
+fn seeks(calls: &[Call]) -> Vec<(f64, bool)> {
+    calls
+        .iter()
+        .filter_map(|call| match call {
+            Call::Seek { seconds, absolute } => Some((*seconds, *absolute)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// A held arrow key sends seeks while the next episode is still being found and while its file
+/// opens. They were aimed at what was on screen then, the episode before or the starting
+/// card, and reach this playback's controls only because they are the newest: once its file
+/// opened they all landed on it at once and ran it to its end, and the next, and the next.
+#[tokio::test]
+async fn seeks_sent_before_the_file_loads_are_let_go() {
+    let rig = Rig::new(vec![Vec::new()]);
+    let (controls, commands) = mpsc::unbounded_channel::<PlayerCommand>();
+    for command in
+        [PlayerCommand::Seek(5.0), PlayerCommand::Seek(5.0), PlayerCommand::SeekTo(80.0)]
+    {
+        controls.send(command).unwrap();
+    }
+    // Read after the seeks, so once it is applied they have been read too.
+    controls.send(PlayerCommand::Volume(2.0)).unwrap();
+    let driving = async {
+        until_called(&rig, |call| matches!(call, Call::Add { property: "volume", .. })).await;
+        let window = rig.opener.window().expect("a window is open");
+        for event in file(&[], (1920, 1080)) {
+            let _ = window.send(event);
+        }
+    };
+    let (events, ()) = tokio::join!(
+        rig.play_steered(
+            vec![stream(StreamKind::Mp4)],
+            context("1", None),
+            settings(),
+            commands
+        ),
+        driving
+    );
+    assert_eq!(seeks(&rig.opener.calls()), [], "{:#?}", rig.opener.calls());
+    assert_eq!(ending(&events), Some(Ending::Complete { next: None }));
+    drop(controls);
+}
+
+/// Forward past the end stops short of it, and the episode ends on its own from there, rather
+/// than mpv ending the file at once and the seeks after it landing on the next one.
+#[tokio::test]
+async fn a_seek_forward_past_the_end_stops_short_of_it() {
+    let rig = Rig::new(vec![opening(&[])]);
+    let (controls, commands) = mpsc::unbounded_channel::<PlayerCommand>();
+    let driving = async {
+        until_called(&rig, |call| matches!(call, Call::Load { .. })).await;
+        let window = rig.opener.window().expect("a window is open");
+        window
+            .send(PlaybackEvent::Progress { position: 100.0, duration: Some(RUNTIME) })
+            .unwrap();
+        until_called(&rig, |call| *call == Call::Overlay(Overlay::Playing)).await;
+        // Inside the file, as it is.
+        controls.send(PlayerCommand::Seek(5.0)).unwrap();
+        until_called(&rig, |call| matches!(call, Call::Seek { .. })).await;
+        window
+            .send(PlaybackEvent::Progress { position: 118.5, duration: Some(RUNTIME) })
+            .unwrap();
+        controls.send(PlayerCommand::Volume(1.0)).unwrap();
+        until_called(&rig, |call| matches!(call, Call::Add { property: "volume", .. })).await;
+        // Past it, from 118.5 s of 120: as far as the end allows, however often.
+        controls.send(PlayerCommand::Seek(5.0)).unwrap();
+        controls.send(PlayerCommand::Seek(5.0)).unwrap();
+        controls.send(PlayerCommand::Volume(1.0)).unwrap();
+        for _ in 0..500 {
+            let added = rig
+                .opener
+                .calls()
+                .iter()
+                .filter(|call| matches!(call, Call::Add { property: "volume", .. }))
+                .count();
+            if added == 2 {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        window.send(PlaybackEvent::Ended { complete: true }).unwrap();
+    };
+    tokio::join!(
+        rig.play_steered(
+            vec![stream(StreamKind::Mp4)],
+            context("1", None),
+            settings(),
+            commands
+        ),
+        driving
+    );
+    let seeks = seeks(&rig.opener.calls());
+    assert_eq!(seeks[0], (5.0, false), "{seeks:?}");
+    assert!(
+        seeks[1..].iter().all(|&(to, absolute)| absolute && to == RUNTIME - 1.0),
+        "past the end: {seeks:?}"
+    );
+    assert_eq!(seeks.len(), 3, "{seeks:?}");
 }

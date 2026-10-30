@@ -1,10 +1,10 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  Find    Comedy · 2026 · Autumn · TV · Airing · Score
-  ▤│
-  ▦│         ▄
+ ▸ │  Find    Comedy · 2026 · Autumn · TV · Airing · Score
+ ▤ │
+ ▦ │         ▄
 ────────────────────────────────────────────────────────────────────────────────
-▌ Filters   ←/→ pick. Enter searches. Esc keeps them.
+▌ Filters
 ────────────────────────────────────────────────────────────────────────────────
   Genre                                                               Comedy
   Year                                                                  2026
@@ -30,11 +30,13 @@ r01 c00-79 fg=rule
 r02 c00-79 fg=rule
 r03 c00-79 fg=rule
 r04 c00-79 fg=rule
-r05 c00-79 fg=rule bg=ground
+r05 c00-00 fg=rule bg=ground
+r05 c01-01 fg=rule bg=ground mod=BOLD
+r05 c02-79 fg=rule bg=ground
 r06 c00-00 fg=obi bg=ground
 r06 c01-01 fg=rule bg=ground
-r06 c02-52 fg=text bg=ground mod=BOLD
-r06 c53-79 fg=rule bg=ground
+r06 c02-08 fg=text bg=ground mod=BOLD
+r06 c09-79 fg=rule bg=ground
 r07 c00-79 fg=rule bg=ground
 r08 c00-01 fg=rule bg=ground
 r08 c02-06 fg=text-dim bg=ground

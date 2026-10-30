@@ -1343,6 +1343,9 @@ continue-preview = [Þŕéṽîéŵ~~~]
 # Under a suggestion that airs later today when no episode number is known: the time it airs.
 up-next-airs-at = [Åîŕš àţ { $time }~~~~]
 
+# Header title on a terminal too narrow for the rail: the product name, then the section on screen.
+chrome-header-section = [àñîšţŕéàɱ · { $section }~~~~~]
+
 # Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 chrome-meta-chip = [Ṁéţàðàţà { $mark }~~~~]
 
@@ -1361,29 +1364,26 @@ overlays-help-page = [Þàĝé { $page } öƒ { $pages }~~~~~]
 # The log overlay, when nothing has been logged this session.
 overlays-logs-empty = [Ñöţĥîñĝ ļöĝĝéð ýéţ~~~~~~]
 
-# Prompt hint under the manual search heading. Enter and Esc are the fixed keys of every prompt.
-overlays-hint-manual-query = [Ţýþé ŵĥàţ ţö šéàŕçĥ ƒöŕ. Åñ éɱþţý Éñţéŕ ŕéšéţš ţö ţĥé àüţöɱàţîç ɱàţçĥ.~~~~~~~~~~~~~~~~~~~~~]
+# Prompt hint under the manual search heading. The footer names its keys.
+overlays-hint-manual-query = [Ţýþé ŵĥàţ ţö šéàŕçĥ ƒöŕ, öŕ ļéàṽé îţ éɱþţý ƒöŕ ţĥé àüţöɱàţîç ɱàţçĥ.~~~~~~~~~~~~~~~~~~~~~]
 
 # Prompt hint for the first step of signing in to Kitsu.
-overlays-hint-kitsu-username = [Éɱàîļ öŕ üšéŕ ñàɱé. Éñţéŕ çöñţîñüéš, Éšç çàñçéļš.~~~~~~~~~~~~~~~]
+overlays-hint-kitsu-username = [Éɱàîļ öŕ üšéŕ ñàɱé.~~~~~~]
 
 # Prompt hint for the second step of signing in to Kitsu. The password is shown as dots.
-overlays-hint-kitsu-password = [Ýöüŕ þàššŵöŕð îš éẋçĥàñĝéð ƒöŕ à ţöķéñ àñð ñöţ šţöŕéð. Éñţéŕ šîĝñš îñ.~~~~~~~~~~~~~~~~~~~~~]
+overlays-hint-kitsu-password = [Ýöüŕ þàššŵöŕð îš éẋçĥàñĝéð ƒöŕ à ţöķéñ àñð ñöţ šţöŕéð.~~~~~~~~~~~~~~~~~]
 
 # Prompt hint for the download range. The examples are episode numbers and stay as written.
 overlays-hint-download-range = [4 ƒöŕ öñé éþîšöðé, 1-12 ƒöŕ à ŕüñ, 7- ƒöŕ éṽéŕýţĥîñĝ ƒŕöɱ ţĥéŕé.~~~~~~~~~~~~~~~~~~~~]
 
-# Prompt hint for editing a setting. The setting is named by its label on the Settings screen.
-overlays-hint-edit-setting = [{ $setting }. Éñţéŕ šàṽéš, Éšç ļéàṽéš îţ àš îţ îš.~~~~~~~~~~~~~]
-
-# Prompt hint for editing a setting, when the setting is not known.
-overlays-hint-edit-setting-bare = [Éñţéŕ šàṽéš, Éšç ļéàṽéš îţ àš îţ îš.~~~~~~~~~~~]
+# Prompt hint for editing a setting: its label on the Settings screen. The footer names the keys.
+overlays-hint-edit-setting = [Ţýþé à ñéŵ ṽàļüé ƒöŕ { $setting }.~~~~~~~~]
 
 # Prompt hint for joining a { -plugin-store }.
-overlays-hint-join-store = [Þàšţé ţĥé îñṽîţé öŕ šţöŕé ļîñķ ýöü ŵéŕé ĝîṽéñ. Éñţéŕ çĥéçķš îţ, Éšç çàñçéļš.~~~~~~~~~~~~~~~~~~~~~~~]
+overlays-hint-join-store = [Þàšţé ţĥé îñṽîţé öŕ šţöŕé ļîñķ ýöü ŵéŕé ĝîṽéñ.~~~~~~~~~~~~~~]
 
 # Prompt hint for naming the person an invite link is for.
-overlays-hint-invite-name = [Ţĥéîŕ ñàɱé, àš ţĥé ɱéɱƀéŕš ļîšţ ŵîļļ šĥöŵ îţ. Éñţéŕ ɱàķéš ţĥé ļîñķ.~~~~~~~~~~~~~~~~~~~~~]
+overlays-hint-invite-name = [Ţĥéîŕ ñàɱé, àš ţĥé ɱéɱƀéŕš ļîšţ ŵîļļ šĥöŵ îţ.~~~~~~~~~~~~~~]
 
 # Overlay heading after the title: the plugin's version and the { -plugin-store } it comes from. The plugin's name leads the heading.
 overlays-heading-plugin = [{ $name }   { $version }  ·  ƒŕöɱ { $store }~~~~~~~]
@@ -1401,34 +1401,19 @@ overlays-heading-open-link-of = [{ $store }~]
 overlays-heading-publish-to = [Ţö { $store }~~]
 
 # Overlay heading, after the title "Which one": the title being matched.
-overlays-heading-disambiguate = [Ṁàţçĥ ƒöŕ { $name }. Éñţéŕ þîñš îţ.~~~~~~~~~]
-
-# Same, when no title is known.
-overlays-heading-disambiguate-bare = [Éñţéŕ þîñš îţ.~~~~~]
+overlays-heading-disambiguate = [Ṁàţçĥ ƒöŕ { $name }~~~~]
 
 # Overlay heading, after the title "Watch order": the title the order is built around.
-overlays-heading-watch-order = [Åŕöüñð { $name }. Éñţéŕ öþéñš.~~~~~~~~]
-
-# Same, when no title is known.
-overlays-heading-watch-order-bare = [Éñţéŕ öþéñš.~~~~]
+overlays-heading-watch-order = [Åŕöüñð { $name }~~~]
 
 # Overlay heading, after the title "Recommended": the title the list came from.
-overlays-heading-recommendations = [Ɓéçàüšé ýöü ļîķéð { $name }. Éñţéŕ öþéñš.~~~~~~~~~~~]
-
-# Same, when no title is known.
-overlays-heading-recommendations-bare = [Éñţéŕ öþéñš.~~~~]
+overlays-heading-recommendations = [Ɓéçàüšé ýöü ļîķéð { $name }~~~~~~~]
 
 # Overlay heading, after the title of the release list.
-overlays-heading-release = [Éñţéŕ þîñš îţ. Ţĥé öţĥéŕ šöüŕçéš ƒîļļ ŵĥàţ îţ ļàçķš.~~~~~~~~~~~~~~~~]
+overlays-heading-release = [Ţĥé öţĥéŕ šöüŕçéš ƒîļļ ŵĥàţ îţ ļàçķš.~~~~~~~~~~~~]
 
 # Overlay heading, after the title of the { -source } list: the choice is kept for this title.
-overlays-heading-source = [{ $name }. Éñţéŕ þîñš îţ.~~~~~~]
-
-# Same, when no title is known.
-overlays-heading-source-bare = [Éñţéŕ þîñš îţ.~~~~~]
-
-# Overlay heading, after the title "Filters": the keys of the filter editor.
-overlays-heading-filters = [←/→ þîçķ. Éñţéŕ šéàŕçĥéš. Éšç ķééþš ţĥéɱ.~~~~~~~~~~~~~]
+overlays-heading-source = [{ $name }~]
 
 # Overlay heading, after the title of the releases list: the episode it is for.
 overlays-heading-releases = [Éþîšöðé { $episode }. Éñţéŕ þļàýš ýöüŕ þîçķ.~~~~~~~~~~~]
@@ -1862,8 +1847,8 @@ keys-action-rate-title = [Ŕàţé ţĥîš ţîţļé~~~~~]
 # Action label in the help overlay and the command palette.
 keys-action-toggle-synopsis = [Éẋþàñð šýñöþšîš~~~~~]
 
-# Action label in the help overlay and the command palette.
-keys-action-hide-from-continue = [Ĥîðé ƒŕöɱ Çöñţîñüé~~~~~~]
+# Action label in the help overlay and the command palette. The key removes a row from { -continue-cap }, and on a suggestion under it says Not interested.
+keys-action-hide-from-continue = [Ŕéɱöṽé, öŕ ñöţ îñţéŕéšţéð~~~~~~~~]
 
 # Action label in the help overlay and the command palette.
 keys-action-show-episodes = [Éþîšöðéš~~~]
@@ -2030,6 +2015,9 @@ keys-hint-add-source = [Åðð à šöüŕçé ţö þļàý~~~~~~]
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 keys-hint-play = [Þļàý~~]
 
+# Status line hint on a suggestion under { -continue-cap }: the key hides it from { -up-next } for you.
+keys-hint-not-interested = [Ñöţ îñţéŕéšţéð~~~~~]
+
 # Status line hint beside a key, saying what that key does here. Keep it to a word or two.
 keys-hint-list = [Ļîšţ~~]
 
@@ -2118,7 +2106,7 @@ keys-scope-global = [Ĝļöƀàļ~~]
 keys-scope-movement = [Ṁöṽéɱéñţ~~~]
 
 # Heading of a group of keys in the help overlay.
-keys-scope-lists = [Ļîšţš àñð ĝŕîðš~~~~~]
+keys-scope-lists = [Ļîšţš~~]
 
 # Heading of a group of keys in the help overlay.
 keys-scope-title = [Ţîţļé~~]
@@ -2479,6 +2467,9 @@ accounts-row-queued-held = [{ $queued } ƣüéüéð, { $held } ŵàîţîñĝ �
 # Action beside a sync difference in the overlay: Enter keeps the value on this device.
 accounts-conflict-keep-mine = [Ķééþ ɱîñé~~~]
 
+# Action under a sync difference in the overlay: Enter keeps the { -tracker }'s value instead.
+accounts-conflict-keep-theirs = [Ķééþ ţĥéîŕš~~~~]
+
 # A sync difference in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 accounts-conflict-row = [{ $title }  ·  { $field }: ɱîñé { $local } / ţĥéîŕš { $remote }~~~~~~~~~~~]
 
@@ -2571,6 +2562,9 @@ lists-episode = [É{ $episode }~~]
 
 # An episode in a list row, for a title watched dubbed.
 lists-episode-dubbed = [É{ $episode } · Ðüƀƀéð~~~~]
+
+# A title's AniList score, out of a hundred, in its facts line and at the end of a list row.
+lists-score = [{ $score }%~~]
 
 # A row on the { -continue-cap } list: the episode and how far into it the person stopped.
 lists-row-resume-percent = [{ $episode } · { $percent }%~~~]
@@ -2711,9 +2705,6 @@ lists-sort-trending = [Ţŕéñðîñĝ~~~]
 
 # A search sort order.
 lists-sort-newest = [Ñéŵéšţ~~]
-
-# Toast when a suggestion under { -continue-cap } is dismissed. It comes back once it airs, unless it already does.
-lists-up-next-dismissed = [{ $title } ĥîððéñ ƒŕöɱ üþ ñéẋţ ƒöŕ ýöü.~~~~~~~~~~]
 
 # Notice when the person leaves Now Playing while mpv carries on in its own window.
 playback-detached = [Ðéţàçĥéð. ɱþṽ îš šţîļļ þļàýîñĝ.~~~~~~~~~~]
@@ -2938,6 +2929,12 @@ settings-value-theme-adaptive = [Åðàþţîṽé~~~]
 
 # Value of the theme setting: draws its own background.
 settings-value-theme-immersive = [Îɱɱéŕšîṽé~~~]
+
+# Value of the theme setting: the terminal's background, with colours for a light one.
+settings-value-theme-light = [Ļîĝĥţ~~]
+
+# Value of the theme setting: the terminal's background, with colours for a dark one.
+settings-value-theme-dark = [Ðàŕķ~~]
 
 # Value of the titles setting: use the language AniList picks for the signed-in account.
 settings-value-titles-anilist = [ÅñîĻîšţ'š çĥöîçé~~~~~]
@@ -3570,9 +3567,6 @@ stores-open-link-warning = [Åñýöñé ŵîţĥ îţ çàñ ĵöîñ, ŵîţĥ
 # Line in the store's link overlay.
 stores-open-link-lasts = [Îţ ŵöŕķš üñţîļ ţĥé šţöŕé ĝöéš ƀàçķ ţö îñṽîţéš öñļý.~~~~~~~~~~~~~~~~]
 
-# Last line of the link overlays: Enter is the key.
-stores-link-close = [Éñţéŕ çļöšéš~~~~]
-
 # Line in an invite link overlay: the link works once, and when it stops working. The expiry reads like "Expires today".
 stores-invite-works-once = [Ŵöŕķš öñçé. { $expiry }.~~~~~]
 
@@ -3643,17 +3637,11 @@ stores-join-already = [Åļŕéàðý ĵöîñéð. Ĵöîñîñĝ àĝàîñ ĝ
 # Note under the device name field in the join confirmation.
 stores-join-device-note = [Ţĥé šţöŕé'š öŵñéŕ šééš ţĥîš ñàɱé. Ţýþé ţö çĥàñĝé îţ.~~~~~~~~~~~~~~~~]
 
-# Last line of the join confirmation: Enter and Esc are the keys.
-stores-join-keys = [Éñţéŕ ĵöîñš · Éšç çàñçéļš~~~~~~~~]
-
 # Lines of the leave confirmation.
 stores-leave-plugins = [Þļüĝîñš îñšţàļļéð ƒŕöɱ îţ šţàý öñ ţĥîš ɱàçĥîñé àñð šţöþ üþðàţîñĝ.~~~~~~~~~~~~~~~~~~~~]
 
 # Lines of the leave confirmation.
 stores-leave-revoked = [Ţĥîš ðéṽîçé'š àççéšš ţö ţĥé šţöŕé îš ŕéṽöķéð.~~~~~~~~~~~~~~]
-
-# Last line of the leave confirmation.
-stores-leave-keys = [Éñţéŕ ļéàṽéš · Éšç šţàýš~~~~~~~~]
 
 # Line of the remove member confirmation.
 stores-remove-member-devices =
@@ -3665,20 +3653,11 @@ stores-remove-member-devices =
 # Line of the remove member confirmation.
 stores-remove-member-plugins = [Þļüĝîñš ţĥéý àļŕéàðý îñšţàļļéð šţàý öñ ţĥéîŕ ɱàçĥîñéš.~~~~~~~~~~~~~~~~~]
 
-# Last line of the remove member confirmation.
-stores-remove-member-keys = [Éñţéŕ ŕéɱöṽéš · Éšç ķééþš ţĥéɱ~~~~~~~~~]
-
 # Line of the cancel invite confirmation.
 stores-cancel-invite-link = [Ţĥé ļîñķ šţöþš ŵöŕķîñĝ.~~~~~~~]
 
-# Last line of the cancel invite confirmation.
-stores-cancel-invite-keys = [Éñţéŕ çàñçéļš îţ · Éšç ķééþš îţ~~~~~~~~~~]
-
 # Line of the stop offering confirmation.
 stores-unpublish-members = [Ṁéɱƀéŕš ŵĥö îñšţàļļéð îţ ķééþ îţ, àñð îţ šţöþš üþðàţîñĝ.~~~~~~~~~~~~~~~~~]
-
-# Last line of the stop offering confirmation.
-stores-unpublish-keys = [Éñţéŕ ŵîţĥðŕàŵš îţ · Éšç ķééþš îţ~~~~~~~~~~]
 
 # Line of the confirmation to let anyone with the store's link join.
 stores-open-anyone = [Åñýöñé ŵîţĥ ţĥé šţöŕé'š ļîñķ çàñ ĵöîñ îţ, ŵîţĥöüţ à ñàɱé.~~~~~~~~~~~~~~~~~~]
@@ -3689,17 +3668,11 @@ stores-open-link-new = [Ţĥé ļîñķ îš ñéŵ éàçĥ ţîɱé, šö àñ
 # Line of the confirmation to let anyone with the store's link join.
 stores-open-members-see = [Ṁéɱƀéŕš šéé ţĥàţ ţĥé šţöŕé îš öþéñ.~~~~~~~~~~~]
 
-# Last line of the confirmation to let anyone with the store's link join.
-stores-open-keys = [Éñţéŕ öþéñš îţ · Éšç ķééþš îţ ţö îñṽîţéš~~~~~~~~~~~~]
-
 # Line of the confirmation to let only invited people join.
 stores-close-link = [Ţĥé ļîñķ šţöþš ŵöŕķîñĝ, àñð ñö öñé ñéŵ ĵöîñš ŵîţĥöüţ àñ îñṽîţé.~~~~~~~~~~~~~~~~~~~]
 
 # Line of the confirmation to let only invited people join.
 stores-close-devices = [Ðéṽîçéš ţĥàţ ĵöîñéð ŵîţĥ îţ ķééþ ŵöŕķîñĝ üñţîļ ýöü ŕéɱöṽé ţĥéɱ îñ ɱéɱƀéŕš.~~~~~~~~~~~~~~~~~~~~~~~]
-
-# Last line of the confirmation to let only invited people join.
-stores-close-keys = [Éñţéŕ ļîɱîţš îţ ţö îñṽîţéš · Éšç ķééþš îţ öþéñ~~~~~~~~~~~~~~]
 
 # Line of the confirmation to remove one device that joined with the store's link.
 stores-anonymous-one-stops = [Îţ šţöþš ŵöŕķîñĝ ŵîţĥ ţĥîš šţöŕé àţ öñçé.~~~~~~~~~~~~~]
@@ -3712,9 +3685,6 @@ stores-anonymous-plugins = [Þļüĝîñš àļŕéàðý îñšţàļļéð š�
 
 # Line of the confirmation to remove devices that joined with the store's link.
 stores-anonymous-still-joins = [Ŵĥîļé ţĥé šţöŕé îš öþéñ, ţĥé ļîñķ šţîļļ ĵöîñš àñýöñé.~~~~~~~~~~~~~~~~]
-
-# Last line of the confirmation to remove devices that joined with the store's link.
-stores-anonymous-keys = [Éñţéŕ ŕéɱöṽéš · Éšç ķééþš~~~~~~~~]
 
 # Line of the plugin overlay: the hosts the plugin may contact.
 stores-plugin-may-contact = [Ṁàý çöñţàçţ { $hosts }~~~~~]

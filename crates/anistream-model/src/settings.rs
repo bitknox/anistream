@@ -510,6 +510,10 @@ pub struct SettingsView {
     pub quality: u32,
     /// The theme in effect, which the terminal paints with.
     pub theme: ThemeMode,
+    /// Whether the front end may animate: off, the terminal's wipe cuts straight to its card and
+    /// its pulses hold still.
+    #[cfg_attr(feature = "ffi", uniffi(default = true))]
+    pub motion: bool,
     /// The sources the config sets up: the header's chips, the source the status line names,
     /// and the order Providers moves a source up and down.
     pub sources: ConfiguredSources,
@@ -570,6 +574,7 @@ pub fn view(effective: &Config, saved: &Config) -> SettingsView {
         translation: effective.playback.translation,
         quality: effective.playback.quality,
         theme: effective.theme.mode,
+        motion: effective.theme.motion,
         sources: ConfiguredSources::of(&effective.providers),
         speed: effective.playback.persisted_speed,
         presence_client: effective.presence.resolved_client_id().is_some(),
@@ -659,13 +664,14 @@ pub fn step(
     let playback = &effective.playback;
     let seeding = &effective.providers.torrent.seeding;
     Some(match key {
-        SettingKey::Theme => V::Str(
-            match saved.theme.mode {
-                ThemeMode::Adaptive => "immersive",
-                ThemeMode::Immersive => "adaptive",
-            }
-            .into(),
-        ),
+        // Round the four, either way: adaptive first, as it is the one most want.
+        SettingKey::Theme => {
+            const RING: [ThemeMode; 4] =
+                [ThemeMode::Adaptive, ThemeMode::Immersive, ThemeMode::Light, ThemeMode::Dark];
+            let at = RING.iter().position(|m| *m == saved.theme.mode).unwrap_or(0) as i64;
+            let next = RING[(at + delta.signum()).rem_euclid(RING.len() as i64) as usize];
+            V::Str(format!("{next:?}").to_lowercase())
+        }
         SettingKey::Motion => V::Bool(!effective.theme.motion),
         SettingKey::Titles => {
             const LADDER: [TitleChoice; 3] =
@@ -801,6 +807,8 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
             config.theme.mode = match mode.as_str() {
                 "adaptive" => ThemeMode::Adaptive,
                 "immersive" => ThemeMode::Immersive,
+                "light" => ThemeMode::Light,
+                "dark" => ThemeMode::Dark,
                 _ => return false,
             };
         }
@@ -1095,7 +1103,7 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
     Some(match key {
         // Theme and sub/dub can differ for this session (`--theme`, `t`), and their arrows
         // change the saved choice, so that is the one they stand on.
-        S::Theme => saved.theme.mode == ThemeMode::Immersive,
+        S::Theme => saved.theme.mode != ThemeMode::Adaptive,
         S::Translation => saved.playback.translation == anistream_core::media::Translation::Dub,
         S::PlayerUi => c.playback.player_ui == PlayerUi::Mpv,
         S::Motion => c.theme.motion,

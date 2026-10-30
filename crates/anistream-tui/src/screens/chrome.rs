@@ -14,7 +14,7 @@ use crate::{
         Role,
         glyph::{self, OBI},
     },
-    widgets::{Header, StatusLine, truncate},
+    widgets::{Cells, Header, StatusLine, truncate},
 };
 
 use super::line;
@@ -65,9 +65,15 @@ pub(super) fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
         ));
     }
 
-    Header::new(&app.palette, "anistream") // i18n-skip: the product name
-        .chips(&chips)
-        .render(geometry.header, buf);
+    // Too narrow for the rail, nothing else says which section this is, so the title does.
+    let named = geometry.header.width < crate::layout::VERY_NARROW_WIDTH
+        && matches!(app.nav.current(), crate::nav::StageView::Section(_));
+    let title = if !named {
+        "anistream".to_owned() // i18n-skip: the product name
+    } else {
+        t::chrome_header_section(app.nav.section().label())
+    };
+    Header::new(&app.palette, &title).chips(&chips).render(geometry.header, buf);
 }
 
 /// The running jobs, newest first, each with how long it has taken, written into the status
@@ -96,23 +102,23 @@ pub(super) fn render_activity(
     let start = area.left() + 1;
     let right = area.right().saturating_sub(1);
     buf.set_string(start, area.top(), " ", app.palette.style(Role::Text));
-    let pulse = glyph::pulse(app.pulse);
+    let pulse = glyph::pulse(app.pulse_frame());
     buf.set_string(start + 1, area.top(), &pulse, app.palette.style(Role::Obi));
-    let mut x = start + 1 + pulse.chars().count() as u16 + 2;
+    let mut x = start + 1 + pulse.cells() as u16 + 2;
     // The cell between the pulse and the first label, and the one closing the caption.
     buf.set_string(x - 2, area.top(), "  ", app.palette.style(Role::Text));
 
     for (shown, job) in jobs.iter().enumerate() {
         let (label, detail) = job_text(job, now);
         let separator = if shown == 0 { "" } else { "   ·   " };
-        let width = (separator.chars().count()
-            + label.chars().count()
-            + detail.as_ref().map_or(0, |d| d.chars().count() + 3)) as u16;
+        let width = (separator.cells()
+            + label.cells()
+            + detail.as_ref().map_or(0, |d| d.cells() + 3)) as u16;
         // Whatever does not fit is counted rather than cut mid-word; the first job always gets
         // what room there is, because it is the one just asked for.
         let rest = jobs.len() - shown;
         let more = format!("   {}", t::chrome_activity_more(rest as i64));
-        if shown > 0 && x + width + more.chars().count() as u16 > right {
+        if shown > 0 && x + width + more.cells() as u16 > right {
             let room = right.saturating_sub(x) as usize;
             let (mx, _) =
                 buf.set_stringn(x, area.top(), &more, room, app.palette.style(Role::TextDim));
@@ -277,13 +283,13 @@ pub(super) fn render_toasts(buf: &mut Buffer, app: &App, rule: Rect, from: u16) 
         n => format!("  +{n}"),
     };
     // A gap in the rule either side, the obi and its space, and one cell of rule at the end.
-    let chrome = 1 + 2 + more.chars().count() as u16 + 1 + 1;
+    let chrome = 1 + 2 + more.cells() as u16 + 1 + 1;
     let room = rule.right().saturating_sub(from.max(rule.left()) + chrome) as usize;
     if room < 8 {
         return;
     }
     let text = truncate(&toast.notice.text, room);
-    let width = chrome - 1 + text.chars().count() as u16;
+    let width = chrome - 1 + text.cells() as u16;
     let x = rule.right().saturating_sub(width + 1);
     let y = rule.top();
     for cell_x in x..x + width {

@@ -16,7 +16,6 @@
 //! thread before its core goes.
 
 use std::{
-    collections::{HashSet, VecDeque},
     sync::{
         Arc, Mutex, MutexGuard, PoisonError,
         atomic::{AtomicBool, Ordering},
@@ -31,7 +30,9 @@ use anistream_model::{
 };
 use serde_json::Value;
 
+pub use crate::book::PlayerState;
 use crate::{
+    book::Book,
     log,
     mpv::{Mpv, MpvError, MpvEvent},
     ops::{self, MpvCall, REPORTED_PROPERTIES, Step},
@@ -152,22 +153,6 @@ impl PlayerOptions {
     }
 }
 
-/// What the player's controls draw from: the playhead and the state around it.
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct PlayerState {
-    pub position: Option<f64>,
-    pub duration: Option<f64>,
-    pub paused: bool,
-    /// Held waiting for data: `paused-for-cache`.
-    pub buffering: bool,
-    pub seeking: bool,
-    /// The file on screen has shown its first frame.
-    pub has_picture: bool,
-    pub frame_drops: i64,
-    /// The file's audio and subtitle tracks, from `track-list`.
-    pub tracks: Vec<ops::PlayerTrack>,
-}
-
 /// What the player tells the app, on its event thread.
 #[derive(Debug, Clone, PartialEq)]
 pub enum HostEvent {
@@ -186,37 +171,13 @@ pub enum HostEvent {
 /// What the app hands events to. Called on the player's own threads.
 pub type Sink = Arc<dyn Fn(HostEvent) + Send + Sync>;
 
-/// Which playback the core's file and reports belong to.
-#[derive(Default)]
-struct Book {
-    /// The playback that opened the player last.
-    opened: Option<PlaybackId>,
-    /// The playback whose file mpv has, from its `start-file`.
-    current: Option<PlaybackId>,
-    /// Loads sent and not yet started, oldest first.
-    loads: VecDeque<PlaybackId>,
-    /// Every playback through this one is over for the player.
-    closed_through: Option<PlaybackId>,
-    /// The viewer closed the player: nothing is taken until the engine stages again.
-    closed_by_viewer: bool,
-    /// The playbacks told `Closed` already, so it is said once.
-    closed_said: HashSet<PlaybackId>,
-    state: PlayerState,
-}
-
-impl Book {
-    fn accepts(&self, playback: PlaybackId) -> bool {
-        !self.closed_by_viewer && self.closed_through.is_none_or(|through| playback > through)
-    }
-
-    /// Who mpv's reports are for: the file's playback, or the one that opened the player.
-    fn target(&self) -> Option<PlaybackId> {
-        self.current.or(self.opened)
-    }
-}
-
 enum Work {
     Call(MpvCall),
+    /// A file for `playback`: mpv's answer names the playlist entry its `start-file` will.
+    Load {
+        playback: PlaybackId,
+        call: MpvCall,
+    },
     /// Stop the file, after everything before it.
     Stop,
 }
@@ -359,14 +320,11 @@ impl Player {
                 }
                 shared.say(HostEvent::Opened { fullscreen });
             }
-            Step::Call(call) => {
-                if let MpvCall::Load { .. } = call {
-                    let mut book = shared.book();
-                    book.loads.push_back(playback);
-                    book.state.has_picture = false;
-                }
-                self.enqueue(Work::Call(call));
+            Step::Call(call @ MpvCall::Load { .. }) => {
+                shared.book().loading(playback);
+                self.enqueue(Work::Load { playback, call });
             }
+            Step::Call(call) => self.enqueue(Work::Call(call)),
             Step::Fullscreen(on) => shared.say(HostEvent::Fullscreen(on)),
             Step::Quit => self.close(true),
             Step::Close => self.close(false),
@@ -444,18 +402,7 @@ impl Player {
             shared.report(PlayerReport::Ended { reason: PlayerEnd::Quit });
             shared.report(PlayerReport::Closed);
         }
-        {
-            let mut book = shared.book();
-            let through =
-                [book.current, book.opened, book.loads.back().copied(), book.closed_through]
-                    .into_iter()
-                    .flatten()
-                    .max();
-            book.closed_through = through;
-            book.loads.clear();
-            book.current = None;
-            book.state = PlayerState::default();
-        }
+        shared.book().close();
         self.enqueue(Work::Stop);
         // mpv keeps `pause` from file to file: the next one would start on a still frame, with
         // the controls, told nothing changed, saying it plays.
@@ -497,6 +444,13 @@ fn run(shared: &Shared, work: Work) {
     let mpv = &shared.mpv;
     let result = match work {
         Work::Stop => mpv.command(&["stop"]),
+        Work::Load { playback, call } => {
+            let answer = mpv.command_node_answered(&call.command_node().expect("a command"));
+            let entry =
+                answer.as_ref().ok().and_then(|answer| answer["playlist_entry_id"].as_i64());
+            shared.book().loaded_as(playback, entry);
+            answer.map(drop)
+        }
         Work::Call(call) => match &call {
             MpvCall::Command(args) => {
                 mpv.command(&args.iter().map(String::as_str).collect::<Vec<_>>())
@@ -559,26 +513,13 @@ fn read_events(shared: &Shared) {
                     _ => tracing::debug!(target: "mpv", "[{prefix}] {line}"),
                 }
             }
-            MpvEvent::StartFile => {
-                let mut book = shared.book();
-                if let Some(playback) = book.loads.pop_front() {
-                    book.current = Some(playback);
-                }
-            }
+            MpvEvent::StartFile { entry } => shared.book().started(entry),
             MpvEvent::FileLoaded => shared.report(PlayerReport::FileLoaded),
             MpvEvent::EndFile { reason } => {
                 shared.report(PlayerReport::Ended { reason: ops::player_end(reason) });
             }
             MpvEvent::PlaybackRestart => {
-                let changed = {
-                    let mut book = shared.book();
-                    // A frame of the file being replaced, while the next loads, is not the next's.
-                    let first = !book.state.has_picture && book.loads.is_empty();
-                    if first {
-                        book.state.has_picture = true;
-                    }
-                    first.then(|| book.state.clone())
-                };
+                let changed = shared.book().restarted();
                 if let Some(state) = changed {
                     shared.say(HostEvent::State(state));
                 }

@@ -544,6 +544,7 @@ dependencies = [
  "ratatui-image",
  "terminal-colorsaurus",
  "tracing",
+ "unicode-width",
 ]
 
 [[package]]

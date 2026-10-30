@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ↓ │  right match, or P to pick another source.
  ◇ │
  ◎ │
- ⚙ │
+ ≡ │
    │
    │
    │

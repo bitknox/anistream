@@ -6,6 +6,7 @@ anistream                                                                       
   /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────
   ▥  Library                │    Mirei (you)                 Owner     2         Just now
   ↓  Downloads              │    Rin                         Member    1         9 days ago
+▌ ◇  Sources                │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Link to the plugin store   Hearth plugins
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -14,7 +15,6 @@ anistream                                                                       
   Copied to the clipboard where the terminal allows it, or select it to copy.
   Anyone with it can join, without a name, as often as they like.
   It works until the store goes back to invites only.
-  Enter closes
 
                             │
                             │
@@ -45,32 +45,29 @@ r04 c00-119 fg=rule
 r05 c00-119 fg=rule
 r06 c00-119 fg=rule
 r07 c00-119 fg=rule
-r08 c00-04 fg=rule bg=ground
-r08 c05-11 fg=rule bg=ground mod=BOLD
-r08 c12-119 fg=rule bg=ground
-r09 c00-00 fg=obi bg=ground
-r09 c01-01 fg=rule bg=ground
-r09 c02-42 fg=text bg=ground mod=BOLD
-r09 c43-119 fg=rule bg=ground
-r10 c00-32 fg=rule bg=ground
-r10 c33-48 fg=rule bg=ground mod=BOLD
+r08 c00-04 fg=rule
+r08 c05-11 fg=rule mod=BOLD
+r08 c12-119 fg=rule
+r09 c00-119 fg=rule bg=ground
+r10 c00-00 fg=obi bg=ground
+r10 c01-01 fg=rule bg=ground
+r10 c02-42 fg=text bg=ground mod=BOLD
+r10 c43-48 fg=rule bg=ground mod=BOLD
 r10 c49-119 fg=rule bg=ground
-r11 c00-01 fg=rule bg=ground
-r11 c02-85 fg=text bg=ground mod=BOLD
-r11 c86-119 fg=rule bg=ground
-r12 c00-119 fg=rule bg=ground
-r13 c00-01 fg=rule bg=ground
-r13 c02-76 fg=text-dim bg=ground
-r13 c77-119 fg=rule bg=ground
+r11 c00-119 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-85 fg=text bg=ground mod=BOLD
+r12 c86-119 fg=rule bg=ground
+r13 c00-119 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
-r14 c02-64 fg=text-dim bg=ground
-r14 c65-119 fg=rule bg=ground
+r14 c02-76 fg=text-dim bg=ground
+r14 c77-119 fg=rule bg=ground
 r15 c00-01 fg=rule bg=ground
-r15 c02-52 fg=text-dim bg=ground
-r15 c53-119 fg=rule bg=ground
+r15 c02-64 fg=text-dim bg=ground
+r15 c65-119 fg=rule bg=ground
 r16 c00-01 fg=rule bg=ground
-r16 c02-13 fg=text-dim bg=ground
-r16 c14-119 fg=rule bg=ground
+r16 c02-52 fg=text-dim bg=ground
+r16 c53-119 fg=rule bg=ground
 r17 c00-119 fg=rule bg=ground
 r18 c00-119 fg=rule
 r19 c00-119 fg=rule
