@@ -28,20 +28,37 @@ const COL_STORE_STATE: u16 = 50;
 const COL_PLUGIN_VERSION: u16 = 30;
 const COL_PLUGIN_STATE: u16 = 44;
 
-/// A store's condition in a few words, and the role to draw it in.
-fn store_state(store: &StoreRow) -> (String, Role) {
+/// A store's condition: its glyph, the role the glyph is drawn in, and a few words.
+fn store_state(store: &StoreRow) -> (char, Role, String) {
     match &store.state {
-        StoreState::Revoked => (t::stores_state_revoked(), Role::Alert),
+        StoreState::Revoked => (glyph::STATE_DOWN, Role::Alert, t::stores_state_revoked()),
         StoreState::Offline(_) => {
-            (format!("{} {}", glyph::STATE_DEGRADED, t::stores_state_offline()), Role::State)
+            (glyph::STATE_DEGRADED, Role::State, t::stores_state_offline())
         }
         StoreState::Ready => match store.updates() {
-            0 => (
-                format!("{} {}", glyph::STATE_READY, t::stores_state_up_to_date()),
-                Role::TextDim,
-            ),
-            n => (t::stores_state_updates(n as i64), Role::State),
+            0 => (glyph::STATE_READY, Role::State, t::stores_state_up_to_date()),
+            n => (glyph::SYNC, Role::State, t::stores_state_updates(n as i64)),
         },
+    }
+}
+
+/// A state column's cell: the glyph first and in its role, the words after it dim, so a column
+/// of states reads as one treatment with the colour where the eye scans.
+fn state_cell(
+    buf: &mut Buffer,
+    app: &App,
+    x: u16,
+    y: u16,
+    room: usize,
+    state: (char, Role, String),
+) {
+    let (mark, role, words) = state;
+    if room == 0 {
+        return;
+    }
+    buf.set_string(x, y, mark.to_string(), app.palette.style(role));
+    if room > 2 {
+        buf.set_string(x + 2, y, truncate(&words, room - 2), app.palette.style(Role::TextDim));
     }
 }
 
@@ -149,14 +166,8 @@ pub(super) fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
             role_text(store.owner),
             app.palette.style(Role::TextDim),
         );
-        let (state, role) = store_state(store);
-        line(
-            buf,
-            area.left() + COL_STORE_STATE,
-            y,
-            truncate(&state, area.width.saturating_sub(COL_STORE_STATE + 1) as usize),
-            app.palette.style(role),
-        );
+        let room = area.width.saturating_sub(COL_STORE_STATE + 1) as usize;
+        state_cell(buf, app, area.left() + COL_STORE_STATE, y, room, store_state(store));
         y += 1;
     }
 
@@ -298,31 +309,27 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
                     ),
                     app.palette.style(Role::TextDim),
                 );
-                let (state, role) = match &plugin.status {
+                let state = match &plugin.status {
                     StorePluginStatus::Available => {
-                        (t::stores_plugin_not_installed(), Role::TextDim)
+                        (glyph::STATE_OFF, Role::TextDim, t::stores_plugin_not_installed())
                     }
-                    StorePluginStatus::Installed => (
-                        format!("{} {}", glyph::STATE_READY, t::stores_plugin_installed()),
-                        Role::State,
-                    ),
+                    StorePluginStatus::Installed => {
+                        (glyph::STATE_READY, Role::State, t::stores_plugin_installed())
+                    }
                     StorePluginStatus::Update { from, .. } => {
-                        (t::stores_plugin_update_from(from), Role::State)
+                        (glyph::SYNC, Role::State, t::stores_plugin_update_from(from))
                     }
                     StorePluginStatus::AddedByHand => {
-                        (t::stores_plugin_added_by_hand(), Role::TextDim)
+                        (glyph::STATE_UNKNOWN, Role::TextDim, t::stores_plugin_added_by_hand())
                     }
-                    StorePluginStatus::OtherStore(_) => {
-                        (t::stores_plugin_from_another_store(), Role::TextDim)
-                    }
+                    StorePluginStatus::OtherStore(_) => (
+                        glyph::STATE_UNKNOWN,
+                        Role::TextDim,
+                        t::stores_plugin_from_another_store(),
+                    ),
                 };
-                line(
-                    buf,
-                    area.left() + COL_PLUGIN_STATE,
-                    y,
-                    truncate(&state, area.width.saturating_sub(COL_PLUGIN_STATE + 1) as usize),
-                    app.palette.style(role),
-                );
+                let room = area.width.saturating_sub(COL_PLUGIN_STATE + 1) as usize;
+                state_cell(buf, app, area.left() + COL_PLUGIN_STATE, y, room, state);
             }
             action => {
                 let style = if matches!(action, StoreLine::Leave)

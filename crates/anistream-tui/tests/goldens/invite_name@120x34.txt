@@ -6,8 +6,8 @@ anistream                                                                       
   /  Search                 │    Plugin                      Version       State
   ▥  Library                │  ───────────────────────────────────────────────────────────────────────────────────────
   ↓  Downloads              │    Yamabiko                    1.4.0         ● Installed
-▌ ◇  Sources                │    Kawasemi                    2.1.0         Update from 2.0.3
-  ◎  Accounts               │    Hotaru                      0.3.0         Not installed
+▌ ◇  Sources                │    Kawasemi                    2.1.0         ⇅ Update from 2.0.3
+  ◎  Accounts               │    Hotaru                      0.3.0         ○ Not installed
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Invite someone   Kai Nakam▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ▤ │
  ▦ │    Store                       Plugins   You       State
  / │  ────────────────────────────────────────────────────────────────────────
- ▥ │    Hearth plugins              3         Owner     1 update
+ ▥ │    Hearth plugins              3         Owner     ⇅ 1 update
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Join a plugin store   …n/k3Vb9TqLwX2mPz8RfYc4Hn#Qe7Ga1Ud5Js0Lo6Wi2Ty9Rb3Np8▏
 ────────────────────────────────────────────────────────────────────────────────

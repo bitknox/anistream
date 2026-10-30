@@ -4,10 +4,10 @@ anistream                                                                       
   ▤  Calendar               │
   ▦  Seasonal               │    Store                       Plugins   You       State
   /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▥  Library                │    Hearth plugins              3         Owner     1 update
+  ▥  Library                │    Hearth plugins              3         Owner     ⇅ 1 update
   ↓  Downloads              │    Rin's sources               1         Member    ● Up to date
 ▌ ◇  Sources                │  ▌ Kumo club                   0         Member    ▲ Offline
-  ◎  Accounts               │    Old lab                     0         Member    Access removed
+  ◎  Accounts               │    Old lab                     0         Member    ✕ Access removed
   ≡  Settings               │
                             │    + Join a store
                             │
@@ -66,14 +66,16 @@ r06 c28-28 fg=rule
 r06 c33-46 fg=text
 r06 c61-61 fg=text-dim
 r06 c71-75 fg=text-dim
-r06 c81-88 fg=state
+r06 c81-81 fg=state
+r06 c83-90 fg=text-dim
 r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
 r07 c33-45 fg=text
 r07 c61-61 fg=text-dim
 r07 c71-76 fg=text-dim
-r07 c81-92 fg=text-dim
+r07 c81-81 fg=state
+r07 c83-92 fg=text-dim
 r08 c00-00 fg=text-dim
 r08 c02-02 fg=text
 r08 c05-11 fg=text mod=BOLD
@@ -82,14 +84,16 @@ r08 c31-31 fg=obi
 r08 c33-41 fg=text mod=BOLD
 r08 c61-61 fg=text-dim
 r08 c71-76 fg=text-dim
-r08 c81-89 fg=state
+r08 c81-81 fg=state
+r08 c83-89 fg=text-dim
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim
 r09 c28-28 fg=rule
 r09 c33-39 fg=text
 r09 c61-61 fg=text-dim
 r09 c71-76 fg=text-dim
-r09 c81-94 fg=alert
+r09 c81-81 fg=alert
+r09 c83-96 fg=text-dim
 r10 c02-02 fg=text-dim
 r10 c05-12 fg=text-dim
 r10 c28-28 fg=rule
