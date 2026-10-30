@@ -206,12 +206,23 @@ impl Palette {
         self.ground
     }
 
-    pub const fn color(&self, role: Role) -> ratatui::style::Color {
+    pub fn color(&self, role: Role) -> ratatui::style::Color {
         self.get(role).to_ratatui()
     }
 
     pub fn style(&self, role: Role) -> ratatui::style::Style {
-        ratatui::style::Style::default().fg(self.color(role))
+        use ratatui::style::Modifier;
+        let style = ratatui::style::Style::default().fg(self.color(role));
+        // Without colour the roles are told apart by weight: the accent and faults bold,
+        // what recedes dim.
+        if super::color::depth() != super::color::Depth::NoColor {
+            return style;
+        }
+        match role {
+            Role::Obi | Role::Alert => style.add_modifier(Modifier::BOLD),
+            Role::TextDim | Role::Rule => style.add_modifier(Modifier::DIM),
+            Role::Text | Role::State => style,
+        }
     }
 
     /// A foreground guaranteed readable on top of `role` used as a fill.
@@ -223,12 +234,23 @@ impl Palette {
     pub fn on_fill(&self, role: Role) -> ratatui::style::Style {
         let fill = self.get(role);
         let ink = if fill.luminance() > 0.35 { INK_ON_LIGHT } else { INK_ON_DARK };
+        if super::color::depth() == super::color::Depth::NoColor {
+            return Self::reversed().add_modifier(ratatui::style::Modifier::BOLD);
+        }
         ratatui::style::Style::default().fg(ink.to_ratatui()).bg(fill.to_ratatui())
     }
 
     /// A style that fills with `role`, for painting a band.
     pub fn fill(&self, role: Role) -> ratatui::style::Style {
+        if super::color::depth() == super::color::Depth::NoColor {
+            return Self::reversed();
+        }
         ratatui::style::Style::default().bg(self.color(role))
+    }
+
+    /// A band without colour: reverse video.
+    fn reversed() -> ratatui::style::Style {
+        ratatui::style::Style::default().add_modifier(ratatui::style::Modifier::REVERSED)
     }
 
     /// The worst-case ground luminance this variant must remain readable against.
