@@ -14,7 +14,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
     Subbed or dubbed               t  Lists and grids
     Go to section                1–9    Open                           ↵
     Search                         /    Play next unwatched        space
-    Recent messages                L    Set list status                a
+    Recent messages                !    Set list status                a
   Movement                              Rate this title                *
     Move up                    k / ↑    Expand synopsis                i
     Move down                  j / ↓    Remove, or not interested      x

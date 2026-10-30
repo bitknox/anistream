@@ -36,8 +36,9 @@ impl Keymap {
             bind(Binding::ctrl(Char('f')), A::FilterSearch);
             // Logs get a real key rather than palette-only reachability. They are wanted at
             // exactly the moment something has broken, which is the worst moment to make someone
-            // remember an indirection.
-            bind(Binding::plain(Char('L')), A::ShowLogs);
+            // remember an indirection. And they are wanted most while something plays, so the
+            // key is one the player leaves alone: `L` there is Forward 30 seconds.
+            bind(Binding::plain(Char('!')), A::ShowLogs);
             // Downloads. `d` queues (Title/Episodes), `c` clears finished, and the rest reuse the
             // playback keys the screen already reads naturally: Space pauses, `x` cancels.
             // `X` deletes the file too — the destructive twin earns the shifted key.
@@ -185,6 +186,16 @@ mod tests {
         let keymap = Keymap::new();
         assert_eq!(keymap.action_for(key('K'), Context::Playing), Some(Action::RaiseSource));
         assert_eq!(keymap.action_for(key('J'), Context::Playing), Some(Action::LowerSource));
+    }
+
+    /// Recent messages are wanted most while something plays: their key is the same in both
+    /// modes, and the player never shadows it.
+    #[test]
+    fn recent_messages_have_one_key_whether_or_not_something_plays() {
+        let keymap = Keymap::new();
+        let browsing = keymap.keys_in(Action::ShowLogs, Context::Browsing);
+        assert!(!browsing.is_empty(), "Recent messages has a key");
+        assert_eq!(keymap.keys_in(Action::ShowLogs, Context::Playing), browsing);
     }
 
     #[test]
