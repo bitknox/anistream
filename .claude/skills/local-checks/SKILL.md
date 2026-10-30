@@ -21,7 +21,8 @@ commit **outside** it (the temporary HOME hides `~/.gitconfig`, so commits come 
   export RUSTC_WRAPPER=sccache SCCACHE_DIR=$real/.cache/sccache CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
   export CARGO_TARGET_DIR=$real/anistream-target-<your-task>   # your own; delete when done
   export ANISTREAM_ENGINE_CACHE=$real/.cache/anistream-engine  # without it engine.sh rebuilds from scratch
-  export HOME=$(mktemp -d) ANISTREAM_TOKEN_STORAGE=file ANISTREAM_PLAYER_NATIVE=off
+  guard=$(mktemp -d) && trap 'rm -rf "$guard"' EXIT          # each run cleans up its own HOME
+  export HOME=$guard ANISTREAM_TOKEN_STORAGE=file ANISTREAM_PLAYER_NATIVE=off
   [ "$HOME" != "$real" ] || exit 1
   # checks go here
 )
