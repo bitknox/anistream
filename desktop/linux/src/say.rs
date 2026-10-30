@@ -429,6 +429,25 @@ pub struct QueueRow {
     pub left: Option<String>,
 }
 
+impl QueueRow {
+    /// What a cached preview of this row is filed under. Everything the preview says goes in
+    /// it, so a row whose progress, button or wait moved is drawn again rather than shown from
+    /// the cache as it was.
+    pub fn preview_key(&self, episodes: usize) -> String {
+        format!(
+            "{}-{episodes}-{}-{}-{:?}-{:?}-{:?}-{:?}-{:?}",
+            self.entry.id.get(),
+            self.episode,
+            self.playable,
+            self.action,
+            self.button,
+            self.waiting,
+            self.left,
+            self.fraction,
+        )
+    }
+}
+
 impl Deref for QueueRow {
     type Target = QueueItem;
 
@@ -691,6 +710,25 @@ mod tests {
         assert_eq!(item.action, "No source has this episode");
         assert_eq!(item.waiting.as_deref(), Some("No source has this episode"));
         assert_eq!(item.button, None);
+    }
+
+    /// The row and its preview read the same queue: a play that moves the same episode from
+    /// "Play" to "Resume" must not be answered from the preview cached before it.
+    #[test]
+    fn a_preview_is_filed_under_everything_it_says() {
+        let mut e = entry(1);
+        e.progress = Some(TitleProgress { done: 6, next: 7 });
+        let before = queue_item(&e, None);
+        assert_eq!(before.action, "Play E7");
+        e.resume = Some(ResumePoint { position: 606.0, fraction: Some(606.0 / 1440.0) });
+        let after = queue_item(&e, None);
+        assert_eq!(after.action, "Resume E7 \u{b7} 10:06");
+        let row = |item| queue(&[item], &[], &Default::default()).all().next().cloned().unwrap();
+        let (a, b) = (row(before.entry.clone()), row(after.entry.clone()));
+        assert_eq!(a.episode, b.episode);
+        assert_ne!(a.preview_key(0), b.preview_key(0));
+        assert_eq!(b.preview_key(0), b.clone().preview_key(0));
+        assert_ne!(b.preview_key(0), b.preview_key(3));
     }
 
     #[test]

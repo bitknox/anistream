@@ -209,3 +209,8 @@ tv-paired-seen-now = { $paired } · seen just now
 tv-track-choice = { $row }, { $track }
 
 ## Problems with the TV
+
+# The name this computer goes by in lists of a person's devices, such as a plugin store's.
+# @only linux
+# @max 24
+shell-device-label = Linux computer

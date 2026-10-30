@@ -1152,6 +1152,9 @@ tv-paired-seen-now = [{ $paired } · šééñ ĵüšţ ñöŵ~~~~~~]
 # Accessible name of a track menu: the row, then the track chosen.
 tv-track-choice = [{ $row }, { $track }~~~]
 
+# The name this computer goes by in lists of a person's devices, such as a plugin store's.
+shell-device-label = [Ļîñüẋ çöɱþüţéŕ~~~~~]
+
 # Count of devices on a member's row in the members dialog, and after "Owner ·".
 stores-device-count =
     { $count ->

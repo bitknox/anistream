@@ -71,7 +71,7 @@ pub async fn start(paths: Paths, host: Arc<dyn Host>) -> Result<Started, String>
     options.set_aside = set_aside;
     options.hosted_player = true;
     options.app_clients = app_clients();
-    "Linux computer".clone_into(&mut options.device_label); // i18n-skip
+    options.device_label = anistream_i18n::t::shell_device_label();
     let (engine, events) = Engine::start(options, host).await.map_err(|e| e.to_string())?;
     Ok(Started { engine, events, keep: None, rebuilt: None })
 }
