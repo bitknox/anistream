@@ -117,6 +117,10 @@ pub enum SettingKey {
     /// Whether Calendar shows only the shows on the person's list rather than everything
     /// airing. Off by default, so Calendar opens on All, and remembered from the last pick.
     CalendarMine,
+    /// Whether a cover the pointer rests on grows into a card with the title's details and its
+    /// trailer, where trailers may play: the Mac's grids, and the desktop apps' later. On by
+    /// default. With it off, a cover opens its title on a click and shows nothing on hover.
+    HoverCards,
 }
 
 impl SettingKey {
@@ -163,7 +167,7 @@ impl SettingKey {
     /// The native apps' own rows, which the terminal's Settings screen does not show: a front
     /// end finds the rows both show among [`Self::ROWS`]. In no order of their own, since each
     /// app lays them out on its own panes; grouped by [`Self::category`] all the same.
-    pub const NATIVE_ROWS: [Self; 15] = [
+    pub const NATIVE_ROWS: [Self; 16] = [
         Self::UpNextCountdown,
         Self::SpoilerProtection,
         Self::DownloadQuality,
@@ -179,6 +183,7 @@ impl SettingKey {
         Self::ControllerInput,
         Self::SwapFaceButtons,
         Self::CalendarMine,
+        Self::HoverCards,
     ];
 
     /// Where the file keeps it: the containing table, as the dotted path
@@ -196,6 +201,7 @@ impl SettingKey {
             Self::ControllerInput => (&["controller"], "enabled"),
             Self::SwapFaceButtons => (&["controller"], "swap_face"),
             Self::CalendarMine => (&["meta"], "calendar_mine"),
+            Self::HoverCards => (&["theme"], "hover_cards"),
             Self::Translation => (&["playback"], "translation"),
             Self::Quality => (&["playback"], "quality"),
             Self::Subtitles => (&["playback"], "subtitle_language"),
@@ -323,6 +329,7 @@ impl SettingKey {
             Self::ControllerInput => to.controller.enabled = from.controller.enabled,
             Self::SwapFaceButtons => to.controller.swap_face = from.controller.swap_face,
             Self::CalendarMine => to.meta.calendar_mine = from.meta.calendar_mine,
+            Self::HoverCards => to.theme.hover_cards = from.theme.hover_cards,
             Self::MpvOptions => dst.mpv_args.clone_from(&src.mpv_args),
             Self::SourceOrder => to.providers.order.clone_from(&from.providers.order),
             Self::UpNextCountdown => dst.up_next_countdown = src.up_next_countdown,
@@ -355,7 +362,8 @@ impl SettingKey {
             | Self::AdultTitles
             | Self::ControllerInput
             | Self::SwapFaceButtons
-            | Self::CalendarMine => "appearance",
+            | Self::CalendarMine
+            | Self::HoverCards => "appearance",
             Self::Translation
             | Self::Quality
             | Self::Subtitles
@@ -457,6 +465,7 @@ impl SettingKey {
             Self::ControllerInput => "use a controller",
             Self::SwapFaceButtons => "swap a and b",
             Self::CalendarMine => "calendar shows only my list",
+            Self::HoverCards => "expand covers on hover",
             Self::EpisodeNotifications => "new episode notifications",
             Self::MpvOptions => "mpv options",
         }
@@ -768,6 +777,7 @@ pub fn step(
         SettingKey::ControllerInput => V::Bool(!effective.controller.enabled),
         SettingKey::SwapFaceButtons => V::Bool(!effective.controller.swap_face),
         SettingKey::CalendarMine => V::Bool(!effective.meta.calendar_mine),
+        SettingKey::HoverCards => V::Bool(!effective.theme.hover_cards),
         // Between the two that need no confirming. Warn is never a step away: it is asked for
         // with its acknowledgement, and a step from it goes back to the default.
         SettingKey::VpnOnFailure => V::Str(
@@ -926,6 +936,7 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         (SettingKey::ControllerInput, V::Bool(on)) => config.controller.enabled = *on,
         (SettingKey::SwapFaceButtons, V::Bool(on)) => config.controller.swap_face = *on,
         (SettingKey::CalendarMine, V::Bool(on)) => config.meta.calendar_mine = *on,
+        (SettingKey::HoverCards, V::Bool(on)) => config.theme.hover_cards = *on,
         (SettingKey::TorrentsOnCellular, V::Bool(on)) => {
             config.providers.torrent.on_cellular = *on;
         }
@@ -1063,6 +1074,7 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         SettingKey::ControllerInput => on_off(effective.controller.enabled),
         SettingKey::SwapFaceButtons => on_off(effective.controller.swap_face),
         SettingKey::CalendarMine => on_off(effective.meta.calendar_mine),
+        SettingKey::HoverCards => on_off(effective.theme.hover_cards),
         SettingKey::VpnOnFailure => match torrent.vpn.on_leak {
             LeakAction::Pause => "pause torrents",
             LeakAction::Stop => "stop torrents",
@@ -1135,6 +1147,7 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         S::ControllerInput => c.controller.enabled,
         S::SwapFaceButtons => c.controller.swap_face,
         S::CalendarMine => c.meta.calendar_mine,
+        S::HoverCards => c.theme.hover_cards,
         // Pause, then stop; warn stands beside stop, a step back from the default.
         S::VpnOnFailure => {
             c.providers.torrent.vpn.on_leak != anistream_core::config::LeakAction::Pause
@@ -1288,6 +1301,30 @@ mod tests {
     }
 
     #[test]
+    fn hover_cards_are_a_switch_of_their_own_beside_trailers() {
+        let default = Config::default();
+        assert_eq!(value(&default, &default, SettingKey::HoverCards), "on");
+        assert_eq!(SettingKey::at(&["theme"], "hover_cards"), Some(SettingKey::HoverCards));
+        assert_eq!(SettingKey::HoverCards.category(), "appearance");
+        assert_eq!(
+            step(&default, &default, SettingKey::HoverCards, 1),
+            Some(SettingValue::Bool(false))
+        );
+
+        let mut off = Config::default();
+        assert!(put(&mut off, SettingKey::HoverCards, &SettingValue::Bool(false)));
+        assert!(!off.theme.hover_cards);
+        assert_eq!(value(&off, &off, SettingKey::HoverCards), "off");
+        assert_eq!(off.theme.trailers, TrailerAutoplay::Always, "trailers stay as they were");
+        assert!(put(&mut off, SettingKey::Trailers, &SettingValue::Str("off".into())));
+        assert!(!off.theme.hover_cards, "and the other way round");
+
+        let mut copied = Config::default();
+        SettingKey::HoverCards.copy(&off, &mut copied);
+        assert!(!copied.theme.hover_cards);
+    }
+
+    #[test]
     fn trailers_step_from_always_to_wifi_only_to_off_under_the_titles_row() {
         let default = Config::default();
         let trailers = |config: &Config| value(config, config, SettingKey::Trailers);
@@ -1377,6 +1414,7 @@ mod tests {
                 (SettingKey::ControllerInput, "on"),
                 (SettingKey::SwapFaceButtons, "off"),
                 (SettingKey::CalendarMine, "off"),
+                (SettingKey::HoverCards, "on"),
             ]
         );
         assert!(view.rows.iter().all(|row| !SettingKey::NATIVE_ROWS.contains(&row.key)));

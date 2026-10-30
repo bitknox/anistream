@@ -7,8 +7,8 @@ import AnistreamStore
 import SwiftUI
 
 /// The wide art itself: the banner or the still filling the frame, faded in over the cover's
-/// colour once it arrives (T8), or that colour alone while the episodes load. Nothing for
-/// `.compact`; the screen leaves the frame out.
+/// colour once it arrives (T8), or that colour alone while the episodes load. With neither, the
+/// cover fills it (`CoverFill`). Nothing for `.compact`; the screen leaves the frame out.
 ///
 /// With `holds`, the art shown last stays while the next is on its way, a moment at most: the Mac's
 /// title page across a season switch, where the last season's banner crossfades to the next one's
@@ -18,6 +18,9 @@ struct HeroArtView: View {
     let art: HeroArt
     let entry: Entry
     var holds = false
+    /// Whether a blurred cover carries the sharp cover too: not where the screen shows the cover
+    /// over the frame itself, as a title page does.
+    var sharpCover = true
 
     /// What a page about to open asks its wide art at: wider than a page shows it on most screens,
     /// and never more than the file has.
@@ -32,6 +35,8 @@ struct HeroArtView: View {
                     maxPixelSize: Int(max(proxy.size.width, proxy.size.height) * scale),
                     holds: holds
                 )
+            case .cover:
+                CoverFill(entry: entry, sharpCover: sharpCover)
             case .compact:
                 Color.clear
             }

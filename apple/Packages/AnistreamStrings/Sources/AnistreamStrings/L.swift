@@ -1068,6 +1068,12 @@ public enum L {
         Self.format("access-download", fallback: "%1$@, %2$@, %3$@", title, episode, standing)
     }
 
+    /// VoiceOver: the heading of a cover's more content that holds its facts line, such as "TV · 12 episodes · Autumn 2026".
+    public static var accessHoverFacts: String { string("access-hover-facts", fallback: "Facts") }
+
+    /// VoiceOver: the heading of a cover's more content that holds the show's synopsis.
+    public static var accessHoverSynopsis: String { string("access-hover-synopsis", fallback: "Synopsis") }
+
     /// Short episode name for a dubbed episode, in a row or a widget.
     public static func titleEpisodeShortDubbed(episode: Int) -> String {
         Self.format("title-episode-short-dubbed", fallback: "E%1$lld dubbed", episode)
@@ -5598,6 +5604,12 @@ public enum L {
 
     /// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
     public static var settingsUpscalingNatural: String { string("settings-upscaling-natural", fallback: "Natural · ArtCNN") }
+
+    /// Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+    public static var settingsLabelHoverCards: String { string("settings-label-hover-cards", fallback: "Expand covers on hover") }
+
+    /// Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+    public static var settingsHoverCardsNote: String { string("settings-hover-cards-note", fallback: "Shows a larger card with the trailer when you rest the pointer on a cover.") }
 
     /// Preview note under the upscaling frame for the natural look.
     public static var settingsUpscalingNoteNatural: String { string("settings-upscaling-note-natural", fallback: "Faithful line work and texture, nothing restyled.") }

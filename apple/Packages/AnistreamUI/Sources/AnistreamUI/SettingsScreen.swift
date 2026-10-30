@@ -358,6 +358,11 @@ struct GeneralPane: View {
             SettingsRow(title: SettingKey.trailers.title, note: L.settingsTrailersNoteApple) {
                 SettingMenu(key: .trailers)
             }
+            #if os(macOS)
+            SettingsRow(title: SettingKey.hoverCards.title, note: L.settingsHoverCardsNote) {
+                SettingSwitch(key: .hoverCards)
+            }
+            #endif
             SettingsRow(title: SettingKey.adultTitles.title, note: L.settingsAdultDetail(tracker: AccountsModel.name("anilist"))) {
                 SettingSwitch(key: .adultTitles)
             }

@@ -10180,6 +10180,16 @@ pub fn settings_upscaling_natural() -> String {
     text("settings-upscaling-natural", &[])
 }
 
+/// Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+pub fn settings_label_hover_cards() -> String {
+    text("settings-label-hover-cards", &[])
+}
+
+/// Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+pub fn settings_hover_cards_note() -> String {
+    text("settings-hover-cards-note", &[])
+}
+
 /// Preview note under the upscaling frame for the natural look.
 pub fn settings_upscaling_note_natural() -> String {
     text("settings-upscaling-note-natural", &[])

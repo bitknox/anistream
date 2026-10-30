@@ -93,6 +93,14 @@ extension AppStore {
         return settings.row(.spoilerProtection).map(\.isOn) ?? true
     }
 
+    // MARK: Hover cards
+
+    /// Whether a grid cover the pointer rests on grows into a card, as Settings has it. On until
+    /// the settings land. Separate from trailers: with these off the card shows its art only.
+    public var hoverCardsOn: Bool {
+        settings.row(.hoverCards).map(\.isOn) ?? true
+    }
+
     // MARK: Discussions
 
     /// Whether episode discussions are on in Settings: every entry point hangs on it.

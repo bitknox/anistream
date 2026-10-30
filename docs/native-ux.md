@@ -32,6 +32,8 @@ One SwiftUI app with three shapes: a split view on Mac, the same split view on i
 - As in the companion, a click on the video pauses after the double-click interval, a double-click toggles full screen, and a drag of more than 8 pt never pauses. ⌘W stops playback with the position saved.
 - Rows highlight on press and selection only, with no hover highlight and no scale. A truncated title shows whole in a `help(_:)` tooltip.
 - Every cover and row has a `contextMenu` with the same items as the iPhone's long-press menu.
+- In the Continue, Seasonal, Search and Library grids, a cover the pointer rests on grows into a 384 pt card: a 16:9 band with the title over a scrim, then the format, episodes and season, two lines of synopsis and the main action. It opens after 450 ms with the pointer slowed, and a click opens the title. The trailer plays muted in the band once the card has grown, with a sound toggle in its corner. Resting 150 ms over a neighbour's column hands the card across. Leaving it, a scroll, a key press or the window losing focus closes it, and nothing opens again until the pointer moves. With Reduce Motion the card crossfades in place. Expand covers on hover (`HoverCards`, on by default) turns the card off, leaving the hover highlight and the click; Play trailers stays separate, so with trailers off the card shows its art only.
+- Wide art never stretches a cover. Where a banner belongs (the hover band, calendar tiles, the title page header), a title with none shows the still of an episode already watched, then its cover cropped around what Vision finds salient, then, when the cover is too small to crop sharply, a blurred enlargement of it.
 - Settings is the system Settings window (⌘,). See Decisions for you.
 
 ### iPad

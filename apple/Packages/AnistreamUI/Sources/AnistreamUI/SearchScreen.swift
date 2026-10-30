@@ -257,6 +257,8 @@ struct SearchScreen: View {
                 .presentationDragIndicator(.visible)
         }
         #else
+        // The card stays clear of the open filters panel, inside the results' width.
+        .hoverCards(trailing: navigator.searchFiltersShown ? MacFiltersPanel.width : 0)
         // Every filter in a panel at the trailing edge, inside Search rather than the system's
         // inspector column: an inspector splits the window's title bar and AppKit draws its own
         // toolbar backdrop across it, a grey band in place of the ground. Here the results'

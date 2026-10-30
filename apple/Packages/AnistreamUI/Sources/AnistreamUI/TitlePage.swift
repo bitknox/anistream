@@ -162,7 +162,7 @@ struct TitlePage: View {
                 // a title of two lines starts. None at all where there is none. Across a season
                 // switch the last season's art stays until the next one's is here, and fades to it.
                 if !art.isCompact {
-                    HeroArtView(art: art, entry: entry, holds: true)
+                    HeroArtView(art: art, entry: entry, holds: true, sharpCover: false)
                         .frame(height: 280)
                         .clipped()
                         .overlay(alignment: .bottom) {

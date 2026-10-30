@@ -84,6 +84,7 @@ pub fn label(key: SettingKey) -> String {
         K::EpisodeDiscussions => t::settings_label_episode_discussions(),
         K::CommentImages => t::settings_label_comment_images(),
         K::CalendarMine => t::settings_label_calendar_mine(),
+        K::HoverCards => t::settings_label_hover_cards(),
     }
 }
 
@@ -149,6 +150,7 @@ pub fn is_switch(key: SettingKey) -> bool {
             | K::SwapFaceButtons
             | K::EpisodeDiscussions
             | K::CommentImages
+            | K::HoverCards
     )
 }
 

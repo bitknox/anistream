@@ -210,7 +210,8 @@ impl App {
             | S::CommentImages
             | S::ControllerInput
             | S::SwapFaceButtons
-            | S::CalendarMine => return None,
+            | S::CalendarMine
+            | S::HoverCards => return None,
         })
     }
 
@@ -321,6 +322,7 @@ fn label_text(key: SettingKey) -> String {
         S::ControllerInput => t::settings_label_controller_input(),
         S::SwapFaceButtons => t::settings_label_swap_face_buttons(),
         S::CalendarMine => t::settings_label_calendar_mine(),
+        S::HoverCards => t::settings_label_hover_cards(),
     }
 }
 
