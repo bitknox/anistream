@@ -143,7 +143,7 @@ pub const TV: [&str; 17] = [
 
 /// Casting's shots, on TVs with Chromecast built in that run on loopback: `--shot cast` takes them.
 /// The scene's TV running anistream is moved off loopback first, so a Cast TV is not taken for it.
-pub const CAST: [&str; 12] = [
+pub const CAST: [&str; 15] = [
     "cast-picker",
     "cast-none-found",
     "cast-starting",
@@ -156,6 +156,9 @@ pub const CAST: [&str; 12] = [
     "cast-taken-over",
     "cast-bar",
     "cast-stopped",
+    "cast-up-next",
+    "settings-integrations",
+    "torrents-on",
 ];
 
 /// The source picker's shots, apart from the rest: `--shot sources` takes them.
@@ -2115,6 +2118,24 @@ fn cast_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             let tv = Rc::clone(&tv);
             later(9000, Box::new(move || tv.cast_stop()));
             10.5
+        }
+        // Near the end, so Up next counts down to the next episode.
+        "cast-up-next" => {
+            scene.cast(LIVING_ROOM, plays("fixed"));
+            open();
+            pick(LIVING_ROOM, 1800);
+            let tv = Rc::clone(&tv);
+            later(
+                9000,
+                Box::new(move || {
+                    tv.cast_send(
+                        anistream_engine::remote::protocol::command::RemoteCommand::SeekTo {
+                            position: 1440.0 - 26.0,
+                        },
+                    )
+                }),
+            );
+            15.0
         }
         _ => 0.0,
     }

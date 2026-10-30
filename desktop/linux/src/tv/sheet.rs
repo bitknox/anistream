@@ -1797,7 +1797,8 @@ impl Remote {
         self.up_next_count.set_visible(next.seconds_left.is_some());
         if let Some(left) = next.seconds_left {
             let mut from = self.up_next_from.borrow_mut();
-            if from.as_ref().is_none_or(|(number, most)| *number != next.number || left > *most) {
+            if from.as_ref().is_none_or(|(number, most)| *number != next.number || left > *most)
+            {
                 from.replace((next.number.clone(), left.max(1)));
             }
             let most = from.as_ref().map_or(1, |(_, most)| *most);

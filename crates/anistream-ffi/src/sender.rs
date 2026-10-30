@@ -1229,10 +1229,14 @@ impl FfiCastSession {
     pub async fn next_card(&self) -> Option<FfiCastCard> {
         let mut changes = self.changes.lock().await;
         if self.session.ticking() {
-            let tick = tokio::time::sleep(std::time::Duration::from_secs(1));
+            // The foreign side polls this future, outside the engine's runtime, and a timer is
+            // made and runs on it.
+            let tick = self.handle.spawn(async {
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            });
             tokio::select! {
                 changed = changes.changed() => changed.ok()?,
-                () = tick => {}
+                _ = tick => {}
             }
         } else {
             changes.changed().await.ok()?;

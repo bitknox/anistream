@@ -650,7 +650,9 @@ impl Inner {
             match key {
                 K::Trailers => Some(t::settings_note_trailers_linux()),
                 K::CastTvs => Some(t::settings_note_cast_tvs_computer()),
-                K::TorrentsWhileCasting => Some(t::settings_note_torrents_while_casting_computer()),
+                K::TorrentsWhileCasting => {
+                    Some(t::settings_note_torrents_while_casting_computer())
+                }
                 _ => None,
             }
         });

@@ -507,7 +507,8 @@ pub fn route_line(row: &CastRow) -> Option<String> {
 
 /// The line over Up next: its count while it runs, else Up next alone.
 pub fn up_next_line(next: &CastUpNext) -> String {
-    next.seconds_left.map_or_else(t::player_up_next, |left| t::tv_cast_up_next_in(i64::from(left)))
+    next.seconds_left
+        .map_or_else(t::player_up_next, |left| t::tv_cast_up_next_in(i64::from(left)))
 }
 
 /// The next episode as Up next names it: "Episode 8 · A Town Without Night".
@@ -535,15 +536,27 @@ mod tests {
         use Offer::*;
         let name = || "Living room".to_owned();
         let codec = Msg::NoticeCastVideoCodec { name: name(), codec: "AV1".into() };
-        assert_eq!(offers_for(&Msg::NoticeCastRefused { name: name() }), vec![ChooseSource, PlayHere]);
+        assert_eq!(
+            offers_for(&Msg::NoticeCastRefused { name: name() }),
+            vec![ChooseSource, PlayHere]
+        );
         assert_eq!(offers_for(&codec), vec![ChooseSource, PlayHere]);
-        assert_eq!(offers_for(&Msg::NoticeCastContainer { name: name() }), vec![ChooseSource, PlayHere]);
-        assert_eq!(offers_for(&Msg::NoticeCastNeverFetches { name: name() }), vec![TryAgain, PlayHere]);
+        assert_eq!(
+            offers_for(&Msg::NoticeCastContainer { name: name() }),
+            vec![ChooseSource, PlayHere]
+        );
+        assert_eq!(
+            offers_for(&Msg::NoticeCastNeverFetches { name: name() }),
+            vec![TryAgain, PlayHere]
+        );
         assert_eq!(
             offers_for(&Msg::NoticeCastNotSameNetwork { name: name() }),
             vec![PlayHere, ChooseAnother]
         );
         assert_eq!(offers_for(&Msg::NoticeCastDeepLink), vec![ChooseSource]);
-        assert_eq!(offers_for(&Msg::NoticeCastLost { name: name() }), vec![PlayHere, ChooseAnother]);
+        assert_eq!(
+            offers_for(&Msg::NoticeCastLost { name: name() }),
+            vec![PlayHere, ChooseAnother]
+        );
     }
 }

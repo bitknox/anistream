@@ -124,9 +124,9 @@ public class TvWordsTests
     [Fact]
     public void ACastsUpNextCountsAndASkipCanBeUndone()
     {
-        var next = new FfiCastUpNext("8", "A Town Without Night", null, true, 6);
+        var next = new FfiCastUpNext(Number: "8", Title: "The Lantern Ferry", Still: null, Auto: true, SecondsLeft: 6);
         Assert.Equal("Up next · plays in 6 s", TvWords.CastUpNext(next));
-        Assert.Equal("Episode 8 · A Town Without Night", TvWords.CastUpNextEpisode(next));
+        Assert.Equal("Episode 8 · The Lantern Ferry", TvWords.CastUpNextEpisode(next));
         Assert.Equal("Up next", TvWords.CastUpNext(next with { Auto = false, SecondsLeft = null }));
         Assert.Equal("Episode 8", TvWords.CastUpNextEpisode(next with { Title = null }));
         Assert.Equal("Skipped opening", TvWords.CastSkipped(new FfiCastUndo(SkipKind.Opening, 0)));

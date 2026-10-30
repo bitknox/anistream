@@ -295,7 +295,7 @@ public sealed partial class SettingsPage : Page
                         ShowTvs(tvGroup);
                         Cards.Children.Add(tvGroup);
                         if (ctx.Known.Setting(K.CastTvs) is { } castTvs)
-                            Cards.Children.Add(Card(castTvs));
+                            Cards.Children.Add(castCard = Card(castTvs));
                     }
                     // Only where the engine was built with a presence to publish.
                     if (keys.Contains(K.Presence) && ctx.Known.Settings is { PresenceAvailable: false })
@@ -644,6 +644,9 @@ public sealed partial class SettingsPage : Page
         quiet = false;
     }
 
+    // The Chromecast switch under Play on TV, for the testing build to scroll to.
+    FrameworkElement? castCard;
+
 #if ANISTREAM_TESTING
     bool demoed;
 
@@ -661,6 +664,14 @@ public sealed partial class SettingsPage : Page
     /// </summary>
     async void Demo()
     {
+        // --show=settings-cast-tvs: Integrations scrolled to Play on TV and its Chromecast switch.
+        if (!demoed && pane.Name == "integrations" && ctx.Options.Show == "settings-cast-tvs" && castCard is { } cast)
+        {
+            demoed = true;
+            await Task.Delay(800);
+            cast.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.6, AnimationDesired = false });
+            return;
+        }
         if (demoed || pane.Name != "sources" || ctx.Options.Show is not { } show || !show.StartsWith("torrent", StringComparison.Ordinal))
             return;
         demoed = true;

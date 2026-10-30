@@ -302,6 +302,33 @@ fn fake_cast_options() -> anistream_ffi::FfiFakeCastOptions {
 }
 
 #[test]
+fn a_slow_tv_wakes_the_card_while_its_start_counts_seconds() {
+    let phone = start();
+    let living = phone
+        .engine
+        .start_fake_cast(
+            "Living room".into(),
+            anistream_ffi::FfiFakeCastOptions { launch_ms: 4000, ..fake_cast_options() },
+        )
+        .unwrap();
+    let sender =
+        phone.engine.tv_sender("Mika's laptop".into(), "anistream-test/0".into()).unwrap();
+    sender.browse_cast(Arc::new(CastBrowse(vec![living.clone()])));
+    let rows =
+        until("the TV listed", || Some(sender.cast_rows()).filter(|rows| rows.len() == 1));
+    let cast = sender.cast(rows[0].key.clone(), fixtures::FINISHED, "3".into(), None).unwrap();
+    until("the start counting", || cast.card().phase_line);
+    // An app polls the next card on its own executor, outside the engine's runtime, and nothing
+    // else changes while the TV opens the receiver, so only the second's tick can wake it.
+    let started = std::time::Instant::now();
+    let card = futures::executor::block_on(cast.next_card()).expect("a card");
+    assert!(started.elapsed() < std::time::Duration::from_secs(3), "{card:?}");
+    cast.stop();
+    living.stop();
+    phone.engine.shutdown();
+}
+
+#[test]
 fn a_fixtures_cast_plays_on_a_fake_tv_and_one_that_refuses_says_why() {
     let phone = start();
     let living =
@@ -334,7 +361,10 @@ fn a_fixtures_cast_plays_on_a_fake_tv_and_one_that_refuses_says_why() {
     let refused =
         sender.cast(key("Kitchen display"), fixtures::FINISHED, "3".into(), None).unwrap();
     let card = until("the refusal", || Some(refused.card()).filter(|c| c.card.over));
-    assert!(matches!(card.notice, Some(anistream_model::Msg::NoticeCastRefused)), "{card:?}");
+    assert!(
+        matches!(card.notice, Some(anistream_model::Msg::NoticeCastRefused { .. })),
+        "{card:?}"
+    );
     living.stop();
     kitchen.stop();
     phone.engine.shutdown();
