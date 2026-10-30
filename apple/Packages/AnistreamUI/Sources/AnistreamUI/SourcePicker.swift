@@ -120,6 +120,11 @@ struct SourcePickerList: View {
                         .pickerRow()
                 }
             }
+            if store.match.canFix(store.providers) {
+                Section {
+                    MatchFixRow(id: id, done: done).pickerRow()
+                }
+            }
         }
         .pickerListStyle()
         .animation(reduceMotion ? nil : .standard, value: options?.count)

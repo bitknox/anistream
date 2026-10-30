@@ -74,6 +74,8 @@ public final class Navigator {
     public var moreAbout: AnilistId?
     /// The title whose source picker is open.
     public var sourcePicker: AnilistId?
+    /// The title whose match sheet is open.
+    public var matchPicker: MatchPickerRequest?
     /// The trailer Play trailer opened: a window on the Mac, a sheet on iPhone and iPad.
     var trailerRequest: TrailerRequest?
     /// The titles whose watched episodes are open in their episode lists, for the session.
@@ -96,6 +98,9 @@ public final class Navigator {
         if route.sheet == "show" { showSettings = route.title }
         if route.sheet == "about" { moreAbout = route.title }
         if route.sheet == "source" { sourcePicker = route.title }
+        if let shape = AppStore.matchSheetOpens(route.sheet), let title = route.title {
+            matchPicker = MatchPickerRequest(id: title, fromMenu: shape == .fromMenu)
+        }
         if route.sheet == "messages" { messagesShown = true }
         if route.fold == "open", let title = route.title { watchedOpen.insert(title) }
         launchCalendarMine = route.calendarMine

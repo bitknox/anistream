@@ -93,6 +93,7 @@ struct MacShell: View {
         }
         .moreAboutSheet(navigator)
         .sourcePickerSheet(navigator)
+        .matchPickerSheet(navigator)
     }
 
     /// What the toolbar says under the section's name.

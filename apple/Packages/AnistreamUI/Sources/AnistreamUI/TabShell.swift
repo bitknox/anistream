@@ -91,6 +91,7 @@ struct TabShell: View {
         }
         .moreAboutSheet(navigator)
         .sourcePickerSheet(navigator)
+        .matchPickerSheet(navigator)
         .modifier(AppSheets())
     }
 

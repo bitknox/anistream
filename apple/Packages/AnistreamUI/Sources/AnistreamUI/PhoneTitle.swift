@@ -69,7 +69,10 @@ struct PhoneTitle: View {
 
                 VStack(alignment: .leading, spacing: 16) {
                     // No source has it: nothing to play, and the way to one in Play's place.
-                    if action.playable, store.titles.unlisted(entry.id) {
+                    if action.playable, store.match.asks(entry.id) {
+                        ChooseMatchButton(id: entry.id, height: 50, fontSize: 17, fills: true)
+                        MatchUncertainLine(id: entry.id, font: .ui(14))
+                    } else if action.playable, store.titles.unlisted(entry.id) {
                         AddSourceButton(sentence: true, height: 50, fontSize: 17, fills: true)
                     } else if action.playable {
                         Button {

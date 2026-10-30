@@ -56,6 +56,9 @@ func paletteItems(query: String, store: AppStore, navigator: Navigator) -> (titl
         command(L.continueHide, "eye.slash", detail: L.paletteProgressKept, shortcut: "⌘⌫",
                 enabled: entry.progress != nil) { store.hideFromContinue(id) }
         command(L.sourcePickerTitle, "arrow.triangle.branch") { navigator.sourcePicker = id }
+        command(L.matchFix, "magnifyingglass", enabled: store.match.canFix(store.providers)) {
+            navigator.fixMatch(id, store: store)
+        }
         command(L.menuShowSettings, "slider.horizontal.3",
                 detail: L.paletteShowSettingsDetail, shortcut: "⌘I") { navigator.showSettings = id }
     }

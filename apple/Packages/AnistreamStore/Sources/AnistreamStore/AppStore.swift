@@ -51,6 +51,8 @@ public final class AppStore {
     public let providers = ProvidersModel()
     /// The source picker's options per title.
     public let sourceChoices = SourceChoiceModel()
+    /// The match sheet's question, search and pick per title.
+    public let match = MatchPickerModel()
     public let stores = StoresModel()
     public let downloads = DownloadsModel()
     /// New-episode notifications: the week coming up, permission, and each show's switch.
@@ -81,7 +83,7 @@ public final class AppStore {
 
     @ObservationIgnored private var client: EngineClient?
     /// When a batch was last applied.
-    @ObservationIgnored private var lastApplied = ContinuousClock.now
+    @ObservationIgnored var lastApplied = ContinuousClock.now
     /// What the screens asked for before the engine was there, sent once it is.
     @ObservationIgnored private var early: [Command] = []
     /// The titles whose episodes were asked for their stills.
@@ -740,7 +742,11 @@ public final class AppStore {
 
         case .toast(let notice):
             party.apply(event)
+            // The page says an uncertain match in its own line, so it is not said twice.
+            if case .noticeMatchUncertain? = notice.msg { break }
             notices.post(notice)
+        case .matchChoices, .matchSearchFailed, .matchFixFailed, .titleMatch:
+            applyMatch(event)
         case .connectivity(let offline):
             AppLog.info("store", offline ? "offline" : "online")
             self.offline = offline

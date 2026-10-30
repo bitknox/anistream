@@ -275,6 +275,10 @@ struct EpisodeCommands: View {
                 if let entry { navigator.sourcePicker = entry.id }
             }
             .disabled(entry == nil)
+            Button(L.menuFixMatch) {
+                if let entry { navigator.fixMatch(entry.id, store: store) }
+            }
+            .disabled(entry == nil || !store.match.canFix(store.providers))
         }
         Divider()
         Button(L.menuShowSettings) {
