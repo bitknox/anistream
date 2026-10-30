@@ -1389,11 +1389,32 @@ public static partial class T
     /// <summary>The picker's one row while the app may not look on the local network, with a button that opens the system's settings.</summary>
     public static string CastLocalNetwork => Get("CastLocalNetwork");
 
-    /// <summary>The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick.</summary>
-    public static string CastStartingCounted(string name, long seconds) => Fill(Get("CastStartingCounted"), ("name", name), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+    /// <summary>Settings row: whether the TV picker lists TVs with Chromecast built in.</summary>
+    public static string CastTvsLabel => Get("CastTvsLabel");
 
-    /// <summary>The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room".</summary>
-    public static string CastPhaseCounted(string line, long seconds) => Fill(Get("CastPhaseCounted"), ("line", line), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+    /// <summary>Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.</summary>
+    public static string CastTorrentsLabel => Get("CastTorrentsLabel");
+
+    /// <summary>Note under the Settings row that shows TVs with Chromecast built in, on a Mac.</summary>
+    public static string CastTvsNoteMac => Get("CastTvsNoteMac");
+
+    /// <summary>Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.</summary>
+    public static string CastTvsNoteIphone => Get("CastTvsNoteIphone");
+
+    /// <summary>Note under the Settings row that shows TVs with Chromecast built in, on an iPad.</summary>
+    public static string CastTvsNoteIpad => Get("CastTvsNoteIpad");
+
+    /// <summary>Note under the Settings row that lets a cast play torrents, on a Mac.</summary>
+    public static string CastTorrentsNoteMac => Get("CastTorrentsNoteMac");
+
+    /// <summary>Note under the Settings row that lets a cast play torrents, on an iPhone.</summary>
+    public static string CastTorrentsNoteIphone => Get("CastTorrentsNoteIphone");
+
+    /// <summary>Note under the Settings row that lets a cast play torrents, on an iPad.</summary>
+    public static string CastTorrentsNoteIpad => Get("CastTorrentsNoteIpad");
+
+    /// <summary>Line on the casting card while the next episode counts down. The seconds are whole.</summary>
+    public static string CastUpNextPlaysIn(long seconds) => Fill(Get("CastUpNextPlaysIn"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
     /// <summary>The card's line when a cast never started. The name is the TV's.</summary>
     public static string CastCouldntStart(string name) => Fill(Get("CastCouldntStart"), ("name", name));
@@ -5945,8 +5966,15 @@ public static partial class T
         ["CastChromecast"] = "Chromecast",
         ["CastNoneFoundExtra"] = "TVs with Chromecast built in show here too.",
         ["CastLocalNetwork"] = "Allow anistream to find devices on your local network",
-        ["CastStartingCounted"] = "Starting on {name} · {seconds} s",
-        ["CastPhaseCounted"] = "{line} · {seconds} s",
+        ["CastTvsLabel"] = "Show TVs with Chromecast built in",
+        ["CastTorrentsLabel"] = "Torrents while casting",
+        ["CastTvsNoteMac"] = "They appear under Chromecast in Play on TV. This Mac sends them the episode.",
+        ["CastTvsNoteIphone"] = "They appear under Chromecast in Play on TV. This iPhone sends them the episode.",
+        ["CastTvsNoteIpad"] = "They appear under Chromecast in Play on TV. This iPad sends them the episode.",
+        ["CastTorrentsNoteMac"] = "Lets a TV with Chromecast built in play torrents. This Mac sends the episode for as long as it plays.",
+        ["CastTorrentsNoteIphone"] = "Lets a TV with Chromecast built in play torrents. This iPhone sends the episode for as long as it plays.",
+        ["CastTorrentsNoteIpad"] = "Lets a TV with Chromecast built in play torrents. This iPad sends the episode for as long as it plays.",
+        ["CastUpNextPlaysIn"] = "Up next · plays in {seconds} s",
         ["CastCouldntStart"] = "Couldn't start on {name}",
         ["CastStopped"] = "Casting stopped",
         ["CastPlayHere"] = "Play here",

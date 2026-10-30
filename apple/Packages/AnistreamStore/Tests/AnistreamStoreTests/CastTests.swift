@@ -77,27 +77,42 @@ struct CastTests {
         #expect(model.active)
         #expect(model.stage == .starting)
         #expect(model.now?.title == "Lanterns")
-        #expect(model.line(at: model.startedAt.addingTimeInterval(2)) == L.tvStartingOn(name: "Living room"))
-        #expect(model.line(at: model.startedAt.addingTimeInterval(6)) == L.castStartingCounted(name: "Living room", seconds: 6))
+        #expect(model.line == L.tvStartingOn(name: "Living room"))
 
-        session.change { $0.phaseLine = "Preparing the stream" }
-        try await waitFor { model.card?.card.phaseLine != nil }
-        #expect(model.line(at: model.startedAt.addingTimeInterval(5)) == L.castPhaseCounted(line: "Preparing the stream", seconds: 5))
+        session.change { $0.phaseLine = .castPhasePreparing(seconds: 5) }
+        try await waitFor { model.card?.phaseLine != nil }
+        #expect(model.line == L.castPhasePreparing(seconds: 5))
 
         play(session)
         try await waitFor { model.stage == .playing }
         #expect(model.live)
-        #expect(model.line() == L.tvStatusPlaying(name: "Living room"))
+        #expect(model.line == L.tvStatusPlaying(name: "Living room"))
         #expect(model.fixedVolume)
         #expect(model.actions.isEmpty)
     }
 
+    @Test func upNextAndUndoComeFromTheEngineAndAnswerBack() async throws {
+        let (model, session) = casting()
+        play(session)
+        session.change {
+            $0.upNext = FfiCastUpNext(number: "4", title: "Lanterns", still: nil, auto: true, secondsLeft: 6)
+            $0.undo = FfiCastUndo(kind: .opening, to: 12)
+        }
+        try await waitFor { model.card?.upNext != nil }
+        #expect(model.card?.upNext?.secondsLeft == 6)
+        model.cancelNext()
+        try await waitFor { model.card?.upNext == nil }
+        model.undoSkip()
+        try await waitFor { model.card?.undo == nil }
+        #expect(abs((model.playhead() ?? 0) - 12) < 2)
+    }
+
     @Test func eachFailureOffersItsFix() async throws {
         let cases: [(Msg, [CastAction])] = [
-            (.noticeCastRefused, [.chooseSource, .playHere]),
-            (.noticeCastVideoCodec(codec: "AV1"), [.chooseSource, .playHere]),
-            (.noticeCastNeverFetches, [.tryAgain, .playHere]),
-            (.noticeCastNotSameNetwork, [.playHere, .chooseAnotherTV]),
+            (.noticeCastRefused(name: "Living room"), [.chooseSource, .playHere]),
+            (.noticeCastVideoCodec(name: "Living room", codec: "AV1"), [.chooseSource, .playHere]),
+            (.noticeCastNeverFetches(name: "Living room"), [.tryAgain, .playHere]),
+            (.noticeCastNotSameNetwork(name: "Living room"), [.playHere, .chooseAnotherTV]),
             (.noticeCastDeepLink, [.chooseSource]),
         ]
         for (notice, actions) in cases {
@@ -109,7 +124,7 @@ struct CastTests {
             try await waitFor { model.stage == .failed }
             #expect(model.actions == actions, "\(notice)")
             #expect(model.reason == notice.text)
-            #expect(model.line() == L.castCouldntStart(name: "Living room"))
+            #expect(model.line == L.castCouldntStart(name: "Living room"))
         }
     }
 
@@ -120,11 +135,11 @@ struct CastTests {
         play(session)
         try await waitFor { model.stage == .playing }
         session.change {
-            $0.notice = .noticeCastLost
+            $0.notice = .noticeCastLost(name: "Living room")
             $0.over = true
         }
         try await waitFor { model.stage == .stopped }
-        #expect(model.line() == L.castStopped)
+        #expect(model.line == L.castStopped)
         #expect(model.actions == [.playHere, .chooseAnotherTV])
 
         model.playHere()
@@ -143,12 +158,12 @@ struct CastTests {
         play(session)
         try await waitFor { model.stage == .playing }
         session.change {
-            $0.notice = .noticeCastTakenOver
+            $0.notice = .noticeCastTakenOver(name: "Living room")
             $0.over = true
         }
         try await waitFor { !model.active }
         #expect(closed)
-        #expect(said.map(\.msg) == [.noticeCastTakenOver])
+        #expect(said.map(\.msg) == [.noticeCastTakenOver(name: "Living room")])
         #expect(model.takenOver?.from == 492)
 
         var played: Double?
@@ -161,7 +176,7 @@ struct CastTests {
     @Test func tryAgainCastsTheSameEpisodeToTheSameTv() async throws {
         let (model, session) = casting()
         session.change {
-            $0.notice = .noticeCastNeverFetches
+            $0.notice = .noticeCastNeverFetches(name: "Living room")
             $0.over = true
         }
         try await waitFor { model.stage == .failed }

@@ -49,8 +49,6 @@ public enum CastAction: Equatable, Sendable {
 public final class CastModel {
     /// How long a TV that left the network stays listed, saying so.
     public static let goneFor: Duration = .seconds(4)
-    /// How long a start goes before its line counts the seconds.
-    public static let countFrom: TimeInterval = 4
 
     /// The picker's Chromecast rows, by name, with any that just left.
     public private(set) var rows: [CastRowShown] = []
@@ -70,8 +68,6 @@ public final class CastModel {
     /// The row picked, for Try again.
     public private(set) var key: String?
     public private(set) var tvName = ""
-    /// When the start the card shows began: the pick, or the next episode's load.
-    public private(set) var startedAt = Date.now
     /// The TV has played something in this cast.
     public private(set) var played = false
     /// Where the TV last was, and in what episode, for Play here once the cast has ended.
@@ -175,7 +171,6 @@ public final class CastModel {
         if tvName.isEmpty || request == nil { tvName = session.deviceName() }
         played = false
         lastPosition = request?.from
-        startedAt = .now
         take(session.card())
         keepAwake(true)
         cards = Task { [weak self, session] in
@@ -196,13 +191,12 @@ public final class CastModel {
         if let now = next.card.now, !now.loading { lastPosition = now.position }
         let after = stage
         if after == .playing { played = true }
-        if after == .starting, before == .playing { startedAt = .now }
         if after != before, after == .stopped || after == .failed { keepAwake(false) }
-        if after == .stopped, next.notice == .noticeCastTakenOver {
+        if after == .stopped, let notice = next.notice, case .noticeCastTakenOver = notice {
             let carried = endedPlay
             end()
             closed?()
-            say?(Notice(kind: .info, text: Msg.noticeCastTakenOver.text, hint: nil, msg: .noticeCastTakenOver))
+            say?(Notice(kind: .info, text: notice.text, hint: nil, msg: notice))
             takenOver = carried
         }
     }
@@ -231,9 +225,9 @@ public final class CastModel {
         return .starting
     }
 
-    /// The card's line: starting, then from four seconds the engine's phase with the seconds
-    /// counted; playing; or why it ended.
-    public func line(at date: Date = .now) -> String {
+    /// The card's line: while an episode starts, the engine's phase line, which counts the
+    /// seconds from four on; playing; or why it ended.
+    public var line: String {
         switch stage {
         case .playing:
             return L.tvStatusPlaying(name: tvName)
@@ -242,19 +236,14 @@ public final class CastModel {
         case .stopped:
             return L.castStopped
         case .starting:
-            let seconds = date.timeIntervalSince(startedAt)
-            guard seconds >= Self.countFrom else { return L.tvStartingOn(name: tvName) }
-            if let phase = card?.card.phaseLine, !phase.isEmpty {
-                return L.castPhaseCounted(line: phase, seconds: Int(seconds))
-            }
-            return L.castStartingCounted(name: tvName, seconds: Int(seconds))
+            return card?.phaseLine?.text ?? L.tvStartingOn(name: tvName)
         }
     }
 
     /// The engine's reason a failed or stopped card gives, in the person's language.
     public var reason: String? {
         guard stage == .failed || stage == .stopped else { return nil }
-        return (card?.notice ?? (stage == .stopped ? .noticeCastLost : .noticeCastRefused)).text
+        return (card?.notice ?? (stage == .stopped ? .noticeCastLost(name: tvName) : .noticeCastRefused(name: tvName))).text
     }
 
     /// What a failed or stopped card offers, the first in amber.
@@ -266,9 +255,9 @@ public final class CastModel {
             return [.playHere, .chooseAnotherTV]
         case .failed:
             switch card?.notice {
-            case .noticeCastNeverFetches: return [.tryAgain, .playHere]
-            case .noticeCastNotSameNetwork: return [.playHere, .chooseAnotherTV]
-            case .noticeCastDeepLink: return [.chooseSource]
+            case .noticeCastNeverFetches?: return [.tryAgain, .playHere]
+            case .noticeCastNotSameNetwork?: return [.playHere, .chooseAnotherTV]
+            case .noticeCastDeepLink?: return [.chooseSource]
             default: return [.chooseSource, .playHere]
             }
         }
@@ -322,8 +311,19 @@ public final class CastModel {
         playLocally?(play.id, play.episode, play.from)
     }
 
-    /// Cast the same episode to the same TV again.
+    /// Up next's Play now, Cancel, and the Undo of an automatic skip. The engine rolls the
+    /// next episode on itself at zero.
+    public func playNext() { session?.playNext() }
+    public func cancelNext() { session?.cancelNext() }
+    public func undoSkip() { session?.undoSkip() }
+
+    /// Cast the same episode to the same TV again: the engine starts the card over from the
+    /// position; one that is gone starts a new cast with what was asked.
     public func tryAgain() {
+        if let session, session.tryAgain() {
+            played = false
+                return
+        }
         guard let key, let request else { return }
         let name = tvName
         end()

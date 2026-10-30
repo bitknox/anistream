@@ -26,10 +26,16 @@ struct NoticeCapsule: View {
     /// How far a swipe has pulled it down.
     @State private var pull: CGFloat = 0
 
+    /// Whether the notice says someone else took the TV.
+    static func isTakenOver(_ msg: Msg?) -> Bool {
+        if case .noticeCastTakenOver? = msg { return true }
+        return false
+    }
+
     /// How long a notice stays up: 4 s, or 8 s with a button or for a problem, and 1 s more for
     /// every 10 words past 12.
     static func duration(_ item: NoticeItem) -> Duration {
-        let base = item.isAlert || item.notice.hint != nil || item.notice.msg == .noticeCastTakenOver ? 8 : 4
+        let base = item.isAlert || item.notice.hint != nil || Self.isTakenOver(item.notice.msg) ? 8 : 4
         let words = item.notice.words.split(whereSeparator: \.isWhitespace).count
         return .seconds(base + max(0, words - 12) / 10)
     }
@@ -116,7 +122,7 @@ struct NoticeCapsule: View {
 
     /// The notice that someone else took the TV, while what it played can still play on here.
     private func playsHere(_ item: NoticeItem) -> Bool {
-        item.notice.msg == .noticeCastTakenOver && store.tv.cast.takenOver != nil
+        Self.isTakenOver(item.notice.msg) && store.tv.cast.takenOver != nil
     }
 
     /// The hint's button, in the platform's casing.

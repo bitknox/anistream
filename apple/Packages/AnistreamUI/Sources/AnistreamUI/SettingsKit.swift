@@ -233,6 +233,8 @@ extension SettingKey {
         case .vpnOnFailure: L.torrentsIfCheckFails
         case .torrentIndex: L.torrentsIndex
         case .syncplay: L.settingsSyncplay
+        case .castTvs: L.castTvsLabel
+        case .torrentsWhileCasting: L.castTorrentsLabel
         case .syncplayServer: L.settingsSyncplayServer
         case .syncplayRoom: L.settingsSyncplayRoom
         case .presence: L.settingsDiscordPresence

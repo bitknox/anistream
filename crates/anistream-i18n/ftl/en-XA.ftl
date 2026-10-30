@@ -3947,11 +3947,32 @@ cast-none-found-extra = [ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ �
 # The picker's one row while the app may not look on the local network, with a button that opens the system's settings.
 cast-local-network = [Åļļöŵ àñîšţŕéàɱ ţö ƒîñð ðéṽîçéš öñ ýöüŕ ļöçàļ ñéţŵöŕķ~~~~~~~~~~~~~~~~]
 
-# The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick.
-cast-starting-counted = [Šţàŕţîñĝ öñ { $name } · { $seconds } š~~~~~~~]
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+cast-tvs-label = [Šĥöŵ ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ~~~~~~~~~~]
 
-# The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room".
-cast-phase-counted = [{ $line } · { $seconds } š~~~~]
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+cast-torrents-label = [Ţöŕŕéñţš ŵĥîļé çàšţîñĝ~~~~~~~]
+
+# Note under the Settings row that shows TVs with Chromecast built in, on a Mac.
+cast-tvs-note-mac = [Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš Ṁàç šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.
+cast-tvs-note-iphone = [Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš îÞĥöñé šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that shows TVs with Chromecast built in, on an iPad.
+cast-tvs-note-ipad = [Ţĥéý àþþéàŕ üñðéŕ Çĥŕöɱéçàšţ îñ Þļàý öñ ŢṼ. Ţĥîš îÞàð šéñðš ţĥéɱ ţĥé éþîšöðé.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that lets a cast play torrents, on a Mac.
+cast-torrents-note-mac = [Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš Ṁàç šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that lets a cast play torrents, on an iPhone.
+cast-torrents-note-iphone = [Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš îÞĥöñé šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note under the Settings row that lets a cast play torrents, on an iPad.
+cast-torrents-note-ipad = [Ļéţš à ŢṼ ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ þļàý ţöŕŕéñţš. Ţĥîš îÞàð šéñðš ţĥé éþîšöðé ƒöŕ àš ļöñĝ àš îţ þļàýš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on the casting card while the next episode counts down. The seconds are whole.
+cast-up-next-plays-in = [Ûþ ñéẋţ · þļàýš îñ { $seconds } š~~~~~~~~]
 
 # The card's line when a cast never started. The name is the TV's.
 cast-couldnt-start = [Çöüļðñ'ţ šţàŕţ öñ { $name }~~~~~~~]

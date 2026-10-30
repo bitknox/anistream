@@ -6290,14 +6290,49 @@ pub fn cast_local_network() -> String {
     text("cast-local-network", &[])
 }
 
-/// The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick.
-pub fn cast_starting_counted(name: &str, seconds: i64) -> String {
-    text("cast-starting-counted", &[("name", Arg::Text(name)), ("seconds", Arg::Int(seconds))])
+/// Settings row: whether the TV picker lists TVs with Chromecast built in.
+pub fn cast_tvs_label() -> String {
+    text("cast-tvs-label", &[])
 }
 
-/// The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room".
-pub fn cast_phase_counted(line: &str, seconds: i64) -> String {
-    text("cast-phase-counted", &[("line", Arg::Text(line)), ("seconds", Arg::Int(seconds))])
+/// Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+pub fn cast_torrents_label() -> String {
+    text("cast-torrents-label", &[])
+}
+
+/// Note under the Settings row that shows TVs with Chromecast built in, on a Mac.
+pub fn cast_tvs_note_mac() -> String {
+    text("cast-tvs-note-mac", &[])
+}
+
+/// Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.
+pub fn cast_tvs_note_iphone() -> String {
+    text("cast-tvs-note-iphone", &[])
+}
+
+/// Note under the Settings row that shows TVs with Chromecast built in, on an iPad.
+pub fn cast_tvs_note_ipad() -> String {
+    text("cast-tvs-note-ipad", &[])
+}
+
+/// Note under the Settings row that lets a cast play torrents, on a Mac.
+pub fn cast_torrents_note_mac() -> String {
+    text("cast-torrents-note-mac", &[])
+}
+
+/// Note under the Settings row that lets a cast play torrents, on an iPhone.
+pub fn cast_torrents_note_iphone() -> String {
+    text("cast-torrents-note-iphone", &[])
+}
+
+/// Note under the Settings row that lets a cast play torrents, on an iPad.
+pub fn cast_torrents_note_ipad() -> String {
+    text("cast-torrents-note-ipad", &[])
+}
+
+/// Line on the casting card while the next episode counts down. The seconds are whole.
+pub fn cast_up_next_plays_in(seconds: i64) -> String {
+    text("cast-up-next-plays-in", &[("seconds", Arg::Int(seconds))])
 }
 
 /// The card's line when a cast never started. The name is the TV's.

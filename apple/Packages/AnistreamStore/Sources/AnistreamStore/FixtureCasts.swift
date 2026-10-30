@@ -17,10 +17,13 @@ import Synchronization
 ///     gone       the found scene, then Kitchen display gone from the network
 ///     blocked    the picker while the system won't let the app look on the local network
 ///     starting   the card just after a pick, starting on Living room
-///     counting   the same card six seconds on, counting
+///     counting   the same card six seconds on: Waiting for Living room · 6 s
+///     preparing  the card six seconds on, this device preparing the stream
 ///     playing    Living room playing episode 3, its volume set on the TV
 ///     muted      the playing scene, muted
 ///     level      Kitchen display playing, with a volume level and the skip offer
+///     upnext     Living room near the end: Up next, plays in 6 s, with Cancel and Play now
+///     skipped    Kitchen display after an automatic skip: Skipped opening, Undo
 ///     refused    the card after Living room refused every stream
 ///     never      the card after Living room never read the stream
 ///     network    the card when this device isn't on the TV's network
@@ -31,7 +34,7 @@ import Synchronization
 ///     bar        the playing scene with its card closed: the toolbar's button, or the bar
 public enum CastScene: String, Sendable, CaseIterable {
     case found, searching, none, gone, blocked
-    case starting, counting, playing, muted, level
+    case starting, counting, preparing, playing, muted, level, upnext, skipped
     case refused, never, network, codec, deeplink
     case lost, takenover, bar
 
@@ -100,7 +103,9 @@ final class FixtureCastSession: FfiCastSessionProtocol, @unchecked Sendable {
     struct State {
         var name: String
         var phase: FfiLinkPhase = .connecting
-        var phaseLine: String?
+        var phaseLine: Msg?
+        var upNext: FfiCastUpNext?
+        var undo: FfiCastUndo?
         var loading = true
         var position: Double = 0
         var duration: Double?
@@ -115,6 +120,8 @@ final class FixtureCastSession: FfiCastSessionProtocol, @unchecked Sendable {
         var notice: Msg?
         var over = false
         var rev: UInt64 = 0
+        /// The revision the last card handed out was made at.
+        var handed: UInt64 = 0
         var stopped = false
     }
 
@@ -137,24 +144,28 @@ final class FixtureCastSession: FfiCastSessionProtocol, @unchecked Sendable {
     }
 
     func card() -> FfiCastCard {
-        let state = state.withLock { $0 }
+        let state = state.withLock { state in
+            state.handed = state.rev
+            return state
+        }
         let now = FfiNowCard(
             id: request.id, title: request.title, episode: request.episode, episodeLine: episodeLine,
             loading: state.loading, position: state.position, duration: state.loading ? nil : state.duration,
             paused: state.paused, speed: 1, volume: state.volume, audio: state.audio, subtitles: state.subtitles,
             subtitlesOff: state.subtitlesOff, skip: state.skip)
         let card = FfiRemoteCard(
-            tvName: state.name, phase: state.phase, phaseLine: state.phaseLine, screen: .player, now: now,
+            tvName: state.name, phase: state.phase, phaseLine: nil, screen: .player, now: now,
             rev: state.rev, over: state.over, reached: true)
-        return FfiCastCard(card: card, volumeControl: state.volumeControl, muted: state.muted, notice: state.notice)
+        return FfiCastCard(
+            card: card, volumeControl: state.volumeControl, muted: state.muted, notice: state.notice,
+            phaseLine: state.phaseLine, upNext: state.upNext, undo: state.undo)
     }
 
     func nextCard() async -> FfiCastCard? {
-        let seen = state.withLock { $0.rev }
         while !Task.isCancelled {
-            let (rev, stopped) = state.withLock { ($0.rev, $0.stopped) }
+            let (rev, handed, stopped) = state.withLock { ($0.rev, $0.handed, $0.stopped) }
             if stopped { return nil }
-            if rev != seen { return card() }
+            if rev != handed { return card() }
             try? await Task.sleep(for: .milliseconds(50))
         }
         return nil
@@ -182,6 +193,19 @@ final class FixtureCastSession: FfiCastSessionProtocol, @unchecked Sendable {
             }
         }
     }
+
+    func playNext() { change { $0.upNext = nil } }
+
+    func cancelNext() { change { $0.upNext = nil } }
+
+    func undoSkip() {
+        change { state in
+            if let undo = state.undo { state.position = undo.to }
+            state.undo = nil
+        }
+    }
+
+    func tryAgain() -> Bool { false }
 
     func deviceName() -> String { state.withLock { $0.name } }
 
@@ -213,7 +237,7 @@ extension TVRemoteModel {
             casts.lose(FixtureCastBrowser.devices[1].instance)
             return
         }
-        let kitchen = scene == .level
+        let kitchen = scene == .level || scene == .skipped
         let device = FixtureCastBrowser.devices[kitchen ? 1 : 0]
         let session = FixtureCastSession(
             name: device.name, request: play,
@@ -224,15 +248,22 @@ extension TVRemoteModel {
             key: "cast:\(device.id)", name: device.name, model: "", address: device.address, // i18n-skip
             routeHint: .throughThisDevice)
         choose(cast: row)
-        guard scene != .starting, scene != .counting else { return }
+        session.change { $0.phaseLine = .castPhaseStarting(name: device.name) }
+        guard scene != .starting else { return }
         try? await Task.sleep(for: .milliseconds(400))
         switch scene {
+        case .counting:
+            session.change { $0.phaseLine = .castPhaseWaiting(name: device.name, seconds: 6) }
+            return
+        case .preparing:
+            session.change { $0.phaseLine = .castPhasePreparing(seconds: 6) }
+            return
         case .refused, .never, .network, .codec, .deeplink:
             let notice: Msg = switch scene {
-            case .refused: .noticeCastRefused
-            case .never: .noticeCastNeverFetches
-            case .network: .noticeCastNotSameNetwork
-            case .codec: .noticeCastVideoCodec(codec: "AV1") // i18n-skip
+            case .refused: .noticeCastRefused(name: device.name)
+            case .never: .noticeCastNeverFetches(name: device.name)
+            case .network: .noticeCastNotSameNetwork(name: device.name)
+            case .codec: .noticeCastVideoCodec(name: device.name, codec: "AV1") // i18n-skip
             default: .noticeCastDeepLink
             }
             session.change {
@@ -245,6 +276,7 @@ extension TVRemoteModel {
         }
         session.change { state in
             state.phase = .connected
+            state.phaseLine = nil
             state.loading = false
             state.duration = 1420
             state.position = kitchen ? 58 : 492
@@ -263,20 +295,29 @@ extension TVRemoteModel {
                 state.skip = FfiSkipCard(to: 88, label: L.playerSkipOpening)
             }
             state.muted = scene == .muted
+            if scene == .upnext {
+                state.position = 1382
+                state.upNext = FfiCastUpNext(
+                    number: "4", title: "A Town Without Night", still: nil, auto: true, secondsLeft: 6) // i18n-skip
+            }
+            if scene == .skipped {
+                state.position = 92
+                state.undo = FfiCastUndo(kind: .opening, to: 0)
+            }
         }
         switch scene {
         case .lost:
             try? await Task.sleep(for: .milliseconds(600))
             session.change {
                 $0.phase = .retrying
-                $0.notice = .noticeCastLost
+                $0.notice = .noticeCastLost(name: device.name)
                 $0.over = true
             }
         case .takenover:
             try? await Task.sleep(for: .milliseconds(600))
             sheetClosed()
             session.change {
-                $0.notice = .noticeCastTakenOver
+                $0.notice = .noticeCastTakenOver(name: device.name)
                 $0.over = true
             }
         case .bar:
@@ -299,8 +340,8 @@ extension CastModel {
             case .none: tv.sheet == .picker && rows.isEmpty
             case .gone: rows.contains(where: \.gone)
             case .blocked: tv.sheet == .picker && localNetworkDenied
-            case .starting, .counting: stage == .starting && tv.sheet == .remote
-            case .playing, .muted, .level: stage == .playing && (scene != .muted || muted)
+            case .starting, .counting, .preparing: stage == .starting && tv.sheet == .remote
+            case .playing, .muted, .level, .upnext, .skipped: stage == .playing && (scene != .muted || muted)
             case .refused, .never, .network, .codec, .deeplink: stage == .failed
             case .lost: stage == .stopped
             case .takenover: !active && takenOver != nil
@@ -312,7 +353,6 @@ extension CastModel {
                 let settle: Duration = switch scene {
                 case .searching: .seconds(1.5)
                 case .none: .seconds(11)
-                case .counting: .seconds(6.5)
                 default: .milliseconds(800)
                 }
                 try? await Task.sleep(for: settle)

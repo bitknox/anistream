@@ -1943,13 +1943,41 @@
     <value>Allow anistream to find devices on your local network</value>
     <comment>The picker's one row while the app may not look on the local network, with a button that opens the system's settings.</comment>
   </data>
-  <data name="CastStartingCounted" xml:space="preserve">
-    <value>Starting on {name} · {seconds} s</value>
-    <comment>The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick.</comment>
+  <data name="CastTvsLabel" xml:space="preserve">
+    <value>Show TVs with Chromecast built in</value>
+    <comment>Settings row: whether the TV picker lists TVs with Chromecast built in.</comment>
   </data>
-  <data name="CastPhaseCounted" xml:space="preserve">
-    <value>{line} · {seconds} s</value>
-    <comment>The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room".</comment>
+  <data name="CastTorrentsLabel" xml:space="preserve">
+    <value>Torrents while casting</value>
+    <comment>Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.</comment>
+  </data>
+  <data name="CastTvsNoteMac" xml:space="preserve">
+    <value>They appear under Chromecast in Play on TV. This Mac sends them the episode.</value>
+    <comment>Note under the Settings row that shows TVs with Chromecast built in, on a Mac.</comment>
+  </data>
+  <data name="CastTvsNoteIphone" xml:space="preserve">
+    <value>They appear under Chromecast in Play on TV. This iPhone sends them the episode.</value>
+    <comment>Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.</comment>
+  </data>
+  <data name="CastTvsNoteIpad" xml:space="preserve">
+    <value>They appear under Chromecast in Play on TV. This iPad sends them the episode.</value>
+    <comment>Note under the Settings row that shows TVs with Chromecast built in, on an iPad.</comment>
+  </data>
+  <data name="CastTorrentsNoteMac" xml:space="preserve">
+    <value>Lets a TV with Chromecast built in play torrents. This Mac sends the episode for as long as it plays.</value>
+    <comment>Note under the Settings row that lets a cast play torrents, on a Mac.</comment>
+  </data>
+  <data name="CastTorrentsNoteIphone" xml:space="preserve">
+    <value>Lets a TV with Chromecast built in play torrents. This iPhone sends the episode for as long as it plays.</value>
+    <comment>Note under the Settings row that lets a cast play torrents, on an iPhone.</comment>
+  </data>
+  <data name="CastTorrentsNoteIpad" xml:space="preserve">
+    <value>Lets a TV with Chromecast built in play torrents. This iPad sends the episode for as long as it plays.</value>
+    <comment>Note under the Settings row that lets a cast play torrents, on an iPad.</comment>
+  </data>
+  <data name="CastUpNextPlaysIn" xml:space="preserve">
+    <value>Up next · plays in {seconds} s</value>
+    <comment>Line on the casting card while the next episode counts down. The seconds are whole.</comment>
   </data>
   <data name="CastCouldntStart" xml:space="preserve">
     <value>Couldn't start on {name}</value>

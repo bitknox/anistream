@@ -2952,14 +2952,33 @@ public enum L {
     /// The picker's one row while the app may not look on the local network, with a button that opens the system's settings.
     public static var castLocalNetwork: String { string("cast-local-network", fallback: "Allow anistream to find devices on your local network") }
 
-    /// The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick.
-    public static func castStartingCounted(name: String, seconds: Int) -> String {
-        Self.format("cast-starting-counted", fallback: "Starting on %1$@ · %2$lld s", name, seconds)
-    }
+    /// Settings row: whether the TV picker lists TVs with Chromecast built in.
+    public static var castTvsLabel: String { string("cast-tvs-label", fallback: "Show TVs with Chromecast built in") }
 
-    /// The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room".
-    public static func castPhaseCounted(line: String, seconds: Int) -> String {
-        Self.format("cast-phase-counted", fallback: "%1$@ · %2$lld s", line, seconds)
+    /// Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+    public static var castTorrentsLabel: String { string("cast-torrents-label", fallback: "Torrents while casting") }
+
+    /// Note under the Settings row that shows TVs with Chromecast built in, on a Mac.
+    public static var castTvsNoteMac: String { string("cast-tvs-note-mac", fallback: "They appear under Chromecast in Play on TV. This Mac sends them the episode.") }
+
+    /// Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.
+    public static var castTvsNoteIphone: String { string("cast-tvs-note-iphone", fallback: "They appear under Chromecast in Play on TV. This iPhone sends them the episode.") }
+
+    /// Note under the Settings row that shows TVs with Chromecast built in, on an iPad.
+    public static var castTvsNoteIpad: String { string("cast-tvs-note-ipad", fallback: "They appear under Chromecast in Play on TV. This iPad sends them the episode.") }
+
+    /// Note under the Settings row that lets a cast play torrents, on a Mac.
+    public static var castTorrentsNoteMac: String { string("cast-torrents-note-mac", fallback: "Lets a TV with Chromecast built in play torrents. This Mac sends the episode for as long as it plays.") }
+
+    /// Note under the Settings row that lets a cast play torrents, on an iPhone.
+    public static var castTorrentsNoteIphone: String { string("cast-torrents-note-iphone", fallback: "Lets a TV with Chromecast built in play torrents. This iPhone sends the episode for as long as it plays.") }
+
+    /// Note under the Settings row that lets a cast play torrents, on an iPad.
+    public static var castTorrentsNoteIpad: String { string("cast-torrents-note-ipad", fallback: "Lets a TV with Chromecast built in play torrents. This iPad sends the episode for as long as it plays.") }
+
+    /// Line on the casting card while the next episode counts down. The seconds are whole.
+    public static func castUpNextPlaysIn(seconds: Int) -> String {
+        Self.format("cast-up-next-plays-in", fallback: "Up next · plays in %1$lld s", seconds)
     }
 
     /// The card's line when a cast never started. The name is the TV's.

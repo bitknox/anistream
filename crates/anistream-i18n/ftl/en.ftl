@@ -3947,11 +3947,32 @@ cast-none-found-extra = TVs with Chromecast built in show here too.
 # The picker's one row while the app may not look on the local network, with a button that opens the system's settings.
 cast-local-network = Allow anistream to find devices on your local network
 
-# The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick.
-cast-starting-counted = Starting on { $name } · { $seconds } s
+# Settings row: whether the TV picker lists TVs with Chromecast built in.
+cast-tvs-label = Show TVs with Chromecast built in
 
-# The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room".
-cast-phase-counted = { $line } · { $seconds } s
+# Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+cast-torrents-label = Torrents while casting
+
+# Note under the Settings row that shows TVs with Chromecast built in, on a Mac.
+cast-tvs-note-mac = They appear under Chromecast in Play on TV. This Mac sends them the episode.
+
+# Note under the Settings row that shows TVs with Chromecast built in, on an iPhone.
+cast-tvs-note-iphone = They appear under Chromecast in Play on TV. This iPhone sends them the episode.
+
+# Note under the Settings row that shows TVs with Chromecast built in, on an iPad.
+cast-tvs-note-ipad = They appear under Chromecast in Play on TV. This iPad sends them the episode.
+
+# Note under the Settings row that lets a cast play torrents, on a Mac.
+cast-torrents-note-mac = Lets a TV with Chromecast built in play torrents. This Mac sends the episode for as long as it plays.
+
+# Note under the Settings row that lets a cast play torrents, on an iPhone.
+cast-torrents-note-iphone = Lets a TV with Chromecast built in play torrents. This iPhone sends the episode for as long as it plays.
+
+# Note under the Settings row that lets a cast play torrents, on an iPad.
+cast-torrents-note-ipad = Lets a TV with Chromecast built in play torrents. This iPad sends the episode for as long as it plays.
+
+# Line on the casting card while the next episode counts down. The seconds are whole.
+cast-up-next-plays-in = Up next · plays in { $seconds } s
 
 # The card's line when a cast never started. The name is the TV's.
 cast-couldnt-start = Couldn't start on { $name }

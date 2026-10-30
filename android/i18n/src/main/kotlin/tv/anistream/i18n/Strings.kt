@@ -2553,13 +2553,41 @@ object Strings {
     fun castLocalNetwork(context: Context): String =
         context.getString(R.string.cast_local_network)
 
-    /** The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick. */
-    fun castStartingCounted(context: Context, name: String, seconds: Int): String =
-        context.getString(R.string.cast_starting_counted, name, seconds)
+    /** Settings row: whether the TV picker lists TVs with Chromecast built in. */
+    fun castTvsLabel(context: Context): String =
+        context.getString(R.string.cast_tvs_label)
 
-    /** The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room". */
-    fun castPhaseCounted(context: Context, line: String, seconds: Int): String =
-        context.getString(R.string.cast_phase_counted, line, seconds)
+    /** Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile. */
+    fun castTorrentsLabel(context: Context): String =
+        context.getString(R.string.cast_torrents_label)
+
+    /** Note under the Settings row that shows TVs with Chromecast built in, on a Mac. */
+    fun castTvsNoteMac(context: Context): String =
+        context.getString(R.string.cast_tvs_note_mac)
+
+    /** Note under the Settings row that shows TVs with Chromecast built in, on an iPhone. */
+    fun castTvsNoteIphone(context: Context): String =
+        context.getString(R.string.cast_tvs_note_iphone)
+
+    /** Note under the Settings row that shows TVs with Chromecast built in, on an iPad. */
+    fun castTvsNoteIpad(context: Context): String =
+        context.getString(R.string.cast_tvs_note_ipad)
+
+    /** Note under the Settings row that lets a cast play torrents, on a Mac. */
+    fun castTorrentsNoteMac(context: Context): String =
+        context.getString(R.string.cast_torrents_note_mac)
+
+    /** Note under the Settings row that lets a cast play torrents, on an iPhone. */
+    fun castTorrentsNoteIphone(context: Context): String =
+        context.getString(R.string.cast_torrents_note_iphone)
+
+    /** Note under the Settings row that lets a cast play torrents, on an iPad. */
+    fun castTorrentsNoteIpad(context: Context): String =
+        context.getString(R.string.cast_torrents_note_ipad)
+
+    /** Line on the casting card while the next episode counts down. The seconds are whole. */
+    fun castUpNextPlaysIn(context: Context, seconds: Int): String =
+        context.getString(R.string.cast_up_next_plays_in, seconds)
 
     /** The card's line when a cast never started. The name is the TV's. */
     fun castCouldntStart(context: Context, name: String): String =

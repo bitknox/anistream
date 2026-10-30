@@ -13,12 +13,31 @@ import SwiftUI
 // MARK: - Words
 
 /// What the casting views say that both platforms share.
+@MainActor
 enum CastWords {
     /// The line under a row: who fetches the episode.
     static func route(_ row: FfiCastRow) -> String {
         switch row.routeHint {
         case .direct: L.castChromecast
         case .throughThisDevice: L.castRowThrough(device: TVRemoteModel.deviceName)
+        }
+    }
+
+    /// The note under Show TVs with Chromecast built in, naming the device that sends the episode.
+    static var tvsNote: String {
+        switch TVRemoteModel.deviceName {
+        case "iPhone": L.castTvsNoteIphone
+        case "iPad": L.castTvsNoteIpad
+        default: L.castTvsNoteMac
+        }
+    }
+
+    /// The note under Torrents while casting.
+    static var torrentsNote: String {
+        switch TVRemoteModel.deviceName {
+        case "iPhone": L.castTorrentsNoteIphone
+        case "iPad": L.castTorrentsNoteIpad
+        default: L.castTorrentsNoteMac
         }
     }
 
@@ -188,21 +207,73 @@ struct CastStatusLine: View {
 
     var body: some View {
         let cast = store.tv.cast
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            let line = cast.line(at: context.date)
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(CastWords.dot(cast.stage))
-                    .frame(width: 7, height: 7)
-                    .accessibilityHidden(true)
-                Text(line)
-                    .font(touch ? .ui(15, weight: .semibold) : .mac(13, weight: .semibold))
-                    .foregroundStyle(.silk)
+        let line = cast.line
+        HStack(spacing: 8) {
+            Circle()
+                .fill(CastWords.dot(cast.stage))
+                .frame(width: 7, height: 7)
+                .accessibilityHidden(true)
+            Text(line)
+                .font(touch ? .ui(15, weight: .semibold) : .mac(13, weight: .semibold))
+                .foregroundStyle(.silk)
+                .monospacedDigit()
+                .contentTransition(.opacity)
+                .animation(.standard, value: line)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The Up next row on the cast card: the next episode and its count, with Cancel and Play now.
+/// At zero the engine plays the episode itself. With auto-next off it waits for Play now.
+struct CastUpNextRow: View {
+    @Environment(AppStore.self) private var store
+    let next: FfiCastUpNext
+    let touch: Bool
+
+    var body: some View {
+        let cast = store.tv.cast
+        let heading = next.secondsLeft.map { L.castUpNextPlaysIn(seconds: Int($0)) } ?? L.playerUpNext
+        let episode = next.title.map { L.castEpisodeTitled(episode: next.number, title: $0) }
+            ?? L.castEpisode(episode: next.number)
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(heading)
+                    .font(touch ? .ui(13, weight: .semibold) : .mac(12, weight: .semibold))
+                    .foregroundStyle(.haze)
                     .monospacedDigit()
-                    .contentTransition(.opacity)
-                    .animation(.standard, value: line)
+                    .contentTransition(.numericText(countsDown: true))
+                    .animation(.linear(duration: 0.25), value: heading)
+                Text(episode)
+                    .font(touch ? .ui(15) : .mac(13))
+                    .foregroundStyle(.silk)
+                    .lineLimit(2)
             }
-            .accessibilityElement(children: .combine)
+            HStack(spacing: 8) {
+                Button(L.actionCancel) { cast.cancelNext() }
+                    .buttonStyle(SecondaryCapsuleStyle(height: touch ? 34 : 26, raisedSurface: !touch, fontSize: touch ? 15 : 13))
+                Button(L.actionPlayNow) { cast.playNext() }
+                    .buttonStyle(PrimaryCapsuleStyle(height: touch ? 34 : 26))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// The note after an automatic skip, with its Undo.
+struct CastUndoNote: View {
+    @Environment(AppStore.self) private var store
+    let undo: FfiCastUndo
+    let touch: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(undo.kind == .opening ? L.playerSkippedOpening : L.playerSkippedEnding)
+                .font(touch ? .ui(15) : .mac(13))
+                .foregroundStyle(.haze)
+            Button(L.actionUndo) { store.tv.cast.undoSkip() }
+                .buttonStyle(SecondaryCapsuleStyle(height: touch ? 34 : 26, raisedSurface: !touch, fontSize: touch ? 15 : 13))
         }
     }
 }
@@ -384,6 +455,11 @@ struct MacCastCard: View {
                 }
                 if running {
                     TVTransport(now: now, touch: false)
+                    if let next = cast.card?.upNext {
+                        CastUpNextRow(next: next, touch: false).transition(.opacity)
+                    } else if let undo = cast.card?.undo {
+                        CastUndoNote(undo: undo, touch: false).transition(.opacity)
+                    }
                     MacSheetRows {
                         SettingsRow(title: L.playerSubtitles) {
                             TVTrackMenu(title: L.playerSubtitles, kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff, phone: false)
@@ -399,16 +475,12 @@ struct MacCastCard: View {
             }
             HStack(spacing: 8) {
                 if running {
-                    Button(L.tvChooseAnother) { tv.castElsewhere() }
-                        .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                    Spacer(minLength: 8)
-                    Button(L.castPlayHere) { actions.playHere() }
-                        .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                    Button(L.castStop) { actions.stop() }
-                        .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                    Button(L.actionDone) { dismiss() }
-                        .buttonStyle(PrimaryCapsuleStyle(height: 28))
-                        .keyboardShortcut(.cancelAction)
+                    // One row when it fits; otherwise Choose Another TV drops under the rest,
+                    // so no button's words are cut short.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 8) { footer(tv, actions, dismiss, together: true) }
+                        VStack(alignment: .leading, spacing: 8) { footer(tv, actions, dismiss, together: false) }
+                    }
                 } else {
                     ForEach(Array(cast.actions.enumerated()), id: \.offset) { index, action in
                         if index == 0 {
@@ -429,6 +501,41 @@ struct MacCastCard: View {
             .padding(.top, 4)
         }
         .animation(.standard, value: stage)
+    }
+
+    @ViewBuilder
+    private func footer(_ tv: TVRemoteModel, _ actions: CastActions, _ dismiss: DismissAction, together: Bool) -> some View {
+        if together {
+            chooseAnother(tv)
+            Spacer(minLength: 8)
+            rest(actions, dismiss)
+        } else {
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
+                rest(actions, dismiss)
+            }
+            chooseAnother(tv)
+        }
+    }
+
+    private func chooseAnother(_ tv: TVRemoteModel) -> some View {
+        Button(L.tvChooseAnother) { tv.castElsewhere() }
+            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+            .fixedSize()
+    }
+
+    @ViewBuilder
+    private func rest(_ actions: CastActions, _ dismiss: DismissAction) -> some View {
+        Button(L.castPlayHere) { actions.playHere() }
+            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+            .fixedSize()
+        Button(L.castStop) { actions.stop() }
+            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+            .fixedSize()
+        Button(L.actionDone) { dismiss() }
+            .buttonStyle(PrimaryCapsuleStyle(height: 28))
+            .keyboardShortcut(.cancelAction)
+            .fixedSize()
     }
 }
 #endif
@@ -522,6 +629,11 @@ struct PhoneCastCard: View {
                     }
                     if running {
                         TVTransport(now: now, touch: true)
+                        if let next = cast.card?.upNext {
+                            CastUpNextRow(next: next, touch: true).transition(.opacity)
+                        } else if let undo = cast.card?.undo {
+                            CastUndoNote(undo: undo, touch: true).transition(.opacity)
+                        }
                         if let skip = now.skip, stage == .playing {
                             Button(skip.label.capitalizedSentence) { tv.send(.skip) }
                                 .buttonStyle(SecondaryCapsuleStyle(height: 34, fontSize: 15))
