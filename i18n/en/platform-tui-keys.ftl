@@ -431,7 +431,7 @@ keys-scope-movement = Movement
 
 # Heading of a group of keys in the help overlay.
 # @max 20
-keys-scope-lists = Lists and grids
+keys-scope-lists = Lists
 
 # Heading of a group of keys in the help overlay.
 # @max 20

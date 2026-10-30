@@ -12,8 +12,8 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   Copied to the clipboard where the terminal allows it, or select it to co…
   Anyone with it can join, without a name, as often as they like.
   It works until the store goes back to invites only.
-  Enter closes
 
+   │
    │
    │
    │
@@ -57,10 +57,8 @@ r12 c65-79 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
 r13 c02-52 fg=text-dim bg=ground
 r13 c53-79 fg=rule bg=ground
-r14 c00-01 fg=rule bg=ground
-r14 c02-13 fg=text-dim bg=ground
-r14 c14-79 fg=rule bg=ground
-r15 c00-79 fg=rule bg=ground
+r14 c00-79 fg=rule bg=ground
+r15 c00-79 fg=rule
 r16 c00-79 fg=rule
 r17 c00-79 fg=rule
 r18 c00-79 fg=rule

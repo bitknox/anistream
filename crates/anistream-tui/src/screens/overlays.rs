@@ -148,13 +148,12 @@ pub(super) fn render_overlay(
         }
         Overlay::KitsuPassword => vec![(String::new(), t::overlays_hint_kitsu_password())],
         Overlay::DownloadRange => vec![(String::new(), t::overlays_hint_download_range())],
-        Overlay::EditSetting => vec![(
-            String::new(),
-            match app.edit_target {
-                Some(id) => t::overlays_hint_edit_setting(id.label()),
-                None => t::overlays_hint_edit_setting_bare(),
-            },
-        )],
+        // The footer names the keys; the body names what is being changed.
+        Overlay::EditSetting => app
+            .edit_target
+            .map(|id| (String::new(), t::overlays_hint_edit_setting(id.label())))
+            .into_iter()
+            .collect(),
         Overlay::JoinStore => vec![(String::new(), t::overlays_hint_join_store())],
         Overlay::InviteName => vec![(String::new(), t::overlays_hint_invite_name())],
         Overlay::StoreConfirm => store_confirm_rows(app),
@@ -321,28 +320,26 @@ pub(super) fn render_overlay(
         // Say what is being asked, or a bare "Which one" over a list of near-identical release
         // names is a riddle rather than a question. Not why: the same list answers a search
         // typed after `m`, where "no confident match" sat above a 100% candidate.
-        Overlay::Disambiguate => titled(&match app.detail.as_ref() {
-            Some(detail) => t::overlays_heading_disambiguate(&detail.title),
-            None => t::overlays_heading_disambiguate_bare(),
-        }),
+        Overlay::Disambiguate => match app.detail.as_ref() {
+            Some(detail) => titled(&t::overlays_heading_disambiguate(&detail.title)),
+            None => title.clone(),
+        },
         // Name the title the order is anchored on — a list of sequels floats without it.
-        Overlay::WatchOrder => titled(&match app.target() {
-            Some(detail) => t::overlays_heading_watch_order(&detail.title),
-            None => t::overlays_heading_watch_order_bare(),
-        }),
+        Overlay::WatchOrder => match app.target() {
+            Some(detail) => titled(&t::overlays_heading_watch_order(&detail.title)),
+            None => title.clone(),
+        },
         // Anchor on the title the recommendations came from.
-        Overlay::Recommendations => titled(&match app.target() {
-            Some(detail) => t::overlays_heading_recommendations(&detail.title),
-            None => t::overlays_heading_recommendations_bare(),
-        }),
+        Overlay::Recommendations => match app.target() {
+            Some(detail) => titled(&t::overlays_heading_recommendations(&detail.title)),
+            None => title.clone(),
+        },
         Overlay::SourceRelease => titled(&t::overlays_heading_release()),
         // Name the title, since the choice is remembered against it rather than globally.
-        Overlay::SourceProvider => titled(&match app.detail.as_ref() {
-            Some(detail) => t::overlays_heading_source(&detail.title),
-            None => t::overlays_heading_source_bare(),
-        }),
-        // The grammar is not self-evident for a value editor, so the heading states it.
-        Overlay::SearchFilters => titled(&t::overlays_heading_filters()),
+        Overlay::SourceProvider => match app.detail.as_ref() {
+            Some(detail) => titled(&t::overlays_heading_source(&detail.title)),
+            None => title.clone(),
+        },
         // Name the episode the slate is for, or a wall of release names has no anchor.
         Overlay::Sources => titled(&match app.source_context.as_ref() {
             Some((_, episode)) => t::overlays_heading_releases(episode),

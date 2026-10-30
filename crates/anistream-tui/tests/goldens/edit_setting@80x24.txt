@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Edit   spa,en▏
 ────────────────────────────────────────────────────────────────────────────────
-  subtitles. Enter saves, Esc leaves it as it is.
+  Type a new value for subtitles.
 
    │    Counts as watched at        85%
    │    Auto-play next              On
@@ -40,8 +40,8 @@ r08 c16-79 fg=rule bg=ground
 r09 c00-79 fg=rule bg=ground
 r10 c00-00 fg=rule bg=ground
 r10 c01-01 fg=rule bg=ground mod=BOLD
-r10 c02-48 fg=text-dim bg=ground
-r10 c49-79 fg=rule bg=ground
+r10 c02-32 fg=text-dim bg=ground
+r10 c33-79 fg=rule bg=ground
 r11 c00-35 fg=rule bg=ground
 r11 c36-38 fg=rule bg=ground mod=BOLD
 r11 c39-79 fg=rule bg=ground

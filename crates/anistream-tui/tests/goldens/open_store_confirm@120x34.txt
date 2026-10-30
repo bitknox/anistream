@@ -14,8 +14,8 @@ anistream                                                                       
   The link is new each time, so an earlier one stays dead.
   Members see that the store is open.
 
-  Enter opens it · Esc keeps it to invites
-
+                            │    Open the admin page
+                            │    Leave this store
                             │
                             │
                             │
@@ -66,10 +66,8 @@ r14 c33-36 fg=text-dim bg=ground mod=BOLD
 r14 c37-44 fg=rule bg=ground mod=BOLD
 r14 c45-119 fg=rule bg=ground
 r15 c00-119 fg=rule bg=ground
-r16 c00-01 fg=rule bg=ground
-r16 c02-41 fg=text-dim bg=ground
-r16 c42-119 fg=rule bg=ground
-r17 c00-119 fg=rule bg=ground
+r16 c00-119 fg=rule
+r17 c00-119 fg=rule
 r18 c00-119 fg=rule
 r19 c00-119 fg=rule
 r20 c00-119 fg=rule

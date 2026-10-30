@@ -3,7 +3,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Keys
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  Global                              Lists and grids                     Downloads
+  Global                              Lists                               Downloads
     Show keys                      ?    Open                           ↵    Clear finished downloads       c
     Run a command         : / ctrl+k    Play next unwatched        space    Delete download and its file   X
     Quit                  Q / ctrl+c    Set list status                a  Sources
@@ -50,8 +50,8 @@ r04 c00-119 fg=rule bg=ground
 r05 c00-01 fg=rule bg=ground
 r05 c02-07 fg=text bg=ground
 r05 c08-37 fg=rule bg=ground
-r05 c38-52 fg=text bg=ground
-r05 c53-73 fg=rule bg=ground
+r05 c38-42 fg=text bg=ground
+r05 c43-73 fg=rule bg=ground
 r05 c74-82 fg=text bg=ground
 r05 c83-119 fg=rule bg=ground
 r06 c00-01 fg=rule bg=ground

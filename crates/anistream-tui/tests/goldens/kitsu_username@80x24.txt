@@ -8,7 +8,7 @@ anistream           torrent ○  plugins ●  ·  anilist ⇅ 3  kitsu ○  mal 
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Sign in to Kitsu   hotaru@mail.example▏
 ────────────────────────────────────────────────────────────────────────────────
-  Email or user name. Enter continues, Esc cancels.
+  Email or user name.
 
    │  ────────────────────────────────────────────────────────────────────────
    │    ↵ Sign in
@@ -43,8 +43,8 @@ r09 c00-00 fg=rule bg=ground
 r09 c01-01 fg=rule bg=ground mod=BOLD
 r09 c02-79 fg=rule bg=ground
 r10 c00-01 fg=rule bg=ground
-r10 c02-50 fg=text-dim bg=ground
-r10 c51-79 fg=rule bg=ground
+r10 c02-20 fg=text-dim bg=ground
+r10 c21-79 fg=rule bg=ground
 r11 c00-79 fg=rule bg=ground
 r12 c00-79 fg=rule
 r13 c00-79 fg=rule

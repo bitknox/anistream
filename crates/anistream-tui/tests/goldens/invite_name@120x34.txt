@@ -11,7 +11,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Invite someone   Kai Nakam▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  Their name, as the members list will show it. Enter makes the link.
+  Their name, as the members list will show it.
 
                             │    Publish a plugin
                             │    Open the admin page
@@ -58,8 +58,8 @@ r12 c00-32 fg=rule bg=ground
 r12 c33-46 fg=rule bg=ground mod=BOLD
 r12 c47-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-68 fg=text-dim bg=ground
-r13 c69-119 fg=rule bg=ground
+r13 c02-46 fg=text-dim bg=ground
+r13 c47-119 fg=rule bg=ground
 r14 c00-119 fg=rule bg=ground
 r15 c00-119 fg=rule
 r16 c00-119 fg=rule

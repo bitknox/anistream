@@ -196,6 +196,21 @@ pub(crate) fn status_hints_paged(
     // By the table the keys are read from now, so a hint is never a key the player has taken.
     let context = app.key_context();
     let key = |action: Action| keymap.keys_in(action, context).first().map(Binding::render);
+    // Left and Right as one hint: the arrows, as every overlay names them, while they do it,
+    // and the live keys when the player has taken the arrows to seek.
+    let sideways = || {
+        use crossterm::event::KeyCode;
+        let bound = |action: Action, code: KeyCode| {
+            keymap
+                .keys_in(action, context)
+                .iter()
+                .any(|b| b.code == code && b.modifiers.is_empty())
+        };
+        if bound(Action::Left, KeyCode::Left) && bound(Action::Right, KeyCode::Right) {
+            return Some("←→".to_string());
+        }
+        Some(pair(&key(Action::Left)?, &key(Action::Right)?))
+    };
     let in_stage = app.nav.focus() == crate::nav::Focus::Stage;
     let wanted: Vec<(Action, &'static str)> = match app.nav.current() {
         // Now Playing has its own vocabulary, and it is the one view where the browsing
@@ -257,9 +272,7 @@ pub(crate) fn status_hints_paged(
         // The segment keys go first so they are dropped first; Enter is what a row is for.
         V::Section(Section::Library) => {
             let mut hints: Vec<(String, &'static str)> = Vec::new();
-            if let (Some(left), Some(right)) = (key(Action::Left), key(Action::Right)) {
-                hints.push((pair(&left, &right), hint_list()));
-            }
+            hints.extend(sideways().map(|keys| (keys, hint_list())));
             if !app.content.is_empty() {
                 hints.extend(key(Action::Open).map(|k| (k, hint_open())));
                 hints.extend(
@@ -331,10 +344,8 @@ pub(crate) fn status_hints_paged(
         // Settings has nothing to open and no episodes, so offering those keys would be a lie.
         // Left and Right are what actually do something here.
         V::Section(Section::Settings) => {
-            let hints = match (key(Action::Left), key(Action::Right)) {
-                (Some(left), Some(right)) => vec![(pair(&left, &right), hint_change())],
-                _ => Vec::new(),
-            };
+            let hints: Vec<_> =
+                sideways().map(|keys| (keys, hint_change())).into_iter().collect();
             return with_help(keymap, hints);
         }
         // An empty or failed list has no row to open.

@@ -16,8 +16,8 @@ anistream                                                                       
   Device    Computer▏
             The store's owner sees this name. Type to change it.
 
-  Enter joins · Esc cancels
-
+                            │
+                            │
                             │
                             │
                             │
@@ -72,10 +72,8 @@ r16 c00-01 fg=rule bg=ground
 r16 c02-63 fg=text-dim bg=ground
 r16 c64-119 fg=rule bg=ground
 r17 c00-119 fg=rule bg=ground
-r18 c00-01 fg=rule bg=ground
-r18 c02-26 fg=text-dim bg=ground
-r18 c27-119 fg=rule bg=ground
-r19 c00-119 fg=rule bg=ground
+r18 c00-119 fg=rule
+r19 c00-119 fg=rule
 r20 c00-119 fg=rule
 r21 c00-119 fg=rule
 r22 c00-119 fg=rule

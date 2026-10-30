@@ -11,7 +11,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Join a plugin store   https://plugins.example/join/k3Vb9TqLwX2mPz8RfYc4Hn#Qe7Ga1Ud5Js0Lo6Wi2Ty9Rb3Np8▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  Paste the invite or store link you were given. Enter checks it, Esc cancels.
+  Paste the invite or store link you were given.
 
                             │
                             │
@@ -58,8 +58,8 @@ r11 c02-103 fg=text bg=ground mod=BOLD
 r11 c104-119 fg=rule bg=ground
 r12 c00-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-77 fg=text-dim bg=ground
-r13 c78-119 fg=rule bg=ground
+r13 c02-47 fg=text-dim bg=ground
+r13 c48-119 fg=rule bg=ground
 r14 c00-119 fg=rule bg=ground
 r15 c00-119 fg=rule
 r16 c00-119 fg=rule

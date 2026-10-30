@@ -670,7 +670,9 @@ mod tests {
         let text = text_of(&render_to_buffer(&mut app, 110, 24));
         assert!(text.contains("100%"));
         assert!(!text.contains("no confident match"), "{text}");
-        assert!(text.contains("Enter pins it"), "{text}");
+        // What Enter does is the footer's to say, in the same notation as every other hint.
+        assert!(!text.contains("Enter pins it"), "{text}");
+        assert!(text.contains(&format!("↵ {}", t::keys_hint_use().to_lowercase())), "{text}");
     }
 
     #[test]

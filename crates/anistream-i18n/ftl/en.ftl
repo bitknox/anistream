@@ -1361,29 +1361,26 @@ overlays-help-page = Page { $page } of { $pages }
 # The log overlay, when nothing has been logged this session.
 overlays-logs-empty = Nothing logged yet
 
-# Prompt hint under the manual search heading. Enter and Esc are the fixed keys of every prompt.
-overlays-hint-manual-query = Type what to search for. An empty Enter resets to the automatic match.
+# Prompt hint under the manual search heading. The footer names its keys.
+overlays-hint-manual-query = Type what to search for, or leave it empty for the automatic match.
 
 # Prompt hint for the first step of signing in to Kitsu.
-overlays-hint-kitsu-username = Email or user name. Enter continues, Esc cancels.
+overlays-hint-kitsu-username = Email or user name.
 
 # Prompt hint for the second step of signing in to Kitsu. The password is shown as dots.
-overlays-hint-kitsu-password = Your password is exchanged for a token and not stored. Enter signs in.
+overlays-hint-kitsu-password = Your password is exchanged for a token and not stored.
 
 # Prompt hint for the download range. The examples are episode numbers and stay as written.
 overlays-hint-download-range = 4 for one episode, 1-12 for a run, 7- for everything from there.
 
-# Prompt hint for editing a setting. The setting is named by its label on the Settings screen.
-overlays-hint-edit-setting = { $setting }. Enter saves, Esc leaves it as it is.
-
-# Prompt hint for editing a setting, when the setting is not known.
-overlays-hint-edit-setting-bare = Enter saves, Esc leaves it as it is.
+# Prompt hint for editing a setting: its label on the Settings screen. The footer names the keys.
+overlays-hint-edit-setting = Type a new value for { $setting }.
 
 # Prompt hint for joining a { -plugin-store }.
-overlays-hint-join-store = Paste the invite or store link you were given. Enter checks it, Esc cancels.
+overlays-hint-join-store = Paste the invite or store link you were given.
 
 # Prompt hint for naming the person an invite link is for.
-overlays-hint-invite-name = Their name, as the members list will show it. Enter makes the link.
+overlays-hint-invite-name = Their name, as the members list will show it.
 
 # Overlay heading after the title: the plugin's version and the { -plugin-store } it comes from. The plugin's name leads the heading.
 overlays-heading-plugin = { $name }   { $version }  ·  from { $store }
@@ -1401,34 +1398,19 @@ overlays-heading-open-link-of = { $store }
 overlays-heading-publish-to = To { $store }
 
 # Overlay heading, after the title "Which one": the title being matched.
-overlays-heading-disambiguate = Match for { $name }. Enter pins it.
-
-# Same, when no title is known.
-overlays-heading-disambiguate-bare = Enter pins it.
+overlays-heading-disambiguate = Match for { $name }
 
 # Overlay heading, after the title "Watch order": the title the order is built around.
-overlays-heading-watch-order = Around { $name }. Enter opens.
-
-# Same, when no title is known.
-overlays-heading-watch-order-bare = Enter opens.
+overlays-heading-watch-order = Around { $name }
 
 # Overlay heading, after the title "Recommended": the title the list came from.
-overlays-heading-recommendations = Because you liked { $name }. Enter opens.
-
-# Same, when no title is known.
-overlays-heading-recommendations-bare = Enter opens.
+overlays-heading-recommendations = Because you liked { $name }
 
 # Overlay heading, after the title of the release list.
-overlays-heading-release = Enter pins it. The other sources fill what it lacks.
+overlays-heading-release = The other sources fill what it lacks.
 
 # Overlay heading, after the title of the { -source } list: the choice is kept for this title.
-overlays-heading-source = { $name }. Enter pins it.
-
-# Same, when no title is known.
-overlays-heading-source-bare = Enter pins it.
-
-# Overlay heading, after the title "Filters": the keys of the filter editor.
-overlays-heading-filters = ←/→ pick. Enter searches. Esc keeps them.
+overlays-heading-source = { $name }
 
 # Overlay heading, after the title of the releases list: the episode it is for.
 overlays-heading-releases = Episode { $episode }. Enter plays your pick.
@@ -2121,7 +2103,7 @@ keys-scope-global = Global
 keys-scope-movement = Movement
 
 # Heading of a group of keys in the help overlay.
-keys-scope-lists = Lists and grids
+keys-scope-lists = Lists
 
 # Heading of a group of keys in the help overlay.
 keys-scope-title = Title
@@ -3582,9 +3564,6 @@ stores-open-link-warning = Anyone with it can join, without a name, as often as 
 # Line in the store's link overlay.
 stores-open-link-lasts = It works until the store goes back to invites only.
 
-# Last line of the link overlays: Enter is the key.
-stores-link-close = Enter closes
-
 # Line in an invite link overlay: the link works once, and when it stops working. The expiry reads like "Expires today".
 stores-invite-works-once = Works once. { $expiry }.
 
@@ -3655,17 +3634,11 @@ stores-join-already = Already joined. Joining again gives this device a new toke
 # Note under the device name field in the join confirmation.
 stores-join-device-note = The store's owner sees this name. Type to change it.
 
-# Last line of the join confirmation: Enter and Esc are the keys.
-stores-join-keys = Enter joins · Esc cancels
-
 # Lines of the leave confirmation.
 stores-leave-plugins = Plugins installed from it stay on this machine and stop updating.
 
 # Lines of the leave confirmation.
 stores-leave-revoked = This device's access to the store is revoked.
-
-# Last line of the leave confirmation.
-stores-leave-keys = Enter leaves · Esc stays
 
 # Line of the remove member confirmation.
 stores-remove-member-devices =
@@ -3677,20 +3650,11 @@ stores-remove-member-devices =
 # Line of the remove member confirmation.
 stores-remove-member-plugins = Plugins they already installed stay on their machines.
 
-# Last line of the remove member confirmation.
-stores-remove-member-keys = Enter removes · Esc keeps them
-
 # Line of the cancel invite confirmation.
 stores-cancel-invite-link = The link stops working.
 
-# Last line of the cancel invite confirmation.
-stores-cancel-invite-keys = Enter cancels it · Esc keeps it
-
 # Line of the stop offering confirmation.
 stores-unpublish-members = Members who installed it keep it, and it stops updating.
-
-# Last line of the stop offering confirmation.
-stores-unpublish-keys = Enter withdraws it · Esc keeps it
 
 # Line of the confirmation to let anyone with the store's link join.
 stores-open-anyone = Anyone with the store's link can join it, without a name.
@@ -3701,17 +3665,11 @@ stores-open-link-new = The link is new each time, so an earlier one stays dead.
 # Line of the confirmation to let anyone with the store's link join.
 stores-open-members-see = Members see that the store is open.
 
-# Last line of the confirmation to let anyone with the store's link join.
-stores-open-keys = Enter opens it · Esc keeps it to invites
-
 # Line of the confirmation to let only invited people join.
 stores-close-link = The link stops working, and no one new joins without an invite.
 
 # Line of the confirmation to let only invited people join.
 stores-close-devices = Devices that joined with it keep working until you remove them in members.
-
-# Last line of the confirmation to let only invited people join.
-stores-close-keys = Enter limits it to invites · Esc keeps it open
 
 # Line of the confirmation to remove one device that joined with the store's link.
 stores-anonymous-one-stops = It stops working with this store at once.
@@ -3724,9 +3682,6 @@ stores-anonymous-plugins = Plugins already installed stay where they are.
 
 # Line of the confirmation to remove devices that joined with the store's link.
 stores-anonymous-still-joins = While the store is open, the link still joins anyone.
-
-# Last line of the confirmation to remove devices that joined with the store's link.
-stores-anonymous-keys = Enter removes · Esc keeps
 
 # Line of the plugin overlay: the hosts the plugin may contact.
 stores-plugin-may-contact = May contact { $hosts }

@@ -2100,7 +2100,7 @@ pub fn overlays_logs_empty() -> String {
     text("overlays-logs-empty", &[])
 }
 
-/// Prompt hint under the manual search heading. Enter and Esc are the fixed keys of every prompt.
+/// Prompt hint under the manual search heading. The footer names its keys.
 pub fn overlays_hint_manual_query() -> String {
     text("overlays-hint-manual-query", &[])
 }
@@ -2120,14 +2120,9 @@ pub fn overlays_hint_download_range() -> String {
     text("overlays-hint-download-range", &[])
 }
 
-/// Prompt hint for editing a setting. The setting is named by its label on the Settings screen.
+/// Prompt hint for editing a setting: its label on the Settings screen. The footer names the keys.
 pub fn overlays_hint_edit_setting(setting: &str) -> String {
     text("overlays-hint-edit-setting", &[("setting", Arg::Text(setting))])
-}
-
-/// Prompt hint for editing a setting, when the setting is not known.
-pub fn overlays_hint_edit_setting_bare() -> String {
-    text("overlays-hint-edit-setting-bare", &[])
 }
 
 /// Prompt hint for joining a { -plugin-store }.
@@ -2170,29 +2165,14 @@ pub fn overlays_heading_disambiguate(name: &str) -> String {
     text("overlays-heading-disambiguate", &[("name", Arg::Text(name))])
 }
 
-/// Same, when no title is known.
-pub fn overlays_heading_disambiguate_bare() -> String {
-    text("overlays-heading-disambiguate-bare", &[])
-}
-
 /// Overlay heading, after the title "Watch order": the title the order is built around.
 pub fn overlays_heading_watch_order(name: &str) -> String {
     text("overlays-heading-watch-order", &[("name", Arg::Text(name))])
 }
 
-/// Same, when no title is known.
-pub fn overlays_heading_watch_order_bare() -> String {
-    text("overlays-heading-watch-order-bare", &[])
-}
-
 /// Overlay heading, after the title "Recommended": the title the list came from.
 pub fn overlays_heading_recommendations(name: &str) -> String {
     text("overlays-heading-recommendations", &[("name", Arg::Text(name))])
-}
-
-/// Same, when no title is known.
-pub fn overlays_heading_recommendations_bare() -> String {
-    text("overlays-heading-recommendations-bare", &[])
 }
 
 /// Overlay heading, after the title of the release list.
@@ -2203,16 +2183,6 @@ pub fn overlays_heading_release() -> String {
 /// Overlay heading, after the title of the { -source } list: the choice is kept for this title.
 pub fn overlays_heading_source(name: &str) -> String {
     text("overlays-heading-source", &[("name", Arg::Text(name))])
-}
-
-/// Same, when no title is known.
-pub fn overlays_heading_source_bare() -> String {
-    text("overlays-heading-source-bare", &[])
-}
-
-/// Overlay heading, after the title "Filters": the keys of the filter editor.
-pub fn overlays_heading_filters() -> String {
-    text("overlays-heading-filters", &[])
 }
 
 /// Overlay heading, after the title of the releases list: the episode it is for.
@@ -5695,11 +5665,6 @@ pub fn stores_open_link_lasts() -> String {
     text("stores-open-link-lasts", &[])
 }
 
-/// Last line of the link overlays: Enter is the key.
-pub fn stores_link_close() -> String {
-    text("stores-link-close", &[])
-}
-
 /// Line in an invite link overlay: the link works once, and when it stops working. The expiry reads like "Expires today".
 pub fn stores_invite_works_once(expiry: &str) -> String {
     text("stores-invite-works-once", &[("expiry", Arg::Text(expiry))])
@@ -5810,11 +5775,6 @@ pub fn stores_join_device_note() -> String {
     text("stores-join-device-note", &[])
 }
 
-/// Last line of the join confirmation: Enter and Esc are the keys.
-pub fn stores_join_keys() -> String {
-    text("stores-join-keys", &[])
-}
-
 /// Lines of the leave confirmation.
 pub fn stores_leave_plugins() -> String {
     text("stores-leave-plugins", &[])
@@ -5823,11 +5783,6 @@ pub fn stores_leave_plugins() -> String {
 /// Lines of the leave confirmation.
 pub fn stores_leave_revoked() -> String {
     text("stores-leave-revoked", &[])
-}
-
-/// Last line of the leave confirmation.
-pub fn stores_leave_keys() -> String {
-    text("stores-leave-keys", &[])
 }
 
 /// Line of the remove member confirmation.
@@ -5840,29 +5795,14 @@ pub fn stores_remove_member_plugins() -> String {
     text("stores-remove-member-plugins", &[])
 }
 
-/// Last line of the remove member confirmation.
-pub fn stores_remove_member_keys() -> String {
-    text("stores-remove-member-keys", &[])
-}
-
 /// Line of the cancel invite confirmation.
 pub fn stores_cancel_invite_link() -> String {
     text("stores-cancel-invite-link", &[])
 }
 
-/// Last line of the cancel invite confirmation.
-pub fn stores_cancel_invite_keys() -> String {
-    text("stores-cancel-invite-keys", &[])
-}
-
 /// Line of the stop offering confirmation.
 pub fn stores_unpublish_members() -> String {
     text("stores-unpublish-members", &[])
-}
-
-/// Last line of the stop offering confirmation.
-pub fn stores_unpublish_keys() -> String {
-    text("stores-unpublish-keys", &[])
 }
 
 /// Line of the confirmation to let anyone with the store's link join.
@@ -5880,11 +5820,6 @@ pub fn stores_open_members_see() -> String {
     text("stores-open-members-see", &[])
 }
 
-/// Last line of the confirmation to let anyone with the store's link join.
-pub fn stores_open_keys() -> String {
-    text("stores-open-keys", &[])
-}
-
 /// Line of the confirmation to let only invited people join.
 pub fn stores_close_link() -> String {
     text("stores-close-link", &[])
@@ -5893,11 +5828,6 @@ pub fn stores_close_link() -> String {
 /// Line of the confirmation to let only invited people join.
 pub fn stores_close_devices() -> String {
     text("stores-close-devices", &[])
-}
-
-/// Last line of the confirmation to let only invited people join.
-pub fn stores_close_keys() -> String {
-    text("stores-close-keys", &[])
 }
 
 /// Line of the confirmation to remove one device that joined with the store's link.
@@ -5918,11 +5848,6 @@ pub fn stores_anonymous_plugins() -> String {
 /// Line of the confirmation to remove devices that joined with the store's link.
 pub fn stores_anonymous_still_joins() -> String {
     text("stores-anonymous-still-joins", &[])
-}
-
-/// Last line of the confirmation to remove devices that joined with the store's link.
-pub fn stores_anonymous_keys() -> String {
-    text("stores-anonymous-keys", &[])
 }
 
 /// Line of the plugin overlay: the hosts the plugin may contact.

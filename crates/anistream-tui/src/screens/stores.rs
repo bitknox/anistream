@@ -680,7 +680,6 @@ pub(super) fn open_link_rows(app: &App, width: usize) -> Vec<(String, String)> {
     ));
     rows.push((String::new(), t::stores_open_link_warning()));
     rows.push((String::new(), t::stores_open_link_lasts()));
-    rows.push((String::new(), t::stores_link_close()));
     rows
 }
 
@@ -700,7 +699,6 @@ pub(super) fn invite_link_rows(app: &App, width: usize) -> Vec<(String, String)>
         t::stores_invite_works_once(&until(&app.clock, view.expires_at)),
     ));
     rows.push((String::new(), t::stores_invite_preview_safe()));
-    rows.push((String::new(), t::stores_link_close()));
     rows
 }
 
@@ -768,43 +766,27 @@ pub(super) fn store_confirm_rows(app: &App) -> Vec<(String, String)> {
                 rows.push(labelled(&device, &format!("{name}▏"))); // i18n-skip
                 rows.push(row(&format!("{:indent$}{}", "", t::stores_join_device_note()))); // i18n-skip
             }
-            rows.push(row(""));
-            rows.push(row(&t::stores_join_keys()));
             rows
         }
-        Some(StoreConfirm::Leave { .. }) => vec![
-            row(&t::stores_leave_plugins()),
-            row(&t::stores_leave_revoked()),
-            row(""),
-            row(&t::stores_leave_keys()),
-        ],
+        Some(StoreConfirm::Leave { .. }) => {
+            vec![row(&t::stores_leave_plugins()), row(&t::stores_leave_revoked())]
+        }
         Some(StoreConfirm::RemoveMember { devices, .. }) => vec![
             row(&t::stores_remove_member_devices(i64::from(*devices))),
             row(&t::stores_remove_member_plugins()),
-            row(""),
-            row(&t::stores_remove_member_keys()),
         ],
-        Some(StoreConfirm::CancelInvite { .. }) => vec![
-            row(&t::stores_cancel_invite_link()),
-            row(""),
-            row(&t::stores_cancel_invite_keys()),
-        ],
+        Some(StoreConfirm::CancelInvite { .. }) => vec![row(&t::stores_cancel_invite_link())],
         Some(StoreConfirm::Unpublish { .. }) => {
-            vec![row(&t::stores_unpublish_members()), row(""), row(&t::stores_unpublish_keys())]
+            vec![row(&t::stores_unpublish_members())]
         }
         Some(StoreConfirm::SetOpen { open: true, .. }) => vec![
             row(&t::stores_open_anyone()),
             row(&t::stores_open_link_new()),
             row(&t::stores_open_members_see()),
-            row(""),
-            row(&t::stores_open_keys()),
         ],
-        Some(StoreConfirm::SetOpen { open: false, .. }) => vec![
-            row(&t::stores_close_link()),
-            row(&t::stores_close_devices()),
-            row(""),
-            row(&t::stores_close_keys()),
-        ],
+        Some(StoreConfirm::SetOpen { open: false, .. }) => {
+            vec![row(&t::stores_close_link()), row(&t::stores_close_devices())]
+        }
         Some(StoreConfirm::RemoveAnonymous { device, .. }) => vec![
             row(&if device.is_some() {
                 t::stores_anonymous_one_stops()
@@ -813,8 +795,6 @@ pub(super) fn store_confirm_rows(app: &App) -> Vec<(String, String)> {
             }),
             row(&t::stores_anonymous_plugins()),
             row(&t::stores_anonymous_still_joins()),
-            row(""),
-            row(&t::stores_anonymous_keys()),
         ],
         None => Vec::new(),
     }

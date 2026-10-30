@@ -2,7 +2,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────
-▌ Watch order   Around Kaze no Tegami. Enter opens.
+▌ Watch order   Around Kaze no Tegami
 ────────────────────────────────────────────────────────────────────────────────
   Kaze no Tegami  ·  TV                                             Season 1
   Kaze no Tegami Season 2  ·  TV                                    Season 2
@@ -33,8 +33,8 @@ r02 c02-79 fg=rule
 r03 c00-79 fg=rule bg=ground
 r04 c00-00 fg=obi bg=ground
 r04 c01-01 fg=rule bg=ground
-r04 c02-50 fg=text bg=ground mod=BOLD
-r04 c51-79 fg=rule bg=ground
+r04 c02-36 fg=text bg=ground mod=BOLD
+r04 c37-79 fg=rule bg=ground
 r05 c00-79 fg=rule bg=ground
 r06 c00-01 fg=rule bg=ground
 r06 c02-22 fg=text-dim bg=ground

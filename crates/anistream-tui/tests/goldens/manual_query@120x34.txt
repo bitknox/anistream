@@ -11,7 +11,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Find manually   kaze no tegami 2026▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  Type what to search for. An empty Enter resets to the automatic match.
+  Type what to search for, or leave it empty for the automatic match.
 
                             │
                             │  Available on Hikari Stream
@@ -56,8 +56,8 @@ r11 c02-37 fg=text bg=ground mod=BOLD
 r11 c38-119 fg=rule bg=ground
 r12 c00-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-71 fg=text-dim bg=ground
-r13 c72-119 fg=rule bg=ground
+r13 c02-68 fg=text-dim bg=ground
+r13 c69-119 fg=rule bg=ground
 r14 c00-119 fg=rule bg=ground
 r15 c00-119 fg=rule
 r16 c00-119 fg=rule

@@ -5,7 +5,7 @@ anistream                                                                       
   ▦  Seasonal               │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   /  Search                 │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ Watch order   Around Kaze no Tegami. Enter opens.
+▌ Watch order   Around Kaze no Tegami
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   Kaze no Tegami  ·  TV                                                                                     Season 1
   Kaze no Tegami Season 2  ·  TV                                                                            Season 2
@@ -46,8 +46,8 @@ r05 c00-119 fg=rule
 r06 c00-119 fg=rule bg=ground
 r07 c00-00 fg=obi bg=ground
 r07 c01-01 fg=rule bg=ground
-r07 c02-50 fg=text bg=ground mod=BOLD
-r07 c51-119 fg=rule bg=ground
+r07 c02-36 fg=text bg=ground mod=BOLD
+r07 c37-119 fg=rule bg=ground
 r08 c00-119 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground
 r09 c02-22 fg=text-dim bg=ground

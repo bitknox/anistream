@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   ◇  Sources                │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ Which one   Match for Kaze no Tegami. Enter pins it.
+▌ Which one   Match for Kaze no Tegami
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Kaze no Tegami                                                                                                 62%
   Kaze no Tegami (2019)  ·  aired 2019, not 2026                                                                 61%
@@ -49,8 +49,9 @@ r08 c00-119 fg=rule
 r09 c00-119 fg=rule bg=ground
 r10 c00-00 fg=obi bg=ground
 r10 c01-01 fg=rule bg=ground
-r10 c02-53 fg=text bg=ground mod=BOLD
-r10 c54-119 fg=rule bg=ground
+r10 c02-37 fg=text bg=ground mod=BOLD
+r10 c38-44 fg=rule bg=ground mod=BOLD
+r10 c45-119 fg=rule bg=ground
 r11 c00-119 fg=rule bg=ground
 r12 c00-00 fg=obi bg=ground
 r12 c01-01 fg=rule bg=ground

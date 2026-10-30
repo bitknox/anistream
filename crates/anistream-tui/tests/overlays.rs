@@ -503,7 +503,7 @@ fn enter_is_named_for_what_it_does() {
 
     a.go_to_section(Section::Library);
     a.nav.focus_stage();
-    assert_eq!(hint(&a, "h/l"), Some("List"), "Library's segment keys");
+    assert_eq!(hint(&a, "←→"), Some("List"), "Library's segment keys, named as the arrows");
 }
 
 #[test]

@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   ◇  Sources                │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ Source for this title   Kaze no Tegami. Enter pins it.
+▌ Source for this title   Kaze no Tegami
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   Automatic (best available source)
   yamabiko  ·  plugin
@@ -49,8 +49,9 @@ r08 c00-119 fg=rule
 r09 c00-119 fg=rule bg=ground
 r10 c00-00 fg=obi bg=ground
 r10 c01-01 fg=rule bg=ground
-r10 c02-55 fg=text bg=ground mod=BOLD
-r10 c56-119 fg=rule bg=ground
+r10 c02-39 fg=text bg=ground mod=BOLD
+r10 c40-44 fg=rule bg=ground mod=BOLD
+r10 c45-119 fg=rule bg=ground
 r11 c00-119 fg=rule bg=ground
 r12 c00-01 fg=rule bg=ground
 r12 c02-34 fg=text-dim bg=ground

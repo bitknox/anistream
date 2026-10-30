@@ -5,7 +5,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
  ▦ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
  / │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────
-▌ Watch order   Around Kaze no Tegami. Enter opens.
+▌ Watch order   Around Kaze no Tegami
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Kaze no Tegami: Hajimari no Fuukei  ·  OVA                         Prequel
   Kaze no Tegami Season 2  ·  TV                                      Sequel
@@ -36,8 +36,8 @@ r05 c00-79 fg=rule
 r06 c00-79 fg=rule bg=ground
 r07 c00-00 fg=obi bg=ground
 r07 c01-01 fg=rule bg=ground
-r07 c02-50 fg=text bg=ground mod=BOLD
-r07 c51-79 fg=rule bg=ground
+r07 c02-36 fg=text bg=ground mod=BOLD
+r07 c37-79 fg=rule bg=ground
 r08 c00-05 fg=rule bg=ground
 r08 c06-19 fg=rule bg=ground mod=BOLD
 r08 c20-79 fg=rule bg=ground
