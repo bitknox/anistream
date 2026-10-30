@@ -28,8 +28,8 @@ use anistream_cast::{
 };
 use anistream_core::ids::AnilistId;
 use anistream_model::{event::Event, playback::SkipKind};
-use anistream_playback::{PlaybackEvent, ScriptEvent};
 use anistream_net::HttpClient;
+use anistream_playback::{PlaybackEvent, ScriptEvent};
 use anistream_remote::state::{RemoteState, StateFolder};
 use async_trait::async_trait;
 use futures::StreamExt;
@@ -108,7 +108,9 @@ impl UpNext {
 
     /// Whether the card is up at `position`.
     pub fn shown(&self, position: f64, duration: Option<f64>) -> bool {
-        !self.cancelled && !self.played && self.shows_at(duration).is_some_and(|at| position >= at)
+        !self.cancelled
+            && !self.played
+            && self.shows_at(duration).is_some_and(|at| position >= at)
     }
 
     /// Seconds left on the count at `position`, while it runs: never with no countdown, where
@@ -380,8 +382,10 @@ impl CastHub {
             if status.step.is_some() {
                 cast.loading = true;
             }
-            let playing =
-                matches!(status.state, CastState::Playing | CastState::Paused | CastState::Buffering);
+            let playing = matches!(
+                status.state,
+                CastState::Playing | CastState::Paused | CastState::Buffering
+            );
             if cast.loading && playing && status.plan.is_some() && status.step.is_none() {
                 cast.starting = None;
                 cast.loading = false;

@@ -484,11 +484,16 @@ mod tests {
             subtitle_language: None,
             dub: false,
         };
-        assert_eq!(episode_line(&file), "Episode 4");
+        assert_eq!(episode_line(&file, None), "Episode 4");
         file.episode_title = Some(String::new());
-        assert_eq!(episode_line(&file), "Episode 4");
+        assert_eq!(episode_line(&file, None), "Episode 4");
         file.episode_title = Some("Low Tide".into());
-        assert_eq!(episode_line(&file), "Episode 4 · Low Tide");
+        assert_eq!(episode_line(&file, None), "Episode 4 · Low Tide");
+        // In the app's language, and English for one the catalogue doesn't have.
+        assert_eq!(episode_line(&file, Some("xx")), "Episode 4 · Low Tide");
+        let pseudo = episode_line(&file, Some("en-XA"));
+        assert_ne!(pseudo, "Episode 4 · Low Tide");
+        assert!(pseudo.contains("Low Tide"), "{pseudo}");
 
         let options = |start: &str| {
             vec![("sid".to_owned(), "1".to_owned()), ("start".to_owned(), start.to_owned())]
@@ -530,6 +535,7 @@ mod tests {
         let link = CastLink {
             player: Arc::new(player),
             device: "tv-1".into(),
+            name: "Living room".into(),
             hub,
             file: Mutex::new(None),
         };

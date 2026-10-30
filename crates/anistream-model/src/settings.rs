@@ -482,6 +482,12 @@ impl SettingKey {
     }
 }
 
+/// Whether a cast plays from torrents. The engine fills the setting in at launch from the
+/// device it runs on; unset here is a computer's default, on.
+pub fn while_casting(config: &Config) -> bool {
+    config.providers.torrent.while_casting.unwrap_or(true)
+}
+
 /// Whether writing this setting changes which sources exist, and so needs the chain rebuilt.
 ///
 /// Listed rather than inferred: a rebuild tears down a live torrent session, which is far
@@ -490,12 +496,6 @@ impl SettingKey {
 /// and the remote's address, which the file alone sets, have no key to list. What a failed
 /// check does is listed too: the guard reads it as the source comes up, and a choice to stop
 /// rather than pause that waited for the next launch would not be the one in force.
-/// Whether a cast plays from torrents. The engine fills the setting in at launch from the
-/// device it runs on; unset here is a computer's default, on.
-pub fn while_casting(config: &Config) -> bool {
-    config.providers.torrent.while_casting.unwrap_or(true)
-}
-
 pub fn redefines_sources(setting: SettingKey) -> bool {
     // The index too: the torrent source reads it as it comes up.
     matches!(

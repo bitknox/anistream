@@ -131,8 +131,13 @@ pub fn matroska(fixture: &Fixture) -> Vec<u8> {
         ]
         .concat(),
     );
-    let audio: Vec<(u8, &FixtureAudio)> =
-        fixture.audio.iter().chain(&fixture.more_audio).zip(2u8..).map(|(a, n)| (n, a)).collect();
+    let audio: Vec<(u8, &FixtureAudio)> = fixture
+        .audio
+        .iter()
+        .chain(&fixture.more_audio)
+        .zip(2u8..)
+        .map(|(a, n)| (n, a))
+        .collect();
     for (number, audio) in &audio {
         let number = u64::from(*number);
         let mut entry = vec![

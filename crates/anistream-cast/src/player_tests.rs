@@ -732,10 +732,13 @@ async fn another_audio_track_loads_the_file_again_where_it_was_without_a_new_sta
     };
     let base = serve(HashMap::from([("/episode.mkv".to_owned(), matroska(&file))])).await;
     let receiver = FakeReceiver::start(FakeOptions::default()).await.unwrap();
-    let (player, mut events) =
-        CastPlayer::connect(setup(&receiver, Arc::new(CastMemory::memory()), Arc::new(NoEncoder)))
-            .await
-            .unwrap();
+    let (player, mut events) = CastPlayer::connect(setup(
+        &receiver,
+        Arc::new(CastMemory::memory()),
+        Arc::new(NoEncoder),
+    ))
+    .await
+    .unwrap();
     let mut status = player.status();
     player.load(torrent(format!("{base}/episode.mkv")));
     assert!(status.borrow_and_update().step.is_some(), "a load not yet playing says so");
@@ -747,8 +750,11 @@ async fn another_audio_track_loads_the_file_again_where_it_was_without_a_new_sta
     assert_eq!(languages, [(0, Some("jpn"), true), (1, Some("eng"), false)]);
 
     // Played a little, the dub is picked.
-    next(&mut events, |e| matches!(e, PlaybackEvent::Progress { position, .. } if *position >= 2.0))
-        .await;
+    next(
+        &mut events,
+        |e| matches!(e, PlaybackEvent::Progress { position, .. } if *position >= 2.0),
+    )
+    .await;
     player.set_audio(1);
     let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
     while receiver.heard("LOAD").len() < 2

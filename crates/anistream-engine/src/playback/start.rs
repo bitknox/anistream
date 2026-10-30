@@ -566,17 +566,19 @@ fn spawn_playback(
     } else {
         services.registry.clone()
     };
-    let prefetched = prefetched
-        .map(|(streams, context)| {
-            let streams: Vec<_> = streams
-                .into_iter()
-                .filter(|s| {
-                    !(no_torrents && s.kind == anistream_core::stream::StreamKind::TorrentHttp)
-                })
-                .collect();
-            (streams, context)
-        })
-        .filter(|(streams, _)| !streams.is_empty());
+    let prefetched = if no_torrents {
+        prefetched
+            .map(|(streams, context)| {
+                let streams: Vec<_> = streams
+                    .into_iter()
+                    .filter(|s| s.kind != anistream_core::stream::StreamKind::TorrentHttp)
+                    .collect();
+                (streams, context)
+            })
+            .filter(|(streams, _)| !streams.is_empty())
+    } else {
+        prefetched
+    };
     let (config, meta, store, registry, http, machine, slot, tx) = (
         config.clone(),
         services.meta.clone(),

@@ -12,9 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anistream_cast::{
-    CastDevice, CastRoute, CastState, CastStatus, CastStep, VolumeControl,
-};
+use anistream_cast::{CastDevice, CastRoute, CastState, CastStatus, CastStep, VolumeControl};
 use anistream_core::ids::AnilistId;
 use anistream_model::{
     Msg,
@@ -22,8 +20,8 @@ use anistream_model::{
     playback::SkipKind,
 };
 use anistream_remote::{
-    command::{RemoteCommand, Routed},
-    state::{Screen, Track, TrackInfo},
+    command::{RemoteCommand, Routed, Track},
+    state::{Screen, TrackInfo},
 };
 use tokio::task::JoinHandle;
 
@@ -385,7 +383,8 @@ impl CastSession {
                 card
             },
         );
-        let (position, duration) = status.as_ref().map_or((0.0, None), |s| (s.position, s.duration));
+        let (position, duration) =
+            status.as_ref().map_or((0.0, None), |s| (s.position, s.duration));
         let up_next = view
             .next
             .as_ref()
@@ -1027,8 +1026,8 @@ mod tests {
 
     #[tokio::test]
     async fn an_automatic_skip_can_be_undone_for_six_seconds_of_playback() {
-        use anistream_playback::SkipKind as Part;
         use crate::playback::link::Overlay;
+        use anistream_playback::SkipKind as Part;
 
         let (_sender, hub, session, mut sent) = casting();
         hub.observe(&Event::PlaybackStaged {
@@ -1125,7 +1124,10 @@ mod tests {
         hub.failed(CastFailure::NeverFetches);
         let card = session.card();
         assert!(card.card.over);
-        assert_eq!(card.notice, Some(Msg::NoticeCastNeverFetches { name: "Living room".into() }));
+        assert_eq!(
+            card.notice,
+            Some(Msg::NoticeCastNeverFetches { name: "Living room".into() })
+        );
 
         assert!(session.try_again());
         assert_eq!(
