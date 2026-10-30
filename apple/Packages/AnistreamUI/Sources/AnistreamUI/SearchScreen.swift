@@ -359,7 +359,9 @@ struct FilterCapsule: View {
         .font(compact ? .ui(15) : .mac(13))
         .foregroundStyle(active ? .amber : .silk)
         .padding(.horizontal, compact ? 14 : 12)
-        .frame(height: compact ? 34 : 28)
+        // Taller than its 34 or 28 points only when larger text needs it.
+        .padding(.vertical, 4)
+        .frame(minHeight: compact ? 34 : 28)
         .background(active ? Palette.selection : .clear, in: .capsule)
         .overlay(Capsule().strokeBorder(active ? .clear : Palette.faintRule))
         // A 44 point target on touch around a smaller capsule.
@@ -657,7 +659,8 @@ struct ActiveFilters: View {
                         .font(compact ? .ui(15) : .mac(12))
                         .foregroundStyle(.silk)
                         .padding(.horizontal, 10)
-                        .frame(height: compact ? 30 : 24)
+                        .padding(.vertical, 3)
+                        .frame(minHeight: compact ? 30 : 24)
                         .background(Palette.raised, in: .capsule)
                         .overlay(Capsule().strokeBorder(Palette.faintRule))
                         .frame(minHeight: compact ? 44 : 24)
