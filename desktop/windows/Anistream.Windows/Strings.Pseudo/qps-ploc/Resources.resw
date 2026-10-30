@@ -3167,6 +3167,10 @@
     <value>[Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]</value>
     <comment>Reason on a recommended suggestion when the finished show is not known.</comment>
   </data>
+  <data name="UpNextBecauseDetail" xml:space="preserve">
+    <value>[Ŕéçöɱɱéñðéð öñ ÅñîĻîšţ ƀý þéöþļé ŵĥö ļîķéð {title}~~~~~~~~~~~~~~]</value>
+    <comment>Line in the preview of a recommended suggestion, naming the show the recommendation came from.</comment>
+  </data>
   <data name="UpNextReasonAiringToday" xml:space="preserve">
     <value>[Åîŕîñĝ ţöðàý~~~~]</value>
     <comment>Reason on a suggestion that airs today, shown when nothing else is left to suggest.</comment>

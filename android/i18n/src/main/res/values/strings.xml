@@ -1979,6 +1979,8 @@
     <string name="up_next_reason_recommended">Because you finished %1$s</string>
     <!-- Reason on a recommended suggestion when the finished show is not known. -->
     <string name="up_next_reason_recommended_plain">Recommended for you</string>
+    <!-- Line in the preview of a recommended suggestion, naming the show the recommendation came from. -->
+    <string name="up_next_because_detail">Recommended on AniList by people who liked %1$s</string>
     <!-- Reason on a suggestion that airs today, shown when nothing else is left to suggest. -->
     <string name="up_next_reason_airing_today">Airing today</string>
     <!-- Button on a suggestion that has not started airing. It puts the show on the Planning list. -->

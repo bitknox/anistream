@@ -3919,6 +3919,11 @@ public enum L {
     /// Reason on a recommended suggestion when the finished show is not known.
     public static var upNextReasonRecommendedPlain: String { string("up-next-reason-recommended-plain", fallback: "Recommended for you") }
 
+    /// Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+    public static func upNextBecauseDetail(title: String) -> String {
+        Self.format("up-next-because-detail", fallback: "Recommended on AniList by people who liked %1$@", title)
+    }
+
     /// Reason on a suggestion that airs today, shown when nothing else is left to suggest.
     public static var upNextReasonAiringToday: String { string("up-next-reason-airing-today", fallback: "Airing today") }
 

@@ -2280,6 +2280,9 @@ public static partial class T
     /// <summary>Reason on a recommended suggestion when the finished show is not known.</summary>
     public static string UpNextReasonRecommendedPlain => Get("UpNextReasonRecommendedPlain");
 
+    /// <summary>Line in the preview of a recommended suggestion, naming the show the recommendation came from.</summary>
+    public static string UpNextBecauseDetail(string title) => Fill(Get("UpNextBecauseDetail"), ("title", title));
+
     /// <summary>Reason on a suggestion that airs today, shown when nothing else is left to suggest.</summary>
     public static string UpNextReasonAiringToday => Get("UpNextReasonAiringToday");
 
@@ -6167,6 +6170,7 @@ public static partial class T
         ["UpNextReasonPlanning"] = "On your Planning list",
         ["UpNextReasonRecommended"] = "Because you finished {title}",
         ["UpNextReasonRecommendedPlain"] = "Recommended for you",
+        ["UpNextBecauseDetail"] = "Recommended on AniList by people who liked {title}",
         ["UpNextReasonAiringToday"] = "Airing today",
         ["UpNextAddPlanning"] = "Add to Planning",
         ["UpNextNotInterested"] = "Not interested",

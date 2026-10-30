@@ -3717,6 +3717,10 @@ object Strings {
     fun upNextReasonRecommendedPlain(context: Context): String =
         context.getString(R.string.up_next_reason_recommended_plain)
 
+    /** Line in the preview of a recommended suggestion, naming the show the recommendation came from. */
+    fun upNextBecauseDetail(context: Context, title: String): String =
+        context.getString(R.string.up_next_because_detail, title)
+
     /** Reason on a suggestion that airs today, shown when nothing else is left to suggest. */
     fun upNextReasonAiringToday(context: Context): String =
         context.getString(R.string.up_next_reason_airing_today)

@@ -236,6 +236,11 @@ up-next-reason-recommended = Because you finished { $title }
 # @max 28
 up-next-reason-recommended-plain = Recommended for you
 
+# Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+# @arg title: text
+# @max 80
+up-next-because-detail = Recommended on AniList by people who liked { $title }
+
 # Reason on a suggestion that airs today, shown when nothing else is left to suggest.
 # @max 28
 up-next-reason-airing-today = Airing today

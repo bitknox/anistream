@@ -704,6 +704,16 @@ impl Shell {
             }),
         );
         add(
+            "restore-up-next",
+            Some(glib::VariantTy::STRING),
+            Box::new(move |s, a| {
+                if let Some(id) = a.and_then(String::from_variant).and_then(|n| n.parse().ok())
+                {
+                    s.ctx.hub.send(Command::RestoreUpNext { id: AnilistId::new(id) });
+                }
+            }),
+        );
+        add(
             "go",
             Some(glib::VariantTy::STRING),
             Box::new(move |s, a| {

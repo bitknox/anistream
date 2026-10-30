@@ -1295,8 +1295,14 @@ seasonal-format-ona-ova = [ÖÑÅ àñð ÖṼÅ~~~~]
 # Accessible name of a title's banner, which opens its page.
 title-open-named = [Öþéñ { $title }~~~]
 
+# Accessible name of a card or row in Continue: the title, then what is said under it.
+continue-row-spoken = [{ $title }, { $detail }~~~]
+
 # Accessible name of the pane beside Continue's queue that previews the selected title.
 continue-preview = [Þŕéṽîéŵ~~~]
+
+# Under a suggestion that airs later today when no episode number is known: the time it airs.
+up-next-airs-at = [Åîŕš àţ { $time }~~~~]
 
 # Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 chrome-meta-chip = [Ṁéţàðàţà { $mark }~~~~]
@@ -4858,6 +4864,9 @@ up-next-reason-recommended = [Ɓéçàüšé ýöü ƒîñîšĥéð { $title }~
 
 # Reason on a recommended suggestion when the finished show is not known.
 up-next-reason-recommended-plain = [Ŕéçöɱɱéñðéð ƒöŕ ýöü~~~~~~]
+
+# Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+up-next-because-detail = [Ŕéçöɱɱéñðéð öñ ÅñîĻîšţ ƀý þéöþļé ŵĥö ļîķéð { $title }~~~~~~~~~~~~~~]
 
 # Reason on a suggestion that airs today, shown when nothing else is left to suggest.
 up-next-reason-airing-today = [Åîŕîñĝ ţöðàý~~~~]

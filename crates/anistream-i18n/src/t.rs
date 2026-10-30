@@ -1990,9 +1990,19 @@ pub fn title_open_named(title: &str) -> String {
     text("title-open-named", &[("title", Arg::Text(title))])
 }
 
+/// Accessible name of a card or row in Continue: the title, then what is said under it.
+pub fn continue_row_spoken(title: &str, detail: &str) -> String {
+    text("continue-row-spoken", &[("title", Arg::Text(title)), ("detail", Arg::Text(detail))])
+}
+
 /// Accessible name of the pane beside Continue's queue that previews the selected title.
 pub fn continue_preview() -> String {
     text("continue-preview", &[])
+}
+
+/// Under a suggestion that airs later today when no episode number is known: the time it airs.
+pub fn up_next_airs_at(time: &str) -> String {
+    text("up-next-airs-at", &[("time", Arg::Text(time))])
 }
 
 /// Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
@@ -7748,6 +7758,11 @@ pub fn up_next_reason_recommended(title: &str) -> String {
 /// Reason on a recommended suggestion when the finished show is not known.
 pub fn up_next_reason_recommended_plain() -> String {
     text("up-next-reason-recommended-plain", &[])
+}
+
+/// Line in the preview of a recommended suggestion, naming the show the recommendation came from.
+pub fn up_next_because_detail(title: &str) -> String {
+    text("up-next-because-detail", &[("title", Arg::Text(title))])
 }
 
 /// Reason on a suggestion that airs today, shown when nothing else is left to suggest.

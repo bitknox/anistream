@@ -312,7 +312,7 @@ Nagare (cell 5, 100 × 160 pt) stands above a title, one line and at most one bu
 | Providers, no sources | No sources yet | anistream ships no sources of its own. Sources come as plugins from a plugin store. | Join a plugin store |
 | Search, no results | `ContentUnavailableView.search(text:)` |  |  |
 
-Continue with nothing watched shows the welcome on every app that has one: an Airing today row of cards and a This season row of posters, each with a link to its screen. The empty state above shows only when both are empty or failed to load.
+Continue with nothing watched shows the welcome on every app that has one: an Airing today row of cards and a This season row of posters, each under a heading with a button to Calendar or Seasonal. Nagare and the Continue line above stand in only when both are empty or failed to load. Suggestions (Up next for you) never sit with the welcome.
 
 ### Offline
 
