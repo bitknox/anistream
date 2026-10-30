@@ -987,14 +987,6 @@
     <value>Listed by AniList</value>
     <comment>Title page: the line of an episode that only AniList lists, so nothing can play it yet.</comment>
   </data>
-  <data name="TitleStudioLine" xml:space="preserve">
-    <value>Studio: {studio}</value>
-    <comment>Title page details: the studio that made the show.</comment>
-  </data>
-  <data name="TitleBasedOnLine" xml:space="preserve">
-    <value>Based on: {material}</value>
-    <comment>Title page details: what the show is adapted from, such as "Based on: Manga".</comment>
-  </data>
   <data name="TitleRelationFormat" xml:space="preserve">
     <value>{relation} · {format}</value>
     <comment>Title page: a related title's line, its relation and its format, such as "Sequel · TV".</comment>
@@ -6142,6 +6134,50 @@
   <data name="TitleButtonResumeDubbed" xml:space="preserve">
     <value>Resume episode {episode} · Dubbed · {time}</value>
     <comment>Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.</comment>
+  </data>
+  <data name="TitleGenres" xml:space="preserve">
+    <value>Genres</value>
+    <comment>Label of a fact: the genres, joined in its value.</comment>
+  </data>
+  <data name="TitleFactStarts" xml:space="preserve">
+    <value>Starts</value>
+    <comment>Label of a fact: the date a show not yet out starts.</comment>
+  </data>
+  <data name="TitleFactReleased" xml:space="preserve">
+    <value>Released</value>
+    <comment>Label of a fact: the date a film or a one-off was released.</comment>
+  </data>
+  <data name="TitleFactRange" xml:space="preserve">
+    <value>{from} to {to}</value>
+    <comment>Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates.</comment>
+  </data>
+  <data name="TitleFactAfter" xml:space="preserve">
+    <value>After episode {episode}</value>
+    <comment>Value of the fact on a cancelled show: the last episode that aired.</comment>
+  </data>
+  <data name="TitleFactNow" xml:space="preserve">
+    <value>Now</value>
+    <comment>Value of the fact on a show that is airing and has no known start.</comment>
+  </data>
+  <data name="TitleFactTba" xml:space="preserve">
+    <value>To be announced</value>
+    <comment>Value of the fact on a show with no announced start.</comment>
+  </data>
+  <data name="MoreFollowing" xml:space="preserve">
+    <value>People you follow</value>
+    <comment>Heading of the people the viewer follows who have the show on their list.</comment>
+  </data>
+  <data name="MoreFollowingSource" xml:space="preserve">
+    <value>From AniList</value>
+    <comment>Note under that heading: where the list comes from.</comment>
+  </data>
+  <data name="MoreFollowingLine" xml:space="preserve">
+    <value>{status} · {score}/10</value>
+    <comment>A followed person's status and score, such as "Completed · 9/10". The status is already worded.</comment>
+  </data>
+  <data name="MoreLikeThis" xml:space="preserve">
+    <value>More like this</value>
+    <comment>Heading of the posters of similar shows under the sheet.</comment>
   </data>
   <data name="TorrentsTitle" xml:space="preserve">
     <value>Torrents</value>

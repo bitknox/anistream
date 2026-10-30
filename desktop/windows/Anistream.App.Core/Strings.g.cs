@@ -690,12 +690,6 @@ public static partial class T
     /// <summary>Title page: the line of an episode that only AniList lists, so nothing can play it yet.</summary>
     public static string EpisodeListedByAnilist => Get("EpisodeListedByAnilist");
 
-    /// <summary>Title page details: the studio that made the show.</summary>
-    public static string TitleStudioLine(string studio) => Fill(Get("TitleStudioLine"), ("studio", studio));
-
-    /// <summary>Title page details: what the show is adapted from, such as "Based on: Manga".</summary>
-    public static string TitleBasedOnLine(string material) => Fill(Get("TitleBasedOnLine"), ("material", material));
-
     /// <summary>Title page: a related title's line, its relation and its format, such as "Sequel · TV".</summary>
     public static string TitleRelationFormat(string relation, string format) => Fill(Get("TitleRelationFormat"), ("relation", relation), ("format", format));
 
@@ -4479,6 +4473,39 @@ public static partial class T
     /// <summary>Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.</summary>
     public static string TitleButtonResumeDubbed(long episode, string time) => Fill(Get("TitleButtonResumeDubbed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("time", time));
 
+    /// <summary>Label of a fact: the genres, joined in its value.</summary>
+    public static string TitleGenres => Get("TitleGenres");
+
+    /// <summary>Label of a fact: the date a show not yet out starts.</summary>
+    public static string TitleFactStarts => Get("TitleFactStarts");
+
+    /// <summary>Label of a fact: the date a film or a one-off was released.</summary>
+    public static string TitleFactReleased => Get("TitleFactReleased");
+
+    /// <summary>Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates.</summary>
+    public static string TitleFactRange(string from, string to) => Fill(Get("TitleFactRange"), ("from", from), ("to", to));
+
+    /// <summary>Value of the fact on a cancelled show: the last episode that aired.</summary>
+    public static string TitleFactAfter(long episode) => Fill(Get("TitleFactAfter"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Value of the fact on a show that is airing and has no known start.</summary>
+    public static string TitleFactNow => Get("TitleFactNow");
+
+    /// <summary>Value of the fact on a show with no announced start.</summary>
+    public static string TitleFactTba => Get("TitleFactTba");
+
+    /// <summary>Heading of the people the viewer follows who have the show on their list.</summary>
+    public static string MoreFollowing => Get("MoreFollowing");
+
+    /// <summary>Note under that heading: where the list comes from.</summary>
+    public static string MoreFollowingSource => Get("MoreFollowingSource");
+
+    /// <summary>A followed person's status and score, such as "Completed · 9/10". The status is already worded.</summary>
+    public static string MoreFollowingLine(string status, long score) => Fill(Get("MoreFollowingLine"), ("status", status), ("score", score.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Heading of the posters of similar shows under the sheet.</summary>
+    public static string MoreLikeThis => Get("MoreLikeThis");
+
     /// <summary>Title of the settings group and the screen.</summary>
     public static string TorrentsTitle => Get("TorrentsTitle");
 
@@ -5532,8 +5559,6 @@ public static partial class T
         ["EpisodeTextWithTitle"] = "Episode {episode} · {title}",
         ["EpisodeRowSpoken"] = "{heading}, {line}",
         ["EpisodeListedByAnilist"] = "Listed by AniList",
-        ["TitleStudioLine"] = "Studio: {studio}",
-        ["TitleBasedOnLine"] = "Based on: {material}",
         ["TitleRelationFormat"] = "{relation} · {format}",
         ["TitleEpisodeOutAgo"] = "E{episode} out {ago}",
         ["TitleNextAirs"] = "Next episode airs {when}",
@@ -6821,6 +6846,17 @@ public static partial class T
         ["EpisodeLineDubbed"] = "{line} · Dubbed",
         ["TitleButtonPlayDubbed"] = "Play episode {episode} · Dubbed",
         ["TitleButtonResumeDubbed"] = "Resume episode {episode} · Dubbed · {time}",
+        ["TitleGenres"] = "Genres",
+        ["TitleFactStarts"] = "Starts",
+        ["TitleFactReleased"] = "Released",
+        ["TitleFactRange"] = "{from} to {to}",
+        ["TitleFactAfter"] = "After episode {episode}",
+        ["TitleFactNow"] = "Now",
+        ["TitleFactTba"] = "To be announced",
+        ["MoreFollowing"] = "People you follow",
+        ["MoreFollowingSource"] = "From AniList",
+        ["MoreFollowingLine"] = "{status} · {score}/10",
+        ["MoreLikeThis"] = "More like this",
         ["TorrentsTitle"] = "Torrents",
         ["TorrentsOn"] = "Torrents are on",
         ["TorrentsOffDetail"] = "Off by default. Turning this on asks how to protect your connection first.",

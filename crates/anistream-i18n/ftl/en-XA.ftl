@@ -7099,6 +7099,39 @@ title-button-play-dubbed = [Þļàý éþîšöðé { $episode } · Ðüƀƀéð
 # Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted.
 title-button-resume-dubbed = [Ŕéšüɱé éþîšöðé { $episode } · Ðüƀƀéð · { $time }~~~~~~~~~~]
 
+# Label of a fact: the genres, joined in its value.
+title-genres = [Ĝéñŕéš~~]
+
+# Label of a fact: the date a show not yet out starts.
+title-fact-starts = [Šţàŕţš~~]
+
+# Label of a fact: the date a film or a one-off was released.
+title-fact-released = [Ŕéļéàšéð~~~]
+
+# Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates.
+title-fact-range = [{ $from } ţö { $to }~~~]
+
+# Value of the fact on a cancelled show: the last episode that aired.
+title-fact-after = [Åƒţéŕ éþîšöðé { $episode }~~~~~~]
+
+# Value of the fact on a show that is airing and has no known start.
+title-fact-now = [Ñöŵ~]
+
+# Value of the fact on a show with no announced start.
+title-fact-tba = [Ţö ƀé àññöüñçéð~~~~~]
+
+# Heading of the people the viewer follows who have the show on their list.
+more-following = [Þéöþļé ýöü ƒöļļöŵ~~~~~~]
+
+# Note under that heading: where the list comes from.
+more-following-source = [Ƒŕöɱ ÅñîĻîšţ~~~~]
+
+# A followed person's status and score, such as "Completed · 9/10". The status is already worded.
+more-following-line = [{ $status } · { $score }/10~~~~]
+
+# Heading of the posters of similar shows under the sheet.
+more-like-this = [Ṁöŕé ļîķé ţĥîš~~~~~]
+
 # Title of the settings group and the screen.
 torrents-title = [Ţöŕŕéñţš~~~]
 
