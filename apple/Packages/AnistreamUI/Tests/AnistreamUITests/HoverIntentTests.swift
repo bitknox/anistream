@@ -164,6 +164,21 @@ struct HoverIntentTests {
         #expect(events.contains { if case .open = $0.1 { true } else { false } })
     }
 
+    @Test func aTitleInTwoRowsOpensAndStaysOnTheCoverUnderThePointer() throws {
+        // Search's shelves can show one title twice: the second row repeats the first row's fourth.
+        var covers = layout.covers
+        covers[12] = HoverCover(id: covers[3].id, rect: covers[12].rect)
+        let twice = HoverLayout(covers: covers, area: layout.area)
+        var intent = HoverIntent()
+        let point = CGPoint(x: covers[12].rect.midX, y: covers[12].rect.midY)
+        intent.move(point, at: 0)
+        var events: [HoverIntent.Event] = []
+        for step in 0...60 { events += intent.step(at: Double(step) * 0.01, layout: twice) }
+        let frame = try #require(intent.open?.frame)
+        #expect(frame == HoverCardSize.frame(over: covers[12].rect, height: 322, in: layout.area))
+        #expect(events.filter { $0 == .close }.isEmpty, "it never closes and opens again")
+    }
+
     @Test func leavingTheGridClosesIt() {
         var intent = HoverIntent()
         _ = rest(&intent, at: centre(3), from: 0, to: 0.5)

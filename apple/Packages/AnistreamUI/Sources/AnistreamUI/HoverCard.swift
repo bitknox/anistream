@@ -70,19 +70,30 @@ struct HoverLayout {
         covers.first { $0.rect.contains(point) }
     }
 
-    func cover(_ id: AnilistId) -> HoverCover? {
-        covers.first { $0.id == id }
+    /// `id`'s cover, while it is on screen: the one nearest `card` when the title shows in more
+    /// than one row, as Search's shelves can show it.
+    func cover(_ id: AnilistId, near card: CGRect? = nil) -> HoverCover? {
+        let all = covers.filter { $0.id == id }
+        guard let card, all.count > 1 else { return all.first }
+        func distance(_ cover: HoverCover) -> CGFloat {
+            hypot(cover.rect.midX - card.midX, cover.rect.midY - card.midY)
+        }
+        return all.min { distance($0) < distance($1) }
+    }
+
+    /// The card `cover` grows into.
+    func frame(of cover: HoverCover) -> CGRect {
+        HoverCardSize.frame(over: cover.rect, height: height(cover.id), in: area)
     }
 
     /// The card `id`'s cover grows into, while the cover is on screen.
-    func frame(_ id: AnilistId) -> CGRect? {
-        cover(id).map { HoverCardSize.frame(over: $0.rect, height: height($0.id), in: area) }
+    func frame(_ id: AnilistId, near card: CGRect? = nil) -> CGRect? {
+        cover(id, near: card).map(frame(of:))
     }
 
-    /// The covers either side of `id` in its row, the nearest each way within one cover's width.
-    func neighbours(of id: AnilistId) -> [HoverCover] {
-        guard let cover = cover(id) else { return [] }
-        let row = covers.filter { $0.id != id && abs($0.rect.minY - cover.rect.minY) < 1 }
+    /// The covers either side of `cover` in its row, the nearest each way within one cover's width.
+    func neighbours(of cover: HoverCover) -> [HoverCover] {
+        let row = covers.filter { $0 != cover && abs($0.rect.minY - cover.rect.minY) < 1 }
         let reach = cover.rect.width
         let left = row.filter { $0.rect.maxX <= cover.rect.minX + 0.5 && cover.rect.minX - $0.rect.maxX < reach }
             .max { $0.rect.minX < $1.rect.minX }
@@ -92,11 +103,12 @@ struct HoverLayout {
     }
 
     /// The flanks of `id`'s card at `frame`: the band's area over each neighbour's cover column.
-    func flanks(of id: AnilistId, frame: CGRect) -> [(id: AnilistId, rect: CGRect)] {
-        neighbours(of: id).compactMap { neighbour in
+    func flanks(of id: AnilistId, frame: CGRect) -> [(id: AnilistId, rect: CGRect, cover: HoverCover)] {
+        guard let cover = cover(id, near: frame) else { return [] }
+        return neighbours(of: cover).compactMap { neighbour in
             let x0 = max(neighbour.rect.minX, frame.minX), x1 = min(neighbour.rect.maxX, frame.maxX)
             guard x1 > x0 else { return nil }
-            return (neighbour.id, CGRect(x: x0, y: frame.minY, width: x1 - x0, height: HoverCardSize.band))
+            return (neighbour.id, CGRect(x: x0, y: frame.minY, width: x1 - x0, height: HoverCardSize.band), neighbour)
         }
     }
 }
@@ -152,7 +164,7 @@ struct HoverIntent {
     private var target: Target?
     private var enteredAt: Double = 0
     private var cued: AnilistId?
-    private var flank: (id: AnilistId, since: Double, down: Bool)?
+    private var flank: (cover: HoverCover, since: Double, down: Bool)?
 
     /// The pointer is at `point`, or has left the grid.
     mutating func move(_ point: CGPoint?, at time: Double) {
@@ -203,9 +215,10 @@ struct HoverIntent {
     /// Where things stand at `time`.
     mutating func step(at time: Double, layout: HoverLayout) -> [Event] {
         var events: [Event] = []
+        let hit = pointer.flatMap { layout.cover(at: $0) }
         let now: Target? = pointer.flatMap { point in
             if let open, open.frame.contains(point) { return .card }
-            return layout.cover(at: point).map { .cover($0.id) }
+            return hit.map { .cover($0.id) }
         }
         if now != target {
             target = now
@@ -213,11 +226,11 @@ struct HoverIntent {
         }
 
         if let current = open {
-            guard layout.cover(current.id) != nil else {
+            guard let cover = layout.cover(current.id, near: current.frame) else {
                 // Its cover went, as when the grid changed under it.
                 return dismiss(holding: false)
             }
-            if let frame = layout.frame(current.id), frame != current.frame {
+            if case let frame = layout.frame(of: cover), frame != current.frame {
                 open = (current.id, frame)
                 events.append(.moved(frame))
             }
@@ -235,7 +248,8 @@ struct HoverIntent {
             cued = id
             events.append(.cue(id))
         }
-        if on >= Self.dwell, let frame = layout.frame(id) {
+        if on >= Self.dwell, let hit {
+            let frame = layout.frame(of: hit)
             open = (id, frame)
             events.append(.open(id, frame))
         }
@@ -246,23 +260,23 @@ struct HoverIntent {
     private mutating func flankStep(_ time: Double, layout: HoverLayout) -> Event? {
         guard let open, let pointer else { return nil }
         let inToggle = layout.toggle(open.id) && HoverCardSize.toggleZone(in: open.frame).contains(pointer)
-        let here = inToggle ? nil : layout.flanks(of: open.id, frame: open.frame).first { $0.rect.contains(pointer) }?.id
-        if here != flank?.id {
-            flank = here.map { id in
+        let here = inToggle ? nil : layout.flanks(of: open.id, frame: open.frame).first { $0.rect.contains(pointer) }?.cover
+        if here != flank?.cover {
+            flank = here.map { cover in
                 // Heading down on the way in: for the details and the action, so the full wait.
                 prune(time)
                 let from = trail.first?.point ?? pointer
                 let dx = pointer.x - from.x, dy = pointer.y - from.y
-                return (id, time, dy > 2 && dy > abs(dx))
+                return (cover, time, dy > 2 && dy > abs(dx))
             }
         }
-        guard let flank, time - flank.since >= (flank.down ? Self.dwell : Self.handOff), slowed(time),
-              let frame = layout.frame(flank.id)
+        guard let flank, time - flank.since >= (flank.down ? Self.dwell : Self.handOff), slowed(time)
         else { return nil }
+        let frame = layout.frame(of: flank.cover)
         self.flank = nil
-        self.open = (flank.id, frame)
-        cued = flank.id
+        self.open = (flank.cover.id, frame)
+        cued = flank.cover.id
         // The pointer is now on the neighbour's card, and its wait starts again if it leaves.
-        return .handOff(flank.id, frame)
+        return .handOff(flank.cover.id, frame)
     }
 }

@@ -10,13 +10,19 @@ import AnistreamStrings
 import AppKit
 import SwiftUI
 
-/// The covers a grid shows, by title: each one's frame, for the layer over the grid.
+/// The covers a grid shows, each title's frame, for the layer over the grid. A title can show
+/// more than once, as in Search's shelves.
 struct HoverCoverAnchors: PreferenceKey {
-    static let defaultValue: [AnilistId: Anchor<CGRect>] = [:]
+    static let defaultValue: [HoverCoverAnchor] = []
 
-    static func reduce(value: inout [AnilistId: Anchor<CGRect>], nextValue: () -> [AnilistId: Anchor<CGRect>]) {
-        value.merge(nextValue()) { $1 }
+    static func reduce(value: inout [HoverCoverAnchor], nextValue: () -> [HoverCoverAnchor]) {
+        value += nextValue()
     }
+}
+
+struct HoverCoverAnchor {
+    let id: AnilistId
+    let bounds: Anchor<CGRect>
 }
 
 extension View {
@@ -40,7 +46,7 @@ private struct HoverCardSource: ViewModifier {
     func body(content: Content) -> some View {
         content
             .anchorPreference(key: HoverCoverAnchors.self, value: .bounds) { bounds in
-                asRow ? [:] : [entry.id: bounds]
+                asRow ? [] : [HoverCoverAnchor(id: entry.id, bounds: bounds)]
             }
             // What the card shows, for VoiceOver, which never opens it.
             .accessibilityCustomContent(
@@ -144,12 +150,12 @@ final class HoverCards {
             case .cue(let id):
                 cue(id)
             case .open(let id, let frame):
-                guard let cover = layout.cover(id) else { continue }
+                guard let cover = layout.cover(id, near: frame) else { continue }
                 sessions += 1
                 card = Card(session: sessions, id: id, cover: cover.rect, frame: frame)
                 changed(card)
             case .handOff(let id, let frame):
-                guard let cover = layout.cover(id) else { continue }
+                guard let cover = layout.cover(id, near: frame) else { continue }
                 withAnimation(.quick) {
                     card?.id = id
                     card?.cover = cover.rect
@@ -198,10 +204,13 @@ private struct HoverCardLayer: ViewModifier {
         content
             .overlayPreferenceValue(HoverCoverAnchors.self) { anchors in
                 GeometryReader { proxy in
-                    let covers = anchors.map { id, anchor in
-                        let cell = proxy[anchor]
-                        return HoverCover(id: id, rect: CGRect(x: cell.minX, y: cell.minY, width: cell.width, height: cell.width * 3 / 2))
+                    let visible = CGRect(origin: .zero, size: proxy.size)
+                    // Only the covers on screen: a lazy stack keeps some laid out past the edge.
+                    let covers = anchors.map { anchor in
+                        let cell = proxy[anchor.bounds]
+                        return HoverCover(id: anchor.id, rect: CGRect(x: cell.minX, y: cell.minY, width: cell.width, height: cell.width * 3 / 2))
                     }
+                    .filter { $0.rect.intersects(visible) }
                     let place = Place(covers: covers.sorted { ($0.rect.minY, $0.rect.minX) < ($1.rect.minY, $1.rect.minX) },
                                       size: proxy.size, origin: proxy.frame(in: .global).origin)
                     ZStack(alignment: .topLeading) {
@@ -284,13 +293,24 @@ private struct HoverCardLayer: ViewModifier {
     private func runScript() async {
         let route = LaunchRoute.current
         let shot = route.sheet == "preview"
-        guard shot || HoverCardScript.requested, !HoverCardScript.ran else { return }
+        let demo = MotionDemo.from() == .hover
+        guard shot || demo, !HoverCardScript.ran else { return }
+        // The demo starts once the launch has settled, which can be after the grid appears: its
+        // frames count from then.
+        for _ in 0..<300 where demo && !HoverCardScript.requested {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        try? await Task.sleep(for: .milliseconds(600))
+        // Other sections' grids stay mounted out of sight: the one the script is for has the
+        // selected cover, or a row of three for the demo's path.
+        let covers = cards.layout.covers
+        let mine = shot
+            ? route.selected.map { id in covers.contains { $0.id == id } } ?? !covers.isEmpty
+            : HoverCardScript.row(in: covers).count >= 3
+        guard !Task.isCancelled, mine, !HoverCardScript.ran else { return }
         HoverCardScript.ran = true
         cards.scripted = true
         cards.allowed = allowed
-        try? await Task.sleep(for: .milliseconds(600))
-        let covers = cards.layout.covers
-        guard !covers.isEmpty else { return }
         if shot {
             let cover = covers.first { $0.id == route.selected } ?? covers[min(1, covers.count - 1)]
             cards.point(CGPoint(x: cover.rect.midX, y: cover.rect.midY))
@@ -312,9 +332,7 @@ enum HoverCardScript {
     /// move onto the band over the next cover and rest there for the hand-off, then leave the card
     /// downward, and later pass quickly across the row, which opens nothing.
     static func play(cards: HoverCards) async {
-        let covers = cards.layout.covers
-        guard covers.count >= 3 else { return }
-        let row = covers.filter { abs($0.rect.minY - covers[0].rect.minY) < 1 }
+        let row = row(in: cards.layout.covers)
         guard row.count >= 3 else { return }
         let first = row[1], next = row[2]
         let start = CGPoint(x: first.rect.minX - 10, y: first.rect.minY + 40)
@@ -330,6 +348,12 @@ enum HoverCardScript {
         await glide(cards, from: flank, to: below, over: 0.3)
         try? await Task.sleep(for: .milliseconds(900))
         cards.point(nil)
+    }
+
+    /// The first row of covers.
+    static func row(in covers: [HoverCover]) -> [HoverCover] {
+        guard let first = covers.first else { return [] }
+        return covers.filter { abs($0.rect.minY - first.rect.minY) < 1 }
     }
 
     private static func glide(_ cards: HoverCards, from: CGPoint, to: CGPoint, over seconds: Double) async {
