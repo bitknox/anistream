@@ -267,6 +267,10 @@ public final class AppStore {
         tv.offer(TVPlayRequest(id: id, title: titles[id]?.title ?? "", episode: episode, from: from))
     }
 
+    /// The player's say over a play asked for in the app: with its picture in Picture in Picture,
+    /// it brings the picture back, and answers true for the episode it plays, which is not sent.
+    @ObservationIgnored public var playerTakesPlay: (@MainActor (Command) -> Bool)?
+
     /// Hand the engine a command. `nil` for work nobody waits on, and when there is no engine:
     /// while it starts, the command waits and is sent once it has.
     @discardableResult
@@ -274,6 +278,10 @@ public final class AppStore {
         #if FIXTURES
         sentLog.append(String(String(describing: command).prefix { $0 != "(" }))
         #endif
+        if playerTakesPlay?(command) == true {
+            AppLog.info("store", "play: the episode playing, back from picture in picture")
+            return nil
+        }
         switch command {
         case .play(let id, let episode, _):
             playSent = .now

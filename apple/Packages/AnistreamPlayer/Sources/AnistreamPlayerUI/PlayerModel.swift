@@ -290,6 +290,25 @@ public final class PlayerModel {
         guard pictureInPictureAvailable || pictureInPicturePhase != .inline else { return }
         pictureInPictureToggle?()
     }
+
+    /// A play asked for in the app while the picture floats in Picture in Picture: Resume on a
+    /// title page, a Continue card. The picture comes back into the player, where what plays
+    /// shows. True when it is a plain play of the episode on screen, which then plays on where it
+    /// is rather than loading again, and is not sent.
+    public func playAsked(_ command: Command) -> Bool {
+        guard pictureInPicture else { return false }
+        let asked: (id: AnilistId, episode: String, again: Bool)
+        switch command {
+        case .play(let id, let episode, let fromStart): asked = (id, episode, fromStart)
+        case .playSource(let id, let episode, _, _), .playLocal(let id, let episode, _, _), .playParty(let id, let episode, _, _, _):
+            asked = (id, episode, true)
+        default: return false
+        }
+        Self.note(.info, "picture in picture: a play asked for in the app brings the picture back")
+        togglePictureInPicture()
+        guard !asked.again, failure == nil, backend != nil, let staged else { return false }
+        return staged.id == asked.id && staged.episode == asked.episode
+    }
     /// The pointer over the seek line on the Mac, at this time: the bubble shows there.
     public private(set) var hovering: Double?
     /// How fast scrubbing moves now: 1, ½ or ¼.
