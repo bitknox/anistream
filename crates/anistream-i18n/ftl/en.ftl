@@ -7487,7 +7487,7 @@ accounts-welcome-detail = Sign in to { $tracker } to sync your list and where yo
 accounts-brings-lists = Brings in your lists and fills Continue with what you are watching.
 
 # Line under the accounts screen when the library needs a tracker.
-accounts-library-needs = Library and sync need a { $tracker } account
+accounts-library-needs = Library and sync need your { $tracker } account
 
 # Line on the settings page: where the library gets its lists.
 accounts-library-from = Library shows your lists from { $tracker }.
@@ -7606,6 +7606,9 @@ accounts-password = Password
 
 # Button label while the sign-in runs.
 accounts-signing-in-action = Signing in
+
+# Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.
+accounts-credentials-refused = { $tracker } didn't accept that user name and password. Check them and try again.
 
 # Line under the title: what to do.
 accounts-code-detail = Go to { $host } and enter this code. anistream signs in once you have.

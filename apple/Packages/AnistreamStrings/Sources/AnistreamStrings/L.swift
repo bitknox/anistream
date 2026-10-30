@@ -6858,7 +6858,7 @@ public enum L {
 
     /// Line under the accounts screen when the library needs a tracker.
     public static func accountsLibraryNeeds(tracker: String) -> String {
-        Self.format("accounts-library-needs", fallback: "Library and sync need a %1$@ account", tracker)
+        Self.format("accounts-library-needs", fallback: "Library and sync need your %1$@ account", tracker)
     }
 
     /// Line on the settings page: where the library gets its lists.
@@ -7002,6 +7002,11 @@ public enum L {
 
     /// Button label while the sign-in runs.
     public static var accountsSigningInAction: String { string("accounts-signing-in-action", fallback: "Signing in") }
+
+    /// Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.
+    public static func accountsCredentialsRefused(tracker: String) -> String {
+        Self.format("accounts-credentials-refused", fallback: "%1$@ didn't accept that user name and password. Check them and try again.", tracker)
+    }
 
     /// Line under the title: what to do.
     public static func accountsCodeDetail(host: String) -> String {

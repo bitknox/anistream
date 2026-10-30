@@ -4968,6 +4968,9 @@ public static partial class T
     /// <summary>Button label while the sign-in runs.</summary>
     public static string AccountsSigningInAction => Get("AccountsSigningInAction");
 
+    /// <summary>Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.</summary>
+    public static string AccountsCredentialsRefused(string tracker) => Fill(Get("AccountsCredentialsRefused"), ("tracker", tracker));
+
     /// <summary>Line under the title: what to do.</summary>
     public static string AccountsCodeDetail(string host) => Fill(Get("AccountsCodeDetail"), ("host", host));
 
@@ -7077,7 +7080,7 @@ public static partial class T
         ["AccountsOtherTrackersNote"] = "Other trackers are in Accounts.",
         ["AccountsWelcomeDetail"] = "Sign in to {tracker} to sync your list and where you stopped.",
         ["AccountsBringsLists"] = "Brings in your lists and fills Continue with what you are watching.",
-        ["AccountsLibraryNeeds"] = "Library and sync need a {tracker} account",
+        ["AccountsLibraryNeeds"] = "Library and sync need your {tracker} account",
         ["AccountsLibraryFrom"] = "Library shows your lists from {tracker}.",
         ["AccountsListsComeFrom"] = "Your lists come from {tracker}.",
         ["AccountsStatusEmpty"] = "Titles you set to this status on {tracker} show here.",
@@ -7117,6 +7120,7 @@ public static partial class T
         ["AccountsUserOrEmail"] = "Email or user name",
         ["AccountsPassword"] = "Password",
         ["AccountsSigningInAction"] = "Signing in",
+        ["AccountsCredentialsRefused"] = "{tracker} didn't accept that user name and password. Check them and try again.",
         ["AccountsCodeDetail"] = "Go to {host} and enter this code. anistream signs in once you have.",
         ["AccountsCodeLabel"] = "Code {code}",
         ["AccountsCodeWaiting"] = "Waiting for {tracker}",

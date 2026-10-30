@@ -607,6 +607,18 @@
         }
       }
     },
+    "accounts-credentials-refused" : {
+      "comment" : "Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ didn't accept that user name and password. Check them and try again."
+          }
+        }
+      }
+    },
     "accounts-did-not-answer" : {
       "comment" : "Line when the tracker did not answer. Argument 1: tracker (Text).",
       "extractionState" : "manual",
@@ -746,7 +758,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Library and sync need a %1$@ account"
+            "value" : "Library and sync need your %1$@ account"
           }
         }
       }

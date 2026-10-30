@@ -1005,7 +1005,8 @@ class AppStore(
 
             is Event.Connectivity -> _offline.value = event.offline
             is Event.Autoplay -> _autoplay.value = event.v1.trailers
-            is Event.Toast -> notices.post(event.v1)
+            // A failed sign-in the open sheet says in its place: the snackbar would draw under it.
+            is Event.Toast -> if (accounts.tookSignInFailure(event.v1)) notices.log(event.v1) else notices.post(event.v1)
 
             is Event.Sync -> accounts.apply(event.v1)
             is Event.ViewerTitleLanguage -> accounts.viewerTitleLanguage(event.v1)

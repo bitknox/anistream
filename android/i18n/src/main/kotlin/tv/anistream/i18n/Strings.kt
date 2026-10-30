@@ -7329,6 +7329,10 @@ object Strings {
     fun accountsSigningInAction(context: Context): String =
         context.getString(R.string.accounts_signing_in_action)
 
+    /** Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in. */
+    fun accountsCredentialsRefused(context: Context, tracker: String): String =
+        context.getString(R.string.accounts_credentials_refused, tracker)
+
     /** Line under the title: what to do. */
     fun accountsCodeDetail(context: Context, host: String): String =
         context.getString(R.string.accounts_code_detail, host)

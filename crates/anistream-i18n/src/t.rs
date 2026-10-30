@@ -12250,6 +12250,11 @@ pub fn accounts_signing_in_action() -> String {
     text("accounts-signing-in-action", &[])
 }
 
+/// Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.
+pub fn accounts_credentials_refused(tracker: &str) -> String {
+    text("accounts-credentials-refused", &[("tracker", Arg::Text(tracker))])
+}
+
 /// Line under the title: what to do.
 pub fn accounts_code_detail(host: &str) -> String {
     text("accounts-code-detail", &[("host", Arg::Text(host))])
