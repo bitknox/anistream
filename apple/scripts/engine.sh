@@ -31,8 +31,8 @@
 # worktree has built already takes that slice from the cache and runs no cargo for it, which is
 # most app work, since it rarely changes crates/. Copies are APFS clones where the volume allows,
 # so the cache costs little disk. An entry is written whole and then renamed into place, so two
-# builds at once never leave half of one, and entries unused for 14 days are removed. Each slice
-# says "engine: reused <hash>" or "engine: built <hash>".
+# builds at once never leave half of one, and entries unused for 14 days, or past the newest four
+# of their slice, are removed. Each slice says "engine: reused <hash>" or "engine: built <hash>".
 #
 # ANISTREAM_ENGINE_PROFILE picks the cargo profile: app-dev unless it says otherwise, and release
 # for a build to keep. The Xcode project sets it per configuration, app-dev for Debug and release
@@ -208,10 +208,19 @@ clone() {
   cp -cR "$@" 2>/dev/null || cp -R "$@"
 }
 
-# Entries, and the leftovers of a store that was cut off, unused for 14 days.
+# Entries unused for 14 days, the leftovers of a store that was cut off, and in each slice's
+# folder every entry but the newest $keep. Each set of sources costs from under a GB to several,
+# and a day of branches makes dozens.
+keep="${ANISTREAM_ENGINE_CACHE_KEEP:-4}"
 prune_cache() {
   [[ -d "$cache" ]] || return 0
   find "$cache" -mindepth 4 -maxdepth 4 -mtime +14 -prune -exec rm -rf {} + 2>/dev/null || true
+  local slot old
+  while IFS= read -r slot; do
+    while IFS= read -r old; do
+      rm -rf "${slot:?}/$old"
+    done < <(ls -t "$slot" | tail -n +$((keep + 1)))
+  done < <(find "$cache" -mindepth 3 -maxdepth 3 -type d 2>/dev/null)
 }
 
 # Whether the cache has `slice` for these sources, whole: its library, and for macOS its bindings.
@@ -253,10 +262,10 @@ for slice in "${slices[@]}"; do
   mkdir -p "$stage/libs/$slice"
   if cached "$slice"; then
     entry="$cache/$flavour/$profile/$slice/$hash"
+    # Used now, so kept another 14 days, and newest in its slice before another build prunes.
+    touch "$entry"
     clone "$entry/libanistream_ffi.a" "$stage/libs/$slice/"
     [[ "$slice" == macos ]] && clone "$entry/generated" "$stage/generated"
-    # Used now, so kept another 14 days.
-    touch "$entry"
     echo "engine: reused $hash ($flavour, $profile, $slice)"
     continue
   fi

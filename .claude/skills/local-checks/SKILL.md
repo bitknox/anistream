@@ -51,3 +51,15 @@ commit **outside** it (the temporary HOME hides `~/.gitconfig`, so commits come 
   read whole logs.
 - Keep free disk above 10 GB (`df -h /`). Each Swift package's `.build` holds all its
   dependencies; delete it once that package's checks pass. Delete your target dir when done.
+- Xcode keeps a DerivedData folder per project path, which outlives a removed worktree. Before
+  `git worktree remove`, delete the ones for your worktree, and erase or delete the Simulators
+  you created:
+
+  ```bash
+  for d in ~/Library/Developer/Xcode/DerivedData/*/; do
+    p=$(/usr/libexec/PlistBuddy -c 'Print :WorkspacePath' "$d/info.plist" 2>/dev/null)
+    [[ "$p" == "$PWD"/* ]] && rm -rf "$d"
+  done
+  ```
+- The engine cache keeps the newest four builds per slice (`ANISTREAM_ENGINE_CACHE_KEEP`), so
+  don't prune it by hand while other builds run.
