@@ -824,7 +824,7 @@ private fun FiltersSheet(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.PartiallyExpanded, SheetValue.Expanded)),
         containerColor = colors.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.32f),
+        scrimColor = androidx.compose.material3.MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
         dragHandle = { BottomSheetDefaults.DragHandle(color = colors.onSurfaceVariant.copy(alpha = 0.4f)) },
         modifier = Modifier.padding(top = 77.dp - 24.dp),
     ) {

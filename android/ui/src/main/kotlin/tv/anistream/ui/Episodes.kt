@@ -149,7 +149,7 @@ internal fun EpisodeLine(
             fill.animateTo(1f, Motion.standard())
             coroutineScope {
                 launch { dim.animateTo(1f, Motion.quick()) }
-                launch { check.animateTo(1f, tween(300, easing = FastOutSlowInEasing)) }
+                launch { check.animateTo(1f, Motion.standard()) }
             }
         } else {
             coroutineScope {

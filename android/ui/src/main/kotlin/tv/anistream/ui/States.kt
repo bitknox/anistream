@@ -119,7 +119,18 @@ private fun slowJob(): String? {
         }
     }
     if (!slow || job == null) return null
-    return sentence(job.note?.text(LocalContext.current) ?: job.activity)
+    val context = LocalContext.current
+    val words = sentence(job.note?.text(context) ?: job.activity)
+    val until = job.waitUntil ?: return words
+    // A wait the engine named counts down, a second at a time.
+    var left by remember(job.id, until) { mutableStateOf(until - store.jobs.clock()) }
+    LaunchedEffect(job.id, until) {
+        while (left > 0) {
+            delay(1_000)
+            left = until - store.jobs.clock()
+        }
+    }
+    return if (left > 0) words + " · " + tv.anistream.i18n.Strings.durationSeconds(context, ((left + 999) / 1_000).toInt()) else words
 }
 
 /** Whether [active] has held for [millis]: work earns its place on screen only past 600 ms. */

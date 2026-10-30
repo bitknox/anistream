@@ -488,7 +488,7 @@ private fun Rail(current: Destination?, route: String?, navigator: Navigator, ac
             colors = WideNavigationRailDefaults.colors(
                 containerColor = colors.surface,
                 modalContainerColor = colors.surfaceContainerLow,
-                modalScrimColor = Color.Black.copy(alpha = 0.32f),
+                modalScrimColor = androidx.compose.material3.MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
             ),
             header = {
                 val collapseLabel = stringResource(if (expanded) R.string.nav_collapse else R.string.nav_expand)

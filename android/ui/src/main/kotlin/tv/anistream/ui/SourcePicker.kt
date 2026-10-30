@@ -64,7 +64,7 @@ fun SourcePickerSheet(entry: Entry, onDismiss: () -> Unit) {
         sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         // T7: the scrim black at 32 %, the handle haze at 40 %.
-        scrimColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.32f),
+        scrimColor = androidx.compose.material3.MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
     ) {
         SourcePickerContent(

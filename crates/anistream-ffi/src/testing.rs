@@ -150,7 +150,10 @@ pub(crate) fn options(
     // The fixtures' covers, banners and stills, from the fake, for an app that shows them.
     server.serve_art();
     // The one forum thread the apps' discussion shots read: episode 7 of the finished title.
-    server.add_fixture_thread(anistream_engine::now_epoch());
+    let thread = server.add_fixture_thread(anistream_engine::now_epoch());
+    // What an earlier run kept about it, such as "no thread", must not hide it from this one.
+    let _ = store.delete_meta(&format!("discussion.thread.{}.7", anistream_testkit::fixtures::FINISHED.get()));
+    let _ = store.delete_meta(&format!("discussion.comments.{thread}"));
     let http =
         HttpClient::offline(&NetworkConfig { timeout_secs: 5, ..config.network.clone() })
             .map_err(|e| FfiError::client(Msg::StartFailedNetwork { reason: e.to_string() }))?;

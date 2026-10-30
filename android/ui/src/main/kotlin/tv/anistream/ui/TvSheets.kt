@@ -566,7 +566,7 @@ private fun TvStep(icon: ImageVector, label: String, enabled: Boolean, onClick: 
             Icon(icon, contentDescription = null, tint = silk, modifier = Modifier.size(28.dp))
             Text(
                 "10",
-                style = TextStyle(fontSize = 8.5.sp, lineHeight = 10.sp, fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                 color = silk,
                 modifier = Modifier.align(Alignment.Center).offset(y = 2.dp),
             )
