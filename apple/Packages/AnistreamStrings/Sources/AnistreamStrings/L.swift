@@ -5605,6 +5605,9 @@ public enum L {
     /// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
     public static var settingsUpscalingNatural: String { string("settings-upscaling-natural", fallback: "Natural · ArtCNN") }
 
+    /// Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+    public static var settingsHoverCardsNote: String { string("settings-hover-cards-note", fallback: "Shows a larger card with the trailer when you rest the pointer on a cover.") }
+
     /// Preview note under the upscaling frame for the natural look.
     public static var settingsUpscalingNoteNatural: String { string("settings-upscaling-note-natural", fallback: "Faithful line work and texture, nothing restyled.") }
 

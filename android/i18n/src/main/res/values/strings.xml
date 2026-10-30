@@ -2989,6 +2989,8 @@
     <string name="settings_upload_unlimited">Unlimited</string>
     <!-- Value of the upscaling setting: a natural look. The name after the dot is the shader used. -->
     <string name="settings_upscaling_natural">Natural · ArtCNN</string>
+    <!-- Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it. -->
+    <string name="settings_hover_cards_note">Shows a larger card with the trailer when you rest the pointer on a cover.</string>
     <!-- Preview note under the upscaling frame for the natural look. -->
     <string name="settings_upscaling_note_natural">Faithful line work and texture, nothing restyled.</string>
     <!-- Preview note under the upscaling frame for the sharp look. -->

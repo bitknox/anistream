@@ -5015,6 +5015,11 @@ pub fn settings_label_calendar_mine() -> String {
     text("settings-label-calendar-mine", &[])
 }
 
+/// Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+pub fn settings_label_hover_cards() -> String {
+    text("settings-label-hover-cards", &[])
+}
+
 /// Note under the titles row.
 pub fn settings_note_titles() -> String {
     text("settings-note-titles", &[])
@@ -10228,6 +10233,11 @@ pub fn settings_upload_unlimited() -> String {
 /// Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 pub fn settings_upscaling_natural() -> String {
     text("settings-upscaling-natural", &[])
+}
+
+/// Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+pub fn settings_hover_cards_note() -> String {
+    text("settings-hover-cards-note", &[])
 }
 
 /// Preview note under the upscaling frame for the natural look.

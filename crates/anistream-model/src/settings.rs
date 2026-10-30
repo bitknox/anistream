@@ -1298,7 +1298,10 @@ mod tests {
         assert_eq!(value(&default, &default, SettingKey::HoverCards), "on");
         assert_eq!(SettingKey::at(&["theme"], "hover_cards"), Some(SettingKey::HoverCards));
         assert_eq!(SettingKey::HoverCards.category(), "appearance");
-        assert_eq!(step(&default, &default, SettingKey::HoverCards, 1), Some(SettingValue::Bool(false)));
+        assert_eq!(
+            step(&default, &default, SettingKey::HoverCards, 1),
+            Some(SettingValue::Bool(false))
+        );
 
         let mut off = Config::default();
         assert!(put(&mut off, SettingKey::HoverCards, &SettingValue::Bool(false)));

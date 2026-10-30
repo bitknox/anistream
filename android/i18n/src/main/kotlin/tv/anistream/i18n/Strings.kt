@@ -5713,6 +5713,10 @@ object Strings {
     fun settingsUpscalingNatural(context: Context): String =
         context.getString(R.string.settings_upscaling_natural)
 
+    /** Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it. */
+    fun settingsHoverCardsNote(context: Context): String =
+        context.getString(R.string.settings_hover_cards_note)
+
     /** Preview note under the upscaling frame for the natural look. */
     fun settingsUpscalingNoteNatural(context: Context): String =
         context.getString(R.string.settings_upscaling_note_natural)

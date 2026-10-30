@@ -14679,6 +14679,18 @@
         }
       }
     },
+    "settings-hover-cards-note" : {
+      "comment" : "Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows a larger card with the trailer when you rest the pointer on a cover."
+          }
+        }
+      }
+    },
     "settings-keep-next" : {
       "comment" : "Row: keep the next episodes.",
       "extractionState" : "manual",

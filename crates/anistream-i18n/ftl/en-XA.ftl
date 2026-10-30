@@ -3146,6 +3146,9 @@ settings-label-comment-images = [Ļöàð îɱàĝéš îñ çöɱɱéñţš~~~~
 # Settings row: whether Calendar shows only the shows on the person's list.
 settings-label-calendar-mine = [Çàļéñðàŕ šĥöŵš öñļý ɱý ļîšţ~~~~~~~~~]
 
+# Settings row: whether a cover the pointer rests on grows into a card with the title's details and trailer.
+settings-label-hover-cards = [Éẋþàñð çöṽéŕš öñ ĥöṽéŕ~~~~~~~]
+
 # Note under the titles row.
 settings-note-titles = [ÅñîĻîšţ'š çĥöîçé ƒöļļöŵš ýöüŕ ÅñîĻîšţ àççöüñţ, àñð îš Éñĝļîšĥ ŵĥéñ ýöü'ŕé šîĝñéð öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
@@ -6362,6 +6365,9 @@ settings-upload-unlimited = [Ûñļîɱîţéð~~~]
 
 # Value of the upscaling setting: a natural look. The name after the dot is the shader used.
 settings-upscaling-natural = [Ñàţüŕàļ · ÅŕţÇÑÑ~~~~~]
+
+# Note under the Expand covers on hover setting. The trailer plays only where the trailers setting lets it.
+settings-hover-cards-note = [Šĥöŵš à ļàŕĝéŕ çàŕð ŵîţĥ ţĥé ţŕàîļéŕ ŵĥéñ ýöü ŕéšţ ţĥé þöîñţéŕ öñ à çöṽéŕ.~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Preview note under the upscaling frame for the natural look.
 settings-upscaling-note-natural = [Ƒàîţĥƒüļ ļîñé ŵöŕķ àñð ţéẋţüŕé, ñöţĥîñĝ ŕéšţýļéð.~~~~~~~~~~~~~~~]
