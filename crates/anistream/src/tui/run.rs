@@ -327,11 +327,10 @@ mod tests {
     #[test]
     fn a_broken_config_is_named_by_file_and_line_on_one_line() {
         let file = std::path::Path::new("/home/someone/.config/anistream/config.toml");
-        let problem = Config::parse("[playback]\nqualty = 720\n").unwrap_err();
-        assert_eq!(
-            config_notice(file, &problem),
-            "config.toml line 2: unknown field `qualty`. Using the defaults until it is fixed."
-        );
+        let problem = Config::parse("[providers.torrent.vpn]\nmoed = 1\n").unwrap_err();
+        let notice = config_notice(file, &problem);
+        assert!(notice.starts_with("config.toml line 2: unknown field `moed`"), "{notice}");
+        assert!(notice.ends_with(". Using the defaults until it is fixed."), "{notice}");
         let rule = Config::parse("[playback]\ncommit_threshold = 3.0\n").unwrap_err();
         let notice = config_notice(file, &rule);
         assert!(notice.starts_with("config.toml: playback.commit_threshold"), "{notice}");

@@ -29,7 +29,7 @@ use super::toasts;
 use crate::harness::{Harness, Options};
 
 /// A file that does not load: the app runs on the defaults and says so.
-const BROKEN: &str = "[playback]\nqualty = 720\n";
+const BROKEN: &str = "[playback]\nquality = \"high\"\n";
 
 fn order(entries: &[&str]) -> Vec<String> {
     entries.iter().map(|entry| (*entry).to_owned()).collect()

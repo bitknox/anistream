@@ -106,7 +106,9 @@ choice. What a watched episode does is set under
 [Seeding](/docs/guides/torrents-vpn/#seeding).
 
 :::caution
-Every section is validated with unknown keys rejected, and a config that fails to load is not used
+A key this version doesn't know is skipped and left in the file, so apps of different versions can
+share it. The one exception is `[providers.torrent.vpn]`, where an unknown key is refused, since a
+misspelt one there could leave torrents unprotected. A config that fails to load is not used
 at all: anistream runs entirely on the defaults, without your VPN mode, indexer and tracker
 credentials, until the file is fixed. It says so on every screen, naming the file and the line,
 and the Settings screen saves nothing until the file loads again, so a broken file is never
