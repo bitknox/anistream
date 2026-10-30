@@ -199,6 +199,7 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
         stores,
         clock,
         fixture_exit: Some(anistream_providers::vpn::VpnGuard::fixture_egress()),
+        windows: None,
     });
     let (engine, events): (Engine, _) =
         Engine::start(options, host).await.map_err(|e| e.to_string())?;
