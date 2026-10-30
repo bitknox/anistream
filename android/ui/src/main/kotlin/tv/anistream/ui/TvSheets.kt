@@ -98,6 +98,7 @@ import tv.anistream.engine.ffi.FfiTvRow
 import tv.anistream.engine.ffi.FfiTvRowKind
 import tv.anistream.engine.ffi.FfiTvTrack
 import tv.anistream.engine.ffi.FfiTvTrackKind
+import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.TvCard
 import tv.anistream.store.TvPairingStep
 import tv.anistream.store.TvPlayRequest
@@ -783,7 +784,10 @@ internal fun TvSettingsGroup() {
                     trailing = { QuietButton(stringResource(R.string.action_forget)) { tv.forget(paired.fingerprint) } },
                 )
             }
-        } + listOf(@Composable { place: Place -> ActionRow(place, stringResource(R.string.tv_pair_action), onClick = tv::openPicker) }),
+        } + listOf<@Composable (Place) -> Unit>(
+            { place -> ActionRow(place, stringResource(R.string.tv_pair_action), onClick = tv::openPicker) },
+            { place -> SettingSwitch(place, SettingKey.CAST_TVS, stringResource(R.string.cast_settings_tvs), note = stringResource(R.string.cast_settings_tvs_note)) },
+        ),
     )
 }
 

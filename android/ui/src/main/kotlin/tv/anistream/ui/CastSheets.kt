@@ -37,6 +37,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderColors
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -72,12 +74,15 @@ import tv.anistream.design.ObiSilk
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
 import tv.anistream.engine.ffi.FfiCastRouteHint
+import tv.anistream.engine.ffi.FfiCastUpNext
 import tv.anistream.engine.ffi.FfiCastRow
 import tv.anistream.engine.ffi.FfiNowCard
 import tv.anistream.engine.ffi.FfiTvCommand
 import tv.anistream.engine.ffi.FfiTvTrack
 import tv.anistream.engine.ffi.FfiTvTrackKind
+import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.Msg
+import tv.anistream.engine.model.SkipKind
 import tv.anistream.i18n.R
 import tv.anistream.i18n.Strings
 import tv.anistream.store.CastModel
@@ -203,23 +208,16 @@ internal fun CastSheetHost() {
     }
 }
 
-/** The line at the top of the card: where the cast is, after its dot. */
+/**
+ * The line at the top of the card: where the cast is, after its dot. While an episode starts it
+ * is the engine's phase line, which counts the seconds itself.
+ */
 @Composable
-private fun CastPhase(cast: CastModel, shown: CastShown) {
+private fun CastPhase(shown: CastShown) {
     val context = LocalContext.current
     val stage = shown.stage
-    // A tick a second while it starts, for the counter.
-    val seconds by produceState(cast.startingSeconds(), shown.startedAt, stage) {
-        while (stage == CastStage.Starting) {
-            value = cast.startingSeconds()
-            delay(1000)
-        }
-    }
     val line = when (stage) {
-        CastStage.Starting -> {
-            val base = shown.cast.card.phaseLine ?: Strings.tvSessionStarting(context, shown.tvName)
-            if (seconds >= CastModel.COUNT_FROM_SECONDS) Strings.castCardCounting(context, base, seconds.toInt()) else base
-        }
+        CastStage.Starting -> shown.cast.phaseLine?.text(context) ?: Strings.tvSessionStarting(context, shown.tvName)
         CastStage.Playing -> Strings.tvStatusPlaying(context, shown.tvName)
         CastStage.Failed -> Strings.castCardFailed(context, shown.tvName)
         CastStage.Lost -> Strings.castCardStopped(context)
@@ -246,7 +244,7 @@ private fun CastCard(cast: CastModel, shown: CastShown) {
     val playing = stage == CastStage.Playing
     val entry = store.titles[now.id]
     var choosingSource by remember { mutableStateOf(false) }
-    CastPhase(cast, shown)
+    CastPhase(shown)
     Spacer(Modifier.height(16.dp))
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         entry?.let { CoverArt(it, 72.dp, Modifier.size(72.dp, 108.dp)) }
@@ -270,7 +268,9 @@ private fun CastCard(cast: CastModel, shown: CastShown) {
         }
     }
     if (stage == CastStage.Starting || playing) {
+        shown.cast.undo?.let { CastUndoNote(cast, it.kind) }
         CastSeekLine(cast, now, shown, playing)
+        shown.cast.upNext?.let { CastUpNext(cast, it, entry) }
         CastTransport(cast, now, playing)
         TvDivider(Modifier.padding(top = 8.dp))
         CastTrackRow(stringResource(R.string.player_subtitles), FfiTvTrackKind.SUBTITLE, now.subtitles, now.subtitlesOff, cast, enabled = playing)
@@ -314,6 +314,105 @@ private fun CastCard(cast: CastModel, shown: CastShown) {
         }
     }
     if (choosingSource && entry != null) SourcePickerSheet(entry) { choosingSource = false }
+}
+
+/**
+ * The card's slider: a 4 dp line with the thumb the board draws, none while there is nothing to
+ * move. Reads [value] and reports the drag through [onChange] and its end through [onFinished].
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CastSlider(
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    onChange: (Float) -> Unit,
+    onFinished: () -> Unit,
+    enabled: Boolean,
+    colors: SliderColors,
+    thumb: (@Composable () -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val state = remember(range) { SliderState(value, 0, range) }
+    if (state.value != value) state.value = value
+    Slider(
+        state = state,
+        onValueChange = onChange,
+        onValueChangeFinished = onFinished,
+        modifier = modifier,
+        enabled = enabled,
+        colors = colors,
+        thumb = { thumb?.invoke() },
+        track = {
+            SliderDefaults.Track(
+                it,
+                modifier = Modifier.height(4.dp),
+                enabled = enabled,
+                colors = colors,
+                drawStopIndicator = null,
+                thumbTrackGapSize = 0.dp,
+            )
+        },
+    )
+}
+
+/** After an automatic skip: what it did, and Undo. */
+@Composable
+private fun CastUndoNote(cast: CastModel, kind: SkipKind) {
+    val context = LocalContext.current
+    Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            if (kind == SkipKind.OPENING) Strings.castCardSkippedOpening(context) else Strings.castCardSkippedEnding(context),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        QuietButton(stringResource(R.string.cast_card_undo)) { cast.undoSkip() }
+    }
+}
+
+/**
+ * The next episode near the end: the cover, "Up next · plays in 6 s" over its number and title, a
+ * 2 dp line running down the count, then Cancel and Play now. With auto-next off it waits for Play now.
+ */
+@Composable
+private fun CastUpNext(cast: CastModel, next: FfiCastUpNext, entry: Entry?) {
+    val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    val left = next.secondsLeft?.toInt()
+    // The count's first value is the whole of its line.
+    var total by remember(next.number) { mutableStateOf(1) }
+    if (left != null && left > total) total = left
+    Column(Modifier.fillMaxWidth().padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        TvDivider()
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            entry?.let { CoverArt(it, 40.dp, Modifier.size(40.dp, 60.dp)) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    if (left != null) Strings.castCardUpNextIn(context, left) else Strings.castCardUpNext(context),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.onSurfaceVariant,
+                )
+                Text(
+                    next.title?.let { Strings.castEpisodeTitled(context, next.number, it) } ?: Strings.castEpisode(context, next.number),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (left != null) {
+            Box(Modifier.fillMaxWidth().height(2.dp).background(ObiSilk.Rule)) {
+                Box(Modifier.fillMaxWidth((left.toFloat() / total).coerceIn(0f, 1f)).height(2.dp).background(ObiSilk.Water))
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = cast::cancelNext, modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.cast_card_up_next_cancel), color = colors.onSurface)
+            }
+            Button(onClick = cast::playNext, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.cast_card_up_next_play)) }
+        }
+    }
 }
 
 /** An action on the card: an outlined pill, never amber. */
@@ -362,34 +461,20 @@ private fun CastSeekLine(cast: CastModel, now: FfiNowCard, shown: CastShown, pla
     )
     val usable = playing && duration > 0
     Column(Modifier.padding(top = 16.dp)) {
-        Slider(
+        CastSlider(
             value = at.toFloat(),
-            onValueChange = { dragging = it },
-            onValueChangeFinished = {
+            range = 0f..maxOf(duration.toFloat(), 1f),
+            onChange = { dragging = it },
+            onFinished = {
                 dragging?.let {
                     cast.send(FfiTvCommand.SeekTo(it.toDouble()))
                     sent = it
                 }
                 dragging = null
             },
-            valueRange = 0f..maxOf(duration.toFloat(), 1f),
             enabled = usable,
             colors = sliderColors,
-            thumb = {
-                if (usable) {
-                    Box(Modifier.size(12.dp).background(colors.primary, RoundedCornerShape(6.dp)))
-                }
-            },
-            track = { state ->
-                SliderDefaults.Track(
-                    state,
-                    modifier = Modifier.height(4.dp),
-                    enabled = usable,
-                    colors = sliderColors,
-                    drawStopIndicator = null,
-                    thumbTrackGapSize = 0.dp,
-                )
-            },
+            thumb = if (usable) ({ Box(Modifier.size(12.dp).background(colors.primary, RoundedCornerShape(6.dp))) }) else null,
             modifier = Modifier.fillMaxWidth().semantics {
                 contentDescription = positionLabel
                 if (playing) stateDescription = positionState
@@ -511,30 +596,20 @@ private fun CastVolume(cast: CastModel, shown: CastShown, now: FfiNowCard, enabl
                 enabled = enabled,
                 onClick = cast::toggleMute,
             )
-            Slider(
+            CastSlider(
                 value = at,
-                onValueChange = { dragging = it },
-                onValueChangeFinished = {
+                range = 0f..100f,
+                onChange = { dragging = it },
+                onFinished = {
                     dragging?.let {
                         cast.setVolume(it.toDouble())
                         sent = it
                     }
                     dragging = null
                 },
-                valueRange = 0f..100f,
                 enabled = enabled,
                 colors = sliderColors,
-                thumb = { Box(Modifier.size(16.dp).background(colors.onSurface, RoundedCornerShape(8.dp))) },
-                track = { state ->
-                    SliderDefaults.Track(
-                        state,
-                        modifier = Modifier.height(4.dp),
-                        enabled = enabled,
-                        colors = sliderColors,
-                        drawStopIndicator = null,
-                        thumbTrackGapSize = 0.dp,
-                    )
-                },
+                thumb = { Box(Modifier.size(4.dp, 28.dp).background(colors.onSurface, RoundedCornerShape(2.dp))) },
                 modifier = Modifier.weight(1f).semantics {
                     contentDescription = label
                     value?.let { stateDescription = it }

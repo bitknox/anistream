@@ -40,6 +40,8 @@ class CastModelTest {
         val sent = mutableListOf<FfiTvCommand>()
         var stopped = false
         var playedHere = false
+        val asked = mutableListOf<String>()
+        var again = true
 
         override fun card() = card
         override suspend fun nextCard(): FfiCastCard? = cards.receive()?.also { card = it }
@@ -50,6 +52,23 @@ class CastModelTest {
         override fun playHere(): Double? {
             playedHere = true
             return card.card.now?.position
+        }
+
+        override fun playNext() {
+            asked += "play-next"
+        }
+
+        override fun cancelNext() {
+            asked += "cancel-next"
+        }
+
+        override fun undoSkip() {
+            asked += "undo-skip"
+        }
+
+        override fun tryAgain(): Boolean {
+            asked += "try-again"
+            return again
         }
 
         override fun stop() {
@@ -121,7 +140,7 @@ class CastModelTest {
         cast.cast(row, request)
         val ended = backgroundScope.async { cast.ended.first() }
         runCurrent()
-        link.cards.send(card(loading = false, over = true, notice = Msg.NoticeCastTakenOver))
+        link.cards.send(card(loading = false, over = true, notice = Msg.NoticeCastTakenOver("Living room")))
         advanceUntilIdle()
         assertNull(cast.shown.value)
         assertFalse(cast.open.value)
@@ -130,7 +149,7 @@ class CastModelTest {
         val again = ScriptedLink(card(loading = false))
         val lost = model(again)
         lost.cast(row, request)
-        again.cards.send(card(loading = false, over = true, notice = Msg.NoticeCastLost))
+        again.cards.send(card(loading = false, over = true, notice = Msg.NoticeCastLost("Living room")))
         advanceUntilIdle()
         assertEquals(CastStage.Lost, lost.shown.value?.stage)
         lost.dismiss()
@@ -165,5 +184,36 @@ class CastModelTest {
         assertTrue(link.playedHere)
         assertEquals(request.id to "7", played)
         assertNull(cast.shown.value)
+    }
+
+    @Test
+    fun up_next_and_undo_go_to_the_engine() = runTest {
+        val link = ScriptedLink(card(loading = false))
+        val cast = model(link)
+        cast.cast(row, request)
+        cast.playNext()
+        cast.cancelNext()
+        cast.undoSkip()
+        assertEquals(listOf("play-next", "cancel-next", "undo-skip"), link.asked)
+    }
+
+    @Test
+    fun try_again_starts_the_failed_cast_over_on_the_same_session() = runTest {
+        val link = ScriptedLink(card(loading = true))
+        val cast = model(link)
+        cast.cast(row, request)
+        link.cards.send(card(loading = false, over = true, notice = Msg.NoticeCastNeverFetches("Living room")))
+        advanceUntilIdle()
+        assertEquals(CastStage.Failed, cast.shown.value?.stage)
+        time = 9_000
+        // The engine's card starts over.
+        link.card = card(loading = true)
+        cast.tryAgain()
+        assertEquals(listOf("try-again"), link.asked)
+        assertEquals(CastStage.Starting, cast.shown.value?.stage)
+        assertEquals(9_000L, cast.shown.value?.startedAt)
+        link.cards.send(card(loading = false, volume = 41.0))
+        advanceUntilIdle()
+        assertEquals(41.0, cast.shown.value?.cast?.card?.now?.volume)
     }
 }

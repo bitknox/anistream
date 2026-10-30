@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import tv.anistream.engine.ffi.FfiCastBrowser
 import tv.anistream.engine.ffi.FfiCastCard
+import tv.anistream.engine.ffi.FfiCastRouteHint
+import tv.anistream.engine.ffi.FfiCastUndo
+import tv.anistream.engine.ffi.FfiCastUpNext
 import tv.anistream.engine.ffi.FfiCastSink
 import tv.anistream.engine.ffi.FfiLinkPhase
 import tv.anistream.engine.ffi.FfiNowCard
@@ -28,6 +31,7 @@ import tv.anistream.engine.ffi.FfiTvTrackKind
 import tv.anistream.engine.ffi.FfiTxtPair
 import tv.anistream.engine.ffi.FfiVolumeControl
 import tv.anistream.engine.model.Msg
+import tv.anistream.engine.model.SkipKind
 import tv.anistream.i18n.Strings
 
 /**
@@ -38,16 +42,25 @@ import tv.anistream.i18n.Strings
  *     searching  the picker before any TV answers, past its quiet 600 ms
  *     none       the picker after 10 s with no TV found
  *     blocked    the picker with Android 17's local network permission turned down
- *     starting   Living room's card, 5 s into starting, the line counting
+ *     starting   Living room's card, 6 s into starting: "Waiting for Living room · 6 s"
+ *     preparing  Living room's card, 6 s in, this device converting: "Preparing the stream · 6 s"
  *     fixed      Living room's card playing, its volume fixed: Mute alone
  *     level      Kitchen display's card in the opening, with a volume level and the skip offer
  *     failed     Living room's card once every stream was refused
+ *     never      Living room's card after the TV never read the stream: Try again and Play here
+ *     network    Living room's card when this device is not on the TV's network
+ *     codec      Living room's card when the TV can't play the video
+ *     deeplink   Living room's card when the episode opens in another app
+ *     upnext     Living room's card near the end: Up next, plays in 6 s
+ *     undo       Kitchen display's card after an automatic skip: "Skipped opening · Undo"
+ *     audio      Living room's card loading again after an audio change
  *     lost       Living room's card after the TV dropped off
  *     taken      Library, after someone else took Living room: the notice with Play here
  *     bar        Library while Living room plays, the card closed: the bar over the navigation
  */
 enum class CastScene {
-    PICKER, SEARCHING, NONE, BLOCKED, STARTING, FIXED, LEVEL, FAILED, LOST, TAKEN, BAR;
+    PICKER, SEARCHING, NONE, BLOCKED, STARTING, PREPARING, FIXED, LEVEL, FAILED, NEVER, NETWORK, CODEC, DEEPLINK,
+    UPNEXT, UNDO, AUDIO, LOST, TAKEN, BAR;
 
     /** No TV of either kind answers in this scene. */
     val empty: Boolean get() = this == SEARCHING || this == NONE
@@ -93,6 +106,12 @@ class FixtureCastLink(
     startsAfter: Long?,
     private var from: Double,
     private val skipLabel: String?,
+    /** The line for an episode that has not started yet, from the scene. */
+    private val phase: Msg? = null,
+    /** The Up next card, when the scene is near the end. */
+    private val upNext: FfiCastUpNext? = null,
+    /** The Undo note, when the scene follows an automatic skip. */
+    private val undo: FfiCastUndo? = null,
 ) : CastLink {
     private val changes = MutableStateFlow(0L)
     private var seen = 0L
@@ -105,6 +124,10 @@ class FixtureCastLink(
     private var audio = 1L
     private var notice: Msg? = null
     private var over = false
+    private var played = false
+    private var reloading = false
+    private var upNextShown = upNext != null
+    private var undoShown = undo != null
     private var connected = false
     private var since = System.nanoTime()
     private val stopped = CompletableDeferred<Unit>()
@@ -117,6 +140,7 @@ class FixtureCastLink(
             if (startsAfter == null) return@launch
             delay(startsAfter)
             loading = false
+            played = true
             since = System.nanoTime()
             bump()
         }
@@ -142,16 +166,16 @@ class FixtureCastLink(
 
     override fun card(): FfiCastCard {
         val audioTracks = listOf("ja", "en").mapIndexed { index, language ->
-            FfiTvTrack(index + 1L, FfiTvTrackKind.AUDIO, language, null, audio == index + 1L)
+            FfiTvTrack(index + 1L, language, null, audio == index + 1L)
         }
-        val subtitleTracks = listOf(FfiTvTrack(1L, FfiTvTrackKind.SUBTITLE, "en", null, !subtitlesOff && subtitle == 1L))
+        val subtitleTracks = listOf(FfiTvTrack(1L, "en", null, !subtitlesOff && subtitle == 1L))
         val playing = now.copy(
             loading = loading,
             position = position(),
             paused = paused,
             volume = if (control == FfiVolumeControl.LEVEL) volume else null,
-            audio = if (loading) emptyList() else audioTracks,
-            subtitles = if (loading) emptyList() else subtitleTracks,
+            audio = if (!played) emptyList() else audioTracks,
+            subtitles = if (!played) emptyList() else subtitleTracks,
             subtitlesOff = subtitlesOff,
             skip = if (!loading && skipLabel != null && position() < 85.0) FfiSkipCard(85.0, skipLabel) else null,
         )
@@ -169,6 +193,10 @@ class FixtureCastLink(
             volumeControl = control,
             muted = if (connected) muted else null,
             notice = notice,
+            phaseLine = if (loading && !over) phase ?: if (reloading) Msg.CastPhaseWaiting(tvName, 4L) else Msg.CastPhaseStarting(tvName) else null,
+            upNext = upNext?.takeIf { upNextShown && !loading },
+            undo = undo?.takeIf { undoShown && !loading },
+            route = if (loading) null else FfiCastRouteHint.THROUGH_THIS_DEVICE,
         )
     }
 
@@ -206,7 +234,20 @@ class FixtureCastLink(
                     subtitlesOff = command.id == null
                     command.id?.let { subtitle = it }
                 }
-                FfiTvTrackKind.AUDIO -> command.id?.let { audio = it }
+                // The TV loads the stream again where it was.
+                FfiTvTrackKind.AUDIO -> command.id?.let {
+                    audio = it
+                    from = position()
+                    loading = true
+                    reloading = true
+                    scope.launch {
+                        delay(8_000)
+                        since = System.nanoTime()
+                        loading = false
+                        reloading = false
+                        bump()
+                    }
+                }
             }
             else -> return
         }
@@ -217,6 +258,31 @@ class FixtureCastLink(
         val at = position()
         stop()
         return at.takeIf { it >= 5.0 }
+    }
+
+    override fun playNext() {
+        upNextShown = false
+        bump()
+    }
+
+    override fun cancelNext() {
+        upNextShown = false
+        bump()
+    }
+
+    override fun undoSkip() {
+        undoShown = false
+        from = 0.0
+        since = System.nanoTime()
+        bump()
+    }
+
+    override fun tryAgain(): Boolean {
+        notice = null
+        over = false
+        loading = true
+        bump()
+        return true
     }
 
     override fun stop() {
@@ -263,19 +329,31 @@ object FixtureCasts {
         var last: FixtureCastLink? = null
         cast.starter = { key, asked ->
             val kitchen = key.endsWith("fixture-kitchen")
+            val name = if (kitchen) "Kitchen display" else "Living room"
             val (startsAfter, from) = when (scene) {
-                CastScene.STARTING, CastScene.FAILED -> null to 0.0
+                CastScene.STARTING, CastScene.PREPARING, CastScene.FAILED, CastScene.NEVER, CastScene.NETWORK,
+                CastScene.CODEC, CastScene.DEEPLINK,
+                -> null to 0.0
                 CastScene.LEVEL -> 300L to 58.0
+                CastScene.UNDO -> 300L to 90.0
+                CastScene.UPNEXT -> 300L to 1_395.0
                 else -> 300L to (asked.from ?: 492.0)
             }
             FixtureCastLink(
-                tvName = if (kitchen) "Kitchen display" else "Living room",
+                tvName = name,
                 scope = scope,
                 now = now.copy(title = asked.title.ifEmpty { title }),
                 control = if (kitchen) FfiVolumeControl.LEVEL else FfiVolumeControl.MUTE_ONLY,
                 startsAfter = startsAfter,
                 from = from,
                 skipLabel = Strings.playerSkipOpening(context),
+                phase = when (scene) {
+                    CastScene.STARTING -> Msg.CastPhaseWaiting(name, 6L)
+                    CastScene.PREPARING -> Msg.CastPhasePreparing(6L)
+                    else -> null
+                },
+                upNext = if (scene == CastScene.UPNEXT) FfiCastUpNext("8", "A Town Without Night", null, true, 6u) else null,
+                undo = if (scene == CastScene.UNDO) FfiCastUndo(SkipKind.OPENING, 5.0) else null,
             ).also { last = it }
         }
         try {
@@ -286,7 +364,7 @@ object FixtureCasts {
                     store.tv.offer(request)
                 }
                 else -> {
-                    val row = waitForRow(store, if (scene == CastScene.LEVEL) "Kitchen display" else "Living room") ?: return
+                    val row = waitForRow(store, if (scene == CastScene.LEVEL || scene == CastScene.UNDO) "Kitchen display" else "Living room") ?: return
                     cast.cast(row, request)
                     // The engine keeps the found TVs until the browses stop: only once the cast has the row.
                     cast.stopBrowsing()
@@ -294,15 +372,35 @@ object FixtureCasts {
                     when (scene) {
                         CastScene.FAILED -> {
                             delay(600)
-                            last?.end(Msg.NoticeCastRefused)
+                            last?.end(Msg.NoticeCastRefused("Living room"))
+                        }
+                        CastScene.NEVER -> {
+                            delay(600)
+                            last?.end(Msg.NoticeCastNeverFetches("Living room"))
+                        }
+                        CastScene.NETWORK -> {
+                            delay(600)
+                            last?.end(Msg.NoticeCastNotSameNetwork("Living room"))
+                        }
+                        CastScene.CODEC -> {
+                            delay(600)
+                            last?.end(Msg.NoticeCastVideoCodec("Living room", "AV1"))
+                        }
+                        CastScene.DEEPLINK -> {
+                            delay(600)
+                            last?.end(Msg.NoticeCastDeepLink)
+                        }
+                        CastScene.AUDIO -> {
+                            delay(1_000)
+                            last?.command(FfiTvCommand.Track(FfiTvTrackKind.AUDIO, 2L))
                         }
                         CastScene.LOST -> {
                             delay(1_000)
-                            last?.end(Msg.NoticeCastLost)
+                            last?.end(Msg.NoticeCastLost("Living room"))
                         }
                         CastScene.TAKEN -> {
                             delay(1_000)
-                            last?.end(Msg.NoticeCastTakenOver)
+                            last?.end(Msg.NoticeCastTakenOver("Living room"))
                         }
                         CastScene.BAR -> {
                             delay(1_000)
@@ -338,9 +436,12 @@ object FixtureCasts {
         return when (scene) {
             CastScene.PICKER -> store.cast.rows.value.size == 2 && store.tv.rows.value.isNotEmpty()
             CastScene.SEARCHING, CastScene.NONE, CastScene.BLOCKED -> store.tv.sheet.value == TvRemoteModel.Sheet.Picker
-            CastScene.STARTING -> shown?.stage == CastStage.Starting && store.cast.startingSeconds() >= 5
+            CastScene.STARTING, CastScene.PREPARING -> shown?.stage == CastStage.Starting && shown.cast.phaseLine != null
+            CastScene.AUDIO -> shown?.stage == CastStage.Starting && shown.cast.card.now?.audio?.isNotEmpty() == true && shown.cast.phaseLine != null
             CastScene.FIXED, CastScene.LEVEL -> shown?.stage == CastStage.Playing
-            CastScene.FAILED -> shown?.stage == CastStage.Failed
+            CastScene.UPNEXT -> shown?.cast?.upNext != null
+            CastScene.UNDO -> shown?.cast?.undo != null
+            CastScene.FAILED, CastScene.NEVER, CastScene.NETWORK, CastScene.CODEC, CastScene.DEEPLINK -> shown?.stage == CastStage.Failed
             CastScene.LOST -> shown?.stage == CastStage.Lost
             CastScene.TAKEN -> shown == null
             CastScene.BAR -> shown?.stage == CastStage.Playing && !store.cast.open.value

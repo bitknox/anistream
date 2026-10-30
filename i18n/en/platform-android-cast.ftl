@@ -21,11 +21,34 @@ cast-sheet-chromecast-too = TVs with Chromecast built in show here too.
 # @only android
 cast-sheet-local-network = Allow { -app-name } to find { -device-pl } on your local network
 
-# Casting card: the starting line once it has taken a while, then the seconds since the cast was asked for.
+# Casting card: over the next episode while the count runs to playing it by itself.
 # @only android
-# @arg line: text
 # @arg seconds: int
-cast-card-counting = { $line } · { $seconds } s
+cast-card-up-next-in = { -up-next-cap } · plays in { $seconds } s
+
+# Casting card: over the next episode when auto-next is off and the card waits for Play now.
+# @only android
+cast-card-up-next = { -up-next-cap }
+
+# Casting card: cancels the count, so the next episode does not play by itself.
+# @only android
+cast-card-up-next-cancel = Cancel
+
+# Casting card: plays the next episode on the TV at once.
+# @only android
+cast-card-up-next-play = Play now
+
+# Casting card: the note after the TV skipped an opening by itself, with Undo beside it.
+# @only android
+cast-card-skipped-opening = Skipped opening
+
+# Casting card: the note after the TV skipped an ending by itself, with Undo beside it.
+# @only android
+cast-card-skipped-ending = Skipped ending
+
+# Casting card: takes back an automatic skip.
+# @only android
+cast-card-undo = Undo
 
 # Casting card: the line under the title when nothing played.
 # @only android
@@ -55,3 +78,19 @@ cast-card-play-here = Play here
 # Casting card and its notification: stops casting, and the app on the TV closes.
 # @only android
 cast-card-stop = Stop casting
+
+# Settings, Play on TV: whether the TV picker lists TVs with Chromecast built in.
+# @only android
+cast-settings-tvs = Show TVs with Chromecast built in
+
+# Settings, Play on TV: under the row above.
+# @only android
+cast-settings-tvs-note = They appear under Chromecast in Play on TV. This { -device } sends them the episode.
+
+# Settings, Sources: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+# @only android
+cast-settings-torrents = Torrents while casting
+
+# Settings, Sources: under the row above.
+# @only android
+cast-settings-torrents-note = Lets a TV with Chromecast built in play torrents. This { -device } sends the episode for as long as it plays.

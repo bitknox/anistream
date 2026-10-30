@@ -20,7 +20,8 @@
 //             widgets' record made at once, with its art
 //   tv        a Play on TV scene, on the two fake TVs: paired, picker, code or remote (TvScene)
 //   cast      a casting scene, on Bedroom and the made-up TVs with Chromecast built in: picker,
-//             searching, none, blocked, starting, fixed, level, failed, lost, taken or bar (CastScene)
+//             searching, none, blocked, starting, preparing, fixed, level, failed, never, network, codec,
+//             deeplink, upnext, undo, audio, lost, taken or bar (CastScene)
 //   discussion an episode number of the first fixture whose discussion opens in its sheet
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
 //   player    a player state to shoot (from A3)

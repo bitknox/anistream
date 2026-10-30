@@ -49,6 +49,18 @@ interface CastLink {
     /** Stop casting, and the position to play on from here when it is past the first seconds. */
     fun playHere(): Double?
 
+    /** Up next's Play now. */
+    fun playNext()
+
+    /** Up next's Cancel: the episode does not roll on. */
+    fun cancelNext()
+
+    /** The Undo note's button: back to where an automatic skip began. */
+    fun undoSkip()
+
+    /** Cast the same episode to the same TV again, from its position; `false` when it cannot. */
+    fun tryAgain(): Boolean
+
     fun stop()
 }
 
@@ -63,6 +75,14 @@ class EngineCastLink(private val session: FfiCastSession) : CastLink {
     override fun command(command: FfiTvCommand) = session.command(command)
 
     override fun playHere(): Double? = session.playHere()
+
+    override fun playNext() = session.playNext()
+
+    override fun cancelNext() = session.cancelNext()
+
+    override fun undoSkip() = session.undoSkip()
+
+    override fun tryAgain(): Boolean = session.tryAgain()
 
     override fun stop() = session.stop()
 }
@@ -175,7 +195,9 @@ class CastModel(
     private var browsing = false
     private var link: CastLink? = null
     private var cards: Job? = null
-    private var lastKey: String? = null
+
+    /** The session of a cast that failed or dropped off, kept for Try again until the card is dismissed. */
+    private var over: CastLink? = null
 
     /** Whether casting is there: the engine's sender came with a Cast browse to give it. */
     val available: Boolean get() = tv?.attachedSender != null && browser != null
@@ -249,12 +271,16 @@ class CastModel(
         _problem.value = null
         val next = starter?.invoke(key, request) ?: return
         end()
-        lastKey = key
         link = next
         val now = clock()
         _shown.value = CastShown(next.card(), now, next.tvName, request, now)
         _open.value = true
         tv?.sheetClosed()
+        follow(next, request)
+    }
+
+    /** Take the cards [next] sends until the cast is over. */
+    private fun follow(next: CastLink, request: TvPlayRequest) {
         cards = scope.launch {
             var handed = !request.fromPlayer
             while (isActive) {
@@ -292,6 +318,7 @@ class CastModel(
             else -> {
                 cards?.cancel()
                 cards = null
+                over = link
                 link = null
             }
         }
@@ -302,6 +329,7 @@ class CastModel(
         cards?.cancel()
         cards = null
         link = null
+        over = null
         _shown.value = null
         _open.value = false
     }
@@ -360,11 +388,34 @@ class CastModel(
         if (link == null) end()
     }
 
-    /** Start the same episode on the same TV again, as Try again on a failed card asks. */
+    /** Up next's Play now: the next episode starts on the TV at once. */
+    fun playNext() {
+        link?.playNext()
+    }
+
+    /** Up next's Cancel: the episode does not roll on. */
+    fun cancelNext() {
+        link?.cancelNext()
+    }
+
+    /** Undo after an automatic skip. */
+    fun undoSkip() {
+        link?.undoSkip()
+    }
+
+    /**
+     * Start the same episode on the same TV again from its position, as Try again on a failed
+     * card asks. The card starts over.
+     */
     fun tryAgain() {
         val shown = _shown.value ?: return
-        val key = lastKey ?: return
-        cast(key, shown.request)
+        val again = over ?: return
+        if (!again.tryAgain()) return
+        over = null
+        link = again
+        val now = clock()
+        _shown.value = shown.copy(cast = again.card(), at = now, startedAt = now)
+        follow(again, shown.request)
     }
 
     /**
