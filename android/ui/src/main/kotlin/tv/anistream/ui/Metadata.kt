@@ -23,6 +23,7 @@ import tv.anistream.engine.model.SourceMaterial
 import tv.anistream.engine.model.TitleTag
 import tv.anistream.i18n.R
 import tv.anistream.i18n.Strings
+import tv.anistream.store.words
 import tv.anistream.store.AirTime
 import tv.anistream.store.AppClock
 
@@ -39,23 +40,7 @@ fun Entry.otherForms(): List<String> =
 fun Season.label(context: Context): String = seasonName(context, this)
 
 /** What a title was adapted from, in words; `null` for Other, which is left out. */
-fun SourceMaterial.label(context: Context): String? = when (this) {
-    SourceMaterial.ORIGINAL -> Strings.materialOriginal(context)
-    SourceMaterial.MANGA -> Strings.materialManga(context)
-    SourceMaterial.LIGHT_NOVEL -> Strings.materialLightNovel(context)
-    SourceMaterial.WEB_NOVEL -> Strings.materialWebNovel(context)
-    SourceMaterial.VISUAL_NOVEL -> Strings.materialVisualNovel(context)
-    SourceMaterial.VIDEO_GAME -> Strings.materialVideoGame(context)
-    SourceMaterial.NOVEL -> Strings.materialNovel(context)
-    SourceMaterial.DOUJINSHI -> Strings.materialDoujinshi(context)
-    SourceMaterial.ANIME -> Strings.materialAnime(context)
-    SourceMaterial.LIVE_ACTION -> Strings.materialLiveAction(context)
-    SourceMaterial.GAME -> Strings.materialGame(context)
-    SourceMaterial.COMIC -> Strings.materialComic(context)
-    SourceMaterial.MULTIMEDIA_PROJECT -> Strings.materialMultimedia(context)
-    SourceMaterial.PICTURE_BOOK -> Strings.materialPictureBook(context)
-    SourceMaterial.OTHER -> null
-}
+fun SourceMaterial.label(context: Context): String? = words(context)
 
 /** "20 Aug 2026", "Aug 2026" or "2026", as much of the date as AniList knows. */
 fun FuzzyDate.words(locale: Locale = Locale.getDefault()): String {

@@ -226,6 +226,18 @@ class UpdateModelTest {
     }
 
     @Test
+    fun a_file_android_cannot_read_fails_the_update_instead_of_crashing_on_verifying() = runTest {
+        val host = FakeHost()
+        host.onInspect = { throw IllegalStateException("the package manager could not parse it") }
+        val model = model(host)
+        model.press()
+        job(model, host, FakeFetch())
+        advanceUntilIdle()
+        assertEquals(UpdateState.Failed(offer, UpdateFailure.NotAnApp), model.state.value)
+        assertFalse(host.calls.any { it.startsWith("install") })
+    }
+
+    @Test
     fun another_app_or_another_key_is_refused_before_the_installer() = runTest {
         for ((apk, failure) in listOf(
             ApkFacts("tv.anistream.fixtures", 200000399, setOf(RELEASE_KEY)) to UpdateFailure.Package("tv.anistream.fixtures"),
@@ -379,7 +391,7 @@ class UpdateModelTest {
         val stopped = model(host)
         stopped.press()
         stopped.stopped()
-        assertEquals(UpdateState.Failed(offer, UpdateFailure.Download("Android stopped the download")), stopped.state.value)
+        assertEquals(UpdateState.Failed(offer, UpdateFailure.Download(null)), stopped.state.value)
     }
 
     @Test

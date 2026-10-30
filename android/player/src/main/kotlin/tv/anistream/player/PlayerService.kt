@@ -104,7 +104,8 @@ class PlayerConnection(private val context: Context, private val model: PlayerMo
 
     init {
         scope.launch {
-            snapshotFlow { model.isPresented }.distinctUntilChanged().collect { up -> if (up) bind() else unbind() }
+            // A failed start shows its card but plays nothing: no session, no notification.
+            snapshotFlow { model.isPresented && model.failure == null }.distinctUntilChanged().collect { up -> if (up) bind() else unbind() }
         }
     }
 

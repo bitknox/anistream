@@ -193,6 +193,7 @@ class AppStore(
      * loads it and JNA, so that never happens on the main thread.
      */
     fun start(launch: EngineLaunch, host: FfiHost, prepare: () -> Unit = {}) {
+        lastStart = Triple(launch, host, prepare)
         _phase.value = Phase.Starting
         imageFiles = launch.home.cache.resolve("img")
         scope.launch {
@@ -205,8 +206,24 @@ class AppStore(
             } catch (e: FfiException) {
                 _phase.value = Phase.Failed(e.reason)
                 early.clear()
+            } catch (e: LinkageError) {
+                // The engine's library did not load: UnsatisfiedLinkError is an Error, not an Exception.
+                android.util.Log.e("anistream", "the engine did not load", e)
+                _phase.value = Phase.Failed(e.message ?: "the engine library did not load")
+                early.clear()
             }
         }
+    }
+
+    private var lastStart: Triple<EngineLaunch, FfiHost, () -> Unit>? = null
+
+    /** Start the engine again, as the failed or stopped screen's Try again asks. */
+    fun restartEngine() {
+        if (_phase.value is Phase.Starting || _phase.value is Phase.Running) return
+        val (launch, host, prepare) = lastStart ?: return
+        client?.cancel()
+        client = null
+        start(launch, host, prepare)
     }
 
     /**
@@ -247,7 +264,11 @@ class AppStore(
             engine,
             scope,
             deliver = ::apply,
-            stopped = { _phase.value = Phase.Stopped },
+            stopped = {
+                // Nothing it was doing will be answered now.
+                jobs.clear()
+                _phase.value = Phase.Stopped
+            },
         )
         this.client = client
         _phase.value = Phase.Running
@@ -804,6 +825,11 @@ class AppStore(
         providers.trialAsked(mode, proxy)?.let { send(Command.CheckTorrentProtection(it.mode, it.proxy)) }
     }
 
+    /** Check the connection against the torrent guard again: the VPN check, on its own. */
+    fun checkConnection() {
+        send(Command.CheckConnection)
+    }
+
     /** Check every provider again. */
     fun checkProviders() {
         send(Command.CheckProviders)
@@ -919,9 +945,21 @@ class AppStore(
     // Applying
 
     fun apply(events: List<Event>) = traced("apply ${events.size} events") {
-        for (event in events) apply(event)
+        // One event that throws is logged and skipped; it must not take the rest of the batch, or
+        // the process, with it.
+        for (event in events) {
+            try {
+                apply(event)
+            } catch (e: Exception) {
+                android.util.Log.e("anistream", "an event could not be applied: ${event::class.simpleName}", e)
+            }
+        }
         lastApplied = clock()
-        onApplied?.invoke(events)
+        try {
+            onApplied?.invoke(events)
+        } catch (e: Exception) {
+            android.util.Log.e("anistream", "a listener failed on a batch of events", e)
+        }
     }
 
     fun apply(event: Event) {
@@ -962,7 +1000,7 @@ class AppStore(
             is Event.TitlesChanged -> titlesChanged()
             is Event.Progress -> titles.progress(event.id, event.progress, event.resume, event.episodes)
             is Event.LastAired -> titles.lastAired(event.v1)
-            is Event.Episodes -> titles.episodes(event.id, event.rows)
+            is Event.Episodes -> titles.episodes(event.id, event.rows, event.failed)
             is Event.TitleDub -> titles.dub(event.id, event.dub)
 
             is Event.Connectivity -> _offline.value = event.offline

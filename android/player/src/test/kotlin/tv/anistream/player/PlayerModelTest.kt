@@ -257,6 +257,28 @@ class ClosingTest {
     }
 
     @Test
+    fun backBeforeTheEngineStagesThePlaybackStopsItInsteadOfPlayingUnseen() = runTest {
+        val rig = Rig(this)
+        rig.model.hostFinished()
+        assertTrue("what is being found is stopped", rig.sent.contains(Command.Player(PlayerCommand.Stop)))
+        val sent = rig.sent.size
+        rig.model.apply(Event.PlaybackStaged(900_001u, "Stardust Wayfarer", "7", null, 1.0))
+        assertFalse(rig.model.isPresented)
+        assertEquals("stopped again, since it was staged anyway", sent + 1, rig.sent.size)
+        rig.ops(1u, PlayerOp.Open(false, null, null))
+        assertFalse("no player opens for a window that is gone", rig.model.hasMpv)
+    }
+
+    @Test
+    fun aNewWindowTakesPlaybacksAgain() = runTest {
+        val rig = Rig(this)
+        rig.model.hostFinished()
+        rig.model.hostStarted()
+        rig.model.apply(Event.PlaybackStaged(900_001u, "Stardust Wayfarer", "7", null, 1.0))
+        assertTrue(rig.model.isPresented)
+    }
+
+    @Test
     fun aFailureSaysWhyAsTheEngineSaidIt() = runTest {
         val rig = Rig(this)
         staged(rig, "7")

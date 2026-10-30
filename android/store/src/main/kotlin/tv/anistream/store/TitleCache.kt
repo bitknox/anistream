@@ -12,6 +12,7 @@ import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeProgress
 import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.engine.model.Msg
 import tv.anistream.engine.model.ResumePoint
 import tv.anistream.engine.model.TitleAired
 import tv.anistream.engine.model.TitleProgress
@@ -61,7 +62,7 @@ class TitleCache {
      * A list's rows. A list carries no detail-only fields, so a page's stay where one was loaded,
      * and so does a known list status the list does not know.
      */
-    internal fun merge(list: List<Entry>) = update { entries ->
+    internal fun merge(list: List<Entry>, local: Boolean = false) = update { entries ->
         for (entry in list) {
             val kept = entries[entry.id]
             if (kept == null) {
@@ -73,6 +74,9 @@ class TitleCache {
                 // A list arrives ahead of the broadcast line its own follow-up brings.
                 lastAired = entry.lastAired ?: kept.lastAired,
             )
+            // Only Continue's list speaks for what this device watched. A tracker's list (the
+            // Library after sign-in) may say 12 of 12 or none, and must not turn E7 at 10:06 into E1.
+            if (!local) merged = merged.copy(progress = kept.progress ?: entry.progress, resume = kept.resume ?: entry.resume, watchedIn = kept.watchedIn ?: entry.watchedIn)
             if (entry.id in detailed) {
                 merged = merged.copy(
                     related = kept.related,
@@ -124,9 +128,15 @@ class TitleCache {
         }
     }
 
-    internal fun episodes(id: AnilistId, rows: List<EpisodeRow>) {
+    internal fun episodes(id: AnilistId, rows: List<EpisodeRow>, failed: Msg? = null) {
         _episodes.value = _episodes.value + (id to rows)
+        _episodesFailed.value = if (failed == null) _episodesFailed.value - id else _episodesFailed.value + (id to failed)
     }
+
+    private val _episodesFailed = MutableStateFlow<Map<AnilistId, Msg>>(emptyMap())
+
+    /** Why a title's episodes could not be loaded at all, for its page to say instead of "no episodes". */
+    val episodesFailed: StateFlow<Map<AnilistId, Msg>> = _episodesFailed.asStateFlow()
 
     /** How far [id]'s dub goes, worded for the page; nothing when there is none to say. */
     internal fun dub(id: AnilistId, extent: DubExtent?) {

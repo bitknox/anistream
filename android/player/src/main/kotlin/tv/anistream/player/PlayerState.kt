@@ -13,6 +13,7 @@ import tv.anistream.engine.model.MenuEpisode
 import tv.anistream.engine.model.MenuSource
 import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.NoticeKind
+import tv.anistream.store.text
 import tv.anistream.engine.model.SkipKind
 import tv.anistream.engine.model.TimelineMark
 
@@ -92,7 +93,17 @@ data class StartingScreen(
  * A playback that never played, for "Couldn't play episode 7", and why when the engine said:
  * "No sources configured", the first clause of its alert in plain words.
  */
-data class PlaybackFailure(val id: AnilistId?, val episode: String, val reason: String? = null) {
+data class PlaybackFailure(
+    val id: AnilistId?,
+    val episode: String,
+    val reason: String? = null,
+    /** What the engine said, as a message, so the reason reads in the person's language. */
+    val msg: tv.anistream.engine.model.Msg? = null,
+) {
+    /** The reason in the person's language when the engine sent a message, else as it came. */
+    fun reasonText(context: Context): String? =
+        msg?.let { reason(it.text(context)) } ?: reason
+
     companion object {
         /**
          * The engine's alert as a failure says it: its first clause, capitalised, with no address

@@ -20,6 +20,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -54,7 +55,10 @@ import tv.anistream.widgets.Widgets
 
 class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
     /** Where the store's work runs: the main thread, for as long as the process. */
-    private val scope = MainScope()
+    private val scope = MainScope() + kotlinx.coroutines.CoroutineExceptionHandler { _, e ->
+        // A coroutine that fails in the store is logged; it does not take the process with it.
+        android.util.Log.e("anistream", "the store's work failed", e)
+    }
 
     val store: AppStore by lazy {
         AppStore(scope).also { store ->

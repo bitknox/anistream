@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.delay
+import tv.anistream.design.Motion
 import tv.anistream.design.ShowTitle
 import tv.anistream.engine.model.EmbedStyle
 import tv.anistream.engine.model.Entry
@@ -95,7 +96,7 @@ fun TrailerSheet(entry: Entry, trailer: Trailer, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = Color.Black.copy(alpha = 0.32f),
+        scrimColor = androidx.compose.material3.MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
@@ -119,7 +120,7 @@ fun TrailerSheet(entry: Entry, trailer: Trailer, onDismiss: () -> Unit) {
                     AndroidView(factory = { player.view }, modifier = Modifier.fillMaxSize())
                 }
                 // The title's art until the first frame, then gone over 200 ms.
-                val art by animateFloatAsState(if (playing) 0f else 1f, tween(200, easing = TrailerFadeIn), label = "sheet art") // i18n-skip
+                val art by animateFloatAsState(if (playing) 0f else 1f, Motion.fadeIn(), label = "sheet art") // i18n-skip
                 if (art > 0f) {
                     val hero = HeroArt.of(entry, null)
                     Box(Modifier.fillMaxSize().alpha(art).background(MaterialTheme.colorScheme.surface)) {

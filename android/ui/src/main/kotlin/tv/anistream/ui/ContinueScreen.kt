@@ -297,7 +297,8 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(item.actionText(), style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
+                // Two lines at large text, so the time is never the part that is cut off.
+                Text(item.actionText(), style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
         if (stacked) {

@@ -758,7 +758,7 @@ private fun LastCheckRow(place: Place) {
                 }
                 words.note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant) }
             }
-            TextButton(onClick = store::checkProviders, enabled = check?.view != GuardView.Checking) {
+            TextButton(onClick = store::checkConnection, enabled = check?.view != GuardView.Checking) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     WorkRing(check?.view == GuardView.Checking)
                     Text(stringResource(R.string.torrents_check_now), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)

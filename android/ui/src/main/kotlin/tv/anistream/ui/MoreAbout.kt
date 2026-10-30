@@ -61,7 +61,7 @@ import tv.anistream.engine.model.CastRole
 import tv.anistream.engine.model.Entry
 
 /** The flat placeholder a related or recommended cover, or a character's art, waits on. */
-private val PLATE = Color(0xFF1F2440)
+private val PLATE = NoArtPlate
 
 /** The sheet itself on a phone: full height, its top 77 dp down, closed by its handle, the scrim or Back. */
 @OptIn(ExperimentalMaterial3Api::class)

@@ -60,8 +60,6 @@ import tv.anistream.tv.ui.focusSoon
 import tv.anistream.tv.ui.isOffline
 import tv.anistream.tv.ui.remembered
 
-/** Where Android keeps the switch on Google TV, for a TV whose page does not open by itself. */
-const val UNKNOWN_SOURCES_PATH = "Settings › Apps › Security & restrictions › Unknown sources"
 
 /** What the update's place says, in words, for the state it is in. */
 object UpdateWords {
@@ -287,9 +285,9 @@ private fun AllowInstalls(state: UpdateState.Allowing, memory: FocusMemory, onOp
         }
         Text(
             if (state.opened) {
-                stringResource(R.string.updates_allow_waiting, UNKNOWN_SOURCES_PATH)
+                stringResource(R.string.updates_allow_waiting, stringResource(R.string.updates_unknown_sources_path))
             } else {
-                stringResource(R.string.updates_allow_once, UNKNOWN_SOURCES_PATH)
+                stringResource(R.string.updates_allow_once, stringResource(R.string.updates_unknown_sources_path))
             },
             style = MaterialTheme.typography.bodyMedium,
             color = ObiSilk.Silk,

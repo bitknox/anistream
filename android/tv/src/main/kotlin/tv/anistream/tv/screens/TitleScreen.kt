@@ -79,6 +79,8 @@ import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.AppStore
 import tv.anistream.store.label
 import tv.anistream.store.line
+import tv.anistream.store.text
+import tv.anistream.store.words
 import tv.anistream.tv.PlayAction
 import tv.anistream.tv.cardLine
 import tv.anistream.tv.cardTitle
@@ -356,10 +358,23 @@ private fun Episodes(
     val state = rememberLazyListState(initialFirstVisibleItemIndex = next)
     val nextRequester = remember { FocusRequester() }
     val placeholders = placeholdersAfterWait(rows == null)
+    val failed = store.titles.episodesFailed.collectAsStateWithLifecycle().value[entry.id]
     val found by store.discussion.found.collectAsStateWithLifecycle()
     val settings by store.settings.view.collectAsStateWithLifecycle()
     val discussions = settings == null || store.settings.isOn(tv.anistream.engine.model.SettingKey.EPISODE_DISCUSSIONS, settings)
     BrowseRow(stringResource(R.string.title_episodes), modifier = modifier, subtitle = dub, state = state, fallback = nextRequester) {
+        if (failed != null && rows.isNullOrEmpty()) {
+            // The table could not be loaded: why, and a way to ask again.
+            item(key = "episodes-failed", contentType = "failed") {
+                Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(failed.text(context), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                    tv.anistream.tv.ui.TonalButton(onClick = { store.loadEpisodes(entry.id, force = true) }) {
+                        tv.anistream.tv.ui.ButtonLabel(stringResource(R.string.action_try_again))
+                    }
+                }
+            }
+            return@BrowseRow
+        }
         if (rows == null) {
             if (placeholders) {
                 items(PLACEHOLDER_CARDS, key = { "placeholder/$it" }) { Box(swapFade()) { tv.anistream.tv.ui.CardPlaceholder(Canvas.CardWidth, Canvas.CardHeight) } }
@@ -480,7 +495,7 @@ private fun Details(entry: Entry, memory: FocusMemory, modifier: Modifier) {
                 listOfNotNull(
                     entry.studio?.let { stringResource(R.string.title_studio) to it },
                     entry.genres.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.filter_genres) to it.joinToString(", ") }, // i18n-skip
-                    entry.source?.let { stringResource(R.string.title_based_on) to it.name.lowercase().replace('_', ' ').replaceFirstChar { c -> c.uppercase() } },
+                    entry.source?.words(LocalContext.current)?.let { stringResource(R.string.title_based_on) to it },
                 ).forEach { (label, value) ->
                     Row(Modifier.padding(vertical = 2.dp)) {
                         Text(label, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, modifier = Modifier.width(96.dp))

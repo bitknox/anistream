@@ -319,7 +319,8 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
                     DownloadState.PAUSED -> IconButton(onClick = { store.toggleDownload(row.id) }) { Icon(Icons.Resume, contentDescription = stringResource(R.string.downloads_resume_one)) }
                     DownloadState.QUEUED -> Row(verticalAlignment = Alignment.CenterVertically) {
                         QuietButton(stringResource(R.string.downloads_start_now)) { store.startDownloadNow(row.id) }
-                        IconButton(onClick = { store.cancelDownload(row.id) }) {
+                        // Where Pause sat a moment ago: a started download is not dropped by a repeated tap, it asks.
+                        IconButton(onClick = { if (hasFile || row.downloaded > 0uL) deleting = true else remove() }) {
                             Icon(Icons.Clear, contentDescription = stringResource(R.string.downloads_remove_from_queue), tint = colors.onSurfaceVariant)
                         }
                     }

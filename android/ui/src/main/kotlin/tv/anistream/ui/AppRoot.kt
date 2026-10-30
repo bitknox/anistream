@@ -84,6 +84,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import tv.anistream.design.Motion
+import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.PlayerCommand
 import tv.anistream.store.AppStore
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.NoticeHint
@@ -226,6 +228,8 @@ fun AppRoot(
                 when (hint) {
                     NoticeHint.KITSU_CREDENTIALS -> sheets.kitsu = true
                     NoticeHint.OPEN_STORES -> navigator.open(STORES_ROUTE)
+                    // The engine stops whatever plays, or whatever it is still finding.
+                    NoticeHint.STOP_PLAYBACK -> store.send(Command.Player(PlayerCommand.Stop))
                     else -> actions.hint(hint)
                 }
             },
@@ -256,6 +260,11 @@ fun AppRoot(
         TvSheetHost()
         DiscussionHost()
         JoinStoreSheetHost()
+        // Two links in a row: the later one's sheet replaces the earlier, never stacks on it.
+        val joining by store.stores.joining.collectAsStateWithLifecycle()
+        val tvSheet by store.tv.sheet.collectAsStateWithLifecycle()
+        androidx.compose.runtime.LaunchedEffect(joining) { if (joining != null) store.tv.sheetClosed() }
+        androidx.compose.runtime.LaunchedEffect(tvSheet) { if (tvSheet != null) store.stores.closeJoin() }
         androidx.compose.runtime.LaunchedEffect(startTitle) {
             startTitle?.let { navigator.openTitle(it, "launch") }
         }
@@ -347,6 +356,7 @@ fun AppRoot(
             }
         }
         if (firstLaunch) FirstLaunch(onCover = { covered = it })
+        EngineDown()
     }
 }
 
@@ -478,7 +488,7 @@ private fun Rail(current: Destination?, route: String?, navigator: Navigator, ac
             colors = WideNavigationRailDefaults.colors(
                 containerColor = colors.surface,
                 modalContainerColor = colors.surfaceContainerLow,
-                modalScrimColor = Color.Black.copy(alpha = 0.32f),
+                modalScrimColor = androidx.compose.material3.MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
             ),
             header = {
                 val collapseLabel = stringResource(if (expanded) R.string.nav_collapse else R.string.nav_expand)

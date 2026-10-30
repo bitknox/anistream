@@ -93,6 +93,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import tv.anistream.store.text
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.collectLatest
@@ -1595,7 +1596,7 @@ private fun LazyListScope.episodeRows(
     val next = entry.progress?.next ?: 1u
     val listed = entry.listedEpisodes(episodes)
     if (listed.isEmpty()) {
-        item(key = "no-episodes", contentType = "no-episodes") { NoEpisodes(itemMotion().padding(horizontal = 16.dp)) }
+        item(key = "no-episodes", contentType = "no-episodes") { NoEpisodes(entry.id, itemMotion().padding(horizontal = 16.dp)) }
         return
     }
     val folded = entry.foldedEpisodes(listed)
@@ -1621,16 +1622,20 @@ private fun LazyListScope.episodeRows(
 
 /**
  * Said plainly when a title has no episodes to list: none a source has, and none AniList knows of
- * yet either.
+ * yet either. When the table could not be loaded at all, why, with Try again, instead.
  */
 @Composable
-private fun NoEpisodes(modifier: Modifier = Modifier) {
-    Text(
-        stringResource(R.string.title_no_episodes),
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.padding(vertical = 16.dp),
-    )
+private fun NoEpisodes(id: AnilistId, modifier: Modifier = Modifier) {
+    val store = LocalAppStore.current
+    val failed = store.titles.episodesFailed.collectAsStateWithLifecycle().value[id]
+    Column(modifier.padding(vertical = 16.dp)) {
+        Text(
+            failed?.text(LocalContext.current) ?: stringResource(R.string.title_no_episodes),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (failed != null) QuietButton(stringResource(R.string.action_try_again)) { store.loadEpisodes(id, force = true) }
+    }
 }
 
 /**
@@ -1873,7 +1878,7 @@ private fun TabletTitle(
                     items(4) { AfterWait { EpisodePlaceholder() } }
                 } else {
                     val listed = entry.listedEpisodes(episodes)
-                    if (listed.isEmpty()) fullWidth("no-episodes") { NoEpisodes(itemMotion().padding(start = 16.dp)) }
+                    if (listed.isEmpty()) fullWidth("no-episodes") { NoEpisodes(entry.id, itemMotion().padding(start = 16.dp)) }
                     // Folded in pairs, so the last watched keeps its column.
                     val folded = entry.foldedEpisodes(listed, columns = 2)
                     if (folded.isNotEmpty()) {

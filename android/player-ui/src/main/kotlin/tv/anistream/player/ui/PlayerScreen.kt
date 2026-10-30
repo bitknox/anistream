@@ -522,7 +522,7 @@ private fun StartingLayer(model: PlayerModel, rect: VideoRect, art: Boolean, onC
                     Text(Strings.playerFailedTitleText(LocalContext.current, failure.episode), style = line, color = ObiSilk.Silk)
                     Text(
                         // Why, as the engine said it, when it did.
-                        failure.reason?.let { "$it." } ?: stringResource(R.string.player_failed_detail), // i18n-skip
+                        failure.reasonText(LocalContext.current)?.let { "$it." } ?: stringResource(R.string.player_failed_detail), // i18n-skip
                         style = MaterialTheme.typography.bodyMedium,
                         color = ObiSilk.Haze,
                         modifier = Modifier.padding(top = 4.dp),
