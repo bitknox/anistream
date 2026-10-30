@@ -75,6 +75,7 @@ pub struct Config {
     pub notifications: NotificationsConfig,
     pub meta: MetaConfig,
     pub controller: ControllerConfig,
+    pub cast: CastConfig,
     /// Keybinding overrides, `action = "key"`. The help overlay is generated from the
     /// resolved map so it can never drift from what the keys actually do.
     pub keys: BTreeMap<String, String>,
@@ -488,6 +489,21 @@ impl Default for NotificationsConfig {
     }
 }
 
+/// Casting to TVs with Chromecast built in.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct CastConfig {
+    /// List TVs with Chromecast built in in the TV picker. On unless switched off; off, the
+    /// picker doesn't look for them.
+    pub show_tvs: bool,
+}
+
+impl Default for CastConfig {
+    fn default() -> Self {
+        Self { show_tvs: true }
+    }
+}
+
 /// A game controller, in the apps that take one.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -870,6 +886,10 @@ pub struct TorrentConfig {
     /// Whether torrents run over a cellular connection. Off by default. Only the native apps
     /// know which network they are on; the terminal keeps it as it is.
     pub on_cellular: bool,
+    /// Whether a cast to a TV with Chromecast built in plays from torrents, which this device
+    /// then serves for the whole episode. Unset, off on phones and tablets and on elsewhere:
+    /// the engine fills it in at launch from the device it runs on.
+    pub while_casting: Option<bool>,
 }
 
 impl Default for TorrentConfig {
@@ -886,6 +906,7 @@ impl Default for TorrentConfig {
             // night's episodes is instant, small enough that nobody's disk fills over a season.
             cache_limit_gb: 20,
             on_cellular: false,
+            while_casting: None,
         }
     }
 }

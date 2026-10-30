@@ -6,28 +6,36 @@
     <string name="cast_episode">Episode %1$s</string>
     <!-- What the TV's loading screen and its own controls show under the show's name, with the episode's own title. -->
     <string name="cast_episode_titled">Episode %1$s · %2$s</string>
-    <!-- The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10. -->
-    <string name="notice_cast_video_codec">The TV can\'t play this video (%1$s). Try another source.</string>
-    <!-- The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS. -->
-    <string name="notice_cast_audio_codec">The TV can\'t play this audio (%1$s), and this device can\'t convert it. Try another source.</string>
-    <!-- The stream comes in a kind of file the TV can't read. -->
-    <string name="notice_cast_container">The TV can\'t play this kind of file. Try another source.</string>
+    <!-- The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10. -->
+    <string name="notice_cast_video_codec">%1$s can\'t play this video (%2$s). Try another source.</string>
+    <!-- The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS. -->
+    <string name="notice_cast_audio_codec">%1$s can\'t play this audio (%2$s), and this device can\'t convert it. Try another source.</string>
+    <!-- The stream comes in a kind of file the TV can't read. The name is the TV's own. -->
+    <string name="notice_cast_container">%1$s can\'t play this kind of file. Try another source.</string>
     <!-- The episode opens in another app, which this device can't cast. -->
     <string name="notice_cast_deep_link">This episode opens in another app, so it can\'t be cast.</string>
-    <!-- The TV accepted the stream but never started reading it. -->
-    <string name="notice_cast_never_fetches">The TV didn\'t start reading the stream. Check that this device and the TV are on the same network, without a VPN in between.</string>
-    <!-- The TV tried every way of playing the stream and played none of them. -->
-    <string name="notice_cast_refused">The TV couldn\'t play this stream. Try another source.</string>
-    <!-- Someone started something else on the TV, which ends the cast. -->
-    <string name="notice_cast_taken_over">Another device started something on the TV, so casting stopped.</string>
-    <!-- This device isn't on the TV's network, or reaches it through a VPN. -->
-    <string name="notice_cast_not_same_network">This device isn\'t on the TV\'s network, or reaches it through a VPN. Casting needs both on the same network.</string>
-    <!-- The TV stopped answering mid-cast. -->
-    <string name="notice_cast_lost">Lost the TV, so casting stopped.</string>
+    <!-- The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own. -->
+    <string name="notice_cast_never_fetches">%1$s didn\'t start reading the stream. A VPN or a firewall on this device may be in the way.</string>
+    <!-- The TV tried every way of playing the stream and played none of them. The name is the TV's own. -->
+    <string name="notice_cast_refused">%1$s couldn\'t play this stream. Try another source.</string>
+    <!-- Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own. -->
+    <string name="notice_cast_taken_over">Another device started something on %1$s, so casting stopped.</string>
+    <!-- This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own. -->
+    <string name="notice_cast_not_same_network">This device isn\'t on the network %1$s is on, or reaches it through a VPN. Casting needs both on the same network.</string>
+    <!-- The TV stopped answering mid-cast. The name is the TV's own. -->
+    <string name="notice_cast_lost">Lost %1$s, so casting stopped.</string>
     <!-- The TV picked to cast to has left the network. -->
     <string name="notice_cast_no_device">That TV is no longer on the network.</string>
     <!-- This build of the app has no casting. -->
     <string name="notice_cast_unavailable">This version of anistream can\'t cast to TVs.</string>
+    <!-- The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room. -->
+    <string name="cast_phase_starting">Starting on %1$s</string>
+    <!-- The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap. -->
+    <string name="cast_phase_starting_for">Starting on %1$s · %2$d s</string>
+    <!-- The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start. -->
+    <string name="cast_phase_waiting">Waiting for %1$s · %2$d s</string>
+    <!-- The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start. -->
+    <string name="cast_phase_preparing">Preparing the stream · %1$d s</string>
     <!-- A comment's age, beside its author, when it was written under a minute ago. -->
     <string name="discussion_age_now">now</string>
     <!-- A comment's age, beside its author, in minutes. Abbreviated, as a timeline shows it. -->

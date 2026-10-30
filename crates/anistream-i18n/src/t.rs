@@ -15,19 +15,19 @@ pub fn cast_episode_titled(episode: &str, title: &str) -> String {
     text("cast-episode-titled", &[("episode", Arg::Text(episode)), ("title", Arg::Text(title))])
 }
 
-/// The TV can't decode the stream's video, and nothing on this device can convert it. The codec is a technical name such as HEVC Main 10.
-pub fn notice_cast_video_codec(codec: &str) -> String {
-    text("notice-cast-video-codec", &[("codec", Arg::Text(codec))])
+/// The TV can't decode the stream's video, and nothing on this device can convert it. The name is the TV's own, such as Living room. The codec is a technical name such as HEVC Main 10.
+pub fn notice_cast_video_codec(name: &str, codec: &str) -> String {
+    text("notice-cast-video-codec", &[("name", Arg::Text(name)), ("codec", Arg::Text(codec))])
 }
 
-/// The TV can't play the stream's audio, and this device can't convert it. The codec is a technical name such as DTS.
-pub fn notice_cast_audio_codec(codec: &str) -> String {
-    text("notice-cast-audio-codec", &[("codec", Arg::Text(codec))])
+/// The TV can't play the stream's audio, and this device can't convert it. The name is the TV's own. The codec is a technical name such as DTS.
+pub fn notice_cast_audio_codec(name: &str, codec: &str) -> String {
+    text("notice-cast-audio-codec", &[("name", Arg::Text(name)), ("codec", Arg::Text(codec))])
 }
 
-/// The stream comes in a kind of file the TV can't read.
-pub fn notice_cast_container() -> String {
-    text("notice-cast-container", &[])
+/// The stream comes in a kind of file the TV can't read. The name is the TV's own.
+pub fn notice_cast_container(name: &str) -> String {
+    text("notice-cast-container", &[("name", Arg::Text(name))])
 }
 
 /// The episode opens in another app, which this device can't cast.
@@ -35,29 +35,29 @@ pub fn notice_cast_deep_link() -> String {
     text("notice-cast-deep-link", &[])
 }
 
-/// The TV accepted the stream but never started reading it.
-pub fn notice_cast_never_fetches() -> String {
-    text("notice-cast-never-fetches", &[])
+/// The TV accepted the stream but never started reading it. The card offers Try again and Play here beside it. The name is the TV's own.
+pub fn notice_cast_never_fetches(name: &str) -> String {
+    text("notice-cast-never-fetches", &[("name", Arg::Text(name))])
 }
 
-/// The TV tried every way of playing the stream and played none of them.
-pub fn notice_cast_refused() -> String {
-    text("notice-cast-refused", &[])
+/// The TV tried every way of playing the stream and played none of them. The name is the TV's own.
+pub fn notice_cast_refused(name: &str) -> String {
+    text("notice-cast-refused", &[("name", Arg::Text(name))])
 }
 
-/// Someone started something else on the TV, which ends the cast.
-pub fn notice_cast_taken_over() -> String {
-    text("notice-cast-taken-over", &[])
+/// Someone started something else on the TV, which ends the cast. The card closes and this shows for 8 seconds with Play here. The name is the TV's own.
+pub fn notice_cast_taken_over(name: &str) -> String {
+    text("notice-cast-taken-over", &[("name", Arg::Text(name))])
 }
 
-/// This device isn't on the TV's network, or reaches it through a VPN.
-pub fn notice_cast_not_same_network() -> String {
-    text("notice-cast-not-same-network", &[])
+/// This device isn't on the TV's network, or reaches it through a VPN. The name is the TV's own.
+pub fn notice_cast_not_same_network(name: &str) -> String {
+    text("notice-cast-not-same-network", &[("name", Arg::Text(name))])
 }
 
-/// The TV stopped answering mid-cast.
-pub fn notice_cast_lost() -> String {
-    text("notice-cast-lost", &[])
+/// The TV stopped answering mid-cast. The name is the TV's own.
+pub fn notice_cast_lost(name: &str) -> String {
+    text("notice-cast-lost", &[("name", Arg::Text(name))])
 }
 
 /// The TV picked to cast to has left the network.
@@ -68,6 +68,26 @@ pub fn notice_cast_no_device() -> String {
 /// This build of the app has no casting.
 pub fn notice_cast_unavailable() -> String {
     text("notice-cast-unavailable", &[])
+}
+
+/// The casting card's line while a cast starts, for its first 4 seconds. The name is the TV's own, such as Living room.
+pub fn cast_phase_starting(name: &str) -> String {
+    text("cast-phase-starting", &[("name", Arg::Text(name))])
+}
+
+/// The casting card's line while a cast starts, past its first 4 seconds, counting the seconds since the tap.
+pub fn cast_phase_starting_for(name: &str, seconds: i64) -> String {
+    text("cast-phase-starting-for", &[("name", Arg::Text(name)), ("seconds", Arg::Int(seconds))])
+}
+
+/// The casting card's line while the TV opens its player or loads the stream, past the first 4 seconds of the start.
+pub fn cast_phase_waiting(name: &str, seconds: i64) -> String {
+    text("cast-phase-waiting", &[("name", Arg::Text(name)), ("seconds", Arg::Int(seconds))])
+}
+
+/// The casting card's line while this device reads the stream and makes it ready for the TV, past the first 4 seconds of the start.
+pub fn cast_phase_preparing(seconds: i64) -> String {
+    text("cast-phase-preparing", &[("seconds", Arg::Int(seconds))])
 }
 
 /// A comment's age, beside its author, when it was written under a minute ago.
@@ -5023,6 +5043,16 @@ pub fn settings_label_comment_images() -> String {
 /// Settings row: whether Calendar shows only the shows on the person's list.
 pub fn settings_label_calendar_mine() -> String {
     text("settings-label-calendar-mine", &[])
+}
+
+/// Settings row: whether the TV picker lists TVs with Chromecast built in.
+pub fn settings_label_cast_tvs() -> String {
+    text("settings-label-cast-tvs", &[])
+}
+
+/// Settings row: whether a cast to a TV plays from torrents, which this device serves meanwhile.
+pub fn settings_label_torrents_while_casting() -> String {
+    text("settings-label-torrents-while-casting", &[])
 }
 
 /// Note under the titles row.

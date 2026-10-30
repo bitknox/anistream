@@ -141,6 +141,7 @@ fn torrent(url: String) -> CastLoad {
         subtitles: Vec::new(),
         subtitle: None,
         audio_language: Some("ja".into()),
+        audio_track: None,
     }
 }
 
@@ -718,6 +719,64 @@ fn subtitles_become_webvtt() {
     assert!(vtt.contains("00:00:01.000 --> 00:00:02.500\nHello"));
     assert!(!vtt.contains("\n1\n"));
     assert_eq!(to_webvtt("WEBVTT\n\nx", None), "WEBVTT\n\nx");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn another_audio_track_loads_the_file_again_where_it_was_without_a_new_start() {
+    let dub = FixtureAudio { language: "eng", ..FixtureAudio::aac() };
+    let file = Fixture {
+        seconds: 60,
+        audio: Some(FixtureAudio::aac()),
+        more_audio: vec![dub],
+        ..Fixture::default()
+    };
+    let base = serve(HashMap::from([("/episode.mkv".to_owned(), matroska(&file))])).await;
+    let receiver = FakeReceiver::start(FakeOptions::default()).await.unwrap();
+    let (player, mut events) = CastPlayer::connect(setup(
+        &receiver,
+        Arc::new(CastMemory::memory()),
+        Arc::new(NoEncoder),
+    ))
+    .await
+    .unwrap();
+    let mut status = player.status();
+    player.load(torrent(format!("{base}/episode.mkv")));
+    assert!(status.borrow_and_update().step.is_some(), "a load not yet playing says so");
+    next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
+    let playing = player.status().borrow().clone();
+    assert_eq!(playing.step, None);
+    let languages: Vec<_> =
+        playing.audio.iter().map(|a| (a.index, a.language.as_deref(), a.selected)).collect();
+    assert_eq!(languages, [(0, Some("jpn"), true), (1, Some("eng"), false)]);
+
+    // Played a little, the dub is picked.
+    next(
+        &mut events,
+        |e| matches!(e, PlaybackEvent::Progress { position, .. } if *position >= 2.0),
+    )
+    .await;
+    player.set_audio(1);
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+    while receiver.heard("LOAD").len() < 2
+        || !player.status().borrow().audio.iter().any(|a| a.index == 1 && a.selected)
+        || player.status().borrow().step.is_some()
+    {
+        assert!(tokio::time::Instant::now() < deadline, "the dub loaded");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    let loads = receiver.heard("LOAD");
+    assert!(loads[1]["currentTime"].as_f64().unwrap_or(0.0) >= 2.0, "{:?}", loads[1]);
+    // The session heard nothing start again: no second `Loaded` before the file plays on.
+    next(&mut events, |e| match e {
+        PlaybackEvent::Loaded => panic!("the reload was taken for a new file"),
+        PlaybackEvent::Progress { position, .. } => *position >= 3.0,
+        _ => false,
+    })
+    .await;
+    // The track playing isn't loaded again.
+    player.set_audio(1);
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert_eq!(receiver.heard("LOAD").len(), 2);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
