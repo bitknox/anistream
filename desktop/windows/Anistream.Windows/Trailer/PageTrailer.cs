@@ -53,31 +53,23 @@ sealed class PageTrailer
         stage = new TrailerStage(banner, EmbedStyle.Banner, art);
         stage.Place(VideoWidth, VideoHeight, new Thickness(0, VideoTop, VideoMargin, 0), HorizontalAlignment.Right);
         stage.Showing += Showing;
-        settle = page.DispatcherQueue.CreateTimer();
-        settle.Interval = Settle;
-        settle.IsRepeating = false;
-        settle.Tick += (_, _) =>
+        settle = Timers.Weak(this, Settle, false, static trailer =>
         {
-            settled = true;
-            MaybeStart();
-        };
-        away = page.DispatcherQueue.CreateTimer();
-        away.Interval = Away;
-        away.IsRepeating = false;
-        away.Tick += (_, _) =>
+            trailer.settled = true;
+            trailer.MaybeStart();
+        });
+        // Not again on this visit.
+        away = Timers.Weak(this, Away, false, static trailer =>
         {
-            // Not again on this visit.
-            abandoned = true;
-            stage.Stop();
-        };
+            trailer.abandoned = true;
+            trailer.stage.Stop();
+        });
         // A sheet over the page lets the trailer go; the window's own popups are told apart by what they hold.
-        watch = page.DispatcherQueue.CreateTimer();
-        watch.Interval = TimeSpan.FromMilliseconds(400);
-        watch.Tick += (_, _) =>
+        watch = Timers.Weak(this, TimeSpan.FromMilliseconds(400), true, static trailer =>
         {
-            if (SheetOpen())
-                stage.Stop();
-        };
+            if (trailer.SheetOpen())
+                trailer.stage.Stop();
+        });
         sound.Click += (_, _) =>
         {
             Sound(!soundOn);

@@ -183,15 +183,15 @@ public sealed partial class TitlePage : Page, IPageKeys
             OpenShowSettings();
         };
         KeyboardAccelerators.Add(settings);
+        // The page's own key is in the shortcuts list; a tooltip naming it over the whole page is not wanted.
+        KeyboardAcceleratorPlacementMode = KeyboardAcceleratorPlacementMode.Hidden;
         // Heard from the start: what arrives before the page is loaded is not missed.
-        ctx.Batch += Heard;
         trailer = new PageTrailer(this, Banner, Art, Scroll, SoundButton, () => reserved);
-        Unloaded += (_, _) =>
+        ctx.Hear(this, Heard, () =>
         {
-            ctx.Batch -= Heard;
             discussion?.Close();
             trailer.Release();
-        };
+        });
     }
 
     readonly PageTrailer trailer;
@@ -512,7 +512,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         Fact(T.FilterCountry, TitleFacts.Country(entry));
         Fact(T.TitleGenres, entry.Genres is { Length: > 0 } genres ? string.Join(" · ", genres.Select(Searches.GenreName)) : null);
         host.Children.Add(facts);
-        var more = new Button { Content = T.TitleMoreAbout, Height = 32, HorizontalAlignment = HorizontalAlignment.Stretch, Background = Res<Brush>("RaisedBrush") };
+        var more = new Button { Content = T.TitleMoreAbout, MinHeight = 32, HorizontalAlignment = HorizontalAlignment.Stretch, Background = Res<Brush>("RaisedBrush") };
         more.Click += (_, _) =>
         {
             if (Current() is { } now && XamlRoot is { } root)
@@ -848,7 +848,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         void Check() => dialog.IsPrimaryButtonEnabled = from.SelectedIndex >= 0 && to.SelectedIndex >= from.SelectedIndex;
         from.SelectionChanged += (_, _) => Check();
         to.SelectionChanged += (_, _) => Check();
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        if (await Dialogs.Show(dialog) != ContentDialogResult.Primary)
             return;
         var chosen = playable[from.SelectedIndex..(to.SelectedIndex + 1)];
         ctx.Send(new Command.DownloadMany(id, chosen));
