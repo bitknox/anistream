@@ -11510,6 +11510,61 @@ pub fn title_button_resume_dubbed(episode: i64, time: &str) -> String {
     text("title-button-resume-dubbed", &[("episode", Arg::Int(episode)), ("time", Arg::Text(time))])
 }
 
+/// Label of a fact: the genres, joined in its value.
+pub fn title_genres() -> String {
+    text("title-genres", &[])
+}
+
+/// Label of a fact: the date a show not yet out starts.
+pub fn title_fact_starts() -> String {
+    text("title-fact-starts", &[])
+}
+
+/// Label of a fact: the date a film or a one-off was released.
+pub fn title_fact_released() -> String {
+    text("title-fact-released", &[])
+}
+
+/// Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates.
+pub fn title_fact_range(from: &str, to: &str) -> String {
+    text("title-fact-range", &[("from", Arg::Text(from)), ("to", Arg::Text(to))])
+}
+
+/// Value of the fact on a cancelled show: the last episode that aired.
+pub fn title_fact_after(episode: i64) -> String {
+    text("title-fact-after", &[("episode", Arg::Int(episode))])
+}
+
+/// Value of the fact on a show that is airing and has no known start.
+pub fn title_fact_now() -> String {
+    text("title-fact-now", &[])
+}
+
+/// Value of the fact on a show with no announced start.
+pub fn title_fact_tba() -> String {
+    text("title-fact-tba", &[])
+}
+
+/// Heading of the people the viewer follows who have the show on their list.
+pub fn more_following() -> String {
+    text("more-following", &[])
+}
+
+/// Note under that heading: where the list comes from.
+pub fn more_following_source() -> String {
+    text("more-following-source", &[])
+}
+
+/// A followed person's status and score, such as "Completed · 9/10". The status is already worded.
+pub fn more_following_line(status: &str, score: i64) -> String {
+    text("more-following-line", &[("status", Arg::Text(status)), ("score", Arg::Int(score))])
+}
+
+/// Heading of the posters of similar shows under the sheet.
+pub fn more_like_this() -> String {
+    text("more-like-this", &[])
+}
+
 /// Title of the settings group and the screen.
 pub fn torrents_title() -> String {
     text("torrents-title", &[])

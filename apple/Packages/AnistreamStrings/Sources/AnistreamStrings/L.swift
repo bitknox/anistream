@@ -6471,6 +6471,45 @@ public enum L {
         Self.format("title-button-resume-dubbed", fallback: "Resume episode %1$lld · Dubbed · %2$@", episode, time)
     }
 
+    /// Label of a fact: the genres, joined in its value.
+    public static var titleGenres: String { string("title-genres", fallback: "Genres") }
+
+    /// Label of a fact: the date a show not yet out starts.
+    public static var titleFactStarts: String { string("title-fact-starts", fallback: "Starts") }
+
+    /// Label of a fact: the date a film or a one-off was released.
+    public static var titleFactReleased: String { string("title-fact-released", fallback: "Released") }
+
+    /// Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates.
+    public static func titleFactRange(from: String, to: String) -> String {
+        Self.format("title-fact-range", fallback: "%1$@ to %2$@", from, to)
+    }
+
+    /// Value of the fact on a cancelled show: the last episode that aired.
+    public static func titleFactAfter(episode: Int) -> String {
+        Self.format("title-fact-after", fallback: "After episode %1$lld", episode)
+    }
+
+    /// Value of the fact on a show that is airing and has no known start.
+    public static var titleFactNow: String { string("title-fact-now", fallback: "Now") }
+
+    /// Value of the fact on a show with no announced start.
+    public static var titleFactTba: String { string("title-fact-tba", fallback: "To be announced") }
+
+    /// Heading of the people the viewer follows who have the show on their list.
+    public static var moreFollowing: String { string("more-following", fallback: "People you follow") }
+
+    /// Note under that heading: where the list comes from.
+    public static var moreFollowingSource: String { string("more-following-source", fallback: "From AniList") }
+
+    /// A followed person's status and score, such as "Completed · 9/10". The status is already worded.
+    public static func moreFollowingLine(status: String, score: Int) -> String {
+        Self.format("more-following-line", fallback: "%1$@ · %2$lld/10", status, score)
+    }
+
+    /// Heading of the posters of similar shows under the sheet.
+    public static var moreLikeThis: String { string("more-like-this", fallback: "More like this") }
+
     /// Title of the settings group and the screen.
     public static var torrentsTitle: String { string("torrents-title", fallback: "Torrents") }
 

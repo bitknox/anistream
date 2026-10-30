@@ -7533,6 +7533,42 @@
         }
       }
     },
+    "more-following" : {
+      "comment" : "Heading of the people the viewer follows who have the show on their list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "People you follow"
+          }
+        }
+      }
+    },
+    "more-following-line" : {
+      "comment" : "A followed person's status and score, such as \"Completed · 9/10\". The status is already worded. Argument 1: status (Text). Argument 2: score (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld/10"
+          }
+        }
+      }
+    },
+    "more-following-source" : {
+      "comment" : "Note under that heading: where the list comes from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From AniList"
+          }
+        }
+      }
+    },
     "more-hide-spoiler-tags" : {
       "comment" : "Button that hides the spoiler tags.",
       "extractionState" : "manual",
@@ -7541,6 +7577,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hide spoiler tags"
+          }
+        }
+      }
+    },
+    "more-like-this" : {
+      "comment" : "Heading of the posters of similar shows under the sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More like this"
           }
         }
       }
@@ -20867,6 +20915,18 @@
         }
       }
     },
+    "title-fact-after" : {
+      "comment" : "Value of the fact on a cancelled show: the last episode that aired. Argument 1: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After episode %1$lld"
+          }
+        }
+      }
+    },
     "title-fact-airs" : {
       "comment" : "Name of the fact on the title page that says when an unaired show starts.",
       "extractionState" : "manual",
@@ -20887,6 +20947,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Also on"
+          }
+        }
+      }
+    },
+    "title-fact-now" : {
+      "comment" : "Value of the fact on a show that is airing and has no known start.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now"
+          }
+        }
+      }
+    },
+    "title-fact-range" : {
+      "comment" : "Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates. Argument 1: from (Text). Argument 2: to (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ to %2$@"
+          }
+        }
+      }
+    },
+    "title-fact-released" : {
+      "comment" : "Label of a fact: the date a film or a one-off was released.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Released"
+          }
+        }
+      }
+    },
+    "title-fact-starts" : {
+      "comment" : "Label of a fact: the date a show not yet out starts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starts"
+          }
+        }
+      }
+    },
+    "title-fact-tba" : {
+      "comment" : "Value of the fact on a show with no announced start.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To be announced"
+          }
+        }
+      }
+    },
+    "title-genres" : {
+      "comment" : "Label of a fact: the genres, joined in its value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genres"
           }
         }
       }

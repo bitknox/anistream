@@ -112,16 +112,6 @@ episode-row-spoken = { $heading }, { $line }
 # @only windows
 episode-listed-by-anilist = Listed by AniList
 
-# Title page details: the studio that made the show.
-# @only windows
-# @arg studio: text
-title-studio-line = Studio: { $studio }
-
-# Title page details: what the show is adapted from, such as "Based on: Manga".
-# @only windows
-# @arg material: text
-title-based-on-line = Based on: { $material }
-
 # Title page: a related title's line, its relation and its format, such as "Sequel · TV".
 # @only windows
 # @arg relation: text

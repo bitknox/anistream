@@ -6725,6 +6725,50 @@ object Strings {
     fun titleButtonResumeDubbed(context: Context, episode: Int, time: String): String =
         context.getString(R.string.title_button_resume_dubbed, episode, time)
 
+    /** Label of a fact: the genres, joined in its value. */
+    fun titleGenres(context: Context): String =
+        context.getString(R.string.title_genres)
+
+    /** Label of a fact: the date a show not yet out starts. */
+    fun titleFactStarts(context: Context): String =
+        context.getString(R.string.title_fact_starts)
+
+    /** Label of a fact: the date a film or a one-off was released. */
+    fun titleFactReleased(context: Context): String =
+        context.getString(R.string.title_fact_released)
+
+    /** Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates. */
+    fun titleFactRange(context: Context, from: String, to: String): String =
+        context.getString(R.string.title_fact_range, from, to)
+
+    /** Value of the fact on a cancelled show: the last episode that aired. */
+    fun titleFactAfter(context: Context, episode: Int): String =
+        context.getString(R.string.title_fact_after, episode)
+
+    /** Value of the fact on a show that is airing and has no known start. */
+    fun titleFactNow(context: Context): String =
+        context.getString(R.string.title_fact_now)
+
+    /** Value of the fact on a show with no announced start. */
+    fun titleFactTba(context: Context): String =
+        context.getString(R.string.title_fact_tba)
+
+    /** Heading of the people the viewer follows who have the show on their list. */
+    fun moreFollowing(context: Context): String =
+        context.getString(R.string.more_following)
+
+    /** Note under that heading: where the list comes from. */
+    fun moreFollowingSource(context: Context): String =
+        context.getString(R.string.more_following_source)
+
+    /** A followed person's status and score, such as "Completed · 9/10". The status is already worded. */
+    fun moreFollowingLine(context: Context, status: String, score: Int): String =
+        context.getString(R.string.more_following_line, status, score)
+
+    /** Heading of the posters of similar shows under the sheet. */
+    fun moreLikeThis(context: Context): String =
+        context.getString(R.string.more_like_this)
+
     /** Title of the settings group and the screen. */
     fun torrentsTitle(context: Context): String =
         context.getString(R.string.torrents_title)

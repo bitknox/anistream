@@ -3516,6 +3516,28 @@
     <string name="title_button_play_dubbed">Play episode %1$d · Dubbed</string>
     <!-- Main button of the title page when a dubbed episode is part-watched. The time is where it stopped, already formatted. -->
     <string name="title_button_resume_dubbed">Resume episode %1$d · Dubbed · %2$s</string>
+    <!-- Label of a fact: the genres, joined in its value. -->
+    <string name="title_genres">Genres</string>
+    <!-- Label of a fact: the date a show not yet out starts. -->
+    <string name="title_fact_starts">Starts</string>
+    <!-- Label of a fact: the date a film or a one-off was released. -->
+    <string name="title_fact_released">Released</string>
+    <!-- Value of a fact: when a show ran, from its first broadcast to its last. Both are already worded dates. -->
+    <string name="title_fact_range">%1$s to %2$s</string>
+    <!-- Value of the fact on a cancelled show: the last episode that aired. -->
+    <string name="title_fact_after">After episode %1$d</string>
+    <!-- Value of the fact on a show that is airing and has no known start. -->
+    <string name="title_fact_now">Now</string>
+    <!-- Value of the fact on a show with no announced start. -->
+    <string name="title_fact_tba">To be announced</string>
+    <!-- Heading of the people the viewer follows who have the show on their list. -->
+    <string name="more_following">People you follow</string>
+    <!-- Note under that heading: where the list comes from. -->
+    <string name="more_following_source">From AniList</string>
+    <!-- A followed person's status and score, such as "Completed · 9/10". The status is already worded. -->
+    <string name="more_following_line">%1$s · %2$d/10</string>
+    <!-- Heading of the posters of similar shows under the sheet. -->
+    <string name="more_like_this">More like this</string>
     <!-- Title of the settings group and the screen. -->
     <string name="torrents_title">Torrents</string>
     <!-- Label and short value for the switch. -->

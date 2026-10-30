@@ -274,6 +274,12 @@ public sealed partial class TitlePage : Page, IPageKeys
         if (ctx.Options.Show is "settings" or "settings-loading" or "settings-failed" && ctx.Options.Title == id)
             DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, OpenShowSettings);
 #if ANISTREAM_TESTING
+        if (ctx.Options.Show is { } more && more.StartsWith("more-open") && ctx.Options.Title == id)
+            _ = Task.Delay(1500).ContinueWith(_ => DispatcherQueue.TryEnqueue(() =>
+            {
+                if (Current() is { } now && XamlRoot is { } root)
+                    new TitleMoreDialog(ctx, root, now).Show();
+            }));
         if (ctx.Options.Show is "source-picker" or "source-picker-pinned" or "source-picker-releases" or "source-picker-loading" && ctx.Options.Title == id)
             _ = Task.Delay(1500).ContinueWith(_ => DispatcherQueue.TryEnqueue(OpenSourcePicker));
         // --show=source-unsourced-end: the table scrolled to its end, where the last unsourced rows are.
@@ -360,9 +366,47 @@ public sealed partial class TitlePage : Page, IPageKeys
         }
     }
 
+    Entry? Current() =>
+#if ANISTREAM_TESTING
+        ctx.Known.Entry(id) is { } e ? Sampled(e) : null;
+#else
+        ctx.Known.Entry(id);
+#endif
+
+#if ANISTREAM_TESTING
+    /// <summary>--show=more...: made-up facts and sheet content, as the fixtures carry none. +film, +hiatus, +cancelled.</summary>
+    Entry Sampled(Entry e)
+    {
+        if (ctx.Options.Show is not { } show || !show.StartsWith("more"))
+            return e;
+        var filmed = show.Contains("+film");
+        AiringFact run = show.Contains("+hiatus") ? new AiringFact.Hiatus(new FuzzyDate(2026, 3, null))
+            : show.Contains("+cancelled") ? new AiringFact.Cancelled(6)
+            : filmed ? new AiringFact.Finished(new FuzzyDate(2025, 5, 2), null)
+            : new AiringFact.Finished(new FuzzyDate(2023, 4, 8), new FuzzyDate(2023, 6, 24));
+        return e with
+        {
+            Format = filmed ? "MOVIE" : "ONA",
+            Studio = "Ginrei Studio",
+            Source = SourceMaterial.LightNovel,
+            Airing = run,
+            FilmLength = filmed ? new RunLength(1, 52) : null,
+            Country = "CN",
+            MadeOutsideJapan = show.Contains("+china"),
+            Detail = new TitleDetail(
+                Tags: [new TitleTag("Found family", 90, false, false, null), new TitleTag("Rural", 70, false, false, null), new TitleTag("Betrayal", 60, true, false, null), new TitleTag("Hidden past", 50, false, true, null)],
+                Rankings: [new Ranking(4, RankingKind.Rated, "", false, Season.Spring, 2023), new Ranking(11, RankingKind.Popular, "", true, null, null)],
+                Characters: [new CastMember(Name: "Mira Okonkwo", Role: CastRole.Main, VoiceActors: [new Person("Haru Tanabe", null)]), new CastMember(Name: "Tobias Lindqvist", Role: CastRole.Main, VoiceActors: [new Person("Ren Aoyama", null)]), new CastMember(Name: "Elsa Marchetti", Role: CastRole.Supporting, VoiceActors: [])],
+                Staff: [new StaffCredit("Noor Haddad", "Director"), new StaffCredit("Pavel Novak", "Series composition")],
+                StreamingLinks: [new StreamingLink("Lanternflix", "https://lanternflix.example/show", null), new StreamingLink("Kiri Stream", "https://kiri.example/show", "Japanese")],
+                Following: show.Contains("+signed-out") ? [] : [new FollowedEntry("Ines", null, LibrarySegment.Completed, 90, 10), new FollowedEntry("Jonas", null, LibrarySegment.Watching, null, 4)]),
+        };
+    }
+#endif
+
     void Show()
     {
-        if (ctx.Known.Entry(id) is not { } entry)
+        if (Current() is not { } entry)
             return;
         State.Done();
         var cover = new CoverItem(entry);
@@ -444,18 +488,39 @@ public sealed partial class TitlePage : Page, IPageKeys
         Side.Children.Clear();
         DetailsBelow.Children.Clear();
 
-        var details = new StackPanel { Spacing = 6 };
-        details.Children.Add(new TextBlock { Text = T.TitleDetails, Style = Res<Style>("BodyStrongTextBlockStyle") });
-        void Line(string? text)
+        // Facts, a label and its value each. Studio and the season are in the metadata line.
+        var facts = new Grid { ColumnSpacing = 12, RowSpacing = 6 };
+        facts.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
+        facts.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        void Fact(string label, string? value)
         {
-            if (!string.IsNullOrEmpty(text))
-                details.Children.Add(new TextBlock { Text = text, Style = Res<Style>("HazeBodyStyle"), TextWrapping = TextWrapping.WrapWholeWords });
+            if (string.IsNullOrEmpty(value))
+                return;
+            var row = facts.RowDefinitions.Count;
+            facts.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var name = new TextBlock { Text = label, FontSize = 12, Style = Res<Style>("HazeBodyStyle"), TextWrapping = TextWrapping.WrapWholeWords };
+            var text = new TextBlock { Text = value, TextWrapping = TextWrapping.WrapWholeWords };
+            Grid.SetRow(name, row);
+            Grid.SetRow(text, row);
+            Grid.SetColumn(text, 1);
+            facts.Children.Add(name);
+            facts.Children.Add(text);
         }
-        Line(entry.Studio is { } studio ? T.TitleStudioLine(studio) : null);
-        Line(entry.Genres is { Length: > 0 } genres ? string.Join(", ", genres.Select(Searches.GenreName)) : null);
-        Line(entry.Source is { } source ? T.TitleBasedOnLine(MaterialName(source)) : null);
-        Line(BroadcastLine(entry) is { Length: > 0 } airing ? airing : null);
-        host.Children.Add(details);
+        Fact(T.TitleBasedOn, entry.Source is { } source ? MaterialName(source) : null);
+        if (TitleFacts.Airing(entry.Airing) is { } airing)
+            Fact(airing.Label, airing.Value);
+        Fact(T.FilterCountry, TitleFacts.Country(entry));
+        Fact(T.TitleGenres, entry.Genres is { Length: > 0 } genres ? string.Join(" · ", genres.Select(Searches.GenreName)) : null);
+        host.Children.Add(facts);
+        var more = new Button { Content = T.TitleMoreAbout, Height = 32, HorizontalAlignment = HorizontalAlignment.Stretch, Background = Res<Brush>("RaisedBrush") };
+        more.Click += (_, _) =>
+        {
+            if (Current() is { } now && XamlRoot is { } root)
+                new TitleMoreDialog(ctx, root, now).Show();
+        };
+        host.Children.Add(more);
+        if (BroadcastLine(entry) is { Length: > 0 } broadcast)
+            host.Children.Add(Ui.Haze(broadcast));
 
         if (Anistream.App.TitleSeasons.Related(entry) is { Length: > 0 } related)
         {
@@ -573,7 +638,7 @@ public sealed partial class TitlePage : Page, IPageKeys
     {
         Layout();
         Reserve();
-        if (ctx.Known.Entry(id) is { } entry)
+        if (Current() is { } entry)
             ShowDetails(entry);
     }
 
