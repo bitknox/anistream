@@ -49,6 +49,9 @@ public final class Navigator {
     public var calendarOpensOn = 0
     /// Whether the last step in the calendar went forward, for the way the week slides.
     public var calendarForward = true
+    /// Counts the times the Calendar tab was tapped again on its own screen: each one returns
+    /// the iPhone agenda to today.
+    public var calendarToToday = 0
     /// The launch route asks for My list: set on the first look at the calendar.
     var launchCalendarMine = false
     /// The Settings pane on screen, on the Mac and iPad.

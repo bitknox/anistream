@@ -102,7 +102,11 @@ struct PhoneCalendar: View {
         }
         .scrollPosition($position, anchor: .top)
         .onScrollTargetVisibilityChange(idType: Date.self, threshold: 0.1) { ids in
-            visible = Set(ids)
+            let wasShown = todayShown
+            // Today's button fades in (0.2 s) once today has left, and out (0.3 s) as it returns.
+            withAnimation(wasShown ? .easeOut(duration: 0.2) : .easeIn(duration: 0.3)) {
+                visible = Set(ids)
+            }
             topDay = ids.min()
             prefetch(ids: ids, days: days, bounds: bounds)
         }
@@ -112,6 +116,7 @@ struct PhoneCalendar: View {
         .daysRotor(days, broadcasts: broadcasts, in: rotor)
         .task(id: model.list.state == .loading) { await open(today: today) }
         .onChange(of: key) { _, _ in settle(days: days, today: today) }
+        .onChange(of: navigator.calendarToToday) { _, _ in returnToToday() }
         .onChange(of: topDay) { _, day in
             guard let day else { return }
             let week = Self.monday(of: day)
@@ -173,12 +178,19 @@ struct PhoneCalendar: View {
                         if day == today, split == rows.count { nowLine(now) }
                     }
                 }
+                // When a broadcast airs, the line moves below its row.
+                .animation(reduceMotion ? .easeInOut(duration: 0.2) : .standard, value: day == today ? aired(rows, now: now) : 0)
                 .id(day)
             }
             bottom(days: days, bounds: bounds, mineBare: mineBare)
         }
         .scrollTargetLayout()
         .padding(.top, 8)
+    }
+
+    /// How many of the day's rows have aired: where the line for now stands.
+    private func aired(_ rows: [Broadcast], now: Date) -> Int {
+        rows.firstIndex { $0.airs > now } ?? rows.count
     }
 
     /// The line for now, over the rule between two rows and taking no room.
@@ -392,9 +404,16 @@ struct PhoneCalendar: View {
             withAnimation(.standard) { position.scrollTo(id: today, anchor: .top) }
             return
         }
+        // A screen short of today on the side the agenda is on, inside the days it holds.
         let above = (topDay ?? today) > today
-        let short = calendar.date(byAdding: .day, value: above ? 2 : -2, to: today)!
-        position.scrollTo(id: short, anchor: .top)
+        let model = store.calendar
+        let bounds = store.calendarBounds
+        let anchor = TimeInterval(model.anchor ?? 0)
+        let airs = model.rows.compactMap { $0.airingIn.map { Date(timeIntervalSince1970: anchor + TimeInterval($0)) } }
+        let first = max(min(airs.first.map { calendar.startOfDay(for: $0) } ?? today, today), bounds.floor)
+        let last = min(max(airs.last.map { calendar.startOfDay(for: $0) } ?? today, today), bounds.ceiling)
+        let short = min(max(calendar.date(byAdding: .day, value: above ? 2 : -2, to: today)!, first), last)
+        if short != today { position.scrollTo(id: short, anchor: .top) }
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(30))
             withAnimation(.standard) { position.scrollTo(id: today, anchor: .top) }
