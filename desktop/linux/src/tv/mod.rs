@@ -9,6 +9,7 @@
 //! - the paired TVs, for Settings.
 
 mod avahi;
+pub mod cast;
 #[cfg(feature = "fixtures")]
 pub mod fixture;
 pub mod paired;
@@ -33,7 +34,8 @@ use anistream_engine::remote::{
         known::{KnownTv, KnownTvs},
     },
     sender::{
-        LinkPhase, NowCard, Pairing, Problem, RemoteCard, TvLink, TvRow, TvRowKind, TvSender,
+        CastBrowser, CastRow, LinkPhase, NowCard, Pairing, Problem, RemoteCard, TvLink, TvRow,
+        TvRowKind, TvSender,
     },
 };
 use anistream_i18n::t;
@@ -83,13 +85,24 @@ pub enum Sheet {
 }
 
 type Listener = Rc<dyn Fn()>;
+/// Says a notice's words.
+type Notice = Box<dyn Fn(&str)>;
 
 pub struct Tv {
     me: Weak<Self>,
     handle: Handle,
     sender: Option<Arc<TvSender>>,
     browser: Arc<dyn Browser>,
+    cast_browser: Arc<dyn CastBrowser>,
     rows: RefCell<Vec<TvRow>>,
+    cast_rows: RefCell<Vec<CastRow>>,
+    /// The cast running, or ended and kept on the card; see [`cast`].
+    cast: RefCell<Option<cast::CastRun>>,
+    /// Counts up with each cast, so a card from one let go is not taken.
+    cast_turn: Cell<u64>,
+    /// The episode of a cast someone else took the TV from, for the notice's Play here.
+    taken: RefCell<Option<(AnilistId, String)>>,
+    on_taken_over: RefCell<Option<Notice>>,
     paired: RefCell<Vec<KnownTv>>,
     short: String,
     browsers: Cell<u32>,
@@ -122,12 +135,12 @@ pub struct Tv {
 impl Tv {
     /// The sender over the paired TVs under `data`, browsing with Avahi. With no sender (its key
     /// or its list could not be read) Play on TV is not offered.
-    pub fn new(handle: Handle, data: &Path) -> Rc<Self> {
-        let sender = open_sender(&handle, data)
+    pub fn new(handle: Handle, data: &Path, casting: Option<cast::Casting>) -> Rc<Self> {
+        let sender = open_sender(&handle, data, casting)
             .inspect_err(|e| tracing::warn!(error = %e, "no Play on TV"))
             .ok()
             .map(Arc::new);
-        let tv = Self::with(handle, sender, avahi::Avahi::start());
+        let tv = Self::with(handle, sender, avahi::Avahi::start(), avahi::AvahiCast::start());
         tv.watch_network();
         tv
     }
@@ -136,6 +149,7 @@ impl Tv {
         handle: Handle,
         sender: Option<Arc<TvSender>>,
         browser: Arc<dyn Browser>,
+        cast_browser: Arc<dyn CastBrowser>,
     ) -> Rc<Self> {
         let short = sender.as_ref().map(|s| s.short_fingerprint()).unwrap_or_default();
         let tv = Rc::new_cyclic(|me| Self {
@@ -143,7 +157,13 @@ impl Tv {
             handle,
             sender,
             browser,
+            cast_browser,
             rows: RefCell::default(),
+            cast_rows: RefCell::default(),
+            cast: RefCell::default(),
+            cast_turn: Cell::new(0),
+            taken: RefCell::default(),
+            on_taken_over: RefCell::default(),
             paired: RefCell::default(),
             short,
             browsers: Cell::new(0),
@@ -204,6 +224,7 @@ impl Tv {
     fn refresh(&self) {
         let Some(sender) = &self.sender else { return };
         self.rows.replace(sender.rows());
+        self.cast_rows.replace(sender.cast_rows());
         self.paired.replace(sender.paired());
         self.changed();
     }
@@ -372,6 +393,12 @@ impl Tv {
 
     /// The card of the TV driven, or the picker when there is none.
     pub fn open_remote(&self) {
+        if self.casting() {
+            self.cast_reopened();
+            self.sheet.set(Some(Sheet::Remote));
+            self.changed();
+            return;
+        }
         if self.ended.get()
             && let Some(tv) = self.connected()
         {
@@ -397,6 +424,7 @@ impl Tv {
         if self.card.borrow().as_ref().is_some_and(|c| c.over) {
             self.end();
         }
+        self.cast_sheet_closed();
         self.changed();
     }
 
@@ -427,6 +455,8 @@ impl Tv {
         if self.browsers.get() == 1 {
             let _entered = self.handle.enter();
             sender.browse(Arc::clone(&self.browser));
+            // After the first, which stops any browse before it.
+            sender.browse_cast(Arc::clone(&self.cast_browser));
         }
     }
 
@@ -738,6 +768,10 @@ impl Tv {
 
     /// Send the TV a command from the card.
     pub fn send(&self, command: RemoteCommand) {
+        if self.casting() {
+            self.cast_send(command);
+            return;
+        }
         let Some(link) = self.link.borrow().clone() else { return };
         if self.problem.replace(None).is_some() {
             self.changed();
@@ -801,7 +835,11 @@ impl Tv {
 }
 
 /// The sender, with this install's key and the TVs paired before.
-fn open_sender(handle: &Handle, data: &Path) -> Result<TvSender, String> {
+fn open_sender(
+    handle: &Handle,
+    data: &Path,
+    casting: Option<cast::Casting>,
+) -> Result<TvSender, String> {
     let dir = data.join("remote");
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let identity = identity_in(&dir)?;
@@ -811,7 +849,11 @@ fn open_sender(handle: &Handle, data: &Path) -> Result<TvSender, String> {
         app: format!("anistream-linux/{}", anistream_engine::updates::CURRENT),
     };
     let _entered = handle.enter();
-    Ok(TvSender::new(identity, hello, known))
+    let sender = TvSender::new(identity, hello, known);
+    if let Some(casting) = casting {
+        sender.attach_casting(casting.hub, casting.engine);
+    }
+    Ok(sender)
 }
 
 /// This install's key, made the first time: a `0600` file, as the engine keeps its tokens on

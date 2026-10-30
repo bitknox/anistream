@@ -1,8 +1,8 @@
 //! Finding TVs with Avahi, the system's mDNS, over its D-Bus API on the system bus: a service
-//! browser for `_anistream._tcp` while the picker is up, each TV it sees resolved to its
-//! addresses, port and TXT record, and handed to the engine's sink. The engine reads what a TV
-//! says; this only asks the system what it has seen. With no Avahi running nothing is found,
-//! and the picker's typed address still reaches a TV.
+//! browser for `_anistream._tcp` while the picker is up, and one for `_googlecast._tcp`, each TV
+//! it sees resolved to its addresses, port and TXT record, and handed to the engine's sink. The
+//! engine reads what a TV says; this only asks the system what it has seen. With no Avahi
+//! running nothing is found, and the picker's typed address still reaches a TV.
 
 use std::{
     cell::RefCell,
@@ -12,8 +12,9 @@ use std::{
     sync::Arc,
 };
 
-use anistream_engine::remote::protocol::discovery::{
-    Browser, DiscoverySink, FoundTv, SERVICE_TYPE,
+use anistream_engine::remote::{
+    protocol::discovery::{Browser, DiscoverySink, FoundTv, SERVICE_TYPE},
+    sender::{CastBrowser, CastSink, FoundCast},
 };
 use gtk::{gio, glib, prelude::*};
 
@@ -26,28 +27,38 @@ const SERVICE_BROWSER: &str = "org.freedesktop.Avahi.ServiceBrowser";
 /// Any interface, any protocol: `AVAHI_IF_UNSPEC`, `AVAHI_PROTO_UNSPEC`.
 const UNSPEC: i32 = -1;
 const TIMEOUT_MS: i32 = 5_000;
+/// What a TV with Chromecast built in advertises.
+const CAST_TYPE: &str = "_googlecast._tcp";
 
-/// The engine's browser: it is asked on any thread, and the browse runs on GTK's main loop.
-pub struct Avahi {
+type Found = Box<dyn Fn(&str, Vec<SocketAddr>, &[(String, String)]) + Send>;
+
+/// What a browse tells: a TV found, with each address it can be reached on and its record, and
+/// a TV gone.
+struct Report {
+    found: Found,
+    lost: Box<dyn Fn(&str) + Send>,
+}
+
+/// A browser for one kind of service: it is asked on any thread, and the browse runs on GTK's
+/// main loop.
+struct Feed {
     asks: async_channel::Sender<Ask>,
 }
 
 enum Ask {
-    Start(DiscoverySink),
+    Start(Report),
     Stop,
 }
 
-impl Avahi {
-    pub fn start() -> Arc<Self> {
+impl Feed {
+    fn start(kind: &'static str) -> Self {
         let (asks, rx) = async_channel::unbounded();
-        glib::spawn_future_local(serve(rx));
-        Arc::new(Self { asks })
+        glib::spawn_future_local(serve(rx, kind));
+        Self { asks }
     }
-}
 
-impl Browser for Avahi {
-    fn start(&self, sink: DiscoverySink) {
-        let _ = self.asks.send_blocking(Ask::Start(sink));
+    fn begin(&self, report: Report) {
+        let _ = self.asks.send_blocking(Ask::Start(report));
     }
 
     fn stop(&self) {
@@ -55,17 +66,75 @@ impl Browser for Avahi {
     }
 }
 
-async fn serve(asks: async_channel::Receiver<Ask>) {
+/// The engine's browser for TVs running anistream.
+pub struct Avahi(Feed);
+
+impl Avahi {
+    pub fn start() -> Arc<Self> {
+        Arc::new(Self(Feed::start(SERVICE_TYPE)))
+    }
+}
+
+impl Browser for Avahi {
+    fn start(&self, sink: DiscoverySink) {
+        let lost = sink.clone();
+        self.0.begin(Report {
+            found: Box::new(move |instance, addresses, txt| {
+                sink.found(FoundTv::from_txt(instance, addresses, txt));
+            }),
+            lost: Box::new(move |instance| lost.lost(instance)),
+        });
+    }
+
+    fn stop(&self) {
+        self.0.stop();
+    }
+}
+
+/// The engine's browser for TVs with Chromecast built in.
+pub struct AvahiCast(Feed);
+
+impl AvahiCast {
+    pub fn start() -> Arc<Self> {
+        Arc::new(Self(Feed::start(CAST_TYPE)))
+    }
+}
+
+impl CastBrowser for AvahiCast {
+    fn start(&self, sink: CastSink) {
+        let lost = sink.clone();
+        self.0.begin(Report {
+            found: Box::new(move |instance, addresses, txt| {
+                // IPv4 only: the receiver's channel is dialled by address, and a TV answers on
+                // its IPv4 one.
+                if let Some(address) = addresses.into_iter().find(SocketAddr::is_ipv4) {
+                    sink.found(FoundCast {
+                        instance: instance.to_owned(),
+                        address,
+                        txt: txt.to_vec(),
+                    });
+                }
+            }),
+            lost: Box::new(move |instance| lost.lost(instance)),
+        });
+    }
+
+    fn stop(&self) {
+        self.0.stop();
+    }
+}
+
+async fn serve(asks: async_channel::Receiver<Ask>, kind: &'static str) {
     let mut browse: Option<Browse> = None;
     while let Ok(ask) = asks.recv().await {
         if let Some(old) = browse.take() {
             old.stop();
         }
-        if let Ask::Start(sink) = ask {
-            match Browse::start(sink).await {
+        if let Ask::Start(report) = ask {
+            match Browse::start(kind, report).await {
                 Ok(started) => browse = Some(started),
                 Err(e) => {
-                    tracing::info!(error = %e, "no Avahi to find TVs with: only a typed address")
+                    tracing::info!(error = %e, kind, "no Avahi to find TVs with: only a typed address")
                 }
             }
         }
@@ -91,7 +160,7 @@ struct Browse {
 }
 
 struct State {
-    sink: DiscoverySink,
+    report: Report,
     connection: gio::DBusConnection,
     /// The browser's object, once Avahi has said it; signals before that wait in `early`.
     path: RefCell<Option<String>>,
@@ -101,10 +170,10 @@ struct State {
 }
 
 impl Browse {
-    async fn start(sink: DiscoverySink) -> Result<Self, glib::Error> {
+    async fn start(kind: &'static str, report: Report) -> Result<Self, glib::Error> {
         let connection = gio::bus_get_future(gio::BusType::System).await?;
         let state = Rc::new(State {
-            sink,
+            report,
             connection: connection.clone(),
             path: RefCell::default(),
             early: RefCell::default(),
@@ -126,7 +195,7 @@ impl Browse {
                 }
             },
         );
-        let args = (UNSPEC, UNSPEC, SERVICE_TYPE, "", 0u32).to_variant();
+        let args = (UNSPEC, UNSPEC, kind, "", 0u32).to_variant();
         let reply_type = glib::VariantTy::new("(o)").ok();
         let call = |interface: &'static str, method: &'static str| {
             connection.call_future(
@@ -288,7 +357,7 @@ impl State {
             gone
         };
         if gone {
-            self.sink.lost(instance);
+            (self.report.lost)(instance);
         } else {
             self.tell(instance);
         }
@@ -302,7 +371,7 @@ impl State {
         let addresses = reachable(
             each.values().filter_map(|r| r.address.map(|a| SocketAddr::new(a, r.port))),
         );
-        self.sink.found(FoundTv::from_txt(instance, addresses, &first.txt));
+        (self.report.found)(instance, addresses, &first.txt);
     }
 }
 

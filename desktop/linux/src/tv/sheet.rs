@@ -10,18 +10,24 @@ use std::{
 };
 
 use adw::prelude::*;
-use anistream_engine::remote::{
-    protocol::{
-        command::{RemoteCommand, Track},
-        state::TrackInfo,
+use anistream_engine::{
+    cast::protocol::VolumeControl,
+    remote::{
+        protocol::{
+            command::{RemoteCommand, Track},
+            state::TrackInfo,
+        },
+        sender::{CastRow, LinkPhase, NowCard, Problem, TvRow, TvRowKind},
     },
-    sender::{LinkPhase, NowCard, Problem, TvRow, TvRowKind},
 };
 use anistream_i18n::t;
-use anistream_model::hosted::TrackKind;
+use anistream_model::{command::Command, hosted::TrackKind};
 use gtk::{gdk, gio, glib};
 
-use super::{Sheet as Shown, Tv};
+use super::{
+    Sheet as Shown, Tv,
+    cast::{CastView, Offer, Stage},
+};
 use crate::{
     say, widgets,
     window::{Ctx, Size},
@@ -37,10 +43,23 @@ const SEEK_REST: Duration = Duration::from_millis(250);
 const SEEK_HOLD: Duration = Duration::from_secs(3);
 /// TV Volume's step, each press.
 const VOLUME_STEP: f64 = 5.0;
+/// A volume dragged on the scale is sent once the drag rests this long.
+const VOLUME_REST: Duration = Duration::from_millis(200);
+/// Where a volume let go is held on the scale until the TV says where it went, or this long.
+const VOLUME_HOLD: Duration = Duration::from_millis(1500);
 
 /// Open the sheet whenever the model asks for it, and close it when the model lets it go.
 pub fn attach(ctx: &Rc<Ctx>) {
     let showing: Rc<RefCell<Option<Rc<Dialog>>>> = Rc::default();
+    // Someone else took the TV: the card has gone, and the notice stays 8 s with Play here.
+    ctx.tv.on_taken_over({
+        let ctx = Rc::downgrade(ctx);
+        move |text| {
+            if let Some(ctx) = ctx.upgrade() {
+                ctx.toast_with(text, &t::tv_cast_play_here(), "win.tv-play-here");
+            }
+        }
+    });
     let weak = Rc::downgrade(ctx);
     ctx.tv.listen(move || {
         let Some(ctx) = weak.upgrade() else { return };
@@ -201,7 +220,13 @@ impl Dialog {
                 let Some(me) = me.upgrade() else { return glib::ControlFlow::Break };
                 match me.face.get() {
                     Some(Face::Picker) => me.picker.show_searching(&me.tv),
-                    Some(Face::Remote) => me.remote.show_playhead(&me.tv),
+                    Some(Face::Remote) => {
+                        // A cast's starting line counts the seconds.
+                        if me.tv.casting() {
+                            me.remote.update(&me.ctx, false);
+                        }
+                        me.remote.show_playhead(&me.tv);
+                    }
                     _ => {}
                 }
                 glib::ControlFlow::Continue
@@ -316,6 +341,18 @@ impl Dialog {
             }
         });
 
+        self.picker.cast_list.connect_row_activated({
+            let me = Rc::downgrade(self);
+            move |_, row| {
+                let Some(me) = me.upgrade() else { return };
+                let key = row.widget_name();
+                let chosen = me.tv.cast_rows().into_iter().find(|r| r.key == key);
+                if let Some(chosen) = chosen {
+                    me.tv.choose_cast(&chosen);
+                }
+            }
+        });
+
         // Pairing.
         let back = on(|me| me.tv.cancel_pairing());
         self.pairing.back.connect_clicked(move |_| back());
@@ -372,6 +409,53 @@ impl Dialog {
                 glib::Propagation::Proceed
             }
         });
+        self.remote.volume_scale.connect_change_value({
+            let me = Rc::downgrade(self);
+            move |_, _, value| {
+                let Some(me) = me.upgrade() else { return glib::Propagation::Stop };
+                me.remote.volume_dragged(value);
+                let rest = glib::timeout_add_local_once(VOLUME_REST, {
+                    let me = Rc::downgrade(&me);
+                    move || {
+                        if let Some(me) = me.upgrade() {
+                            me.remote.volume_rested(&me.tv);
+                        }
+                    }
+                });
+                me.remote.volume_rest.replace(Some(rest));
+                glib::Propagation::Proceed
+            }
+        });
+
+        // The cast's card.
+        self.remote.mute.connect_clicked({
+            let tv = Rc::downgrade(&self.tv);
+            move |_| {
+                if let Some(tv) = tv.upgrade()
+                    && let Some(view) = tv.cast_view()
+                {
+                    tv.cast_send(RemoteCommand::Mute { muted: !view.muted });
+                }
+            }
+        });
+        let play_here = on(|me| {
+            if let Some((id, episode)) = me.tv.cast_play_here() {
+                me.ctx.hub.send(Command::play(id, episode));
+            }
+        });
+        self.remote.play_here.connect_clicked(move |_| play_here());
+        let stop = on(|me| me.tv.cast_stop());
+        self.remote.stop.connect_clicked(move |_| stop());
+        let try_again = on(|me| me.tv.cast_try_again());
+        self.remote.try_again.connect_clicked(move |_| try_again());
+        let choose_another = on(|me| me.tv.cast_choose_another());
+        self.remote.choose_another.connect_clicked(move |_| choose_another());
+        let choose_source = on(|me| {
+            if let Some((id, episode)) = me.tv.cast_choose_source() {
+                crate::party::source::choose(&me.ctx, id, &episode);
+            }
+        });
+        self.remote.choose_source.connect_clicked(move |_| choose_source());
     }
 }
 
@@ -466,9 +550,16 @@ struct Picker {
     done: gtk::Button,
     line: gtk::Label,
     list: gtk::ListBox,
+    /// Over the two lists once both have TVs.
+    network_heading: gtk::Label,
+    cast_heading: gtk::Label,
+    cast_list: gtk::ListBox,
+    drawn_cast: RefCell<Vec<CastRow>>,
     searching: gtk::ListBoxRow,
     stages: gtk::Stack,
     none_line: gtk::Label,
+    /// "TVs with Chromecast built in show here too.", when a TV can be cast to.
+    cast_line: gtk::Label,
     /// The rows as drawn, so a change that leaves them alone redraws nothing.
     drawn: RefCell<Vec<(TvRow, bool)>>,
     since: Cell<Instant>,
@@ -487,6 +578,16 @@ impl Picker {
         let line = line();
         body.append(&line);
 
+        let group_heading = |text: String| {
+            let heading = gtk::Label::new(Some(&text));
+            heading.add_css_class("heading");
+            heading.set_xalign(0.0);
+            heading.set_margin_top(6);
+            heading.set_visible(false);
+            heading
+        };
+        let network_heading = group_heading(t::tv_network_group());
+        body.append(&network_heading);
         let list = widgets::boxed_list();
         list.set_margin_top(6);
         // While no TV is listed: nothing, then the search said, then what to check.
@@ -509,6 +610,8 @@ impl Picker {
         none.append(&none_title);
         let none_line = widgets::haze("", "caption");
         none.append(&none_line);
+        let cast_line = widgets::haze(&t::tv_cast_none_found(), "caption");
+        none.append(&cast_line);
         stages.add_named(&none, Some("none"));
         stages.set_margin_start(12);
         stages.set_margin_end(12);
@@ -522,6 +625,11 @@ impl Picker {
         searching.set_size_request(-1, 52);
         list.append(&searching);
         body.append(&list);
+        let cast_heading = group_heading(t::tv_cast_group());
+        body.append(&cast_heading);
+        let cast_list = widgets::boxed_list();
+        cast_list.set_visible(false);
+        body.append(&cast_list);
 
         let type_address = gtk::Button::with_label(&t::tv_type_address());
         type_address.set_halign(gtk::Align::Start);
@@ -551,9 +659,14 @@ impl Picker {
             done,
             line,
             list,
+            network_heading,
+            cast_heading,
+            cast_list,
+            drawn_cast: RefCell::default(),
             searching,
             stages,
             none_line,
+            cast_line,
             drawn: RefCell::default(),
             since: Cell::new(Instant::now()),
             type_address,
@@ -609,12 +722,28 @@ impl Picker {
             }
             self.drawn.replace(rows);
         }
+        // Cast TVs, once there is something to cast to them.
+        let casts = if request.is_some() { tv.cast_rows() } else { Vec::new() };
+        if *self.drawn_cast.borrow() != casts {
+            while let Some(child) = self.cast_list.first_child() {
+                self.cast_list.remove(&child);
+            }
+            for row in &casts {
+                self.cast_list.append(&cast_row(row));
+            }
+            self.drawn_cast.replace(casts.clone());
+        }
+        let any_cast = !casts.is_empty();
+        self.cast_list.set_visible(any_cast);
+        self.cast_heading.set_visible(any_cast);
+        self.network_heading.set_visible(any_cast && !self.drawn.borrow().is_empty());
+        self.cast_line.set_visible(request.is_some());
         self.show_searching(tv);
     }
 
     /// The searching row, while no TV is listed.
     fn show_searching(&self, _tv: &Tv) {
-        let empty = self.drawn.borrow().is_empty();
+        let empty = self.drawn.borrow().is_empty() && self.drawn_cast.borrow().is_empty();
         self.searching.set_visible(empty);
         let waited = self.since.get().elapsed();
         let stage = if waited < QUIET_FOR {
@@ -664,6 +793,21 @@ fn tv_row(row: &TvRow, connected: bool) -> adw::ActionRow {
         TvRowKind::Paired | TvRowKind::PairedAway => line.add_suffix(&widgets::chevron()),
         TvRowKind::NeedsUpdate => line.set_sensitive(false),
     }
+    line
+}
+
+/// A row for a TV with Chromecast built in: its name, and that the stream plays through this
+/// computer.
+fn cast_row(row: &CastRow) -> adw::ActionRow {
+    let line = adw::ActionRow::builder()
+        .title(&row.name)
+        .subtitle(t::tv_cast_through_computer())
+        .use_markup(false)
+        .activatable(true)
+        .build();
+    line.set_widget_name(&row.key);
+    line.add_prefix(&gtk::Image::from_icon_name("anistream-cast-symbolic"));
+    line.add_suffix(&widgets::chevron());
     line
 }
 
@@ -966,6 +1110,24 @@ struct Remote {
     back10: gtk::Button,
     forward10: gtk::Button,
     next: gtk::Button,
+    // The cast's card.
+    foot: gtk::Box,
+    seek_line: gtk::Box,
+    notice: gtk::Label,
+    volume_scale: gtk::Scale,
+    volume_drag: Cell<Option<f64>>,
+    volume_rest: RefCell<Option<glib::SourceId>>,
+    volume_held: Cell<Option<(f64, Instant)>>,
+    volume_level: Cell<f64>,
+    mute: gtk::Button,
+    cast_foot: gtk::Box,
+    play_here: gtk::Button,
+    stop: gtk::Button,
+    try_again: gtk::Button,
+    choose_another: gtk::Button,
+    choose_source: gtk::Button,
+    /// The stage the card last drew, for the fade as it starts to play.
+    stage: Cell<Option<Stage>>,
 }
 
 fn glyph(icon: &str, tip: &str) -> gtk::Button {
@@ -1008,6 +1170,10 @@ impl Remote {
         skip.set_valign(gtk::Align::Center);
         head.append(&skip);
         now.append(&head);
+        // Why a cast ended, under the episode, in the engine's words.
+        let notice = line();
+        notice.set_visible(false);
+        now.append(&notice);
 
         let seek = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 1.0, 1.0);
         seek.set_draw_value(false);
@@ -1066,6 +1232,20 @@ impl Remote {
         let volume_up = glyph("audio-volume-high-symbolic", &t::tv_volume_up());
         volume.add_suffix(&volume_down);
         volume.add_suffix(&volume_up);
+        // A cast's TV that takes a level has a scale; one with its own volume in charge has Mute.
+        let volume_scale =
+            gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 100.0, 1.0);
+        volume_scale.set_draw_value(false);
+        volume_scale.set_increments(5.0, 10.0);
+        volume_scale.set_size_request(180, -1);
+        volume_scale.set_valign(gtk::Align::Center);
+        volume_scale.set_visible(false);
+        volume_scale.update_property(&[gtk::accessible::Property::Label(&t::tv_volume())]);
+        volume.add_suffix(&volume_scale);
+        let mute = gtk::Button::with_label(&t::tv_cast_mute());
+        mute.set_valign(gtk::Align::Center);
+        mute.set_visible(false);
+        volume.add_suffix(&mute);
         rows.append(&volume);
         now.append(&rows);
         body.append(&now);
@@ -1093,6 +1273,21 @@ impl Remote {
         foot.append(&another);
         foot.append(&disconnect);
         body.append(&foot);
+
+        // A cast's buttons, in the order each ending offers them.
+        let cast_foot = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        cast_foot.set_homogeneous(true);
+        cast_foot.set_margin_top(6);
+        cast_foot.set_visible(false);
+        let choose_source = gtk::Button::with_label(&t::player_choose_source());
+        let try_again = gtk::Button::with_label(&t::action_try_again());
+        let play_here = gtk::Button::with_label(&t::tv_cast_play_here());
+        let choose_another = gtk::Button::with_label(&t::tv_choose_another());
+        let stop = gtk::Button::with_label(&t::tv_cast_stop());
+        for button in [&choose_source, &try_again, &play_here, &choose_another, &stop] {
+            cast_foot.append(button);
+        }
+        body.append(&cast_foot);
 
         let radio = |name: &str| {
             gio::SimpleAction::new_stateful(
@@ -1140,6 +1335,22 @@ impl Remote {
             back10,
             forward10,
             next,
+            foot,
+            seek_line,
+            notice,
+            volume_scale,
+            volume_drag: Cell::new(None),
+            volume_rest: RefCell::default(),
+            volume_held: Cell::new(None),
+            volume_level: Cell::new(0.0),
+            mute,
+            cast_foot,
+            play_here,
+            stop,
+            try_again,
+            choose_another,
+            choose_source,
+            stage: Cell::new(None),
         }
     }
 
@@ -1229,7 +1440,10 @@ impl Remote {
                             || f.ancestor(gtk::Popover::static_type()).is_some())
                 });
                 match tv.upgrade() {
-                    Some(tv) if !keeps_keys && tv.live() && tv.now().is_some() => {
+                    Some(tv)
+                        if !keeps_keys
+                            && ((tv.live() && tv.now().is_some()) || tv.cast_playing()) =>
+                    {
                         tv.send(command);
                         glib::Propagation::Stop
                     }
@@ -1242,6 +1456,11 @@ impl Remote {
 
     fn update(&self, ctx: &Rc<Ctx>, came: bool) {
         let tv = &ctx.tv;
+        if let Some(view) = tv.cast_view() {
+            self.update_cast(ctx, &view, came);
+            return;
+        }
+        self.show_link_parts();
         let card = tv.card();
         let live = tv.live();
         let name = card.as_ref().map_or_else(|| "TV".to_owned(), |c| c.tv_name.clone());
@@ -1271,7 +1490,7 @@ impl Remote {
             now.is_none() && card.as_ref().is_some_and(|c| c.phase == LinkPhase::Connected),
         );
         if let Some(now) = &now {
-            self.draw_now(ctx, now, live);
+            self.draw_now(ctx, now, live, false);
         }
         self.search.set_sensitive(live);
         self.problem.show(None, tv.problem().map(super::problem_text).as_deref());
@@ -1281,7 +1500,7 @@ impl Remote {
         self.show_playhead(tv);
     }
 
-    fn draw_now(&self, ctx: &Rc<Ctx>, now: &NowCard, live: bool) {
+    fn draw_now(&self, ctx: &Rc<Ctx>, now: &NowCard, live: bool, cast: bool) {
         let id = now.id.get();
         if self.cover_of.replace(Some(id)) != Some(id) {
             while let Some(child) = self.cover.first_child() {
@@ -1293,7 +1512,7 @@ impl Remote {
         }
         let title = ctx.hub.entry(now.id).map_or_else(|| now.title.clone(), |e| e.title);
         self.show.set_label(if now.title.is_empty() { &title } else { &now.title });
-        self.episode.set_label(&if now.loading && now.duration.is_none() {
+        self.episode.set_label(&if now.loading && now.duration.is_none() && !cast {
             t::tv_starting()
         } else {
             episode_line(now)
@@ -1360,7 +1579,171 @@ impl Remote {
             &now.volume.map(|v| t::tv_volume_of(v.round() as i64)).unwrap_or_default(),
         );
         self.volume.set_sensitive(live);
-        self.rows.set_opacity(if live { 1.0 } else { 0.6 });
+        if !cast {
+            self.rows.set_opacity(if live { 1.0 } else { 0.6 });
+        }
+    }
+
+    /// The link's own parts back, as a cast's card hid them.
+    fn show_link_parts(&self) {
+        self.foot.set_visible(true);
+        self.search.set_visible(true);
+        self.cast_foot.set_visible(false);
+        self.notice.set_visible(false);
+        self.volume_scale.set_visible(false);
+        self.mute.set_visible(false);
+        self.volume_down.set_visible(true);
+        self.volume_up.set_visible(true);
+        self.seek_line.set_visible(true);
+        self.transport.set_visible(true);
+        self.rows.set_visible(true);
+        for part in [
+            self.seek_line.upcast_ref::<gtk::Widget>(),
+            self.transport.upcast_ref(),
+            self.rows.upcast_ref(),
+            self.position.upcast_ref(),
+            self.remaining.upcast_ref(),
+        ] {
+            part.set_opacity(1.0);
+        }
+        self.stage.set(None);
+    }
+
+    /// The cast's card: where it is in the line above, the episode, the controls once it plays,
+    /// and under them the buttons that fit.
+    fn update_cast(&self, ctx: &Rc<Ctx>, view: &CastView, came: bool) {
+        let tv = &ctx.tv;
+        self.title.set_title(&t::tv_play_on());
+        let (line, mark) = match view.stage {
+            Stage::Starting => (view.starting.clone(), "haze"),
+            Stage::Playing => (t::tv_status_playing(&view.name), "water"),
+            Stage::Failed => (t::tv_cast_couldnt_start(&view.name), "vermilion"),
+            Stage::Lost => (t::tv_cast_stopped(), "vermilion"),
+        };
+        let faded = self.shown_status.borrow().1 != mark;
+        if *self.shown_status.borrow() != (line.clone(), mark) {
+            while let Some(child) = self.status.first_child() {
+                self.status.remove(&child);
+            }
+            let standing = widgets::standing(&line, mark);
+            self.status.append(&standing);
+            // The line crossfades as the cast moves on; only its seconds change in place.
+            if faded && !came {
+                crate::motion::fade_in(&standing);
+            }
+            if faded && view.stage.ended() {
+                standing.announce(&line, gtk::AccessibleAnnouncementPriority::High);
+            }
+            self.shown_status.replace((line, mark));
+        }
+        if came {
+            self.stage.set(None);
+        }
+        self.foot.set_visible(false);
+        self.search.set_visible(false);
+        self.nothing.set_visible(false);
+        self.problem.show(None, tv.problem().map(super::problem_text).as_deref());
+
+        let ended = view.stage.ended();
+        let playing = view.stage == Stage::Playing;
+        let notice = view.notice.as_ref().map(crate::say::msg);
+        self.notice.set_visible(notice.is_some());
+        self.notice.set_label(notice.as_deref().unwrap_or_default());
+        // What went wrong is the standing line's heading and this text; nothing else moves.
+        self.seek_line.set_visible(view.stage != Stage::Failed);
+        self.transport.set_visible(!ended);
+        self.rows.set_visible(!ended);
+
+        self.now.set_visible(view.now.is_some());
+        if let Some(now) = &view.now {
+            self.draw_now(ctx, now, playing, true);
+            if ended {
+                self.skip.set_visible(false);
+            }
+        }
+        // Dimmed while it starts, and in full once the TV shows a picture.
+        let was = self.stage.replace(Some(view.stage));
+        if !ended {
+            let parts = [
+                self.seek_line.upcast_ref::<gtk::Widget>(),
+                self.transport.upcast_ref(),
+                self.rows.upcast_ref(),
+            ];
+            for part in parts {
+                if playing && was.is_some_and(|w| w != Stage::Playing) {
+                    crate::motion::quick(part, 0.4, 1.0, crate::motion::opacity(part)).play();
+                } else if !playing {
+                    part.set_opacity(0.4);
+                } else if was.is_none() {
+                    part.set_opacity(1.0);
+                }
+            }
+        }
+        self.position.set_opacity(if playing || ended { 1.0 } else { 0.0 });
+        self.remaining.set_opacity(if playing { 1.0 } else { 0.0 });
+
+        self.draw_cast_volume(view, playing);
+        self.draw_cast_buttons(view);
+        self.show_playhead(tv);
+    }
+
+    /// TV volume: a scale for a TV that takes a level, Mute for one whose own volume is in
+    /// charge.
+    fn draw_cast_volume(&self, view: &CastView, playing: bool) {
+        let level = matches!(view.volume, VolumeControl::Level);
+        self.volume_down.set_visible(false);
+        self.volume_up.set_visible(false);
+        self.volume_scale.set_visible(level);
+        self.mute.set_visible(!level);
+        self.mute.set_label(&if view.muted { t::tv_cast_unmute() } else { t::tv_cast_mute() });
+        self.mute.set_sensitive(playing);
+        self.volume_scale.set_sensitive(playing);
+        let reported = view.now.as_ref().and_then(|n| n.volume);
+        if let Some(volume) = reported {
+            self.volume_level.set(volume);
+        }
+        if self.volume_held.get().is_some_and(|(_, at)| at.elapsed() > VOLUME_HOLD) {
+            self.volume_held.set(None);
+        }
+        if self.volume_drag.get().is_none() {
+            let shown = self.volume_held.get().map(|h| h.0).or(reported).unwrap_or(0.0);
+            self.volume_scale.set_value(shown);
+        }
+        self.volume.set_subtitle(&if level {
+            String::new()
+        } else {
+            t::tv_cast_volume_on_tv()
+        });
+    }
+
+    /// Play here and Stop casting while it runs; after an ending, what the engine's reason
+    /// offers.
+    fn draw_cast_buttons(&self, view: &CastView) {
+        self.cast_foot.set_visible(true);
+        let offered = |offer| view.offers.contains(&offer);
+        self.choose_source.set_visible(offered(Offer::ChooseSource));
+        self.try_again.set_visible(offered(Offer::TryAgain));
+        self.play_here.set_visible(!view.stage.ended() || offered(Offer::PlayHere));
+        self.choose_another.set_visible(offered(Offer::ChooseAnother));
+        self.stop.set_visible(!view.stage.ended());
+    }
+
+    /// The scale moved by the viewer: held until it rests, then sent as a step.
+    fn volume_dragged(&self, value: f64) {
+        self.volume_drag.set(Some(value));
+        if let Some(id) = self.volume_rest.take() {
+            id.remove();
+        }
+    }
+
+    fn volume_rested(&self, tv: &Tv) {
+        self.volume_rest.take();
+        let Some(target) = self.volume_drag.take() else { return };
+        let step = target - self.volume_level.get();
+        self.volume_held.set(Some((target, Instant::now())));
+        if step.abs() >= 1.0 {
+            tv.cast_send(RemoteCommand::Volume { step });
+        }
     }
 
     /// Moved by the viewer: the line follows, and once the drag rests the TV is told.
@@ -1383,7 +1766,11 @@ impl Remote {
 
     /// The TV's playhead, moved on the computer's clock, unless a drag or a seek holds it.
     fn show_playhead(&self, tv: &Tv) {
-        let Some(now) = tv.now() else { return };
+        let casting = tv.cast_view();
+        let Some(now) = casting.as_ref().map_or_else(|| tv.now(), |view| view.now.clone())
+        else {
+            return;
+        };
         let rev = tv.card().map_or(0, |c| c.rev);
         if let Some((_, at_rev, since)) = self.held.get()
             && (at_rev != rev || since.elapsed() > SEEK_HOLD)
@@ -1394,7 +1781,7 @@ impl Remote {
             .dragging
             .get()
             .or(self.held.get().map(|h| h.0))
-            .or_else(|| tv.playhead())
+            .or_else(|| if casting.is_some() { tv.cast_playhead() } else { tv.playhead() })
             .unwrap_or(now.position);
         // Before the TV knows the length, the bar waits empty rather than reading full.
         if self.dragging.get().is_none() {

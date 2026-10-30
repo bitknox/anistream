@@ -89,6 +89,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "anistream-cast"
+version = "2.0.0"
+dependencies = [
+ "anistream-playback",
+ "async-trait",
+ "futures",
+ "rand 0.10.3",
+ "rustls",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-rustls",
+ "tracing",
+]
+
+[[package]]
 name = "anistream-core"
 version = "2.0.0"
 dependencies = [
@@ -107,6 +124,7 @@ dependencies = [
 name = "anistream-desktop"
 version = "0.0.0"
 dependencies = [
+ "anistream-cast",
  "anistream-core",
  "anistream-engine",
  "anistream-i18n",
@@ -154,6 +172,7 @@ dependencies = [
 name = "anistream-engine"
 version = "2.0.0"
 dependencies = [
+ "anistream-cast",
  "anistream-core",
  "anistream-discord",
  "anistream-meta",

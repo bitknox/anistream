@@ -623,6 +623,16 @@ impl Shell {
             }),
         );
         add("tv-remote", None, Box::new(|s, _| s.ctx.tv.open_remote()));
+        // The notice for a TV someone else took: carry on here.
+        add(
+            "tv-play-here",
+            None,
+            Box::new(|s, _| {
+                if let Some((id, episode)) = s.ctx.tv.take_taken() {
+                    s.ctx.hub.send(Command::play(id, episode));
+                }
+            }),
+        );
         add(
             "download",
             Some(glib::VariantTy::new("(us)").expect("a type")),
@@ -1392,7 +1402,9 @@ fn follow_session(
     let run = move || {
         let Some(tv) = tv.upgrade() else { return };
         let card = tv.card().filter(|_| tv.connected().is_some());
-        let standing = card.map(|card| link_standing(&card, tv.now().is_some(), tv.ended()));
+        let standing = tv
+            .cast_standing()
+            .or_else(|| card.map(|card| link_standing(&card, tv.now().is_some(), tv.ended())));
         show(standing.as_ref());
     };
     run();

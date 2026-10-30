@@ -82,21 +82,25 @@ const MINI_PLAYER: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="16"
 /// Two people side by side, for watching together: the player's people button.
 const PARTY: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g fill="#222"><circle cx="4.5" cy="4.5" r="2.25"/><circle cx="11.5" cy="4.5" r="2.25"/><path d="M1.5 14v-2.5a3 3 0 0 1 6 0V14zM8.5 14v-2.5a3 3 0 0 1 6 0V14z"/></g></svg>"##; // i18n-skip
 
-/// The icons the app draws itself, in the cache's own theme folder: the mini player's and the
-/// people button's.
+/// A screen with the cast waves in its corner: a TV with Chromecast built in, in the picker.
+const CAST: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#222" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 5V3.5a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H9.5"/><path d="M1.5 13.5h.01M1.5 11a2.5 2.5 0 0 1 2.5 2.5M1.5 8.5a5 5 0 0 1 5 5"/></svg>"##; // i18n-skip
+
+/// The icons the app draws itself, in the cache's own theme folder: the mini player's, the
+/// people button's and the cast screen's.
 pub fn action_icons(display: &gtk::gdk::Display, cache: &std::path::Path) {
     let root = cache.join("icons");
     let dir = root.join("hicolor/scalable/actions");
-    let written =
-        [("anistream-mini-player-symbolic", MINI_PLAYER), ("anistream-party-symbolic", PARTY)]
-            .iter()
-            .all(|(name, svg)| {
-                let file = dir.join(format!("{name}.svg"));
-                std::fs::read_to_string(&file).is_ok_and(|s| s == *svg)
-                    || std::fs::create_dir_all(&dir)
-                        .and_then(|()| std::fs::write(&file, svg))
-                        .is_ok()
-            });
+    let written = [
+        ("anistream-mini-player-symbolic", MINI_PLAYER),
+        ("anistream-party-symbolic", PARTY),
+        ("anistream-cast-symbolic", CAST),
+    ]
+    .iter()
+    .all(|(name, svg)| {
+        let file = dir.join(format!("{name}.svg"));
+        std::fs::read_to_string(&file).is_ok_and(|s| s == *svg)
+            || std::fs::create_dir_all(&dir).and_then(|()| std::fs::write(&file, svg)).is_ok()
+    });
     if written {
         gtk::IconTheme::for_display(display).add_search_path(&root);
     }

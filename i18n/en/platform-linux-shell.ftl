@@ -218,3 +218,9 @@ shell-device-label = Linux computer
 # Under a Chromecast TV in Play on TV: this computer sends the TV the episode while it plays.
 # @only linux
 tv-cast-through-computer = Plays through this computer
+
+# The heading over the TVs running anistream in Play on TV, once TVs with Chromecast built in are
+# listed below them.
+# @only linux
+# @max 24
+tv-network-group = On this network

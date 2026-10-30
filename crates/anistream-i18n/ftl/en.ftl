@@ -1158,6 +1158,9 @@ shell-device-label = Linux computer
 # Under a Chromecast TV in Play on TV: this computer sends the TV the episode while it plays.
 tv-cast-through-computer = Plays through this computer
 
+# The heading over the TVs running anistream in Play on TV, once TVs with Chromecast built in are listed below them.
+tv-network-group = On this network
+
 # Count of devices on a member's row in the members dialog, and after "Owner ·".
 stores-device-count =
     { $count ->

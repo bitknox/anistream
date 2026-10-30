@@ -1795,6 +1795,11 @@ pub fn tv_cast_through_computer() -> String {
     text("tv-cast-through-computer", &[])
 }
 
+/// The heading over the TVs running anistream in Play on TV, once TVs with Chromecast built in are listed below them.
+pub fn tv_network_group() -> String {
+    text("tv-network-group", &[])
+}
+
 /// Count of devices on a member's row in the members dialog, and after "Owner ·".
 pub fn stores_device_count(count: i64) -> String {
     text("stores-device-count", &[("count", Arg::Int(count))])
