@@ -196,7 +196,7 @@ public class SharedWordsTests
             Resume: new ResumePoint(Position: 606, Fraction: 606.0 / 1440));
         var queue = Wording.Said(AnistreamFfiMethods.ContinueQueue([entry], [], Casing.Sentence));
         Assert.Equal("Resume episode 7 · 10:06", queue.InProgress[0].Button);
-        Assert.Equal("Continue E7 · 10:06", queue.InProgress[0].Action);
+        Assert.Equal("Resume E7 · 10:06", queue.InProgress[0].Action);
         Assert.Equal("14 min left", queue.InProgress[0].Left);
         var finished = entry with { Progress = new TitleProgress(Done: 12, Next: 1), Resume = null };
         Assert.Equal("Watch again", Wording.Said(AnistreamFfiMethods.QueueItem(finished, Casing.Sentence)).Button);
@@ -334,7 +334,7 @@ public class TorrentsTests
     {
         Assert.Equal("Not saved. Torrent traffic left outside this proxy, so the saved proxy stays.",
             TorrentWords.NotSaved(new GuardView.Leaking(), TorrentWords.Kept.EditedProxy));
-        Assert.Equal("Not saved. The check could not be made through this proxy, so the saved protection stays.",
+        Assert.Equal("Not saved. The check couldn't be made through this proxy, so the saved protection stays.",
             TorrentWords.NotSaved(new GuardView.Unreachable(), TorrentWords.Kept.Protection));
         Assert.Equal("Torrents are still off. Torrent traffic left outside this proxy.",
             TorrentWords.NotSaved(new GuardView.Leaking(), TorrentWords.Kept.TurningOn));
@@ -497,7 +497,7 @@ public class StoresTests
             Listed("b", new StorePluginStatus.Installed()));
         Assert.Equal(1, Stores.Updates(store));
         Assert.Equal("Contacts x.example and one more", Stores.ContactsLine(store.Plugins[0]));
-        Assert.Equal("Contacts no hosts", Stores.ContactsLine(store.Plugins[1]));
+        Assert.Equal("Lists no hosts to contact", Stores.ContactsLine(store.Plugins[1]));
         Assert.Equal("1.0.0", Stores.InstalledVersion(store.Plugins[0]));
         Assert.Equal("Version 1.0.0 installed, 1.1.0 available", Stores.Standing(store.Plugins[0]));
         Assert.Equal("Run by Ren, Aki · one.example", Stores.RunBy(["Ren", "Aki"], "one.example"));
@@ -1136,7 +1136,7 @@ public class UpdateTests
             Assert.StartsWith("The download is 1.0 kB, not the", shorter.Reason);
 
             var refused = await Updates.Fetch(new HttpClient(new Serve([], System.Net.HttpStatusCode.NotFound)), Asset("x64", 5) with { Name = "gone.exe" }, "2.1.0", dir, _ => { }, default);
-            Assert.Equal("The download stopped: the server answered 404.", refused.Reason);
+            Assert.Equal("The download stopped: the server refused it (404). Try again later.", refused.Reason);
         }
         finally
         {

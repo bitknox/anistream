@@ -368,7 +368,7 @@ class BoardShots {
     @Test
     @Config(qualifiers = TABLET)
     fun tablet_home_selected() = shoot("tablet-home-selected", WATCHING) {
-        compose.onNodeWithText("Continue E2", substring = true).performClick()
+        compose.onNodeWithText("Resume E2", substring = true).performClick()
         compose.waitForIdle()
     }
 

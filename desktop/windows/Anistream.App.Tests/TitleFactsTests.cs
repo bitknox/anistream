@@ -34,7 +34,7 @@ public class TitleFactsTests
     [Fact]
     public void AFilmsLengthIsHoursAndMinutes()
     {
-        Assert.Equal("1 hr 52 min", TitleFacts.FilmLength(new RunLength(1, 52)));
+        Assert.Equal("1 h 52 min", TitleFacts.FilmLength(new RunLength(1, 52)));
         Assert.Equal("2 hr", TitleFacts.FilmLength(new RunLength(2, 0)));
         Assert.Equal("46 min", TitleFacts.FilmLength(new RunLength(0, 46)));
     }
@@ -51,6 +51,6 @@ public class TitleFactsTests
     public void TheMetadataLineCarriesTheStudioBeforeTheScore()
     {
         var film = new Entry(Id: 1, Title: "Lantern Road", Format: "MOVIE", FilmLength: new RunLength(1, 52), Year: 2025, Studio: "Ginrei Studio", Score: 82);
-        Assert.Equal("Movie · 1 hr 52 min · 2025 · Ginrei Studio · 82%", Wording.MetaLine(film));
+        Assert.Equal("Movie · 1 h 52 min · 2025 · Ginrei Studio · 82%", Wording.MetaLine(film));
     }
 }
