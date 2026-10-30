@@ -1096,8 +1096,8 @@ close-stop-and-close = [Šţöþ àñð çļöšé~~~~~]
 # Body of the close question when episodes download.
 close-body-downloading =
     { $count ->
-        [one] [Öñé éþîšöðé îš ðöŵñļöàðîñĝ. Ķééþ îţ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ îţ?~~~~~~~~~~~~~~~~~~~~~~~~]
-       *[other] [{ $count } éþîšöðéš àŕé ðöŵñļöàðîñĝ. Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~~~~~~~~~~]
+        [one] [Öñé éþîšöðé îš ðöŵñļöàðîñĝ öŕ ŵàîţîñĝ ţö. Ķééþ îţ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ îţ?~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+       *[other] [{ $count } éþîšöðéš àŕé ðöŵñļöàðîñĝ öŕ ŵàîţîñĝ ţö. Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
     }
 
 # Body of the close question when episodes seed.
@@ -1108,7 +1108,7 @@ close-body-seeding =
     }
 
 # Body of the close question when some episodes download and others seed.
-close-body-both = [Éþîšöðéš: { $downloading } ðöŵñļöàðîñĝ àñð { $seeding } šééðîñĝ. Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+close-body-both = [Éþîšöðéš: { $downloading } ðöŵñļöàðîñĝ öŕ ŵàîţîñĝ àñð { $seeding } šééðîñĝ. Ķééþ ţĥéɱ ĝöîñĝ àƒţéŕ ţĥé ŵîñðöŵ çļöšéš, öŕ šţöþ ţĥéɱ?~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
 # Status in the sidebar and on the remote: the TV was not found again.
 tv-status-not-found = [{ $name } ñöţ ƒöüñð~~~~]

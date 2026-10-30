@@ -199,7 +199,6 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     tv_button.update_property(&[gtk::accessible::Property::Description(
         &t::title_linux_play_on_tv_help(),
     )]);
-    tv_button.set_action_name(Some("win.play-on-tv"));
     tv_button.set_visible(false);
     header.pack_end(&tv_button);
     let view = adw::ToolbarView::new();
@@ -597,9 +596,12 @@ impl Page {
         self.tv_button.set_visible(on_tv);
         if on_tv {
             let from = item.resume.as_ref().map_or(0.0, |r| r.position);
+            // The target first, then the name: a name alone is an action asked with no target,
+            // which GTK warns about.
             self.tv_button.set_action_target_value(Some(
                 &(id, item.episode.to_string(), from).to_variant(),
             ));
+            self.tv_button.set_action_name(Some("win.play-on-tv"));
         }
         // A party plays the episode the primary action would.
         if item.button.is_some() {

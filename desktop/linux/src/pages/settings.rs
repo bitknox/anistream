@@ -1438,8 +1438,34 @@ fn version() -> String {
 }
 
 /// The About dialog: the app icon, the version, the legal line and the notices.
+/// The release of the system, from os-release: "13" for Debian 13.
+fn os_version() -> String {
+    std::fs::read_to_string("/etc/os-release")
+        .ok()
+        .and_then(|text| {
+            text.lines()
+                .find_map(|line| line.strip_prefix("VERSION_ID="))
+                .map(|v| v.trim_matches('"').to_owned())
+        })
+        .unwrap_or_default()
+}
+
 pub fn about(ctx: &Ctx) {
+    if ctx.window.visible_dialog().is_some_and(|d| d.widget_name() == "about") {
+        return;
+    }
+    let report = anistream_model::bug_report::BugReport {
+        app_version: anistream_engine::updates::CURRENT.to_owned(),
+        platform: "Linux".to_owned(), // i18n-skip
+        os_version: os_version(),
+        device: anistream_model::bug_report::DeviceClass::Computer,
+        build: if cfg!(feature = "fixtures") { "fixtures" } else { "release" }.to_owned(), // i18n-skip
+        providers: ctx.hub.known.borrow().providers.clone(),
+        ..Default::default()
+    };
     let dialog = adw::AboutDialog::builder()
+        .name("about") // i18n-skip
+        .issue_url(anistream_model::bug_report::issue_url(&report))
         .application_name("anistream") // i18n-skip
         .application_icon("tv.anistream.desktop") // i18n-skip
         .version(anistream_engine::updates::CURRENT)

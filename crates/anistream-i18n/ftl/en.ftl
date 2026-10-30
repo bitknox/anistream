@@ -1096,8 +1096,8 @@ close-stop-and-close = Stop and close
 # Body of the close question when episodes download.
 close-body-downloading =
     { $count ->
-        [one] One episode is downloading. Keep it going after the window closes, or stop it?
-       *[other] { $count } episodes are downloading. Keep them going after the window closes, or stop them?
+        [one] One episode is downloading or waiting to. Keep it going after the window closes, or stop it?
+       *[other] { $count } episodes are downloading or waiting to. Keep them going after the window closes, or stop them?
     }
 
 # Body of the close question when episodes seed.
@@ -1108,7 +1108,7 @@ close-body-seeding =
     }
 
 # Body of the close question when some episodes download and others seed.
-close-body-both = Episodes: { $downloading } downloading and { $seeding } seeding. Keep them going after the window closes, or stop them?
+close-body-both = Episodes: { $downloading } downloading or waiting and { $seeding } seeding. Keep them going after the window closes, or stop them?
 
 # Status in the sidebar and on the remote: the TV was not found again.
 tv-status-not-found = { $name } not found
