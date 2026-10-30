@@ -79,6 +79,7 @@ class TvApp : Application(), PlayerHost {
             systemCaptionStyle = { CaptionStyle.system(this) },
         ).also { player ->
             store.onPlayback = player::apply
+            store.onPlayAsked = player::asked
             PlayerConnection(this, player, scope)
             captions = CaptionStyleWatch(this, player)
         }

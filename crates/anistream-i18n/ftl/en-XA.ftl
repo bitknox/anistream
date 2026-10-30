@@ -7481,7 +7481,7 @@ accounts-welcome-detail = [Šîĝñ îñ ţö { $tracker } ţö šýñç ýöü�
 accounts-brings-lists = [Ɓŕîñĝš îñ ýöüŕ ļîšţš àñð ƒîļļš Çöñţîñüé ŵîţĥ ŵĥàţ ýöü àŕé ŵàţçĥîñĝ.~~~~~~~~~~~~~~~~~~~~~]
 
 # Line under the accounts screen when the library needs a tracker.
-accounts-library-needs = [Ļîƀŕàŕý àñð šýñç ñééð à { $tracker } àççöüñţ~~~~~~~~~~~]
+accounts-library-needs = [Ļîƀŕàŕý àñð šýñç ñééð ýöüŕ { $tracker } àççöüñţ~~~~~~~~~~~~]
 
 # Line on the settings page: where the library gets its lists.
 accounts-library-from = [Ļîƀŕàŕý šĥöŵš ýöüŕ ļîšţš ƒŕöɱ { $tracker }.~~~~~~~~~~~]
@@ -7600,6 +7600,9 @@ accounts-password = [Þàššŵöŕð~~~]
 
 # Button label while the sign-in runs.
 accounts-signing-in-action = [Šîĝñîñĝ îñ~~~]
+
+# Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.
+accounts-credentials-refused = [{ $tracker } ðîðñ'ţ àççéþţ ţĥàţ üšéŕ ñàɱé àñð þàššŵöŕð. Çĥéçķ ţĥéɱ àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~]
 
 # Line under the title: what to do.
 accounts-code-detail = [Ĝö ţö { $host } àñð éñţéŕ ţĥîš çöðé. àñîšţŕéàɱ šîĝñš îñ öñçé ýöü ĥàṽé.~~~~~~~~~~~~~~~~~~~~]

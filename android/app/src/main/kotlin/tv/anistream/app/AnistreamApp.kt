@@ -94,6 +94,7 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
             systemCaptionStyle = { CaptionStyle.system(this) },
         ).also { player ->
             store.onPlayback = player::apply
+            store.onPlayAsked = player::asked
             PlayerConnection(this, player, scope)
             SystemPhases(store, player, scope).start()
             captions = CaptionStyleWatch(this, player)

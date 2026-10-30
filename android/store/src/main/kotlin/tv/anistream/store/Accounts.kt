@@ -19,6 +19,8 @@ import tv.anistream.engine.model.InvitedStore
 import tv.anistream.engine.model.StorePluginRow
 import tv.anistream.engine.model.StorePluginStatus
 import tv.anistream.engine.model.JobId
+import tv.anistream.engine.model.Msg
+import tv.anistream.engine.model.Notice
 import tv.anistream.engine.model.StoreRow
 import tv.anistream.engine.model.SyncState
 import tv.anistream.engine.model.TitleLanguage
@@ -162,8 +164,38 @@ class AccountsModel(private val clock: () -> Long = { System.currentTimeMillis()
     }
 
     internal fun started(tracker: String, job: JobId?) {
+        if (tracker == credentialsSheet) _signInFailure.value = null
         job ?: return
         _working.value = _working.value + (job to tracker)
+    }
+
+    /** The tracker whose user name and password sheet is open (Kitsu's), if one is. */
+    private var credentialsSheet: String? = null
+
+    private val _signInFailure = MutableStateFlow<String?>(null)
+
+    /**
+     * Why the sign-in from the open credentials sheet failed, in the engine's words, for the sheet
+     * to say in its own place: the notice would draw under it. Cleared by the next try.
+     */
+    val signInFailure: StateFlow<String?> = _signInFailure.asStateFlow()
+
+    /** [tracker]'s credentials sheet opened, or closed (`null`). */
+    fun credentialsSheet(tracker: String?) {
+        credentialsSheet = tracker
+        _signInFailure.value = null
+    }
+
+    /**
+     * Whether [notice] is a failed sign-in the open credentials sheet says, which it then holds.
+     * The notice still goes to Messages, but not to the snackbar under the sheet.
+     */
+    internal fun tookSignInFailure(notice: Notice): Boolean {
+        val failed = notice.msg as? Msg.NoticeSignInFailed ?: return false
+        val tracker = credentialsSheet ?: return false
+        if (failed.tracker != name(tracker)) return false
+        _signInFailure.value = failed.reason
+        return true
     }
 
     internal fun done(job: JobId) {
@@ -186,6 +218,14 @@ class AccountsModel(private val clock: () -> Long = { System.currentTimeMillis()
             "trakt" -> "Trakt"
             else -> tracker.replaceFirstChar { it.uppercase() }
         }
+
+        /**
+         * What a credentials sheet says of a failed sign-in to [tracker], from the engine's
+         * [reason]: refused credentials in plain words (OAuth's `invalid_grant`, which the engine
+         * keeps in the reason), anything else as other failures say it.
+         */
+        fun signInProblem(context: Context, tracker: String, reason: String): String =
+            if ("invalid_grant" in reason) Strings.accountsCredentialsRefused(context, name(tracker)) else plainReason(context, reason)
     }
 }
 

@@ -141,7 +141,7 @@ impl FfiEngine {
                 server.add_catalogue(fixtures::catalogue_titles());
             }
             let sources = Some(scene_sources(&scene, &server.art_base()));
-            let testing = testing::Testing { server, clock };
+            let testing = testing::Testing::new(server, clock);
             let options = testing::options(opened, &testing, start, sources)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });

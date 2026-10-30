@@ -44,6 +44,9 @@ object PlayerTiming {
     /** The starting screen admits the wait from here. */
     const val STARTING_WAITS = 3_000L
 
+    /** How long a Play asked for may go unstaged before Back is the system's again. */
+    const val ASKED_WAIT = 30_000L
+
     /** The controls hide after this long without input (T4). */
     const val CONTROLS_HIDE = 3_000L
 

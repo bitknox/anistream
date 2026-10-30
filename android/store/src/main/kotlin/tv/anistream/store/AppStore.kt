@@ -154,6 +154,9 @@ class AppStore(
     /** The playback's events, for the player the app hosts: its ops and interface. */
     var onPlayback: ((Event) -> Unit)? = null
 
+    /** A play was asked of the engine here, for the player to know one is on its way. */
+    var onPlayAsked: (() -> Unit)? = null
+
     /** What a phone's remote asks of a TV's front end, once the TV started its remote. */
     var onRemote: ((FrontIntent) -> Unit)? = null
 
@@ -272,6 +275,9 @@ class AppStore(
      * while it starts, the command waits and is sent once it has.
      */
     fun send(command: Command): JobId? {
+        if (command is Command.Play || command is Command.PlaySource || command is Command.PlayLocal || command is Command.PlayParty) {
+            onPlayAsked?.invoke()
+        }
         val client = client
         if (client == null) {
             if (_phase.value == Phase.Starting) early += command
@@ -983,7 +989,8 @@ class AppStore(
             is Event.TitleDub -> titles.dub(event.id, event.dub)
 
             is Event.Connectivity -> _offline.value = event.offline
-            is Event.Toast -> notices.post(event.v1)
+            // A failed sign-in the open sheet says in its place: the snackbar would draw under it.
+            is Event.Toast -> if (accounts.tookSignInFailure(event.v1)) notices.log(event.v1) else notices.post(event.v1)
 
             is Event.Sync -> accounts.apply(event.v1)
             is Event.ViewerTitleLanguage -> accounts.viewerTitleLanguage(event.v1)

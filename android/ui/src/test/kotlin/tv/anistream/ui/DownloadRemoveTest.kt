@@ -6,6 +6,8 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.longClick
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,5 +74,21 @@ class DownloadRemoveTest {
         compose.onNodeWithContentDescription("Remove from queue").performClick()
         compose.waitForIdle()
         assertTrue(store.waiting.any { it is Command.DownloadCancel })
+    }
+
+    /** The long press says the same as the X: a paused row's bytes go only after the question. */
+    @Test
+    fun the_menu_of_a_paused_download_with_bytes_deletes_after_asking() {
+        assumeTrue(HAS_TESTING_ENGINE)
+        screen(row(3, DownloadState.PAUSED, 147_000uL))
+        compose.onNodeWithText("Episode 7", substring = true).performTouchInput { longClick() }
+        compose.waitForIdle()
+        compose.onNodeWithText("Remove from list").assertDoesNotExist()
+        compose.onNodeWithText("Delete download").performClick()
+        compose.waitForIdle()
+        assertTrue("nothing was sent before the answer", store.waiting.none { it is Command.DownloadCancel || it is Command.DownloadDelete })
+        compose.onNodeWithText("Delete").performClick()
+        compose.waitForIdle()
+        assertTrue(store.waiting.any { it is Command.DownloadDelete })
     }
 }

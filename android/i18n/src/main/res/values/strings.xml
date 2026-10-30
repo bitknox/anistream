@@ -3753,7 +3753,7 @@
     <!-- Line under a tracker that brings in lists. -->
     <string name="accounts_brings_lists">Brings in your lists and fills Continue with what you are watching.</string>
     <!-- Line under the accounts screen when the library needs a tracker. -->
-    <string name="accounts_library_needs">Library and sync need a %1$s account</string>
+    <string name="accounts_library_needs">Library and sync need your %1$s account</string>
     <!-- Line on the settings page: where the library gets its lists. -->
     <string name="accounts_library_from">Library shows your lists from %1$s.</string>
     <!-- Line on the library when signed out, one sentence. -->
@@ -3833,6 +3833,8 @@
     <string name="accounts_password">Password</string>
     <!-- Button label while the sign-in runs. -->
     <string name="accounts_signing_in_action">Signing in</string>
+    <!-- Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in. -->
+    <string name="accounts_credentials_refused">%1$s didn\'t accept that user name and password. Check them and try again.</string>
     <!-- Line under the title: what to do. -->
     <string name="accounts_code_detail">Go to %1$s and enter this code. anistream signs in once you have.</string>
     <!-- Accessibility label of the code. The code is spelled out. -->

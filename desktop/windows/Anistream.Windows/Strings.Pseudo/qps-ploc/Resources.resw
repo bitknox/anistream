@@ -6688,7 +6688,7 @@
     <comment>Line under a tracker that brings in lists.</comment>
   </data>
   <data name="AccountsLibraryNeeds" xml:space="preserve">
-    <value>[Ļîƀŕàŕý àñð šýñç ñééð à {tracker} àççöüñţ~~~~~~~~~~~]</value>
+    <value>[Ļîƀŕàŕý àñð šýñç ñééð ýöüŕ {tracker} àççöüñţ~~~~~~~~~~~~]</value>
     <comment>Line under the accounts screen when the library needs a tracker.</comment>
   </data>
   <data name="AccountsLibraryFrom" xml:space="preserve">
@@ -6846,6 +6846,10 @@
   <data name="AccountsSigningInAction" xml:space="preserve">
     <value>[Šîĝñîñĝ îñ~~~]</value>
     <comment>Button label while the sign-in runs.</comment>
+  </data>
+  <data name="AccountsCredentialsRefused" xml:space="preserve">
+    <value>[{tracker} ðîðñ'ţ àççéþţ ţĥàţ üšéŕ ñàɱé àñð þàššŵöŕð. Çĥéçķ ţĥéɱ àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.</comment>
   </data>
   <data name="AccountsCodeDetail" xml:space="preserve">
     <value>[Ĝö ţö {host} àñð éñţéŕ ţĥîš çöðé. àñîšţŕéàɱ šîĝñš îñ öñçé ýöü ĥàṽé.~~~~~~~~~~~~~~~~~~~~]</value>

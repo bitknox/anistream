@@ -37,6 +37,7 @@ import tv.anistream.engine.ffi.FfiTvCommand
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.SearchQuery
 import tv.anistream.engine.model.SettingKey
+import tv.anistream.player.takeBackBeforeShown
 import tv.anistream.player.ui.PlayerFrame
 import tv.anistream.store.DownloadsModel
 import tv.anistream.store.InviteLinks
@@ -159,6 +160,8 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         app.player.hostStarted()
+        // Back a moment after Play, before the player's screen is there to take it.
+        takeBackBeforeShown(app.player)
         // The navigation bar's own colour runs under the gesture bar, with no scrim of the system's.
         window.isNavigationBarContrastEnforced = false
         holdPortraitOnPhones(resources.configuration)
@@ -330,6 +333,12 @@ class MainActivity : ComponentActivity() {
         // Back a moment after Play: the engine has not opened the player yet, and must not.
         if (isFinishing) app.player.hostFinished()
         super.onDestroy()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Back to the app after a Back put it behind: a play from here has somewhere to show.
+        app.player.hostStarted()
     }
 
     override fun onResume() {

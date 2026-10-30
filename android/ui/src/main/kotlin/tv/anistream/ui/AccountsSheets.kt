@@ -30,6 +30,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -39,6 +40,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -54,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -117,6 +120,26 @@ internal fun SheetButtons(content: @Composable () -> Unit) {
     ) { content() }
 }
 
+/**
+ * Input refused in place (native-ux, Errors): the error glyph in vermilion, the reason in silk,
+ * and the Reject haptic as it appears. TalkBack reads it as it comes.
+ */
+@Composable
+internal fun SheetProblem(text: String, modifier: Modifier = Modifier) {
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    LaunchedEffect(text) { haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.Reject) }
+    Row(
+        modifier
+            .padding(top = 16.dp)
+            .semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite },
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Problem, contentDescription = stringResource(R.string.error_label), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
 /** A text action in silk, never amber: Cancel, Close, Copy link. */
 @Composable
 internal fun QuietButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
@@ -172,24 +195,28 @@ internal fun SheetField(
 
 /**
  * Kitsu's sign-in: its email or user name and password, which go to Kitsu once, for a token kept
- * on this device. It closes once Kitsu says yes; a refusal comes as a notice and the sheet stays.
+ * on this device. It closes once Kitsu says yes. A refusal is said in the sheet, under the fields,
+ * with the password kept so a retry is one tap; the notice goes to Messages only.
  */
 @Composable
 internal fun KitsuSheet(onDismiss: () -> Unit) {
     val store = LocalAppStore.current
     val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
     val working by store.accounts.working.collectAsStateWithLifecycle()
+    val failure by store.accounts.signInFailure.collectAsStateWithLifecycle()
+    val offline by store.offline.collectAsStateWithLifecycle()
     var username by rememberSaveable { mutableStateOf("") }
     // Never saved: the password lives only as long as the sheet.
     var password by remember { mutableStateOf("") }
     val busy = store.accounts.isWorking(working, "kitsu")
     val connected = trackers["kitsu"]?.connected == true
     LaunchedEffect(connected) { if (connected) onDismiss() }
+    DisposableEffect(Unit) {
+        store.accounts.credentialsSheet("kitsu")
+        onDispose { store.accounts.credentialsSheet(null) }
+    }
     val signIn = {
-        if (username.isNotBlank() && password.isNotEmpty() && !busy) {
-            store.connectKitsu(username.trim(), password)
-            password = ""
-        }
+        if (username.isNotBlank() && password.isNotEmpty() && !busy) store.connectKitsu(username.trim(), password)
     }
     val kitsu = AccountsModel.name("kitsu")
     SettingsSheet(onDismiss) {
@@ -210,7 +237,12 @@ internal fun KitsuSheet(onDismiss: () -> Unit) {
             password = true,
             keyboard = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done, autoCorrectEnabled = false),
             actions = KeyboardActions(onDone = { signIn() }),
+            error = failure != null,
         )
+        failure?.let { reason ->
+            val context = LocalContext.current
+            SheetProblem(if (offline) stringResource(R.string.state_offline_line) else AccountsModel.signInProblem(context, "kitsu", reason))
+        }
         SheetButtons {
             QuietButton(stringResource(R.string.action_cancel), onClick = onDismiss)
             Button(onClick = signIn, enabled = username.isNotBlank() && password.isNotEmpty() && !busy) {

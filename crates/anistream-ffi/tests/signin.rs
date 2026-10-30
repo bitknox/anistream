@@ -14,7 +14,7 @@ use anistream_model::{
     catalog::{ContentFor, ContentList, LibrarySegment},
     command::Command,
     event::Event,
-    notice::NoticeKind,
+    notice::{Notice, NoticeKind},
     stores::Secret,
 };
 
@@ -225,4 +225,81 @@ fn a_sheet_closed_ends_the_sign_in_and_a_redirect_after_finds_none() {
     ));
     assert_eq!(app.alert(), "Couldn't sign in to AniList. Try again. The user denied");
     app.engine.shutdown();
+}
+
+impl App {
+    /// The engine as the fixture apps start it: a scene, with no sign-in clients of the app's.
+    fn fixtures() -> Self {
+        let root = tempfile::tempdir().expect("a temporary directory");
+        let dir = |name: &str| root.path().join(name).display().to_string();
+        let dirs = FfiDirs { config: dir("config"), data: dir("data"), cache: dir("cache") };
+        let engine = FfiEngine::start_scene(
+            dirs,
+            Arc::new(Quiet),
+            anistream_ffi::FfiScene::Fresh,
+            FfiStart::default(),
+        )
+        .expect("the engine starts");
+        Self::over(engine, root)
+    }
+
+    fn over(engine: Arc<FfiEngine>, root: tempfile::TempDir) -> Self {
+        let (tx, events) = mpsc::channel();
+        let reader = Arc::clone(&engine);
+        thread::spawn(move || {
+            loop {
+                let batch = futures::executor::block_on(reader.next_events());
+                if batch.is_empty() {
+                    return;
+                }
+                for event in batch {
+                    if tx.send(event).is_err() {
+                        return;
+                    }
+                }
+            }
+        });
+        Self { engine, events, read: Vec::new(), _root: root }
+    }
+
+    fn kitsu(&mut self, username: &str, password: &str) -> Notice {
+        self.engine.send(Command::ConnectKitsu {
+            username: username.into(),
+            password: Secret(password.into()),
+        });
+        self.until("Kitsu's answer", |event| match event {
+            Event::Toast(notice) if notice.text.contains("Kitsu") => Some(notice.clone()),
+            _ => None,
+        })
+    }
+}
+
+/// A fixture build's Kitsu is the test kit's fake: a wrong password is refused as Kitsu refuses
+/// one, the made-up account signs in, and nothing on the way asks for a real host.
+#[test]
+fn a_fixture_build_signs_in_to_the_fake_kitsu_and_names_no_real_host() {
+    use anistream_testkit::anilist::kitsu;
+
+    let mut app = App::fixtures();
+    let refused = app.kitsu(kitsu::USER, "not the password");
+    assert_eq!(refused.kind, NoticeKind::Alert, "{refused:?}");
+    assert!(refused.text.contains("invalid_grant"), "{}", refused.text);
+
+    let signed_in = app.kitsu(kitsu::EMAIL, kitsu::PASSWORD);
+    assert_ne!(signed_in.kind, NoticeKind::Alert, "{signed_in:?}");
+
+    // Every tracker's sign-in, and a sync, as a viewer could start them in the app.
+    for tracker in ["anilist", "mal", "kitsu", "simkl", "trakt"] {
+        app.engine.send(Command::Connect { tracker: tracker.into() });
+    }
+    app.engine.send(Command::SyncNow);
+    thread::sleep(Duration::from_secs(2));
+
+    let real: Vec<String> = app
+        .engine
+        .testing_refused_hosts()
+        .into_iter()
+        .filter(|h| !h.ends_with(".example"))
+        .collect();
+    assert!(real.is_empty(), "a fixture build aimed at real hosts: {real:?}");
 }

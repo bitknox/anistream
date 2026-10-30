@@ -58,6 +58,8 @@ pub struct Sync {
     /// The Kitsu tracker as its concrete type, for the same reason as `mal`: its token
     /// refreshes silently mid-call and the renewed pair has to be written back.
     pub kitsu: Option<Arc<anistream_track::KitsuTracker>>,
+    /// Where a Kitsu sign-in and the Kitsu tracker go: Kitsu itself, or a fixture build's fake.
+    pub kitsu_site: anistream_track::kitsu::Site,
     /// The Simkl tracker as its concrete type, for the same reason: a sign-in through its
     /// OAuth 2.0 lasts a week, and the pair renewed mid-call has to be written back.
     pub simkl: Option<Arc<anistream_track::SimklTracker>>,
@@ -161,13 +163,12 @@ impl Sync {
             if tokens_for_kitsu.is_none() {
                 tracing::info!("kitsu enabled but not signed in; queueing locally");
             }
-            let tracker = Arc::new(
-                anistream_track::KitsuTracker::new(
-                    http.plain().clone(),
-                    Arc::new(StoreMapping { store: store.clone() }),
-                    tokens_for_kitsu,
-                )
-                .with_token_store(tokens.clone()),
+            let tracker = kitsu_tracker(
+                http,
+                store,
+                &tokens,
+                anistream_track::kitsu::Site::default(),
+                tokens_for_kitsu,
             );
             trackers.push(tracker.clone());
             kitsu = Some(tracker);
@@ -210,6 +211,7 @@ impl Sync {
             anilist,
             mal,
             kitsu,
+            kitsu_site: anistream_track::kitsu::Site::default(),
             simkl,
             tokens,
             store: store.clone(),
@@ -219,6 +221,21 @@ impl Sync {
             pending: native::PendingSignIns::default(),
             device: device::DeviceFlows::default(),
         }
+    }
+
+    /// Kitsu at `site` in place of Kitsu itself, its sign-in and its tracker alike, signed in or
+    /// not: a fixture build's fake, which no password typed into it leaves the machine for.
+    #[must_use]
+    pub fn with_kitsu_at(mut self, site: anistream_track::kitsu::Site) -> Self {
+        if let Some(at) = self.trackers.iter().position(|t| t.id() == "kitsu") {
+            let pair = self.tokens.get_pair("kitsu").ok();
+            let tracker =
+                kitsu_tracker(&self.http, &self.store, &self.tokens, site.clone(), pair);
+            self.trackers[at] = tracker.clone();
+            self.kitsu = Some(tracker);
+        }
+        self.kitsu_site = site;
+        self
     }
 
     fn pull_error(&self, tracker_id: &str) -> Option<PullError> {
@@ -374,6 +391,25 @@ impl anistream_track::mal::IdMapping for StoreMapping {
     fn anilist_id(&self, mal_id: u32) -> Option<AnilistId> {
         self.store.anilist_id_for_mal(mal_id).ok().flatten()
     }
+}
+
+/// The Kitsu tracker at `site`, on the store's id mapping and the shared tokens.
+fn kitsu_tracker(
+    http: &anistream_net::HttpClient,
+    store: &Store,
+    tokens: &TokenStore,
+    site: anistream_track::kitsu::Site,
+    pair: Option<anistream_track::TokenPair>,
+) -> Arc<anistream_track::KitsuTracker> {
+    Arc::new(
+        anistream_track::KitsuTracker::new(
+            http.plain().clone(),
+            Arc::new(StoreMapping { store: store.clone() }),
+            pair,
+        )
+        .at(site)
+        .with_token_store(tokens.clone()),
+    )
 }
 
 impl anistream_track::kitsu::IdMapping for StoreMapping {
@@ -948,6 +984,7 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, job: Option<&JobGuard>
 pub async fn connect_kitsu(sync: Sync, username: String, password: String, tx: Outbox) {
     let pair = match anistream_track::kitsu::login(
         sync.http.plain(),
+        &sync.kitsu_site,
         &username,
         &password,
         anistream_store::now(),

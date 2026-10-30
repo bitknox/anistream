@@ -6688,7 +6688,7 @@
     <comment>Line under a tracker that brings in lists.</comment>
   </data>
   <data name="AccountsLibraryNeeds" xml:space="preserve">
-    <value>Library and sync need a {tracker} account</value>
+    <value>Library and sync need your {tracker} account</value>
     <comment>Line under the accounts screen when the library needs a tracker.</comment>
   </data>
   <data name="AccountsLibraryFrom" xml:space="preserve">
@@ -6846,6 +6846,10 @@
   <data name="AccountsSigningInAction" xml:space="preserve">
     <value>Signing in</value>
     <comment>Button label while the sign-in runs.</comment>
+  </data>
+  <data name="AccountsCredentialsRefused" xml:space="preserve">
+    <value>{tracker} didn't accept that user name and password. Check them and try again.</value>
+    <comment>Line in the sign-in sheet when the tracker refused what was typed. The password stays filled in.</comment>
   </data>
   <data name="AccountsCodeDetail" xml:space="preserve">
     <value>Go to {host} and enter this code. anistream signs in once you have.</value>

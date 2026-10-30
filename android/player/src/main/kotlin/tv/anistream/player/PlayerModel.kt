@@ -122,7 +122,13 @@ class PlayerModel(
     private var opened: ULong? = null
 
     /** Loads sent to mpv whose files have not started, oldest first. */
-    private val loads = ArrayDeque<ULong>()
+    private val loads = ArrayDeque<PendingLoad>()
+
+    /** A `START_FILE` read before its load's answer named the entry it is for. */
+    private var startedEarly: Long? = null
+
+    /** A first frame came while [startedEarly] waited: it is the file's, once the start is matched. */
+    private var restartedEarly = false
 
     /** The playback whose file mpv has now. */
     private var current: ULong? = null
@@ -145,6 +151,15 @@ class PlayerModel(
 
     /** The app's window was finished (Back, a swipe away) and no new one has started. */
     private var windowFinished = false
+
+    /**
+     * The app asked the engine to play, and the player is not up yet: Back now is the viewer
+     * leaving before it opened, which [backBeforeShown] takes, as the player's own screen is not
+     * there to.
+     */
+    var playAsked by mutableStateOf(false)
+        private set
+    private var askedWait: kotlinx.coroutines.Job? = null
 
     /**
      * A playback has been staged that has said nothing yet: the one on screen, if any, is older,
@@ -379,6 +394,7 @@ class PlayerModel(
                     send(Command.Player(PlayerCommand.Stop))
                     return
                 }
+                notAsked()
                 closedByViewer = false
                 stagedAhead = true
                 failure = null
@@ -417,9 +433,14 @@ class PlayerModel(
             // The playback staged found nothing; the one before plays on.
             Event.PlaybackKept -> starting = null
             // The alerts that come while the player is up: the one before a failed ending says why.
-            is Event.Toast -> if (isPresented && event.v1.kind == NoticeKind.ALERT) {
-                failedWith = event.v1.text
-                failedMsg = event.v1.msg
+            is Event.Toast -> if (event.v1.kind == NoticeKind.ALERT) {
+                if (isPresented) {
+                    failedWith = event.v1.text
+                    failedMsg = event.v1.msg
+                } else {
+                    // The play asked for failed before it was staged: nothing is opening.
+                    notAsked()
+                }
             }
             else -> {}
         }
@@ -443,7 +464,7 @@ class PlayerModel(
                 }
                 val call = step.call
                 if (call is MpvCall.Load) {
-                    loads.addLast(playback)
+                    loads.addLast(PendingLoad(playback))
                     sources[playback] = call
                     hasPicture = false
                     timeline = null
@@ -619,8 +640,10 @@ class PlayerModel(
             for (item in work) {
                 when (item) {
                     is Work.Call -> try {
-                        val call = if (item.call is MpvCall.Load) ready(item.call) else item.call
-                        mpv.perform(call).forEach(::report)
+                        when (val call = if (item.call is MpvCall.Load) ready(item.call) else item.call) {
+                            is MpvCall.Load -> loadedAs(mpv, mpv.load(call))
+                            else -> mpv.perform(call).forEach(::report)
+                        }
                     } catch (e: Exception) {
                         if (e is kotlinx.coroutines.CancellationException) throw e
                         Log.w(TAG, "mpv refused ${item.call::class.simpleName}: $e")
@@ -683,6 +706,44 @@ class PlayerModel(
     /** The app's window is starting: a playback staged from now on has somewhere to show. */
     fun hostStarted() {
         windowFinished = false
+    }
+
+    /**
+     * The app asked the engine to play. Until the engine stages it, or for
+     * [PlayerTiming.ASKED_WAIT] should it never, Back stops it: see [backBeforeShown].
+     */
+    fun asked() {
+        windowFinished = false
+        playAsked = true
+        askedWait?.cancel()
+        askedWait = scope.launch {
+            delay(PlayerTiming.ASKED_WAIT)
+            playAsked = false
+        }
+    }
+
+    /**
+     * Back that no screen of the player's took: a Play asked for whose player is not up yet, or one
+     * that came up a moment before its screen was drawn. A player that is up closes, as its own
+     * Back does, and the app stays (true). One not up yet is stopped, and so is a playback staged
+     * for it later, as the app goes behind (false): the Back is the system's then.
+     * On Android 12 and later that Back does not finish the activity, so [hostFinished] never runs.
+     */
+    fun backBeforeShown(): Boolean {
+        note("back before the player was drawn: ${if (isPresented) "closing it" else "stopping the play asked for"}")
+        notAsked()
+        if (isPresented) {
+            viewerClosed()
+            return true
+        }
+        hostFinished()
+        return false
+    }
+
+    private fun notAsked() {
+        playAsked = false
+        askedWait?.cancel()
+        askedWait = null
     }
 
     /**
@@ -754,10 +815,12 @@ class PlayerModel(
 
     private fun teardown(awaitingVerdict: Boolean = false, showing: Boolean = false) {
         stopMpv()
-        closedThrough = listOfNotNull(playback, current, opened, loads.maxOrNull()).maxOrNull()
+        closedThrough = listOfNotNull(playback, current, opened, loads.maxOfOrNull { it.playback }).maxOrNull()
         opened = null
         current = null
         loads.clear()
+        startedEarly = null
+        restartedEarly = false
         sources.clear()
         startOverOnLoad = false
         settings.clear()
@@ -835,14 +898,16 @@ class PlayerModel(
         if (from !== mpv) return
         when (event.id) {
             MpvNative.Event.START_FILE -> {
-                loads.removeFirstOrNull()?.let { current = it }
+                started(event.entry)
                 note("#$current mpv started the file")
                 val keepPause = paused
                 resetFile()
                 paused = keepPause
             }
             // A frame of the file being replaced, while the next is loading, is not the next one's.
-            MpvNative.Event.PLAYBACK_RESTART -> if (!hasPicture && loads.isEmpty()) firstFrame()
+            MpvNative.Event.PLAYBACK_RESTART -> {
+                if (!hasPicture && loads.isEmpty()) firstFrame() else if (startedEarly != null) restartedEarly = true
+            }
             MpvNative.Event.FILE_LOADED -> {
                 note("#$current file loaded")
                 // From here, not from the Load: a slow network, or a torrent still finding its
@@ -863,6 +928,50 @@ class PlayerModel(
         if (event.id == MpvNative.Event.FILE_LOADED && startOverOnLoad) {
             startOverOnLoad = false
             control(PlayerCommand.SeekTo(0.0))
+        }
+    }
+
+    /**
+     * mpv took the oldest load not yet answered as playlist [entry], which its `START_FILE` will
+     * name. A start read before this answer is matched now.
+     */
+    private fun loadedAs(from: PlayerBackend, entry: Long?) {
+        if (from !== mpv) return
+        val load = loads.firstOrNull { !it.answered } ?: return
+        load.answered = true
+        load.entry = entry
+        if (entry != null && startedEarly == entry) {
+            val restarted = restartedEarly
+            started(entry)
+            if (restarted && !hasPicture && loads.isEmpty()) firstFrame()
+        }
+    }
+
+    /**
+     * mpv's `START_FILE` for playlist [entry]. Every load replaces the playlist, and mpv starts
+     * only the newest of the loads it has taken by the time it gets to the next file, so the loads
+     * before the one that starts never will: they go with it, as mpv-host's book does. With no
+     * entry named, the loads start in the order they were sent.
+     */
+    private fun started(entry: Long?) {
+        val at = entry?.let { id -> loads.indexOfFirst { it.entry == id } } ?: -1
+        when {
+            at >= 0 -> {
+                current = loads[at].playback
+                repeat(at + 1) { loads.removeFirst() }
+                startedEarly = null
+                restartedEarly = false
+            }
+            // Its load has not answered yet; it is matched when it does.
+            entry != null && loads.any { !it.answered } -> {
+                startedEarly = entry
+                restartedEarly = false
+            }
+            // An mpv that names no entries, for a load or a start: oldest first.
+            entry == null || loads.firstOrNull()?.let { it.answered && it.entry == null } == true ->
+                loads.removeFirstOrNull()?.let { current = it.playback }
+            // A file no load here is waiting for: one stopped as the player closed.
+            else -> {}
         }
     }
 
@@ -1010,7 +1119,7 @@ class PlayerModel(
 
     /** A new mpv in place of one that stopped answering, decoding in software, where the file was. */
     private fun replace() {
-        val playing = current ?: loads.firstOrNull() ?: return
+        val playing = current ?: loads.firstOrNull()?.playback ?: return
         val load = sources[playing] ?: return
         Log.w(TAG, "mpv stopped answering: opening #$playing again in a new mpv")
         val kept = settings.values.toList()
@@ -1022,7 +1131,9 @@ class PlayerModel(
         surfaced.value = false
         start("no")
         loads.clear()
-        loads.addLast(playing)
+        startedEarly = null
+        restartedEarly = false
+        loads.addLast(PendingLoad(playing))
         val options = load.options + ("hwdec" to "no") + if (at > 1) mapOf("start" to at.toString()) else emptyMap()
         enqueue(MpvCall.Load(load.url, options))
         kept.forEach(::enqueue)
@@ -1502,4 +1613,10 @@ class PlayerModel(
             Log.i(TAG, message)
         }
     }
+}
+
+/** A load sent to mpv, and the playlist entry mpv made for it once it answered. */
+internal class PendingLoad(val playback: ULong) {
+    var entry: Long? = null
+    var answered = false
 }

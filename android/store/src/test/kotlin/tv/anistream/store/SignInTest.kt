@@ -15,6 +15,9 @@ import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.ConflictRow
 import tv.anistream.engine.model.DeviceCodePrompt
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.Msg
+import tv.anistream.engine.model.Notice
+import tv.anistream.engine.model.NoticeKind
 
 /** The sign-ins as the store holds them: the browser's, a device code's, and what a pull disputes. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -116,6 +119,30 @@ class SignInTest {
         val row = ConflictRow(anilistId = 900001u, title = "Hoshikuzu", field = "progress", local = "7", remote = "6")
         store.apply(listOf(Event.Conflicts(listOf(row))))
         assertEquals(listOf(row), store.accounts.conflicts.value)
+    }
+
+    private fun kitsuFailed(reason: String) = Event.Toast(
+        Notice(NoticeKind.ALERT, "Couldn't sign in to Kitsu. Try again. $reason", null, msg = Msg.NoticeSignInFailed("Kitsu", reason)),
+    )
+
+    /** The sheet is over the snackbar: a failed sign-in from it is said in it, and kept in Messages. */
+    @Test
+    fun a_failed_sign_in_from_the_open_sheet_is_the_sheet_s_to_say() {
+        val refused = "token exchange failed: 400 Bad Request: The provided authorization grant is invalid (invalid_grant)"
+        store.accounts.credentialsSheet("kitsu")
+        store.connectKitsu("wayfarer", "not it")
+        store.apply(listOf(kitsuFailed(refused)))
+        assertEquals(refused, store.accounts.signInFailure.value)
+        assertNull("not under the sheet", store.notices.current.value)
+        assertEquals(refused, (store.notices.log.value.first().notice.msg as Msg.NoticeSignInFailed).reason)
+
+        // The next try clears it, and with the sheet closed a failure is a notice again.
+        store.connectKitsu("wayfarer", "stardust")
+        assertNull(store.accounts.signInFailure.value)
+        store.accounts.credentialsSheet(null)
+        store.apply(listOf(kitsuFailed(refused)))
+        assertNull(store.accounts.signInFailure.value)
+        assertEquals(refused, (store.notices.current.value?.notice?.msg as Msg.NoticeSignInFailed).reason)
     }
 }
 

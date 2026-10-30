@@ -263,18 +263,21 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
     val name = listOfNotNull(stringResource(R.string.downloads_episode_name, row.episode.toInt()), episode?.title?.takeIf { it.isNotBlank() }).joinToString(" · ")
     val progress = row.state == DownloadState.ACTIVE || row.state == DownloadState.PAUSED
     val hasFile = row.state == DownloadState.DONE || row.path != null
+    // A row with bytes behind it is deleted, which asks first, however it is taken off: its file
+    // goes with it. One with none is only taken off the list.
+    val hasBytes = hasFile || row.downloaded > 0uL
     val remove = { store.cancelDownload(row.id) }
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     // The menu's items, for TalkBack too.
     val talkback = listOfNotNull(
         if (row.state == DownloadState.QUEUED) androidx.compose.ui.semantics.CustomAccessibilityAction(stringResource(R.string.downloads_start_now)) { store.startDownloadNow(row.id); true } else null,
-        if (hasFile) androidx.compose.ui.semantics.CustomAccessibilityAction(stringResource(R.string.downloads_delete_one_title)) { deleting = true; true } else null,
-        if (row.state != DownloadState.DONE) androidx.compose.ui.semantics.CustomAccessibilityAction(stringResource(R.string.downloads_remove_from_list)) { remove(); true } else null,
+        if (hasBytes) androidx.compose.ui.semantics.CustomAccessibilityAction(stringResource(R.string.downloads_delete_one_title)) { deleting = true; true } else null,
+        if (!hasBytes) androidx.compose.ui.semantics.CustomAccessibilityAction(stringResource(R.string.downloads_remove_from_list)) { remove(); true } else null,
     )
     Swipeable(
         start = null,
-        // From the end: Delete for a file, which asks first, or Cancel for one not done.
-        end = if (hasFile) SwipeAction(stringResource(R.string.action_delete), Icons.Clear) { deleting = true } else SwipeAction(stringResource(R.string.action_cancel), Icons.Clear, remove),
+        // From the end: Delete for a row with bytes, which asks first, or Cancel for one with none.
+        end = if (hasBytes) SwipeAction(stringResource(R.string.action_delete), Icons.Clear) { deleting = true } else SwipeAction(stringResource(R.string.action_cancel), Icons.Clear, remove),
     ) {
     Box(Modifier.background(colors.surface)) {
         Row(
@@ -320,7 +323,7 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
                     DownloadState.QUEUED -> Row(verticalAlignment = Alignment.CenterVertically) {
                         QuietButton(stringResource(R.string.downloads_start_now)) { store.startDownloadNow(row.id) }
                         // Where Pause sat a moment ago: a started download is not dropped by a repeated tap, it asks.
-                        IconButton(onClick = { if (hasFile || row.downloaded > 0uL) deleting = true else remove() }) {
+                        IconButton(onClick = { if (hasBytes) deleting = true else remove() }) {
                             Icon(Icons.Clear, contentDescription = stringResource(R.string.downloads_remove_from_queue), tint = colors.onSurfaceVariant)
                         }
                     }
@@ -340,13 +343,13 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
                     store.startDownloadNow(row.id)
                 })
             }
-            if (hasFile) {
+            if (hasBytes) {
                 DropdownMenuItem(text = { Text(stringResource(R.string.downloads_delete_one_title)) }, onClick = {
                     menu = false
                     deleting = true
                 })
             }
-            if (row.state != DownloadState.DONE) {
+            if (!hasBytes) {
                 DropdownMenuItem(text = { Text(stringResource(R.string.downloads_remove_from_list)) }, onClick = {
                     menu = false
                     remove()

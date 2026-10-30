@@ -130,13 +130,21 @@ fun interface ApkFetch {
  * The APK over HTTPS, as the release's asset is: redirects followed, the size checked against
  * what the release and the server say, and at most [limit] bytes. [plainHttp] lets an update
  * test's build fetch from this Mac.
+ *
+ * [timeoutMillis] bounds each wait on the network, and [deadlineMillis] the whole download, so a
+ * server that sends a byte just inside each wait still can't hold it open.
  */
 class HttpApkFetch(
     private val plainHttp: Boolean = false,
     private val limit: Long = 512L * 1024 * 1024,
     private val timeoutMillis: Int = 30_000,
+    private val deadlineMillis: Long = 30L * 60 * 1000,
 ) : ApkFetch {
     override suspend fun fetch(url: String, into: File, expected: Long, progress: (done: Long, total: Long) -> Unit): Unit = coroutineScope {
+        val deadline = System.nanoTime() + deadlineMillis * 1_000_000
+        fun inTime() {
+            if (System.nanoTime() - deadline > 0) throw IOException("the download took longer than ${deadlineMillis / 1000} s")
+        }
         val address = runCatching { URL(url) }.getOrElse { throw IOException("not a link: $url") }
         if (address.protocol != "https" && !(plainHttp && address.protocol == "http")) {
             throw IOException("the update is fetched over HTTPS only")
@@ -161,6 +169,7 @@ class HttpApkFetch(
             connection.setRequestProperty("Accept", "application/octet-stream")
             connection.setRequestProperty("User-Agent", "anistream-android")
             val status = connection.responseCode
+            inTime()
             if (status !in 200..299) throw IOException("the server answered $status")
             val length = connection.contentLengthLong
             if (expected > 0 && length >= 0 && length != expected) {
@@ -178,6 +187,7 @@ class HttpApkFetch(
                         currentCoroutineContext().ensureActive()
                         val read = input.read(buffer)
                         if (read < 0) break
+                        inTime()
                         done += read
                         if (done > limit || (total > 0 && done > total)) throw IOException("the file is longer than ${if (total > 0) total else limit} bytes")
                         output.write(buffer, 0, read)
