@@ -1,12 +1,12 @@
 ---
 title: Architecture
-description: Eighteen crates, layered so the core depends on no source and the terminal front end never reaches the engine.
+description: Twenty-four crates, layered so the core depends on no source and the terminal front end never reaches the engine.
 ---
 
 import ArchitectureDiagram from '../../../../components/architecture/ArchitectureDiagram.astro';
 
-anistream is eighteen crates. A title moves through them from stable to volatile and back:
-metadata and the ID mapping are stable, the providers that find a stream are the volatile part,
+anistream is twenty-four crates. A title moves through them from stable to volatile and back:
+metadata and the ID mapping are stable, the sources that find a stream are the volatile part,
 and the player, the history and the trackers are stable again.
 
 <ArchitectureDiagram kind="flow" />
@@ -15,7 +15,12 @@ and the player, the history and the trackers are stable again.
 handshake for hosts that answer differently by client, and rate limiting) · `-meta` (AniList, the
 metadata failover, ID mapping, filler) · `-store` (SQLite: the history and the sync outbox) ·
 `-providers` (torrent, remote, mock) · `-player` (mpv IPC, the companion-script protocol, the
-bundled player files, track selection, aniskip, Discord presence) · `-track` (AniList, MAL, Kitsu,
+bundled player files, track selection, aniskip) · `-discord` (Discord rich presence over its
+local socket) · `-playback` (the pure half of playback: what to record, skip and pick for tracks) ·
+`-mpv-host` (libmpv behind the engine's hosted player protocol, for the desktop apps) · `-party`
+(watch parties, a Syncplay protocol client) · `-remote` (a phone finds an anistream TV on the
+local network, pairs with it and drives it) · `-i18n` (the strings the terminal and Linux apps
+show, from the shared catalogue) · `-track` (AniList, MAL, Kitsu,
 Simkl, Trakt, sync) · `-plugin` (WASM host).
 
 Sources change and disappear, so every volatile piece sits behind a trait and the core depends on
@@ -26,9 +31,9 @@ with no account and no network, and trackers consume it through a durable outbox
 consulted for it.
 
 The metadata, mapping, player, tracker and plugin layers use documented public APIs. Only the
-provider layer *chooses* a content source, it is off by default, and every source is a
+source layer *chooses* a content source, it is off by default, and every source is a
 config edit away from being removed. Two playback-side paths then fetch from whatever host a
-provider named, sidecar subtitles and the HLS mender below, and both are source-agnostic.
+source named, sidecar subtitles and the HLS mender below, and both are source-agnostic.
 
 ## Layers
 

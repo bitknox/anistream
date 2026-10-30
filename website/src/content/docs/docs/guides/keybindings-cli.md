@@ -64,7 +64,7 @@ shows what is bound, overrides included.
 | `c` | Clear finished downloads |
 | `X` | Delete a download and its file |
 
-**On the Providers screen**, `Enter` opens the plugin stores, and:
+**On the Sources screen**, `Enter` opens the plugin stores, and:
 
 | | |
 |---|---|

@@ -4,13 +4,14 @@ description: History is kept locally with no account; sync to five trackers is o
 ---
 
 Local history needs no account, and trackers get a copy of it.
-Syncing to AniList, MyAnimeList, Kitsu, Simkl or Trakt is opt-in, and every service except Kitsu
-needs an app you register. There is no public client to borrow, and credentials shipped in an
-open-source binary would be public.
+Syncing to AniList, MyAnimeList, Kitsu, Simkl or Trakt is opt-in. In the terminal app, every
+service except Kitsu needs an app you register. There is no public client to borrow, and
+credentials shipped in an open-source binary would be public. The native apps sign in to all five
+from Accounts with nothing to register.
 
 Kitsu takes your account credentials directly, so there is nothing to register. anistream exchanges
 your username and password for a token once and drops them, and the password is never stored.
-Kitsu is on by default: sign in on the Accounts screen. Nothing syncs to or from any tracker until
+In the terminal app, Kitsu is on by default: sign in on the Accounts screen. Nothing syncs to or from any tracker until
 you sign in to it.
 
 ```toml

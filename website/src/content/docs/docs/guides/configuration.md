@@ -42,16 +42,16 @@ which is the app's only orchestrated animation.
 tracker. It is set high so that opening an episode to check the subtitles does not mark it seen.
 
 Resuming is separate. Quit an episode any time past thirty seconds and it appears on the home
-screen with its position, since quitting halfway is a clear signal you mean to come back. Only past
+screen with its position. Only past
 95% is an episode treated as too close to the end to resume.
 
-## Providers
+## Sources
 
 `providers.order` is the failover chain. No entry does anything until you configure it.
 
 - `"torrent"` is the BitTorrent transport, pointed at an indexer you configure and gated behind
   the [VPN guard](/docs/guides/torrents-vpn/).
-- `"plugins"` is every [provider plugin](/docs/plugins/authoring/) you have installed, by hand or
+- `"plugins"` is every [plugin](/docs/plugins/authoring/) you have installed, by hand or
   from a [plugin store](/docs/plugins/stores/).
 - `"remote"` is a JSON API you host yourself, answering `search/<query>`, `info/<id>` and
   `watch/<id>-episode-<n>` under `providers.remote_url`. It does nothing until that is set.
@@ -69,7 +69,7 @@ order = ["alpha", "torrent", "plugins"]    # alpha first, then torrents, then th
 The plugins the order does not name are tried at `"plugins"`, in alphabetical order of their ids.
 Naming a plugin only moves it: plugins are still used only while `"plugins"` is in the order.
 
-On the **Providers** screen, `K` moves the selected source up the order and `J` moves it down. The
+On the **Sources** screen, `K` moves the selected source up the order and `J` moves it down. The
 order is saved to `providers.order` and takes effect at once, without restarting the torrent
 session. Moving a plugin names the plugins on the screen in the order, with `"plugins"` after
 them for any you install later.
