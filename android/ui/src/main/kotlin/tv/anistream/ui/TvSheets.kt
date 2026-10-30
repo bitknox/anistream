@@ -312,7 +312,12 @@ private fun TvPairing(tv: TvRemoteModel, step: TvPairingStep) {
         }
     } else {
         TvSheetRow(
-            if (step.tvName.isEmpty()) stringResource(R.string.tv_sheet_connecting) else stringResource(R.string.tv_pairing_with, step.tvName),
+            when {
+                step.tvName.isNotEmpty() -> stringResource(R.string.tv_pairing_with, step.tvName)
+                // Nothing is connecting once there is a problem to read.
+                step.problem != null && !step.working -> stringResource(R.string.tv_sheet_title_fallback)
+                else -> stringResource(R.string.tv_sheet_connecting)
+            },
             step.problem,
             leading = { if (step.working) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) },
         )

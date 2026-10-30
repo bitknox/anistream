@@ -14,6 +14,7 @@ import android.content.IntentFilter
 import android.graphics.Rect
 import android.graphics.drawable.Icon
 import android.util.Rational
+import kotlin.math.roundToInt
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -50,9 +51,8 @@ internal fun PictureInPicture(model: PlayerModel, videoBounds: Rect?) {
         }
     }
     LaunchedEffect(videoBounds, playing, model.aspect) {
-        val aspect = (model.aspect ?: (16.0 / 9.0)).coerceIn(MIN_ASPECT, MAX_ASPECT)
         val params = PictureInPictureParams.Builder()
-            .setAspectRatio(Rational((aspect * 1000).toInt(), 1000))
+            .setAspectRatio(pipAspectRatio(model.aspect))
             .setAutoEnterEnabled(playing)
             .setSeamlessResizeEnabled(true)
             .setActions(
@@ -80,6 +80,15 @@ private const val BACK = "back"
 private const val PLAY_PAUSE = "play-pause"
 private const val FORWARD = "forward"
 
-/** The aspect ratios the system's window takes, 1 : 2.39 to 2.39 : 1. */
-private const val MIN_ASPECT = 1 / 2.39
-private const val MAX_ASPECT = 2.39
+/**
+ * The ratio the system's window takes, 1 : 2.39 to 2.39 : 1, as an exact [Rational] at the edges.
+ * Truncating a double (418/1000) lands below the minimum and throws.
+ */
+internal fun pipAspectRatio(aspect: Double?): Rational {
+    val wanted = aspect?.takeIf { it.isFinite() && it > 0.0 } ?: (16.0 / 9.0)
+    return when {
+        wanted <= 1 / 2.39 -> Rational(100, 239)
+        wanted >= 2.39 -> Rational(239, 100)
+        else -> Rational((wanted * 10_000).roundToInt(), 10_000)
+    }.let { if (it.toDouble() < 100.0 / 239.0) Rational(100, 239) else if (it.toDouble() > 2.39) Rational(239, 100) else it }
+}

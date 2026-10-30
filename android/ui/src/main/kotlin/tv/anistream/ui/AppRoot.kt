@@ -256,6 +256,11 @@ fun AppRoot(
         TvSheetHost()
         DiscussionHost()
         JoinStoreSheetHost()
+        // Two links in a row: the later one's sheet replaces the earlier, never stacks on it.
+        val joining by store.stores.joining.collectAsStateWithLifecycle()
+        val tvSheet by store.tv.sheet.collectAsStateWithLifecycle()
+        androidx.compose.runtime.LaunchedEffect(joining) { if (joining != null) store.tv.sheetClosed() }
+        androidx.compose.runtime.LaunchedEffect(tvSheet) { if (tvSheet != null) store.stores.closeJoin() }
         androidx.compose.runtime.LaunchedEffect(startTitle) {
             startTitle?.let { navigator.openTitle(it, "launch") }
         }

@@ -40,6 +40,7 @@ class TvActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        app.player.hostStarted()
         AirTime.twentyFourHour = DateFormat.is24HourFormat(this)
         app.start(Flavour.launch(this, intent))
         app.attachUpdater(intent)
@@ -170,6 +171,12 @@ class TvActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT < LOCAL_NETWORK_SDK) return
         if (checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED) return
         requestPermissions(arrayOf(Manifest.permission.ACCESS_LOCAL_NETWORK), LOCAL_NETWORK_REQUEST)
+    }
+
+    override fun onDestroy() {
+        // Back a moment after Play: the engine has not opened the player yet, and must not.
+        if (isFinishing) app.player.hostFinished()
+        super.onDestroy()
     }
 
     override fun onResume() {

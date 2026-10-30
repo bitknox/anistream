@@ -143,6 +143,9 @@ class PlayerModel(
      */
     private var closedByViewer = false
 
+    /** The app's window was finished (Back, a swipe away) and no new one has started. */
+    private var windowFinished = false
+
     /**
      * A playback has been staged that has said nothing yet: the one on screen, if any, is older,
      * and stopping is for the staged one, which only a Stop for whatever plays reaches.
@@ -368,6 +371,13 @@ class PlayerModel(
             is Event.PlayerTimeline -> if (accepts(event.playback)) timeline = event.marks
             is Event.PlayerBuffered -> if (accepts(event.playback)) buffered = event.ranges
             is Event.PlaybackStaged -> {
+                if (windowFinished) {
+                    // Back (or a swipe away) beat the engine to it: nobody is here to watch it.
+                    note("#${event.id} refused: the app closed before the player opened")
+                    closedByViewer = true
+                    send(Command.Player(PlayerCommand.Stop))
+                    return
+                }
                 closedByViewer = false
                 stagedAhead = true
                 failure = null
@@ -580,6 +590,8 @@ class PlayerModel(
             try {
                 mpv.begin(decoding, captionOptions())
             } catch (e: Exception) {
+                // An early close cancels the start; that is not a failure to report.
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e(TAG, "mpv did not start: $e")
                 failed(mpv)
                 return@launch
@@ -646,6 +658,22 @@ class PlayerModel(
         close(reporting = true)
         // The file on screen is closed; the next one staged since is still being found.
         if (stagedAhead) send(Command.Player(PlayerCommand.Stop))
+    }
+
+    /** The app's window is starting: a playback staged from now on has somewhere to show. */
+    fun hostStarted() {
+        windowFinished = false
+    }
+
+    /**
+     * The app's window was finished with nothing playing yet, say Back a moment after Play: what is
+     * being found stops, and a playback staged after this is stopped too. With a file open the
+     * audio goes on, as it does for Home.
+     */
+    fun hostFinished() {
+        windowFinished = true
+        if (mpv != null) return
+        if (isPresented) viewerClosed() else send(Command.Player(PlayerCommand.Stop))
     }
 
     /**
