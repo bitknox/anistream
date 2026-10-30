@@ -556,9 +556,15 @@ impl App {
             Event::Sources { id, episode, candidates } => {
                 self.apply_sources(id, episode, candidates)
             }
-            Event::MatchChoices { id, provider_id, candidates } => {
-                self.apply_match_choices(id, provider_id, candidates)
+            Event::MatchChoices { id, provider_id, candidates, answers, .. } => {
+                self.apply_match_choices(id, provider_id, candidates, answers)
             }
+            // The terminal asks in overlays that close as they are answered, so a failure is a
+            // toast, as it was before the apps' sheets needed to tell one apart.
+            Event::MatchSearchFailed { reason, .. } => self.push_toast(Notice::alert(reason)),
+            Event::MatchFixFailed { id, reason } => self.apply_match_fix_failed(id, reason),
+            // The terminal names the match only in the toast it makes when one is picked.
+            Event::TitleMatch { .. } => {}
 
             Event::Playback { position, duration, paused } => {
                 self.apply_playback(position, duration, paused)

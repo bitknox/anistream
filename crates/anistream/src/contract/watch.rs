@@ -112,7 +112,7 @@ async fn a_mark_is_in_the_table_the_next_task_loads() {
     let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
 
-    assert_eq!(names(&updates), ["Progress", "Episodes", "JobDone"]);
+    assert_eq!(names(&updates), ["Progress", "Episodes", "TitleMatch", "JobDone"]);
     let Event::Episodes { rows, .. } = &updates[1] else { unreachable!() };
     let done: Vec<&str> =
         rows.iter().filter(|r| r.completed).map(|r| r.number.as_str()).collect();

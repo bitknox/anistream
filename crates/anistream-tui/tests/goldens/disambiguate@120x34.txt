@@ -11,8 +11,8 @@ anistream                                                                       
 ▌ Which one   Match for Kaze no Tegami. Enter pins it.
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Kaze no Tegami                                                                                                 62%
-  Kaze no Tegami (2019)  ·  aired 2019, not 2026                                                                 61%
-  Kaze no Tegami Recap  ·  a special, not the series                                                             44%
+  Kaze no Tegami (2019)  ·  Different year                                                                       61%
+  Kaze no Tegami Recap  ·  Different format                                                                      44%
 
                             │
                             │  A postwoman in a hill town reads the wind for letters nobody sent. When one arrives
@@ -59,13 +59,13 @@ r12 c16-111 fg=rule bg=ground
 r12 c112-115 fg=text bg=ground
 r12 c116-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-47 fg=text-dim bg=ground
-r13 c48-111 fg=rule bg=ground
+r13 c02-41 fg=text-dim bg=ground
+r13 c42-111 fg=rule bg=ground
 r13 c112-115 fg=text bg=ground
 r13 c116-119 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
-r14 c02-51 fg=text-dim bg=ground
-r14 c52-111 fg=rule bg=ground
+r14 c02-42 fg=text-dim bg=ground
+r14 c43-111 fg=rule bg=ground
 r14 c112-115 fg=text bg=ground
 r14 c116-119 fg=rule bg=ground
 r15 c00-119 fg=rule bg=ground
