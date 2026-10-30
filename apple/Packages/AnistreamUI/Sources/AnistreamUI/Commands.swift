@@ -5,6 +5,9 @@ import AnistreamKit
 import AnistreamStore
 import AnistreamStrings
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 /// The app's menus beside the system's. The Playback menu's items and Window's player item come
 /// from the player the app hosts, which this package does not know.
@@ -108,6 +111,33 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
             sectionButton(.pluginStores, "7")
             Divider()
             Button(L.menuCheckForUpdates) { store.loadStores() }
+        }
+
+        // View: the calendar's weeks, outside text fields, while the calendar is the section.
+        CommandGroup(after: .toolbar) {
+            let bounds = store.calendarBounds
+            let week = navigator.calendarWeek
+            let here = navigator.section == .calendar && navigator.titleOnMac == nil
+            Button(L.menuGoToToday) { navigator.showCalendarWeek(0) }
+                .keyboardShortcut("t", modifiers: .command)
+                .disabled(!here || week == 0)
+            // In a text field, such as the command palette's over the calendar, the keys keep
+            // moving the caret to the line's ends.
+            Button(L.menuPreviousWeek) {
+                if !CaretKeys.pass(toLineEnd: .left) { navigator.showCalendarWeek(week - 1) }
+            }
+            .keyboardShortcut(.leftArrow, modifiers: .command)
+            .disabled(!here || !bounds.touches(weekDays(offset: week - 1)))
+            Button(L.menuNextWeek) {
+                if !CaretKeys.pass(toLineEnd: .right) { navigator.showCalendarWeek(week + 1) }
+            }
+            .keyboardShortcut(.rightArrow, modifiers: .command)
+            .disabled(!here || !bounds.touches(weekDays(offset: week + 1)))
+            Divider()
+            Button(L.calendarFilterAllTitle) { store.setSwitch(.calendarMine, on: false) }
+                .disabled(navigator.section != .calendar)
+            Button(L.calendarFilterMineTitle) { store.setSwitch(.calendarMine, on: true) }
+                .disabled(navigator.section != .calendar)
         }
 
         CommandGroup(after: .windowArrangement) {
@@ -253,5 +283,26 @@ struct EpisodeCommands: View {
         // ⌘I, as the boards have it (Johan, 24 October 2026); More About This Show is ⌥⌘I.
         .keyboardShortcut("i", modifiers: .command)
         .disabled(entry == nil)
+    }
+}
+
+/// The keys a menu item shares with text editing, handed back to the text field that has the
+/// keyboard. iPad's text fields keep theirs before the menu's, so only the Mac needs this.
+@MainActor
+enum CaretKeys {
+    enum Side { case left, right }
+
+    /// Moves the caret to the line's end on that side when a text field has the keyboard, and
+    /// says whether it did.
+    static func pass(toLineEnd side: Side) -> Bool {
+        #if os(macOS)
+        guard NSApp.keyWindow?.firstResponder is NSText else { return false }
+        let move = side == .left
+            ? #selector(NSResponder.moveToLeftEndOfLine(_:))
+            : #selector(NSResponder.moveToRightEndOfLine(_:))
+        return NSApp.sendAction(move, to: nil, from: nil)
+        #else
+        return false
+        #endif
     }
 }

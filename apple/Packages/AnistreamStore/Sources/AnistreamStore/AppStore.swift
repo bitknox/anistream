@@ -358,9 +358,54 @@ public final class AppStore {
         send(.loadSeasonal)
     }
 
-    public func loadCalendar() {
+    /// The calendar's first week each way. The engine keeps the last window for a while; a
+    /// refresh the person asks for (`force`) fetches it again.
+    public func loadCalendar(force: Bool = false) {
         calendar.list.asked()
-        send(.loadCalendar)
+        send(force ? .refreshCalendar : .loadCalendar)
+    }
+
+    /// Earlier broadcasts, walking back until `through` is covered (one page without it).
+    public func loadCalendarPast(through: Date? = nil) {
+        guard let anchor = calendar.anchor, calendar.morePast, !calendar.loadingPast else { return }
+        calendar.askedPast()
+        send(.loadCalendarPast(anchor: anchor, page: calendar.pages, through: through.map { Int64($0.timeIntervalSince1970) }))
+    }
+
+    /// Later broadcasts, walking forward until `through` is covered (one page without it).
+    public func loadCalendarAhead(through: Date? = nil) {
+        guard let anchor = calendar.anchor, calendar.moreAhead, !calendar.loadingAhead else { return }
+        calendar.askedAhead()
+        send(.loadCalendarAhead(anchor: anchor, page: calendar.aheadPages, through: through.map { Int64($0.timeIntervalSince1970) }))
+    }
+
+    /// Asks for whatever of `start...end` is not loaded yet. Stops where a page failed, until
+    /// the person tries again (`retryCalendar`).
+    public func ensureCalendar(from start: Date, to end: Date) {
+        let rows = calendar.rows
+        let first = rows.first?.airingIn.map { Date(timeIntervalSince1970: TimeInterval(calendar.anchor ?? 0) + TimeInterval($0)) }
+        let last = rows.last?.airingIn.map { Date(timeIntervalSince1970: TimeInterval(calendar.anchor ?? 0) + TimeInterval($0)) }
+        if calendar.morePast, !calendar.pastFailed, first.map({ $0 > start }) ?? true {
+            loadCalendarPast(through: start)
+        }
+        if calendar.moreAhead, !calendar.aheadFailed, last.map({ $0 < end }) ?? true {
+            loadCalendarAhead(through: end)
+        }
+    }
+
+    /// Whether `start...end` is loaded, or the calendar has nothing more to load for it.
+    public func calendarCovers(from start: Date, to end: Date) -> Bool {
+        let anchor = TimeInterval(calendar.anchor ?? 0)
+        let rows = calendar.rows.compactMap { $0.airingIn.map { Date(timeIntervalSince1970: anchor + TimeInterval($0)) } }
+        let behind = !calendar.morePast || (rows.first.map { $0 <= start } ?? false)
+        let ahead = !calendar.moreAhead || (rows.last.map { $0 >= end } ?? false)
+        return behind && ahead
+    }
+
+    /// Try again after a page failed: asks for `start...end` once more.
+    public func retryCalendar(from start: Date, to end: Date) {
+        calendar.clearFailures()
+        ensureCalendar(from: start, to: end)
     }
 
     /// Search now, as Return, a recent search or a rail's See All does: always asked, and kept
@@ -634,8 +679,12 @@ public final class AppStore {
             if case .calendar = view { widgetsChanged() }
         case .caption(let view, let text):
             caption(text, for: view)
-        case .calendarWindow(let anchor, let pages, let morePast, _, _, _, _):
-            calendar.window(anchor: anchor, pages: pages, morePast: morePast)
+        case .calendarWindow(let anchor, let pages, let morePast, let floor, let ceiling, let aheadPages, let moreAhead):
+            calendar.window(
+                anchor: anchor, pages: pages, morePast: morePast,
+                floor: floor, ceiling: ceiling, aheadPages: aheadPages, moreAhead: moreAhead)
+        case .calendarAhead(let page, let entries, let moreAhead):
+            calendar.ahead(page: page, entries: entries, moreAhead: moreAhead, titles: titles)
         case .calendarBackfill(let page, let entries, let morePast):
             calendar.backfill(page: page, entries: entries, morePast: morePast, titles: titles)
         case .detail(let entry):

@@ -267,6 +267,11 @@ final class AppDelegate: NSObject {
 
 #if os(macOS)
 extension AppDelegate: NSApplicationDelegate {
+    /// No window tabs: ⌘T is the calendar's Go to Today.
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSWindow.allowsAutomaticWindowTabbing = false
+    }
+
     /// The main window on screen once the app has launched, as a Mac app opens with its window:
     /// never the menu bar alone.
     func applicationDidFinishLaunching(_ notification: Notification) {

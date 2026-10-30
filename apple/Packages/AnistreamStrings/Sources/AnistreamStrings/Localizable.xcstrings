@@ -1937,6 +1937,18 @@
         }
       }
     },
+    "calendar-day-empty-apple" : {
+      "comment" : "Name of a day with nothing airing, in the calendar's columns and agenda.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing airs"
+          }
+        }
+      }
+    },
     "calendar-delayed" : {
       "comment" : "Note on a row whose episode was delayed. The note says how long. Argument 1: note (Text).",
       "extractionState" : "manual",
@@ -1981,6 +1993,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nothing on your list airs this week."
+          }
+        }
+      }
+    },
+    "calendar-empty-mine-ahead-apple" : {
+      "comment" : "Line in the iPhone agenda, under Today, when My list is chosen and nothing on it airs in the next four weeks.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing on your list airs in the next 4 weeks."
           }
         }
       }
@@ -2045,6 +2069,18 @@
         }
       }
     },
+    "calendar-filter-all-title" : {
+      "comment" : "Calendar filter on the Mac and iPad, in title case like the menus: every airing show.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Airing"
+          }
+        }
+      }
+    },
     "calendar-filter-mine" : {
       "comment" : "Filter: only shows on the person's list.",
       "extractionState" : "manual",
@@ -2053,6 +2089,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "My list"
+          }
+        }
+      }
+    },
+    "calendar-filter-mine-title" : {
+      "comment" : "Calendar filter on the Mac and iPad, in title case like the menus: only the person's list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My List"
           }
         }
       }
@@ -2165,6 +2213,18 @@
         }
       }
     },
+    "calendar-load-week-failed" : {
+      "comment" : "Line where the rest of the week would be when it could not be loaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load this week"
+          }
+        }
+      }
+    },
     "calendar-loading-earlier" : {
       "comment" : "Activity line while earlier broadcasts load.",
       "extractionState" : "manual",
@@ -2185,6 +2245,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading later broadcasts"
+          }
+        }
+      }
+    },
+    "calendar-loading-week" : {
+      "comment" : "Activity line in the first column of a week that is loading.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading this week"
           }
         }
       }
@@ -7077,6 +7149,18 @@
         }
       }
     },
+    "menu-go-to-today" : {
+      "comment" : "Mac and iPad View menu item that shows the calendar's current week.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Today"
+          }
+        }
+      }
+    },
     "menu-join-plugin-store" : {
       "comment" : "Mac menu bar item that opens the sheet for joining a plugin store. Title Case, so the words are typed.",
       "extractionState" : "manual",
@@ -7209,6 +7293,18 @@
         }
       }
     },
+    "menu-next-week" : {
+      "comment" : "Mac and iPad View menu item that shows the calendar's week after.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Week"
+          }
+        }
+      }
+    },
     "menu-no-episode-selected" : {
       "comment" : "Heading of the Mac Episode menu when no episode is selected.",
       "extractionState" : "manual",
@@ -7313,6 +7409,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previous Episode"
+          }
+        }
+      }
+    },
+    "menu-previous-week" : {
+      "comment" : "Mac and iPad View menu item that shows the calendar's week before.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Week"
           }
         }
       }

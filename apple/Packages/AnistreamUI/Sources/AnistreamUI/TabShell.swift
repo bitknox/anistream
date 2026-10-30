@@ -24,7 +24,18 @@ struct TabShell: View {
 
     private var tabs: some View {
         @Bindable var navigator = navigator
-        return TabView(selection: $navigator.section) {
+        // The Calendar tab tapped again on its own screen goes back to today; with a page on
+        // top, the system's pop to the screen comes first.
+        let section = Binding(
+            get: { navigator.section },
+            set: { picked in
+                if picked == .calendar, navigator.section == .calendar, navigator.paths[.calendar]?.isEmpty ?? true {
+                    navigator.calendarToToday += 1
+                }
+                navigator.section = picked
+            }
+        )
+        return TabView(selection: section) {
             ForEach([AppSection.continue, .calendar, .seasonal, .library]) { section in
                 Tab(section.title, systemImage: section.symbol, value: section) {
                     TabStack(section: section) { screen(section) }
