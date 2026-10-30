@@ -656,6 +656,11 @@ pub enum ThemeMode {
     Adaptive,
     /// Paint the dusk-indigo ground for a fully controlled look.
     Immersive,
+    /// The terminal's own ground with the palette for a light one, for a terminal that does not
+    /// answer the background query.
+    Light,
+    /// The terminal's own ground with the palette for a dark one.
+    Dark,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

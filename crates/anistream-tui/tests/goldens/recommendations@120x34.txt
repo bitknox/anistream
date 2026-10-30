@@ -8,12 +8,13 @@ anistream                                                                       
   ↓  Downloads              │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   ◇  Sources                │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ Recommended   Because you liked Kaze no Tegami. Enter opens.
+▌ Recommended   Because you liked Kaze no Tegami
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   Yoru no Toshokan  ·  TV
 ▌ Tsuki to Kujira no Uta  ·  TV
   Kumo no Ue no Gakkou  ·  TV
 
+                            │  Available on Hikari Stream
                             │
                             │  A postwoman in a hill town reads the wind for letters nobody sent. When one arrives
                             │  addressed to her in her own hand, dated ten years from now, she starts delivering the
@@ -24,7 +25,6 @@ anistream                                                                       
                             │  Drama  ·  Romance
                             │
                             │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
-                            │
                             │
                             │
                             │
@@ -49,8 +49,8 @@ r08 c00-119 fg=rule
 r09 c00-119 fg=rule bg=ground
 r10 c00-00 fg=obi bg=ground
 r10 c01-01 fg=rule bg=ground
-r10 c02-61 fg=text bg=ground mod=BOLD
-r10 c62-119 fg=rule bg=ground
+r10 c02-47 fg=text bg=ground mod=BOLD
+r10 c48-119 fg=rule bg=ground
 r11 c00-119 fg=rule bg=ground
 r12 c00-01 fg=rule bg=ground
 r12 c02-24 fg=text-dim bg=ground

@@ -49,7 +49,7 @@ use clap::Parser;
 ))]
 struct Cli {
     /// Force a theme mode, overriding config.
-    #[arg(long, value_parser = ["adaptive", "immersive"])]
+    #[arg(long, value_parser = ["adaptive", "immersive", "light", "dark"])]
     theme: Option<String>,
 
     /// Show the app in this language (a tag such as `da`), overriding the `language` setting.
@@ -267,8 +267,12 @@ async fn main() -> Result<()> {
     // (for trying a language or the pseudo-locale) still comes first.
     anistream_i18n::init(args.lang.as_deref().or(config.language.as_deref()));
     if let Some(mode) = &args.theme {
-        config.theme.mode =
-            if mode == "immersive" { ThemeMode::Immersive } else { ThemeMode::Adaptive };
+        config.theme.mode = match mode.as_str() {
+            "immersive" => ThemeMode::Immersive,
+            "light" => ThemeMode::Light,
+            "dark" => ThemeMode::Dark,
+            _ => ThemeMode::Adaptive,
+        };
     }
 
     let http = HttpClient::new(&config.network).context("building http client")?;

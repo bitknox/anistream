@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │    ▀▄▀▀▀▀▀▀▀ ▄▄
   ◇  Sources                │    ▀▀▀▀▀▀▀   ▀▀
   ◎  Accounts               │    ▀▀▀▀▀▀▀▀▄
-  ⚙  Settings               │    ▀▀▀▀▀▀▀▀▀▄
+  ≡  Settings               │    ▀▀▀▀▀▀▀▀▀▄
                             │    ▀ ▀▀   ▀▀
                             │
                             │  Press ↵ to search

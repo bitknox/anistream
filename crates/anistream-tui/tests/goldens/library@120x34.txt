@@ -5,10 +5,10 @@ anistream                                                                       
   ▦  Seasonal               │
   /  Search                 │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░
 ▌ ▥  Library                │  ▌ Tsuki to Kujira … 7 of 12 episodes   ░░░░░░░░░░░░░
-  ↓  Downloads              │    Ginga Yuubinkyoku               84   ░░░░░░░░░░░░░
+  ↓  Downloads              │    Ginga Yuubinkyoku              84%   ░░░░░░░░░░░░░
   ◇  Sources                │                                         ░░░░░░░░░░░░░
   ◎  Accounts               │                                         ░░░░░░░░░░░░░
-  ⚙  Settings               │                                         ░░░░░░░░░░░░░
+  ≡  Settings               │                                         ░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░
@@ -17,7 +17,7 @@ anistream                                                                       
                             │                                         Tsuki to Kujira no Uta
                             │                                         Song of the Moon Whale
                             │
-                            │                                         TV  ·  12 episodes  ·  2025  ·  91  ·  Kumo P…
+                            │                                         TV  ·  12 episodes  ·  2025  ·  91%  ·  Kumo …
                             │                                         Drama  ·  Fantasy
                             │
                             │                                         Every hundred years a whale crosses the moon,
@@ -31,7 +31,7 @@ anistream                                                                       
                             │
                             │                                         ███████████▋░░░░░░░░  7 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · Subbed · 1080p                                                         h/l list   ↵ open   e episodes   ? keys
+plugins · Subbed · 1080p                                                          ←→ list   ↵ open   e episodes   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -76,7 +76,7 @@ r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
 r07 c33-49 fg=text-dim
-r07 c65-66 fg=text-dim
+r07 c64-66 fg=text-dim
 r07 c70-82 fg=rule
 r08 c02-02 fg=text-dim
 r08 c05-11 fg=text-dim
@@ -122,12 +122,12 @@ r28 c28-28 fg=rule
 r29 c28-28 fg=rule
 r30 c28-28 fg=rule
 r31 c28-28 fg=rule
-r31 c70-81 fg=obi
+r31 c70-81 fg=text
 r31 c82-89 fg=rule
 r31 c92-107 fg=text-dim
 r32 c00-119 fg=rule
 r33 c00-23 fg=text-dim
-r33 c81-83 fg=text
+r33 c82-83 fg=text
 r33 c84-91 fg=text-dim
 r33 c92-92 fg=text
 r33 c93-100 fg=text-dim
