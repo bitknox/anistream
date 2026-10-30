@@ -183,7 +183,7 @@ struct TitlePage: View {
                                 .padding(.trailing, 28)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                         }
-                        HeroArtView(art: art, entry: entry, holds: true)
+                        HeroArtView(art: art, entry: entry, holds: true, sharpCover: false)
                             .frame(height: band)
                             .clipped()
                             .overlay(alignment: .bottom) {
