@@ -351,7 +351,7 @@ class UpdateNotifier(private val context: Context) {
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-            .setContentTitle(state.offer?.let { "Downloading anistream ${it.name}" } ?: context.getString(R.string.updates_channel))
+            .setContentTitle(state.offer?.let { Strings.updatesDownloading(context, it.name) } ?: context.getString(R.string.updates_channel))
             .setContentText(text)
             .setProgress(100, percent ?: 0, percent == null)
             .setContentIntent(PendingIntent.getActivity(context, 0, open, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))

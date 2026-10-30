@@ -20,6 +20,8 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import tv.anistream.store.AppStore
 import kotlinx.coroutines.launch
 import tv.anistream.engine.model.DownloadRow
 import tv.anistream.engine.model.DownloadState
@@ -51,6 +53,13 @@ class DownloadJob : JobService() {
             jobFinished(params, false)
             this.scope?.cancel()
         }
+        // An engine that failed or stopped has nothing to download with: the job ends rather than
+        // holding its notification for ever.
+        scope.launch {
+            app.store.phase.first { it is AppStore.Phase.Failed || it is AppStore.Phase.Stopped }
+            Log.w(AnistreamApp.TAG, "the engine is not running, the download job ends")
+            end()
+        }
         scope.launch {
             app.store.loadDownloads(force = true)
             combine(app.store.downloads.rows, app.store.downloads.rates, ::Pair).collect { (rows, rates) ->
@@ -79,7 +88,8 @@ class DownloadJob : JobService() {
         // engine keeps the queue, and the next time the app is open the job is asked for again.
         scope?.cancel()
         scope = null
-        return false
+        // Run it again when the system allows: the queue is still there to work through.
+        return true
     }
 
     companion object {

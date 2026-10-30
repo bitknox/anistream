@@ -488,7 +488,7 @@ private fun StartingLayer(model: PlayerModel, up: Boolean, onClose: () -> Unit) 
             Text(
                 when {
                     addStore != null -> stringResource(R.string.player_failed_no_sources)
-                    failure.reason != null -> "${failure.reason}." // i18n-skip
+                    failure.reasonText(LocalContext.current) != null -> "${failure.reasonText(LocalContext.current)}." // i18n-skip
                     else -> stringResource(R.string.player_failed_detail)
                 },
                 style = MaterialTheme.typography.bodyLarge,

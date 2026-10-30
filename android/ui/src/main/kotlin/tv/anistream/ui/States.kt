@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -44,6 +45,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import tv.anistream.store.AppStore
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -175,6 +177,31 @@ internal fun FailedState(title: String, reason: String, retry: () -> Unit, modif
             onClick = { openBugReport(context, store, BugContext("load", reason)) },
             colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
         ) { Text(stringResource(R.string.action_report)) }
+    }
+}
+
+/**
+ * Over the whole app when its engine did not start or has stopped: every list would sit in its
+ * placeholders and every command would be dropped. Try again starts it once more; Quit leaves.
+ */
+@Composable
+internal fun EngineDown() {
+    val store = LocalAppStore.current
+    val phase by store.phase.collectAsStateWithLifecycle()
+    val shown = phase
+    if (shown !is AppStore.Phase.Failed && shown !is AppStore.Phase.Stopped) return
+    val activity = androidx.activity.compose.LocalActivity.current
+    androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            StateBlock(
+                glyph = { Icon(Icons.Problem, contentDescription = stringResource(R.string.error_label), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(32.dp)) },
+                title = stringResource(R.string.engine_down_title),
+                line = if (shown is AppStore.Phase.Failed) plainReason(LocalContext.current, shown.reason) else stringResource(R.string.engine_down_stopped),
+            ) {
+                FilledTonalButton(onClick = store::restartEngine) { Text(stringResource(R.string.action_try_again)) }
+                TextButton(onClick = { activity?.finishAffinity() }) { Text(stringResource(R.string.engine_down_quit)) }
+            }
+        }
     }
 }
 

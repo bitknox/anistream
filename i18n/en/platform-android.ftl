@@ -24,3 +24,18 @@ settings-trailers-note = Trailers play muted from YouTube, which sees your IP ad
 # @only android
 # @max 40
 trailer-failed = Couldn't open the trailer
+
+# Heading on the screen that covers the app when its engine did not start or has stopped.
+# @only android
+# @max 40
+engine-down-title = { -app-name } stopped
+
+# Line under it when the engine stopped while the app was open, so lists would sit empty.
+# @only android
+# @max 120
+engine-down-stopped = The part that does the work has stopped. Try again, or quit and open the app once more.
+
+# Button on that screen that closes the app.
+# @only android
+# @max 16
+engine-down-quit = Quit

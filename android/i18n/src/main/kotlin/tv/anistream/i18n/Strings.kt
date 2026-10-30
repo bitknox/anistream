@@ -1461,6 +1461,14 @@ object Strings {
     fun tvDiscussionSelectSpoiler(context: Context): String =
         context.getString(R.string.tv_discussion_select_spoiler)
 
+    /** Where a Google TV keeps the switch that lets an app install updates, as its menus name it: the system's own words, which a translation should follow for that TV's language. */
+    fun updatesUnknownSourcesPath(context: Context): String =
+        context.getString(R.string.updates_unknown_sources_path)
+
+    /** Name a TV gives itself to phones when the system has none set. */
+    fun tvRemoteDefaultName(context: Context): String =
+        context.getString(R.string.tv_remote_default_name)
+
     /** The episode in a short form for a title last watched dubbed. */
     fun episodeShortDubbed(context: Context, episode: Int): String =
         context.getString(R.string.episode_short_dubbed, episode)
@@ -2328,6 +2336,18 @@ object Strings {
     /** Heading in the trailer sheet when the video did not start within a few seconds or the player refused it. */
     fun trailerFailed(context: Context): String =
         context.getString(R.string.trailer_failed)
+
+    /** Heading on the screen that covers the app when its engine did not start or has stopped. */
+    fun engineDownTitle(context: Context): String =
+        context.getString(R.string.engine_down_title)
+
+    /** Line under it when the engine stopped while the app was open, so lists would sit empty. */
+    fun engineDownStopped(context: Context): String =
+        context.getString(R.string.engine_down_stopped)
+
+    /** Button on that screen that closes the app. */
+    fun engineDownQuit(context: Context): String =
+        context.getString(R.string.engine_down_quit)
 
     /** Title of the about page. */
     fun aboutTitle(context: Context): String =

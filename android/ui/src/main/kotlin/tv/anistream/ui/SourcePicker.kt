@@ -6,6 +6,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.plainReason
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -193,7 +194,7 @@ internal fun sourceDetail(option: SourceOption): String = when (val note = optio
     SourceNote.Resting -> stringResource(R.string.source_note_resting)
     SourceNote.Gone -> stringResource(R.string.source_note_gone)
     SourceNote.Ambiguous -> stringResource(R.string.source_note_ambiguous)
-    is SourceNote.Failed -> note.reason
+    is SourceNote.Failed -> plainReason(androidx.compose.ui.platform.LocalContext.current, note.reason)
 }
 
 /** A release's quality, size and seeders: "1080p · 14.2 GiB · 84 seeders". */

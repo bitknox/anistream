@@ -82,7 +82,7 @@ class ListModel(private val clock: () -> Long = System::nanoTime) {
         _caption.value = text
     }
 
-    internal fun apply(content: ContentList, titles: TitleCache) {
+    internal fun apply(content: ContentList, titles: TitleCache, local: Boolean = false) {
         when (content) {
             ContentList.Empty -> {
                 _state.value = ListState.Empty
@@ -90,7 +90,7 @@ class ListModel(private val clock: () -> Long = System::nanoTime) {
             }
             ContentList.Loading -> _state.value = ListState.Loading
             is ContentList.Entries -> {
-                titles.merge(content.v1)
+                titles.merge(content.v1, local)
                 _state.value = ListState.Loaded(content.v1.map { it.id })
                 answeredAt = clock()
             }

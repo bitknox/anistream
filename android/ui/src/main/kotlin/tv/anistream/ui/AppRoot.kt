@@ -84,6 +84,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import tv.anistream.design.Motion
+import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.PlayerCommand
 import tv.anistream.store.AppStore
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.NoticeHint
@@ -226,6 +228,8 @@ fun AppRoot(
                 when (hint) {
                     NoticeHint.KITSU_CREDENTIALS -> sheets.kitsu = true
                     NoticeHint.OPEN_STORES -> navigator.open(STORES_ROUTE)
+                    // The engine stops whatever plays, or whatever it is still finding.
+                    NoticeHint.STOP_PLAYBACK -> store.send(Command.Player(PlayerCommand.Stop))
                     else -> actions.hint(hint)
                 }
             },
@@ -352,6 +356,7 @@ fun AppRoot(
             }
         }
         if (firstLaunch) FirstLaunch(onCover = { covered = it })
+        EngineDown()
     }
 }
 

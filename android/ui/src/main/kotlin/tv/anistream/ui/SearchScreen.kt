@@ -4,6 +4,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.plainReason
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -673,7 +674,7 @@ private fun SearchResults(query: SearchQuery, overdue: Boolean) {
                 }
                 is ListState.Failed -> item(span = { GridItemSpan(maxLineSpan) }, key = "failed") {
                     Column {
-                        Text(list.reason, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(plainReason(context, list.reason), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row {
                             QuietButton(stringResource(R.string.action_try_again)) { store.retrySearch() }
                             QuietButton(stringResource(R.string.action_report)) { openBugReport(context, store, BugContext("load", list.reason)) }

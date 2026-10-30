@@ -74,6 +74,12 @@ class JobsModel(
         refresh()
     }
 
+    /** The engine stopped: no job will end now. */
+    internal fun clear() {
+        _running.value = emptyList()
+        refresh()
+    }
+
     internal fun done(job: JobId) {
         _running.value = _running.value.filterNot { it.id == job }
         refresh()

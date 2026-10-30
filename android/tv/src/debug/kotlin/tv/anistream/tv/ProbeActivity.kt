@@ -100,7 +100,7 @@ class ProbeActivity : Activity() {
             stats.text = "No stream. Start with --es url <url>." // i18n-skip
             return
         }
-        Log.i(TAG, "playing $url")
+        Log.i(TAG, "playing a stream")
         mpv.command("loadfile", url)
     }
 
