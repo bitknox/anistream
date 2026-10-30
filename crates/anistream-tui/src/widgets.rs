@@ -324,6 +324,15 @@ impl Widget for Rail<'_> {
                         // labels rather than a change of vocabulary.
                         buf[(area.left() + 1, y)].set_char(section.glyph()).set_style(style);
                     }
+                    // The count the expanded rail gives, in the cell after the mark: one digit,
+                    // or a plus past nine.
+                    let count = self.counts.iter().find(|(s, _)| s == section).map(|(_, c)| *c);
+                    if let Some(count) = count.filter(|c| *c > 0 && area.width > 2) {
+                        let mark = char::from_digit(count, 10).unwrap_or('+');
+                        buf[(area.left() + 2, y)]
+                            .set_char(mark)
+                            .set_style(self.palette.style(Role::TextDim));
+                    }
                 }
             }
             RailWidth::Expanded => {

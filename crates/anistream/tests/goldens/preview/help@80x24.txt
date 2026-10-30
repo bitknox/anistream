@@ -11,13 +11,13 @@ anistream                                       torrent ○  plugins ·  ·  kit
     Toggle rail width            tab    Jump to next day               }
     Refresh this view              r    Page up                   ctrl+u
     Force a full resync            R    Page down                 ctrl+d
-    Subbed or dubbed               t  Lists and grids
+    Subbed or dubbed               t  Lists
     Go to section                1–9    Open                           ↵
     Search                         /    Play next unwatched        space
-    Recent messages                L    Set list status                a
+    Recent messages                !    Set list status                a
   Movement                              Rate this title                *
     Move up                    k / ↑    Expand synopsis                i
-    Move down                  j / ↓    Hide from Continue             x
+    Move down                  j / ↓    Remove, or not interested      x
     Move left                  h / ←    Search filters            ctrl+f
 
 ────────────────────────────────────────────────────────────────────────────────
