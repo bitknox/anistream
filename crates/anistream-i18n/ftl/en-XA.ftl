@@ -3920,6 +3920,36 @@ calendar-show-all = [Šĥöŵ àļļ àîŕîñĝ~~~~~]
 # What a screen reader says for the line that marks the time now. The time is already worded.
 calendar-now-spoken = [Ñöŵ, { $time }~~~]
 
+# Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name.
+cast-chromecast = [Çĥŕöɱéçàšţ~~~]
+
+# Line added to the picker's empty state, under what to check.
+cast-none-found-extra = [ŢṼš ŵîţĥ Çĥŕöɱéçàšţ ƀüîļţ îñ šĥöŵ ĥéŕé ţöö.~~~~~~~~~~~~~]
+
+# The picker's one row while the app may not look on the local network, with a button that opens the system's settings.
+cast-local-network = [Åļļöŵ àñîšţŕéàɱ ţö ƒîñð ðéṽîçéš öñ ýöüŕ ļöçàļ ñéţŵöŕķ~~~~~~~~~~~~~~~~]
+
+# The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick.
+cast-starting-counted = [Šţàŕţîñĝ öñ { $name } · { $seconds } š~~~~~~~]
+
+# The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room".
+cast-phase-counted = [{ $line } · { $seconds } š~~~~]
+
+# The card's line when a cast never started. The name is the TV's.
+cast-couldnt-start = [Çöüļðñ'ţ šţàŕţ öñ { $name }~~~~~~~]
+
+# The card's line when a cast that played has stopped.
+cast-stopped = [Çàšţîñĝ šţöþþéð~~~~~]
+
+# Button that stops the cast and plays the episode on this device, where the TV was.
+cast-play-here = [Þļàý ĥéŕé~~~]
+
+# Button that stops the cast. The TV goes back to its own screen.
+cast-stop = [Šţöþ çàšţîñĝ~~~~]
+
+# Line under TV volume on the card, for a TV whose volume only its own remote sets.
+cast-volume-fixed = [Šéţ öñ ţĥé ŢṼ~~~~]
+
 # Button that runs a failed action again.
 action-try-again = [Ţŕý àĝàîñ~~~]
 

@@ -1356,6 +1356,26 @@
     <string name="calendar_show_all">Show all airing</string>
     <!-- What a screen reader says for the line that marks the time now. The time is already worded. -->
     <string name="calendar_now_spoken">Now, %1$s</string>
+    <!-- Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name. -->
+    <string name="cast_chromecast">Chromecast</string>
+    <!-- Line added to the picker's empty state, under what to check. -->
+    <string name="cast_none_found_extra">TVs with Chromecast built in show here too.</string>
+    <!-- The picker's one row while the app may not look on the local network, with a button that opens the system's settings. -->
+    <string name="cast_local_network">Allow anistream to find devices on your local network</string>
+    <!-- The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick. -->
+    <string name="cast_starting_counted">Starting on %1$s · %2$d s</string>
+    <!-- The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room". -->
+    <string name="cast_phase_counted">%1$s · %2$d s</string>
+    <!-- The card's line when a cast never started. The name is the TV's. -->
+    <string name="cast_couldnt_start">Couldn\'t start on %1$s</string>
+    <!-- The card's line when a cast that played has stopped. -->
+    <string name="cast_stopped">Casting stopped</string>
+    <!-- Button that stops the cast and plays the episode on this device, where the TV was. -->
+    <string name="cast_play_here">Play here</string>
+    <!-- Button that stops the cast. The TV goes back to its own screen. -->
+    <string name="cast_stop">Stop casting</string>
+    <!-- Line under TV volume on the card, for a TV whose volume only its own remote sets. -->
+    <string name="cast_volume_fixed">Set on the TV</string>
     <!-- Button that runs a failed action again. -->
     <string name="action_try_again">Try again</string>
     <!-- Button that closes a dialog without doing what it offered. -->

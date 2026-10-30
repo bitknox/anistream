@@ -6245,6 +6245,56 @@ pub fn calendar_now_spoken(time: &str) -> String {
     text("calendar-now-spoken", &[("time", Arg::Text(time))])
 }
 
+/// Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name.
+pub fn cast_chromecast() -> String {
+    text("cast-chromecast", &[])
+}
+
+/// Line added to the picker's empty state, under what to check.
+pub fn cast_none_found_extra() -> String {
+    text("cast-none-found-extra", &[])
+}
+
+/// The picker's one row while the app may not look on the local network, with a button that opens the system's settings.
+pub fn cast_local_network() -> String {
+    text("cast-local-network", &[])
+}
+
+/// The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick.
+pub fn cast_starting_counted(name: &str, seconds: i64) -> String {
+    text("cast-starting-counted", &[("name", Arg::Text(name)), ("seconds", Arg::Int(seconds))])
+}
+
+/// The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room".
+pub fn cast_phase_counted(line: &str, seconds: i64) -> String {
+    text("cast-phase-counted", &[("line", Arg::Text(line)), ("seconds", Arg::Int(seconds))])
+}
+
+/// The card's line when a cast never started. The name is the TV's.
+pub fn cast_couldnt_start(name: &str) -> String {
+    text("cast-couldnt-start", &[("name", Arg::Text(name))])
+}
+
+/// The card's line when a cast that played has stopped.
+pub fn cast_stopped() -> String {
+    text("cast-stopped", &[])
+}
+
+/// Button that stops the cast and plays the episode on this device, where the TV was.
+pub fn cast_play_here() -> String {
+    text("cast-play-here", &[])
+}
+
+/// Button that stops the cast. The TV goes back to its own screen.
+pub fn cast_stop() -> String {
+    text("cast-stop", &[])
+}
+
+/// Line under TV volume on the card, for a TV whose volume only its own remote sets.
+pub fn cast_volume_fixed() -> String {
+    text("cast-volume-fixed", &[])
+}
+
 /// Button that runs a failed action again.
 pub fn action_try_again() -> String {
     text("action-try-again", &[])

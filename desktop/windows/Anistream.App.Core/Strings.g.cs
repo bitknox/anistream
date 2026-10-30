@@ -1368,6 +1368,36 @@ public static partial class T
     /// <summary>What a screen reader says for the line that marks the time now. The time is already worded.</summary>
     public static string CalendarNowSpoken(string time) => Fill(Get("CalendarNowSpoken"), ("time", time));
 
+    /// <summary>Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name.</summary>
+    public static string CastChromecast => Get("CastChromecast");
+
+    /// <summary>Line added to the picker's empty state, under what to check.</summary>
+    public static string CastNoneFoundExtra => Get("CastNoneFoundExtra");
+
+    /// <summary>The picker's one row while the app may not look on the local network, with a button that opens the system's settings.</summary>
+    public static string CastLocalNetwork => Get("CastLocalNetwork");
+
+    /// <summary>The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick.</summary>
+    public static string CastStartingCounted(string name, long seconds) => Fill(Get("CastStartingCounted"), ("name", name), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room".</summary>
+    public static string CastPhaseCounted(string line, long seconds) => Fill(Get("CastPhaseCounted"), ("line", line), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>The card's line when a cast never started. The name is the TV's.</summary>
+    public static string CastCouldntStart(string name) => Fill(Get("CastCouldntStart"), ("name", name));
+
+    /// <summary>The card's line when a cast that played has stopped.</summary>
+    public static string CastStopped => Get("CastStopped");
+
+    /// <summary>Button that stops the cast and plays the episode on this device, where the TV was.</summary>
+    public static string CastPlayHere => Get("CastPlayHere");
+
+    /// <summary>Button that stops the cast. The TV goes back to its own screen.</summary>
+    public static string CastStop => Get("CastStop");
+
+    /// <summary>Line under TV volume on the card, for a TV whose volume only its own remote sets.</summary>
+    public static string CastVolumeFixed => Get("CastVolumeFixed");
+
     /// <summary>Button that runs a failed action again.</summary>
     public static string ActionTryAgain => Get("ActionTryAgain");
 
@@ -5896,6 +5926,16 @@ public static partial class T
         ["CalendarLoadLaterFailed"] = "Couldn't load later broadcasts",
         ["CalendarShowAll"] = "Show all airing",
         ["CalendarNowSpoken"] = "Now, {time}",
+        ["CastChromecast"] = "Chromecast",
+        ["CastNoneFoundExtra"] = "TVs with Chromecast built in show here too.",
+        ["CastLocalNetwork"] = "Allow anistream to find devices on your local network",
+        ["CastStartingCounted"] = "Starting on {name} · {seconds} s",
+        ["CastPhaseCounted"] = "{line} · {seconds} s",
+        ["CastCouldntStart"] = "Couldn't start on {name}",
+        ["CastStopped"] = "Casting stopped",
+        ["CastPlayHere"] = "Play here",
+        ["CastStop"] = "Stop casting",
+        ["CastVolumeFixed"] = "Set on the TV",
         ["ActionTryAgain"] = "Try again",
         ["ActionCancel"] = "Cancel",
         ["ActionNotNow"] = "Not now",

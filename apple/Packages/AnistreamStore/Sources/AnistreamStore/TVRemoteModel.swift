@@ -93,6 +93,10 @@ public final class TVRemoteModel {
     /// Called once the TV plays what the player here was playing: the app closes its player.
     @ObservationIgnored public var handedOff: (@MainActor () -> Void)?
 
+    /// Casting to TVs with Chromecast built in: the picker's second group, and its card.
+    public let cast = CastModel()
+    @ObservationIgnored private(set) var castBrowser: (any FfiCastBrowser)?
+
     @ObservationIgnored private(set) var sender: FfiTvSender?
     @ObservationIgnored private(set) var browser: (any FfiTvBrowser)?
     @ObservationIgnored private var steps: FfiTvPairing?
@@ -108,9 +112,15 @@ public final class TVRemoteModel {
     public var available: Bool { sender != nil }
 
     /// Take the engine's sender, browsing with `browser` while the picker is up.
-    public func attach(_ sender: FfiTvSender, browser: any FfiTvBrowser) {
+    public func attach(_ sender: FfiTvSender, browser: any FfiTvBrowser, castBrowser: (any FfiCastBrowser)? = nil) {
         self.sender = sender
         self.browser = browser
+        self.castBrowser = castBrowser
+        cast.attach(sender)
+        cast.closed = { [weak self] in
+            guard let self, self.connected == nil, self.sheet == .remote else { return }
+            self.sheet = nil
+        }
         shortFingerprint = sender.shortFingerprint()
         refresh()
         watcher?.cancel()
@@ -127,6 +137,7 @@ public final class TVRemoteModel {
         guard let sender else { return }
         rows = sender.rows()
         paired = sender.paired()
+        cast.refresh(sender.castRows())
     }
 
     // MARK: Play on TV
@@ -154,7 +165,7 @@ public final class TVRemoteModel {
 
     /// The card of the TV driven, or the picker when there is none.
     public func openRemote() {
-        sheet = connected == nil ? .picker : .remote
+        sheet = connected == nil && !cast.active ? .picker : .remote
     }
 
     /// The sheet closed. A pairing under way is let go; the link stays, for the card to come
@@ -165,6 +176,8 @@ public final class TVRemoteModel {
         cancelPairing()
         // A session the TV ended while its card was up ends here as the card goes.
         if card?.over == true { disconnect() }
+        // A cast that ended goes with its card.
+        cast.dismissEnded()
     }
 
     /// Look for TVs while a picker is up. Counted, as two can be up at once (a Mac's Settings
@@ -175,6 +188,8 @@ public final class TVRemoteModel {
         guard browsers == 1 else { return }
         browsing = true
         sender.browse(browser: browser)
+        cast.browsing(cast.shown && castBrowser != nil)
+        if cast.shown, let castBrowser { sender.browseCast(browser: castBrowser) }
         refresh()
     }
 
@@ -184,12 +199,14 @@ public final class TVRemoteModel {
         guard browsers == 0 else { return }
         browsing = false
         sender.stopBrowsing()
+        cast.browsing(false)
         refresh()
     }
 
     /// A row of the picker chosen: a paired TV is connected to and plays what was asked; a new
     /// one starts pairing.
     public func choose(_ row: FfiTvRow) {
+        if row.kind != .needsUpdate, request != nil, cast.active { cast.stop() }
         switch row.kind {
         case .paired, .pairedAway:
             if let fingerprint = row.fingerprint { use(fingerprint) }
@@ -198,6 +215,28 @@ public final class TVRemoteModel {
         case .needsUpdate:
             break
         }
+    }
+
+    /// A Chromecast row chosen: cast what was asked to it. The card shows at once, starting, and
+    /// the player here, when it was asked from there, closes.
+    public func choose(cast row: FfiCastRow) {
+        guard let request else { return }
+        if connected != nil { disconnect() }
+        if cast.active { cast.stop() }
+        cast.cast(row.key, name: row.name, request: request)
+        guard cast.active else { return }
+        self.request = nil
+        sheet = .remote
+        if request.fromPlayer { handedOff?() }
+    }
+
+    /// Choose Another TV, from the cast's card: the picker, offering the episode from where the
+    /// TV is. The cast plays on until another TV is picked.
+    public func castElsewhere() {
+        guard available else { return }
+        request = cast.carried
+        problem = nil
+        sheet = .picker
     }
 
     /// Pair from `target`: a row's key, a scanned `anistream-remote://pair` link or an address
@@ -344,6 +383,7 @@ public final class TVRemoteModel {
     /// What the TV plays, as the card shows it: what was asked of it while it starts, else what
     /// the TV last said.
     public var now: FfiNowCard? {
+        if cast.active { return cast.now }
         guard let request = starting else { return card?.now }
         return FfiNowCard(
             id: request.id, title: request.title, episode: request.episode,
@@ -353,7 +393,7 @@ public final class TVRemoteModel {
     }
 
     /// The link is up, and the card's controls reach the TV.
-    public var live: Bool { card?.phase == .connected }
+    public var live: Bool { cast.active ? cast.live : card?.phase == .connected }
 
     /// Try the TV again now rather than after the link's wait: as the app comes back to the
     /// front, or the network back. A connected link stays as it is.
@@ -409,6 +449,10 @@ public final class TVRemoteModel {
 
     /// Send the TV a command from the card.
     public func send(_ command: FfiTvCommand) {
+        if cast.active {
+            cast.send(command)
+            return
+        }
         guard let link else { return }
         problem = nil
         Task {
@@ -437,6 +481,7 @@ public final class TVRemoteModel {
     /// Where the TV's playhead is now: moved on from the card on this device's clock while it
     /// plays.
     public func playhead(at date: Date = .now) -> Double? {
+        if cast.active { return cast.playhead(at: date) }
         guard starting == nil, let now = card?.now else { return nil }
         let until = lostAt.map { min($0, date) } ?? date
         return tvPlayhead(now: now, elapsed: max(0, until.timeIntervalSince(cardAt)))

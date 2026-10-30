@@ -2525,6 +2525,46 @@ object Strings {
     fun calendarNowSpoken(context: Context, time: String): String =
         context.getString(R.string.calendar_now_spoken, time)
 
+    /** Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name. */
+    fun castChromecast(context: Context): String =
+        context.getString(R.string.cast_chromecast)
+
+    /** Line added to the picker's empty state, under what to check. */
+    fun castNoneFoundExtra(context: Context): String =
+        context.getString(R.string.cast_none_found_extra)
+
+    /** The picker's one row while the app may not look on the local network, with a button that opens the system's settings. */
+    fun castLocalNetwork(context: Context): String =
+        context.getString(R.string.cast_local_network)
+
+    /** The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick. */
+    fun castStartingCounted(context: Context, name: String, seconds: Int): String =
+        context.getString(R.string.cast_starting_counted, name, seconds)
+
+    /** The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room". */
+    fun castPhaseCounted(context: Context, line: String, seconds: Int): String =
+        context.getString(R.string.cast_phase_counted, line, seconds)
+
+    /** The card's line when a cast never started. The name is the TV's. */
+    fun castCouldntStart(context: Context, name: String): String =
+        context.getString(R.string.cast_couldnt_start, name)
+
+    /** The card's line when a cast that played has stopped. */
+    fun castStopped(context: Context): String =
+        context.getString(R.string.cast_stopped)
+
+    /** Button that stops the cast and plays the episode on this device, where the TV was. */
+    fun castPlayHere(context: Context): String =
+        context.getString(R.string.cast_play_here)
+
+    /** Button that stops the cast. The TV goes back to its own screen. */
+    fun castStop(context: Context): String =
+        context.getString(R.string.cast_stop)
+
+    /** Line under TV volume on the card, for a TV whose volume only its own remote sets. */
+    fun castVolumeFixed(context: Context): String =
+        context.getString(R.string.cast_volume_fixed)
+
     /** Button that runs a failed action again. */
     fun actionTryAgain(context: Context): String =
         context.getString(R.string.action_try_again)

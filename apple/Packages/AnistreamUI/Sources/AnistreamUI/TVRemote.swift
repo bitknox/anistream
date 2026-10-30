@@ -75,7 +75,9 @@ struct TVNowPlayingButton: View {
     @Environment(AppStore.self) private var store
 
     var body: some View {
-        if let card = store.tv.card, store.tv.connected != nil {
+        if store.tv.cast.active {
+            CastToolbarButton()
+        } else if let card = store.tv.card, store.tv.connected != nil {
             Button {
                 store.tv.openRemote()
             } label: {
@@ -108,7 +110,7 @@ struct TVAccessory: ViewModifier {
 
     func body(content: Content) -> some View {
         if #available(iOS 26.1, *) {
-            content.tabViewBottomAccessory(isEnabled: store.tv.connected != nil && store.tv.now != nil) {
+            content.tabViewBottomAccessory(isEnabled: (store.tv.connected != nil || store.tv.cast.active) && store.tv.now != nil) {
                 TVNowPlayingBar()
             }
         } else {
@@ -124,7 +126,9 @@ struct TVNowPlayingBar: View {
     @Environment(\.tabViewBottomAccessoryPlacement) private var placement
 
     var body: some View {
-        if let card = store.tv.card, let now = store.tv.now {
+        if store.tv.cast.active {
+            CastNowPlayingBar(inline: placement == .inline)
+        } else if let card = store.tv.card, let now = store.tv.now {
             HStack(spacing: 12) {
                 if placement != .inline, let entry = store.titles[now.id] { CoverArt(entry: entry, width: 24) }
                 VStack(alignment: .leading, spacing: 0) {
@@ -284,12 +288,15 @@ struct TVProblemLine: View {
 struct TVSheetShown: Equatable {
     var sheet: TVRemoteModel.Sheet?
     var pairing: TVPairingStep?
+    /// The card is a cast's.
+    var cast = false
 
     init() {}
 
     @MainActor init(_ tv: TVRemoteModel) {
         sheet = tv.sheet
         pairing = tv.pairing
+        cast = tv.cast.active
     }
 
     /// The model's, while a sheet is up; what was last shown, while it goes.
@@ -515,6 +522,11 @@ struct TVRow: View {
             store.tv.choose(row)
         } label: {
             HStack(spacing: phone ? 14 : 12) {
+                Image(systemName: "tv")
+                    .font(phone ? .ui(18) : .mac(14))
+                    .foregroundStyle(.haze)
+                    .frame(width: phone ? 22 : 18)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(row.name).font(phone ? .ui(17) : .mac(13)).foregroundStyle(.silk)
                     Text(row.detail).font(phone ? .ui(13) : .mac(12)).foregroundStyle(.haze)
@@ -557,6 +569,8 @@ struct TVRow: View {
 struct TVSearchingRow: View {
     let phone: Bool
     let request: TVPlayRequest?
+    /// TVs with Chromecast built in are looked for too: the empty state says they'd show here.
+    var cast = false
 
     enum Stage { case quiet, looking, none }
     @State private var stage = Stage.quiet
@@ -577,6 +591,10 @@ struct TVSearchingRow: View {
                     Text(TVWords.noneFound).font(phone ? .ui(17) : .mac(13)).foregroundStyle(.silk)
                     Text(TVWords.noneLine(request)).font(phone ? .ui(13) : .mac(12)).foregroundStyle(.haze)
                         .fixedSize(horizontal: false, vertical: true)
+                    if cast {
+                        Text(L.castNoneFoundExtra).font(phone ? .ui(13) : .mac(12)).foregroundStyle(.haze)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }
@@ -609,6 +627,8 @@ struct MacTVSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             if let pairing = shown.pairing {
                 MacTVPairing(step: pairing)
+            } else if shown.sheet == .remote, shown.cast {
+                MacCastCard()
             } else if shown.sheet == .remote {
                 MacTVRemote()
             } else {
@@ -641,7 +661,7 @@ private struct MacSheetHeading: View {
 }
 
 /// Rows on the ground inside the raised sheet, with hairlines between them.
-private struct MacSheetRows<Content: View>: View {
+struct MacSheetRows<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -669,15 +689,24 @@ struct MacTVPicker: View {
     var body: some View {
         let tv = store.tv
         MacSheetHeading(title: TVWords.pickerTitle(tv.request), line: TVWords.pickerLine(tv.request))
-        MacSheetRows {
-            if tv.rows.isEmpty {
-                TVSearchingRow(phone: false, request: tv.request).padding(.horizontal, 14)
+        if tv.cast.localNetworkDenied {
+            // Both groups need the local network: the box asks once, at once.
+            MacSheetRows { CastLocalNetworkRow() }
+                .padding(.top, 16)
+        } else {
+            if !tv.rows.isEmpty || tv.cast.rows.isEmpty {
+                MacSheetRows {
+                    if tv.rows.isEmpty {
+                        TVSearchingRow(phone: false, request: tv.request, cast: tv.cast.shown).padding(.horizontal, 14)
+                    }
+                    ForEach(tv.rows, id: \.key) { row in
+                        TVRow(row: row, phone: false)
+                    }
+                }
+                .padding(.top, 16)
             }
-            ForEach(tv.rows, id: \.key) { row in
-                TVRow(row: row, phone: false)
-            }
+            if tv.request != nil { MacCastGroup() }
         }
-        .padding(.top, 16)
         if typing {
             HStack(spacing: 10) {
                 TextField(L.tvAddress, text: $address, prompt: Text("192.168.1.20:47811")) // i18n-skip
@@ -700,9 +729,16 @@ struct MacTVPicker: View {
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
             Spacer()
-            Button(L.actionDone) { dismiss() }
-                .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                .keyboardShortcut(.cancelAction)
+            if tv.cast.localNetworkDenied {
+                // Open Settings is the one amber action.
+                Button(L.actionDone) { dismiss() }
+                    .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                    .keyboardShortcut(.cancelAction)
+            } else {
+                Button(L.actionDone) { dismiss() }
+                    .buttonStyle(PrimaryCapsuleStyle(height: 28))
+                    .keyboardShortcut(.cancelAction)
+            }
         }
         .padding(.top, 20)
         .onAppear { tv.startBrowsing() }
@@ -904,20 +940,26 @@ struct PhoneTVSheet: View {
         let tv = store.tv
         let shown = TVSheetShown(tv, last: last)
         let remote = shown.sheet == .remote
-        NavigationStack {
-            Group {
-                if let pairing = shown.pairing {
-                    PhoneTVPairing(step: pairing)
-                } else if remote {
-                    PhoneTVRemote()
-                } else {
-                    PhoneTVPicker()
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(L.actionDone) { dismiss() }.fontWeight(.semibold)
+        Group {
+            if remote, shown.cast {
+                PhoneCastCard()
+            } else {
+                NavigationStack {
+                    Group {
+                        if let pairing = shown.pairing {
+                            PhoneTVPairing(step: pairing)
+                        } else if remote {
+                            PhoneTVRemote()
+                        } else {
+                            PhoneTVPicker()
+                        }
+                    }
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(L.actionDone) { dismiss() }.fontWeight(.semibold)
+                        }
+                    }
                 }
             }
         }
@@ -948,6 +990,7 @@ private struct PhoneActionRow: View {
 
 struct PhoneTVPicker: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.openURL) private var openURL
     @State private var address = ""
     @State private var scanning = false
 
@@ -955,16 +998,40 @@ struct PhoneTVPicker: View {
         let tv = store.tv
         PhoneList {
             Section {
-                if tv.rows.isEmpty {
-                    TVSearchingRow(phone: true, request: tv.request).listRowBackground(Palette.raised)
-                }
-                ForEach(tv.rows, id: \.key) { row in
-                    TVRow(row: row, phone: true).listRowBackground(Palette.raised)
+                if tv.cast.localNetworkDenied {
+                    // Both sections need the local network: it asks once, at once.
+                    Text(L.castLocalNetwork)
+                        .font(.ui(17))
+                        .foregroundStyle(.silk)
+                        .padding(.vertical, 6)
+                        .listRowBackground(Palette.raised)
+                    Button(L.actionOpenSettings) {
+                        if let url = CastWords.localNetworkSettings { openURL(url) }
+                    }
+                    .font(.ui(17))
+                    .foregroundStyle(.amber)
+                    .listRowBackground(Palette.raised)
+                } else {
+                    if tv.rows.isEmpty && tv.cast.rows.isEmpty {
+                        TVSearchingRow(phone: true, request: tv.request, cast: tv.cast.shown).listRowBackground(Palette.raised)
+                    }
+                    ForEach(tv.rows, id: \.key) { row in
+                        TVRow(row: row, phone: true).listRowBackground(Palette.raised)
+                    }
                 }
             } header: {
                 PhoneSectionHeader(L.tvSectionNetwork)
             } footer: {
                 Text(TVWords.pickerLine(tv.request))
+            }
+            if !tv.cast.localNetworkDenied, tv.request != nil, !tv.cast.rows.isEmpty {
+                Section {
+                    ForEach(tv.cast.rows) { shown in
+                        CastPickerRow(shown: shown, phone: true).listRowBackground(Palette.raised)
+                    }
+                } header: {
+                    PhoneSectionHeader(L.castChromecast)
+                }
             }
             Section {
                 if TVCodeScanner.isSupported {
@@ -988,6 +1055,7 @@ struct PhoneTVPicker: View {
             }
         }
         .navigationTitle(TVWords.pickerTitle(tv.request))
+        .animation(.standard, value: tv.cast.rows)
         .onAppear { tv.startBrowsing() }
         .onDisappear { tv.stopBrowsing() }
         .sheet(isPresented: $scanning) {

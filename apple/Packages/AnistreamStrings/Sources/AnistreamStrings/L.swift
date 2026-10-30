@@ -1180,6 +1180,16 @@ public enum L {
         Self.format("downloads-seeding-uploaded", fallback: "Shared %1$@ of %2$@ · %3$@ · %4$@ up", shared, goal, left, size)
     }
 
+    /// Line under a TV with Chromecast built in, in the picker: this device serves the episode to it while it plays. The device is the product's name, such as Mac or iPhone.
+    public static func castRowThrough(device: String) -> String {
+        Self.format("cast-row-through", fallback: "Plays through this %1$@", device)
+    }
+
+    /// Note on the iPhone and iPad casting card: the cast stops when the app leaves the screen. The device is iPhone or iPad; the name is the TV's.
+    public static func castKeepOpen(device: String, name: String) -> String {
+        Self.format("cast-keep-open", fallback: "Keep anistream open on this %1$@ while %2$@ plays.", device, name)
+    }
+
     /// Line under the header while AniList's request budget is spent. The placeholders stay.
     public static func discussionAppleWaiting(time: String) -> String {
         Self.format("discussion-apple-waiting", fallback: "Waiting for AniList · %1$@", time)
@@ -2900,6 +2910,42 @@ public enum L {
     public static func calendarNowSpoken(time: String) -> String {
         Self.format("calendar-now-spoken", fallback: "Now, %1$@", time)
     }
+
+    /// Heading of the picker's group of TVs with Chromecast built in, and the line under such a TV when it fetches the stream by itself. A product name.
+    public static var castChromecast: String { string("cast-chromecast", fallback: "Chromecast") }
+
+    /// Line added to the picker's empty state, under what to check.
+    public static var castNoneFoundExtra: String { string("cast-none-found-extra", fallback: "TVs with Chromecast built in show here too.") }
+
+    /// The picker's one row while the app may not look on the local network, with a button that opens the system's settings.
+    public static var castLocalNetwork: String { string("cast-local-network", fallback: "Allow anistream to find devices on your local network") }
+
+    /// The card's line while a cast takes longer than a few seconds to start. The seconds count up from the pick.
+    public static func castStartingCounted(name: String, seconds: Int) -> String {
+        Self.format("cast-starting-counted", fallback: "Starting on %1$@ · %2$lld s", name, seconds)
+    }
+
+    /// The card's line while a cast starts, with what the engine is doing and the seconds since the pick. The line is a short phrase from the engine, such as "Waiting for Living room".
+    public static func castPhaseCounted(line: String, seconds: Int) -> String {
+        Self.format("cast-phase-counted", fallback: "%1$@ · %2$lld s", line, seconds)
+    }
+
+    /// The card's line when a cast never started. The name is the TV's.
+    public static func castCouldntStart(name: String) -> String {
+        Self.format("cast-couldnt-start", fallback: "Couldn't start on %1$@", name)
+    }
+
+    /// The card's line when a cast that played has stopped.
+    public static var castStopped: String { string("cast-stopped", fallback: "Casting stopped") }
+
+    /// Button that stops the cast and plays the episode on this device, where the TV was.
+    public static var castPlayHere: String { string("cast-play-here", fallback: "Play here") }
+
+    /// Button that stops the cast. The TV goes back to its own screen.
+    public static var castStop: String { string("cast-stop", fallback: "Stop casting") }
+
+    /// Line under TV volume on the card, for a TV whose volume only its own remote sets.
+    public static var castVolumeFixed: String { string("cast-volume-fixed", fallback: "Set on the TV") }
 
     /// Button that runs a failed action again.
     public static var actionTryAgain: String { string("action-try-again", fallback: "Try again") }
