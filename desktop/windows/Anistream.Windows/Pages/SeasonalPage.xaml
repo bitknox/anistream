@@ -20,15 +20,15 @@
     </StackPanel>
     <!-- The season as a picker, with the seasons before and after it beside it. -->
     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4">
-      <Button x:Name="Earlier" Click="OnEarlier" ToolTipService.ToolTip="{x:Bind s:T.SeasonalPrevious}" AutomationProperties.Name="{x:Bind s:T.SeasonalPrevious}" Height="32">
+      <Button x:Name="Earlier" Click="OnEarlier" ToolTipService.ToolTip="{x:Bind s:T.SeasonalPrevious}" AutomationProperties.Name="{x:Bind s:T.SeasonalPrevious}" MinHeight="32">
         <FontIcon Glyph="&#xE76B;" FontSize="12" />
       </Button>
-      <DropDownButton x:Name="SeasonPicker" MinWidth="140" Height="32" AutomationProperties.Name="{x:Bind s:T.FilterSeason}">
+      <DropDownButton x:Name="SeasonPicker" MinWidth="140" MinHeight="32" AutomationProperties.Name="{x:Bind s:T.FilterSeason}">
         <DropDownButton.Flyout>
           <MenuFlyout x:Name="SeasonMenu" Placement="BottomEdgeAlignedLeft" />
         </DropDownButton.Flyout>
       </DropDownButton>
-      <Button x:Name="Later" Click="OnLater" ToolTipService.ToolTip="{x:Bind s:T.SeasonalNext}" AutomationProperties.Name="{x:Bind s:T.SeasonalNext}" Height="32">
+      <Button x:Name="Later" Click="OnLater" ToolTipService.ToolTip="{x:Bind s:T.SeasonalNext}" AutomationProperties.Name="{x:Bind s:T.SeasonalNext}" MinHeight="32">
         <FontIcon Glyph="&#xE76C;" FontSize="12" />
       </Button>
     </StackPanel>

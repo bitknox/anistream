@@ -1555,6 +1555,22 @@
     <value>[Çļöšé ţĥé þļàýéŕ~~~~~]</value>
     <comment>Shortcut in the player.</comment>
   </data>
+  <data name="ClipboardBusy" xml:space="preserve">
+    <value>[Çöüļðñ'ţ çöþý: àñöţĥéŕ àþþ îš üšîñĝ ţĥé çļîþƀöàŕð. Ţŕý àĝàîñ îñ à ɱöɱéñţ.~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Notice when Windows wouldn't let the app put text on the clipboard, usually because another app holds it.</comment>
+  </data>
+  <data name="StartFailedTitle" xml:space="preserve">
+    <value>[àñîšţŕéàɱ çöüļðñ'ţ šţàŕţ~~~~~~~~]</value>
+    <comment>Title of the window shown instead of the app when the engine could not start. The engine's reason, with what to do, follows.</comment>
+  </data>
+  <data name="StartFailedOpenFolder" xml:space="preserve">
+    <value>[Öþéñ ţĥé ƒöļðéŕ~~~~~]</value>
+    <comment>Button in that window: opens the folder that holds the settings and the database, in File Explorer.</comment>
+  </data>
+  <data name="StartFailedQuit" xml:space="preserve">
+    <value>[Ǫüîţ~~]</value>
+    <comment>Button in that window: closes it and the app.</comment>
+  </data>
   <data name="TvPickerEpisodeOf" xml:space="preserve">
     <value>[{title}, éþîšöðé {episode}~~~~~]</value>
     <comment>Under the TV picker's title: the episode about to play on the TV, with its show's title.</comment>

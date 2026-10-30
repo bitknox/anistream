@@ -28,6 +28,15 @@ public abstract record Link
     public sealed record Download(long Id) : Link;
 
     /// <summary>
+    /// A tracker's sign-in coming back from the browser, <c>anistream://auth/anilist#access_token=…</c>:
+    /// the tracker, and the whole link for the engine to finish with. A secret, as it can carry the token.
+    /// </summary>
+    public sealed record Auth(string Tracker, string Callback) : Link
+    {
+        public override string ToString() => $"Auth {{ Tracker = {Tracker} }}";
+    }
+
+    /// <summary>
     /// A watch party's invite, <c>anistream://party?server=…&amp;room=…&amp;title=…&amp;episode=…</c>, as
     /// it came: the engine reads it (<c>parse_party_invite</c>), so every app agrees on what it says.
     /// </summary>
@@ -37,7 +46,7 @@ public abstract record Link
     /// What <paramref name="text"/> opens, or null when it is not a link the app answers. A store
     /// invite comes as <c>anistream://join?link=&lt;the https link&gt;</c>, or as the https link
     /// with the app's scheme in front of the host, <c>anistream://plugins.example/join/{code}#{key}</c>.
-    /// A sign-in coming back (<c>anistream://auth/…</c>) is not one: Windows signs in over loopback.
+    /// A sign-in coming back is <c>anistream://auth/&lt;tracker&gt;</c> with what the tracker sent.
     /// </summary>
     public static Link? Parse(string? text)
     {
@@ -60,7 +69,9 @@ public abstract record Link
             case "join":
                 return Query(tail, "link") is { } wrapped && InviteIn(wrapped) is { } inner ? new Invite(inner) : null;
             case "auth":
-                return null;
+                return parts is [var tracker, ..] && tracker.All(c => char.IsAsciiLetterOrDigit(c) || c == '-')
+                    ? new Auth(tracker.ToLowerInvariant(), text)
+                    : null;
             case "party":
                 return new Party(text);
             case "title" when parts is [var id] && uint.TryParse(id, out var t) && t > 0:

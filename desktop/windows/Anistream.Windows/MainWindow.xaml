@@ -68,7 +68,7 @@
             <TextBlock x:Name="AccountText" Text="{x:Bind app:T.AccountsStateSignedOut}" VerticalAlignment="Center" />
             <Ellipse x:Name="AccountDot" Width="6" Height="6" Fill="{ThemeResource WaterBrush}"
                      VerticalAlignment="Center" Visibility="Collapsed" />
-            <FontIcon x:Name="AccountAlert" Glyph="&#xE7BA;" FontSize="12" Foreground="#E06B54"
+            <FontIcon x:Name="AccountAlert" Glyph="&#xE7BA;" FontSize="12" Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                       VerticalAlignment="Center" Visibility="Collapsed" />
           </StackPanel>
         </NavigationViewItem>
@@ -76,13 +76,14 @@
       <Frame x:Name="ContentFrame" Navigated="OnFrameNavigated" />
     </NavigationView>
 
-    <!-- What the engine says in passing: marked watched, a sync failed. -->
-    <InfoBar x:Name="Toast" Grid.Row="1" IsOpen="False" IsClosable="True" MaxWidth="480"
-             HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="24"
-             AutomationProperties.LiveSetting="Polite"
-             PointerEntered="OnToastPointerEntered" PointerExited="OnToastPointerExited" />
-
     <!-- The player, over the page it came from, with the title bar as its top bar. -->
     <player:PlayerView x:Name="Player" Grid.Row="0" Grid.RowSpan="2" Visibility="Collapsed" />
+
+    <!-- What the engine says in passing: marked watched, a sync failed. Bottom centre, as the
+         board has it, and over the player, so a notice said while an episode plays is seen. -->
+    <InfoBar x:Name="Toast" Grid.Row="1" IsOpen="False" IsClosable="True" MaxWidth="480"
+             HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="24"
+             AutomationProperties.LiveSetting="Polite"
+             PointerEntered="OnToastPointerEntered" PointerExited="OnToastPointerExited" />
   </Grid>
 </Window>

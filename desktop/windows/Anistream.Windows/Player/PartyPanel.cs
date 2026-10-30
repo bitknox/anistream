@@ -183,9 +183,8 @@ sealed class PartyPanel
     {
         if (ctx.Known.Party?.Invite is not { } link)
             return;
-        var package = new global::Windows.ApplicationModel.DataTransfer.DataPackage();
-        package.SetText(link);
-        global::Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+        if (!Pages.Ui.TryCopy(link))
+            return;
         var mine = ++copied;
         copyText.Text = T.ActionCopied;
         await Task.Delay(2000);

@@ -47,37 +47,25 @@ public sealed partial class CalendarPage : Page
         settling = true;
         Whose.SelectedItem = mine ? MineItem : AllItem;
         settling = false;
-        var queue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
-        silence = queue.CreateTimer();
-        silence.Interval = TimeSpan.FromMilliseconds(600);
-        silence.IsRepeating = false;
-        silence.Tick += (_, _) =>
+        silence = Timers.Weak(this, TimeSpan.FromMilliseconds(600), false, static page =>
         {
-            placeholders = true;
-            placeholdersSince = DateTimeOffset.UtcNow;
-            Show();
-        };
-        activity = queue.CreateTimer();
-        activity.Interval = TimeSpan.FromSeconds(4);
-        activity.IsRepeating = false;
-        activity.Tick += (_, _) =>
+            page.placeholders = true;
+            page.placeholdersSince = DateTimeOffset.UtcNow;
+            page.Show();
+        });
+        activity = Timers.Weak(this, TimeSpan.FromSeconds(4), false, static page =>
         {
-            slow = true;
-            Show();
-        };
-        minute = queue.CreateTimer();
-        minute.Interval = TimeSpan.FromSeconds(20);
-        minute.IsRepeating = true;
-        minute.Tick += (_, _) => Tick();
+            page.slow = true;
+            page.Show();
+        });
+        minute = Timers.Weak(this, TimeSpan.FromSeconds(20), true, static page => page.Tick());
         // Heard from the start: what arrives before the page is loaded is not missed.
-        ctx.Batch += Heard;
-        Unloaded += (_, _) =>
+        ctx.Hear(this, Heard, () =>
         {
-            ctx.Batch -= Heard;
             silence.Stop();
             activity.Stop();
             minute.Stop();
-        };
+        });
     }
 
     string TodayTip => T.CalendarTodayTooltip("Ctrl+T");

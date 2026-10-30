@@ -97,7 +97,7 @@ sealed class TvDialog
         it.clock.Start();
         try
         {
-            await it.dialog.ShowAsync();
+            await Dialogs.Show(it.dialog);
         }
         finally
         {
@@ -623,7 +623,7 @@ sealed class TvDialog
         Border cover = new() { Width = 36, Height = 54, CornerRadius = new CornerRadius(4) };
         readonly TextBlock title = Ui.Text("", "ShowTitleStyle", wrap: false);
         readonly TextBlock episode = Ui.Text("", "HazeCaptionStyle", wrap: false);
-        readonly Button skip = new() { Height = 32 };
+        readonly Button skip = new() { MinHeight = 32 };
         // Arrow keys step 10 s, as the transport's buttons and the Mac's playhead do.
         readonly Slider seek = new() { Minimum = 0, Maximum = 1, StepFrequency = 1, SmallChange = 10, LargeChange = 60, IsThumbToolTipEnabled = false, Margin = new Thickness(0, 10, 0, 0) };
         readonly TextBlock elapsed = Ui.Text("0:00", "HazeCaptionStyle", wrap: false);

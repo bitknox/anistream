@@ -116,6 +116,9 @@ public sealed partial class ContinuePage : Page, IPageKeys
     bool loaded, welcomeAsked, hadSuggestions;
     DateTimeOffset lastPick;
 
+    /// <summary>The title whose detail and episodes the preview asked for last.</summary>
+    uint? detailAsked;
+
     /// <summary>Suggestions marked Not interested here, until Undo, so a refill cannot bring one back first.</summary>
     readonly HashSet<uint> dismissed = [];
 
@@ -125,8 +128,13 @@ public sealed partial class ContinuePage : Page, IPageKeys
         State.Placeholders = () => States.Rows(5, 36, 54);
         State.ActivityText = T.ContinueLoading;
         // Heard from the start: what arrives before the page is loaded is not missed.
-        ctx.Batch += Heard;
-        Unloaded += (_, _) => ctx.Batch -= Heard;
+        // The queue's rows let go once the frame leaves: a ListView still holding its items
+        // keeps the page alive after it has gone.
+        ctx.Hear(this, Heard, () =>
+        {
+            Queue.ItemsSource = null;
+            Groups.Source = null;
+        });
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -171,7 +179,10 @@ public sealed partial class ContinuePage : Page, IPageKeys
                     break;
             }
 #if ANISTREAM_TESTING
-            if (e is Event.Detail && faked is null)
+            // --up-next: the made-up suggestions wait on their titles' details. Without it the
+            // details are the preview's own, and rebuilding on them would select, load and
+            // rebuild again for ever.
+            if (e is Event.Detail fake && faked is null && ctx.Options.UpNext is not null && FakeIds.Contains(fake.V1.Id))
                 again = true;
 #endif
             // A row plays the first episode after the next that a source lists, once its table is
@@ -448,18 +459,24 @@ public sealed partial class ContinuePage : Page, IPageKeys
 
     void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (Queue.SelectedItem is QueueRow row && row != selected)
+        if (Queue.SelectedItem is not QueueRow row || row == selected)
+            return;
+        // A rebuilt list selects its new row for the same title: no fade, nothing to load again.
+        if (row.Entry.Id == selected?.Entry.Id && row.Entry.Id == detailAsked)
         {
-            // The preview crossfades in, unless the selection is still moving (M2).
-            var now = DateTimeOffset.UtcNow;
-            if (selected is not null && now - lastPick > TimeSpan.FromMilliseconds(150))
-                Motion.FadeIn(PreviewBody);
-            lastPick = now;
-            ShowPreview(row);
-            ctx.Send(new Command.LoadDetail(row.Entry.Id));
-            if (row.Item is not null)
-                ctx.Send(new Command.LoadEpisodes(row.Entry.Id));
+            selected = row;
+            return;
         }
+        // The preview crossfades in, unless the selection is still moving (M2).
+        var now = DateTimeOffset.UtcNow;
+        if (selected is not null && now - lastPick > TimeSpan.FromMilliseconds(150))
+            Motion.FadeIn(PreviewBody);
+        lastPick = now;
+        ShowPreview(row);
+        detailAsked = row.Entry.Id;
+        ctx.Send(new Command.LoadDetail(row.Entry.Id));
+        if (row.Item is not null)
+            ctx.Send(new Command.LoadEpisodes(row.Entry.Id));
     }
 
     void ShowPreview(QueueRow? row)

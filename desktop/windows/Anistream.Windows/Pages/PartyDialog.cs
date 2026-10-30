@@ -80,7 +80,7 @@ sealed class PartyDialog
             hint.Children.Add(useSuggested);
             body.Children.Add(hint);
             body.Children.Add(room);
-            var roomNote = Ui.Text("Anyone who knows the room's name can join it. The invite link carries it, so nobody has to read it out.", "HazeCaptionStyle");
+            var roomNote = Ui.Text(T.PartyRoomHint, "HazeCaptionStyle");
             roomNote.Margin = new Thickness(0, -8, 0, 0);
             body.Children.Add(roomNote);
         }
@@ -153,9 +153,7 @@ sealed class PartyDialog
         Update();
         try
         {
-            var open = dialog.ShowAsync();
-            shown?.Invoke(this);
-            await open;
+            await Dialogs.Show(dialog, shown is null ? null : () => shown(this));
         }
         finally
         {
