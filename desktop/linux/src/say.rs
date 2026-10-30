@@ -723,7 +723,8 @@ mod tests {
         e.resume = Some(ResumePoint { position: 606.0, fraction: Some(606.0 / 1440.0) });
         let after = queue_item(&e, None);
         assert_eq!(after.action, "Resume E7 \u{b7} 10:06");
-        let row = |item| queue(&[item], &[], &Default::default()).all().next().cloned().unwrap();
+        let row =
+            |item| queue(&[item], &[], &Default::default()).all().next().cloned().unwrap();
         let (a, b) = (row(before.entry.clone()), row(after.entry.clone()));
         assert_eq!(a.episode, b.episode);
         assert_ne!(a.preview_key(0), b.preview_key(0));
