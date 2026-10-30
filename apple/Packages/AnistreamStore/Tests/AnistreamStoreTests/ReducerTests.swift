@@ -161,7 +161,7 @@ struct ReducerTests {
         #expect(store.titles[900_001]?.progress == TitleProgress(done: 6, next: 7))
         #expect(store.titles[900_001]?.resume?.position == 606)
         let row = store.continuing.queue(store.titles).inProgress.first { $0.id == 900_001 }
-        #expect(row?.action == "Continue E7 · 10:06")
+        #expect(row?.action == "Resume E7 · 10:06")
         // Continue's own list still updates it.
         var moved = watching()[0]
         moved.progress = TitleProgress(done: 7, next: 8)
