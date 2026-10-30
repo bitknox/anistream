@@ -350,6 +350,31 @@ pub fn notice_source_search_empty(query: &str) -> String {
     text("notice-source-search-empty", &[("query", Arg::Text(query))])
 }
 
+/// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.
+pub fn match_ruled_out_format() -> String {
+    text("match-ruled-out-format", &[])
+}
+
+/// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.
+pub fn match_ruled_out_episodes() -> String {
+    text("match-ruled-out-episodes", &[])
+}
+
+/// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.
+pub fn match_ruled_out_year() -> String {
+    text("match-ruled-out-year", &[])
+}
+
+/// Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.
+pub fn match_search_timed_out() -> String {
+    text("match-search-timed-out", &[])
+}
+
+/// Why a search of a source for a show's match failed: the source isn't installed or switched on.
+pub fn match_search_source_off() -> String {
+    text("match-search-source-off", &[])
+}
+
 /// Toast after the person picked a source for one title.
 pub fn notice_source_pinned(source: &str) -> String {
     text("notice-source-pinned", &[("source", Arg::Text(source))])
@@ -10623,6 +10648,121 @@ pub fn sources_rebuilding() -> String {
 /// Value of a plugin's response time, in milliseconds.
 pub fn sources_response_ms(ms: i64) -> String {
     text("sources-response-ms", &[("ms", Arg::Int(ms))])
+}
+
+/// Menu, palette and source picker entry that opens the sheet.
+pub fn match_fix() -> String {
+    text("match-fix", &[])
+}
+
+/// The title page's main action while the source couldn't choose, and the sheet's title.
+pub fn match_choose() -> String {
+    text("match-choose", &[])
+}
+
+/// The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.
+pub fn match_uncertain(count: i64, source: &str) -> String {
+    text("match-uncertain", &[("count", Arg::Int(count)), ("source", Arg::Text(source))])
+}
+
+/// The line on a title page when the source listed no title that fits, so the person searches.
+pub fn match_uncertain_none(source: &str) -> String {
+    text("match-uncertain-none", &[("source", Arg::Text(source))])
+}
+
+/// The last row of the source picker, which opens the match sheet.
+pub fn match_source_picker_row() -> String {
+    text("match-source-picker-row", &[])
+}
+
+/// Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".
+pub fn match_anilist_facts(facts: &str) -> String {
+    text("match-anilist-facts", &[("facts", Arg::Text(facts))])
+}
+
+/// Heading over the titles a source offers.
+pub fn match_section_source(source: &str) -> String {
+    text("match-section-source", &[("source", Arg::Text(source))])
+}
+
+/// Heading over the title the show is matched to now.
+pub fn match_now() -> String {
+    text("match-now", &[])
+}
+
+/// Beside the title matched now: the person chose it.
+pub fn match_chosen_by_you() -> String {
+    text("match-chosen-by-you", &[])
+}
+
+/// Beside the title matched now: anistream chose it.
+pub fn match_chosen_automatically() -> String {
+    text("match-chosen-automatically", &[])
+}
+
+/// How closely a source's title matches the show, at the end of its row.
+pub fn match_similarity(similarity: &str) -> String {
+    text("match-similarity", &[("similarity", Arg::Text(similarity))])
+}
+
+/// Placeholder of the search field in the sheet.
+pub fn match_search_field(source: &str) -> String {
+    text("match-search-field", &[("source", Arg::Text(source))])
+}
+
+/// While a search of the source runs.
+pub fn match_searching(source: &str, query: &str) -> String {
+    text("match-searching", &[("source", Arg::Text(source)), ("query", Arg::Text(query))])
+}
+
+/// A search of the source that found nothing.
+pub fn match_search_empty(source: &str, query: &str) -> String {
+    text("match-search-empty", &[("source", Arg::Text(source)), ("query", Arg::Text(query))])
+}
+
+/// Under match-search-empty: what to try.
+pub fn match_search_empty_hint() -> String {
+    text("match-search-empty-hint", &[])
+}
+
+/// A search of the source that failed. The reason follows on its own line.
+pub fn match_search_failed(source: &str) -> String {
+    text("match-search-failed", &[("source", Arg::Text(source))])
+}
+
+/// On the row picked, while the source lists its episodes.
+pub fn match_picking() -> String {
+    text("match-picking", &[])
+}
+
+/// A pick that failed. The reason follows on its own line.
+pub fn match_fix_failed() -> String {
+    text("match-fix-failed", &[])
+}
+
+/// Notice once a picked title's episodes arrive.
+pub fn match_picked(title: &str, source: &str) -> String {
+    text("match-picked", &[("title", Arg::Text(title)), ("source", Arg::Text(source))])
+}
+
+/// Button that forgets the person's choice, shown only while the match is one they chose.
+pub fn match_automatic() -> String {
+    text("match-automatic", &[])
+}
+
+/// Under "Match automatically", on iPhone, iPad and Android.
+pub fn match_automatic_detail() -> String {
+    text("match-automatic-detail", &[])
+}
+
+/// Notice after "Match automatically".
+pub fn match_cleared() -> String {
+    text("match-cleared", &[])
+}
+
+/// Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
+pub fn match_row_label(title: &str, facts: &str, closeness: &str) -> String {
+    text("match-row-label", &[("title", Arg::Text(title)), ("facts", Arg::Text(facts)), ("closeness", Arg::Text(closeness))])
 }
 
 /// Short label for a joined store, on a row.

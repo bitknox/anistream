@@ -323,6 +323,26 @@
     <value>[Ñöţĥîñĝ ƒöüñð ƒöŕ “{query}”. Ţŕý à ðîƒƒéŕéñţ šéàŕçĥ.~~~~~~~~~~~~~~~]</value>
     <comment>Toast when a search of the sources for a title found nothing.</comment>
   </data>
+  <data name="MatchRuledOutFormat" xml:space="preserve">
+    <value>[Ðîƒƒéŕéñţ ƒöŕɱàţ~~~~~]</value>
+    <comment>In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.</comment>
+  </data>
+  <data name="MatchRuledOutEpisodes" xml:space="preserve">
+    <value>[Ṁöŕé éþîšöðéš ţĥàñ ţĥîš ţîţļé~~~~~~~~~]</value>
+    <comment>In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.</comment>
+  </data>
+  <data name="MatchRuledOutYear" xml:space="preserve">
+    <value>[Ðîƒƒéŕéñţ ýéàŕ~~~~~]</value>
+    <comment>In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.</comment>
+  </data>
+  <data name="MatchSearchTimedOut" xml:space="preserve">
+    <value>[Îţ ðîðñ'ţ àñšŵéŕ îñ ţîɱé.~~~~~~~~]</value>
+    <comment>Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.</comment>
+  </data>
+  <data name="MatchSearchSourceOff" xml:space="preserve">
+    <value>[Îţ îšñ'ţ šŵîţçĥéð öñ.~~~~~~~]</value>
+    <comment>Why a search of a source for a show's match failed: the source isn't installed or switched on.</comment>
+  </data>
   <data name="NoticeSourcePinned" xml:space="preserve">
     <value>[{source} ŵîļļ ƀé üšéð ƒöŕ ţĥîš ţîţļé.~~~~~~~~~~]</value>
     <comment>Toast after the person picked a source for one title.</comment>
@@ -5534,6 +5554,102 @@
   <data name="SourcesResponseMs" xml:space="preserve">
     <value>[{ms} ɱš~~]</value>
     <comment>Value of a plugin's response time, in milliseconds.</comment>
+  </data>
+  <data name="MatchFix" xml:space="preserve">
+    <value>[Ƒîẋ ţĥîš ɱàţçĥ~~~~~]</value>
+    <comment>Menu, palette and source picker entry that opens the sheet.</comment>
+  </data>
+  <data name="MatchChoose" xml:space="preserve">
+    <value>[Çĥööšé ţĥé ɱàţçĥ~~~~~]</value>
+    <comment>The title page's main action while the source couldn't choose, and the sheet's title.</comment>
+  </data>
+  <data name="MatchUncertain_one" xml:space="preserve">
+    <value>[{source} ļîšţš à ţîţļé ţĥàţ çöüļð ƀé ţĥîš öñé. Çĥööšé îţ ţö þļàý îţš éþîšöðéš.~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.</comment>
+  </data>
+  <data name="MatchUncertain_other" xml:space="preserve">
+    <value>[{source} ļîšţš {count} ţîţļéš ţĥàţ çöüļð ƀé ţĥîš öñé. Çĥööšé öñé ţö þļàý îţš éþîšöðéš.~~~~~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.</comment>
+  </data>
+  <data name="MatchUncertainNone" xml:space="preserve">
+    <value>[{source} ĥàš ñö ţîţļé ţĥàţ ƒîţš ţĥîš öñé. Çĥööšé öñé àñýŵàý, öŕ šéàŕçĥ.~~~~~~~~~~~~~~~~~~~~]</value>
+    <comment>The line on a title page when the source listed no title that fits, so the person searches.</comment>
+  </data>
+  <data name="MatchSourcePickerRow" xml:space="preserve">
+    <value>[Ŵŕöñĝ ţîţļé? Ƒîẋ ţĥîš ɱàţçĥ~~~~~~~~~]</value>
+    <comment>The last row of the source picker, which opens the match sheet.</comment>
+  </data>
+  <data name="MatchAnilistFacts" xml:space="preserve">
+    <value>[Öñ ÅñîĻîšţ: {facts}~~~~~]</value>
+    <comment>Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".</comment>
+  </data>
+  <data name="MatchSectionSource" xml:space="preserve">
+    <value>[Öñ {source}~~]</value>
+    <comment>Heading over the titles a source offers.</comment>
+  </data>
+  <data name="MatchNow" xml:space="preserve">
+    <value>[Ṁàţçĥéð ñöŵ~~~~]</value>
+    <comment>Heading over the title the show is matched to now.</comment>
+  </data>
+  <data name="MatchChosenByYou" xml:space="preserve">
+    <value>[Çĥöšéñ ƀý ýöü~~~~]</value>
+    <comment>Beside the title matched now: the person chose it.</comment>
+  </data>
+  <data name="MatchChosenAutomatically" xml:space="preserve">
+    <value>[Çĥöšéñ àüţöɱàţîçàļļý~~~~~~]</value>
+    <comment>Beside the title matched now: anistream chose it.</comment>
+  </data>
+  <data name="MatchSimilarity" xml:space="preserve">
+    <value>[{similarity} ɱàţçĥ~~~]</value>
+    <comment>How closely a source's title matches the show, at the end of its row.</comment>
+  </data>
+  <data name="MatchSearchField" xml:space="preserve">
+    <value>[Šéàŕçĥ {source}~~~]</value>
+    <comment>Placeholder of the search field in the sheet.</comment>
+  </data>
+  <data name="MatchSearching" xml:space="preserve">
+    <value>[Šéàŕçĥîñĝ {source} ƒöŕ “{query}”~~~~~~~]</value>
+    <comment>While a search of the source runs.</comment>
+  </data>
+  <data name="MatchSearchEmpty" xml:space="preserve">
+    <value>[Ñöţĥîñĝ öñ {source} ƒöŕ “{query}”.~~~~~~~~]</value>
+    <comment>A search of the source that found nothing.</comment>
+  </data>
+  <data name="MatchSearchEmptyHint" xml:space="preserve">
+    <value>[Ţŕý ƒéŵéŕ ŵöŕðš, öŕ ţĥé ţîţļé îñ àñöţĥéŕ ļàñĝüàĝé.~~~~~~~~~~~~~~~]</value>
+    <comment>Under match-search-empty: what to try.</comment>
+  </data>
+  <data name="MatchSearchFailed" xml:space="preserve">
+    <value>[Çöüļðñ'ţ šéàŕçĥ {source}.~~~~~~]</value>
+    <comment>A search of the source that failed. The reason follows on its own line.</comment>
+  </data>
+  <data name="MatchPicking" xml:space="preserve">
+    <value>[Ṁàţçĥîñĝ~~~]</value>
+    <comment>On the row picked, while the source lists its episodes.</comment>
+  </data>
+  <data name="MatchFixFailed" xml:space="preserve">
+    <value>[Çöüļðñ'ţ üšé ţĥàţ ɱàţçĥ.~~~~~~~~]</value>
+    <comment>A pick that failed. The reason follows on its own line.</comment>
+  </data>
+  <data name="MatchPicked" xml:space="preserve">
+    <value>[Ṁàţçĥéð ţö {title} öñ {source}.~~~~~~~]</value>
+    <comment>Notice once a picked title's episodes arrive.</comment>
+  </data>
+  <data name="MatchAutomatic" xml:space="preserve">
+    <value>[Ṁàţçĥ àüţöɱàţîçàļļý~~~~~~]</value>
+    <comment>Button that forgets the person's choice, shown only while the match is one they chose.</comment>
+  </data>
+  <data name="MatchAutomaticDetail" xml:space="preserve">
+    <value>[Ƒöŕĝéţ ýöüŕ çĥöîçé àñð ļéţ àñîšţŕéàɱ ɱàţçĥ ţĥîš ţîţļé àĝàîñ.~~~~~~~~~~~~~~~~~~]</value>
+    <comment>Under "Match automatically", on iPhone, iPad and Android.</comment>
+  </data>
+  <data name="MatchCleared" xml:space="preserve">
+    <value>[Ṁàţçĥîñĝ àüţöɱàţîçàļļý àĝàîñ.~~~~~~~~~]</value>
+    <comment>Notice after "Match automatically".</comment>
+  </data>
+  <data name="MatchRowLabel" xml:space="preserve">
+    <value>[{title}, {facts}, {closeness}~~~~]</value>
+    <comment>Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.</comment>
   </data>
   <data name="StoresJoined" xml:space="preserve">
     <value>[Ĵöîñéð~~]</value>

@@ -346,7 +346,7 @@ pub(super) fn candidate_rows(app: &App) -> Vec<(String, String)> {
             let similarity = format!("{:>3.0}%", candidate.similarity * 100.0);
             let mut title = candidate.title.clone();
             if let Some(reason) = &candidate.rejected {
-                push_detail(&mut title, reason);
+                push_detail(&mut title, &crate::app::say(reason));
             }
             (similarity, title)
         })
@@ -555,14 +555,22 @@ mod tests {
                     key: anistream_core::ids::ProviderKey::new("a"),
                     similarity: 0.62,
                     rejected: None,
+                    year: None,
+                    episodes: None,
+                    format: None,
                 },
                 anistream_model::sources::MatchCandidate {
                     title: "Hoshikuzu S2".into(),
                     key: anistream_core::ids::ProviderKey::new("b"),
                     similarity: 0.61,
-                    rejected: Some("episode count".into()),
+                    rejected: Some(anistream_model::Msg::MatchRuledOutEpisodes),
+                    year: None,
+                    episodes: None,
+                    format: None,
                 },
             ],
+            answers: anistream_model::sources::MatchQuestion::Ladder,
+            source: "Torrent".into(),
         });
 
         let text = text_of(&render_to_buffer(&mut app, 110, 24));
@@ -570,7 +578,7 @@ mod tests {
         assert!(text.contains("62%") && text.contains("61%"), "similarity has to be visible");
         assert!(text.contains("Hoshikuzu S1") && text.contains("Hoshikuzu S2"));
         // A rejection reason explains why a plausible row was passed over.
-        assert!(text.contains("episode count"));
+        assert!(text.contains("More episodes than this title"), "{text}");
     }
 
     #[test]
@@ -665,7 +673,12 @@ mod tests {
                 key: anistream_core::ids::ProviderKey::new("a"),
                 similarity: 1.0,
                 rejected: None,
+                year: None,
+                episodes: None,
+                format: None,
             }],
+            answers: anistream_model::sources::MatchQuestion::Ladder,
+            source: "Some plugin".into(),
         });
         let text = text_of(&render_to_buffer(&mut app, 110, 24));
         assert!(text.contains("100%"));

@@ -8,8 +8,8 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ▌ Which one   Match for Kaze no Tegami
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Kaze no Tegami                                                         62%
-  Kaze no Tegami (2019)  ·  aired 2019, not 2026                         61%
-  Kaze no Tegami Recap  ·  a special, not the series                     44%
+  Kaze no Tegami (2019)  ·  Different year                               61%
+  Kaze no Tegami Recap  ·  Different format                              44%
 
    │
    │  Available on Hikari Stream
@@ -48,13 +48,13 @@ r09 c16-71 fg=rule bg=ground
 r09 c72-75 fg=text bg=ground
 r09 c76-79 fg=rule bg=ground
 r10 c00-01 fg=rule bg=ground
-r10 c02-47 fg=text-dim bg=ground
-r10 c48-71 fg=rule bg=ground
+r10 c02-41 fg=text-dim bg=ground
+r10 c42-71 fg=rule bg=ground
 r10 c72-75 fg=text bg=ground
 r10 c76-79 fg=rule bg=ground
 r11 c00-01 fg=rule bg=ground
-r11 c02-51 fg=text-dim bg=ground
-r11 c52-71 fg=rule bg=ground
+r11 c02-42 fg=text-dim bg=ground
+r11 c43-71 fg=rule bg=ground
 r11 c72-75 fg=text bg=ground
 r11 c76-79 fg=rule bg=ground
 r12 c00-79 fg=rule bg=ground

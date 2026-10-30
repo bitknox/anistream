@@ -219,6 +219,21 @@ notice-match-did-not-stick = [Ţĥàţ ɱàţçĥ ðîðñ'ţ šţîçķ. Ţĥé
 # Toast when a search of the sources for a title found nothing.
 notice-source-search-empty = [Ñöţĥîñĝ ƒöüñð ƒöŕ “{ $query }”. Ţŕý à ðîƒƒéŕéñţ šéàŕçĥ.~~~~~~~~~~~~~~~]
 
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.
+match-ruled-out-format = [Ðîƒƒéŕéñţ ƒöŕɱàţ~~~~~]
+
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.
+match-ruled-out-episodes = [Ṁöŕé éþîšöðéš ţĥàñ ţĥîš ţîţļé~~~~~~~~~]
+
+# In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.
+match-ruled-out-year = [Ðîƒƒéŕéñţ ýéàŕ~~~~~]
+
+# Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.
+match-search-timed-out = [Îţ ðîðñ'ţ àñšŵéŕ îñ ţîɱé.~~~~~~~~]
+
+# Why a search of a source for a show's match failed: the source isn't installed or switched on.
+match-search-source-off = [Îţ îšñ'ţ šŵîţçĥéð öñ.~~~~~~~]
+
 # Toast after the person picked a source for one title.
 notice-source-pinned = [{ $source } ŵîļļ ƀé üšéð ƒöŕ ţĥîš ţîţļé.~~~~~~~~~~]
 
@@ -6611,6 +6626,79 @@ sources-rebuilding = [Šöüŕçéš àŕé ƀéîñĝ šéţ üþ àĝàîñ~~~
 
 # Value of a plugin's response time, in milliseconds.
 sources-response-ms = [{ $ms } ɱš~~]
+
+# Menu, palette and source picker entry that opens the sheet.
+match-fix = [Ƒîẋ ţĥîš ɱàţçĥ~~~~~]
+
+# The title page's main action while the source couldn't choose, and the sheet's title.
+match-choose = [Çĥööšé ţĥé ɱàţçĥ~~~~~]
+
+# The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.
+match-uncertain =
+    { $count ->
+        [one] [{ $source } ļîšţš à ţîţļé ţĥàţ çöüļð ƀé ţĥîš öñé. Çĥööšé îţ ţö þļàý îţš éþîšöðéš.~~~~~~~~~~~~~~~~~~~~~~]
+       *[other] [{ $source } ļîšţš { $count } ţîţļéš ţĥàţ çöüļð ƀé ţĥîš öñé. Çĥööšé öñé ţö þļàý îţš éþîšöðéš.~~~~~~~~~~~~~~~~~~~~~~~~]
+    }
+
+# The line on a title page when the source listed no title that fits, so the person searches.
+match-uncertain-none = [{ $source } ĥàš ñö ţîţļé ţĥàţ ƒîţš ţĥîš öñé. Çĥööšé öñé àñýŵàý, öŕ šéàŕçĥ.~~~~~~~~~~~~~~~~~~~~]
+
+# The last row of the source picker, which opens the match sheet.
+match-source-picker-row = [Ŵŕöñĝ ţîţļé? Ƒîẋ ţĥîš ɱàţçĥ~~~~~~~~~]
+
+# Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".
+match-anilist-facts = [Öñ ÅñîĻîšţ: { $facts }~~~~~]
+
+# Heading over the titles a source offers.
+match-section-source = [Öñ { $source }~~]
+
+# Heading over the title the show is matched to now.
+match-now = [Ṁàţçĥéð ñöŵ~~~~]
+
+# Beside the title matched now: the person chose it.
+match-chosen-by-you = [Çĥöšéñ ƀý ýöü~~~~]
+
+# Beside the title matched now: anistream chose it.
+match-chosen-automatically = [Çĥöšéñ àüţöɱàţîçàļļý~~~~~~]
+
+# How closely a source's title matches the show, at the end of its row.
+match-similarity = [{ $similarity } ɱàţçĥ~~~]
+
+# Placeholder of the search field in the sheet.
+match-search-field = [Šéàŕçĥ { $source }~~~]
+
+# While a search of the source runs.
+match-searching = [Šéàŕçĥîñĝ { $source } ƒöŕ “{ $query }”~~~~~~~]
+
+# A search of the source that found nothing.
+match-search-empty = [Ñöţĥîñĝ öñ { $source } ƒöŕ “{ $query }”.~~~~~~~~]
+
+# Under match-search-empty: what to try.
+match-search-empty-hint = [Ţŕý ƒéŵéŕ ŵöŕðš, öŕ ţĥé ţîţļé îñ àñöţĥéŕ ļàñĝüàĝé.~~~~~~~~~~~~~~~]
+
+# A search of the source that failed. The reason follows on its own line.
+match-search-failed = [Çöüļðñ'ţ šéàŕçĥ { $source }.~~~~~~]
+
+# On the row picked, while the source lists its episodes.
+match-picking = [Ṁàţçĥîñĝ~~~]
+
+# A pick that failed. The reason follows on its own line.
+match-fix-failed = [Çöüļðñ'ţ üšé ţĥàţ ɱàţçĥ.~~~~~~~~]
+
+# Notice once a picked title's episodes arrive.
+match-picked = [Ṁàţçĥéð ţö { $title } öñ { $source }.~~~~~~~]
+
+# Button that forgets the person's choice, shown only while the match is one they chose.
+match-automatic = [Ṁàţçĥ àüţöɱàţîçàļļý~~~~~~]
+
+# Under "Match automatically", on iPhone, iPad and Android.
+match-automatic-detail = [Ƒöŕĝéţ ýöüŕ çĥöîçé àñð ļéţ àñîšţŕéàɱ ɱàţçĥ ţĥîš ţîţļé àĝàîñ.~~~~~~~~~~~~~~~~~~]
+
+# Notice after "Match automatically".
+match-cleared = [Ṁàţçĥîñĝ àüţöɱàţîçàļļý àĝàîñ.~~~~~~~~~]
+
+# Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
+match-row-label = [{ $title }, { $facts }, { $closeness }~~~~]
 
 # Short label for a joined store, on a row.
 stores-joined = [Ĵöîñéð~~]

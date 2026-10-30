@@ -286,6 +286,21 @@ public enum L {
         Self.format("notice-source-search-empty", fallback: "Nothing found for “%1$@”. Try a different search.", query)
     }
 
+    /// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because its format cannot be the show's, as an OVA for a TV series.
+    public static var matchRuledOutFormat: String { string("match-ruled-out-format", fallback: "Different format") }
+
+    /// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it lists more episodes than the show has.
+    public static var matchRuledOutEpisodes: String { string("match-ruled-out-episodes", fallback: "More episodes than this title") }
+
+    /// In the list of titles a source offers for a show, in place of how close a title is: it was ruled out because it started in another year.
+    public static var matchRuledOutYear: String { string("match-ruled-out-year", fallback: "Different year") }
+
+    /// Why a search of a source for a show's match failed, under "Couldn't search" and the source's name: the source took too long to answer.
+    public static var matchSearchTimedOut: String { string("match-search-timed-out", fallback: "It didn't answer in time.") }
+
+    /// Why a search of a source for a show's match failed: the source isn't installed or switched on.
+    public static var matchSearchSourceOff: String { string("match-search-source-off", fallback: "It isn't switched on.") }
+
     /// Toast after the person picked a source for one title.
     public static func noticeSourcePinned(source: String) -> String {
         Self.format("notice-source-pinned", fallback: "%1$@ will be used for this title.", source)
@@ -2777,6 +2792,9 @@ public enum L {
 
     /// Mac menu bar item that opens the source picker for the title on screen. Title Case, as the menu bar's items are. Everywhere else the picker is called source-picker-title.
     public static var menuSourceForTitle: String { string("menu-source-for-title", fallback: "Source for This Title") }
+
+    /// Mac menu bar item that opens the sheet for choosing which of a source's titles this show is. Title Case, as the menu bar's items are. Everywhere else it is match-fix.
+    public static var menuFixMatch: String { string("menu-fix-match", fallback: "Fix This Match…") }
 
     /// Under a release in the source picker: how many people share it right now.
     public static func sourceReleaseSeeders(count: Int) -> String {
@@ -5931,6 +5949,97 @@ public enum L {
     /// Value of a plugin's response time, in milliseconds.
     public static func sourcesResponseMs(ms: Int) -> String {
         Self.format("sources-response-ms", fallback: "%1$lld ms", ms)
+    }
+
+    /// Menu, palette and source picker entry that opens the sheet.
+    public static var matchFix: String { string("match-fix", fallback: "Fix this match") }
+
+    /// The title page's main action while the source couldn't choose, and the sheet's title.
+    public static var matchChoose: String { string("match-choose", fallback: "Choose the match") }
+
+    /// The line on the title page while the match is open, under its main action. The count leaves out titles that were ruled out.
+    public static func matchUncertain(count: Int, source: String) -> String {
+        Self.format("match-uncertain", fallback: "%2$@ lists %1$lld titles that could be this one. Choose one to play its episodes.", count, source)
+    }
+
+    /// The line on a title page when the source listed no title that fits, so the person searches.
+    public static func matchUncertainNone(source: String) -> String {
+        Self.format("match-uncertain-none", fallback: "%1$@ has no title that fits this one. Choose one anyway, or search.", source)
+    }
+
+    /// The last row of the source picker, which opens the match sheet.
+    public static var matchSourcePickerRow: String { string("match-source-picker-row", fallback: "Wrong title? Fix this match") }
+
+    /// Under the show's name in the sheet: what AniList says of it, such as "TV · 2026 · 24 episodes".
+    public static func matchAnilistFacts(facts: String) -> String {
+        Self.format("match-anilist-facts", fallback: "On AniList: %1$@", facts)
+    }
+
+    /// Heading over the titles a source offers.
+    public static func matchSectionSource(source: String) -> String {
+        Self.format("match-section-source", fallback: "On %1$@", source)
+    }
+
+    /// Heading over the title the show is matched to now.
+    public static var matchNow: String { string("match-now", fallback: "Matched now") }
+
+    /// Beside the title matched now: the person chose it.
+    public static var matchChosenByYou: String { string("match-chosen-by-you", fallback: "Chosen by you") }
+
+    /// Beside the title matched now: anistream chose it.
+    public static var matchChosenAutomatically: String { string("match-chosen-automatically", fallback: "Chosen automatically") }
+
+    /// How closely a source's title matches the show, at the end of its row.
+    public static func matchSimilarity(similarity: String) -> String {
+        Self.format("match-similarity", fallback: "%1$@ match", similarity)
+    }
+
+    /// Placeholder of the search field in the sheet.
+    public static func matchSearchField(source: String) -> String {
+        Self.format("match-search-field", fallback: "Search %1$@", source)
+    }
+
+    /// While a search of the source runs.
+    public static func matchSearching(source: String, query: String) -> String {
+        Self.format("match-searching", fallback: "Searching %1$@ for “%2$@”", source, query)
+    }
+
+    /// A search of the source that found nothing.
+    public static func matchSearchEmpty(source: String, query: String) -> String {
+        Self.format("match-search-empty", fallback: "Nothing on %1$@ for “%2$@”.", source, query)
+    }
+
+    /// Under match-search-empty: what to try.
+    public static var matchSearchEmptyHint: String { string("match-search-empty-hint", fallback: "Try fewer words, or the title in another language.") }
+
+    /// A search of the source that failed. The reason follows on its own line.
+    public static func matchSearchFailed(source: String) -> String {
+        Self.format("match-search-failed", fallback: "Couldn't search %1$@.", source)
+    }
+
+    /// On the row picked, while the source lists its episodes.
+    public static var matchPicking: String { string("match-picking", fallback: "Matching") }
+
+    /// A pick that failed. The reason follows on its own line.
+    public static var matchFixFailed: String { string("match-fix-failed", fallback: "Couldn't use that match.") }
+
+    /// Notice once a picked title's episodes arrive.
+    public static func matchPicked(title: String, source: String) -> String {
+        Self.format("match-picked", fallback: "Matched to %1$@ on %2$@.", title, source)
+    }
+
+    /// Button that forgets the person's choice, shown only while the match is one they chose.
+    public static var matchAutomatic: String { string("match-automatic", fallback: "Match automatically") }
+
+    /// Under "Match automatically", on iPhone, iPad and Android.
+    public static var matchAutomaticDetail: String { string("match-automatic-detail", fallback: "Forget your choice and let anistream match this title again.") }
+
+    /// Notice after "Match automatically".
+    public static var matchCleared: String { string("match-cleared", fallback: "Matching automatically again.") }
+
+    /// Screen reader label for one row of the sheet. The closeness is match-similarity or a reason the title was ruled out.
+    public static func matchRowLabel(title: String, facts: String, closeness: String) -> String {
+        Self.format("match-row-label", fallback: "%1$@, %2$@, %3$@", title, facts, closeness)
     }
 
     /// Short label for a joined store, on a row.

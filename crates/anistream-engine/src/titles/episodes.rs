@@ -3,7 +3,12 @@
 use anistream_core::{ids::AnilistId, media::Translation};
 use anistream_meta::Meta;
 use anistream_model::{
-    Msg, episodes::EpisodeRow, event::Event, notice::Notice, progress::Watch,
+    Msg,
+    episodes::EpisodeRow,
+    event::Event,
+    notice::Notice,
+    progress::Watch,
+    sources::{CurrentMatch, MatchQuestion},
 };
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
@@ -45,7 +50,48 @@ pub async fn load_episodes(
     registry: &ProviderRegistry,
     id: anistream_core::ids::AnilistId,
 ) -> std::result::Result<EpisodeLoad, String> {
-    load_listed(meta, store, registry, id, &mut |_| ()).await.map(|(load, _)| load)
+    load_listed(meta, store, registry, id, &mut |_| ()).await.map(|listed| listed.load)
+}
+
+/// [`load_episodes`], and what the title is matched to after it: see [`Event::TitleMatch`].
+pub async fn load_episodes_matched(
+    meta: &Meta,
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: anistream_core::ids::AnilistId,
+) -> std::result::Result<(EpisodeLoad, Option<CurrentMatch>), String> {
+    let listed = load_listed(meta, store, registry, id, &mut |_| ()).await?;
+    let current = current_match(store, registry, id, listed.main.as_deref());
+    Ok((listed.load, current))
+}
+
+/// What title `id` is matched to on `main`, the source its table is from, as the store keeps
+/// it. `None` when no source's table it is.
+pub(crate) fn current_match(
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: AnilistId,
+    main: Option<&str>,
+) -> Option<CurrentMatch> {
+    let provider_id = main?;
+    let kept = store.lookup_mapping(id, provider_id).ok().flatten();
+    Some(CurrentMatch {
+        provider_id: provider_id.to_owned(),
+        source: registry
+            .get(provider_id)
+            .map_or_else(|| provider_id.to_owned(), |p| p.manifest().display_name.clone()),
+        chosen_by_you: kept.as_ref().is_some_and(|kept| kept.rung.is_user_confirmed()),
+        title: kept.and_then(|kept| kept.title),
+    })
+}
+
+/// What [`load_listed`] came to.
+struct Listed {
+    load: EpisodeLoad,
+    /// What naming the rows takes: see [`names`].
+    unnamed: Option<names::Unnamed>,
+    /// The source the table is from, when sources listed it.
+    main: Option<String>,
 }
 
 /// What a pin on a title came to, when it was looked at.
@@ -92,7 +138,7 @@ async fn load_listed(
     registry: &ProviderRegistry,
     id: anistream_core::ids::AnilistId,
     progress: &mut (dyn FnMut(Vec<EpisodeRow>) + Send),
-) -> std::result::Result<(EpisodeLoad, Option<names::Unnamed>), String> {
+) -> std::result::Result<Listed, String> {
     let media = meta.media(id).await.map_err(|e| e.to_string())?;
     // Numbered by the source a play would use, which may be one still compiling.
     crate::sources::arrived(registry, || ()).await;
@@ -104,7 +150,8 @@ async fn load_listed(
     // Nothing to ask a source for, quietly: with none set up, and for a title that has not
     // started, where all a search can find is another title, as the season before a sequel.
     if registry.is_empty() || coverage::unstarted(&media, now) {
-        return Ok((EpisodeLoad::Unlisted { rows: from_metadata(), reason: None }, None));
+        let load = EpisodeLoad::Unlisted { rows: from_metadata(), reason: None };
+        return Ok(Listed { load, unnamed: None, main: None });
     }
     let chain = chain_for(store, registry, id);
     let answer = anistream_providers::gather(
@@ -130,22 +177,19 @@ async fn load_listed(
         anistream_providers::Gathered::Ambiguous { provider_id, candidates } => {
             let candidates = candidates
                 .iter()
-                .map(|candidate| anistream_model::sources::MatchCandidate {
-                    title: candidate.hit.title.clone(),
-                    key: candidate.hit.key.clone(),
-                    similarity: candidate.score,
-                    rejected: candidate.rejected.map(str::to_owned),
-                })
+                .map(|c| super::matching::candidate(&c.hit, c.score, c.rejected))
                 .collect();
             let source = registry
                 .get(&provider_id)
                 .map_or_else(|| provider_id.clone(), |p| p.manifest().display_name.clone());
             let rows = from_metadata();
-            return Ok((EpisodeLoad::Choose { provider_id, source, candidates, rows }, None));
+            let load = EpisodeLoad::Choose { provider_id, source, candidates, rows };
+            return Ok(Listed { load, unnamed: None, main: None });
         }
         anistream_providers::Gathered::Unanswered { .. } => {
             let reason = Some(answer.explain());
-            return Ok((EpisodeLoad::Unlisted { rows: from_metadata(), reason }, None));
+            let load = EpisodeLoad::Unlisted { rows: from_metadata(), reason };
+            return Ok(Listed { load, unnamed: None, main: None });
         }
     };
 
@@ -158,7 +202,7 @@ async fn load_listed(
         built.marks,
         now,
     );
-    Ok((EpisodeLoad::Rows(built.rows), unnamed))
+    Ok(Listed { load: EpisodeLoad::Rows(built.rows), unnamed, main: Some(built.main) })
 }
 
 /// A table built from the sources' answers.
@@ -241,7 +285,13 @@ pub(crate) fn said(
             std::iter::once(Event::Episodes { id, rows, failed: None }).chain(notice).collect()
         }
         Ok(EpisodeLoad::Choose { provider_id, source, candidates, rows }) => vec![
-            Event::MatchChoices { id, provider_id, candidates },
+            Event::MatchChoices {
+                id,
+                provider_id,
+                candidates,
+                answers: MatchQuestion::Ladder,
+                source: source.clone(),
+            },
             Event::Episodes { id, rows, failed: None },
             Event::Toast(Notice::info(Msg::NoticeMatchUncertain { source })),
         ],
@@ -255,6 +305,19 @@ pub(crate) fn said(
             ]
         }
     }
+}
+
+/// [`said`], then what the title is matched to now, when the load got as far as asking a
+/// source: see [`Event::TitleMatch`].
+pub(crate) fn said_matched(
+    id: AnilistId,
+    load: std::result::Result<EpisodeLoad, String>,
+    current: Option<CurrentMatch>,
+) -> Vec<Event> {
+    // With no source set up, none was asked, and there is nothing to say of a match.
+    let asked = !matches!(load, Ok(EpisodeLoad::Unlisted { reason: None, .. }) | Err(_));
+    let matched = asked.then_some(Event::TitleMatch { id, current });
+    said(id, load).into_iter().chain(matched).collect()
 }
 
 /// Title `id`'s episodes in the dub, from the source a play would use, once the sources on
@@ -375,14 +438,20 @@ pub(crate) async fn list_episodes(
             ticket.send(&tx, event);
         }
     };
-    let load = match load_listed(&meta, &store, &registry, id, &mut early).await {
-        Ok((EpisodeLoad::Rows(_), Some(unnamed))) => {
+    let listed = load_listed(&meta, &store, &registry, id, &mut early).await;
+    let current = match &listed {
+        Ok(listed) => current_match(&store, &registry, id, listed.main.as_deref()),
+        Err(_) => None,
+    };
+    let load = match listed {
+        Ok(Listed { load: EpisodeLoad::Rows(_), unnamed: Some(unnamed), .. }) => {
             naming.say(id, unnamed, &store, &registry, &tx, &ticket);
+            ticket.send(&tx, Event::TitleMatch { id, current });
             return;
         }
-        load => load.map(|(load, _)| load),
+        listed => listed.map(|listed| listed.load),
     };
-    for event in said(id, load) {
+    for event in said_matched(id, load, current) {
         ticket.send(&tx, event);
     }
 }

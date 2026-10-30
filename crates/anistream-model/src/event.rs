@@ -21,7 +21,9 @@ use crate::{
     search::{BrowseRail, SearchFacets, SearchQuery},
     settings::SettingsView,
     show::ShowSettingsView,
-    sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
+    sources::{
+        CurrentMatch, GuardView, MatchCandidate, MatchQuestion, MetaSourceRow, ProviderRow,
+    },
     stores::{
         InviteLinkView, InvitePreview, LocalPluginRow, OpenJoinView, StoreInviteRow,
         StoreMemberRow, StoreRow,
@@ -168,11 +170,41 @@ pub enum Event {
     ProviderNote(Msg),
     /// The source pinned for the title on screen, or `None` for automatic.
     ProviderPreference(Option<String>),
-    /// The ladder found candidates but could not choose between them.
+    /// Candidates for title `id` on a source: the ladder's, when it could not choose between
+    /// them, or a search's, in answer to
+    /// [`Command::ManualSearch`](crate::command::Command::ManualSearch). `answers` says which.
+    /// A search that found nothing sends this with no candidates.
     MatchChoices {
         id: AnilistId,
         provider_id: String,
         candidates: Vec<MatchCandidate>,
+        /// What these candidates answer.
+        answers: MatchQuestion,
+        /// The source's name.
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        source: String,
+    },
+    /// A search for title `id`'s match could not be made: no source answered it. `query` is
+    /// the search's words, as sent.
+    MatchSearchFailed {
+        id: AnilistId,
+        query: String,
+        reason: Msg,
+    },
+    /// The match picked for title `id` could not be used: it was not saved, or the title was
+    /// still undecided after it. Sent ahead of any table the attempt still produced.
+    MatchFixFailed {
+        id: AnilistId,
+        reason: Msg,
+    },
+    /// What title `id` is matched to now, after each listing of its episodes: on the source
+    /// its table is from, or `None` when no source matched it (the ladder asked instead, or
+    /// none could list it). Sent after the table it goes with, and not for a listing that
+    /// failed before any source was asked.
+    TitleMatch {
+        id: AnilistId,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        current: Option<CurrentMatch>,
     },
     /// The selectable releases for the episode the user asked about, named so an answer for
     /// an episode whose picker has since closed is not offered against the next one.

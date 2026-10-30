@@ -83,7 +83,7 @@ async fn a_source_that_cannot_find_the_show_leaves_anilists_episodes_and_says_so
     let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
 
-    assert_eq!(names(&updates), ["Episodes", "Toast", "JobDone"]);
+    assert_eq!(names(&updates), ["Episodes", "Toast", "TitleMatch", "JobDone"]);
     let rows = table(&updates);
     assert_eq!(rows.len(), 12);
     assert!(rows.iter().all(|row| row.metadata_only));
