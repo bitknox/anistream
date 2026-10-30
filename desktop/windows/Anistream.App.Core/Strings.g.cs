@@ -3249,6 +3249,9 @@ public static partial class T
     /// <summary>Title of the filters sheet and panel.</summary>
     public static string FiltersTitle => Get("FiltersTitle");
 
+    /// <summary>Accessible label and tooltip of the button that closes the filters panel.</summary>
+    public static string FiltersClose => Get("FiltersClose");
+
     /// <summary>Button that opens the filters, with how many are on.</summary>
     public static string FiltersButtonCount(long count) => Fill(Get("FiltersButtonCount"), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
@@ -6540,6 +6543,7 @@ public static partial class T
         ["SearchGenres"] = "Genres",
         ["SearchLoadingMore"] = "Loading more titles",
         ["FiltersTitle"] = "Filters",
+        ["FiltersClose"] = "Close filters",
         ["FiltersButtonCount"] = "All filters · {count}",
         ["FiltersButton"] = "All filters",
         ["FilterGenre"] = "Genre",

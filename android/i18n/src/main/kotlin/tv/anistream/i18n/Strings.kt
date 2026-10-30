@@ -5029,6 +5029,10 @@ object Strings {
     fun filtersTitle(context: Context): String =
         context.getString(R.string.filters_title)
 
+    /** Accessible label and tooltip of the button that closes the filters panel. */
+    fun filtersClose(context: Context): String =
+        context.getString(R.string.filters_close)
+
     /** Button that opens the filters, with how many are on. */
     fun filtersButtonCount(context: Context, count: Int): String =
         context.getString(R.string.filters_button_count, count)

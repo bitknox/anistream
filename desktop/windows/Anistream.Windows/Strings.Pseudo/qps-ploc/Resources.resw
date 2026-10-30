@@ -4467,6 +4467,10 @@
     <value>[Ƒîļţéŕš~~~]</value>
     <comment>Title of the filters sheet and panel.</comment>
   </data>
+  <data name="FiltersClose" xml:space="preserve">
+    <value>[Çļöšé ƒîļţéŕš~~~~]</value>
+    <comment>Accessible label and tooltip of the button that closes the filters panel.</comment>
+  </data>
   <data name="FiltersButtonCount" xml:space="preserve">
     <value>[Åļļ ƒîļţéŕš · {count}~~~~~~]</value>
     <comment>Button that opens the filters, with how many are on.</comment>

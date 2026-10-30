@@ -5937,6 +5937,18 @@
         }
       }
     },
+    "filters-close" : {
+      "comment" : "Accessible label and tooltip of the button that closes the filters panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close filters"
+          }
+        }
+      }
+    },
     "filters-title" : {
       "comment" : "Title of the filters sheet and panel.",
       "extractionState" : "manual",
