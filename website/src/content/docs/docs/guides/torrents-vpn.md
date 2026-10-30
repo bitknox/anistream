@@ -4,7 +4,7 @@ description: The torrent source is off by default, has no indexer of its own, an
 ---
 
 :::caution[No indexer included]
-anistream hosts no content, ships no indexer and has no default endpoint. The torrent source is a
+anistream hosts no content. It ships no indexer and has no default endpoint. The torrent source is a
 transport with nothing to search until you configure one. What you point it at is your decision
 and your responsibility, under the laws that apply to you. The source is off by default, gated
 behind the VPN guard, and a config edit away from being removed.
@@ -119,7 +119,7 @@ describes. Completed downloads get subtitles muxed in with a stream copy.
 ## Seeding
 
 An episode uploads to its swarm while it plays, over the guarded connection. What happens after
-it has been watched is up to you, on the Settings screen under sources or in `config.toml`:
+it has been watched is up to you, on the Settings screen under Sources or in `config.toml`:
 
 ```toml
 [providers.torrent.seeding]

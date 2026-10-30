@@ -24,7 +24,7 @@ Plugins load after the first frame, so they never hold up the interface. They ar
 background and join your sources when they are ready, and the compiled code is cached for later
 launches. The slow case is the first launch after you install a large plugin: the JavaScript
 reference plugin takes about a second to compile, and until it has, it is missing from the
-Providers screen and from failover. `anistream --plugins` lists what is installed. Drop
+Sources screen and from failover. `anistream --plugins` lists what is installed. Drop
 `"plugins"` from `providers.order` if you do not use them.
 
 ## No images
@@ -36,7 +36,7 @@ text only.
 
 ## The player
 
-anistream's player interface, with the skip button, Up Next, menus and thumbnails, needs mpv 0.36
+anistream's player interface, with the skip button, Up next, menus and thumbnails, needs mpv 0.36
 or newer. Older versions play with mpv's own controls. `anistream --doctor` prints your mpv version, the
 [player interface](/docs/guides/player/) in use and where its files were written.
 
@@ -54,7 +54,7 @@ once per title per source.
 
 ## Nothing plays at all
 
-Check the Providers screen (`7` by default). It names which source broke and why, from the same
+Check the Sources screen (`7` by default). It names which source broke and why, from the same
 health tracking that drives failover. Then check [configuration](/docs/guides/configuration/): a
 source that is not configured and guarded is not reachable.
 

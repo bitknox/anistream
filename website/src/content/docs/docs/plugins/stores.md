@@ -9,30 +9,30 @@ anistream starts. anistream ships no store and lists none. You join one through 
 
 ## Joining a store
 
-The store's owner sends you an invite link. In anistream, open **Providers** and press Enter to
-open plugin stores, choose **join a store**, and paste the link. anistream checks the link against
+The store's owner sends you an invite link. In anistream, open **Sources** and press Enter to
+open the plugin stores, choose **Join a store**, and paste the link. anistream checks the link against
 the store before using it, shows the store's name and key, and asks you to confirm. The
 confirmation also shows the name the store's owner will see for this device, which starts as the
 kind of device it is, such as "Computer" or "iPhone". Type over it before you join to change it.
 
 The store's page lists its plugins. Enter on one shows what it may contact before anything is
 installed. Installed plugins run as part of the `"plugins"` entry in `providers.order`, which is
-there by default; `K` on the Providers screen moves one ahead of the others.
+there by default; `K` on the Sources screen moves one ahead of the others.
 
 An invite link works once and expires after seven days. To use the same store on another computer,
-choose **link another device** on the store's page for a new link of your own.
+choose **Link another device** on the store's page for a new link of your own.
 
 ## Updates
 
 When a store has a newer version of a plugin you installed, anistream says so once when it starts.
-Nothing is installed until you choose **update** on the store's page, and an update that wants to
+Nothing is installed until you choose **Update** on the store's page, and an update that wants to
 contact a host the old version could not reach says which before you accept it.
 
 ## Leaving a store
 
-Choose **leave this store** on the store’s page to give up your access. Plugins you installed from it stay
+Choose **Leave this store** on the store’s page to give up your access. Plugins you installed from it stay
 on your machine and stop updating. To remove one, choose it on the store's page and pick
-**remove** before you leave.
+**Remove** before you leave.
 
 ## Security
 

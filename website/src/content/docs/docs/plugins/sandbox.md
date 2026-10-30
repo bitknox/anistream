@@ -30,9 +30,9 @@ a new capability.
 ## The allowlist
 
 - Only `http` and `https` are allowed. `file:` and `data:` are not transport.
-- A declared host covers itself and its subdomains. `cdn.example.com` is reachable from
-  `example.com`, and `example.com.evil.test` is not.
-- No credentials in the URL. `https://example.com@evil.test/` points at evil.test.
+- A declared host covers itself and its subdomains. `cdn.site.example` is reachable from
+  `site.example`, and `site.example.evil.example` is not.
+- No credentials in the URL. `https://site.example@evil.example/` points at evil.example.
 - No loopback or private addresses, even if declared. That includes anistream's own torrent
   stream server.
 - Redirects are not followed. The redirect comes back as a response, and the next hop is

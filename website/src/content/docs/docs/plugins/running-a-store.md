@@ -30,7 +30,7 @@ Open `https://<your store>/admin/` in a browser, enter the code, and the page an
 invite link. On a platform that generates the code, it is listed with the service's environment
 variables.
 
-Paste the link into anistream the way anyone joins a store: **Providers**, Enter, **join a store**.
+Paste the link into anistream the way anyone joins a store: **Sources**, Enter, **Join a store**.
 The device that joins with it owns the store. The setup code stops working once the store has an
 owner.
 
@@ -58,11 +58,11 @@ The server also comes as a small program of its own, `anistream-store`, in the c
 
 ## Managing a store
 
-The store's page in anistream has what an owner needs day to day: **invite someone**,
-**members**, where you can remove someone's access, and **publish a plugin** from your plugin
+The store's page in anistream has what an owner needs day to day: **Invite someone**,
+**Members**, where you can remove someone's access, and **Publish a plugin** from your plugin
 directory. Choose a plugin you published to stop offering it.
 
-Choose **open the admin page** to open the store in your browser, already signed in. It has the
+Choose **Open the admin page** to open the store in your browser, already signed in. It has the
 same controls and a few more: rename people, make someone an owner, revoke one lost device without removing
 its owner, and publish by dropping `.wasm` files onto the page. A sign-in link works once, for ten
 minutes, and a session lasts twelve hours.

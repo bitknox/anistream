@@ -144,7 +144,7 @@ Controller navigation added:
 - The D-pad and the left stick move focus to the nearest widget in that direction, across the
   sidebar and the page. A confirms, B goes back or closes the open popover, menu or dialog, and
   Menu opens the controller help. In the player the buttons seek, pause, skip and open the
-  episode list, and the cards (Up Next, skip intro) answer A and B.
+  episode list, and the cards (Up next, skip intro) answer A and B.
 - Controller mode shows a focus ring and hides the pointer. Moving the mouse or pressing a key
   leaves it. A text field opens Steam's on-screen keyboard through `steam://open/keyboard`.
 - Settings, Controller: use a controller, swap the A and B face buttons (the Nintendo layout),

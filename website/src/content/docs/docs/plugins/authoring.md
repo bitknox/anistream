@@ -1,9 +1,9 @@
 ---
-title: Writing a provider plugin
-description: 'Provider plugins are WebAssembly components in any WASI 0.2 language: the interface, the error rules, building and publishing.'
+title: Writing a plugin
+description: 'Plugins are WebAssembly components in any WASI 0.2 language: the interface, the error rules, building and publishing.'
 ---
 
-A provider plugin is a WebAssembly component: search terms in, episodes and stream URLs out.
+A plugin is a WebAssembly component: search terms in, episodes and stream URLs out.
 anistream loads `*.wasm` from the plugin directory (see
 [where things live](/docs/getting-started/installation/#where-things-live), or run
 `anistream --plugins`) and treats it like a native source, with the same ranking, health tracking
@@ -66,7 +66,7 @@ Errors map one-for-one onto the registry's failover rules:
 | `other(msg)` | Anything else | Yes |
 
 Do not flatten `not-found` into `other`. A missing title is an answer, and reported as one: the
-Providers screen and the failure message would otherwise show a fault where the source only lacks
+Sources screen and the failure message would otherwise show a fault where the source only lacks
 the title.
 
 ## Rust
