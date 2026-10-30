@@ -280,23 +280,36 @@ impl Updater {
             });
             return;
         };
+        // The copy of a download that may be a hundred megabytes happens off the main loop.
         let marker = self.dir.join("updating");
-        let opened = std::fs::write(&marker, &version)
-            .map_err(|e| {
-                tracing::warn!(error = %e, "the update was not noted");
-                anistream_i18n::t::updates_why_install()
-            })
-            .and_then(|()| updates::install(&path, &appimage))
-            .and_then(|()| relaunch(&appimage));
-        if let Err(reason) = opened {
-            let _ = std::fs::remove_file(&marker);
-            tracing::warn!(version, reason, "the update didn't go in place");
-            self.set(&version, Step::Failed(reason));
-            return;
-        }
-        if let Some(quit) = self.quit.borrow().as_ref() {
-            quit();
-        }
+        let this = Rc::clone(self);
+        glib::spawn_future_local(async move {
+            let work = {
+                let (marker, version, path, appimage) =
+                    (marker.clone(), version.clone(), path.clone(), appimage.clone());
+                move || {
+                    std::fs::write(&marker, &version)
+                        .map_err(|e| {
+                            tracing::warn!(error = %e, "the update was not noted");
+                            anistream_i18n::t::updates_why_install()
+                        })
+                        .and_then(|()| updates::install(&path, &appimage))
+                        .and_then(|()| relaunch(&appimage))
+                }
+            };
+            let opened = gtk::gio::spawn_blocking(work)
+                .await
+                .unwrap_or_else(|_| Err(anistream_i18n::t::updates_why_install()));
+            if let Err(reason) = opened {
+                let _ = std::fs::remove_file(&marker);
+                tracing::warn!(version, reason, "the update didn't go in place");
+                this.set(&version, Step::Failed(reason));
+                return;
+            }
+            if let Some(quit) = this.quit.borrow().as_ref() {
+                quit();
+            }
+        });
     }
 
     /// After a restart to update: whether the new version is the one running, and which version

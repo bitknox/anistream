@@ -1785,6 +1785,11 @@ pub fn tv_track_choice(row: &str, track: &str) -> String {
     text("tv-track-choice", &[("row", Arg::Text(row)), ("track", Arg::Text(track))])
 }
 
+/// The name this computer goes by in lists of a person's devices, such as a plugin store's.
+pub fn shell_device_label() -> String {
+    text("shell-device-label", &[])
+}
+
 /// Count of devices on a member's row in the members dialog, and after "Owner ·".
 pub fn stores_device_count(count: i64) -> String {
     text("stores-device-count", &[("count", Arg::Int(count))])

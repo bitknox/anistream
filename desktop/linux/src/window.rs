@@ -479,8 +479,20 @@ impl Shell {
 
     /// A title's page, over the destination on screen.
     pub fn open_title(&self, id: AnilistId) {
-        if let Some(nav) = self.ctx.nav() {
-            nav.push(&pages::title::page(&self.ctx, id));
+        let Some(nav) = self.ctx.nav() else { return };
+        let stack = nav.navigation_stack();
+        let tags: Vec<Option<String>> = (0..stack.n_items())
+            .filter_map(|at| stack.item(at).and_downcast::<adw::NavigationPage>())
+            .map(|page| page.tag().map(|t| t.to_string()))
+            .collect();
+        match pages::title::reach(&tags, &pages::title::tag(id)) {
+            pages::title::Reach::Push => nav.push(&pages::title::page(&self.ctx, id)),
+            pages::title::Reach::Stay => {}
+            pages::title::Reach::PopTo => {
+                if let Some(page) = nav.find_page(&pages::title::tag(id)) {
+                    nav.pop_to_page(&page);
+                }
+            }
         }
     }
 

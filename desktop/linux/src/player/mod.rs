@@ -35,6 +35,7 @@ use crate::{
     window::{Ctx, Shell, Size},
 };
 
+mod coming;
 mod stats;
 mod timeline;
 pub(crate) mod tracks;
@@ -43,6 +44,8 @@ use timeline::{Marked, Preview};
 
 /// The mini player's size.
 const MINI: (i32, i32) = (480, 270);
+/// The window's smallest size once the mini player has given it back.
+const MINI_MIN: (i32, i32) = (360, 360);
 
 /// The window as it was before the mini player: its size, and whether it filled the screen.
 #[derive(Clone, Copy)]
@@ -53,6 +56,27 @@ struct Restore {
     fullscreen: bool,
 }
 
+/// Whether a mini player toggle may go ahead, `since` the last one.
+fn mini_ready(since: Option<Duration>) -> bool {
+    since.is_none_or(|since| since >= MINI_SETTLE)
+}
+
+/// The frame to bring back after the mini player. A quick toggle finds the window still on its
+/// way back from the mini size, which GTK reports as the default size and which is no frame
+/// worth keeping: the one kept from before stands instead.
+fn frame_to_keep(now: Restore, kept: Option<Restore>) -> Restore {
+    let small = now.width <= MINI.0 && now.height <= MINI_MIN.1;
+    match kept {
+        Some(kept) if small => kept,
+        _ => now,
+    }
+}
+
+/// How long a mini player toggle is left to land before the next one counts.
+const MINI_SETTLE: Duration = Duration::from_millis(400);
+/// How long after a mini player toggle the window may still be on its way to its size.
+const SETTLE: Duration = Duration::from_secs(2);
+
 /// How long the controls stay up with nothing happening.
 const IDLE: Duration = Duration::from_secs(2);
 /// The controls' fades, in and out: the fade-in and fade-out tokens.
@@ -60,6 +84,25 @@ const FADE_IN_MS: u32 = 200;
 const FADE_OUT_MS: u32 = 300;
 /// The speed menu's speeds, which `[` and `]` step along.
 const SPEEDS: [f64; 6] = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+/// How long a speed asked for stands in for mpv's report of it.
+const SPEED_ASKED: Duration = Duration::from_millis(1500);
+
+/// The speed a step starts from: the one asked for last while it is recent, else mpv's.
+fn step_from(asked: Option<(f64, Duration)>, reported: f64) -> f64 {
+    match asked {
+        Some((speed, ago)) if ago < SPEED_ASKED => speed,
+        _ => reported,
+    }
+}
+
+/// The speed one step faster or slower than `now`, if there is one.
+fn next_speed(now: f64, faster: bool) -> Option<f64> {
+    if faster {
+        SPEEDS.iter().copied().find(|s| *s > now + 0.001)
+    } else {
+        SPEEDS.iter().rev().copied().find(|s| *s < now - 0.001)
+    }
+}
 
 /// The player page and what drives it.
 pub struct PlayerView {
@@ -84,7 +127,8 @@ pub struct PlayerView {
     /// end from the start.
     pub hold_up_next: Cell<bool>,
     inhibit: Cell<Option<u32>>,
-    countdown: RefCell<Option<glib::SourceId>>,
+    /// The Up next card's plan, from the engine's word and what the viewer did with it.
+    coming: RefCell<Option<coming::Coming>>,
     menus: RefCell<Option<Menus>>,
     /// The chapters changed or a file loaded: read them again once the file has a duration.
     chapters_due: Cell<bool>,
@@ -94,6 +138,11 @@ pub struct PlayerView {
     preview: Rc<Preview>,
     /// The window as it was, while the mini player stands in for it.
     mini: Cell<Option<Restore>>,
+    /// The frame kept for the last mini player, for a toggle that comes before the window has
+    /// settled.
+    frame: Cell<Option<(Restore, Instant)>>,
+    /// When the mini player last toggled.
+    mini_at: Cell<Option<Instant>>,
     /// Since when the starting screen has waited, the line's tick, and the engine's note on
     /// the start's job.
     starting_since: Cell<Option<Instant>>,
@@ -127,6 +176,8 @@ pub struct PlayerView {
     episode_line: RefCell<(String, Option<String>, Option<Translation>)>,
     /// The speed mpv plays at, as the speed button and the media controls show it.
     speed: Cell<f64>,
+    /// The speed asked for last and when, until mpv has had time to report it.
+    speed_asked: Cell<Option<(f64, Instant)>>,
     /// Since when the stream has stalled, while the card says so, and the card's tick.
     stall_since: Cell<Option<Instant>>,
     stall_tick: RefCell<Option<glib::SourceId>>,
@@ -201,6 +252,8 @@ struct Ui {
     up_next_title: gtk::Label,
     up_next_line: gtk::Label,
     up_next_bar: gtk::ProgressBar,
+    up_next_still: gtk::Picture,
+    up_next_still_frame: crate::fit::Fit,
     stall: Card,
     stall_line: gtk::Label,
     resumed: gtk::Box,
@@ -303,7 +356,7 @@ impl PlayerView {
             over_bar: Cell::new(false),
             hold_up_next: Cell::new(false),
             inhibit: Cell::new(None),
-            countdown: RefCell::default(),
+            coming: RefCell::default(),
             menus: RefCell::default(),
             chapters_due: Cell::new(false),
             engine_marks: RefCell::new(None),
@@ -333,6 +386,9 @@ impl PlayerView {
             has_dub: Cell::new(None),
             episode_line: RefCell::default(),
             speed: Cell::new(1.0),
+            speed_asked: Cell::new(None),
+            frame: Cell::new(None),
+            mini_at: Cell::new(None),
             stall_since: Cell::new(None),
             stall_tick: RefCell::default(),
             mpris: RefCell::default(),
@@ -758,28 +814,29 @@ impl PlayerView {
             }
             PlayerUi::AutoSkipped { kind, undo_to } => self.auto_skipped(*kind, *undo_to),
             PlayerUi::UpNext { .. } if self.hold_up_next.get() => {}
-            PlayerUi::UpNext { next, countdown, auto, .. } => {
+            PlayerUi::UpNext { next, countdown, auto, ending_at, .. } => {
                 let translation = self.episode_line.borrow().2;
                 self.ui.up_next_title.set_label(&episode_line(
                     &next.number,
                     translation,
                     next.title.as_deref(),
                 ));
-                self.ui.up_next.set(true);
-                self.count_down(if *auto { *countdown } else { 0 });
+                self.ui.up_next_still.set_paintable(Some(&widgets::swatch(None)));
+                self.ui.up_next_still_frame.set_visible(next.thumbnail.is_some());
+                self.ctx.hub.art(&self.ui.up_next_still, next.thumbnail.as_deref());
+                self.coming.replace(Some(coming::Coming::new(*auto, *ending_at, *countdown)));
+                self.show_up_next();
             }
             PlayerUi::UpNextCleared => {
+                self.coming.replace(None);
                 self.ui.up_next.set(false);
-                if let Some(source) = self.countdown.borrow_mut().take() {
-                    source.remove();
-                }
             }
             PlayerUi::Stall { seconds } => {
                 self.stalled(*seconds);
                 self.wake();
             }
             PlayerUi::StallCleared => self.stall_over(),
-            PlayerUi::Alert { text, .. } => self.ctx.toast(&crate::catalog::shown(text)),
+            PlayerUi::Alert { text, .. } => self.ctx.alert(&crate::catalog::shown(text)),
             PlayerUi::Thumbnails { url } => self.preview.thumbnails(url.as_deref()),
             PlayerUi::Resumed { position } => self.resumed(*position),
             _ => {}
@@ -834,44 +891,58 @@ impl PlayerView {
             card.hide_now();
         }
         self.stall_over();
-        if let Some(source) = self.countdown.borrow_mut().take() {
-            source.remove();
+        self.coming.replace(None);
+    }
+
+    /// The Up next card for the playhead: it shows from where the ending starts, "Plays in 8 s"
+    /// counts down on the playhead, and at zero this sends `PlayNext`, once.
+    fn show_up_next(&self) {
+        let (position, duration) = {
+            let state = self.state.borrow();
+            (state.position.unwrap_or(0.0), state.duration.unwrap_or(0.0))
+        };
+        let (card, due) = match self.coming.borrow().as_ref() {
+            Some(plan) => (plan.card(position, duration), plan.due(position, duration)),
+            None => (coming::Card::Away, false),
+        };
+        match card {
+            coming::Card::Away => self.ui.up_next.set(false),
+            coming::Card::Waiting => {
+                self.ui.up_next_line.set_visible(false);
+                self.ui.up_next_bar.set_visible(false);
+                self.ui.up_next.set(true);
+            }
+            coming::Card::Counting { left, fraction } => {
+                self.ui.up_next_line.set_label(&t::player_plays_in(left.ceil() as i64));
+                self.ui.up_next_line.set_visible(true);
+                self.ui.up_next_bar.set_fraction(fraction);
+                self.ui.up_next_bar.set_visible(true);
+                self.ui.up_next.set(true);
+            }
+        }
+        if due {
+            if let Some(plan) = self.coming.borrow_mut().as_mut() {
+                plan.played = true;
+            }
+            self.send(PlayerCommand::PlayNext);
         }
     }
 
-    /// "Plays in 8 s" and the bar under it, down to the engine's own play.
-    fn count_down(&self, seconds: u32) {
-        if let Some(source) = self.countdown.borrow_mut().take() {
-            source.remove();
+    /// Cancel on the card, Escape, or the pad's B: the card goes and the engine stays.
+    fn cancel_next(&self) {
+        if let Some(plan) = self.coming.borrow_mut().as_mut() {
+            plan.cancelled = true;
         }
-        if seconds == 0 {
-            self.ui.up_next_line.set_label(&t::player_up_next());
-            self.ui.up_next_bar.set_visible(false);
-            return;
+        self.ui.up_next.set(false);
+        self.send(PlayerCommand::CancelNext);
+    }
+
+    /// Play now on the card, Enter, or the pad's A.
+    fn play_next(&self) {
+        if let Some(plan) = self.coming.borrow_mut().as_mut() {
+            plan.played = true;
         }
-        self.ui.up_next_bar.set_visible(true);
-        let left = Rc::new(Cell::new(seconds));
-        let (line, bar) = (self.ui.up_next_line.clone(), self.ui.up_next_bar.clone());
-        let say = move |left: u32| {
-            line.set_label(&t::player_plays_in(i64::from(left)));
-            bar.set_fraction(f64::from(left) / f64::from(seconds));
-        };
-        say(seconds);
-        let weak = self.self_weak();
-        let source = glib::timeout_add_seconds_local(1, move || {
-            let now = left.get().saturating_sub(1);
-            left.set(now);
-            say(now);
-            if now > 0 {
-                return glib::ControlFlow::Continue;
-            }
-            // Done: forgotten, so clearing the cards later does not remove it a second time.
-            if let Some(view) = weak.upgrade() {
-                view.countdown.borrow_mut().take();
-            }
-            glib::ControlFlow::Break
-        });
-        self.countdown.replace(Some(source));
+        self.send(PlayerCommand::PlayNext);
     }
 
     /// "Skipped opening · Undo" in the corner, for 6 s of playback: the button, U, or Ctrl+Z.
@@ -1118,6 +1189,7 @@ impl PlayerView {
         self.read_speed();
         let paused_now = state.paused && !self.state.borrow().paused;
         self.state.replace(state);
+        self.show_up_next();
         // Controls stay up while paused.
         if paused_now {
             self.wake();
@@ -1144,17 +1216,18 @@ impl PlayerView {
         }
     }
 
-    /// One step along the speed menu's speeds, faster or slower: `]` and `[`.
+    /// One step along the speed menu's speeds, faster or slower: `]` and `[`. Quick presses step
+    /// from the speed asked for last, since mpv reports the change back a moment later.
     fn step_speed(&self, faster: bool) {
-        let now = self.speed.get();
-        let next = if faster {
-            SPEEDS.iter().copied().find(|s| *s > now + 0.001)
-        } else {
-            SPEEDS.iter().rev().copied().find(|s| *s < now - 0.001)
-        };
-        if let Some(speed) = next {
-            self.send(PlayerCommand::SpeedTo(speed));
+        let asked = self.speed_asked.get().map(|(speed, at)| (speed, at.elapsed()));
+        if let Some(speed) = next_speed(step_from(asked, self.speed.get()), faster) {
+            self.ask_speed(speed);
         }
+    }
+
+    fn ask_speed(&self, speed: f64) {
+        self.speed_asked.set(Some((speed, Instant::now())));
+        self.send(PlayerCommand::SpeedTo(speed));
     }
 
     /// Draw the engine's marks on a timeline `duration` long.
@@ -1295,19 +1368,38 @@ impl PlayerView {
         }
     }
 
+    /// P and the mini button: the other way. The window takes a moment to change size and
+    /// decoration, and a toggle before it has landed would read a size that is on its way
+    /// somewhere else, so it waits.
+    fn toggle_mini(&self) {
+        if !mini_ready(self.mini_at.get().map(|at| at.elapsed())) {
+            return;
+        }
+        self.set_mini(self.mini.get().is_none());
+    }
+
     /// The mini player: the window itself, small, undecorated and with three controls, or back
     /// to what it was.
     pub fn set_mini(&self, on: bool) {
         let window = &self.ctx.window;
+        self.mini_at.set(Some(Instant::now()));
         match (on, self.mini.get()) {
             (true, None) => {
                 let (width, height) = window.default_size();
-                self.mini.set(Some(Restore {
+                let now = Restore {
                     width: if width > 0 { width } else { window.width() },
                     height: if height > 0 { height } else { window.height() },
                     maximized: window.is_maximized(),
                     fullscreen: window.is_fullscreen(),
-                }));
+                };
+                let kept = self
+                    .frame
+                    .get()
+                    .filter(|(_, at)| at.elapsed() < SETTLE)
+                    .map(|(frame, _)| frame);
+                let frame = frame_to_keep(now, kept);
+                self.frame.set(Some((frame, Instant::now())));
+                self.mini.set(Some(frame));
                 // The bars go; the mini controls stand in for them.
                 for widget in self.chrome() {
                     widget.set_visible(false);
@@ -1504,7 +1596,7 @@ impl PlayerView {
         add("back-10", None, Box::new(|v, _| v.send(PlayerCommand::Seek(-10.0))));
         add("forward-10", None, Box::new(|v, _| v.send(PlayerCommand::Seek(10.0))));
         add("fullscreen", None, Box::new(|v, _| v.fullscreen(None)));
-        add("mini", None, Box::new(|v, _| v.set_mini(v.mini.get().is_none())));
+        add("mini", None, Box::new(|v, _| v.toggle_mini()));
         add("skip", None, Box::new(|v, _| v.send(PlayerCommand::TakeSkip)));
         add(
             "undo-skip",
@@ -1575,8 +1667,8 @@ impl PlayerView {
                 );
             }),
         );
-        add("play-next", None, Box::new(|v, _| v.send(PlayerCommand::PlayNext)));
-        add("cancel-next", None, Box::new(|v, _| v.send(PlayerCommand::CancelNext)));
+        add("play-next", None, Box::new(|v, _| v.play_next()));
+        add("cancel-next", None, Box::new(|v, _| v.cancel_next()));
         add("stall-switch", None, Box::new(|v, _| v.send(PlayerCommand::StallSwitch)));
         add("stall-wait", None, Box::new(|v, _| v.send(PlayerCommand::StallWait)));
         add(
@@ -1611,7 +1703,7 @@ impl PlayerView {
             &self.speed_action,
             Box::new(|v, a| {
                 if let Some(speed) = a.and_then(f64::from_variant) {
-                    v.send(PlayerCommand::SpeedTo(speed));
+                    v.ask_speed(speed);
                 }
             }),
         );
@@ -2032,13 +2124,13 @@ impl PlayerView {
                 }
             }
             Key::f | Key::F | Key::F11 if self.mini.get().is_none() => self.fullscreen(None),
-            Key::p | Key::P => self.set_mini(self.mini.get().is_none()),
+            Key::p | Key::P => self.toggle_mini(),
             Key::s | Key::S if self.ui.skip.shown() => self.send(PlayerCommand::TakeSkip),
-            Key::n => self.send(PlayerCommand::PlayNext),
+            Key::n => self.play_next(),
             Key::N => self.send(PlayerCommand::Step(-1)),
             Key::bracketleft => self.step_speed(false),
             Key::bracketright => self.step_speed(true),
-            Key::BackSpace => self.send(PlayerCommand::SpeedTo(1.0)),
+            Key::BackSpace => self.ask_speed(1.0),
             Key::e | Key::E => self.ui.episodes.popup(),
             Key::t | Key::T => self.ui.tracks.popup(),
             Key::i | Key::I => self.toggle_stats(),
@@ -2051,7 +2143,7 @@ impl PlayerView {
                 if self.ui.skip.shown() {
                     self.send(PlayerCommand::TakeSkip);
                 } else if self.ui.up_next.shown() {
-                    self.send(PlayerCommand::PlayNext);
+                    self.play_next();
                 } else if self.ui.stall.shown() {
                     self.send(PlayerCommand::StallSwitch);
                 } else {
@@ -2059,9 +2151,9 @@ impl PlayerView {
                 }
             }
             Key::Escape => {
-                if self.ui.up_next.shown() {
-                    self.send(PlayerCommand::CancelNext);
-                } else if self.ui.stall.shown() {
+                if self.ui.up_next.shown() && self.mini.get().is_none() {
+                    self.cancel_next();
+                } else if self.ui.stall.shown() && self.mini.get().is_none() {
                     self.send(PlayerCommand::StallWait);
                 } else if self.mini.get().is_some() {
                     self.set_mini(false);
@@ -2249,7 +2341,6 @@ fn icon_button(icon: &str, tip: &str, action: &str) -> gtk::Button {
 fn card() -> gtk::Box {
     let card = gtk::Box::new(gtk::Orientation::Vertical, 8);
     card.add_css_class("corner-card");
-    card.add_css_class("osd");
     card.set_visible(false);
     card
 }
@@ -2443,26 +2534,56 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     undo.widget.append(&undo_dot);
     undo.widget.append(&undo_button);
 
+    // Up next as Windows draws it: the episode's still, "Up next", the episode and "Plays in
+    // 8 s", then the countdown, and Cancel with an amber Play now.
     let up_next = Card::new();
-    let up_next_line = widgets::haze(&t::player_up_next(), "caption");
+    up_next.widget.add_css_class("up-next-card");
+    let up_next_caption = widgets::haze(&t::player_up_next(), "caption");
+    up_next_caption.set_xalign(0.0);
     let up_next_title = gtk::Label::new(None);
     up_next_title.set_xalign(0.0);
     up_next_title.set_wrap(true);
-    up_next_title.set_max_width_chars(30);
+    up_next_title.set_lines(3);
+    up_next_title.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    up_next_title.set_max_width_chars(24);
+    up_next_title.add_css_class("heading");
+    let up_next_line = widgets::haze("", "caption");
+    up_next_line.set_xalign(0.0);
+    up_next_line.set_margin_top(4);
+    up_next_line.set_visible(false);
+    up_next_line.add_css_class("numeric");
+    let up_next_still = gtk::Picture::new();
+    up_next_still.set_content_fit(gtk::ContentFit::Cover);
+    up_next_still.set_can_shrink(true);
+    let still_plate = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    still_plate.add_css_class("up-next-still");
+    still_plate.set_overflow(gtk::Overflow::Hidden);
+    still_plate.append(&up_next_still);
+    let up_next_still_frame = crate::fit::Fit::new(&still_plate, 16.0 / 9.0, 160, true, 0);
+    up_next_still_frame.set_valign(gtk::Align::Start);
+    up_next_still_frame.set_visible(false);
+    let up_next_text = gtk::Box::new(gtk::Orientation::Vertical, 2);
+    up_next_text.set_valign(gtk::Align::Center);
+    up_next_text.set_hexpand(true);
+    up_next_text.append(&up_next_caption);
+    up_next_text.append(&up_next_title);
+    up_next_text.append(&up_next_line);
+    let up_next_top = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+    up_next_top.append(&up_next_still_frame);
+    up_next_top.append(&up_next_text);
     let up_next_bar = gtk::ProgressBar::new();
     up_next_bar.add_css_class("countdown");
     let up_buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    up_buttons.set_halign(gtk::Align::End);
     let play_now = gtk::Button::with_label(&t::action_play_now());
-    play_now.add_css_class("pill");
     play_now.add_css_class("suggested-action");
     play_now.set_action_name(Some("player.play-next"));
     let cancel = gtk::Button::with_label(&t::action_cancel());
-    cancel.add_css_class("pill");
     cancel.set_action_name(Some("player.cancel-next"));
-    up_buttons.append(&play_now);
     up_buttons.append(&cancel);
-    up_next.widget.append(&up_next_line);
-    up_next.widget.append(&up_next_title);
+    up_buttons.append(&play_now);
+    up_next.widget.set_size_request(380, -1);
+    up_next.widget.append(&up_next_top);
     up_next.widget.append(&up_next_bar);
     up_next.widget.append(&up_buttons);
 
@@ -2610,6 +2731,8 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         up_next_title,
         up_next_line,
         up_next_bar,
+        up_next_still,
+        up_next_still_frame,
         stall,
         stall_line,
         resumed,
@@ -2639,6 +2762,52 @@ mod tests {
         );
         assert_eq!(episode_line("10", Some(Translation::Sub), None), "Episode 10");
         assert_eq!(episode_line("3", None, Some("")), "Episode 3");
+    }
+
+    #[test]
+    fn a_mini_toggle_waits_for_the_last_one_to_land() {
+        assert!(mini_ready(None));
+        assert!(!mini_ready(Some(Duration::from_millis(5))));
+        assert!(mini_ready(Some(Duration::from_secs(1))));
+    }
+
+    #[test]
+    fn a_quick_mini_toggle_keeps_the_frame_from_before() {
+        let big = Restore { width: 1280, height: 800, maximized: false, fullscreen: false };
+        let mid = Restore { width: 480, height: 360, maximized: false, fullscreen: false };
+        assert_eq!(frame_to_keep(mid, Some(big)).width, 1280);
+        // A first entry, or a window the viewer resized, is its own frame.
+        assert_eq!(frame_to_keep(mid, None).width, 480);
+        let other = Restore { width: 900, height: 600, ..big };
+        assert_eq!(frame_to_keep(other, Some(big)).width, 900);
+    }
+
+    #[test]
+    fn a_step_starts_from_the_speed_asked_for_not_the_one_mpv_last_reported() {
+        let mut asked = None;
+        for want in [1.25, 1.5, 2.0] {
+            let next = next_speed(step_from(asked, 1.0), true).unwrap();
+            assert_eq!(next, want);
+            asked = Some((next, Duration::from_millis(80)));
+        }
+        let down = next_speed(step_from(asked, 1.0), false).unwrap();
+        assert_eq!(down, 1.5);
+        // Once mpv has had time to answer, its speed stands again.
+        assert_eq!(step_from(Some((2.0, Duration::from_secs(3))), 1.0), 1.0);
+    }
+
+    #[test]
+    fn quick_steps_walk_the_speeds_one_after_the_other() {
+        // Four presses of `]` before mpv reports anything: each steps from the last ask.
+        let mut at = 1.0;
+        for want in [1.25, 1.5, 2.0] {
+            at = next_speed(at, true).unwrap();
+            assert_eq!(at, want);
+        }
+        assert_eq!(next_speed(at, true), None);
+        // `]` then `[` comes back to where it began.
+        assert_eq!(next_speed(next_speed(1.0, true).unwrap(), false), Some(1.0));
+        assert_eq!(next_speed(0.5, false), None);
     }
 
     #[test]

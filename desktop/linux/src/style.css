@@ -24,7 +24,8 @@
   --secondary-sidebar-bg-color: var(--ground);
   --card-bg-color: var(--raised);
   --card-fg-color: var(--silk);
-  --popover-bg-color: #2A2F45;
+  --solid-popover: #2A2F45;
+  --popover-bg-color: var(--solid-popover);
   --popover-fg-color: var(--silk);
   --dialog-bg-color: #2A2F45;
   --dialog-fg-color: var(--silk);
@@ -138,8 +139,8 @@ levelbar block.empty { background: var(--rule); }
 }
 .player-bar .speed { min-width: 52px; font-weight: 600; }
 /* "Skipped opening · Undo": a small card, Undo in amber. */
-.corner-card.undo-card { padding: 4px 6px 4px 14px; border-radius: 999px; }
-.undo-button { color: var(--amber); font-weight: 600; padding: 4px 10px; min-height: 0; }
+.corner-card.undo-card { padding: 4px 6px 4px 14px; }
+.undo-button { padding: 4px 10px; min-height: 0; }
 /* The Sub and Dub switch at the top of the Subtitles and Audio menu. */
 .translation-switch button { padding: 4px 16px; }
 .seek-preview { padding: 4px; }
@@ -149,7 +150,8 @@ levelbar block.empty { background: var(--rule); }
 .hint-button { padding: 2px 10px; min-height: 0; }
 /* In a watch party: a water dot on the people button's corner. */
 .party-dot { background: var(--water); border-radius: 999px; min-width: 6px; min-height: 6px; margin: -1px -3px 0 0; }
-.corner-card { background: var(--popover-bg-color); border-radius: 12px; padding: 12px; margin: 24px; }
+.corner-card { background: var(--raised); color: var(--silk); border-radius: 8px; padding: 12px; margin: 24px; }
+.up-next-still { border-radius: 4px; background: var(--ground); border: none; }
 .stats-panel { background: var(--popover-bg-color); color: var(--silk); border-radius: 12px; padding: 8px 14px 12px; font-size: 0.93em; }
 .stats-panel.narrow { font-size: 0.86em; }
 .stats-panel .warn { color: var(--amber); }
@@ -184,6 +186,8 @@ banner > revealer > widget { background: var(--raised); color: var(--haze); }
 }
 
 /* The player's Episodes and Sources lists check their pick in amber; every other menu in silk. */
+/* The player's menus open from OSD bars: solid, so bright video behind never washes them out. */
+.osd popover > contents, .osd popover.menu > contents { background-color: var(--solid-popover); }
 popover.menu modelbutton radio, popover.menu modelbutton check { color: var(--silk); }
 popover.menu modelbutton.amber-check radio:checked { color: var(--amber); }
 

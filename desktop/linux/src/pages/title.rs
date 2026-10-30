@@ -87,6 +87,30 @@ struct Page {
     content: gtk::Box,
 }
 
+/// The tag a title's page carries in the navigation stack: one page per title.
+pub fn tag(id: AnilistId) -> String {
+    format!("title-{}", id.get())
+}
+
+/// How opening a title meets the stack, bottom to top by tag.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Reach {
+    /// Not in the stack: a new page.
+    Push,
+    /// Already on top.
+    Stay,
+    /// Further down: back to it, rather than a second page of the same title.
+    PopTo,
+}
+
+pub fn reach(stack: &[Option<String>], tag: &str) -> Reach {
+    match stack.iter().rposition(|t| t.as_deref() == Some(tag)) {
+        None => Reach::Push,
+        Some(at) if at + 1 == stack.len() => Reach::Stay,
+        Some(_) => Reach::PopTo,
+    }
+}
+
 pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     let entry = ctx.hub.entry(id);
     // Nothing in the header until the title is known, rather than a word standing in for it.
@@ -175,7 +199,6 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     tv_button.update_property(&[gtk::accessible::Property::Description(
         &t::title_linux_play_on_tv_help(),
     )]);
-    tv_button.set_action_name(Some("win.play-on-tv"));
     tv_button.set_visible(false);
     header.pack_end(&tv_button);
     let view = adw::ToolbarView::new();
@@ -183,7 +206,8 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     view.add_top_bar(&widgets::offline_banner());
     view.set_extend_content_to_top_edge(true);
     view.set_content(Some(&scroll));
-    let navigation = adw::NavigationPage::builder().title(&title).child(&view).build();
+    let navigation =
+        adw::NavigationPage::builder().title(&title).tag(tag(id)).child(&view).build();
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
@@ -572,9 +596,12 @@ impl Page {
         self.tv_button.set_visible(on_tv);
         if on_tv {
             let from = item.resume.as_ref().map_or(0.0, |r| r.position);
+            // The target first, then the name: a name alone is an action asked with no target,
+            // which GTK warns about.
             self.tv_button.set_action_target_value(Some(
                 &(id, item.episode.to_string(), from).to_variant(),
             ));
+            self.tv_button.set_action_name(Some("win.play-on-tv"));
         }
         // A party plays the episode the primary action would.
         if item.button.is_some() {
@@ -835,6 +862,12 @@ impl Page {
             let label = gtk::Label::new(Some(&name));
             label.set_xalign(0.0);
             label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+            if narrow {
+                // The name has two lines at the narrow width, where one cut it short.
+                label.set_wrap(true);
+                label.set_wrap_mode(gtk::pango::WrapMode::WordChar);
+                label.set_lines(2);
+            }
             text.append(&label);
             let sub = widgets::haze("", "caption");
             sub.add_css_class("numeric");
@@ -1139,5 +1172,25 @@ mod tests {
             row("4", false, true),
         ];
         assert_eq!(unwatched(&rows), ["1", "3"]);
+    }
+}
+
+#[cfg(test)]
+mod stack_tests {
+    use super::*;
+
+    #[test]
+    fn a_title_already_in_the_stack_is_not_stacked_again() {
+        let id = AnilistId::new(900_002);
+        let at = |tags: &[&str]| -> Vec<Option<String>> {
+            tags.iter().map(|t| Some((*t).to_owned())).collect()
+        };
+        assert_eq!(reach(&at(&["title-900001"]), &tag(id)), Reach::Push);
+        assert_eq!(reach(&at(&["title-900001", "title-900002"]), &tag(id)), Reach::Stay);
+        assert_eq!(
+            reach(&at(&["title-900002", "title-900001", "title-900003"]), &tag(id)),
+            Reach::PopTo
+        );
+        assert_eq!(reach(&[], &tag(id)), Reach::Push);
     }
 }
