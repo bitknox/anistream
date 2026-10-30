@@ -526,7 +526,11 @@ impl Page {
                 label.set_ellipsize(gtk::pango::EllipsizeMode::End);
                 dot.append(&label);
                 card.append(&dot);
-                cards.append(&opens(&card, entry, &t::continue_row_spoken(&entry.title, &line)));
+                cards.append(&opens(
+                    &card,
+                    entry,
+                    &t::continue_row_spoken(&entry.title, &line),
+                ));
             }
             column.append(&cards);
         }
@@ -640,7 +644,10 @@ impl Page {
         line.set_size_request(-1, 54);
         let row = gtk::ListBoxRow::builder().child(&line).build();
         row.set_widget_name("up");
-        row.update_property(&[gtk::accessible::Property::Label(&t::continue_row_spoken(&item.entry.title, &why)]);
+        row.update_property(&[gtk::accessible::Property::Label(&t::continue_row_spoken(
+            &item.entry.title,
+            &why,
+        ))]);
 
         let menu = gio::Menu::new();
         let first = gio::Menu::new();
