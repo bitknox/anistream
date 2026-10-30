@@ -236,6 +236,7 @@ dependencies = [
  "anistream-store",
  "anistream-testkit",
  "anistream-track",
+ "async-trait",
  "futures",
  "jiff",
  "serde_json",
@@ -361,6 +362,7 @@ dependencies = [
  "async-trait",
  "cbc 0.2.1",
  "futures",
+ "http",
  "regex",
  "tempfile",
  "thiserror 2.0.21",
@@ -369,6 +371,7 @@ dependencies = [
  "url",
  "wasmtime",
  "wasmtime-wasi",
+ "wreq",
 ]
 
 [[package]]
