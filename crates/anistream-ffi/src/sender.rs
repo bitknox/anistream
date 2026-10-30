@@ -26,6 +26,7 @@ use anistream_engine::remote::{
         LinkPhase, NowCard, Pairing, Problem, RemoteCard, TvLink, TvRow, TvRowKind, TvSender,
     },
 };
+use anistream_model::Msg;
 use tokio::{runtime::Handle, sync::watch};
 
 use crate::{FfiEngine, remote::FfiScreen, remote::FfiTxtPair, start::FfiError};
@@ -426,7 +427,7 @@ impl FfiEngine {
         device_name: String,
         app: String,
     ) -> Result<Arc<FfiTvSender>, FfiError> {
-        let fail = |reason: String| FfiError::remote(Msg::StartFailedRemote { reason: reason });
+        let fail = |reason: String| FfiError::remote(Msg::StartFailedRemote { reason });
         let home = self.remote().home();
         let identity = identity_from(home.secrets.as_ref(), IDENTITY_SECRET)
             .map_err(|e| fail(e.to_string()))?;

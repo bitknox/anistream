@@ -10,6 +10,7 @@
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 
 use anistream_model::{
+    Msg,
     command::Command,
     hosted::{MpvOption, PlayerOp, TrackKind},
     playback::PlaybackId,

@@ -111,7 +111,7 @@ struct LaunchTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let config = root.appending(path: "config", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: config, withIntermediateDirectories: true)
-        try "[playback]\nbogus = 1\n".write(to: config.appending(path: "config.toml"), atomically: true, encoding: .utf8)
+        try "[playback]\nquality = \"lots\"\n".write(to: config.appending(path: "config.toml"), atomically: true, encoding: .utf8)
 
         let store = AppStore()
         await store.start(
@@ -122,7 +122,8 @@ struct LaunchTests {
             Issue.record("a config that does not load fails the start: \(store.phase)")
             return
         }
-        #expect(reason.contains("bogus"), "\(reason)")
+        #expect(reason.contains("config.toml has a setting"), "\(reason)")
+        #expect(reason.contains("line 2:"), "\(reason)")
     }
 }
 
