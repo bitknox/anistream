@@ -1925,6 +1925,11 @@ pub fn title_open_named(title: &str) -> String {
     text("title-open-named", &[("title", Arg::Text(title))])
 }
 
+/// Accessible name of a card or row in Continue: the title, then what is said under it.
+pub fn continue_row_spoken(title: &str, detail: &str) -> String {
+    text("continue-row-spoken", &[("title", Arg::Text(title)), ("detail", Arg::Text(detail))])
+}
+
 /// Accessible name of the pane beside Continue's queue that previews the selected title.
 pub fn continue_preview() -> String {
     text("continue-preview", &[])

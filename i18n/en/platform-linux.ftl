@@ -155,6 +155,12 @@ seasonal-format-ona-ova = ONA and OVA
 # @arg title: text
 title-open-named = Open { $title }
 
+# Accessible name of a card or row in Continue: the title, then what is said under it.
+# @only linux
+# @arg title: text
+# @arg detail: text
+continue-row-spoken = { $title }, { $detail }
+
 # Accessible name of the pane beside Continue's queue that previews the selected title.
 # @only linux
 continue-preview = Preview
