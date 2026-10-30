@@ -5,6 +5,9 @@ import AnistreamKit
 import AnistreamStore
 import AnistreamStrings
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 /// The app's menus beside the system's. The Playback menu's items and Window's player item come
 /// from the player the app hosts, which this package does not know.
