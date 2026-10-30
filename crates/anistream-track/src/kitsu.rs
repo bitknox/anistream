@@ -89,11 +89,7 @@ async fn post_token(
         });
     }
 
-    let message = parsed["error_description"]
-        .as_str()
-        .or_else(|| parsed["error"].as_str())
-        .unwrap_or(&body);
-    Err(AuthError::Exchange(format!("{status}: {message}")))
+    Err(AuthError::Exchange(crate::said(status, &body)))
 }
 
 /// Kitsu's `status` values.
@@ -439,7 +435,10 @@ impl Tracker for KitsuTracker {
             if !response.status().is_success() {
                 let status = response.status();
                 let body = response.text().await.unwrap_or_default();
-                return Err(tracker_error(format!("kitsu answered {status}: {body}")));
+                return Err(tracker_error(format!(
+                    "kitsu answered {}",
+                    crate::said(status, &body)
+                )));
             }
         }
         Ok(())

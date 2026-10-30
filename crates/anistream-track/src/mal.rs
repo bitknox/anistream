@@ -183,14 +183,9 @@ async fn post_token(
         });
     }
 
-    // MAL's `hint` is the useful part — "Cannot decrypt the authorization code" says far more than
-    // `invalid_request` does.
-    let message = parsed["hint"]
-        .as_str()
-        .or_else(|| parsed["message"].as_str())
-        .or_else(|| parsed["error"].as_str())
-        .unwrap_or(&body);
-    Err(AuthError::Exchange(format!("{status}: {message}")))
+    // MAL's `hint` is the useful part: "Cannot decrypt the authorization code" says far more than
+    // `invalid_request` does, and `said` reads it ahead of the code.
+    Err(AuthError::Exchange(crate::said(status, &body)))
 }
 
 /// MAL's `status` values.
@@ -434,7 +429,7 @@ impl Tracker for MalTracker {
             if !response.status().is_success() {
                 let status = response.status();
                 let body = response.text().await.unwrap_or_default();
-                return Err(tracker_error(format!("{status}: {}", body.trim())));
+                return Err(tracker_error(crate::said(status, &body)));
             }
         }
         Ok(())
