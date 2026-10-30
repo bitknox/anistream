@@ -373,7 +373,7 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
             HorizontalDivider(color = colors.outlineVariant)
         }
         if (item.entry.synopsis.isNotEmpty()) {
-            Text(item.entry.synopsis, style = MaterialTheme.typography.bodyLarge, color = colors.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
+            Text(item.entry.synopsis, style = MaterialTheme.typography.bodyLarge, color = colors.onSurfaceVariant, maxLines = 8, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 12.dp))
         }
         if (item.entry.availableOn.isNotEmpty()) {
             Text(

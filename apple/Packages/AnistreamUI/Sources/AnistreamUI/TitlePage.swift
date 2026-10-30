@@ -943,7 +943,7 @@ struct EpisodePlaceholderRow: View {
     }
 }
 
-/// The synopsis, the facts and the sheet's opener beside the episodes: the synopsis whole on the
+/// The synopsis, the facts and the sheet's opener beside the episodes: eight lines on the
 /// Mac, three lines on iPad with "More" to show the rest in place.
 struct TitleDetails: View {
     let entry: Entry
@@ -953,11 +953,8 @@ struct TitleDetails: View {
             let synopsis = entry.shownSynopsis
             if !synopsis.isEmpty {
                 #if os(macOS)
-                Text(synopsis)
-                    .font(.mac(13))
-                    .macLineHeight(20)
-                    .foregroundStyle(.haze)
-                    .fixedSize(horizontal: false, vertical: true)
+                InlineMoreText(text: synopsis, lines: 8, font: .mac(13), lineHeight: 20)
+                    .id(entry.id)
                 #else
                 InlineMoreText(text: synopsis, lines: 3, font: .mac(13))
                     .id(entry.id)

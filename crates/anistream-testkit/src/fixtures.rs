@@ -7,7 +7,7 @@
 //! | [`MOVIE`] 900003 | Tsukiakari no Teishajo / Moonlit Platform | movie, 108 minutes |
 //! | [`SEQUEL`] 900004 | Hoshikuzu no Tabibito 2nd Season / Stardust Wayfarer Season 2 | TV, finished, 12 episodes; prequel is 900001 |
 //! | [`ONA`] 900005 | Hagane no Niwashi / The Steel Gardener | ONA, finished, 10 episodes; no banner |
-//! | [`AIRING_NO_MAL`] 900006 | Natsukaze Relay / Summer Wind Relay | TV, releasing, 8 of 12 aired; no MAL id, no score, no studio |
+//! | [`AIRING_NO_MAL`] 900006 | Natsukaze Relay / Summer Wind Relay | TV, releasing, 8 of 12 aired; no MAL id, no score, no studio; a five-paragraph synopsis |
 //!
 //! Each title also carries what its page shows beside that: a season, dates, what it was adapted
 //! from, tags, every broadcast the calendar agrees with, rankings, and a cast and crew. All of it
