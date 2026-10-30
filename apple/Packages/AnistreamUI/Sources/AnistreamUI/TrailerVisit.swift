@@ -1,5 +1,6 @@
-// What a title page's trailer does during one visit: wait, load, play, give way to the banner when
-// the page scrolls away or the trailer ends, and let go.
+// What a hover preview's trailer does during one visit: wait, load, play, give way to the art when
+// the trailer ends, and let go. Also what lasts the whole run: the sound preference, and whether
+// YouTube is asked at all.
 
 import AnistreamKit
 import Foundation
@@ -7,15 +8,17 @@ import Observation
 
 /// What the trailer's page said, as the screens read it.
 enum TrailerSignal: Equatable {
-    /// A frame is on screen: the banner may fade away over it.
+    /// A frame is on screen: the art may fade away over it.
     case playing
     /// The player is up, or paused; nothing changes on screen.
     case quiet
-    /// Half a second before the end: the banner comes back now.
+    /// A second before the end: the art comes back now.
     case ending
     case ended
     /// The player refused it, with YouTube's code; 0 is the page's own, the player API not loading.
     case failed(Int)
+    /// Captions came on or went off.
+    case captions(Bool)
 }
 
 /// The web view a visit plays in, or a stand-in for it in a test.
@@ -25,104 +28,114 @@ protocol TrailerSurface: AnyObject {
     func tearDown()
 }
 
-/// One visit to a title page, or to a hover preview. The page asks `begin` once it has settled and
-/// the engine allows a trailer; from then on the web view exists while `live` and the video is in
-/// front of the banner while `shown`. The banner fades back before anything is paused or released,
-/// so the player's own paused and end screens never show.
+/// Whether trailers start with their sound on: the person's last choice, kept on this device.
+@MainActor
+final class TrailerSound {
+    static let shared = TrailerSound(defaults: .standard)
+    static let key = "trailerSoundOn" // i18n-skip: a defaults key
+
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults) {
+        self.defaults = defaults
+    }
+
+    var on: Bool {
+        get { defaults.bool(forKey: Self.key) }
+        set { defaults.set(newValue, forKey: Self.key) }
+    }
+}
+
+/// Whether the app asks YouTube for trailers, for the rest of the run.
 ///
-/// - The banner stays, silently, if nothing plays within `loadTimeout` or the player reports an
-///   error.
-/// - Scrolling away fades the banner back, pauses the video once it is covered, and releases the
-///   view after `awayLimit`; scrolling back before that plays it again and fades it in once it
-///   reports a picture.
-/// - It ends once: the banner returns when the trailer is about to end, and it does not loop.
+/// A video YouTube refuses is never asked for again. Two refusals of different videos in a row,
+/// with nothing played between them, stop trailers for the run: YouTube is refusing the network
+/// (its sign-in check on a flagged VPN exit, which also says 150) or the app's identity, not one
+/// owner's video. One refusal alone does not, because 101 and 150 are also what a single video
+/// whose owner turned embedding off says, and that must not end every other trailer.
+@MainActor
+final class TrailerGate {
+    static let shared = TrailerGate()
+
+    /// YouTube's refusals: 101 and 150 embedding not allowed, or the sign-in check; 152 and 153
+    /// the embed's identity refused or missing. 2, 5 and 100 are the one video's, and 0 the page's.
+    static let refusals: Set<Int> = [101, 150, 152, 153]
+    /// Refusals of different videos in a row that stop trailers for the run.
+    static let limit = 2
+
+    private(set) var closed = false
+    private var refused: Set<String> = []
+    private var streak = 0
+
+    /// Whether to ask YouTube for this video.
+    func mayAsk(_ id: String) -> Bool { !closed && !refused.contains(id) }
+
+    /// A trailer played: the network and the app are fine.
+    func played() { streak = 0 }
+
+    /// The player failed with `code` for video `id`. True when that stops trailers for the run.
+    @discardableResult
+    func failed(_ id: String, code: Int) -> Bool {
+        guard Self.refusals.contains(code), !closed, refused.insert(id).inserted else { return false }
+        streak += 1
+        closed = streak >= Self.limit
+        return closed
+    }
+}
+
+/// One visit to a hover preview. The preview asks `begin` once it has settled and the engine allows
+/// a trailer; from then on the web view exists while `live` and the video is in front of the art
+/// while `shown`. The art fades back before anything is released, so the player's own end screen
+/// never shows.
+///
+/// - The art stays, silently, if nothing plays within `loadTimeout` or the player reports an error.
+/// - It ends once: the art returns when the trailer is about to end, and it does not loop.
 @MainActor @Observable
 final class TrailerVisit {
-    private enum Stage { case waiting, loading, playing, held, done }
+    private enum Stage { case waiting, loading, playing, done }
 
     /// The web view, while there is one.
     private(set) var surface: (any TrailerSurface)?
-    /// Whether the video is in front of the banner art.
+    /// Whether the video is in front of the art.
     private(set) var shown = false
-    /// Whether the sound is off, which it is at every start.
+    /// Whether the sound is off: as the person last left it, at every start.
     private(set) var muted = true
     /// The player's last error, for the Play trailer window.
     private(set) var failure: Int?
+    /// Whether captions are showing: only with the sound on, in a preview.
+    private(set) var captions = false
 
     @ObservationIgnored private var stage = Stage.waiting
-    @ObservationIgnored private var away = false
     @ObservationIgnored private var timer: Task<Void, Never>?
-    @ObservationIgnored private var pause: Task<Void, Never>?
-    /// Whether the banner is fading back and the pause has not landed.
-    @ObservationIgnored private var pausing = false
     @ObservationIgnored private let loadTimeout: Duration
-    @ObservationIgnored private let awayLimit: Duration
     @ObservationIgnored private let fade: Duration
+    @ObservationIgnored private let sound: TrailerSound
 
     /// Whether a web view exists.
     var live: Bool { surface != nil }
 
-    init(
-        loadTimeout: Duration = .seconds(8), awayLimit: Duration = .seconds(30), fade: Duration = .milliseconds(300)
-    ) {
+    init(loadTimeout: Duration = .seconds(8), fade: Duration = .milliseconds(300), sound: TrailerSound = .shared) {
         self.loadTimeout = loadTimeout
-        self.awayLimit = awayLimit
         self.fade = fade
+        self.sound = sound
     }
 
-    /// Start loading: the page has settled and trailers may play. Once per visit. `make` builds the
-    /// web view and hands it the visit's signal.
+    /// Start loading: the preview has settled and trailers may play. Once per visit. `make` builds
+    /// the web view and hands it the visit's signal.
     func begin(_ make: (@escaping @MainActor (TrailerSignal) -> Void) -> any TrailerSurface) {
         guard stage == .waiting else { return }
         stage = .loading
-        muted = true
-        surface = make { [weak self] signal in self?.signal(signal) }
-        startTimeout()
-    }
-
-    private func startTimeout() {
+        muted = !sound.on
+        captions = false
+        let surface = make { [weak self] signal in self?.signal(signal) }
+        self.surface = surface
+        // The page starts muted, as autoplay needs; with the sound on it comes up as it plays.
+        if !muted { surface.control(.unmute) }
         timer?.cancel()
         timer = Task { [loadTimeout] in
             try? await Task.sleep(for: loadTimeout)
             guard !Task.isCancelled else { return }
             if stage == .loading { finish() }
-        }
-    }
-
-    /// The page scrolled past the point where the video would be under the page, or back to the top.
-    func scrolledAway(_ value: Bool) {
-        guard away != value else { return }
-        away = value
-        switch stage {
-        case .playing where value:
-            shown = false
-            pausing = true
-            pause = Task { [fade, awayLimit] in
-                try? await Task.sleep(for: fade)
-                guard !Task.isCancelled else { return }
-                pausing = false
-                surface?.control(.pause)
-                stage = .held
-                timer?.cancel()
-                timer = Task {
-                    try? await Task.sleep(for: awayLimit)
-                    guard !Task.isCancelled else { return }
-                    if stage == .held { finish() }
-                }
-            }
-        case .playing where !value:
-            // Back before the pause landed: the video is still playing, so it comes forward.
-            if pausing {
-                pause?.cancel()
-                pausing = false
-                shown = true
-            }
-        case .held where !value:
-            timer?.cancel()
-            stage = .loading
-            surface?.control(.play)
-            startTimeout()
-        default: break
         }
     }
 
@@ -133,18 +146,10 @@ final class TrailerVisit {
             guard stage == .loading else { return }
             timer?.cancel()
             stage = .playing
-            if away {
-                // Scrolled away while it loaded: it plays under the page for a moment, then waits.
-                away = false
-                scrolledAway(true)
-            } else {
-                shown = true
-            }
+            shown = true
         case .ending, .ended:
             guard stage == .playing || stage == .loading else { return }
             shown = false
-            pause?.cancel()
-            pausing = false
             timer?.cancel()
             stage = .done
             timer = Task { [fade] in
@@ -155,28 +160,31 @@ final class TrailerVisit {
         case .failed(let code):
             failure = code
             if stage != .done { finish() }
+        case .captions(let on):
+            captions = on && surface != nil
         case .quiet:
             break
         }
     }
 
-    /// Sound on or off for this trailer.
+    /// Sound on or off, for this trailer and the ones after it.
     func toggleSound() {
         muted.toggle()
+        sound.on = !muted
         surface?.control(muted ? .mute : .unmute)
     }
 
-    /// The page was left, a sheet or the player opened over it, the window lost key status, or the
-    /// app went to the background: let go at once, if the trailer had started.
+    /// The preview closed, a sheet or the player opened over it, or the app went to the background:
+    /// let go at once, if the trailer had started.
     func release() {
         if stage != .waiting { finish() }
     }
 
     private func finish() {
         timer?.cancel()
-        pause?.cancel()
         stage = .done
         shown = false
+        captions = false
         let surface = surface
         self.surface = nil
         surface?.tearDown()

@@ -25,16 +25,21 @@ final class HoverTrailer {
     var shown: Bool { visit.shown }
     var muted: Bool { visit.muted }
     /// Whether the player is drawing captions: they follow the sound.
-    var captions: Bool { false }
+    var captions: Bool { visit.captions }
 
-    /// Load the player once, with no title, as a grid that can show cards appears.
-    func prewarm() {}
+    /// Load the player once, with no title, as a grid that can show cards appears: the pool's
+    /// warm page, which then only switches video.
+    func prewarm(subtitles: String) {
+        TrailerPool.shared.prewarm(subtitles: subtitles)
+    }
 
-    /// The pointer has slowed on `entry`'s cover: get its trailer ready, hidden.
+    /// The pointer has slowed on `entry`'s cover. The warm page switches video in place once the
+    /// card opens, so nothing is asked of YouTube before then.
     func cue(_ entry: Entry) {}
 
-    /// The card for `entry` opened or was handed to it: play its trailer, muted, under the art.
-    func play(_ entry: Entry) {
+    /// The card for `entry` opened or was handed to it: play its trailer under the art, with the
+    /// sound as the person last left it.
+    func play(_ entry: Entry, subtitles: String) {
         pending?.cancel()
         guard entry.id != id || !visit.live else { return }
         stop()
@@ -42,7 +47,9 @@ final class HoverTrailer {
         id = entry.id
         let visit = TrailerVisit(loadTimeout: Self.giveUp)
         self.visit = visit
-        visit.begin { signal in TrailerPlayer(trailer: trailer, style: .banner, onSignal: signal) }
+        visit.begin { signal in
+            TrailerPlayer(trailer: trailer, style: .banner, subtitles: subtitles, onSignal: signal)
+        }
     }
 
     /// The card is going: the player stops once the video has faded with it, so its paused

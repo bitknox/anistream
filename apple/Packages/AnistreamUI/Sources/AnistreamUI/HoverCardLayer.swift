@@ -224,7 +224,9 @@ private struct HoverCardLayer: ViewModifier {
                     .task(id: !place.covers.isEmpty && store.hoverCardsOn && store.trailersMayAutoplay) {
                         // The warm player loads once a grid that can show cards is here (decision 3),
                         // and only while cards are on and trailers may play.
-                        if !place.covers.isEmpty, store.hoverCardsOn, store.trailersMayAutoplay { trailer.prewarm() }
+                        if !place.covers.isEmpty, store.hoverCardsOn, store.trailersMayAutoplay {
+                            trailer.prewarm(subtitles: store.settings.value(.subtitles) ?? "")
+                        }
                     }
                     .task(id: place.covers.first?.id) {
                         guard place.covers.first != nil else { return }
@@ -253,7 +255,7 @@ private struct HoverCardLayer: ViewModifier {
                         trailer.stopSoon()
                         return
                     }
-                    trailer.play(entry)
+                    trailer.play(entry, subtitles: store.settings.value(.subtitles) ?? "")
                 }
                 cards.allowed = allowed
                 monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel, .keyDown]) { [cards] event in

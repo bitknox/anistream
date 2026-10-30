@@ -72,7 +72,20 @@ impl AppIdentity {
 /// `WebMessageListener` named `anistream` puts on the page. The player fills the view and
 /// letterboxes rather than crops.
 pub fn embed_page(trailer: &Trailer, style: EmbedStyle, app: &AppIdentity) -> Option<String> {
-    if !trailer.embeddable() || !app.valid() {
+    page(Some(trailer), style, app, "")
+}
+
+/// The page with captions in the viewer's subtitle language (`playback.subtitle_language`, as
+/// [`caption_language`] reads it), and, for `None`, with no video at all: a player loaded ahead
+/// of the first trailer, which [`load_script`] then plays. The banner's captions show while its
+/// sound is on; Play trailer's always do. A language YouTube has no captions in shows none.
+pub fn page(
+    trailer: Option<&Trailer>,
+    style: EmbedStyle,
+    app: &AppIdentity,
+    subtitle_language: &str,
+) -> Option<String> {
+    if trailer.is_some_and(|trailer| !trailer.embeddable()) || !app.valid() {
         return None;
     }
     let (muted, controls, input) = match style {
@@ -80,15 +93,72 @@ pub fn embed_page(trailer: &Trailer, style: EmbedStyle, app: &AppIdentity) -> Op
         EmbedStyle::Full => (0, 1, ""),
     };
     // The id and the origin were checked above to hold no quote, backslash or angle bracket,
-    // so each goes into the script as it is.
+    // and the language is one of the table's, so each goes into the script as it is.
     Some(
         PAGE.replace("{INPUT}", input)
-            .replace("{VIDEO}", &trailer.id)
+            .replace("{VIDEO}", trailer.map_or("", |trailer| &trailer.id))
             .replace("{ORIGIN}", &app.origin)
             .replace("{MUTE}", &muted.to_string())
-            .replace("{CONTROLS}", &controls.to_string()),
+            .replace("{CONTROLS}", &controls.to_string())
+            .replace("{CAPTIONS}", caption_language(subtitle_language).unwrap_or_default()),
     )
 }
+
+/// The two-letter code YouTube names a caption track and its interface by, for the subtitle
+/// language the viewer set: ISO 639-2 (`eng`, `ger` or `deu`), ISO 639-1 (`en`), or a tag with a
+/// region (`pt-BR`). `None` for none set, `off`, or a language this table does not know, which
+/// then shows no captions.
+pub fn caption_language(subtitle_language: &str) -> Option<&'static str> {
+    let primary = subtitle_language.trim().split(['-', '_']).next()?.to_ascii_lowercase();
+    CAPTION_LANGUAGES
+        .iter()
+        .find(|(two, threes)| *two == primary || threes.contains(&primary.as_str()))
+        .map(|(two, _)| *two)
+}
+
+/// ISO 639-1 codes and the ISO 639-2 codes (bibliographic and terminology) that name them.
+const CAPTION_LANGUAGES: &[(&str, &[&str])] = &[
+    ("ar", &["ara"]),
+    ("bg", &["bul"]),
+    ("ca", &["cat"]),
+    ("cs", &["cze", "ces"]),
+    ("da", &["dan"]),
+    ("de", &["ger", "deu"]),
+    ("el", &["gre", "ell"]),
+    ("en", &["eng"]),
+    ("es", &["spa"]),
+    ("et", &["est"]),
+    ("fa", &["per", "fas"]),
+    ("fi", &["fin"]),
+    ("fr", &["fre", "fra"]),
+    ("he", &["heb"]),
+    ("hi", &["hin"]),
+    ("hr", &["hrv"]),
+    ("hu", &["hun"]),
+    ("id", &["ind"]),
+    ("it", &["ita"]),
+    ("ja", &["jpn"]),
+    ("ko", &["kor"]),
+    ("lt", &["lit"]),
+    ("lv", &["lav"]),
+    ("ms", &["may", "msa"]),
+    ("nl", &["dut", "nld"]),
+    ("no", &["nor", "nob", "nno"]),
+    ("pl", &["pol"]),
+    ("pt", &["por"]),
+    ("ro", &["rum", "ron"]),
+    ("ru", &["rus"]),
+    ("sk", &["slo", "slk"]),
+    ("sl", &["slv"]),
+    ("sr", &["srp"]),
+    ("sv", &["swe"]),
+    ("th", &["tha"]),
+    ("tl", &["tgl", "fil"]),
+    ("tr", &["tur"]),
+    ("uk", &["ukr"]),
+    ("vi", &["vie"]),
+    ("zh", &["chi", "zho"]),
+];
 
 /// The page, with its blanks. The player's parameters are YouTube's documented ones; the page
 /// says `playing` only once the player's state is playing and its clock has moved, two frames
@@ -135,20 +205,87 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
   var watch = 0;
   var tail = 0;
   var told = false;
+  var sound = false;
+  var ramp = 0;
+  var pending = "";
+  // The viewer's caption language, or none; and whether captions show now.
+  var captions = "{CAPTIONS}";
+  var captioned = false;
+  // YouTube shows its title, a pause button, More videos and its logo over the first seconds of
+  // a video, even with no controls, and hides them about four seconds in. The banner's video
+  // comes forward only after that; Play trailer has YouTube's controls anyway.
+  var settle = {CONTROLS} ? 0 : 4500;
+  var began = 0;
   function stopTail() {
     if (tail) { clearInterval(tail); tail = 0; }
   }
-  // Half a second before the end, so a front end can bring its banner back in time.
+  // A second before the end, so a front end can fade its art back and let go before the
+  // player's end screen.
   function watchTail() {
     stopTail();
     tail = setInterval(function () {
       if (!player || !player.getDuration || !player.getCurrentTime) { return; }
       var length = player.getDuration();
-      if (length > 1 && length - player.getCurrentTime() <= 0.5 && !told) {
+      if (length > 1 && length - player.getCurrentTime() <= 1 && !told) {
         told = true;
         say("ending");
       }
     }, 100);
+  }
+  function stopRamp() {
+    if (ramp) { clearInterval(ramp); ramp = 0; }
+  }
+  // Sound on at a start: from silence to half volume over 300 ms, once the player plays.
+  function rampUp() {
+    stopRamp();
+    if (!player || !player.setVolume || !player.unMute) { return; }
+    var step = 0;
+    player.setVolume(0);
+    player.unMute();
+    ramp = setInterval(function () {
+      step += 1;
+      player.setVolume(Math.round(50 * step / 6));
+      if (step >= 6) { stopRamp(); }
+    }, 50);
+  }
+  function tellCaptions(on) {
+    if (on !== captioned) {
+      captioned = on;
+      say(on ? "captions:on" : "captions:off");
+    }
+  }
+  // The banner's captions while its sound is on; Play trailer's always. A track in the language
+  // itself first, YouTube's own speech recognition next, and one translated into it last.
+  function applyCaptions() {
+    if (!captions || !player || !player.getOption || !player.setOption) { return; }
+    try {
+      if ({MUTE} && !sound) {
+        if (captioned && player.unloadModule) { player.unloadModule("captions"); }
+        tellCaptions(false);
+        return;
+      }
+      if (player.loadModule) { player.loadModule("captions"); }
+      var tracks = player.getOption("captions", "tracklist") || [];
+      var own = null;
+      var spoken = null;
+      for (var i = 0; i < tracks.length; i++) {
+        var code = String(tracks[i].languageCode || "").split("-")[0];
+        if (code !== captions) { continue; }
+        if (tracks[i].kind === "asr") { spoken = spoken || tracks[i]; } else { own = own || tracks[i]; }
+      }
+      var track = own || spoken;
+      if (track) {
+        player.setOption("captions", "track", { languageCode: track.languageCode });
+      } else if (tracks.length) {
+        player.setOption("captions", "track", {
+          languageCode: tracks[0].languageCode,
+          translationLanguage: { languageCode: captions }
+        });
+      } else {
+        return;
+      }
+      tellCaptions(true);
+    } catch (e) {}
   }
   function frames(then) {
     requestAnimationFrame(function () { requestAnimationFrame(then); });
@@ -159,13 +296,32 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
   function whenMoving() {
     stopWatching();
     var from = player.getCurrentTime ? player.getCurrentTime() : 0;
+    if (!began) { began = Date.now(); }
     watch = setInterval(function () {
       if (!player || !player.getCurrentTime || player.getCurrentTime() <= from) { return; }
+      if (Date.now() - began < settle) { return; }
       stopWatching();
       frames(function () {
         if (!showing) { showing = true; say("playing"); }
       });
     }, 50);
+  }
+  var vars = {
+    autoplay: 1,
+    mute: {MUTE},
+    controls: {CONTROLS},
+    playsinline: 1,
+    rel: 0,
+    fs: 0,
+    disablekb: 1,
+    iv_load_policy: 3,
+    enablejsapi: 1,
+    origin: "{ORIGIN}"
+  };
+  if (captions) {
+    vars.hl = captions;
+    vars.cc_lang_pref = captions;
+    if (!{MUTE}) { vars.cc_load_policy = 1; }
   }
   window.onYouTubeIframeAPIReady = function () {
     player = new YT.Player("player", {
@@ -173,22 +329,21 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
       videoId: "{VIDEO}",
       width: "100%",
       height: "100%",
-      playerVars: {
-        autoplay: 1,
-        mute: {MUTE},
-        controls: {CONTROLS},
-        playsinline: 1,
-        rel: 0,
-        fs: 0,
-        disablekb: 1,
-        iv_load_policy: 3,
-        enablejsapi: 1,
-        origin: "{ORIGIN}"
-      },
+      playerVars: vars,
       events: {
-        onReady: function () { say("ready"); },
+        onReady: function () {
+          say("ready");
+          applyCaptions();
+          if (pending) {
+            var id = pending;
+            pending = "";
+            window.trailer.load(id);
+          }
+        },
         onStateChange: function (event) {
           if (event.data === 1) {
+            if (sound && player.isMuted && player.isMuted()) { rampUp(); }
+            applyCaptions();
             whenMoving();
             watchTail();
           } else if (event.data === 2) {
@@ -200,9 +355,12 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
             stopWatching();
             stopTail();
             showing = false;
+            began = 0;
             say("ended");
           }
         },
+        // The captions module's track list arrives after the player is ready.
+        onApiChange: function () { applyCaptions(); },
         onError: function (event) {
           stopWatching();
           stopTail();
@@ -214,8 +372,35 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
   window.trailer = {
     play: function () { if (player && player.playVideo) { player.playVideo(); } },
     pause: function () { if (player && player.pauseVideo) { player.pauseVideo(); } },
-    mute: function () { if (player && player.mute) { player.mute(); } },
-    unmute: function () { if (player && player.unMute) { player.unMute(); } },
+    mute: function () {
+      sound = false;
+      stopRamp();
+      if (player && player.mute) { player.mute(); }
+      applyCaptions();
+    },
+    // While it plays, half volume at once; before, the start ramps it up.
+    unmute: function () {
+      sound = true;
+      if (!player || !player.unMute || !player.getPlayerState) { return; }
+      if (player.getPlayerState() === 1 && !ramp) {
+        player.setVolume(50);
+        player.unMute();
+      }
+      applyCaptions();
+    },
+    // Another trailer in the same player, muted at its start as the first was; the sound comes
+    // on as it plays when it is on. Before the player is up, it waits for it.
+    load: function (id) {
+      stopWatching();
+      stopTail();
+      stopRamp();
+      showing = false;
+      told = false;
+      began = 0;
+      if (!player || !player.loadVideoById) { pending = id; return; }
+      if ({MUTE}) { player.mute(); }
+      player.loadVideoById(id);
+    },
     remaining: function () {
       if (!player || !player.getDuration || !player.getCurrentTime) { return -1; }
       var left = player.getDuration() - player.getCurrentTime();
@@ -232,10 +417,16 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
 </html>
 "#;
 
-/// What the page posts half a second before the trailer ends: the banner comes back now. It is
+/// What the page posts a second before the trailer ends: the banner comes back now. It is
 /// not a [`TrailerMessage`], so [`TrailerMessage::parse`] ignores it and a front end that does not
 /// know it loses nothing; the `ended` that follows still comes.
 pub const ENDING_MESSAGE: &str = "ending";
+
+/// What the page posts when captions start showing over the video, and when they stop, for a
+/// front end that keeps the foot of the video clear while they show. Not [`TrailerMessage`]s
+/// either, for the same reason as [`ENDING_MESSAGE`].
+pub const CAPTIONS_ON_MESSAGE: &str = "captions:on";
+pub const CAPTIONS_OFF_MESSAGE: &str = "captions:off";
 
 /// What the page says, as the front end hands it back.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -250,8 +441,11 @@ pub enum TrailerMessage {
     /// It played to the end: the banner comes back, and it does not loop.
     Ended,
     /// The player refused it, with YouTube's code: `2` a bad id, `5` an HTML5 error, `100` gone or
-    /// private, `101` and `150` embedding disabled by its owner. `0` is the page's own: the player
-    /// API did not load. The banner stays; Play trailer opens [`Trailer::watch_url`] instead.
+    /// private, `101` and `150` embedding disabled by its owner, and `150` too when YouTube asks
+    /// the viewer to sign in to prove they are not a bot (a network it has flagged, such as a VPN
+    /// exit); `152` and `153` the embed's identity refused or missing. `0` is the page's own: the
+    /// player API did not load. The banner stays; Play trailer opens [`Trailer::watch_url`]
+    /// instead.
     Error { code: u32 },
 }
 
@@ -289,6 +483,16 @@ impl TrailerControl {
             Self::Unmute => "window.trailer && window.trailer.unmute();",
         }
     }
+}
+
+/// The script that plays `trailer` in a page that is already up, in place of the one it was
+/// built for: a front end keeps one web view and its player, and switches trailers with this
+/// rather than loading a new page. `None` for a trailer the app's player does not play.
+pub fn load_script(trailer: &Trailer) -> Option<String> {
+    // The id was checked to hold no quote, backslash or angle bracket.
+    trailer
+        .embeddable()
+        .then(|| format!("window.trailer && window.trailer.load(\"{}\");", trailer.id))
 }
 
 /// What the device says about itself with
@@ -564,6 +768,119 @@ mod tests {
             assert!(control.script().contains(&format!("window.trailer.{name}()")));
             assert!(page.contains(&format!("    {name}: function ()")), "{name}");
         }
+    }
+
+    #[test]
+    fn a_page_that_is_up_switches_to_another_trailer() {
+        assert_eq!(
+            load_script(&youtube("def_45-6")).as_deref(),
+            Some(r#"window.trailer && window.trailer.load("def_45-6");"#)
+        );
+        assert_eq!(load_script(&youtube("abc\"onerror")), None, "an id YouTube never gives");
+        let dailymotion = Trailer { host: TrailerHost::Dailymotion, id: "x7abc".into() };
+        assert_eq!(load_script(&dailymotion), None);
+
+        let banner = embed_page(&youtube("abc"), EmbedStyle::Banner, &app()).unwrap();
+        assert!(banner.contains("    load: function (id) {"));
+        assert!(banner.contains("player.loadVideoById(id);"), "the player the page has");
+        assert!(banner.contains("if (1) { player.mute(); }"), "a banner starts muted again");
+        assert!(banner.contains("pending = id;"), "a load before the player is up waits");
+        let full = embed_page(&youtube("abc"), EmbedStyle::Full, &app()).unwrap();
+        assert!(full.contains("if (0) { player.mute(); }"), "Play trailer keeps its sound");
+    }
+
+    #[test]
+    fn captions_follow_the_subtitle_language_as_youtube_names_it() {
+        for (setting, code) in [
+            ("eng", "en"),
+            ("en", "en"),
+            ("jpn", "ja"),
+            ("ger", "de"),
+            ("deu", "de"),
+            ("fre", "fr"),
+            ("chi", "zh"),
+            ("zho", "zh"),
+            ("pt-BR", "pt"),
+            ("  POR ", "pt"),
+            ("fil", "tl"),
+            ("nob", "no"),
+        ] {
+            assert_eq!(caption_language(setting), Some(code), "{setting}");
+        }
+        for none in ["", "off", "none", "xx", "qaa", "klingon", "e"] {
+            assert_eq!(caption_language(none), None, "{none}");
+        }
+    }
+
+    #[test]
+    fn the_page_asks_for_captions_in_the_viewers_language_and_none_without_one() {
+        let banner =
+            super::page(Some(&youtube("abc")), EmbedStyle::Banner, &app(), "jpn").unwrap();
+        assert!(banner.contains(r#"var captions = "ja";"#));
+        assert!(
+            banner.contains("vars.hl = captions;")
+                && banner.contains("vars.cc_lang_pref = captions;")
+        );
+        // The banner's show only with its sound; Play trailer's from the start.
+        assert!(banner.contains("if (!1) { vars.cc_load_policy = 1; }"));
+        assert!(banner.contains("if (1 && !sound) {"));
+        let full = super::page(Some(&youtube("abc")), EmbedStyle::Full, &app(), "eng").unwrap();
+        assert!(full.contains(r#"var captions = "en";"#));
+        assert!(full.contains("if (!0) { vars.cc_load_policy = 1; }"));
+        // The track: the language's own, then speech recognition, then a translation.
+        assert!(full.contains(
+            r#"player.setOption("captions", "track", { languageCode: track.languageCode });"#
+        ));
+        assert!(full.contains("translationLanguage: { languageCode: captions }"));
+        assert!(full.contains(&format!(
+            "say(on ? \"{CAPTIONS_ON_MESSAGE}\" : \"{CAPTIONS_OFF_MESSAGE}\")"
+        )));
+
+        for unknown in ["", "qaa"] {
+            let html =
+                super::page(Some(&youtube("abc")), EmbedStyle::Full, &app(), unknown).unwrap();
+            assert!(html.contains(r#"var captions = "";"#), "{unknown}");
+            assert!(html.contains("if (!captions || !player"), "nothing is asked for");
+        }
+        assert_eq!(
+            embed_page(&youtube("abc"), EmbedStyle::Full, &app()),
+            super::page(Some(&youtube("abc")), EmbedStyle::Full, &app(), ""),
+            "the page without a language has no captions"
+        );
+    }
+
+    #[test]
+    fn a_page_with_no_video_is_a_player_waiting_for_one() {
+        let waiting = super::page(None, EmbedStyle::Banner, &app(), "eng").unwrap();
+        assert!(waiting.contains(r#"videoId: "","#));
+        assert!(waiting.contains("    load: function (id) {"));
+        assert_eq!(
+            super::page(None, EmbedStyle::Banner, &AppIdentity::new("tv.anistream.app"), ""),
+            None
+        );
+        let dailymotion = Trailer { host: TrailerHost::Dailymotion, id: "x7abc".into() };
+        assert_eq!(super::page(Some(&dailymotion), EmbedStyle::Banner, &app(), ""), None);
+    }
+
+    #[test]
+    fn the_page_says_ending_a_second_before_the_end() {
+        let page = embed_page(&youtube("abc"), EmbedStyle::Banner, &app()).unwrap();
+        assert!(page.contains("length - player.getCurrentTime() <= 1 && !told"));
+    }
+
+    #[test]
+    fn sound_on_ramps_to_half_volume_as_the_trailer_starts() {
+        let page = embed_page(&youtube("abc"), EmbedStyle::Banner, &app()).unwrap();
+        // Unmuted before it plays, it waits; at the start it ramps from silence.
+        assert!(
+            page.contains("if (sound && player.isMuted && player.isMuted()) { rampUp(); }")
+        );
+        assert!(page.contains("player.setVolume(0);\n    player.unMute();"));
+        assert!(page.contains("player.setVolume(Math.round(50 * step / 6));"));
+        assert!(page.contains("}, 50);"), "six steps of 50 ms, 300 ms in all");
+        // While it plays, half volume and then the sound.
+        assert!(page.contains("player.setVolume(50);\n        player.unMute();"));
+        assert!(page.contains("sound = false;\n      stopRamp();"), "muting stops a ramp");
     }
 
     #[test]
