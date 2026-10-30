@@ -211,6 +211,7 @@ extension Msg {
         case .noticeDatabaseSetAside(let path): L.noticeDatabaseSetAside(path: path)
         case .startFailedFolder(let path, let reason): L.startFailedFolder(path: path, reason: reason)
         case .startFailedConfig(let path, let problem): L.startFailedConfig(path: path, problem: problem)
+        case .configResetFailed(let path, let reason): L.configResetFailed(path: path, reason: reason)
         case .startFailedDatabase(let path, let reason): L.startFailedDatabase(path: path, reason: reason)
         case .startFailedNetwork(let reason): L.startFailedNetwork(reason: reason)
         case .startFailed(let reason): L.startFailed(reason: reason)

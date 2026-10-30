@@ -216,6 +216,7 @@ fun Msg.text(context: Context): String =
         is Msg.NoticeDatabaseSetAside -> Strings.noticeDatabaseSetAside(context, this.path)
         is Msg.StartFailedFolder -> Strings.startFailedFolder(context, this.path, this.reason)
         is Msg.StartFailedConfig -> Strings.startFailedConfig(context, this.path, this.problem)
+        is Msg.ConfigResetFailed -> Strings.configResetFailed(context, this.path, this.reason)
         is Msg.StartFailedDatabase -> Strings.startFailedDatabase(context, this.path, this.reason)
         is Msg.StartFailedNetwork -> Strings.startFailedNetwork(context, this.reason)
         is Msg.StartFailed -> Strings.startFailed(context, this.reason)
