@@ -4670,6 +4670,16 @@ pub fn settings_value_theme_immersive() -> String {
     text("settings-value-theme-immersive", &[])
 }
 
+/// Value of the theme setting: the terminal's background, with colours for a light one.
+pub fn settings_value_theme_light() -> String {
+    text("settings-value-theme-light", &[])
+}
+
+/// Value of the theme setting: the terminal's background, with colours for a dark one.
+pub fn settings_value_theme_dark() -> String {
+    text("settings-value-theme-dark", &[])
+}
+
 /// Value of the titles setting: use the language AniList picks for the signed-in account.
 pub fn settings_value_titles_anilist() -> String {
     text("settings-value-titles-anilist", &[])

@@ -268,14 +268,36 @@ impl Palette {
 pub fn select(mode: ThemeMode, detected_background: Option<Rgb>) -> Variant {
     match mode {
         ThemeMode::Immersive => Variant::Immersive,
+        // Said outright, for a terminal that never answers the background query.
+        ThemeMode::Light => Variant::Light,
+        ThemeMode::Dark => Variant::Dark,
         ThemeMode::Adaptive => match detected_background {
-            Some(bg) if bg.luminance() > 0.5 => Variant::Light,
+            // Whichever reads better on the ground found: between the two ranges, on a grey
+            // neither was made for, a fixed luminance threshold could pick the worse.
+            Some(bg) => {
+                let legibility = |variant| text_contrast_on(&Palette::of(variant), bg);
+                if legibility(Variant::Light) > legibility(Variant::Dark) {
+                    Variant::Light
+                } else {
+                    Variant::Dark
+                }
+            }
             // Default to dark when the terminal does not answer the OSC 11 query. Dark
             // is both the commoner setup and the safer guess: light text on an unknown
-            // ground is more often readable than dark text on one.
-            _ => Variant::Dark,
+            // ground is more often readable than dark text on one. Light and Dark in the
+            // Theme setting are for a terminal where the guess is wrong.
+            None => Variant::Dark,
         },
     }
+}
+
+/// The lowest contrast any text role of `palette` has on `ground`.
+fn text_contrast_on(palette: &Palette, ground: Rgb) -> f64 {
+    Role::ALL
+        .into_iter()
+        .filter(|role| role.is_text())
+        .map(|role| contrast_from_luminance(palette.get(role).luminance(), ground.luminance()))
+        .fold(f64::INFINITY, f64::min)
 }
 
 /// The player's colours and font, as this interface dresses it: the immersive palette, because a
@@ -316,6 +338,26 @@ mod tests {
             }
         }
         assert!(failures.is_empty(), "contrast failures:\n  {}", failures.join("\n  "));
+    }
+
+    /// Between the dark and light ranges, on greys neither variant was made for, the variant
+    /// picked is the one whose text reads better there: a threshold alone picked the worse
+    /// one for part of the band.
+    #[test]
+    fn a_ground_between_the_ranges_gets_the_more_legible_variant() {
+        for step in 0..=100u8 {
+            let level = (u16::from(step) * 255 / 100) as u8;
+            let grey = Rgb::new(level, level, level);
+            let chosen = select(ThemeMode::Adaptive, Some(grey));
+            let other = if chosen == Variant::Light { Variant::Dark } else { Variant::Light };
+            let (mine, theirs) = (
+                text_contrast_on(&Palette::of(chosen), grey),
+                text_contrast_on(&Palette::of(other), grey),
+            );
+            assert!(mine >= theirs, "#{level:02x}: {chosen:?} {mine:.2} under {theirs:.2}");
+        }
+        assert_eq!(select(ThemeMode::Light, None), Variant::Light);
+        assert_eq!(select(ThemeMode::Dark, Some(Rgb::new(255, 255, 255))), Variant::Dark);
     }
 
     #[test]

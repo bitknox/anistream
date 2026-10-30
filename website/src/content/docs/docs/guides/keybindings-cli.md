@@ -122,4 +122,4 @@ and `jq`. An option given without the command it belongs to, such as `--json` or
 | `--preview 120x34 --screen home` | Render any screen as one frame of text, reached the way the app reaches it: home, calendar, seasonal, search, library, downloads, providers, accounts, settings, title, episodes, help, palette |
 | `--refresh-data` | Refresh the ID-mapping datasets |
 | `--update` | Download the latest release, verify its SHA-256, replace the binary |
-| `--theme adaptive\|immersive` · `--no-images` | Presentation switches |
+| `--theme adaptive\|immersive\|light\|dark` · `--no-images` | Presentation switches |

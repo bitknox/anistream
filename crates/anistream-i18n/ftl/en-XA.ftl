@@ -2939,6 +2939,12 @@ settings-value-theme-adaptive = [Åðàþţîṽé~~~]
 # Value of the theme setting: draws its own background.
 settings-value-theme-immersive = [Îɱɱéŕšîṽé~~~]
 
+# Value of the theme setting: the terminal's background, with colours for a light one.
+settings-value-theme-light = [Ļîĝĥţ~~]
+
+# Value of the theme setting: the terminal's background, with colours for a dark one.
+settings-value-theme-dark = [Ðàŕķ~~]
+
 # Value of the titles setting: use the language AniList picks for the signed-in account.
 settings-value-titles-anilist = [ÅñîĻîšţ'š çĥöîçé~~~~~]
 
