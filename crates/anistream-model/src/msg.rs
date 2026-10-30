@@ -131,15 +131,15 @@ pub enum Msg {
     NoticeDownloadsNoneQueued,
     /// Toast after a range was asked for and nothing was queued, and the reason it stopped.
     NoticeDownloadsNoneQueuedStopped { reason: Cause },
-    /// Toast after a range was asked for and every episode was in the queue already.
+    /// Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`.
     NoticeDownloadsNoneNew { existing: Cause },
-    /// Toast as above, with the reason the range stopped.
+    /// Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
     NoticeDownloadsNoneNewStopped { existing: Cause, reason: Cause },
-    /// Toast after a range was asked for, some episodes were queued and some were there already.
+    /// Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`.
     NoticeEpisodesQueuedExisting { count: i64, existing: Cause },
     /// Toast as above, with the reason the range stopped.
     NoticeEpisodesQueuedStopped { count: i64, reason: Cause },
-    /// Toast as above, with some episodes in the queue already and the reason the range stopped.
+    /// Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
     NoticeEpisodesQueuedExistingStopped { count: i64, existing: Cause, reason: Cause },
     /// Toast when keep next found no room for another episode.
     NoticeKeepNextFull,
@@ -183,7 +183,7 @@ pub enum Msg {
     PluginUnpublished { plugin: String },
     /// Toast after the store's admin page opens in the browser.
     StoreAdminOpened,
-    /// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+    /// Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run.
     StoreAdminOpenFailed { reason: String },
     /// Toast after a plugin is installed while plugins are switched off in the source order.
     PluginInstalledUnused { plugin: String, version: String },

@@ -235,7 +235,7 @@ mod tests {
         assert_eq!(t::settings_language(), "Language");
         assert_eq!(t::progress_episodes(6, 13), "6 of 13 episodes");
         assert_eq!(t::progress_episodes(1, 1), "1 of 1 episode");
-        assert_eq!(t::duration_days_hours(6, 17), "6d 17h");
+        assert_eq!(t::duration_days_hours(6, 17), "6 d 17 h");
         assert_eq!(t::notice_saved("Language"), "Saved Language.");
     }
 

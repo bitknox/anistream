@@ -30,7 +30,7 @@ anistream                                                                       
                             │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
                             │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
                             │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-─ █▓▒  syncing · AniList asked for a pause, 41s   ·   loading this season · 8s   ·   checking providers · 1m 06s ───────
+─ █▓▒  syncing · AniList asked for a pause, 41 s   ·   loading this season · 8 s   +1  ▌ tsubame: search timed ou…  +1 ─
 plugins · Subbed · 1080p                                                                    ↵ open   e episodes   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
@@ -125,15 +125,16 @@ r32 c00-00 fg=rule
 r32 c01-01 fg=text
 r32 c02-04 fg=obi
 r32 c05-13 fg=text
-r32 c14-46 fg=text-dim
-r32 c47-53 fg=rule
-r32 c54-72 fg=text
-r32 c73-77 fg=text-dim
-r32 c78-84 fg=rule
-r32 c85-102 fg=text
-r32 c103-111 fg=text-dim
-r32 c112-112 fg=text
-r32 c113-119 fg=rule
+r32 c14-47 fg=text-dim
+r32 c48-54 fg=rule
+r32 c55-73 fg=text
+r32 c74-84 fg=text-dim
+r32 c85-86 fg=text
+r32 c87-87 fg=alert
+r32 c88-113 fg=text
+r32 c114-117 fg=text-dim
+r32 c118-118 fg=text
+r32 c119-119 fg=rule
 r33 c00-23 fg=text-dim
 r33 c92-92 fg=text
 r33 c93-100 fg=text-dim

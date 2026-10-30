@@ -112,7 +112,7 @@ sources-standing = Standing
 
 # How a { -source } stands when nothing is wrong with it.
 # @only windows
-sources-status-working = Working
+sources-status-working = Ready
 
 # In the torrent { -source }'s detail, in place of the hosts it contacts.
 # @only windows

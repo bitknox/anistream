@@ -269,16 +269,16 @@ notice-downloads-none-queued = Nothing queued.
 # @arg reason: cause
 notice-downloads-none-queued-stopped = Nothing queued. { $reason }
 
-# Toast after a range was asked for and every episode was in the queue already.
+# Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`.
 # @arg existing: cause
 notice-downloads-none-new = Nothing new queued. { $existing }
 
-# Toast as above, with the reason the range stopped.
+# Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 # @arg existing: cause
 # @arg reason: cause
 notice-downloads-none-new-stopped = Nothing new queued. { $existing } { $reason }
 
-# Toast after a range was asked for, some episodes were queued and some were there already.
+# Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`.
 # @arg count: int
 # @arg existing: cause
 notice-episodes-queued-existing = { $count ->
@@ -294,7 +294,7 @@ notice-episodes-queued-stopped = { $count ->
    *[other] Queued { $count } episodes, then it stopped. { $reason }
  }
 
-# Toast as above, with some episodes in the queue already and the reason the range stopped.
+# Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 # @arg count: int
 # @arg existing: cause
 # @arg reason: cause

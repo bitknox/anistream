@@ -17,7 +17,7 @@ anistream                                                                       
                             │
                             │  Drama
                             │
-                            │  E2 out 6d 2h ago  ·  E3 in 17h 48m
+                            │  E2 out 6 d 2 h ago  ·  E3 in 17 h 48 min
                             │
                             │
                             │
@@ -91,7 +91,7 @@ r17 c28-28 fg=rule
 r17 c31-35 fg=text-dim
 r18 c28-28 fg=rule
 r19 c28-28 fg=rule
-r19 c31-64 fg=state
+r19 c31-70 fg=state
 r20 c28-28 fg=rule
 r21 c28-28 fg=rule
 r22 c28-28 fg=rule

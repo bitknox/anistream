@@ -2,7 +2,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ ▸  Continue               │  ▌ Hoshikuzu no Tabibito     E4 · 57%   ░░░░░░░░░░░░░░░░░
   ▤  Calendar               │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░░░░░
-  ▦  Seasonal               │    Yoru no Toshokan      E6 in 2h 41m   ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │    Yoru no Toshokan  E6 in 2 h 41 min   ░░░░░░░░░░░░░░░░░
   /  Search                 │                                         ░░░░░░░░░░░░░░░░░
   ▥  Library                │                                         ░░░░░░░░░░░░░░░░░
   ↓  Downloads              │                                         ░░░░░░░░░░░░░░░░░
@@ -23,7 +23,7 @@ anistream                                                                       
                             │                                         ▏ Continue E4 at 13:32 (57%)
                             │                                         █████████████▋░░░░░░░░░░
                             │
-                            │                                         E4 out 2d 3h ago  ·  E5 in 4d 20h
+                            │                                         E4 out 2 d 3 h ago  ·  E5 in 4 d 20 h
                             │
                             │                                         A lamplighter on a dying comet rides the last
                             │                                         mail coach between the stars, delivering
@@ -80,8 +80,8 @@ r04 c13-27 bg=#161a2e
 r04 c28-28 fg=#434653 bg=#161a2e
 r04 c29-32 bg=#161a2e
 r04 c33-48 fg=#9298b5 bg=#161a2e
-r04 c49-54 bg=#161a2e
-r04 c55-66 fg=#9298b5 bg=#161a2e
+r04 c49-50 bg=#161a2e
+r04 c51-66 fg=#9298b5 bg=#161a2e
 r04 c67-69 bg=#161a2e
 r04 c70-86 fg=#434653 bg=#161a2e
 r04 c87-119 bg=#161a2e
@@ -205,8 +205,8 @@ r24 c29-119 bg=#161a2e
 r25 c00-27 bg=#161a2e
 r25 c28-28 fg=#434653 bg=#161a2e
 r25 c29-69 bg=#161a2e
-r25 c70-102 fg=state bg=#161a2e
-r25 c103-119 bg=#161a2e
+r25 c70-106 fg=state bg=#161a2e
+r25 c107-119 bg=#161a2e
 r26 c00-27 bg=#161a2e
 r26 c28-28 fg=#434653 bg=#161a2e
 r26 c29-119 bg=#161a2e

@@ -2,7 +2,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌ ▸│  ▌ Hoshikuzu no Tabibito                                        E4 · 57%
   ▤│    Kaze no Tegami                                                 E9 out
-  ▦│    Yoru no Toshokan                                         E6 in 2h 41m
+  ▦│    Yoru no Toshokan                                     E6 in 2 h 41 min
   /│    Tsuki to Kujira no Uta                               7 of 12 episodes
   ▥│
   ↓│
@@ -45,7 +45,7 @@ r03 c71-76 fg=state
 r04 c02-02 fg=text-dim
 r04 c03-03 fg=rule
 r04 c08-23 fg=text-dim
-r04 c65-76 fg=text-dim
+r04 c61-76 fg=text-dim
 r05 c02-02 fg=text-dim
 r05 c03-03 fg=rule
 r05 c08-29 fg=text-dim

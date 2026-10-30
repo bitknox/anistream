@@ -241,13 +241,13 @@ notice-downloads-none-queued = Nothing queued.
 # Toast after a range was asked for and nothing was queued, and the reason it stopped.
 notice-downloads-none-queued-stopped = Nothing queued. { $reason }
 
-# Toast after a range was asked for and every episode was in the queue already.
+# Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`.
 notice-downloads-none-new = Nothing new queued. { $existing }
 
-# Toast as above, with the reason the range stopped.
+# Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 notice-downloads-none-new-stopped = Nothing new queued. { $existing } { $reason }
 
-# Toast after a range was asked for, some episodes were queued and some were there already.
+# Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`.
 notice-episodes-queued-existing =
     { $count ->
         [one] Queued one episode. { $existing }
@@ -261,7 +261,7 @@ notice-episodes-queued-stopped =
        *[other] Queued { $count } episodes, then it stopped. { $reason }
     }
 
-# Toast as above, with some episodes in the queue already and the reason the range stopped.
+# Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 notice-episodes-queued-existing-stopped =
     { $count ->
         [one] Queued one episode, then it stopped. { $existing } { $reason }
@@ -333,9 +333,9 @@ plugin-published = Published { $plugin } { $version }.
 plugin-unpublished = { $plugin } is no longer offered.
 
 # Toast after the store's admin page opens in the browser.
-store-admin-opened = Opened the admin page in your browser. The link works once, for ten minutes.
+store-admin-opened = Opened the admin page in your browser. The link works once, for 10 minutes.
 
-# Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+# Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run.
 store-admin-open-failed = Couldn't open a browser ({ $reason }). On the plugin store's machine, run "anistream store admin" to print a link.
 
 # Toast after a plugin is installed while plugins are switched off in the source order.
@@ -367,7 +367,7 @@ store-token-missing = There is no token for { $store } on this device. Join it a
 store-not-joined = That plugin store is no longer joined.
 
 # Error: a store's signing key is unreadable. Shown as the reason a store is offline.
-store-key-damaged = The plugin store's key is damaged.
+store-key-damaged = This plugin store's key on this device is damaged. Leave the plugin store and join it again with a new invite.
 
 # Error: a store rejected this device's token.
 store-device-refused = { $store } no longer accepts this device. Join it again with a new invite.
@@ -421,7 +421,7 @@ plugin-missing-locally = { $plugin } is no longer in the plugin folder.
 store-invite-needs-link = This device joined { $store } with its link. Paste the same link on the other device.
 
 # Error: the store sent an invite link that does not parse. The reason comes from the link parser.
-store-link-malformed = The plugin store made a bad link. { $reason }
+store-link-malformed = The plugin store sent a link that doesn't work. Ask its owner to check the plugin store. { $reason }
 
 # Error: the store sent a link carrying another store's key.
 store-link-wrong-key = The plugin store made a link with a different key. Check the address it was started with.
@@ -442,7 +442,7 @@ source-switched-off = { $name } is off. It is skipped when looking for episodes.
 source-switched-on = { $name } is on.
 
 # Error: a command named a plugin that is not loaded.
-plugin-not-loaded = { $id } is not a plugin that is loaded.
+plugin-not-loaded = { $id } isn't loaded. Check that it's installed under Sources.
 
 # Toast after a release is chosen for a title. The name is the release's title.
 release-pinned = { $name } will be used for this title.
@@ -463,13 +463,13 @@ torrent-vpn-unverified = Torrents start once the VPN guard passes. The connectio
 torrent-no-index = Torrents need a torrent index. anistream ships none, so add your own address in the settings.
 
 # Error: the torrent session did not start because the interface closed first.
-torrent-interface-closed = The interface closed before torrents started.
+torrent-interface-closed = anistream closed before torrents started.
 
 # Error: the torrent session could not start. The reason comes from the torrent engine.
 torrent-session-failed = Couldn't start the torrent session. { $reason }
 
 # Toast when torrents are up but no operating-system firewall rule backs the VPN guard.
-torrent-no-kill-switch = There is no OS-level kill switch behind the VPN guard. Run "anistream --doctor" for advice.
+torrent-no-kill-switch = Nothing on this device stops torrent traffic if the VPN drops. Run "anistream --doctor" to set that up.
 
 # Toast when the connection check could not run. The reason comes from the VPN settings.
 torrent-not-checked = Couldn't check the connection. { $reason }
@@ -487,7 +487,7 @@ job-anilist-limit = Waiting on the AniList rate limit
 notice-anilist-limit = Waiting { $wait } on the AniList rate limit.
 
 # Toast when the AniList fallback takes over because AniList cannot be reached.
-notice-anilist-unreachable = AniList is unreachable. Using the fallback for fresh data for now.
+notice-anilist-unreachable = AniList isn't answering. Showing data from another service for now.
 
 # Toast when no metadata service answered and the last cached data is shown.
 notice-metadata-cached = No metadata service answered. Showing what was last cached.
@@ -556,7 +556,7 @@ notice-anilist-client-missing = AniList needs a client id and secret. Set { $cli
 notice-anilist-paste-flow = Pasting a code isn't possible here. Quit and run anistream --login instead.
 
 # Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
-notice-mal-client-missing = MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set { $setting } in the config file.
+notice-mal-client-missing = MyAnimeList needs a client id. Register an app with the type "other" at myanimelist.net/apiconfig, then set { $setting } in the config file.
 
 # Status line while the browser sign-in is open and the app waits for it to come back.
 status-waiting-for-redirect = Waiting for { $tracker } to redirect back…
@@ -794,7 +794,7 @@ party-sources-found-line =
     }
 
 # Notice when the player could not start, or could not be reached to add a track.
-player-could-not-start = The player could not start
+player-could-not-start = The player couldn't start. Try again, or choose another source.
 
 # Notice when the file chosen for a subtitle or audio track has no path the app can read.
 player-file-unreadable = Couldn't read that file. Try another.
@@ -891,7 +891,7 @@ updates-view-version = View version
 updates-progress-label = Update progress
 
 # Line under AniList's name on the Accounts page.
-accounts-sync-detail = Progress and list changes sync to { $tracker }. Library and the calendar's list show your { $tracker } lists.
+accounts-sync-detail = Progress and list changes sync to { $tracker }. Library and the Calendar's My list show your { $tracker } lists.
 
 # Line under a signed-in account while changes wait for the connection.
 accounts-changes-waiting-offline =
@@ -952,7 +952,7 @@ shell-restart = Restart
 shell-view-release = View
 
 # Notice when the app cannot keep running once its window is closed.
-shell-no-background = anistream can't keep running in the background here
+shell-no-background = anistream can't keep running in the background here, so downloads stop when the window closes
 
 # Tooltip of the main menu button in the sidebar's header.
 shell-main-menu = Main menu
@@ -1281,7 +1281,7 @@ overlays-logs-empty = Nothing logged yet
 overlays-hint-manual-query = Type what to search for. An empty Enter resets to the automatic match.
 
 # Prompt hint for the first step of signing in to Kitsu.
-overlays-hint-kitsu-username = Email or username. Enter continues, Esc cancels.
+overlays-hint-kitsu-username = Email or user name. Enter continues, Esc cancels.
 
 # Prompt hint for the second step of signing in to Kitsu. The password is shown as dots.
 overlays-hint-kitsu-password = Your password is exchanged for a token and not stored. Enter signs in.
@@ -1719,7 +1719,7 @@ keys-action-focus-search = Search
 keys-action-show-accounts = Accounts and sync
 
 # Action label in the help overlay and the command palette.
-keys-action-show-conflicts = Resolve sync conflicts
+keys-action-show-conflicts = Review sync differences
 
 # Action label in the help overlay and the command palette.
 keys-action-show-logs = Recent messages
@@ -1779,7 +1779,7 @@ keys-action-rate-title = Rate this title
 keys-action-toggle-synopsis = Expand synopsis
 
 # Action label in the help overlay and the command palette.
-keys-action-hide-from-continue = Remove from Continue
+keys-action-hide-from-continue = Hide from Continue
 
 # Action label in the help overlay and the command palette.
 keys-action-show-episodes = Episodes
@@ -1869,7 +1869,7 @@ keys-action-volume-down = Volume down
 keys-action-volume-up = Volume up
 
 # Action label in the help overlay and the command palette.
-keys-action-fullscreen = Fullscreen
+keys-action-fullscreen = Full screen
 
 # Action label in the help overlay and the command palette.
 keys-action-detach = Leave player running
@@ -2154,7 +2154,7 @@ nav-overlay-kitsu-password = Kitsu password
 nav-overlay-accounts = Accounts
 
 # Title of an overlay panel.
-nav-overlay-conflicts = Conflicts
+nav-overlay-conflicts = Differences
 
 # Title of an overlay panel.
 nav-overlay-logs = Logs
@@ -2238,7 +2238,7 @@ downloads-state-active = Downloading
 downloads-state-paused = Paused
 
 # A download's state in the table. A narrow column.
-downloads-state-done = Complete
+downloads-state-done = Downloaded
 
 # A download's state in the table. A narrow column.
 downloads-state-failed = Failed
@@ -2247,7 +2247,7 @@ downloads-state-failed = Failed
 downloads-detail-ahead = Downloaded ahead, removed a day after you watch it
 
 # Detail line for a download queued ahead of time: where it stands, then what becomes of it.
-downloads-detail-with-ahead = { $detail } · Downloaded ahead, removed a day after you watch it
+downloads-detail-with-ahead = { $detail } · downloaded ahead, removed a day after you watch it
 
 # Detail line for a paused download. Both sizes are already formatted (such as "734 MB").
 downloads-detail-paused-at = Paused at { $downloaded } of { $total } (it carries on from there)
@@ -2288,15 +2288,15 @@ accounts-status-opening-browser = Opening your browser to sign in…
 # Toast when a { -tracker } needs signing in again. The key opens the Accounts screen, as the key map draws it.
 accounts-needs-sign-in = { $tracker } needs signing in again. Press { $key } to open Accounts.
 
-# Toast when sync disagreements appear. The key opens the list of them, as the key map draws it.
+# Toast when sync differences appear. The key opens the list of them, as the key map draws it.
 accounts-conflicts-found =
     { $count ->
-        [one] 1 sync disagreement found. Press { $key } to settle it.
-       *[other] { $count } sync disagreements found. Press { $key } to settle them.
+        [one] 1 sync difference found. Press { $key } to review it.
+       *[other] { $count } sync differences found. Press { $key } to review them.
     }
 
-# Toast when the sync disagreements list is opened and there are none.
-accounts-conflicts-none = There are no sync disagreements to settle.
+# Toast when the sync differences list is opened and there are none.
+accounts-conflicts-none = There are no sync differences to review.
 
 # Toast when a sync is asked for and no { -tracker } is set up. The key opens the Accounts screen, as the key map draws it.
 accounts-no-tracker = No tracker is connected. Press { $key } to open Accounts.
@@ -2395,20 +2395,20 @@ accounts-row-queued =
 # Part of an account's overlay row: changes waiting to be sent, and some of them held back until the title is matched to the { -tracker }'s own id.
 accounts-row-queued-held = { $queued } queued, { $held } waiting for an id mapping
 
-# Action beside a sync disagreement in the overlay: Enter keeps the value on this device.
+# Action beside a sync difference in the overlay: Enter keeps the value on this device.
 accounts-conflict-keep-mine = Keep mine
 
-# A sync disagreement in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
+# A sync difference in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 accounts-conflict-row = { $title }  ·  { $field }: mine { $local } / theirs { $remote }
 
 # Title of the Library screen, shown in the placeholder when the terminal is too small.
 lists-library-title = Library
 
 # Toast when the remove key is pressed outside the { -continue-cap } list.
-lists-remove-wrong-list = You can only remove titles from the Continue list.
+lists-remove-wrong-list = You can only hide titles in the Continue list.
 
 # Toast when a title is removed from the { -continue-cap } list.
-lists-continue-removed = { $title } removed from Continue. Watching it again brings it back.
+lists-continue-removed = { $title } hidden from Continue. Watching it again brings it back.
 
 # Toast when Enter is pressed on a list with nothing highlighted.
 lists-nothing-selected = No title is selected.
@@ -2731,7 +2731,7 @@ sources-kind-licensed = Licensed
 sources-state-ready = Ready
 
 # State of a source: it is working but slowly or only in part.
-sources-state-degraded = Degraded
+sources-state-degraded = Slow
 
 # State of a source: it is not responding.
 sources-state-down = Down
@@ -2778,16 +2778,16 @@ sources-meta-state-live = Live
 sources-meta-state-unreachable = Unreachable
 
 # State of a metadata service: failed recently and is being left alone for a while.
-sources-meta-state-backing-off = Backing off
+sources-meta-state-backing-off = Waiting to retry
 
 # State of a metadata service: switched off in the config.
 sources-meta-state-off = Off
 
 # State of a metadata service: the one answering now, in place of the first choice.
-sources-meta-state-serving = Serving
+sources-meta-state-serving = In use
 
 # State of a metadata service: ready if the others fail.
-sources-meta-state-standby = Standby
+sources-meta-state-standby = Not in use
 
 # State of a metadata service: failing.
 sources-meta-state-failing = Failing
@@ -2958,7 +2958,7 @@ settings-label-mark-chapters = Mark opening and ending
 settings-label-skip-button = Show skip button
 
 # Settings row: whether the player opens fullscreen.
-settings-label-fullscreen = Start fullscreen
+settings-label-fullscreen = Start in full screen
 
 # Settings row: the video upscaling mode.
 settings-label-upscaling = Upscaling
@@ -3039,10 +3039,10 @@ settings-label-download-quality = Download quality
 settings-label-keep-next-episodes = Keep next episodes
 
 # Settings row: whether downloads run on a mobile connection.
-settings-label-downloads-on-cellular = Downloads on cellular
+settings-label-downloads-on-cellular = Downloads on mobile data
 
 # Settings row: whether torrents run on a mobile connection.
-settings-label-torrents-on-cellular = Torrents on cellular
+settings-label-torrents-on-cellular = Torrents on mobile data
 
 # Settings row: what happens to torrents when the VPN check fails.
 settings-label-vpn-on-failure = If a check fails
@@ -3081,7 +3081,7 @@ settings-note-mark-chapters = Adds chapter marks to the seek bar when the stream
 settings-note-skip-button = Shows a button over the opening and ending when the skip isn't automatic.
 
 # Note under the fullscreen row. "f" is mpv's own key and is not translated.
-settings-note-fullscreen = mpv opens fullscreen. Its own f key still leaves fullscreen.
+settings-note-fullscreen = mpv opens in full screen. Its own f key still leaves full screen.
 
 # Note under the upscaling row.
 settings-note-upscaling = Adapts to the video and your graphics card. Applies from the next episode.
@@ -3849,22 +3849,22 @@ action-cancel = Cancel
 action-not-now = Not now
 
 # A span of time in whole days. The unit letter belongs to the language.
-duration-days = { $days }d
+duration-days = { $days } d
 
 # A span of time in hours and minutes.
-duration-hours-minutes = { $hours }h { $minutes }m
+duration-hours-minutes = { $hours } h { $minutes } min
 
 # A span of time in whole hours.
-duration-hours = { $hours }h
+duration-hours = { $hours } h
 
 # A span of time in minutes.
-duration-minutes = { $minutes }m
+duration-minutes = { $minutes } min
 
 # A short wait in minutes and seconds. The seconds come with a leading zero.
-duration-minutes-seconds = { $minutes }m { $seconds }s
+duration-minutes-seconds = { $minutes } min { $seconds } s
 
 # A short wait in seconds.
-duration-seconds = { $seconds }s
+duration-seconds = { $seconds } s
 
 # A file size in bytes. The number is already formatted.
 size-byte = { $value } B
@@ -4095,7 +4095,7 @@ error-service-unreachable = Couldn't reach { $name }. Check your connection and 
 error-timed-out = The request took too long. Try again.
 
 # Failure when a tracker rejects the saved sign-in.
-error-sign-in-expired = Your sign-in has expired. Sign in again under Accounts.
+error-sign-in-expired = Your sign-in has expired. Sign in again in Accounts.
 
 # Accessibility label on the error icon.
 error-label = Problem
@@ -4162,10 +4162,10 @@ pad-help-seek-forward =
 # Controller help: skips the opening or ending while its offer shows.
 pad-help-skip = Skip
 
-# Controller help: starts the next episode now, while the Up Next card shows.
+# Controller help: starts the next episode now, while the Up next card shows.
 pad-help-play-now = Play now
 
-# Controller help: cancels the Up Next card.
+# Controller help: cancels the Up next card.
 pad-help-cancel = Cancel
 
 # Controller help: switches to another source while the buffering card shows.
@@ -4493,7 +4493,7 @@ downloads-caption-done-size = Downloaded · { $size }
 downloads-caption-done = Downloaded
 
 # Row caption: finished and removed a day after it is watched.
-downloads-caption-ahead = Downloaded ahead · Removed a day after you watch it
+downloads-caption-ahead = Downloaded ahead · removed a day after you watch it
 
 # Short row caption for an episode downloaded before it was asked for.
 downloads-ahead = Downloaded ahead
@@ -4553,7 +4553,7 @@ downloads-seeding-title = Seeding
 downloads-seeding-after-watching = Seeding after watching
 
 # Line under the seeding heading.
-downloads-seeding-note = Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Sources is reached.
+downloads-seeding-note = Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Settings, under Sources, is reached.
 
 # Heading of the setting. Shown on desktop only.
 downloads-background-title = When the window closes with downloads running
@@ -4574,7 +4574,7 @@ downloads-background-keeps = Downloads keep going when you close the window.
 downloads-background-stops = Closing the window stops downloads. They resume the next time anistream opens.
 
 # Line shown when the setting is Ask each time. Shown on desktop only.
-downloads-background-asks = Downloads keep going when you close the window, if you choose to.
+downloads-background-asks = Closing the window asks whether to keep downloading.
 
 # Title of the question when the window closes. Shown on desktop only.
 downloads-background-question = Keep downloads going?
@@ -4626,7 +4626,7 @@ episode-download-paused = Download paused at { $percent }
 episode-download-done = Downloaded
 
 # Line under that button after a failure.
-episode-download-failed = Couldn't download episode { $episode }. Download again.
+episode-download-failed = Couldn't download episode { $episode }. Try again.
 
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
@@ -4650,7 +4650,7 @@ progress-episodes =
     }
 
 # A span of time to the next episode, in days and hours. The unit letters belong to the language.
-duration-days-hours = { $days }d { $hours }h
+duration-days-hours = { $days } d { $hours } h
 
 # Group header on the library and continue screens.
 group-in-progress = In progress
@@ -4686,16 +4686,16 @@ continue-hide = Hide from Continue
 continue-hidden = Hidden from Continue.
 
 # Menu item that sets a show's status to Dropped and takes it off Continue.
-continue-drop = Drop
+continue-drop = Move to Dropped
 
 # Accessibility label on the overflow button of a row.
 continue-more-for = More for { $title }
 
 # Row caption: resumes this episode where it stopped. The clock is the stored position.
-continue-row-resume = Continue E{ $episode } · { $clock }
+continue-row-resume = Resume E{ $episode } · { $clock }
 
 # Row caption: resumes this episode where it stopped, dubbed.
-continue-row-resume-dubbed = Continue E{ $episode } dubbed · { $clock }
+continue-row-resume-dubbed = Resume E{ $episode } dubbed · { $clock }
 
 # Row caption: the next unwatched episode.
 continue-row-start = Play E{ $episode }
@@ -4782,10 +4782,10 @@ library-loading = Loading your lists
 library-add-to-list = Add to list
 
 # Menu item that puts a title in the planning list.
-library-add-planning = Add to planning
+library-add-planning = Add to Planning
 
 # Notice after a title was added to the planning list.
-library-added-planning = Added to planning.
+library-added-planning = Added to Planning.
 
 # Marker on a title that is already on the person's list.
 library-on-your-list = On your list
@@ -4907,11 +4907,11 @@ media-streaming-region-note = Availability depends on your region.
 # Note beside a link to an official service whose page is in another language, such as "Site in Japanese".
 media-link-language = Site in { $language }
 
-# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
-film-length-hours-minutes = { $hours } hr { $minutes } min
+# Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
+film-length-hours-minutes = { $hours } h { $minutes } min
 
-# Length of a film or a single episode that is a whole number of hours, such as "2 hr".
-film-length-hours = { $hours } hr
+# Length of a film or a single episode that is a whole number of hours, such as "2 h".
+film-length-hours = { $hours } h
 
 # Length of a film or a single episode under an hour, such as "46 min".
 film-length-minutes = { $minutes } min
@@ -5259,7 +5259,7 @@ party-form-episode-of = Episode { $episode } of { $title }
 party-form-episode = Episode { $episode }
 
 # Line on the form when the party could not begin.
-party-ended-early = The party ended before it began.
+party-ended-early = The watch party ended before it began.
 
 # Line in the panel while nobody has joined.
 party-waiting-members = Waiting for the room's members
@@ -5334,7 +5334,7 @@ party-in-room-idle = You're in { $room } on { $server }, with nothing playing.
 party-in-room-idle-plain = You're in the room, with nothing playing.
 
 # Note when an invite link lacks parts.
-party-link-incomplete = That party link is missing its server, room or episode.
+party-link-incomplete = That watch party link is missing its server, room or episode.
 
 # Note when the link is for the party you are in.
 party-already-in = You're already in this watch party.
@@ -5357,13 +5357,13 @@ party-leave-detail = Closing anistream leaves { $room }. Everyone else carries o
 # Title when the user has installed no source.
 party-nosource-none-title = You have no sources yet
 
-# Line under it.
+# Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence.
 party-nosource-none-detail = Sources come from plugins, which a plugin store adds. { $what } plays with the room once one of them has it.
 
 # Title when no source has the episode.
 party-nosource-missing-title = None of your sources has this episode
 
-# Line under it. The reason is a sentence without its full stop.
+# Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence.
 party-nosource-missing-detail = { $why }. { $what } plays with the room once you choose a source that has it.
 
 # Line under a title that says the episode has not aired.
@@ -6060,7 +6060,7 @@ settings-wifi-only = Wi-Fi only
 settings-wifi-only-detail = Downloads wait for Wi-Fi
 
 # Row: torrents on a mobile connection.
-settings-torrents-cellular = Torrents on cellular
+settings-torrents-cellular = Torrents on mobile data
 
 # Row: seeding after watching.
 settings-seed-after = Seed after watching
@@ -6298,7 +6298,7 @@ widget-day-today = today
 widget-day-yesterday = yesterday
 
 # Line of the Continue widget: what plays next, with the episode already named.
-widget-line-start = Start { $episode }
+widget-line-start = Play { $episode }
 
 # Title of the screen or section that lists sources.
 sources-title = Sources
@@ -6428,13 +6428,13 @@ sources-detail-not-answering-plain = Not answering.
 sources-detail-held-back = Held back until the connection check passes.
 
 # Status line: disabled.
-sources-detail-disabled = Disabled. It keeps its place and is not tried.
+sources-detail-disabled = Off. It keeps its place and isn't tried.
 
 # Status line: the source is gone.
 sources-detail-gone = This source is no longer here.
 
 # Status line: the site did not answer.
-sources-detail-site = The site did not answer.
+sources-detail-site = The source didn't answer.
 
 # Row label: version.
 sources-version = Version
@@ -6465,7 +6465,7 @@ sources-contacts-line =
     }
 
 # Line: the plugin contacts no host.
-sources-contacts-none = Contacts no hosts
+sources-contacts-none = Lists no hosts to contact
 
 # Value when no host is listed.
 sources-no-hosts = No hosts
@@ -7015,7 +7015,7 @@ episode-row-not-out = Not out yet
 episode-row-airs = Airs { $when }
 
 # Accessibility label of an episode's still while spoiler protection hides it.
-episode-spoiler-hidden = Still hidden: spoiler protection
+episode-spoiler-hidden = Hidden by spoiler protection
 
 # Accessibility label of the button that opens an episode's menu.
 episode-options = Episode options
@@ -7112,7 +7112,7 @@ torrents-off-detail = Off by default. Turning this on asks how to protect your c
 torrents-risk = Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.
 
 # Line in the Apple sources screen: torrents belong to the app, not to a plugin.
-torrents-not-a-plugin = Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Sources settings.
+torrents-not-a-plugin = Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.
 
 # Label of the choice of protection.
 torrents-protect-with = Protect with
@@ -7136,7 +7136,7 @@ torrents-protect-vpn-detail = Uses the VPN already running on this device.
 torrents-protect-none-detail = Your address is visible to everyone in the torrent.
 
 # Line when no protection is set.
-torrents-protect-none-note = With no protection, anistream does not check the connection.
+torrents-protect-none-note = With no protection, anistream doesn't check the connection.
 
 # Summary: a proxy protects. Host and port are already formatted.
 torrents-summary-proxy-at = Protected by a SOCKS5 proxy at { $host }:{ $port }.
@@ -7154,7 +7154,7 @@ torrents-summary-none = Not protected. Your address is visible to everyone in th
 torrents-unprotected-title = Use torrents without protection?
 
 # Line under it.
-torrents-unprotected-detail = Other people can see your IP address while you download and share a torrent, and anistream does not check the connection.
+torrents-unprotected-detail = Other people can see your IP address while you download and share a torrent, and anistream doesn't check the connection.
 
 # Button that confirms turning torrents on without protection.
 torrents-turn-on-unprotected = Turn on without protection
@@ -7193,7 +7193,7 @@ torrents-proxy-saved = Proxy saved
 torrents-left-outside-proxy = Torrent traffic left outside this proxy
 
 # Why a save was refused: the check could not run through the proxy.
-torrents-check-not-made-proxy = The check could not be made through this proxy
+torrents-check-not-made-proxy = The check couldn't be made through this proxy
 
 # Notice when a proxy was not saved. The reason is a sentence fragment.
 torrents-proxy-not-saved = Not saved. { $why }, so the saved proxy stays.
@@ -7268,7 +7268,7 @@ torrents-check-running = Checking
 torrents-check-leaked = Traffic left outside the protection. { $then }
 
 # Check failed: the check could not be made. The consequence follows.
-torrents-check-unmade = The check could not be made. { $then }
+torrents-check-unmade = The check couldn't be made. { $then }
 
 # Short word: the check failed.
 torrents-check-failed = Failed
@@ -7331,7 +7331,7 @@ accounts-title = Accounts
 accounts-other-trackers = Other trackers
 
 # Line on the welcome screen: where the other trackers are.
-accounts-other-trackers-note = Other trackers are in Settings, under Accounts.
+accounts-other-trackers-note = Other trackers are in Accounts.
 
 # Line on the welcome screen: why to sign in.
 accounts-welcome-detail = Sign in to { $tracker } to sync your list and where you stopped.
@@ -7518,7 +7518,7 @@ accounts-open-on = Open on { $tracker }
 accounts-listed-by = Listed by { $tracker }
 
 # Line when the tracker did not answer.
-accounts-did-not-answer = { $tracker } did not answer.
+accounts-did-not-answer = { $tracker } didn't answer.
 
 # Line when the tracker has nothing for the show.
 accounts-no-extras = { $tracker } has no cast, staff or recommendations for this show yet.
@@ -7614,10 +7614,10 @@ tv-starting-on = Starting on { $name }
 tv-starting = Starting on the TV
 
 # Line when something failed while talking to the TV.
-tv-talk-failed = Something went wrong talking to the TV. Try again.
+tv-talk-failed = Lost contact with the TV. Check that it's on and on the same network, then try again.
 
 # Line when the TV did not start the episode. The reason is a sentence fragment.
-tv-play-failed = Play on TV did not start: { $reason }
+tv-play-failed = Play on TV didn't start: { $reason }
 
 # Label of the address field.
 tv-address = Address
@@ -7827,7 +7827,7 @@ updates-opens-next-time = The new version opens next time
 updates-stopped = The update to version { $version } stopped. { $reason }
 
 # Notice when the new version did not install.
-updates-did-not-install = Version { $version } didn't install. About can try again.
+updates-did-not-install = Version { $version } didn't install. Try again from About.
 
 # Button that opens About.
 updates-open-about = Open About
@@ -7842,7 +7842,7 @@ updates-saved-replace = Version { $version } saved to Downloads. Replace the old
 updates-saved-replace-plain = Version { $version } saved to Downloads. Replace the old file with it to update.
 
 # The server refused. The code is a number.
-updates-why-server = The download stopped: the server answered { $code }.
+updates-why-server = The download stopped: the server refused it ({ $code }). Try again later.
 
 # The connection broke.
 updates-why-connection = The download stopped: the connection was lost.

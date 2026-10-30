@@ -246,7 +246,7 @@ updates-open-release = Open page
 # Country of origin filter: South Korea.
 # @only android
 # @max 20
-country-korea = Korea
+country-korea = South Korea
 
 # Search chip for several genres picked.
 # @only android
@@ -311,7 +311,7 @@ search-loading-genres = Loading genres
 
 # Search note: live results wait while AniList's rate limit recovers.
 # @only android
-search-paused-rate-limit = Results wait for the search key while AniList’s rate limit recovers
+search-paused-rate-limit = Searching as you type is paused for a moment, to stay within AniList's limits. Press the search key to search now.
 
 # Button that takes every active filter off.
 # @only android
@@ -320,13 +320,13 @@ action-clear-all = Clear all
 
 # Search filter label above the source materials.
 # @only android
-filter-source-material = { -source-cap } material
+filter-source-material = Based on
 
 # Search result detail for a title being watched: its list status, and the episode up next.
 # @only android
 # @arg status: text
 # @arg episode: int
-search-detail-episode = { $status } · Ep { $episode }
+search-detail-episode = { $status } · E{ $episode }
 
 # Source switch: use the source. The name is the source's.
 # @only android
@@ -356,7 +356,7 @@ sources-update-from = Version { $version } from { $store }.
 
 # Source page: the line under a source that is off.
 # @only android
-sources-detail-off = Off. It keeps its place and is not tried until it is on again.
+sources-detail-off = Off. It keeps its place and isn't tried until it's on again.
 
 # Fallback title of a source page before the source loads.
 # @only android
@@ -381,11 +381,11 @@ reason-source-turned-away = It turned the request away.
 
 # A source's failure in plain words: its address is not found.
 # @only android
-reason-source-no-address = Its address could not be found.
+reason-source-no-address = Its address couldn't be found.
 
 # A source's failure in plain words: it could not be reached.
 # @only android
-reason-source-unreachable = It could not be reached.
+reason-source-unreachable = It couldn't be reached.
 
 # Plugin store line: how many updates wait in it.
 # @only android
@@ -498,12 +498,12 @@ library-storage-none = Nothing on this { -device }
 # @only android
 # @arg next: int
 # @arg total: int
-library-detail-of = Ep { $next } of { $total }
+library-detail-of = E{ $next } of { $total }
 
 # Library list detail: the next episode when the length is not announced.
 # @only android
 # @arg next: int
-library-detail-next = Ep { $next }
+library-detail-next = E{ $next }
 
 # Library sort menu: by when the title was last watched.
 # @only android
@@ -521,7 +521,7 @@ settings-notify-permission-note = { -app-name } asks for permission the first ti
 
 # Settings, Notifications: the note on the switch once Android has not let notifications go on.
 # @only android
-settings-notify-refused = Off: Android isn’t allowing { -app-name }’s notifications
+settings-notify-refused = Off: Android isn't allowing { -app-name }'s notifications
 
 # Settings, Notifications: the row that opens Android's channel settings.
 # @only android
@@ -617,9 +617,10 @@ accounts-review-differences = { $count ->
 # @only android
 settings-licence-title = Licence
 
-# Settings, About: the licence row's value.
+# Settings, About: the licence row's value. "Open source" is the licence's kind, not a source in the app's sense, so the words are typed.
 # @only android
-settings-licence-value = MIT, open { -source } and non-commercial
+# @allow source
+settings-licence-value = MIT, open source and non-commercial
 
 # Settings, About: the typefaces row's value.
 # @only android
@@ -640,11 +641,11 @@ downloads-storage-share-description = Downloads take { $size }
 
 # Settings aside on a tablet, New episodes: what a notification carries.
 # @only android
-settings-aside-notifications = One notification when an episode of a show you follow comes out: the show and the episode’s number, never its name. A show can turn its own off in its settings.
+settings-aside-notifications = One notification when an episode of a show you follow comes out: the show and the episode's number, never its name. A show can turn its own off in its settings.
 
 # Settings aside on a tablet, Downloads: where downloads live.
 # @only android
-settings-aside-downloads = Downloads stay in { -app-name }’s own space on this { -device }, which other apps cannot read. Removing the app removes them.
+settings-aside-downloads = Downloads stay in { -app-name }'s own space on this { -device }, which other apps cannot read. Removing the app removes them.
 
 # Settings aside on a tablet, Sources: the title over the connection check note.
 # @only android
@@ -652,7 +653,7 @@ settings-aside-connection-check = Connection check
 
 # Settings aside on a tablet, Sources: how sources are tried.
 # @only android
-settings-aside-sources = { -source-cap } are tried in order, top to bottom. A show can keep its own { -source }, chosen from its title page.
+settings-aside-sources = { -source-cap-pl } are tried in order, top to bottom. A show can keep its own { -source }, chosen from its title page.
 
 # Settings aside on a tablet, upscaling picture: what a screen reader hears.
 # @only android
@@ -706,7 +707,7 @@ title-facts-also-on = Also on
 
 # Title page: what a failed fetch of the title says under its heading.
 # @only android
-title-fetch-failed-detail = AniList didn’t answer.
+title-fetch-failed-detail = AniList didn't answer.
 
 # Continue on a tablet: what a screen reader hears on the handle between the queue and the preview.
 # @only android
@@ -1007,7 +1008,7 @@ widget-caught-up-title = Caught up
 
 # Widgets, Continue: the line when the viewer is up to date.
 # @only android
-widget-caught-up = You’re caught up.
+widget-caught-up = You're caught up.
 
 # Widgets, Continue: the line when the next episode has a date.
 # @only android
@@ -1060,4 +1061,4 @@ tv-hero-resume = Resume { $episode }
 # TV, Continue hero: the amber action for an episode the viewer has not started.
 # @only android
 # @arg episode: text
-tv-hero-start = Start { $episode }
+tv-hero-start = Play { $episode }

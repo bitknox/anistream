@@ -164,11 +164,11 @@
     <string name="notice_downloads_none_queued">Nothing queued.</string>
     <!-- Toast after a range was asked for and nothing was queued, and the reason it stopped. -->
     <string name="notice_downloads_none_queued_stopped">Nothing queued. %1$s</string>
-    <!-- Toast after a range was asked for and every episode was in the queue already. -->
+    <!-- Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`. -->
     <string name="notice_downloads_none_new">Nothing new queued. %1$s</string>
-    <!-- Toast as above, with the reason the range stopped. -->
+    <!-- Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped. -->
     <string name="notice_downloads_none_new_stopped">Nothing new queued. %1$s %2$s</string>
-    <!-- Toast after a range was asked for, some episodes were queued and some were there already. -->
+    <!-- Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`. -->
     <plurals name="notice_episodes_queued_existing">
         <item quantity="one">Queued one episode. %2$s</item>
         <item quantity="other">Queued %1$d episodes. %2$s</item>
@@ -178,7 +178,7 @@
         <item quantity="one">Queued one episode, then it stopped. %2$s</item>
         <item quantity="other">Queued %1$d episodes, then it stopped. %2$s</item>
     </plurals>
-    <!-- Toast as above, with some episodes in the queue already and the reason the range stopped. -->
+    <!-- Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped. -->
     <plurals name="notice_episodes_queued_existing_stopped">
         <item quantity="one">Queued one episode, then it stopped. %2$s %3$s</item>
         <item quantity="other">Queued %1$d episodes, then it stopped. %2$s %3$s</item>
@@ -227,8 +227,8 @@
     <!-- Toast after a plugin stops being offered in a store. -->
     <string name="plugin_unpublished">%1$s is no longer offered.</string>
     <!-- Toast after the store's admin page opens in the browser. -->
-    <string name="store_admin_opened">Opened the admin page in your browser. The link works once, for ten minutes.</string>
-    <!-- Toast when the browser could not be opened for the store's admin page. The reason comes from the system. -->
+    <string name="store_admin_opened">Opened the admin page in your browser. The link works once, for 10 minutes.</string>
+    <!-- Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run. -->
     <string name="store_admin_open_failed">Couldn\'t open a browser (%1$s). On the plugin store\'s machine, run \"anistream store admin\" to print a link.</string>
     <!-- Toast after a plugin is installed while plugins are switched off in the source order. -->
     <string name="plugin_installed_unused">Installed %1$s %2$s, but plugins are switched off in the source order, so it isn\'t used.</string>
@@ -250,7 +250,7 @@
     <!-- Error: the store the record points to is gone from the saved list. -->
     <string name="store_not_joined">That plugin store is no longer joined.</string>
     <!-- Error: a store's signing key is unreadable. Shown as the reason a store is offline. -->
-    <string name="store_key_damaged">The plugin store\'s key is damaged.</string>
+    <string name="store_key_damaged">This plugin store\'s key on this device is damaged. Leave the plugin store and join it again with a new invite.</string>
     <!-- Error: a store rejected this device's token. -->
     <string name="store_device_refused">%1$s no longer accepts this device. Join it again with a new invite.</string>
     <!-- Error: a store could not be reached. The reason comes from the network. -->
@@ -286,7 +286,7 @@
     <!-- Error: an invite for another device cannot be made from a device that joined with the open link. -->
     <string name="store_invite_needs_link">This device joined %1$s with its link. Paste the same link on the other device.</string>
     <!-- Error: the store sent an invite link that does not parse. The reason comes from the link parser. -->
-    <string name="store_link_malformed">The plugin store made a bad link. %1$s</string>
+    <string name="store_link_malformed">The plugin store sent a link that doesn\'t work. Ask its owner to check the plugin store. %1$s</string>
     <!-- Error: the store sent a link carrying another store's key. -->
     <string name="store_link_wrong_key">The plugin store made a link with a different key. Check the address it was started with.</string>
     <!-- Error: the store's server has no admin page. -->
@@ -300,7 +300,7 @@
     <!-- Toast after a source (plugin) is switched on. -->
     <string name="source_switched_on">%1$s is on.</string>
     <!-- Error: a command named a plugin that is not loaded. -->
-    <string name="plugin_not_loaded">%1$s is not a plugin that is loaded.</string>
+    <string name="plugin_not_loaded">%1$s isn\'t loaded. Check that it\'s installed under Sources.</string>
     <!-- Toast after a release is chosen for a title. The name is the release's title. -->
     <string name="release_pinned">%1$s will be used for this title.</string>
     <!-- Toast when the chosen source or release for a title could not be saved. The reason comes from the database. -->
@@ -314,11 +314,11 @@
     <!-- Error: torrents are on, but no torrent index is set. -->
     <string name="torrent_no_index">Torrents need a torrent index. anistream ships none, so add your own address in the settings.</string>
     <!-- Error: the torrent session did not start because the interface closed first. -->
-    <string name="torrent_interface_closed">The interface closed before torrents started.</string>
+    <string name="torrent_interface_closed">anistream closed before torrents started.</string>
     <!-- Error: the torrent session could not start. The reason comes from the torrent engine. -->
     <string name="torrent_session_failed">Couldn\'t start the torrent session. %1$s</string>
     <!-- Toast when torrents are up but no operating-system firewall rule backs the VPN guard. -->
-    <string name="torrent_no_kill_switch">There is no OS-level kill switch behind the VPN guard. Run \"anistream --doctor\" for advice.</string>
+    <string name="torrent_no_kill_switch">Nothing on this device stops torrent traffic if the VPN drops. Run \"anistream --doctor\" to set that up.</string>
     <!-- Toast when the connection check could not run. The reason comes from the VPN settings. -->
     <string name="torrent_not_checked">Couldn\'t check the connection. %1$s</string>
     <!-- Note on the sources screen after the source chain is rebuilt with torrents on. -->
@@ -330,7 +330,7 @@
     <!-- Toast when there is no job to carry the wait for AniList's rate limit. -->
     <string name="notice_anilist_limit">Waiting %1$s on the AniList rate limit.</string>
     <!-- Toast when the AniList fallback takes over because AniList cannot be reached. -->
-    <string name="notice_anilist_unreachable">AniList is unreachable. Using the fallback for fresh data for now.</string>
+    <string name="notice_anilist_unreachable">AniList isn\'t answering. Showing data from another service for now.</string>
     <!-- Toast when no metadata service answered and the last cached data is shown. -->
     <string name="notice_metadata_cached">No metadata service answered. Showing what was last cached.</string>
     <!-- Toast when AniList answers again. -->
@@ -376,7 +376,7 @@
     <!-- Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. -->
     <string name="notice_anilist_paste_flow">Pasting a code isn\'t possible here. Quit and run anistream --login instead.</string>
     <!-- Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated. -->
-    <string name="notice_mal_client_missing">MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set %1$s in the config file.</string>
+    <string name="notice_mal_client_missing">MyAnimeList needs a client id. Register an app with the type \"other\" at myanimelist.net/apiconfig, then set %1$s in the config file.</string>
     <!-- Status line while the browser sign-in is open and the app waits for it to come back. -->
     <string name="status_waiting_for_redirect">Waiting for %1$s to redirect back…</string>
     <!-- Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month. -->
@@ -455,7 +455,7 @@
     <!-- TV, Continue hero: the button that opens the title page. -->
     <string name="tv_title_page">Title page</string>
     <!-- TV, Continue: the line when nothing could be loaded. -->
-    <string name="tv_continue_offline_failed">anistream can’t reach AniList right now.</string>
+    <string name="tv_continue_offline_failed">anistream can\'t reach AniList right now.</string>
     <!-- TV, Continue: the line when there is nothing to continue. -->
     <string name="tv_continue_empty">Nothing to continue yet.</string>
     <!-- TV, Continue: the button that opens Seasonal when the queue is empty. -->
@@ -469,7 +469,7 @@
     <!-- TV, Seasonal: the line when no title of the season is on the viewer's lists. -->
     <string name="tv_seasonal_unlisted">Nothing from %1$s is on your lists yet.</string>
     <!-- TV, Seasonal and Library: the line when a season or a list could not be loaded. -->
-    <string name="tv_load_failed_named">Couldn’t load %1$s.</string>
+    <string name="tv_load_failed_named">Couldn\'t load %1$s.</string>
     <!-- TV, Library: the line over an empty list. -->
     <string name="tv_library_empty">Nothing in %1$s.</string>
     <!-- TV, Library: the line when no tracker is connected. -->
@@ -582,9 +582,9 @@
     <!-- Line on the TV's update page naming the version it runs now -->
     <string name="tv_update_installed">This TV has v%1$s</string>
     <!-- Body of the TV's phone page when its address is wrong -->
-    <string name="tv_page_not_found_text">This page is not here.</string>
+    <string name="tv_page_not_found_text">This page no longer exists. Scan the code on the TV again.</string>
     <!-- Body of the TV's phone page when it is asked for something else -->
-    <string name="tv_page_not_allowed_text">This page only takes its own form.</string>
+    <string name="tv_page_not_allowed_text">This page only accepts the form it shows. Scan the code on the TV again.</string>
     <!-- What the TV does next once the phone sent a plugin store link, for the line telling to look at the TV -->
     <string name="tv_page_next_link">it shows the plugin store, to join there</string>
     <!-- What the TV does next once the phone sent the torrent details -->
@@ -622,7 +622,7 @@
     <!-- Title on the phone page once the TV took the form -->
     <string name="tv_page_sent_title">Sent to the TV</string>
     <!-- Line on the phone page when the TV did not answer -->
-    <string name="tv_page_no_answer">The TV did not answer. Check that it is on and on the same network as this phone, then send it again.</string>
+    <string name="tv_page_no_answer">The TV didn\'t answer. Check that it is on and on the same network as this phone, then send it again.</string>
     <!-- Last sentence of the phone page's intro. -->
     <string name="tv_page_closes_once_sent">The page closes once it is sent.</string>
     <!-- Button on the TV's torrent form that asks for the details again from a phone -->
@@ -660,7 +660,7 @@
     <!-- Said when a tracker has no TV sign-in -->
     <string name="tv_signin_not_on_tv">%1$s doesn\'t sign in on a TV.</string>
     <!-- Shown under the sign-in page address when the answer was turned down -->
-    <string name="tv_signin_did_not">%1$s did not sign in. Check the details and send them again from the page.</string>
+    <string name="tv_signin_did_not">%1$s didn\'t sign in. Check the details and send them again from the page.</string>
     <!-- Steps for a device-code sign-in on the TV -->
     <string name="tv_signin_device_steps">On your phone, scan the QR code or go to the address, then type this code.</string>
     <!-- Shown while the TV asks a service for a device code -->
@@ -783,7 +783,7 @@
     <!-- Button on the update notice where this build cannot install the update itself: it opens the version's page. -->
     <string name="updates_open_release">Open page</string>
     <!-- Country of origin filter: South Korea. -->
-    <string name="country_korea">Korea</string>
+    <string name="country_korea">South Korea</string>
     <!-- Search chip for several genres picked. -->
     <plurals name="search_genres_picked">
         <item quantity="one">One genre</item>
@@ -814,13 +814,13 @@
     <!-- Disabled item in the genre menu while the genres load. -->
     <string name="search_loading_genres">Loading genres</string>
     <!-- Search note: live results wait while AniList's rate limit recovers. -->
-    <string name="search_paused_rate_limit">Results wait for the search key while AniList’s rate limit recovers</string>
+    <string name="search_paused_rate_limit">Searching as you type is paused for a moment, to stay within AniList\'s limits. Press the search key to search now.</string>
     <!-- Button that takes every active filter off. -->
     <string name="action_clear_all">Clear all</string>
     <!-- Search filter label above the source materials. -->
-    <string name="filter_source_material">Source material</string>
+    <string name="filter_source_material">Based on</string>
     <!-- Search result detail for a title being watched: its list status, and the episode up next. -->
-    <string name="search_detail_episode">%1$s · Ep %2$d</string>
+    <string name="search_detail_episode">%1$s · E%2$d</string>
     <!-- Source switch: use the source. The name is the source's. -->
     <string name="sources_use">Use %1$s</string>
     <!-- Accessibility label of a source's drag handle while the list is reordered. -->
@@ -832,7 +832,7 @@
     <!-- Update dialog: the version, and the store it comes from, for a source that has no version yet. -->
     <string name="sources_update_from">Version %1$s from %2$s.</string>
     <!-- Source page: the line under a source that is off. -->
-    <string name="sources_detail_off">Off. It keeps its place and is not tried until it is on again.</string>
+    <string name="sources_detail_off">Off. It keeps its place and isn\'t tried until it\'s on again.</string>
     <!-- Fallback title of a source page before the source loads. -->
     <string name="sources_fallback_title">Source</string>
     <!-- A source's failure in plain words: it took too long to answer. -->
@@ -844,9 +844,9 @@
     <!-- A source's failure in plain words: it refused the request. -->
     <string name="reason_source_turned_away">It turned the request away.</string>
     <!-- A source's failure in plain words: its address is not found. -->
-    <string name="reason_source_no_address">Its address could not be found.</string>
+    <string name="reason_source_no_address">Its address couldn\'t be found.</string>
     <!-- A source's failure in plain words: it could not be reached. -->
-    <string name="reason_source_unreachable">It could not be reached.</string>
+    <string name="reason_source_unreachable">It couldn\'t be reached.</string>
     <!-- Plugin store line: how many updates wait in it. -->
     <plurals name="stores_updates_waiting">
         <item quantity="one">One update</item>
@@ -898,9 +898,9 @@
     <!-- Library: the downloads row when nothing is downloaded. -->
     <string name="library_storage_none">Nothing on this device</string>
     <!-- Library list detail: the next episode and how many there are. -->
-    <string name="library_detail_of">Ep %1$d of %2$d</string>
+    <string name="library_detail_of">E%1$d of %2$d</string>
     <!-- Library list detail: the next episode when the length is not announced. -->
-    <string name="library_detail_next">Ep %1$d</string>
+    <string name="library_detail_next">E%1$d</string>
     <!-- Library sort menu: by when the title was last watched. -->
     <string name="library_sort_last_watched">Last watched</string>
     <!-- Accessibility label of the check beside the sort in use. -->
@@ -908,7 +908,7 @@
     <!-- Settings, Notifications: the line under the group that says when the permission is asked. -->
     <string name="settings_notify_permission_note">anistream asks for permission the first time you turn this on.</string>
     <!-- Settings, Notifications: the note on the switch once Android has not let notifications go on. -->
-    <string name="settings_notify_refused">Off: Android isn’t allowing anistream’s notifications</string>
+    <string name="settings_notify_refused">Off: Android isn\'t allowing anistream\'s notifications</string>
     <!-- Settings, Notifications: the row that opens Android's channel settings. -->
     <string name="settings_notify_system_title">Notification settings</string>
     <!-- Settings, Notifications: what Android's channel settings hold. -->
@@ -955,7 +955,7 @@
     </plurals>
     <!-- Settings, About: the licence row. -->
     <string name="settings_licence_title">Licence</string>
-    <!-- Settings, About: the licence row's value. -->
+    <!-- Settings, About: the licence row's value. "Open source" is the licence's kind, not a source in the app's sense, so the words are typed. -->
     <string name="settings_licence_value">MIT, open source and non-commercial</string>
     <!-- Settings, About: the typefaces row's value. -->
     <string name="settings_typefaces_value">Roboto Flex and Zen Kaku Gothic New, under the SIL Open Font License 1.1</string>
@@ -966,13 +966,13 @@
     <!-- Settings, Downloads: what a screen reader says for the bar of how much the downloads take. -->
     <string name="downloads_storage_share_description">Downloads take %1$s</string>
     <!-- Settings aside on a tablet, New episodes: what a notification carries. -->
-    <string name="settings_aside_notifications">One notification when an episode of a show you follow comes out: the show and the episode’s number, never its name. A show can turn its own off in its settings.</string>
+    <string name="settings_aside_notifications">One notification when an episode of a show you follow comes out: the show and the episode\'s number, never its name. A show can turn its own off in its settings.</string>
     <!-- Settings aside on a tablet, Downloads: where downloads live. -->
-    <string name="settings_aside_downloads">Downloads stay in anistream’s own space on this device, which other apps cannot read. Removing the app removes them.</string>
+    <string name="settings_aside_downloads">Downloads stay in anistream\'s own space on this device, which other apps cannot read. Removing the app removes them.</string>
     <!-- Settings aside on a tablet, Sources: the title over the connection check note. -->
     <string name="settings_aside_connection_check">Connection check</string>
     <!-- Settings aside on a tablet, Sources: how sources are tried. -->
-    <string name="settings_aside_sources">Source are tried in order, top to bottom. A show can keep its own source, chosen from its title page.</string>
+    <string name="settings_aside_sources">Sources are tried in order, top to bottom. A show can keep its own source, chosen from its title page.</string>
     <!-- Settings aside on a tablet, upscaling picture: what a screen reader hears. -->
     <string name="settings_upscaling_description">The same still, the left half as the original 480p, the right half with %1$s</string>
     <!-- Settings aside on a tablet, upscaling picture: the label over the unprocessed half. -->
@@ -996,7 +996,7 @@
     <!-- Title page, facts: the label over the places the title can also be watched. -->
     <string name="title_facts_also_on">Also on</string>
     <!-- Title page: what a failed fetch of the title says under its heading. -->
-    <string name="title_fetch_failed_detail">AniList didn’t answer.</string>
+    <string name="title_fetch_failed_detail">AniList didn\'t answer.</string>
     <!-- Continue on a tablet: what a screen reader hears on the handle between the queue and the preview. -->
     <string name="continue_resize_queue">Resize the queue</string>
     <!-- Continue row menu: opens the title page. -->
@@ -1119,7 +1119,7 @@
     <!-- Widgets, Continue: the title and line when the viewer is up to date. -->
     <string name="widget_caught_up_title">Caught up</string>
     <!-- Widgets, Continue: the line when the viewer is up to date. -->
-    <string name="widget_caught_up">You’re caught up.</string>
+    <string name="widget_caught_up">You\'re caught up.</string>
     <!-- Widgets, Continue: the line when the next episode has a date. -->
     <string name="widget_caught_up_next">%1$s E%2$d airs %3$s.</string>
     <!-- Widgets: the Updated line's date when it is a week or more back. -->
@@ -1139,7 +1139,7 @@
     <!-- TV, Continue hero: the amber action for an episode the viewer has started. -->
     <string name="tv_hero_resume">Resume %1$s</string>
     <!-- TV, Continue hero: the amber action for an episode the viewer has not started. -->
-    <string name="tv_hero_start">Start %1$s</string>
+    <string name="tv_hero_start">Play %1$s</string>
     <!-- Name of the notification channel for download progress, shown in the system's settings. -->
     <string name="channel_downloads_name">Downloads</string>
     <!-- Under a release in the source picker: how many people share it right now. -->
@@ -1242,17 +1242,17 @@
     <!-- Button that puts a question off until later. -->
     <string name="action_not_now">Not now</string>
     <!-- A span of time in whole days. The unit letter belongs to the language. -->
-    <string name="duration_days">%1$dd</string>
+    <string name="duration_days">%1$d d</string>
     <!-- A span of time in hours and minutes. -->
-    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <!-- A span of time in whole hours. -->
-    <string name="duration_hours">%1$dh</string>
+    <string name="duration_hours">%1$d h</string>
     <!-- A span of time in minutes. -->
-    <string name="duration_minutes">%1$dm</string>
+    <string name="duration_minutes">%1$d min</string>
     <!-- A short wait in minutes and seconds. The seconds come with a leading zero. -->
-    <string name="duration_minutes_seconds">%1$dm %2$ss</string>
+    <string name="duration_minutes_seconds">%1$d min %2$s s</string>
     <!-- A short wait in seconds. -->
-    <string name="duration_seconds">%1$ds</string>
+    <string name="duration_seconds">%1$d s</string>
     <!-- A file size in bytes. The number is already formatted. -->
     <string name="size_byte">%1$s B</string>
     <!-- A file size in kilobytes (1,000 bytes). The number is already formatted. -->
@@ -1406,7 +1406,7 @@
     <!-- Failure when a request took too long. -->
     <string name="error_timed_out">The request took too long. Try again.</string>
     <!-- Failure when a tracker rejects the saved sign-in. -->
-    <string name="error_sign_in_expired">Your sign-in has expired. Sign in again under Accounts.</string>
+    <string name="error_sign_in_expired">Your sign-in has expired. Sign in again in Accounts.</string>
     <!-- Accessibility label on the error icon. -->
     <string name="error_label">Problem</string>
     <!-- Accessibility label on a spinner. -->
@@ -1451,9 +1451,9 @@
     </plurals>
     <!-- Controller help: skips the opening or ending while its offer shows. -->
     <string name="pad_help_skip">Skip</string>
-    <!-- Controller help: starts the next episode now, while the Up Next card shows. -->
+    <!-- Controller help: starts the next episode now, while the Up next card shows. -->
     <string name="pad_help_play_now">Play now</string>
-    <!-- Controller help: cancels the Up Next card. -->
+    <!-- Controller help: cancels the Up next card. -->
     <string name="pad_help_cancel">Cancel</string>
     <!-- Controller help: switches to another source while the buffering card shows. -->
     <string name="pad_help_switch_source">Switch source</string>
@@ -1669,7 +1669,7 @@
     <!-- Row caption: finished. -->
     <string name="downloads_caption_done">Downloaded</string>
     <!-- Row caption: finished and removed a day after it is watched. -->
-    <string name="downloads_caption_ahead">Downloaded ahead · Removed a day after you watch it</string>
+    <string name="downloads_caption_ahead">Downloaded ahead · removed a day after you watch it</string>
     <!-- Short row caption for an episode downloaded before it was asked for. -->
     <string name="downloads_ahead">Downloaded ahead</string>
     <!-- Row caption: stopped with a reason, which is already a sentence fragment. -->
@@ -1709,7 +1709,7 @@
     <!-- Heading of the seeding group on the downloads screen. -->
     <string name="downloads_seeding_after_watching">Seeding after watching</string>
     <!-- Line under the seeding heading. -->
-    <string name="downloads_seeding_note">Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Sources is reached.</string>
+    <string name="downloads_seeding_note">Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Settings, under Sources, is reached.</string>
     <!-- Line under the seeding heading where seeding cannot run in the background. -->
     <string name="downloads_seeding_open_only">Seeding runs only while anistream is open.</string>
     <!-- Heading of the setting. Shown on desktop only. -->
@@ -1725,7 +1725,7 @@
     <!-- Line shown when the setting is Stop downloading. Shown on desktop only. -->
     <string name="downloads_background_stops">Closing the window stops downloads. They resume the next time anistream opens.</string>
     <!-- Line shown when the setting is Ask each time. Shown on desktop only. -->
-    <string name="downloads_background_asks">Downloads keep going when you close the window, if you choose to.</string>
+    <string name="downloads_background_asks">Closing the window asks whether to keep downloading.</string>
     <!-- Title of the question when the window closes. Shown on desktop only. -->
     <string name="downloads_background_question">Keep downloads going?</string>
     <!-- Line on the Apple and Linux note in the notification area. Shown on desktop only. -->
@@ -1760,7 +1760,7 @@
     <!-- Line under that button once the file is saved. -->
     <string name="episode_download_done">Downloaded</string>
     <!-- Line under that button after a failure. -->
-    <string name="episode_download_failed">Couldn\'t download episode %1$d. Download again.</string>
+    <string name="episode_download_failed">Couldn\'t download episode %1$d. Try again.</string>
     <!-- Continue row subtitle. The show's title is cut first when the row is short. -->
     <plurals name="queue_episodes_left">
         <item quantity="one">One episode left in %2$s</item>
@@ -1777,7 +1777,7 @@
         <item quantity="other">%1$d of %2$d episodes</item>
     </plurals>
     <!-- A span of time to the next episode, in days and hours. The unit letters belong to the language. -->
-    <string name="duration_days_hours">%1$dd %2$dh</string>
+    <string name="duration_days_hours">%1$d d %2$d h</string>
     <!-- Group header on the library and continue screens. -->
     <string name="group_in_progress">In progress</string>
     <!-- Group header for what aired in the last few days. -->
@@ -1801,13 +1801,13 @@
     <!-- Notice after a show was hidden from Continue. -->
     <string name="continue_hidden">Hidden from Continue.</string>
     <!-- Menu item that sets a show's status to Dropped and takes it off Continue. -->
-    <string name="continue_drop">Drop</string>
+    <string name="continue_drop">Move to Dropped</string>
     <!-- Accessibility label on the overflow button of a row. -->
     <string name="continue_more_for">More for %1$s</string>
     <!-- Row caption: resumes this episode where it stopped. The clock is the stored position. -->
-    <string name="continue_row_resume">Continue E%1$d · %2$s</string>
+    <string name="continue_row_resume">Resume E%1$d · %2$s</string>
     <!-- Row caption: resumes this episode where it stopped, dubbed. -->
-    <string name="continue_row_resume_dubbed">Continue E%1$d dubbed · %2$s</string>
+    <string name="continue_row_resume_dubbed">Resume E%1$d dubbed · %2$s</string>
     <!-- Row caption: the next unwatched episode. -->
     <string name="continue_row_start">Play E%1$d</string>
     <!-- Row caption: the next unwatched episode, dubbed. -->
@@ -1865,9 +1865,9 @@
     <!-- Menu item on a title that adds it to a list. -->
     <string name="library_add_to_list">Add to list</string>
     <!-- Menu item that puts a title in the planning list. -->
-    <string name="library_add_planning">Add to planning</string>
+    <string name="library_add_planning">Add to Planning</string>
     <!-- Notice after a title was added to the planning list. -->
-    <string name="library_added_planning">Added to planning.</string>
+    <string name="library_added_planning">Added to Planning.</string>
     <!-- Marker on a title that is already on the person's list. -->
     <string name="library_on_your_list">On your list</string>
     <!-- Shorter marker used in a widget row. -->
@@ -1948,10 +1948,10 @@
     <string name="media_streaming_region_note">Availability depends on your region.</string>
     <!-- Note beside a link to an official service whose page is in another language, such as "Site in Japanese". -->
     <string name="media_link_language">Site in %1$s</string>
-    <!-- Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min". -->
-    <string name="film_length_hours_minutes">%1$d hr %2$d min</string>
-    <!-- Length of a film or a single episode that is a whole number of hours, such as "2 hr". -->
-    <string name="film_length_hours">%1$d hr</string>
+    <!-- Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min". -->
+    <string name="film_length_hours_minutes">%1$d h %2$d min</string>
+    <!-- Length of a film or a single episode that is a whole number of hours, such as "2 h". -->
+    <string name="film_length_hours">%1$d h</string>
     <!-- Length of a film or a single episode under an hour, such as "46 min". -->
     <string name="film_length_minutes">%1$d min</string>
     <!-- Country name: the origin filter and, after "Made in", the title facts. -->
@@ -2183,7 +2183,7 @@
     <!-- Line naming the episode of the form when the show has no name. -->
     <string name="party_form_episode">Episode %1$d</string>
     <!-- Line on the form when the party could not begin. -->
-    <string name="party_ended_early">The party ended before it began.</string>
+    <string name="party_ended_early">The watch party ended before it began.</string>
     <!-- Line in the panel while nobody has joined. -->
     <string name="party_waiting_members">Waiting for the room\'s members</string>
     <!-- Heading in the panel for people using another app. -->
@@ -2233,7 +2233,7 @@
     <!-- Line shown in the room with nothing playing, when the room is unknown. -->
     <string name="party_in_room_idle_plain">You\'re in the room, with nothing playing.</string>
     <!-- Note when an invite link lacks parts. -->
-    <string name="party_link_incomplete">That party link is missing its server, room or episode.</string>
+    <string name="party_link_incomplete">That watch party link is missing its server, room or episode.</string>
     <!-- Note when the link is for the party you are in. -->
     <string name="party_already_in">You\'re already in this watch party.</string>
     <!-- Note after joining on a desktop: where the link is. -->
@@ -2248,11 +2248,11 @@
     <string name="party_leave_detail">Closing anistream leaves %1$s. Everyone else carries on without you.</string>
     <!-- Title when the user has installed no source. -->
     <string name="party_nosource_none_title">You have no sources yet</string>
-    <!-- Line under it. -->
+    <!-- Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence. -->
     <string name="party_nosource_none_detail">Sources come from plugins, which a plugin store adds. %1$s plays with the room once one of them has it.</string>
     <!-- Title when no source has the episode. -->
     <string name="party_nosource_missing_title">None of your sources has this episode</string>
-    <!-- Line under it. The reason is a sentence without its full stop. -->
+    <!-- Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence. -->
     <string name="party_nosource_missing_detail">%1$s. %2$s plays with the room once you choose a source that has it.</string>
     <!-- Line under a title that says the episode has not aired. -->
     <string name="party_nosource_unaired">Your sources won\'t have episode %1$d before it\'s out.</string>
@@ -2718,7 +2718,7 @@
     <!-- Line under it. -->
     <string name="settings_wifi_only_detail">Downloads wait for Wi-Fi</string>
     <!-- Row: torrents on a mobile connection. -->
-    <string name="settings_torrents_cellular">Torrents on cellular</string>
+    <string name="settings_torrents_cellular">Torrents on mobile data</string>
     <!-- Row: seeding after watching. -->
     <string name="settings_seed_after">Seed after watching</string>
     <!-- Row: longest time to seed. -->
@@ -2877,7 +2877,7 @@
     <!-- Yesterday, inside a line. -->
     <string name="widget_day_yesterday">yesterday</string>
     <!-- Line of the Continue widget: what plays next, with the episode already named. -->
-    <string name="widget_line_start">Start %1$s</string>
+    <string name="widget_line_start">Play %1$s</string>
     <!-- Title of the screen or section that lists sources. -->
     <string name="sources_title">Sources</string>
     <!-- Shown on the sources screen when none is installed. -->
@@ -2964,11 +2964,11 @@
     <!-- Status line: held back by the check. -->
     <string name="sources_detail_held_back">Held back until the connection check passes.</string>
     <!-- Status line: disabled. -->
-    <string name="sources_detail_disabled">Disabled. It keeps its place and is not tried.</string>
+    <string name="sources_detail_disabled">Off. It keeps its place and isn\'t tried.</string>
     <!-- Status line: the source is gone. -->
     <string name="sources_detail_gone">This source is no longer here.</string>
     <!-- Status line: the site did not answer. -->
-    <string name="sources_detail_site">The site did not answer.</string>
+    <string name="sources_detail_site">The source didn\'t answer.</string>
     <!-- Row label: version. -->
     <string name="sources_version">Version</string>
     <!-- Row label: response time. -->
@@ -2989,7 +2989,7 @@
         <item quantity="other">Contacts %1$s and %2$d more</item>
     </plurals>
     <!-- Line: the plugin contacts no host. -->
-    <string name="sources_contacts_none">Contacts no hosts</string>
+    <string name="sources_contacts_none">Lists no hosts to contact</string>
     <!-- Value when no host is listed. -->
     <string name="sources_no_hosts">No hosts</string>
     <!-- Line: an update adds one host. -->
@@ -3357,7 +3357,7 @@
     <!-- Row note for an episode that has not aired, with when it does. -->
     <string name="episode_row_airs">Airs %1$s</string>
     <!-- Accessibility label of an episode's still while spoiler protection hides it. -->
-    <string name="episode_spoiler_hidden">Still hidden: spoiler protection</string>
+    <string name="episode_spoiler_hidden">Hidden by spoiler protection</string>
     <!-- Accessibility label of the button that opens an episode's menu. -->
     <string name="episode_options">Episode options</string>
     <!-- Menu item that marks an episode as watched. -->
@@ -3422,7 +3422,7 @@
     <!-- Line explaining the risk, before torrents start. -->
     <string name="torrents_risk">Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.</string>
     <!-- Line in the Apple sources screen: torrents belong to the app, not to a plugin. -->
-    <string name="torrents_not_a_plugin">Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Sources settings.</string>
+    <string name="torrents_not_a_plugin">Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings, under Sources.</string>
     <!-- Label of the choice of protection. -->
     <string name="torrents_protect_with">Protect with</string>
     <!-- Option: no protection. -->
@@ -3438,7 +3438,7 @@
     <!-- Line under the no-protection option. -->
     <string name="torrents_protect_none_detail">Your address is visible to everyone in the torrent.</string>
     <!-- Line when no protection is set. -->
-    <string name="torrents_protect_none_note">With no protection, anistream does not check the connection.</string>
+    <string name="torrents_protect_none_note">With no protection, anistream doesn\'t check the connection.</string>
     <!-- Summary: a proxy protects. Host and port are already formatted. -->
     <string name="torrents_summary_proxy_at">Protected by a SOCKS5 proxy at %1$s:%2$s.</string>
     <!-- Summary: a proxy protects, address not shown. -->
@@ -3450,7 +3450,7 @@
     <!-- Title of the question when torrents are turned on without protection. -->
     <string name="torrents_unprotected_title">Use torrents without protection?</string>
     <!-- Line under it. -->
-    <string name="torrents_unprotected_detail">Other people can see your IP address while you download and share a torrent, and anistream does not check the connection.</string>
+    <string name="torrents_unprotected_detail">Other people can see your IP address while you download and share a torrent, and anistream doesn\'t check the connection.</string>
     <!-- Button that confirms turning torrents on without protection. -->
     <string name="torrents_turn_on_unprotected">Turn on without protection</string>
     <!-- Button that confirms using no protection. -->
@@ -3476,7 +3476,7 @@
     <!-- Why a save was refused: traffic left outside the proxy. -->
     <string name="torrents_left_outside_proxy">Torrent traffic left outside this proxy</string>
     <!-- Why a save was refused: the check could not run through the proxy. -->
-    <string name="torrents_check_not_made_proxy">The check could not be made through this proxy</string>
+    <string name="torrents_check_not_made_proxy">The check couldn\'t be made through this proxy</string>
     <!-- Notice when a proxy was not saved. The reason is a sentence fragment. -->
     <string name="torrents_proxy_not_saved">Not saved. %1$s, so the saved proxy stays.</string>
     <!-- Notice when protection was not saved. The reason is a sentence fragment. -->
@@ -3526,7 +3526,7 @@
     <!-- Check failed: traffic left outside. The consequence follows. -->
     <string name="torrents_check_leaked">Traffic left outside the protection. %1$s</string>
     <!-- Check failed: the check could not be made. The consequence follows. -->
-    <string name="torrents_check_unmade">The check could not be made. %1$s</string>
+    <string name="torrents_check_unmade">The check couldn\'t be made. %1$s</string>
     <!-- Short word: the check failed. -->
     <string name="torrents_check_failed">Failed</string>
     <!-- Line: no protection is set, so nothing was checked. -->
@@ -3568,7 +3568,7 @@
     <!-- Heading over the trackers other than the first. -->
     <string name="accounts_other_trackers">Other trackers</string>
     <!-- Line on the welcome screen: where the other trackers are. -->
-    <string name="accounts_other_trackers_note">Other trackers are in Settings, under Accounts.</string>
+    <string name="accounts_other_trackers_note">Other trackers are in Accounts.</string>
     <!-- Line on the welcome screen: why to sign in. -->
     <string name="accounts_welcome_detail">Sign in to %1$s to sync your list and where you stopped.</string>
     <!-- Line under a tracker that brings in lists. -->
@@ -3693,7 +3693,7 @@
     <!-- Menu item on the title page, as the title is listed there. -->
     <string name="accounts_listed_by">Listed by %1$s</string>
     <!-- Line when the tracker did not answer. -->
-    <string name="accounts_did_not_answer">%1$s did not answer.</string>
+    <string name="accounts_did_not_answer">%1$s didn\'t answer.</string>
     <!-- Line when the tracker has nothing for the show. -->
     <string name="accounts_no_extras">%1$s has no cast, staff or recommendations for this show yet.</string>
     <!-- Line when episodes come from the tracker only. -->
@@ -3757,9 +3757,9 @@
     <!-- Line while the app starts on the TV, without a name. -->
     <string name="tv_starting">Starting on the TV</string>
     <!-- Line when something failed while talking to the TV. -->
-    <string name="tv_talk_failed">Something went wrong talking to the TV. Try again.</string>
+    <string name="tv_talk_failed">Lost contact with the TV. Check that it\'s on and on the same network, then try again.</string>
     <!-- Line when the TV did not start the episode. The reason is a sentence fragment. -->
-    <string name="tv_play_failed">Play on TV did not start: %1$s</string>
+    <string name="tv_play_failed">Play on TV didn\'t start: %1$s</string>
     <!-- Label of the address field. -->
     <string name="tv_address">Address</string>
     <!-- Menu item and title: type the address of a TV by hand. -->
@@ -3899,7 +3899,7 @@
     <!-- Line when the update stopped. -->
     <string name="updates_stopped">The update to version %1$s stopped. %2$s</string>
     <!-- Notice when the new version did not install. -->
-    <string name="updates_did_not_install">Version %1$s didn\'t install. About can try again.</string>
+    <string name="updates_did_not_install">Version %1$s didn\'t install. Try again from About.</string>
     <!-- Button that opens About. -->
     <string name="updates_open_about">Open About</string>
     <!-- Line on Linux when the file is saved to the downloads folder. -->
@@ -3909,7 +3909,7 @@
     <!-- Line on Linux telling what to replace, file unknown. -->
     <string name="updates_saved_replace_plain">Version %1$s saved to Downloads. Replace the old file with it to update.</string>
     <!-- The server refused. The code is a number. -->
-    <string name="updates_why_server">The download stopped: the server answered %1$d.</string>
+    <string name="updates_why_server">The download stopped: the server refused it (%1$d). Try again later.</string>
     <!-- The connection broke. -->
     <string name="updates_why_connection">The download stopped: the connection was lost.</string>
     <!-- The file could not be saved. The reason is a sentence fragment. -->

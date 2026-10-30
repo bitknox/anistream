@@ -48,7 +48,7 @@ settings-motion = Motion
 
 # Setting: the player opens fullscreen.
 # @only windows
-settings-start-fullscreen = Start fullscreen
+settings-start-fullscreen = Start in full screen
 
 # Setting: the app's own player controls, or mpv's.
 # @only windows
@@ -70,9 +70,9 @@ settings-watch-parties = { -watch-party-cap-pl }
 # @only windows
 settings-source-order = { -source-cap } order
 
-# Setting: downloads run on a cellular connection.
+# Setting: downloads run on a mobile data connection.
 # @only windows
-settings-downloads-cellular = Downloads on cellular
+settings-downloads-cellular = Downloads on mobile data
 
 # Setting: a notification when a new episode of a followed show comes out.
 # @only windows
@@ -142,13 +142,13 @@ settings-signed-in-waiting = { $count ->
 
 # Under a tracker that signs in with a code typed on its website.
 # @only windows
-settings-signed-out-code = Not signed in · You enter a code on its site
+settings-signed-out-code = Not signed in · you enter a code on its site
 
 ## About pane
 
 # Notice line for the video library the player uses.
 # @only windows
-settings-libmpv-licence = Licensed under the Lesser General Public Licence, version 2.1 or later.
+settings-libmpv-licence = Licensed under the GNU Lesser General Public License, version 2.1 or later.
 
 ## Torrents
 
@@ -184,14 +184,6 @@ show-settings-keep-next-detail = Downloads the episodes after the one you watch.
 show-settings-notify-detail = A notification when an episode comes out.
 
 ## Welcome dialog
-
-# First page of the welcome dialog: the legal line beside it, then this.
-# @only windows
-welcome-sources-others = Every { -source } is run by someone else.
-
-# Sources page of the welcome dialog, before the line about plugins.
-# @only windows
-welcome-no-own-sources = { -app-name } ships no { -source-pl } of its own.
 
 ## Download quality values
 

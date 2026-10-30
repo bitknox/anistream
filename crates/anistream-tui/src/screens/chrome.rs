@@ -351,7 +351,7 @@ mod tests {
             text_of(&render_to_buffer(&mut app, 120, 30)).lines().map(str::to_owned).collect();
         // The status rule, second to last, carries the caption and is still a rule after it.
         let rule = &busy[busy.len() - 2];
-        assert!(rule.contains("listing sources for ep 10 · 3s"), "status rule was {rule:?}");
+        assert!(rule.contains("listing sources for ep 10 · 3 s"), "status rule was {rule:?}");
         assert!(rule.trim_start().starts_with('─'), "the rule leads into the caption");
         assert!(rule.trim_end().ends_with('─'), "and resumes after it");
         // The point of putting it there: every other row is exactly as it was.
@@ -376,8 +376,8 @@ mod tests {
         let until =
             app.jobs[0].note.as_ref().and_then(|(_, until)| *until).expect("a deadline");
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("loading this season · AniList limit, 12s"), "{text}");
-        assert!(!text.contains("· 4s"), "two clocks at once");
+        assert!(text.contains("loading this season · AniList limit, 12 s"), "{text}");
+        assert!(!text.contains("· 4 s"), "two clocks at once");
 
         // Once the hold-up has passed it is no longer the thing being waited on.
         let job = &app.jobs[0];

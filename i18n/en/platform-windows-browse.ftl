@@ -89,7 +89,7 @@ episode-download-text = Download episode { $episode }
 # Title page: an episode row's download button after a failure, for an episode numbered other than as a whole number.
 # @only windows
 # @arg episode: text
-episode-download-failed-text = Couldn't download episode { $episode }. Download again.
+episode-download-failed-text = Couldn't download episode { $episode }. Try again.
 
 # Title page: an episode row with no name of its own, numbered other than as a whole number, such as "Episode 12.5".
 # @only windows

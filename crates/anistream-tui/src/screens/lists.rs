@@ -1077,10 +1077,10 @@ mod tests {
                 "missing the {ruling} ruling:\n{text}"
             );
         }
-        for time in ["2d ago", "1h ago", "In 4d 20h"] {
+        for time in ["2 d ago", "1 h ago", "In 4 d 20 h"] {
             assert!(text.contains(time), "missing the {time} row:\n{text}");
         }
-        assert!(text.contains("E3 out 2d ago  ·  E4 in 4d 20h"), "{text}");
+        assert!(text.contains("E3 out 2 d ago  ·  E4 in 4 d 20 h"), "{text}");
     }
 
     /// The day an episode airs on is a local date, so the zone moves it: an hour after 23:30
@@ -1158,7 +1158,7 @@ mod tests {
         // Too narrow for the preview, whose broadcast line would answer for the row.
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(!text.contains("E8 out"), "already watched — not news:\n{text}");
-        assert!(text.contains("E9 in 2d 1h"), "the wait is the fact:\n{text}");
+        assert!(text.contains("E9 in 2 d 1 h"), "the wait is the fact:\n{text}");
     }
 
     #[test]
@@ -1268,7 +1268,7 @@ mod tests {
         };
         let mut app = calendar_with(vec![dubbed, estimated]);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("~In 10m"), "{text}");
+        assert!(text.contains("~In 10 min"), "{text}");
         assert!(text.contains("E4 · Dubbed"), "{text}");
         assert!(!text.contains("E7 · Dubbed"), "{text}");
     }
@@ -1423,11 +1423,11 @@ mod tests {
         };
         let mut app = app_with(ContentList::Entries(vec![e]));
         let preview = text_of(&render_to_buffer(&mut app, 120, 34));
-        assert!(preview.contains("E3 out 2d ago  ·  E4 in 4d 20h"), "{preview}");
+        assert!(preview.contains("E3 out 2 d ago  ·  E4 in 4 d 20 h"), "{preview}");
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
         let title = text_of(&render_to_buffer(&mut app, 120, 34));
-        assert!(title.contains("E3 out 2d ago  ·  E4 in 4d 20h"), "{title}");
+        assert!(title.contains("E3 out 2 d ago  ·  E4 in 4 d 20 h"), "{title}");
         assert!(!title.contains("next episode in"), "{title}");
     }
 

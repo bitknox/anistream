@@ -380,17 +380,17 @@ pub fn notice_downloads_none_queued_stopped(reason: &str) -> String {
     text("notice-downloads-none-queued-stopped", &[("reason", Arg::Text(reason))])
 }
 
-/// Toast after a range was asked for and every episode was in the queue already.
+/// Toast after a range was asked for and every episode was in the queue already. `existing` is the sentence of `cause-already-in-downloads`.
 pub fn notice_downloads_none_new(existing: &str) -> String {
     text("notice-downloads-none-new", &[("existing", Arg::Text(existing))])
 }
 
-/// Toast as above, with the reason the range stopped.
+/// Toast as above, with the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 pub fn notice_downloads_none_new_stopped(existing: &str, reason: &str) -> String {
     text("notice-downloads-none-new-stopped", &[("existing", Arg::Text(existing)), ("reason", Arg::Text(reason))])
 }
 
-/// Toast after a range was asked for, some episodes were queued and some were there already.
+/// Toast after a range was asked for, some episodes were queued and some were there already. `existing` is the sentence of `cause-already-in-downloads`.
 pub fn notice_episodes_queued_existing(count: i64, existing: &str) -> String {
     text("notice-episodes-queued-existing", &[("count", Arg::Int(count)), ("existing", Arg::Text(existing))])
 }
@@ -400,7 +400,7 @@ pub fn notice_episodes_queued_stopped(count: i64, reason: &str) -> String {
     text("notice-episodes-queued-stopped", &[("count", Arg::Int(count)), ("reason", Arg::Text(reason))])
 }
 
-/// Toast as above, with some episodes in the queue already and the reason the range stopped.
+/// Toast as above, with some episodes in the queue already and the reason the range stopped. `existing` is the sentence of `cause-already-in-downloads`; `reason` is a sentence saying why the range stopped.
 pub fn notice_episodes_queued_existing_stopped(count: i64, existing: &str, reason: &str) -> String {
     text("notice-episodes-queued-existing-stopped", &[("count", Arg::Int(count)), ("existing", Arg::Text(existing)), ("reason", Arg::Text(reason))])
 }
@@ -510,7 +510,7 @@ pub fn store_admin_opened() -> String {
     text("store-admin-opened", &[])
 }
 
-/// Toast when the browser could not be opened for the store's admin page. The reason comes from the system.
+/// Toast when the browser could not be opened for the store's admin page. The reason comes from the system. The command is typed as it is run.
 pub fn store_admin_open_failed(reason: &str) -> String {
     text("store-admin-open-failed", &[("reason", Arg::Text(reason))])
 }
@@ -3625,12 +3625,12 @@ pub fn accounts_needs_sign_in(tracker: &str, key: &str) -> String {
     text("accounts-needs-sign-in", &[("tracker", Arg::Text(tracker)), ("key", Arg::Text(key))])
 }
 
-/// Toast when sync disagreements appear. The key opens the list of them, as the key map draws it.
+/// Toast when sync differences appear. The key opens the list of them, as the key map draws it.
 pub fn accounts_conflicts_found(count: i64, key: &str) -> String {
     text("accounts-conflicts-found", &[("count", Arg::Int(count)), ("key", Arg::Text(key))])
 }
 
-/// Toast when the sync disagreements list is opened and there are none.
+/// Toast when the sync differences list is opened and there are none.
 pub fn accounts_conflicts_none() -> String {
     text("accounts-conflicts-none", &[])
 }
@@ -3790,12 +3790,12 @@ pub fn accounts_row_queued_held(queued: i64, held: i64) -> String {
     text("accounts-row-queued-held", &[("queued", Arg::Int(queued)), ("held", Arg::Int(held))])
 }
 
-/// Action beside a sync disagreement in the overlay: Enter keeps the value on this device.
+/// Action beside a sync difference in the overlay: Enter keeps the value on this device.
 pub fn accounts_conflict_keep_mine() -> String {
     text("accounts-conflict-keep-mine", &[])
 }
 
-/// A sync disagreement in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
+/// A sync difference in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
 pub fn accounts_conflict_row(title: &str, field: &str, local: &str, remote: &str) -> String {
     text("accounts-conflict-row", &[("title", Arg::Text(title)), ("field", Arg::Text(field)), ("local", Arg::Text(local)), ("remote", Arg::Text(remote))])
 }
@@ -6635,12 +6635,12 @@ pub fn pad_help_skip() -> String {
     text("pad-help-skip", &[])
 }
 
-/// Controller help: starts the next episode now, while the Up Next card shows.
+/// Controller help: starts the next episode now, while the Up next card shows.
 pub fn pad_help_play_now() -> String {
     text("pad-help-play-now", &[])
 }
 
-/// Controller help: cancels the Up Next card.
+/// Controller help: cancels the Up next card.
 pub fn pad_help_cancel() -> String {
     text("pad-help-cancel", &[])
 }
@@ -7830,12 +7830,12 @@ pub fn media_link_language(language: &str) -> String {
     text("media-link-language", &[("language", Arg::Text(language))])
 }
 
-/// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 hr 52 min".
+/// Length of a film or a single episode, in its metadata line: hours and the minutes past them, such as "1 h 52 min".
 pub fn film_length_hours_minutes(hours: i64, minutes: i64) -> String {
     text("film-length-hours-minutes", &[("hours", Arg::Int(hours)), ("minutes", Arg::Int(minutes))])
 }
 
-/// Length of a film or a single episode that is a whole number of hours, such as "2 hr".
+/// Length of a film or a single episode that is a whole number of hours, such as "2 h".
 pub fn film_length_hours(hours: i64) -> String {
     text("film-length-hours", &[("hours", Arg::Int(hours))])
 }
@@ -8580,7 +8580,7 @@ pub fn party_nosource_none_title() -> String {
     text("party-nosource-none-title", &[])
 }
 
-/// Line under it.
+/// Line under it. `what` is the name of what the room is watching, such as a show's title, and it starts the sentence.
 pub fn party_nosource_none_detail(what: &str) -> String {
     text("party-nosource-none-detail", &[("what", Arg::Text(what))])
 }
@@ -8590,7 +8590,7 @@ pub fn party_nosource_missing_title() -> String {
     text("party-nosource-missing-title", &[])
 }
 
-/// Line under it. The reason is a sentence without its full stop.
+/// Line under it. `why` is the reason as a complete sentence without its full stop, and this message adds the stop. `what` is the name of what the room is watching, such as a show's title, and it starts the next sentence.
 pub fn party_nosource_missing_detail(why: &str, what: &str) -> String {
     text("party-nosource-missing-detail", &[("why", Arg::Text(why)), ("what", Arg::Text(what))])
 }

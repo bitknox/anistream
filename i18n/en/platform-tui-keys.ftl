@@ -59,7 +59,7 @@ keys-action-focus-search = Search
 keys-action-show-accounts = Accounts and sync
 
 # Action label in the help overlay and the command palette.
-keys-action-show-conflicts = Resolve sync conflicts
+keys-action-show-conflicts = Review sync differences
 
 # Action label in the help overlay and the command palette.
 keys-action-show-logs = Recent messages
@@ -119,7 +119,7 @@ keys-action-rate-title = Rate this title
 keys-action-toggle-synopsis = Expand synopsis
 
 # Action label in the help overlay and the command palette.
-keys-action-hide-from-continue = Remove from { -continue-cap }
+keys-action-hide-from-continue = Hide from { -continue-cap }
 
 # Action label in the help overlay and the command palette.
 keys-action-show-episodes = Episodes
@@ -209,7 +209,7 @@ keys-action-volume-down = Volume down
 keys-action-volume-up = Volume up
 
 # Action label in the help overlay and the command palette.
-keys-action-fullscreen = Fullscreen
+keys-action-fullscreen = Full screen
 
 # Action label in the help overlay and the command palette.
 keys-action-detach = Leave player running
@@ -586,7 +586,7 @@ nav-overlay-accounts = Accounts
 
 # Title of an overlay panel.
 # @max 34
-nav-overlay-conflicts = Conflicts
+nav-overlay-conflicts = Differences
 
 # Title of an overlay panel.
 # @max 34

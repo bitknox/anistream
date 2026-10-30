@@ -17,7 +17,7 @@ anistream                                       torrent ○  plugins ·  ·  kit
     Recent messages                L    Set list status                a
   Movement                              Rate this title                *
     Move up                    k / ↑    Expand synopsis                i
-    Move down                  j / ↓    Remove from Continue           x
+    Move down                  j / ↓    Hide from Continue             x
     Move left                  h / ←    Search filters            ctrl+f
 
 ────────────────────────────────────────────────────────────────────────────────
