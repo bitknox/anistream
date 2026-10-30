@@ -2295,6 +2295,21 @@ public static partial class T
     /// <summary>Menu item on a suggestion. The show stays hidden until it starts airing.</summary>
     public static string UpNextNotInterested => Get("UpNextNotInterested");
 
+    /// <summary>Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.</summary>
+    public static string UpNextRowStarts(string reason, string starts) => Fill(Get("UpNextRowStarts"), ("reason", reason), ("starts", starts));
+
+    /// <summary>Notice after Not interested on a suggestion that is already airing.</summary>
+    public static string UpNextHidden(string title) => Fill(Get("UpNextHidden"), ("title", title));
+
+    /// <summary>Notice after Not interested on a suggestion that has not started airing.</summary>
+    public static string UpNextHiddenUntilAirs(string title) => Fill(Get("UpNextHiddenUntilAirs"), ("title", title));
+
+    /// <summary>Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.</summary>
+    public static string UpNextBroadcast(long episode, string when) => Fill(Get("UpNextBroadcast"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("when", when));
+
+    /// <summary>The time of an episode that came out earlier today. The span is already worded, such as "2h ago".</summary>
+    public static string UpNextOut(string ago) => Fill(Get("UpNextOut"), ("ago", ago));
+
     /// <summary>Format of a show: broadcast on television.</summary>
     public static string FormatTv => Get("FormatTv");
 
@@ -6130,6 +6145,11 @@ public static partial class T
         ["UpNextReasonAiringToday"] = "Airing today",
         ["UpNextAddPlanning"] = "Add to Planning",
         ["UpNextNotInterested"] = "Not interested",
+        ["UpNextRowStarts"] = "{reason} · {starts}",
+        ["UpNextHidden"] = "{title} is hidden from Up next for you",
+        ["UpNextHiddenUntilAirs"] = "{title} is hidden until it airs",
+        ["UpNextBroadcast"] = "Episode {episode} · {when}",
+        ["UpNextOut"] = "out {ago}",
         ["FormatTv"] = "TV",
         ["FormatTvShort"] = "TV short",
         ["FormatMovie"] = "Movie",

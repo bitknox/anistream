@@ -83,6 +83,19 @@ public sealed class Known
     /// <summary>The calendar's broadcasts count their <c>AiringIn</c> from this Unix time.</summary>
     public long? CalendarAnchor { get; private set; }
 
+    /// <summary>
+    /// "Up next for you", as the engine last sent it: the engine decides which titles, in which
+    /// order and how many, and sends a fresh group whenever the queue changes.
+    /// </summary>
+    public UpNextItem[] UpNext { get; private set; } = [];
+
+    /// <summary>A suggestion was put on Planning here: its button is gone until the engine says otherwise.</summary>
+    public void PlannedFromUpNext(uint id) =>
+        UpNext = [.. UpNext.Select(i => i.Entry.Id == id ? i with { Action = UpNextAction.Nothing } : i)];
+
+    /// <summary>Whether the engine has sent <c>UpNext</c> since the page asked, even an empty group.</summary>
+    public bool UpNextSent { get; set; }
+
     /// <summary>Titles hidden from Continue in this run, until the engine's next list.</summary>
     public HashSet<uint> HiddenFromContinue { get; } = [];
 
@@ -158,6 +171,12 @@ public sealed class Known
                     if (c.View is ContentFor.Continue)
                         HiddenFromContinue.Clear();
                 }
+                break;
+            case Event.UpNext up:
+                UpNext = up.V1;
+                UpNextSent = true;
+                foreach (var item in up.V1)
+                    Entries[item.Entry.Id] = Merge(Fixed(item.Entry));
                 break;
             case Event.Detail d:
                 Entries[d.V1.Id] = Fixed(d.V1);

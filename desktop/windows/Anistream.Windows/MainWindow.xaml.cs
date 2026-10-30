@@ -485,6 +485,10 @@ public sealed partial class MainWindow : Window
     bool toastHeld;
     DateTimeOffset toastUntil;
 
+    /// <summary>A notice from a page, with one button when it has something to undo.</summary>
+    public void Say(string text, string? button = null, Action? act = null) =>
+        ShowToast(InfoBarSeverity.Informational, text, button, act);
+
     void ShowToast(Notice notice)
     {
         var text = notice.Msg?.Text() ?? "";

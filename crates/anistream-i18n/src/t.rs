@@ -7765,6 +7765,31 @@ pub fn up_next_not_interested() -> String {
     text("up-next-not-interested", &[])
 }
 
+/// Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.
+pub fn up_next_row_starts(reason: &str, starts: &str) -> String {
+    text("up-next-row-starts", &[("reason", Arg::Text(reason)), ("starts", Arg::Text(starts))])
+}
+
+/// Notice after Not interested on a suggestion that is already airing.
+pub fn up_next_hidden(title: &str) -> String {
+    text("up-next-hidden", &[("title", Arg::Text(title))])
+}
+
+/// Notice after Not interested on a suggestion that has not started airing.
+pub fn up_next_hidden_until_airs(title: &str) -> String {
+    text("up-next-hidden-until-airs", &[("title", Arg::Text(title))])
+}
+
+/// Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.
+pub fn up_next_broadcast(episode: i64, when: &str) -> String {
+    text("up-next-broadcast", &[("episode", Arg::Int(episode)), ("when", Arg::Text(when))])
+}
+
+/// The time of an episode that came out earlier today. The span is already worded, such as "2h ago".
+pub fn up_next_out(ago: &str) -> String {
+    text("up-next-out", &[("ago", Arg::Text(ago))])
+}
+
 /// Format of a show: broadcast on television.
 pub fn format_tv() -> String {
     text("format-tv", &[])

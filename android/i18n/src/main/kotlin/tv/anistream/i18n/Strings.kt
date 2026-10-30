@@ -3729,6 +3729,26 @@ object Strings {
     fun upNextNotInterested(context: Context): String =
         context.getString(R.string.up_next_not_interested)
 
+    /** Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already. */
+    fun upNextRowStarts(context: Context, reason: String, starts: String): String =
+        context.getString(R.string.up_next_row_starts, reason, starts)
+
+    /** Notice after Not interested on a suggestion that is already airing. */
+    fun upNextHidden(context: Context, title: String): String =
+        context.getString(R.string.up_next_hidden, title)
+
+    /** Notice after Not interested on a suggestion that has not started airing. */
+    fun upNextHiddenUntilAirs(context: Context, title: String): String =
+        context.getString(R.string.up_next_hidden_until_airs, title)
+
+    /** Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already. */
+    fun upNextBroadcast(context: Context, episode: Int, `when`: String): String =
+        context.getString(R.string.up_next_broadcast, episode, `when`)
+
+    /** The time of an episode that came out earlier today. The span is already worded, such as "2h ago". */
+    fun upNextOut(context: Context, ago: String): String =
+        context.getString(R.string.up_next_out, ago)
+
     /** Format of a show: broadcast on television. */
     fun formatTv(context: Context): String =
         context.getString(R.string.format_tv)

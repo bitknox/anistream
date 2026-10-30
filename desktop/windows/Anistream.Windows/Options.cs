@@ -26,18 +26,20 @@ namespace Anistream.Windows;
 /// <param name="Shortcuts">Open the keyboard shortcuts dialog once the window is up.</param>
 /// <param name="UpdateFrom">Testing build: an installer to offer as a newer release, <c>&lt;url&gt;,&lt;sha256&gt;,&lt;size&gt;,&lt;version&gt;</c>, fetched and installed for real.</param>
 /// <param name="Language">Testing build: the language to show this run, such as <c>qps-ploc</c> for the pseudo-locale; never saved.</param>
+/// <param name="Hide">Testing build: titles to hide from Continue at start, <c>id,id</c>, so a short queue leaves room for Up next.</param>
+/// <param name="UpNext">Testing build: show made-up suggestions under Continue, <c>signed-in</c>, <c>signed-out</c> or <c>fallback</c>, because the fixture catalogue has too few titles for the engine to suggest any.</param>
 /// <param name="Opens">The <c>anistream://</c> link the app was opened with, as the installer's <c>anistream.exe "%1"</c> hands it over.</param>
 public sealed record Options(
     string? Scene, string? Media, string? Page, uint? Title, string? Query, bool Play,
     string? Pane, int? Width, int? Height, bool KeepControls, bool Downloads, bool AskClose,
     bool Showcase = false, bool Join = false, string? Select = null, string? Show = null,
-    bool Welcome = false, bool Offline = false, bool Shortcuts = false, string? Opens = null, string? UpdateFrom = null, string? Language = null)
+    bool Welcome = false, bool Offline = false, bool Shortcuts = false, string? Opens = null, string? UpdateFrom = null, string? Language = null, string? Hide = null, string? UpNext = null)
 {
     public bool Fixture => Scene is not null;
 
     public static Options Parse(IEnumerable<string> args)
     {
-        string? scene = null, media = null, page = null, query = null, pane = null, select = null, show = null, updateFrom = null, language = null;
+        string? scene = null, media = null, page = null, query = null, pane = null, select = null, show = null, updateFrom = null, language = null, hide = null, upNext = null;
         uint? title = null;
         int? width = null, height = null;
         bool play = false, keep = false, downloads = false, askClose = false, showcase = false, join = false;
@@ -68,6 +70,8 @@ public sealed record Options(
                 case "--update-from": updateFrom = value; break;
 #if ANISTREAM_TESTING
                 case "--language": language = value; break;
+                case "--hide": hide = value; break;
+                case "--up-next": upNext = value; break;
 #endif
                 case "--size":
                     if (value.Split('x') is [var w, var h] && int.TryParse(w, out var wi) && int.TryParse(h, out var hi))
@@ -75,6 +79,6 @@ public sealed record Options(
                     break;
             }
         }
-        return new(scene, media, page, title, query, play, pane, width, height, keep, downloads, askClose, showcase, join, select, show, welcome, offline, shortcuts, opens, updateFrom, language);
+        return new(scene, media, page, title, query, play, pane, width, height, keep, downloads, askClose, showcase, join, select, show, welcome, offline, shortcuts, opens, updateFrom, language, hide, upNext);
     }
 }

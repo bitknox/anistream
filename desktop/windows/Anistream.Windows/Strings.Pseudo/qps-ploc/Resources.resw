@@ -3187,6 +3187,26 @@
     <value>[Ñöţ îñţéŕéšţéð~~~~~]</value>
     <comment>Menu item on a suggestion. The show stays hidden until it starts airing.</comment>
   </data>
+  <data name="UpNextRowStarts" xml:space="preserve">
+    <value>[{reason} · {starts}~~~]</value>
+    <comment>Line on a suggestion that has not started airing: why it is there, then when it starts. The reason and the date are worded already.</comment>
+  </data>
+  <data name="UpNextHidden" xml:space="preserve">
+    <value>[{title} îš ĥîððéñ ƒŕöɱ Ûþ ñéẋţ ƒöŕ ýöü~~~~~~~~~~~]</value>
+    <comment>Notice after Not interested on a suggestion that is already airing.</comment>
+  </data>
+  <data name="UpNextHiddenUntilAirs" xml:space="preserve">
+    <value>[{title} îš ĥîððéñ üñţîļ îţ àîŕš~~~~~~~~~]</value>
+    <comment>Notice after Not interested on a suggestion that has not started airing.</comment>
+  </data>
+  <data name="UpNextBroadcast" xml:space="preserve">
+    <value>[Éþîšöðé {episode} · {when}~~~~~~]</value>
+    <comment>Line under a show that airs today: its episode, then the time or how long ago it came out. The time is worded already.</comment>
+  </data>
+  <data name="UpNextOut" xml:space="preserve">
+    <value>[öüţ {ago}~~~]</value>
+    <comment>The time of an episode that came out earlier today. The span is already worded, such as "2h ago".</comment>
+  </data>
   <data name="FormatTv" xml:space="preserve">
     <value>[ŢṼ~]</value>
     <comment>Format of a show: broadcast on television.</comment>
