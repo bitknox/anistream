@@ -33,6 +33,12 @@ fn component() -> Option<PathBuf> {
     );
     if path.exists() {
         Some(path)
+    } else if std::env::var_os("ANISTREAM_REQUIRE_PLUGINS").is_some() {
+        panic!(
+            "{} is not built, and ANISTREAM_REQUIRE_PLUGINS is set.\n  cargo build --release \
+             --target wasm32-wasip2 --manifest-path plugins/example-rust/Cargo.toml",
+            path.display()
+        );
     } else {
         eprintln!(
             "skipping: {} is not built.\n  cargo build --release --target wasm32-wasip2 \

@@ -98,6 +98,11 @@ pub struct mpv_event_log_message {
 }
 
 #[repr(C)]
+pub struct mpv_event_start_file {
+    pub playlist_entry_id: i64,
+}
+
+#[repr(C)]
 pub struct mpv_event_end_file {
     pub reason: c_int,
     pub error: c_int,

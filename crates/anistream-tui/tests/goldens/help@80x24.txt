@@ -11,13 +11,13 @@ anistream                                   torrent ○  plugins ●  ·  anilis
     Toggle rail width            tab    Jump to next day               }
     Refresh this view              r    Page up                   ctrl+u
     Force a full resync            R    Page down                 ctrl+d
-    Subbed or dubbed               t  Lists and grids
+    Subbed or dubbed               t  Lists
     Go to section                1–9    Open                           ↵
     Search                         /    Play next unwatched        space
-    Recent messages                L    Set list status                a
+    Recent messages                !    Set list status                a
   Movement                              Rate this title                *
     Move up                    k / ↑    Expand synopsis                i
-    Move down                  j / ↓    Hide from Continue             x
+    Move down                  j / ↓    Remove, or not interested      x
     Move left                  h / ←    Search filters            ctrl+f
 
 ────────────────────────────────────────────────────────────────────────────────
@@ -27,7 +27,9 @@ colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 ale
 r00 c00-08 fg=rule mod=BOLD
 r00 c09-79 fg=rule
 r01 c00-79 fg=rule
-r02 c00-07 fg=rule bg=ground
+r02 c00-00 fg=rule bg=ground
+r02 c01-01 fg=rule bg=ground mod=BOLD
+r02 c02-07 fg=rule bg=ground
 r02 c08-28 fg=rule bg=ground mod=BOLD
 r02 c29-79 fg=rule bg=ground
 r03 c00-00 fg=obi bg=ground
@@ -112,8 +114,8 @@ r13 c02-19 fg=text-dim bg=ground
 r13 c20-34 fg=rule bg=ground
 r13 c35-35 fg=text bg=ground
 r13 c36-37 fg=rule bg=ground
-r13 c38-52 fg=text bg=ground
-r13 c53-79 fg=rule bg=ground
+r13 c38-42 fg=text bg=ground
+r13 c43-79 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
 r14 c02-16 fg=text-dim bg=ground
 r14 c17-32 fg=rule bg=ground
@@ -162,8 +164,8 @@ r19 c02-12 fg=text-dim bg=ground
 r19 c13-30 fg=rule bg=ground
 r19 c31-35 fg=text bg=ground
 r19 c36-37 fg=rule bg=ground
-r19 c38-57 fg=text-dim bg=ground
-r19 c58-70 fg=rule bg=ground
+r19 c38-64 fg=text-dim bg=ground
+r19 c65-70 fg=rule bg=ground
 r19 c71-71 fg=text bg=ground
 r19 c72-79 fg=rule bg=ground
 r20 c00-01 fg=rule bg=ground

@@ -1,21 +1,21 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-▌ ▸│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-  ▤│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-  ▦│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-  /│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+▌▸ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+ ▤ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+ ▦ │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+ / │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────
-▌ Which one   Match for Kaze no Tegami. Enter pins it.
+▌ Which one   Match for Kaze no Tegami
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Kaze no Tegami                                                         62%
   Kaze no Tegami (2019)  ·  Different year                               61%
   Kaze no Tegami Recap  ·  Different format                              44%
 
+   │
    │  Available on Hikari Stream
    │
    │  A postwoman in a hill town reads the wind for letters nobody sent. When
-   │  one arrives addressed to her in her own hand, dated ten years from now,
-   │  she starts delivering the future one envelope at a time — and learns…
+   │  one arrives addressed to her in her own hand, dated ten years from now,…
    │
    │  Drama  ·  Romance
    │
@@ -27,15 +27,17 @@ colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 ale
 r00 c00-08 fg=rule mod=BOLD
 r00 c09-79 fg=rule
 r01 c00-79 fg=rule
-r02 c00-79 fg=rule
+r02 c00-00 fg=rule
+r02 c01-01 fg=rule mod=BOLD
+r02 c02-79 fg=rule
 r03 c00-79 fg=rule
 r04 c00-79 fg=rule
 r05 c00-79 fg=rule
 r06 c00-79 fg=rule bg=ground
 r07 c00-00 fg=obi bg=ground
 r07 c01-01 fg=rule bg=ground
-r07 c02-53 fg=text bg=ground mod=BOLD
-r07 c54-79 fg=rule bg=ground
+r07 c02-37 fg=text bg=ground mod=BOLD
+r07 c38-79 fg=rule bg=ground
 r08 c00-05 fg=rule bg=ground
 r08 c06-19 fg=rule bg=ground mod=BOLD
 r08 c20-79 fg=rule bg=ground

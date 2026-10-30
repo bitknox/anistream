@@ -8,7 +8,7 @@ anistream                                                                       
   ↓  Downloads              │
 ▌ ◇  Sources                │  ▌ + Join a store
   ◎  Accounts               │
-  ⚙  Settings               │
+  ≡  Settings               │
                             │
                             │
                             │

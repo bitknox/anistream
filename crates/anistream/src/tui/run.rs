@@ -45,6 +45,8 @@ pub async fn run(
     config_problem: Option<anistream_core::config::ConfigProblem>,
     set_aside: Option<std::path::PathBuf>,
 ) -> Result<()> {
+    // The colour depth first: every colour the palette hands out is drawn at it.
+    theme::set_depth(theme::detect_depth(|key| std::env::var(key).ok()));
     let palette = theme::resolve(config.theme.mode);
 
     let mut keymap = Keymap::new();

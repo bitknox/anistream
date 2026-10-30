@@ -57,11 +57,18 @@ pub struct Eyecatch {
     frame: u16,
     /// The frame resolution completed on, which is when the reveal may begin.
     released_at: Option<u16>,
+    /// With motion off: no sweep either way, the card is up at once and gone once released.
+    still: bool,
 }
 
 impl Eyecatch {
     pub fn new(label: impl Into<String>) -> Self {
-        Self { label: label.into(), frame: 0, released_at: None }
+        Self { label: label.into(), frame: 0, released_at: None, still: false }
+    }
+
+    /// The eyecatch with motion off: the card covers at once and goes as soon as it is released.
+    pub fn still(label: impl Into<String>) -> Self {
+        Self { label: label.into(), frame: SWEEP_FRAMES, released_at: None, still: true }
     }
 
     /// Resolution finished — begin revealing.
@@ -70,7 +77,9 @@ impl Eyecatch {
     /// the wipe a flicker, which reads as a glitch rather than a transition.
     pub fn release(&mut self) {
         if self.released_at.is_none() {
-            self.released_at = Some(self.frame.max(SWEEP_FRAMES));
+            // Still, there is no cover to finish first.
+            let at = if self.still { self.frame } else { self.frame.max(SWEEP_FRAMES) };
+            self.released_at = Some(at);
         }
     }
 
@@ -89,6 +98,12 @@ impl Eyecatch {
     }
 
     pub fn stage(&self) -> Stage {
+        if self.still {
+            return match self.released_at {
+                None if self.frame < MAX_HOLD_FRAMES => Stage::Held,
+                _ => Stage::Done,
+            };
+        }
         match self.released_at {
             None if self.frame < SWEEP_FRAMES => Stage::Covering,
             // The deadline. Reveal rather than hold forever.
@@ -153,6 +168,20 @@ impl Eyecatch {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// With motion off the card is up from the first frame, never sweeps, and goes the frame
+    /// it is released.
+    #[test]
+    fn a_still_eyecatch_covers_at_once_and_goes_when_released() {
+        let mut e = Eyecatch::still("Hoshikuzu ep 12");
+        assert_eq!(e.stage(), Stage::Held);
+        assert_eq!(e.band(), (0.0, 1.0));
+        assert!(e.advance());
+        assert_eq!(e.band(), (0.0, 1.0), "no sweep");
+        e.release();
+        assert_eq!(e.stage(), Stage::Done);
+        assert!(!e.advance());
+    }
 
     #[test]
     fn a_wipe_covers_then_holds_until_released() {

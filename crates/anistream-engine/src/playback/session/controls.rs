@@ -145,6 +145,36 @@ impl Run<'_> {
     }
 }
 
+/// How far short of the end a seek forward stops: the file then ends on its own, as it would
+/// have, and what comes after it starts as it always does.
+const SEEK_END_MARGIN: f64 = 1.0;
+
+/// A control as it reaches the file playing, or `None` when it is let go.
+///
+/// A seek read before the file has loaded was aimed at what was on screen when it was sent: the
+/// episode before, or the starting card. Controls go to the playback started last, so a held
+/// arrow key's seeks queue up for the next episode while it is found and landed on it all at
+/// once as it opened. A seek forward past the end stops short of it, so mpv does not end the file at
+/// once and leave the seeks after it to the next episode.
+pub(super) fn aimed(
+    command: PlayerCommand,
+    loaded: bool,
+    position: f64,
+    duration: Option<f64>,
+) -> Option<PlayerCommand> {
+    match command {
+        PlayerCommand::Seek(_) | PlayerCommand::SeekTo(_) if !loaded => None,
+        PlayerCommand::Seek(delta) if delta > 0.0 => match duration {
+            Some(duration) if position + delta > duration - SEEK_END_MARGIN => {
+                let end = duration - SEEK_END_MARGIN;
+                (end > position).then_some(PlayerCommand::SeekTo(end))
+            }
+            _ => Some(command),
+        },
+        other => Some(other),
+    }
+}
+
 /// Turn a UI control into what the player is told.
 ///
 /// Every failure is swallowed deliberately: the player may have closed a millisecond ago, and a
@@ -216,6 +246,27 @@ mod tests {
         PlayerOpener,
         fake::{Call, ScriptedOpener},
     };
+
+    /// Seeks before the file loads go nowhere; forward past the end stops a second short.
+    #[test]
+    fn a_seek_is_aimed_at_the_file_playing_and_stays_inside_it() {
+        use super::aimed;
+        let seek = |by| PlayerCommand::Seek(by);
+        assert_eq!(aimed(seek(5.0), false, 0.0, None), None);
+        assert_eq!(aimed(PlayerCommand::SeekTo(30.0), false, 0.0, Some(120.0)), None);
+        assert_eq!(
+            aimed(PlayerCommand::Volume(2.0), false, 0.0, None),
+            Some(PlayerCommand::Volume(2.0))
+        );
+        assert_eq!(aimed(seek(5.0), true, 100.0, Some(120.0)), Some(seek(5.0)));
+        assert_eq!(aimed(seek(-30.0), true, 118.0, Some(120.0)), Some(seek(-30.0)));
+        assert_eq!(aimed(seek(5.0), true, 118.0, None), Some(seek(5.0)), "a length not known");
+        assert_eq!(
+            aimed(seek(5.0), true, 117.0, Some(120.0)),
+            Some(PlayerCommand::SeekTo(119.0))
+        );
+        assert_eq!(aimed(seek(5.0), true, 119.5, Some(120.0)), None, "already at the end");
+    }
 
     /// A speed step multiplies what plays, as the model has it, and a speed from a menu is set
     /// outright: the apps' 1.5× from 1× once came out 2.5×, the factor added.

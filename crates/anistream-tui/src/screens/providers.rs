@@ -10,7 +10,7 @@ use crate::{
     clock::Clock,
     nav::Focus,
     theme::{Role, glyph},
-    widgets::{Hairline, truncate, wrap},
+    widgets::{Cells, Hairline, truncate, wrap},
 };
 
 use super::{
@@ -72,7 +72,7 @@ pub(super) fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
     let head = area.top() + 2;
     // A column is shown whole or not at all: started wherever it fell and cut by the screen's
     // edge, it left half words — `STAT`, `read` — at 40 columns.
-    let shows = |x: u16, label: &str| x + label.chars().count() as u16 <= area.width;
+    let shows = |x: u16, label: &str| x + label.cells() as u16 <= area.width;
     let (source_head, kind_head, state_head, latency_head) = (
         t::sources_column_source(),
         t::sources_column_kind(),
@@ -213,7 +213,7 @@ fn render_store_summary(buf: &mut Buffer, app: &App, area: Rect, top: u16) -> u1
         glyph::dotted(&[&joined, &updates, &removed])
     };
     let hint = t::sources_stores_open();
-    let room = area.width.saturating_sub(hint.chars().count() as u16 + 4) as usize;
+    let room = area.width.saturating_sub(hint.cells() as u16 + 4) as usize;
     line(
         buf,
         area.left() + COL_PROVIDER,
@@ -221,7 +221,7 @@ fn render_store_summary(buf: &mut Buffer, app: &App, area: Rect, top: u16) -> u1
         truncate(&summary, room),
         app.palette.style(if updates > 0 { Role::State } else { Role::TextDim }),
     );
-    let hint_x = area.right().saturating_sub(hint.chars().count() as u16 + 1);
+    let hint_x = area.right().saturating_sub(hint.cells() as u16 + 1);
     if hint_x > area.left() + COL_PROVIDER {
         line(buf, hint_x, top + 1, &hint, app.palette.style(Role::TextDim));
     }

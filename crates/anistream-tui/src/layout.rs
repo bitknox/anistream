@@ -30,6 +30,9 @@ pub struct Frame {
     pub header_rule: Rect,
     /// The rail, or zero-width when hidden.
     pub rail: Rect,
+    /// How the rail is drawn in that width: collapsed whenever the terminal is too narrow for
+    /// the width asked for, so the rail never draws its expanded rows in a strip.
+    pub rail_mode: RailWidth,
     /// The vertical hairline between rail and stage, or zero-width when there is no rail.
     pub divider: Rect,
     /// Everything else.
@@ -70,6 +73,7 @@ pub fn compute(area: Rect, requested: RailWidth) -> Frame {
     let body_h =
         area.height.saturating_sub(header_h + header_rule_h + status_rule_h + status_h);
 
+    let rail_mode = effective_rail(area.width, requested);
     let rail_width = effective_rail_width(area.width, requested);
     // The divider only exists when there is something to divide.
     let divider_width = u16::from(rail_width > 0);
@@ -94,7 +98,16 @@ pub fn compute(area: Rect, requested: RailWidth) -> Frame {
         height: status_h,
     };
 
-    Frame { header, header_rule, rail, divider, stage, status_rule, status }
+    Frame { header, header_rule, rail, rail_mode, divider, stage, status_rule, status }
+}
+
+/// The rail's mode once the available space has had its say.
+pub fn effective_rail(total_width: u16, requested: RailWidth) -> RailWidth {
+    match effective_rail_width(total_width, requested) {
+        0 => RailWidth::Hidden,
+        width if width < requested.cells() => RailWidth::Collapsed,
+        _ => requested,
+    }
 }
 
 /// Resolve the rail width against the available space.
@@ -226,6 +239,7 @@ mod tests {
         // Chrome yields to content — that is the rule.
         let f = compute(area(80, 30), RailWidth::Expanded);
         assert_eq!(f.rail.width, RailWidth::Collapsed.cells());
+        assert_eq!(f.rail_mode, RailWidth::Collapsed, "drawn as the strip it is given");
         assert!(f.stage.width >= MIN_STAGE_WIDTH);
     }
 

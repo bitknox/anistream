@@ -84,6 +84,15 @@ pub(crate) fn watch_from(entry: &Entry) -> usize {
     at.min(seasons.len().saturating_sub(2))
 }
 
+/// Every episode of a title with a known count is watched: its play action says Watch again
+/// and starts from the first episode.
+pub(crate) fn watched_all(entry: &Entry) -> bool {
+    let Some(total) = entry.episodes.filter(|&total| total > 0) else {
+        return false;
+    };
+    entry.progress.is_some_and(|p| p.done >= total)
+}
+
 /// A title page left for one of its relations or recommendations.
 ///
 /// Opening a related title replaces `detail` and, once its episodes are asked for, the episode
@@ -766,6 +775,37 @@ mod tests {
         a.handle(Action::Back, 5);
         assert_eq!(a.nav.current(), &StageView::Section(Section::Home));
         assert_eq!(a.selected_entry().map(|e| e.id), Some(AnilistId::new(3)));
+    }
+
+    /// A title watched to its last episode offers to start again: the play hint says so, and
+    /// play starts from the first episode even when the record still points past the end.
+    #[test]
+    fn a_title_watched_to_the_end_says_watch_again_and_plays_the_first_episode() {
+        use anistream_model::progress::TitleProgress;
+        let mut a = home_list(1);
+        a.handle(Action::Open, 5);
+        let mut opened = Entry::new(AnilistId::new(1), "Title 0");
+        opened.episodes = Some(12);
+        opened.progress = Some(TitleProgress { done: 12, next: 13 });
+        a.apply(Event::Detail(Box::new(opened.clone())));
+        let says =
+            |a: &App| crate::keymap::status_hints(a).iter().any(|(_, h)| *h == "Watch again");
+        assert!(says(&a), "{:?}", crate::keymap::status_hints(&a));
+        assert_eq!(
+            a.handle(Action::PlayNext, 5),
+            Some(Command::play(AnilistId::new(1), "1".to_string()))
+        );
+
+        // One episode short of the end plays the next one, under the usual hint.
+        let mut a = home_list(1);
+        a.handle(Action::Open, 5);
+        opened.progress = Some(TitleProgress { done: 11, next: 12 });
+        a.apply(Event::Detail(Box::new(opened)));
+        assert!(!says(&a));
+        assert_eq!(
+            a.handle(Action::PlayNext, 5),
+            Some(Command::play(AnilistId::new(1), "12".to_string()))
+        );
     }
 
     #[test]
