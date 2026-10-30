@@ -20,6 +20,7 @@ public sealed partial class MainWindow
     readonly TvRemote tv = new();
     FfiTvSender? tvSender;
     Button? tvBar;
+    MenuFlyout? castMenu;
     bool openingTv;
 
     /// <summary>The sender, when the engine was built with the remote; without one Play on TV stays out of sight.</summary>
@@ -104,6 +105,7 @@ public sealed partial class MainWindow
     void TvChanged()
     {
         ShowTvBar();
+        KeepAwake(tv.CastRelaying);
         // While a TV plays, the media keys and Windows' media controls drive it: the cast's TV
         // first, as a cast is what was started last.
         if (tv.Casting && tv.Stage is CastStage.Starting or CastStage.Playing && tv.CastNow is { } cast)
@@ -116,6 +118,24 @@ public sealed partial class MainWindow
         if (tv.Sheet is not null && TvDialog.Showing is null && !openingTv)
             OpenTvDialog();
     }
+
+    bool keptAwake;
+
+    /// <summary>
+    /// While this PC sends a TV the episode, Windows doesn't sleep: that would stop the cast. The
+    /// display may still turn off. Always on the UI thread, which the request belongs to.
+    /// </summary>
+    void KeepAwake(bool awake)
+    {
+        if (awake == keptAwake)
+            return;
+        keptAwake = awake;
+        const uint continuous = 0x80000000, system = 0x00000001;
+        SetThreadExecutionState(awake ? continuous | system : continuous);
+    }
+
+    [LibraryImport("kernel32.dll")]
+    private static partial uint SetThreadExecutionState(uint flags);
 
     async void OpenTvDialog()
     {
@@ -175,6 +195,10 @@ public sealed partial class MainWindow
             line.Children.Add(new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 220 });
             tvBar.Content = line;
             tvBar.Click += (_, _) => tv.OpenRemote();
+            // Its menu while a cast runs: the cast ends and Play on TV opens on the same episode.
+            var another = new MenuFlyoutItem { Text = T.TvChooseAnother };
+            another.Click += (_, _) => tv.CastElsewhere();
+            castMenu = new MenuFlyout { Items = { another } };
             tvBar.SizeChanged += (_, _) => KeepSearchInPlace();
             AppTitleBar.SizeChanged += (_, _) => KeepSearchInPlace();
             AppTitleBar.RightHeader = tvBar;
@@ -195,6 +219,7 @@ public sealed partial class MainWindow
         ToolTipService.SetToolTip(tvBar, tip);
         AutomationProperties.SetName(tvBar, text);
         AutomationProperties.SetHelpText(tvBar, tip);
+        tvBar.ContextFlyout = tv.Casting ? castMenu : null;
         tvBar.Visibility = Visibility.Visible;
         KeepSearchInPlace();
     }
@@ -319,6 +344,7 @@ public sealed partial class MainWindow
     ///     cast-lost            Living room drops off mid-episode
     ///     cast-taken-over      someone else takes Living room: the card closes, the notice offers Play here
     ///     cast-bar             Living room playing with the card closed: the title bar's button
+    ///     cast-bar-menu        the same, with the button's menu open on Choose another TV
     ///     cast-stopped         Stop casting from the card
     ///     cast-up-next         Living room near the end of the episode: Up next counts down
     /// </summary>
@@ -350,9 +376,14 @@ public sealed partial class MainWindow
                 await Task.Delay(1500);
                 fake?.TakeOver();
                 break;
-            case "cast-bar":
+            case "cast-bar" or "cast-bar-menu":
                 await Task.Delay(500);
                 TvDialog.Showing?.Close();
+                if (scene == "cast-bar-menu" && tvBar?.ContextFlyout is { } menu)
+                {
+                    await Task.Delay(800);
+                    menu.ShowAt(tvBar);
+                }
                 break;
             case "cast-stopped":
                 await Task.Delay(1500);

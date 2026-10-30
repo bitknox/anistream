@@ -1116,6 +1116,7 @@ struct Remote {
     rows: gtk::ListBox,
     subtitles: gtk::MenuButton,
     audio: gtk::MenuButton,
+    subtitle_row: adw::ActionRow,
     audio_row: adw::ActionRow,
     tracks_drawn: RefCell<(Vec<TrackInfo>, Vec<TrackInfo>)>,
     subtitle_action: gio::SimpleAction,
@@ -1396,6 +1397,7 @@ impl Remote {
             rows,
             subtitles,
             audio,
+            subtitle_row,
             audio_row,
             tracks_drawn: RefCell::default(),
             subtitle_action: radio("subtitle"),
@@ -1675,6 +1677,7 @@ impl Remote {
         self.seek_line.set_visible(true);
         self.transport.set_visible(true);
         self.rows.set_visible(true);
+        self.subtitle_row.set_visible(true);
         self.audio_row.set_visible(true);
         self.up_next.set_visible(false);
         self.undo_note.set_visible(false);
@@ -1741,7 +1744,9 @@ impl Remote {
             if ended || view.undo.is_some() {
                 self.skip.set_visible(false);
             }
-            // Audio only while the TV can be given a choice: a change loads the stream again.
+            // Subtitles once the TV has said what it has, never a guess while it starts; audio
+            // only while the TV can be given a choice, since a change loads the stream again.
+            self.subtitle_row.set_visible(playing || !now.subtitles.is_empty());
             self.audio_row.set_visible(!now.audio.is_empty());
             self.draw_up_next(ctx, view.up_next.as_ref(), now);
         }

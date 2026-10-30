@@ -159,6 +159,13 @@ impl Tv {
         self.cast.borrow().as_ref().is_some_and(|run| stage_of(&run.card) == Stage::Playing)
     }
 
+    /// This computer sends the TV the episode, so it must stay awake while the cast runs.
+    pub fn cast_relaying(&self) -> bool {
+        self.cast.borrow().as_ref().is_some_and(|run| {
+            !run.card.card.over && run.card.route == Some(CastRouteHint::ThroughThisDevice)
+        })
+    }
+
     pub fn cast_view(&self) -> Option<CastView> {
         let cast = self.cast.borrow();
         let run = cast.as_ref()?;

@@ -1093,6 +1093,7 @@ sealed class TvDialog
         readonly StackPanel settings = new() { Spacing = 4 };
         readonly DropDownButton subtitles = new() { MinWidth = 120 };
         readonly DropDownButton audio = new() { MinWidth = 120 };
+        readonly Border subtitlesRow;
         readonly Border audioRow;
         readonly TextBlock volumeNote = Ui.Text("", "HazeCaptionStyle", wrap: false);
         readonly Slider level = new() { Minimum = 0, Maximum = 100, StepFrequency = 1, SmallChange = 5, LargeChange = 10, Width = 160, IsThumbToolTipEnabled = false };
@@ -1249,7 +1250,8 @@ sealed class TvDialog
             root.Children.Add(transport);
 
             // Subtitles, audio while the TV can be given a choice, and the TV's own volume.
-            settings.Children.Add(Setting(T.PlayerSubtitles, null, subtitles));
+            subtitlesRow = Setting(T.PlayerSubtitles, null, subtitles);
+            settings.Children.Add(subtitlesRow);
             audioRow = Setting(T.PlayerAudio, null, audio);
             settings.Children.Add(audioRow);
             AutomationProperties.SetName(level, T.TvVolumeLabel);
@@ -1371,6 +1373,8 @@ sealed class TvDialog
 
             settings.Opacity = playing ? 1 : 0.4;
             subtitles.IsEnabled = playing && now.Subtitles.Length > 0;
+            // Subtitles once the TV has said what it has, never a guess while it starts.
+            subtitlesRow.Visibility = playing || now.Subtitles.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             audioRow.Visibility = now.Audio.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             audio.IsEnabled = playing;
             if (card is not null)

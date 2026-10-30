@@ -623,6 +623,8 @@ impl Shell {
             }),
         );
         add("tv-remote", None, Box::new(|s, _| s.ctx.tv.open_remote()));
+        // The session button's menu: the cast ends and Play on TV opens on the same episode.
+        add("tv-choose-another", None, Box::new(|s, _| s.ctx.tv.cast_choose_another()));
         // The notice for a TV someone else took: carry on here.
         add(
             "tv-play-here",
@@ -1275,6 +1277,7 @@ fn sidebar(ctx: &Rc<Ctx>) -> (adw::NavigationPage, gtk::ListBox, gtk::ListBox) {
     column.append(&scroll);
     column.append(&playing_on(ctx));
     announce_link(ctx);
+    keep_awake_while_relaying(ctx);
     column.append(&foot);
 
     let menu = gio::Menu::new();
@@ -1321,6 +1324,7 @@ fn playing_on(ctx: &Rc<Ctx>) -> gtk::ListBox {
     line.append(&dot);
     let row = gtk::ListBoxRow::builder().child(&line).build();
     row.set_action_name(Some("win.tv-remote"));
+    let casting = session_menu(ctx, row.upcast_ref());
     list.append(&row);
     list.set_visible(false);
     let show = {
@@ -1328,6 +1332,7 @@ fn playing_on(ctx: &Rc<Ctx>) -> gtk::ListBox {
         move |standing: Option<&(String, &'static str, bool)>| {
             let Some(list) = list.upgrade() else { return };
             list.set_visible(standing.is_some());
+            casting();
             let Some((text, mark, _)) = standing else { return };
             label.set_label(text);
             row.set_tooltip_text(Some(text));
@@ -1350,6 +1355,7 @@ pub fn tv_session_button(ctx: &Rc<Ctx>) -> gtk::Button {
     icon.add_overlay(&dot);
     let button = gtk::Button::builder().child(&icon).action_name("win.tv-remote").build();
     button.add_css_class("flat");
+    let casting = session_menu(ctx, button.upcast_ref());
     let session = Rc::new(Cell::new(false));
     let collapsed = ctx.split.is_collapsed();
     button.set_visible(false);
@@ -1369,6 +1375,7 @@ pub fn tv_session_button(ctx: &Rc<Ctx>) -> gtk::Button {
     let split = ctx.split.downgrade();
     let weak = button.downgrade();
     follow_session(ctx, move |standing| {
+        casting();
         session.set(standing.is_some());
         place(split.upgrade().map_or(collapsed, |s| s.is_collapsed()));
         if let (Some((text, mark, _)), Some(button)) = (standing, weak.upgrade()) {
@@ -1378,6 +1385,48 @@ pub fn tv_session_button(ctx: &Rc<Ctx>) -> gtk::Button {
         }
     });
     button
+}
+
+/// The session button's menu, on a secondary click or a long press: Choose another TV while a
+/// cast runs, as for a TV running anistream. Returns what to run as the session changes, which
+/// lets the menu open only while there is a cast to move.
+fn session_menu(ctx: &Rc<Ctx>, widget: &gtk::Widget) -> impl Fn() + use<> {
+    let menu = gio::Menu::new();
+    menu.append(Some(&t::tv_choose_another()), Some("win.tv-choose-another"));
+    let popover = gtk::PopoverMenu::from_model(Some(&menu));
+    popover.set_has_arrow(false);
+    popover.set_parent(widget);
+    widget.connect_destroy({
+        let popover = popover.clone();
+        move |_| popover.unparent()
+    });
+    let casting = Rc::new(Cell::new(false));
+    let open = {
+        let popover = popover.downgrade();
+        let casting = Rc::clone(&casting);
+        move |x: f64, y: f64| {
+            let Some(popover) = popover.upgrade().filter(|_| casting.get()) else { return };
+            popover.set_pointing_to(Some(&gtk::gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+            popover.popup();
+        }
+    };
+    let click = gtk::GestureClick::builder().button(gtk::gdk::BUTTON_SECONDARY).build();
+    click.connect_pressed({
+        let open = open.clone();
+        move |gesture, _, x, y| {
+            gesture.set_state(gtk::EventSequenceState::Claimed);
+            open(x, y);
+        }
+    });
+    widget.add_controller(click);
+    let press = gtk::GestureLongPress::new();
+    press.connect_pressed(move |gesture, x, y| {
+        gesture.set_state(gtk::EventSequenceState::Claimed);
+        open(x, y);
+    });
+    widget.add_controller(press);
+    let tv = Rc::downgrade(&ctx.tv);
+    move || casting.set(tv.upgrade().is_some_and(|tv| tv.casting()))
 }
 
 fn session_dot() -> gtk::Box {
@@ -1427,6 +1476,35 @@ fn announce_link(ctx: &Rc<Ctx>) {
                 .announce(&down, gtk::AccessibleAnnouncementPriority::Medium);
         }
         said.replace(down);
+    });
+}
+
+/// While this computer sends a TV the episode, it stays awake: sleeping would stop the cast.
+fn keep_awake_while_relaying(ctx: &Rc<Ctx>) {
+    let cookie: Cell<Option<u32>> = Cell::new(None);
+    let window = ctx.window.downgrade();
+    let tv = Rc::downgrade(&ctx.tv);
+    ctx.tv.listen(move || {
+        let (Some(tv), Some(window)) = (tv.upgrade(), window.upgrade()) else { return };
+        let Some(app) = window.application() else { return };
+        match (tv.cast_relaying(), cookie.get()) {
+            (true, None) => {
+                let id = app.inhibit(
+                    Some(&window),
+                    gtk::ApplicationInhibitFlags::SUSPEND,
+                    Some(&t::tv_cast_inhibit_reason()),
+                );
+                cookie.set(Some(id));
+            }
+            (false, Some(id)) => {
+                cookie.set(None);
+                // Zero when there is no session to ask, as in a headless run.
+                if id > 0 {
+                    app.uninhibit(id);
+                }
+            }
+            _ => {}
+        }
     });
 }
 

@@ -1825,6 +1825,11 @@ pub fn tv_cast_through_computer() -> String {
     text("tv-cast-through-computer", &[])
 }
 
+/// The reason the system gives for keeping the computer from sleeping while it sends a TV with Chromecast built in the episode. Other apps and the desktop may show it.
+pub fn tv_cast_inhibit_reason() -> String {
+    text("tv-cast-inhibit-reason", &[])
+}
+
 /// The heading over the TVs running anistream in Play on TV, once TVs with Chromecast built in are listed below them.
 pub fn tv_network_group() -> String {
     text("tv-network-group", &[])

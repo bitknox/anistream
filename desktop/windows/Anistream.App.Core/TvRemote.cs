@@ -539,6 +539,9 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
     /// <summary>A cast is running, or its ending is shown on the card and the title bar.</summary>
     public bool Casting => cast is not null;
 
+    /// <summary>This PC sends the TV the episode, so it must stay awake while the cast runs.</summary>
+    public bool CastRelaying => cast is not null && CastCard is { Card.Over: false, Route: FfiCastRouteHint.ThroughThisDevice };
+
     /// <summary>
     /// A Chromecast row chosen: cast what was asked to it, and show its card at once. A player
     /// that asked closes once the TV plays it.
