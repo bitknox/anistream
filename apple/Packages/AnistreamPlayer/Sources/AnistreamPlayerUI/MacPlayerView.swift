@@ -634,7 +634,7 @@ struct VolumeLine: View {
     var body: some View {
         GeometryReader { proxy in
             Capsule()
-                .fill(Palette.silk.opacity(0.22))
+                .fill(Palette.silk.opacity(0.25))
                 .overlay(alignment: .leading) {
                     Capsule().fill(.silk).frame(width: proxy.size.width * min(1, model.volume / 100))
                 }

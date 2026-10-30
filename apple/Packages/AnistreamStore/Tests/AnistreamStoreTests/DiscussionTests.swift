@@ -13,6 +13,18 @@ struct DiscussionTests {
         #expect(model.count(900_002, episode: 7) == nil)
     }
 
+    @Test func closingAnEarlierDiscussionLeavesTheLaterOneOpen() {
+        let model = DiscussionModel()
+        let seven = DiscussionKey(media: 900_001, episode: 7)
+        let eight = DiscussionKey(media: 900_001, episode: 8)
+        model.requested(seven)
+        model.requested(eight)
+        #expect(!model.owns(seven), "the window that showed 7 closing must not close 8")
+        #expect(model.owns(eight))
+        model.closed()
+        #expect(!model.owns(eight))
+    }
+
     @Test func showingADiscussionSetsItsTargetUntilItIsDismissed() {
         let model = DiscussionModel()
         model.show(DiscussionKey(media: 900_001, episode: 3))
