@@ -29,6 +29,9 @@ pub struct ConfigState {
     /// How many shows switch new-episode notifications on for themselves, counted with
     /// `overridden`: [`SettingsView::notify_switched_on`].
     notify_switched_on: u32,
+    /// The engine runs on a phone or a tablet: what the defaults that depend on the device go
+    /// by, filled into both copies wherever the file leaves them unset.
+    handheld: bool,
 }
 
 impl ConfigState {
@@ -37,7 +40,33 @@ impl ConfigState {
     /// reads it, as the defaults.
     pub fn new(launched: Config, saved: Option<Config>, paths: &Paths) -> Self {
         let saved = saved.unwrap_or_else(|| Config::load(paths).unwrap_or_default());
-        Self { saved, effective: launched, overridden: Vec::new(), notify_switched_on: 0 }
+        let mut state = Self {
+            saved,
+            effective: launched,
+            overridden: Vec::new(),
+            notify_switched_on: 0,
+            handheld: false,
+        };
+        state.fill();
+        state
+    }
+
+    /// Whether the engine runs on a phone or a tablet, for the defaults that depend on it:
+    /// torrents while casting is off there, on elsewhere.
+    pub fn set_handheld(&mut self, handheld: bool) {
+        self.handheld = handheld;
+        self.fill();
+    }
+
+    /// The defaults that depend on the device, where a copy leaves them unset. Unset reads as
+    /// on, so only a phone or a tablet fills anything in.
+    fn fill(&mut self) {
+        if !self.handheld {
+            return;
+        }
+        for config in [&mut self.saved, &mut self.effective] {
+            config.providers.torrent.while_casting.get_or_insert(false);
+        }
     }
 
     /// The config in effect.
@@ -103,6 +132,7 @@ impl ConfigState {
     ) -> Result<(), anistream_core::Error> {
         let written = anistream_core::settings::write_key(paths, table, key, value);
         self.saved = Config::load(paths).unwrap_or_default();
+        self.fill();
         if written.is_err()
             && let Some(setting) = SettingKey::at(table, key)
         {
@@ -121,6 +151,7 @@ impl ConfigState {
     ) -> Result<(), anistream_core::Error> {
         let written = anistream_core::settings::write_keys(paths, edits);
         self.saved = Config::load(paths).unwrap_or_default();
+        self.fill();
         self.effective.providers.torrent.vpn.clone_from(&self.saved.providers.torrent.vpn);
         written
     }
@@ -159,5 +190,21 @@ mod tests {
         assert!(refused.is_err());
         assert!(!config.effective().providers.torrent.enabled, "back to what the file holds");
         assert_eq!(config.effective().playback.quality, 2160, "and nothing else");
+    }
+
+    #[test]
+    fn torrents_while_casting_is_off_on_phones_and_tablets_unless_the_file_says() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = paths_in(dir.path());
+        let config = ConfigState::new(Config::default(), None, &paths);
+        assert!(anistream_model::settings::while_casting(config.effective()));
+
+        let mut phone = ConfigState::new(Config::default(), None, &paths);
+        phone.set_handheld(true);
+        assert_eq!(phone.effective().providers.torrent.while_casting, Some(false));
+        phone
+            .write(&paths, &["providers", "torrent"], "while_casting", SettingValue::Bool(true))
+            .unwrap();
+        assert_eq!(phone.saved().providers.torrent.while_casting, Some(true), "the file's own");
     }
 }

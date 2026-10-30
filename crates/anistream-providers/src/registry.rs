@@ -330,6 +330,19 @@ impl ProviderRegistry {
         }
     }
 
+    /// The same registry without the sources of `kind`, as a view like [`Self::pinned`] that
+    /// shares the health record: what a cast plays from when torrents are not to serve it.
+    pub fn without_kind(&self, kind: ProviderKind) -> Self {
+        let providers =
+            self.snapshot().into_iter().filter(|p| p.manifest().kind != kind).collect();
+        Self {
+            providers: Arc::new(std::sync::RwLock::new(providers)),
+            health: self.health.clone(),
+            disabled: self.disabled.clone(),
+            arriving: Arc::clone(&self.arriving),
+        }
+    }
+
     /// Give every source that went down another chance, for a change to the sources the user
     /// made: see [`HealthTracker::reset_down`].
     pub fn retry_down(&self) {
@@ -645,6 +658,24 @@ mod tests {
         assert_eq!(r.usable_ids(), ["off", "on"]);
         let attempt = r.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
         assert_eq!(attempt.provider.as_deref(), Some("off"));
+    }
+
+    #[tokio::test]
+    async fn a_view_without_torrents_plays_from_the_rest_and_shares_their_health() {
+        let r = registry(vec![
+            MockProvider::new("swarm")
+                .kind(ProviderKind::Torrent)
+                .with_streams(vec![stream("swarm's")])
+                .arc(),
+            MockProvider::new("site").with_streams(vec![stream("site's")]).arc(),
+        ]);
+        let view = r.without_kind(ProviderKind::Torrent);
+        assert_eq!(view.ids(), ["site"]);
+        assert_eq!(r.ids(), ["swarm", "site"], "the registry itself keeps them");
+        let attempt = view.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+        assert_eq!(attempt.provider.as_deref(), Some("site"));
+        r.set_disabled(["site".to_owned()]);
+        assert!(view.usable_ids().is_empty(), "switched off in the view too");
     }
 
     #[test]

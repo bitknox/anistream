@@ -252,7 +252,7 @@ async fn audio_the_tv_cant_play_says_so_and_never_takes_the_tv_over() {
     let stream = rig.file("1.mkv", &Fixture::default());
     let events = rig.play(vec![stream], context("1", None)).await;
     assert_eq!(ending(&events), Some(Ending::Failed));
-    let said = Msg::NoticeCastAudioCodec { codec: "AC-3".into() }.english();
+    let said = Msg::NoticeCastAudioCodec { name: "Living room".into(), codec: "AC-3".into() }.english();
     assert!(toasts(&events).contains(&said), "{:?}", toasts(&events));
     assert!(rig.receiver.heard("LAUNCH").is_empty());
 }

@@ -11,17 +11,21 @@ extension Msg {
         switch self {
         case .castEpisode(let episode): L.castEpisode(episode: episode)
         case .castEpisodeTitled(let episode, let title): L.castEpisodeTitled(episode: episode, title: title)
-        case .noticeCastVideoCodec(let codec): L.noticeCastVideoCodec(codec: codec)
-        case .noticeCastAudioCodec(let codec): L.noticeCastAudioCodec(codec: codec)
-        case .noticeCastContainer: L.noticeCastContainer
+        case .noticeCastVideoCodec(let name, let codec): L.noticeCastVideoCodec(name: name, codec: codec)
+        case .noticeCastAudioCodec(let name, let codec): L.noticeCastAudioCodec(name: name, codec: codec)
+        case .noticeCastContainer(let name): L.noticeCastContainer(name: name)
         case .noticeCastDeepLink: L.noticeCastDeepLink
-        case .noticeCastNeverFetches: L.noticeCastNeverFetches
-        case .noticeCastRefused: L.noticeCastRefused
-        case .noticeCastTakenOver: L.noticeCastTakenOver
-        case .noticeCastNotSameNetwork: L.noticeCastNotSameNetwork
-        case .noticeCastLost: L.noticeCastLost
+        case .noticeCastNeverFetches(let name): L.noticeCastNeverFetches(name: name)
+        case .noticeCastRefused(let name): L.noticeCastRefused(name: name)
+        case .noticeCastTakenOver(let name): L.noticeCastTakenOver(name: name)
+        case .noticeCastNotSameNetwork(let name): L.noticeCastNotSameNetwork(name: name)
+        case .noticeCastLost(let name): L.noticeCastLost(name: name)
         case .noticeCastNoDevice: L.noticeCastNoDevice
         case .noticeCastUnavailable: L.noticeCastUnavailable
+        case .castPhaseStarting(let name): L.castPhaseStarting(name: name)
+        case .castPhaseStartingFor(let name, let seconds): L.castPhaseStartingFor(name: name, seconds: Int(seconds))
+        case .castPhaseWaiting(let name, let seconds): L.castPhaseWaiting(name: name, seconds: Int(seconds))
+        case .castPhasePreparing(let seconds): L.castPhasePreparing(seconds: Int(seconds))
         case .discussionAgeNow: L.discussionAgeNow
         case .discussionAgeMinutes(let minutes): L.discussionAgeMinutes(minutes: Int(minutes))
         case .discussionAgeHours(let hours): L.discussionAgeHours(hours: Int(hours))

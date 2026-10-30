@@ -3,8 +3,9 @@
 //! The session drives a cast as it drives mpv: it loads a file, sets `pause` and `speed`, seeks,
 //! and reads what happened from [`PlaybackEvent`]s. [`CastLink`] turns that into the Cast
 //! protocol through [`CastPlayer`], which chooses how the TV reads the stream, tries the ways in
-//! turn, and remembers what each TV played. What a TV has no use for, the overlay and the
-//! upscaling chain among it, is taken and dropped.
+//! turn, and remembers what each TV played. What a TV has no use for, the upscaling chain among
+//! it, is taken and dropped. The overlays the sender's card draws in the TV's place, Up Next, the
+//! skip on offer and the Undo note, go to the [`CastHub`].
 
 use std::{
     path::{Path, PathBuf},
@@ -87,6 +88,7 @@ impl PlayerOpener for CastOpener {
         let link = CastLink {
             player,
             device: self.device.id.clone(),
+            name: self.device.name.clone(),
             hub: Arc::clone(&self.hub),
             file: Mutex::new(None),
         };
@@ -102,7 +104,7 @@ impl PlayerOpener for CastOpener {
     }
 
     fn open_failure_notice(&self) -> Option<Msg> {
-        lock(&self.unreached).as_ref().map(notice)
+        lock(&self.unreached).as_ref().map(|failure| notice(failure, &self.device.name))
     }
 }
 
@@ -111,6 +113,8 @@ pub struct CastLink {
     player: Arc<CastPlayer>,
     /// The TXT `id` of the TV.
     device: String,
+    /// The TV's own name, which the notices say.
+    name: String,
     hub: Arc<CastHub>,
     /// What the next load plays, from [`PlayerLink::prepare`].
     file: Mutex<Option<FileFacts>>,
@@ -122,22 +126,23 @@ impl CastLink {
     }
 }
 
-/// What a cast that failed tells the viewer.
-pub fn notice(failure: &CastFailure) -> Msg {
+/// What a cast to the TV called `name` that failed tells the viewer.
+pub fn notice(failure: &CastFailure, name: &str) -> Msg {
+    let name = name.to_owned();
     match failure {
         CastFailure::Uncastable(Uncastable::VideoCodec(codec)) => {
-            Msg::NoticeCastVideoCodec { codec: codec.clone() }
+            Msg::NoticeCastVideoCodec { name, codec: codec.clone() }
         }
         CastFailure::Uncastable(Uncastable::AudioCodec(codec)) => {
-            Msg::NoticeCastAudioCodec { codec: codec.clone() }
+            Msg::NoticeCastAudioCodec { name, codec: codec.clone() }
         }
-        CastFailure::Uncastable(Uncastable::Container(_)) => Msg::NoticeCastContainer,
+        CastFailure::Uncastable(Uncastable::Container(_)) => Msg::NoticeCastContainer { name },
         CastFailure::Uncastable(Uncastable::DeepLink) => Msg::NoticeCastDeepLink,
-        CastFailure::NeverFetches => Msg::NoticeCastNeverFetches,
-        CastFailure::Refused => Msg::NoticeCastRefused,
-        CastFailure::TakenOver => Msg::NoticeCastTakenOver,
-        CastFailure::NotSameNetwork => Msg::NoticeCastNotSameNetwork,
-        CastFailure::Lost(_) => Msg::NoticeCastLost,
+        CastFailure::NeverFetches => Msg::NoticeCastNeverFetches { name },
+        CastFailure::Refused => Msg::NoticeCastRefused { name },
+        CastFailure::TakenOver => Msg::NoticeCastTakenOver { name },
+        CastFailure::NotSameNetwork => Msg::NoticeCastNotSameNetwork { name },
+        CastFailure::Lost(_) => Msg::NoticeCastLost { name },
     }
 }
 
@@ -175,15 +180,18 @@ fn subtitles(
     (tracks, on)
 }
 
-/// The episode line the TV shows under the show's name.
-fn episode_line(file: &FileFacts) -> String {
-    match file.episode_title.as_deref().filter(|t| !t.is_empty()) {
+/// The episode line the TV shows under the show's name, in the front end's language.
+fn episode_line(file: &FileFacts, language: Option<&str>) -> String {
+    let line = match file.episode_title.as_deref().filter(|t| !t.is_empty()) {
         Some(title) => {
             Msg::CastEpisodeTitled { episode: file.episode.clone(), title: title.to_owned() }
         }
         None => Msg::CastEpisode { episode: file.episode.clone() },
+    };
+    match language {
+        Some(tag) => line.text_in(tag),
+        None => line.english(),
     }
-    .english()
 }
 
 /// The resume point from mpv's per-file options.
@@ -210,7 +218,7 @@ impl PlayerLink for CastLink {
     }
 
     fn failure_notice(&self) -> Option<Msg> {
-        self.player.failure().as_ref().map(notice)
+        self.player.failure().as_ref().map(|failure| notice(failure, &self.name))
     }
 
     async fn load(&self, url: &str, options: Vec<(String, String)>) -> Result<(), LinkError> {
@@ -226,7 +234,7 @@ impl PlayerLink for CastLink {
                     start: start_of(&options),
                     metadata: Metadata {
                         series: file.title.clone(),
-                        title: episode_line(&file),
+                        title: episode_line(&file, self.hub.language().as_deref()),
                         image: file.image.clone(),
                     },
                     subtitles,
@@ -238,6 +246,7 @@ impl PlayerLink for CastLink {
                     } else {
                         Some("ja".to_owned())
                     },
+                    audio_track: None,
                 }
             }
             // Not told what it is: played as a stream from its address alone.
@@ -250,6 +259,7 @@ impl PlayerLink for CastLink {
                 subtitles: Vec::new(),
                 subtitle: None,
                 audio_language: None,
+                audio_track: None,
             },
         };
         self.player.load(load);
@@ -343,6 +353,9 @@ impl PlayerLink for CastLink {
     }
 
     async fn seek(&self, seconds: f64, absolute: bool) -> Result<(), LinkError> {
+        let target =
+            if absolute { seconds } else { self.player.position().unwrap_or(0.0) + seconds };
+        self.hub.seeked(target);
         self.player.seek(seconds, absolute).await.map_err(failed)
     }
 
@@ -358,7 +371,8 @@ impl PlayerLink for CastLink {
         Ok(())
     }
 
-    async fn overlay(&self, _overlay: Overlay) -> Result<(), LinkError> {
+    async fn overlay(&self, overlay: Overlay) -> Result<(), LinkError> {
+        self.hub.overlay(&overlay);
         Ok(())
     }
 
@@ -570,7 +584,10 @@ mod tests {
         let request = PlaybackRequest::default();
         assert!(opener.open(&request).await.is_err());
 
-        assert_eq!(opener.open_failure_notice(), Some(Msg::NoticeCastLost));
+        assert_eq!(
+            opener.open_failure_notice(),
+            Some(Msg::NoticeCastLost { name: "Living room".into() })
+        );
         assert!(!hub.casting(), "the next play opens on this device");
         let view = hub.view();
         assert!(view.over, "the card isn't left starting");
@@ -582,15 +599,47 @@ mod tests {
     }
 
     #[test]
-    fn every_failure_says_why_in_the_casts_own_words() {
+    fn every_failure_says_why_naming_the_tv() {
         let codec = |c: &str| CastFailure::Uncastable(Uncastable::AudioCodec(c.into()));
-        assert_eq!(notice(&codec("AC-3")), Msg::NoticeCastAudioCodec { codec: "AC-3".into() });
-        assert_eq!(notice(&CastFailure::Lost("reset".into())), Msg::NoticeCastLost);
-        assert_eq!(notice(&CastFailure::TakenOver), Msg::NoticeCastTakenOver);
-        assert_eq!(notice(&CastFailure::NotSameNetwork), Msg::NoticeCastNotSameNetwork);
-        for failure in [CastFailure::NeverFetches, CastFailure::Refused, CastFailure::TakenOver]
-        {
-            assert!(!notice(&failure).english().is_empty());
+        let name = || "Living room".to_owned();
+        assert_eq!(
+            notice(&codec("AC-3"), "Living room"),
+            Msg::NoticeCastAudioCodec { name: name(), codec: "AC-3".into() }
+        );
+        assert_eq!(
+            notice(&CastFailure::Lost("reset".into()), "Living room").english(),
+            "Lost Living room, so casting stopped."
+        );
+        assert_eq!(
+            notice(&CastFailure::NeverFetches, "Living room").english(),
+            "Living room didn't start reading the stream. A VPN or a firewall on this device \
+             may be in the way."
+        );
+        for failure in [
+            CastFailure::Refused,
+            CastFailure::TakenOver,
+            CastFailure::NotSameNetwork,
+            CastFailure::Uncastable(Uncastable::VideoCodec("HEVC".into())),
+            CastFailure::Uncastable(Uncastable::Container("AVI".into())),
+        ] {
+            assert!(notice(&failure, "Living room").english().contains("Living room"));
         }
+    }
+
+    #[test]
+    fn the_tv_shows_the_episode_line_in_the_front_end_s_language() {
+        let file = FileFacts {
+            source: Stream::new("https://cdn.example/1.m3u8", StreamKind::Hls),
+            played: Stream::new("https://cdn.example/1.m3u8", StreamKind::Hls),
+            title: "Stardust Wayfarer".into(),
+            episode: "3".into(),
+            episode_title: Some("Low Tide".into()),
+            image: None,
+            subtitle_language: None,
+            dub: false,
+        };
+        assert_eq!(episode_line(&file, None), "Episode 3 · Low Tide");
+        // A language the build lacks reads as English rather than failing.
+        assert_eq!(episode_line(&file, Some("xx")), "Episode 3 · Low Tide");
     }
 }

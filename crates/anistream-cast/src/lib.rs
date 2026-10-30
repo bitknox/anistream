@@ -51,7 +51,8 @@ pub use formats::{
 };
 pub use memory::{CastCaps, CastMemory, FormatAnswer};
 pub use player::{
-    CastFailure, CastLoad, CastPlayer, CastSetup, CastState, CastStatus, CastSubtitle, Timings,
+    CastAudio, CastFailure, CastLoad, CastPlayer, CastSetup, CastState, CastStatus, CastStep,
+    CastSubtitle, CastText, Timings,
 };
 pub use probe::CorsProbe;
 pub use relay::Relay;

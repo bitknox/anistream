@@ -132,6 +132,8 @@ pub struct CastLoad {
     pub subtitle: Option<usize>,
     /// The language the audio track is chosen by.
     pub audio_language: Option<String>,
+    /// The audio track the viewer picked, by its place among the file's, over the language.
+    pub audio_track: Option<usize>,
 }
 
 /// Why a cast didn't play, or stopped.
@@ -169,6 +171,36 @@ pub enum CastState {
     Ended,
 }
 
+/// What a cast that hasn't started playing is doing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CastStep {
+    /// This device reads the stream and makes it ready for the TV: the probe, the remux.
+    Preparing,
+    /// The TV opens its player or loads the stream.
+    Waiting,
+}
+
+/// An audio track of the file casting, as the card lists it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CastAudio {
+    /// Its place among the file's audio tracks: what [`CastPlayer::set_audio`] takes.
+    pub index: usize,
+    pub language: Option<String>,
+    pub codec: Option<String>,
+    pub channels: u16,
+    pub selected: bool,
+}
+
+/// A text track sent with the load, as the card lists it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CastText {
+    /// The track's id on the TV, from one: what [`CastPlayer::set_subtitle`] takes.
+    pub id: u32,
+    pub language: Option<String>,
+    pub title: Option<String>,
+    pub selected: bool,
+}
+
 /// What the card shows of a cast, as it changes.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct CastStatus {
@@ -182,6 +214,15 @@ pub struct CastStatus {
     /// The plan playing, once one does.
     pub plan: Option<CastPlan>,
     pub failure: Option<CastFailure>,
+    /// What a load not yet playing is doing.
+    pub step: Option<CastStep>,
+    /// When the load not yet playing was asked for.
+    pub since: Option<Instant>,
+    /// The file's audio tracks the TV can be given, when there is a choice: a file the relay
+    /// remuxes, with more than one.
+    pub audio: Vec<CastAudio>,
+    /// The text tracks sent with the load.
+    pub subtitles: Vec<CastText>,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -256,6 +297,15 @@ struct State {
     /// The load in force, with its tracks, for a reload when a subtitle comes later.
     load: Option<Load>,
     plan: Option<CastPlan>,
+    /// What the session asked to cast, with the subtitles that came later: what a change of
+    /// audio loads again.
+    asked: Option<CastLoad>,
+    step: Option<CastStep>,
+    since: Option<Instant>,
+    audio: Vec<CastAudio>,
+    subtitles: Vec<CastText>,
+    /// The text track on, from one.
+    subtitle: Option<u32>,
 }
 
 impl State {
@@ -285,6 +335,14 @@ impl State {
             volume: self.control,
             plan: self.plan.clone(),
             failure: self.failure.clone(),
+            step: self.step.filter(|_| self.trying),
+            since: self.since.filter(|_| self.trying),
+            audio: self.audio.clone(),
+            subtitles: self
+                .subtitles
+                .iter()
+                .map(|t| CastText { selected: Some(t.id) == self.subtitle, ..t.clone() })
+                .collect(),
         }
     }
 }
@@ -469,9 +527,39 @@ impl CastPlayer {
         lock(&self.inner.state).last.as_ref().map(|s| s.position)
     }
 
+    /// Say `event` to the session as if the TV had: what the sender's card asks of the session
+    /// that only a player would, such as playing the next episode when Up Next's count ends.
+    pub fn say(&self, event: PlaybackEvent) {
+        self.inner.say(event);
+    }
+
     /// Cast `load` in place of whatever plays. Returns at once: what happened comes back as
     /// events, `Loaded` once a plan plays, or `Ended` unplayed with [`CastPlayer::failure`] set.
     pub fn load(&self, load: CastLoad) {
+        self.start(load, false);
+    }
+
+    /// Load the file casting again with the audio track at `index` among its tracks, from where
+    /// it is: a TV takes its tracks with the load. The session hears no new `Loaded`, as for a
+    /// late subtitle. Nothing when no file is casting or the track is the one playing.
+    pub fn set_audio(&self, index: usize) {
+        let load = {
+            let state = lock(&self.inner.state);
+            if state.trying || !state.audio.iter().any(|a| a.index == index && !a.selected) {
+                return;
+            }
+            let Some(mut load) = state.asked.clone() else { return };
+            load.audio_track = Some(index);
+            load.start = state.last.as_ref().map(|s| s.position).or(load.start);
+            load.subtitle =
+                state.subtitle.and_then(|id| usize::try_from(id).ok()?.checked_sub(1));
+            load
+        };
+        tracing::info!(index, "loading the cast again for another audio track");
+        self.start(load, true);
+    }
+
+    fn start(&self, load: CastLoad, quiet: bool) {
         {
             let mut state = lock(&self.inner.state);
             state.trying = true;
@@ -479,6 +567,9 @@ impl CastPlayer {
             state.ended = false;
             state.failure = None;
             state.loaded = None;
+            state.step = Some(CastStep::Preparing);
+            state.since = Some(Instant::now());
+            state.asked = Some(load.clone());
         }
         self.inner.publish();
         let inner = Arc::clone(&self.inner);
@@ -487,10 +578,14 @@ impl CastPlayer {
             let speed = {
                 let mut state = lock(&inner.state);
                 state.trying = false;
+                state.step = None;
+                state.since = None;
                 match outcome {
                     Ok(plan) => {
                         tracing::info!(route = ?plan.route, delivery = ?plan.delivery, "cast playing");
                         state.plan = Some(plan);
+                        // The same file where it was, for the session: no new `Loaded`.
+                        state.reloading = quiet;
                         // The status that confirmed it is the session's first.
                         if let Some(last) = state.last.clone() {
                             apply(&inner, &mut state, &last);
@@ -533,6 +628,13 @@ impl CastPlayer {
         let reload = {
             let mut state = lock(&self.inner.state);
             let position = state.last.as_ref().map(|s| s.position);
+            if let Some(asked) = state.asked.as_mut() {
+                asked.subtitles.push(CastSubtitle {
+                    path: path.to_owned(),
+                    title: track_title(&track),
+                    language: track_language(&track),
+                });
+            }
             let reload = state.load.as_mut().map(|load| {
                 let mut track = track.clone();
                 track.id = u32::try_from(load.tracks.len() + 1).unwrap_or(u32::MAX);
@@ -540,6 +642,16 @@ impl CastPlayer {
                 load.start = position.or(load.start);
                 load.clone()
             });
+            if let Some(load) = &reload
+                && let Some(added) = load.tracks.last()
+            {
+                state.subtitles.push(CastText {
+                    id: added.id,
+                    language: track_language(added),
+                    title: track_title(added),
+                    selected: false,
+                });
+            }
             if reload.is_some() && !state.trying {
                 state.reloading = true;
             }
@@ -634,6 +746,11 @@ impl CastPlayer {
 
     /// Show the text track `id` (1-based, as loaded), or none.
     pub async fn set_subtitle(&self, id: Option<u32>) -> Result<(), CastError> {
+        {
+            let mut state = lock(&self.inner.state);
+            state.subtitle = id.filter(|id| state.subtitles.iter().any(|t| t.id == *id));
+        }
+        self.inner.publish();
         let Some(media) = self.inner.media() else { return Ok(()) };
         let ids: Vec<u32> = id.into_iter().collect();
         answered(async move { media.active_tracks(&ids).await.map(|_| ()) }).await
@@ -795,6 +912,9 @@ async fn media_info(setup: &CastSetup, load: &CastLoad) -> (MediaInfo, probe::Co
         SourceKind::DeepLink => MediaInfo::default(),
     };
     info.choose_language(load.audio_language.as_deref());
+    if let Some(index) = load.audio_track.filter(|i| *i < info.audio.len()) {
+        info.audio_choice = index;
+    }
     (info, probe)
 }
 
@@ -879,6 +999,7 @@ async fn attempt(inner: &Arc<Inner>, load: CastLoad) -> Result<CastPlan, CastFai
     let caps = setup.memory.caps(&setup.device.id);
     let plans = cast_plans(&load.source, &info, &caps, &cors, setup.encoder.as_ref())?;
     tracing::info!(plans = plans.len(), video = ?info.video, "casting");
+    let audio = audio_choices(setup, &load, &info, &cors);
 
     // The text tracks, once for every plan.
     lock(&inner.resources.texts).clear();
@@ -896,6 +1017,21 @@ async fn attempt(inner: &Arc<Inner>, load: CastLoad) -> Result<CastPlan, CastFai
         .filter(|id| tracks.iter().any(|t| t.id == *id))
         .into_iter()
         .collect();
+    {
+        let mut state = lock(&inner.state);
+        state.audio = audio;
+        state.subtitles = tracks
+            .iter()
+            .map(|t| CastText {
+                id: t.id,
+                language: track_language(t),
+                title: track_title(t),
+                selected: false,
+            })
+            .collect();
+        state.subtitle = active.first().copied();
+    }
+    inner.publish();
 
     // A clip's refusal, when it is what ended the last plan that could be made.
     let mut why = None;
@@ -905,6 +1041,7 @@ async fn attempt(inner: &Arc<Inner>, load: CastLoad) -> Result<CastPlan, CastFai
         if plan.parts().iter().any(|part| caps.refused(part)) {
             continue;
         }
+        step(inner, CastStep::Waiting);
         if plan.wants_clip()
             && !caps.played(&plan.video_part())
             && let Some(clip) = clip(&plan.video, plan.height)
@@ -913,9 +1050,11 @@ async fn attempt(inner: &Arc<Inner>, load: CastLoad) -> Result<CastPlan, CastFai
             why = Some(Uncastable::VideoCodec(plan.video.to_string()));
             continue;
         }
+        step(inner, CastStep::Preparing);
         let Some((url, content_type)) = stage(inner, &load, &info, &plan).await else {
             continue;
         };
+        step(inner, CastStep::Waiting);
         let cast = Load {
             url,
             content_type,
@@ -958,6 +1097,64 @@ async fn attempt(inner: &Arc<Inner>, load: CastLoad) -> Result<CastPlan, CastFai
     let caps = setup.memory.caps(&setup.device.id);
     cast_plans(&load.source, &info, &caps, &cors, setup.encoder.as_ref())?;
     Err(why.map_or(CastFailure::Refused, CastFailure::Uncastable))
+}
+
+/// Say what a load not yet playing is doing.
+fn step(inner: &Inner, step: CastStep) {
+    let changed = {
+        let mut state = lock(&inner.state);
+        let changed = state.step != Some(step);
+        state.step = Some(step);
+        changed
+    };
+    if changed {
+        inner.publish();
+    }
+}
+
+/// The audio tracks of `info` the card offers, each one the TV could be given: only a file the
+/// relay remuxes can change its audio, and only when it has more than one.
+fn audio_choices(
+    setup: &CastSetup,
+    load: &CastLoad,
+    info: &MediaInfo,
+    cors: &probe::CorsProbe,
+) -> Vec<CastAudio> {
+    if info.container != Some(Delivery::Mkv) || info.audio.len() < 2 {
+        return Vec::new();
+    }
+    let caps = setup.memory.caps(&setup.device.id);
+    info.audio
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| {
+            let info = MediaInfo { audio_choice: *index, ..info.clone() };
+            cast_plans(&load.source, &info, &caps, cors, setup.encoder.as_ref()).is_ok_and(
+                |plans| plans.iter().any(|p| p.route == CastRoute::Relayed { remux: true }),
+            )
+        })
+        .map(|(index, track)| CastAudio {
+            index,
+            language: track.language.clone(),
+            codec: track.codec.as_ref().map(ToString::to_string),
+            channels: track.channels,
+            selected: index == info.audio_choice,
+        })
+        .collect()
+}
+
+/// A text track's language as the file named it, `None` for "und".
+fn track_language(track: &TextTrack) -> Option<String> {
+    Some(track.language.clone()).filter(|l| !l.is_empty() && l != "und")
+}
+
+/// A text track's own name, when it is more than its language or a number.
+fn track_title(track: &TextTrack) -> Option<String> {
+    Some(track.name.clone()).filter(|name| {
+        !name.is_empty()
+            && Some(name) != track_language(track).as_ref()
+            && !name.starts_with("Subtitles ")
+    })
 }
 
 /// Ask the TV whether it decodes `plan`'s picture with `clip`, before a file whose sound would
