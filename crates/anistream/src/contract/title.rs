@@ -324,7 +324,10 @@ async fn an_unsure_match_is_asked_about_and_the_answer_sticks_until_cleared() {
     let mut h = harness(unsure()).await;
     let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["MatchChoices", "JobDone"]);
+    assert_eq!(names(&updates), ["MatchChoices", "Episodes", "Toast", "JobDone"]);
+    // AniList's table, so the page leaves loading while the match is asked about.
+    let Event::Episodes { rows, failed: None, .. } = &updates[1] else { unreachable!() };
+    assert!(rows.iter().all(|row| row.metadata_only), "{rows:?}");
     let Event::MatchChoices { id, provider_id, candidates } = &updates[0] else {
         unreachable!()
     };
@@ -351,7 +354,7 @@ async fn an_unsure_match_is_asked_about_and_the_answer_sticks_until_cleared() {
     // Cleared: forgotten, and asked again.
     let job = h.send(Command::ClearMatch { id: FINISHED });
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["MatchChoices", "JobDone"]);
+    assert_eq!(names(&updates), ["MatchChoices", "Episodes", "Toast", "JobDone"]);
     ends(&updates, job);
     assert!(h.store().lookup_mapping(FINISHED, sources::PROVIDER_ID).unwrap().is_none());
 }
@@ -432,6 +435,7 @@ async fn a_search_in_your_own_words_offers_ranked_choices() {
     let job = h.send(Command::ManualSearch { id: FINISHED, query: "tabibito".into() });
     let updates = h.settle().await;
 
+    // No AniList table here: the page already has one, from a source or from AniList.
     assert_eq!(names(&updates), ["MatchChoices", "JobDone"]);
     let Event::MatchChoices { id, provider_id, candidates } = &updates[0] else {
         unreachable!()
