@@ -133,7 +133,7 @@ const SCREEN_KEYS: &[&str] = &[
 fn nothing_behind_help_or_logs_changes_or_saves_a_setting() {
     // Behind `?` and `L` on Settings the arrows changed the highlighted setting and wrote it to
     // config.toml.
-    for overlay in ["?", "L"] {
+    for overlay in ["?", "!"] {
         let mut a = at_settings();
         let config = format!("{:?}", a.settings);
         press(&mut a, &[overlay]);
@@ -155,7 +155,7 @@ fn an_empty_log_does_not_pass_movement_to_the_rail() {
     let mut a = app();
     a.go_to_section(Section::Calendar);
     a.nav.focus_rail();
-    press(&mut a, &["L", "j", "j", "G"]);
+    press(&mut a, &["!", "j", "j", "G"]);
     assert_eq!(a.nav.section(), Section::Calendar, "the rail moved behind the log");
     assert_eq!(a.nav.overlay(), Some(&Overlay::Logs));
 }
@@ -175,7 +175,7 @@ fn every_question_overlay_swallows_keys_that_are_not_its_own() {
         a.apply(a.content_here(entries(5)));
         a.nav.focus_stage();
         a.nav.open_overlay(overlay.clone());
-        let tasks = press(&mut a, &["5", "e", "/", ":", "x", "tab", "r", "L"]);
+        let tasks = press(&mut a, &["5", "e", "/", ":", "x", "tab", "r", "!"]);
         assert!(tasks.is_empty(), "{overlay:?}: {tasks:?}");
         assert_eq!(a.nav.overlay(), Some(&overlay), "{overlay:?} lost the keyboard");
         assert_eq!(a.nav.section(), Section::Home);
@@ -235,14 +235,14 @@ fn help_and_logs_let_the_going_somewhere_keys_through() {
     assert_eq!(a.nav.section(), Section::Search);
     assert_eq!(a.nav.overlay(), None);
 
-    press(&mut a, &["esc", "L", "3"]);
+    press(&mut a, &["esc", "!", "3"]);
     assert_eq!(a.nav.section(), Section::Seasonal);
     assert_eq!(a.nav.overlay(), None);
 
     // The same key again closes either.
     press(&mut a, &["?", "?"]);
     assert_eq!(a.nav.overlay(), None);
-    press(&mut a, &["L", "L"]);
+    press(&mut a, &["!", "!"]);
     assert_eq!(a.nav.overlay(), None);
 }
 
@@ -411,7 +411,7 @@ fn logs_scroll_with_the_highlight() {
     for i in 0..40 {
         a.push_toast(anistream_tui::app::info(format!("line {i}")));
     }
-    press(&mut a, &["L"]);
+    press(&mut a, &["!"]);
     for _ in 0..30 {
         press(&mut a, &["j"]);
         let text = text_of(&render_to_buffer(&mut a, 80, 24));
@@ -440,7 +440,7 @@ fn identical_log_lines_merge_into_one_with_a_count() {
     a.push_toast(anistream_tui::app::info("something else"));
     assert_eq!(a.logs.len(), 2);
     assert_eq!(a.logs[0].count, 25);
-    press(&mut a, &["L"]);
+    press(&mut a, &["!"]);
     let text = text_of(&render_to_buffer(&mut a, 80, 24));
     let line = text.lines().find(|l| l.contains("cover unavailable")).unwrap();
     assert!(line.contains("×25"), "{line}");
@@ -679,7 +679,7 @@ fn the_palette_opens_on_its_first_row_wherever_the_overlay_before_it_was_left() 
         a.push_toast(anistream_tui::app::info(format!("line {i}")));
     }
     // Logs at its oldest line, drawn, so its window has scrolled down to it.
-    press(&mut a, &["L", "G"]);
+    press(&mut a, &["!", "G"]);
     assert!(a.overlay_cursor() > 0);
     render_to_buffer(&mut a, 80, 24);
     assert!(a.overlay_offset() > 0, "Logs' window never left its top");
