@@ -6,6 +6,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import AppKit
 import SwiftUI
 
@@ -42,8 +43,14 @@ private struct HoverCardSource: ViewModifier {
                 asRow ? [:] : [entry.id: bounds]
             }
             // What the card shows, for VoiceOver, which never opens it.
-            .accessibilityCustomContent(Text(L.accessHoverFacts), entry.hoverFacts.isEmpty ? nil : Text(entry.hoverFacts))
-            .accessibilityCustomContent(Text(L.accessHoverSynopsis), entry.shownSynopsis.isEmpty ? nil : Text(entry.shownSynopsis))
+            .accessibilityCustomContent(
+                AccessibilityCustomContentKey(Text(L.accessHoverFacts), id: "hover-facts"),
+                entry.hoverFacts.isEmpty ? nil : Text(entry.hoverFacts)
+            )
+            .accessibilityCustomContent(
+                AccessibilityCustomContentKey(Text(L.accessHoverSynopsis), id: "hover-synopsis"),
+                entry.shownSynopsis.isEmpty ? nil : Text(entry.shownSynopsis)
+            )
     }
 }
 
