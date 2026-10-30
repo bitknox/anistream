@@ -100,11 +100,7 @@ sealed class SourcePickerDialog
             picker.silence.Start();
         try
         {
-            await picker.dialog.ShowAsync();
-        }
-        catch (Exception)
-        {
-            // Another dialog is open: one at a time.
+            await Dialogs.Show(picker.dialog);
         }
         finally
         {

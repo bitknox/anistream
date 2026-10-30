@@ -290,10 +290,9 @@ sealed class TorrentDialog
         var turningOn = purpose == Purpose.TurnOn;
         while (true)
         {
-            var open = dialog.dialog.ShowAsync();
-            shown?.Invoke(dialog);
+            var then = shown;
             shown = null;
-            var result = await open;
+            var result = await Dialogs.Show(dialog.dialog, then is null ? null : () => then(dialog));
             if (dialog.saved is { } done)
                 return done;
             // A proxy is only ever saved by its check, above.
