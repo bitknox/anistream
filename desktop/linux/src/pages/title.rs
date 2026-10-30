@@ -87,6 +87,30 @@ struct Page {
     content: gtk::Box,
 }
 
+/// The tag a title's page carries in the navigation stack: one page per title.
+pub fn tag(id: AnilistId) -> String {
+    format!("title-{}", id.get())
+}
+
+/// How opening a title meets the stack, bottom to top by tag.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Reach {
+    /// Not in the stack: a new page.
+    Push,
+    /// Already on top.
+    Stay,
+    /// Further down: back to it, rather than a second page of the same title.
+    PopTo,
+}
+
+pub fn reach(stack: &[Option<String>], tag: &str) -> Reach {
+    match stack.iter().rposition(|t| t.as_deref() == Some(tag)) {
+        None => Reach::Push,
+        Some(at) if at + 1 == stack.len() => Reach::Stay,
+        Some(_) => Reach::PopTo,
+    }
+}
+
 pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     let entry = ctx.hub.entry(id);
     // Nothing in the header until the title is known, rather than a word standing in for it.
@@ -183,7 +207,8 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     view.add_top_bar(&widgets::offline_banner());
     view.set_extend_content_to_top_edge(true);
     view.set_content(Some(&scroll));
-    let navigation = adw::NavigationPage::builder().title(&title).child(&view).build();
+    let navigation =
+        adw::NavigationPage::builder().title(&title).tag(tag(id)).child(&view).build();
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
@@ -1139,5 +1164,25 @@ mod tests {
             row("4", false, true),
         ];
         assert_eq!(unwatched(&rows), ["1", "3"]);
+    }
+}
+
+#[cfg(test)]
+mod stack_tests {
+    use super::*;
+
+    #[test]
+    fn a_title_already_in_the_stack_is_not_stacked_again() {
+        let id = AnilistId::new(900_002);
+        let at = |tags: &[&str]| -> Vec<Option<String>> {
+            tags.iter().map(|t| Some((*t).to_owned())).collect()
+        };
+        assert_eq!(reach(&at(&["title-900001"]), &tag(id)), Reach::Push);
+        assert_eq!(reach(&at(&["title-900001", "title-900002"]), &tag(id)), Reach::Stay);
+        assert_eq!(
+            reach(&at(&["title-900002", "title-900001", "title-900003"]), &tag(id)),
+            Reach::PopTo
+        );
+        assert_eq!(reach(&[], &tag(id)), Reach::Push);
     }
 }
