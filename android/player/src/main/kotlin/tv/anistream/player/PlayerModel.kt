@@ -153,6 +153,15 @@ class PlayerModel(
     private var windowFinished = false
 
     /**
+     * The app asked the engine to play, and the player is not up yet: Back now is the viewer
+     * leaving before it opened, which [backBeforeShown] takes, as the player's own screen is not
+     * there to.
+     */
+    var playAsked by mutableStateOf(false)
+        private set
+    private var askedWait: kotlinx.coroutines.Job? = null
+
+    /**
      * A playback has been staged that has said nothing yet: the one on screen, if any, is older,
      * and stopping is for the staged one, which only a Stop for whatever plays reaches.
      */
@@ -385,6 +394,7 @@ class PlayerModel(
                     send(Command.Player(PlayerCommand.Stop))
                     return
                 }
+                notAsked()
                 closedByViewer = false
                 stagedAhead = true
                 failure = null
@@ -423,9 +433,14 @@ class PlayerModel(
             // The playback staged found nothing; the one before plays on.
             Event.PlaybackKept -> starting = null
             // The alerts that come while the player is up: the one before a failed ending says why.
-            is Event.Toast -> if (isPresented && event.v1.kind == NoticeKind.ALERT) {
-                failedWith = event.v1.text
-                failedMsg = event.v1.msg
+            is Event.Toast -> if (event.v1.kind == NoticeKind.ALERT) {
+                if (isPresented) {
+                    failedWith = event.v1.text
+                    failedMsg = event.v1.msg
+                } else {
+                    // The play asked for failed before it was staged: nothing is opening.
+                    notAsked()
+                }
             }
             else -> {}
         }
@@ -691,6 +706,44 @@ class PlayerModel(
     /** The app's window is starting: a playback staged from now on has somewhere to show. */
     fun hostStarted() {
         windowFinished = false
+    }
+
+    /**
+     * The app asked the engine to play. Until the engine stages it, or for
+     * [PlayerTiming.ASKED_WAIT] should it never, Back stops it: see [backBeforeShown].
+     */
+    fun asked() {
+        windowFinished = false
+        playAsked = true
+        askedWait?.cancel()
+        askedWait = scope.launch {
+            delay(PlayerTiming.ASKED_WAIT)
+            playAsked = false
+        }
+    }
+
+    /**
+     * Back that no screen of the player's took: a Play asked for whose player is not up yet, or one
+     * that came up a moment before its screen was drawn. A player that is up closes, as its own
+     * Back does, and the app stays (true). One not up yet is stopped, and so is a playback staged
+     * for it later, as the app goes behind (false): the Back is the system's then.
+     * On Android 12 and later that Back does not finish the activity, so [hostFinished] never runs.
+     */
+    fun backBeforeShown(): Boolean {
+        note("back before the player was drawn: ${if (isPresented) "closing it" else "stopping the play asked for"}")
+        notAsked()
+        if (isPresented) {
+            viewerClosed()
+            return true
+        }
+        hostFinished()
+        return false
+    }
+
+    private fun notAsked() {
+        playAsked = false
+        askedWait?.cancel()
+        askedWait = null
     }
 
     /**

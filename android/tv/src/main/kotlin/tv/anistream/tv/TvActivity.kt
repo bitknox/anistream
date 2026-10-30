@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.FrontIntent
 import tv.anistream.engine.model.RemoteKey
+import tv.anistream.player.takeBackBeforeShown
 import tv.anistream.store.AirTime
 import tv.anistream.store.AppStore
 import tv.anistream.tv.home.parsePlayLink
@@ -41,6 +42,8 @@ class TvActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         app.player.hostStarted()
+        // Back a moment after Play, before the player's screen is there to take it.
+        takeBackBeforeShown(app.player)
         AirTime.twentyFourHour = DateFormat.is24HourFormat(this)
         app.start(Flavour.launch(this, intent))
         app.attachUpdater(intent)
@@ -177,6 +180,12 @@ class TvActivity : ComponentActivity() {
         // Back a moment after Play: the engine has not opened the player yet, and must not.
         if (isFinishing) app.player.hostFinished()
         super.onDestroy()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Back to the app after a Back put it behind: a play from here has somewhere to show.
+        app.player.hostStarted()
     }
 
     override fun onResume() {

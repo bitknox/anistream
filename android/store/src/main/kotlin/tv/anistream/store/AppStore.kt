@@ -163,6 +163,9 @@ class AppStore(
     /** The playback's events, for the player the app hosts: its ops and interface. */
     var onPlayback: ((Event) -> Unit)? = null
 
+    /** A play was asked of the engine here, for the player to know one is on its way. */
+    var onPlayAsked: (() -> Unit)? = null
+
     /** What a phone's remote asks of a TV's front end, once the TV started its remote. */
     var onRemote: ((FrontIntent) -> Unit)? = null
 
@@ -281,6 +284,9 @@ class AppStore(
      * while it starts, the command waits and is sent once it has.
      */
     fun send(command: Command): JobId? {
+        if (command is Command.Play || command is Command.PlaySource || command is Command.PlayLocal || command is Command.PlayParty) {
+            onPlayAsked?.invoke()
+        }
         val client = client
         if (client == null) {
             if (_phase.value == Phase.Starting) early += command
