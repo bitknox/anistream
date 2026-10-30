@@ -179,6 +179,23 @@ struct HoverIntentTests {
         #expect(events.filter { $0 == .close }.isEmpty, "it never closes and opens again")
     }
 
+    @Test func theCardStaysClearOfAnOpenFiltersPanel() throws {
+        // Search with its 340 pt filters panel open: the results take the width beside it, and
+        // the area the card stays inside ends where the panel starts.
+        let panelEdge: CGFloat = 1216 - 340
+        let beside = HoverLayout(
+            covers: layout.covers.filter { $0.rect.maxX <= panelEdge },
+            area: CGRect(x: 0, y: 0, width: panelEdge, height: 600)
+        )
+        let last = try #require(beside.covers.filter { $0.rect.minY == 20 }.max { $0.rect.minX < $1.rect.minX })
+        var intent = HoverIntent()
+        intent.move(CGPoint(x: last.rect.midX, y: last.rect.midY), at: 0)
+        for step in 0...50 { _ = intent.step(at: Double(step) * 0.01, layout: beside) }
+        let frame = try #require(intent.open?.frame)
+        #expect(intent.open?.id == last.id)
+        #expect(frame.maxX == panelEdge - HoverCardSize.inset)
+    }
+
     @Test func leavingTheGridClosesIt() {
         var intent = HoverIntent()
         _ = rest(&intent, at: centre(3), from: 0, to: 0.5)

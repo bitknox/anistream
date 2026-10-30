@@ -33,9 +33,10 @@ extension View {
     }
 
     /// The hover card layer, over a scroll view of covers (Continue's, Seasonal, Search and the
-    /// Library).
-    func hoverCards() -> some View {
-        modifier(HoverCardLayer())
+    /// Library). `trailing` is what a panel at the trailing edge covers, as Search's filters do:
+    /// the card stays clear of it, and a cover under it opens nothing.
+    func hoverCards(trailing: CGFloat = 0) -> some View {
+        modifier(HoverCardLayer(trailing: trailing))
     }
 }
 
@@ -189,6 +190,9 @@ private struct HoverCardLayer: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
 
+    /// What a panel at the trailing edge covers.
+    let trailing: CGFloat
+
     @State private var cards = HoverCards()
     @State private var trailer = HoverTrailer.shared
     @State private var monitor: Any?
@@ -204,7 +208,8 @@ private struct HoverCardLayer: ViewModifier {
         content
             .overlayPreferenceValue(HoverCoverAnchors.self) { anchors in
                 GeometryReader { proxy in
-                    let visible = CGRect(origin: .zero, size: proxy.size)
+                    // The part no panel covers: the card stays inside it.
+                    let visible = CGRect(x: 0, y: 0, width: max(0, proxy.size.width - trailing), height: proxy.size.height)
                     // Only the covers on screen: a lazy stack keeps some laid out past the edge.
                     let covers = anchors.map { anchor in
                         let cell = proxy[anchor.bounds]
@@ -212,7 +217,7 @@ private struct HoverCardLayer: ViewModifier {
                     }
                     .filter { $0.rect.intersects(visible) }
                     let place = Place(covers: covers.sorted { ($0.rect.minY, $0.rect.minX) < ($1.rect.minY, $1.rect.minX) },
-                                      size: proxy.size, origin: proxy.frame(in: .global).origin)
+                                      area: visible, origin: proxy.frame(in: .global).origin)
                     ZStack(alignment: .topLeading) {
                         Color.clear
                         if let card = cards.card, let entry = store.titles[card.id] {
@@ -225,7 +230,7 @@ private struct HoverCardLayer: ViewModifier {
                         cards.origin = place.origin
                         cards.layout = HoverLayout(
                             covers: place.covers,
-                            area: CGRect(origin: .zero, size: place.size),
+                            area: place.area,
                             height: { [store, navigator] id in store.hoverCardHeight(id, handedOff: navigator.handedOff) },
                             toggle: { [store] id in store.titles[id].map { store.trailerMayAutoplay($0) } ?? false }
                         )
@@ -284,7 +289,7 @@ private struct HoverCardLayer: ViewModifier {
     /// The grid as one value, so the layer hears of it only when it moved.
     private struct Place: Equatable {
         let covers: [HoverCover]
-        let size: CGSize
+        let area: CGRect
         let origin: CGPoint
     }
 
