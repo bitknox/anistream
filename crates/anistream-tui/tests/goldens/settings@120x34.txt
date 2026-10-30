@@ -27,9 +27,9 @@ anistream                                                                       
                             │    Keep seeding                Off
                             │    After each download         None
                             │
-                            │  Sources  ─────────────────────────────────────────────────────────────────────────────
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    Adapts to the video and your graphics card. Applies from the next episode.
+                            │
 ─────────────────────────────────────────────────────────────────────────────── ▌ Using dubbed audio for this session. ─
 config.toml line 12: unknown field `playbak` — using the defaults until it is fixed                  h/l change   ? keys
 === styles ===
@@ -138,12 +138,10 @@ r27 c33-51 fg=text-dim
 r27 c61-64 fg=text
 r28 c28-28 fg=rule
 r29 c28-28 fg=rule
-r29 c31-37 fg=text
-r29 c40-116 fg=rule
+r29 c31-117 fg=rule
 r30 c28-28 fg=rule
-r30 c31-117 fg=rule
+r30 c33-106 fg=text-dim
 r31 c28-28 fg=rule
-r31 c33-106 fg=text-dim
 r32 c00-78 fg=rule
 r32 c79-79 fg=text
 r32 c80-80 fg=state

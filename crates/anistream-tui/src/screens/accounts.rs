@@ -13,7 +13,7 @@ use crate::{
         Role,
         glyph::{self, OBI},
     },
-    widgets::{Hairline, truncate},
+    widgets::{Hairline, truncate, wrap},
 };
 
 use super::{
@@ -208,16 +208,20 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
         if let Some(PullError { reason: error, at }) = &state.pull_error
             && y < area.bottom().saturating_sub(2)
         {
-            buf.set_string(
-                area.left() + 16,
-                y,
-                truncate(
-                    &pull_failed(&app.clock, *at, error),
-                    area.right().saturating_sub(area.left() + 17) as usize,
-                ),
-                app.palette.style(Role::Alert),
-            );
-            y += 1;
+            // Wrapped, two lines at most: the reason is the part worth reading, and it comes last.
+            let width = area.right().saturating_sub(area.left() + 17) as usize;
+            for text in wrap(&pull_failed(&app.clock, *at, error), width, 2) {
+                if y >= area.bottom().saturating_sub(2) {
+                    break;
+                }
+                buf.set_string(
+                    area.left() + 16,
+                    y,
+                    truncate(&text, width),
+                    app.palette.style(Role::Alert),
+                );
+                y += 1;
+            }
         }
     }
 
@@ -226,13 +230,19 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
     // per row that reads as three failures.
     if app.sync.iter().any(|s| s.storage_degraded) && y + 1 < area.bottom() {
         y += 1;
-        buf.set_string(
-            area.left() + 2,
-            y,
-            truncate(&t::accounts_token_files(), area.width.saturating_sub(4) as usize),
-            app.palette.style(Role::TextDim),
-        );
-        y += 1;
+        let width = area.width.saturating_sub(4) as usize;
+        for text in wrap(&t::accounts_token_files(), width, 2) {
+            if y >= area.bottom() {
+                break;
+            }
+            buf.set_string(
+                area.left() + 2,
+                y,
+                truncate(&text, width),
+                app.palette.style(Role::TextDim),
+            );
+            y += 1;
+        }
     }
 
     // What Enter will do to the selected row, spelled out — signing out is destructive enough that

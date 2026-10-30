@@ -131,7 +131,7 @@ const SCREEN_KEYS: &[&str] = &[
 
 #[test]
 fn nothing_behind_help_or_logs_changes_or_saves_a_setting() {
-    // Behind `?` and `L` on Settings the arrows changed the highlighted setting and wrote it to
+    // Behind `?` and `!` on Settings the arrows changed the highlighted setting and wrote it to
     // config.toml.
     for overlay in ["?", "!"] {
         let mut a = at_settings();

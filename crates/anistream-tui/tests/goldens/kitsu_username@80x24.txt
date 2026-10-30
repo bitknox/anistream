@@ -10,8 +10,8 @@ anistream           torrent ○  plugins ●  ·  anilist ⇅ 3  kitsu ○  mal 
 ────────────────────────────────────────────────────────────────────────────────
   Email or user name. Enter continues, Esc cancels.
 
-   │
-   │
+   │  ────────────────────────────────────────────────────────────────────────
+   │    ↵ Sign in
    │
    │
    │

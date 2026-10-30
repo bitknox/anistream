@@ -27,9 +27,9 @@ anistream                                                                       
                             │    Keep seeding                Off
                             │    After each download         None
                             │
-                            │  Sources  ─────────────────────────────────────────────────────────────────────────────
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    Press Enter to type a language code. There are too many values to cycle through.
+                            │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · Subbed · 1080p                                                                             ↵ save   esc cancel
 === styles ===

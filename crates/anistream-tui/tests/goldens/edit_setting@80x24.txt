@@ -17,9 +17,9 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │    Mark opening and ending     On
    │    Show skip button            On
    │    Start in full screen        Off
-   │    Upscaling                   Natural · ArtCNN
    │  ────────────────────────────────────────────────────────────────────────
-   │    Press Enter to type a language code. There are too many values to c…
+   │    Press Enter to type a language code. There are too many values to
+   │    cycle through.
 ────────────────────────────────────────────────────────────────────────────────
 plugins · Subbed · 1080p                                     ↵ save   esc cancel
 === styles ===
