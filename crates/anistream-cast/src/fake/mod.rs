@@ -87,6 +87,9 @@ pub struct FakeOptions {
     pub fetches: bool,
     /// How long the receiver app takes to come up after `LAUNCH`: 3 to 6.5 s on a real TV.
     pub launch: Duration,
+    /// Plays a stream it can't fetch as though it had read it, for `duration`: for an app's
+    /// fixtures, whose episodes are test patterns only mpv draws (`av://lavfi:…`).
+    pub plays_unfetched: bool,
 }
 
 impl Default for FakeOptions {
@@ -98,8 +101,18 @@ impl Default for FakeOptions {
             control: "attenuation",
             fetches: true,
             launch: Duration::ZERO,
+            plays_unfetched: false,
         }
     }
+}
+
+/// The `_googlecast._tcp` TXT record a fixture finds a fake under, as a TV with Chromecast built
+/// in sends it: its id, its friendly name, its model and the video-out capability bit.
+pub fn advert_txt(id: &str, name: &str, model: &str) -> Vec<(String, String)> {
+    [("id", id), ("fn", name), ("md", model), ("ca", "4101")]
+        .into_iter()
+        .map(|(k, v)| (k.to_owned(), v.to_owned()))
+        .collect()
 }
 
 /// One fetch the fake made: the URL, its status, the body's length, and whether the answer
@@ -376,6 +389,10 @@ async fn serve(
                                     options.refuse.how.filter(|_| matched && !(options.refuse.sound_alone && sound && !hls))
                                 }
                             }
+                            Err(_) if options.plays_unfetched => options
+                                .refuse
+                                .how
+                                .filter(|_| options.refuse.content_types.contains(&content_type)),
                             Err(_) => Some(Refusal::LoadFailed),
                         };
                         if refused == Some(Refusal::LoadFailed) {

@@ -719,3 +719,41 @@ fn subtitles_become_webvtt() {
     assert!(!vtt.contains("\n1\n"));
     assert_eq!(to_webvtt("WEBVTT\n\nx", None), "WEBVTT\n\nx");
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_fixtures_test_pattern_plays_on_a_fake_that_plays_what_it_cant_fetch() {
+    let receiver = FakeReceiver::start(FakeOptions {
+        plays_unfetched: true,
+        duration: 1440.0,
+        ..FakeOptions::default()
+    })
+    .await
+    .unwrap();
+    let (player, mut events) = CastPlayer::connect(setup(
+        &receiver,
+        Arc::new(CastMemory::memory()),
+        Arc::new(NoEncoder),
+    ))
+    .await
+    .unwrap();
+    let url = "av://lavfi:testsrc=duration=1440:size=320x240:rate=30".to_owned();
+    let mut load = torrent(url.clone());
+    load.source.kind = SourceKind::Progressive;
+    player.load(load);
+    assert_eq!(next(&mut events, |e| *e == PlaybackEvent::Loaded).await, PlaybackEvent::Loaded);
+    assert_eq!(
+        receiver.heard("LOAD")[0]["media"]["contentId"],
+        url.as_str(),
+        "direct, as it came"
+    );
+    assert_eq!(player.failure(), None);
+}
+
+#[test]
+fn a_fixtures_advert_reads_as_a_tv_with_a_screen() {
+    let address = "127.0.0.1:8009".parse().unwrap();
+    let txt = crate::fake::advert_txt("fake-1", "Living room", "Chromecast");
+    let device = CastDevice::from_txt("Chromecast-fake-1", address, &txt).unwrap();
+    assert_eq!((device.name.as_str(), device.id.as_str()), ("Living room", "fake-1"));
+    assert!(device.shown());
+}
